@@ -8,11 +8,7 @@
 
 **CURRENTLY IN DEVELOPMENT!!**
 
-## Prebuilt Windows Binaries
-
-Go to https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml to get an artifact.
-
-## Build From Source
+## Build From Source (Linux)
 
 First clone the repository
 
@@ -27,13 +23,17 @@ cd pocketpy
 python3 amalgamate.py
 ```
 
-It will generate `pocketpy.h` and `main.cpp` in `amalgamate/` directory. You can use `main.cpp` to build a REPL console or use `pocketpy.h` only to embed it to your game engine.
+It will generate `pocketpy.h` and `main.cpp` in `amalgamated/` directory. You can use `main.cpp` to build a REPL console or use `pocketpy.h` only to embed it to your game engine.
 
 **If you want to do development:**
 
 ```bash
 g++ -o pocketpy src/main.cpp --std=c++17 -O1
 ```
+
+## Prebuilt Windows Binaries
+
+Go to https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml to get an artifact.
 
 ## Reference
 
