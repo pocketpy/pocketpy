@@ -32,7 +32,7 @@ It will generate `pocketpy.h` and `main.cpp` in `amalgamate/` directory. You can
 **If you want to do development:**
 
 ```bash
-bash build_cpp.sh
+g++ -o pocketpy src/main.cpp --std=c++17 -O1
 ```
 
 ## Reference
