@@ -26,7 +26,7 @@ constexpr const char* __TOKENS[] = {
 
 const _TokenType __TOKENS_LEN = sizeof(__TOKENS) / sizeof(__TOKENS[0]);
 
-constexpr _TokenType __tokenIndex(const char* token) {
+constexpr _TokenType TK(const char* const token) {
     for(int k=0; k<__TOKENS_LEN; k++){
         const char* i = __TOKENS[k];
         const char* j = token;
@@ -38,12 +38,10 @@ constexpr _TokenType __tokenIndex(const char* token) {
     return 0;
 }
 
-
-#define TK(s) __tokenIndex(s)
 #define TK_STR(t) __TOKENS[t]
 
-const _TokenType __KW_BEGIN = __tokenIndex("class");
-const _TokenType __KW_END = __tokenIndex("raise");
+const _TokenType __KW_BEGIN = TK("class");
+const _TokenType __KW_END = TK("raise");
 
 const std::unordered_map<std::string_view, _TokenType> __KW_MAP = [](){
     std::unordered_map<std::string_view, _TokenType> map;

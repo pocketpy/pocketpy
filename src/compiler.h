@@ -72,39 +72,39 @@ public:
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
-#define NO_INFIX PREC_NONE
-        for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, nullptr, PREC_NONE };
-        rules[TK(".")] = { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
-        rules[TK("(")] = { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
-        rules[TK("[")] = { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
-        rules[TK("{")] = { METHOD(exprMap),       nullptr,                    NO_INFIX };
-        rules[TK("%")] = { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("+")] = { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK("-")] = { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK("*")] = { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("/")] = { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("//")] = { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("**")] = { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
-        rules[TK(">")] = { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("<")] = { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("==")] = { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
-        rules[TK("!=")] = { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
-        rules[TK(">=")] = { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("<=")] = { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("lambda")] = { METHOD(exprLambda),    nullptr,                    NO_INFIX };
-        rules[TK("None")] = { METHOD(exprValue),     nullptr,                    NO_INFIX };
-        rules[TK("in")] = { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("is")] = { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("not in")] = { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("is not")] = { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("and")] = { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
-        rules[TK("or")] = { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
-        rules[TK("not")] = { METHOD(exprUnaryOp),   nullptr,                    PREC_UNARY };
-        rules[TK("True")] = { METHOD(exprValue),     nullptr,                    NO_INFIX };
-        rules[TK("False")] = { METHOD(exprValue),     nullptr,                    NO_INFIX };
-        rules[TK("@id")] = { METHOD(exprName),      nullptr,                    NO_INFIX };
-        rules[TK("@num")] = { METHOD(exprLiteral),   nullptr,                    NO_INFIX };
-        rules[TK("@str")] = { METHOD(exprLiteral),   nullptr,                    NO_INFIX };
+#define NO_INFIX nullptr, PREC_NONE
+        for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, NO_INFIX };
+        rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
+        rules[TK("(")] =    { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
+        rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
+        rules[TK("{")] =    { METHOD(exprMap),       NO_INFIX };
+        rules[TK("%")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("+")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
+        rules[TK("-")] =    { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
+        rules[TK("*")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("/")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("//")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("**")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
+        rules[TK(">")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("<")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("==")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
+        rules[TK("!=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
+        rules[TK(">=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("<=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("is")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
+        rules[TK("or")] =       { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
+        rules[TK("not")] =      { METHOD(exprUnaryOp),   nullptr,                    PREC_UNARY };
+        rules[TK("True")] =     { METHOD(exprValue),     NO_INFIX };
+        rules[TK("False")] =    { METHOD(exprValue),     NO_INFIX };
+        rules[TK("lambda")] =   { METHOD(exprLambda),    NO_INFIX };
+        rules[TK("None")] =     { METHOD(exprValue),     NO_INFIX };
+        rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
+        rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
+        rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
 #undef METHOD
 #undef NO_INFIX
     }
@@ -313,7 +313,7 @@ public:
             _TokenType assignment = parser->previous.type;
             matchNewLines();
             if (assignment == TK("=")) { // name = (expr);
-                compileExpression();
+                compileExpressionTuple();
             } else { // name += / -= / *= ... = (expr);
                 emitCode(OP_LOAD_NAME, index);
                 compileExpression();
@@ -392,7 +392,7 @@ public:
 
     void exprGrouping() {
         matchNewLines();
-        compileExpression();
+        compileExpressionTuple();
         matchNewLines();
         consume(TK(")"));
     }
@@ -442,7 +442,7 @@ public:
                 compileExpression();
                 emitAssignOp(assignment);
             } else {
-                compileExpression();
+                compileExpressionTuple();
             }
             emitCode(OP_STORE_ATTR, index);
         } else {
@@ -488,7 +488,7 @@ public:
             if (assignment != TK("=")) {
                 UNREACHABLE();
             } else {
-                compileExpression();
+                compileExpressionTuple();
             }
             emitCode(OP_STORE_SUBSCR);
         } else {
@@ -593,6 +593,17 @@ public:
         parsePrecedence(PREC_LOWEST);
     }
 
+    // Compiles an expression. Support tuple syntax.
+    void compileExpressionTuple() {
+        int size = 0;
+        while (true) {
+            compileExpression();
+            size++;
+            if (!match(TK(","))) break;
+        }
+        if(size > 1) emitCode(OP_BUILD_TUPLE, size);
+    }
+
     void compileIfStatement() {
         matchNewLines();
         compileExpression(); //< Condition.
@@ -642,7 +653,7 @@ public:
         const _Str& iterName = parser->previous.str();
         int iterIndex = getCode()->addName(iterName);
         consume(TK("in"));
-        compileExpression();
+        compileExpressionTuple();
         emitCode(OP_GET_ITER);
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
@@ -672,7 +683,7 @@ public:
             if(matchEndStatement()){
                 emitCode(OP_LOAD_NONE);
             }else{
-                compileExpression();
+                compileExpressionTuple();
                 consumeEndStatement();
             }
             emitCode(OP_RETURN_VALUE);
@@ -706,7 +717,7 @@ public:
         } else if(match(TK("pass"))){
             consumeEndStatement();
         } else {
-            compileExpression();
+            compileExpressionTuple();
             consumeEndStatement();
 
             // If last op is not an assignment, pop the result.

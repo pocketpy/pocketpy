@@ -4,20 +4,11 @@ const char* __BUILTINS_CODE = R"(
 def len(x):
     return x.__len__()
 
-def __str4join(self, seq):
-    s = ""
-    for i in seq:
-        s += str(i) + self  # in Python3, it uses 'i' instead of 'str(i)'
-    if len(self) > 0:
-        s = s[:-len(self)]
-    return s
-str.join = __str4join
-
 def __str4__mul__(self, n):
-    s = ""
+    a = []
     for i in range(n):
-        s += self
-    return s
+        a.append(self)
+    return ''.join(a)
 str.__mul__ = __str4__mul__
 
 def __str4split(self, sep):
@@ -40,8 +31,15 @@ def __list4__str__(self):
     a = []
     for i in self:
         a.append(str(i))
-    return "[" + ", ".join(a) + "]"
+    return '[' + ', '.join(a) + ']'
 list.__str__ = __list4__str__
+
+def __tuple4__str__(self):
+    a = []
+    for i in self:
+        a.append(str(i))
+    return '(' + ', '.join(a) + ')'
+tuple.__str__ = __tuple4__str__
 
 def __list4extend(self, other):
     for i in other:
@@ -91,7 +89,7 @@ class dict:
             if self._a[i][0] == key:
                 return [True, i]
             i = ((5*i) + 1) % self._capacity
-        return [False, i]
+        return False,i
 
     def __getitem__(self, key):
         ret = self.__probe(key)

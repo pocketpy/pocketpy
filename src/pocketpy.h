@@ -277,6 +277,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyBool(_self.str().rfind(_suffix.str()) == _self.str().length() - _suffix.str().length());
     });
 
+    _vm->bindMethod("str", "join", [](VM* vm, PyVarList args) {
+        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        const PyVarList& _list = vm->PyList_AS_C(args[1]);
+        _StrStream ss;
+        for(int i = 0; i < _list.size(); i++){
+            if(i > 0) ss << _self;
+            ss << vm->PyStr_AS_C(vm->asStr(_list[i]));
+        }
+        return vm->PyStr(ss);
+    });
+
     /************ PyList ************/
     _vm->bindMethod("list", "__iter__", [](VM* vm, PyVarList args) {
         vm->__checkType(args.at(0), vm->_tp_list);
