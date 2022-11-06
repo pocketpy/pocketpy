@@ -1,0 +1,20 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build_win:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Compiling
+      shell: bash
+      run: |
+        CL -std:c++17 -utf-8 -O2 -EHsc -Fe:pocketpy src/main.cpp
+        mv src/pocketpy.h src/pocketpy.cpp
+        CL -std:c++17 -utf-8 -O2 -EHsc -LD -Fe:libpocketpy src/pocketpy.cpp
+    - uses: actions/upload-artifact@v3
+      with:
+        name: pocketpy
+        path: |
+          D:\a\pocketpy\pocketpy\pocketpy.exe
+          D:\a\pocketpy\pocketpy\libpocketpy.dll
