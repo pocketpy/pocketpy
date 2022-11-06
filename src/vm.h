@@ -203,6 +203,16 @@ public:
                     callstack.pop();
                     return ret;
                 } break;
+            case OP_UNPACK_SEQUENCE:
+                {
+                    PyVar seq = frame->popValue();
+                    bool iterable = (seq->isType(_tp_tuple) || seq->isType(_tp_list));
+                    if(!iterable) _error("TypeError", "only tuple and list can be unpacked");
+                    const PyVarList& objs = std::get<PyVarList>(seq->_native);
+                    if(objs.size() > byte.arg) _error("ValueError", "too many values to unpack (expected " + std::to_string(byte.arg) + ")");
+                    if(objs.size() < byte.arg) _error("ValueError", "not enough values to unpack (expected " + std::to_string(byte.arg) + ", got " + std::to_string(objs.size()) + ")");
+                    for(auto it=objs.rbegin(); it!=objs.rend(); it++) frame->pushValue(*it);
+                } break;
             case OP_PRINT_EXPR:
                 {
                     const PyVar& expr = frame->topValue();
