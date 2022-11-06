@@ -436,13 +436,13 @@ public:
         if (l_value && matchAssignment()) {
             _TokenType assignment = parser->previous.type;
             matchNewLines();
-            if (assignment != TK("=")) { // name += / -= / *= ... = (expr);
+            if (assignment == TK("=")) {
+                compileExpressionTuple();
+            } else { // name += / -= / *= ... = (expr);
                 emitCode(OP_DUP_TOP);
                 emitCode(OP_LOAD_ATTR, index);
                 compileExpression();
                 emitAssignOp(assignment);
-            } else {
-                compileExpressionTuple();
             }
             emitCode(OP_STORE_ATTR, index);
         } else {
@@ -485,10 +485,10 @@ public:
             _TokenType assignment = parser->previous.type;
             matchNewLines();
 
-            if (assignment != TK("=")) {
-                UNREACHABLE();
-            } else {
+            if (assignment == TK("=")) {
                 compileExpressionTuple();
+            } else {
+                UNREACHABLE();
             }
             emitCode(OP_STORE_SUBSCR);
         } else {
