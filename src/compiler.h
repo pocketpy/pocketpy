@@ -404,7 +404,7 @@ public:
 
     void exprName() {
         Token tkname = parser->previous;
-        int index = getCode()->addNamePtr(
+        int index = getCode()->addName(
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
@@ -414,7 +414,7 @@ public:
     void exprAttrib() {
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
-        int index = getCode()->addNamePtr(name, NAME_ATTR);
+        int index = getCode()->addName(name, NAME_ATTR);
         emitCode(OP_BUILD_ATTR_PTR, index);
     }
 
@@ -521,7 +521,7 @@ public:
     Token compileImportPath() {
         consume(TK("@id"));
         Token tkmodule = parser->previous;
-        int index = getCode()->addNamePtr(tkmodule.str(), NAME_GLOBAL);
+        int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
         emitCode(OP_IMPORT_NAME, index);
         return tkmodule;
     }
@@ -534,7 +534,7 @@ public:
                 consume(TK("@id"));
                 tkmodule = parser->previous;
             }
-            int index = getCode()->addNamePtr(tkmodule.str(), NAME_GLOBAL);
+            int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
             emitCode(OP_STORE_NAME_PTR, index);
         } while (match(TK(",")) && (matchNewLines(), true));
         consumeEndStatement();
@@ -602,7 +602,7 @@ public:
 
     void compileForStatement() {
         consume(TK("@id"));
-        int iterIndex = getCode()->addNamePtr(
+        int iterIndex = getCode()->addName(
             parser->previous.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
@@ -680,11 +680,11 @@ public:
 
     void compileClass(){
         consume(TK("@id"));
-        int clsNameIdx = getCode()->addNamePtr(parser->previous.str(), NAME_GLOBAL);
+        int clsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
         if(match(TK("("))){
             consume(TK("@id"));
-            superClsNameIdx = getCode()->addNamePtr(parser->previous.str(), NAME_GLOBAL);
+            superClsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
         emitCode(OP_LOAD_NONE);

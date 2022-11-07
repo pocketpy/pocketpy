@@ -32,15 +32,15 @@ public:
     _Str co_name;
 
     PyVarList co_consts;
-    std::vector<NamePointer> co_name_ptrs;
+    std::vector<NamePointer> co_names;
 
-    int addNamePtr(const _Str& name, NameScope scope){
+    int addName(const _Str& name, NameScope scope){
         auto p = NamePointer(name, scope);
-        for(int i=0; i<co_name_ptrs.size(); i++){
-            if(co_name_ptrs[i] == p) return i;
+        for(int i=0; i<co_names.size(); i++){
+            if(co_names[i] == p) return i;
         }
-        co_name_ptrs.push_back(p);
-        return co_name_ptrs.size() - 1;
+        co_names.push_back(p);
+        return co_names.size() - 1;
     }
 
     int addConst(PyVar v){
@@ -73,9 +73,9 @@ public:
 
         _StrStream names;
         names << "co_names: ";
-        for(int i=0; i<co_name_ptrs.size(); i++){
-            names << co_name_ptrs[i].name;
-            if(i != co_name_ptrs.size() - 1) names << ", ";
+        for(int i=0; i<co_names.size(); i++){
+            names << co_names[i].name;
+            if(i != co_names.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
         for(int i=0; i<co_consts.size(); i++){

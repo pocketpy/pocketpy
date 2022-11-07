@@ -138,15 +138,15 @@ public:
             {
             case OP_LOAD_CONST: frame->pushValue(frame->code->co_consts[byte.arg]); break;
             case OP_LOAD_NAME_PTR: {
-                const NamePointer* p = &frame->code->co_name_ptrs[byte.arg];
+                const NamePointer* p = &frame->code->co_names[byte.arg];
                 frame->pushValue(PyPointer(_Pointer(p)));
             } break;
             case OP_STORE_NAME_PTR: {
-                const NamePointer& p = frame->code->co_name_ptrs[byte.arg];
+                const NamePointer& p = frame->code->co_names[byte.arg];
                 p.set(this, frame.get(), frame->popValue());
             } break;
             case OP_BUILD_ATTR_PTR: {
-                const NamePointer* p = &frame->code->co_name_ptrs[byte.arg];
+                const NamePointer* p = &frame->code->co_names[byte.arg];
                 _Pointer root = PyPointer_AS_C(frame->popValue());
                 frame->pushValue(PyPointer(
                     std::make_shared<AttrPointer>(root, p)
@@ -171,7 +171,7 @@ public:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_name_ptrs[byte.arg].name;
+                    const _Str& clsName = frame->code->co_names[byte.arg].name;
                     PyVar clsBase = frame->popValue();
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -324,7 +324,7 @@ public:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_name_ptrs[byte.arg].name;
+                    const _Str& name = frame->code->co_names[byte.arg].name;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         _error("ImportError", "module '" + name + "' not found");
@@ -567,17 +567,27 @@ public:
 /**************** Pointers' Impl ****************/
 
 PyVar NamePointer::get(VM* vm, Frame* frame) const{
-    switch(scope) {
-        case NAME_LOCAL: frame->f_locals[name] = frame->popValue(); break;
-        case NAME_GLOBAL: frame->f_globals->operator[](name) = frame->popValue(); break;
-    }
-    UNREACHABLE();
+    auto it = frame->f_locals.find(name);
+    if(it != frame->f_locals.end()) return it->second;
+    it = frame->f_globals->find(name);
+    if(it != frame->f_globals->end()) return it->second;
+    it = vm->builtins->attribs.find(name);
+    if(it != vm->builtins->attribs.end()) return it->second;
+    vm->nameError(name);
+    return nullptr;
 }
 
 void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
     switch(scope) {
         case NAME_LOCAL: frame->f_locals[name] = val; break;
-        case NAME_GLOBAL: frame->f_globals->operator[](name) = val; break;
+        case NAME_GLOBAL:
+        {
+            if(frame->f_locals.find(name) != frame->f_locals.end()){
+                frame->f_locals[name] = frame->popValue();
+            }else{
+                frame->f_globals->operator[](name) = frame->popValue();
+            }
+        } break;
     }
     UNREACHABLE();
 }
