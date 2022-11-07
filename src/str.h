@@ -19,7 +19,7 @@ private:
 
     void utf8_lazy_init() const{
         if(utf8_initialized) return;
-        for(int i = 0; i < size(); i++){
+        for(uint16_t i = 0; i < size(); i++){
             // https://stackoverflow.com/questions/3911536/utf-8-unicode-whats-with-0xc0-and-0x80
             if((_s[i] & 0xC0) != 0x80)
                 _u8_index.push_back(i);

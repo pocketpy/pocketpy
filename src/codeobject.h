@@ -112,31 +112,34 @@ public:
         return ip >= code->co_code.size();
     }
 
-    inline PyVar popValue(){
+    inline PyVar __pop(){
         PyVar v = s_data.top();
         s_data.pop();
         return v;
     }
 
-    inline const PyVar& topValue() const {
-        return s_data.top();
+    inline PyVar __deref_pointer(VM*, PyVar);
+    inline _Pointer popPtr(VM*);
+
+    inline PyVar popValue(VM* vm){
+        return __deref_pointer(vm, __pop());
     }
 
-    inline void pushValue(PyVar v){
-        s_data.push(v);
+    inline PyVar topValue(VM* vm){
+        return __deref_pointer(vm, s_data.top());
     }
-    
-    inline int valueCount() const {
-        return s_data.size();
+
+    inline void push(PyVar v){
+        s_data.push(v);
     }
 
     inline void jumpTo(int i){
         this->ip = i;
     }
 
-    inline PyVarList popNReversed(int n){
+    inline PyVarList popNReversed(VM* vm, int n){
         PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = popValue();
+        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
         return v;
     }
 };
