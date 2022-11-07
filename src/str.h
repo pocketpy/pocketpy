@@ -138,6 +138,7 @@ const _Str& __base__ = _Str("__base__");
 const _Str& __new__ = _Str("__new__");
 const _Str& __iter__ = _Str("__iter__");
 const _Str& __str__ = _Str("__str__");
+const _Str& __repr__ = _Str("__repr__");
 const _Str& __neg__ = _Str("__neg__");
 const _Str& __getitem__ = _Str("__getitem__");
 const _Str& __setitem__ = _Str("__setitem__");

@@ -62,8 +62,14 @@ public:
     }
 
     PyVar asStr(const PyVar& obj){
+        PyVarOrNull str_fn = getAttr(obj, __str__, false);
+        if(str_fn != nullptr) return call(str_fn, {});
+        return asRepr(obj);
+    }
+
+    PyVar asRepr(const PyVar& obj){
         if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
-        return call(obj, __str__, {});
+        return call(obj, __repr__, {});
     }
 
     PyVar asBool(const PyVar& obj){
@@ -235,7 +241,7 @@ public:
                 {
                     const PyVar& expr = frame->topValue(this);
                     if(expr == None) break;
-                    printFn(PyStr_AS_C(asStr(expr)));
+                    printFn(PyStr_AS_C(asRepr(expr)));
                     printFn("\n");
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
@@ -288,7 +294,7 @@ public:
                 } break;
             case OP_RAISE_ERROR:
                 {
-                    _Str msg = PyStr_AS_C(asStr(frame->popValue(this)));
+                    _Str msg = PyStr_AS_C(asRepr(frame->popValue(this)));
                     _Str type = PyStr_AS_C(frame->popValue(this));
                     _error(type, msg);
                 } break;

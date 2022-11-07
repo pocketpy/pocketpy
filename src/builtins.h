@@ -27,19 +27,19 @@ def __str4split(self, sep):
     return res
 str.split = __str4split
 
-def __list4__str__(self):
+def __list4__repr__(self):
     a = []
     for i in self:
-        a.append(str(i))
+        a.append(repr(i))
     return '[' + ', '.join(a) + ']'
-list.__str__ = __list4__str__
+list.__repr__ = __list4__repr__
 
-def __tuple4__str__(self):
+def __tuple4__repr__(self):
     a = []
     for i in self:
-        a.append(str(i))
+        a.append(repr(i))
     return '(' + ', '.join(a) + ')'
-tuple.__str__ = __tuple4__str__
+tuple.__repr__ = __tuple4__repr__
 
 def __list4extend(self, other):
     for i in other:
@@ -146,10 +146,10 @@ class dict:
                 ret.append(kv)
         return ret
 
-    def __str__(self):
+    def __repr__(self):
         ret = '{'
         for kv in self.items():
-            ret += str(kv[0]) + ': ' + str(kv[1]) + ', '
+            ret += repr(kv[0]) + ': ' + repr(kv[1]) + ', '
         if ret[-2:] == ', ':
             ret = ret[:-2]
         return ret + '}'

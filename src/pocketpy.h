@@ -49,6 +49,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bindBuiltinFunc("repr", [](VM* vm, PyVarList args) {
+        return vm->asRepr(args.at(0));
+    });
+
     _vm->bindBuiltinFunc("hash", [](VM* vm, PyVarList args) {
         return vm->PyInt(vm->hash(args.at(0)));
     });
@@ -83,7 +87,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return obj;
     });
 
-    _vm->bindMethod("object", "__str__", [](VM* vm, PyVarList args) {
+    _vm->bindMethod("object", "__repr__", [](VM* vm, PyVarList args) {
         PyVar _self = args[0];
         _Str s = "<" + _self->getTypeName() + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
         return vm->PyStr(s);
@@ -116,7 +120,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyIter(iter);
     });
 
-    _vm->bindMethod("NoneType", "__str__", [](VM* vm, PyVarList args) {
+    _vm->bindMethod("NoneType", "__repr__", [](VM* vm, PyVarList args) {
         return vm->PyStr("None");
     });
 
@@ -155,7 +159,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(-1 * vm->PyInt_AS_C(args[0]));
     });
 
-    _vm->bindMethod("int", "__str__", [](VM* vm, PyVarList args) {
+    _vm->bindMethod("int", "__repr__", [](VM* vm, PyVarList args) {
         return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
 
@@ -164,7 +168,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyFloat(-1.0f * vm->PyFloat_AS_C(args[0]));
     });
 
-    _vm->bindMethod("float", "__str__", [](VM* vm, PyVarList args) {
+    _vm->bindMethod("float", "__repr__", [](VM* vm, PyVarList args) {
         return vm->PyStr(std::to_string(vm->PyFloat_AS_C(args[0])));
     });
 
@@ -196,6 +200,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__str__", [](VM* vm, PyVarList args) {
         return args[0]; // str is immutable
+    });
+
+    _vm->bindMethod("str", "__repr__", [](VM* vm, PyVarList args) {
+        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        // we just do a simple repr here, no escaping
+        return vm->PyStr("'" + _self.str() + "'");
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, PyVarList args) {
@@ -385,7 +395,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyBool ************/
-    _vm->bindMethod("bool", "__str__", [](VM* vm, PyVarList args) {
+    _vm->bindMethod("bool", "__repr__", [](VM* vm, PyVarList args) {
         bool val = vm->PyBool_AS_C(args[0]);
         return vm->PyStr(val ? "True" : "False");
     });
