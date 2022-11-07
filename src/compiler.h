@@ -298,7 +298,7 @@ public:
     }
 
     void exprLambda() {
-
+        throw SyntaxError(path, parser->previous, "lambda is not implemented yet");
     }
 
     void exprAssign() {
@@ -690,32 +690,60 @@ public:
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
+        _Func func;
         consume(TK("@id"));
-        const _Str& name = parser->previous.str();
+        func.name = parser->previous.str();
 
-        std::vector<_Str> argNames;
         if (match(TK("(")) && !match(TK(")"))) {
+            int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
             do {
-                matchNewLines();
-                consume(TK("@id"));
-                const _Str& argName = parser->previous.str();
-                if (std::find(argNames.begin(), argNames.end(), argName) != argNames.end()) {
-                    throw SyntaxError(path, parser->previous, "duplicate argument in function definition");
+                if(state == 3){
+                    throw SyntaxError(path, parser->previous, "**kwargs should be the last argument");
                 }
-                argNames.push_back(argName);
+
+                matchNewLines();
+                if(match(TK("*"))){
+                    if(state < 1) state = 1;
+                    else throw SyntaxError(path, parser->previous, "*args should be placed before **kwargs");
+                }
+                else if(match(TK("**"))){
+                    state = 3;
+                }
+
+                consume(TK("@id"));
+                const _Str& name = parser->previous.str();
+                if(func.hasName(name)) throw SyntaxError(path, parser->previous, "duplicate argument name");
+
+                switch (state)
+                {
+                    case 0: func.args.push_back(name); break;
+                    case 1: func.starredArg = name; state+=1; break;
+                    case 2: consume(TK("=")); func.kwArgs[name] = consumeLiteral(); break;
+                    case 3: func.doubleStarredArg = name; break;
+                }
             } while (match(TK(",")));
             consume(TK(")"));
         }
 
-        _Code fnCode = std::make_shared<CodeObject>();
-        fnCode->co_name = name;
-        fnCode->co_filename = path;
-        this->codes.push(fnCode);
+        func.code = std::make_shared<CodeObject>();
+        func.code->co_name = func.name;
+        func.code->co_filename = path;
+        this->codes.push(func.code);
         compileBlockBody();
         this->codes.pop();
-        PyVar fn = vm->PyFunction(_Func{name, fnCode, argNames});
-        emitCode(OP_LOAD_CONST, getCode()->addConst(fn));
+        emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
         if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
+    }
+
+    PyVar consumeLiteral(){
+        if(match(TK("@num"))) goto __LITERAL_EXIT;
+        if(match(TK("@str"))) goto __LITERAL_EXIT;
+        if(match(TK("True"))) goto __LITERAL_EXIT;
+        if(match(TK("False"))) goto __LITERAL_EXIT;
+        if(match(TK("None"))) goto __LITERAL_EXIT;
+        throw SyntaxError(path, parser->previous, "expect a literal");
+__LITERAL_EXIT:
+        return parser->previous.value;
     }
 
     void compileTopLevelStatement() {

@@ -27,7 +27,18 @@ typedef std::shared_ptr<CodeObject> _Code;
 struct _Func {
     _Str name;
     _Code code;
-    std::vector<_Str> argNames;
+    std::vector<_Str> args;
+    _Str starredArg;        // empty if no *arg
+    StlDict kwArgs;         // empty if no k=v
+    _Str doubleStarredArg;  // empty if no **kwargs
+
+    bool hasName(const _Str& val) const {
+        bool _0 = std::find(args.begin(), args.end(), val) != args.end();
+        bool _1 = starredArg == val;
+        bool _2 = kwArgs.find(val) != kwArgs.end();
+        bool _3 = doubleStarredArg == val;
+        return _0 || _1 || _2 || _3;
+    }
 };
 
 struct BoundedMethod {

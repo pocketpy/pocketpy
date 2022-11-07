@@ -111,13 +111,33 @@ public:
             return f(this, args);
         } else if(callable->isType(_tp_function)){
             _Func fn = PyFunction_AS_C(callable);
-            if(args.size() != fn.argNames.size()){
-                _error("TypeError", "expected " + std::to_string(fn.argNames.size()) + " arguments, but got " + std::to_string(args.size()));
-            }
             StlDict locals;
-            for(int i=0; i<fn.argNames.size(); i++){
-                locals[fn.argNames[i]] = args[i];
+            int i = 0;
+            for(const auto& name : fn.args){
+                if(i < args.size()) {
+                    locals[name] = args[i++];
+                }else{
+                    _error("TypeError", "missing positional argument '" + name + "'");
+                }
             }
+            // handle *args
+            if(!fn.starredArg.empty()){
+                PyVarList vargs;
+                while(i < args.size()) vargs.push_back(args[i++]);
+                locals[fn.starredArg] = PyTuple(vargs);
+            }
+            // handle keyword arguments
+            for(const auto& [name, value] : fn.kwArgs){
+                if(i < args.size()) {
+                    locals[name] = args[i++];
+                }else{
+                    locals[name] = value;
+                }
+            }
+
+            if(i < args.size()) _error("TypeError", "too many arguments");
+
+            // TODO: handle **kwargs
             return exec(fn.code, locals);
         }
         _error("TypeError", "'" + callable->getTypeName() + "' object is not callable");
@@ -132,7 +152,7 @@ public:
         callstack.push(frame);
         while(!frame->isEnd()){
             const ByteCode& byte = frame->readCode();
-            printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
+            //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
             switch (byte.op)
             {
