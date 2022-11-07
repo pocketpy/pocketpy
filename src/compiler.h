@@ -43,7 +43,6 @@ class Compiler {
 public:
     std::unique_ptr<Parser> parser;
     bool repl_mode;
-    bool l_value;
 
     std::stack<_Code> codes;
     std::stack<Loop> loops;
@@ -466,21 +465,13 @@ public:
             throw SyntaxError(path, parser->previous, "expected an expression");
         }
 
-        // Make a "backup" of the l value before parsing next operators to
-        // reset once it done.
-        bool l_value = this->l_value;
-
-        this->l_value = precedence <= PREC_LOWEST;
         (this->*prefix)();
-
         while (rules[peek()].precedence >= precedence) {
             lexToken();
             _TokenType op = parser->previous.type;
             GrammarFn infix = rules[op].infix;
             (this->*infix)();
         }
-
-        this->l_value = l_value;
     }
 
     void keepOpcodeLine(){

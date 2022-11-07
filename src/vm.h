@@ -159,6 +159,10 @@ public:
                 _Pointer p = PyPointer_AS_C(frame->__pop());
                 p->set(this, frame.get(), obj);
             } break;
+            case OP_DELETE_PTR: {
+                _Pointer p = PyPointer_AS_C(frame->__pop());
+                p->del(this, frame.get());
+            } break;
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->popValue(this);
@@ -587,6 +591,31 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
     }
 }
 
+void NamePointer::del(VM* vm, Frame* frame) const{
+    switch(scope) {
+        case NAME_LOCAL: {
+            if(frame->f_locals.count(name) > 0){
+                frame->f_locals.erase(name);
+            }else{
+                vm->nameError(name);
+            }
+        } break;
+        case NAME_GLOBAL:
+        {
+            if(frame->f_locals.count(name) > 0){
+                frame->f_locals.erase(name);
+            }else{
+                if(frame->f_globals->count(name) > 0){
+                    frame->f_globals->erase(name);
+                }else{
+                    vm->nameError(name);
+                }
+            }
+        } break;
+        default: UNREACHABLE();
+    }
+}
+
 PyVar AttrPointer::get(VM* vm, Frame* frame) const{
     return vm->getAttr(obj, attr->name);
 }
@@ -595,12 +624,20 @@ void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
     vm->setAttr(obj, attr->name, val);
 }
 
+void AttrPointer::del(VM* vm, Frame* frame) const{
+    vm->_error("AttributeError", "can't delete attribute");
+}
+
 PyVar IndexPointer::get(VM* vm, Frame* frame) const{
     return vm->call(obj, __getitem__, {index});
 }
 
 void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
     vm->call(obj, __setitem__, {index, val});
+}
+
+void IndexPointer::del(VM* vm, Frame* frame) const{
+    vm->call(obj, __delitem__, {index});
 }
 
 /**************** Frame ****************/

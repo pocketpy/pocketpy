@@ -141,6 +141,7 @@ const _Str& __str__ = _Str("__str__");
 const _Str& __neg__ = _Str("__neg__");
 const _Str& __getitem__ = _Str("__getitem__");
 const _Str& __setitem__ = _Str("__setitem__");
+const _Str& __delitem__ = _Str("__delitem__");
 const _Str& __contains__ = _Str("__contains__");
 const _Str& __init__ = _Str("__init__");
 

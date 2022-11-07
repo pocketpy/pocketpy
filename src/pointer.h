@@ -7,6 +7,7 @@ class Frame;
 struct BasePointer {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;
+    virtual void del(VM*, Frame*) const = 0;
 };
 
 enum NameScope {
@@ -22,6 +23,7 @@ struct NamePointer : BasePointer {
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
+    void del(VM* vm, Frame* frame) const;
 
     bool operator==(const NamePointer& other) const {
         return name == other.name && scope == other.scope;
@@ -35,6 +37,7 @@ struct AttrPointer : BasePointer {
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
+    void del(VM* vm, Frame* frame) const;
 };
 
 struct IndexPointer : BasePointer {
@@ -44,4 +47,5 @@ struct IndexPointer : BasePointer {
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
+    void del(VM* vm, Frame* frame) const;
 };
