@@ -105,12 +105,12 @@ public:
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
-        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
 #undef METHOD
 #undef NO_INFIX
     }
@@ -301,12 +301,12 @@ public:
     void exprAssign(){
         _TokenType op = parser->previous.type;
         if(op == TK("=")) {     // a = (expr)
-            parsePrecedence((Precedence)(rules[op].precedence + 1));
+            compileExpressionTuple();
             emitCode(OP_STORE_PTR);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
             emitCode(OP_DUP_TOP);
-            parsePrecedence((Precedence)(rules[op].precedence + 1));
+            compileExpression();
             switch (op) {
                 case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
                 case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;

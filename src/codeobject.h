@@ -25,19 +25,18 @@ _Str pad(const _Str& s, const int n){
     return s + _Str(n - s.size(), ' ');
 }
 
-class CodeObject {
-public:
+struct CodeObject {
     std::vector<ByteCode> co_code;
     _Str co_filename;
     _Str co_name;
 
     PyVarList co_consts;
-    std::vector<NamePointer> co_names;
+    std::vector<std::shared_ptr<NamePointer>> co_names;
 
     int addName(const _Str& name, NameScope scope){
-        auto p = NamePointer(name, scope);
+        auto p = std::make_shared<NamePointer>(name, scope);
         for(int i=0; i<co_names.size(); i++){
-            if(co_names[i] == p) return i;
+            if(*co_names[i] == *p) return i;
         }
         co_names.push_back(p);
         return co_names.size() - 1;
@@ -74,7 +73,7 @@ public:
         _StrStream names;
         names << "co_names: ";
         for(int i=0; i<co_names.size(); i++){
-            names << co_names[i].name;
+            names << co_names[i]->name;
             if(i != co_names.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
@@ -108,6 +107,10 @@ public:
         return code->co_code[ip].line;
     }
 
+    int stackSize() const {
+        return s_data.size();
+    }
+
     inline bool isEnd() const {
         return ip >= code->co_code.size();
     }
@@ -119,7 +122,6 @@ public:
     }
 
     inline PyVar __deref_pointer(VM*, PyVar);
-    inline _Pointer popPtr(VM*);
 
     inline PyVar popValue(VM* vm){
         return __deref_pointer(vm, __pop());

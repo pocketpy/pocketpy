@@ -434,8 +434,8 @@ extern "C" {
     VM* createVM(PrintFn printFn){
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
-        //__runCodeBuiltins(vm, __BUILTINS_CODE);
-        //__addModuleRandom(vm);
+        __runCodeBuiltins(vm, __BUILTINS_CODE);
+        __addModuleRandom(vm);
         vm->printFn = printFn;
         return vm;
     }

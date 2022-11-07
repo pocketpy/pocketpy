@@ -29,18 +29,18 @@ struct NamePointer : BasePointer {
 };
 
 struct AttrPointer : BasePointer {
-    const _Pointer root;
+    mutable PyVar obj;
     const NamePointer* attr;
-    AttrPointer(const _Pointer& root, const NamePointer* attr) : root(root), attr(attr) {}
+    AttrPointer(PyVar obj, const NamePointer* attr) : obj(obj), attr(attr) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
 };
 
 struct IndexPointer : BasePointer {
-    const _Pointer root;
+    mutable PyVar obj;
     const PyVar index;
-    IndexPointer(_Pointer root, PyVar index) : root(root), index(index) {}
+    IndexPointer(PyVar obj, PyVar index) : obj(obj), index(index) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

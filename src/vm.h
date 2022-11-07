@@ -132,32 +132,31 @@ public:
         callstack.push(frame);
         while(!frame->isEnd()){
             const ByteCode& byte = frame->readCode();
-            printf("%s (%d)\n", OP_NAMES[byte.op], byte.arg);
+            printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
             switch (byte.op)
             {
             case OP_LOAD_CONST: frame->push(frame->code->co_consts[byte.arg]); break;
             case OP_LOAD_NAME_PTR: {
-                const NamePointer* p = &frame->code->co_names[byte.arg];
-                frame->push(PyPointer(_Pointer(p)));
+                frame->push(PyPointer(frame->code->co_names[byte.arg]));
             } break;
             case OP_STORE_NAME_PTR: {
-                const NamePointer& p = frame->code->co_names[byte.arg];
-                p.set(this, frame.get(), frame->popValue(this));
+                const auto& p = frame->code->co_names[byte.arg];
+                p->set(this, frame.get(), frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_PTR: {
-                const NamePointer* attr = &frame->code->co_names[byte.arg];
-                _Pointer root = frame->popPtr(this);
-                frame->push(PyPointer(std::make_shared<AttrPointer>(root, attr)));
+                const auto& attr = frame->code->co_names[byte.arg];
+                PyVar obj = frame->popValue(this);
+                frame->push(PyPointer(std::make_shared<AttrPointer>(obj, attr.get())));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
-                _Pointer root = frame->popPtr(this);
-                frame->push(PyPointer(std::make_shared<IndexPointer>(root, index)));
+                PyVar obj = frame->popValue(this);
+                frame->push(PyPointer(std::make_shared<IndexPointer>(obj, index)));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                _Pointer p = frame->popPtr(this);
+                _Pointer p = PyPointer_AS_C(frame->__pop());
                 p->set(this, frame.get(), obj);
             } break;
             case OP_STORE_FUNCTION:
@@ -168,7 +167,7 @@ public:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg].name;
+                    const _Str& clsName = frame->code->co_names[byte.arg]->name;
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -321,7 +320,7 @@ public:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg].name;
+                    const _Str& name = frame->code->co_names[byte.arg]->name;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         _error("ImportError", "module '" + name + "' not found");
@@ -578,33 +577,29 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
         case NAME_LOCAL: frame->f_locals[name] = val; break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.find(name) != frame->f_locals.end()){
-                frame->f_locals[name] = frame->popValue(vm);
+            if(frame->f_locals.count(name) > 0){
+                frame->f_locals[name] = val;
             }else{
-                frame->f_globals->operator[](name) = frame->popValue(vm);
+                frame->f_globals->operator[](name) = val;
             }
         } break;
+        default: UNREACHABLE();
     }
-    UNREACHABLE();
 }
 
 PyVar AttrPointer::get(VM* vm, Frame* frame) const{
-    PyVar obj = root->get(vm, frame);
     return vm->getAttr(obj, attr->name);
 }
 
 void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    PyVar obj = root->get(vm, frame);
     vm->setAttr(obj, attr->name, val);
 }
 
 PyVar IndexPointer::get(VM* vm, Frame* frame) const{
-    PyVar obj = root->get(vm, frame);
     return vm->call(obj, __getitem__, {index});
 }
 
 void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    PyVar obj = root->get(vm, frame);
     vm->call(obj, __setitem__, {index, val});
 }
 
@@ -612,8 +607,4 @@ void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
 inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
     if(v->isType(vm->_tp_pointer)) v = vm->PyPointer_AS_C(v)->get(vm, this);
     return v;
-}
-
-inline _Pointer Frame::popPtr(VM* vm){
-    return vm->PyPointer_AS_C(__pop());
 }
