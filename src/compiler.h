@@ -400,7 +400,6 @@ public:
             matchNewLines();
             if (peek() == TK("}")) break;
             EXPR();consume(TK(":"));EXPR();
-            emitCode(OP_BUILD_SMART_TUPLE, 2);
             size++;
             matchNewLines();
         } while (match(TK(",")));

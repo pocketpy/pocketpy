@@ -240,7 +240,16 @@ public:
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP: BINARY_XXX(byte.arg) break;
-            case OP_COMPARE_OP: COMPARE_XXX(byte.arg) break;
+            case OP_COMPARE_OP:
+                {
+                    PyVar rhs = frame->popValue(this);
+                    PyVar lhs = frame->popValue(this);
+                    // for __ne__ we use the negation of __eq__
+                    int op = byte.arg == 3 ? 2 : byte.arg;
+                    PyVar res = fastCall(lhs, CMP_SPECIAL_METHODS[op], {lhs,rhs});
+                    if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
+                    frame->push(res);
+                } break;
             case OP_IS_OP:
                 {
                     bool ret_c = frame->popValue(this) == frame->popValue(this);
@@ -290,8 +299,11 @@ public:
                 } break;
             case OP_BUILD_MAP:
                 {
-                    PyVarList items = frame->popNValuesReversed(this, byte.arg);
-                    PyVar obj = call(builtins->attribs["dict"], {PyList(items)});
+                    PyVarList items = frame->popNValuesReversed(this, byte.arg*2);
+                    PyVar obj = call(builtins->attribs["dict"], {});
+                    for(int i=0; i<items.size(); i+=2){
+                        call(obj, __setitem__, {items[i], items[i+1]});
+                    }
                     frame->push(obj);
                 } break;
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;

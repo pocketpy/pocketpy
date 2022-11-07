@@ -73,12 +73,10 @@ tuple.__contains__ = __iterable4__contains__
 
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
-    def __init__(self, tuples):
+    def __init__(self):
         self._capacity = 8
         self._a = [None] * self._capacity
         self._len = 0
-        for i in tuples:
-            self[i[0]] = i[1]
         
     def __len__(self):
         return self._len
@@ -92,20 +90,17 @@ class dict:
         return False,i
 
     def __getitem__(self, key):
-        ret = self.__probe(key)
-        ok = ret[0]; i = ret[1]
+        ok, i = self.__probe(key)
         if not ok:
             raise KeyError(key)
         return self._a[i][1]
 
     def __contains__(self, key):
-        ret = self.__probe(key)
-        ok = ret[0]; i = ret[1]
+        ok, i = self.__probe(key)
         return ok
 
     def __setitem__(self, key, value):
-        ret = self.__probe(key)
-        ok = ret[0]; i = ret[1]
+        ok, i = self.__probe(key)
         if ok:
             self._a[i][1] = value
         else:
@@ -115,8 +110,7 @@ class dict:
                 self.__resize_2x()
 
     def __delitem__(self, key):
-        ret = self.__probe(key)
-        ok = ret[0]; i = ret[1]
+        ok, i = self.__probe(key)
         if not ok:
             raise KeyError(key)
         self._a[i] = None

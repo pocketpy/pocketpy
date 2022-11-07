@@ -39,7 +39,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     BIND_NUM_LOGICAL_OPT(__gt__, >, false)
     BIND_NUM_LOGICAL_OPT(__ge__, >=, false)
     BIND_NUM_LOGICAL_OPT(__eq__, ==, true)
-    BIND_NUM_LOGICAL_OPT(__ne__, !=, true)
 
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
@@ -200,15 +199,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, PyVarList args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self == _other);
-    });
-
-    _vm->bindMethod("str", "__ne__", [](VM* vm, PyVarList args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self != _other);
+        if(args.at(0)->isType(vm->_tp_str) && args.at(1)->isType(vm->_tp_str))
+            return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
+        return vm->PyBool(args[0] == args[1]);      // fallback
     });
 
     _vm->bindMethod("str", "__getitem__", [](VM* vm, PyVarList args) {
