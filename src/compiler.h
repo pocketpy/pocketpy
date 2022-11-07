@@ -26,18 +26,17 @@ struct Loop {
     Loop(bool forLoop, int start) : forLoop(forLoop), start(start) {}
 };
 
-#define ExprCommaSplitArgs(end) \
-    int ARGC = 0;               \
-    do {                        \
-        matchNewLines();        \
-        if (peek() == TK(end)) break;  \
-        compileExpression();    \
-        ARGC++;                \
-        matchNewLines();        \
-    } while (match(TK(",")));   \
-    matchNewLines();            \
+#define ExprCommaSplitArgs(end)     \
+    int ARGC = 0;                   \
+    do {                            \
+        matchNewLines();            \
+        if (peek() == TK(end)) break;   \
+        EXPR();                     \
+        ARGC++;                     \
+        matchNewLines();            \
+    } while (match(TK(",")));       \
+    matchNewLines();                \
     consume(TK(end));
-
 
 class Compiler {
 public:
@@ -104,14 +103,19 @@ public:
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
-        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
-        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
-        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
-        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
-        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
-        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_LOWEST };
+        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
 #undef METHOD
 #undef NO_INFIX
+
+#define EXPR() parsePrecedence(PREC_COMMA)              // no '=' and ',' just a simple expression
+#define EXPR_TUPLE() parsePrecedence(PREC_ASSIGNMENT)   // no '=', but ',' is allowed
+#define EXPR_ANY() parsePrecedence(PREC_NONE)
     }
 
     void eatString(bool single_quote) {
@@ -297,15 +301,15 @@ public:
 
     }
 
-    void exprAssign(){
+    void exprAssign() {
         _TokenType op = parser->previous.type;
         if(op == TK("=")) {     // a = (expr)
-            compileExpressionTuple();
+            EXPR_TUPLE();
             emitCode(OP_STORE_PTR);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
             emitCode(OP_DUP_TOP);
-            compileExpression();
+            EXPR();
             switch (op) {
                 case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
                 case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;
@@ -316,6 +320,15 @@ public:
             }
             emitCode(OP_STORE_PTR);
         }
+    }
+
+    void exprComma() {
+        int size = 1;       // an expr is in the stack now
+        do {
+            EXPR();         // NOTE: "1," will fail, "1,2" will be ok
+            size++;
+        } while(match(TK(",")));
+        emitCode(OP_BUILD_SMART_TUPLE, size);
     }
 
     void exprOr() {
@@ -371,7 +384,7 @@ public:
 
     void exprGrouping() {
         matchNewLines();
-        compileExpressionTuple();
+        EXPR_TUPLE();
         matchNewLines();
         consume(TK(")"));
     }
@@ -386,8 +399,8 @@ public:
         do {
             matchNewLines();
             if (peek() == TK("}")) break;
-            compileExpression();consume(TK(":"));compileExpression();
-            emitCode(OP_BUILD_TUPLE, 2);
+            EXPR();consume(TK(":"));EXPR();
+            emitCode(OP_BUILD_SMART_TUPLE, 2);
             size++;
             matchNewLines();
         } while (match(TK(",")));
@@ -425,17 +438,17 @@ public:
             if(match(TK("]"))){
                 emitCode(OP_LOAD_NONE);
             }else{
-                compileExpression();
+                EXPR();
                 consume(TK("]"));
             }
             emitCode(OP_BUILD_SLICE);
         }else{
-            compileExpression();
+            EXPR();
             if(match(TK(":"))){
                 if(match(TK("]"))){
                     emitCode(OP_LOAD_NONE);
                 }else{
-                    compileExpression();
+                    EXPR();
                     consume(TK("]"));
                 }
                 emitCode(OP_BUILD_SLICE);
@@ -454,23 +467,6 @@ public:
             case TK("True"):  emitCode(OP_LOAD_TRUE);  break;
             case TK("False"): emitCode(OP_LOAD_FALSE); break;
             default: UNREACHABLE();
-        }
-    }
-
-    void parsePrecedence(Precedence precedence) {
-        lexToken();
-        GrammarFn prefix = rules[parser->previous.type].prefix;
-
-        if (prefix == nullptr) {
-            throw SyntaxError(path, parser->previous, "expected an expression");
-        }
-
-        (this->*prefix)();
-        while (rules[peek()].precedence >= precedence) {
-            lexToken();
-            _TokenType op = parser->previous.type;
-            GrammarFn infix = rules[op].infix;
-            (this->*infix)();
         }
     }
 
@@ -527,29 +523,30 @@ public:
             }
             int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
             emitCode(OP_STORE_NAME_PTR, index);
-        } while (match(TK(",")) && (matchNewLines(), true));
+        } while (match(TK(",")));
         consumeEndStatement();
     }
 
-    // Compiles an expression. An expression will result a value on top of the stack.
-    void compileExpression() {
-        parsePrecedence(PREC_LOWEST);
-    }
+    void parsePrecedence(Precedence precedence) {
+        lexToken();
+        GrammarFn prefix = rules[parser->previous.type].prefix;
 
-    // Compiles an expression. Support tuple syntax.
-    void compileExpressionTuple() {
-        int size = 0;
-        while (true) {
-            compileExpression();
-            size++;
-            if (!match(TK(","))) break;
+        if (prefix == nullptr) {
+            throw SyntaxError(path, parser->previous, "expected an expression");
         }
-        if(size > 1) emitCode(OP_BUILD_TUPLE, size);
+
+        (this->*prefix)();
+        while (rules[peek()].precedence > precedence) {
+            lexToken();
+            _TokenType op = parser->previous.type;
+            GrammarFn infix = rules[op].infix;
+            (this->*infix)();
+        }
     }
 
     void compileIfStatement() {
         matchNewLines();
-        compileExpression(); //< Condition.
+        EXPR_TUPLE();
 
         int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
@@ -583,7 +580,7 @@ public:
 
     void compileWhileStatement() {
         Loop& loop = enterLoop(false);
-        compileExpression();
+        EXPR_TUPLE();
         int patch = emitCode(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
@@ -598,7 +595,7 @@ public:
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
         consume(TK("in"));
-        compileExpressionTuple();
+        EXPR_TUPLE();
         emitCode(OP_GET_ITER);
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
@@ -628,7 +625,7 @@ public:
             if(matchEndStatement()){
                 emitCode(OP_LOAD_NONE);
             }else{
-                compileExpressionTuple();
+                EXPR_TUPLE();
                 consumeEndStatement();
             }
             emitCode(OP_RETURN_VALUE);
@@ -639,23 +636,23 @@ public:
         } else if (match(TK("for"))) {
             compileForStatement();
         } else if(match(TK("assert"))){
-            compileExpression();
+            EXPR();
             emitCode(OP_ASSERT);
             consumeEndStatement();
         } else if(match(TK("raise"))){
             consume(TK("@id"));         // dummy exception type
             emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
-            consume(TK("("));compileExpression();consume(TK(")"));
+            consume(TK("("));EXPR();consume(TK(")"));
             emitCode(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){
-            compileExpression();
+            EXPR();
             emitCode(OP_DELETE_PTR);
             consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();
         } else {
-            compileExpressionTuple();
+            EXPR_ANY();
             consumeEndStatement();
 
             // If last op is not an assignment, pop the result.

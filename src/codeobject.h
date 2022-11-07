@@ -139,9 +139,15 @@ public:
         this->ip = i;
     }
 
-    inline PyVarList popNReversed(VM* vm, int n){
+    PyVarList popNValuesReversed(VM* vm, int n){
         PyVarList v(n);
         for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        return v;
+    }
+
+    PyVarList __popNReversed(int n){
+        PyVarList v(n);
+        for(int i=n-1; i>=0; i--) v[i] = __pop();
         return v;
     }
 };

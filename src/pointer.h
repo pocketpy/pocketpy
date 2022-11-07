@@ -49,3 +49,13 @@ struct IndexPointer : BasePointer {
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
+
+struct CompoundPointer : BasePointer {
+    const std::vector<_Pointer> pointers;
+    CompoundPointer(std::vector<_Pointer> pointers) : pointers(pointers) {}
+    CompoundPointer(std::vector<_Pointer>&& pointers) : pointers(pointers) {}
+
+    PyVar get(VM* vm, Frame* frame) const;
+    void set(VM* vm, Frame* frame, PyVar val) const;
+    void del(VM* vm, Frame* frame) const;
+};

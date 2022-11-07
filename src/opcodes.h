@@ -18,10 +18,8 @@ OPCODE(UNARY_NOT)
 OPCODE(DUP_TOP)
 
 OPCODE(BUILD_LIST)
-OPCODE(BUILD_TUPLE)
 OPCODE(BUILD_MAP)
 OPCODE(BUILD_SLICE)
-OPCODE(UNPACK_SEQUENCE)
 
 OPCODE(GET_ITER)
 OPCODE(FOR_ITER)
@@ -48,5 +46,7 @@ OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
 OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
+
+OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 
 #endif

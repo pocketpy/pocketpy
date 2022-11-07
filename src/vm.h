@@ -163,6 +163,27 @@ public:
                 _Pointer p = PyPointer_AS_C(frame->__pop());
                 p->del(this, frame.get());
             } break;
+            case OP_BUILD_SMART_TUPLE:
+            {
+                PyVarList items = frame->__popNReversed(byte.arg);
+                bool done = false;
+                for(auto& item : items){
+                    if(!item->isType(_tp_pointer)) {
+                        done = true;
+                        PyVarList values(items.size());
+                        for(int i=0; i<items.size(); i++){
+                            values[i] = frame->__deref_pointer(this, items[i]);
+                        }
+                        frame->push(PyTuple(values));
+                        break;
+                    }
+                }
+                if(done) break;
+                std::vector<_Pointer> pointers(items.size());
+                for(int i=0; i<items.size(); i++)
+                    pointers[i] = PyPointer_AS_C(items[i]);
+                frame->push(PyPointer(std::make_shared<CompoundPointer>(pointers)));
+            } break;
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->popValue(this);
@@ -189,16 +210,6 @@ public:
                     PyVar ret = frame->popValue(this);
                     callstack.pop();
                     return ret;
-                } break;
-            case OP_UNPACK_SEQUENCE:
-                {
-                    PyVar seq = frame->popValue(this);
-                    bool iterable = (seq->isType(_tp_tuple) || seq->isType(_tp_list));
-                    if(!iterable) _error("TypeError", "only tuple and list can be unpacked");
-                    const PyVarList& objs = std::get<PyVarList>(seq->_native);
-                    if(objs.size() > byte.arg) _error("ValueError", "too many values to unpack (expected " + std::to_string(byte.arg) + ")");
-                    if(objs.size() < byte.arg) _error("ValueError", "not enough values to unpack (expected " + std::to_string(byte.arg) + ", got " + std::to_string(objs.size()) + ")");
-                    for(auto it=objs.rbegin(); it!=objs.rend(); it++) frame->push(*it);
                 } break;
             case OP_PRINT_EXPR:
                 {
@@ -254,24 +265,19 @@ public:
                 } break;
             case OP_BUILD_LIST:
                 {
-                    PyVarList items = frame->popNReversed(this, byte.arg);
+                    PyVarList items = frame->popNValuesReversed(this, byte.arg);
                     frame->push(PyList(items));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    PyVarList items = frame->popNReversed(this, byte.arg);
+                    PyVarList items = frame->popNValuesReversed(this, byte.arg);
                     PyVar obj = call(builtins->attribs["dict"], {PyList(items)});
                     frame->push(obj);
-                } break;
-            case OP_BUILD_TUPLE:
-                {
-                    PyVarList items = frame->popNReversed(this, byte.arg);
-                    frame->push(PyTuple(items));
                 } break;
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
             case OP_CALL:
                 {
-                    PyVarList args = frame->popNReversed(this, byte.arg);
+                    PyVarList args = frame->popNValuesReversed(this, byte.arg);
                     PyVar callable = frame->popValue(this);
                     frame->push(call(callable, args));
                 } break;
@@ -638,6 +644,30 @@ void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
 
 void IndexPointer::del(VM* vm, Frame* frame) const{
     vm->call(obj, __delitem__, {index});
+}
+
+PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
+    PyVarList args(pointers.size());
+    for (int i = 0; i < pointers.size(); i++) {
+        args[i] = pointers[i]->get(vm, frame);
+    }
+    return vm->PyTuple(args);
+}
+
+void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
+    if(!val->isType(vm->_tp_tuple) && !val->isType(vm->_tp_list)){
+        vm->_error("TypeError", "only tuple or list can be unpacked");
+    }
+    const PyVarList& args = std::get<PyVarList>(val->_native);
+    if(args.size() > pointers.size()) vm->_error("ValueError", "too many values to unpack");
+    if(args.size() < pointers.size()) vm->_error("ValueError", "not enough values to unpack");
+    for (int i = 0; i < pointers.size(); i++) {
+        pointers[i]->set(vm, frame, args[i]);
+    }
+}
+
+void CompoundPointer::del(VM* vm, Frame* frame) const{
+    for (auto& ptr : pointers) ptr->del(vm, frame);
 }
 
 /**************** Frame ****************/
