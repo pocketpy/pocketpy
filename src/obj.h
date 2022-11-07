@@ -12,12 +12,14 @@
 
 class PyObject;
 class CodeObject;
+class BasePointer;
 class VM;
 
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 typedef std::vector<PyVar> PyVarList;
 typedef std::unordered_map<_Str, PyVar> StlDict;
+typedef std::shared_ptr<const BasePointer> _Pointer;
 
 typedef PyVar (*_CppFunc)(VM*, PyVarList);
 typedef std::shared_ptr<CodeObject> _Code;
@@ -60,7 +62,7 @@ public:
     _Iterator(PyVar _ref) : _ref(_ref) {}
 };
 
-typedef std::variant<int,float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice> _Value;
+typedef std::variant<int,float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
 #define UNREACHABLE() throw std::runtime_error("Unreachable code")
 

@@ -3,7 +3,7 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 
 pipeline = [
 	["str.h", "builtins.h"],
-	["obj.h", "iter.h", "parser.h", "codeobject.h"],
+	["obj.h", "iter.h", "parser.h", "pointer.h", "codeobject.h"],
 	["error.h", "vm.h", "compiler.h"],
 	["pocketpy.h"]
 ]

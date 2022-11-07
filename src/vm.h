@@ -136,46 +136,33 @@ public:
 
             switch (byte.op)
             {
-            case OP_LOAD_CONST:
-                frame->pushValue(frame->code->co_consts[byte.arg]);
-                break;
-            case OP_LOAD_NAME:
-                {
-                    const _Str& name = frame->code->co_names[byte.arg];
-                    auto it = frame->f_locals.find(name);
-                    if(it != frame->f_locals.end()){
-                        frame->pushValue(it->second);
-                        break;
-                    }
-
-                    it = frame->f_globals->find(name);
-                    if(it != frame->f_globals->end()){
-                        frame->pushValue(it->second);
-                        break;
-                    }
-
-                    it = builtins->attribs.find(name);
-                    if(it != builtins->attribs.end()){
-                        frame->pushValue(it->second);
-                        break;
-                    }
-
-                    nameError(name);
-                } break;
-            case OP_STORE_FAST:
-                {
-                    const _Str& name = frame->code->co_names[byte.arg];
-                    frame->f_locals[name] = frame->popValue();
-                } break; 
-            case OP_STORE_NAME:
-                {
-                    const _Str& name = frame->code->co_names[byte.arg];
-                    if(frame->f_locals.find(name) != frame->f_locals.end()){
-                        frame->f_locals[name] = frame->popValue();
-                    }else{
-                        frame->f_globals->operator[](name) = frame->popValue();
-                    }
-                } break;
+            case OP_LOAD_CONST: frame->pushValue(frame->code->co_consts[byte.arg]); break;
+            case OP_LOAD_NAME_PTR: {
+                const NamePointer* p = &frame->code->co_name_ptrs[byte.arg];
+                frame->pushValue(PyPointer(_Pointer(p)));
+            } break;
+            case OP_STORE_NAME_PTR: {
+                const NamePointer& p = frame->code->co_name_ptrs[byte.arg];
+                p.set(this, frame.get(), frame->popValue());
+            } break;
+            case OP_BUILD_ATTR_PTR: {
+                const NamePointer* p = &frame->code->co_name_ptrs[byte.arg];
+                _Pointer root = PyPointer_AS_C(frame->popValue());
+                frame->pushValue(PyPointer(
+                    std::make_shared<AttrPointer>(root, p)
+                ));
+            } break;
+            case OP_BUILD_INDEX_PTR: {
+                PyVar index = frame->popValue();
+                _Pointer root = PyPointer_AS_C(frame->popValue());
+                frame->pushValue(PyPointer(
+                    std::make_shared<IndexPointer>(root, index)
+                ));
+            } break;
+            case OP_STORE_PTR: {
+                _Pointer p = PyPointer_AS_C(frame->popValue());
+                p->set(this, frame.get(), frame->popValue());
+            } break;
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->popValue();
@@ -184,7 +171,7 @@ public:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    _Str clsName = frame->code->co_names[byte.arg];
+                    const _Str& clsName = frame->code->co_name_ptrs[byte.arg].name;
                     PyVar clsBase = frame->popValue();
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -248,19 +235,6 @@ public:
                     PyVar obj_bool = asBool(obj);
                     frame->pushValue(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
-            case OP_LOAD_ATTR:
-                {
-                    PyVar obj = frame->popValue();
-                    const _Str& name = frame->code->co_names[byte.arg];
-                    frame->pushValue(getAttr(obj, name));
-                } break;
-            case OP_STORE_ATTR:
-                {
-                    PyVar value = frame->popValue();
-                    PyVar obj = frame->popValue();
-                    const _Str& name = frame->code->co_names[byte.arg];
-                    setAttr(obj, name, value);
-                } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue()))) frame->jumpTo(byte.arg);
                 break;
@@ -293,19 +267,6 @@ public:
                 {
                     PyVarList items = frame->popNReversed(byte.arg);
                     frame->pushValue(PyTuple(items));
-                } break;
-            case OP_BINARY_SUBSCR:
-                {
-                    PyVar key = frame->popValue();
-                    PyVar obj = frame->popValue();
-                    frame->pushValue(call(obj, __getitem__, {key}));
-                } break;
-            case OP_STORE_SUBSCR:
-                {
-                    PyVar value = frame->popValue();
-                    PyVar key = frame->popValue();
-                    PyVar obj = frame->popValue();
-                    call(obj, __setitem__, {key, value});
                 } break;
             case OP_DUP_TOP: frame->pushValue(frame->topValue()); break;
             case OP_CALL:
@@ -363,19 +324,13 @@ public:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg];
+                    const _Str& name = frame->code->co_name_ptrs[byte.arg].name;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         _error("ImportError", "module '" + name + "' not found");
                     }else{
                         frame->pushValue(it->second);
                     }
-                } break;
-            case OP_DELETE_SUBSCR:
-                {
-                    PyVar index = frame->popValue();
-                    PyVar obj = frame->popValue();
-                    call(obj, "__delitem__", {index});
                 } break;
             default:
                 _error("SystemError", _Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
@@ -525,7 +480,7 @@ public:
     PyVar _tp_object, _tp_type, _tp_int, _tp_float, _tp_bool, _tp_str;
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
-    PyVar _tp_slice, _tp_range, _tp_module;
+    PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
 
     DEF_NATIVE(Int, int, _tp_int)
     DEF_NATIVE(Float, float, _tp_float)
@@ -538,6 +493,7 @@ public:
     DEF_NATIVE(BoundedMethod, BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
+    DEF_NATIVE(Pointer, _Pointer, _tp_pointer)
     
     inline bool PyBool_AS_C(PyVar obj){return obj == True;}
     inline PyVar PyBool(bool value){return value ? True : False;}
@@ -558,6 +514,7 @@ public:
         _tp_slice = newClassType("slice");
         _tp_range = newClassType("range");
         _tp_module = newClassType("module");
+        _tp_pointer = newClassType("_pointer");
 
         newClassType("NoneType");
         
@@ -606,3 +563,41 @@ public:
         _modules[name] = _m;
     }
 };
+
+/**************** Pointers' Impl ****************/
+
+PyVar NamePointer::get(VM* vm, Frame* frame) const{
+    switch(scope) {
+        case NAME_LOCAL: frame->f_locals[name] = frame->popValue(); break;
+        case NAME_GLOBAL: frame->f_globals->operator[](name) = frame->popValue(); break;
+    }
+    UNREACHABLE();
+}
+
+void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
+    switch(scope) {
+        case NAME_LOCAL: frame->f_locals[name] = val; break;
+        case NAME_GLOBAL: frame->f_globals->operator[](name) = val; break;
+    }
+    UNREACHABLE();
+}
+
+PyVar AttrPointer::get(VM* vm, Frame* frame) const{
+    PyVar obj = root->get(vm, frame);
+    return vm->getAttr(obj, attr->name);
+}
+
+void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
+    PyVar obj = root->get(vm, frame);
+    vm->setAttr(obj, attr->name, val);
+}
+
+PyVar IndexPointer::get(VM* vm, Frame* frame) const{
+    PyVar obj = root->get(vm, frame);
+    return vm->call(obj, __getitem__, {index});
+}
+
+void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
+    PyVar obj = root->get(vm, frame);
+    vm->call(obj, __setitem__, {index, val});
+}

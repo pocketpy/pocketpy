@@ -1,6 +1,7 @@
 #pragma once
 
 #include "obj.h"
+#include "pointer.h"
 
 enum Opcode {
     #define OPCODE(name) OP_##name,
@@ -31,26 +32,20 @@ public:
     _Str co_name;
 
     PyVarList co_consts;
-    std::vector<_Str> co_names;
+    std::vector<NamePointer> co_name_ptrs;
+
+    int addNamePtr(const _Str& name, NameScope scope){
+        auto p = NamePointer(name, scope);
+        for(int i=0; i<co_name_ptrs.size(); i++){
+            if(co_name_ptrs[i] == p) return i;
+        }
+        co_name_ptrs.push_back(p);
+        return co_name_ptrs.size() - 1;
+    }
 
     int addConst(PyVar v){
         co_consts.push_back(v);
         return co_consts.size() - 1;
-    }
-
-    int addName(const _Str& name){
-        auto iter = std::find(co_names.begin(), co_names.end(), name);
-        if(iter == co_names.end()){
-            co_names.push_back(name);
-            return co_names.size() - 1;
-        }
-        return iter - co_names.begin();
-    }
-
-    int getNameIndex(const _Str& name){
-        auto iter = std::find(co_names.begin(), co_names.end(), name);
-        if(iter == co_names.end()) return -1;
-        return iter - co_names.begin();
     }
 
     _Str toString(){
@@ -78,9 +73,9 @@ public:
 
         _StrStream names;
         names << "co_names: ";
-        for(int i=0; i<co_names.size(); i++){
-            names << co_names[i];
-            if(i != co_names.size() - 1) names << ", ";
+        for(int i=0; i<co_name_ptrs.size(); i++){
+            names << co_name_ptrs[i].name;
+            if(i != co_name_ptrs.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
         for(int i=0; i<co_consts.size(); i++){

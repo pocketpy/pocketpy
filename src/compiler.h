@@ -105,6 +105,12 @@ public:
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
+        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
 #undef METHOD
 #undef NO_INFIX
     }
@@ -282,18 +288,6 @@ public:
             throw SyntaxError(path, parser->current, "expected statement end");
     }
 
-    bool matchAssignment() {
-        if (match(TK("=")))         return true;
-        if (match(TK("+=")))        return true;
-        if (match(TK("-=")))        return true;
-        if (match(TK("*=")))        return true;
-        if (match(TK("/=")))        return true;
-        if (match(TK("//=")))       return true;
-        return false;
-    }
-
-#define OP_STORE_AUTO (codes.size()==1) ? OP_STORE_NAME : OP_STORE_FAST
-
     void exprLiteral() {
         PyVar value = parser->previous.value;
         int index = getCode()->addConst(value);
@@ -304,55 +298,41 @@ public:
 
     }
 
-    void exprName() {
-        Token tkname = parser->previous;
-        _Str name(tkname.start, tkname.length);
-        int index = getCode()->addName(name);
-
-        if (l_value && matchAssignment()) {
-            _TokenType assignment = parser->previous.type;
-            matchNewLines();
-            if (assignment == TK("=")) { // name = (expr);
-                compileExpressionTuple();
-            } else { // name += / -= / *= ... = (expr);
-                emitCode(OP_LOAD_NAME, index);
-                compileExpression();
-                emitAssignOp(assignment);
+    void exprAssign(){
+        _TokenType op = parser->previous.type;
+        if(op == TK("=")) {     // a = (expr)
+            parsePrecedence((Precedence)(rules[op].precedence + 1));
+            emitCode(OP_STORE_PTR);
+        }else{                  // a += (expr) -> a = a + (expr)
+            // TODO: optimization is needed for inplace operators
+            emitCode(OP_DUP_TOP);
+            parsePrecedence((Precedence)(rules[op].precedence + 1));
+            switch (op) {
+                case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
+                case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;
+                case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
+                case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
+                case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
+                default: UNREACHABLE();
             }
-            emitCode(OP_STORE_AUTO, index);
-        } else { // Just the name and no assignment followed by.
-            emitCode(OP_LOAD_NAME, index);
-        }
-    }
-
-    void emitAssignOp(_TokenType assignment){
-        switch (assignment) {
-            case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
-            case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;
-            case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
-            case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
-            case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
-            default: UNREACHABLE();
+            emitCode(OP_STORE_PTR);
         }
     }
 
     void exprOr() {
         int patch = emitCode(OP_JUMP_IF_TRUE_OR_POP);
-        matchNewLines();
         parsePrecedence(PREC_LOGICAL_OR);
         patchJump(patch);
     }
 
     void exprAnd() {
         int patch = emitCode(OP_JUMP_IF_FALSE_OR_POP);
-        matchNewLines();
         parsePrecedence(PREC_LOGICAL_AND);
         patchJump(patch);
     }
 
     void exprBinaryOp() {
         _TokenType op = parser->previous.type;
-        matchNewLines();
         parsePrecedence((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
@@ -422,38 +402,25 @@ public:
         emitCode(OP_CALL, ARGC);
     }
 
+    void exprName() {
+        Token tkname = parser->previous;
+        int index = getCode()->addNamePtr(
+            tkname.str(),
+            codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
+        );
+        emitCode(OP_LOAD_NAME_PTR, index);
+    }
+
     void exprAttrib() {
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
-        int index = getCode()->addName(name);
-
-        if (match(TK("("))) {
-            emitCode(OP_LOAD_ATTR, index);
-            exprCall();
-            return;
-        }
-
-        if (l_value && matchAssignment()) {
-            _TokenType assignment = parser->previous.type;
-            matchNewLines();
-            if (assignment == TK("=")) {
-                compileExpressionTuple();
-            } else { // name += / -= / *= ... = (expr);
-                emitCode(OP_DUP_TOP);
-                emitCode(OP_LOAD_ATTR, index);
-                compileExpression();
-                emitAssignOp(assignment);
-            }
-            emitCode(OP_STORE_ATTR, index);
-        } else {
-            emitCode(OP_LOAD_ATTR, index);
-        }
+        int index = getCode()->addNamePtr(name, NAME_ATTR);
+        emitCode(OP_BUILD_ATTR_PTR, index);
     }
 
     // [:], [:b]
     // [a], [a:], [a:b]
     void exprSubscript() {
-        bool slice = false;
         if(match(TK(":"))){
             emitCode(OP_LOAD_NONE);
             if(match(TK("]"))){
@@ -463,7 +430,6 @@ public:
                 consume(TK("]"));
             }
             emitCode(OP_BUILD_SLICE);
-            slice = true;
         }else{
             compileExpression();
             if(match(TK(":"))){
@@ -474,26 +440,12 @@ public:
                     consume(TK("]"));
                 }
                 emitCode(OP_BUILD_SLICE);
-                slice = true;
             }else{
                 consume(TK("]"));
             }
         }
 
-        if (l_value && matchAssignment()) {
-            if(slice) throw SyntaxError(path, parser->previous, "can't assign to slice");
-            _TokenType assignment = parser->previous.type;
-            matchNewLines();
-
-            if (assignment == TK("=")) {
-                compileExpressionTuple();
-            } else {
-                UNREACHABLE();
-            }
-            emitCode(OP_STORE_SUBSCR);
-        } else {
-            emitCode(OP_BINARY_SUBSCR);
-        }
+        emitCode(OP_BUILD_INDEX_PTR);
     }
 
     void exprValue() {
@@ -569,7 +521,7 @@ public:
     Token compileImportPath() {
         consume(TK("@id"));
         Token tkmodule = parser->previous;
-        int index = getCode()->addName(tkmodule.str());
+        int index = getCode()->addNamePtr(tkmodule.str(), NAME_GLOBAL);
         emitCode(OP_IMPORT_NAME, index);
         return tkmodule;
     }
@@ -582,8 +534,8 @@ public:
                 consume(TK("@id"));
                 tkmodule = parser->previous;
             }
-            int index = getCode()->addName(tkmodule.str());
-            emitCode(OP_STORE_NAME, index);
+            int index = getCode()->addNamePtr(tkmodule.str(), NAME_GLOBAL);
+            emitCode(OP_STORE_NAME_PTR, index);
         } while (match(TK(",")) && (matchNewLines(), true));
         consumeEndStatement();
     }
@@ -650,14 +602,16 @@ public:
 
     void compileForStatement() {
         consume(TK("@id"));
-        const _Str& iterName = parser->previous.str();
-        int iterIndex = getCode()->addName(iterName);
+        int iterIndex = getCode()->addNamePtr(
+            parser->previous.str(),
+            codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
+        );
         consume(TK("in"));
         compileExpressionTuple();
         emitCode(OP_GET_ITER);
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
-        emitCode(OP_STORE_AUTO, iterIndex);
+        emitCode(OP_STORE_NAME_PTR, iterIndex);
         compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
@@ -704,15 +658,8 @@ public:
             emitCode(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){
-            // TODO: The del implementation is problematic in some cases.
             compileExpression();
-            ByteCode& lastCode = getCode()->co_code.back();
-            if(lastCode.op == OP_BINARY_SUBSCR){
-                lastCode.op = OP_DELETE_SUBSCR;
-                lastCode.arg = -1;
-            }else{
-                throw SyntaxError(path, parser->previous, "you should use 'del a[b]' syntax");
-            }
+            emitCode(OP_DELETE_PTR);
             consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();
@@ -722,7 +669,7 @@ public:
 
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
-            if( lastOp != OP_STORE_NAME && lastOp != OP_STORE_FAST && lastOp != OP_STORE_SUBSCR && lastOp != OP_STORE_ATTR){
+            if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
                 if(repl_mode && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
@@ -733,11 +680,11 @@ public:
 
     void compileClass(){
         consume(TK("@id"));
-        int clsNameIdx = getCode()->addName(parser->previous.str());
+        int clsNameIdx = getCode()->addNamePtr(parser->previous.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
         if(match(TK("("))){
             consume(TK("@id"));
-            superClsNameIdx = getCode()->addName(parser->previous.str());
+            superClsNameIdx = getCode()->addNamePtr(parser->previous.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
         emitCode(OP_LOAD_NONE);
@@ -746,7 +693,7 @@ public:
         isCompilingClass = false;
 
         if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
-        else emitCode(OP_LOAD_NAME, superClsNameIdx);
+        else emitCode(OP_LOAD_NAME_PTR, superClsNameIdx);
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 

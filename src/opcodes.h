@@ -1,12 +1,7 @@
 #ifdef OPCODE
 
 OPCODE(LOAD_CONST)
-OPCODE(LOAD_NAME)
-
 OPCODE(IMPORT_NAME)
-OPCODE(STORE_FAST)
-OPCODE(STORE_NAME)
-
 OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
 OPCODE(CALL)
@@ -28,13 +23,6 @@ OPCODE(BUILD_MAP)
 OPCODE(BUILD_SLICE)
 OPCODE(UNPACK_SEQUENCE)
 
-OPCODE(BINARY_SUBSCR)
-OPCODE(STORE_SUBSCR)
-OPCODE(DELETE_SUBSCR)
-
-OPCODE(LOAD_ATTR)
-OPCODE(STORE_ATTR)
-
 OPCODE(GET_ITER)
 OPCODE(FOR_ITER)
 
@@ -53,5 +41,12 @@ OPCODE(RAISE_ERROR)
 
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
+
+OPCODE(LOAD_NAME_PTR)       // no arg
+OPCODE(BUILD_ATTR_PTR)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
+OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
+OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
+OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
+OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
 
 #endif
