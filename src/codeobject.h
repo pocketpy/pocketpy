@@ -67,6 +67,7 @@ struct CodeObject {
         int prev_line = -1;
         for(int i=0; i<co_code.size(); i++){
             const ByteCode& byte = co_code[i];
+            if(byte.op == OP_NO_OP) continue;
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{

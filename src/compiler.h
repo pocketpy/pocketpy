@@ -44,6 +44,8 @@ public:
     std::stack<_Code> codes;
     std::stack<Loop> loops;
 
+    CompileMode mode;
+
     bool isCompilingClass = false;
 
     _Str path = "<?>";
@@ -59,13 +61,10 @@ public:
         return loops.top();
     }
 
-    CompileMode mode() {
-        return getCode()->mode;
-    }
-
     Compiler(VM* vm, const char* source, _Code code){
         this->vm = vm;
         this->codes.push(code);
+        this->mode = code->mode;
         if (!code->co_filename.empty()) path = code->co_filename;
         this->parser = std::make_unique<Parser>(source);
 
@@ -281,7 +280,7 @@ public:
             consumed = true;
         }
         if (repl_throw && peek() == TK("@eof")){
-            throw NeedMoreLines();
+            throw NeedMoreLines(isCompilingClass);
         }
         return consumed;
     }
@@ -579,7 +578,7 @@ __LISTCOMP:
     
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
-        if(!matchNewLines(mode()==SINGLE_MODE)){
+        if(!matchNewLines(mode==SINGLE_MODE)){
             throw SyntaxError(path, parser->previous, "expected a new line after ':'");
         }
         consume(TK("@indent"));
@@ -745,7 +744,7 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
             if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
-                if(mode()==SINGLE_MODE && parser->indents.top() == 0){
+                if(mode==SINGLE_MODE && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
                 emitCode(OP_POP_TOP);
@@ -853,7 +852,7 @@ __LITERAL_EXIT:
         lexToken();
         matchNewLines();
 
-        if(mode() == EVAL_MODE) {
+        if(mode == EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
             return;

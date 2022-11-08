@@ -40,7 +40,8 @@ VM* newVM(){
 void REPL(){
     std::cout << "pocketpy 0.1.0" << std::endl;
 
-    bool need_more_lines = false;
+    int need_more_lines = 0;
+
     std::string buffer;
     VM* vm = newVM();
 
@@ -54,12 +55,16 @@ void REPL(){
             buffer += line;
             buffer += '\n';
             int n = buffer.size();
-            if(n>=2 && buffer[n-1]=='\n' && buffer[n-2]=='\n'){
-                need_more_lines = false;
+            if(n>=need_more_lines){
+                for(int i=buffer.size()-need_more_lines; i<buffer.size(); i++){
+                    if(buffer[i] != '\n') goto __NOT_ENOUGH_LINES;
+                }
+                need_more_lines = 0;
                 line = buffer;
                 mode = EXEC_MODE;       // tmp set to EXEC_MODE
                 buffer.clear();
             }else{
+__NOT_ENOUGH_LINES:
                 continue;
             }
         }else{
@@ -74,9 +79,10 @@ void REPL(){
 #else
         }catch(std::exception& e){
 #endif
-            if(need_more_lines = dynamic_cast<NeedMoreLines*>(&e)){
+            if(dynamic_cast<NeedMoreLines*>(&e)){
                 buffer += line;
                 buffer += '\n';
+                need_more_lines = e.isClassDef ? 3 : 2;
             }else{
                 vm->printFn(e.what());
                 vm->printFn("\n");

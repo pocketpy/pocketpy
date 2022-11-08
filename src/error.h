@@ -7,7 +7,11 @@
 
 #include "parser.h"
 
-class NeedMoreLines : public std::exception {};
+class NeedMoreLines : public std::exception {
+public:
+    NeedMoreLines(bool isClassDef) : isClassDef(isClassDef) {}
+    bool isClassDef;
+};
 
 class SyntaxError : public std::exception {
 private:
