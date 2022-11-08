@@ -11,7 +11,7 @@
 class Compiler;
 
 typedef void (Compiler::*GrammarFn)();
-typedef void (Compiler::*CompilerAction)();
+typedef std::function<void(Compiler*)> CompilerAction;
 
 struct GrammarRule{
     GrammarFn prefix;
@@ -430,8 +430,33 @@ public:
     }
 
     void exprList() {
-        ExprCommaSplitArgs("]");
+        int _patch = emitCode(OP_NO_OP);
+        int _body_start = getCode()->co_code.size();
+        int ARGC = 0;
+        do {
+            matchNewLines();
+            if (peek() == TK("]")) break;
+            EXPR(); ARGC++;
+            matchNewLines();
+            if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
+        } while (match(TK(",")));
+        matchNewLines();
+        consume(TK("]"));
         emitCode(OP_BUILD_LIST, ARGC);
+        return;
+
+__LISTCOMP:
+        int _body_end = getCode()->co_code.size();
+        getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
+        getCode()->co_code[_patch].arg = _body_end;
+        emitCode(OP_BUILD_LIST, 0);
+        __compileForLoop([=](Compiler* compiler){
+            // [list, iter]
+            getCode()->__copyToEnd(_body_start, _body_end);
+            // [list, iter, value]
+            emitCode(OP_LIST_APPEND);
+        });
+        consume(TK("]"));
     }
 
     void exprMap() {
@@ -538,7 +563,7 @@ public:
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
-            (this->*action)();
+            action(this);
             matchNewLines();
         }
         consume(TK("@dedent"));
@@ -617,7 +642,7 @@ public:
         loops.pop();
     }
 
-    void compileWhileStatement() {
+    void compileWhileLoop() {
         Loop& loop = enterLoop(false);
         EXPR_TUPLE();
         int patch = emitCode(OP_POP_JUMP_IF_FALSE);
@@ -627,12 +652,11 @@ public:
         exitLoop();
     }
 
-    void compileForStatement() {
+    void __compileForLoop(CompilerAction action) {
         int size = 0;
         do {
             consume(TK("@id"));
-            exprName();     // push a name ptr into stack
-            size++;
+            exprName(); size++;
         } while (match(TK(",")));
         if(size > 1) emitCode(OP_BUILD_SMART_TUPLE, size);
         consume(TK("in"));
@@ -640,7 +664,7 @@ public:
         emitCode(OP_GET_ITER);              // [ptr, list] -> iter
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
-        compileBlockBody();
+        action(this);
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
         exitLoop();
@@ -672,9 +696,9 @@ public:
         } else if (match(TK("if"))) {
             compileIfStatement();
         } else if (match(TK("while"))) {
-            compileWhileStatement();
+            compileWhileLoop();
         } else if (match(TK("for"))) {
-            compileForStatement();
+            __compileForLoop(&Compiler::compileBlockBody);
         } else if(match(TK("assert"))){
             EXPR();
             emitCode(OP_ASSERT);

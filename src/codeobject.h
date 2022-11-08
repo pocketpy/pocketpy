@@ -55,6 +55,12 @@ struct CodeObject {
         return co_consts.size() - 1;
     }
 
+    void __copyToEnd(int start, int end){
+        auto _start = co_code.begin() + start;
+        auto _end = co_code.begin() + end;
+        co_code.insert(co_code.end(), _start, _end);
+    }
+
     _Str toString(){
         _StrStream ss;
         int prev_line = -1;
@@ -95,7 +101,7 @@ struct CodeObject {
 
 class Frame {
 private:
-    std::stack<PyVar> s_data;
+    std::vector<PyVar> s_data;
     int ip = 0;
 public:
     StlDict* f_globals;
@@ -124,8 +130,8 @@ public:
     }
 
     inline PyVar __pop(){
-        PyVar v = s_data.top();
-        s_data.pop();
+        PyVar v = s_data.back();
+        s_data.pop_back();
         return v;
     }
 
@@ -136,11 +142,15 @@ public:
     }
 
     inline PyVar topValue(VM* vm){
-        return __deref_pointer(vm, s_data.top());
+        return __deref_pointer(vm, s_data.back());
+    }
+
+    inline PyVar topNValue(VM* vm, int n=-1){
+        return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
 
     inline void push(PyVar v){
-        s_data.push(v);
+        s_data.push_back(v);
     }
 
     inline void jumpTo(int i){

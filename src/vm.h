@@ -162,6 +162,7 @@ public:
 
             switch (byte.op)
             {
+            case OP_NO_OP: break;       // do nothing
             case OP_LOAD_CONST: frame->push(frame->code->co_consts[byte.arg]); break;
             case OP_LOAD_NAME_PTR: {
                 frame->push(PyPointer(frame->code->co_names[byte.arg]));
@@ -219,6 +220,11 @@ public:
             } break;
             case OP_LOAD_EVAL_FN: {
                 frame->push(builtins->attribs["eval"]);
+            } break;
+            case OP_LIST_APPEND: {
+                PyVar obj = frame->popValue(this);
+                PyVar list = frame->topNValue(this, -2);
+                fastCall(list, "append", {list, obj});
             } break;
             case OP_STORE_FUNCTION:
                 {
