@@ -628,17 +628,18 @@ public:
     }
 
     void compileForStatement() {
-        consume(TK("@id"));
-        int iterIndex = getCode()->addName(
-            parser->previous.str(),
-            codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
-        );
+        int size = 0;
+        do {
+            consume(TK("@id"));
+            exprName();     // push a name ptr into stack
+            size++;
+        } while (match(TK(",")));
+        if(size > 1) emitCode(OP_BUILD_SMART_TUPLE, size);
         consume(TK("in"));
         EXPR_TUPLE();
-        emitCode(OP_GET_ITER);
+        emitCode(OP_GET_ITER);              // [ptr, list] -> iter
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
-        emitCode(OP_STORE_NAME_PTR, iterIndex);
         compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);

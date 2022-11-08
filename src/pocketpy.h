@@ -101,9 +101,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(s);
     });
 
-    _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
-        return args.at(1)->attribs["__class__"];
-    });
+    // a little buggy... e.g. dict() call this instead of obj.__new__
+    // _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
+    //     return args.at(1)->attribs["__class__"];
+    // });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {
         _Range r;

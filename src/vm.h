@@ -336,19 +336,18 @@ public:
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn, {obj});
-                        if(tmp->isType(_tp_native_iterator)){
-                            frame->push(tmp);
-                            break;
-                        }
+                        PyIter_AS_C(tmp)->var = PyPointer_AS_C(frame->__pop());
+                        frame->push(tmp);
+                    }else{
+                        _error("TypeError", "'" + obj->getTypeName() + "' object is not iterable");
                     }
-                    _error("TypeError", "'" + obj->getTypeName() + "' object is not iterable");
                 } break;
             case OP_FOR_ITER:
                 {
                     const PyVar& iter = frame->topValue(this);
                     auto& it = PyIter_AS_C(iter);
                     if(it->hasNext()){
-                        frame->push(it->next());
+                        it->var->set(this, frame.get(), it->next());
                     }
                     else{
                         frame->popValue(this);

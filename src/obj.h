@@ -70,6 +70,9 @@ private:
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
+
+    _Pointer var;
+
     _Iterator(PyVar _ref) : _ref(_ref) {}
 };
 
