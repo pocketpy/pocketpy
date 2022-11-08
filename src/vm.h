@@ -18,16 +18,6 @@
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-#define BINARY_XXX(i)      \
-          {PyVar rhs = frame->popValue(this);   \
-          PyVar lhs = frame->popValue(this);    \
-          frame->push(fastCall(lhs, BIN_SPECIAL_METHODS[i], {lhs,rhs}));}
-
-#define COMPARE_XXX(i)      \
-          {PyVar rhs = frame->popValue(this);   \
-          PyVar lhs = frame->popValue(this);   \
-          frame->push(fastCall(lhs, CMP_SPECIAL_METHODS[i], {lhs,rhs}));}      
-
 // TODO: we should split this into stdout and stderr
 typedef void(*PrintFn)(const char*);
 
@@ -269,7 +259,12 @@ public:
                     printFn("\n");
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
-            case OP_BINARY_OP: BINARY_XXX(byte.arg) break;
+            case OP_BINARY_OP:
+                {
+                    PyVar rhs = frame->popValue(this);
+                    PyVar lhs = frame->popValue(this);
+                    frame->push(fastCall(lhs, BIN_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                } break;
             case OP_COMPARE_OP:
                 {
                     PyVar rhs = frame->popValue(this);
@@ -288,9 +283,9 @@ public:
                 } break;
             case OP_CONTAINS_OP:
                 {
-                    PyVar right = frame->popValue(this);
-                    PyVar left = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(right, __contains__, {left}));
+                    PyVar rhs = frame->popValue(this);
+                    PyVar lhs = frame->popValue(this);
+                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, {lhs}));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
@@ -371,13 +366,13 @@ public:
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
                     const PyVar& expr = frame->topValue(this);
-                    if(!PyBool_AS_C(asBool(expr))) frame->jumpTo(byte.arg);
+                    if(asBool(expr)==False) frame->jumpTo(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
                     const PyVar& expr = frame->topValue(this);
-                    if(PyBool_AS_C(asBool(expr))) frame->jumpTo(byte.arg);
+                    if(asBool(expr)==True) frame->jumpTo(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_BUILD_SLICE:
