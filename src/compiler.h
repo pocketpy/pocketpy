@@ -337,7 +337,18 @@ public:
     }
 
     void exprLambda() {
-        throw SyntaxError(path, parser->previous, "lambda is not implemented yet");
+        _Func func;
+        func.name = "<lambda>";
+        __compileFunctionArgs(func);
+        consume(TK(":"));
+        func.code = std::make_shared<CodeObject>();
+        func.code->co_name = func.name;
+        func.code->co_filename = path;
+        this->codes.push(func.code);
+        EXPR_TUPLE();
+        emitCode(OP_RETURN_VALUE);
+        this->codes.pop();
+        emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
     }
 
     void exprAssign() {
@@ -771,6 +782,38 @@ __LISTCOMP:
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 
+    void __compileFunctionArgs(_Func& func){
+        int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
+        do {
+            if(state == 3){
+                throw SyntaxError(path, parser->previous, "**kwargs should be the last argument");
+            }
+
+            matchNewLines();
+            if(match(TK("*"))){
+                if(state < 1) state = 1;
+                else throw SyntaxError(path, parser->previous, "*args should be placed before **kwargs");
+            }
+            else if(match(TK("**"))){
+                state = 3;
+            }
+
+            consume(TK("@id"));
+            const _Str& name = parser->previous.str();
+            if(func.hasName(name)) throw SyntaxError(path, parser->previous, "duplicate argument name");
+
+            if(state == 0 && peek() == TK("=")) state = 2;
+
+            switch (state)
+            {
+                case 0: func.args.push_back(name); break;
+                case 1: func.starredArg = name; state+=1; break;
+                case 2: consume(TK("=")); func.kwArgs[name] = consumeLiteral(); break;
+                case 3: func.doubleStarredArg = name; break;
+            }
+        } while (match(TK(",")));
+    }
+
     void compileFunction(){
         if(isCompilingClass){
             if(match(TK("pass"))) return;
@@ -781,35 +824,7 @@ __LISTCOMP:
         func.name = parser->previous.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
-            int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
-            do {
-                if(state == 3){
-                    throw SyntaxError(path, parser->previous, "**kwargs should be the last argument");
-                }
-
-                matchNewLines();
-                if(match(TK("*"))){
-                    if(state < 1) state = 1;
-                    else throw SyntaxError(path, parser->previous, "*args should be placed before **kwargs");
-                }
-                else if(match(TK("**"))){
-                    state = 3;
-                }
-
-                consume(TK("@id"));
-                const _Str& name = parser->previous.str();
-                if(func.hasName(name)) throw SyntaxError(path, parser->previous, "duplicate argument name");
-
-                if(state == 0 && peek() == TK("=")) state = 2;
-
-                switch (state)
-                {
-                    case 0: func.args.push_back(name); break;
-                    case 1: func.starredArg = name; state+=1; break;
-                    case 2: consume(TK("=")); func.kwArgs[name] = consumeLiteral(); break;
-                    case 3: func.doubleStarredArg = name; break;
-                }
-            } while (match(TK(",")));
+            __compileFunctionArgs(func);
             consume(TK(")"));
         }
 
