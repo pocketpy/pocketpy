@@ -11,7 +11,7 @@
 class Compiler;
 
 typedef void (Compiler::*GrammarFn)();
-typedef std::function<void(Compiler*)> CompilerAction;
+typedef void (Compiler::*CompilerAction)();
 
 struct GrammarRule{
     GrammarFn prefix;
@@ -450,12 +450,33 @@ __LISTCOMP:
         getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
         getCode()->co_code[_patch].arg = _body_end;
         emitCode(OP_BUILD_LIST, 0);
-        __compileForLoop([=](Compiler* compiler){
-            // [list, iter]
-            getCode()->__copyToEnd(_body_start, _body_end);
-            // [list, iter, value]
+        EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
+        matchNewLines();
+        
+        int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
+        int _cond_start = getCode()->co_code.size();
+        if(match(TK("if"))) EXPR_TUPLE();
+        int _cond_end = getCode()->co_code.size();
+        patchJump(_skipPatch);
+
+        emitCode(OP_GET_ITER);
+        Loop& loop = enterLoop(true);
+        int patch = emitCode(OP_FOR_ITER);
+
+        if(_cond_end != _cond_start) {      // there is an if condition
+            getCode()->__moveToEnd(_cond_start, _cond_end);
+            int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
+            getCode()->__moveToEnd(_body_start, _body_end);
             emitCode(OP_LIST_APPEND);
-        });
+            patchJump(ifpatch);
+        }else{
+            getCode()->__moveToEnd(_body_start, _body_end);
+            emitCode(OP_LIST_APPEND);
+        }
+
+        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
+        patchJump(patch);
+        exitLoop();
         consume(TK("]"));
     }
 
@@ -547,7 +568,7 @@ __LISTCOMP:
         return getCode()->co_code.size() - 1;
     }
 
-    void patchJump(int addr_index) {
+    inline void patchJump(int addr_index) {
         int target = getCode()->co_code.size();
         getCode()->co_code[addr_index].arg = target;
     }
@@ -563,7 +584,7 @@ __LISTCOMP:
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
-            action(this);
+            (this->*action)();
             matchNewLines();
         }
         consume(TK("@dedent"));
@@ -652,19 +673,21 @@ __LISTCOMP:
         exitLoop();
     }
 
-    void __compileForLoop(CompilerAction action) {
+    void EXPR_FOR_VARS(){
         int size = 0;
         do {
             consume(TK("@id"));
             exprName(); size++;
         } while (match(TK(",")));
         if(size > 1) emitCode(OP_BUILD_SMART_TUPLE, size);
-        consume(TK("in"));
-        EXPR_TUPLE();
-        emitCode(OP_GET_ITER);              // [ptr, list] -> iter
+    }
+
+    void compileForLoop() {
+        EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
+        emitCode(OP_GET_ITER);
         Loop& loop = enterLoop(true);
         int patch = emitCode(OP_FOR_ITER);
-        action(this);
+        compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
         exitLoop();
@@ -698,7 +721,7 @@ __LISTCOMP:
         } else if (match(TK("while"))) {
             compileWhileLoop();
         } else if (match(TK("for"))) {
-            __compileForLoop(&Compiler::compileBlockBody);
+            compileForLoop();
         } else if(match(TK("assert"))){
             EXPR();
             emitCode(OP_ASSERT);

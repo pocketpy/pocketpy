@@ -55,10 +55,11 @@ struct CodeObject {
         return co_consts.size() - 1;
     }
 
-    void __copyToEnd(int start, int end){
+    void __moveToEnd(int start, int end){
         auto _start = co_code.begin() + start;
         auto _end = co_code.begin() + end;
         co_code.insert(co_code.end(), _start, _end);
+        for(int i=start; i<end; i++) co_code[i].op = OP_NO_OP;
     }
 
     _Str toString(){
