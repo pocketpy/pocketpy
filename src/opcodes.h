@@ -33,6 +33,7 @@ OPCODE(JUMP_IF_FALSE_OR_POP)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
+OPCODE(LOAD_EVAL_FN)       // load eval() callable into stack
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
@@ -48,5 +49,6 @@ OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
+OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
 #endif

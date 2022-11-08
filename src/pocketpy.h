@@ -49,6 +49,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bindBuiltinFunc("eval", [](VM* vm, PyVarList args) {
+        if (args.size() != 1) vm->_error("TypeError", "eval() takes exactly one argument");
+        if (!args[0]->isType(vm->_tp_str)) vm->_error("TypeError", "eval() argument must be a string");
+        const _Str& expr = vm->PyStr_AS_C(args[0]);
+        _Code code = compile(vm, expr, "<f-string>", EVAL_MODE);
+        return vm->exec(code);      // not working in function
+    });
+
     _vm->bindBuiltinFunc("repr", [](VM* vm, PyVarList args) {
         return vm->asRepr(args.at(0));
     });
@@ -91,6 +99,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         PyVar _self = args[0];
         _Str s = "<" + _self->getTypeName() + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
         return vm->PyStr(s);
+    });
+
+    _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
+        return args.at(1)->attribs["__class__"];
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {

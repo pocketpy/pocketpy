@@ -20,7 +20,7 @@ constexpr const char* __TOKENS[] = {
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise",
     /** KW_END **/
     "is not", "not in",
-    "@id", "@num", "@str",
+    "@id", "@num", "@str", "@fstr",
     "@indent", "@dedent"
 };
 

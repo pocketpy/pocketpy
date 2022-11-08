@@ -45,6 +45,7 @@ void REPL(){
     VM* vm = newVM();
 
     while(true){
+        CompileMode mode = SINGLE_MODE;
         vm->printFn(need_more_lines ? "... " : ">>> ");
         std::string line;
         std::getline(std::cin, line);
@@ -56,6 +57,7 @@ void REPL(){
             if(n>=2 && buffer[n-1]=='\n' && buffer[n-2]=='\n'){
                 need_more_lines = false;
                 line = buffer;
+                mode = EXEC_MODE;       // tmp set to EXEC_MODE
                 buffer.clear();
             }else{
                 continue;
@@ -65,7 +67,7 @@ void REPL(){
             if(line.empty()) continue;
         }
         try{
-            _Code code = compile(vm, line.c_str(), "<stdin>", true);
+            _Code code = compile(vm, line.c_str(), "<stdin>", mode);
             vm->exec(code);
 #ifdef PK_DEBUG
         }catch(NeedMoreLines& e){
@@ -106,7 +108,7 @@ int main(int argc, char** argv){
             std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             VM* vm = newVM();
             Timer timer("编译时间");
-            _Code code = compile(vm, src.c_str(), filename, false);
+            _Code code = compile(vm, src.c_str(), filename);
             timer.stop();
             //std::cout << code->toString() << std::endl;
             Timer timer2("运行时间");

@@ -25,7 +25,15 @@ _Str pad(const _Str& s, const int n){
     return s + _Str(n - s.size(), ' ');
 }
 
+enum CompileMode {
+    EXEC_MODE,
+    EVAL_MODE,
+    SINGLE_MODE
+};
+
 struct CodeObject {
+    CompileMode mode = EXEC_MODE;
+
     std::vector<ByteCode> co_code;
     _Str co_filename;
     _Str co_name;

@@ -210,6 +210,16 @@ public:
                     pointers[i] = PyPointer_AS_C(items[i]);
                 frame->push(PyPointer(std::make_shared<CompoundPointer>(pointers)));
             } break;
+            case OP_BUILD_STRING:
+            {
+                PyVarList items = frame->popNValuesReversed(this, byte.arg);
+                _StrStream ss;
+                for(const auto& i : items) ss << PyStr_AS_C(asStr(i));
+                frame->push(PyStr(ss));
+            } break;
+            case OP_LOAD_EVAL_FN: {
+                frame->push(builtins->attribs["eval"]);
+            } break;
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->popValue(this);
@@ -381,6 +391,15 @@ public:
                 break;
             }
         }
+
+        if(frame->code->mode == EVAL_MODE) {
+            if(frame->stackSize() != 1) {
+                _error("SystemError", "stack size is not 1 in EVAL_MODE");
+            }
+            return frame->popValue(this);
+        }
+
+        if(frame->stackSize() != 0) _error("SystemError", "stack not empty in EXEC_MODE");
         callstack.pop();
         return None;
     }

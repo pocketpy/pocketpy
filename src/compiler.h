@@ -41,8 +41,6 @@ struct Loop {
 class Compiler {
 public:
     std::unique_ptr<Parser> parser;
-    bool repl_mode;
-
     std::stack<_Code> codes;
     std::stack<Loop> loops;
 
@@ -61,10 +59,13 @@ public:
         return loops.top();
     }
 
-    Compiler(VM* vm, const char* source, _Code code, bool repl_mode){
+    CompileMode mode() {
+        return getCode()->mode;
+    }
+
+    Compiler(VM* vm, const char* source, _Code code){
         this->vm = vm;
         this->codes.push(code);
-        this->repl_mode = repl_mode;
         if (!code->co_filename.empty()) path = code->co_filename;
         this->parser = std::make_unique<Parser>(source);
 
@@ -103,6 +104,7 @@ public:
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
+        rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
@@ -118,9 +120,8 @@ public:
 #define EXPR_ANY() parsePrecedence(PREC_NONE)
     }
 
-    void eatString(bool single_quote) {
+    _Str eatStringUntil(char quote) {
         std::vector<char> buff;
-        char quote = (single_quote) ? '\'' : '"';
         while (true) {
             char c = parser->eatChar();
             if (c == quote) break;
@@ -134,16 +135,23 @@ public:
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
-                    case '\n': break; // Just ignore the next line.
-                    case '\r': if (parser->matchChar('\n')) break;
-                    default: throw SyntaxError(path, parser->makeErrToken(), "invalid syntax");
+                    case '\n': case '\r': break;
+                    default: throw SyntaxError(path, parser->makeErrToken(), "invalid escape character");
                 }
             } else {
                 buff.push_back(c);
             }
         }
+        return _Str(buff.data(), buff.size());
+    }
 
-        parser->setNextToken(TK("@str"), vm->PyStr(_Str(buff.data(), buff.size())));
+    void eatString(char quote, bool fstr) {
+        _Str s = eatStringUntil(quote);
+        if(fstr){
+            parser->setNextToken(TK("@fstr"), vm->PyStr(s));
+        }else{
+            parser->setNextToken(TK("@str"), vm->PyStr(s));
+        }
     }
 
     void eatNumber() {
@@ -182,8 +190,7 @@ public:
             parser->token_start = parser->current_char;
             char c = parser->eatCharIncludeNewLine();
             switch (c) {
-                case '"': eatString(false); return;
-                case '\'': eatString(true); return;
+                case '\'': case '"': eatString(c, false); return;
                 case '#': parser->skipLineComment(); break;
                 case '{': parser->setNextToken(TK("{")); return;
                 case '}': parser->setNextToken(TK("}")); return;
@@ -232,6 +239,10 @@ public:
                     if (isdigit(c)) {
                         eatNumber();
                     } else if (isalpha(c) || c=='_') {
+                        if(c == 'f'){
+                            if(parser->matchChar('\'')) {eatString('\'', true); return;}
+                            if(parser->matchChar('"')) {eatString('"', true); return;}
+                        }
                         parser->eatName();
                     } else {
                         throw SyntaxError(path, parser->makeErrToken(), "unknown character: %c", c);
@@ -295,6 +306,35 @@ public:
         PyVar value = parser->previous.value;
         int index = getCode()->addConst(value);
         emitCode(OP_LOAD_CONST, index);
+    }
+
+    void exprFString() {
+        PyVar value = parser->previous.value;
+        std::string s = vm->PyStr_AS_C(value).str();
+        std::regex pattern(R"(\{(.*?)\})");
+        std::sregex_iterator begin(s.begin(), s.end(), pattern);
+        std::sregex_iterator end;
+        int size = 0;
+        int i = 0;
+        for(auto it = begin; it != end; it++) {
+            std::smatch m = *it;
+            if (i < m.position()) {
+                std::string literal = s.substr(i, m.position() - i);
+                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+                size++;
+            }
+            emitCode(OP_LOAD_EVAL_FN);
+            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(m[1].str())));
+            emitCode(OP_CALL, 1);
+            size++;
+            i = m.position() + m.length();
+        }
+        if (i < s.size()) {
+            std::string literal = s.substr(i, s.size() - i);
+            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+            size++;
+        }
+        emitCode(OP_BUILD_STRING, size);
     }
 
     void exprLambda() {
@@ -493,7 +533,7 @@ public:
     
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
-        if(!matchNewLines(repl_mode)){
+        if(!matchNewLines(mode()==SINGLE_MODE)){
             throw SyntaxError(path, parser->previous, "expected a new line after ':'");
         }
         consume(TK("@indent"));
@@ -657,7 +697,7 @@ public:
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
             if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
-                if(repl_mode && parser->indents.top() == 0){
+                if(mode()==SINGLE_MODE && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
                 emitCode(OP_POP_TOP);
@@ -713,6 +753,8 @@ public:
                 const _Str& name = parser->previous.str();
                 if(func.hasName(name)) throw SyntaxError(path, parser->previous, "duplicate argument name");
 
+                if(state == 0 && peek() == TK("=")) state = 2;
+
                 switch (state)
                 {
                     case 0: func.args.push_back(name); break;
@@ -740,7 +782,7 @@ public:
         if(match(TK("True"))) goto __LITERAL_EXIT;
         if(match(TK("False"))) goto __LITERAL_EXIT;
         if(match(TK("None"))) goto __LITERAL_EXIT;
-        throw SyntaxError(path, parser->previous, "expect a literal");
+        throw SyntaxError(path, parser->previous, "expect a literal, not %s", TK_STR(parser->current.type));
 __LITERAL_EXIT:
         return parser->previous.value;
     }
@@ -757,26 +799,34 @@ __LITERAL_EXIT:
         }
     }
 
+    void __fillCode(){
+        // Lex initial tokens. current <-- next.
+        lexToken();
+        lexToken();
+        matchNewLines();
+
+        if(mode() == EVAL_MODE) {
+            EXPR_TUPLE();
+            consume(TK("@eof"));
+            return;
+        }
+
+        while (!match(TK("@eof"))) {
+            compileTopLevelStatement();
+            matchNewLines();
+        }
+    }
 };
 
-
-_Code compile(VM* vm, const char* source, _Str filename, bool repl_mode=false) {
+_Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE) {
     // Skip utf8 BOM if there is any.
     if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
 
     _Code code = std::make_shared<CodeObject>();
     code->co_filename = filename;
-    Compiler compiler(vm, source, code, repl_mode);
+    code->mode = mode;
 
-    // Lex initial tokens. current <-- next.
-    compiler.lexToken();
-    compiler.lexToken();
-    compiler.matchNewLines();
-
-    while (!compiler.match(TK("@eof"))) {
-        compiler.compileTopLevelStatement();
-        compiler.matchNewLines();
-    }
-
+    Compiler compiler(vm, source, code);
+    compiler.__fillCode();
     return code;
 }
