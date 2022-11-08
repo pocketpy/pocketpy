@@ -4,9 +4,7 @@ const char* __BUILTINS_CODE = R"(
 def len(x):
     return x.__len__()
 
-def __str4__mul__(self, n):
-    return ''.join([self for _ in range(n)])
-str.__mul__ = __str4__mul__
+str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
 def __str4split(self, sep):
     if sep == "":
@@ -24,19 +22,8 @@ def __str4split(self, sep):
     return res
 str.split = __str4split
 
-def __list4__repr__(self):
-    a = []
-    for i in self:
-        a.append(repr(i))
-    return '[' + ', '.join(a) + ']'
-list.__repr__ = __list4__repr__
-
-def __tuple4__repr__(self):
-    a = []
-    for i in self:
-        a.append(repr(i))
-    return '(' + ', '.join(a) + ')'
-tuple.__repr__ = __tuple4__repr__
+list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
+tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
 
 def __list4extend(self, other):
     for i in other:
@@ -82,9 +69,9 @@ class dict:
         i = hash(key) % self._capacity
         while self._a[i] is not None:
             if self._a[i][0] == key:
-                return [True, i]
+                return True, i
             i = ((5*i) + 1) % self._capacity
-        return False,i
+        return False, i
 
     def __getitem__(self, key):
         ok, i = self.__probe(key)
@@ -132,11 +119,7 @@ class dict:
         return [kv for kv in self._a if kv is not None]
 
     def __repr__(self):
-        ret = '{'
-        for kv in self.items():
-            ret += repr(kv[0]) + ': ' + repr(kv[1]) + ', '
-        if ret[-2:] == ', ':
-            ret = ret[:-2]
-        return ret + '}'
+        a = [repr(k)+': '+repr(v) for k,v in self.items()]
+        return '{'+ ', '.join(a) + '}'
 
 )";
