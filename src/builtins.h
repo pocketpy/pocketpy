@@ -5,10 +5,7 @@ def len(x):
     return x.__len__()
 
 def __str4__mul__(self, n):
-    a = []
-    for i in range(n):
-        a.append(self)
-    return ''.join(a)
+    return ''.join([self for _ in range(n)])
 str.__mul__ = __str4__mul__
 
 def __str4split(self, sep):
@@ -126,25 +123,13 @@ class dict:
                 self[kv[0]] = kv[1]
 
     def keys(self):
-        ret = []
-        for kv in self._a:
-            if kv is not None:
-                ret.append(kv[0])
-        return ret
+        return [kv[0] for kv in self._a if kv is not None]
 
     def values(self):
-        ret = []
-        for kv in self._a:
-            if kv is not None:
-                ret.append(kv[1])
-        return ret
+        return [kv[1] for kv in self._a if kv is not None]
 
     def items(self):
-        ret = []
-        for kv in self._a:
-            if kv is not None:
-                ret.append(kv)
-        return ret
+        return [kv for kv in self._a if kv is not None]
 
     def __repr__(self):
         ret = '{'
