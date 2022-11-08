@@ -114,9 +114,9 @@ public:
 #undef METHOD
 #undef NO_INFIX
 
-#define EXPR() parsePrecedence(PREC_COMMA)              // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parsePrecedence(PREC_ASSIGNMENT)   // no '=', but ',' is allowed
-#define EXPR_ANY() parsePrecedence(PREC_NONE)
+#define EXPR() parsePrecedence(PREC_LOGICAL_OR)             // no '=' and ',' just a simple expression
+#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)            // no '=', but ',' is allowed
+#define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
     }
 
     _Str eatStringUntil(char quote) {
@@ -620,7 +620,7 @@ __LISTCOMP:
         }
 
         (this->*prefix)();
-        while (rules[peek()].precedence > precedence) {
+        while (rules[peek()].precedence >= precedence) {
             lexToken();
             _TokenType op = parser->previous.type;
             GrammarFn infix = rules[op].infix;
