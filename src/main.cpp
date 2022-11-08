@@ -5,7 +5,7 @@
 #include "pocketpy.h"
 
 #define PK_DEBUG
-//#define PK_DEBUG_TIME
+#define PK_DEBUG_TIME
 
 class Timer{
 private:

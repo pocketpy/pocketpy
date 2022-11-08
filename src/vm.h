@@ -3,15 +3,20 @@
 #include "codeobject.h"
 #include "iter.h"
 
-#define DEF_NATIVE(type, ctype, ptype)                          \
-    inline PyVar Py##type(ctype value) {                        \
-        return newObject(ptype, value);                         \
-    }                                                           \
-                                                                \
+#define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         __checkType(obj, ptype);                                \
         return std::get<ctype>(obj->_native);                   \
     }
+
+#define __DEF_PY(type, ctype, ptype)                            \
+    inline PyVar Py##type(ctype value) {                        \
+        return newObject(ptype, value);                         \
+    }
+
+#define DEF_NATIVE(type, ctype, ptype)                          \
+    __DEF_PY(type, ctype, ptype)                                \
+    __DEF_PY_AS_C(type, ctype, ptype)
 
 #define BINARY_XXX(i)      \
           {PyVar rhs = frame->popValue(this);   \
@@ -26,9 +31,12 @@
 // TODO: we should split this into stdout and stderr
 typedef void(*PrintFn)(const char*);
 
+#define NUM_POOL_MAX_SIZE 1024
+
 class VM{
 private:
     std::stack< std::shared_ptr<Frame> > callstack;
+    std::vector<PyObject*> numPool;
 public:
     StlDict _types;         // builtin types
     PyVar None, True, False;
@@ -455,6 +463,24 @@ public:
         return obj;
     }
 
+    PyVar newNumber(PyVar type, _Value _native) {
+        if(type != _tp_int && type != _tp_float)
+            _error("SystemError", "type is not a number type");
+        PyObject* _raw = nullptr;
+        if(numPool.size() > 0) {
+            _raw = numPool.back();
+            _raw->_native = _native;
+            numPool.pop_back();
+        }else{
+            _raw = new PyObject(_native);
+        }
+        PyVar obj = PyVar(_raw, [this](PyObject* p){
+            if(numPool.size() < NUM_POOL_MAX_SIZE) numPool.push_back(p);
+        });
+        setAttr(obj, __class__, type);
+        return obj;
+    }
+
     PyVar newModule(_Str name) {
         PyVar obj = newObject(_tp_module, 0);
         setAttr(obj, "__name__", PyStr(name));
@@ -549,8 +575,8 @@ public:
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
 
-    DEF_NATIVE(Int, int, _tp_int)
-    DEF_NATIVE(Float, float, _tp_float)
+    __DEF_PY_AS_C(Int, int, _tp_int)
+    __DEF_PY_AS_C(Float, float, _tp_float)
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
@@ -562,6 +588,8 @@ public:
     DEF_NATIVE(Slice, _Slice, _tp_slice)
     DEF_NATIVE(Pointer, _Pointer, _tp_pointer)
     
+    inline PyVar PyInt(int i) { return newNumber(_tp_int, i); }
+    inline PyVar PyFloat(float f) { return newNumber(_tp_float, f); }
     inline bool PyBool_AS_C(PyVar obj){return obj == True;}
     inline PyVar PyBool(bool value){return value ? True : False;}
 
