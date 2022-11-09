@@ -238,7 +238,6 @@ struct Parser {
         this->line_start = source;
 
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
-
         this->indents.push(0);
     }
 };

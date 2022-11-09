@@ -165,7 +165,7 @@ public:
         callstack.push(frame);
         while(!frame->isEnd()){
             const ByteCode& byte = frame->readCode();
-            //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
+            printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
             switch (byte.op)
             {

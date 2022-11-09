@@ -154,29 +154,26 @@ public:
     }
 
     void eatNumber() {
-        char c = *(parser->token_start);
-        bool is_float = false;
-        while (isdigit(parser->peekChar())) parser->eatChar();
-        
-        if (parser->peekChar() == '.' && isdigit(parser->peekNextChar())) {
-            parser->matchChar('.');
-            is_float = true;
-            while (isdigit(parser->peekChar())) parser->eatChar();
-        }
+        static const std::regex pattern("^[+-]?([0-9]+)(\\.[0-9]+)?");
+        std::smatch m;
 
-        errno = 0;
-        PyVar value = vm->None;
-        if(is_float){
-            value = vm->PyFloat(atof(parser->token_start));
-        } else {
-            value = vm->PyInt(atoi(parser->token_start));
+        const char* i = parser->token_start;
+        while(*i != '\n' && *i != '\0') i++;
+        std::string s = std::string(parser->token_start, i);
+
+        try{
+            if (std::regex_search(s, m, pattern)) {
+                // here is m.length()-1, since the first char is eaten by lexToken()
+                for(int j=0; j<m.length()-1; j++) parser->eatChar();
+                if (m[2].matched) {
+                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stof(m[0])));
+                } else {
+                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoi(m[0])));
+                }  
+            }
+        }catch(std::exception& e){
+            throw SyntaxError(path, parser->makeErrToken(), "invalid number (%s)", e.what());
         }
-        if (errno == ERANGE) {
-            const char* start = parser->token_start;
-            int len = (int)(parser->current_char - start);
-            throw SyntaxError(path, parser->makeErrToken(), "number literal too large: %.*s", len, start);
-        }
-        parser->setNextToken(TK("@num"), value);
     }
 
     // Lex the next token and set it as the next token.
@@ -206,7 +203,11 @@ public:
                 case '>': parser->setNextTwoCharToken('=', TK(">"), TK(">=")); return;
                 case '<': parser->setNextTwoCharToken('=', TK("<"), TK("<=")); return;
                 case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
-                case '-': parser->setNextTwoCharToken('=', TK("-"), TK("-=")); return;
+                case '-': {
+                    if(isdigit(parser->peekChar())) eatNumber();
+                    else parser->setNextTwoCharToken('=', TK("-"), TK("-="));
+                    return;
+                }
                 case '!':
                     if(parser->matchChar('=')) parser->setNextToken(TK("!="));
                     else SyntaxError(path, parser->makeErrToken(), "expected '=' after '!'");
@@ -308,9 +309,9 @@ public:
     }
 
     void exprFString() {
+        static const std::regex pattern(R"(\{(.*?)\})");
         PyVar value = parser->previous.value;
         std::string s = vm->PyStr_AS_C(value).str();
-        std::regex pattern(R"(\{(.*?)\})");
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
         int size = 0;
