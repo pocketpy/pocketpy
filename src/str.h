@@ -29,7 +29,7 @@ private:
 public:
     _Str(const char* s): _s(s) {}
     _Str(const char* s, size_t len): _s(s, len) {}
-    _Str(int n, char fill = ' '): _s(n, fill) {}
+    _Str(int n, char fill): _s(n, fill) {}
     _Str(const std::string& s): _s(s) {}
     _Str(std::string&& s): _s(std::move(s)) {}
     _Str(const _StrStream& ss): _s(ss.str()) {}

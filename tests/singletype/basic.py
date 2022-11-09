@@ -34,7 +34,7 @@ assert x%8 == 3
 
 
 assert 2**3 == 8 
-assert -2**2 == -4 
+assert -2**2 == 4 
 assert (-2)**2 == 4
 assert compare(0.2**2,0.04) == 1    
 x = 4

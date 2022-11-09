@@ -124,8 +124,7 @@ public:
         while (true) {
             char c = parser->eatChar();
             if (c == quote) break;
-            if (c == '\0')
-                throw SyntaxError(path, parser->makeErrToken(), "EOL while scanning string literal");
+            if (c == '\0') syntaxError("EOL while scanning string literal");
             if (c == '\\') {
                 switch (parser->eatCharIncludeNewLine()) {
                     case '"':  buff.push_back('"');  break;
@@ -135,7 +134,7 @@ public:
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
                     case '\n': case '\r': break;
-                    default: throw SyntaxError(path, parser->makeErrToken(), "invalid escape character");
+                    default: syntaxError("invalid escape character");
                 }
             } else {
                 buff.push_back(c);
@@ -172,7 +171,7 @@ public:
                 }  
             }
         }catch(std::exception& e){
-            throw SyntaxError(path, parser->makeErrToken(), "invalid number (%s)", e.what());
+            syntaxError("invalid number literal");
         }
     }
 
@@ -210,7 +209,7 @@ public:
                 }
                 case '!':
                     if(parser->matchChar('=')) parser->setNextToken(TK("!="));
-                    else SyntaxError(path, parser->makeErrToken(), "expected '=' after '!'");
+                    else syntaxError("expected '=' after '!'");
                     break;
                 case '*':
                     if (parser->matchChar('*')) {
@@ -229,10 +228,8 @@ public:
                 case '\r': break;       // just ignore '\r'
                 case ' ': case '\t': parser->eatSpaces(); break;
                 case '\n': {
-                    parser->setNextToken(TK("@eol"));
-                    while(parser->matchChar('\n'));
-                    if(!parser->eatIndentation())
-                        throw SyntaxError(path, parser->makeErrToken(), "unindent does not match any outer indentation level");
+                    parser->setNextToken(TK("@eol")); while(parser->matchChar('\n'));
+                    if(!parser->eatIndentation()) indentationError("unindent does not match any outer indentation level");
                     return;
                 }
                 default: {
@@ -245,7 +242,7 @@ public:
                         }
                         parser->eatName();
                     } else {
-                        throw SyntaxError(path, parser->makeErrToken(), "unknown character: %c", c);
+                        syntaxError("unknown character: " + _Str(1, c));
                     }
                     return;
                 }
@@ -270,7 +267,9 @@ public:
         lexToken();
         Token prev = parser->previous;
         if (prev.type != expected){
-            throw SyntaxError(path, prev, "expected '%s', but got '%s'", TK_STR(expected), TK_STR(prev.type));
+            _StrStream ss;
+            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(prev.type) << "'";
+            syntaxError(ss.str());
         }
     }
 
@@ -298,8 +297,7 @@ public:
     }
 
     void consumeEndStatement() {
-        if (!matchEndStatement())
-            throw SyntaxError(path, parser->current, "expected statement end");
+        if (!matchEndStatement()) syntaxError("expected statement end");
     }
 
     void exprLiteral() {
@@ -591,7 +589,7 @@ __LISTCOMP:
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
         if(!matchNewLines(mode==SINGLE_MODE)){
-            throw SyntaxError(path, parser->previous, "expected a new line after ':'");
+            syntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
@@ -627,15 +625,16 @@ __LISTCOMP:
         lexToken();
         GrammarFn prefix = rules[parser->previous.type].prefix;
 
-        if (prefix == nullptr) {
-            throw SyntaxError(path, parser->previous, "expected an expression");
-        }
+        if (prefix == nullptr) syntaxError("expected an expression");
 
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lexToken();
             _TokenType op = parser->previous.type;
             GrammarFn infix = rules[op].infix;
+            if(infix == nullptr) {
+                throw UnexpectedError("(infix == nullptr) is true");
+            }
             (this->*infix)();
         }
     }
@@ -706,20 +705,18 @@ __LISTCOMP:
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (loops.empty()) throw SyntaxError(path, parser->previous, "'break' outside loop");
+            if (loops.empty()) syntaxError("'break' outside loop");
             consumeEndStatement();
             if(getLoop().forLoop) emitCode(OP_POP_TOP); // pop the iterator of for loop.
             int patch = emitCode(OP_JUMP_ABSOLUTE);
             getLoop().breaks.push_back(patch);
         } else if (match(TK("continue"))) {
-            if (loops.empty()) {
-                throw SyntaxError(path, parser->previous, "'continue' not properly in loop");
-            }
+            if (loops.empty()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
             emitCode(OP_JUMP_ABSOLUTE, getLoop().start);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
-                throw SyntaxError(path, parser->previous, "'return' outside function");
+                syntaxError("'return' outside function");
             if(matchEndStatement()){
                 emitCode(OP_LOAD_NONE);
             }else{
@@ -786,14 +783,11 @@ __LISTCOMP:
     void __compileFunctionArgs(_Func& func){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
-            if(state == 3){
-                throw SyntaxError(path, parser->previous, "**kwargs should be the last argument");
-            }
-
+            if(state == 3) syntaxError("**kwargs should be the last argument");
             matchNewLines();
             if(match(TK("*"))){
                 if(state < 1) state = 1;
-                else throw SyntaxError(path, parser->previous, "*args should be placed before **kwargs");
+                else syntaxError("*args should be placed before **kwargs");
             }
             else if(match(TK("**"))){
                 state = 3;
@@ -801,7 +795,7 @@ __LISTCOMP:
 
             consume(TK("@id"));
             const _Str& name = parser->previous.str();
-            if(func.hasName(name)) throw SyntaxError(path, parser->previous, "duplicate argument name");
+            if(func.hasName(name)) syntaxError("duplicate argument name");
 
             if(state == 0 && peek() == TK("=")) state = 2;
 
@@ -845,7 +839,7 @@ __LISTCOMP:
         if(match(TK("True"))) goto __LITERAL_EXIT;
         if(match(TK("False"))) goto __LITERAL_EXIT;
         if(match(TK("None"))) goto __LITERAL_EXIT;
-        throw SyntaxError(path, parser->previous, "expect a literal, not %s", TK_STR(parser->current.type));
+        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
 __LITERAL_EXIT:
         return parser->previous.value;
     }
@@ -878,6 +872,27 @@ __LITERAL_EXIT:
             compileTopLevelStatement();
             matchNewLines();
         }
+    }
+
+    /**** Error Reporter ***/
+    LineSnapshot getLineSnapshot(){
+        LineSnapshot snapshot;
+        snapshot.filename = path;
+        snapshot.lineno = parser->previous.line;
+        snapshot.source = "<?>";
+        return snapshot;
+    }
+
+    void syntaxError(_Str msg){
+        throw CompileError("SyntaxError", msg, getLineSnapshot());
+    }
+
+    void unknownSyntaxError(){
+        throw CompileError("SyntaxError", "invalid syntax", getLineSnapshot());
+    }
+
+    void indentationError(_Str msg){
+        throw CompileError("IndentationError", msg, getLineSnapshot());
     }
 };
 

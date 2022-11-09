@@ -4,8 +4,8 @@
 #include <chrono>
 #include "pocketpy.h"
 
-#define PK_DEBUG
-#define PK_DEBUG_TIME
+//#define PK_DEBUG
+//#define PK_DEBUG_TIME
 
 class Timer{
 private:
@@ -39,6 +39,7 @@ VM* newVM(){
 
 void REPL(){
     std::cout << "pocketpy 0.1.0" << std::endl;
+    std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
 
     int need_more_lines = 0;
 
@@ -79,10 +80,11 @@ __NOT_ENOUGH_LINES:
 #else
         }catch(std::exception& e){
 #endif
-            if(dynamic_cast<NeedMoreLines*>(&e)){
+            NeedMoreLines* ne = dynamic_cast<NeedMoreLines*>(&e);
+            if(ne){
                 buffer += line;
                 buffer += '\n';
-                need_more_lines = e.isClassDef ? 3 : 2;
+                need_more_lines = ne->isClassDef ? 3 : 2;
             }else{
                 vm->printFn(e.what());
                 vm->printFn("\n");
@@ -113,11 +115,11 @@ int main(int argc, char** argv){
             std::ifstream file(filename);
             std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             VM* vm = newVM();
-            Timer timer("编译时间");
+            Timer timer("Compile time");
             _Code code = compile(vm, src.c_str(), filename);
             timer.stop();
             //std::cout << code->toString() << std::endl;
-            Timer timer2("运行时间");
+            Timer timer2("Running time");
             vm->exec(code);
             timer2.stop();
 #ifndef PK_DEBUG
