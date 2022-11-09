@@ -3,6 +3,8 @@
 #include "vm.h"
 #include "compiler.h"
 
+#include <iomanip>
+
 inline _Int _round(_Float f){
     if(f > 0) return (_Int)(f + 0.5);
     return (_Int)(f - 0.5);
@@ -164,7 +166,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("float", "__repr__", [](VM* vm, PyVarList args) {
-        return vm->PyStr(std::to_string(vm->PyFloat_AS_C(args[0])));
+        _Float val = vm->PyFloat_AS_C(args[0]);
+        _StrStream ss;
+        ss << std::setprecision(std::numeric_limits<_Float>::max_digits10-1) << val;
+        std::string s = ss.str();
+        if(s.find('.') == std::string::npos) s += ".0";
+        return vm->PyStr(s);
     });
 
     /************ PyString ************/
