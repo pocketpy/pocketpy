@@ -121,6 +121,14 @@ public:
     operator const char*() const {
         return _s.c_str();
     }
+
+    _Str __lstrip() const {
+        std::string copy(_s);
+        copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
+            return !std::isspace(c);
+        }));
+        return _Str(copy);
+    }
 };
 
 

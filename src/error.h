@@ -44,7 +44,9 @@ struct SourceMetadata {
     _Str snapshot(int lineno){
         _StrStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
-        ss << "    " << getLine(lineno) << '\n';
+        _Str line = getLine(lineno).__lstrip();
+        if(line.empty()) line = "<?>";
+        ss << "    " << line << '\n';
         return ss.str();
     }
 };
