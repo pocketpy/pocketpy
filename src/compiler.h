@@ -26,18 +26,6 @@ struct Loop {
     Loop(bool forLoop, int start) : forLoop(forLoop), start(start) {}
 };
 
-#define ExprCommaSplitArgs(end)     \
-    int ARGC = 0;                   \
-    do {                            \
-        matchNewLines();            \
-        if (peek() == TK(end)) break;   \
-        EXPR();                     \
-        ARGC++;                     \
-        matchNewLines();            \
-    } while (match(TK(",")));       \
-    matchNewLines();                \
-    consume(TK(end));
-
 class Compiler {
 public:
     std::unique_ptr<Parser> parser;
@@ -501,7 +489,16 @@ __LISTCOMP:
     }
 
     void exprCall() {
-        ExprCommaSplitArgs(")");
+        int ARGC = 0;
+        do {
+            matchNewLines();
+            if (peek() == TK(")")) break;
+            EXPR();
+            ARGC++;
+            matchNewLines();
+        } while (match(TK(",")));
+        matchNewLines();
+        consume(TK(")"));
         emitCode(OP_CALL, ARGC);
     }
 

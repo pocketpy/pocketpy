@@ -449,6 +449,9 @@ extern "C" {
     __EXPORT
     void registerModule(VM* vm, const char* name, const char* source){
         _Code code = compile(vm, source, name + _Str(".py"));
-        vm->registerCompiledModule(name, code);
+        if(code != nullptr){
+            PyVar _m = vm->newModule(name);
+            vm->exec(code, {}, _m);
+        }
     }
 }

@@ -633,11 +633,6 @@ public:
         return 0;
     }
 
-    void registerCompiledModule(_Str name, _Code code){
-        PyVar _m = newModule(name);
-        exec(code, {}, _m);
-    }
-
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
