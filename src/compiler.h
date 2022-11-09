@@ -151,9 +151,9 @@ public:
                 // here is m.length()-1, since the first char is eaten by lexToken()
                 for(int j=0; j<m.length()-1; j++) parser->eatChar();
                 if (m[2].matched) {
-                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stof(m[0])));
+                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0])));
                 } else {
-                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoi(m[0])));
+                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0])));
                 }  
             }
         }catch(std::exception& e){

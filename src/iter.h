@@ -2,11 +2,11 @@
 
 #include "obj.h"
 
-typedef std::function<PyVar (int)> _PyIntFn;
+typedef std::function<PyVar (_Int)> _PyIntFn;
 
 class RangeIterator : public _Iterator {
 private:
-    int current;
+    _Int current;
     _Range r;
     _PyIntFn fn;
 public:
@@ -32,7 +32,7 @@ public:
 
 class VectorIterator : public _Iterator {
 private:
-    int index = 0;
+    size_t index = 0;
     const PyVarList* vec;
 public:
     VectorIterator(PyVar _ref) : _Iterator(_ref) {

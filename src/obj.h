@@ -10,6 +10,9 @@
 
 #include "str.h"
 
+typedef int64_t _Int;
+typedef double _Float;
+
 class PyObject;
 class CodeObject;
 class BasePointer;
@@ -47,14 +50,14 @@ struct BoundedMethod {
 };
 
 struct _Range {
-    int start = 0;
-    int stop = -1;
-    int step = 1;
+    _Int start = 0;
+    _Int stop = -1;
+    _Int step = 1;
 };
 
 struct _Slice {
     int start = 0;
-    int stop = 2147483647;
+    int stop = 2147483647;  // contain types always use int32 as index, no support for int64
 
     void normalize(int len){
         if(start < 0) start += len;
@@ -76,7 +79,7 @@ public:
     _Iterator(PyVar _ref) : _ref(_ref) {}
 };
 
-typedef std::variant<int,float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
+typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
 #define UNREACHABLE() throw std::runtime_error("Unreachable code")
 

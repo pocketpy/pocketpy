@@ -316,7 +316,7 @@ public:
         PyVar tp = obj->attribs[__class__];
         if(tp == _tp_bool) return obj;
         if(tp == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
-        if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0f);
+        if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getAttr(obj, "__len__", false);
         if(len_fn != nullptr){
             PyVar ret = call(len_fn, {});
@@ -533,9 +533,9 @@ public:
         return isIntOrFloat(obj1) && isIntOrFloat(obj2);
     }
 
-    float numToFloat(const PyVar& obj){
+    _Float numToFloat(const PyVar& obj){
         if (obj->isType(_tp_int)){
-            return (float)PyInt_AS_C(obj);
+            return (_Float)PyInt_AS_C(obj);
         }else if(obj->isType(_tp_float)){
             return PyFloat_AS_C(obj);
         }
@@ -556,8 +556,8 @@ public:
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
 
-    __DEF_PY_AS_C(Int, int, _tp_int)
-    __DEF_PY_AS_C(Float, float, _tp_float)
+    __DEF_PY_AS_C(Int, _Int, _tp_int)
+    __DEF_PY_AS_C(Float, _Float, _tp_float)
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
@@ -569,8 +569,8 @@ public:
     DEF_NATIVE(Slice, _Slice, _tp_slice)
     DEF_NATIVE(Pointer, _Pointer, _tp_pointer)
     
-    inline PyVar PyInt(int i) { return newNumber(_tp_int, i); }
-    inline PyVar PyFloat(float f) { return newNumber(_tp_float, f); }
+    inline PyVar PyInt(_Int i) { return newNumber(_tp_int, i); }
+    inline PyVar PyFloat(_Float f) { return newNumber(_tp_float, f); }
     inline bool PyBool_AS_C(PyVar obj){return obj == True;}
     inline PyVar PyBool(bool value){return value ? True : False;}
 
@@ -620,15 +620,15 @@ public:
         }
     }
 
-    int hash(const PyVar& obj){
+    _Int hash(const PyVar& obj){
         if (obj->isType(_tp_int)) return PyInt_AS_C(obj);
         if (obj->isType(_tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
         if (obj->isType(_tp_float)){
-            float val = PyFloat_AS_C(obj);
-            return (int)std::hash<float>()(val);
+            _Float val = PyFloat_AS_C(obj);
+            return (_Int)std::hash<_Float>()(val);
         }
         if (obj->isType(_tp_str)) return PyStr_AS_C(obj).hash();
-        if (obj->isType(_tp_type)) return (int64_t)obj.get();
+        if (obj->isType(_tp_type)) return (_Int)obj.get();
         typeError("unhashable type: " + obj->getTypeName());
         return 0;
     }

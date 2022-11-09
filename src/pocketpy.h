@@ -3,9 +3,9 @@
 #include "vm.h"
 #include "compiler.h"
 
-inline int _round(float f){
-    if(f > 0) return (int)(f + 0.5);
-    return (int)(f - 0.5);
+inline _Int _round(_Float f){
+    if(f > 0) return (_Int)(f + 0.5);
+    return (_Int)(f - 0.5);
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
@@ -66,7 +66,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc("chr", [](VM* vm, PyVarList args) {
-        int i = vm->PyInt_AS_C(args.at(0));
+        _Int i = vm->PyInt_AS_C(args.at(0));
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(_Str(1, (char)i));
     });
@@ -78,7 +78,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("ord", [](VM* vm, PyVarList args) {
         _Str s = vm->PyStr_AS_C(args.at(0));
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
-        return vm->PyInt((int)s[0]);
+        return vm->PyInt((_Int)s[0]);
     });
 
     _vm->bindBuiltinFunc("dir", [](VM* vm, PyVarList args) {
@@ -111,7 +111,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("range", "__iter__", [](VM* vm, PyVarList args) {
         vm->__checkType(args.at(0), vm->_tp_range);
-        auto iter = std::make_shared<RangeIterator>(args[0], [=](int val){return vm->PyInt(val);});
+        auto iter = std::make_shared<RangeIterator>(args[0], [=](_Int val){return vm->PyInt(val);});
         return vm->PyIter(iter);
     });
 
@@ -131,7 +131,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){
             return vm->PyInt(_round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
-            return vm->PyFloat((float)pow(vm->numToFloat(args[0]), vm->numToFloat(args[1])));
+            return vm->PyFloat((_Float)pow(vm->numToFloat(args[0]), vm->numToFloat(args[1])));
         }
     });
 
@@ -160,7 +160,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bindMethod("float", "__neg__", [](VM* vm, PyVarList args) {
-        return vm->PyFloat(-1.0f * vm->PyFloat_AS_C(args[0]));
+        return vm->PyFloat(-1.0 * vm->PyFloat_AS_C(args[0]));
     });
 
     _vm->bindMethod("float", "__repr__", [](VM* vm, PyVarList args) {
@@ -418,7 +418,7 @@ void __runCodeBuiltins(VM* vm, const char* src){
 void __addModuleTime(VM* vm){
     PyVar mod = vm->newModule("time");
     vm->bindFunc(mod, "time", [](VM* vm, PyVarList args) {
-        return vm->PyInt((int)std::time(nullptr));
+        return vm->PyFloat((_Float)std::time(nullptr));
     });
 }
 
