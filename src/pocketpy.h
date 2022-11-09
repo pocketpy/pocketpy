@@ -418,7 +418,7 @@ void __runCodeBuiltins(VM* vm, const char* src){
 void __addModuleTime(VM* vm){
     PyVar mod = vm->newModule("time");
     vm->bindFunc(mod, "time", [](VM* vm, PyVarList args) {
-        return vm->PyFloat((_Float)std::time(nullptr));
+        return vm->PyFloat((_Int)std::time(nullptr));
     });
 }
 
