@@ -4,7 +4,6 @@
 #include <chrono>
 #include "pocketpy.h"
 
-//#define PK_DEBUG
 //#define PK_DEBUG_TIME
 
 struct Timer{
@@ -35,9 +34,6 @@ VM* newVM(){
 void REPL(){
     std::cout << "pocketpy 0.1.0" << std::endl;
     std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
-#ifdef PK_DEBUG
-    std::cout << "[DEBUG MODE ENABLED]" << std::endl;
-#endif
 
     int need_more_lines = 0;
     std::string buffer;
@@ -89,10 +85,7 @@ int main(int argc, char** argv){
     
     if(argc == 2){
         std::string filename = argv[1];
-        if(filename == "-h" || filename == "--help"){
-            std::cout << "Usage: pocketpy [filename]" << std::endl;
-            return 0;
-        }
+        if(filename == "-h" || filename == "--help") goto __HELP;
 
         std::ifstream file(filename);
         if(!file.is_open()){
@@ -107,12 +100,14 @@ int main(int argc, char** argv){
             code = compile(vm, src.c_str(), filename);
         });
         if(code == nullptr) return 1;
-
         //std::cout << code->toString() << std::endl;
-
         Timer("Running time").run([=]{
             vm->exec(code);
         });
         return 0;
     }
+
+__HELP:
+    std::cout << "Usage: pocketpy [filename]" << std::endl;
+    return 0;
 }
