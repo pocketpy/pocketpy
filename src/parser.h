@@ -84,17 +84,13 @@ enum Precedence {
 
 // The context of the parsing phase for the compiler.
 struct Parser {
-    const char* source;         //< Currently compiled source.
-    const char* token_start;    //< Start of the currently parsed token.
-    const char* current_char;   //< Current char position in the source.
+    _Source src;
 
+    const char* token_start;
+    const char* current_char;
     int current_line = 1;
-
-    std::vector<const char*> line_starts;
-
     Token previous, current;
     std::queue<Token> nexts;
-
     std::stack<int> indents;
 
     Token nextToken(){
@@ -160,7 +156,7 @@ struct Parser {
         current_char++;
         if (c == '\n'){
             current_line++;
-            line_starts.push_back(current_char);
+            src->lineStarts.push_back(current_char);
         }
         return c;
     }
@@ -232,11 +228,10 @@ struct Parser {
         else setNextToken(one);
     }
 
-    Parser(const char* source) {
-        this->source = source;
+    Parser(_Str filename, const char* source) {
+        this->src = std::make_shared<SourceMetadata>(filename, source);
         this->token_start = source;
         this->current_char = source;
-        this->line_starts.push_back(source);
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }

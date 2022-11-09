@@ -2,6 +2,7 @@
 
 #include "obj.h"
 #include "pointer.h"
+#include "error.h"
 
 enum Opcode {
     #define OPCODE(name) OP_##name,
@@ -32,12 +33,17 @@ enum CompileMode {
 };
 
 struct CodeObject {
-    CompileMode mode = EXEC_MODE;
+    _Source src;
+    _Str co_name;
+    CompileMode mode;
+
+    CodeObject(_Source src, _Str co_name, CompileMode mode=EXEC_MODE) {
+        this->src = src;
+        this->co_name = co_name;
+        this->mode = mode;
+    }
 
     std::vector<ByteCode> co_code;
-    _Str co_filename;
-    _Str co_name;
-
     PyVarList co_consts;
     std::vector<std::shared_ptr<NamePointer>> co_names;
 
@@ -118,9 +124,10 @@ public:
         return code->co_code[ip++];
     }
 
-    int currentLine(){
-        if(isEnd()) return -1;
-        return code->co_code[ip].line;
+    _Str errorSnapshot(){
+        int line = -1;
+        if(!isEnd()) line = code->co_code[ip].line;
+        return code->src->snapshot(line);
     }
 
     int stackSize() const {

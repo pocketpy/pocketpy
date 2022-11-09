@@ -634,13 +634,10 @@ public:
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
-        std::stack<LineSnapshot> snapshots;
+        std::stack<_Str> snapshots;
         while (!callstack.empty()){
             auto frame = callstack.top();
-            snapshots.push(LineSnapshot(
-                frame->code->co_filename,
-                frame->currentLine()
-            ));
+            snapshots.push(frame->errorSnapshot());
             callstack.pop();
         }
         throw RuntimeError(name, msg, snapshots);

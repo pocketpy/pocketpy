@@ -61,12 +61,10 @@ public:
         return loops.top();
     }
 
-    Compiler(VM* vm, const char* source, _Code code){
+    Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
-        this->codes.push(code);
-        this->mode = code->mode;
-        if (!code->co_filename.empty()) path = code->co_filename;
-        this->parser = std::make_unique<Parser>(source);
+        this->mode = mode;
+        this->parser = std::make_unique<Parser>(filename, source);
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
@@ -340,9 +338,7 @@ public:
         func.name = "<lambda>";
         __compileFunctionArgs(func);
         consume(TK(":"));
-        func.code = std::make_shared<CodeObject>();
-        func.code->co_name = func.name;
-        func.code->co_filename = path;
+        func.code = std::make_shared<CodeObject>(parser->src, func.name);
         this->codes.push(func.code);
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
@@ -820,9 +816,7 @@ __LISTCOMP:
             consume(TK(")"));
         }
 
-        func.code = std::make_shared<CodeObject>();
-        func.code->co_name = func.name;
-        func.code->co_filename = path;
+        func.code = std::make_shared<CodeObject>(parser->src, func.name);
         this->codes.push(func.code);
         compileBlockBody();
         this->codes.pop();
@@ -853,7 +847,10 @@ __LITERAL_EXIT:
         }
     }
 
-    void __fillCode(){
+    _Code __fillCode(){
+        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"), mode);
+        codes.push(code);
+
         // Lex initial tokens. current <-- next.
         lexToken();
         lexToken();
@@ -862,21 +859,20 @@ __LITERAL_EXIT:
         if(mode == EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
-            return;
+            return code;
         }
 
         while (!match(TK("@eof"))) {
             compileTopLevelStatement();
             matchNewLines();
         }
+        return code;
     }
 
     /***** Error Reporter *****/
-    LineSnapshot getLineSnapshot(){
-        const char* line_start = parser->line_starts.at(parser->previous.line-1);
-        const char* i = line_start;
-        while(*i != '\n' && *i != '\0') i++;
-        return LineSnapshot(path, parser->previous.line, _Str(line_start, i-line_start));
+    _Str getLineSnapshot(){
+        int lineno = parser->previous.line;
+        return parser->src->snapshot(lineno);
     }
 
     void syntaxError(_Str msg){
@@ -889,14 +885,6 @@ __LITERAL_EXIT:
 };
 
 _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE) {
-    // Skip utf8 BOM if there is any.
-    if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
-
-    _Code code = std::make_shared<CodeObject>();
-    code->co_filename = filename;
-    code->mode = mode;
-
-    Compiler compiler(vm, source, code);
-    compiler.__fillCode();
-    return code;
+    Compiler compiler(vm, source, filename, mode);
+    return compiler.__fillCode();
 }
