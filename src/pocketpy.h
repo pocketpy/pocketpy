@@ -404,18 +404,6 @@ void __runCodeBuiltins(VM* vm, const char* src){
     vm->exec(code, {}, vm->builtins);
 }
 
-#include <cstdlib>
-void __addModuleRandom(VM* vm){
-    srand(time(NULL));
-    PyVar random = vm->newModule("random");
-    vm->bindFunc(random, "randint", [](VM* vm, PyVarList args) {
-        int _min = vm->PyInt_AS_C(args[0]);
-        int _max = vm->PyInt_AS_C(args[1]);
-        return vm->PyInt(rand() % (_max - _min + 1) + _min);
-    });
-    vm->_modules["random"] = random;
-}
-
 #include "builtins.h"
 
 #ifdef _WIN32
@@ -432,7 +420,6 @@ extern "C" {
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
         __runCodeBuiltins(vm, __BUILTINS_CODE);
-        __addModuleRandom(vm);
         vm->_stdout = _stdout;
         return vm;
     }

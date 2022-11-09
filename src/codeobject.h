@@ -118,7 +118,7 @@ public:
 
     _Str errorSnapshot(){
         int line = -1;
-        if(!isEnd()) line = code->co_code[ip].line;
+        if(!isEnd()) line = code->co_code[ip-1].line;
         return code->src->snapshot(line);
     }
 

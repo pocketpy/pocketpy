@@ -61,6 +61,14 @@ struct Token{
   const _Str str() const {
     return _Str(start, length);
   }
+
+  const _Str info() const {
+    _StrStream ss;
+    _Str raw = str();
+    if (raw == _Str("\n")) raw = "\\n";
+    ss << line << ": " << TK_STR(type) << " '" << raw << "'";
+    return ss.str();
+  }
 };
 
 enum Precedence {
@@ -146,7 +154,7 @@ struct Parser {
 
     char eatChar() {
         char c = peekChar();
-        if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
+        if(c == '\n') throw UnexpectedError("eatChar() cannot consume a newline");
         current_char++;
         return c;
     }

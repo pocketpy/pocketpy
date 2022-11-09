@@ -33,13 +33,16 @@ VM* newVM(){
         std::cout << str;
         std::cout.flush();
     });
-    registerModule(vm, "math", "pi = 3.141593");
     return vm;
 }
 
 void REPL(){
     std::cout << "pocketpy 0.1.0" << std::endl;
     std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
+#ifdef PK_DEBUG
+    std::cout << "[ DEBUG MODE ENABLED ]" << std::endl;
+#endif
+
 
     int need_more_lines = 0;
 

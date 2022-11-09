@@ -120,9 +120,9 @@ public:
     _Str eatStringUntil(char quote) {
         std::vector<char> buff;
         while (true) {
-            char c = parser->eatChar();
+            char c = parser->eatCharIncludeNewLine();
             if (c == quote) break;
-            if (c == '\0') syntaxError("EOL while scanning string literal");
+            if (c == '\0' || c == '\n') syntaxError("EOL while scanning string literal");
             if (c == '\\') {
                 switch (parser->eatCharIncludeNewLine()) {
                     case '"':  buff.push_back('"');  break;
@@ -177,7 +177,8 @@ public:
     void lexToken() {
         parser->previous = parser->current;
         parser->current = parser->nextToken();
-        //printf("<%s> ", TK_STR(peek()));
+
+        //_Str _info = parser->current.info(); printf("%s\n", (const char*)_info);
 
         while (parser->peekChar() != '\0') {
             parser->token_start = parser->current_char;
@@ -871,7 +872,8 @@ __LITERAL_EXIT:
 
     /***** Error Reporter *****/
     _Str getLineSnapshot(){
-        int lineno = parser->previous.line;
+        int lineno = parser->current_line;
+        if(parser->peekChar() == '\n') lineno--;
         return parser->src->snapshot(lineno);
     }
 
