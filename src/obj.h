@@ -18,7 +18,7 @@ class VM;
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 typedef std::vector<PyVar> PyVarList;
-typedef std::unordered_map<_Str, PyVar> StlDict;
+typedef std::unordered_map<_Str, PyVar> PyVarDict;
 typedef std::shared_ptr<const BasePointer> _Pointer;
 
 typedef PyVar (*_CppFunc)(VM*, PyVarList);
@@ -29,7 +29,7 @@ struct _Func {
     _Code code;
     std::vector<_Str> args;
     _Str starredArg;        // empty if no *arg
-    StlDict kwArgs;         // empty if no k=v
+    PyVarDict kwArgs;         // empty if no k=v
     _Str doubleStarredArg;  // empty if no **kwargs
 
     bool hasName(const _Str& val) const {
@@ -81,7 +81,7 @@ typedef std::variant<int,float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_pt
 #define UNREACHABLE() throw std::runtime_error("Unreachable code")
 
 struct PyObject {
-    StlDict attribs;
+    PyVarDict attribs;
     _Value _native;
 
     inline bool isType(const PyVar& type){

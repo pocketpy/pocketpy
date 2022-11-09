@@ -28,14 +28,14 @@ private:
     std::stack< std::shared_ptr<Frame> > callstack;
     std::vector<PyObject*> numPool;
 public:
-    StlDict _types;         // builtin types
+    PyVarDict _types;         // builtin types
     PyVar None, True, False;
 
     PrintFn printFn = [](auto s){};
     
     PyVar builtins;         // builtins module
     PyVar _main;            // __main__ module
-    StlDict _modules;       // 3rd modules
+    PyVarDict _modules;       // 3rd modules
 
     VM(){
         initializeBuiltinClasses();
@@ -99,9 +99,18 @@ public:
 
     PyVar call(PyVar callable, PyVarList args){
         if(callable->isType(_tp_type)){
-            // add type itself as the first argument
-            args.insert(args.begin(), callable);
-            callable = getAttr(callable, __new__);
+            auto it = callable->attribs.find(__new__);
+            PyVar obj;
+            if(it != callable->attribs.end()){
+                obj = call(it->second, args);
+            }else{
+                obj = newObject(callable, -1);
+            }
+            if(obj->isType(callable)){
+                PyVarOrNull init_fn = getAttr(obj, __init__, false);
+                if (init_fn != nullptr) call(init_fn, args);
+            }
+            return obj;
         }
 
         if(callable->isType(_tp_bounded_method)){
@@ -115,7 +124,7 @@ public:
             return f(this, args);
         } else if(callable->isType(_tp_function)){
             _Func fn = PyFunction_AS_C(callable);
-            StlDict locals;
+            PyVarDict locals;
             int i = 0;
             for(const auto& name : fn.args){
                 if(i < args.size()) {
@@ -412,7 +421,7 @@ public:
         return None;
     }
 
-    PyVar exec(const _Code& code, const StlDict& locals={}, PyVar _module=nullptr){
+    PyVar exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         auto frame = std::make_shared<Frame>(
             code.get(),
@@ -492,7 +501,6 @@ public:
             if(it != cls->attribs.end()){
                 PyVar valueFromCls = it->second;
                 if(valueFromCls->isType(_tp_function) || valueFromCls->isType(_tp_native_function)){
-                    if(name == __new__) return valueFromCls;
                     return PyBoundedMethod({obj, valueFromCls});
                 }else{
                     return valueFromCls;

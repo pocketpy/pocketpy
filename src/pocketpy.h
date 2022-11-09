@@ -87,42 +87,24 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyList(ret);
     });
 
-    _vm->bindMethod("object", "__new__", [](VM* vm, PyVarList args) {
-        PyVar obj = vm->newObject(args.at(0), -1);
-        args.erase(args.begin());
-        PyVarOrNull init_fn = vm->getAttr(obj, __init__, false);
-        if (init_fn != nullptr) vm->call(init_fn, args);
-        return obj;
-    });
-
     _vm->bindMethod("object", "__repr__", [](VM* vm, PyVarList args) {
         PyVar _self = args[0];
         _Str s = "<" + _self->getTypeName() + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
         return vm->PyStr(s);
     });
 
-    // a little buggy... e.g. dict() call this instead of obj.__new__
-    // _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
-    //     return args.at(1)->attribs["__class__"];
-    // });
+    _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
+        vm->_assert(args.size() == 1, "expected 1 argument");
+        return args.at(0)->attribs[__class__];
+    });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {
         _Range r;
-        if( args.size() == 0 ) vm->_error("TypeError", "range expected 1 arguments, got 0");
-        else if (args.size() == 1+1) {
-            r.stop = vm->PyInt_AS_C(args[1]);
-        }
-        else if (args.size() == 2+1) {
-            r.start = vm->PyInt_AS_C(args[1]);
-            r.stop = vm->PyInt_AS_C(args[2]);
-        }
-        else if (args.size() == 3+1) {
-            r.start = vm->PyInt_AS_C(args[1]);
-            r.stop = vm->PyInt_AS_C(args[2]);
-            r.step = vm->PyInt_AS_C(args[3]);
-        }
-        else {
-            vm->_error("TypeError", "range expected 1 to 3 arguments, got " + std::to_string(args.size()-1));
+        switch (args.size()) {
+            case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
+            case 2: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); break;
+            case 3: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); r.step = vm->PyInt_AS_C(args[2]); break;
+            default: vm->_error("TypeError", "range expected 1-3 arguments, got " + std::to_string(args.size()));
         }
         return vm->PyRange(r);
     });
@@ -187,9 +169,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyString ************/
     _vm->bindMethod("str", "__new__", [](VM* vm, PyVarList args) {
-        vm->_assert(args[0] == vm->_tp_str, "str.__new__ must be called with str as first argument");
-        vm->_assert(args.size() == 2, "str expected 1 argument");
-        return vm->asStr(args[1]);
+        vm->_assert(args.size() == 1, "expected 1 argument");
+        return vm->asStr(args[0]);
     });
 
     _vm->bindMethod("str", "__add__", [](VM* vm, PyVarList args) {

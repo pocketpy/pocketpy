@@ -106,12 +106,12 @@ private:
     std::vector<PyVar> s_data;
     int ip = 0;
 public:
-    StlDict* f_globals;
-    StlDict f_locals;
+    PyVarDict* f_globals;
+    PyVarDict f_locals;
 
     const CodeObject* code;
 
-    Frame(const CodeObject* code, StlDict locals, StlDict* globals)
+    Frame(const CodeObject* code, PyVarDict locals, PyVarDict* globals)
         : code(code), f_locals(locals), f_globals(globals) {}
 
     inline const ByteCode& readCode() {
