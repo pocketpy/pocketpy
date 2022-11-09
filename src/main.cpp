@@ -48,7 +48,7 @@ void REPL(){
 
     while(true){
         CompileMode mode = SINGLE_MODE;
-        vm->printFn(need_more_lines ? "... " : ">>> ");
+        vm->_stdout(need_more_lines ? "... " : ">>> ");
         std::string line;
         std::getline(std::cin, line);
 
@@ -86,8 +86,8 @@ __NOT_ENOUGH_LINES:
                 buffer += '\n';
                 need_more_lines = ne->isClassDef ? 3 : 2;
             }else{
-                vm->printFn(e.what());
-                vm->printFn("\n");
+                vm->_stdout(e.what());
+                vm->_stdout("\n");
                 vm->cleanError();
             }
         }

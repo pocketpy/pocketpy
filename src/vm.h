@@ -2,6 +2,7 @@
 
 #include "codeobject.h"
 #include "iter.h"
+#include "error.h"
 
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
@@ -18,7 +19,6 @@
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-// TODO: we should split this into stdout and stderr
 typedef void(*PrintFn)(const char*);
 
 #define NUM_POOL_MAX_SIZE 1024
@@ -31,7 +31,8 @@ public:
     PyVarDict _types;         // builtin types
     PyVar None, True, False;
 
-    PrintFn printFn = [](auto s){};
+    PrintFn _stdout = [](auto s){};
+    PrintFn _stderr = [](auto s){};
     
     PyVar builtins;         // builtins module
     PyVar _main;            // __main__ module
@@ -39,24 +40,6 @@ public:
 
     VM(){
         initializeBuiltinClasses();
-    }
-
-    void cleanError(){
-        while(!callstack.empty()) callstack.pop();
-    }
-
-    void nameError(const _Str& name){
-        _error("NameError", "name '" + name + "' is not defined");
-    }
-
-    void attributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" + obj->getTypeName() + "' has no attribute '" + name + "'");
-    }
-
-    inline void __checkType(const PyVar& obj, const PyVar& type){
-        if(!obj->isType(type)){
-            _error("TypeError", "expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
-        }
     }
 
     PyVar asStr(const PyVar& obj){
@@ -130,7 +113,7 @@ public:
                 if(i < args.size()) {
                     locals[name] = args[i++];
                 }else{
-                    _error("TypeError", "missing positional argument '" + name + "'");
+                    typeError("missing positional argument '" + name + "'");
                 }
             }
             // handle *args
@@ -148,12 +131,12 @@ public:
                 }
             }
 
-            if(i < args.size()) _error("TypeError", "too many arguments");
+            if(i < args.size()) typeError("too many arguments");
 
             // TODO: handle **kwargs
             return exec(fn.code, locals);
         }
-        _error("TypeError", "'" + callable->getTypeName() + "' object is not callable");
+        typeError("'" + callable->getTypeName() + "' object is not callable");
         return None;
     }
 
@@ -264,8 +247,8 @@ public:
                 {
                     const PyVar& expr = frame->topValue(this);
                     if(expr == None) break;
-                    printFn(PyStr_AS_C(asRepr(expr)));
-                    printFn("\n");
+                    _stdout(PyStr_AS_C(asRepr(expr)));
+                    _stdout("\n");
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
@@ -318,7 +301,7 @@ public:
             case OP_ASSERT:
                 {
                     PyVar expr = frame->popValue(this);
-                    if(!PyBool_AS_C(expr)) _error("AssertionError", "assertion failed");
+                    _assert(PyBool_AS_C(expr), "assertion failed");
                 } break;
             case OP_RAISE_ERROR:
                 {
@@ -357,7 +340,7 @@ public:
                         PyIter_AS_C(tmp)->var = PyPointer_AS_C(frame->__pop());
                         frame->push(tmp);
                     }else{
-                        _error("TypeError", "'" + obj->getTypeName() + "' object is not iterable");
+                        typeError("'" + obj->getTypeName() + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -404,19 +387,19 @@ public:
                     }
                 } break;
             default:
-                _error("SystemError", _Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
+                systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
             }
         }
 
         if(frame->code->mode == EVAL_MODE) {
             if(frame->stackSize() != 1) {
-                _error("SystemError", "stack size is not 1 in EVAL_MODE");
+                systemError("stack size is not 1 in EVAL_MODE");
             }
             return frame->popValue(this);
         }
 
-        if(frame->stackSize() != 0) _error("SystemError", "stack not empty in EXEC_MODE");
+        if(frame->stackSize() != 0) systemError("stack not empty in EXEC_MODE");
         callstack.pop();
         return None;
     }
@@ -429,19 +412,6 @@ public:
             &_module->attribs
         );
         return runFrame(frame);
-    }
-
-    void _assert(bool val, const _Str& msg){
-        if (!val) _error("AssertionError", msg);
-    }
-
-    void _error(const _Str& name, const _Str& msg){
-        _StrStream ss;
-        auto frame = callstack.top();
-        ss << "Traceback (most recent call last):" << std::endl;
-        ss << "  File '" << frame->code->co_filename << "', line ";
-        ss << frame->currentLine() << '\n' << name << ": " << msg;
-        throw std::runtime_error(ss.str());
     }
 
     PyVar newUserClassType(_Str name, PyVar base){
@@ -469,7 +439,7 @@ public:
 
     PyVar newNumber(PyVar type, _Value _native) {
         if(type != _tp_int && type != _tp_float)
-            _error("SystemError", "type is not a number type");
+            systemError("type is not a number type");
         PyObject* _raw = nullptr;
         if(numPool.size() > 0) {
             _raw = numPool.back();
@@ -567,7 +537,7 @@ public:
     int normalizedIndex(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
-            _error("IndexError", "index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
+            indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
         }
         return index;
     }
@@ -651,7 +621,7 @@ public:
         }
         if (obj->isType(_tp_str)) return PyStr_AS_C(obj).hash();
         if (obj->isType(_tp_type)) return (int64_t)obj.get();
-        _error("TypeError", "unhashable type: " + obj->getTypeName());
+        typeError("unhashable type: " + obj->getTypeName());
         return 0;
     }
 
@@ -660,9 +630,61 @@ public:
         exec(code, {}, _m);
         _modules[name] = _m;
     }
+
+    /***** Error Reporter *****/
+private:
+    void _error(const _Str& name, const _Str& msg){
+        std::stack<LineSnapshot> snapshots;
+        while (!callstack.empty()){
+            auto frame = callstack.top();
+            snapshots.push(LineSnapshot(
+                frame->code->co_filename,
+                frame->currentLine()
+            ));
+            callstack.pop();
+        }
+        throw RuntimeError(name, msg, snapshots);
+    }
+
+public:
+    void cleanError(){
+        while(!callstack.empty()) callstack.pop();
+    }
+
+    void typeError(const _Str& msg){
+        typeError(msg);
+    }
+
+    void systemError(const _Str& msg){
+        systemError(msg);
+    }
+
+    void indexError(const _Str& msg){
+        _error("IndexError", msg);
+    }
+
+    void valueError(const _Str& msg){
+        _error("ValueError", msg);
+    }
+
+    void nameError(const _Str& name){
+        _error("NameError", "name '" + name + "' is not defined");
+    }
+
+    void attributeError(PyVar obj, const _Str& name){
+        _error("AttributeError", "type '" + obj->getTypeName() + "' has no attribute '" + name + "'");
+    }
+
+    inline void __checkType(const PyVar& obj, const PyVar& type){
+        if(!obj->isType(type)) typeError("expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
+    }
+
+    void _assert(bool val, const _Str& msg){
+        if (!val) _error("AssertionError", msg);
+    }
 };
 
-/**************** Pointers' Impl ****************/
+/***** Pointers' Impl *****/
 
 PyVar NamePointer::get(VM* vm, Frame* frame) const{
     auto it = frame->f_locals.find(name);
@@ -724,7 +746,7 @@ void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void AttrPointer::del(VM* vm, Frame* frame) const{
-    vm->_error("AttributeError", "can't delete attribute");
+    vm->typeError("cannot delete attribute");
 }
 
 PyVar IndexPointer::get(VM* vm, Frame* frame) const{
@@ -749,11 +771,11 @@ PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
 
 void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->isType(vm->_tp_tuple) && !val->isType(vm->_tp_list)){
-        vm->_error("TypeError", "only tuple or list can be unpacked");
+        vm->typeError("only tuple or list can be unpacked");
     }
     const PyVarList& args = std::get<PyVarList>(val->_native);
-    if(args.size() > pointers.size()) vm->_error("ValueError", "too many values to unpack");
-    if(args.size() < pointers.size()) vm->_error("ValueError", "not enough values to unpack");
+    if(args.size() > pointers.size()) vm->valueError("too many values to unpack");
+    if(args.size() < pointers.size()) vm->valueError("not enough values to unpack");
     for (int i = 0; i < pointers.size(); i++) {
         pointers[i]->set(vm, frame, args[i]);
     }

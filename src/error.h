@@ -25,10 +25,12 @@ public:
     }
 };
 
-struct LineSnapshot {
+class LineSnapshot {
     _Str filename;
     int lineno;
     _Str source;
+public:
+    LineSnapshot(_Str filename, int lineno, _Str source="<?>") : filename(filename), lineno(lineno), source(source) {}
 
     _Str str() const {
         _StrStream ss;

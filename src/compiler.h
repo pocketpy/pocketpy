@@ -593,6 +593,7 @@ __LISTCOMP:
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
+            matchNewLines();
             (this->*action)();
             matchNewLines();
         }
@@ -624,17 +625,13 @@ __LISTCOMP:
     void parsePrecedence(Precedence precedence) {
         lexToken();
         GrammarFn prefix = rules[parser->previous.type].prefix;
-
-        if (prefix == nullptr) syntaxError("expected an expression");
-
+        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->previous.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lexToken();
             _TokenType op = parser->previous.type;
             GrammarFn infix = rules[op].infix;
-            if(infix == nullptr) {
-                throw UnexpectedError("(infix == nullptr) is true");
-            }
+            if(infix == nullptr) throw UnexpectedError("(infix == nullptr) is true");
             (this->*infix)();
         }
     }
@@ -874,21 +871,16 @@ __LITERAL_EXIT:
         }
     }
 
-    /**** Error Reporter ***/
+    /***** Error Reporter *****/
     LineSnapshot getLineSnapshot(){
-        LineSnapshot snapshot;
-        snapshot.filename = path;
-        snapshot.lineno = parser->previous.line;
-        snapshot.source = "<?>";
-        return snapshot;
+        const char* line_start = parser->line_starts.at(parser->previous.line-1);
+        const char* i = line_start;
+        while(*i != '\n' && *i != '\0') i++;
+        return LineSnapshot(path, parser->previous.line, _Str(line_start, i-line_start));
     }
 
     void syntaxError(_Str msg){
         throw CompileError("SyntaxError", msg, getLineSnapshot());
-    }
-
-    void unknownSyntaxError(){
-        throw CompileError("SyntaxError", "invalid syntax", getLineSnapshot());
     }
 
     void indentationError(_Str msg){

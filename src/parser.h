@@ -87,9 +87,10 @@ struct Parser {
     const char* source;         //< Currently compiled source.
     const char* token_start;    //< Start of the currently parsed token.
     const char* current_char;   //< Current char position in the source.
-    const char* line_start;     //< Start of the current line.
 
     int current_line = 1;
+
+    std::vector<const char*> line_starts;
 
     Token previous, current;
     std::queue<Token> nexts;
@@ -159,7 +160,7 @@ struct Parser {
         current_char++;
         if (c == '\n'){
             current_line++;
-            line_start = current_char;
+            line_starts.push_back(current_char);
         }
         return c;
     }
@@ -235,8 +236,7 @@ struct Parser {
         this->source = source;
         this->token_start = source;
         this->current_char = source;
-        this->line_start = source;
-
+        this->line_starts.push_back(source);
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }

@@ -11,7 +11,7 @@ inline int _round(float f){
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, PyVarList args){               \
         if(!vm->isIntOrFloat(args[0], args[1]))                                                         \
-            vm->_error("TypeError", "unsupported operand type(s) for " #op );                        \
+            vm->typeError("unsupported operand type(s) for " #op );                        \
         if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){                               \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
@@ -23,7 +23,7 @@ inline int _round(float f){
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, PyVarList args){               \
         if(!vm->isIntOrFloat(args[0], args[1])){                                                        \
             if constexpr(fallback) return vm->PyBool(args[0] op args[1]);                               \
-            vm->_error("TypeError", "unsupported operand type(s) for " #op );                        \
+            vm->typeError("unsupported operand type(s) for " #op );                        \
         }                                                                                               \
         return vm->PyBool(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                          \
     });
@@ -44,14 +44,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
-        for (auto& arg : args) vm->printFn(vm->PyStr_AS_C(vm->asStr(arg)) + " ");
-        vm->printFn("\n");
+        for (auto& arg : args) vm->_stdout(vm->PyStr_AS_C(vm->asStr(arg)) + " ");
+        vm->_stdout("\n");
         return vm->None;
     });
 
     _vm->bindBuiltinFunc("eval", [](VM* vm, PyVarList args) {
-        if (args.size() != 1) vm->_error("TypeError", "eval() takes exactly one argument");
-        if (!args[0]->isType(vm->_tp_str)) vm->_error("TypeError", "eval() argument must be a string");
+        if (args.size() != 1) vm->typeError("eval() takes exactly one argument");
+        if (!args[0]->isType(vm->_tp_str)) vm->typeError("eval() argument must be a string");
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = compile(vm, expr, "<f-string>", EVAL_MODE);
         return vm->exec(code);      // not working in function
@@ -67,7 +67,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("chr", [](VM* vm, PyVarList args) {
         int i = vm->PyInt_AS_C(args.at(0));
-        if (i < 0 || i > 128) vm->_error("ValueError", "chr() arg not in range(128)");
+        if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(_Str(1, (char)i));
     });
 
@@ -77,7 +77,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("ord", [](VM* vm, PyVarList args) {
         _Str s = vm->PyStr_AS_C(args.at(0));
-        if (s.size() != 1) vm->_error("TypeError", "ord() expected an ASCII character");
+        if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
         return vm->PyInt((int)s[0]);
     });
 
@@ -104,7 +104,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
             case 2: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); break;
             case 3: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); r.step = vm->PyInt_AS_C(args[2]); break;
-            default: vm->_error("TypeError", "range expected 1-3 arguments, got " + std::to_string(args.size()));
+            default: vm->typeError("range expected 1-3 arguments, got " + std::to_string(args.size()));
         }
         return vm->PyRange(r);
     });
@@ -121,13 +121,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethodMulti({"int", "float"}, "__truediv__", [](VM* vm, PyVarList args) {
         if(!vm->isIntOrFloat(args[0], args[1]))
-            vm->_error("TypeError", "unsupported operand type(s) for " "/" );
+            vm->typeError("unsupported operand type(s) for " "/" );
         return vm->PyFloat(vm->numToFloat(args[0]) / vm->numToFloat(args[1]));
     });
 
     _vm->bindMethodMulti({"int", "float"}, "__pow__", [](VM* vm, PyVarList args) {
         if(!vm->isIntOrFloat(args[0], args[1]))
-            vm->_error("TypeError", "unsupported operand type(s) for " "**" );
+            vm->typeError("unsupported operand type(s) for " "**" );
         if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){
             return vm->PyInt(_round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
@@ -138,19 +138,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyInt ************/
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
-            vm->_error("TypeError", "unsupported operand type(s) for " "//" );
+            vm->typeError("unsupported operand type(s) for " "//" );
         return vm->PyInt(vm->PyInt_AS_C(args[0]) / vm->PyInt_AS_C(args[1]));
     });
 
     _vm->bindMethod("int", "__mod__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
-            vm->_error("TypeError", "unsupported operand type(s) for " "%" );
+            vm->typeError("unsupported operand type(s) for " "%" );
         return vm->PyInt(vm->PyInt_AS_C(args[0]) % vm->PyInt_AS_C(args[1]));
     });
 
     _vm->bindMethod("int", "__neg__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int))
-            vm->_error("TypeError", "unsupported operand type(s) for " "-" );
+            vm->typeError("unsupported operand type(s) for " "-" );
         return vm->PyInt(-1 * vm->PyInt_AS_C(args[0]));
     });
 
@@ -175,7 +175,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__add__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_str) || !args[1]->isType(vm->_tp_str))
-            vm->_error("TypeError", "unsupported operand type(s) for " "+" );
+            vm->typeError("unsupported operand type(s) for " "+" );
         const _Str& lhs = vm->PyStr_AS_C(args[0]);
         const _Str& rhs = vm->PyStr_AS_C(args[1]);
         return vm->PyStr(lhs + rhs);
@@ -317,7 +317,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("list", "pop", [](VM* vm, PyVarList args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        if(_self.empty()) vm->_error("IndexError", "pop from empty list");
+        if(_self.empty()) vm->indexError("pop from empty list");
         PyVar ret = _self.back();
         _self.pop_back();
         return ret;
@@ -428,12 +428,12 @@ void __addModuleRandom(VM* vm){
 
 extern "C" {
     __EXPORT
-    VM* createVM(PrintFn printFn){
+    VM* createVM(PrintFn _stdout){
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
         __runCodeBuiltins(vm, __BUILTINS_CODE);
         __addModuleRandom(vm);
-        vm->printFn = printFn;
+        vm->_stdout = _stdout;
         return vm;
     }
 
@@ -448,8 +448,8 @@ extern "C" {
             _Code code = compile(vm, source, "main.py");
             vm->exec(code);
         }catch(std::exception& e){
-            vm->printFn(e.what());
-            vm->printFn("\n");
+            vm->_stdout(e.what());
+            vm->_stdout("\n");
             vm->cleanError();
         }
     }
