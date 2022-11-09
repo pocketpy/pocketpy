@@ -26,21 +26,13 @@ _Str pad(const _Str& s, const int n){
     return s + _Str(n - s.size(), ' ');
 }
 
-enum CompileMode {
-    EXEC_MODE,
-    EVAL_MODE,
-    SINGLE_MODE
-};
-
 struct CodeObject {
     _Source src;
     _Str co_name;
-    CompileMode mode;
 
     CodeObject(_Source src, _Str co_name, CompileMode mode=EXEC_MODE) {
         this->src = src;
         this->co_name = co_name;
-        this->mode = mode;
     }
 
     std::vector<ByteCode> co_code;

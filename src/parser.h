@@ -228,10 +228,10 @@ struct Parser {
         else setNextToken(one);
     }
 
-    Parser(_Str filename, const char* source) {
-        this->src = std::make_shared<SourceMetadata>(filename, source);
-        this->token_start = source;
-        this->current_char = source;
+    Parser(_Source src) {
+        this->src = src;
+        this->token_start = src->source;
+        this->current_char = src->source;
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }

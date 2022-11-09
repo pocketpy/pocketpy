@@ -392,7 +392,7 @@ public:
             }
         }
 
-        if(frame->code->mode == EVAL_MODE) {
+        if(frame->code->src->mode == EVAL_MODE) {
             if(frame->stackSize() != 1) {
                 systemError("stack size is not 1 in EVAL_MODE");
             }

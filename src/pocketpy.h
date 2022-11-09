@@ -53,7 +53,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if (args.size() != 1) vm->typeError("eval() takes exactly one argument");
         if (!args[0]->isType(vm->_tp_str)) vm->typeError("eval() argument must be a string");
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr, "<f-string>", EVAL_MODE);
+        _Code code = compile(vm, expr, "<eval>", EVAL_MODE);
         return vm->exec(code);      // not working in function
     });
 

@@ -43,12 +43,7 @@ public:
     std::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
     std::stack<Loop> loops;
-
-    CompileMode mode;
-
     bool isCompilingClass = false;
-
-    _Str path = "<?>";
     VM* vm;
 
     std::unordered_map<_TokenType, GrammarRule> rules;
@@ -57,14 +52,19 @@ public:
         return codes.top();
     }
 
+    CompileMode mode() {
+        return parser->src->mode;
+    }
+
     Loop& getLoop() {
         return loops.top();
     }
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
-        this->mode = mode;
-        this->parser = std::make_unique<Parser>(filename, source);
+        this->parser = std::make_unique<Parser>(
+            std::make_shared<SourceMetadata>(source, filename, mode)
+        );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
@@ -584,7 +584,7 @@ __LISTCOMP:
     
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
-        if(!matchNewLines(mode==SINGLE_MODE)){
+        if(!matchNewLines(mode()==SINGLE_MODE)){
             syntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
@@ -746,7 +746,7 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
             if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
-                if(mode==SINGLE_MODE && parser->indents.top() == 0){
+                if(mode()==SINGLE_MODE && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
                 emitCode(OP_POP_TOP);
@@ -848,7 +848,7 @@ __LITERAL_EXIT:
     }
 
     _Code __fillCode(){
-        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"), mode);
+        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"), mode());
         codes.push(code);
 
         // Lex initial tokens. current <-- next.
@@ -856,7 +856,7 @@ __LITERAL_EXIT:
         lexToken();
         matchNewLines();
 
-        if(mode == EVAL_MODE) {
+        if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
             return code;

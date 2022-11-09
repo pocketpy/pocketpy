@@ -12,10 +12,17 @@ public:
     bool isClassDef;
 };
 
+enum CompileMode {
+    EXEC_MODE,
+    EVAL_MODE,
+    SINGLE_MODE
+};
+
 struct SourceMetadata {
-    _Str filename;
     const char* source;
+    _Str filename;
     std::vector<const char*> lineStarts;
+    CompileMode mode;
 
     _Str getLine(int lineno) const {
         if(lineno == -1) return "<?>";
@@ -25,12 +32,13 @@ struct SourceMetadata {
         return _Str(_start, i-_start);
     }
 
-    SourceMetadata(_Str filename, const char* source) {
+    SourceMetadata(const char* source, _Str filename, CompileMode mode) {
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
         this->filename = filename;
         this->source = source;
         lineStarts.push_back(source);
+        this->mode = mode;
     }
 
     _Str snapshot(int lineno){
