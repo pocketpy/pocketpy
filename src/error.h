@@ -6,7 +6,7 @@
 
 #include "str.h"
 
-class NeedMoreLines : public std::exception {
+class NeedMoreLines {
 public:
     NeedMoreLines(bool isClassDef) : isClassDef(isClassDef) {}
     bool isClassDef;
@@ -93,3 +93,12 @@ public:
     UnexpectedError(_Str msg)
         : _Error("UnexpectedError", msg, "") {}
 };
+
+#define REDIRECT_ERROR()                                            \
+    if(const _Error* _ = dynamic_cast<const _Error*>(&e)){          \
+        vm->_stderr(e.what());                                      \
+    }else{                                                          \
+        vm->_stderr(UnexpectedError(e.what()).what());              \
+    }                                                               \
+    vm->_stderr("\n");
+

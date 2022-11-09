@@ -27,123 +27,8 @@ class VM{
 private:
     std::stack< std::shared_ptr<Frame> > callstack;
     std::vector<PyObject*> numPool;
-public:
-    PyVarDict _types;         // builtin types
-    PyVar None, True, False;
-
-    PrintFn _stdout = [](auto s){};
-    PrintFn _stderr = [](auto s){};
-    
-    PyVar builtins;         // builtins module
-    PyVar _main;            // __main__ module
     PyVarDict _modules;       // 3rd modules
 
-    VM(){
-        initializeBuiltinClasses();
-    }
-
-    PyVar asStr(const PyVar& obj){
-        PyVarOrNull str_fn = getAttr(obj, __str__, false);
-        if(str_fn != nullptr) return call(str_fn, {});
-        return asRepr(obj);
-    }
-
-    PyVar asRepr(const PyVar& obj){
-        if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
-        return call(obj, __repr__, {});
-    }
-
-    PyVar asBool(const PyVar& obj){
-        if(obj == None) return False;
-        PyVar tp = obj->attribs[__class__];
-        if(tp == _tp_bool) return obj;
-        if(tp == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
-        if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0f);
-        PyVarOrNull len_fn = getAttr(obj, "__len__", false);
-        if(len_fn != nullptr){
-            PyVar ret = call(len_fn, {});
-            return PyBool(PyInt_AS_C(ret) > 0);
-        }
-        return True;
-    }
-
-    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
-        PyVar cls = obj->attribs[__class__];
-        while(cls != None) {
-            auto it = cls->attribs.find(name);
-            if(it != cls->attribs.end()){
-                return call(it->second, args);
-            }
-            cls = cls->attribs[__base__];
-        }
-        attributeError(obj, name);
-        return nullptr;
-    }
-
-    PyVar call(PyVar callable, PyVarList args){
-        if(callable->isType(_tp_type)){
-            auto it = callable->attribs.find(__new__);
-            PyVar obj;
-            if(it != callable->attribs.end()){
-                obj = call(it->second, args);
-            }else{
-                obj = newObject(callable, -1);
-            }
-            if(obj->isType(callable)){
-                PyVarOrNull init_fn = getAttr(obj, __init__, false);
-                if (init_fn != nullptr) call(init_fn, args);
-            }
-            return obj;
-        }
-
-        if(callable->isType(_tp_bounded_method)){
-            auto& bm = PyBoundedMethod_AS_C(callable);
-            args.insert(args.begin(), bm.obj);
-            callable = bm.method;
-        }
-        
-        if(callable->isType(_tp_native_function)){
-            auto f = std::get<_CppFunc>(callable->_native);
-            return f(this, args);
-        } else if(callable->isType(_tp_function)){
-            _Func fn = PyFunction_AS_C(callable);
-            PyVarDict locals;
-            int i = 0;
-            for(const auto& name : fn.args){
-                if(i < args.size()) {
-                    locals[name] = args[i++];
-                }else{
-                    typeError("missing positional argument '" + name + "'");
-                }
-            }
-            // handle *args
-            if(!fn.starredArg.empty()){
-                PyVarList vargs;
-                while(i < args.size()) vargs.push_back(args[i++]);
-                locals[fn.starredArg] = PyTuple(vargs);
-            }
-            // handle keyword arguments
-            for(const auto& [name, value] : fn.kwArgs){
-                if(i < args.size()) {
-                    locals[name] = args[i++];
-                }else{
-                    locals[name] = value;
-                }
-            }
-
-            if(i < args.size()) typeError("too many arguments");
-
-            // TODO: handle **kwargs
-            return exec(fn.code, locals);
-        }
-        typeError("'" + callable->getTypeName() + "' object is not callable");
-        return None;
-    }
-
-    inline PyVar call(const PyVar& obj, const _Str& func, PyVarList args){
-        return call(getAttr(obj, func), args);
-    }
-    
     PyVar runFrame(std::shared_ptr<Frame> frame){
         callstack.push(frame);
         while(!frame->isEnd()){
@@ -380,11 +265,8 @@ public:
                 {
                     const _Str& name = frame->code->co_names[byte.arg]->name;
                     auto it = _modules.find(name);
-                    if(it == _modules.end()){
-                        _error("ImportError", "module '" + name + "' not found");
-                    }else{
-                        frame->push(it->second);
-                    }
+                    if(it == _modules.end()) _error("ImportError", "module '" + name + "' not found");
+                    else frame->push(it->second); 
                 } break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
@@ -404,14 +286,139 @@ public:
         return None;
     }
 
+public:
+    PyVarDict _types;         // builtin types
+    PyVar None, True, False;
+
+    PrintFn _stdout = [](auto s){};
+    PrintFn _stderr = [](auto s){};
+    
+    PyVar builtins;         // builtins module
+    PyVar _main;            // __main__ module
+
+    VM(){
+        initializeBuiltinClasses();
+    }
+
+    PyVar asStr(const PyVar& obj){
+        PyVarOrNull str_fn = getAttr(obj, __str__, false);
+        if(str_fn != nullptr) return call(str_fn, {});
+        return asRepr(obj);
+    }
+
+    PyVar asRepr(const PyVar& obj){
+        if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
+        return call(obj, __repr__, {});
+    }
+
+    PyVar asBool(const PyVar& obj){
+        if(obj == None) return False;
+        PyVar tp = obj->attribs[__class__];
+        if(tp == _tp_bool) return obj;
+        if(tp == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
+        if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0f);
+        PyVarOrNull len_fn = getAttr(obj, "__len__", false);
+        if(len_fn != nullptr){
+            PyVar ret = call(len_fn, {});
+            return PyBool(PyInt_AS_C(ret) > 0);
+        }
+        return True;
+    }
+
+    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
+        PyVar cls = obj->attribs[__class__];
+        while(cls != None) {
+            auto it = cls->attribs.find(name);
+            if(it != cls->attribs.end()){
+                return call(it->second, args);
+            }
+            cls = cls->attribs[__base__];
+        }
+        attributeError(obj, name);
+        return nullptr;
+    }
+
+    PyVar call(PyVar callable, PyVarList args){
+        if(callable->isType(_tp_type)){
+            auto it = callable->attribs.find(__new__);
+            PyVar obj;
+            if(it != callable->attribs.end()){
+                obj = call(it->second, args);
+            }else{
+                obj = newObject(callable, -1);
+            }
+            if(obj->isType(callable)){
+                PyVarOrNull init_fn = getAttr(obj, __init__, false);
+                if (init_fn != nullptr) call(init_fn, args);
+            }
+            return obj;
+        }
+
+        if(callable->isType(_tp_bounded_method)){
+            auto& bm = PyBoundedMethod_AS_C(callable);
+            args.insert(args.begin(), bm.obj);
+            callable = bm.method;
+        }
+        
+        if(callable->isType(_tp_native_function)){
+            auto f = std::get<_CppFunc>(callable->_native);
+            return f(this, args);
+        } else if(callable->isType(_tp_function)){
+            _Func fn = PyFunction_AS_C(callable);
+            PyVarDict locals;
+            int i = 0;
+            for(const auto& name : fn.args){
+                if(i < args.size()) {
+                    locals[name] = args[i++];
+                }else{
+                    typeError("missing positional argument '" + name + "'");
+                }
+            }
+            // handle *args
+            if(!fn.starredArg.empty()){
+                PyVarList vargs;
+                while(i < args.size()) vargs.push_back(args[i++]);
+                locals[fn.starredArg] = PyTuple(vargs);
+            }
+            // handle keyword arguments
+            for(const auto& [name, value] : fn.kwArgs){
+                if(i < args.size()) {
+                    locals[name] = args[i++];
+                }else{
+                    locals[name] = value;
+                }
+            }
+
+            if(i < args.size()) typeError("too many arguments");
+
+            // TODO: handle **kwargs
+            return exec(fn.code, locals);
+        }
+        typeError("'" + callable->getTypeName() + "' object is not callable");
+        return None;
+    }
+
+    inline PyVar call(const PyVar& obj, const _Str& func, PyVarList args){
+        return call(getAttr(obj, func), args);
+    }
+    
     PyVar exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
+        if(code == nullptr) UNREACHABLE();
         if(_module == nullptr) _module = _main;
         auto frame = std::make_shared<Frame>(
             code.get(),
             locals,
             &_module->attribs
         );
-        return runFrame(frame);
+
+        try {
+            return runFrame(frame);
+        } catch (const std::exception& e) {
+            while(!callstack.empty()) callstack.pop();
+            VM* vm = this;
+            REDIRECT_ERROR()
+            return None;
+        }
     }
 
     PyVar newUserClassType(_Str name, PyVar base){
@@ -456,8 +463,9 @@ public:
     }
 
     PyVar newModule(_Str name) {
-        PyVar obj = newObject(_tp_module, 0);
+        PyVar obj = newObject(_tp_module, -2);
         setAttr(obj, "__name__", PyStr(name));
+        _modules[name] = obj;
         return obj;
     }
 
@@ -628,7 +636,6 @@ public:
     void registerCompiledModule(_Str name, _Code code){
         PyVar _m = newModule(name);
         exec(code, {}, _m);
-        _modules[name] = _m;
     }
 
     /***** Error Reporter *****/
@@ -644,10 +651,6 @@ private:
     }
 
 public:
-    void cleanError(){
-        while(!callstack.empty()) callstack.pop();
-    }
-
     void typeError(const _Str& msg){
         typeError(msg);
     }

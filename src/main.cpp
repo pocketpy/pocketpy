@@ -7,22 +7,15 @@
 //#define PK_DEBUG
 //#define PK_DEBUG_TIME
 
-class Timer{
-private:
-    std::chrono::time_point<std::chrono::high_resolution_clock> start;
-    std::string title;
-public:
-    Timer(const std::string& title){
-#ifdef PK_DEBUG_TIME
-        start = std::chrono::high_resolution_clock::now();
-        this->title = title;
-#endif
-    }
-
-    void stop(){
-#ifdef PK_DEBUG_TIME
+struct Timer{
+    const char* title;
+    Timer(const char* title) : title(title) {}
+    void run(std::function<void()> f){
+        auto start = std::chrono::high_resolution_clock::now();
+        f();
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0;
+#ifdef PK_DEBUG_TIME
         std::cout << title << ": " << elapsed << " s" << std::endl;
 #endif
     }
@@ -32,6 +25,9 @@ VM* newVM(){
     VM* vm = createVM([](const char* str) { 
         std::cout << str;
         std::cout.flush();
+    }, [](const char* str) { 
+        std::cerr << str;
+        std::cerr.flush();
     });
     return vm;
 }
@@ -40,12 +36,10 @@ void REPL(){
     std::cout << "pocketpy 0.1.0" << std::endl;
     std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
 #ifdef PK_DEBUG
-    std::cout << "[ DEBUG MODE ENABLED ]" << std::endl;
+    std::cout << "[DEBUG MODE ENABLED]" << std::endl;
 #endif
 
-
     int need_more_lines = 0;
-
     std::string buffer;
     VM* vm = newVM();
 
@@ -75,24 +69,14 @@ __NOT_ENOUGH_LINES:
             if(line == "exit()") break;
             if(line.empty()) continue;
         }
+
         try{
             _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            vm->exec(code);
-#ifdef PK_DEBUG
-        }catch(NeedMoreLines& e){
-#else
-        }catch(std::exception& e){
-#endif
-            NeedMoreLines* ne = dynamic_cast<NeedMoreLines*>(&e);
-            if(ne){
-                buffer += line;
-                buffer += '\n';
-                need_more_lines = ne->isClassDef ? 3 : 2;
-            }else{
-                vm->_stdout(e.what());
-                vm->_stdout("\n");
-                vm->cleanError();
-            }
+            if(code != nullptr) vm->exec(code);
+        }catch(NeedMoreLines& ne){
+            buffer += line;
+            buffer += '\n';
+            need_more_lines = ne.isClassDef ? 3 : 2;
         }
     }
 }
@@ -101,9 +85,6 @@ int main(int argc, char** argv){
     if(argc == 1){
         REPL();
         return 0;
-
-        // argc = 2;
-        // argv = new char*[2]{argv[0], (char*)"../tests/singletype/basic.py"};
     }
     
     if(argc == 2){
@@ -112,24 +93,26 @@ int main(int argc, char** argv){
             std::cout << "Usage: pocketpy [filename]" << std::endl;
             return 0;
         }
-#ifndef PK_DEBUG
-        try{
-#endif
-            std::ifstream file(filename);
-            std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-            VM* vm = newVM();
-            Timer timer("Compile time");
-            _Code code = compile(vm, src.c_str(), filename);
-            timer.stop();
-            //std::cout << code->toString() << std::endl;
-            Timer timer2("Running time");
-            vm->exec(code);
-            timer2.stop();
-#ifndef PK_DEBUG
-        }catch(std::exception& e){
-            std::cout << e.what() << std::endl;
+
+        std::ifstream file(filename);
+        if(!file.is_open()){
+            std::cerr << "File not found: " << filename << std::endl;
+            return 1;
         }
-#endif
+        std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+        VM* vm = newVM();
+        _Code code;
+        Timer("Compile time").run([&]{
+            code = compile(vm, src.c_str(), filename);
+        });
+        if(code == nullptr) return 1;
+
+        //std::cout << code->toString() << std::endl;
+
+        Timer("Running time").run([=]{
+            vm->exec(code);
+        });
         return 0;
     }
 }

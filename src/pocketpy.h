@@ -414,13 +414,24 @@ void __runCodeBuiltins(VM* vm, const char* src){
 #define __EXPORT
 #endif
 
+#include <ctime>
+void __addModuleTime(VM* vm){
+    PyVar mod = vm->newModule("time");
+    vm->bindFunc(mod, "time", [](VM* vm, PyVarList args) {
+        return vm->PyInt((int)std::time(nullptr));
+    });
+}
+
+
 extern "C" {
     __EXPORT
-    VM* createVM(PrintFn _stdout){
+    VM* createVM(PrintFn _stdout, PrintFn _stderr){
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
         __runCodeBuiltins(vm, __BUILTINS_CODE);
+        __addModuleTime(vm);
         vm->_stdout = _stdout;
+        vm->_stderr = _stderr;
         return vm;
     }
 
@@ -431,14 +442,8 @@ extern "C" {
 
     __EXPORT
     void exec(VM* vm, const char* source){
-        try{
-            _Code code = compile(vm, source, "main.py");
-            vm->exec(code);
-        }catch(std::exception& e){
-            vm->_stdout(e.what());
-            vm->_stdout("\n");
-            vm->cleanError();
-        }
+        _Code code = compile(vm, source, "main.py");
+        if(code != nullptr) vm->exec(code);
     }
 
     __EXPORT

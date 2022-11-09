@@ -887,6 +887,11 @@ __LITERAL_EXIT:
 };
 
 _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE) {
-    Compiler compiler(vm, source, filename, mode);
-    return compiler.__fillCode();
+    try{
+        Compiler compiler(vm, source, filename, mode);
+        return compiler.__fillCode();
+    }catch(std::exception& e){
+        REDIRECT_ERROR()
+        return nullptr;
+    }
 }
