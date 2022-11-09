@@ -345,7 +345,7 @@ public:
             if(it != callable->attribs.end()){
                 obj = call(it->second, args);
             }else{
-                obj = newObject(callable, -1);
+                obj = newObject(callable, (_Int)-1);
             }
             if(obj->isType(callable)){
                 PyVarOrNull init_fn = getAttr(obj, __init__, false);
@@ -430,7 +430,7 @@ public:
 
     PyVar newClassType(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = std::make_shared<PyObject>(0);
+        PyVar obj = std::make_shared<PyObject>((_Int)0);
         setAttr(obj, __class__, _tp_type);
         setAttr(obj, __base__, base);
         _types[name] = obj;
@@ -463,7 +463,7 @@ public:
     }
 
     PyVar newModule(_Str name) {
-        PyVar obj = newObject(_tp_module, -2);
+        PyVar obj = newObject(_tp_module, (_Int)-2);
         setAttr(obj, "__name__", PyStr(name));
         _modules[name] = obj;
         return obj;
@@ -575,8 +575,8 @@ public:
     inline PyVar PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = std::make_shared<PyObject>(0);
-        _tp_type = std::make_shared<PyObject>(0);
+        _tp_object = std::make_shared<PyObject>((_Int)0);
+        _tp_type = std::make_shared<PyObject>((_Int)0);
 
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
@@ -599,7 +599,7 @@ public:
         _tp_native_iterator = newClassType("_native_iterator");
         _tp_bounded_method = newClassType("_bounded_method");
 
-        this->None = newObject(_types["NoneType"], 0);
+        this->None = newObject(_types["NoneType"], (_Int)0);
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("__builtins__");
