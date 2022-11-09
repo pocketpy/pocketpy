@@ -393,10 +393,10 @@ public:
         }
 
         if(frame->code->src->mode == EVAL_MODE) {
-            if(frame->stackSize() != 1) {
-                systemError("stack size is not 1 in EVAL_MODE");
-            }
-            return frame->popValue(this);
+            if(frame->stackSize() != 1) systemError("stack size is not 1 in EVAL_MODE");
+            PyVar ret = frame->popValue(this);
+            callstack.pop();
+            return ret;
         }
 
         if(frame->stackSize() != 0) systemError("stack not empty in EXEC_MODE");
