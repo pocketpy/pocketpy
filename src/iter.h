@@ -20,7 +20,7 @@ public:
         }
     }
 
-    PyVar next();
+    PyVar next() override;
 };
 
 class VectorIterator : public _Iterator {
