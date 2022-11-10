@@ -1,9 +1,5 @@
 #pragma once
 
-#include <string_view>
-#include <cstring>
-#include <queue>
-
 #include "obj.h"
 
 typedef uint8_t _TokenType;

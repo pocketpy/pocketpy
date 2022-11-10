@@ -1,9 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <stdexcept>
-
+#include "__stl__.h"
 #include "str.h"
 
 class NeedMoreLines {

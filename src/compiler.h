@@ -1,9 +1,5 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <cstring>
-
 #include "parser.h"
 #include "error.h"
 #include "vm.h"

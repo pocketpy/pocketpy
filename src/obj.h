@@ -1,13 +1,6 @@
 #pragma once
 
-#include <unordered_map>
-#include <memory>
-#include <variant>
-#include <functional>
-#include <stack>
-#include <cmath>
-#include <stdexcept>
-
+#include "__stl__.h"
 #include "str.h"
 
 typedef int64_t _Int;

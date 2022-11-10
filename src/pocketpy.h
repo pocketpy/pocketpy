@@ -3,10 +3,6 @@
 #include "vm.h"
 #include "compiler.h"
 
-#include <iomanip>
-#include <cmath>
-#include <chrono>
-
 #define PK_VERSION "0.2.0"
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \

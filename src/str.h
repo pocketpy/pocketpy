@@ -1,9 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <regex>
+#include "__stl__.h"
 
 typedef std::stringstream _StrStream;
 
