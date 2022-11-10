@@ -175,7 +175,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         _StrStream ss;
         ss << std::setprecision(std::numeric_limits<_Float>::max_digits10-1) << val;
         std::string s = ss.str();
-        if(s.find('.') == std::string::npos) s += ".0";
+        if(std::all_of(s.begin(), s.end(), isdigit)) s += ".0";
         return vm->PyStr(s);
     });
 
