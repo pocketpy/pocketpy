@@ -466,7 +466,7 @@ public:
         return obj;
     }
 
-    PyVar newModule(_Str name) {
+    PyVar newModule(_Str name, bool saveToPath=true) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
         setAttr(obj, "__name__", PyStr(name));
         _modules[name] = obj;
@@ -608,7 +608,7 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("__builtins__");
-        this->_main = newModule("__main__");
+        this->_main = newModule("__main__", false);
         
         setAttr(_tp_type, __base__, _tp_object);
         setAttr(_tp_type, __class__, _tp_type);
