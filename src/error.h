@@ -62,7 +62,7 @@ public:
     }
 
     const char* what() const noexcept override {
-        return _what;
+        return _what.c_str();
     }
 };
 

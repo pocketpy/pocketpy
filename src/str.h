@@ -75,6 +75,14 @@ public:
         return _s != other._s;
     }
 
+    bool operator==(const char* other) const {
+        return _s == other;
+    }
+
+    bool operator!=(const char* other) const {
+        return _s != other;
+    }
+
     bool operator<(const _Str& other) const {
         return _s < other._s;
     }
@@ -116,11 +124,11 @@ public:
         return _s;
     }
 
-    static const std::size_t npos = std::string::npos;
-
-    operator const char*() const {
+    const char* c_str() const {
         return _s.c_str();
     }
+
+    static const std::size_t npos = std::string::npos;
 
     _Str __lstrip() const {
         std::string copy(_s);

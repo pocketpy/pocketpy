@@ -132,7 +132,7 @@ private:
                 {
                     const PyVar& expr = frame->topValue(this);
                     if(expr == None) break;
-                    _stdout(PyStr_AS_C(asRepr(expr)));
+                    _stdout(PyStr_AS_C(asRepr(expr)).c_str());
                     _stdout("\n");
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
@@ -799,8 +799,19 @@ void CompoundPointer::del(VM* vm, Frame* frame) const{
     for (auto& ptr : pointers) ptr->del(vm, frame);
 }
 
-/**************** Frame ****************/
+/***** Frame's Impl *****/
 inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
     if(v->isType(vm->_tp_pointer)) v = vm->PyPointer_AS_C(v)->get(vm, this);
     return v;
+}
+
+/***** Iterators' Impl *****/
+PyVar RangeIterator::next(){
+    PyVar val = vm->PyInt(current);
+    current += r.step;
+    return val;
+}
+
+PyVar StringIterator::next(){
+    return vm->PyStr(str->u8_getitem(index++));
 }

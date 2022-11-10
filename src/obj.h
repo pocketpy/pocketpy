@@ -13,6 +13,11 @@
 typedef int64_t _Int;
 typedef double _Float;
 
+#define _Int_MAX_POS 9223372036854775807
+#define _Int_MAX_NEG -9223372036854775808
+#define _FLOAT_INF_POS 1.0/0.0
+#define _FLOAT_INF_NEG -1.0/0.0
+
 class PyObject;
 class CodeObject;
 class BasePointer;
@@ -90,15 +95,14 @@ struct _Slice {
 };
 
 class _Iterator {
-private:
+protected:
     PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
+    VM* vm;
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
-
     _Pointer var;
-
-    _Iterator(PyVar _ref) : _ref(_ref) {}
+    _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
 };
 
 typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;

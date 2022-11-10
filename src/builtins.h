@@ -60,6 +60,8 @@ list.__contains__ = __iterable4__contains__
 tuple.__contains__ = __iterable4__contains__
 del __iterable4__contains__
 
+list.__new__ = lambda obj: [i for i in obj]
+
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
     def __init__(self):

@@ -42,7 +42,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
-        for (auto& arg : args) vm->_stdout(vm->PyStr_AS_C(vm->asStr(arg)) + " ");
+        for (auto& arg : args){
+            _Str s = vm->PyStr_AS_C(vm->asStr(arg)) + " ";
+            vm->_stdout(s.c_str());
+        }
         vm->_stdout("\n");
         return vm->None;
     });
@@ -50,7 +53,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, PyVarList args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr, "<eval>", EVAL_MODE);
+        _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE);
         if(code == nullptr) return vm->None;
         return vm->_exec(code);      // not working in function
     });
@@ -115,7 +118,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("range", "__iter__", [](VM* vm, PyVarList args) {
         vm->__checkType(args[0], vm->_tp_range);
-        auto iter = std::make_shared<RangeIterator>(args[0], [=](_Int val){return vm->PyInt(val);});
+        auto iter = std::make_shared<RangeIterator>(vm, args[0]);
         return vm->PyIter(iter);
     });
 
@@ -142,6 +145,25 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyInt ************/
+    _vm->bindMethod("int", "__new__", [](VM* vm, PyVarList args) {
+        if(args.size() == 0) return vm->PyInt(0);
+        vm->__checkArgSize(args, 1);
+        if (args[0]->isType(vm->_tp_int)) return args[0];
+        if (args[0]->isType(vm->_tp_float)) return vm->PyInt((_Int)vm->PyFloat_AS_C(args[0]));
+        if (args[0]->isType(vm->_tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
+        if (args[0]->isType(vm->_tp_str)) {
+            const _Str& s = vm->PyStr_AS_C(args[0]);
+            try{
+                _Int val = std::stoll(s.str());
+                return vm->PyInt(val);
+            }catch(std::invalid_argument&){
+                vm->valueError("invalid literal for int(): '" + s + "'");
+            }
+        }
+        vm->typeError("int() argument must be a int, float, bool or str");
+        return vm->None;
+    });
+
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
@@ -167,6 +189,27 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyFloat ************/
+    _vm->bindMethod("float", "__new__", [](VM* vm, PyVarList args) {
+        if(args.size() == 0) return vm->PyFloat(0.0);
+        vm->__checkArgSize(args, 1);
+        if (args[0]->isType(vm->_tp_int)) return vm->PyFloat((_Float)vm->PyInt_AS_C(args[0]));
+        if (args[0]->isType(vm->_tp_float)) return args[0];
+        if (args[0]->isType(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (args[0]->isType(vm->_tp_str)) {
+            const _Str& s = vm->PyStr_AS_C(args[0]);
+            if(s == "inf") return vm->PyFloat(_FLOAT_INF_POS);
+            if(s == "-inf") return vm->PyFloat(_FLOAT_INF_NEG);
+            try{
+                _Float val = std::stod(s.str());
+                return vm->PyFloat(val);
+            }catch(std::invalid_argument&){
+                vm->valueError("invalid literal for float(): '" + s + "'");
+            }
+        }
+        vm->typeError("float() argument must be a int, float, bool or str");
+        return vm->None;
+    });
+
     _vm->bindMethod("float", "__neg__", [](VM* vm, PyVarList args) {
         return vm->PyFloat(-1.0 * vm->PyFloat_AS_C(args[0]));
     });
@@ -177,7 +220,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         _StrStream ss;
         ss << std::setprecision(std::numeric_limits<_Float>::max_digits10-1) << val;
         std::string s = ss.str();
-        if(std::all_of(s.begin(), s.end(), isdigit)) s += ".0";
+        if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return vm->PyStr(s);
     });
 
@@ -208,6 +251,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__str__", [](VM* vm, PyVarList args) {
         return args[0]; // str is immutable
+    });
+
+    _vm->bindMethod("str", "__iter__", [](VM* vm, PyVarList args) {
+        auto it = std::make_shared<StringIterator>(vm, args[0]);
+        return vm->PyIter(it);
     });
 
     _vm->bindMethod("str", "__repr__", [](VM* vm, PyVarList args) {
@@ -308,7 +356,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyList ************/
     _vm->bindMethod("list", "__iter__", [](VM* vm, PyVarList args) {
         vm->__checkType(args[0], vm->_tp_list);
-        auto iter = std::make_shared<VectorIterator>(args[0]);
+        auto iter = std::make_shared<VectorIterator>(vm, args[0]);
         return vm->PyIter(iter);
     });
 
@@ -395,9 +443,15 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyTuple ************/
+    _vm->bindMethod("tuple", "__new__", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
+        PyVarList _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
+        return vm->PyTuple(_list);
+    });
+
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, PyVarList args) {
         vm->__checkType(args[0], vm->_tp_tuple);
-        auto iter = std::make_shared<VectorIterator>(args[0]);
+        auto iter = std::make_shared<VectorIterator>(vm, args[0]);
         return vm->PyIter(iter);
     });
 
