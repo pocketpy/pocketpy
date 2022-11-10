@@ -497,11 +497,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 }
 
-void __runCodeBuiltins(VM* vm, const char* src){
-    _Code code = compile(vm, src, "builtins.py");
-    if(code != nullptr) vm->exec(code, vm->builtins);
-}
-
 #include "builtins.h"
 
 #ifdef _WIN32
@@ -535,11 +530,15 @@ extern "C" {
     VM* createVM(PrintFn _stdout, PrintFn _stderr){
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
-        __runCodeBuiltins(vm, __BUILTINS_CODE);
-        __addModuleSys(vm);
-        __addModuleTime(vm);
         vm->_stdout = _stdout;
         vm->_stderr = _stderr;
+
+        _Code code = compile(vm, __BUILTINS_CODE, "builtins.py");
+        if(code == nullptr) exit(1);
+        vm->_exec(code, vm->builtins);
+
+        __addModuleSys(vm);
+        __addModuleTime(vm);
         return vm;
     }
 

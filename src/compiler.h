@@ -321,8 +321,10 @@ public:
     void exprLambda() {
         _Func func;
         func.name = "<lambda>";
-        __compileFunctionArgs(func);
-        consume(TK(":"));
+        if(!match(TK(":"))){
+            __compileFunctionArgs(func);
+            consume(TK(":"));
+        }
         func.code = std::make_shared<CodeObject>(parser->src, func.name);
         this->codes.push(func.code);
         EXPR_TUPLE();

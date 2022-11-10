@@ -411,8 +411,7 @@ public:
     PyVar exec(const _Code& code, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
-            PyVarDict locals;
-            return _exec(code, _module, locals);
+            return _exec(code, _module);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
                 _stderr(e.what());
@@ -423,6 +422,11 @@ public:
             _stderr("\n");
             return None;
         }
+    }
+
+    PyVar _exec(const _Code& code, PyVar _module){
+        PyVarDict locals;
+        return _exec(code, _module, locals);
     }
 
     PyVar _exec(const _Code& code, PyVar _module, PyVarDict& locals){
