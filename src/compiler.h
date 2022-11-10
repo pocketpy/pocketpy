@@ -733,6 +733,10 @@ __LISTCOMP:
             EXPR();
             emitCode(OP_DELETE_PTR);
             consumeEndStatement();
+        } else if(match(TK("global"))){
+            consume(TK("@id"));
+            int index = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+            consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();
         } else {

@@ -24,10 +24,6 @@ struct NamePointer : BasePointer {
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
-
-    bool operator==(const NamePointer& other) const {
-        return name == other.name && scope == other.scope;
-    }
 };
 
 struct AttrPointer : BasePointer {

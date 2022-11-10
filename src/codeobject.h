@@ -42,7 +42,7 @@ struct CodeObject {
     int addName(const _Str& name, NameScope scope){
         auto p = std::make_shared<NamePointer>(name, scope);
         for(int i=0; i<co_names.size(); i++){
-            if(*co_names[i] == *p) return i;
+            if(co_names[i]->name == p->name) return i;
         }
         co_names.push_back(p);
         return co_names.size() - 1;
