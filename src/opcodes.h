@@ -36,7 +36,8 @@ OPCODE(JUMP_IF_FALSE_OR_POP)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
-OPCODE(LOAD_EVAL_FN)       // load eval() callable into stack
+OPCODE(LOAD_EVAL_FN)        // load eval() callable into stack
+OPCODE(LOAD_LAMBDA)         // LOAD_CONST + set __module__ attr
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)

@@ -328,7 +328,7 @@ public:
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
         this->codes.pop();
-        emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
+        emitCode(OP_LOAD_LAMBDA, getCode()->addConst(vm->PyFunction(func)));
     }
 
     void exprAssign() {

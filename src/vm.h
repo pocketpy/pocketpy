@@ -25,12 +25,11 @@ typedef void(*PrintFn)(const char*);
 
 class VM{
 private:
-    std::stack< std::shared_ptr<Frame> > callstack;
+    std::stack< std::unique_ptr<Frame> > callstack;
     std::vector<PyObject*> numPool;
     PyVarDict _modules;       // 3rd modules
 
-    PyVar runFrame(std::shared_ptr<Frame> frame){
-        callstack.push(frame);
+    PyVar runFrame(Frame* frame){
         while(!frame->isEnd()){
             const ByteCode& byte = frame->readCode();
             //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
@@ -39,12 +38,17 @@ private:
             {
             case OP_NO_OP: break;       // do nothing
             case OP_LOAD_CONST: frame->push(frame->code->co_consts[byte.arg]); break;
+            case OP_LOAD_LAMBDA: {
+                PyVar obj = frame->code->co_consts[byte.arg];
+                setAttr(obj, __module__, frame->_module);
+                frame->push(obj);
+            } break;
             case OP_LOAD_NAME_PTR: {
                 frame->push(PyPointer(frame->code->co_names[byte.arg]));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
-                p->set(this, frame.get(), frame->popValue(this));
+                p->set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
@@ -59,11 +63,11 @@ private:
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
                 _Pointer p = PyPointer_AS_C(frame->__pop());
-                p->set(this, frame.get(), obj);
+                p->set(this, frame, obj);
             } break;
             case OP_DELETE_PTR: {
                 _Pointer p = PyPointer_AS_C(frame->__pop());
-                p->del(this, frame.get());
+                p->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
@@ -99,13 +103,14 @@ private:
             case OP_LIST_APPEND: {
                 PyVar obj = frame->popValue(this);
                 PyVar list = frame->topNValue(this, -2);
-                fastCall(list, "append", {list, obj});
+                fastCall(frame, list, "append", {list, obj});
             } break;
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->popValue(this);
                     const _Func& fn = PyFunction_AS_C(obj);
-                    frame->f_globals->operator[](fn.name) = obj;
+                    setAttr(obj, __module__, frame->_module);
+                    frame->f_globals()[fn.name] = obj;
                 } break;
             case OP_BUILD_CLASS:
                 {
@@ -120,14 +125,9 @@ private:
                         const _Func& f = PyFunction_AS_C(fn);
                         setAttr(cls, f.name, fn);
                     }
-                    frame->f_globals->operator[](clsName) = cls;
+                    frame->f_globals()[clsName] = cls;
                 } break;
-            case OP_RETURN_VALUE:
-                {
-                    PyVar ret = frame->popValue(this);
-                    callstack.pop();
-                    return ret;
-                } break;
+            case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
                 {
                     const PyVar& expr = frame->topValue(this);
@@ -140,7 +140,7 @@ private:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BIN_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                    frame->push(fastCall(frame, lhs, BIN_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
                 } break;
             case OP_COMPARE_OP:
                 {
@@ -148,7 +148,7 @@ private:
                     PyVar lhs = frame->popValue(this);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(lhs, CMP_SPECIAL_METHODS[op], {lhs,rhs});
+                    PyVar res = fastCall(frame, lhs, CMP_SPECIAL_METHODS[op], {lhs,rhs});
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(res);
                 } break;
@@ -162,14 +162,14 @@ private:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, {lhs}));
+                    bool ret_c = PyBool_AS_C(call(frame, rhs, __contains__, {lhs}));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
             case OP_UNARY_NEGATIVE:
                 {
                     PyVar obj = frame->popValue(this);
-                    frame->push(call(obj, __neg__, {}));
+                    frame->push(call(frame, obj, __neg__, {}));
                 } break;
             case OP_UNARY_NOT:
                 {
@@ -202,9 +202,9 @@ private:
             case OP_BUILD_MAP:
                 {
                     PyVarList items = frame->popNValuesReversed(this, byte.arg*2);
-                    PyVar obj = call(builtins->attribs["dict"], {});
+                    PyVar obj = call(frame, builtins->attribs["dict"], {});
                     for(int i=0; i<items.size(); i+=2){
-                        call(obj, __setitem__, {items[i], items[i+1]});
+                        call(frame, obj, __setitem__, {items[i], items[i+1]});
                     }
                     frame->push(obj);
                 } break;
@@ -213,7 +213,7 @@ private:
                 {
                     PyVarList args = frame->popNValuesReversed(this, byte.arg);
                     PyVar callable = frame->popValue(this);
-                    frame->push(call(callable, args));
+                    frame->push(call(frame, callable, args));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jumpTo(byte.arg); break;
             case OP_GET_ITER:
@@ -221,7 +221,7 @@ private:
                     PyVar obj = frame->popValue(this);
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
-                        PyVar tmp = call(iter_fn, {obj});
+                        PyVar tmp = call(frame, iter_fn, {obj});
                         PyIter_AS_C(tmp)->var = PyPointer_AS_C(frame->__pop());
                         frame->push(tmp);
                     }else{
@@ -233,7 +233,7 @@ private:
                     const PyVar& iter = frame->topValue(this);
                     auto& it = PyIter_AS_C(iter);
                     if(it->hasNext()){
-                        it->var->set(this, frame.get(), it->next());
+                        it->var->set(this, frame, it->next());
                     }
                     else{
                         frame->popValue(this);
@@ -276,13 +276,10 @@ private:
 
         if(frame->code->src->mode == EVAL_MODE) {
             if(frame->stackSize() != 1) systemError("stack size is not 1 in EVAL_MODE");
-            PyVar ret = frame->popValue(this);
-            callstack.pop();
-            return ret;
+            return frame->popValue(this);
         }
 
         if(frame->stackSize() != 0) systemError("stack not empty in EXEC_MODE");
-        callstack.pop();
         return None;
     }
 
@@ -302,13 +299,13 @@ public:
 
     PyVar asStr(const PyVar& obj){
         PyVarOrNull str_fn = getAttr(obj, __str__, false);
-        if(str_fn != nullptr) return call(str_fn, {});
+        if(str_fn != nullptr) return call(nullptr, str_fn, {});
         return asRepr(obj);
     }
 
     PyVar asRepr(const PyVar& obj){
         if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
-        return call(obj, __repr__, {});
+        return call(nullptr, obj, __repr__, {});
     }
 
     PyVar asBool(const PyVar& obj){
@@ -319,18 +316,18 @@ public:
         if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getAttr(obj, "__len__", false);
         if(len_fn != nullptr){
-            PyVar ret = call(len_fn, {});
+            PyVar ret = call(nullptr, len_fn, {});
             return PyBool(PyInt_AS_C(ret) > 0);
         }
         return True;
     }
 
-    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
+    PyVar fastCall(Frame* frame, const PyVar& obj, const _Str& name, PyVarList args){
         PyVar cls = obj->attribs[__class__];
         while(cls != None) {
             auto it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
-                return call(it->second, args);
+                return call(frame, it->second, args);
             }
             cls = cls->attribs[__base__];
         }
@@ -338,18 +335,18 @@ public:
         return nullptr;
     }
 
-    PyVar call(PyVar callable, PyVarList args){
+    PyVar call(Frame* frame, PyVar callable, PyVarList args){
         if(callable->isType(_tp_type)){
             auto it = callable->attribs.find(__new__);
             PyVar obj;
             if(it != callable->attribs.end()){
-                obj = call(it->second, args);
+                obj = call(frame, it->second, args);
             }else{
                 obj = newObject(callable, (_Int)-1);
             }
             if(obj->isType(callable)){
                 PyVarOrNull init_fn = getAttr(obj, __init__, false);
-                if (init_fn != nullptr) call(init_fn, args);
+                if (init_fn != nullptr) call(frame, init_fn, args);
             }
             return obj;
         }
@@ -362,7 +359,7 @@ public:
         
         if(callable->isType(_tp_native_function)){
             auto f = std::get<_CppFunc>(callable->_native);
-            return f(this, args);
+            return f(this, frame, args);
         } else if(callable->isType(_tp_function)){
             _Func fn = PyFunction_AS_C(callable);
             PyVarDict locals;
@@ -390,19 +387,27 @@ public:
             }
 
             if(i < args.size()) typeError("too many arguments");
-            return _exec(fn.code, locals);
+
+            auto it_m = callable->attribs.find(__module__);
+            if(it_m != callable->attribs.end()){
+                return _exec(fn.code, it_m->second, locals);
+            }else{
+                return _exec(fn.code, frame->_module, locals);
+            }
         }
         typeError("'" + callable->getTypeName() + "' object is not callable");
         return None;
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func, PyVarList args){
-        return call(getAttr(obj, func), args);
+    inline PyVar call(Frame* frame, const PyVar& obj, const _Str& func, PyVarList args){
+        return call(frame, getAttr(obj, func), args);
     }
 
-    PyVar exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
+    PyVar exec(const _Code& code, PyVar _module=nullptr){
+        if(_module == nullptr) _module = _main;
         try {
-            return _exec(code, locals, _module);
+            PyVarDict locals;
+            return _exec(code, _module, locals);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
                 _stderr(e.what());
@@ -414,16 +419,18 @@ public:
             return None;
         }
     }
-    
-    PyVar _exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
+
+    PyVar _exec(const _Code& code, PyVar _module, PyVarDict& locals){
         if(code == nullptr) UNREACHABLE();
-        if(_module == nullptr) _module = _main;
-        auto frame = std::make_shared<Frame>(
+        Frame* frame = new Frame(
             code.get(),
-            locals,
-            &_module->attribs
+            _module,
+            locals      // pass by reference
         );
-        return runFrame(frame);
+        callstack.push(std::unique_ptr<Frame>(frame));
+        PyVar ret = runFrame(frame);
+        callstack.pop();
+        return ret;
     }
 
     PyVar newUserClassType(_Str name, PyVar base){
@@ -647,8 +654,7 @@ private:
     std::stack<_Str> _cleanErrorAndGetSnapshots(){
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
-            auto frame = callstack.top();
-            snapshots.push(frame->errorSnapshot());
+            snapshots.push(callstack.top()->errorSnapshot());
             callstack.pop();
         }
         return snapshots;
@@ -703,8 +709,8 @@ public:
 PyVar NamePointer::get(VM* vm, Frame* frame) const{
     auto it = frame->f_locals.find(name);
     if(it != frame->f_locals.end()) return it->second;
-    it = frame->f_globals->find(name);
-    if(it != frame->f_globals->end()) return it->second;
+    it = frame->f_globals().find(name);
+    if(it != frame->f_globals().end()) return it->second;
     it = vm->builtins->attribs.find(name);
     if(it != vm->builtins->attribs.end()) return it->second;
     vm->nameError(name);
@@ -719,7 +725,7 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
             if(frame->f_locals.count(name) > 0){
                 frame->f_locals[name] = val;
             }else{
-                frame->f_globals->operator[](name) = val;
+                frame->f_globals()[name] = val;
             }
         } break;
         default: UNREACHABLE();
@@ -740,8 +746,8 @@ void NamePointer::del(VM* vm, Frame* frame) const{
             if(frame->f_locals.count(name) > 0){
                 frame->f_locals.erase(name);
             }else{
-                if(frame->f_globals->count(name) > 0){
-                    frame->f_globals->erase(name);
+                if(frame->f_globals().count(name) > 0){
+                    frame->f_globals().erase(name);
                 }else{
                     vm->nameError(name);
                 }
@@ -764,15 +770,15 @@ void AttrPointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar IndexPointer::get(VM* vm, Frame* frame) const{
-    return vm->call(obj, __getitem__, {index});
+    return vm->call(frame, obj, __getitem__, {index});
 }
 
 void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->call(obj, __setitem__, {index, val});
+    vm->call(frame, obj, __setitem__, {index, val});
 }
 
 void IndexPointer::del(VM* vm, Frame* frame) const{
-    vm->call(obj, __delitem__, {index});
+    vm->call(frame, obj, __delitem__, {index});
 }
 
 PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
