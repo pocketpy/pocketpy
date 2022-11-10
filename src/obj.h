@@ -15,8 +15,8 @@ typedef double _Float;
 
 #define _Int_MAX_POS 9223372036854775807
 #define _Int_MAX_NEG -9223372036854775808
-#define _FLOAT_INF_POS 1.0/0.0
-#define _FLOAT_INF_NEG -1.0/0.0
+const volatile _Float _FLOAT_INF_POS=1.0/0.0;
+const volatile _Float _FLOAT_INF_NEG=-1.0/0.0;
 
 class PyObject;
 class CodeObject;
