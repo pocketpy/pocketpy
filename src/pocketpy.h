@@ -4,11 +4,7 @@
 #include "compiler.h"
 
 #include <iomanip>
-
-inline _Int _round(_Float f){
-    if(f > 0) return (_Int)(f + 0.5);
-    return (_Int)(f - 0.5);
-}
+#include <cmath>
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, PyVarList args){               \
@@ -52,39 +48,44 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc("eval", [](VM* vm, PyVarList args) {
-        if (args.size() != 1) vm->typeError("eval() takes exactly one argument");
-        if (!args[0]->isType(vm->_tp_str)) vm->typeError("eval() argument must be a string");
+        vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = compile(vm, expr, "<eval>", EVAL_MODE);
         if(code == nullptr) return vm->None;
         return vm->_exec(code);      // not working in function
     });
 
+    _vm->bindBuiltinFunc("isinstance", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 2);
+        return vm->PyBool(vm->isInstance(args[0], args[1]));
+    });
+
     _vm->bindBuiltinFunc("repr", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
         return vm->asRepr(args[0]);
     });
 
     _vm->bindBuiltinFunc("hash", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
         return vm->PyInt(vm->hash(args[0]));
     });
 
     _vm->bindBuiltinFunc("chr", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
         _Int i = vm->PyInt_AS_C(args[0]);
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(_Str(1, (char)i));
     });
 
-    _vm->bindBuiltinFunc("round", [](VM* vm, PyVarList args) {
-        return vm->PyInt(_round(vm->numToFloat(args[0])));
-    });
-
     _vm->bindBuiltinFunc("ord", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
         _Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
         return vm->PyInt((_Int)s[0]);
     });
 
     _vm->bindBuiltinFunc("dir", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
         PyVarList ret;
         for (auto& [k, _] : args[0]->attribs) ret.push_back(vm->PyStr(k));
         return vm->PyList(ret);
@@ -97,7 +98,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
-        vm->_assert(args.size() == 1, "expected 1 argument");
+        vm->__checkArgSize(args, 1);
         return args[0]->attribs[__class__];
     });
 
@@ -107,7 +108,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
             case 2: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); break;
             case 3: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); r.step = vm->PyInt_AS_C(args[2]); break;
-            default: vm->typeError("range expected 1-3 arguments, got " + std::to_string(args.size()));
+            default: vm->typeError("expected 1-3 arguments, but got " + std::to_string(args.size()));
         }
         return vm->PyRange(r);
     });
@@ -134,7 +135,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if(!vm->isIntOrFloat(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "**" );
         if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){
-            return vm->PyInt(_round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
+            return vm->PyInt((_Int)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
             return vm->PyFloat((_Float)pow(vm->numToFloat(args[0]), vm->numToFloat(args[1])));
         }
@@ -182,7 +183,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyString ************/
     _vm->bindMethod("str", "__new__", [](VM* vm, PyVarList args) {
-        vm->_assert(args.size() == 1, "expected 1 argument");
+        vm->__checkArgSize(args, 1);
         return vm->asStr(args[0]);
     });
 
@@ -248,6 +249,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "upper", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
         for(auto c : _self.str()) ss << (char)toupper(c);
@@ -255,6 +257,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "lower", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
         for(auto c : _self.str()) ss << (char)tolower(c);
@@ -262,6 +265,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "replace", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 3, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _old = vm->PyStr_AS_C(args[1]);
         const _Str& _new = vm->PyStr_AS_C(args[2]);
@@ -276,18 +280,21 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "startswith", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _prefix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.str().find(_prefix.str()) == 0);
     });
 
     _vm->bindMethod("str", "endswith", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _suffix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.str().rfind(_suffix.str()) == _self.str().length() - _suffix.str().length());
     });
 
     _vm->bindMethod("str", "join", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const PyVarList& _list = vm->PyList_AS_C(args[1]);
         _StrStream ss;
@@ -306,12 +313,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("list", "append", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 2, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         _self.push_back(args[1]);
         return vm->None;
     });
 
     _vm->bindMethod("list", "insert", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 3, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.size());
@@ -320,15 +329,18 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("list", "clear", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1, true);
         vm->PyList_AS_C(args[0]).clear();
         return vm->None;
     });
 
     _vm->bindMethod("list", "copy", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1, true);
         return vm->PyList(vm->PyList_AS_C(args[0]));
     });
 
     _vm->bindMethod("list", "pop", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         if(_self.empty()) vm->indexError("pop from empty list");
         PyVar ret = _self.back();

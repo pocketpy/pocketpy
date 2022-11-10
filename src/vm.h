@@ -450,8 +450,7 @@ public:
     }
 
     PyVar newNumber(PyVar type, _Value _native) {
-        if(type != _tp_int && type != _tp_float)
-            systemError("type is not a number type");
+        if(type != _tp_int && type != _tp_float) UNREACHABLE();
         PyObject* _raw = nullptr;
         if(numPool.size() > 0) {
             _raw = numPool.back();
@@ -522,6 +521,7 @@ public:
     }
 
     bool isInstance(PyVar obj, PyVar type){
+        __checkType(type, _tp_type);
         PyVar t = obj->attribs[__class__];
         while (t != None){
             if (t == type) return true;
@@ -685,6 +685,12 @@ public:
 
     inline void __checkType(const PyVar& obj, const PyVar& type){
         if(!obj->isType(type)) typeError("expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
+    }
+
+    inline void __checkArgSize(const PyVarList& args, int size, bool method=false){
+        if(args.size() == size) return;
+        if(method) typeError(args.size()>size ? "too many arguments" : "too few arguments");
+        else typeError("expected " + std::to_string(size) + " arguments, but got " + std::to_string(args.size()));
     }
 
     void _assert(bool val, const _Str& msg){

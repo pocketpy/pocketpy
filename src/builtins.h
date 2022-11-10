@@ -118,6 +118,13 @@ class dict:
     def items(self):
         return [kv for kv in self._a if kv is not None]
 
+    def copy(self):
+        d = dict()
+        for kv in self._a:
+            if kv is not None:
+                d[kv[0]] = kv[1]
+        return d
+
     def __repr__(self):
         a = [repr(k)+': '+repr(v) for k,v in self.items()]
         return '{'+ ', '.join(a) + '}'
