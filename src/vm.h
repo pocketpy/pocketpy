@@ -390,7 +390,7 @@ public:
             }
 
             if(i < args.size()) typeError("too many arguments");
-            return exec(fn.code, locals);
+            return _exec(fn.code, locals);
         }
         typeError("'" + callable->getTypeName() + "' object is not callable");
         return None;
@@ -399,18 +399,10 @@ public:
     inline PyVar call(const PyVar& obj, const _Str& func, PyVarList args){
         return call(getAttr(obj, func), args);
     }
-    
-    PyVar exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
-        if(code == nullptr) UNREACHABLE();
-        if(_module == nullptr) _module = _main;
-        auto frame = std::make_shared<Frame>(
-            code.get(),
-            locals,
-            &_module->attribs
-        );
 
+    PyVar exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
         try {
-            return runFrame(frame);
+            return _exec(code, locals, _module);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
                 _stderr(e.what());
@@ -421,6 +413,17 @@ public:
             _stderr("\n");
             return None;
         }
+    }
+    
+    PyVar _exec(const _Code& code, const PyVarDict& locals={}, PyVar _module=nullptr){
+        if(code == nullptr) UNREACHABLE();
+        if(_module == nullptr) _module = _main;
+        auto frame = std::make_shared<Frame>(
+            code.get(),
+            locals,
+            &_module->attribs
+        );
+        return runFrame(frame);
     }
 
     PyVar newUserClassType(_Str name, PyVar base){

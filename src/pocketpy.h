@@ -56,7 +56,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if (!args[0]->isType(vm->_tp_str)) vm->typeError("eval() argument must be a string");
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = compile(vm, expr, "<eval>", EVAL_MODE);
-        return vm->exec(code);      // not working in function
+        if(code == nullptr) return vm->None;
+        return vm->_exec(code);      // not working in function
     });
 
     _vm->bindBuiltinFunc("repr", [](VM* vm, PyVarList args) {
@@ -413,7 +414,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 void __runCodeBuiltins(VM* vm, const char* src){
     _Code code = compile(vm, src, "builtins.py");
-    vm->exec(code, {}, vm->builtins);
+    if(code != nullptr) vm->_exec(code, {}, vm->builtins);
 }
 
 #include "builtins.h"
