@@ -15,7 +15,6 @@ class PyObject;
 class CodeObject;
 class BasePointer;
 class VM;
-class Frame;
 
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
@@ -47,7 +46,7 @@ public:
 typedef std::unordered_map<_Str, PyVar> PyVarDict;
 typedef std::shared_ptr<const BasePointer> _Pointer;
 
-typedef PyVar (*_CppFunc)(VM*, Frame*, PyVarList);
+typedef PyVar (*_CppFunc)(VM*, PyVarList);
 typedef std::shared_ptr<CodeObject> _Code;
 
 struct _Func {
