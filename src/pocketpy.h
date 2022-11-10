@@ -207,6 +207,27 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
 
+#define __INT_BITWISE_OP(name,op) \
+    _vm->bindMethod("int", #name, [](VM* vm, PyVarList args) { \
+        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int)) \
+            vm->typeError("unsupported operand type(s) for " #op ); \
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1])); \
+    });
+
+    __INT_BITWISE_OP(__lshift__, <<)
+    __INT_BITWISE_OP(__rshift__, >>)
+    __INT_BITWISE_OP(__and__, &)
+    __INT_BITWISE_OP(__or__, |)
+    __INT_BITWISE_OP(__xor__, ^)
+
+#undef __INT_BITWISE_OP
+
+    _vm->bindMethod("int", "__xor__", [](VM* vm, PyVarList args) {
+        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
+            vm->typeError("unsupported operand type(s) for " "^" );
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) ^ vm->PyInt_AS_C(args[1]));
+    });
+
     /************ PyFloat ************/
     _vm->bindMethod("float", "__new__", [](VM* vm, PyVarList args) {
         if(args.size() == 0) return vm->PyFloat(0.0);
