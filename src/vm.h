@@ -655,11 +655,15 @@ private:
 
 public:
     void typeError(const _Str& msg){
-        typeError(msg);
+        _error("TypeError", msg);
     }
 
     void systemError(const _Str& msg){
-        systemError(msg);
+        _error("SystemError", msg);
+    }
+
+    void zeroDivisionError(){
+        _error("ZeroDivisionError", "division by zero");
     }
 
     void indexError(const _Str& msg){

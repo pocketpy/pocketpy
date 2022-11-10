@@ -124,7 +124,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethodMulti({"int", "float"}, "__truediv__", [](VM* vm, PyVarList args) {
         if(!vm->isIntOrFloat(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "/" );
-        return vm->PyFloat(vm->numToFloat(args[0]) / vm->numToFloat(args[1]));
+        _Float rhs = vm->numToFloat(args[1]);
+        if (rhs == 0) vm->zeroDivisionError();
+        return vm->PyFloat(vm->numToFloat(args[0]) / rhs);
     });
 
     _vm->bindMethodMulti({"int", "float"}, "__pow__", [](VM* vm, PyVarList args) {
@@ -141,7 +143,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) / vm->PyInt_AS_C(args[1]));
+        _Int rhs = vm->PyInt_AS_C(args[1]);
+        if(rhs == 0) vm->zeroDivisionError();
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
     });
 
     _vm->bindMethod("int", "__mod__", [](VM* vm, PyVarList args) {
