@@ -5,6 +5,9 @@
 
 #include <iomanip>
 #include <cmath>
+#include <chrono>
+
+#define PK_VERSION "0.2.0"
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, PyVarList args){               \
@@ -493,14 +496,23 @@ void __runCodeBuiltins(VM* vm, const char* src){
 #define __EXPORT
 #endif
 
-#include <ctime>
+
 void __addModuleTime(VM* vm){
     PyVar mod = vm->newModule("time");
     vm->bindFunc(mod, "time", [](VM* vm, PyVarList args) {
-        return vm->PyFloat((_Int)std::time(nullptr));
+        auto now = std::chrono::high_resolution_clock::now();
+        return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
 }
 
+void __addModuleSys(VM* vm){
+    PyVar mod = vm->newModule("sys");
+    vm->bindFunc(mod, "getrefcount", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyInt(args[0].use_count());
+    });
+    vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
+}
 
 extern "C" {
     __EXPORT
@@ -508,6 +520,7 @@ extern "C" {
         VM* vm = new VM();
         __initializeBuiltinFunctions(vm);
         __runCodeBuiltins(vm, __BUILTINS_CODE);
+        __addModuleSys(vm);
         __addModuleTime(vm);
         vm->_stdout = _stdout;
         vm->_stderr = _stderr;

@@ -32,7 +32,7 @@ VM* newVM(){
 }
 
 void REPL(){
-    std::cout << "pocketpy 0.1.0" << std::endl;
+    std::cout << "pocketpy " PK_VERSION << std::endl;
     std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
 
     int need_more_lines = 0;
