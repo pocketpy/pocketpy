@@ -469,7 +469,7 @@ public:
     PyVar newModule(_Str name, bool saveToPath=true) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
         setAttr(obj, "__name__", PyStr(name));
-        _modules[name] = obj;
+        if(saveToPath) _modules[name] = obj;
         return obj;
     }
 
@@ -607,7 +607,7 @@ public:
         this->None = newObject(_types["NoneType"], (_Int)0);
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
-        this->builtins = newModule("__builtins__");
+        this->builtins = newModule("builtins");
         this->_main = newModule("__main__", false);
         
         setAttr(_tp_type, __base__, _tp_object);

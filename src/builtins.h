@@ -21,6 +21,7 @@ def __str4split(self, sep):
     res.append(self)
     return res
 str.split = __str4split
+del __str4split
 
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
@@ -29,6 +30,7 @@ def __list4extend(self, other):
     for i in other:
         self.append(i)
 list.extend = __list4extend
+del __list4extend
 
 def __list4__mul__(self, n):
     a = []
@@ -36,6 +38,7 @@ def __list4__mul__(self, n):
         a.extend(self)
     return a
 list.__mul__ = __list4__mul__
+del __list4__mul__
 
 def __iterable4__eq__(self, other):
     if len(self) != len(other):
@@ -46,6 +49,7 @@ def __iterable4__eq__(self, other):
     return True
 list.__eq__ = __iterable4__eq__
 tuple.__eq__ = __iterable4__eq__
+del __iterable4__eq__
 
 def __iterable4__contains__(self, item):
     for i in self:
@@ -54,6 +58,7 @@ def __iterable4__contains__(self, item):
     return False
 list.__contains__ = __iterable4__contains__
 tuple.__contains__ = __iterable4__contains__
+del __iterable4__contains__
 
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
