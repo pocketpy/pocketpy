@@ -625,7 +625,7 @@ __LISTCOMP:
             lexToken();
             _TokenType op = parser->previous.type;
             GrammarFn infix = rules[op].infix;
-            if(infix == nullptr) throw UnexpectedError("(infix == nullptr) is true");
+            if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
         }
     }
@@ -881,14 +881,24 @@ __LITERAL_EXIT:
     void indentationError(_Str msg){
         throw CompileError("IndentationError", msg, getLineSnapshot());
     }
+
+    void unexpectedError(_Str msg){
+        throw CompileError("UnexpectedError", msg, getLineSnapshot());
+    }
 };
 
 _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE) {
+    Compiler compiler(vm, source, filename, mode);
     try{
-        Compiler compiler(vm, source, filename, mode);
         return compiler.__fillCode();
     }catch(std::exception& e){
-        REDIRECT_ERROR()
+        if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+            vm->_stderr(e.what());
+        }else{
+            auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+            vm->_stderr(ce.what());
+        }
+        vm->_stderr("\n");
         return nullptr;
     }
 }

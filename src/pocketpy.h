@@ -167,6 +167,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("float", "__repr__", [](VM* vm, PyVarList args) {
         _Float val = vm->PyFloat_AS_C(args[0]);
+        if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
         _StrStream ss;
         ss << std::setprecision(std::numeric_limits<_Float>::max_digits10-1) << val;
         std::string s = ss.str();

@@ -154,7 +154,7 @@ struct Parser {
 
     char eatChar() {
         char c = peekChar();
-        if(c == '\n') throw UnexpectedError("eatChar() cannot consume a newline");
+        if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
         current_char++;
         return c;
     }

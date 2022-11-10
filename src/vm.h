@@ -414,9 +414,13 @@ public:
         try {
             return runFrame(frame);
         } catch (const std::exception& e) {
-            while(!callstack.empty()) callstack.pop();
-            VM* vm = this;
-            REDIRECT_ERROR()
+            if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+                _stderr(e.what());
+            }else{
+                auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
+                _stderr(re.what());
+            }
+            _stderr("\n");
             return None;
         }
     }
@@ -636,13 +640,17 @@ public:
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
+        throw RuntimeError(name, msg, _cleanErrorAndGetSnapshots());
+    }
+
+    std::stack<_Str> _cleanErrorAndGetSnapshots(){
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
             auto frame = callstack.top();
             snapshots.push(frame->errorSnapshot());
             callstack.pop();
         }
-        throw RuntimeError(name, msg, snapshots);
+        return snapshots;
     }
 
 public:

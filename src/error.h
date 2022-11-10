@@ -87,18 +87,3 @@ public:
     RuntimeError(_Str type, _Str msg, std::stack<_Str> snapshots)
         : _Error(type, msg, __concat(snapshots)) {}
 };
-
-class UnexpectedError : public _Error {
-public:
-    UnexpectedError(_Str msg)
-        : _Error("UnexpectedError", msg, "") {}
-};
-
-#define REDIRECT_ERROR()                                            \
-    if(const _Error* _ = dynamic_cast<const _Error*>(&e)){          \
-        vm->_stderr(e.what());                                      \
-    }else{                                                          \
-        vm->_stderr(UnexpectedError(e.what()).what());              \
-    }                                                               \
-    vm->_stderr("\n");
-
