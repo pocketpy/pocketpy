@@ -390,8 +390,6 @@ public:
             }
 
             if(i < args.size()) typeError("too many arguments");
-
-            // TODO: handle **kwargs
             return exec(fn.code, locals);
         }
         typeError("'" + callable->getTypeName() + "' object is not callable");

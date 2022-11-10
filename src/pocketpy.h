@@ -60,32 +60,32 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc("repr", [](VM* vm, PyVarList args) {
-        return vm->asRepr(args.at(0));
+        return vm->asRepr(args[0]);
     });
 
     _vm->bindBuiltinFunc("hash", [](VM* vm, PyVarList args) {
-        return vm->PyInt(vm->hash(args.at(0)));
+        return vm->PyInt(vm->hash(args[0]));
     });
 
     _vm->bindBuiltinFunc("chr", [](VM* vm, PyVarList args) {
-        _Int i = vm->PyInt_AS_C(args.at(0));
+        _Int i = vm->PyInt_AS_C(args[0]);
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(_Str(1, (char)i));
     });
 
     _vm->bindBuiltinFunc("round", [](VM* vm, PyVarList args) {
-        return vm->PyInt(_round(vm->numToFloat(args.at(0))));
+        return vm->PyInt(_round(vm->numToFloat(args[0])));
     });
 
     _vm->bindBuiltinFunc("ord", [](VM* vm, PyVarList args) {
-        _Str s = vm->PyStr_AS_C(args.at(0));
+        _Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
         return vm->PyInt((_Int)s[0]);
     });
 
     _vm->bindBuiltinFunc("dir", [](VM* vm, PyVarList args) {
         PyVarList ret;
-        for (auto& [k, _] : args.at(0)->attribs) ret.push_back(vm->PyStr(k));
+        for (auto& [k, _] : args[0]->attribs) ret.push_back(vm->PyStr(k));
         return vm->PyList(ret);
     });
 
@@ -97,7 +97,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
         vm->_assert(args.size() == 1, "expected 1 argument");
-        return args.at(0)->attribs[__class__];
+        return args[0]->attribs[__class__];
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {
@@ -112,7 +112,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("range", "__iter__", [](VM* vm, PyVarList args) {
-        vm->__checkType(args.at(0), vm->_tp_range);
+        vm->__checkType(args[0], vm->_tp_range);
         auto iter = std::make_shared<RangeIterator>(args[0], [=](_Int val){return vm->PyInt(val);});
         return vm->PyIter(iter);
     });
@@ -215,7 +215,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, PyVarList args) {
-        if(args.at(0)->isType(vm->_tp_str) && args.at(1)->isType(vm->_tp_str))
+        if(args[0]->isType(vm->_tp_str) && args[1]->isType(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);      // fallback
     });
@@ -299,7 +299,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyList ************/
     _vm->bindMethod("list", "__iter__", [](VM* vm, PyVarList args) {
-        vm->__checkType(args.at(0), vm->_tp_list);
+        vm->__checkType(args[0], vm->_tp_list);
         auto iter = std::make_shared<VectorIterator>(args[0]);
         return vm->PyIter(iter);
     });
@@ -383,7 +383,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyTuple ************/
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, PyVarList args) {
-        vm->__checkType(args.at(0), vm->_tp_tuple);
+        vm->__checkType(args[0], vm->_tp_tuple);
         auto iter = std::make_shared<VectorIterator>(args[0]);
         return vm->PyIter(iter);
     });

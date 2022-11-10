@@ -20,7 +20,31 @@ class VM;
 
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
-typedef std::vector<PyVar> PyVarList;
+
+class PyVarList: public std::vector<PyVar> {
+    PyVar& at(size_t) = delete;
+
+    inline void __checkIndex(size_t i) const {
+        if (i >= size()){
+            auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
+            throw std::out_of_range(msg);
+        }
+    }
+public:
+    PyVar& operator[](size_t i) {
+        __checkIndex(i);
+        return std::vector<PyVar>::operator[](i);
+    }
+
+    const PyVar& operator[](size_t i) const {
+        __checkIndex(i);
+        return std::vector<PyVar>::operator[](i);
+    }
+
+    // define constructors the same as std::vector
+    using std::vector<PyVar>::vector;
+};
+
 typedef std::unordered_map<_Str, PyVar> PyVarDict;
 typedef std::shared_ptr<const BasePointer> _Pointer;
 
@@ -32,15 +56,13 @@ struct _Func {
     _Code code;
     std::vector<_Str> args;
     _Str starredArg;        // empty if no *arg
-    PyVarDict kwArgs;         // empty if no k=v
-    _Str doubleStarredArg;  // empty if no **kwargs
+    PyVarDict kwArgs;       // empty if no k=v
 
     bool hasName(const _Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
         bool _1 = starredArg == val;
         bool _2 = kwArgs.find(val) != kwArgs.end();
-        bool _3 = doubleStarredArg == val;
-        return _0 || _1 || _2 || _3;
+        return _0 || _1 || _2;
     }
 };
 
@@ -81,7 +103,7 @@ public:
 
 typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
-#define UNREACHABLE() throw std::runtime_error("Unreachable code")
+#define UNREACHABLE() throw std::runtime_error("unreachable code! (this should be a bug, please report it)");
 
 struct PyObject {
     PyVarDict attribs;

@@ -795,7 +795,7 @@ __LISTCOMP:
                 case 0: func.args.push_back(name); break;
                 case 1: func.starredArg = name; state+=1; break;
                 case 2: consume(TK("=")); func.kwArgs[name] = consumeLiteral(); break;
-                case 3: func.doubleStarredArg = name; break;
+                case 3: syntaxError("**kwargs is not supported yet"); break;
             }
         } while (match(TK(",")));
     }

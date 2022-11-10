@@ -44,6 +44,6 @@ public:
     }
 
     PyVar next(){
-        return vec->at(index++);
+        return vec->operator[](index++);
     }
 };
