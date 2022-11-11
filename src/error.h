@@ -81,6 +81,6 @@ private:
         return ss.str();
     }
 public:
-    RuntimeError(_Str type, _Str msg, std::stack<_Str> snapshots)
+    RuntimeError(_Str type, _Str msg, const std::stack<_Str>& snapshots)
         : _Error(type, msg, __concat(snapshots)) {}
 };
