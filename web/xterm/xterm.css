@@ -54,7 +54,7 @@
 }
 
 @media screen and (orientation: portrait) {
-    #terminal { zoom: 3.5 !important; }
+    #terminal { zoom: 1.2 !important; }
 }
 
 @media screen and (orientation: landscape) {
