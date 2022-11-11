@@ -53,16 +53,16 @@
     display: block;
 }
 
-@media screen and (orientation: portrait) {
-    #terminal { zoom: 1.2 !important; }
-}
-
-@media screen and (orientation: landscape) {
-    #terminal { zoom: 1.2 !important;}
+#terminal {
+    border: #FFF;
+    border-style: solid;
+    border-width: 1px;
+    padding: 4px;
+    zoom: 1.2 !important;
 }
 
 body {
-    margin: 8px;
+    margin: 0px;
     height: 100%;
     width: 100%;
     background-color: rgb(13,17,23);
@@ -74,7 +74,8 @@ body {
     /* On OS X this is required in order for the scroll bar to appear fully opaque */
     background-color: rgb(13,17,23) !important;
 
-    overflow-y: scroll;
+    /*overflow-y: scroll;*/
+    overflow: hidden;
     cursor: default;
     position: absolute;
     right: 0;
