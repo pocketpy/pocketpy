@@ -366,7 +366,7 @@ public:
             auto f = std::get<_CppFunc>(callable->_native);
             return f(this, args);
         } else if(callable->isType(_tp_function)){
-            _Func fn = PyFunction_AS_C(callable);
+            const _Func& fn = PyFunction_AS_C(callable);
             PyVarDict locals;
             int i = 0;
             for(const auto& name : fn.args){

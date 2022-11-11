@@ -4,6 +4,7 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
+//#define PK_DEBUG_STACK
 
 struct Timer{
     const char* title;
@@ -49,7 +50,28 @@ extern "C" {
 
 #else
 
+
+#ifdef PK_DEBUG_STACK
+#include <sys/resource.h>
+
+void setStackSize(_Float mb){
+    const rlim_t kStackSize = (_Int)(mb * 1024 * 1024);
+    struct rlimit rl;
+    int result;
+    result = getrlimit(RLIMIT_STACK, &rl);
+    rl.rlim_cur = kStackSize;
+    result = setrlimit(RLIMIT_STACK, &rl);
+    if (result != 0){
+        std::cerr << "setrlimit returned result = " << result << std::endl;
+    }
+}
+#endif
+
 int main(int argc, char** argv){
+#ifdef PK_DEBUG_STACK
+    setStackSize(1);
+#endif
+
     if(argc == 1){
         REPL repl(newVM());
         while(true){
