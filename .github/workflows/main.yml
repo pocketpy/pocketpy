@@ -18,3 +18,19 @@ jobs:
         path: |
           D:\a\pocketpy\pocketpy\pocketpy.exe
           D:\a\pocketpy\pocketpy\libpocketpy.dll
+  build_web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: mymindstorm/setup-emsdk@v11
+      with:
+        emsdk-version: 3.1.25
+    - name: Compiling
+      run: |
+        bash build_wasm.sh
+    - uses: crazy-max/ghaction-github-pages@v3
+      with:
+        target_branch: gh-pages
+        build_dir: web
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
