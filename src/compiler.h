@@ -186,8 +186,9 @@ public:
                 case '<': parser->setNextTwoCharToken('=', TK("<"), TK("<=")); return;
                 case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
                 case '-': {
-                    if(isdigit(parser->peekChar())) eatNumber();
-                    else parser->setNextTwoCharToken('=', TK("-"), TK("-="));
+                    // if(isdigit(parser->peekChar())) eatNumber();
+                    // we cannot treat it as literal number, since we will fail on f(n-1) case
+                    parser->setNextTwoCharToken('=', TK("-"), TK("-="));
                     return;
                 }
                 case '!':
