@@ -431,6 +431,11 @@ public:
 
     PyVar _exec(const _Code& code, PyVar _module, PyVarDict& locals){
         if(code == nullptr) UNREACHABLE();
+
+        if(callstack.size() > 1000){
+            throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
+        }
+
         Frame* frame = new Frame(
             code.get(),
             _module,
@@ -663,7 +668,9 @@ private:
     std::stack<_Str> _cleanErrorAndGetSnapshots(){
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
-            snapshots.push(callstack.top()->errorSnapshot());
+            if(snapshots.size() < 10){
+                snapshots.push(callstack.top()->errorSnapshot());
+            }
             callstack.pop();
         }
         return snapshots;

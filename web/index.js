@@ -17,7 +17,6 @@ var Module = {
     },
     'onAbort': function(text) { 
       stopped = true;
-      term.write("Aborted\r\n");
     },
   };
 
