@@ -30,6 +30,7 @@ struct SourceMetadata {
     }
 
     SourceMetadata(const char* source, _Str filename, CompileMode mode) {
+        source = strdup(source);
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
         this->filename = filename;
@@ -45,6 +46,10 @@ struct SourceMetadata {
         if(line.empty()) line = "<?>";
         ss << "    " << line << '\n';
         return ss.str();
+    }
+
+    ~SourceMetadata(){
+        free((void*)source);
     }
 };
 
