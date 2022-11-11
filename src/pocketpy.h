@@ -2,8 +2,7 @@
 
 #include "vm.h"
 #include "compiler.h"
-
-#define PK_VERSION "0.2.0"
+#include "repl.h"
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, PyVarList args){               \

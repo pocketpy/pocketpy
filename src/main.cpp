@@ -20,65 +20,44 @@ struct Timer{
 };
 
 VM* newVM(){
+    // disable buff of std::cout and std::cerr
+    std::cout.setf(std::ios::unitbuf);
+    std::cerr.setf(std::ios::unitbuf);
     VM* vm = createVM([](const char* str) { 
         std::cout << str;
-        std::cout.flush();
     }, [](const char* str) { 
         std::cerr << str;
-        std::cerr.flush();
     });
     return vm;
 }
 
-void REPL(){
-    std::cout << "pocketpy " PK_VERSION << std::endl;
-    std::cout << "https://github.com/blueloveTH/pocketpy" << std::endl;
 
-    int need_more_lines = 0;
-    std::string buffer;
-    VM* vm = newVM();
+#if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
 
-    while(true){
-        CompileMode mode = SINGLE_MODE;
-        vm->_stdout(need_more_lines ? "... " : ">>> ");
-        std::string line;
-        std::getline(std::cin, line);
+REPL* _repl;
 
-        if(need_more_lines){
-            buffer += line;
-            buffer += '\n';
-            int n = buffer.size();
-            if(n>=need_more_lines){
-                for(int i=buffer.size()-need_more_lines; i<buffer.size(); i++){
-                    if(buffer[i] != '\n') goto __NOT_ENOUGH_LINES;
-                }
-                need_more_lines = 0;
-                line = buffer;
-                mode = EXEC_MODE;       // tmp set to EXEC_MODE
-                buffer.clear();
-            }else{
-__NOT_ENOUGH_LINES:
-                continue;
-            }
-        }else{
-            if(line == "exit()") break;
-            if(line.empty()) continue;
-        }
+extern "C" {
+    __EXPORT
+    void repl_start(){
+        _repl = new REPL(newVM(), false);
+    }
 
-        try{
-            _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            if(code != nullptr) vm->exec(code);
-        }catch(NeedMoreLines& ne){
-            buffer += line;
-            buffer += '\n';
-            need_more_lines = ne.isClassDef ? 3 : 2;
-        }
+    __EXPORT
+    bool repl_input(const char* line){
+        return _repl->input(line);
     }
 }
 
+#else
+
 int main(int argc, char** argv){
     if(argc == 1){
-        REPL();
+        REPL repl(newVM());
+        while(true){
+            std::string line;
+            std::getline(std::cin, line);
+            repl.input(line);
+        }
         return 0;
     }
     
@@ -110,3 +89,5 @@ __HELP:
     std::cout << "Usage: pocketpy [filename]" << std::endl;
     return 0;
 }
+
+#endif
