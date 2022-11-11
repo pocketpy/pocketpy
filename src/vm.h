@@ -668,7 +668,7 @@ private:
     std::stack<_Str> _cleanErrorAndGetSnapshots(){
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
-            if(snapshots.size() < 10){
+            if(snapshots.size() < 8){
                 snapshots.push(callstack.top()->errorSnapshot());
             }
             callstack.pop();

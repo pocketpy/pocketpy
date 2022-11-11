@@ -20,13 +20,12 @@ struct Timer{
 };
 
 VM* newVM(){
-    // disable buff of std::cout and std::cerr
-    std::cout.setf(std::ios::unitbuf);
-    std::cerr.setf(std::ios::unitbuf);
     VM* vm = createVM([](const char* str) { 
         std::cout << str;
+        std::cout.flush();
     }, [](const char* str) { 
         std::cerr << str;
+        std::cerr.flush();
     });
     return vm;
 }
