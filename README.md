@@ -2,11 +2,13 @@
 
 ![build](https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg)
 
-`pocketpy` is a C++17 single-file header-only cross platform Python Interpreter.
+C++17 single-file header-only cross platform Python Interpreter.
+
+`pocketpy` is being heavy development now.
+
+You can [try our demo on your browser](https://blueloveth.github.io/pocketpy/) or [download a prebuilt windows binary](https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml).
 
 ![sample_img](docs/readme_sample.png)
-
-**CURRENTLY IN DEVELOPMENT!!**
 
 ## Build From Source (Linux)
 
@@ -30,10 +32,6 @@ It will generate `pocketpy.h` and `main.cpp` in `amalgamated/` directory. You ca
 ```bash
 g++ -o pocketpy src/main.cpp --std=c++17 -O1
 ```
-
-## Prebuilt Windows Binaries
-
-Go to https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml to get an artifact.
 
 ## Reference
 
