@@ -51,7 +51,7 @@ typedef std::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, PyVarList);
 typedef std::shared_ptr<CodeObject> _Code;
 
-struct _Func {
+struct Function {
     _Str name;
     _Code code;
     std::vector<_Str> args;
@@ -100,7 +100,10 @@ public:
     _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
 };
 
+typedef std::shared_ptr<Function> _Func;
 typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
+
+const int _SIZEOF_VALUE = sizeof(_Value);
 
 #define UNREACHABLE() throw std::runtime_error("unreachable code! (this should be a bug, please report it)");
 

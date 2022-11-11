@@ -110,7 +110,7 @@ private:
                     PyVar obj = frame->popValue(this);
                     const _Func& fn = PyFunction_AS_C(obj);
                     setAttr(obj, __module__, frame->_module);
-                    frame->f_globals()[fn.name] = obj;
+                    frame->f_globals()[fn->name] = obj;
                 } break;
             case OP_BUILD_CLASS:
                 {
@@ -123,7 +123,7 @@ private:
                         PyVar fn = frame->popValue(this);
                         if(fn == None) break;
                         const _Func& f = PyFunction_AS_C(fn);
-                        setAttr(cls, f.name, fn);
+                        setAttr(cls, f->name, fn);
                     }
                     frame->f_globals()[clsName] = cls;
                 } break;
@@ -369,7 +369,7 @@ public:
             const _Func& fn = PyFunction_AS_C(callable);
             PyVarDict locals;
             int i = 0;
-            for(const auto& name : fn.args){
+            for(const auto& name : fn->args){
                 if(i < args.size()) {
                     locals[name] = args[i++];
                 }else{
@@ -377,13 +377,13 @@ public:
                 }
             }
             // handle *args
-            if(!fn.starredArg.empty()){
+            if(!fn->starredArg.empty()){
                 PyVarList vargs;
                 while(i < args.size()) vargs.push_back(args[i++]);
-                locals[fn.starredArg] = PyTuple(vargs);
+                locals[fn->starredArg] = PyTuple(vargs);
             }
             // handle keyword arguments
-            for(const auto& [name, value] : fn.kwArgs){
+            for(const auto& [name, value] : fn->kwArgs){
                 if(i < args.size()) {
                     locals[name] = args[i++];
                 }else{
@@ -395,9 +395,9 @@ public:
 
             auto it_m = callable->attribs.find(__module__);
             if(it_m != callable->attribs.end()){
-                return _exec(fn.code, it_m->second, locals);
+                return _exec(fn->code, it_m->second, locals);
             }else{
-                return _exec(fn.code, topFrame()->_module, locals);
+                return _exec(fn->code, topFrame()->_module, locals);
             }
         }
         typeError("'" + callable->getTypeName() + "' object is not callable");

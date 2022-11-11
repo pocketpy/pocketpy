@@ -319,14 +319,14 @@ public:
     }
 
     void exprLambda() {
-        _Func func;
-        func.name = "<lambda>";
+        _Func func = std::make_shared<Function>();
+        func->name = "<lambda>";
         if(!match(TK(":"))){
             __compileFunctionArgs(func);
             consume(TK(":"));
         }
-        func.code = std::make_shared<CodeObject>(parser->src, func.name);
-        this->codes.push(func.code);
+        func->code = std::make_shared<CodeObject>(parser->src, func->name);
+        this->codes.push(func->code);
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
         this->codes.pop();
@@ -773,7 +773,7 @@ __LISTCOMP:
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 
-    void __compileFunctionArgs(_Func& func){
+    void __compileFunctionArgs(_Func func){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) syntaxError("**kwargs should be the last argument");
@@ -788,15 +788,15 @@ __LISTCOMP:
 
             consume(TK("@id"));
             const _Str& name = parser->previous.str();
-            if(func.hasName(name)) syntaxError("duplicate argument name");
+            if(func->hasName(name)) syntaxError("duplicate argument name");
 
             if(state == 0 && peek() == TK("=")) state = 2;
 
             switch (state)
             {
-                case 0: func.args.push_back(name); break;
-                case 1: func.starredArg = name; state+=1; break;
-                case 2: consume(TK("=")); func.kwArgs[name] = consumeLiteral(); break;
+                case 0: func->args.push_back(name); break;
+                case 1: func->starredArg = name; state+=1; break;
+                case 2: consume(TK("=")); func->kwArgs[name] = consumeLiteral(); break;
                 case 3: syntaxError("**kwargs is not supported yet"); break;
             }
         } while (match(TK(",")));
@@ -807,17 +807,17 @@ __LISTCOMP:
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
-        _Func func;
+        _Func func = std::make_shared<Function>();
         consume(TK("@id"));
-        func.name = parser->previous.str();
+        func->name = parser->previous.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
             __compileFunctionArgs(func);
             consume(TK(")"));
         }
 
-        func.code = std::make_shared<CodeObject>(parser->src, func.name);
-        this->codes.push(func.code);
+        func->code = std::make_shared<CodeObject>(parser->src, func->name);
+        this->codes.push(func->code);
         compileBlockBody();
         this->codes.pop();
         emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));

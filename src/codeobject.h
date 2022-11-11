@@ -93,7 +93,7 @@ struct CodeObject {
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
         for(int i=0; i<co_consts.size(); i++){
             auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-            if(fn) ss << '\n' << fn->code->co_name << ":\n" << fn->code->toString();
+            if(fn) ss << '\n' << (*fn)->code->co_name << ":\n" << (*fn)->code->toString();
         }
         return _Str(ss);
     }
