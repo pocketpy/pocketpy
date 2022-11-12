@@ -27,7 +27,7 @@ class REPL {
 
 public:
     REPL(VM* vm, bool use_prompt=true) : vm(vm), use_prompt(use_prompt) {
-        vm->_stdout("pocketpy " PK_VERSION "\n");
+        vm->_stdout("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
         vm->_stdout("https://github.com/blueloveTH/pocketpy" "\n");
         vm->_stdout("Type \"exit()\" to exit." "\n");
         _loop_start();
