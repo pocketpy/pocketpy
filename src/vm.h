@@ -30,7 +30,7 @@ private:
     PyVarDict _modules;       // 3rd modules
 
     PyVar runFrame(Frame* frame){
-        while(!frame->isEnd()){
+        while(!frame->isCodeEnd()){
             const ByteCode& byte = frame->readCode();
             //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
@@ -424,23 +424,14 @@ public:
         }
     }
 
-    PyVar _exec(const _Code& code, PyVar _module){
-        PyVarDict locals;
-        return _exec(code, _module, locals);
-    }
-
-    PyVar _exec(const _Code& code, PyVar _module, PyVarDict& locals){
+    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals={}){
         if(code == nullptr) UNREACHABLE();
 
         if(callstack.size() > 1000){
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
 
-        Frame* frame = new Frame(
-            code.get(),
-            _module,
-            locals      // pass by reference
-        );
+        Frame* frame = new Frame(code.get(), _module, locals);
         callstack.push(std::unique_ptr<Frame>(frame));
         PyVar ret = runFrame(frame);
         callstack.pop();

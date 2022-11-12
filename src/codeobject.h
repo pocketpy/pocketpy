@@ -105,7 +105,7 @@ private:
     int ip = 0;
 public:
     PyVar _module;
-    PyVarDict& f_locals;
+    PyVarDict f_locals;
 
     inline PyVarDict& f_globals(){
         return _module->attribs;
@@ -113,7 +113,7 @@ public:
 
     const CodeObject* code;
 
-    Frame(const CodeObject* code, PyVar _module, PyVarDict& locals)
+    Frame(const CodeObject* code, PyVar _module, const PyVarDict& locals)
         : code(code), _module(_module), f_locals(locals) {}
 
     inline const ByteCode& readCode() {
@@ -122,7 +122,7 @@ public:
 
     _Str errorSnapshot(){
         int line = -1;
-        if(!isEnd()) line = code->co_code[ip-1].line;
+        if(!isCodeEnd()) line = code->co_code[ip-1].line;
         return code->src->snapshot(line);
     }
 
@@ -130,7 +130,7 @@ public:
         return s_data.size();
     }
 
-    inline bool isEnd() const {
+    inline bool isCodeEnd() const {
         return ip >= code->co_code.size();
     }
 
