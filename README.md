@@ -32,6 +32,9 @@ It will generate `pocketpy.h` and `main.cpp` in `amalgamated/` directory. You ca
 ```bash
 g++ -o pocketpy src/main.cpp --std=c++17 -O1
 ```
+## Flutter Plugin
+
+https://github.com/blueloveTH/pocketpy-flutter
 
 ## Reference
 
