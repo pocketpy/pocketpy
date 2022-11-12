@@ -690,6 +690,16 @@ public:
         }
         if (obj->isType(_tp_str)) return PyStr_AS_C(obj).hash();
         if (obj->isType(_tp_type)) return (_Int)obj.get();
+        if (obj->isType(_tp_tuple)) {
+            _Int x = 1000003;
+            for (const auto& item : PyTuple_AS_C(obj)) {
+                _Int y = hash(item);
+                // this is recommended by Github Copilot
+                // i am not sure whether it is a good idea
+                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+            }
+            return x;
+        }
         typeError("unhashable type: " + obj->getTypeName());
         return 0;
     }
