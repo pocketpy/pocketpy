@@ -542,6 +542,18 @@ void __addModuleSys(VM* vm){
         vm->__checkArgSize(args, 1);
         return vm->PyInt(args[0].use_count());
     });
+
+    vm->bindFunc(mod, "getrecursionlimit", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 0);
+        return vm->PyInt(vm->maxRecursionDepth);
+    });
+
+    vm->bindFunc(mod, "setrecursionlimit", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 1);
+        vm->maxRecursionDepth = vm->PyInt_AS_C(args[0]);
+        return vm->None;
+    });
+
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 

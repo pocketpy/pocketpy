@@ -69,7 +69,7 @@ void setStackSize(_Float mb){
 
 int main(int argc, char** argv){
 #ifdef PK_DEBUG_STACK
-    setStackSize(1);
+    setStackSize(0.5);
 #endif
 
     if(argc == 1){
