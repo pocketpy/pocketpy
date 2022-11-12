@@ -4,7 +4,6 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
-//#define PK_DEBUG_STACK
 
 struct Timer{
     const char* title;
@@ -21,10 +20,10 @@ struct Timer{
 };
 
 VM* newVM(){
-    VM* vm = createVM([](const char* str) { 
+    VM* vm = pkpy_new_vm([](const VM* vm, const char* str) { 
         std::cout << str;
         std::cout.flush();
-    }, [](const char* str) { 
+    }, [](const VM* vm, const char* str) { 
         std::cerr << str;
         std::cerr.flush();
     });
@@ -34,44 +33,26 @@ VM* newVM(){
 
 #if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
 
+// these code is for demo use, feel free to modify it
+
 REPL* _repl;
 
 extern "C" {
     __EXPORT
     void repl_start(){
-        _repl = new REPL(newVM(), false);
+        _repl = pkpy_new_repl(newVM(), false);
     }
 
     __EXPORT
     bool repl_input(const char* line){
-        return _repl->input(line);
+        return pkpy_input_repl(_repl, line);
     }
 }
 
 #else
 
 
-#ifdef PK_DEBUG_STACK
-#include <sys/resource.h>
-
-void setStackSize(_Float mb){
-    const rlim_t kStackSize = (_Int)(mb * 1024 * 1024);
-    struct rlimit rl;
-    int result;
-    result = getrlimit(RLIMIT_STACK, &rl);
-    rl.rlim_cur = kStackSize;
-    result = setrlimit(RLIMIT_STACK, &rl);
-    if (result != 0){
-        std::cerr << "setrlimit returned result = " << result << std::endl;
-    }
-}
-#endif
-
 int main(int argc, char** argv){
-#ifdef PK_DEBUG_STACK
-    setStackSize(0.5);
-#endif
-
     if(argc == 1){
         REPL repl(newVM());
         while(true){

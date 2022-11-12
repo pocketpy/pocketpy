@@ -42,9 +42,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
         for (auto& arg : args){
             _Str s = vm->PyStr_AS_C(vm->asStr(arg)) + " ";
-            vm->_stdout(s.c_str());
+            vm->_stdout(vm, s.c_str());
         }
-        vm->_stdout("\n");
+        vm->_stdout(vm, "\n");
         return vm->None;
     });
 
@@ -547,15 +547,22 @@ void __addModuleSys(VM* vm){
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
+enum ExportType {
+    PKPY_VM,
+    PKPY_REPL
+};
+static std::unordered_map<void*, ExportType> __pkpy_allocations;
+
 extern "C" {
     __EXPORT
-    VM* createVM(PrintFn _stdout, PrintFn _stderr){
+    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
         VM* vm = new VM();
+        __pkpy_allocations[vm] = PKPY_VM;
         __initializeBuiltinFunctions(vm);
         vm->_stdout = _stdout;
         vm->_stderr = _stderr;
 
-        _Code code = compile(vm, __BUILTINS_CODE, "builtins.py");
+        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);
         vm->_exec(code, vm->builtins);
 
@@ -565,18 +572,36 @@ extern "C" {
     }
 
     __EXPORT
-    void destroyVM(VM* vm){
-        delete vm;
+    bool pkpy_delete(void* p){
+        auto it = __pkpy_allocations.find(p);
+        if(it == __pkpy_allocations.end()) return false;
+        switch(it->second){
+            case PKPY_VM: delete (VM*)p; __pkpy_allocations.erase(it); return true;
+            case PKPY_REPL: delete (REPL*)p; __pkpy_allocations.erase(it); return true;
+        }
+        return false;
     }
 
     __EXPORT
-    void exec(VM* vm, const char* source){
+    void pkpy_exec(VM* vm, const char* source){
         _Code code = compile(vm, source, "main.py");
         if(code != nullptr) vm->exec(code);
     }
 
     __EXPORT
-    void registerModule(VM* vm, const char* name, const char* source){
+    REPL* pkpy_new_repl(VM* vm, bool use_prompt){
+        REPL* repl = new REPL(vm, use_prompt);
+        __pkpy_allocations[repl] = PKPY_REPL;
+        return repl;
+    }
+
+    __EXPORT
+    bool pkpy_input_repl(REPL* r, const char* line){
+        return r->input(line);
+    }
+
+    __EXPORT
+    void pkpy_add_module(VM* vm, const char* name, const char* source){
         _Code code = compile(vm, source, name + _Str(".py"));
         if(code != nullptr){
             PyVar _m = vm->newModule(name);

@@ -42,7 +42,7 @@
         return obj;                                 \
     }
 
-typedef void(*PrintFn)(const char*);
+typedef void(*PrintFn)(const VM*, const char*);
 
 class VM{
 private:
@@ -154,8 +154,8 @@ private:
                 {
                     const PyVar& expr = frame->topValue(this);
                     if(expr == None) break;
-                    _stdout(PyStr_AS_C(asRepr(expr)).c_str());
-                    _stdout("\n");
+                    _stdout(this, PyStr_AS_C(asRepr(expr)).c_str());
+                    _stdout(this, "\n");
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
@@ -311,8 +311,8 @@ public:
     PyVarDict _types;         // builtin types
     PyVar None, True, False;
 
-    PrintFn _stdout = [](auto s){};
-    PrintFn _stderr = [](auto s){};
+    PrintFn _stdout = [](const VM* vm, auto s){};
+    PrintFn _stderr = [](const VM* vm, auto s){};
     
     PyVar builtins;         // builtins module
     PyVar _main;            // __main__ module
@@ -441,12 +441,12 @@ public:
             return _exec(code, _module);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
-                _stderr(e.what());
+                _stderr(this, e.what());
             }else{
                 auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
-                _stderr(re.what());
+                _stderr(this, re.what());
             }
-            _stderr("\n");
+            _stderr(this, "\n");
             return None;
         }
     }
