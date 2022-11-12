@@ -135,7 +135,7 @@ public:
     }
 
     void eatNumber() {
-        static const std::regex pattern("^[+-]?([0-9]+)(\\.[0-9]+)?");
+        static const std::regex pattern("^([0-9]+)(\\.[0-9]+)?");
         std::smatch m;
 
         const char* i = parser->token_start;
@@ -186,8 +186,6 @@ public:
                 case '<': parser->setNextTwoCharToken('=', TK("<"), TK("<=")); return;
                 case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
                 case '-': {
-                    // if(isdigit(parser->peekChar())) eatNumber();
-                    // we cannot treat it as literal number, since we will fail on f(n-1) case
                     parser->setNextTwoCharToken('=', TK("-"), TK("-="));
                     return;
                 }
@@ -826,6 +824,11 @@ __LISTCOMP:
     }
 
     PyVar consumeLiteral(){
+        if(match(TK("-"))){
+            consume(TK("@num"));
+            PyVar val = parser->previous.value;
+            return vm->numNegated(val);
+        }
         if(match(TK("@num"))) goto __LITERAL_EXIT;
         if(match(TK("@str"))) goto __LITERAL_EXIT;
         if(match(TK("True"))) goto __LITERAL_EXIT;

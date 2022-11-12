@@ -196,12 +196,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(vm->PyInt_AS_C(args[0]) % vm->PyInt_AS_C(args[1]));
     });
 
-    _vm->bindMethod("int", "__neg__", [](VM* vm, PyVarList args) {
-        if(!args[0]->isType(vm->_tp_int))
-            vm->typeError("unsupported operand type(s) for " "-" );
-        return vm->PyInt(-1 * vm->PyInt_AS_C(args[0]));
-    });
-
     _vm->bindMethod("int", "__repr__", [](VM* vm, PyVarList args) {
         return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
@@ -247,10 +241,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
         vm->typeError("float() argument must be a int, float, bool or str");
         return vm->None;
-    });
-
-    _vm->bindMethod("float", "__neg__", [](VM* vm, PyVarList args) {
-        return vm->PyFloat(-1.0 * vm->PyFloat_AS_C(args[0]));
     });
 
     _vm->bindMethod("float", "__repr__", [](VM* vm, PyVarList args) {

@@ -171,7 +171,7 @@ private:
             case OP_UNARY_NEGATIVE:
                 {
                     PyVar obj = frame->popValue(this);
-                    frame->push(call(obj, __neg__, {}));
+                    frame->push(numNegated(obj));
                 } break;
             case OP_UNARY_NOT:
                 {
@@ -584,6 +584,16 @@ public:
             return PyFloat_AS_C(obj);
         }
         UNREACHABLE();
+    }
+
+    PyVar numNegated(const PyVar& obj){
+        if (obj->isType(_tp_int)){
+            return PyInt(-PyInt_AS_C(obj));
+        }else if(obj->isType(_tp_float)){
+            return PyFloat(-PyFloat_AS_C(obj));
+        }
+        typeError("unsupported operand type(s) for -");
+        return nullptr;
     }
 
     int normalizedIndex(int index, int size){
