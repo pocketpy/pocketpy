@@ -44,7 +44,7 @@
 
 typedef void(*PrintFn)(const VM*, const char*);
 
-class VM{
+class VM: public PkExportedResource{
 private:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;       // 3rd modules

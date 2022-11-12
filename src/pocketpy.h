@@ -547,17 +547,10 @@ void __addModuleSys(VM* vm){
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
-enum ExportType {
-    PKPY_VM,
-    PKPY_REPL
-};
-static std::unordered_map<void*, ExportType> __pkpy_allocations;
-
 extern "C" {
     __EXPORT
     VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
         VM* vm = new VM();
-        __pkpy_allocations[vm] = PKPY_VM;
         __initializeBuiltinFunctions(vm);
         vm->_stdout = _stdout;
         vm->_stderr = _stderr;
@@ -572,14 +565,8 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_delete(void* p){
-        auto it = __pkpy_allocations.find(p);
-        if(it == __pkpy_allocations.end()) return false;
-        switch(it->second){
-            case PKPY_VM: delete (VM*)p; __pkpy_allocations.erase(it); return true;
-            case PKPY_REPL: delete (REPL*)p; __pkpy_allocations.erase(it); return true;
-        }
-        return false;
+    void pkpy_delete(PkExportedResource* p){
+        delete p;
     }
 
     __EXPORT
@@ -590,9 +577,7 @@ extern "C" {
 
     __EXPORT
     REPL* pkpy_new_repl(VM* vm, bool use_prompt){
-        REPL* repl = new REPL(vm, use_prompt);
-        __pkpy_allocations[repl] = PKPY_REPL;
-        return repl;
+        return new REPL(vm, use_prompt);
     }
 
     __EXPORT

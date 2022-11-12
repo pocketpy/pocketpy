@@ -18,6 +18,8 @@ class CodeObject;
 class BasePointer;
 class VM;
 
+class PkExportedResource {};
+
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 

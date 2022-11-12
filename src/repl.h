@@ -3,7 +3,7 @@
 #include "compiler.h"
 #include "vm.h"
 
-class REPL {
+class REPL: public PkExportedResource {
     int need_more_lines = 0;
     std::string buffer;
     CompileMode mode;
