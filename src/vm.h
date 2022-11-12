@@ -19,14 +19,34 @@
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-typedef void(*PrintFn)(const char*);
+#define __DEF_PY_POOL(name, ctype, ptype, max_size) \
+    std::vector<PyObject*> _pool##name;             \
+    PyVar Py##name(ctype _native) {                 \
+        PyObject* _raw = nullptr;                   \
+        if(_pool##name.size() > 0) {                \
+            _raw = _pool##name.back();              \
+            _raw->_native = _native;                \
+            _pool##name.pop_back();                 \
+        }else{                                      \
+            __checkType(ptype, _tp_type);           \
+            _raw = new PyObject(_native);           \
+            _raw->attribs[__class__] = ptype;       \
+        }                                           \
+        PyVar obj = PyVar(_raw, [this](PyObject* p){\
+            if(_pool##name.size() < max_size){      \
+                _pool##name.push_back(p);           \
+            }else{                                  \
+                delete p;                           \
+            }                                       \
+        });                                         \
+        return obj;                                 \
+    }
 
-#define NUM_POOL_MAX_SIZE 1024
+typedef void(*PrintFn)(const char*);
 
 class VM{
 private:
     std::stack< std::unique_ptr<Frame> > callstack;
-    std::vector<PyObject*> numPool;
     PyVarDict _modules;       // 3rd modules
 
     PyVar __py2py_call_signal;
@@ -488,23 +508,6 @@ public:
         return obj;
     }
 
-    PyVar newNumber(PyVar type, _Value _native) {
-        if(type != _tp_int && type != _tp_float) UNREACHABLE();
-        PyObject* _raw = nullptr;
-        if(numPool.size() > 0) {
-            _raw = numPool.back();
-            _raw->_native = _native;
-            numPool.pop_back();
-        }else{
-            _raw = new PyObject(_native);
-        }
-        PyVar obj = PyVar(_raw, [this](PyObject* p){
-            if(numPool.size() < NUM_POOL_MAX_SIZE) numPool.push_back(p);
-        });
-        setAttr(obj, __class__, type);
-        return obj;
-    }
-
     PyVar newModule(_Str name, bool saveToPath=true) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
         setAttr(obj, "__name__", PyStr(name));
@@ -610,21 +613,23 @@ public:
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
 
+    __DEF_PY_POOL(Int, _Int, _tp_int, 256);
     __DEF_PY_AS_C(Int, _Int, _tp_int)
+    __DEF_PY_POOL(Float, _Float, _tp_float, 256);
     __DEF_PY_AS_C(Float, _Float, _tp_float)
+    __DEF_PY_POOL(Pointer, _Pointer, _tp_pointer, 512)
+    __DEF_PY_AS_C(Pointer, _Pointer, _tp_pointer)
+
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
     DEF_NATIVE(Iter, std::shared_ptr<_Iterator>, _tp_native_iterator)
-    DEF_NATIVE(BoundedMethod, BoundedMethod, _tp_bounded_method)
+    DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
-    DEF_NATIVE(Pointer, _Pointer, _tp_pointer)
     
-    inline PyVar PyInt(_Int i) { return newNumber(_tp_int, i); }
-    inline PyVar PyFloat(_Float f) { return newNumber(_tp_float, f); }
     inline bool PyBool_AS_C(PyVar obj){return obj == True;}
     inline PyVar PyBool(bool value){return value ? True : False;}
 

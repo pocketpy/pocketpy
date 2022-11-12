@@ -66,7 +66,7 @@ struct Function {
     }
 };
 
-struct BoundedMethod {
+struct _BoundedMethod {
     PyVar obj;
     PyVar method;
 };
@@ -101,7 +101,7 @@ public:
 };
 
 typedef std::shared_ptr<Function> _Func;
-typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,BoundedMethod,_Range,_Slice,_Pointer> _Value;
+typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
 const int _SIZEOF_VALUE = sizeof(_Value);
 

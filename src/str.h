@@ -7,7 +7,7 @@ typedef std::stringstream _StrStream;
 class _Str {
 private:
     mutable bool utf8_initialized = false;
-    mutable std::vector<uint16_t> _u8_index;    // max_len is 65535
+    mutable std::vector<uint16_t> _u8_index;
 
     std::string _s;
 
@@ -16,6 +16,7 @@ private:
 
     void utf8_lazy_init() const{
         if(utf8_initialized) return;
+        if(size() > 65535) throw std::runtime_error("String has more than 65535 bytes.");
         for(uint16_t i = 0; i < size(); i++){
             // https://stackoverflow.com/questions/3911536/utf-8-unicode-whats-with-0xc0-and-0x80
             if((_s[i] & 0xC0) != 0x80)
