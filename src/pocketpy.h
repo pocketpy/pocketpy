@@ -40,10 +40,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
+        _StrStream ss;
         for (auto& arg : args){
-            _Str s = vm->PyStr_AS_C(vm->asStr(arg)) + " ";
-            vm->_stdout(vm, s.c_str());
+            ss << vm->PyStr_AS_C(vm->asStr(arg)) << " ";
         }
+        vm->_stdout(ss.str());
         vm->_stdout(vm, "\n");
         return vm->None;
     });
