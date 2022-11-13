@@ -147,3 +147,71 @@ class dict:
         return '{'+ ', '.join(a) + '}'
 
 )";
+
+const char* __RANDOM_CODE = R"(
+import time as _time
+
+__all__ = ['Random', 'seed', 'random', 'randint', 'uniform']
+
+def _int32(x):
+	return int(0xffffffff & x)
+
+class Random:
+	def __init__(self, seed=None):
+		if seed is None:
+			seed = int(_time.time() * 1000000)
+		seed = _int32(seed)
+		self.mt = [0] * 624
+		self.mt[0] = seed
+		self.mti = 0
+		for i in range(1, 624):
+			self.mt[i] = _int32(1812433253 * (self.mt[i - 1] ^ self.mt[i - 1] >> 30) + i)
+	
+	def extract_number(self):
+		if self.mti == 0:
+			self.twist()
+		y = self.mt[self.mti]
+		y = y ^ y >> 11
+		y = y ^ y << 7 & 2636928640
+		y = y ^ y << 15 & 4022730752
+		y = y ^ y >> 18
+		self.mti = (self.mti + 1) % 624
+		return _int32(y)
+	
+	def twist(self):
+		for i in range(0, 624):
+			y = _int32((self.mt[i] & 0x80000000) + (self.mt[(i + 1) % 624] & 0x7fffffff))
+			self.mt[i] = (y >> 1) ^ self.mt[(i + 397) % 624]
+			
+			if y % 2 != 0:
+				self.mt[i] = self.mt[i] ^ 0x9908b0df
+				
+	def seed(self, x):
+		assert type(x) is int
+		self.mt = [0] * 624
+		self.mt[0] = _int32(x)
+		self.mti = 0
+		for i in range(1, 624):
+			self.mt[i] = _int32(1812433253 * (self.mt[i - 1] ^ self.mt[i - 1] >> 30) + i)
+			
+	def random(self):
+		return self.extract_number() / 2 ** 32
+		
+	def randint(self, a, b):
+		assert type(a) is int and type(b) is int
+		assert a <= b
+		return int(self.random() * (b - a + 1)) + a
+		
+	def uniform(self, a, b):
+        assert type(a) is int or type(a) is float
+        assert type(b) is int or type(b) is float
+		if a > b:
+			a, b = b, a
+		return self.random() * (b - a) + a
+		
+_inst = Random()
+seed = _inst.seed
+random = _inst.random
+randint = _inst.randint
+uniform = _inst.uniform
+)";

@@ -862,14 +862,13 @@ __LISTCOMP:
             PyVar val = parser->previous.value;
             return vm->numNegated(val);
         }
-        if(match(TK("@num"))) goto __LITERAL_EXIT;
-        if(match(TK("@str"))) goto __LITERAL_EXIT;
-        if(match(TK("True"))) goto __LITERAL_EXIT;
-        if(match(TK("False"))) goto __LITERAL_EXIT;
-        if(match(TK("None"))) goto __LITERAL_EXIT;
+        if(match(TK("@num"))) return parser->previous.value;
+        if(match(TK("@str"))) return parser->previous.value;
+        if(match(TK("True"))) return vm->PyBool(true);
+        if(match(TK("False"))) return vm->PyBool(false);
+        if(match(TK("None"))) return vm->None;
         syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
-__LITERAL_EXIT:
-        return parser->previous.value;
+        return nullptr;
     }
 
     void compileTopLevelStatement() {

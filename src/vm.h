@@ -145,6 +145,7 @@ private:
                         PyVar fn = frame->popValue(this);
                         if(fn == None) break;
                         const _Func& f = PyFunction_AS_C(fn);
+                        setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
                     frame->f_globals()[clsName] = cls;

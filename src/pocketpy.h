@@ -587,22 +587,6 @@ extern "C" {
     };
 
     __EXPORT
-    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
-        VM* vm = new VM();
-        __initializeBuiltinFunctions(vm);
-        vm->_stdout = _stdout;
-        vm->_stderr = _stderr;
-
-        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
-        if(code == nullptr) exit(1);
-        vm->_exec(code, vm->builtins);
-
-        __addModuleSys(vm);
-        __addModuleTime(vm);
-        return vm;
-    }
-
-    __EXPORT
     void pkpy_delete(PkExportedResource* p){
         delete p;
     }
@@ -642,5 +626,23 @@ extern "C" {
         if(code == nullptr) return false;
         PyVar _m = vm->newModule(name);
         return vm->exec(code, _m) != nullptr;
+    }
+
+    __EXPORT
+    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
+        VM* vm = new VM();
+        __initializeBuiltinFunctions(vm);
+        vm->_stdout = _stdout;
+        vm->_stderr = _stderr;
+
+        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
+        if(code == nullptr) exit(1);
+        vm->_exec(code, vm->builtins);
+
+        __addModuleSys(vm);
+        __addModuleTime(vm);
+
+        pkpy_add_module(vm, "random", __RANDOM_CODE);
+        return vm;
     }
 }
