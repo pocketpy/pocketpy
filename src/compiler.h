@@ -140,26 +140,35 @@ public:
     }
 
     void eatNumber() {
-        static const std::regex pattern("^([0-9]+)(\\.[0-9]+)?");
+        static const std::regex pattern("^(0x)?[0-9a-f]+(\\.[0-9]+)?");
         std::smatch m;
 
         const char* i = parser->token_start;
         while(*i != '\n' && *i != '\0') i++;
         std::string s = std::string(parser->token_start, i);
 
+        size_t* size = new size_t;
+
         try{
             if (std::regex_search(s, m, pattern)) {
                 // here is m.length()-1, since the first char is eaten by lexToken()
                 for(int j=0; j<m.length()-1; j++) parser->eatChar();
+
+                int base = 10;
+                if (m[1].matched) base = 16;
                 if (m[2].matched) {
-                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0])));
+                    if(base == 16) syntaxError("hex literal should not contain a dot");
+                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0], size)));
                 } else {
-                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0])));
-                }  
+                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0], size, base)));
+                }
+                if (*size != m.length()) throw std::runtime_error("length mismatch");
+                delete size;
             }
         }catch(std::exception& e){
+            delete size;
             syntaxError("invalid number literal");
-        }
+        } 
     }
 
     // Lex the next token and set it as the next token.
