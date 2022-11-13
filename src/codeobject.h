@@ -121,8 +121,7 @@ public:
     }
 
     _Str errorSnapshot(){
-        int line = -1;
-        if(!isCodeEnd()) line = code->co_code[ip-1].line;
+        int line = code->co_code[ip-1].line;
         return code->src->snapshot(line);
     }
 
