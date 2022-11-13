@@ -146,6 +146,27 @@ class dict:
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
+def max(a, b):
+    if a > b:
+        return a
+    return b
+
+def min(a, b):
+    if a < b:
+        return a
+    return b
+
+def sum(iterable):
+    res = 0
+    for i in iterable:
+        res += i
+    return res
+
+def map(f, iterable):
+    return [f(i) for i in iterable]
+
+def zip(a, b):
+    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
 )";
 
 const char* __RANDOM_CODE = R"(
