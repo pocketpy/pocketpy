@@ -93,6 +93,11 @@ public:
         rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
+        rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
+        rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
+        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
+        rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
+        rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
 #undef METHOD
 #undef NO_INFIX
 
@@ -180,11 +185,24 @@ public:
                 case '[': parser->setNextToken(TK("[")); return;
                 case ']': parser->setNextToken(TK("]")); return;
                 case '%': parser->setNextToken(TK("%")); return;
-                case '.': parser->setNextToken(TK(".")); return;                
+                case '.': parser->setNextToken(TK(".")); return;
+                case '&': parser->setNextToken(TK("&")); return;
+                case '|': parser->setNextToken(TK("|")); return;
+                case '^': parser->setNextToken(TK("^")); return;
                 case '=': parser->setNextTwoCharToken('=', TK("="), TK("==")); return;
-                case '>': parser->setNextTwoCharToken('=', TK(">"), TK(">=")); return;
-                case '<': parser->setNextTwoCharToken('=', TK("<"), TK("<=")); return;
                 case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
+                case '>': {
+                    if(parser->matchChar('=')) parser->setNextToken(TK(">="));
+                    else if(parser->matchChar('>')) parser->setNextToken(TK(">>"));
+                    else parser->setNextToken(TK(">"));
+                    return;
+                }
+                case '<': {
+                    if(parser->matchChar('=')) parser->setNextToken(TK("<="));
+                    else if(parser->matchChar('<')) parser->setNextToken(TK("<<"));
+                    else parser->setNextToken(TK("<"));
+                    return;
+                }
                 case '-': {
                     parser->setNextTwoCharToken('=', TK("-"), TK("-="));
                     return;
@@ -397,6 +415,12 @@ public:
             case TK("not in"):  emitCode(OP_CONTAINS_OP, 1);   break;
             case TK("is"):      emitCode(OP_IS_OP, 0);         break;
             case TK("is not"):  emitCode(OP_IS_OP, 1);         break;
+
+            case TK("<<"):  emitCode(OP_BITWISE_OP, 0);    break;
+            case TK(">>"):  emitCode(OP_BITWISE_OP, 1);    break;
+            case TK("&"):   emitCode(OP_BITWISE_OP, 2);    break;
+            case TK("|"):   emitCode(OP_BITWISE_OP, 3);    break;
+            case TK("^"):   emitCode(OP_BITWISE_OP, 4);    break;
             default: UNREACHABLE();
         }
     }

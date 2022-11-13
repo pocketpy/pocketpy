@@ -11,7 +11,7 @@ const _Int _Int_MAX_NEG = -9223372036854775807LL;
 const _Float _FLOAT_INF_POS = INFINITY;
 const _Float _FLOAT_INF_NEG = -INFINITY;
 
-#define PK_VERSION "0.2.2"
+#define PK_VERSION "0.2.3"
 
 class PyObject;
 class CodeObject;

@@ -193,6 +193,10 @@ const _Str CMP_SPECIAL_METHODS[] = {
     "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"
 };  // __ne__ should not be used
 
-const _Str BIN_SPECIAL_METHODS[] = {
+const _Str BINARY_SPECIAL_METHODS[] = {
     "__add__", "__sub__", "__mul__", "__truediv__", "__floordiv__", "__mod__", "__pow__"
+};
+
+const _Str BITWISE_SPECIAL_METHODS[] = {
+    "__lshift__", "__rshift__", "__and__", "__or__", "__xor__"
 };

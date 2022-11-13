@@ -162,7 +162,13 @@ private:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BIN_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                    frame->push(fastCall(lhs, BINARY_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                } break;
+            case OP_BITWISE_OP:
+                {
+                    PyVar rhs = frame->popValue(this);
+                    PyVar lhs = frame->popValue(this);
+                    frame->push(fastCall(lhs, BITWISE_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
                 } break;
             case OP_COMPARE_OP:
                 {

@@ -8,6 +8,7 @@ constexpr const char* __TOKENS[] = {
     "@error", "@eof", "@eol", "@sof",
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}", "%",
     "+", "-", "*", "/", "//", "**", "=", ">", "<",
+    "<<", ">>", "&", "|", "^",
     "==", "!=", ">=", "<=",
     "+=", "-=", "*=", "/=", "//=",
     /** KW_BEGIN **/
@@ -76,8 +77,12 @@ enum Precedence {
   PREC_EQUALITY,      // == !=
   PREC_TEST,          // in is
   PREC_COMPARISION,   // < > <= >=
+  PREC_BITWISE_OR,    // |
+  PREC_BITWISE_XOR,   // ^
+  PREC_BITWISE_AND,   // &
+  PREC_BITWISE_SHIFT, // << >>
   PREC_TERM,          // + -
-  PREC_FACTOR,        // * / %
+  PREC_FACTOR,        // * / % //
   PREC_UNARY,         // - not
   PREC_EXPONENT,      // **
   PREC_CALL,          // ()
