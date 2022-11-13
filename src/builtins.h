@@ -208,10 +208,21 @@ class Random:
 		if a > b:
 			a, b = b, a
 		return self.random() * (b - a) + a
+
+    def shuffle(self, L):
+        for i in range(len(L)):
+            j = self.randint(i, len(L) - 1)
+            L[i], L[j] = L[j], L[i]
+
+    def choice(self, L):
+        return L[self.randint(0, len(L) - 1)]
 		
 _inst = Random()
 seed = _inst.seed
 random = _inst.random
 randint = _inst.randint
 uniform = _inst.uniform
+shuffle = _inst.shuffle
+choice = _inst.choice
+
 )";
