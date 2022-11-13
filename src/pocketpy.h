@@ -41,10 +41,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
         _StrStream ss;
-        for (auto& arg : args){
-            ss << vm->PyStr_AS_C(vm->asStr(arg)) << " ";
-        }
-        vm->_stdout(ss.str());
+        for (auto& arg : args) ss << vm->PyStr_AS_C(vm->asStr(arg)) << " ";
+        vm->_stdout(vm, ss.str().c_str());
         vm->_stdout(vm, "\n");
         return vm->None;
     });
