@@ -435,7 +435,7 @@ public:
         return call(getAttr(obj, func), args);
     }
 
-    PyVar exec(const _Code& code, PyVar _module=nullptr){
+    PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
             return _exec(code, _module);
@@ -447,7 +447,7 @@ public:
                 _stderr(this, re.what());
             }
             _stderr(this, "\n");
-            return None;
+            return nullptr;
         }
     }
 

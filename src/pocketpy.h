@@ -547,7 +547,24 @@ void __addModuleSys(VM* vm){
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
+
 extern "C" {
+    __EXPORT
+    struct PyObjectDump: public PkExportedResource{
+        const char* type;   // "int", "str", "float" ...
+        const char* string; // __str__ representation
+        const char* repr;   // __repr__ representation
+
+        PyObjectDump(const char* _type, const char* _string, const char* _repr):
+            type(strdup(_type)), string(strdup(_string)), repr(strdup(_repr)){}
+
+        ~PyObjectDump(){
+            delete[] type;
+            delete[] string;
+            delete[] repr;
+        }
+    };
+
     __EXPORT
     VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
         VM* vm = new VM();
@@ -570,9 +587,23 @@ extern "C" {
     }
 
     __EXPORT
-    void pkpy_exec(VM* vm, const char* source){
+    bool pkpy_exec(VM* vm, const char* source){
         _Code code = compile(vm, source, "main.py");
-        if(code != nullptr) vm->exec(code);
+        if(code == nullptr) return false;
+        return vm->exec(code) != nullptr;
+    }
+
+    __EXPORT
+    PyObjectDump* pkpy_eval(VM* vm, const char* source){
+        _Code code = compile(vm, source, "<eval>", EVAL_MODE);
+        if(code == nullptr) return nullptr;
+        PyVar ret = vm->exec(code);
+        if(ret == nullptr) return nullptr;
+        return new PyObjectDump(
+            ret->getTypeName().c_str(),
+            vm->PyStr_AS_C(vm->asStr(ret)).c_str(),
+            vm->PyStr_AS_C(vm->asRepr(ret)).c_str()
+        );
     }
 
     __EXPORT
@@ -581,16 +612,15 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_input_repl(REPL* r, const char* line){
+    bool pkpy_repl_input(REPL* r, const char* line){
         return r->input(line);
     }
 
     __EXPORT
-    void pkpy_add_module(VM* vm, const char* name, const char* source){
+    bool pkpy_add_module(VM* vm, const char* name, const char* source){
         _Code code = compile(vm, source, name + _Str(".py"));
-        if(code != nullptr){
-            PyVar _m = vm->newModule(name);
-            vm->exec(code, _m);
-        }
+        if(code == nullptr) return false;
+        PyVar _m = vm->newModule(name);
+        return vm->exec(code, _m) != nullptr;
     }
 }

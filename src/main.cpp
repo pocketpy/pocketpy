@@ -45,7 +45,7 @@ extern "C" {
 
     __EXPORT
     bool repl_input(const char* line){
-        return pkpy_input_repl(_repl, line);
+        return pkpy_repl_input(_repl, line);
     }
 }
 
