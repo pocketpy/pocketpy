@@ -146,6 +146,12 @@ class dict:
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
+def round(x):
+    if x >= 0:
+        return int(x + 0.5)
+    else:
+        return int(x - 0.5)
+
 def max(a, b):
     if a > b:
         return a
