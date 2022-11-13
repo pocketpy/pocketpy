@@ -159,6 +159,7 @@ const _Str& __setitem__ = _Str("__setitem__");
 const _Str& __delitem__ = _Str("__delitem__");
 const _Str& __contains__ = _Str("__contains__");
 const _Str& __init__ = _Str("__init__");
+const _Str& __json__ = _Str("__json__");
 
 const _Str CMP_SPECIAL_METHODS[] = {
     "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"

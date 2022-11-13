@@ -339,6 +339,10 @@ public:
         return call(obj, __repr__, {});
     }
 
+    PyVar asJson(const PyVar& obj){
+        return call(obj, __json__, {});
+    }
+
     PyVar asBool(const PyVar& obj){
         if(obj == None) return False;
         PyVar tp = obj->attribs[__class__];

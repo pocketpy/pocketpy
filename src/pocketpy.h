@@ -144,6 +144,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr("None");
     });
 
+    _vm->bindMethod("NoneType", "__json__", [](VM* vm, PyVarList args) {
+        return vm->PyStr("null");
+    });
+
     _vm->bindMethodMulti({"int", "float"}, "__truediv__", [](VM* vm, PyVarList args) {
         if(!vm->isIntOrFloat(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "/" );
@@ -200,6 +204,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
 
+    _vm->bindMethod("int", "__json__", [](VM* vm, PyVarList args) {
+        return vm->PyStr(std::to_string((int)vm->PyInt_AS_C(args[0])));
+    });
+
 #define __INT_BITWISE_OP(name,op) \
     _vm->bindMethod("int", #name, [](VM* vm, PyVarList args) { \
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int)) \
@@ -253,6 +261,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(s);
     });
 
+    _vm->bindMethod("float", "__json__", [](VM* vm, PyVarList args) {
+        return vm->PyStr(std::to_string((float)vm->PyFloat_AS_C(args[0])));
+    });
+
     /************ PyString ************/
     _vm->bindMethod("str", "__new__", [](VM* vm, PyVarList args) {
         vm->__checkArgSize(args, 1);
@@ -291,6 +303,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         // we just do a simple repr here, no escaping
         return vm->PyStr("'" + _self.str() + "'");
+    });
+
+    _vm->bindMethod("str", "__json__", [](VM* vm, PyVarList args) {
+        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        // we just do a simple repr here, no escaping
+        return vm->PyStr('"' + _self.str() + '"');
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, PyVarList args) {
@@ -502,6 +520,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(val ? "True" : "False");
     });
 
+    _vm->bindMethod("bool", "__json__", [](VM* vm, PyVarList args) {
+        bool val = vm->PyBool_AS_C(args[0]);
+        return vm->PyStr(val ? "true" : "false");
+    });
+
     _vm->bindMethod("bool", "__eq__", [](VM* vm, PyVarList args) {
         return vm->PyBool(args[0] == args[1]);
     });
@@ -552,16 +575,16 @@ extern "C" {
     __EXPORT
     struct PyObjectDump: public PkExportedResource{
         const char* type;   // "int", "str", "float" ...
-        const char* string; // __str__ representation
-        const char* repr;   // __repr__ representation
+        const char* json;   // json representation
 
-        PyObjectDump(const char* _type, const char* _string, const char* _repr):
-            type(strdup(_type)), string(strdup(_string)), repr(strdup(_repr)){}
+        PyObjectDump(const char* _type, const char* _json){
+            type = strdup(_type);
+            json = strdup(_json);
+        }
 
         ~PyObjectDump(){
             delete[] type;
-            delete[] string;
-            delete[] repr;
+            delete[] json;
         }
     };
 
@@ -601,8 +624,7 @@ extern "C" {
         if(ret == nullptr) return nullptr;
         return new PyObjectDump(
             ret->getTypeName().c_str(),
-            vm->PyStr_AS_C(vm->asStr(ret)).c_str(),
-            vm->PyStr_AS_C(vm->asRepr(ret)).c_str()
+            vm->PyStr_AS_C(vm->asJson(ret)).c_str()
         );
     }
 

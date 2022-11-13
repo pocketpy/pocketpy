@@ -25,6 +25,8 @@ del __str4split
 
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
+list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
+tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
 
 def __list4extend(self, other):
     for i in other:
@@ -134,6 +136,14 @@ class dict:
 
     def __repr__(self):
         a = [repr(k)+': '+repr(v) for k,v in self.items()]
+        return '{'+ ', '.join(a) + '}'
+
+    def __json__(self):
+        a = []
+        for k,v in self.items():
+            if type(k) is not str:
+                raise TypeError('json keys must be strings, got ' + repr(k) )
+            a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
 )";
