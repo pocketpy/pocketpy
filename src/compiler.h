@@ -16,10 +16,9 @@ struct GrammarRule{
 };
 
 struct Loop {
-    bool forLoop;
     int start;
     std::vector<int> breaks;
-    Loop(bool forLoop, int start) : forLoop(forLoop), start(start) {}
+    Loop(int start) : start(start) {}
 };
 
 class Compiler {
@@ -484,7 +483,7 @@ __LISTCOMP:
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop(true);
+        Loop& loop = enterLoop();
         int patch = emitCode(OP_FOR_ITER);
 
         if(_cond_end != _cond_start) {      // there is an if condition
@@ -682,8 +681,8 @@ __LISTCOMP:
         }
     }
 
-    Loop& enterLoop(bool forLoop){
-        Loop lp(forLoop, (int)getCode()->co_code.size());
+    Loop& enterLoop(){
+        Loop lp((int)getCode()->co_code.size());
         loops.push(lp);
         return loops.top();
     }
@@ -695,7 +694,7 @@ __LISTCOMP:
     }
 
     void compileWhileLoop() {
-        Loop& loop = enterLoop(false);
+        Loop& loop = enterLoop();
         EXPR_TUPLE();
         int patch = emitCode(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
@@ -716,7 +715,7 @@ __LISTCOMP:
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop(true);
+        Loop& loop = enterLoop();
         int patch = emitCode(OP_FOR_ITER);
         compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
@@ -728,8 +727,7 @@ __LISTCOMP:
         if (match(TK("break"))) {
             if (loops.empty()) syntaxError("'break' outside loop");
             consumeEndStatement();
-            if(getLoop().forLoop) emitCode(OP_POP_TOP); // pop the iterator of for loop.
-            int patch = emitCode(OP_JUMP_ABSOLUTE);
+            int patch = emitCode(OP_SAFE_JUMP_ABSOLUTE);
             getLoop().breaks.push_back(patch);
         } else if (match(TK("continue"))) {
             if (loops.empty()) syntaxError("'continue' not properly in loop");

@@ -116,6 +116,7 @@ class Frame {
 private:
     std::vector<PyVar> s_data;
     int ip = 0;
+    std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
     PyVar _module;
     PyVarDict f_locals;
@@ -152,10 +153,6 @@ public:
         return v;
     }
 
-    void __clearDataStack(){
-        s_data.clear();
-    }
-
     inline PyVar __deref_pointer(VM*, PyVar);
 
     inline PyVar popValue(VM* vm){
@@ -174,8 +171,34 @@ public:
         s_data.push_back(v);
     }
 
-    inline void jumpTo(int i){
+
+    void __reportForIter(){
+        int lastIp = ip - 1;
+        if(forLoops.empty()) forLoops.push(lastIp);
+        else{
+            if(forLoops.top() == lastIp) return;
+            if(forLoops.top() < lastIp) forLoops.push(lastIp);
+            else UNREACHABLE();
+        }
+    }
+
+    inline void jump(int i){
         this->ip = i;
+    }
+
+    void safeJump(int i){
+        this->ip = i;
+        while(!forLoops.empty()){
+            int start = forLoops.top();
+            int end = code->co_code[start].arg;
+            if(i < start || i >= end){
+                //printf("%d <- [%d, %d)\n", i, start, end);
+                __pop();    // pop the iterator
+                forLoops.pop();
+            }else{
+                break;
+            }
+        }
     }
 
     PyVarList popNValuesReversed(VM* vm, int n){

@@ -207,7 +207,7 @@ private:
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
-                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jumpTo(byte.arg);
+                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
                 break;
             case OP_LOAD_NONE: frame->push(None); break;
             case OP_LOAD_TRUE: frame->push(True); break;
@@ -246,7 +246,8 @@ private:
                     if(ret == __py2py_call_signal) return ret;
                     frame->push(ret);
                 } break;
-            case OP_JUMP_ABSOLUTE: frame->jumpTo(byte.arg); break;
+            case OP_JUMP_ABSOLUTE: frame->jump(byte.arg); break;
+            case OP_SAFE_JUMP_ABSOLUTE: frame->safeJump(byte.arg); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
@@ -254,8 +255,7 @@ private:
                 if(it == frame->code->co_labels.end()){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->__clearDataStack();
-                frame->jumpTo(it->second);
+                frame->safeJump(it->second);
             } break;
             case OP_GET_ITER:
                 {
@@ -271,26 +271,26 @@ private:
                 } break;
             case OP_FOR_ITER:
                 {
+                    frame->__reportForIter();
                     const PyVar& iter = frame->topValue(this);
                     auto& it = PyIter_AS_C(iter);
                     if(it->hasNext()){
                         it->var->set(this, frame, it->next());
                     }
                     else{
-                        frame->popValue(this);
-                        frame->jumpTo(byte.arg);
+                        frame->safeJump(byte.arg);
                     }
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
                     const PyVar& expr = frame->topValue(this);
-                    if(asBool(expr)==False) frame->jumpTo(byte.arg);
+                    if(asBool(expr)==False) frame->jump(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
                     const PyVar& expr = frame->topValue(this);
-                    if(asBool(expr)==True) frame->jumpTo(byte.arg);
+                    if(asBool(expr)==True) frame->jump(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_BUILD_SLICE:
