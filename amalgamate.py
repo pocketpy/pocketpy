@@ -51,4 +51,4 @@ r'''/*
 	f.write(final_text)
 
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
-os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -O1")
+os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -O1 -pthread")

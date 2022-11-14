@@ -23,6 +23,14 @@ def __str4split(self, sep):
 str.split = __str4split
 del __str4split
 
+def __str4index(self, sub):
+    for i in range(len(self) - len(sub) + 1):
+        if self[i:i+len(sub)] == sub:
+            return i
+    return -1
+str.index = __str4index
+del __str4index
+
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'

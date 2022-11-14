@@ -606,6 +606,36 @@ extern "C" {
     }
 
     __EXPORT
+    PyObjectDump* pkpy_get_global(VM* vm, const char* name){
+        auto it = vm->_main->attribs.find(name);
+        if(it == vm->_main->attribs.end()) return nullptr;
+        return new PyObjectDump(
+            it->second->getTypeName().c_str(),
+            vm->PyStr_AS_C(vm->asJson(it->second)).c_str()
+        );
+    }
+
+    __EXPORT
+    void pkpy_set_global_int(VM* vm, const char* name, _Int value){
+        vm->setAttr(vm->_main, name, vm->PyInt(value));
+    }
+
+    __EXPORT
+    void pkpy_set_global_float(VM* vm, const char* name, _Float value){
+        vm->setAttr(vm->_main, name, vm->PyFloat(value));
+    }
+
+    __EXPORT
+    void pkpy_set_global_str(VM* vm, const char* name, const char* value){
+        vm->setAttr(vm->_main, name, vm->PyStr(value));
+    }
+
+    __EXPORT
+    void pkpy_set_global_bool(VM* vm, const char* name, bool value){
+        vm->setAttr(vm->_main, name, vm->PyBool(value));
+    }
+
+    __EXPORT
     PyObjectDump* pkpy_eval(VM* vm, const char* source){
         _Code code = compile(vm, source, "<eval>", EVAL_MODE);
         if(code == nullptr) return nullptr;
