@@ -906,25 +906,26 @@ PyVar StringIterator::next(){
     return vm->PyStr(str->u8_getitem(index++));
 }
 
+enum ThreadState {
+    THREAD_READY,
+    THREAD_RUNNING,
+    THREAD_SUSPENDED,
+    THREAD_FINISHED
+};
 
 class ThreadedVM : public VM {
     std::thread* _thread;
-    bool _flag_thread_sleeping = false;
+    std::atomic<ThreadState> state = THREAD_READY;
 
 public:
     _Str _stdin;
     
-    void sleep(){
+    void suspend(){
         if(_thread == nullptr) UNREACHABLE();
-        _flag_thread_sleeping = true;
+        if(state != THREAD_RUNNING) UNREACHABLE();
+        state = THREAD_SUSPENDED;
         // 50 fps is enough
-        while(!_flag_thread_sleeping) std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    }
-
-    void writeStdin(const _Str& s){
-        if(_thread == nullptr) UNREACHABLE();
-        _stdin = s;
-        wakeUp();
+        while(state == THREAD_SUSPENDED) std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
     _Str readStdin(){
@@ -934,20 +935,25 @@ public:
         return copy;
     }
 
-    bool isSleeping(){
+    /***** For outer use *****/
+
+    ThreadState getState(){
         if(_thread == nullptr) UNREACHABLE();
-        return _flag_thread_sleeping;
+        return state;
     }
 
-    void wakeUp(){
+    void resume(){
         if(_thread == nullptr) UNREACHABLE();
-        _flag_thread_sleeping = false;
+        if(state != THREAD_SUSPENDED) UNREACHABLE();
+        state = THREAD_RUNNING;
     }
 
     void startExec(const _Code& code){
         if(_thread != nullptr) UNREACHABLE();
         _thread = new std::thread([this, code](){
+            this->state = THREAD_RUNNING;
             this->exec(code);
+            this->state = THREAD_FINISHED;
         });
     }
 

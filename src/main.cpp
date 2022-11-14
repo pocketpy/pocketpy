@@ -3,7 +3,7 @@
 
 #include "pocketpy.h"
 
-//#define PK_DEBUG_TIME
+#define PK_DEBUG_TIME
 
 struct Timer{
     const char* title;
@@ -19,13 +19,20 @@ struct Timer{
     }
 };
 
-VM* newVM(){
-    VM* vm = pkpy_new_vm([](const VM* vm, const char* str) { 
-        std::cout << str;
-        std::cout.flush();
+ThreadedVM* new_tvm_with_callbacks(){
+    ThreadedVM* vm = pkpy_new_tvm([](const VM* vm, const char* str) { 
+        std::cout << str; std::cout.flush();
     }, [](const VM* vm, const char* str) { 
-        std::cerr << str;
-        std::cerr.flush();
+        std::cerr << str; std::cerr.flush();
+    });
+    return vm;
+}
+
+VM* new_vm_with_callbacks(){
+    VM* vm = pkpy_new_vm([](const VM* vm, const char* str) { 
+        std::cout << str; std::cout.flush();
+    }, [](const VM* vm, const char* str) { 
+        std::cerr << str; std::cerr.flush();
     });
     return vm;
 }
@@ -40,7 +47,7 @@ REPL* _repl;
 extern "C" {
     __EXPORT
     void repl_start(){
-        _repl = pkpy_new_repl(newVM(), false);
+        _repl = pkpy_new_repl(new_vm_with_callbacks(), false);
     }
 
     __EXPORT
@@ -54,7 +61,7 @@ extern "C" {
 
 int main(int argc, char** argv){
     if(argc == 1){
-        REPL repl(newVM());
+        REPL repl(new_vm_with_callbacks());
         while(true){
             std::string line;
             std::getline(std::cin, line);
@@ -74,7 +81,7 @@ int main(int argc, char** argv){
         }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-        VM* vm = newVM();
+        ThreadedVM* vm = new_tvm_with_callbacks();
         _Code code;
         Timer("Compile time").run([&]{
             code = compile(vm, src.c_str(), filename);
@@ -82,7 +89,15 @@ int main(int argc, char** argv){
         if(code == nullptr) return 1;
         //std::cout << code->toString() << std::endl;
         Timer("Running time").run([=]{
-            vm->exec(code);
+            vm->startExec(code);
+            while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
+                if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
+                    std::string line;
+                    std::getline(std::cin, line);
+                    pkpy_tvm_write_stdin(vm, line.c_str());
+                    pkpy_tvm_resume(vm);
+                }
+            }
         });
         return 0;
     }

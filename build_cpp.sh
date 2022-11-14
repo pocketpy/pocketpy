@@ -1,1 +1,1 @@
-g++ -o pocketpy src/main.cpp --std=c++17 -O1
+g++ -o pocketpy src/main.cpp --std=c++17 -O1 -pthread

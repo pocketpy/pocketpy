@@ -51,6 +51,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 0);
         ThreadedVM* tvm = dynamic_cast<ThreadedVM*>(vm);
         if(tvm == nullptr) vm->typeError("input() can only be called in threaded mode");
+        tvm->suspend();
         return vm->PyStr(tvm->readStdin());
     });
 
@@ -634,9 +635,7 @@ extern "C" {
         return vm->exec(code, _m) != nullptr;
     }
 
-    __EXPORT
-    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
-        VM* vm = new VM();
+    void __vm_init(VM* vm, PrintFn _stdout, PrintFn _stderr){
         __initializeBuiltinFunctions(vm);
         vm->_stdout = _stdout;
         vm->_stderr = _stderr;
@@ -647,8 +646,42 @@ extern "C" {
 
         __addModuleSys(vm);
         __addModuleTime(vm);
-
         pkpy_add_module(vm, "random", __RANDOM_CODE);
+    }
+
+    __EXPORT
+    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
+        VM* vm = new VM();
+        __vm_init(vm, _stdout, _stderr);
         return vm;
+    }
+
+    __EXPORT
+    ThreadedVM* pkpy_new_tvm(PrintFn _stdout, PrintFn _stderr){
+        ThreadedVM* vm = new ThreadedVM();
+        __vm_init(vm, _stdout, _stderr);
+        return vm;
+    }
+
+    __EXPORT
+    int pkpy_tvm_get_state(ThreadedVM* vm){
+        return vm->getState();
+    }
+
+    __EXPORT
+    void pkpy_tvm_start_exec(ThreadedVM* vm, const char* source){
+        _Code code = compile(vm, source, "main.py");
+        if(code == nullptr) return;
+        return vm->startExec(code);
+    }
+
+    __EXPORT
+    void pkpy_tvm_write_stdin(ThreadedVM* vm, const char* line){
+        vm->_stdin = _Str(line);
+    }
+
+    __EXPORT
+    void pkpy_tvm_resume(ThreadedVM* vm){
+        vm->resume();
     }
 }
