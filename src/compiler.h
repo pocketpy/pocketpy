@@ -757,12 +757,13 @@ __LISTCOMP:
             consumeEndStatement();
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
-            consume(TK("@id"));
+            consume(TK(".")); consume(TK("@id"));
             getCode()->addLabel(parser->previous.str());
             consumeEndStatement();
         } else if(match(TK("goto"))){
+            // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
-            consume(TK("@id"));
+            consume(TK(".")); consume(TK("@id"));
             emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
             emitCode(OP_GOTO);
             consumeEndStatement();
