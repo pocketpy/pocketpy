@@ -39,6 +39,19 @@ struct CodeObject {
     PyVarList co_consts;
     std::vector<std::shared_ptr<NamePointer>> co_names;
 
+    // for goto use
+    // note: some opcodes moves the bytecode, such as listcomp
+    // goto/label should be put at toplevel statements
+    std::unordered_map<_Str, int> co_labels;
+
+    void addLabel(const _Str& label){
+        if(co_labels.find(label) != co_labels.end()){
+            _Str msg = "label '" + label + "' already exists";
+            throw std::runtime_error(msg.c_str());
+        }
+        co_labels[label] = co_code.size();
+    }
+
     int addName(const _Str& name, NameScope scope){
         auto p = std::make_shared<NamePointer>(name, scope);
         for(int i=0; i<co_names.size(); i++){
@@ -137,6 +150,10 @@ public:
         PyVar v = s_data.back();
         s_data.pop_back();
         return v;
+    }
+
+    void __clearDataStack(){
+        s_data.clear();
     }
 
     inline PyVar __deref_pointer(VM*, PyVar);

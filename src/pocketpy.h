@@ -47,6 +47,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bindBuiltinFunc("input", [](VM* vm, PyVarList args) {
+        vm->__checkArgSize(args, 0);
+        ThreadedVM* tvm = dynamic_cast<ThreadedVM*>(vm);
+        if(tvm == nullptr) vm->typeError("input() can only be called in threaded mode");
+        return vm->PyStr(tvm->readStdin());
+    });
+
     _vm->bindBuiltinFunc("eval", [](VM* vm, PyVarList args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);

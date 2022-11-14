@@ -56,4 +56,6 @@ OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
+OPCODE(GOTO)
+
 #endif

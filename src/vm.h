@@ -247,6 +247,16 @@ private:
                     frame->push(ret);
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jumpTo(byte.arg); break;
+            case OP_GOTO: {
+                PyVar obj = frame->popValue(this);
+                const _Str& label = PyStr_AS_C(obj);
+                auto it = frame->code->co_labels.find(label);
+                if(it == frame->code->co_labels.end()){
+                    _error("KeyError", "label '" + label + "' not found");
+                }
+                frame->__clearDataStack();
+                frame->jumpTo(it->second);
+            } break;
             case OP_GET_ITER:
                 {
                     PyVar obj = frame->popValue(this);
@@ -315,7 +325,7 @@ private:
     }
 
 public:
-    PyVarDict _types;         // builtin types
+    PyVarDict _types;
     PyVar None, True, False;
 
     PrintFn _stdout = [](const VM* vm, auto s){};
@@ -774,6 +784,8 @@ public:
     void _assert(bool val, const _Str& msg){
         if (!val) _error("AssertionError", msg);
     }
+
+    virtual ~VM() = default;
 };
 
 /***** Pointers' Impl *****/
@@ -893,3 +905,56 @@ PyVar RangeIterator::next(){
 PyVar StringIterator::next(){
     return vm->PyStr(str->u8_getitem(index++));
 }
+
+
+class ThreadedVM : public VM {
+    std::thread* _thread;
+    bool _flag_thread_sleeping = false;
+
+public:
+    _Str _stdin;
+    
+    void sleep(){
+        if(_thread == nullptr) UNREACHABLE();
+        _flag_thread_sleeping = true;
+        // 50 fps is enough
+        while(!_flag_thread_sleeping) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+
+    void writeStdin(const _Str& s){
+        if(_thread == nullptr) UNREACHABLE();
+        _stdin = s;
+        wakeUp();
+    }
+
+    _Str readStdin(){
+        if(_thread == nullptr) UNREACHABLE();
+        _Str copy = _stdin;
+        _stdin = "";
+        return copy;
+    }
+
+    bool isSleeping(){
+        if(_thread == nullptr) UNREACHABLE();
+        return _flag_thread_sleeping;
+    }
+
+    void wakeUp(){
+        if(_thread == nullptr) UNREACHABLE();
+        _flag_thread_sleeping = false;
+    }
+
+    void startExec(const _Code& code){
+        if(_thread != nullptr) UNREACHABLE();
+        _thread = new std::thread([this, code](){
+            this->exec(code);
+        });
+    }
+
+    ~ThreadedVM(){
+        if(_thread != nullptr){
+            _thread->join();
+            delete _thread;
+        }
+    }
+};
