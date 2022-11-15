@@ -777,7 +777,7 @@ __LISTCOMP:
             consumeEndStatement();
         } else if(match(TK("global"))){
             consume(TK("@id"));
-            int index = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+            getCode()->co_global_names.push_back(parser->previous.str());
             consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();

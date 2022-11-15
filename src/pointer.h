@@ -21,6 +21,10 @@ struct NamePointer : BasePointer {
     const NameScope scope;
     NamePointer(const _Str& name, NameScope scope) : name(name), scope(scope) {}
 
+    bool operator==(const NamePointer& other) const {
+        return name == other.name && scope == other.scope;
+    }
+
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;

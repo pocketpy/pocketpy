@@ -28,16 +28,17 @@ _Str pad(const _Str& s, const int n){
 
 struct CodeObject {
     _Source src;
-    _Str co_name;
+    _Str name;
 
-    CodeObject(_Source src, _Str co_name, CompileMode mode=EXEC_MODE) {
+    CodeObject(_Source src, _Str name, CompileMode mode=EXEC_MODE) {
         this->src = src;
-        this->co_name = co_name;
+        this->name = name;
     }
 
     std::vector<ByteCode> co_code;
     PyVarList co_consts;
     std::vector<std::shared_ptr<NamePointer>> co_names;
+    std::vector<_Str> co_global_names;
 
     // for goto use
     // note: some opcodes moves the bytecode, such as listcomp
@@ -53,9 +54,12 @@ struct CodeObject {
     }
 
     int addName(const _Str& name, NameScope scope){
+        if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
+            scope = NAME_GLOBAL;
+        }
         auto p = std::make_shared<NamePointer>(name, scope);
         for(int i=0; i<co_names.size(); i++){
-            if(co_names[i]->name == p->name) return i;
+            if(*co_names[i] == *p) return i;
         }
         co_names.push_back(p);
         return co_names.size() - 1;
@@ -106,7 +110,7 @@ struct CodeObject {
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
         for(int i=0; i<co_consts.size(); i++){
             auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-            if(fn) ss << '\n' << (*fn)->code->co_name << ":\n" << (*fn)->code->toString();
+            if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
         }
         return _Str(ss);
     }
