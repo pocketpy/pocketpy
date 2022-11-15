@@ -581,9 +581,9 @@ extern "C" {
         const char* type;   // "int", "str", "float" ...
         const char* json;   // json representation
 
-        PyObjectDump(const char* _type, const char* _json){
-            type = strdup(_type);
-            json = strdup(_json);
+        PyObjectDump(_Str _type, _Str _json){
+            type = strdup(_type.c_str());
+            json = strdup(_json.c_str());
         }
 
         ~PyObjectDump(){
@@ -597,9 +597,9 @@ extern "C" {
         const char* _stdout;
         const char* _stderr;
 
-        PyOutputDump(const char* _stdout, const char* _stderr){
-            _stdout = strdup(_stdout);
-            _stderr = strdup(_stderr);
+        PyOutputDump(_Str _stdout, _Str _stderr){
+            this->_stdout = strdup(_stdout.c_str());
+            this->_stderr = strdup(_stderr.c_str());
         }
 
         ~PyOutputDump(){
@@ -657,8 +657,8 @@ extern "C" {
         PyVar ret = vm->exec(code);
         if(ret == nullptr) return nullptr;
         return new PyObjectDump(
-            ret->getTypeName().c_str(),
-            vm->PyStr_AS_C(vm->asJson(ret)).c_str()
+            ret->getTypeName(),
+            vm->PyStr_AS_C(vm->asJson(ret))
         );
     }
 
@@ -711,10 +711,7 @@ extern "C" {
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
         _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
         if(s_out == nullptr || s_err == nullptr) UNREACHABLE();
-        PyOutputDump* dump = new PyOutputDump(
-            s_out->str().c_str(),
-            s_out->str().c_str()
-        );
+        PyOutputDump* dump = new PyOutputDump(*s_out, *s_err);
         s_out->str("");
         s_err->str("");
         return dump;

@@ -75,7 +75,11 @@ typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_
 
 const int _SIZEOF_VALUE = sizeof(_Value);
 
-#define UNREACHABLE() throw std::runtime_error("unreachable code! (this should be a bug, please report it)");
+#ifdef POCKETPY_H
+#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + ": UNREACHABLE()! This should be a bug, please report it");
+#else
+#define UNREACHABLE() throw std::runtime_error( __FILE__ + ":" + std::to_string(__LINE__) + " UNREACHABLE()!");
+#endif
 
 struct PyObject {
     PyVarDict attribs;

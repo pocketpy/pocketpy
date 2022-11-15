@@ -927,7 +927,7 @@ enum ThreadState {
 };
 
 class ThreadedVM : public VM {
-    std::thread* _thread;
+    std::thread* _thread = nullptr;
     std::atomic<ThreadState> state = THREAD_READY;
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {}
