@@ -103,7 +103,8 @@ struct Parser {
     std::queue<Token> nexts;
     std::stack<int> indents;
 
-    int ignoreIndent = 0;
+    int brackets_level_0 = 0;
+    int brackets_level_1 = 0;
 
     Token nextToken(){
         if(nexts.empty()) return makeErrToken();
@@ -139,7 +140,7 @@ struct Parser {
     }
 
     bool eatIndentation(){
-        if(ignoreIndent > 0) return true;
+        if(brackets_level_0 > 0 || brackets_level_1 > 0) return true;
         int spaces = eatSpaces();
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
@@ -227,6 +228,14 @@ struct Parser {
 
     // Initialize the next token as the type.
     void setNextToken(_TokenType type, PyVar value=nullptr) {
+
+        switch(type){
+            case TK("("): brackets_level_0++; break;
+            case TK(")"): brackets_level_0--; break;
+            case TK("["): brackets_level_1++; break;
+            case TK("]"): brackets_level_1--; break;
+        }
+
         nexts.push( Token{
             type,
             token_start,

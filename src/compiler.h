@@ -176,8 +176,6 @@ public:
         parser->current = parser->nextToken();
 
         //_Str _info = parser->current.info(); printf("%s\n", (const char*)_info);
-        if(parser->current.type == TK("(")) parser->ignoreIndent += 1;
-        if(parser->current.type == TK(")")) parser->ignoreIndent -= 1;
 
         while (parser->peekChar() != '\0') {
             parser->token_start = parser->current_char;
@@ -246,6 +244,7 @@ public:
                     if (isdigit(c)) {
                         eatNumber();
                     } else if (isalpha(c) || c=='_') {
+                        // 可以支持中文编程
                         if(c == 'f'){
                             if(parser->matchChar('\'')) {eatString('\'', true); return;}
                             if(parser->matchChar('"')) {eatString('"', true); return;}
@@ -274,11 +273,9 @@ public:
     }
 
     void consume(_TokenType expected) {
-        lexToken();
-        Token prev = parser->previous;
-        if (prev.type != expected){
+        if (!match(expected)){
             _StrStream ss;
-            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(prev.type) << "'";
+            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(peek()) << "'";
             syntaxError(ss.str());
         }
     }
