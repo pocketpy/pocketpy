@@ -48,7 +48,6 @@ class VM: public PkExportedResource{
 private:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;       // 3rd modules
-
     PyVar __py2py_call_signal;
 
     PyVar runFrame(Frame* frame){
@@ -155,8 +154,7 @@ private:
                 {
                     const PyVar& expr = frame->topValue(this);
                     if(expr == None) break;
-                    _stdout(this, PyStr_AS_C(asRepr(expr)).c_str());
-                    _stdout(this, "\n");
+                    *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
@@ -328,15 +326,26 @@ public:
     PyVarDict _types;
     PyVar None, True, False;
 
-    PrintFn _stdout = [](const VM* vm, auto s){};
-    PrintFn _stderr = [](const VM* vm, auto s){};
+    bool use_stdio;
+    std::ostream* _stdout;
+    std::ostream* _stderr;
     
     PyVar builtins;         // builtins module
     PyVar _main;            // __main__ module
 
     int maxRecursionDepth = 1000;
 
-    VM(){
+    VM(bool use_stdio){
+        this->use_stdio = use_stdio;
+        if(use_stdio){
+            std::cout.setf(std::ios::unitbuf);
+            std::cerr.setf(std::ios::unitbuf);
+            this->_stdout = &std::cout;
+            this->_stderr = &std::cerr;
+        }else{
+            this->_stdout = new _StrStream();
+            this->_stderr = new _StrStream();
+        }
         initializeBuiltinClasses();
     }
 
@@ -462,12 +471,11 @@ public:
             return _exec(code, _module);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
-                _stderr(this, e.what());
+                *_stderr << e.what() << '\n';
             }else{
                 auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
-                _stderr(this, re.what());
+                *_stderr << re.what() << '\n';
             }
-            _stderr(this, "\n");
             return nullptr;
         }
     }
@@ -785,7 +793,12 @@ public:
         if (!val) _error("AssertionError", msg);
     }
 
-    virtual ~VM() = default;
+    virtual ~VM() {
+        if(!use_stdio){
+            delete _stdout;
+            delete _stderr;
+        }
+    }
 };
 
 /***** Pointers' Impl *****/
@@ -916,10 +929,11 @@ enum ThreadState {
 class ThreadedVM : public VM {
     std::thread* _thread;
     std::atomic<ThreadState> state = THREAD_READY;
-
 public:
+    ThreadedVM(bool use_stdio) : VM(use_stdio) {}
+
     _Str _stdin;
-    
+
     void suspend(){
         if(_thread == nullptr) UNREACHABLE();
         if(state != THREAD_RUNNING) UNREACHABLE();
@@ -938,8 +952,7 @@ public:
     /***** For outer use *****/
 
     ThreadState getState(){
-        if(_thread == nullptr) UNREACHABLE();
-        return state;
+        return state.load();
     }
 
     void resume(){
@@ -950,6 +963,7 @@ public:
 
     void startExec(const _Code& code){
         if(_thread != nullptr) UNREACHABLE();
+        if(state != THREAD_READY) UNREACHABLE();
         _thread = new std::thread([this, code](){
             this->state = THREAD_RUNNING;
             this->exec(code);

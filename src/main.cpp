@@ -1,4 +1,3 @@
-#include <iostream>
 #include <fstream>
 
 #include "pocketpy.h"
@@ -19,25 +18,6 @@ struct Timer{
     }
 };
 
-ThreadedVM* new_tvm_with_callbacks(){
-    ThreadedVM* vm = pkpy_new_tvm([](const VM* vm, const char* str) { 
-        std::cout << str; std::cout.flush();
-    }, [](const VM* vm, const char* str) { 
-        std::cerr << str; std::cerr.flush();
-    });
-    return vm;
-}
-
-VM* new_vm_with_callbacks(){
-    VM* vm = pkpy_new_vm([](const VM* vm, const char* str) { 
-        std::cout << str; std::cout.flush();
-    }, [](const VM* vm, const char* str) { 
-        std::cerr << str; std::cerr.flush();
-    });
-    return vm;
-}
-
-
 #if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
 
 // these code is for demo use, feel free to modify it
@@ -47,7 +27,9 @@ REPL* _repl;
 extern "C" {
     __EXPORT
     void repl_start(){
-        _repl = pkpy_new_repl(new_vm_with_callbacks(), false);
+        VM* vm = pkpy_new_vm(true);
+        useStandardBuffer(vm);
+        _repl = pkpy_new_repl(vm, false);
     }
 
     __EXPORT
@@ -58,10 +40,10 @@ extern "C" {
 
 #else
 
-
 int main(int argc, char** argv){
     if(argc == 1){
-        REPL repl(new_vm_with_callbacks());
+        VM* vm = pkpy_new_vm(true);
+        REPL repl(vm);
         while(true){
             std::string line;
             std::getline(std::cin, line);
@@ -81,7 +63,7 @@ int main(int argc, char** argv){
         }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-        ThreadedVM* vm = new_tvm_with_callbacks();
+        ThreadedVM* vm = pkpy_new_tvm(true);
         _Code code;
         Timer("Compile time").run([&]{
             code = compile(vm, src.c_str(), filename);

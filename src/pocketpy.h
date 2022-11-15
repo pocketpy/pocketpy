@@ -42,8 +42,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("print", [](VM* vm, PyVarList args) {
         _StrStream ss;
         for (auto& arg : args) ss << vm->PyStr_AS_C(vm->asStr(arg)) << " ";
-        vm->_stdout(vm, ss.str().c_str());
-        vm->_stdout(vm, "\n");
+        (*vm->_stdout) << ss.str() << '\n';
         return vm->None;
     });
 
@@ -594,6 +593,22 @@ extern "C" {
     };
 
     __EXPORT
+    struct PyOutputDump: public PkExportedResource{
+        const char* stdout;
+        const char* stderr;
+
+        PyOutputDump(const char* _stdout, const char* _stderr){
+            stdout = strdup(_stdout);
+            stderr = strdup(_stderr);
+        }
+
+        ~PyOutputDump(){
+            delete[] stdout;
+            delete[] stderr;
+        }
+    };
+
+    __EXPORT
     void pkpy_delete(PkExportedResource* p){
         delete p;
     }
@@ -665,11 +680,8 @@ extern "C" {
         return vm->exec(code, _m) != nullptr;
     }
 
-    void __vm_init(VM* vm, PrintFn _stdout, PrintFn _stderr){
+    void __vm_init(VM* vm){
         __initializeBuiltinFunctions(vm);
-        vm->_stdout = _stdout;
-        vm->_stderr = _stderr;
-
         _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);
         vm->_exec(code, vm->builtins);
@@ -680,17 +692,32 @@ extern "C" {
     }
 
     __EXPORT
-    VM* pkpy_new_vm(PrintFn _stdout, PrintFn _stderr){
-        VM* vm = new VM();
-        __vm_init(vm, _stdout, _stderr);
+    VM* pkpy_new_vm(bool use_stdio){
+        VM* vm = new VM(use_stdio);
+        __vm_init(vm);
         return vm;
     }
 
     __EXPORT
-    ThreadedVM* pkpy_new_tvm(PrintFn _stdout, PrintFn _stderr){
-        ThreadedVM* vm = new ThreadedVM();
-        __vm_init(vm, _stdout, _stderr);
+    ThreadedVM* pkpy_new_tvm(bool use_stdio){
+        ThreadedVM* vm = new ThreadedVM(use_stdio);
+        __vm_init(vm);
         return vm;
+    }
+
+    __EXPORT
+    PyOutputDump* pkpy_vm_read_output(VM* vm){
+        if(vm->use_stdio) UNREACHABLE();
+        _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
+        _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
+        if(s_out == nullptr || s_err == nullptr) UNREACHABLE();
+        PyOutputDump* dump = new PyOutputDump(
+            s_out->str().c_str(),
+            s_out->str().c_str()
+        );
+        s_out->str("");
+        s_err->str("");
+        return dump;
     }
 
     __EXPORT

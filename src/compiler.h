@@ -941,12 +941,11 @@ _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_M
         return compiler.__fillCode();
     }catch(std::exception& e){
         if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
-            vm->_stderr(vm, e.what());
+            (*vm->_stderr) << e.what() << '\n';
         }else{
             auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
-            vm->_stderr(vm, ce.what());
+            (*vm->_stderr) << ce.what() << '\n';
         }
-        vm->_stderr(vm, "\n");
         return nullptr;
     }
 }

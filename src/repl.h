@@ -21,15 +21,15 @@ class REPL: public PkExportedResource {
     void _loop_start(){
         mode = SINGLE_MODE;
         if(use_prompt){
-            vm->_stdout(vm, need_more_lines ? "... " : ">>> ");
+            (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
         }
     }
 
 public:
     REPL(VM* vm, bool use_prompt=true) : vm(vm), use_prompt(use_prompt) {
-        vm->_stdout(vm, "pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
-        vm->_stdout(vm, "https://github.com/blueloveTH/pocketpy" "\n");
-        vm->_stdout(vm, "Type \"exit()\" to exit." "\n");
+        (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
+        (*vm->_stdout) << ("https://github.com/blueloveTH/pocketpy" "\n");
+        (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
         _loop_start();
     }
 
