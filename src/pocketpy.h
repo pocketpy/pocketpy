@@ -594,17 +594,17 @@ extern "C" {
 
     __EXPORT
     struct PyOutputDump: public PkExportedResource{
-        const char* stdout;
-        const char* stderr;
+        const char* _stdout;
+        const char* _stderr;
 
         PyOutputDump(const char* _stdout, const char* _stderr){
-            stdout = strdup(_stdout);
-            stderr = strdup(_stderr);
+            _stdout = strdup(_stdout);
+            _stderr = strdup(_stderr);
         }
 
         ~PyOutputDump(){
-            delete[] stdout;
-            delete[] stderr;
+            delete[] _stdout;
+            delete[] _stderr;
         }
     };
 
