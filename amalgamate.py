@@ -2,7 +2,7 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 	OPCODES_TEXT = f.read()
 
 pipeline = [
-	["__stl__.h", "str.h", "builtins.h", "error.h"],
+	["__stl__.h", "str.h", "safestl.h", "builtins.h", "error.h"],
 	["obj.h", "iter.h", "parser.h", "pointer.h", "codeobject.h"],
 	["vm.h", "compiler.h", "repl.h"],
 	["pocketpy.h"]

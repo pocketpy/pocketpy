@@ -1,7 +1,6 @@
 #pragma once
 
-#include "__stl__.h"
-#include "str.h"
+#include "safestl.h"
 
 typedef int64_t _Int;
 typedef double _Float;
@@ -13,43 +12,12 @@ const _Float _FLOAT_INF_NEG = -INFINITY;
 
 #define PK_VERSION "0.2.3"
 
-class PyObject;
 class CodeObject;
 class BasePointer;
 class VM;
-
 class PkExportedResource {};
 
-typedef std::shared_ptr<PyObject> PyVar;
-typedef PyVar PyVarOrNull;
-
-class PyVarList: public std::vector<PyVar> {
-    PyVar& at(size_t) = delete;
-
-    inline void __checkIndex(size_t i) const {
-        if (i >= size()){
-            auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
-            throw std::out_of_range(msg);
-        }
-    }
-public:
-    PyVar& operator[](size_t i) {
-        __checkIndex(i);
-        return std::vector<PyVar>::operator[](i);
-    }
-
-    const PyVar& operator[](size_t i) const {
-        __checkIndex(i);
-        return std::vector<PyVar>::operator[](i);
-    }
-
-    // define constructors the same as std::vector
-    using std::vector<PyVar>::vector;
-};
-
-typedef std::unordered_map<_Str, PyVar> PyVarDict;
 typedef std::shared_ptr<const BasePointer> _Pointer;
-
 typedef PyVar (*_CppFunc)(VM*, PyVarList);
 typedef std::shared_ptr<CodeObject> _Code;
 

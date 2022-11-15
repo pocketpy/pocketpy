@@ -124,7 +124,7 @@ private:
             } break;
             case OP_LIST_APPEND: {
                 PyVar obj = frame->popValue(this);
-                PyVar list = frame->topNValue(this, -2);
+                PyVar list = frame->__topValueN(this, -2);
                 fastCall(list, "append", {list, obj});
             } break;
             case OP_STORE_FUNCTION:

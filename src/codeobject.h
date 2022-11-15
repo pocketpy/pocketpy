@@ -139,7 +139,7 @@ public:
         return code->src->snapshot(line);
     }
 
-    int stackSize() const {
+    inline int stackSize() const {
         return s_data.size();
     }
 
@@ -148,6 +148,7 @@ public:
     }
 
     inline PyVar __pop(){
+        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         PyVar v = s_data.back();
         s_data.pop_back();
         return v;
@@ -160,10 +161,11 @@ public:
     }
 
     inline PyVar topValue(VM* vm){
+        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         return __deref_pointer(vm, s_data.back());
     }
 
-    inline PyVar topNValue(VM* vm, int n=-1){
+    inline PyVar __topValueN(VM* vm, int n=-1){
         return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
 

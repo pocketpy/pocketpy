@@ -1,7 +1,6 @@
 #pragma once
 
-#include "__stl__.h"
-#include "str.h"
+#include "safestl.h"
 
 class NeedMoreLines {
 public:
