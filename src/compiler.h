@@ -176,6 +176,8 @@ public:
         parser->current = parser->nextToken();
 
         //_Str _info = parser->current.info(); printf("%s\n", (const char*)_info);
+        if(parser->current.type == TK("(")) parser->ignoreIndent += 1;
+        if(parser->current.type == TK(")")) parser->ignoreIndent -= 1;
 
         while (parser->peekChar() != '\0') {
             parser->token_start = parser->current_char;
@@ -520,13 +522,12 @@ __LISTCOMP:
     void exprCall() {
         int ARGC = 0;
         do {
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
             EXPR();
             ARGC++;
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
-        matchNewLines();
         consume(TK(")"));
         emitCode(OP_CALL, ARGC);
     }

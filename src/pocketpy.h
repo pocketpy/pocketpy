@@ -723,10 +723,11 @@ extern "C" {
     }
 
     __EXPORT
-    void pkpy_tvm_start_exec(ThreadedVM* vm, const char* source){
+    bool pkpy_tvm_start_exec(ThreadedVM* vm, const char* source){
         _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return;
-        return vm->startExec(code);
+        if(code == nullptr) return false;
+        vm->startExec(code);
+        return true;
     }
 
     __EXPORT

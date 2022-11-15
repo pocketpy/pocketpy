@@ -103,6 +103,8 @@ struct Parser {
     std::queue<Token> nexts;
     std::stack<int> indents;
 
+    int ignoreIndent = 0;
+
     Token nextToken(){
         if(nexts.empty()) return makeErrToken();
         Token t = nexts.front();
@@ -137,6 +139,7 @@ struct Parser {
     }
 
     bool eatIndentation(){
+        if(ignoreIndent > 0) return true;
         int spaces = eatSpaces();
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
