@@ -28,7 +28,6 @@ extern "C" {
     __EXPORT
     void repl_start(){
         VM* vm = pkpy_new_vm(true);
-        useStandardBuffer(vm);
         _repl = pkpy_new_repl(vm, false);
     }
 
