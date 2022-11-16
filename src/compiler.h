@@ -146,26 +146,23 @@ public:
         while(*i != '\n' && *i != '\0') i++;
         std::string s = std::string(parser->token_start, i);
 
-        size_t* size = new size_t;
-
         try{
             if (std::regex_search(s, m, pattern)) {
                 // here is m.length()-1, since the first char is eaten by lexToken()
                 for(int j=0; j<m.length()-1; j++) parser->eatChar();
 
                 int base = 10;
+                size_t size;
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) syntaxError("hex literal should not contain a dot");
-                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0], size)));
+                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
                 } else {
-                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0], size, base)));
+                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
                 }
-                if (*size != m.length()) throw std::runtime_error("length mismatch");
-                delete size;
+                if (size != m.length()) throw std::runtime_error("length mismatch");
             }
         }catch(std::exception& e){
-            delete size;
             syntaxError("invalid number literal");
         } 
     }
@@ -241,15 +238,15 @@ public:
                     return;
                 }
                 default: {
+                    if(c == 'f'){
+                        if(parser->matchChar('\'')) {eatString('\'', true); return;}
+                        if(parser->matchChar('"')) {eatString('"', true); return;}
+                    }
                     if (isdigit(c)) {
                         eatNumber();
-                    } else if (isalpha(c) || c=='_') {
-                        // 可以支持中文编程
-                        if(c == 'f'){
-                            if(parser->matchChar('\'')) {eatString('\'', true); return;}
-                            if(parser->matchChar('"')) {eatString('"', true); return;}
-                        }
-                        parser->eatName();
+                    } else if (parser->isNameStart(c)) {
+                        int ret = parser->eatName();
+                        if(ret!=0) syntaxError("identifier is illegal, err " + std::to_string(ret));
                     } else {
                         syntaxError("unknown character: " + _Str(1, c));
                     }

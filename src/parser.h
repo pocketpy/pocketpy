@@ -175,34 +175,70 @@ struct Parser {
         return c;
     }
 
-    void eatName() {
-        char c = peekChar();
-        while (isalpha(c) || c=='_' || isdigit(c)) {
-            eatChar();
-            c = peekChar();
+    inline bool isNameStart(char c){
+        if(isalpha(c) || c=='_') return true;
+        if(!isascii(c)) return true;
+        return false;
+    }
+
+    int eatName() {
+        current_char--;
+        while(true){
+            uint8_t c = peekChar();
+            //printf("eatName: %d = %c\n", (int)c, c);
+            int u8bytes = 0;
+            if((c & 0b10000000) == 0b00000000) u8bytes = 1;
+            else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
+            else if((c & 0b11110000) == 0b11100000) u8bytes = 3;
+            else if((c & 0b11111000) == 0b11110000) u8bytes = 4;
+            else return 1;
+            std::string u8str(current_char, u8bytes);
+            //printf("%s %d %c\n", u8str.c_str(), u8bytes, c);
+            if(u8str.size() != u8bytes) return 2;
+            if(u8bytes == 1){
+                if(isalpha(c) || c=='_' || isdigit(c)) goto __EAT_ALL_BYTES;
+            }else{
+                uint32_t value = 0;
+                for(int k=0; k < u8bytes; k++){
+                    uint8_t b = u8str[k];
+                    if(k==0){
+                        if(u8bytes == 2) value = (b & 0b00011111) << 6;
+                        else if(u8bytes == 3) value = (b & 0b00001111) << 12;
+                        else if(u8bytes == 4) value = (b & 0b00000111) << 18;
+                    }else{
+                        value |= (b & 0b00111111) << (6*(u8bytes-k-1));
+                    }
+                }
+                // printf("value: %d", value);
+                if(__isLoChar(value)) goto __EAT_ALL_BYTES;
+            }
+            break;
+__EAT_ALL_BYTES:
+            current_char += u8bytes;
         }
 
-        const char* name_start = token_start;
-        int length = (int)(current_char - name_start);
-        std::string_view name(name_start, length);
+        int length = (int)(current_char - token_start);
+        if(length == 0) return 3;
+        std::string_view name(token_start, length);
         if(__KW_MAP.count(name)){
             if(name == "not"){
                 if(strncmp(current_char, " in", 3) == 0){
                     current_char += 3;
                     setNextToken(TK("not in"));
-                    return;
+                    return 0;
                 }
             }else if(name == "is"){
                 if(strncmp(current_char, " not", 4) == 0){
                     current_char += 4;
                     setNextToken(TK("is not"));
-                    return;
+                    return 0;
                 }
             }
             setNextToken(__KW_MAP.at(name));
         } else {
             setNextToken(TK("@id"));
         }
+        return 0;
     }
 
     void skipLineComment() {
