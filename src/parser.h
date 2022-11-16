@@ -185,36 +185,36 @@ struct Parser {
         current_char--;
         while(true){
             uint8_t c = peekChar();
-            //printf("eatName: %d = %c\n", (int)c, c);
             int u8bytes = 0;
             if((c & 0b10000000) == 0b00000000) u8bytes = 1;
             else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
             else if((c & 0b11110000) == 0b11100000) u8bytes = 3;
             else if((c & 0b11111000) == 0b11110000) u8bytes = 4;
             else return 1;
-            std::string u8str(current_char, u8bytes);
-            //printf("%s %d %c\n", u8str.c_str(), u8bytes, c);
-            if(u8str.size() != u8bytes) return 2;
             if(u8bytes == 1){
-                if(isalpha(c) || c=='_' || isdigit(c)) goto __EAT_ALL_BYTES;
-            }else{
-                uint32_t value = 0;
-                for(int k=0; k < u8bytes; k++){
-                    uint8_t b = u8str[k];
-                    if(k==0){
-                        if(u8bytes == 2) value = (b & 0b00011111) << 6;
-                        else if(u8bytes == 3) value = (b & 0b00001111) << 12;
-                        else if(u8bytes == 4) value = (b & 0b00000111) << 18;
-                    }else{
-                        value |= (b & 0b00111111) << (6*(u8bytes-k-1));
-                    }
+                if(isalpha(c) || c=='_' || isdigit(c)) {
+                    current_char++;
+                    continue;
+                }else{
+                    break;
                 }
-                // printf("value: %d", value);
-                if(__isLoChar(value)) goto __EAT_ALL_BYTES;
             }
-            break;
-__EAT_ALL_BYTES:
-            current_char += u8bytes;
+            // handle multibyte char
+            std::string u8str(current_char, u8bytes);
+            if(u8str.size() != u8bytes) return 2;
+            uint32_t value = 0;
+            for(int k=0; k < u8bytes; k++){
+                uint8_t b = u8str[k];
+                if(k==0){
+                    if(u8bytes == 2) value = (b & 0b00011111) << 6;
+                    else if(u8bytes == 3) value = (b & 0b00001111) << 12;
+                    else if(u8bytes == 4) value = (b & 0b00000111) << 18;
+                }else{
+                    value |= (b & 0b00111111) << (6*(u8bytes-k-1));
+                }
+            }
+            if(__isLoChar(value)) current_char += u8bytes;
+            else break;
         }
 
         int length = (int)(current_char - token_start);
