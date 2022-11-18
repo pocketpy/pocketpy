@@ -203,7 +203,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("int", "__mod__", [](VM* vm, PyVarList args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "%" );
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) % vm->PyInt_AS_C(args[1]));
+        _Int rhs = vm->PyInt_AS_C(args[1]);
+        if(rhs == 0) vm->zeroDivisionError();
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
     });
 
     _vm->bindMethod("int", "__repr__", [](VM* vm, PyVarList args) {
