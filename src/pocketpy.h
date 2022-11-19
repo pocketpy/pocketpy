@@ -586,7 +586,6 @@ void __addModuleSys(VM* vm){
 
 
 extern "C" {
-    __EXPORT
     struct PyObjectDump: public PkExportedResource{
         const char* type;   // "int", "str", "float" ...
         const char* json;   // json representation
@@ -602,7 +601,6 @@ extern "C" {
         }
     };
 
-    __EXPORT
     struct PyOutputDump: public PkExportedResource{
         const char* _stdout;
         const char* _stderr;
@@ -717,10 +715,10 @@ extern "C" {
 
     __EXPORT
     PyOutputDump* pkpy_vm_read_output(VM* vm){
-        if(vm->use_stdio) UNREACHABLE();
+        if(vm->use_stdio) return nullptr;
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
         _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
-        if(s_out == nullptr || s_err == nullptr) UNREACHABLE();
+        if(s_out == nullptr || s_err == nullptr) return nullptr;
         PyOutputDump* dump = new PyOutputDump(s_out->str(), s_err->str());
         s_out->str("");
         s_err->str("");
