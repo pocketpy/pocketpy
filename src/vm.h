@@ -116,7 +116,7 @@ private:
                 PyVarList items = frame->popNValuesReversed(this, byte.arg);
                 _StrStream ss;
                 for(const auto& i : items) ss << PyStr_AS_C(asStr(i));
-                frame->push(PyStr(ss));
+                frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
                 frame->push(builtins->attribs["eval"]);
@@ -375,7 +375,7 @@ public:
         if(tp == _tp_bool) return obj;
         if(tp == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
         if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
-        PyVarOrNull len_fn = getAttr(obj, "__len__", false);
+        PyVarOrNull len_fn = getAttr(obj, __len__, false);
         if(len_fn != nullptr){
             PyVar ret = call(len_fn, {});
             return PyBool(PyInt_AS_C(ret) > 0);
@@ -516,7 +516,7 @@ public:
 
     PyVar newUserClassType(_Str name, PyVar base){
         PyVar obj = newClassType(name, base);
-        setAttr(obj, "__name__", PyStr(name));
+        setAttr(obj, __name__, PyStr(name));
         _types.erase(name);
         return obj;
     }
@@ -539,7 +539,7 @@ public:
 
     PyVar newModule(_Str name, bool saveToPath=true) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
-        setAttr(obj, "__name__", PyStr(name));
+        setAttr(obj, __name__, PyStr(name));
         if(saveToPath) _modules[name] = obj;
         return obj;
     }
@@ -570,6 +570,7 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
+        funcName.intern();
         PyVar type = _types[typeName];
         PyVar func = PyNativeFunction(fn);
         setAttr(type, funcName, func);
@@ -586,6 +587,7 @@ public:
     }
 
     void bindFunc(PyVar module, _Str funcName, _CppFunc fn) {
+        funcName.intern();
         __checkType(module, _tp_module);
         PyVar func = PyNativeFunction(fn);
         setAttr(module, funcName, func);
@@ -691,7 +693,7 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
-        this->_main = newModule("__main__", false);
+        this->_main = newModule("__main__"c, false);
 
         setAttr(_tp_type, __base__, _tp_object);
         setAttr(_tp_type, __class__, _tp_type);
@@ -699,7 +701,7 @@ public:
         setAttr(_tp_object, __class__, _tp_type);
         
         for (auto& [name, type] : _types) {
-            setAttr(type, "__name__", PyStr(name));
+            setAttr(type, __name__, PyStr(name));
         }
 
         this->__py2py_call_signal = newObject(_tp_object, (_Int)7);
@@ -916,7 +918,7 @@ PyVar RangeIterator::next(){
 }
 
 PyVar StringIterator::next(){
-    return vm->PyStr(str->u8_getitem(index++));
+    return vm->PyStr(str.u8_getitem(index++));
 }
 
 enum ThreadState {

@@ -44,14 +44,14 @@ public:
 class StringIterator : public _Iterator {
 private:
     size_t index = 0;
-    const _Str* str;
+    _Str str;
 public:
     StringIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        str = &std::get<_Str>(_ref->_native);
+        str = std::get<_Str>(_ref->_native);
     }
 
     bool hasNext(){
-        return index < str->u8_length();
+        return index < str.u8_length();
     }
 
     PyVar next();

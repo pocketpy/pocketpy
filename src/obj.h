@@ -91,7 +91,7 @@ struct PyObject {
 
     // currently __name__ is only used for 'type'
     _Str getName(){
-        _Value val = attribs["__name__"]->_native;
+        _Value val = attribs[__name__]->_native;
         return std::get<_Str>(val);
     }
 

@@ -4,38 +4,27 @@
 
 typedef std::stringstream _StrStream;
 
-class _Str {
-private:
-    mutable bool utf8_initialized = false;
-    mutable std::vector<uint16_t> _u8_index;
-
-    std::string _s;
+class _StrMemory : public std::string {
+    mutable std::vector<uint16_t>* _u8_index = nullptr;
 
     mutable bool hash_initialized = false;
     mutable size_t _hash;
 
     void utf8_lazy_init() const{
-        if(utf8_initialized) return;
+        if(_u8_index != nullptr) return;
+        _u8_index = new std::vector<uint16_t>();
+        _u8_index->reserve(size());
         if(size() > 65535) throw std::runtime_error("String has more than 65535 bytes.");
         for(uint16_t i = 0; i < size(); i++){
             // https://stackoverflow.com/questions/3911536/utf-8-unicode-whats-with-0xc0-and-0x80
-            if((_s[i] & 0xC0) != 0x80)
-                _u8_index.push_back(i);
+            if((at(i) & 0xC0) != 0x80)
+                _u8_index->push_back(i);
         }
-        utf8_initialized = true;
     }
 public:
-    _Str(const char* s): _s(s) {}
-    _Str(const char* s, size_t len): _s(s, len) {}
-    _Str(int n, char fill): _s(n, fill) {}
-    _Str(const std::string& s): _s(s) {}
-    _Str(std::string&& s): _s(std::move(s)) {}
-    _Str(const _StrStream& ss): _s(ss.str()) {}
-    _Str(){}
-    
     size_t hash() const{
         if(!hash_initialized){
-            _hash = std::hash<std::string>()(_s);
+            _hash = std::hash<std::string>()(*this);
             hash_initialized = true;
         }
         return _hash;
@@ -43,93 +32,184 @@ public:
 
     int u8_length() const {
         utf8_lazy_init();
-        return _u8_index.size();
+        return _u8_index->size();
     }
 
-    _Str u8_getitem(int i) const{
+    std::string u8_getitem(int i) const{
         return u8_substr(i, i+1);
     }
 
-    _Str u8_substr(int start, int end) const{
+    std::string u8_substr(int start, int end) const{
         utf8_lazy_init();
-        if(start >= end) return _Str();
-        int c_end = end >= _u8_index.size() ? size() : _u8_index[end];
-        return _s.substr(_u8_index.at(start), c_end - _u8_index.at(start));
+        if(start >= end) return std::string();
+        int c_end = end >= _u8_index->size() ? size() : _u8_index->at(end);
+        return substr(_u8_index->at(start), c_end - _u8_index->at(start));
     }
 
-    int size() const {
-        return _s.size();
+    _StrMemory(const std::string& s) : std::string(s) {}
+    _StrMemory(std::string&& s) : std::string(std::move(s)) {}
+
+    ~_StrMemory(){
+        if(_u8_index != nullptr) delete _u8_index;
+    }
+};
+
+
+std::unordered_map<std::string, std::shared_ptr<_StrMemory>> _strIntern;
+
+
+struct _StrLiteral {
+    const char* _str;
+    size_t _len;
+    constexpr _StrLiteral(const char* str, size_t len) : _str(str), _len(len) {}
+};
+
+inline constexpr _StrLiteral operator "" c(const char* str, size_t len){
+    return _StrLiteral(str, len);
+}
+
+class _Str {
+private:
+    std::shared_ptr<_StrMemory> _s;
+    bool interned = false;
+public:
+    _Str(const _StrLiteral& s){
+        construct(std::string(s._str, s._len));
+        intern();
+    }
+    _Str(const char* s){
+        construct(std::string(s));
+    }
+    _Str(const char* s, size_t len){
+        construct(std::string(s, len));
+    }
+    _Str(int n, char fill){
+        construct(std::string(n, fill));
+    }
+    _Str(const std::string& s){
+        construct(s);
+    }
+    _Str(std::string&& s){
+        construct(std::move(s));
+    }
+    _Str(){
+        construct(std::string());
+    }
+    _Str(const _Str& s) : _s(s._s), interned(s.interned) {}
+
+    void construct(std::string s){
+        auto it = _strIntern.find(s);
+        if(it == _strIntern.end()){
+            this->_s = std::make_shared<_StrMemory>(s);
+            if(s.size() <= 2){
+                _strIntern[s] = this->_s;
+                interned = true;
+            }
+        }else{
+            this->_s = it->second;
+            interned = true;
+        }
     }
 
-    bool empty() const {
-        return _s.empty();
+    // force the string to be interned
+    void intern(){
+        auto it = _strIntern.find(*this->_s);
+        if(it == _strIntern.end()) _strIntern[*this->_s] = this->_s;
+        else this->_s = it->second;
+        interned = true;
+    }
+
+    inline int u8_length() const {
+        return this->_s->u8_length();
+    }
+
+    inline _Str u8_getitem(int i) const{
+        return _Str(this->_s->u8_getitem(i));
+    }
+
+    inline _Str u8_substr(int start, int end) const{
+        return _Str(this->_s->u8_substr(start, end));
+    }
+
+    inline size_t hash() const{
+        return _s->hash();
+    }
+
+    inline int size() const {
+        return _s->size();
+    }
+
+    inline bool empty() const {
+        return _s->empty();
     }
 
     bool operator==(const _Str& other) const {
-        return _s == other._s;
+        if(interned && other.interned) return _s == other._s;
+        return *_s == *other._s;
     }
 
     bool operator!=(const _Str& other) const {
-        return _s != other._s;
+        if(interned && other.interned) return _s != other._s;
+        return *_s != *other._s;
     }
 
     bool operator==(const char* other) const {
-        return _s == other;
+        return *_s == other;
     }
 
     bool operator!=(const char* other) const {
-        return _s != other;
+        return *_s != other;
     }
 
     bool operator<(const _Str& other) const {
-        return _s < other._s;
+        return *_s < *other._s;
     }
 
     bool operator>(const _Str& other) const {
-        return _s > other._s;
+        return *_s > *other._s;
     }
 
     char operator[](int i) const {
-        return _s[i];
+        return _s->at(i);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const _Str& s){
-        os << s._s;
+    friend std::ostream& operator<<(std::ostream& os, const _Str& s) {
+        os << *s._s;
         return os;
     }
 
     _Str operator+(const _Str& other) const {
-        return _Str(_s + other._s);
+        return _Str(*_s + *other._s);
     }
 
     _Str operator+(const char* other) const {
-        return _Str(_s + other);
+        return _Str(*_s + other);
     }
 
     _Str operator+(const std::string& other) const {
-        return _Str(_s + other);
+        return _Str(*_s + other);
     }
 
     friend _Str operator+(const char* other, const _Str& s){
-        return _Str(other + s._s);
+        return _Str(other + *s._s);
     }
 
     friend _Str operator+(const std::string& other, const _Str& s){
-        return _Str(other + s._s);
+        return _Str(other + *s._s);
     }
 
     const std::string& str() const {
-        return _s;
+        return *_s;
     }
 
     const char* c_str() const {
-        return _s.c_str();
+        return _s->c_str();
     }
 
     static const std::size_t npos = std::string::npos;
 
     _Str __lstrip() const {
-        std::string copy(_s);
+        std::string copy(*_s);
         copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
             return !std::isspace(c);
         }));
@@ -138,7 +218,7 @@ public:
 
     _Str __escape(bool single_quote) const {
         _StrStream ss;
-        for (auto c = _s.cbegin(); c != _s.cend(); c++) {
+        for (auto c = _s->cbegin(); c != _s->cend(); c++) {
             switch (*c) {
                 case '"':
                     if(!single_quote) ss << '\\';
@@ -165,7 +245,6 @@ public:
     }
 };
 
-
 namespace std {
     template<>
     struct hash<_Str> {
@@ -175,30 +254,32 @@ namespace std {
     };
 }
 
-const _Str& __class__ = _Str("__class__");
-const _Str& __base__ = _Str("__base__");
-const _Str& __new__ = _Str("__new__");
-const _Str& __iter__ = _Str("__iter__");
-const _Str& __str__ = _Str("__str__");
-const _Str& __repr__ = _Str("__repr__");
-const _Str& __module__ = _Str("__module__");
-const _Str& __getitem__ = _Str("__getitem__");
-const _Str& __setitem__ = _Str("__setitem__");
-const _Str& __delitem__ = _Str("__delitem__");
-const _Str& __contains__ = _Str("__contains__");
-const _Str& __init__ = _Str("__init__");
-const _Str& __json__ = _Str("__json__");
+const _Str& __class__ = _Str("__class__"c);
+const _Str& __base__ = _Str("__base__"c);
+const _Str& __new__ = _Str("__new__"c);
+const _Str& __iter__ = _Str("__iter__"c);
+const _Str& __str__ = _Str("__str__"c);
+const _Str& __repr__ = _Str("__repr__"c);
+const _Str& __module__ = _Str("__module__"c);
+const _Str& __getitem__ = _Str("__getitem__"c);
+const _Str& __setitem__ = _Str("__setitem__"c);
+const _Str& __delitem__ = _Str("__delitem__"c);
+const _Str& __contains__ = _Str("__contains__"c);
+const _Str& __init__ = _Str("__init__"c);
+const _Str& __json__ = _Str("__json__"c);
+const _Str& __name__ = _Str("__name__"c);
+const _Str& __len__ = _Str("__len__"c);
 
 const _Str CMP_SPECIAL_METHODS[] = {
-    "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"
+    "__lt__"c, "__le__"c, "__eq__"c, "__ne__"c, "__gt__"c, "__ge__"c
 };  // __ne__ should not be used
 
 const _Str BINARY_SPECIAL_METHODS[] = {
-    "__add__", "__sub__", "__mul__", "__truediv__", "__floordiv__", "__mod__", "__pow__"
+    "__add__"c, "__sub__"c, "__mul__"c, "__truediv__"c, "__floordiv__"c, "__mod__"c, "__pow__"c
 };
 
 const _Str BITWISE_SPECIAL_METHODS[] = {
-    "__lshift__", "__rshift__", "__and__", "__or__", "__xor__"
+    "__lshift__"c, "__rshift__"c, "__and__"c, "__or__"c, "__xor__"c
 };
 
 const uint32_t __LoRangeA[] = {170,186,443,448,660,1488,1519,1568,1601,1646,1649,1749,1774,1786,1791,1808,1810,1869,1969,1994,2048,2112,2144,2208,2230,2308,2365,2384,2392,2418,2437,2447,2451,2474,2482,2486,2493,2510,2524,2527,2544,2556,2565,2575,2579,2602,2610,2613,2616,2649,2654,2674,2693,2703,2707,2730,2738,2741,2749,2768,2784,2809,2821,2831,2835,2858,2866,2869,2877,2908,2911,2929,2947,2949,2958,2962,2969,2972,2974,2979,2984,2990,3024,3077,3086,3090,3114,3133,3160,3168,3200,3205,3214,3218,3242,3253,3261,3294,3296,3313,3333,3342,3346,3389,3406,3412,3423,3450,3461,3482,3507,3517,3520,3585,3634,3648,3713,3716,3718,3724,3749,3751,3762,3773,3776,3804,3840,3904,3913,3976,4096,4159,4176,4186,4193,4197,4206,4213,4238,4352,4682,4688,4696,4698,4704,4746,4752,4786,4792,4800,4802,4808,4824,4882,4888,4992,5121,5743,5761,5792,5873,5888,5902,5920,5952,5984,5998,6016,6108,6176,6212,6272,6279,6314,6320,6400,6480,6512,6528,6576,6656,6688,6917,6981,7043,7086,7098,7168,7245,7258,7401,7406,7413,7418,8501,11568,11648,11680,11688,11696,11704,11712,11720,11728,11736,12294,12348,12353,12447,12449,12543,12549,12593,12704,12784,13312,19968,40960,40982,42192,42240,42512,42538,42606,42656,42895,42999,43003,43011,43015,43020,43072,43138,43250,43259,43261,43274,43312,43360,43396,43488,43495,43514,43520,43584,43588,43616,43633,43642,43646,43697,43701,43705,43712,43714,43739,43744,43762,43777,43785,43793,43808,43816,43968,44032,55216,55243,63744,64112,64285,64287,64298,64312,64318,64320,64323,64326,64467,64848,64914,65008,65136,65142,65382,65393,65440,65474,65482,65490,65498,65536,65549,65576,65596,65599,65616,65664,66176,66208,66304,66349,66370,66384,66432,66464,66504,66640,66816,66864,67072,67392,67424,67584,67592,67594,67639,67644,67647,67680,67712,67808,67828,67840,67872,67968,68030,68096,68112,68117,68121,68192,68224,68288,68297,68352,68416,68448,68480,68608,68864,69376,69415,69424,69600,69635,69763,69840,69891,69956,69968,70006,70019,70081,70106,70108,70144,70163,70272,70280,70282,70287,70303,70320,70405,70415,70419,70442,70450,70453,70461,70480,70493,70656,70727,70751,70784,70852,70855,71040,71128,71168,71236,71296,71352,71424,71680,71935,72096,72106,72161,72163,72192,72203,72250,72272,72284,72349,72384,72704,72714,72768,72818,72960,72968,72971,73030,73056,73063,73066,73112,73440,73728,74880,77824,82944,92160,92736,92880,92928,93027,93053,93952,94032,94208,100352,110592,110928,110948,110960,113664,113776,113792,113808,123136,123214,123584,124928,126464,126469,126497,126500,126503,126505,126516,126521,126523,126530,126535,126537,126539,126541,126545,126548,126551,126553,126555,126557,126559,126561,126564,126567,126572,126580,126585,126590,126592,126603,126625,126629,126635,131072,173824,177984,178208,183984,194560};
