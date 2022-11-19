@@ -42,8 +42,6 @@ extern "C" {
 int main(int argc, char** argv){
     if(argc == 1){
         VM* vm = pkpy_new_vm(true);
-        // for(auto& kv : _strIntern)
-        //     std::cout << kv.first << ", ";
         REPL repl(vm);
         while(true){
             std::string line;
@@ -75,6 +73,9 @@ int main(int argc, char** argv){
         Timer("Running time").run([=]{
             vm->exec(code);
         });
+
+        // for(auto& kv : _strIntern)
+        //     std::cout << kv.first << ", ";
 
         // Timer("Running time").run([=]{
         //     vm->startExec(code);

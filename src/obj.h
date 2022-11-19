@@ -84,9 +84,15 @@ const int _SIZEOF_VALUE = sizeof(_Value);
 struct PyObject {
     PyVarDict attribs;
     _Value _native;
+    PyVar _type;
 
     inline bool isType(const PyVar& type){
-        return attribs[__class__] == type;
+        return this->_type == type;
+    }
+
+    inline void setType(const PyVar& type){
+        this->_type = type;
+        this->attribs[__class__] = type;
     }
 
     // currently __name__ is only used for 'type'
@@ -96,7 +102,7 @@ struct PyObject {
     }
 
     _Str getTypeName(){
-        return attribs[__class__]->getName();
+        return _type->getName();
     }
 
     PyObject(_Value val): _native(val) {}

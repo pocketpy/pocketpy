@@ -126,7 +126,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
         vm->__checkArgSize(args, 1);
-        return args[0]->attribs[__class__];
+        return args[0]->_type;
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {

@@ -99,20 +99,17 @@ public:
 
     void construct(std::string s){
         auto it = _strIntern.find(s);
-        if(it == _strIntern.end()){
-            this->_s = std::make_shared<_StrMemory>(s);
-            if(s.size() <= 2){
-                _strIntern[s] = this->_s;
-                interned = true;
-            }
-        }else{
+        if(it != _strIntern.end()){
             this->_s = it->second;
             interned = true;
+        }else{
+            this->_s = std::make_shared<_StrMemory>(std::move(s));
         }
     }
 
     // force the string to be interned
     void intern(){
+        if(interned) return;
         auto it = _strIntern.find(*this->_s);
         if(it == _strIntern.end()) _strIntern[*this->_s] = this->_s;
         else this->_s = it->second;
