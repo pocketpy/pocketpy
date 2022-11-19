@@ -309,12 +309,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__repr__", [](VM* vm, PyVarList args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
-        return vm->PyStr("'" + _self.__escape(true).str() + "'");
+        return vm->PyStr(_self.__escape(true));
     });
 
     _vm->bindMethod("str", "__json__", [](VM* vm, PyVarList args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
-        return vm->PyStr("\"" + _self.__escape(false) + "\"");
+        return vm->PyStr(_self.__escape(false));
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, PyVarList args) {

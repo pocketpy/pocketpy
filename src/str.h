@@ -207,6 +207,7 @@ public:
 
     _Str __escape(bool single_quote) const {
         _StrStream ss;
+        ss << (single_quote ? '\'' : '"');
         for (auto c = _s->cbegin(); c != _s->cend(); c++) {
             switch (*c) {
                 case '"':
@@ -230,6 +231,7 @@ public:
                     }
             }
         }
+        ss << (single_quote ? '\'' : '"');
         return ss.str();
     }
 };
