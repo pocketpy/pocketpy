@@ -30,7 +30,7 @@
         }else{                                      \
             __checkType(ptype, _tp_type);           \
             _raw = new PyObject(_native);           \
-            _raw->attribs[__class__] = ptype;       \
+            _raw->setType(ptype);                   \
         }                                           \
         PyVar obj = PyVar(_raw, [this](PyObject* p){\
             if(_pool##name.size() < max_size){      \
@@ -116,7 +116,7 @@ private:
                 PyVarList items = frame->popNValuesReversed(this, byte.arg);
                 _StrStream ss;
                 for(const auto& i : items) ss << PyStr_AS_C(asStr(i));
-                frame->push(PyStr(ss));
+                frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
                 frame->push(builtins->attribs["eval"]);
@@ -371,11 +371,10 @@ public:
 
     PyVar asBool(const PyVar& obj){
         if(obj == None) return False;
-        PyVar tp = obj->attribs[__class__];
-        if(tp == _tp_bool) return obj;
-        if(tp == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
-        if(tp == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
-        PyVarOrNull len_fn = getAttr(obj, "__len__", false);
+        if(obj->_type == _tp_bool) return obj;
+        if(obj->_type == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
+        if(obj->_type == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
+        PyVarOrNull len_fn = getAttr(obj, __len__, false);
         if(len_fn != nullptr){
             PyVar ret = call(len_fn, {});
             return PyBool(PyInt_AS_C(ret) > 0);
@@ -384,7 +383,7 @@ public:
     }
 
     PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
-        PyVar cls = obj->attribs[__class__];
+        PyVar cls = obj->_type;
         while(cls != None) {
             auto it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
@@ -414,6 +413,7 @@ public:
 
         if(callable->isType(_tp_bounded_method)){
             auto& bm = PyBoundedMethod_AS_C(callable);
+            // TODO: avoid insertion here, bad performance
             args.insert(args.begin(), bm.obj);
             callable = bm.method;
         }
@@ -516,7 +516,7 @@ public:
 
     PyVar newUserClassType(_Str name, PyVar base){
         PyVar obj = newClassType(name, base);
-        setAttr(obj, "__name__", PyStr(name));
+        setAttr(obj, __name__, PyStr(name));
         _types.erase(name);
         return obj;
     }
@@ -524,7 +524,7 @@ public:
     PyVar newClassType(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
         PyVar obj = std::make_shared<PyObject>((_Int)0);
-        setAttr(obj, __class__, _tp_type);
+        obj->setType(_tp_type);
         setAttr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -533,13 +533,13 @@ public:
     PyVar newObject(PyVar type, _Value _native) {
         __checkType(type, _tp_type);
         PyVar obj = std::make_shared<PyObject>(_native);
-        setAttr(obj, __class__, type);
+        obj->setType(type);
         return obj;
     }
 
     PyVar newModule(_Str name, bool saveToPath=true) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
-        setAttr(obj, "__name__", PyStr(name));
+        setAttr(obj, __name__, PyStr(name));
         if(saveToPath) _modules[name] = obj;
         return obj;
     }
@@ -548,7 +548,7 @@ public:
         auto it = obj->attribs.find(name);
         if(it != obj->attribs.end()) return it->second;
 
-        PyVar cls = obj->attribs[__class__];
+        PyVar cls = obj->_type;
         while(cls != None) {
             it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
@@ -570,6 +570,7 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
+        funcName.intern();
         PyVar type = _types[typeName];
         PyVar func = PyNativeFunction(fn);
         setAttr(type, funcName, func);
@@ -586,6 +587,7 @@ public:
     }
 
     void bindFunc(PyVar module, _Str funcName, _CppFunc fn) {
+        funcName.intern();
         __checkType(module, _tp_module);
         PyVar func = PyNativeFunction(fn);
         setAttr(module, funcName, func);
@@ -593,7 +595,7 @@ public:
 
     bool isInstance(PyVar obj, PyVar type){
         __checkType(type, _tp_type);
-        PyVar t = obj->attribs[__class__];
+        PyVar t = obj->_type;
         while (t != None){
             if (t == type) return true;
             t = t->attribs[__base__];
@@ -691,15 +693,15 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
-        this->_main = newModule("__main__", false);
+        this->_main = newModule("__main__"_c, false);
 
         setAttr(_tp_type, __base__, _tp_object);
-        setAttr(_tp_type, __class__, _tp_type);
+        _tp_type->setType(_tp_type);
         setAttr(_tp_object, __base__, None);
-        setAttr(_tp_object, __class__, _tp_type);
+        _tp_object->setType(_tp_type);
         
         for (auto& [name, type] : _types) {
-            setAttr(type, "__name__", PyStr(name));
+            setAttr(type, __name__, PyStr(name));
         }
 
         this->__py2py_call_signal = newObject(_tp_object, (_Int)7);
@@ -916,7 +918,7 @@ PyVar RangeIterator::next(){
 }
 
 PyVar StringIterator::next(){
-    return vm->PyStr(str->u8_getitem(index++));
+    return vm->PyStr(str.u8_getitem(index++));
 }
 
 enum ThreadState {

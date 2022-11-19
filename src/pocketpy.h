@@ -126,7 +126,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("type", "__new__", [](VM* vm, PyVarList args) {
         vm->__checkArgSize(args, 1);
-        return args[0]->attribs[__class__];
+        return args[0]->_type;
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, PyVarList args) {
@@ -354,7 +354,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
         for(auto c : _self.str()) ss << (char)toupper(c);
-        return vm->PyStr(ss);
+        return vm->PyStr(ss.str());
     });
 
     _vm->bindMethod("str", "lower", [](VM* vm, PyVarList args) {
@@ -362,7 +362,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
         for(auto c : _self.str()) ss << (char)tolower(c);
-        return vm->PyStr(ss);
+        return vm->PyStr(ss.str());
     });
 
     _vm->bindMethod("str", "replace", [](VM* vm, PyVarList args) {
@@ -403,7 +403,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             if(i > 0) ss << _self;
             ss << vm->PyStr_AS_C(vm->asStr(_list[i]));
         }
-        return vm->PyStr(ss);
+        return vm->PyStr(ss.str());
     });
 
     /************ PyList ************/
@@ -713,7 +713,7 @@ extern "C" {
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
         _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
         if(s_out == nullptr || s_err == nullptr) UNREACHABLE();
-        PyOutputDump* dump = new PyOutputDump(*s_out, *s_err);
+        PyOutputDump* dump = new PyOutputDump(s_out->str(), s_err->str());
         s_out->str("");
         s_err->str("");
         return dump;

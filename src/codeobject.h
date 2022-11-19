@@ -112,7 +112,7 @@ struct CodeObject {
             auto fn = std::get_if<_Func>(&co_consts[i]->_native);
             if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
         }
-        return _Str(ss);
+        return _Str(ss.str());
     }
 };
 

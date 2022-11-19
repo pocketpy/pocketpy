@@ -69,17 +69,25 @@ int main(int argc, char** argv){
         });
         if(code == nullptr) return 1;
         //std::cout << code->toString() << std::endl;
+
         Timer("Running time").run([=]{
-            vm->startExec(code);
-            while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
-                if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
-                    std::string line;
-                    std::getline(std::cin, line);
-                    pkpy_tvm_write_stdin(vm, line.c_str());
-                    pkpy_tvm_resume(vm);
-                }
-            }
+            vm->exec(code);
         });
+
+        // for(auto& kv : _strIntern)
+        //     std::cout << kv.first << ", ";
+
+        // Timer("Running time").run([=]{
+        //     vm->startExec(code);
+        //     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
+        //         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
+        //             std::string line;
+        //             std::getline(std::cin, line);
+        //             pkpy_tvm_write_stdin(vm, line.c_str());
+        //             pkpy_tvm_resume(vm);
+        //         }
+        //     }
+        // });
         return 0;
     }
 
