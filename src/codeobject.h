@@ -153,7 +153,7 @@ public:
 
     inline PyVar __pop(){
         if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        PyVar v = s_data.back();
+        PyVar v = std::move(s_data.back());
         s_data.pop_back();
         return v;
     }
@@ -173,8 +173,12 @@ public:
         return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
 
-    inline void push(PyVar v){
+    inline void push(const PyVar& v){
         s_data.push_back(v);
+    }
+
+    inline void push(PyVar&& v){
+        s_data.emplace_back(std::move(v));
     }
 
 
@@ -209,7 +213,7 @@ public:
 
     PyVarList popNValuesReversed(VM* vm, int n){
         PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        for(int i=n-1; i>=0; i--) v[i] = std::move(popValue(vm));
         return v;
     }
 

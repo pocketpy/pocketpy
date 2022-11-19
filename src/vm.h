@@ -32,14 +32,13 @@
             _raw = new PyObject(_native);           \
             _raw->setType(ptype);                   \
         }                                           \
-        PyVar obj = PyVar(_raw, [this](PyObject* p){\
+        return PyVar(_raw, [this](PyObject* p){     \
             if(_pool##name.size() < max_size){      \
                 _pool##name.push_back(p);           \
             }else{                                  \
                 delete p;                           \
             }                                       \
         });                                         \
-        return obj;                                 \
     }
 
 typedef void(*PrintFn)(const VM*, const char*);
@@ -84,7 +83,7 @@ private:
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
                 _Pointer p = PyPointer_AS_C(frame->__pop());
-                p->set(this, frame, obj);
+                p->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
                 _Pointer p = PyPointer_AS_C(frame->__pop());
@@ -161,13 +160,13 @@ private:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BINARY_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                    frame->push(fastCall(lhs, BINARY_SPECIAL_METHODS[byte.arg], {lhs,std::move(rhs)}));
                 } break;
             case OP_BITWISE_OP:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BITWISE_SPECIAL_METHODS[byte.arg], {lhs,rhs}));
+                    frame->push(fastCall(lhs, BITWISE_SPECIAL_METHODS[byte.arg], {lhs,std::move(rhs)}));
                 } break;
             case OP_COMPARE_OP:
                 {
@@ -175,9 +174,9 @@ private:
                     PyVar lhs = frame->popValue(this);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(lhs, CMP_SPECIAL_METHODS[op], {lhs,rhs});
+                    PyVar res = fastCall(lhs, CMP_SPECIAL_METHODS[op], {lhs,std::move(rhs)});
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
-                    frame->push(res);
+                    frame->push(std::move(res));
                 } break;
             case OP_IS_OP:
                 {
@@ -240,9 +239,9 @@ private:
                 {
                     PyVarList args = frame->popNValuesReversed(this, byte.arg);
                     PyVar callable = frame->popValue(this);
-                    PyVar ret = call(callable, args, true);
+                    PyVar ret = call(std::move(callable), std::move(args), true);
                     if(ret == __py2py_call_signal) return ret;
-                    frame->push(ret);
+                    frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jump(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->safeJump(byte.arg); break;
@@ -383,13 +382,13 @@ public:
     }
 
     PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
-        PyVar cls = obj->_type;
-        while(cls != None) {
+        PyObject* cls = obj->_type.get();
+        while(cls != None.get()) {
             auto it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
                 return call(it->second, args);
             }
-            cls = cls->attribs[__base__];
+            cls = cls->attribs[__base__].get();
         }
         attributeError(obj, name);
         return nullptr;
@@ -548,8 +547,8 @@ public:
         auto it = obj->attribs.find(name);
         if(it != obj->attribs.end()) return it->second;
 
-        PyVar cls = obj->_type;
-        while(cls != None) {
+        PyObject* cls = obj->_type.get();
+        while(cls != None.get()) {
             it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
                 PyVar valueFromCls = it->second;
@@ -559,14 +558,18 @@ public:
                     return valueFromCls;
                 }
             }
-            cls = cls->attribs[__base__];
+            cls = cls->attribs[__base__].get();
         }
         if(throw_err) attributeError(obj, name);
         return nullptr;
     }
 
-    inline void setAttr(PyVar& obj, const _Str& name, PyVar value) {
+    inline void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
         obj->attribs[name] = value;
+    }
+
+    inline void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
+        obj->attribs[name] = std::move(value);
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
@@ -906,7 +909,7 @@ void CompoundPointer::del(VM* vm, Frame* frame) const{
 
 /***** Frame's Impl *****/
 inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
-    if(v->isType(vm->_tp_pointer)) v = vm->PyPointer_AS_C(v)->get(vm, this);
+    if(v->isType(vm->_tp_pointer)) return vm->PyPointer_AS_C(v)->get(vm, this);
     return v;
 }
 
