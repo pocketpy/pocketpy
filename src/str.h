@@ -150,14 +150,6 @@ public:
         return *_s != *other._s;
     }
 
-    bool operator==(const char* other) const {
-        return *_s == other;
-    }
-
-    bool operator!=(const char* other) const {
-        return *_s != other;
-    }
-
     bool operator<(const _Str& other) const {
         return *_s < *other._s;
     }
