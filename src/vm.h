@@ -693,7 +693,7 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
-        this->_main = newModule("__main__"c, false);
+        this->_main = newModule("__main__"_c, false);
 
         setAttr(_tp_type, __base__, _tp_object);
         _tp_type->setType(_tp_type);
