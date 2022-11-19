@@ -10,7 +10,7 @@ const _Int _Int_MAX_NEG = -9223372036854775807LL;
 const _Float _FLOAT_INF_POS = INFINITY;
 const _Float _FLOAT_INF_NEG = -INFINITY;
 
-#define PK_VERSION "0.2.6"
+#define PK_VERSION "0.2.9"
 
 class CodeObject;
 class BasePointer;
@@ -27,6 +27,7 @@ struct Function {
     std::vector<_Str> args;
     _Str starredArg;        // empty if no *arg
     PyVarDict kwArgs;       // empty if no k=v
+    std::vector<_Str> kwArgsOrder;
 
     bool hasName(const _Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();

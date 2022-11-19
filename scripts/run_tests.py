@@ -1,23 +1,23 @@
 import os
 
-singletypepath = 'tests/singletype'
-mixedtypepath = 'tests/mixedtype'
-
 def test_file(filepath):
     return os.system("./pocketpy " + filepath) == 0
     #return os.system("python3 " + filepath) == 0
 
 def test_dir(path):
-    print("=" * 50)
+    has_error = False
     for filename in os.listdir(path):
         if filename.endswith('.py'):
             filepath = os.path.join(path, filename)
             code = test_file(filepath)
             if not code:
                 print("[x] " + filepath)
+                has_error = True
             else:
                 print("[√] " + filepath)
+    return not has_error
 
 if __name__ == '__main__':
-    test_dir(singletypepath)
-    test_dir(mixedtypepath)
+    ok = test_dir('./tests')
+    if not ok:
+        exit(1)

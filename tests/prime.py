@@ -13,4 +13,4 @@ def test(n):
       k += 1
   return k
 
-print(test(10000))
+assert test(100) == 25

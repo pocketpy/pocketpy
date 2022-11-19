@@ -30,7 +30,7 @@ It will generate `pocketpy.h` and `main.cpp` in `amalgamated/` directory. You ca
 **If you want to do development:**
 
 ```bash
-g++ -o pocketpy src/main.cpp --std=c++17 -O1
+g++ -o pocketpy src/main.cpp --std=c++17 -O1 -pthread
 ```
 ## Flutter Plugin
 

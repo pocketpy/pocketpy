@@ -32,3 +32,11 @@ jobs:
         build_dir: web
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build_test_linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Compiling
+      run: |
+        bash build_cpp.sh
+        python3 scripts/run_tests.py

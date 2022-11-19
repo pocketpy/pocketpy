@@ -42,6 +42,23 @@ def __list4extend(self, other):
 list.extend = __list4extend
 del __list4extend
 
+def __list4remove(self, value):
+    for i in range(len(self)):
+        if self[i] == value:
+            del self[i]
+            return True
+    return False
+list.remove = __list4remove
+del __list4remove
+
+def __list4index(self, value):
+    for i in range(len(self)):
+        if self[i] == value:
+            return i
+    return -1
+list.index = __list4index
+del __list4index
+
 def __list4__mul__(self, n):
     a = []
     for i in range(n):
@@ -60,6 +77,16 @@ def __iterable4__eq__(self, other):
 list.__eq__ = __iterable4__eq__
 tuple.__eq__ = __iterable4__eq__
 del __iterable4__eq__
+
+def __iterable4count(self, x):
+    res = 0
+    for i in self:
+        if i == x:
+            res += 1
+    return res
+list.count = __iterable4count
+tuple.count = __iterable4count
+del __iterable4count
 
 def __iterable4__contains__(self, item):
     for i in self:
@@ -135,6 +162,14 @@ class dict:
     def items(self):
         return [kv for kv in self._a if kv is not None]
 
+    def clear(self):
+        self._a = [None] * self._capacity
+        self._len = 0
+
+    def update(self, other):
+        for k, v in other.items():
+            self[k] = v
+
     def copy(self):
         d = dict()
         for kv in self._a:
@@ -181,6 +216,18 @@ def map(f, iterable):
 
 def zip(a, b):
     return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+
+def sorted(iterable, key=None, reverse=False):
+    if key is None:
+        key = lambda x: x
+    a = [key(i) for i in iterable]
+    b = list(iterable)
+    for i in range(len(a)):
+        for j in range(i+1, len(a)):
+            if (a[i] > a[j]) ^ reverse:
+                a[i], a[j] = a[j], a[i]
+                b[i], b[j] = b[j], b[i]
+    return b
 )";
 
 const char* __RANDOM_CODE = R"(

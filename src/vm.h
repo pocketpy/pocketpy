@@ -439,11 +439,11 @@ public:
                 locals[fn->starredArg] = PyTuple(vargs);
             }
             // handle keyword arguments
-            for(const auto& [name, value] : fn->kwArgs){
+            for(const _Str& name : fn->kwArgsOrder){
                 if(i < args.size()) {
                     locals[name] = args[i++];
                 }else{
-                    locals[name] = value;
+                    locals[name] = fn->kwArgs[name];
                 }
             }
 

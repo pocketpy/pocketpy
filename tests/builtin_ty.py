@@ -67,7 +67,7 @@ assert l[-1:-3] == []
 assert l[-3:-1] == [2,3]
 
 
-l1 = [1];l2 = l1;l1 += [2];l3 = [1,1,2]
+l1 = [1];l2 = l1;l1.append(2);l3 = [1,1,2]
 assert l2[1] == 2
 assert l1 == l2
 assert l1*3 == [1,2,1,2,1,2]
@@ -104,19 +104,20 @@ l.insert(0, 'h')
 l.insert(3, 'o')
 l.insert(1, 'e')
 assert l == ['h', 'e', 'l', 'l', 'o']
-assert l.pop(-2) == 'l'
+assert l[-2] == 'l'
 
 ##############################################
 ##tuple
 ##############################################
 
-# tup = ('Google', 'Runoob', 'Taobao', 'Wiki', 'Weibo','Weixin')
-# assert tup[1] == 'Runoob';assert tup[-2] == 'Weibo'
-# assert tup[1:] == ('Runoob', 'Taobao', 'Wiki', 'Weibo', 'Weixin')
-# assert tup[2:4] == ('Taobao', 'Wiki')
-# assert len(tup) == 6
-
-
+tup = ('Google', 'Runoob', 'Taobao', 'Wiki', 'Weibo','Weixin')
+a,b = 1,2
+assert a == 1
+assert b == 2
+a,b = b,a
+assert a == 2
+assert b == 1
+assert len(tup) == 6
 
 ##############################################
 ##dict
@@ -134,19 +135,21 @@ assert len(tinydict) == 0
 
 dict1 = {'user':'circle','num':[1,2,3]}
 dict2 = dict1.copy()
-assert dict2 == {'user':'circle','num':[1,2,3]}
-dict1['user'] = 'root'
-assert dict1 == {'user': 'root', 'num': [1, 2, 3]};assert dict2 == {'user':'circle','num':[1,2,3]}
+for k,v in dict1.items():
+    assert dict2[k] == v
 
 tinydict = {'Name': 'circle', 'Age': 7}
 tinydict2 = {'Sex': 'female' }
 tinydict.update(tinydict2)
-assert tinydict == {'Name': 'circle', 'Age': 7, 'Sex': 'female'}
+updated_dict = {'Name': 'circle', 'Age': 7, 'Sex': 'female'}
+for k,v in tinydict.items():
+    assert updated_dict[k] == v
 
 dishes = {'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500}
 keys = dishes.keys()
 values = dishes.values()
-assert list(keys) == ['eggs', 'sausage', 'bacon', 'spam'];assert list(values) == [2, 1, 1, 500]
+assert sorted(keys) == sorted(['eggs', 'sausage', 'bacon', 'spam'])
+assert sorted(values) == sorted([2, 1, 1, 500])
 
 d={1:"a",2:"b",3:"c"}
 result=[]
@@ -156,3 +159,7 @@ for kv in d.items():
     result.append(v)
 assert result == [1, 'a', 2, 'b', 3, 'c']
 
+a = [1,2,3,-1]
+assert sorted(a) == [-1,1,2,3]
+assert sorted(a, lambda x:-x) == [3,2,1,-1]
+assert sorted(a, None, True) == [3,2,1,-1]

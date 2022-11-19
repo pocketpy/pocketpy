@@ -424,7 +424,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 3, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        if(_index < 0) _index += _self.size();
+        if(_index < 0) _index = 0;
+        if(_index > _self.size()) _index = _self.size();
         _self.insert(_self.begin() + _index, args[2]);
         return vm->None;
     });
@@ -533,6 +535,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("bool", "__eq__", [](VM* vm, PyVarList args) {
         return vm->PyBool(args[0] == args[1]);
+    });
+
+    _vm->bindMethod("bool", "__xor__", [](VM* vm, PyVarList args) {
+        bool _self = vm->PyBool_AS_C(args[0]);
+        bool _obj = vm->PyBool_AS_C(args[1]);
+        return vm->PyBool(_self ^ _obj);
     });
 }
 
