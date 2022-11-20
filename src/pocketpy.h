@@ -544,6 +544,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         bool _obj = vm->PyBool_AS_C(args[1]);
         return vm->PyBool(_self ^ _obj);
     });
+
+    _vm->bindMethod("ellipsis", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+        return vm->PyStr("Ellipsis");
+    });
 }
 
 #include "builtins.h"

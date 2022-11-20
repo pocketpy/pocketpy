@@ -40,6 +40,7 @@ OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
 OPCODE(LOAD_EVAL_FN)        // load eval() callable into stack
 OPCODE(LOAD_LAMBDA)         // LOAD_CONST + set __module__ attr
+OPCODE(LOAD_ELLIPSIS)
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)

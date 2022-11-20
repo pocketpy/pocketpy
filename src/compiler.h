@@ -81,6 +81,7 @@ public:
         rules[TK("False")] =    { METHOD(exprValue),     NO_INFIX };
         rules[TK("lambda")] =   { METHOD(exprLambda),    NO_INFIX };
         rules[TK("None")] =     { METHOD(exprValue),     NO_INFIX };
+        rules[TK("...")] =      { METHOD(exprValue),     NO_INFIX };
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
@@ -190,10 +191,21 @@ public:
                 case '[': parser->setNextToken(TK("[")); return;
                 case ']': parser->setNextToken(TK("]")); return;
                 case '%': parser->setNextToken(TK("%")); return;
-                case '.': parser->setNextToken(TK(".")); return;
                 case '&': parser->setNextToken(TK("&")); return;
                 case '|': parser->setNextToken(TK("|")); return;
                 case '^': parser->setNextToken(TK("^")); return;
+                case '.': {
+                    if(parser->matchChar('.')) {
+                        if(parser->matchChar('.')) {
+                            parser->setNextToken(TK("..."));
+                        } else {
+                            syntaxError("invalid token '..'");
+                        }
+                    } else {
+                        parser->setNextToken(TK("."));
+                    }
+                    return;
+                }
                 case '=': parser->setNextTwoCharToken('=', TK("="), TK("==")); return;
                 case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
                 case '>': {
@@ -575,9 +587,10 @@ __LISTCOMP:
     void exprValue() {
         _TokenType op = parser->previous.type;
         switch (op) {
-            case TK("None"):  emitCode(OP_LOAD_NONE);  break;
-            case TK("True"):  emitCode(OP_LOAD_TRUE);  break;
-            case TK("False"): emitCode(OP_LOAD_FALSE); break;
+            case TK("None"):    emitCode(OP_LOAD_NONE);  break;
+            case TK("True"):    emitCode(OP_LOAD_TRUE);  break;
+            case TK("False"):   emitCode(OP_LOAD_FALSE); break;
+            case TK("..."):     emitCode(OP_LOAD_ELLIPSIS); break;
             default: UNREACHABLE();
         }
     }
@@ -876,6 +889,7 @@ __LISTCOMP:
         if(match(TK("True"))) return vm->PyBool(true);
         if(match(TK("False"))) return vm->PyBool(false);
         if(match(TK("None"))) return vm->None;
+        if(match(TK("..."))) return vm->Ellipsis;
         syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
         return nullptr;
     }

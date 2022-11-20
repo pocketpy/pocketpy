@@ -212,6 +212,7 @@ private:
             case OP_LOAD_NONE: frame->push(None); break;
             case OP_LOAD_TRUE: frame->push(True); break;
             case OP_LOAD_FALSE: frame->push(False); break;
+            case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); break;
             case OP_ASSERT:
                 {
                     PyVar expr = frame->popValue(this);
@@ -326,7 +327,7 @@ private:
 
 public:
     PyVarDict _types;
-    PyVar None, True, False;
+    PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
     std::ostream* _stdout;
@@ -698,6 +699,7 @@ public:
         _tp_pointer = newClassType("_pointer");
 
         newClassType("NoneType");
+        newClassType("ellipsis");
         
         _tp_function = newClassType("function");
         _tp_native_function = newClassType("_native_function");
@@ -705,6 +707,7 @@ public:
         _tp_bounded_method = newClassType("_bounded_method");
 
         this->None = newObject(_types["NoneType"], (_Int)0);
+        this->Ellipsis = newObject(_types["ellipsis"], (_Int)0);
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
