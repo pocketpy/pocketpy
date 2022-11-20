@@ -207,6 +207,12 @@ private:
                     const PyVar& obj_bool = asBool(obj);
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
+            case OP_UNARY_REF:
+                {
+                    PyVar obj = frame->__pop();
+                    _Pointer p = PyPointer_AS_C(obj);
+                    frame->push(newObject(_tp_user_pointer, p));
+                } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
                 break;
@@ -659,12 +665,13 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
+    PyVar _tp_user_pointer;
 
     __DEF_PY_POOL(Int, _Int, _tp_int, 256);
     __DEF_PY_AS_C(Int, _Int, _tp_int)
     __DEF_PY_POOL(Float, _Float, _tp_float, 256);
     __DEF_PY_AS_C(Float, _Float, _tp_float)
-    __DEF_PY_POOL(Pointer, _Pointer, _tp_pointer, 512)
+    __DEF_PY_POOL(Pointer, _Pointer, _tp_pointer, 256)
     __DEF_PY_AS_C(Pointer, _Pointer, _tp_pointer)
 
     DEF_NATIVE(Str, _Str, _tp_str)
@@ -698,6 +705,7 @@ public:
         _tp_range = newClassType("range");
         _tp_module = newClassType("module");
         _tp_pointer = newClassType("_pointer");
+        _tp_user_pointer = newClassType("pointer");
 
         newClassType("NoneType");
         newClassType("ellipsis");

@@ -56,6 +56,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(tvm->readStdin());
     });
 
+    _vm->bindMethod("pointer", "set", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2, true);
+        _Pointer& p = std::get<_Pointer>(args[0]->_native);
+        p->set(vm, vm->topFrame(), args[1]);
+        return vm->None;
+    });
+
+    _vm->bindMethod("pointer", "get", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        _Pointer& p = std::get<_Pointer>(args[0]->_native);
+        return p->get(vm, vm->topFrame());
+    });
+
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
@@ -115,8 +128,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("dir", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
+        std::vector<_Str> names;
+        for (auto& [k, _] : args[0]->attribs) names.push_back(k);
+        for (auto& [k, _] : args[0]->_type->attribs) {
+            if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
+        }
         PyVarList ret;
-        for (auto& [k, _] : args[0]->attribs) ret.push_back(vm->PyStr(k));
+        for (const auto& name : names) ret.push_back(vm->PyStr(name));
         return vm->PyList(ret);
     });
 

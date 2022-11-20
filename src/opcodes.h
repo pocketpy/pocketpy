@@ -59,5 +59,6 @@ OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound po
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
 OPCODE(GOTO)
+OPCODE(UNARY_REF)           // for &
 
 #endif

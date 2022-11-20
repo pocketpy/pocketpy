@@ -95,7 +95,7 @@ public:
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
+        rules[TK("&")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_BITWISE_AND };
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
 #undef METHOD
@@ -449,6 +449,7 @@ public:
         switch (op) {
             case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emitCode(OP_UNARY_NOT);      break;
+            case TK("&"):     emitCode(OP_UNARY_REF);      break;
             default: UNREACHABLE();
         }
     }
