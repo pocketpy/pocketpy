@@ -20,3 +20,9 @@
 #include <thread>
 #include <atomic>
 #include <iostream>
+
+#ifdef POCKETPY_H
+#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()! This should be a bug, please report it");
+#else
+#define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
+#endif
