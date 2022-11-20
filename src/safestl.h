@@ -117,7 +117,7 @@ namespace pkpy {
             other.clear();
         }
 
-        ArgList(std::initializer_list<PyVar>&& args){
+        ArgList(std::initializer_list<PyVar> args){
             __tryAlloc(args.size());
             int i = 0;
             for(auto& arg: args) this->_args[i++] = arg;
