@@ -118,12 +118,13 @@ private:
                 frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
-                frame->push(builtins->attribs["eval"]);
+                frame->push(builtins->attribs["eval"_c]);
             } break;
             case OP_LIST_APPEND: {
-                PyVar obj = frame->popValue(this);
-                PyVar list = frame->__topValueN(this, -2);
-                fastCall(list, "append", {list, obj});
+                pkpy::ArgList args(2);
+                args[1] = frame->popValue(this);            // obj
+                args[0] = frame->__topValueN(this, -2);     // list
+                fastCall(args[0], "append"_c, std::move(args));
             } break;
             case OP_STORE_FUNCTION:
                 {
