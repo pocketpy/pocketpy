@@ -58,15 +58,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("pointer", "set", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
-        _Pointer& p = std::get<_Pointer>(args[0]->_native);
-        p->set(vm, vm->topFrame(), args[1]);
+        Pointer& p = std::get<Pointer>(args[0]->_native);
+        // this check is unsafe, but it's the best we can do
+        if(!vm->__isFrameValid(p.frame)) vm->nullPointerError();
+        p.ptr->set(vm, p.frame, args[1]);
         return vm->None;
     });
 
     _vm->bindMethod("pointer", "get", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1, true);
-        _Pointer& p = std::get<_Pointer>(args[0]->_native);
-        return p->get(vm, vm->topFrame());
+        Pointer& p = std::get<Pointer>(args[0]->_native);
+        // this check is unsafe, but it's the best we can do
+        if(!vm->__isFrameValid(p.frame)) vm->nullPointerError();
+        return p.ptr->get(vm, p.frame);
     });
 
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
@@ -131,6 +135,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         std::vector<_Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
         for (auto& [k, _] : args[0]->_type->attribs) {
+            if (k.str().find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
         PyVarList ret;

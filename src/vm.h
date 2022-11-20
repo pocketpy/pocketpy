@@ -45,7 +45,7 @@ typedef void(*PrintFn)(const VM*, const char*);
 
 class VM: public PkExportedResource{
 private:
-    std::stack< std::unique_ptr<Frame> > callstack;
+    std::deque< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;       // 3rd modules
     PyVar __py2py_call_signal;
 
@@ -209,9 +209,8 @@ private:
                 } break;
             case OP_UNARY_REF:
                 {
-                    PyVar obj = frame->__pop();
-                    _Pointer p = PyPointer_AS_C(obj);
-                    frame->push(newObject(_tp_user_pointer, p));
+                    _Pointer p = PyPointer_AS_C(frame->__pop());
+                    frame->push(newObject(_tp_user_pointer, Pointer(frame, p)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -365,9 +364,16 @@ public:
         return asRepr(obj);
     }
 
+    bool __isFrameValid(Frame* frame){
+        for(const auto& f : callstack){
+            if(f.get() == frame) return true;
+        }
+        return false;
+    }
+
     Frame* topFrame(){
         if(callstack.size() == 0) UNREACHABLE();
-        return callstack.top().get();
+        return callstack.back().get();
     }
 
     PyVar asRepr(const PyVar& obj){
@@ -504,7 +510,7 @@ public:
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
         Frame* frame = new Frame(code.get(), _module, locals);
-        callstack.push(std::unique_ptr<Frame>(frame));
+        callstack.emplace_back(std::unique_ptr<Frame>(frame));
         return frame;
     }
 
@@ -519,16 +525,16 @@ public:
                 if(frame == frameBase){         // [ frameBase<- ]
                     break;
                 }else{
-                    callstack.pop();
-                    frame = callstack.top().get();
+                    callstack.pop_back();
+                    frame = callstack.back().get();
                     frame->push(ret);
                 }
             }else{
-                frame = callstack.top().get();  // [ frameBase, newFrame<- ]
+                frame = callstack.back().get();  // [ frameBase, newFrame<- ]
             }
         }
 
-        callstack.pop();
+        callstack.pop_back();
         return ret;
     }
 
@@ -772,9 +778,9 @@ private:
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
             if(snapshots.size() < 8){
-                snapshots.push(callstack.top()->errorSnapshot());
+                snapshots.push(callstack.back()->errorSnapshot());
             }
-            callstack.pop();
+            callstack.pop_back();
         }
         return snapshots;
     }
@@ -786,6 +792,10 @@ public:
 
     void systemError(const _Str& msg){
         _error("SystemError", msg);
+    }
+
+    void nullPointerError(){
+        _error("NullPointerError", "pointer is invalid");
     }
 
     void zeroDivisionError(){
