@@ -260,7 +260,7 @@ public:
                         int ret = parser->eatName();
                         if(ret!=0) syntaxError("identifier is illegal, err " + std::to_string(ret));
                     } else {
-                        syntaxError("unknown character: " + _Str(1, c));
+                        syntaxError("unknown character: " + std::string(1, c));
                     }
                     return;
                 }

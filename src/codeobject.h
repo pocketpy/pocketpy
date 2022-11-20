@@ -23,7 +23,7 @@ struct ByteCode{
 };
 
 _Str pad(const _Str& s, const int n){
-    return s + _Str(n - s.size(), ' ');
+    return s + std::string(n - s.size(), ' ');
 }
 
 struct CodeObject {

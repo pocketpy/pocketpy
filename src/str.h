@@ -55,13 +55,12 @@ public:
 };
 
 
-std::unordered_map<std::string, std::shared_ptr<_StrMemory>> _strIntern;
+std::map<std::string, std::shared_ptr<_StrMemory>, std::less<>> _strIntern;
 
 
-struct _StrLiteral {
-    const char* _str;
-    size_t _len;
-    constexpr _StrLiteral(const char* str, size_t len) : _str(str), _len(len) {}
+class _StrLiteral : public std::string_view {
+public:
+    constexpr _StrLiteral(const char* str, size_t len) : std::string_view(str, len) {}
 };
 
 inline constexpr _StrLiteral operator "" _c(const char* str, size_t len){
@@ -74,36 +73,35 @@ private:
     bool interned = false;
 public:
     _Str(const _StrLiteral& s){
-        construct(std::string(s._str, s._len));
+        construct(s);
         intern();
     }
     _Str(const char* s){
-        construct(std::string(s));
+        construct(s);
     }
     _Str(const char* s, size_t len){
-        construct(std::string(s, len));
+        construct(std::string_view(s, len));
     }
-    _Str(int n, char fill){
-        construct(std::string(n, fill));
+    _Str(){
+        construct("");
     }
     _Str(const std::string& s){
         construct(s);
     }
-    _Str(std::string&& s){
-        construct(std::move(s));
-    }
-    _Str(){
-        construct(std::string());
-    }
     _Str(const _Str& s) : _s(s._s), interned(s.interned) {}
 
-    void construct(std::string s){
-        auto it = _strIntern.find(s);
+    // for move constructor, we do not check if the string is interned!!
+    _Str(std::string&& s){
+        this->_s = std::make_shared<_StrMemory>(std::move(s));
+    }
+
+    void construct(const std::string_view& sv){
+        auto it = _strIntern.find(sv);
         if(it != _strIntern.end()){
             this->_s = it->second;
             interned = true;
         }else{
-            this->_s = std::make_shared<_StrMemory>(std::move(s));
+            this->_s = std::make_shared<_StrMemory>(std::string(sv));
         }
     }
 

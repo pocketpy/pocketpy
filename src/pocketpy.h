@@ -83,7 +83,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1);
         _Int i = vm->PyInt_AS_C(args[0]);
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
-        return vm->PyStr(_Str(1, (char)i));
+        return vm->PyStr(std::string(1, (char)i));
     });
 
     _vm->bindBuiltinFunc("ord", [](VM* vm, const pkpy::ArgList& args) {
