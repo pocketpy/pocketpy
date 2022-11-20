@@ -381,7 +381,7 @@ public:
         return True;
     }
 
-    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList&& args){
+    PyVar fastCall(const PyVar& obj, const _Str& name, pkpy::ArgList&& args){
         PyObject* cls = obj->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);
@@ -394,34 +394,38 @@ public:
         return nullptr;
     }
 
-    PyVar call(PyVar callable, PyVarList args, bool opCall=false){
-        if(callable->isType(_tp_type)){
-            auto it = callable->attribs.find(__new__);
+    PyVar call(const PyVar& _callable, pkpy::ArgList args, bool opCall=false){
+        if(_callable->isType(_tp_type)){
+            auto it = _callable->attribs.find(__new__);
             PyVar obj;
-            if(it != callable->attribs.end()){
+            if(it != _callable->attribs.end()){
                 obj = call(it->second, args);
             }else{
-                obj = newObject(callable, (_Int)-1);
+                obj = newObject(_callable, (_Int)-1);
             }
-            if(obj->isType(callable)){
+            if(obj->isType(_callable)){
                 PyVarOrNull init_fn = getAttr(obj, __init__, false);
                 if (init_fn != nullptr) call(init_fn, args);
             }
             return obj;
         }
 
-        if(callable->isType(_tp_bounded_method)){
-            auto& bm = PyBoundedMethod_AS_C(callable);
+        const PyVar* callable = &_callable;
+        if((*callable)->isType(_tp_bounded_method)){
+            auto& bm = PyBoundedMethod_AS_C((*callable));
             // TODO: avoid insertion here, bad performance
-            args.insert(args.begin(), bm.obj);
-            callable = bm.method;
+            pkpy::ArgList new_args(args.size()+1);
+            new_args[0] = bm.obj;
+            for(int i=0; i<args.size(); i++) new_args[i+1] = args[i];
+            callable = &bm.method;
+            args = std::move(new_args);
         }
         
-        if(callable->isType(_tp_native_function)){
-            const auto& f = std::get<_CppFunc>(callable->_native);
+        if((*callable)->isType(_tp_native_function)){
+            const auto& f = std::get<_CppFunc>((*callable)->_native);
             return f(this, args);
-        } else if(callable->isType(_tp_function)){
-            const _Func& fn = PyFunction_AS_C(callable);
+        } else if((*callable)->isType(_tp_function)){
+            const _Func& fn = PyFunction_AS_C((*callable));
             PyVarDict locals;
             int i = 0;
             for(const auto& name : fn->args){
@@ -448,19 +452,23 @@ public:
 
             if(i < args.size()) typeError("too many arguments");
 
-            auto it_m = callable->attribs.find(__module__);
-            PyVar _module = it_m != callable->attribs.end() ? it_m->second : topFrame()->_module;
+            auto it_m = (*callable)->attribs.find(__module__);
+            PyVar _module = it_m != (*callable)->attribs.end() ? it_m->second : topFrame()->_module;
             if(opCall){
                 __pushNewFrame(fn->code, _module, locals);
                 return __py2py_call_signal;
             }
             return _exec(fn->code, _module, locals);
         }
-        typeError("'" + callable->getTypeName() + "' object is not callable");
+        typeError("'" + (*callable)->getTypeName() + "' object is not callable");
         return None;
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func, PyVarList args){
+    inline PyVar call(const PyVar& obj, const _Str& func, const pkpy::ArgList& args){
+        return call(getAttr(obj, func), args);
+    }
+
+    inline PyVar call(const PyVar& obj, const _Str& func, pkpy::ArgList&& args){
         return call(getAttr(obj, func), args);
     }
 
@@ -789,7 +797,7 @@ public:
         if(!obj->isType(type)) typeError("expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
     }
 
-    inline void __checkArgSize(const PyVarList& args, int size, bool method=false){
+    inline void __checkArgSize(const pkpy::ArgList& args, int size, bool method=false){
         if(args.size() == size) return;
         if(method) typeError(args.size()>size ? "too many arguments" : "too few arguments");
         else typeError("expected " + std::to_string(size) + " arguments, but got " + std::to_string(args.size()));

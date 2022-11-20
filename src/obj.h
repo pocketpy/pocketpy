@@ -18,7 +18,7 @@ class VM;
 class PkExportedResource {};
 
 typedef std::shared_ptr<const BasePointer> _Pointer;
-typedef PyVar (*_CppFunc)(VM*, PyVarList);
+typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
 typedef std::shared_ptr<CodeObject> _Code;
 
 struct Function {

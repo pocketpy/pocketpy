@@ -8,6 +8,8 @@ def test_dir(path):
     has_error = False
     for filename in os.listdir(path):
         if filename.endswith('.py'):
+            if(filename == '1.py'):
+                continue
             filepath = os.path.join(path, filename)
             code = test_file(filepath)
             if not code:
