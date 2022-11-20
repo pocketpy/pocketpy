@@ -55,21 +55,21 @@ public:
 
 
 namespace pkpy {
-    const size_t MAX_POOLING_N = 16;
+    const uint16_t MAX_POOLING_N = 16;
     static std::deque<PyVar*>* _poolArgList = new std::deque<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
         PyVar* _args = nullptr;
-        size_t _size = 0;
+        uint16_t _size = 0;
 
-        inline void __checkIndex(size_t i) const {
+        inline void __checkIndex(uint16_t i) const {
             if (i >= _size){
                 auto msg = "pkpy:ArgList index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
                 throw std::out_of_range(msg);
             }
         }
 
-        void __tryAlloc(size_t n){
+        void __tryAlloc(uint16_t n){
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
                 this->_size = n;
                 this->_args = new PyVar[n];
@@ -124,12 +124,12 @@ namespace pkpy {
             for(auto& arg: args) this->_args[i++] = arg;
         }
 
-        PyVar& operator[](size_t i){
+        PyVar& operator[](uint16_t i){
             __checkIndex(i);
             return _args[i];
         }
 
-        const PyVar& operator[](size_t i) const {
+        const PyVar& operator[](uint16_t i) const {
             __checkIndex(i);
             return _args[i];
         }
@@ -146,7 +146,7 @@ namespace pkpy {
             return *this;
         }
 
-        size_t size() const {
+        uint16_t size() const {
             return _size;
         }
 
