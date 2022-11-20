@@ -60,7 +60,7 @@ public:
         rules[TK("%")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("+")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
         rules[TK("-")] =    { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK("*")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("*")] =    { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("/")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("//")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("**")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
@@ -450,6 +450,7 @@ public:
             case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emitCode(OP_UNARY_NOT);      break;
             case TK("&"):     emitCode(OP_UNARY_REF);      break;
+            case TK("*"):     emitCode(OP_UNARY_DEREF);    break;
             default: UNREACHABLE();
         }
     }

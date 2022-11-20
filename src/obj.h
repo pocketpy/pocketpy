@@ -10,11 +10,10 @@ const _Int _Int_MAX_NEG = -9223372036854775807LL;
 const _Float _FLOAT_INF_POS = INFINITY;
 const _Float _FLOAT_INF_NEG = -INFINITY;
 
-#define PK_VERSION "0.2.9"
+#define PK_VERSION "0.3.0"
 
 class CodeObject;
 class BasePointer;
-class Pointer;
 class VM;
 class Frame;
 class PkExportedResource {};
@@ -22,12 +21,6 @@ class PkExportedResource {};
 typedef std::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
 typedef std::shared_ptr<CodeObject> _Code;
-
-struct Pointer {
-    Frame* frame;               // the frame that created this pointer
-    _Pointer ptr;               // the internal pointer
-    Pointer(Frame* frame, _Pointer ptr) : frame(frame), ptr(ptr) {}
-};
 
 struct Function {
     _Str name;
@@ -80,7 +73,7 @@ public:
 };
 
 typedef std::shared_ptr<Function> _Func;
-typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer,Pointer> _Value;
+typedef std::variant<_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
 const int _SIZEOF_VALUE = sizeof(_Value);
 

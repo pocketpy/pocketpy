@@ -209,8 +209,17 @@ private:
                 } break;
             case OP_UNARY_REF:
                 {
-                    _Pointer p = PyPointer_AS_C(frame->__pop());
-                    frame->push(newObject(_tp_user_pointer, Pointer(frame, p)));
+                    // _pointer to pointer
+                    const _Pointer& p = PyPointer_AS_C(frame->__pop());
+                    _Pointer up = std::make_shared<UserPointer>(p, frame);
+                    frame->push(newObject(_tp_user_pointer, std::move(up)));
+                } break;
+            case OP_UNARY_DEREF:
+                {
+                    // pointer to _pointer
+                    PyVar obj = frame->popValue(this);
+                    __checkType(obj, _tp_user_pointer);
+                    frame->push(PyPointer(std::get<_Pointer>(obj->_native)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -939,6 +948,24 @@ void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
 
 void CompoundPointer::del(VM* vm, Frame* frame) const{
     for (auto& ptr : pointers) ptr->del(vm, frame);
+}
+
+PyVar UserPointer::get(VM* vm, Frame* frame) const{
+    frame = this->frame;
+    // this check is unsafe, but it's the best we can do
+    if(!vm->__isFrameValid(frame)) vm->nullPointerError();
+    return p->get(vm, frame);
+}
+
+void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
+    frame = this->frame;
+    // this check is unsafe, but it's the best we can do
+    if(!vm->__isFrameValid(frame)) vm->nullPointerError();
+    p->set(vm, frame, val);
+}
+
+void UserPointer::del(VM* vm, Frame* frame) const{
+    vm->typeError("delete is unsupported");
 }
 
 /***** Frame's Impl *****/

@@ -56,23 +56,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(tvm->readStdin());
     });
 
-    _vm->bindMethod("pointer", "set", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkArgSize(args, 2, true);
-        Pointer& p = std::get<Pointer>(args[0]->_native);
-        // this check is unsafe, but it's the best we can do
-        if(!vm->__isFrameValid(p.frame)) vm->nullPointerError();
-        p.ptr->set(vm, p.frame, args[1]);
-        return vm->None;
-    });
-
-    _vm->bindMethod("pointer", "get", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkArgSize(args, 1, true);
-        Pointer& p = std::get<Pointer>(args[0]->_native);
-        // this check is unsafe, but it's the best we can do
-        if(!vm->__isFrameValid(p.frame)) vm->nullPointerError();
-        return p.ptr->get(vm, p.frame);
-    });
-
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);

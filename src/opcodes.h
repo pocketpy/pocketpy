@@ -60,5 +60,6 @@ OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the to
 
 OPCODE(GOTO)
 OPCODE(UNARY_REF)           // for &
+OPCODE(UNARY_DEREF)         // for *
 
 #endif
