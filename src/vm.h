@@ -374,8 +374,8 @@ public:
     }
 
     bool __isFrameValid(Frame* frame){
-        for(const auto& f : callstack){
-            if(f.get() == frame) return true;
+        for(auto it=callstack.crbegin(); it!=callstack.crend(); ++it){
+            if(it->get() == frame) return true;
         }
         return false;
     }
@@ -687,7 +687,12 @@ public:
     __DEF_PY_POOL(Float, _Float, _tp_float, 256);
     __DEF_PY_AS_C(Float, _Float, _tp_float)
     __DEF_PY_POOL(Pointer, _Pointer, _tp_pointer, 256)
-    __DEF_PY_AS_C(Pointer, _Pointer, _tp_pointer)
+
+    inline _Pointer& PyPointer_AS_C(const PyVar& obj)
+    {
+        if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
+        return std::get<_Pointer>(obj->_native);
+    }
 
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
