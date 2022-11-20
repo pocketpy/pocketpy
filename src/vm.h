@@ -158,23 +158,26 @@ private:
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
                 {
-                    PyVar rhs = frame->popValue(this);
-                    PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BINARY_SPECIAL_METHODS[byte.arg], {lhs,std::move(rhs)}));
+                    pkpy::ArgList args(2);
+                    args[1] = frame->popValue(this);
+                    args[0] = frame->popValue(this);
+                    frame->push(fastCall(args[0], BINARY_SPECIAL_METHODS[byte.arg], std::move(args)));
                 } break;
             case OP_BITWISE_OP:
                 {
-                    PyVar rhs = frame->popValue(this);
-                    PyVar lhs = frame->popValue(this);
-                    frame->push(fastCall(lhs, BITWISE_SPECIAL_METHODS[byte.arg], {lhs,std::move(rhs)}));
+                    pkpy::ArgList args(2);
+                    args[1] = frame->popValue(this);
+                    args[0] = frame->popValue(this);
+                    frame->push(fastCall(args[0], BITWISE_SPECIAL_METHODS[byte.arg], std::move(args)));
                 } break;
             case OP_COMPARE_OP:
                 {
-                    PyVar rhs = frame->popValue(this);
-                    PyVar lhs = frame->popValue(this);
+                    pkpy::ArgList args(2);
+                    args[1] = frame->popValue(this);
+                    args[0] = frame->popValue(this);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(lhs, CMP_SPECIAL_METHODS[op], {lhs,std::move(rhs)});
+                    PyVar res = fastCall(args[0], CMP_SPECIAL_METHODS[op], std::move(args));
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(std::move(res));
                 } break;

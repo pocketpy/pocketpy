@@ -117,6 +117,7 @@ namespace pkpy {
             other.clear();
         }
 
+        // deprecated, this is very slow, do not use it!!!
         ArgList(std::initializer_list<PyVar> args){
             __tryAlloc(args.size());
             int i = 0;
