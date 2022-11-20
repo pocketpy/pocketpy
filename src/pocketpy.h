@@ -704,7 +704,7 @@ extern "C" {
         __initializeBuiltinFunctions(vm);
         _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);
-        vm->_exec(code, vm->builtins);
+        vm->_exec(code, vm->builtins, {});
 
         __addModuleSys(vm);
         __addModuleTime(vm);

@@ -62,8 +62,8 @@ struct CompoundPointer : BasePointer {
 
 struct UserPointer : BasePointer {
     const _Pointer p;
-    Frame* frame;
-    UserPointer(_Pointer p, Frame* frame) : p(p), frame(frame) {}
+    uint64_t f_id;
+    UserPointer(_Pointer p, uint64_t f_id) : p(p), f_id(f_id) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

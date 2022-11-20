@@ -211,7 +211,7 @@ private:
                 {
                     // _pointer to pointer
                     const _Pointer& p = PyPointer_AS_C(frame->__pop());
-                    _Pointer up = std::make_shared<UserPointer>(p, frame);
+                    _Pointer up = std::make_shared<UserPointer>(p, frame->id);
                     frame->push(newObject(_tp_user_pointer, std::move(up)));
                 } break;
             case OP_UNARY_DEREF:
@@ -373,11 +373,13 @@ public:
         return asRepr(obj);
     }
 
-    bool __isFrameValid(Frame* frame){
+    Frame* __findFrame(uint64_t up_f_id){
         for(auto it=callstack.crbegin(); it!=callstack.crend(); ++it){
-            if(it->get() == frame) return true;
+            uint64_t f_id = it->get()->id;
+            if(f_id == up_f_id) return it->get();
+            if(f_id < up_f_id) return nullptr;
         }
-        return false;
+        return nullptr;
     }
 
     Frame* topFrame(){
@@ -498,10 +500,10 @@ public:
         return call(getAttr(obj, func), args);
     }
 
-    PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
+    PyVarOrNull exec(const _Code& code, PyVar _module=nullptr, bool repl_mode=false){
         if(_module == nullptr) _module = _main;
         try {
-            return _exec(code, _module);
+            return _exec(code, _module, {}, repl_mode);
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
                 *_stderr << e.what() << '\n';
@@ -523,8 +525,9 @@ public:
         return frame;
     }
 
-    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals={}){
+    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals, bool repl_mode=false){
         Frame* frame = __pushNewFrame(code, _module, locals);
+        if(repl_mode) frame->id = 0;
         Frame* frameBase = frame;
         PyVar ret = nullptr;
 
@@ -956,16 +959,14 @@ void CompoundPointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar UserPointer::get(VM* vm, Frame* frame) const{
-    frame = this->frame;
-    // this check is unsafe, but it's the best we can do
-    if(!vm->__isFrameValid(frame)) vm->nullPointerError();
+    frame = vm->__findFrame(f_id);
+    if(frame == nullptr) vm->nullPointerError();
     return p->get(vm, frame);
 }
 
 void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    frame = this->frame;
-    // this check is unsafe, but it's the best we can do
-    if(!vm->__isFrameValid(frame)) vm->nullPointerError();
+    frame = vm->__findFrame(f_id);
+    if(frame == nullptr) vm->nullPointerError();
     p->set(vm, frame, val);
 }
 

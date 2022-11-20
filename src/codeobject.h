@@ -125,6 +125,8 @@ public:
     PyVar _module;
     PyVarDict f_locals;
 
+    uint64_t id;
+
     inline PyVarDict& f_globals(){
         return _module->attribs;
     }
@@ -132,7 +134,11 @@ public:
     const CodeObject* code;
 
     Frame(const CodeObject* code, PyVar _module, const PyVarDict& locals)
-        : code(code), _module(_module), f_locals(locals) {}
+        : code(code), _module(_module), f_locals(locals) {
+        
+        static uint64_t frame_id = 1;
+        id = frame_id++;
+    }
 
     inline const ByteCode& readCode() {
         return code->co_code[ip++];

@@ -62,7 +62,7 @@ __NOT_ENOUGH_LINES:
 
         try{
             _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            if(code != nullptr) vm->exec(code);
+            if(code != nullptr) vm->exec(code, nullptr, true);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
