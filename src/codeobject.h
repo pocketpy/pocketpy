@@ -169,6 +169,11 @@ public:
         return __deref_pointer(vm, s_data.back());
     }
 
+    inline PyVar& __top(){
+        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
+        return s_data.back();
+    }
+
     inline PyVar __topValueN(VM* vm, int n=-1){
         return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
@@ -219,7 +224,7 @@ public:
 
     PyVarList __popNReversed(int n){
         PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = __pop();
+        for(int i=n-1; i>=0; i--) v[i] = std::move(__pop());
         return v;
     }
 };

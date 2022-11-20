@@ -25,11 +25,11 @@
         PyObject* _raw = nullptr;                   \
         if(_pool##name.size() > 0) {                \
             _raw = _pool##name.back();              \
-            _raw->_native = _native;                \
+            _raw->_native = std::move(_native);     \
             _pool##name.pop_back();                 \
         }else{                                      \
             __checkType(ptype, _tp_type);           \
-            _raw = new PyObject(_native);           \
+            _raw = new PyObject(std::move(_native));\
             _raw->setType(ptype);                   \
         }                                           \
         return PyVar(_raw, [this](PyObject* p){     \
@@ -82,11 +82,11 @@ private:
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                _Pointer p = PyPointer_AS_C(frame->__pop());
+                const _Pointer& p = PyPointer_AS_C(frame->__pop());
                 p->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
-                _Pointer p = PyPointer_AS_C(frame->__pop());
+                const _Pointer& p = PyPointer_AS_C(frame->__pop());
                 p->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
@@ -188,7 +188,7 @@ private:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, {lhs}));
+                    bool ret_c = PyBool_AS_C(call(std::move(rhs), __contains__, {std::move(lhs)}));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
@@ -200,7 +200,7 @@ private:
             case OP_UNARY_NOT:
                 {
                     PyVar obj = frame->popValue(this);
-                    PyVar obj_bool = asBool(obj);
+                    const PyVar& obj_bool = asBool(obj);
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
@@ -260,8 +260,8 @@ private:
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn, {obj});
-                        PyIter_AS_C(tmp)->var = PyPointer_AS_C(frame->__pop());
-                        frame->push(tmp);
+                        PyIter_AS_C(tmp)->var = std::move(PyPointer_AS_C(frame->__pop()));
+                        frame->push(std::move(tmp));
                     }else{
                         typeError("'" + obj->getTypeName() + "' object is not iterable");
                     }
@@ -269,8 +269,8 @@ private:
             case OP_FOR_ITER:
                 {
                     frame->__reportForIter();
-                    const PyVar& iter = frame->topValue(this);
-                    auto& it = PyIter_AS_C(iter);
+                    // __top() must be PyIter, so no need to __deref()
+                    auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         it->var->set(this, frame, it->next());
                     }
@@ -368,20 +368,20 @@ public:
         return call(obj, __json__, {});
     }
 
-    PyVar asBool(const PyVar& obj){
+    const PyVar& asBool(const PyVar& obj){
         if(obj == None) return False;
         if(obj->_type == _tp_bool) return obj;
         if(obj->_type == _tp_int) return PyBool(PyInt_AS_C(obj) != 0);
         if(obj->_type == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getAttr(obj, __len__, false);
         if(len_fn != nullptr){
-            PyVar ret = call(len_fn, {});
+            PyVar ret = call(std::move(len_fn), {});
             return PyBool(PyInt_AS_C(ret) > 0);
         }
         return True;
     }
 
-    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList args){
+    PyVar fastCall(const PyVar& obj, const _Str& name, PyVarList&& args){
         PyObject* cls = obj->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);
@@ -418,7 +418,7 @@ public:
         }
         
         if(callable->isType(_tp_native_function)){
-            auto f = std::get<_CppFunc>(callable->_native);
+            const auto& f = std::get<_CppFunc>(callable->_native);
             return f(this, args);
         } else if(callable->isType(_tp_function)){
             const _Func& fn = PyFunction_AS_C(callable);
@@ -664,8 +664,9 @@ public:
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
     
-    inline bool PyBool_AS_C(PyVar obj){return obj == True;}
-    inline PyVar PyBool(bool value){return value ? True : False;}
+    // there is only one True/False, so no need to copy them!
+    inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
+    inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
         _tp_object = std::make_shared<PyObject>((_Int)0);
@@ -821,13 +822,13 @@ PyVar NamePointer::get(VM* vm, Frame* frame) const{
 
 void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
     switch(scope) {
-        case NAME_LOCAL: frame->f_locals[name] = val; break;
+        case NAME_LOCAL: frame->f_locals[name] = std::move(val); break;
         case NAME_GLOBAL:
         {
             if(frame->f_locals.count(name) > 0){
-                frame->f_locals[name] = val;
+                frame->f_locals[name] = std::move(val);
             }else{
-                frame->f_globals()[name] = val;
+                frame->f_globals()[name] = std::move(val);
             }
         } break;
         default: UNREACHABLE();

@@ -106,5 +106,6 @@ struct PyObject {
         return _type->getName();
     }
 
-    PyObject(_Value val): _native(val) {}
+    PyObject(const _Value& val): _native(val) {}
+    PyObject(_Value&& val): _native(std::move(val)) {}
 };
