@@ -54,6 +54,7 @@ public:
 #define NO_INFIX nullptr, PREC_NONE
         for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, NO_INFIX };
         rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
+        rules[TK("->")] =   { nullptr,               METHOD(exprAttribPtr),      PREC_ATTRIB };
         rules[TK("(")] =    { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
         rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
         rules[TK("{")] =    { METHOD(exprMap),       NO_INFIX };
@@ -221,7 +222,9 @@ public:
                     return;
                 }
                 case '-': {
-                    parser->setNextTwoCharToken('=', TK("-"), TK("-="));
+                    if(parser->matchChar('=')) parser->setNextToken(TK("-="));
+                    else if(parser->matchChar('>')) parser->setNextToken(TK("->"));
+                    else parser->setNextToken(TK("-"));
                     return;
                 }
                 case '!':
@@ -554,6 +557,13 @@ __LISTCOMP:
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
         emitCode(OP_BUILD_ATTR_PTR, index);
+    }
+
+    void exprAttribPtr(){
+        consume(TK("@id"));
+        const _Str& name = parser->previous.str();
+        int index = getCode()->addName(name, NAME_ATTR);
+        emitCode(OP_BUILD_ATTR_PTR_PTR, index);
     }
 
     // [:], [:b]

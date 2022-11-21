@@ -54,6 +54,7 @@ OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
 OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
+OPCODE(BUILD_ATTR_PTR_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack

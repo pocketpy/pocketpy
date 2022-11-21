@@ -75,6 +75,13 @@ private:
                 PyVar obj = frame->popValue(this);
                 frame->push(PyPointer(std::make_shared<AttrPointer>(obj, attr.get())));
             } break;
+            case OP_BUILD_ATTR_PTR_PTR: {
+                const auto& attr = frame->code->co_names[byte.arg];
+                PyVar obj = frame->popValue(this);
+                __checkType(obj, _tp_user_pointer);
+                const _Pointer& p = std::get<_Pointer>(obj->_native);
+                frame->push(PyPointer(std::make_shared<AttrPointer>(p->get(this, frame), attr.get())));
+            } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
