@@ -22,3 +22,13 @@ a = [1, 2, 3]
 b = &a
 b->append(4)
 assert a == [1, 2, 3, 4]
+
+def add(a, b):
+    return a+b
+
+p = &add
+assert p->__call__(1, 2) == 3
+
+fun = lambda :6
+p = &fun
+assert p->__call__() == 6

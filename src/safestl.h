@@ -86,19 +86,19 @@ namespace pkpy {
             if(_size >= MAX_POOLING_N || _poolArgList[_size].size() > 32){
                 delete[] _args;
             }else{
-                for(int i = 0; i < _size; i++) _args[i].reset();
+                for(uint8_t i = 0; i < _size; i++) _args[i].reset();
                 _poolArgList[_size].push_back(_args);
             }
         }
 
     public:
-        ArgList(int n){
-            __tryAlloc(n);
+        ArgList(uint8_t n){
+            if(n != 0) __tryAlloc(n);
         }
 
         ArgList(const ArgList& other){
             __tryAlloc(other._size);
-            for(int i=0; i<_size; i++){
+            for(uint8_t i=0; i<_size; i++){
                 _args[i] = other._args[i];
             }
         }
@@ -112,7 +112,7 @@ namespace pkpy {
 
         ArgList(PyVarList&& other){
             __tryAlloc(other.size());
-            for(int i=0; i<_size; i++){
+            for(uint8_t i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
             }
             other.clear();
@@ -121,7 +121,7 @@ namespace pkpy {
         // deprecated, this is very slow, do not use it!!!
         ArgList(std::initializer_list<PyVar> args){
             __tryAlloc(args.size());
-            int i = 0;
+            uint8_t i = 0;
             for(auto& arg: args) this->_args[i++] = arg;
         }
 
@@ -149,6 +149,15 @@ namespace pkpy {
 
         uint8_t size() const {
             return _size;
+        }
+
+        ArgList subList(uint8_t start) const {
+            if(start >= _size) return ArgList(0);
+            ArgList ret(_size - start);
+            for(uint8_t i=start; i<_size; i++){
+                ret[i-start] = _args[i];
+            }
+            return ret;
         }
 
         ~ArgList(){
