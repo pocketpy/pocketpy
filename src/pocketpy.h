@@ -556,14 +556,21 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("_native_function", "__call__", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkType(args[0], vm->_tp_native_function);
         const _CppFunc& _self = vm->PyNativeFunction_AS_C(args[0]);
         return _self(vm, args.subList(1));
     });
 
     _vm->bindMethod("function", "__call__", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkType(args[0], vm->_tp_function);
         return vm->call(args[0], args.subList(1));
+    });
+
+    _vm->bindMethod("_bounded_method", "__call__", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkType(args[0], vm->_tp_bounded_method);
+        const _BoundedMethod& _self = vm->PyBoundedMethod_AS_C(args[0]);
+        pkpy::ArgList newArgs(args.size());
+        newArgs[0] = _self.obj;
+        for(int i = 1; i < args.size(); i++) newArgs[i] = args[i];
+        return vm->call(_self.method, newArgs);
     });
 }
 

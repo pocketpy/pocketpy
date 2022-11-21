@@ -28,7 +28,9 @@ def add(a, b):
 
 p = &add
 assert p->__call__(1, 2) == 3
+assert p->__call__.__call__.__call__.__call__.__call__(3, 4) == 7
 
 fun = lambda :6
 p = &fun
 assert p->__call__() == 6
+assert p->__call__.__call__.__call__.__call__.__call__() == 6
