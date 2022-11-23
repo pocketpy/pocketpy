@@ -588,16 +588,34 @@ public:
     }
 
     PyVarOrNull getAttr(const PyVar& obj, const _Str& name, bool throw_err=true) {
-        auto it = obj->attribs.find(name);
-        if(it != obj->attribs.end()) return it->second;
+        PyVarDict::iterator it;
+        PyObject* cls;
 
-        PyObject* cls = obj->_type.get();
+        if(obj->isType(_tp_super)){
+            const PyVar* root = &obj;
+            int depth = 1;
+            while(true){
+                root = &std::get<PyVar>((*root)->_native);
+                if(!(*root)->isType(_tp_super)) break;
+                depth++;
+            }
+            cls = (*root)->_type.get();
+            for(int i=0; i<depth; i++) cls = cls->attribs[__base__].get();
+
+            it = (*root)->attribs.find(name);
+            if(it != (*root)->attribs.end()) return it->second;        
+        }else{
+            it = obj->attribs.find(name);
+            if(it != obj->attribs.end()) return it->second;
+            cls = obj->_type.get();
+        }
+
         while(cls != None.get()) {
             it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
                 PyVar valueFromCls = it->second;
                 if(valueFromCls->isType(_tp_function) || valueFromCls->isType(_tp_native_function)){
-                    return PyBoundedMethod({obj, valueFromCls});
+                    return PyBoundedMethod({obj, std::move(valueFromCls)});
                 }else{
                     return valueFromCls;
                 }
@@ -609,11 +627,29 @@ public:
     }
 
     inline void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
-        obj->attribs[name] = value;
+        if(obj->isType(_tp_super)){
+            const PyVar* root = &obj;
+            while(true){
+                root = &std::get<PyVar>((*root)->_native);
+                if(!(*root)->isType(_tp_super)) break;
+            }
+            (*root)->attribs[name] = value;
+        }else{
+            obj->attribs[name] = value;
+        }
     }
 
     inline void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
-        obj->attribs[name] = std::move(value);
+        if(obj->isType(_tp_super)){
+            const PyVar* root = &obj;
+            while(true){
+                root = &std::get<PyVar>((*root)->_native);
+                if(!(*root)->isType(_tp_super)) break;
+            }
+            (*root)->attribs[name] = std::move(value);
+        }else{
+            obj->attribs[name] = std::move(value);
+        }
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
@@ -690,7 +726,7 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
-    PyVar _tp_user_pointer;
+    PyVar _tp_user_pointer, _tp_super;
 
     __DEF_PY_POOL(Int, _Int, _tp_int, 256);
     __DEF_PY_AS_C(Int, _Int, _tp_int)
@@ -744,6 +780,7 @@ public:
         _tp_native_function = newClassType("_native_function");
         _tp_native_iterator = newClassType("_native_iterator");
         _tp_bounded_method = newClassType("_bounded_method");
+        _tp_super = newClassType("super");
 
         this->None = newObject(_types["NoneType"], (_Int)0);
         this->Ellipsis = newObject(_types["ellipsis"], (_Int)0);

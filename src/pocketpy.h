@@ -56,6 +56,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(tvm->readStdin());
     });
 
+    _vm->bindBuiltinFunc("super", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 0);
+        auto it = vm->topFrame()->f_locals.find("self"_c);
+        if(it == vm->topFrame()->f_locals.end()) vm->typeError("super() can only be called in a class method");
+        return vm->newObject(vm->_tp_super, it->second);
+    });
+
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
