@@ -87,6 +87,7 @@ public:
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
+        rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
@@ -102,7 +103,7 @@ public:
 #undef METHOD
 #undef NO_INFIX
 
-#define EXPR() parsePrecedence(PREC_LOGICAL_OR)             // no '=' and ',' just a simple expression
+#define EXPR() parsePrecedence(PREC_TERNARY)             // no '=' and ',' just a simple expression
 #define EXPR_TUPLE() parsePrecedence(PREC_COMMA)            // no '=', but ',' is allowed
 #define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
     }
@@ -195,6 +196,7 @@ public:
                 case '&': parser->setNextToken(TK("&")); return;
                 case '|': parser->setNextToken(TK("|")); return;
                 case '^': parser->setNextToken(TK("^")); return;
+                case '?': parser->setNextToken(TK("?")); return;
                 case '.': {
                     if(parser->matchChar('.')) {
                         if(parser->matchChar('.')) {
@@ -409,6 +411,16 @@ public:
         int patch = emitCode(OP_JUMP_IF_FALSE_OR_POP);
         parsePrecedence(PREC_LOGICAL_AND);
         patchJump(patch);
+    }
+
+    void exprTernary() {
+        int patch = emitCode(OP_POP_JUMP_IF_FALSE);
+        EXPR();         // if true
+        int patch2 = emitCode(OP_JUMP_ABSOLUTE);
+        consume(TK(":"));
+        patchJump(patch);
+        EXPR();         // if false
+        patchJump(patch2);
     }
 
     void exprBinaryOp() {
