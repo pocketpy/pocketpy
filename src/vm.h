@@ -1056,13 +1056,18 @@ class ThreadedVM : public VM {
         if(ret.has_value()) return PyStr(ret.value());
         return None;
     }
+
+    PyVar jsonRpc(const PyVar& obj){
+        return jsonRpc(asJson(obj));
+    }
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {
         bindBuiltinFunc("jsonrpc", [](VM* vm, const pkpy::ArgList& args){
             ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
             if(tvm == nullptr) UNREACHABLE();
             tvm->__checkArgSize(args, 1);
-            return tvm->jsonRpc(tvm->PyStr_AS_C(args[0]));
+            tvm->__checkType(args[0], vm->_types["dict"_c]);
+            return tvm->jsonRpc(args[0]);
         });
 
         bindBuiltinFunc("input", [](VM* vm, const pkpy::ArgList& args) {
