@@ -70,24 +70,26 @@ int main(int argc, char** argv){
         if(code == nullptr) return 1;
         //std::cout << code->toString() << std::endl;
 
-        Timer("Running time").run([=]{
-            vm->exec(code);
-        });
+        // Timer("Running time").run([=]{
+        //     vm->exec(code);
+        // });
 
         // for(auto& kv : _strIntern)
         //     std::cout << kv.first << ", ";
 
-        // Timer("Running time").run([=]{
-        //     vm->startExec(code);
-        //     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
-        //         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
-        //             std::string line;
-        //             std::getline(std::cin, line);
-        //             pkpy_tvm_write_stdin(vm, line.c_str());
-        //             pkpy_tvm_resume(vm);
-        //         }
-        //     }
-        // });
+        Timer("Running time").run([=]{
+            vm->startExec(code);
+            while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
+                if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
+                    PyObjectDump* obj = pkpy_tvm_read_json(vm);
+                    if(INPUT_JSONRPC_STR != obj->json) UNREACHABLE();
+                    pkpy_delete(obj);
+                    std::string line;
+                    std::getline(std::cin, line);
+                    pkpy_tvm_resume(vm, line.c_str());
+                }
+            }
+        });
         return 0;
     }
 

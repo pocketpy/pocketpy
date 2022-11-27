@@ -44,7 +44,7 @@
 typedef void(*PrintFn)(const VM*, const char*);
 
 class VM: public PkExportedResource{
-private:
+protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;       // 3rd modules
     PyVar __py2py_call_signal;
@@ -1042,48 +1042,76 @@ enum ThreadState {
     THREAD_FINISHED
 };
 
+const _Str INPUT_JSONRPC_STR = "{\"method\":\"input\", \"params\":[]}";
+
 class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
-    std::atomic<ThreadState> state = THREAD_READY;
-public:
-    ThreadedVM(bool use_stdio) : VM(use_stdio) {}
+    std::atomic<ThreadState> _state = THREAD_READY;
+    std::optional<_Str> _sharedStr = {};
 
-    _Str _stdin;
+    PyVar jsonRpc(const _Str& _json){
+        _sharedStr = _json;
+        suspend();
+        std::optional<_Str> ret = readSharedStr();
+        if(ret.has_value()) return PyStr(ret.value());
+        return None;
+    }
+public:
+    ThreadedVM(bool use_stdio) : VM(use_stdio) {
+        bindBuiltinFunc("jsonrpc", [](VM* vm, const pkpy::ArgList& args){
+            ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
+            if(tvm == nullptr) UNREACHABLE();
+            tvm->__checkArgSize(args, 1);
+            return tvm->jsonRpc(tvm->PyStr_AS_C(args[0]));
+        });
+
+        bindBuiltinFunc("input", [](VM* vm, const pkpy::ArgList& args) {
+            ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
+            if(tvm == nullptr) UNREACHABLE();
+            tvm->__checkArgSize(args, 0);
+            return tvm->jsonRpc(INPUT_JSONRPC_STR);
+        });
+    }
 
     void suspend(){
         if(_thread == nullptr) UNREACHABLE();
-        if(state != THREAD_RUNNING) UNREACHABLE();
-        state = THREAD_SUSPENDED;
+        if(_state != THREAD_RUNNING) UNREACHABLE();
+        _state = THREAD_SUSPENDED;
         // 50 fps is enough
-        while(state == THREAD_SUSPENDED) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        while(_state == THREAD_SUSPENDED) std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
 
-    _Str readStdin(){
+    std::optional<_Str> readSharedStr(){
         if(_thread == nullptr) UNREACHABLE();
-        _Str copy = _stdin;
-        _stdin = "";
+        std::optional<_Str> copy = _sharedStr.value();
+        _sharedStr = {};
         return copy;
     }
 
     /***** For outer use *****/
 
     ThreadState getState(){
-        return state.load();
+        return _state;
     }
 
-    void resume(){
+    void resume(const char* value=nullptr){
         if(_thread == nullptr) UNREACHABLE();
-        if(state != THREAD_SUSPENDED) UNREACHABLE();
-        state = THREAD_RUNNING;
+        if(_state != THREAD_SUSPENDED) UNREACHABLE();
+        _state = THREAD_RUNNING;
+        if(value == nullptr){
+            _sharedStr = {};
+        }else{
+            _sharedStr = value;
+        }
     }
 
     void startExec(const _Code& code){
         if(_thread != nullptr) UNREACHABLE();
-        if(state != THREAD_READY) UNREACHABLE();
+        if(_state != THREAD_READY) UNREACHABLE();
         _thread = new std::thread([this, code](){
-            this->state = THREAD_RUNNING;
+            this->_state = THREAD_RUNNING;
             this->exec(code);
-            this->state = THREAD_FINISHED;
+            this->_state = THREAD_FINISHED;
         });
     }
 

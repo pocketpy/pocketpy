@@ -48,14 +48,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bindBuiltinFunc("input", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkArgSize(args, 0);
-        ThreadedVM* tvm = dynamic_cast<ThreadedVM*>(vm);
-        if(tvm == nullptr) vm->typeError("input() can only be called in threaded mode");
-        tvm->suspend();
-        return vm->PyStr(tvm->readStdin());
-    });
-
     _vm->bindBuiltinFunc("super", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 0);
         auto it = vm->topFrame()->f_locals.find("self"_c);
@@ -776,12 +768,14 @@ extern "C" {
     }
 
     __EXPORT
-    void pkpy_tvm_write_stdin(ThreadedVM* vm, const char* line){
-        vm->_stdin = _Str(line);
+    PyObjectDump* pkpy_tvm_read_json(ThreadedVM* vm){
+        std::optional<_Str> s = vm->readSharedStr();
+        if(!s.has_value()) return nullptr;
+        return new PyObjectDump("str", s.value());
     }
 
     __EXPORT
-    void pkpy_tvm_resume(ThreadedVM* vm){
-        vm->resume();
+    void pkpy_tvm_resume(ThreadedVM* vm, const char* value){
+        vm->resume(value);
     }
 }

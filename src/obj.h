@@ -10,7 +10,7 @@ const _Int _Int_MAX_NEG = -9223372036854775807LL;
 const _Float _FLOAT_INF_POS = INFINITY;
 const _Float _FLOAT_INF_NEG = -INFINITY;
 
-#define PK_VERSION "0.3.1"
+#define PK_VERSION "0.3.2"
 
 class CodeObject;
 class BasePointer;
