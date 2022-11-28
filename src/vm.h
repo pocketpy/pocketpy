@@ -1080,7 +1080,7 @@ public:
             ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
             if(tvm == nullptr) UNREACHABLE();
             tvm->__checkArgSize(args, 1);
-            tvm->__checkType(args[0], vm->_types["dict"_c]);
+            tvm->__checkType(args[0], vm->builtins->attribs["dict"_c]);
             return tvm->jsonRpc(args[0]);
         });
 
