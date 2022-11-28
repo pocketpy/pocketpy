@@ -523,6 +523,10 @@ public:
         }
     }
 
+    virtual void execAsync(const _Code& code) {
+        exec(code);
+    }
+
     Frame* __pushNewFrame(const _Code& code, PyVar _module, const PyVarDict& locals){
         if(code == nullptr) UNREACHABLE();
         if(callstack.size() > maxRecursionDepth){
@@ -1111,12 +1115,12 @@ public:
         }
     }
 
-    void startExec(const _Code& code){
+    void execAsync(const _Code& code) override {
         if(_thread != nullptr) UNREACHABLE();
         if(_state != THREAD_READY) UNREACHABLE();
         _thread = new std::thread([this, code](){
             this->_state = THREAD_RUNNING;
-            this->exec(code);
+            VM::exec(code);
             this->_state = THREAD_FINISHED;
         });
     }

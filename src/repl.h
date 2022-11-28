@@ -22,14 +22,8 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    VM* getVM() { return vm; }
-
     bool is_need_more_lines() const {
         return need_more_lines;
-    }
-
-    bool input(const char* line){
-        return input(std::string(line));
     }
 
     bool input(std::string line){
@@ -58,7 +52,7 @@ __NOT_ENOUGH_LINES:
 
         try{
             _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            this->onCompiled(code);
+            if(code != nullptr) vm->execAsync(code);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
@@ -66,22 +60,5 @@ __NOT_ENOUGH_LINES:
         }
 __LOOP_CONTINUE:
         return is_need_more_lines();
-    }
-
-    _Code readBufferCode(){
-        auto copy = std::move(bufferCode);
-        bufferCode = nullptr;
-        return copy;
-    }
-
-protected:
-    _Code bufferCode = nullptr;
-
-    void onCompiled(_Code code){
-        if(code == nullptr){
-            bufferCode = nullptr;
-        }else{
-            bufferCode = std::move(code);
-        }
     }
 };

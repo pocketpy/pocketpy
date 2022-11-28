@@ -3,6 +3,7 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
+//#define PK_DEBUG_THREADED_REPL
 
 struct Timer{
     const char* title;
@@ -22,39 +23,56 @@ struct Timer{
 
 // these code is for demo use, feel free to modify it
 REPL* _repl;
-VM* _vm;
 
 extern "C" {
     __EXPORT
     void repl_start(){
-        _vm = pkpy_new_vm(true);
-        _repl = pkpy_new_repl(_vm);
+        _repl = pkpy_new_repl(pkpy_new_vm(true));
     }
 
     __EXPORT
     bool repl_input(const char* line){
-        bool need_more_lines = pkpy_repl_input(_repl, line);
-        if(!need_more_lines) pkpy_exec_repl(_repl);
-        return need_more_lines;
+        return pkpy_repl_input(_repl, line);
     }
 }
 
 #else
 
+
+void _tvm_run_code(ThreadedVM* vm, _Code code){
+    vm->execAsync(code);
+    while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
+        if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
+            PyObjectDump* obj = pkpy_tvm_read_json(vm);
+            bool is_input_call = INPUT_JSONRPC_STR != obj->json;
+            pkpy_delete(obj);
+            if(is_input_call){
+                std::string line;
+                std::getline(std::cin, line);
+                pkpy_tvm_resume(vm, line.c_str());
+            }else{
+                pkpy_tvm_resume(vm, nullptr);
+            }
+        }
+    }
+}
+
+
 int main(int argc, char** argv){
     if(argc == 1){
+#ifndef PK_DEBUG_THREADED_REPL
         VM* vm = pkpy_new_vm(true);
         REPL repl(vm);
         while(true){
             (*vm->_stdout) << (repl.is_need_more_lines() ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            if(repl.input(line) == false){      // do not need more lines
-                _Code code = repl.readBufferCode();
-                if(code == nullptr) continue;
-                vm->exec(code);
-            }
+            repl.input(line);
         }
+#else
+        ThreadedVM* vm = pkpy_new_tvm(true);
+        REPL repl(vm);
+#endif
         return 0;
     }
     
@@ -85,21 +103,7 @@ int main(int argc, char** argv){
         //     std::cout << kv.first << ", ";
 
         Timer("Running time").run([=]{
-            vm->startExec(code);
-            while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
-                if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
-                    PyObjectDump* obj = pkpy_tvm_read_json(vm);
-                    bool is_input_call = INPUT_JSONRPC_STR != obj->json;
-                    pkpy_delete(obj);
-                    if(is_input_call){
-                        std::string line;
-                        std::getline(std::cin, line);
-                        pkpy_tvm_resume(vm, line.c_str());
-                    }else{
-                        pkpy_tvm_resume(vm, nullptr);
-                    }
-                }
-            }
+            _tvm_run_code(vm, code);
         });
         return 0;
     }

@@ -658,10 +658,11 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_exec_repl(REPL* r){
-        _Code code = r->readBufferCode();
+    bool pkpy_exec_async(VM* vm, const char* source){
+        _Code code = compile(vm, source, "main.py");
         if(code == nullptr) return false;
-        return r->getVM()->exec(code) != nullptr;
+        vm->execAsync(code);
+        return true;
     }
 
     __EXPORT
@@ -747,25 +748,8 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_tvm_start_exec(ThreadedVM* vm, const char* source){
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->startExec(code);
-        return true;
-    }
-
-    __EXPORT
     void pkpy_tvm_reset_state(ThreadedVM* vm){
         vm->resetState();
-    }
-
-    __EXPORT
-    bool pkpy_tvm_start_exec_repl(REPL* r){
-        _Code code = r->readBufferCode();
-        if(code == nullptr) return false;
-        ThreadedVM* vm = dynamic_cast<ThreadedVM*>(r->getVM());
-        vm->startExec(code);
-        return true;
     }
 
     __EXPORT
