@@ -931,7 +931,7 @@ __LISTCOMP:
     }
 
     _Code __fillCode(){
-        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"), mode());
+        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"));
         codes.push(code);
 
         // Lex initial tokens. current <-- next.

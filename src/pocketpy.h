@@ -658,6 +658,13 @@ extern "C" {
     }
 
     __EXPORT
+    bool pkpy_exec_repl(REPL* r){
+        _Code code = r->readBufferCode();
+        if(code == nullptr) return false;
+        return r->getVM()->exec(code) != nullptr;
+    }
+
+    __EXPORT
     PyObjectDump* pkpy_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
@@ -668,30 +675,10 @@ extern "C" {
     }
 
     __EXPORT
-    void pkpy_set_global_int(VM* vm, const char* name, _Int value){
-        vm->setAttr(vm->_main, name, vm->PyInt(value));
-    }
-
-    __EXPORT
-    void pkpy_set_global_float(VM* vm, const char* name, _Float value){
-        vm->setAttr(vm->_main, name, vm->PyFloat(value));
-    }
-
-    __EXPORT
-    void pkpy_set_global_str(VM* vm, const char* name, const char* value){
-        vm->setAttr(vm->_main, name, vm->PyStr(value));
-    }
-
-    __EXPORT
-    void pkpy_set_global_bool(VM* vm, const char* name, bool value){
-        vm->setAttr(vm->_main, name, vm->PyBool(value));
-    }
-
-    __EXPORT
     PyObjectDump* pkpy_eval(VM* vm, const char* source){
         _Code code = compile(vm, source, "<eval>", EVAL_MODE);
         if(code == nullptr) return nullptr;
-        PyVar ret = vm->exec(code);
+        PyVarOrNull ret = vm->exec(code);
         if(ret == nullptr) return nullptr;
         return new PyObjectDump(
             ret->getTypeName(),
@@ -700,8 +687,8 @@ extern "C" {
     }
 
     __EXPORT
-    REPL* pkpy_new_repl(VM* vm, bool use_prompt){
-        return new REPL(vm, use_prompt);
+    REPL* pkpy_new_repl(VM* vm){
+        return new REPL(vm);
     }
 
     __EXPORT
@@ -768,10 +755,24 @@ extern "C" {
     }
 
     __EXPORT
+    void pkpy_tvm_reset_state(ThreadedVM* vm){
+        vm->resetState();
+    }
+
+    __EXPORT
+    bool pkpy_tvm_start_exec_repl(REPL* r){
+        _Code code = r->readBufferCode();
+        if(code == nullptr) return false;
+        ThreadedVM* vm = dynamic_cast<ThreadedVM*>(r->getVM());
+        vm->startExec(code);
+        return true;
+    }
+
+    __EXPORT
     PyObjectDump* pkpy_tvm_read_json(ThreadedVM* vm){
         std::optional<_Str> s = vm->readSharedStr();
         if(!s.has_value()) return nullptr;
-        return new PyObjectDump("str", s.value());
+        return new PyObjectDump("str"_c, s.value());
     }
 
     __EXPORT

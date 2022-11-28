@@ -30,9 +30,13 @@ struct CodeObject {
     _Source src;
     _Str name;
 
-    CodeObject(_Source src, _Str name, CompileMode mode=EXEC_MODE) {
+    CodeObject(_Source src, _Str name) {
         this->src = src;
         this->name = name;
+    }
+
+    CompileMode mode() const {
+        return src->mode;
     }
 
     std::vector<ByteCode> co_code;

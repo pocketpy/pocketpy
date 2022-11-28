@@ -4,33 +4,28 @@
 #include "vm.h"
 
 class REPL: public PkExportedResource {
+protected:
     int need_more_lines = 0;
     std::string buffer;
     CompileMode mode;
     VM* vm;
-
-    bool use_prompt;        // whether to print >>> or ...
-
     bool exited = false;
 
     void _exit(){
         exited = true;
         exit(0);
     }
-
-    void _loop_start(){
-        mode = SINGLE_MODE;
-        if(use_prompt){
-            (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
-        }
-    }
-
 public:
-    REPL(VM* vm, bool use_prompt=true) : vm(vm), use_prompt(use_prompt) {
+    REPL(VM* vm) : vm(vm){
         (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
         (*vm->_stdout) << ("https://github.com/blueloveTH/pocketpy" "\n");
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
-        _loop_start();
+    }
+
+    VM* getVM() { return vm; }
+
+    bool is_need_more_lines() const {
+        return need_more_lines;
     }
 
     bool input(const char* line){
@@ -39,6 +34,7 @@ public:
 
     bool input(std::string line){
         if(exited) return false;
+        mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -62,14 +58,30 @@ __NOT_ENOUGH_LINES:
 
         try{
             _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            if(code != nullptr) vm->exec(code, nullptr, true);
+            this->onCompiled(code);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
         }
 __LOOP_CONTINUE:
-        _loop_start();
-        return need_more_lines > 0;
+        return is_need_more_lines();
+    }
+
+    _Code readBufferCode(){
+        auto copy = std::move(bufferCode);
+        bufferCode = nullptr;
+        return copy;
+    }
+
+protected:
+    _Code bufferCode = nullptr;
+
+    void onCompiled(_Code code){
+        if(code == nullptr){
+            bufferCode = nullptr;
+        }else{
+            bufferCode = std::move(code);
+        }
     }
 };

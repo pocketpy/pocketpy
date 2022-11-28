@@ -21,19 +21,21 @@ struct Timer{
 #if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
 
 // these code is for demo use, feel free to modify it
-
 REPL* _repl;
+VM* _vm;
 
 extern "C" {
     __EXPORT
     void repl_start(){
-        VM* vm = pkpy_new_vm(true);
-        _repl = pkpy_new_repl(vm, false);
+        _vm = pkpy_new_vm(true);
+        _repl = pkpy_new_repl(_vm);
     }
 
     __EXPORT
     bool repl_input(const char* line){
-        return pkpy_repl_input(_repl, line);
+        bool need_more_lines = pkpy_repl_input(_repl, line);
+        if(!need_more_lines) pkpy_exec_repl(_repl);
+        return need_more_lines;
     }
 }
 
@@ -44,9 +46,14 @@ int main(int argc, char** argv){
         VM* vm = pkpy_new_vm(true);
         REPL repl(vm);
         while(true){
+            (*vm->_stdout) << (repl.is_need_more_lines() ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            repl.input(line);
+            if(repl.input(line) == false){      // do not need more lines
+                _Code code = repl.readBufferCode();
+                if(code == nullptr) continue;
+                vm->exec(code);
+            }
         }
         return 0;
     }
@@ -82,11 +89,15 @@ int main(int argc, char** argv){
             while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
                 if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
                     PyObjectDump* obj = pkpy_tvm_read_json(vm);
-                    if(INPUT_JSONRPC_STR != obj->json) UNREACHABLE();
+                    bool is_input_call = INPUT_JSONRPC_STR != obj->json;
                     pkpy_delete(obj);
-                    std::string line;
-                    std::getline(std::cin, line);
-                    pkpy_tvm_resume(vm, line.c_str());
+                    if(is_input_call){
+                        std::string line;
+                        std::getline(std::cin, line);
+                        pkpy_tvm_resume(vm, line.c_str());
+                    }else{
+                        pkpy_tvm_resume(vm, nullptr);
+                    }
                 }
             }
         });

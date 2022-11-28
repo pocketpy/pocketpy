@@ -507,10 +507,11 @@ public:
         return call(getAttr(obj, func), args);
     }
 
-    PyVarOrNull exec(const _Code& code, PyVar _module=nullptr, bool repl_mode=false){
+    // repl mode is only for setting `frame->id` to 0
+    virtual PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
-            return _exec(code, _module, {}, repl_mode);
+            return _exec(code, _module, {});
         } catch (const std::exception& e) {
             if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
                 *_stderr << e.what() << '\n';
@@ -532,9 +533,9 @@ public:
         return frame;
     }
 
-    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals, bool repl_mode=false){
+    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals){
         Frame* frame = __pushNewFrame(code, _module, locals);
-        if(repl_mode) frame->id = 0;
+        if(code->mode() == SINGLE_MODE) frame->id = 0;
         Frame* frameBase = frame;
         PyVar ret = nullptr;
 
@@ -1118,6 +1119,20 @@ public:
             this->exec(code);
             this->_state = THREAD_FINISHED;
         });
+    }
+
+    PyVarOrNull exec(const _Code& code, PyVar _module = nullptr) override {
+        if(_state == THREAD_READY) return VM::exec(code, _module);
+        auto callstackBackup = std::move(callstack);
+        callstack.clear();
+        PyVarOrNull ret = VM::exec(code, _module);
+        callstack = std::move(callstackBackup);
+        return ret;
+    }
+
+    void resetState(){
+        if(this->_state != THREAD_FINISHED) UNREACHABLE();
+        this->_state = THREAD_READY;
     }
 
     ~ThreadedVM(){
