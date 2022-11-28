@@ -693,7 +693,7 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_repl_input(REPL* r, const char* line){
+    int pkpy_repl_input(REPL* r, const char* line){
         return r->input(line);
     }
 

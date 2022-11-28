@@ -1065,6 +1065,15 @@ class ThreadedVM : public VM {
     PyVar jsonRpc(const PyVar& obj){
         return jsonRpc(asJson(obj));
     }
+
+    void __deleteThread(){
+        if(_thread != nullptr){
+            if(!_thread->joinable()) UNREACHABLE();
+            _thread->join();
+            delete _thread;
+            _thread = nullptr;
+        }
+    }
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {
         bindBuiltinFunc("jsonrpc", [](VM* vm, const pkpy::ArgList& args){
@@ -1084,7 +1093,6 @@ public:
     }
 
     void suspend(){
-        if(_thread == nullptr) UNREACHABLE();
         if(_state != THREAD_RUNNING) UNREACHABLE();
         _state = THREAD_SUSPENDED;
         // 50 fps is enough
@@ -1092,7 +1100,6 @@ public:
     }
 
     std::optional<_Str> readSharedStr(){
-        if(_thread == nullptr) UNREACHABLE();
         std::optional<_Str> copy = _sharedStr.value();
         _sharedStr = {};
         return copy;
@@ -1105,7 +1112,6 @@ public:
     }
 
     void resume(const char* value=nullptr){
-        if(_thread == nullptr) UNREACHABLE();
         if(_state != THREAD_SUSPENDED) UNREACHABLE();
         _state = THREAD_RUNNING;
         if(value == nullptr){
@@ -1116,8 +1122,8 @@ public:
     }
 
     void execAsync(const _Code& code) override {
-        if(_thread != nullptr) UNREACHABLE();
         if(_state != THREAD_READY) UNREACHABLE();
+        __deleteThread();
         _thread = new std::thread([this, code](){
             this->_state = THREAD_RUNNING;
             VM::exec(code);
@@ -1140,9 +1146,6 @@ public:
     }
 
     ~ThreadedVM(){
-        if(_thread != nullptr){
-            _thread->join();
-            delete _thread;
-        }
+        __deleteThread();
     }
 };

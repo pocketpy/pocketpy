@@ -3,6 +3,12 @@
 #include "compiler.h"
 #include "vm.h"
 
+enum InputResult {
+    NEED_MORE_LINES = 0,
+    EXEC_DONE = 1,
+    EXEC_SKIPPED = 2,
+};
+
 class REPL: public PkExportedResource {
 protected:
     int need_more_lines = 0;
@@ -26,8 +32,8 @@ public:
         return need_more_lines;
     }
 
-    bool input(std::string line){
-        if(exited) return false;
+    InputResult input(std::string line){
+        if(exited) return EXEC_SKIPPED;
         mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
@@ -43,22 +49,23 @@ public:
                 buffer.clear();
             }else{
 __NOT_ENOUGH_LINES:
-                goto __LOOP_CONTINUE;
+                return NEED_MORE_LINES;
             }
         }else{
             if(line == "exit()") _exit();
-            if(line.empty()) goto __LOOP_CONTINUE;
+            if(line.empty()) return EXEC_SKIPPED;
         }
 
         try{
             _Code code = compile(vm, line.c_str(), "<stdin>", mode);
-            if(code != nullptr) vm->execAsync(code);
+            if(code == nullptr) return EXEC_SKIPPED;
+            vm->execAsync(code);
+            return EXEC_DONE;
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
+            return NEED_MORE_LINES;
         }
-__LOOP_CONTINUE:
-        return is_need_more_lines();
     }
 };

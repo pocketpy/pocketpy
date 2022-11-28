@@ -3,7 +3,7 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
-//#define PK_DEBUG_THREADED_REPL
+#define PK_DEBUG_THREADED_REPL
 
 struct Timer{
     const char* title;
@@ -32,25 +32,25 @@ extern "C" {
 
     __EXPORT
     bool repl_input(const char* line){
-        return pkpy_repl_input(_repl, line);
+        return pkpy_repl_input(_repl, line) == NEED_MORE_LINES;
     }
 }
 
 #else
 
 
-void _tvm_run_code(ThreadedVM* vm, _Code code){
-    vm->execAsync(code);
+void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
             PyObjectDump* obj = pkpy_tvm_read_json(vm);
-            bool is_input_call = INPUT_JSONRPC_STR != obj->json;
+            bool is_input_call = INPUT_JSONRPC_STR == obj->json;
             pkpy_delete(obj);
             if(is_input_call){
                 std::string line;
                 std::getline(std::cin, line);
                 pkpy_tvm_resume(vm, line.c_str());
             }else{
+                exit(999);
                 pkpy_tvm_resume(vm, nullptr);
             }
         }
@@ -62,17 +62,22 @@ int main(int argc, char** argv){
     if(argc == 1){
 #ifndef PK_DEBUG_THREADED_REPL
         VM* vm = pkpy_new_vm(true);
+#else
+        ThreadedVM* vm = pkpy_new_tvm(true);
+#endif
         REPL repl(vm);
         while(true){
             (*vm->_stdout) << (repl.is_need_more_lines() ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            repl.input(line);
-        }
-#else
-        ThreadedVM* vm = pkpy_new_tvm(true);
-        REPL repl(vm);
+            int result = pkpy_repl_input(&repl, line.c_str());
+#ifdef PK_DEBUG_THREADED_REPL
+            if(result == (int)EXEC_DONE){
+                _tvm_dispatch(vm);
+                pkpy_tvm_reset_state(vm);
+            }
 #endif
+        }
         return 0;
     }
     
@@ -103,7 +108,8 @@ int main(int argc, char** argv){
         //     std::cout << kv.first << ", ";
 
         Timer("Running time").run([=]{
-            _tvm_run_code(vm, code);
+            vm->execAsync(code);
+            _tvm_dispatch(vm);
         });
         return 0;
     }
