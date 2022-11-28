@@ -1047,7 +1047,7 @@ enum ThreadState {
     THREAD_FINISHED
 };
 
-const _Str INPUT_JSONRPC_STR = "{\"method\":\"input\", \"params\":[]}";
+const _Str INPUT_JSONRPC_STR = "{\"method\": \"input\", \"params\": []}";
 
 class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
@@ -1060,10 +1060,6 @@ class ThreadedVM : public VM {
         std::optional<_Str> ret = readSharedStr();
         if(ret.has_value()) return PyStr(ret.value());
         return None;
-    }
-
-    PyVar jsonRpc(const PyVar& obj){
-        return jsonRpc(asJson(obj));
     }
 
     void __deleteThread(){
@@ -1081,7 +1077,8 @@ public:
             if(tvm == nullptr) UNREACHABLE();
             tvm->__checkArgSize(args, 1);
             tvm->__checkType(args[0], vm->builtins->attribs["dict"_c]);
-            return tvm->jsonRpc(args[0]);
+            _Str _json = tvm->PyStr_AS_C(tvm->asJson(args[0]));
+            return tvm->jsonRpc(_json);
         });
 
         bindBuiltinFunc("input", [](VM* vm, const pkpy::ArgList& args) {
