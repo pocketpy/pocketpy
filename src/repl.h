@@ -13,7 +13,6 @@ class REPL: public PkExportedResource {
 protected:
     int need_more_lines = 0;
     std::string buffer;
-    CompileMode mode;
     VM* vm;
     bool exited = false;
 
@@ -34,7 +33,6 @@ public:
 
     InputResult input(std::string line){
         if(exited) return EXEC_SKIPPED;
-        mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -45,7 +43,6 @@ public:
                 }
                 need_more_lines = 0;
                 line = buffer;
-                mode = EXEC_MODE;       // tmp set to EXEC_MODE
                 buffer.clear();
             }else{
 __NOT_ENOUGH_LINES:
@@ -57,7 +54,7 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            _Code code = compile(vm, line.c_str(), "<stdin>", mode);
+            _Code code = compile(vm, line.c_str(), "<stdin>", SINGLE_MODE);
             if(code == nullptr) return EXEC_SKIPPED;
             vm->execAsync(code);
             return EXEC_DONE;

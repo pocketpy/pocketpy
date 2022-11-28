@@ -482,13 +482,13 @@ public:
         int _body_start = getCode()->co_code.size();
         int ARGC = 0;
         do {
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK("]")) break;
             EXPR(); ARGC++;
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
             if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
         } while (match(TK(",")));
-        matchNewLines();
+        matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
         emitCode(OP_BUILD_LIST, ARGC);
         return;
@@ -499,7 +499,7 @@ __LISTCOMP:
         getCode()->co_code[_patch].arg = _body_end;
         emitCode(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
-        matchNewLines();
+        matchNewLines(mode()==SINGLE_MODE);
         
         int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
         int _cond_start = getCode()->co_code.size();
@@ -531,11 +531,11 @@ __LISTCOMP:
     void exprMap() {
         int size = 0;
         do {
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK("}")) break;
             EXPR();consume(TK(":"));EXPR();
             size++;
-            matchNewLines();
+            matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         matchNewLines();
         consume(TK("}"));
