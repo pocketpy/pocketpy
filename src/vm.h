@@ -1097,7 +1097,7 @@ public:
     }
 
     std::optional<_Str> readSharedStr(){
-        std::optional<_Str> copy = _sharedStr.value();
+        std::optional<_Str> copy = _sharedStr;
         _sharedStr = {};
         return copy;
     }
@@ -1114,7 +1114,7 @@ public:
         if(value == nullptr){
             _sharedStr = {};
         }else{
-            _sharedStr = value;
+            _sharedStr = _Str(value);
         }
     }
 
