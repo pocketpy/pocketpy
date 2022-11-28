@@ -106,6 +106,7 @@ struct Parser {
 
     int brackets_level_0 = 0;
     int brackets_level_1 = 0;
+    int brackets_level_2 = 0;
 
     Token nextToken(){
         if(nexts.empty()) return makeErrToken();
@@ -141,7 +142,7 @@ struct Parser {
     }
 
     bool eatIndentation(){
-        if(brackets_level_0 > 0 || brackets_level_1 > 0) return true;
+        if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
         int spaces = eatSpaces();
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
@@ -271,6 +272,8 @@ struct Parser {
             case TK(")"): brackets_level_0--; break;
             case TK("["): brackets_level_1++; break;
             case TK("]"): brackets_level_1--; break;
+            case TK("{"): brackets_level_2++; break;
+            case TK("}"): brackets_level_2--; break;
         }
 
         nexts.push( Token{

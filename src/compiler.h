@@ -471,9 +471,9 @@ public:
     }
 
     void exprGrouping() {
-        matchNewLines();
+        matchNewLines(mode()==SINGLE_MODE);
         EXPR_TUPLE();
-        matchNewLines();
+        matchNewLines(mode()==SINGLE_MODE);
         consume(TK(")"));
     }
 
@@ -525,6 +525,7 @@ __LISTCOMP:
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
         exitLoop();
+        matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
 
