@@ -46,7 +46,8 @@ typedef void(*PrintFn)(const VM*, const char*);
 class VM: public PkExportedResource{
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
-    PyVarDict _modules;       // 3rd modules
+    PyVarDict _modules;                     // loaded modules
+    std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
 
     PyVar runFrame(Frame* frame){
@@ -329,8 +330,20 @@ protected:
                 {
                     const _Str& name = frame->code->co_names[byte.arg]->name;
                     auto it = _modules.find(name);
-                    if(it == _modules.end()) _error("ImportError", "module '" + name + "' not found");
-                    else frame->push(it->second); 
+                    if(it == _modules.end()){
+                        auto it2 = _lazyModules.find(name);
+                        if(it2 == _lazyModules.end()){
+                            _error("ImportError", "module '" + name + "' not found");
+                        }else{
+                            _Code code = it2->second;
+                            PyVar _m = newModule(name);
+                            _exec(code, _m, {});
+                            frame->push(_m);
+                            _lazyModules.erase(it2);
+                        }
+                    }else{
+                        frame->push(it->second);
+                    }
                 } break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
@@ -585,11 +598,15 @@ public:
         return obj;
     }
 
-    PyVar newModule(_Str name, bool saveToPath=true) {
+    PyVar newModule(_Str name) {
         PyVar obj = newObject(_tp_module, (_Int)-2);
         setAttr(obj, __name__, PyStr(name));
-        if(saveToPath) _modules[name] = obj;
+        _modules[name] = obj;
         return obj;
+    }
+
+    void addLazyModule(_Str name, _Code code){
+        _lazyModules[name] = code;
     }
 
     PyVarOrNull getAttr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -792,7 +809,7 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
-        this->_main = newModule("__main__"_c, false);
+        this->_main = newModule("__main__"_c);
 
         setAttr(_tp_type, __base__, _tp_object);
         _tp_type->setType(_tp_type);

@@ -699,10 +699,11 @@ extern "C" {
 
     __EXPORT
     bool pkpy_add_module(VM* vm, const char* name, const char* source){
+        // compile the module but don't execute it
         _Code code = compile(vm, source, name + _Str(".py"));
         if(code == nullptr) return false;
-        PyVar _m = vm->newModule(name);
-        return vm->exec(code, _m) != nullptr;
+        vm->addLazyModule(name, code);
+        return true;
     }
 
     void __vm_init(VM* vm){
