@@ -597,6 +597,16 @@ void __addModuleTime(VM* vm){
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
+
+    vm->bindFunc(mod, "sleep", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        if(!vm->isIntOrFloat(args[0])){
+            vm->typeError("time.sleep() argument must be int or float");
+        }
+        double sec = vm->numToFloat(args[0]);
+        vm->sleepForSecs(sec);
+        return vm->None;
+    });
 }
 
 void __addModuleSys(VM* vm){

@@ -49,7 +49,7 @@ protected:
     PyVarDict _modules;                     // loaded modules
     std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
-    bool _stopFlag = false;
+    std::atomic<bool> _stopFlag = false;
 
     void _checkStopFlag(){
         if(_stopFlag){
@@ -410,6 +410,14 @@ public:
 
     void keyboardInterrupt(){
         _stopFlag = true;
+    }
+
+    void sleepForSecs(_Float sec){
+        _Int ms = (_Int)(sec * 1000);
+        for(_Int i=0; i<ms; i+=20){
+            _checkStopFlag();
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
     }
 
     PyVar asStr(const PyVar& obj){
@@ -941,7 +949,6 @@ public:
     }
 
     virtual ~VM() {
-        callstack.clear();
         if(!use_stdio){
             delete _stdout;
             delete _stderr;
@@ -1107,7 +1114,7 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            keyboardInterrupt();
+            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED) keyboardInterrupt();
             _thread->join();
             delete _thread;
             _thread = nullptr;
