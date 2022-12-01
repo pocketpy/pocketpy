@@ -5,12 +5,7 @@
 typedef int64_t _Int;
 typedef double _Float;
 
-const _Int _Int_MAX_POS = 9223372036854775807LL;
-const _Int _Int_MAX_NEG = -9223372036854775807LL;
-const _Float _FLOAT_INF_POS = INFINITY;
-const _Float _FLOAT_INF_NEG = -INFINITY;
-
-#define PK_VERSION "0.3.7"
+#define PK_VERSION "0.3.8"
 
 class CodeObject;
 class BasePointer;

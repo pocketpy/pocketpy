@@ -51,17 +51,16 @@ protected:
     PyVar __py2py_call_signal;
     bool _stopFlag = false;
 
-    void emitKeyboardInterrupt(){
-        _stopFlag = true;
+    void _checkStopFlag(){
+        if(_stopFlag){
+            _stopFlag = false;
+            _error("KeyboardInterrupt", "");
+        }
     }
 
     PyVar runFrame(Frame* frame){
         while(!frame->isCodeEnd()){
-            if(_stopFlag){
-                _stopFlag = false;
-                _error("KeyboardInterrupt", "");
-            }
-
+            _checkStopFlag();
             const ByteCode& byte = frame->readCode();
             //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
@@ -407,6 +406,10 @@ public:
             this->_stderr = new _StrStream();
         }
         initializeBuiltinClasses();
+    }
+
+    void keyboardInterrupt(){
+        _stopFlag = true;
     }
 
     PyVar asStr(const PyVar& obj){
@@ -1104,7 +1107,7 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            emitKeyboardInterrupt();
+            keyboardInterrupt();
             _thread->join();
             delete _thread;
             _thread = nullptr;
@@ -1134,7 +1137,7 @@ public:
         _state = THREAD_SUSPENDED;
         // 50 fps is enough
         while(_state == THREAD_SUSPENDED){
-            if(_stopFlag) break;
+            _checkStopFlag();
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }

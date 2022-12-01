@@ -253,8 +253,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if (args[0]->isType(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
         if (args[0]->isType(vm->_tp_str)) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
-            if(s == "inf") return vm->PyFloat(_FLOAT_INF_POS);
-            if(s == "-inf") return vm->PyFloat(_FLOAT_INF_NEG);
+            if(s == "inf") return vm->PyFloat(INFINITY);
+            if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
                 _Float val = std::stod(s.str());
                 return vm->PyFloat(val);
@@ -770,5 +770,10 @@ extern "C" {
     __EXPORT
     void pkpy_tvm_resume(ThreadedVM* vm, const char* value){
         vm->resume(value);
+    }
+
+    __EXPORT
+    void pkpy_vm_keyboard_interrupt(VM* vm){
+        vm->keyboardInterrupt();
     }
 }
