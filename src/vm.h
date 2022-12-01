@@ -49,9 +49,19 @@ protected:
     PyVarDict _modules;                     // loaded modules
     std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
+    bool _stopFlag = false;
+
+    void emitKeyboardInterrupt(){
+        _stopFlag = true;
+    }
 
     PyVar runFrame(Frame* frame){
         while(!frame->isCodeEnd()){
+            if(_stopFlag){
+                _stopFlag = false;
+                _error("KeyboardInterrupt", "");
+            }
+
             const ByteCode& byte = frame->readCode();
             //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
 
@@ -1083,8 +1093,7 @@ class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
     std::optional<_Str> _sharedStr = {};
-    std::atomic<bool> _stopFlag = false;
-
+    
     PyVar jsonRpc(const _Str& _json){
         _sharedStr = _json;
         suspend();
@@ -1095,9 +1104,8 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            _stopFlag = true;
+            emitKeyboardInterrupt();
             _thread->join();
-            _stopFlag = false;
             delete _thread;
             _thread = nullptr;
         }
@@ -1126,7 +1134,7 @@ public:
         _state = THREAD_SUSPENDED;
         // 50 fps is enough
         while(_state == THREAD_SUSPENDED){
-            if(_stopFlag) std::terminate();
+            if(_stopFlag) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
     }
