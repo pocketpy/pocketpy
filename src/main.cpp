@@ -44,15 +44,16 @@ void _tvm_dispatch(ThreadedVM* vm){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
             PyObjectDump* obj = pkpy_tvm_read_json(vm);
             bool is_input_call = INPUT_JSONRPC_STR == obj->json;
-            pkpy_delete(obj);
             if(is_input_call){
                 std::string line;
                 std::getline(std::cin, line);
                 pkpy_tvm_resume(vm, line.c_str());
             }else{
-                exit(999);
-                pkpy_tvm_resume(vm, nullptr);
+                std::cout << "unknown jsonrpc call" << std::endl;
+                std::cout << obj->json << std::endl;
+                exit(3);
             }
+            pkpy_delete(obj);
         }
     }
 }
