@@ -5,13 +5,12 @@
 typedef int64_t _Int;
 typedef double _Float;
 
-#define PK_VERSION "0.4.0"
+#define PK_VERSION "0.4.5"
 
 class CodeObject;
 class BasePointer;
 class VM;
 class Frame;
-class PkExportedResource {};
 
 typedef std::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);

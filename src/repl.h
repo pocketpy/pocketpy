@@ -9,7 +9,7 @@ enum InputResult {
     EXEC_SKIPPED = 2,
 };
 
-class REPL: public PkExportedResource {
+class REPL {
 protected:
     int need_more_lines = 0;
     std::string buffer;

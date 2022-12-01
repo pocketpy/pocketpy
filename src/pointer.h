@@ -52,7 +52,7 @@ struct IndexPointer : BasePointer {
 
 struct CompoundPointer : BasePointer {
     const std::vector<_Pointer> pointers;
-    CompoundPointer(std::vector<_Pointer> pointers) : pointers(pointers) {}
+    CompoundPointer(const std::vector<_Pointer>& pointers) : pointers(pointers) {}
     CompoundPointer(std::vector<_Pointer>&& pointers) : pointers(pointers) {}
 
     PyVar get(VM* vm, Frame* frame) const;

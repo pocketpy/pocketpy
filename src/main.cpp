@@ -94,7 +94,7 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         ThreadedVM* vm = pkpy_new_tvm(true);
-        _Code code;
+        _Code code = nullptr;
         Timer("Compile time").run([&]{
             code = compile(vm, src.c_str(), filename);
         });

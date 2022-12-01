@@ -19,32 +19,11 @@
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-#define __DEF_PY_POOL(name, ctype, ptype, max_size) \
-    std::vector<PyObject*> _pool##name;             \
-    PyVar Py##name(ctype _native) {                 \
-        PyObject* _raw = nullptr;                   \
-        if(_pool##name.size() > 0) {                \
-            _raw = _pool##name.back();              \
-            _raw->_native = std::move(_native);     \
-            _pool##name.pop_back();                 \
-        }else{                                      \
-            __checkType(ptype, _tp_type);           \
-            _raw = new PyObject(std::move(_native));\
-            _raw->setType(ptype);                   \
-        }                                           \
-        return PyVar(_raw, [this](PyObject* p){     \
-            if(_pool##name.size() < max_size){      \
-                _pool##name.push_back(p);           \
-            }else{                                  \
-                delete p;                           \
-            }                                       \
-        });                                         \
-    }
-
 typedef void(*PrintFn)(const VM*, const char*);
 
-class VM: public PkExportedResource{
+class VM {
     std::atomic<bool> _stopFlag = false;
+    std::vector<PyVar> _smallIntegers;      // [-5, 256]
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
@@ -100,11 +79,11 @@ protected:
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                const _Pointer& p = PyPointer_AS_C(frame->__pop());
+                const _Pointer p = PyPointer_AS_C(frame->__pop());
                 p->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
-                const _Pointer& p = PyPointer_AS_C(frame->__pop());
+                const _Pointer p = PyPointer_AS_C(frame->__pop());
                 p->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
@@ -170,7 +149,7 @@ protected:
             case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
                 {
-                    const PyVar& expr = frame->topValue(this);
+                    const PyVar expr = frame->topValue(this);
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
@@ -228,7 +207,7 @@ protected:
             case OP_UNARY_REF:
                 {
                     // _pointer to pointer
-                    const _Pointer& p = PyPointer_AS_C(frame->__pop());
+                    const _Pointer p = PyPointer_AS_C(frame->__pop());
                     _Pointer up = std::make_shared<UserPointer>(p, frame->id);
                     frame->push(newObject(_tp_user_pointer, std::move(up)));
                 } break;
@@ -317,13 +296,13 @@ protected:
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
-                    const PyVar& expr = frame->topValue(this);
+                    const PyVar expr = frame->topValue(this);
                     if(asBool(expr)==False) frame->jump(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
-                    const PyVar& expr = frame->topValue(this);
+                    const PyVar expr = frame->topValue(this);
                     if(asBool(expr)==True) frame->jump(byte.arg);
                     else frame->popValue(this);
                 } break;
@@ -407,6 +386,9 @@ public:
             this->_stderr = new _StrStream();
         }
         initializeBuiltinClasses();
+
+        _smallIntegers.reserve(300);
+        for(_Int i=-5; i<=256; i++) _smallIntegers.push_back(newObject(_tp_int, i));
     }
 
     void keyboardInterrupt(){
@@ -784,18 +766,20 @@ public:
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
     PyVar _tp_user_pointer, _tp_super;
 
-    __DEF_PY_POOL(Int, _Int, _tp_int, 256);
-    __DEF_PY_AS_C(Int, _Int, _tp_int)
-    __DEF_PY_POOL(Float, _Float, _tp_float, 256);
-    __DEF_PY_AS_C(Float, _Float, _tp_float)
-    __DEF_PY_POOL(Pointer, _Pointer, _tp_pointer, 256)
-
+    __DEF_PY(Pointer, _Pointer, _tp_pointer)
     inline _Pointer& PyPointer_AS_C(const PyVar& obj)
     {
         if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
         return std::get<_Pointer>(obj->_native);
     }
 
+    __DEF_PY_AS_C(Int, _Int, _tp_int)
+    inline PyVar PyInt(_Int value) { 
+        if(value >= -5 && value <= 256) return _smallIntegers[value + 5];
+        return newObject(_tp_int, value);
+    }
+
+    DEF_NATIVE(Float, _Float, _tp_float)
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
@@ -1116,7 +1100,7 @@ class ThreadedVM : public VM {
     void __deleteThread(){
         if(_thread != nullptr){
             if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
-                UNREACHABLE();
+                keyboardInterrupt();
             }
             _thread->join();
             delete _thread;

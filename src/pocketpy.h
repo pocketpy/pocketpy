@@ -630,9 +630,33 @@ void __addModuleSys(VM* vm){
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
+class _PkExported;
+static std::vector<_PkExported*> _pkLookupTable;
+class _PkExported{
+public:
+    virtual ~_PkExported() = default;
+    virtual void* get() = 0;
+};
+
+template<typename T>
+class PkExported : public _PkExported{
+    T* _ptr;
+public:
+    template<typename... Args>
+    PkExported(Args&&... args) : _ptr(new T(std::forward<Args>(args)...)){
+        _pkLookupTable.push_back(this);
+    }
+    
+    ~PkExported() override { delete _ptr; }
+    void* get() override { return _ptr; }
+    operator T*() { return _ptr; }
+};
+
+#define pkpy_allocate(T, ...) *(new PkExported<T>(__VA_ARGS__))
+
 
 extern "C" {
-    struct PyObjectDump: public PkExportedResource{
+    struct PyObjectDump {
         const char* type;   // "int", "str", "float" ...
         const char* json;   // json representation
 
@@ -647,7 +671,7 @@ extern "C" {
         }
     };
 
-    struct PyOutputDump: public PkExportedResource{
+    struct PyOutputDump {
         const char* _stdout;
         const char* _stderr;
 
@@ -663,8 +687,13 @@ extern "C" {
     };
 
     __EXPORT
-    void pkpy_delete(PkExportedResource* p){
-        delete p;
+    void pkpy_delete(void* p){
+        for(int i = 0; i < _pkLookupTable.size(); i++){
+            if(_pkLookupTable[i]->get() == p){
+                delete _pkLookupTable[i];
+                _pkLookupTable.erase(_pkLookupTable.begin() + i);
+            }
+        }
     }
 
     __EXPORT
@@ -686,7 +715,7 @@ extern "C" {
     PyObjectDump* pkpy_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
-        return new PyObjectDump(
+        return pkpy_allocate(PyObjectDump,
             it->second->getTypeName().c_str(),
             vm->PyStr_AS_C(vm->asJson(it->second)).c_str()
         );
@@ -698,7 +727,7 @@ extern "C" {
         if(code == nullptr) return nullptr;
         PyVarOrNull ret = vm->exec(code);
         if(ret == nullptr) return nullptr;
-        return new PyObjectDump(
+        return pkpy_allocate(PyObjectDump,
             ret->getTypeName(),
             vm->PyStr_AS_C(vm->asJson(ret))
         );
@@ -706,7 +735,7 @@ extern "C" {
 
     __EXPORT
     REPL* pkpy_new_repl(VM* vm){
-        return new REPL(vm);
+        return pkpy_allocate(REPL, vm);
     }
 
     __EXPORT
@@ -736,14 +765,14 @@ extern "C" {
 
     __EXPORT
     VM* pkpy_new_vm(bool use_stdio){
-        VM* vm = new VM(use_stdio);
+        VM* vm = pkpy_allocate(VM, use_stdio);
         __vm_init(vm);
         return vm;
     }
 
     __EXPORT
     ThreadedVM* pkpy_new_tvm(bool use_stdio){
-        ThreadedVM* vm = new ThreadedVM(use_stdio);
+        ThreadedVM* vm = pkpy_allocate(ThreadedVM, use_stdio);
         __vm_init(vm);
         return vm;
     }
@@ -754,7 +783,7 @@ extern "C" {
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
         _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
         if(s_out == nullptr || s_err == nullptr) return nullptr;
-        PyOutputDump* dump = new PyOutputDump(s_out->str(), s_err->str());
+        PyOutputDump* dump = pkpy_allocate(PyOutputDump, s_out->str(), s_err->str());
         s_out->str("");
         s_err->str("");
         return dump;
@@ -774,7 +803,7 @@ extern "C" {
     PyObjectDump* pkpy_tvm_read_json(ThreadedVM* vm){
         std::optional<_Str> s = vm->readSharedStr();
         if(!s.has_value()) return nullptr;
-        return new PyObjectDump("str"_c, s.value());
+        return pkpy_allocate(PyObjectDump, "str"_c, s.value());
     }
 
     __EXPORT
