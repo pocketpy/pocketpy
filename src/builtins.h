@@ -244,6 +244,7 @@ class FileIO:
 
   def write(self, s):
     assert self.mode == 'w'
+    assert type(s) is str
     jsonrpc({"method": "fwrite", "params": [self.fp, s]})
 
   def close(self):
