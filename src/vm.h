@@ -44,13 +44,13 @@
 typedef void(*PrintFn)(const VM*, const char*);
 
 class VM: public PkExportedResource{
+    std::atomic<bool> _stopFlag = false;
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
     std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
-    std::atomic<bool> _stopFlag = false;
-
+    
     void _checkStopFlag(){
         if(_stopFlag){
             _stopFlag = false;
@@ -60,9 +60,10 @@ protected:
 
     PyVar runFrame(Frame* frame){
         while(!frame->isCodeEnd()){
-            _checkStopFlag();
             const ByteCode& byte = frame->readCode();
             //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
+
+            _checkStopFlag();
 
             switch (byte.op)
             {
@@ -1114,7 +1115,10 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED) keyboardInterrupt();
+            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED) {
+                keyboardInterrupt();
+                while(_state != THREAD_FINISHED);
+            }
             _thread->join();
             delete _thread;
             _thread = nullptr;
@@ -1183,11 +1187,12 @@ public:
 
     PyVarOrNull exec(const _Code& code, PyVar _module = nullptr) override {
         if(_state == THREAD_READY) return VM::exec(code, _module);
-        auto callstackBackup = std::move(callstack);
-        callstack.clear();
-        PyVarOrNull ret = VM::exec(code, _module);
-        callstack = std::move(callstackBackup);
-        return ret;
+        UNREACHABLE();
+        // auto callstackBackup = std::move(callstack);
+        // callstack.clear();
+        // PyVarOrNull ret = VM::exec(code, _module);
+        // callstack = std::move(callstackBackup);
+        // return ret;
     }
 
     void resetState(){

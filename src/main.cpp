@@ -112,6 +112,7 @@ int main(int argc, char** argv){
             vm->execAsync(code);
             _tvm_dispatch(vm);
         });
+        pkpy_delete(vm);
         return 0;
     }
 
