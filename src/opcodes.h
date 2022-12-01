@@ -63,4 +63,7 @@ OPCODE(GOTO)
 OPCODE(UNARY_REF)           // for &
 OPCODE(UNARY_DEREF)         // for *
 
+OPCODE(WITH_ENTER)
+OPCODE(WITH_EXIT)
+
 #endif

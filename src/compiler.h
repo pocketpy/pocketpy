@@ -664,7 +664,7 @@ __LISTCOMP:
         return tkmodule;
     }
 
-    // import module1 [as alias1 [, module2 [as alias2 ...]]
+    // import a as b
     void compileRegularImport() {
         do {
             Token tkmodule = compileImportPath();
@@ -673,6 +673,25 @@ __LISTCOMP:
                 tkmodule = parser->previous;
             }
             int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
+            emitCode(OP_STORE_NAME_PTR, index);
+        } while (match(TK(",")));
+        consumeEndStatement();
+    }
+
+    // from a import b as c, d as e
+    void compileFromImport() {
+        Token tkmodule = compileImportPath();
+        consume(TK("import"));
+        do {
+            consume(TK("@id"));
+            Token tkname = parser->previous;
+            int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
+            emitCode(OP_BUILD_ATTR_PTR, index);
+            if (match(TK("as"))) {
+                consume(TK("@id"));
+                tkname = parser->previous;
+            }
+            index = getCode()->addName(tkname.str(), NAME_GLOBAL);
             emitCode(OP_STORE_NAME_PTR, index);
         } while (match(TK(",")));
         consumeEndStatement();
@@ -786,6 +805,21 @@ __LISTCOMP:
             EXPR();
             emitCode(OP_ASSERT);
             consumeEndStatement();
+        } else if(match(TK("with"))){
+            EXPR();
+            consume(TK("as"));
+            consume(TK("@id"));
+            Token tkname = parser->previous;
+            int index = getCode()->addName(
+                tkname.str(),
+                codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
+            );
+            emitCode(OP_STORE_NAME_PTR, index);
+            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_WITH_ENTER);
+            compileBlockBody();
+            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_WITH_EXIT);
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
@@ -926,6 +960,8 @@ __LISTCOMP:
             compileFunction();
         } else if (match(TK("import"))) {
             compileRegularImport();
+        } else if (match(TK("from"))) {
+            compileFromImport();
         } else {
             compileStatement();
         }

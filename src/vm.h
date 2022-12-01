@@ -345,6 +345,18 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
+            case OP_WITH_ENTER:
+            {
+                PyVar obj = frame->popValue(this);
+                PyVar enter_fn = getAttr(obj, "__enter__"_c);
+                call(enter_fn, {});
+            } break;
+            case OP_WITH_EXIT:
+            {
+                PyVar obj = frame->popValue(this);
+                PyVar exit_fn = getAttr(obj, "__exit__"_c);
+                call(exit_fn, {});
+            } break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;

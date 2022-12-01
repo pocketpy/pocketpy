@@ -12,7 +12,7 @@ constexpr const char* __TOKENS[] = {
     "==", "!=", ">=", "<=",
     "+=", "-=", "*=", "/=", "//=",
     /** KW_BEGIN **/
-    "class", "import", "as", "def", "lambda", "pass", "del",
+    "class", "import", "as", "def", "lambda", "pass", "del", "from", "with",
     "None", "in", "is", "and", "or", "not", "True", "False", "global",
     "goto", "label",      // extended keywords, not available in cpython
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise",

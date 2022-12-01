@@ -48,6 +48,10 @@ seq = ["r","u","n","o","o","b"]
 assert s1.join( seq ) == "r-u-n-o-o-b"
 assert s2.join( seq ) == "runoob"
 
+def test(*seq):
+    return s1.join(seq)
+assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
+
 
 ##num = 6
 ##assert str(num) == '6'   TypeError: 'str' object is not callable

@@ -404,11 +404,18 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("str", "join", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const PyVarList& _list = vm->PyList_AS_C(args[1]);
+        PyVarList* _list;
+        if(args[1]->isType(vm->_tp_list)){
+            _list = &vm->PyList_AS_C(args[1]);
+        }else if(args[1]->isType(vm->_tp_tuple)){
+            _list = &vm->PyTuple_AS_C(args[1]);
+        }else{
+            vm->typeError("can only join a list or tuple");
+        }
         _StrStream ss;
-        for(int i = 0; i < _list.size(); i++){
+        for(int i = 0; i < _list->size(); i++){
             if(i > 0) ss << _self;
-            ss << vm->PyStr_AS_C(vm->asStr(_list[i]));
+            ss << vm->PyStr_AS_C(vm->asStr(_list->operator[](i)));
         }
         return vm->PyStr(ss.str());
     });
