@@ -1115,9 +1115,8 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED) {
-                keyboardInterrupt();
-                while(_state != THREAD_FINISHED);
+            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
+                UNREACHABLE();
             }
             _thread->join();
             delete _thread;
