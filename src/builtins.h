@@ -228,6 +228,35 @@ def sorted(iterable, key=None, reverse=False):
                 a[i], a[j] = a[j], a[i]
                 b[i], b[j] = b[j], b[i]
     return b
+
+class FileIO:
+  def __init__(self, path, mode):
+    assert type(path) is str
+    assert type(mode) is str
+    assert mode in ['r', 'w']
+    self.path = path
+    self.mode = mode
+    self.fp = jsonrpc({"method": "fopen", "params": [path, mode]})
+
+  def read(self):
+    assert self.mode == 'r'
+    return jsonrpc({"method": "fread", "params": [self.fp]})
+
+  def write(self, s):
+    assert self.mode == 'w'
+    jsonrpc({"method": "fwrite", "params": [self.fp, s]})
+
+  def close(self):
+    jsonrpc({"method": "fclose", "params": [self.fp]})
+
+  def __enter__(self):
+    pass
+
+  def __exit__(self):
+    self.close()
+
+def open(path, mode='r'):
+    return FileIO(path, mode)
 )";
 
 const char* __RANDOM_CODE = R"(
