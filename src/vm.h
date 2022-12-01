@@ -928,6 +928,7 @@ public:
     }
 
     virtual ~VM() {
+        callstack.clear();
         if(!use_stdio){
             delete _stdout;
             delete _stderr;
@@ -1082,6 +1083,7 @@ class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
     std::optional<_Str> _sharedStr = {};
+    std::atomic<bool> _stopFlag = false;
 
     PyVar jsonRpc(const _Str& _json){
         _sharedStr = _json;
@@ -1093,8 +1095,9 @@ class ThreadedVM : public VM {
 
     void __deleteThread(){
         if(_thread != nullptr){
-            if(!_thread->joinable()) UNREACHABLE();
+            _stopFlag = true;
             _thread->join();
+            _stopFlag = false;
             delete _thread;
             _thread = nullptr;
         }
@@ -1122,7 +1125,10 @@ public:
         if(_state != THREAD_RUNNING) UNREACHABLE();
         _state = THREAD_SUSPENDED;
         // 50 fps is enough
-        while(_state == THREAD_SUSPENDED) std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        while(_state == THREAD_SUSPENDED){
+            if(_stopFlag) std::terminate();
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
     }
 
     std::optional<_Str> readSharedStr(){
