@@ -691,7 +691,7 @@ extern "C" {
     /// It can be `VM*`, `REPL*` or `PyXXXDump*`, etc.
     /// 
     /// !!!
-    /// If the pointer not allocated by `pkpy_xxx_xxx`, nothing will happen.
+    /// If the pointer is not allocated by `pkpy_xxx_xxx`, nothing will happen.
     /// !!!
     void pkpy_delete(void* p){
         for(int i = 0; i < _pkLookupTable.size(); i++){
