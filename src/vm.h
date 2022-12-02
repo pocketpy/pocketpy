@@ -1179,7 +1179,7 @@ public:
     }
 
     void resetState(){
-        if(this->_state != THREAD_FINISHED) UNREACHABLE();
+        if(this->_state != THREAD_FINISHED) return;
         this->_state = THREAD_READY;
     }
 

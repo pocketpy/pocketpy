@@ -687,6 +687,12 @@ extern "C" {
     };
 
     __EXPORT
+    /// Delete a pointer allocated by `pkpy_xxx_xxx`.
+    /// It can be `VM*`, `REPL*` or `PyXXXDump*`, etc.
+    /// 
+    /// !!!
+    /// If the pointer not allocated by `pkpy_xxx_xxx`, nothing will happen.
+    /// !!!
     void pkpy_delete(void* p){
         for(int i = 0; i < _pkLookupTable.size(); i++){
             if(_pkLookupTable[i]->get() == p){
@@ -697,22 +703,21 @@ extern "C" {
     }
 
     __EXPORT
-    bool pkpy_exec(VM* vm, const char* source){
+    /// Run a given source on a virtual machine.
+    /// 
+    /// Return `true` if there is no error.
+    bool pkpy_vm_exec(VM* vm, const char* source){
         _Code code = compile(vm, source, "main.py");
         if(code == nullptr) return false;
         return vm->exec(code) != nullptr;
     }
 
     __EXPORT
-    bool pkpy_exec_async(VM* vm, const char* source){
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->execAsync(code);
-        return true;
-    }
-
-    __EXPORT
-    PyObjectDump* pkpy_get_global(VM* vm, const char* name){
+    /// Get a global variable of a virtual machine.
+    /// Return a `PyObjectDump*` representing the variable.
+    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
+    /// If the variable is not found, return `nullptr`.
+    PyObjectDump* pkpy_vm_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
         return pkpy_allocate(PyObjectDump,
@@ -722,7 +727,12 @@ extern "C" {
     }
 
     __EXPORT
-    PyObjectDump* pkpy_eval(VM* vm, const char* source){
+    /// Evaluate an expression.
+    /// 
+    /// Return a `PyObjectDump*` representing the result.
+    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
+    /// If there is any error, return `nullptr`.
+    PyObjectDump* pkpy_vm_eval(VM* vm, const char* source){
         _Code code = compile(vm, source, "<eval>", EVAL_MODE);
         if(code == nullptr) return nullptr;
         PyVarOrNull ret = vm->exec(code);
@@ -734,17 +744,26 @@ extern "C" {
     }
 
     __EXPORT
+    /// Create a REPL, using the given virtual machine as the backend.
     REPL* pkpy_new_repl(VM* vm){
         return pkpy_allocate(REPL, vm);
     }
 
     __EXPORT
+    /// Input a source line to an interactive console.
+    /// 
+    /// Return `0` if need more lines,
+    /// `1` if execution happened,
+    /// `2` if execution skipped (compile error or empty input).
     int pkpy_repl_input(REPL* r, const char* line){
         return r->input(line);
     }
 
     __EXPORT
-    bool pkpy_add_module(VM* vm, const char* name, const char* source){
+    /// Add a source module into a virtual machine.
+    ///
+    /// Return `true` if there is no complie error.
+    bool pkpy_vm_add_module(VM* vm, const char* name, const char* source){
         // compile the module but don't execute it
         _Code code = compile(vm, source, name + _Str(".py"));
         if(code == nullptr) return false;
@@ -760,10 +779,11 @@ extern "C" {
 
         __addModuleSys(vm);
         __addModuleTime(vm);
-        pkpy_add_module(vm, "random", __RANDOM_CODE);
+        pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
     }
 
     __EXPORT
+    /// Create a virtual machine.
     VM* pkpy_new_vm(bool use_stdio){
         VM* vm = pkpy_allocate(VM, use_stdio);
         __vm_init(vm);
@@ -771,6 +791,7 @@ extern "C" {
     }
 
     __EXPORT
+    /// Create a virtual machine that supports asynchronous execution.
     ThreadedVM* pkpy_new_tvm(bool use_stdio){
         ThreadedVM* vm = pkpy_allocate(ThreadedVM, use_stdio);
         __vm_init(vm);
@@ -778,6 +799,12 @@ extern "C" {
     }
 
     __EXPORT
+    /// Read the standard output and standard error as string of a virtual machine.
+    /// The `vm->use_stdio` should be `false`.
+    /// After this operation, both stream will be cleared.
+    ///
+    /// Return a `PyOutputDump*` representing the result.
+    /// You need to call `pkpy_delete` to free the returned `PyOutputDump*` later.
     PyOutputDump* pkpy_vm_read_output(VM* vm){
         if(vm->use_stdio) return nullptr;
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
@@ -790,29 +817,60 @@ extern "C" {
     }
 
     __EXPORT
+    /// Get the current state of a threaded virtual machine.
+    ///
+    /// Return `0` for `THREAD_READY`,
+    /// `1` for `THREAD_RUNNING`,
+    /// `2` for `THREAD_SUSPENDED`,
+    /// `3` for `THREAD_FINISHED`.
     int pkpy_tvm_get_state(ThreadedVM* vm){
         return vm->getState();
     }
 
     __EXPORT
+    /// Set the state of a threaded virtual machine to `THREAD_READY`.
+    /// The current state should be `THREAD_FINISHED`.
     void pkpy_tvm_reset_state(ThreadedVM* vm){
         vm->resetState();
     }
 
     __EXPORT
-    PyObjectDump* pkpy_tvm_read_json(ThreadedVM* vm){
+    /// Read the current JSONRPC request from shared string buffer.
+    /// 
+    /// Return a `PyObjectDump*` representing the string.
+    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
+    /// If the buffer is empty, return `nullptr`.
+    PyObjectDump* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
         std::optional<_Str> s = vm->readSharedStr();
         if(!s.has_value()) return nullptr;
         return pkpy_allocate(PyObjectDump, "str"_c, s.value());
     }
 
     __EXPORT
+    /// Resume a suspended threaded virtual machine
+    /// and put the given string into the shared string buffer.
+    /// It is usually used for JSONRPC.
     void pkpy_tvm_resume(ThreadedVM* vm, const char* value){
         vm->resume(value);
     }
 
     __EXPORT
-    void pkpy_vm_keyboard_interrupt(VM* vm){
+    /// Emit a KeyboardInterrupt signal in order to stop a running threaded virtual machine. 
+    void pkpy_tvm_keyboard_interrupt(VM* vm){
+        // although this is a method of VM, it's only used in ThreadedVM
         vm->keyboardInterrupt();
+    }
+
+    __EXPORT
+    /// Run a given source on a threaded virtual machine.
+    /// The excution will be started in a new thread.
+    /// 
+    /// Return `true` if there is no compile error.
+    bool pkpy_tvm_exec_async(VM* vm, const char* source){
+        // although this is a method of VM, it's only used in ThreadedVM
+        _Code code = compile(vm, source, "main.py");
+        if(code == nullptr) return false;
+        vm->execAsync(code);
+        return true;
     }
 }

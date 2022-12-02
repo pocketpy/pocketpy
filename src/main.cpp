@@ -42,7 +42,7 @@ extern "C" {
 void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
-            PyObjectDump* obj = pkpy_tvm_read_json(vm);
+            PyObjectDump* obj = pkpy_tvm_read_jsonrpc_request(vm);
             bool is_input_call = INPUT_JSONRPC_STR == obj->json;
             if(is_input_call){
                 std::string line;
