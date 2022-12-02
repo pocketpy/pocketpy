@@ -42,7 +42,7 @@ with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
 	final_text = \
 r'''/*
  *  Copyright (c) 2022 blueloveTH
- *  Distributed Under The GNU General Public License v3.0
+ *  Distributed Under The GNU General Public License v2.0
  */
 
 #ifndef POCKETPY_H

@@ -5,8 +5,6 @@
 typedef int64_t _Int;
 typedef double _Float;
 
-#define PK_VERSION "0.4.5"
-
 class CodeObject;
 class BasePointer;
 class VM;

@@ -28,3 +28,5 @@
 #else
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
+
+#define PK_VERSION "0.4.5"
