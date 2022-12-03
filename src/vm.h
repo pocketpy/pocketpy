@@ -1088,9 +1088,7 @@ class ThreadedVM : public VM {
     
     void __deleteThread(){
         if(_thread != nullptr){
-            if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
-                keyboardInterrupt();
-            }
+            terminate();
             _thread->join();
             delete _thread;
             _thread = nullptr;
@@ -1107,6 +1105,13 @@ public:
             tvm->suspend();
             return tvm->PyStr(tvm->readSharedStr());
         });
+    }
+
+    void terminate(){
+        if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
+            keyboardInterrupt();
+            while(_state != THREAD_FINISHED);
+        }
     }
 
     void suspend(){

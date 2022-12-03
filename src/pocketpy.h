@@ -840,10 +840,9 @@ extern "C" {
     }
 
     __EXPORT
-    /// Emit a KeyboardInterrupt signal in order to stop a running threaded virtual machine. 
-    void pkpy_tvm_keyboard_interrupt(VM* vm){
-        // although this is a method of VM, it's only used in ThreadedVM
-        vm->keyboardInterrupt();
+    /// Emit a KeyboardInterrupt signal to stop a running threaded virtual machine. 
+    void pkpy_tvm_terminate(ThreadedVM* vm){
+        vm->terminate();
     }
 
     __EXPORT
