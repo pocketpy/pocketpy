@@ -905,11 +905,15 @@ __LISTCOMP:
             {
                 case 0: func->args.push_back(name); break;
                 case 1: func->starredArg = name; state+=1; break;
-                case 2:
+                case 2: {
                     consume(TK("="));
-                    func->kwArgs[name] = consumeLiteral();
+                    PyVarOrNull value = readLiteral();
+                    if(value == nullptr){
+                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
+                    }
+                    func->kwArgs[name] = value;
                     func->kwArgsOrder.push_back(name);
-                    break;
+                } break;
                 case 3: syntaxError("**kwargs is not supported yet"); break;
             }
         } while (match(TK(",")));
@@ -937,7 +941,7 @@ __LISTCOMP:
         if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
     }
 
-    PyVar consumeLiteral(){
+    PyVarOrNull readLiteral(){
         if(match(TK("-"))){
             consume(TK("@num"));
             PyVar val = parser->previous.value;
@@ -949,7 +953,6 @@ __LISTCOMP:
         if(match(TK("False"))) return vm->PyBool(false);
         if(match(TK("None"))) return vm->None;
         if(match(TK("..."))) return vm->Ellipsis;
-        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
         return nullptr;
     }
 
@@ -978,6 +981,14 @@ __LISTCOMP:
 
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
+            consume(TK("@eof"));
+            return code;
+        }else if(mode()==JSON_MODE){
+            PyVarOrNull value = readLiteral();
+            if(value != nullptr) emitCode(OP_LOAD_CONST, code->addConst(value));
+            else if(match(TK("{"))) exprMap();
+            else if(match(TK("["))) exprList();
+            else syntaxError("expect a JSON object or array");
             consume(TK("@eof"));
             return code;
         }

@@ -42,15 +42,15 @@ extern "C" {
 void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
-            PyObjectDump* obj = pkpy_tvm_read_jsonrpc_request(vm);
-            bool is_input_call = INPUT_JSONRPC_STR == obj->json;
+            char* obj = pkpy_tvm_read_jsonrpc_request(vm);
+            bool is_input_call = INPUT_JSONRPC_STR == std::string(obj);
             if(is_input_call){
                 std::string line;
                 std::getline(std::cin, line);
                 pkpy_tvm_resume(vm, line.c_str());
             }else{
                 std::cout << "unknown jsonrpc call" << std::endl;
-                std::cout << obj->json << std::endl;
+                std::cout << obj << std::endl;
                 exit(3);
             }
             pkpy_delete(obj);

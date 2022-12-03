@@ -11,7 +11,8 @@ public:
 enum CompileMode {
     EXEC_MODE,
     EVAL_MODE,
-    SINGLE_MODE     // for REPL
+    SINGLE_MODE,     // for REPL
+    JSON_MODE,
 };
 
 struct SourceMetadata {

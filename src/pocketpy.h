@@ -161,6 +161,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr("null");
     });
 
+    _vm->bindMethod("NoneType", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
+        return vm->PyBool(args[0] == args[1]);
+    });
+
     _vm->bindMethodMulti({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!vm->isIntOrFloat(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "/" );
@@ -630,6 +634,22 @@ void __addModuleSys(VM* vm){
     vm->setAttr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
+void __addModuleJson(VM* vm){
+    PyVar mod = vm->newModule("json");
+    vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        const _Str& expr = vm->PyStr_AS_C(args[0]);
+        _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE);
+        if(code == nullptr) return vm->None;
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals);
+    });
+
+    vm->bindFunc(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->asJson(args[0]);
+    });
+}
+
 class _PkExported;
 static std::vector<_PkExported*> _pkLookupTable;
 class _PkExported{
@@ -643,7 +663,8 @@ class PkExported : public _PkExported{
     T* _ptr;
 public:
     template<typename... Args>
-    PkExported(Args&&... args) : _ptr(new T(std::forward<Args>(args)...)){
+    PkExported(Args&&... args) {
+        _ptr = new T(std::forward<Args>(args)...);
         _pkLookupTable.push_back(this);
     }
     
@@ -656,91 +677,60 @@ public:
 
 
 extern "C" {
-    struct PyObjectDump {
-        const char* type;   // "int", "str", "float" ...
-        const char* json;   // json representation
-
-        PyObjectDump(_Str _type, _Str _json){
-            type = strdup(_type.c_str());
-            json = strdup(_json.c_str());
-        }
-
-        ~PyObjectDump(){
-            delete[] type;
-            delete[] json;
-        }
-    };
-
-    struct PyOutputDump {
-        const char* _stdout;
-        const char* _stderr;
-
-        PyOutputDump(_Str _stdout, _Str _stderr){
-            this->_stdout = strdup(_stdout.c_str());
-            this->_stderr = strdup(_stderr.c_str());
-        }
-
-        ~PyOutputDump(){
-            delete[] _stdout;
-            delete[] _stderr;
-        }
-    };
-
     __EXPORT
-    /// Delete a pointer allocated by `pkpy_xxx_xxx`.
-    /// It can be `VM*`, `REPL*` or `PyXXXDump*`, etc.
+    /// Delete a class pointer allocated by `pkpy_xxx_xxx`.
+    /// It can be `VM*`, `REPL*`, `ThreadedVM*`, `char*`, etc.
     /// 
     /// !!!
-    /// If the pointer is not allocated by `pkpy_xxx_xxx`, nothing will happen.
+    /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
+    /// For char*, you can also use trivial `delete` in your language.
     /// !!!
     void pkpy_delete(void* p){
         for(int i = 0; i < _pkLookupTable.size(); i++){
             if(_pkLookupTable[i]->get() == p){
                 delete _pkLookupTable[i];
                 _pkLookupTable.erase(_pkLookupTable.begin() + i);
+                return;
             }
         }
+        free(p);
     }
 
     __EXPORT
     /// Run a given source on a virtual machine.
     /// 
-    /// Return `true` if there is no error.
+    /// Return `true` if there is no compile error.
     bool pkpy_vm_exec(VM* vm, const char* source){
         _Code code = compile(vm, source, "main.py");
         if(code == nullptr) return false;
-        return vm->exec(code) != nullptr;
+        vm->exec(code);
+        return true;
     }
 
     __EXPORT
     /// Get a global variable of a virtual machine.
-    /// Return a `PyObjectDump*` representing the variable.
-    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
+    /// 
+    /// Return a json representing the result.
     /// If the variable is not found, return `nullptr`.
-    PyObjectDump* pkpy_vm_get_global(VM* vm, const char* name){
+    char* pkpy_vm_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
-        return pkpy_allocate(PyObjectDump,
-            it->second->getTypeName().c_str(),
-            vm->PyStr_AS_C(vm->asJson(it->second)).c_str()
-        );
+        _Str _json = vm->PyStr_AS_C(vm->asJson(it->second));
+        return strdup(_json.c_str());
     }
 
     __EXPORT
     /// Evaluate an expression.
     /// 
-    /// Return a `PyObjectDump*` representing the result.
-    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
+    /// Return a json representing the result.
     /// If there is any error, return `nullptr`.
-    PyObjectDump* pkpy_vm_eval(VM* vm, const char* source){
+    char* pkpy_vm_eval(VM* vm, const char* source){
         _Code code = compile(vm, source, "<eval>", EVAL_MODE);
         if(code == nullptr) return nullptr;
         PyVarOrNull ret = vm->exec(code);
         if(ret == nullptr) return nullptr;
-        return pkpy_allocate(PyObjectDump,
-            ret->getTypeName(),
-            vm->PyStr_AS_C(vm->asJson(ret))
-        );
+        _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
+        return strdup(_json.c_str());
     }
 
     __EXPORT
@@ -779,6 +769,7 @@ extern "C" {
 
         __addModuleSys(vm);
         __addModuleTime(vm);
+        __addModuleJson(vm);
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
     }
 
@@ -803,17 +794,20 @@ extern "C" {
     /// The `vm->use_stdio` should be `false`.
     /// After this operation, both stream will be cleared.
     ///
-    /// Return a `PyOutputDump*` representing the result.
-    /// You need to call `pkpy_delete` to free the returned `PyOutputDump*` later.
-    PyOutputDump* pkpy_vm_read_output(VM* vm){
+    /// Return a json representing the result.
+    char* pkpy_vm_read_output(VM* vm){
         if(vm->use_stdio) return nullptr;
         _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
         _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
-        if(s_out == nullptr || s_err == nullptr) return nullptr;
-        PyOutputDump* dump = pkpy_allocate(PyOutputDump, s_out->str(), s_err->str());
+        _Str _stdout = s_out->str();
+        _Str _stderr = s_err->str();
+        _StrStream ss;
+        ss << '{' << "\"stdout\": " << _stdout.__escape(false);
+        ss << ", ";
+        ss << "\"stderr\": " << _stderr.__escape(false) << '}';
         s_out->str("");
         s_err->str("");
-        return dump;
+        return strdup(ss.str().c_str());
     }
 
     __EXPORT
@@ -840,10 +834,10 @@ extern "C" {
     /// Return a `PyObjectDump*` representing the string.
     /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
     /// If the buffer is empty, return `nullptr`.
-    PyObjectDump* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
+    char* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
         std::optional<_Str> s = vm->readSharedStr();
         if(!s.has_value()) return nullptr;
-        return pkpy_allocate(PyObjectDump, "str"_c, s.value());
+        return strdup(s.value().c_str());
     }
 
     __EXPORT

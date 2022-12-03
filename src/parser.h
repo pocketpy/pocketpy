@@ -222,6 +222,20 @@ struct Parser {
         int length = (int)(current_char - token_start);
         if(length == 0) return 3;
         std::string_view name(token_start, length);
+
+        if(src->mode == JSON_MODE){
+            if(name == "true"){
+                setNextToken(TK("True"));
+            } else if(name == "false"){
+                setNextToken(TK("False"));
+            } else if(name == "null"){
+                setNextToken(TK("None"));
+            } else {
+                return 4;
+            }
+            return 0;
+        }
+
         if(__KW_MAP.count(name)){
             if(name == "not"){
                 if(strncmp(current_char, " in", 3) == 0){

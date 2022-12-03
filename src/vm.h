@@ -352,8 +352,8 @@ protected:
             }
         }
 
-        if(frame->code->src->mode == EVAL_MODE) {
-            if(frame->stackSize() != 1) systemError("stack size is not 1 in EVAL_MODE");
+        if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
+            if(frame->stackSize() != 1) systemError("stack size is not 1 in EVAL_MODE/JSON_MODE");
             return frame->popValue(this);
         }
 
