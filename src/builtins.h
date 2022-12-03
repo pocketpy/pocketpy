@@ -282,6 +282,32 @@ def open(path, mode='r'):
     return FileIO(path, mode)
 )";
 
+const char* __OS_CODE = R"(
+def listdir(path):
+  assert type(path) is str
+  return jsonrpc("os.listdir", [path])
+
+def mkdir(path):
+  assert type(path) is str
+  return jsonrpc("os.mkdir", [path])
+
+def rmdir(path):
+  assert type(path) is str
+  return jsonrpc("os.rmdir", [path])
+
+def remove(path):
+  assert type(path) is str
+  return jsonrpc("os.remove", [path])
+
+path = object()
+
+def __path4exists(path):
+  assert type(path) is str
+  return jsonrpc("os.path.exists", [path])
+path.exists = __path4exists
+del __path4exists
+)";
+
 const char* __RANDOM_CODE = R"(
 import time as _time
 

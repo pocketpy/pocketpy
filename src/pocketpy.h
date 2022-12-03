@@ -769,6 +769,7 @@ extern "C" {
         if(code == nullptr) exit(1);
         vm->_exec(code, vm->builtins, {});
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
+        pkpy_vm_add_module(vm, "os", __OS_CODE);
     }
 
     __EXPORT
