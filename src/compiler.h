@@ -1020,8 +1020,9 @@ __LISTCOMP:
     }
 };
 
-_Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE) {
+_Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE, bool noThrow=true) {
     Compiler compiler(vm, source, filename, mode);
+    if(!noThrow) return compiler.__fillCode();
     try{
         return compiler.__fillCode();
     }catch(std::exception& e){

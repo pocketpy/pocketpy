@@ -40,7 +40,8 @@ protected:
     PyVar runFrame(Frame* frame){
         while(!frame->isCodeEnd()){
             const ByteCode& byte = frame->readCode();
-            //printf("%s (%d) stack_size: %d\n", OP_NAMES[byte.op], byte.arg, frame->stackSize());
+            //printf("[%d] %s (%d)\n", frame->stackSize(), OP_NAMES[byte.op], byte.arg);
+            //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
 
             _checkStopFlag();
 
@@ -466,8 +467,6 @@ public:
                 obj = call(it->second, args);
             }else{
                 obj = newObject(_callable, (_Int)-1);
-            }
-            if(obj->isType(_callable)){
                 PyVarOrNull init_fn = getAttr(obj, __init__, false);
                 if (init_fn != nullptr) call(init_fn, args);
             }
@@ -1082,21 +1081,11 @@ enum ThreadState {
     THREAD_FINISHED
 };
 
-const _Str INPUT_JSONRPC_STR = "{\"method\": \"input\", \"params\": []}";
-
 class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
-    std::optional<_Str> _sharedStr = {};
+    _Str _sharedStr = ""_c;
     
-    PyVar jsonRpc(const _Str& _json){
-        _sharedStr = _json;
-        suspend();
-        std::optional<_Str> ret = readSharedStr();
-        if(ret.has_value()) return PyStr(ret.value());
-        return None;
-    }
-
     void __deleteThread(){
         if(_thread != nullptr){
             if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
@@ -1109,20 +1098,14 @@ class ThreadedVM : public VM {
     }
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {
-        bindBuiltinFunc("jsonrpc", [](VM* vm, const pkpy::ArgList& args){
-            ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
-            if(tvm == nullptr) UNREACHABLE();
-            tvm->__checkArgSize(args, 1);
-            tvm->__checkType(args[0], vm->builtins->attribs["dict"_c]);
-            _Str _json = tvm->PyStr_AS_C(tvm->asJson(args[0]));
-            return tvm->jsonRpc(_json);
-        });
+        bindBuiltinFunc("__string_channel_call", [](VM* vm, const pkpy::ArgList& args){
+            vm->__checkArgSize(args, 1);
+            _Str data = vm->PyStr_AS_C(args[0]);
 
-        bindBuiltinFunc("input", [](VM* vm, const pkpy::ArgList& args) {
-            ThreadedVM *tvm = dynamic_cast<ThreadedVM*>(vm);
-            if(tvm == nullptr) UNREACHABLE();
-            tvm->__checkArgSize(args, 0);
-            return tvm->jsonRpc(INPUT_JSONRPC_STR);
+            ThreadedVM* tvm = (ThreadedVM*)vm;
+            tvm->_sharedStr = data;
+            tvm->suspend();
+            return tvm->PyStr(tvm->readSharedStr());
         });
     }
 
@@ -1136,9 +1119,9 @@ public:
         }
     }
 
-    std::optional<_Str> readSharedStr(){
-        std::optional<_Str> copy = _sharedStr;
-        _sharedStr = {};
+    _Str readSharedStr(){
+        _Str copy = _sharedStr;
+        _sharedStr = ""_c;
         return copy;
     }
 
@@ -1148,14 +1131,10 @@ public:
         return _state;
     }
 
-    void resume(const char* value=nullptr){
+    void jsonrpcResponse(const char* value){
         if(_state != THREAD_SUSPENDED) UNREACHABLE();
         _state = THREAD_RUNNING;
-        if(value == nullptr){
-            _sharedStr = {};
-        }else{
-            _sharedStr = _Str(value);
-        }
+        _sharedStr = _Str(value);
     }
 
     void execAsync(const _Code& code) override {

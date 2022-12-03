@@ -43,11 +43,15 @@ void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
             char* obj = pkpy_tvm_read_jsonrpc_request(vm);
-            bool is_input_call = INPUT_JSONRPC_STR == std::string(obj);
+            bool is_input_call = std::string_view(obj).find("\"input\"") != std::string::npos;
             if(is_input_call){
                 std::string line;
                 std::getline(std::cin, line);
-                pkpy_tvm_resume(vm, line.c_str());
+                _StrStream ss;
+                ss << '{';
+                ss << "\"result\": " << _Str(line).__escape(false);
+                ss << '}';
+                pkpy_tvm_jsonrpc_response(vm, ss.str().c_str());
             }else{
                 std::cout << "unknown jsonrpc call" << std::endl;
                 std::cout << obj << std::endl;

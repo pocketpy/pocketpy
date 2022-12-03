@@ -58,8 +58,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE);
-        if(code == nullptr) return vm->None;
+        _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE, false);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals);
     });
 
@@ -639,8 +638,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE);
-        if(code == nullptr) return vm->None;
+        _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE, false);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals);
     });
 
@@ -650,13 +648,13 @@ void __addModuleJson(VM* vm){
     });
 }
 
-class _PkExported;
-static std::vector<_PkExported*> _pkLookupTable;
 class _PkExported{
 public:
     virtual ~_PkExported() = default;
     virtual void* get() = 0;
 };
+
+static std::vector<_PkExported*> _pkLookupTable;
 
 template<typename T>
 class PkExported : public _PkExported{
@@ -763,13 +761,13 @@ extern "C" {
 
     void __vm_init(VM* vm){
         __initializeBuiltinFunctions(vm);
-        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
-        if(code == nullptr) exit(1);
-        vm->_exec(code, vm->builtins, {});
-
         __addModuleSys(vm);
         __addModuleTime(vm);
         __addModuleJson(vm);
+
+        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
+        if(code == nullptr) exit(1);
+        vm->_exec(code, vm->builtins, {});
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
     }
 
@@ -830,22 +828,15 @@ extern "C" {
 
     __EXPORT
     /// Read the current JSONRPC request from shared string buffer.
-    /// 
-    /// Return a `PyObjectDump*` representing the string.
-    /// You need to call `pkpy_delete` to free the returned `PyObjectDump*` later.
-    /// If the buffer is empty, return `nullptr`.
     char* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
-        std::optional<_Str> s = vm->readSharedStr();
-        if(!s.has_value()) return nullptr;
-        return strdup(s.value().c_str());
+        _Str s = vm->readSharedStr();
+        return strdup(s.c_str());
     }
 
     __EXPORT
-    /// Resume a suspended threaded virtual machine
-    /// and put the given string into the shared string buffer.
-    /// It is usually used for JSONRPC.
-    void pkpy_tvm_resume(ThreadedVM* vm, const char* value){
-        vm->resume(value);
+    /// Write a JSONRPC response to shared string buffer.
+    void pkpy_tvm_jsonrpc_response(ThreadedVM* vm, const char* value){
+        vm->jsonrpcResponse(value);
     }
 
     __EXPORT

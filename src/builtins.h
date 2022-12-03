@@ -229,6 +229,28 @@ def sorted(iterable, key=None, reverse=False):
                 b[i], b[j] = b[j], b[i]
     return b
 
+import json as _json
+
+def jsonrpc(method, params, raw=False):
+  assert type(method) is str
+  assert type(params) is list
+  data = {
+    'jsonrpc': '2.0',
+    'method': method,
+    'params': params,
+  }
+  ret = __string_channel_call(_json.dumps(data))
+  ret = _json.loads(ret)
+  if raw:
+    return ret
+  assert type(ret) is dict
+  if 'result' in ret:
+    return ret['result']
+  raise JsonRpcError(ret['error']['message'])
+
+def input(prompt=None):
+  return jsonrpc('input', [prompt])
+  
 class FileIO:
   def __init__(self, path, mode):
     assert type(path) is str
@@ -236,19 +258,19 @@ class FileIO:
     assert mode in ['r', 'w']
     self.path = path
     self.mode = mode
-    self.fp = jsonrpc({"method": "fopen", "params": [path, mode]})
+    self.fp = jsonrpc('fopen', [path, mode])
 
   def read(self):
     assert self.mode == 'r'
-    return jsonrpc({"method": "fread", "params": [self.fp]})
+    return jsonrpc('fread', [self.fp])
 
   def write(self, s):
     assert self.mode == 'w'
     assert type(s) is str
-    jsonrpc({"method": "fwrite", "params": [self.fp, s]})
+    jsonrpc('fwrite', [self.fp, s])
 
   def close(self):
-    jsonrpc({"method": "fclose", "params": [self.fp]})
+    jsonrpc('fclose', [self.fp])
 
   def __enter__(self):
     pass

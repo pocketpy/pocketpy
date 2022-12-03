@@ -17,7 +17,6 @@
 #include <queue>
 #include <iomanip>
 #include <map>
-#include <optional>
 
 #include <thread>
 #include <atomic>
