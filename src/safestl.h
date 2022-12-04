@@ -3,7 +3,7 @@
 #include "__stl__.h"
 #include "str.h"
 
-class PyObject;
+struct PyObject;
 typedef std::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 

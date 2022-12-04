@@ -5,8 +5,8 @@
 typedef int64_t _Int;
 typedef double _Float;
 
-class CodeObject;
-class BasePointer;
+struct CodeObject;
+struct BasePointer;
 class VM;
 class Frame;
 
