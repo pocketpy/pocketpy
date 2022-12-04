@@ -53,7 +53,7 @@ struct SourceMetadata {
     }
 };
 
-typedef std::shared_ptr<SourceMetadata> _Source;
+typedef pkpy::shared_ptr<SourceMetadata> _Source;
 
 class _Error : public std::exception {
 private:

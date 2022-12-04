@@ -46,7 +46,7 @@ public:
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
-            std::make_shared<SourceMetadata>(source, filename, mode)
+            pkpy::make_shared<SourceMetadata>(source, filename, mode)
         );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
@@ -357,13 +357,13 @@ public:
     }
 
     void exprLambda() {
-        _Func func = std::make_shared<Function>();
+        _Func func = pkpy::make_shared<Function>();
         func->name = "<lambda>";
         if(!match(TK(":"))){
             __compileFunctionArgs(func);
             consume(TK(":"));
         }
-        func->code = std::make_shared<CodeObject>(parser->src, func->name);
+        func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
@@ -924,7 +924,7 @@ __LISTCOMP:
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
-        _Func func = std::make_shared<Function>();
+        _Func func = pkpy::make_shared<Function>();
         consume(TK("@id"));
         func->name = parser->previous.str();
 
@@ -933,7 +933,7 @@ __LISTCOMP:
             consume(TK(")"));
         }
 
-        func->code = std::make_shared<CodeObject>(parser->src, func->name);
+        func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         compileBlockBody();
         this->codes.pop();
@@ -971,7 +971,7 @@ __LISTCOMP:
     }
 
     _Code __fillCode(){
-        _Code code = std::make_shared<CodeObject>(parser->src, _Str("<module>"));
+        _Code code = pkpy::make_shared<CodeObject>(parser->src, _Str("<module>"));
         codes.push(code);
 
         // Lex initial tokens. current <-- next.

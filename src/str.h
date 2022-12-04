@@ -55,7 +55,7 @@ public:
 };
 
 
-std::map<std::string, std::shared_ptr<_StrMemory>, std::less<>> _strIntern;
+std::map<std::string, pkpy::shared_ptr<_StrMemory>, std::less<>> _strIntern;
 
 
 class _StrLiteral : public std::string_view {
@@ -69,7 +69,7 @@ inline constexpr _StrLiteral operator "" _c(const char* str, size_t len){
 
 class _Str {
 private:
-    std::shared_ptr<_StrMemory> _s;
+    pkpy::shared_ptr<_StrMemory> _s;
     bool interned = false;
 public:
     _Str(const _StrLiteral& s){
@@ -92,7 +92,7 @@ public:
 
     // for move constructor, we do not check if the string is interned!!
     _Str(std::string&& s){
-        this->_s = std::make_shared<_StrMemory>(std::move(s));
+        this->_s = pkpy::make_shared<_StrMemory>(std::move(s));
     }
 
     void construct(const std::string_view& sv){
@@ -101,7 +101,7 @@ public:
             this->_s = it->second;
             interned = true;
         }else{
-            this->_s = std::make_shared<_StrMemory>(std::string(sv));
+            this->_s = pkpy::make_shared<_StrMemory>(std::string(sv));
         }
     }
 

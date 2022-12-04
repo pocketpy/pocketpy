@@ -12,7 +12,7 @@ class Frame;
 
 typedef pkpy::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
-typedef std::shared_ptr<CodeObject> _Code;
+typedef pkpy::shared_ptr<CodeObject> _Code;
 
 struct Function {
     _Str name;
@@ -64,7 +64,7 @@ public:
     _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
 };
 
-typedef std::shared_ptr<Function> _Func;
+typedef pkpy::shared_ptr<Function> _Func;
 typedef std::variant<PyVar,_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,std::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer> _Value;
 
 const int _SIZEOF_VALUE = sizeof(_Value);
