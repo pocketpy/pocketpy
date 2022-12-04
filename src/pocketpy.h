@@ -342,7 +342,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             return vm->PyStr(_self.u8_substr(s.start, s.stop));
         }
 
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.u8_length());
         return vm->PyStr(_self.u8_getitem(_index));
     });
@@ -440,7 +440,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("list", "insert", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 3, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         if(_index < 0) _index += _self.size();
         if(_index < 0) _index = 0;
         if(_index > _self.size()) _index = _self.size();
@@ -488,19 +488,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
             _Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.size());
             PyVarList _new_list;
-            for(int i = s.start; i < s.stop; i++)
+            for(size_t i = s.start; i < s.stop; i++)
                 _new_list.push_back(_self[i]);
             return vm->PyList(_new_list);
         }
 
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.size());
         return _self[_index];
     });
 
     _vm->bindMethod("list", "__setitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.size());
         _self[_index] = args[2];
         return vm->None;
@@ -508,7 +508,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("list", "__delitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.size());
         _self.erase(_self.begin() + _index);
         return vm->None;
@@ -534,7 +534,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("tuple", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
-        int _index = vm->PyInt_AS_C(args[1]);
+        int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalizedIndex(_index, _self.size());
         return _self[_index];
     });
@@ -626,7 +626,7 @@ void __addModuleSys(VM* vm){
 
     vm->bindFunc(mod, "setrecursionlimit", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
-        vm->maxRecursionDepth = vm->PyInt_AS_C(args[0]);
+        vm->maxRecursionDepth = (int)vm->PyInt_AS_C(args[0]);
         return vm->None;
     });
 

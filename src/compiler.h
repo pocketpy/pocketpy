@@ -346,7 +346,7 @@ public:
             emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(m[1].str())));
             emitCode(OP_CALL, 1);
             size++;
-            i = m.position() + m.length();
+            i = (int)(m.position() + m.length());
         }
         if (i < s.size()) {
             std::string literal = s.substr(i, s.size() - i);

@@ -43,7 +43,7 @@ struct _Range {
 
 struct _Slice {
     int start = 0;
-    int stop = 2147483647;  // container types always use int32 as index, no support for int64
+    int stop = 0x7fffffff; 
 
     void normalize(int len){
         if(start < 0) start += len;

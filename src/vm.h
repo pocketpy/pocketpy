@@ -312,8 +312,8 @@ protected:
                     PyVar stop = frame->popValue(this);
                     PyVar start = frame->popValue(this);
                     _Slice s;
-                    if(start != None) {__checkType(start, _tp_int); s.start = PyInt_AS_C(start);}
-                    if(stop != None) {__checkType(stop, _tp_int); s.stop = PyInt_AS_C(stop);}
+                    if(start != None) {__checkType(start, _tp_int); s.start = (int)PyInt_AS_C(start);}
+                    if(stop != None) {__checkType(stop, _tp_int); s.stop = (int)PyInt_AS_C(stop);}
                     frame->push(PySlice(s));
                 } break;
             case OP_IMPORT_NAME:
