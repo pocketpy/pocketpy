@@ -233,7 +233,7 @@ import json as _json
 
 def jsonrpc(method, params, raw=False):
   assert type(method) is str
-  assert type(params) is list
+  assert type(params) is list or type(params) is tuple
   data = {
     'jsonrpc': '2.0',
     'method': method,

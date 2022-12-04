@@ -1103,7 +1103,7 @@ public:
             ThreadedVM* tvm = (ThreadedVM*)vm;
             tvm->_sharedStr = data;
             tvm->suspend();
-            return tvm->PyStr(tvm->readSharedStr());
+            return tvm->PyStr(tvm->readJsonRpcRequest());
         });
     }
 
@@ -1124,7 +1124,7 @@ public:
         }
     }
 
-    _Str readSharedStr(){
+    _Str readJsonRpcRequest(){
         _Str copy = _sharedStr;
         _sharedStr = ""_c;
         return copy;
@@ -1136,7 +1136,7 @@ public:
         return _state;
     }
 
-    void jsonrpcResponse(const char* value){
+    void writeJsonrpcResponse(const char* value){
         if(_state != THREAD_SUSPENDED) UNREACHABLE();
         _state = THREAD_RUNNING;
         _sharedStr = _Str(value);

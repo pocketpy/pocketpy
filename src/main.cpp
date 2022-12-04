@@ -51,7 +51,7 @@ void _tvm_dispatch(ThreadedVM* vm){
                 ss << '{';
                 ss << "\"result\": " << _Str(line).__escape(false);
                 ss << '}';
-                pkpy_tvm_jsonrpc_response(vm, ss.str().c_str());
+                pkpy_tvm_write_jsonrpc_response(vm, ss.str().c_str());
             }else{
                 std::cout << "unknown jsonrpc call" << std::endl;
                 std::cout << obj << std::endl;

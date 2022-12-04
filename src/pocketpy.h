@@ -830,14 +830,14 @@ extern "C" {
     __EXPORT
     /// Read the current JSONRPC request from shared string buffer.
     char* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
-        _Str s = vm->readSharedStr();
+        _Str s = vm->readJsonRpcRequest();
         return strdup(s.c_str());
     }
 
     __EXPORT
     /// Write a JSONRPC response to shared string buffer.
-    void pkpy_tvm_jsonrpc_response(ThreadedVM* vm, const char* value){
-        vm->jsonrpcResponse(value);
+    void pkpy_tvm_write_jsonrpc_response(ThreadedVM* vm, const char* value){
+        vm->writeJsonrpcResponse(value);
     }
 
     __EXPORT
