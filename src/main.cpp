@@ -2,8 +2,8 @@
 
 #include "pocketpy.h"
 
-#define PK_DEBUG_TIME
-//#define PK_DEBUG_THREADED
+//#define PK_DEBUG_TIME
+#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;

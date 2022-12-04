@@ -786,7 +786,7 @@ public:
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
-    DEF_NATIVE(Iter, std::shared_ptr<_Iterator>, _tp_native_iterator)
+    DEF_NATIVE(Iter, pkpy::shared_ptr<_Iterator>, _tp_native_iterator)
     DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
