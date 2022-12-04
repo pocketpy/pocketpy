@@ -41,8 +41,8 @@ constexpr _TokenType TK(const char* const token) {
 const _TokenType __KW_BEGIN = TK("class");
 const _TokenType __KW_END = TK("raise");
 
-const std::unordered_map<std::string_view, _TokenType> __KW_MAP = [](){
-    std::unordered_map<std::string_view, _TokenType> map;
+const emhash8::HashMap<std::string_view, _TokenType> __KW_MAP = [](){
+    emhash8::HashMap<std::string_view, _TokenType> map;
     for(int k=__KW_BEGIN; k<=__KW_END; k++) map[__TOKENS[k]] = k;
     return map;
 }();

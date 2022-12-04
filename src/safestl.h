@@ -33,25 +33,26 @@ public:
 };
 
 
-class PyVarDict: public std::unordered_map<_Str, PyVar> {
+#include "hash_table8.hpp"
+
+class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
     PyVar& at(const _Str&) = delete;
 
 public:
     PyVar& operator[](const _Str& key) {
-        return std::unordered_map<_Str, PyVar>::operator[](key);
+        return emhash8::HashMap<_Str, PyVar>::operator[](key);
     }
 
     const PyVar& operator[](const _Str& key) const {
         auto it = find(key);
         if (it == end()){
-            auto msg = "std::unordered_map key not found, '" + key.str() + "'";
+            auto msg = "map key not found, '" + key.str() + "'";
             throw std::out_of_range(msg);
         }
         return it->second;
     }
 
-    // define constructors the same as std::unordered_map
-    using std::unordered_map<_Str, PyVar>::unordered_map;
+    using emhash8::HashMap<_Str, PyVar>::HashMap;
 };
 
 

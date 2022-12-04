@@ -1,4 +1,5 @@
 #include <fstream>
+#include <functional>
 
 #include "pocketpy.h"
 

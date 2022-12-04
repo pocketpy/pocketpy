@@ -47,7 +47,7 @@ struct CodeObject {
     // for goto use
     // note: some opcodes moves the bytecode, such as listcomp
     // goto/label should be put at toplevel statements
-    std::unordered_map<_Str, int> co_labels;
+    emhash8::HashMap<_Str, int> co_labels;
 
     void addLabel(const _Str& label){
         if(co_labels.find(label) != co_labels.end()){

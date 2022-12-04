@@ -29,7 +29,7 @@ public:
     bool isCompilingClass = false;
     VM* vm;
 
-    std::unordered_map<_TokenType, GrammarRule> rules;
+    emhash8::HashMap<_TokenType, GrammarRule> rules;
 
     _Code getCode() {
         return codes.top();
