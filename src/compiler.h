@@ -165,7 +165,7 @@ public:
                 }
                 if (size != m.length()) throw std::runtime_error("length mismatch");
             }
-        }catch(std::exception& e){
+        }catch(std::exception& _){
             syntaxError("invalid number literal");
         } 
     }
