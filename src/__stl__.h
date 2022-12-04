@@ -2,6 +2,7 @@
 
 #ifdef _MSC_VER
 #pragma warning (disable:4267)
+#pragma warning (disable:4101)
 #define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
@@ -33,4 +34,4 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.4.5"
+#define PK_VERSION "0.4.6"
