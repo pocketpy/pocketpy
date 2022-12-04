@@ -57,7 +57,8 @@ struct CodeObject {
         co_labels[label] = co_code.size();
     }
 
-    int addName(const _Str& name, NameScope scope){
+    int addName(_Str name, NameScope scope){
+        name.intern();
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
