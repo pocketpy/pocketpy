@@ -1150,12 +1150,11 @@ public:
 
     PyVarOrNull exec(const _Code& code, PyVar _module = nullptr) override {
         if(_state == THREAD_READY) return VM::exec(code, _module);
-        UNREACHABLE();
-        // auto callstackBackup = std::move(callstack);
-        // callstack.clear();
-        // PyVarOrNull ret = VM::exec(code, _module);
-        // callstack = std::move(callstackBackup);
-        // return ret;
+        auto callstackBackup = std::move(callstack);
+        callstack.clear();
+        PyVarOrNull ret = VM::exec(code, _module);
+        callstack = std::move(callstackBackup);
+        return ret;
     }
 
     void resetState(){

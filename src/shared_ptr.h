@@ -2,33 +2,20 @@
 
 #include "__stl__.h"
 
-// sooo slow! do not use this
 namespace pkpy{
     template <typename T>
     class shared_ptr {
         int* count;
         T* ptr;
-        const std::function<void(T*)>* deleter = nullptr;
 
-    void _delete(){
+    inline void _delete(){
         delete count;
-        if(deleter != nullptr) deleter->operator()(ptr);
-        else delete ptr;
+        delete ptr;
     }
 
     public:
         shared_ptr() : count(nullptr), ptr(nullptr) {}
         shared_ptr(T* ptr) : count(new int(1)), ptr(ptr) {}
-        shared_ptr(T* ptr, const std::function<void(T*)>*) : count(new int(1)), ptr(ptr), deleter(deleter) {}
-        shared_ptr(const shared_ptr& other) : count(other.count), ptr(other.ptr) {
-            if (count) {
-                ++(*count);
-            }
-        }
-        shared_ptr(shared_ptr&& other) : count(other.count), ptr(other.ptr) {
-            other.count = nullptr;
-            other.ptr = nullptr;
-        }
         ~shared_ptr() {
             if (count && --(*count) == 0) _delete();
         }
@@ -54,12 +41,11 @@ namespace pkpy{
                 if (count && --(*count) == 0) _delete();
                 count = other.count;
                 ptr = other.ptr;
-                if (count) {
-                    ++(*count);
-                }
+                if (count) ++(*count);  
             }
             return *this;
         }
+        
         shared_ptr& operator=(shared_ptr&& other) {
             if (this != &other) {
                 if (count && --(*count) == 0) _delete();
@@ -82,9 +68,6 @@ namespace pkpy{
         }
         int use_count() const {
             return count ? *count : 0;
-        }
-        explicit operator bool() const {
-            return ptr != nullptr;
         }
     };
 

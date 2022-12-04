@@ -2,8 +2,8 @@
 
 #include "pocketpy.h"
 
-//#define PK_DEBUG_TIME
-#define PK_DEBUG_THREADED_REPL
+#define PK_DEBUG_TIME
+//#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;
@@ -65,7 +65,7 @@ void _tvm_dispatch(ThreadedVM* vm){
 
 int main(int argc, char** argv){
     if(argc == 1){
-#ifndef PK_DEBUG_THREADED_REPL
+#ifndef PK_DEBUG_THREADED
         VM* vm = pkpy_new_vm(true);
 #else
         ThreadedVM* vm = pkpy_new_tvm(true);
@@ -76,7 +76,7 @@ int main(int argc, char** argv){
             std::string line;
             std::getline(std::cin, line);
             int result = pkpy_repl_input(&repl, line.c_str());
-#ifdef PK_DEBUG_THREADED_REPL
+#ifdef PK_DEBUG_THREADED
             if(result == (int)EXEC_DONE){
                 _tvm_dispatch(vm);
                 pkpy_tvm_reset_state(vm);
@@ -103,19 +103,23 @@ int main(int argc, char** argv){
             code = compile(vm, src.c_str(), filename);
         });
         if(code == nullptr) return 1;
-        //std::cout << code->toString() << std::endl;
 
-        // Timer("Running time").run([=]{
-        //     vm->exec(code);
-        // });
+        //std::cout << code->toString() << std::endl;
 
         // for(auto& kv : _strIntern)
         //     std::cout << kv.first << ", ";
-
+        
+#ifdef PK_DEBUG_THREADED
         Timer("Running time").run([=]{
             vm->execAsync(code);
             _tvm_dispatch(vm);
         });
+#else
+        Timer("Running time").run([=]{
+            vm->exec(code);
+        });
+#endif
+
         pkpy_delete(vm);
         return 0;
     }
