@@ -55,28 +55,30 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(frame->code->co_names[byte.arg]));
+                const BasePointer* p = new NamePointer(frame->code->co_names[byte.arg]);
+                frame->push(PyPointer(_Pointer(p)));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
-                p->set(this, frame, frame->popValue(this));
+                p.set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(std::make_shared<AttrPointer>(obj, attr.get())));
+                const BasePointer* p = new AttrPointer(obj, &attr);
+                frame->push(PyPointer(_Pointer(p)));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
                 const _Pointer& p = std::get<_Pointer>(obj->_native);
-                frame->push(PyPointer(std::make_shared<AttrPointer>(p->get(this, frame), attr.get())));
+                frame->push(PyPointer(_Pointer(new AttrPointer(p->get(this, frame), &attr))));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(std::make_shared<IndexPointer>(obj, index)));
+                frame->push(PyPointer(_Pointer(new IndexPointer(obj, index))));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
@@ -106,7 +108,7 @@ protected:
                 std::vector<_Pointer> pointers(items.size());
                 for(int i=0; i<items.size(); i++)
                     pointers[i] = PyPointer_AS_C(items[i]);
-                frame->push(PyPointer(std::make_shared<CompoundPointer>(pointers)));
+                frame->push(PyPointer(_Pointer(new CompoundPointer(pointers))));
             } break;
             case OP_BUILD_STRING:
             {
@@ -133,7 +135,7 @@ protected:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg]->name;
+                    const _Str& clsName = frame->code->co_names[byte.arg].name;
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -209,7 +211,7 @@ protected:
                 {
                     // _pointer to pointer
                     const _Pointer p = PyPointer_AS_C(frame->__pop());
-                    _Pointer up = std::make_shared<UserPointer>(p, frame->id);
+                    _Pointer up(new UserPointer(p, frame->id));
                     frame->push(newObject(_tp_user_pointer, std::move(up)));
                 } break;
             case OP_UNARY_DEREF:
@@ -318,7 +320,7 @@ protected:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg]->name;
+                    const _Str& name = frame->code->co_names[byte.arg].name;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazyModules.find(name);

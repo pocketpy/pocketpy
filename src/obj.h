@@ -10,7 +10,7 @@ struct BasePointer;
 class VM;
 class Frame;
 
-typedef std::shared_ptr<const BasePointer> _Pointer;
+typedef pkpy::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
 typedef std::shared_ptr<CodeObject> _Code;
 
