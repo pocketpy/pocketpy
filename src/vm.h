@@ -1117,11 +1117,7 @@ public:
     void suspend(){
         if(_state != THREAD_RUNNING) UNREACHABLE();
         _state = THREAD_SUSPENDED;
-        // 50 fps is enough
-        while(_state == THREAD_SUSPENDED){
-            _checkStopFlag();
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        }
+        while(_state == THREAD_SUSPENDED) _checkStopFlag();
     }
 
     _Str readJsonRpcRequest(){
@@ -1138,8 +1134,8 @@ public:
 
     void writeJsonrpcResponse(const char* value){
         if(_state != THREAD_SUSPENDED) UNREACHABLE();
-        _state = THREAD_RUNNING;
         _sharedStr = _Str(value);
+        _state = THREAD_RUNNING;
     }
 
     void execAsync(const _Code& code) override {
