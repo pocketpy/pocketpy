@@ -599,7 +599,7 @@ public:
 
     PyVar newClassType(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = std::make_shared<PyObject>((_Int)0);
+        PyVar obj = pkpy::make_shared<PyObject>((_Int)0);
         obj->setType(_tp_type);
         setAttr(obj, __base__, base);
         _types[name] = obj;
@@ -608,7 +608,7 @@ public:
 
     PyVar newObject(PyVar type, _Value _native) {
         __checkType(type, _tp_type);
-        PyVar obj = std::make_shared<PyObject>(_native);
+        PyVar obj = pkpy::make_shared<PyObject>(_native);
         obj->setType(type);
         return obj;
     }
@@ -794,8 +794,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = std::make_shared<PyObject>((_Int)0);
-        _tp_type = std::make_shared<PyObject>((_Int)0);
+        _tp_object = pkpy::make_shared<PyObject>((_Int)0);
+        _tp_type = pkpy::make_shared<PyObject>((_Int)0);
 
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;

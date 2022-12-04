@@ -1,10 +1,11 @@
 #pragma once
 
 #include "__stl__.h"
+#include "shared_ptr.h"
 #include "str.h"
 
 struct PyObject;
-typedef std::shared_ptr<PyObject> PyVar;
+typedef pkpy::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 
 class PyVarList: public std::vector<PyVar> {

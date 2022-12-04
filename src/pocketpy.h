@@ -15,11 +15,11 @@
         }                                                                                               \
     });
 
-#define BIND_NUM_LOGICAL_OPT(name, op, fallback)                                                        \
-    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){               \
+#define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
+    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->isIntOrFloat(args[0], args[1])){                                                        \
-            if constexpr(fallback) return vm->PyBool(args[0] op args[1]);                               \
-            vm->typeError("unsupported operand type(s) for " #op );                        \
+            if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
+            vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         return vm->PyBool(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                          \
     });

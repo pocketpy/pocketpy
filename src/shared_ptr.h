@@ -16,6 +16,13 @@ namespace pkpy{
     public:
         shared_ptr() : count(nullptr), ptr(nullptr) {}
         shared_ptr(T* ptr) : count(new int(1)), ptr(ptr) {}
+        shared_ptr(const shared_ptr& other) : count(other.count), ptr(other.ptr) {
+            if(count) (*count)++;
+        }
+        shared_ptr(shared_ptr&& other) : count(other.count), ptr(other.ptr) {
+            other.count = nullptr;
+            other.ptr = nullptr;
+        }
         ~shared_ptr() {
             if (count && --(*count) == 0) _delete();
         }
@@ -45,7 +52,7 @@ namespace pkpy{
             }
             return *this;
         }
-        
+
         shared_ptr& operator=(shared_ptr&& other) {
             if (this != &other) {
                 if (count && --(*count) == 0) _delete();
@@ -68,6 +75,12 @@ namespace pkpy{
         }
         int use_count() const {
             return count ? *count : 0;
+        }
+
+        void reset(){
+            if (count && --(*count) == 0) _delete();
+            count = nullptr;
+            ptr = nullptr;
         }
     };
 
