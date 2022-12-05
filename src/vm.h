@@ -25,7 +25,7 @@ class VM {
     std::atomic<bool> _stopFlag = false;
     std::vector<PyVar> _smallIntegers;      // [-5, 256]
 protected:
-    std::deque< std::unique_ptr<Frame> > callstack;
+    std::deque< pkpy::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
     std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
@@ -563,7 +563,7 @@ public:
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
         Frame* frame = new Frame(code.get(), _module, locals);
-        callstack.emplace_back(std::unique_ptr<Frame>(frame));
+        callstack.emplace_back(pkpy::unique_ptr<Frame>(frame));
         return frame;
     }
 
@@ -608,7 +608,7 @@ public:
         return obj;
     }
 
-    PyVar newObject(PyVar type, _Value _native) {
+    PyVar newObject(PyVar type, const _Value& _native) {
         __checkType(type, _tp_type);
         PyVar obj = pkpy::make_shared<PyObject>(_native);
         obj->setType(type);

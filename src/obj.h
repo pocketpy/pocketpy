@@ -69,7 +69,6 @@ typedef std::variant<PyVar,_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,pkpy::
 
 const int VALUE_SIZE = sizeof(_Value);
 
-static std::vector<void*> _objPool;
 
 struct PyObject {
     PyVarDict attribs;
@@ -82,7 +81,7 @@ struct PyObject {
 
     inline void setType(const PyVar& type){
         this->_type = type;
-        this->attribs[__class__] = type;
+        // this->attribs[__class__] = type;
     }
 
     // currently __name__ is only used for 'type'
@@ -97,18 +96,4 @@ struct PyObject {
 
     PyObject(const _Value& val): _native(val) {}
     PyObject(_Value&& val): _native(std::move(val)) {}
-
-    void* operator new(size_t size){
-        if(_objPool.empty()){
-            return ::operator new(size);
-        }else{
-            void* ptr = _objPool.back();
-            _objPool.pop_back();
-            return ptr;
-        }
-    }
-
-    void operator delete(void* ptr){
-        _objPool.push_back(ptr);
-    }
 };

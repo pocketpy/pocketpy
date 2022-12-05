@@ -243,7 +243,7 @@ namespace std {
     };
 }
 
-const _Str& __class__ = _Str("__class__"_c);
+// const _Str& __class__ = _Str("__class__"_c);
 const _Str& __base__ = _Str("__base__"_c);
 const _Str& __new__ = _Str("__new__"_c);
 const _Str& __iter__ = _Str("__iter__"_c);

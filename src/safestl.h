@@ -1,7 +1,7 @@
 #pragma once
 
 #include "__stl__.h"
-#include "shared_ptr.h"
+#include "memory.h"
 #include "str.h"
 
 struct PyObject;

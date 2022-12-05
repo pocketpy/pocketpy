@@ -23,7 +23,7 @@ struct Loop {
 
 class Compiler {
 public:
-    std::unique_ptr<Parser> parser;
+    pkpy::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
     std::stack<Loop> loops;
     bool isCompilingClass = false;
@@ -45,7 +45,7 @@ public:
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
-        this->parser = std::make_unique<Parser>(
+        this->parser = pkpy::make_unique<Parser>(
             pkpy::make_shared<SourceMetadata>(source, filename, mode)
         );
 
