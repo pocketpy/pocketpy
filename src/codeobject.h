@@ -127,6 +127,7 @@ private:
     int ip = 0;
     std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
+    const CodeObject* code;
     PyVar _module;
     PyVarDict f_locals;
 
@@ -135,8 +136,6 @@ public:
     inline PyVarDict& f_globals(){
         return _module->attribs;
     }
-
-    const CodeObject* code;
 
     Frame(const CodeObject* code, PyVar _module, const PyVarDict& locals)
         : code(code), _module(_module), f_locals(locals) {
@@ -229,13 +228,13 @@ public:
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = std::move(popValue(vm));
+        for(int i=n-1; i>=0; i--) v._index(i) = popValue(vm);
         return v;
     }
 
     pkpy::ArgList __popNReversed(int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = std::move(__pop());
+        for(int i=n-1; i>=0; i--) v._index(i) = __pop();
         return v;
     }
 };

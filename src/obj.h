@@ -55,13 +55,14 @@ struct _Slice {
 
 class _Iterator {
 protected:
-    PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
     VM* vm;
+    PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
     _Pointer var;
     _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual ~_Iterator() = default;
 };
 
 typedef pkpy::shared_ptr<Function> _Func;

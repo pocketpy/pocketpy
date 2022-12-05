@@ -8,6 +8,7 @@ struct BasePointer {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;
     virtual void del(VM*, Frame*) const = 0;
+    virtual ~BasePointer() = default;
 };
 
 enum NameScope {

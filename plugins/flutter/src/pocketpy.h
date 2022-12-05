@@ -2970,13 +2970,14 @@ struct _Slice {
 
 class _Iterator {
 protected:
-    PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
     VM* vm;
+    PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
     _Pointer var;
     _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual ~_Iterator() = default;
 };
 
 typedef pkpy::shared_ptr<Function> _Func;
@@ -3055,7 +3056,7 @@ public:
 
 class StringIterator : public _Iterator {
 private:
-    size_t index = 0;
+    int index = 0;
     _Str str;
 public:
     StringIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
@@ -3389,6 +3390,7 @@ struct BasePointer {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;
     virtual void del(VM*, Frame*) const = 0;
+    virtual ~BasePointer() = default;
 };
 
 enum NameScope {
@@ -3713,6 +3715,7 @@ private:
     int ip = 0;
     std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
+    const CodeObject* code;
     PyVar _module;
     PyVarDict f_locals;
 
@@ -3721,8 +3724,6 @@ public:
     inline PyVarDict& f_globals(){
         return _module->attribs;
     }
-
-    const CodeObject* code;
 
     Frame(const CodeObject* code, PyVar _module, const PyVarDict& locals)
         : code(code), _module(_module), f_locals(locals) {
@@ -3815,13 +3816,13 @@ public:
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = std::move(popValue(vm));
+        for(int i=n-1; i>=0; i--) v._index(i) = popValue(vm);
         return v;
     }
 
     pkpy::ArgList __popNReversed(int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = std::move(__pop());
+        for(int i=n-1; i>=0; i--) v._index(i) = __pop();
         return v;
     }
 };
@@ -4361,7 +4362,7 @@ public:
         try {
             return _exec(code, _module, {});
         } catch (const std::exception& e) {
-            if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+            if(dynamic_cast<const _Error*>(&e)){
                 *_stderr << e.what() << '\n';
             }else{
                 auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
@@ -6012,7 +6013,7 @@ _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_M
     try{
         return compiler.__fillCode();
     }catch(std::exception& e){
-        if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+        if(dynamic_cast<const _Error*>(&e)){
             (*vm->_stderr) << e.what() << '\n';
         }else{
             auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());

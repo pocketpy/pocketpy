@@ -1028,7 +1028,7 @@ _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_M
     try{
         return compiler.__fillCode();
     }catch(std::exception& e){
-        if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+        if(dynamic_cast<const _Error*>(&e)){
             (*vm->_stderr) << e.what() << '\n';
         }else{
             auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());

@@ -3,19 +3,21 @@
 
 #include "pocketpy.h"
 
-//#define PK_DEBUG_TIME
-#define PK_DEBUG_THREADED
+#define PK_DEBUG_TIME
+//#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;
     Timer(const char* title) : title(title) {}
     void run(std::function<void()> f){
+#ifdef PK_DEBUG_TIME
         auto start = std::chrono::high_resolution_clock::now();
         f();
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0;
-#ifdef PK_DEBUG_TIME
         std::cout << title << ": " << elapsed << " s" << std::endl;
+#else
+        f();
 #endif
     }
 };

@@ -43,7 +43,7 @@ public:
 
 class StringIterator : public _Iterator {
 private:
-    size_t index = 0;
+    int index = 0;
     _Str str;
 public:
     StringIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {

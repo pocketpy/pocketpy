@@ -538,7 +538,7 @@ public:
         try {
             return _exec(code, _module, {});
         } catch (const std::exception& e) {
-            if(const _Error* _ = dynamic_cast<const _Error*>(&e)){
+            if(dynamic_cast<const _Error*>(&e)){
                 *_stderr << e.what() << '\n';
             }else{
                 auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
