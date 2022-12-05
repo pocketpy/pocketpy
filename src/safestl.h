@@ -57,8 +57,8 @@ public:
 
 
 namespace pkpy {
-    const uint8_t MAX_POOLING_N = 16;
-    static std::deque<PyVar*>* _poolArgList = new std::deque<PyVar*>[MAX_POOLING_N];
+    const uint8_t MAX_POOLING_N = 10;
+    static std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
         PyVar* _args = nullptr;
@@ -77,9 +77,9 @@ namespace pkpy {
                 this->_size = n;
                 this->_args = new PyVar[n];
             }else{
-                this->_args = _poolArgList[n].front();
+                this->_args = _poolArgList[n].back();
                 this->_size = n;
-                _poolArgList[n].pop_front();
+                _poolArgList[n].pop_back();
             }
         }
 
