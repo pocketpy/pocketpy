@@ -1,6 +1,6 @@
 /*
  *  Copyright (c) 2022 blueloveTH
- *  Distributed Under The GNU General Public License v2.0
+ *  Distributed Under The LGPLv3 License
  */
 
 #ifndef POCKETPY_H
@@ -38,7 +38,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.4.6"
+#define PK_VERSION "0.4.7"
 
 
 namespace pkpy{
@@ -6732,8 +6732,8 @@ void __addModuleJson(VM* vm){
 
 void __addModuleMath(VM* vm){
     PyVar mod = vm->newModule("math");
-    vm->setAttr(mod, "pi", vm->PyFloat(3.14159265358979323846));
-    vm->setAttr(mod, "e", vm->PyFloat(2.7182818284590452354));
+    vm->setAttr(mod, "pi", vm->PyFloat(3.1415926535897932384));
+    vm->setAttr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
     vm->bindFunc(mod, "log", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
@@ -6801,7 +6801,7 @@ public:
 
 extern "C" {
     __EXPORT
-    /// Delete a class pointer allocated by `pkpy_xxx_xxx`.
+    /// Delete a pointer allocated by `pkpy_xxx_xxx`.
     /// It can be `VM*`, `REPL*`, `ThreadedVM*`, `char*`, etc.
     /// 
     /// !!!
@@ -6838,8 +6838,12 @@ extern "C" {
     char* pkpy_vm_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
-        _Str _json = vm->PyStr_AS_C(vm->asJson(it->second));
-        return strdup(_json.c_str());
+        try{
+            _Str _json = vm->PyStr_AS_C(vm->asJson(it->second));
+            return strdup(_json.c_str());
+        }catch(...){
+            return nullptr;
+        }
     }
 
     __EXPORT
@@ -6852,8 +6856,12 @@ extern "C" {
         if(code == nullptr) return nullptr;
         PyVarOrNull ret = vm->exec(code);
         if(ret == nullptr) return nullptr;
-        _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
-        return strdup(_json.c_str());
+        try{
+            _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
+            return strdup(_json.c_str());
+        }catch(...){
+            return nullptr;
+        }
     }
 
     __EXPORT

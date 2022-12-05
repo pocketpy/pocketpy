@@ -42,7 +42,7 @@ with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
 	final_text = \
 r'''/*
  *  Copyright (c) 2022 blueloveTH
- *  Distributed Under The GNU General Public License v2.0
+ *  Distributed Under The LGPLv3 License
  */
 
 #ifndef POCKETPY_H
@@ -52,3 +52,5 @@ r'''/*
 
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
 os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -O1 -pthread")
+
+os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
