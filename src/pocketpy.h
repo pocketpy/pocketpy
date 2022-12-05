@@ -650,8 +650,8 @@ void __addModuleJson(VM* vm){
 
 void __addModuleMath(VM* vm){
     PyVar mod = vm->newModule("math");
-    vm->setAttr(mod, "pi", vm->PyFloat(M_PI));
-    vm->setAttr(mod, "e", vm->PyFloat(M_E));
+    vm->setAttr(mod, "pi", vm->PyFloat(3.14159265358979323846));
+    vm->setAttr(mod, "e", vm->PyFloat(2.7182818284590452354));
 
     vm->bindFunc(mod, "log", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
