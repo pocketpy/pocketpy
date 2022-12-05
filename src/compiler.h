@@ -683,6 +683,7 @@ __LISTCOMP:
         Token tkmodule = compileImportPath();
         consume(TK("import"));
         do {
+            emitCode(OP_DUP_TOP);
             consume(TK("@id"));
             Token tkname = parser->previous;
             int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
@@ -694,6 +695,7 @@ __LISTCOMP:
             index = getCode()->addName(tkname.str(), NAME_GLOBAL);
             emitCode(OP_STORE_NAME_PTR, index);
         } while (match(TK(",")));
+        emitCode(OP_POP_TOP);
         consumeEndStatement();
     }
 

@@ -648,6 +648,49 @@ void __addModuleJson(VM* vm){
     });
 }
 
+void __addModuleMath(VM* vm){
+    PyVar mod = vm->newModule("math");
+    vm->setAttr(mod, "pi", vm->PyFloat(M_PI));
+    vm->setAttr(mod, "e", vm->PyFloat(M_E));
+
+    vm->bindFunc(mod, "log", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(log(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "log10", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(log10(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "log2", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(log2(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "sin", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(sin(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "cos", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(cos(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "tan", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyFloat(tan(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "isclose", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        _Float a = vm->numToFloat(args[0]);
+        _Float b = vm->numToFloat(args[1]);
+        return vm->PyBool(fabs(a - b) < 1e-6);
+    });
+}
+
 class _PkExported{
 public:
     virtual ~_PkExported() = default;
@@ -764,6 +807,7 @@ extern "C" {
         __addModuleSys(vm);
         __addModuleTime(vm);
         __addModuleJson(vm);
+        __addModuleMath(vm);
 
         _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);
