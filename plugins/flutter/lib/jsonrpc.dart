@@ -6,10 +6,10 @@ import 'dart:io';
 
 import 'package:pocketpy/pocketpy.dart';
 
-class JsonRpcError {
+class _JsonRpcError {
   final Map<String, dynamic> payload = {};
 
-  JsonRpcError(int code, String message, {dynamic data}) {
+  _JsonRpcError(int code, String message, {dynamic data}) {
     payload['code'] = code;
     payload['message'] = message;
     if (data != null) {
@@ -33,6 +33,7 @@ class JsonRpcServer {
     registerOS(this);
   }
 
+  /// Register a JSONRPC handler.
   void register(String name, FutureOr<dynamic> Function(List) method) {
     _methods[name] = method;
   }
@@ -43,14 +44,15 @@ class JsonRpcServer {
     if (json == null) throw Exception("JSONRPC request is null");
     var request = jsonDecode(json);
     var f = _methods[request['method']];
-    if (f == null) throw JsonRpcError(-32601, "Method not found");
+    if (f == null) throw _JsonRpcError(-32601, "Method not found");
     try {
       return f(request['params'] as List);
     } catch (e) {
-      throw JsonRpcError(-32000, e.toString());
+      throw _JsonRpcError(-32000, e.toString());
     }
   }
 
+  /// Dispatch a JSONRPC request.
   FutureOr<void> dispatch(ThreadedVM vm) async {
     onPreDispatch?.call();
     try {
@@ -58,12 +60,13 @@ class JsonRpcServer {
       if (ret is Future<dynamic>) ret = await ret;
       vm.write_jsonrpc_response(jsonEncode({"result": ret}));
       onPostDispatch?.call();
-    } on JsonRpcError catch (e) {
+    } on _JsonRpcError catch (e) {
       vm.write_jsonrpc_response(jsonEncode({"error": e.payload}));
       return;
     }
   }
 
+  /// Attach the JsonRpcServer into a ThreadedVM. Once the ThreadedVM encounters JSONRPC request, it takes care of it automatically. This process will be stopped when the whole execution is done.
   Future<void> attach(ThreadedVM vm,
       {Duration? spinFreq = const Duration(milliseconds: 20)}) async {
     while (vm.state.index <= ThreadState.running.index) {

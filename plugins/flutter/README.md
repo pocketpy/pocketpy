@@ -2,7 +2,7 @@
 
 PocketPy is a lightweight Python interpreter for game engines.
 
-![logo](https://pocketpy.dev/static/logo_flat.png)
+![](https://pocketpy.dev/static/logo_flat.png)
 
 ## Features
 
