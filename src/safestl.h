@@ -137,6 +137,10 @@ namespace pkpy {
             return _args[i];
         }
 
+        inline PyVar& _index(uint8_t i){
+            return _args[i];
+        }
+
         // overload = for &&
         ArgList& operator=(ArgList&& other){
             if(this != &other){
@@ -158,6 +162,14 @@ namespace pkpy {
             ArgList ret(_size - start);
             for(uint8_t i=start; i<_size; i++){
                 ret[i-start] = _args[i];
+            }
+            return ret;
+        }
+
+        PyVarList toList() const {
+            PyVarList ret(_size);
+            for(uint8_t i=0; i<_size; i++){
+                ret[i] = _args[i];
             }
             return ret;
         }

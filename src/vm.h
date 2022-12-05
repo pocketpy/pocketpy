@@ -91,10 +91,10 @@ protected:
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
-                PyVarList items = frame->__popNReversed(byte.arg);
+                pkpy::ArgList items = frame->__popNReversed(byte.arg);
                 bool done = false;
-                for(auto& item : items){
-                    if(!item->isType(_tp_pointer)) {
+                for(int i=0; i<items.size(); i++){
+                    if(!items[i]->isType(_tp_pointer)) {
                         done = true;
                         PyVarList values(items.size());
                         for(int i=0; i<items.size(); i++){
@@ -112,9 +112,9 @@ protected:
             } break;
             case OP_BUILD_STRING:
             {
-                PyVarList items = frame->popNValuesReversed(this, byte.arg);
+                pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
                 _StrStream ss;
-                for(const auto& i : items) ss << PyStr_AS_C(asStr(i));
+                for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
                 frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
@@ -124,7 +124,7 @@ protected:
                 pkpy::ArgList args(2);
                 args[1] = frame->popValue(this);            // obj
                 args[0] = frame->__topValueN(this, -2);     // list
-                fastCall(args[0], "append"_c, std::move(args));
+                fastCall("append"_c, std::move(args));
             } break;
             case OP_STORE_FUNCTION:
                 {
@@ -159,26 +159,20 @@ protected:
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
                 {
-                    pkpy::ArgList args(2);
-                    args[1] = frame->popValue(this);
-                    args[0] = frame->popValue(this);
-                    frame->push(fastCall(args[0], BINARY_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
+                    frame->push(fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args)));
                 } break;
             case OP_BITWISE_OP:
                 {
-                    pkpy::ArgList args(2);
-                    args[1] = frame->popValue(this);
-                    args[0] = frame->popValue(this);
-                    frame->push(fastCall(args[0], BITWISE_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
+                    frame->push(fastCall(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args)));
                 } break;
             case OP_COMPARE_OP:
                 {
-                    pkpy::ArgList args(2);
-                    args[1] = frame->popValue(this);
-                    args[0] = frame->popValue(this);
+                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(args[0], CMP_SPECIAL_METHODS[op], std::move(args));
+                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], std::move(args));
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(std::move(res));
                 } break;
@@ -192,7 +186,7 @@ protected:
                 {
                     PyVar rhs = frame->popValue(this);
                     PyVar lhs = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(std::move(rhs), __contains__, {std::move(lhs)}));
+                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, {std::move(lhs)}));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
@@ -241,12 +235,12 @@ protected:
                 } break;
             case OP_BUILD_LIST:
                 {
-                    PyVarList items = frame->popNValuesReversed(this, byte.arg);
-                    frame->push(PyList(items));
+                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
+                    frame->push(PyList(items.toList()));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    PyVarList items = frame->popNValuesReversed(this, byte.arg*2);
+                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"], {});
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, {items[i], items[i+1]});
@@ -256,7 +250,7 @@ protected:
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
             case OP_CALL:
                 {
-                    PyVarList args = frame->popNValuesReversed(this, byte.arg);
+                    pkpy::ArgList args = frame->popNValuesReversed(this, byte.arg);
                     PyVar callable = frame->popValue(this);
                     PyVar ret = call(std::move(callable), std::move(args), true);
                     if(ret == __py2py_call_signal) return ret;
@@ -448,7 +442,8 @@ public:
         return True;
     }
 
-    PyVar fastCall(const PyVar& obj, const _Str& name, pkpy::ArgList&& args){
+    PyVar fastCall(const _Str& name, pkpy::ArgList&& args){
+        const PyVar& obj = args[0];
         PyObject* cls = obj->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);

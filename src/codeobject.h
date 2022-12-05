@@ -79,7 +79,7 @@ struct CodeObject {
         auto _start = co_code.begin() + start;
         auto _end = co_code.begin() + end;
         co_code.insert(co_code.end(), _start, _end);
-        for(int i=start; i<end; i++) co_code[i].op = OP_NO_OP;
+        for(int i=start; i<end; i++) co_code[i].op = OP_DELETED_OP;
     }
 
     _Str toString(){
@@ -227,15 +227,15 @@ public:
         }
     }
 
-    PyVarList popNValuesReversed(VM* vm, int n){
-        PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = std::move(popValue(vm));
+    pkpy::ArgList popNValuesReversed(VM* vm, int n){
+        pkpy::ArgList v(n);
+        for(int i=n-1; i>=0; i--) v._index(i) = std::move(popValue(vm));
         return v;
     }
 
-    PyVarList __popNReversed(int n){
-        PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = std::move(__pop());
+    pkpy::ArgList __popNReversed(int n){
+        pkpy::ArgList v(n);
+        for(int i=n-1; i>=0; i--) v._index(i) = std::move(__pop());
         return v;
     }
 };
