@@ -1,0 +1,3 @@
+[submodule "plugins/godot/godot-cpp"]
+	path = plugins/godot/godot-cpp
+	url = https://github.com/blueloveTH/godot-cpp
