@@ -4,7 +4,7 @@ jobs:
   build_win:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compiling
       shell: bash
@@ -12,16 +12,16 @@ jobs:
         CL -std:c++17 -utf-8 -O2 -EHsc -Fe:pocketpy src/main.cpp
         mv src/pocketpy.h src/pocketpy.cpp
         CL -std:c++17 -utf-8 -O2 -EHsc -LD -Fe:pocketpy src/pocketpy.cpp
+        mkdir -p output/windows/x86_64
+        mv pocketpy.exe output/windows/x86_64
+        mv pocketpy.dll output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
-        name: pocketpy
-        path: |
-          D:\a\pocketpy\pocketpy\pocketpy.exe
-          D:\a\pocketpy\pocketpy\pocketpy.dll
+        path: output
   build_web:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: mymindstorm/setup-emsdk@v11
     - name: Compiling
       run: |
@@ -35,16 +35,21 @@ jobs:
   build_test_linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Compiling
       run: |
         bash build_cpp.sh
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
+        mkdir -p output/linux/x86_64
+        mv pocketpy output/linux/x86_64
+    - uses: actions/upload-artifact@v3
+      with:
+        path: output
   build_android:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.3.9'
@@ -56,19 +61,18 @@ jobs:
         cd plugins/flutter/example
         flutter build apk --split-debug-info=.debug-info --split-per-abi
         cd build/app/outputs/flutter-apk
-        mkdir -p output/arm64-v8a
-        mkdir -p output/armeabi-v7a
-        mkdir -p output/x86_64
-        unzip app-arm64-v8a-release.apk -d tmp
-        mv tmp/lib/arm64-v8a/libpocketpy.so output/arm64-v8a/libpocketpy.so
+        mkdir -p output/android/arm64-v8a
+        mkdir -p output/android/armeabi-v7a
+        mkdir -p output/android/x86_64
+        unzip -q app-arm64-v8a-release.apk -d tmp
+        mv tmp/lib/arm64-v8a/libpocketpy.so output/android/arm64-v8a/libpocketpy.so
         rm -rf tmp
-        unzip app-armeabi-v7a-release.apk -d tmp
-        mv tmp/lib/armeabi-v7a/libpocketpy.so output/armeabi-v7a/libpocketpy.so
+        unzip -q app-armeabi-v7a-release.apk -d tmp
+        mv tmp/lib/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a/libpocketpy.so
         rm -rf tmp
-        unzip app-x86_64-release.apk -d tmp
-        mv tmp/lib/x86_64/libpocketpy.so output/x86_64/libpocketpy.so
+        unzip -q app-x86_64-release.apk -d tmp
+        mv tmp/lib/x86_64/libpocketpy.so output/android/x86_64/libpocketpy.so
         rm -rf tmp
     - uses: actions/upload-artifact@v3
       with:
-        name: pocketpy
         path: plugins/flutter/example/build/app/outputs/flutter-apk/output
