@@ -40,3 +40,4 @@ jobs:
       run: |
         bash build_cpp.sh
         python3 scripts/run_tests.py
+        ./pocketpy tests/1.py

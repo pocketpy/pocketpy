@@ -148,8 +148,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("range", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_range);
-        _Iterator* iter = new RangeIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, RangeIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("NoneType", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -313,8 +314,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
-        _Iterator* iter = new StringIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, StringIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("str", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -426,8 +428,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyList ************/
     _vm->bindMethod("list", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_list);
-        _Iterator* iter = new VectorIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("list", "append", [](VM* vm, const pkpy::ArgList& args) {
@@ -523,8 +526,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_tuple);
-        _Iterator* iter = new VectorIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("tuple", "__len__", [](VM* vm, const pkpy::ArgList& args) {

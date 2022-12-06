@@ -5,90 +5,97 @@
 namespace pkpy{
     template <typename T>
     class shared_ptr {
-        int* count;
-        T* ptr;
+        int* counter = nullptr;
 
-    inline void _delete(){
-        delete count;
-        delete ptr;
-    }
+#define _t() ((T*)(counter + 1))
+#define _inc_counter() if(counter) ++(*counter)
+#define _dec_counter() if(counter && --(*counter) == 0){ _t()->~T(); free(counter); }
 
     public:
-        shared_ptr() : count(nullptr), ptr(nullptr) {}
-        shared_ptr(T* ptr) : count(new int(1)), ptr(ptr) {}
-        shared_ptr(const shared_ptr& other) : count(other.count), ptr(other.ptr) {
-            if(count) (*count)++;
+        shared_ptr() {}
+        shared_ptr(int* block) : counter(block) {}
+        shared_ptr(const shared_ptr& other) : counter(other.counter) {
+            _inc_counter();
         }
-        shared_ptr(shared_ptr&& other) : count(other.count), ptr(other.ptr) {
-            other.count = nullptr;
-            other.ptr = nullptr;
+        shared_ptr(shared_ptr&& other) : counter(other.counter) {
+            other.counter = nullptr;
         }
         ~shared_ptr() {
-            if (count && --(*count) == 0) _delete();
+            _dec_counter();
         }
 
         bool operator==(const shared_ptr& other) const {
-            return ptr == other.ptr;
+            return counter == other.counter;
         }
 
         bool operator!=(const shared_ptr& other) const {
-            return ptr != other.ptr;
+            return counter != other.counter;
         }
 
         bool operator==(std::nullptr_t) const {
-            return ptr == nullptr;
+            return counter == nullptr;
         }
 
         bool operator!=(std::nullptr_t) const {
-            return ptr != nullptr;
+            return counter != nullptr;
         }
 
         shared_ptr& operator=(const shared_ptr& other) {
             if (this != &other) {
-                if (count && --(*count) == 0) _delete();
-                count = other.count;
-                ptr = other.ptr;
-                if (count) ++(*count);  
+                _dec_counter();
+                counter = other.counter;
+                _inc_counter();
             }
             return *this;
         }
 
         shared_ptr& operator=(shared_ptr&& other) {
             if (this != &other) {
-                if (count && --(*count) == 0) _delete();
-                count = other.count;
-                ptr = other.ptr;
-                other.count = nullptr;
-                other.ptr = nullptr;
+                _dec_counter();
+                counter = other.counter;
+                other.counter = nullptr;
             }
             return *this;
         }
 
         T& operator*() const {
-            return *ptr;
+            return *_t();
         }
         T* operator->() const {
-            return ptr;
+            return _t();
         }
         T* get() const {
-            return ptr;
+            return _t();
         }
         int use_count() const {
-            return count ? *count : 0;
+            return counter ? *counter : 0;
         }
-
         void reset(){
-            if (count && --(*count) == 0) _delete();
-            count = nullptr;
-            ptr = nullptr;
+            _dec_counter();
+            counter = nullptr;
         }
     };
 
-    template <typename T, typename... Args>
+#undef _t
+#undef _inc_counter
+#undef _dec_counter
+
+    template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
-        return shared_ptr<T>(new T(std::forward<Args>(args)...));
+        static_assert(std::is_base_of<T, U>::value, "U must be derived from T");
+        int* p = (int*)malloc(sizeof(int) + sizeof(U));
+        *p = 1;
+        new(p+1) U(std::forward<Args>(args)...);
+        return shared_ptr<T>(p);
     }
 
+    template <typename T, typename... Args>
+    shared_ptr<T> make_shared(Args&&... args) {
+        int* p = (int*)malloc(sizeof(int) + sizeof(T));
+        *p = 1;
+        new(p+1) T(std::forward<Args>(args)...);
+        return shared_ptr<T>(p);
+    }
 
     template <typename T>
     class unique_ptr {

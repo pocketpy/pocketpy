@@ -55,8 +55,9 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                const BasePointer* p = new NamePointer(frame->code->co_names[byte.arg]);
-                frame->push(PyPointer(_Pointer(p)));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, NamePointer>(frame->code->co_names[byte.arg])
+                ));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
@@ -65,20 +66,25 @@ protected:
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                const BasePointer* p = new AttrPointer(obj, &attr);
-                frame->push(PyPointer(_Pointer(p)));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, AttrPointer>(obj, &attr)
+                ));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
                 const _Pointer& p = std::get<_Pointer>(obj->_native);
-                frame->push(PyPointer(_Pointer(new AttrPointer(p->get(this, frame), &attr))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, AttrPointer>(p->get(this, frame), &attr)
+                ));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(_Pointer(new IndexPointer(obj, index))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, IndexPointer>(obj, index)
+                ));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
@@ -108,7 +114,9 @@ protected:
                 std::vector<_Pointer> pointers(items.size());
                 for(int i=0; i<items.size(); i++)
                     pointers[i] = PyPointer_AS_C(items[i]);
-                frame->push(PyPointer(_Pointer(new CompoundPointer(pointers))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, CompoundPointer>(std::move(pointers))
+                ));
             } break;
             case OP_BUILD_STRING:
             {
@@ -205,8 +213,10 @@ protected:
                 {
                     // _pointer to pointer
                     const _Pointer p = PyPointer_AS_C(frame->__pop());
-                    _Pointer up(new UserPointer(p, frame->id));
-                    frame->push(newObject(_tp_user_pointer, std::move(up)));
+                    frame->push(newObject(
+                        _tp_user_pointer,
+                        pkpy::make_shared<const BasePointer, UserPointer>(p, frame->id)
+                    ));
                 } break;
             case OP_UNARY_DEREF:
                 {
@@ -660,7 +670,7 @@ public:
         return nullptr;
     }
 
-    inline void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
+    void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
@@ -673,7 +683,7 @@ public:
         }
     }
 
-    inline void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
+    void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
@@ -728,7 +738,7 @@ public:
         return isIntOrFloat(obj1) && isIntOrFloat(obj2);
     }
 
-    _Float numToFloat(const PyVar& obj){
+    inline _Float numToFloat(const PyVar& obj){
         if (obj->isType(_tp_int)){
             return (_Float)PyInt_AS_C(obj);
         }else if(obj->isType(_tp_float)){
