@@ -56,3 +56,4 @@ os.system("rm pocketpy")
 
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
 os.system("cp amalgamated/pocketpy.h plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
+os.system("cp amalgamated/pocketpy.h plugins/unity/Assets/PocketPy/Plugins/iOS/pocketpy.h")
