@@ -44,90 +44,97 @@
 namespace pkpy{
     template <typename T>
     class shared_ptr {
-        int* count;
-        T* ptr;
+        int* counter = nullptr;
 
-    inline void _delete(){
-        delete count;
-        delete ptr;
-    }
+#define _t() ((T*)(counter + 1))
+#define _inc_counter() if(counter) ++(*counter)
+#define _dec_counter() if(counter && --(*counter) == 0){ _t()->~T(); free(counter); }
 
     public:
-        shared_ptr() : count(nullptr), ptr(nullptr) {}
-        shared_ptr(T* ptr) : count(new int(1)), ptr(ptr) {}
-        shared_ptr(const shared_ptr& other) : count(other.count), ptr(other.ptr) {
-            if(count) (*count)++;
+        shared_ptr() {}
+        shared_ptr(int* block) : counter(block) {}
+        shared_ptr(const shared_ptr& other) : counter(other.counter) {
+            _inc_counter();
         }
-        shared_ptr(shared_ptr&& other) : count(other.count), ptr(other.ptr) {
-            other.count = nullptr;
-            other.ptr = nullptr;
+        shared_ptr(shared_ptr&& other) : counter(other.counter) {
+            other.counter = nullptr;
         }
         ~shared_ptr() {
-            if (count && --(*count) == 0) _delete();
+            _dec_counter();
         }
 
         bool operator==(const shared_ptr& other) const {
-            return ptr == other.ptr;
+            return counter == other.counter;
         }
 
         bool operator!=(const shared_ptr& other) const {
-            return ptr != other.ptr;
+            return counter != other.counter;
         }
 
         bool operator==(std::nullptr_t) const {
-            return ptr == nullptr;
+            return counter == nullptr;
         }
 
         bool operator!=(std::nullptr_t) const {
-            return ptr != nullptr;
+            return counter != nullptr;
         }
 
         shared_ptr& operator=(const shared_ptr& other) {
             if (this != &other) {
-                if (count && --(*count) == 0) _delete();
-                count = other.count;
-                ptr = other.ptr;
-                if (count) ++(*count);  
+                _dec_counter();
+                counter = other.counter;
+                _inc_counter();
             }
             return *this;
         }
 
         shared_ptr& operator=(shared_ptr&& other) {
             if (this != &other) {
-                if (count && --(*count) == 0) _delete();
-                count = other.count;
-                ptr = other.ptr;
-                other.count = nullptr;
-                other.ptr = nullptr;
+                _dec_counter();
+                counter = other.counter;
+                other.counter = nullptr;
             }
             return *this;
         }
 
         T& operator*() const {
-            return *ptr;
+            return *_t();
         }
         T* operator->() const {
-            return ptr;
+            return _t();
         }
         T* get() const {
-            return ptr;
+            return _t();
         }
         int use_count() const {
-            return count ? *count : 0;
+            return counter ? *counter : 0;
         }
-
         void reset(){
-            if (count && --(*count) == 0) _delete();
-            count = nullptr;
-            ptr = nullptr;
+            _dec_counter();
+            counter = nullptr;
         }
     };
 
-    template <typename T, typename... Args>
+#undef _t
+#undef _inc_counter
+#undef _dec_counter
+
+    template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
-        return shared_ptr<T>(new T(std::forward<Args>(args)...));
+        static_assert(std::is_base_of<T, U>::value, "U must be derived from T");
+        int* p = (int*)malloc(sizeof(int) + sizeof(U));
+        *p = 1;
+        new(p+1) U(std::forward<Args>(args)...);
+        return shared_ptr<T>(p);
     }
 
+    template <typename T, typename... Args>
+    shared_ptr<T> make_shared(Args&&... args) {
+        int* p = (int*)malloc(sizeof(int) + sizeof(T));
+        *p = 1;
+        new(p+1) T(std::forward<Args>(args)...);
+        return shared_ptr<T>(p);
+    }
 
     template <typename T>
     class unique_ptr {
@@ -3879,8 +3886,9 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                const BasePointer* p = new NamePointer(frame->code->co_names[byte.arg]);
-                frame->push(PyPointer(_Pointer(p)));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, NamePointer>(frame->code->co_names[byte.arg])
+                ));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
@@ -3889,20 +3897,25 @@ protected:
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                const BasePointer* p = new AttrPointer(obj, &attr);
-                frame->push(PyPointer(_Pointer(p)));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, AttrPointer>(obj, &attr)
+                ));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
                 const _Pointer& p = std::get<_Pointer>(obj->_native);
-                frame->push(PyPointer(_Pointer(new AttrPointer(p->get(this, frame), &attr))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, AttrPointer>(p->get(this, frame), &attr)
+                ));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(_Pointer(new IndexPointer(obj, index))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, IndexPointer>(obj, index)
+                ));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
@@ -3932,7 +3945,9 @@ protected:
                 std::vector<_Pointer> pointers(items.size());
                 for(int i=0; i<items.size(); i++)
                     pointers[i] = PyPointer_AS_C(items[i]);
-                frame->push(PyPointer(_Pointer(new CompoundPointer(pointers))));
+                frame->push(PyPointer(
+                    pkpy::make_shared<const BasePointer, CompoundPointer>(std::move(pointers))
+                ));
             } break;
             case OP_BUILD_STRING:
             {
@@ -4029,8 +4044,10 @@ protected:
                 {
                     // _pointer to pointer
                     const _Pointer p = PyPointer_AS_C(frame->__pop());
-                    _Pointer up(new UserPointer(p, frame->id));
-                    frame->push(newObject(_tp_user_pointer, std::move(up)));
+                    frame->push(newObject(
+                        _tp_user_pointer,
+                        pkpy::make_shared<const BasePointer, UserPointer>(p, frame->id)
+                    ));
                 } break;
             case OP_UNARY_DEREF:
                 {
@@ -4484,7 +4501,7 @@ public:
         return nullptr;
     }
 
-    inline void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
+    void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
@@ -4497,7 +4514,7 @@ public:
         }
     }
 
-    inline void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
+    void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
@@ -4552,7 +4569,7 @@ public:
         return isIntOrFloat(obj1) && isIntOrFloat(obj2);
     }
 
-    _Float numToFloat(const PyVar& obj){
+    inline _Float numToFloat(const PyVar& obj){
         if (obj->isType(_tp_int)){
             return (_Float)PyInt_AS_C(obj);
         }else if(obj->isType(_tp_float)){
@@ -6233,8 +6250,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("range", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_range);
-        _Iterator* iter = new RangeIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, RangeIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("NoneType", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -6398,8 +6416,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
-        _Iterator* iter = new StringIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, StringIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("str", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -6511,8 +6530,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyList ************/
     _vm->bindMethod("list", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_list);
-        _Iterator* iter = new VectorIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("list", "append", [](VM* vm, const pkpy::ArgList& args) {
@@ -6608,8 +6628,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_tuple);
-        _Iterator* iter = new VectorIterator(vm, args[0]);
-        return vm->PyIter(pkpy::shared_ptr<_Iterator>(iter));
+        return vm->PyIter(
+            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+        );
     });
 
     _vm->bindMethod("tuple", "__len__", [](VM* vm, const pkpy::ArgList& args) {

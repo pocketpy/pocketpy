@@ -51,6 +51,8 @@ r'''/*
 	f.write(final_text)
 
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
-os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -O1 -pthread")
+os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -pthread")
+os.system("rm pocketpy")
 
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
+os.system("cp amalgamated/pocketpy.h plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
