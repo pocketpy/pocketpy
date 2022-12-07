@@ -13,10 +13,12 @@ class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
 
     inline void __checkIndex(size_t i) const {
+#ifndef PKPY_NO_INDEX_CHECK
         if (i >= size()){
             auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
             throw std::out_of_range(msg);
         }
+#endif
     }
 public:
     PyVar& operator[](size_t i) {
@@ -40,6 +42,8 @@ class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
     PyVar& at(const _Str&) = delete;
 
 public:
+
+#ifndef PKPY_NO_INDEX_CHECK
     PyVar& operator[](const _Str& key) {
         return emhash8::HashMap<_Str, PyVar>::operator[](key);
     }
@@ -52,6 +56,7 @@ public:
         }
         return it->second;
     }
+#endif
 
     PyVarDict() : emhash8::HashMap<_Str, PyVar>(5) {}
 };
@@ -66,10 +71,12 @@ namespace pkpy {
         uint8_t _size = 0;
 
         inline void __checkIndex(uint8_t i) const {
+#ifndef PKPY_NO_INDEX_CHECK
             if (i >= _size){
                 auto msg = "pkpy:ArgList index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
                 throw std::out_of_range(msg);
             }
+#endif
         }
 
         void __tryAlloc(uint8_t n){

@@ -919,7 +919,9 @@ public:
     }
 
     inline void __checkType(const PyVar& obj, const PyVar& type){
+#ifndef PKPY_NO_TYPE_CHECK
         if(!obj->isType(type)) typeError("expected '" + UNION_TP_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
+#endif
     }
 
     inline void __checkArgSize(const pkpy::ArgList& args, int size, bool method=false){
