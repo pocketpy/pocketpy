@@ -52,7 +52,7 @@ public:
         return it->second;
     }
 
-    using emhash8::HashMap<_Str, PyVar>::HashMap;
+    PyVarDict() : emhash8::HashMap<_Str, PyVar>(5) {}
 };
 
 
