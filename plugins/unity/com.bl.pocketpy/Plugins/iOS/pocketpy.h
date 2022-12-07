@@ -15,7 +15,6 @@
 
 #include <sstream>
 #include <regex>
-#include <variant>
 #include <stack>
 #include <cmath>
 #include <stdexcept>
@@ -38,7 +37,10 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.4.7"
+#define PK_VERSION "0.4.8"
+
+//#define PKPY_NO_TYPE_CHECK
+//#define PKPY_NO_INDEX_CHECK
 
 
 namespace pkpy{
@@ -2275,15 +2277,18 @@ private:
 struct PyObject;
 typedef pkpy::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
+typedef PyVar VarRef;
 
 class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
 
     inline void __checkIndex(size_t i) const {
+#ifndef PKPY_NO_INDEX_CHECK
         if (i >= size()){
             auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
             throw std::out_of_range(msg);
         }
+#endif
     }
 public:
     PyVar& operator[](size_t i) {
@@ -2305,6 +2310,8 @@ class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
     PyVar& at(const _Str&) = delete;
 
 public:
+
+#ifndef PKPY_NO_INDEX_CHECK
     PyVar& operator[](const _Str& key) {
         return emhash8::HashMap<_Str, PyVar>::operator[](key);
     }
@@ -2317,8 +2324,9 @@ public:
         }
         return it->second;
     }
+#endif
 
-    using emhash8::HashMap<_Str, PyVar>::HashMap;
+    PyVarDict() : emhash8::HashMap<_Str, PyVar>(5) {}
 };
 
 
@@ -2331,10 +2339,12 @@ namespace pkpy {
         uint8_t _size = 0;
 
         inline void __checkIndex(uint8_t i) const {
+#ifndef PKPY_NO_INDEX_CHECK
             if (i >= _size){
                 auto msg = "pkpy:ArgList index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
                 throw std::out_of_range(msg);
             }
+#endif
         }
 
         void __tryAlloc(uint8_t n){
@@ -2932,7 +2942,6 @@ struct BasePointer;
 class VM;
 class Frame;
 
-typedef pkpy::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
@@ -2975,60 +2984,54 @@ struct _Slice {
     }
 };
 
-class _Iterator {
+class BaseIterator {
 protected:
     VM* vm;
     PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
-    _Pointer var;
-    _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
-    virtual ~_Iterator() = default;
+    VarRef var;
+    BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual ~BaseIterator() = default;
 };
 
 typedef pkpy::shared_ptr<Function> _Func;
-typedef std::variant<PyVar,_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,pkpy::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer> _Value;
-
-const int VALUE_SIZE = sizeof(_Value);
-
+typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
-    PyVarDict attribs;
-    _Value _native;
     PyVar _type;
+    PyVarDict attribs;
 
-    inline bool isType(const PyVar& type){
-        return this->_type == type;
-    }
-
-    inline void setType(const PyVar& type){
-        this->_type = type;
-        // this->attribs[__class__] = type;
-    }
+    inline bool isType(const PyVar& type){ return this->_type == type; }
+    inline virtual void* value() = 0;
 
     // currently __name__ is only used for 'type'
-    _Str getName(){
-        _Value val = attribs[__name__]->_native;
-        return std::get<_Str>(val);
-    }
+    PyVar _typeName(){ return _type->attribs[__name__]; }
 
-    _Str getTypeName(){
-        return _type->getName();
-    }
-
-    PyObject(const _Value& val): _native(val) {}
-    PyObject(_Value&& val): _native(std::move(val)) {}
+    PyObject(PyVar type) : _type(type) {}
+    virtual ~PyObject() = default;
 };
 
+template <typename T>
+struct Py_ : PyObject {
+    T _valueT;
 
-class RangeIterator : public _Iterator {
+    Py_(T val, const PyVar& type) : PyObject(type), _valueT(val) {}
+    virtual void* value() override { return &_valueT; }
+};
+
+#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
+#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_typeName())
+
+
+class RangeIterator : public BaseIterator {
 private:
     _Int current;
     _Range r;
 public:
-    RangeIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        this->r = std::get<_Range>(_ref->_native);
+    RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        this->r = UNION_GET(_Range, _ref);
         this->current = r.start;
     }
 
@@ -3043,13 +3046,13 @@ public:
     PyVar next() override;
 };
 
-class VectorIterator : public _Iterator {
+class VectorIterator : public BaseIterator {
 private:
     size_t index = 0;
     const PyVarList* vec;
 public:
-    VectorIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        vec = &std::get<PyVarList>(_ref->_native);
+    VectorIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        vec = &UNION_GET(PyVarList, _ref);
     }
 
     bool hasNext(){
@@ -3061,13 +3064,13 @@ public:
     }
 };
 
-class StringIterator : public _Iterator {
+class StringIterator : public BaseIterator {
 private:
     int index = 0;
     _Str str;
 public:
-    StringIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        str = std::get<_Str>(_ref->_native);
+    StringIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        str = UNION_GET(_Str, _ref);
     }
 
     bool hasNext(){
@@ -3407,13 +3410,8 @@ enum NameScope {
 };
 
 struct NamePointer : BasePointer {
-    const _Str name;
-    const NameScope scope;
-    NamePointer(const _Str& name, NameScope scope) : name(name), scope(scope) {}
-
-    bool operator==(const NamePointer& other) const {
-        return name == other.name && scope == other.scope;
-    }
+    const std::pair<_Str, NameScope>* pair;
+    NamePointer(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3422,8 +3420,8 @@ struct NamePointer : BasePointer {
 
 struct AttrPointer : BasePointer {
     mutable PyVar obj;
-    const NamePointer* attr;
-    AttrPointer(PyVar obj, const NamePointer* attr) : obj(obj), attr(attr) {}
+    const NamePointer attr;
+    AttrPointer(PyVar obj, const NamePointer attr) : obj(obj), attr(attr) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3432,7 +3430,7 @@ struct AttrPointer : BasePointer {
 
 struct IndexPointer : BasePointer {
     mutable PyVar obj;
-    const PyVar index;
+    PyVar index;
     IndexPointer(PyVar obj, PyVar index) : obj(obj), index(index) {}
 
     PyVar get(VM* vm, Frame* frame) const;
@@ -3441,9 +3439,9 @@ struct IndexPointer : BasePointer {
 };
 
 struct CompoundPointer : BasePointer {
-    const std::vector<_Pointer> pointers;
-    CompoundPointer(const std::vector<_Pointer>& pointers) : pointers(pointers) {}
-    CompoundPointer(std::vector<_Pointer>&& pointers) : pointers(pointers) {}
+    PyVarList varRefs;
+    CompoundPointer(const PyVarList& varRefs) : varRefs(varRefs) {}
+    CompoundPointer(PyVarList&& varRefs) : varRefs(std::move(varRefs)) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3451,9 +3449,9 @@ struct CompoundPointer : BasePointer {
 };
 
 struct UserPointer : BasePointer {
-    const _Pointer p;
+    VarRef p;
     uint64_t f_id;
-    UserPointer(_Pointer p, uint64_t f_id) : p(p), f_id(f_id) {}
+    UserPointer(VarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3636,7 +3634,7 @@ struct CodeObject {
 
     std::vector<ByteCode> co_code;
     PyVarList co_consts;
-    std::vector<NamePointer> co_names;
+    std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
 
     // for goto use
@@ -3657,7 +3655,7 @@ struct CodeObject {
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
-        auto p = NamePointer(name, scope);
+        auto p = std::make_pair(name, scope);
         for(int i=0; i<co_names.size(); i++){
             if(co_names[i] == p) return i;
         }
@@ -3697,21 +3695,21 @@ struct CodeObject {
         _StrStream consts;
         consts << "co_consts: ";
         for(int i=0; i<co_consts.size(); i++){
-            consts << co_consts[i]->getTypeName();
+            consts << UNION_TP_NAME(co_consts[i]);
             if(i != co_consts.size() - 1) consts << ", ";
         }
 
         _StrStream names;
         names << "co_names: ";
         for(int i=0; i<co_names.size(); i++){
-            names << co_names[i].name;
+            names << co_names[i].first;
             if(i != co_names.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
-        for(int i=0; i<co_consts.size(); i++){
-            auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-            if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
-        }
+        // for(int i=0; i<co_consts.size(); i++){
+        //     auto fn = std::get_if<_Func>(&co_consts[i]->_native);
+        //     if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
+        // }
         return _Str(ss.str());
     }
 };
@@ -3838,7 +3836,7 @@ public:
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         __checkType(obj, ptype);                                \
-        return std::get<ctype>(obj->_native);                   \
+        return UNION_GET(ctype, obj);                           \
     }
 
 #define __DEF_PY(type, ctype, ptype)                            \
@@ -3850,7 +3848,6 @@ public:
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-typedef void(*PrintFn)(const VM*, const char*);
 
 class VM {
     std::atomic<bool> _stopFlag = false;
@@ -3886,45 +3883,40 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, NamePointer>(frame->code->co_names[byte.arg])
-                ));
+                frame->push(PyPointer(NamePointer(
+                    &(frame->code->co_names[byte.arg])
+                )));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
-                p.set(this, frame, frame->popValue(this));
+                NamePointer(&p).set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, AttrPointer>(obj, &attr)
-                ));
+                frame->push(PyPointer(AttrPointer(obj, NamePointer(&attr))));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
-                const _Pointer& p = std::get<_Pointer>(obj->_native);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, AttrPointer>(p->get(this, frame), &attr)
-                ));
+                const VarRef& var = UNION_GET(VarRef, obj);
+                auto p = PyPointer_AS_C(var);
+                frame->push(PyPointer(AttrPointer(p->get(this, frame), &attr)));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, IndexPointer>(obj, index)
-                ));
+                frame->push(PyPointer(IndexPointer(obj, index)));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                const _Pointer p = PyPointer_AS_C(frame->__pop());
-                p->set(this, frame, std::move(obj));
+                VarRef r = frame->__pop();
+                PyPointer_AS_C(r)->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
-                const _Pointer p = PyPointer_AS_C(frame->__pop());
-                p->del(this, frame);
+                VarRef r = frame->__pop();
+                PyPointer_AS_C(r)->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
@@ -3942,12 +3934,7 @@ protected:
                     }
                 }
                 if(done) break;
-                std::vector<_Pointer> pointers(items.size());
-                for(int i=0; i<items.size(); i++)
-                    pointers[i] = PyPointer_AS_C(items[i]);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, CompoundPointer>(std::move(pointers))
-                ));
+                frame->push(PyPointer(CompoundPointer(items.toList())));
             } break;
             case OP_BUILD_STRING:
             {
@@ -3974,7 +3961,7 @@ protected:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg].name;
+                    const _Str& clsName = frame->code->co_names[byte.arg].first;
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -4043,10 +4030,11 @@ protected:
             case OP_UNARY_REF:
                 {
                     // _pointer to pointer
-                    const _Pointer p = PyPointer_AS_C(frame->__pop());
+                    VarRef obj = frame->__pop();
+                    __checkType(obj, _tp_pointer);
                     frame->push(newObject(
                         _tp_user_pointer,
-                        pkpy::make_shared<const BasePointer, UserPointer>(p, frame->id)
+                        PyPointer(UserPointer(obj, frame->id))
                     ));
                 } break;
             case OP_UNARY_DEREF:
@@ -4054,7 +4042,7 @@ protected:
                     // pointer to _pointer
                     PyVar obj = frame->popValue(this);
                     __checkType(obj, _tp_user_pointer);
-                    frame->push(PyPointer(std::get<_Pointer>(obj->_native)));
+                    frame->push(UNION_GET(VarRef, obj));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -4114,10 +4102,12 @@ protected:
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn, {obj});
-                        PyIter_AS_C(tmp)->var = std::move(PyPointer_AS_C(frame->__pop()));
+                        VarRef var = frame->__pop();
+                        __checkType(var, _tp_pointer);
+                        PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        typeError("'" + obj->getTypeName() + "' object is not iterable");
+                        typeError("'" + UNION_TP_NAME(obj) + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -4126,7 +4116,7 @@ protected:
                     // __top() must be PyIter, so no need to __deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
-                        it->var->set(this, frame, it->next());
+                        PyPointer_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
                         frame->safeJump(byte.arg);
@@ -4155,7 +4145,7 @@ protected:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg].name;
+                    const _Str& name = frame->code->co_names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazyModules.find(name);
@@ -4262,7 +4252,7 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
+        if(obj->isType(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__, {});
     }
 
@@ -4323,7 +4313,7 @@ public:
         }
         
         if((*callable)->isType(_tp_native_function)){
-            const auto& f = std::get<_CppFunc>((*callable)->_native);
+            const auto& f = UNION_GET(_CppFunc, *callable);
             return f(this, args);
         } else if((*callable)->isType(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
@@ -4361,7 +4351,7 @@ public:
             }
             return _exec(fn->code, _module, locals);
         }
-        typeError("'" + (*callable)->getTypeName() + "' object is not callable");
+        typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
@@ -4378,15 +4368,13 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             return _exec(code, _module, {});
-        } catch (const std::exception& e) {
-            if(dynamic_cast<const _Error*>(&e)){
-                *_stderr << e.what() << '\n';
-            }else{
-                auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
-                *_stderr << re.what() << '\n';
-            }
-            return nullptr;
+        }catch (const _Error& e){
+            *_stderr << e.what() << '\n';
+        }catch (const std::exception& e) {
+            auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
+            *_stderr << re.what() << '\n';
         }
+        return nullptr;
     }
 
     virtual void execAsync(const _Code& code) {
@@ -4437,18 +4425,16 @@ public:
 
     PyVar newClassType(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject>((_Int)0);
-        obj->setType(_tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, _tp_type);
         setAttr(obj, __base__, base);
         _types[name] = obj;
         return obj;
     }
 
-    PyVar newObject(PyVar type, const _Value& _native) {
+    template<typename T>
+    inline PyVar newObject(PyVar type, T _value) {
         __checkType(type, _tp_type);
-        PyVar obj = pkpy::make_shared<PyObject>(_native);
-        obj->setType(type);
-        return obj;
+        return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
     }
 
     PyVar newModule(_Str name) {
@@ -4470,7 +4456,7 @@ public:
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
                 depth++;
             }
@@ -4505,7 +4491,7 @@ public:
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
             }
             (*root)->attribs[name] = value;
@@ -4518,7 +4504,7 @@ public:
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
             }
             (*root)->attribs[name] = std::move(value);
@@ -4603,11 +4589,16 @@ public:
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
     PyVar _tp_user_pointer, _tp_super;
 
-    __DEF_PY(Pointer, _Pointer, _tp_pointer)
-    inline _Pointer& PyPointer_AS_C(const PyVar& obj)
+    template<typename P>
+    inline VarRef PyPointer(P value) {
+        static_assert(std::is_base_of<BasePointer, P>::value, "P should derive from BasePointer");
+        return newObject(_tp_pointer, value);
+    }
+
+    inline const BasePointer* PyPointer_AS_C(const PyVar& obj)
     {
         if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
-        return std::get<_Pointer>(obj->_native);
+        return (const BasePointer*)(obj->value());
     }
 
     __DEF_PY_AS_C(Int, _Int, _tp_int)
@@ -4622,7 +4613,7 @@ public:
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
-    DEF_NATIVE(Iter, pkpy::shared_ptr<_Iterator>, _tp_native_iterator)
+    DEF_NATIVE(Iter, _Iterator, _tp_native_iterator)
     DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
@@ -4632,8 +4623,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject>((_Int)0);
-        _tp_type = pkpy::make_shared<PyObject>((_Int)0);
+        _tp_object = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, nullptr);
+        _tp_type = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, nullptr);
 
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
@@ -4667,9 +4658,9 @@ public:
         this->_main = newModule("__main__"_c);
 
         setAttr(_tp_type, __base__, _tp_object);
-        _tp_type->setType(_tp_type);
+        _tp_type->_type = _tp_type;
         setAttr(_tp_object, __base__, None);
-        _tp_object->setType(_tp_type);
+        _tp_object->_type = _tp_type;
         
         for (auto& [name, type] : _types) {
             setAttr(type, __name__, PyStr(name));
@@ -4702,7 +4693,7 @@ public:
             }
             return x;
         }
-        typeError("unhashable type: " + obj->getTypeName());
+        typeError("unhashable type: " +  UNION_TP_NAME(obj));
         return 0;
     }
 
@@ -4753,11 +4744,13 @@ public:
     }
 
     void attributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" + obj->getTypeName() + "' has no attribute '" + name + "'");
+        _error("AttributeError", "type '" +  UNION_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void __checkType(const PyVar& obj, const PyVar& type){
-        if(!obj->isType(type)) typeError("expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
+#ifndef PKPY_NO_TYPE_CHECK
+        if(!obj->isType(type)) typeError("expected '" + UNION_TP_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
+#endif
     }
 
     inline void __checkArgSize(const pkpy::ArgList& args, int size, bool method=false){
@@ -4781,25 +4774,25 @@ public:
 /***** Pointers' Impl *****/
 
 PyVar NamePointer::get(VM* vm, Frame* frame) const{
-    auto it = frame->f_locals.find(name);
+    auto it = frame->f_locals.find(pair->first);
     if(it != frame->f_locals.end()) return it->second;
-    it = frame->f_globals().find(name);
+    it = frame->f_globals().find(pair->first);
     if(it != frame->f_globals().end()) return it->second;
-    it = vm->builtins->attribs.find(name);
+    it = vm->builtins->attribs.find(pair->first);
     if(it != vm->builtins->attribs.end()) return it->second;
-    vm->nameError(name);
+    vm->nameError(pair->first);
     return nullptr;
 }
 
 void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
-    switch(scope) {
-        case NAME_LOCAL: frame->f_locals[name] = std::move(val); break;
+    switch(pair->second) {
+        case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals[name] = std::move(val);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals[pair->first] = std::move(val);
             }else{
-                frame->f_globals()[name] = std::move(val);
+                frame->f_globals()[pair->first] = std::move(val);
             }
         } break;
         default: UNREACHABLE();
@@ -4807,23 +4800,23 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void NamePointer::del(VM* vm, Frame* frame) const{
-    switch(scope) {
+    switch(pair->second) {
         case NAME_LOCAL: {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals.erase(name);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals.erase(pair->first);
             }else{
-                vm->nameError(name);
+                vm->nameError(pair->first);
             }
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals.erase(name);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals.erase(pair->first);
             }else{
-                if(frame->f_globals().count(name) > 0){
-                    frame->f_globals().erase(name);
+                if(frame->f_globals().count(pair->first) > 0){
+                    frame->f_globals().erase(pair->first);
                 }else{
-                    vm->nameError(name);
+                    vm->nameError(pair->first);
                 }
             }
         } break;
@@ -4832,11 +4825,11 @@ void NamePointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar AttrPointer::get(VM* vm, Frame* frame) const{
-    return vm->getAttr(obj, attr->name);
+    return vm->getAttr(obj, attr.pair->first);
 }
 
 void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->setAttr(obj, attr->name, val);
+    vm->setAttr(obj, attr.pair->first, val);
 }
 
 void AttrPointer::del(VM* vm, Frame* frame) const{
@@ -4856,9 +4849,9 @@ void IndexPointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
-    PyVarList args(pointers.size());
-    for (int i = 0; i < pointers.size(); i++) {
-        args[i] = pointers[i]->get(vm, frame);
+    PyVarList args(varRefs.size());
+    for (int i = 0; i < varRefs.size(); i++) {
+        args[i] = vm->PyPointer_AS_C(varRefs[i])->get(vm, frame);
     }
     return vm->PyTuple(args);
 }
@@ -4867,28 +4860,28 @@ void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->isType(vm->_tp_tuple) && !val->isType(vm->_tp_list)){
         vm->typeError("only tuple or list can be unpacked");
     }
-    const PyVarList& args = std::get<PyVarList>(val->_native);
-    if(args.size() > pointers.size()) vm->valueError("too many values to unpack");
-    if(args.size() < pointers.size()) vm->valueError("not enough values to unpack");
-    for (int i = 0; i < pointers.size(); i++) {
-        pointers[i]->set(vm, frame, args[i]);
+    const PyVarList& args = UNION_GET(PyVarList, val);
+    if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
+    if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
+    for (int i = 0; i < varRefs.size(); i++) {
+        vm->PyPointer_AS_C(varRefs[i])->set(vm, frame, args[i]);
     }
 }
 
 void CompoundPointer::del(VM* vm, Frame* frame) const{
-    for (auto& ptr : pointers) ptr->del(vm, frame);
+    for (auto& r : varRefs) vm->PyPointer_AS_C(r)->del(vm, frame);
 }
 
 PyVar UserPointer::get(VM* vm, Frame* frame) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    return p->get(vm, frame);
+    return vm->PyPointer_AS_C(p)->get(vm, frame);
 }
 
 void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    p->set(vm, frame, val);
+    vm->PyPointer_AS_C(p)->set(vm, frame, val);
 }
 
 void UserPointer::del(VM* vm, Frame* frame) const{
@@ -5144,7 +5137,7 @@ public:
     }
 
     void eatNumber() {
-        static const std::regex pattern("^(0x)?[0-9a-f]+(\\.[0-9]+)?");
+        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?");
         std::smatch m;
 
         const char* i = parser->token_start;
@@ -6029,15 +6022,13 @@ _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_M
     if(!noThrow) return compiler.__fillCode();
     try{
         return compiler.__fillCode();
+    }catch(_Error& e){
+        (*vm->_stderr) << e.what() << '\n';
     }catch(std::exception& e){
-        if(dynamic_cast<const _Error*>(&e)){
-            (*vm->_stderr) << e.what() << '\n';
-        }else{
-            auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
-            (*vm->_stderr) << ce.what() << '\n';
-        }
-        return nullptr;
+        auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+        (*vm->_stderr) << ce.what() << '\n';
     }
+    return nullptr;
 }
 
 
@@ -6228,7 +6219,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("object", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         PyVar _self = args[0];
-        _Str s = "<" + _self->getTypeName() + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
+        _Str s = "<" + UNION_TP_NAME(_self) + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
         return vm->PyStr(s);
     });
 
@@ -6251,7 +6242,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("range", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_range);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, RangeIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, RangeIterator>(vm, args[0])
         );
     });
 
@@ -6295,7 +6286,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if (args[0]->isType(vm->_tp_str)) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             try{
-                _Int val = std::stoll(s.str());
+                size_t parsed = 0;
+                _Int val = std::stoll(s.str(), &parsed, 10);
+                if(parsed != s.str().size()) throw std::invalid_argument("");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for int(): '" + s + "'");
@@ -6417,7 +6410,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, StringIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0])
         );
     });
 
@@ -6531,7 +6524,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("list", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_list);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
         );
     });
 
@@ -6629,7 +6622,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_tuple);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
         );
     });
 
@@ -6952,8 +6945,8 @@ extern "C" {
     /// Return a json representing the result.
     char* pkpy_vm_read_output(VM* vm){
         if(vm->use_stdio) return nullptr;
-        _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
-        _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
+        _StrStream* s_out = (_StrStream*)(vm->_stdout);
+        _StrStream* s_err = (_StrStream*)(vm->_stderr);
         _Str _stdout = s_out->str();
         _Str _stderr = s_err->str();
         _StrStream ss;

@@ -142,7 +142,7 @@ public:
     }
 
     void eatNumber() {
-        static const std::regex pattern("^(0x)?[0-9a-f]+(\\.[0-9]+)?");
+        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?");
         std::smatch m;
 
         const char* i = parser->token_start;

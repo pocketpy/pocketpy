@@ -1,5 +1,9 @@
 # generate assert test for int
 
+assert 0xffff == 65535
+assert 0xAAFFFF == 11206655
+assert 0x7fffffff == 2147483647
+
 # test == != >= <= < > 
 # generate 2 cases for each operator
 assert -1 == -1

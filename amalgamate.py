@@ -55,7 +55,7 @@ os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -pthread")
 os.system("rm pocketpy")
 
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
-os.system("cp amalgamated/pocketpy.h plugins/unity/Assets/PocketPy/Plugins/iOS/pocketpy.h")
+os.system("cp amalgamated/pocketpy.h plugins/unity/com.bl.pocketpy/Plugins/iOS/pocketpy.h")
 
 if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
 	os.system("cp amalgamated/pocketpy.h plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")

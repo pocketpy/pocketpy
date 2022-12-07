@@ -193,7 +193,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if (args[0]->isType(vm->_tp_str)) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             try{
-                _Int val = std::stoll(s.str());
+                size_t parsed = 0;
+                _Int val = std::stoll(s.str(), &parsed, 10);
+                if(parsed != s.str().size()) throw std::invalid_argument("");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for int(): '" + s + "'");
