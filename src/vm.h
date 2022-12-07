@@ -54,16 +54,18 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(frame->code->co_names[byte.arg]));
+                frame->push(PyPointer(NamePointer(
+                    &(frame->code->co_names[byte.arg])
+                )));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
-                p.set(this, frame, frame->popValue(this));
+                NamePointer(&p).set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(AttrPointer(obj, &attr)));
+                frame->push(PyPointer(AttrPointer(obj, NamePointer(&attr))));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
@@ -80,12 +82,12 @@ protected:
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                auto p = PyPointer_AS_C(frame->__pop());
-                p->set(this, frame, std::move(obj));
+                VarRef r = frame->__pop();
+                PyPointer_AS_C(r)->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
-                auto p = PyPointer_AS_C(frame->__pop());
-                p->del(this, frame);
+                VarRef r = frame->__pop();
+                PyPointer_AS_C(r)->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
@@ -130,7 +132,7 @@ protected:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg].name;
+                    const _Str& clsName = frame->code->co_names[byte.arg].first;
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
@@ -314,7 +316,7 @@ protected:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg].name;
+                    const _Str& name = frame->code->co_names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazyModules.find(name);
@@ -941,25 +943,25 @@ public:
 /***** Pointers' Impl *****/
 
 PyVar NamePointer::get(VM* vm, Frame* frame) const{
-    auto it = frame->f_locals.find(name);
+    auto it = frame->f_locals.find(pair->first);
     if(it != frame->f_locals.end()) return it->second;
-    it = frame->f_globals().find(name);
+    it = frame->f_globals().find(pair->first);
     if(it != frame->f_globals().end()) return it->second;
-    it = vm->builtins->attribs.find(name);
+    it = vm->builtins->attribs.find(pair->first);
     if(it != vm->builtins->attribs.end()) return it->second;
-    vm->nameError(name);
+    vm->nameError(pair->first);
     return nullptr;
 }
 
 void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
-    switch(scope) {
-        case NAME_LOCAL: frame->f_locals[name] = std::move(val); break;
+    switch(pair->second) {
+        case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals[name] = std::move(val);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals[pair->first] = std::move(val);
             }else{
-                frame->f_globals()[name] = std::move(val);
+                frame->f_globals()[pair->first] = std::move(val);
             }
         } break;
         default: UNREACHABLE();
@@ -967,23 +969,23 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void NamePointer::del(VM* vm, Frame* frame) const{
-    switch(scope) {
+    switch(pair->second) {
         case NAME_LOCAL: {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals.erase(name);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals.erase(pair->first);
             }else{
-                vm->nameError(name);
+                vm->nameError(pair->first);
             }
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(name) > 0){
-                frame->f_locals.erase(name);
+            if(frame->f_locals.count(pair->first) > 0){
+                frame->f_locals.erase(pair->first);
             }else{
-                if(frame->f_globals().count(name) > 0){
-                    frame->f_globals().erase(name);
+                if(frame->f_globals().count(pair->first) > 0){
+                    frame->f_globals().erase(pair->first);
                 }else{
-                    vm->nameError(name);
+                    vm->nameError(pair->first);
                 }
             }
         } break;
@@ -992,11 +994,11 @@ void NamePointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar AttrPointer::get(VM* vm, Frame* frame) const{
-    return vm->getAttr(obj, attr->name);
+    return vm->getAttr(obj, attr.pair->first);
 }
 
 void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->setAttr(obj, attr->name, val);
+    vm->setAttr(obj, attr.pair->first, val);
 }
 
 void AttrPointer::del(VM* vm, Frame* frame) const{

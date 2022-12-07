@@ -18,13 +18,8 @@ enum NameScope {
 };
 
 struct NamePointer : BasePointer {
-    _Str name;
-    NameScope scope;
-    NamePointer(_Str name, NameScope scope) : name(name), scope(scope) {}
-
-    bool operator==(const NamePointer& other) const {
-        return name == other.name && scope == other.scope;
-    }
+    const std::pair<_Str, NameScope>* pair;
+    NamePointer(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -33,8 +28,8 @@ struct NamePointer : BasePointer {
 
 struct AttrPointer : BasePointer {
     mutable PyVar obj;
-    const NamePointer* attr;
-    AttrPointer(PyVar obj, const NamePointer* attr) : obj(obj), attr(attr) {}
+    const NamePointer attr;
+    AttrPointer(PyVar obj, const NamePointer attr) : obj(obj), attr(attr) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

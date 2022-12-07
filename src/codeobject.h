@@ -41,7 +41,7 @@ struct CodeObject {
 
     std::vector<ByteCode> co_code;
     PyVarList co_consts;
-    std::vector<NamePointer> co_names;
+    std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
 
     // for goto use
@@ -62,7 +62,7 @@ struct CodeObject {
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
-        auto p = NamePointer(name, scope);
+        auto p = std::make_pair(name, scope);
         for(int i=0; i<co_names.size(); i++){
             if(co_names[i] == p) return i;
         }
@@ -109,7 +109,7 @@ struct CodeObject {
         _StrStream names;
         names << "co_names: ";
         for(int i=0; i<co_names.size(); i++){
-            names << co_names[i].name;
+            names << co_names[i].first;
             if(i != co_names.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
