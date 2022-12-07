@@ -13,7 +13,11 @@ add_library(pocketpy SHARED
   "pocketpy.cpp"
 )
 
-add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+if (NOT MSVC)
+  target_compile_options(pocketpy PRIVATE -fno-rtti)
+else()
+  target_compile_options(pocketpy PRIVATE /GR- /EHsc)
+endif()
 
 set_target_properties(pocketpy PROPERTIES
   PUBLIC_HEADER pocketpy.h

@@ -547,15 +547,13 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             return _exec(code, _module, {});
-        } catch (const std::exception& e) {
-            if(dynamic_cast<const _Error*>(&e)){
-                *_stderr << e.what() << '\n';
-            }else{
-                auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
-                *_stderr << re.what() << '\n';
-            }
-            return nullptr;
+        }catch (const _Error& e){
+            *_stderr << e.what() << '\n';
+        }catch (const std::exception& e) {
+            auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
+            *_stderr << re.what() << '\n';
         }
+        return nullptr;
     }
 
     virtual void execAsync(const _Code& code) {

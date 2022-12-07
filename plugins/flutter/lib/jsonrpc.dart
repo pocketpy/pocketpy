@@ -30,7 +30,7 @@ class JsonRpcServer {
       this.onPostDispatch,
       this.enableFileAccess = false}) {
     if (!enableFileAccess) return;
-    registerOS(this);
+    _registerOS(this);
   }
 
   /// Register a JSONRPC handler.
@@ -87,7 +87,7 @@ class JsonRpcServer {
   int _fileId = 0;
   final Map<int, File> _files = {};
 
-  void registerOS(JsonRpcServer rpcServer) {
+  void _registerOS(JsonRpcServer rpcServer) {
     rpcServer.register("fopen", (params) {
       var path = params[0];
       //var mode = params[1];

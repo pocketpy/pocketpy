@@ -9,9 +9,9 @@ jobs:
     - name: Compiling
       shell: bash
       run: |
-        CL -std:c++17 -utf-8 -O2 -EHsc -Fe:pocketpy src/main.cpp
+        CL -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
         mv src/pocketpy.h src/pocketpy.cpp
-        CL -std:c++17 -utf-8 -O2 -EHsc -LD -Fe:pocketpy src/pocketpy.cpp
+        CL -std:c++17 -GR- -EHsc -O2 -LD -Fe:pocketpy src/pocketpy.cpp
         mkdir -p output/windows/x86_64
         mv pocketpy.exe output/windows/x86_64
         mv pocketpy.dll output/windows/x86_64

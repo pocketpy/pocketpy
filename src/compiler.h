@@ -1027,13 +1027,11 @@ _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_M
     if(!noThrow) return compiler.__fillCode();
     try{
         return compiler.__fillCode();
+    }catch(_Error& e){
+        (*vm->_stderr) << e.what() << '\n';
     }catch(std::exception& e){
-        if(dynamic_cast<const _Error*>(&e)){
-            (*vm->_stderr) << e.what() << '\n';
-        }else{
-            auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
-            (*vm->_stderr) << ce.what() << '\n';
-        }
-        return nullptr;
+        auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+        (*vm->_stderr) << ce.what() << '\n';
     }
+    return nullptr;
 }

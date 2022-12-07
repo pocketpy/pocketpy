@@ -852,8 +852,8 @@ extern "C" {
     /// Return a json representing the result.
     char* pkpy_vm_read_output(VM* vm){
         if(vm->use_stdio) return nullptr;
-        _StrStream* s_out = dynamic_cast<_StrStream*>(vm->_stdout);
-        _StrStream* s_err = dynamic_cast<_StrStream*>(vm->_stderr);
+        _StrStream* s_out = (_StrStream*)(vm->_stdout);
+        _StrStream* s_err = (_StrStream*)(vm->_stderr);
         _Str _stdout = s_out->str();
         _Str _stderr = s_err->str();
         _StrStream ss;
