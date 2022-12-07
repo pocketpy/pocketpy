@@ -54,7 +54,7 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(NamePointer(frame->code->co_names[byte.arg])));
+                frame->push(PyPointer(frame->code->co_names[byte.arg]));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];

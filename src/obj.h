@@ -85,8 +85,7 @@ template <typename T>
 struct Py_ : PyObject {
     T _valueT;
 
-    Py_(T val, const PyVar& type) {
-        _valueT = val;
+    Py_(T val, const PyVar& type) : _valueT(val) {
         _value = &_valueT;
         _type = type;
     }
