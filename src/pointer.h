@@ -18,9 +18,10 @@ enum NameScope {
 };
 
 struct NamePointer : BasePointer {
-    const _Str name;
-    const NameScope scope;
-    NamePointer(const _Str& name, NameScope scope) : name(name), scope(scope) {}
+    _Str name;
+    NameScope scope;
+    NamePointer(_Str name, NameScope scope) : name(name), scope(scope) {}
+    NamePointer(){}
 
     bool operator==(const NamePointer& other) const {
         return name == other.name && scope == other.scope;
@@ -35,6 +36,7 @@ struct AttrPointer : BasePointer {
     mutable PyVar obj;
     const NamePointer* attr;
     AttrPointer(PyVar obj, const NamePointer* attr) : obj(obj), attr(attr) {}
+    AttrPointer(){}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -43,8 +45,9 @@ struct AttrPointer : BasePointer {
 
 struct IndexPointer : BasePointer {
     mutable PyVar obj;
-    const PyVar index;
+    PyVar index;
     IndexPointer(PyVar obj, PyVar index) : obj(obj), index(index) {}
+    IndexPointer(){}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -52,9 +55,10 @@ struct IndexPointer : BasePointer {
 };
 
 struct CompoundPointer : BasePointer {
-    const std::vector<_Pointer> pointers;
-    CompoundPointer(const std::vector<_Pointer>& pointers) : pointers(pointers) {}
-    CompoundPointer(std::vector<_Pointer>&& pointers) : pointers(pointers) {}
+    PyVarList varRefs;
+    CompoundPointer(const PyVarList& varRefs) : varRefs(varRefs) {}
+    CompoundPointer(PyVarList&& varRefs) : varRefs(std::move(varRefs)) {}
+    CompoundPointer(){}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -62,9 +66,10 @@ struct CompoundPointer : BasePointer {
 };
 
 struct UserPointer : BasePointer {
-    const _Pointer p;
+    VarRef p;
     uint64_t f_id;
-    UserPointer(_Pointer p, uint64_t f_id) : p(p), f_id(f_id) {}
+    UserPointer(VarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
+    UserPointer() {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

@@ -19,7 +19,6 @@
     __DEF_PY(type, ctype, ptype)                                \
     __DEF_PY_AS_C(type, ctype, ptype)
 
-typedef void(*PrintFn)(const VM*, const char*);
 
 class VM {
     std::atomic<bool> _stopFlag = false;
@@ -55,9 +54,7 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, NamePointer>(frame->code->co_names[byte.arg])
-                ));
+                frame->push(PyPointer(NamePointer(frame->code->co_names[byte.arg])));
             } break;
             case OP_STORE_NAME_PTR: {
                 const auto& p = frame->code->co_names[byte.arg];
@@ -66,33 +63,28 @@ protected:
             case OP_BUILD_ATTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, AttrPointer>(obj, &attr)
-                ));
+                frame->push(PyPointer(AttrPointer(obj, &attr)));
             } break;
             case OP_BUILD_ATTR_PTR_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
-                const _Pointer& p = UNION_GET(_Pointer, obj);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, AttrPointer>(p->get(this, frame), &attr)
-                ));
+                const VarRef& var = UNION_GET(VarRef, obj);
+                auto p = PyPointer_AS_C(var);
+                frame->push(PyPointer(AttrPointer(p->get(this, frame), &attr)));
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, IndexPointer>(obj, index)
-                ));
+                frame->push(PyPointer(IndexPointer(obj, index)));
             } break;
             case OP_STORE_PTR: {
                 PyVar obj = frame->popValue(this);
-                const _Pointer p = PyPointer_AS_C(frame->__pop());
+                auto p = PyPointer_AS_C(frame->__pop());
                 p->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_PTR: {
-                const _Pointer p = PyPointer_AS_C(frame->__pop());
+                auto p = PyPointer_AS_C(frame->__pop());
                 p->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
@@ -111,12 +103,7 @@ protected:
                     }
                 }
                 if(done) break;
-                std::vector<_Pointer> pointers(items.size());
-                for(int i=0; i<items.size(); i++)
-                    pointers[i] = PyPointer_AS_C(items[i]);
-                frame->push(PyPointer(
-                    pkpy::make_shared<const BasePointer, CompoundPointer>(std::move(pointers))
-                ));
+                frame->push(PyPointer(CompoundPointer(items.toList())));
             } break;
             case OP_BUILD_STRING:
             {
@@ -212,10 +199,11 @@ protected:
             case OP_UNARY_REF:
                 {
                     // _pointer to pointer
-                    const _Pointer p = PyPointer_AS_C(frame->__pop());
+                    VarRef obj = frame->__pop();
+                    __checkType(obj, _tp_pointer);
                     frame->push(newObject(
                         _tp_user_pointer,
-                        pkpy::make_shared<const BasePointer, UserPointer>(p, frame->id)
+                        PyPointer(UserPointer(obj, frame->id))
                     ));
                 } break;
             case OP_UNARY_DEREF:
@@ -223,7 +211,7 @@ protected:
                     // pointer to _pointer
                     PyVar obj = frame->popValue(this);
                     __checkType(obj, _tp_user_pointer);
-                    frame->push(PyPointer(UNION_GET(_Pointer, obj)));
+                    frame->push(UNION_GET(VarRef, obj));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -283,7 +271,9 @@ protected:
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn, {obj});
-                        PyIter_AS_C(tmp)->var = std::move(PyPointer_AS_C(frame->__pop()));
+                        VarRef var = frame->__pop();
+                        __checkType(var, _tp_pointer);
+                        PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
                         typeError("'" + UNION_TP_NAME(obj) + "' object is not iterable");
@@ -295,7 +285,7 @@ protected:
                     // __top() must be PyIter, so no need to __deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
-                        it->var->set(this, frame, it->next());
+                        PyPointer_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
                         frame->safeJump(byte.arg);
@@ -768,11 +758,16 @@ public:
     PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
     PyVar _tp_user_pointer, _tp_super;
 
-    __DEF_PY(Pointer, _Pointer, _tp_pointer)
-    inline _Pointer& PyPointer_AS_C(const PyVar& obj)
+    template<typename P>
+    inline VarRef PyPointer(P value) {
+        static_assert(std::is_base_of<BasePointer, P>::value, "P should derive from BasePointer");
+        return newObject(_tp_pointer, value);
+    }
+
+    inline const BasePointer* PyPointer_AS_C(const PyVar& obj)
     {
         if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
-        return UNION_GET(_Pointer, obj);
+        return (const BasePointer*)(obj->value());
     }
 
     __DEF_PY_AS_C(Int, _Int, _tp_int)
@@ -1021,9 +1016,9 @@ void IndexPointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
-    PyVarList args(pointers.size());
-    for (int i = 0; i < pointers.size(); i++) {
-        args[i] = pointers[i]->get(vm, frame);
+    PyVarList args(varRefs.size());
+    for (int i = 0; i < varRefs.size(); i++) {
+        args[i] = vm->PyPointer_AS_C(varRefs[i])->get(vm, frame);
     }
     return vm->PyTuple(args);
 }
@@ -1033,27 +1028,27 @@ void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
         vm->typeError("only tuple or list can be unpacked");
     }
     const PyVarList& args = UNION_GET(PyVarList, val);
-    if(args.size() > pointers.size()) vm->valueError("too many values to unpack");
-    if(args.size() < pointers.size()) vm->valueError("not enough values to unpack");
-    for (int i = 0; i < pointers.size(); i++) {
-        pointers[i]->set(vm, frame, args[i]);
+    if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
+    if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
+    for (int i = 0; i < varRefs.size(); i++) {
+        vm->PyPointer_AS_C(varRefs[i])->set(vm, frame, args[i]);
     }
 }
 
 void CompoundPointer::del(VM* vm, Frame* frame) const{
-    for (auto& ptr : pointers) ptr->del(vm, frame);
+    for (auto& r : varRefs) vm->PyPointer_AS_C(r)->del(vm, frame);
 }
 
 PyVar UserPointer::get(VM* vm, Frame* frame) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    return p->get(vm, frame);
+    return vm->PyPointer_AS_C(p)->get(vm, frame);
 }
 
 void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    p->set(vm, frame, val);
+    vm->PyPointer_AS_C(p)->set(vm, frame, val);
 }
 
 void UserPointer::del(VM* vm, Frame* frame) const{

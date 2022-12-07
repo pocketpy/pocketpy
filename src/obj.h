@@ -10,7 +10,6 @@ struct BasePointer;
 class VM;
 class Frame;
 
-typedef pkpy::shared_ptr<const BasePointer> _Pointer;
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
@@ -60,7 +59,7 @@ protected:
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
-    _Pointer var;
+    VarRef var;
     BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
     virtual ~BaseIterator() = default;
 };
@@ -69,10 +68,14 @@ typedef pkpy::shared_ptr<Function> _Func;
 typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
-    PyVarDict attribs;
+protected:
+    void* _value;
+public:
     PyVar _type;
+    PyVarDict attribs;
 
     inline bool isType(const PyVar& type){ return this->_type == type; }
+    inline void* value(){ return _value; }
 
     // currently __name__ is only used for 'type'
     PyVar _typeName(){ return _type->attribs[__name__]; }
@@ -80,17 +83,14 @@ struct PyObject {
 
 template <typename T>
 struct Py_ : PyObject {
-    T _value;
+    T _valueT;
 
-    Py_(const T& val, const PyVar& type) {
-        _value = val;
-        _type = type;
-    }
-    Py_(T&& val, const PyVar& type) {
-        _value = std::move(val);
+    Py_(T val, const PyVar& type) {
+        _valueT = val;
+        _value = &_valueT;
         _type = type;
     }
 };
 
-#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
 #define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_typeName())
