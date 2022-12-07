@@ -8,7 +8,6 @@
 
 #include <sstream>
 #include <regex>
-#include <variant>
 #include <stack>
 #include <cmath>
 #include <stdexcept>

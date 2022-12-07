@@ -126,7 +126,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("object", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         PyVar _self = args[0];
-        _Str s = "<" + _self->getTypeName() + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
+        _Str s = "<" + UNION_TP_NAME(_self) + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
         return vm->PyStr(s);
     });
 
@@ -149,7 +149,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("range", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_range);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, RangeIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, RangeIterator>(vm, args[0])
         );
     });
 
@@ -315,7 +315,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, StringIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0])
         );
     });
 
@@ -429,7 +429,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("list", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_list);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
         );
     });
 
@@ -527,7 +527,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("tuple", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkType(args[0], vm->_tp_tuple);
         return vm->PyIter(
-            pkpy::make_shared<_Iterator, VectorIterator>(vm, args[0])
+            pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
         );
     });
 

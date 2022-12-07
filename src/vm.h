@@ -7,7 +7,7 @@
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         __checkType(obj, ptype);                                \
-        return std::get<ctype>(obj->_native);                   \
+        return UNION_GET(ctype, obj);                           \
     }
 
 #define __DEF_PY(type, ctype, ptype)                            \
@@ -74,7 +74,7 @@ protected:
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
-                const _Pointer& p = std::get<_Pointer>(obj->_native);
+                const _Pointer& p = UNION_GET(_Pointer, obj);
                 frame->push(PyPointer(
                     pkpy::make_shared<const BasePointer, AttrPointer>(p->get(this, frame), &attr)
                 ));
@@ -223,7 +223,7 @@ protected:
                     // pointer to _pointer
                     PyVar obj = frame->popValue(this);
                     __checkType(obj, _tp_user_pointer);
-                    frame->push(PyPointer(std::get<_Pointer>(obj->_native)));
+                    frame->push(PyPointer(UNION_GET(_Pointer, obj)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -286,7 +286,7 @@ protected:
                         PyIter_AS_C(tmp)->var = std::move(PyPointer_AS_C(frame->__pop()));
                         frame->push(std::move(tmp));
                     }else{
-                        typeError("'" + obj->getTypeName() + "' object is not iterable");
+                        typeError("'" + UNION_TP_NAME(obj) + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -431,7 +431,7 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->isType(_tp_type)) return PyStr("<class '" + obj->getName() + "'>");
+        if(obj->isType(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__, {});
     }
 
@@ -492,7 +492,7 @@ public:
         }
         
         if((*callable)->isType(_tp_native_function)){
-            const auto& f = std::get<_CppFunc>((*callable)->_native);
+            const auto& f = UNION_GET(_CppFunc, *callable);
             return f(this, args);
         } else if((*callable)->isType(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
@@ -530,7 +530,7 @@ public:
             }
             return _exec(fn->code, _module, locals);
         }
-        typeError("'" + (*callable)->getTypeName() + "' object is not callable");
+        typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
@@ -604,18 +604,16 @@ public:
 
     PyVar newClassType(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject>((_Int)0);
-        obj->setType(_tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, _tp_type);
         setAttr(obj, __base__, base);
         _types[name] = obj;
         return obj;
     }
 
-    PyVar newObject(PyVar type, const _Value& _native) {
+    template<typename T>
+    inline PyVar newObject(PyVar type, T _value) {
         __checkType(type, _tp_type);
-        PyVar obj = pkpy::make_shared<PyObject>(_native);
-        obj->setType(type);
-        return obj;
+        return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
     }
 
     PyVar newModule(_Str name) {
@@ -637,7 +635,7 @@ public:
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
                 depth++;
             }
@@ -672,7 +670,7 @@ public:
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
             }
             (*root)->attribs[name] = value;
@@ -685,7 +683,7 @@ public:
         if(obj->isType(_tp_super)){
             const PyVar* root = &obj;
             while(true){
-                root = &std::get<PyVar>((*root)->_native);
+                root = &UNION_GET(PyVar, *root);
                 if(!(*root)->isType(_tp_super)) break;
             }
             (*root)->attribs[name] = std::move(value);
@@ -774,7 +772,7 @@ public:
     inline _Pointer& PyPointer_AS_C(const PyVar& obj)
     {
         if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
-        return std::get<_Pointer>(obj->_native);
+        return UNION_GET(_Pointer, obj);
     }
 
     __DEF_PY_AS_C(Int, _Int, _tp_int)
@@ -789,7 +787,7 @@ public:
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
-    DEF_NATIVE(Iter, pkpy::shared_ptr<_Iterator>, _tp_native_iterator)
+    DEF_NATIVE(Iter, _Iterator, _tp_native_iterator)
     DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
@@ -799,8 +797,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject>((_Int)0);
-        _tp_type = pkpy::make_shared<PyObject>((_Int)0);
+        _tp_object = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, nullptr);
+        _tp_type = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)0, nullptr);
 
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
@@ -834,9 +832,9 @@ public:
         this->_main = newModule("__main__"_c);
 
         setAttr(_tp_type, __base__, _tp_object);
-        _tp_type->setType(_tp_type);
+        _tp_type->_type = _tp_type;
         setAttr(_tp_object, __base__, None);
-        _tp_object->setType(_tp_type);
+        _tp_object->_type = _tp_type;
         
         for (auto& [name, type] : _types) {
             setAttr(type, __name__, PyStr(name));
@@ -869,7 +867,7 @@ public:
             }
             return x;
         }
-        typeError("unhashable type: " + obj->getTypeName());
+        typeError("unhashable type: " +  UNION_TP_NAME(obj));
         return 0;
     }
 
@@ -920,11 +918,11 @@ public:
     }
 
     void attributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" + obj->getTypeName() + "' has no attribute '" + name + "'");
+        _error("AttributeError", "type '" +  UNION_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void __checkType(const PyVar& obj, const PyVar& type){
-        if(!obj->isType(type)) typeError("expected '" + type->getName() + "', but got '" + obj->getTypeName() + "'");
+        if(!obj->isType(type)) typeError("expected '" + UNION_TP_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
     }
 
     inline void __checkArgSize(const pkpy::ArgList& args, int size, bool method=false){
@@ -1034,7 +1032,7 @@ void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->isType(vm->_tp_tuple) && !val->isType(vm->_tp_list)){
         vm->typeError("only tuple or list can be unpacked");
     }
-    const PyVarList& args = std::get<PyVarList>(val->_native);
+    const PyVarList& args = UNION_GET(PyVarList, val);
     if(args.size() > pointers.size()) vm->valueError("too many values to unpack");
     if(args.size() < pointers.size()) vm->valueError("not enough values to unpack");
     for (int i = 0; i < pointers.size(); i++) {

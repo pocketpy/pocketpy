@@ -53,7 +53,7 @@ struct _Slice {
     }
 };
 
-class _Iterator {
+class BaseIterator {
 protected:
     VM* vm;
     PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
@@ -61,40 +61,36 @@ public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
     _Pointer var;
-    _Iterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
-    virtual ~_Iterator() = default;
+    BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual ~BaseIterator() = default;
 };
 
 typedef pkpy::shared_ptr<Function> _Func;
-typedef std::variant<PyVar,_Int,_Float,bool,_Str,PyVarList,_CppFunc,_Func,pkpy::shared_ptr<_Iterator>,_BoundedMethod,_Range,_Slice,_Pointer> _Value;
-
-const int VALUE_SIZE = sizeof(_Value);
-
+typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
     PyVarDict attribs;
-    _Value _native;
     PyVar _type;
 
-    inline bool isType(const PyVar& type){
-        return this->_type == type;
-    }
-
-    inline void setType(const PyVar& type){
-        this->_type = type;
-        // this->attribs[__class__] = type;
-    }
+    inline bool isType(const PyVar& type){ return this->_type == type; }
 
     // currently __name__ is only used for 'type'
-    _Str getName(){
-        _Value val = attribs[__name__]->_native;
-        return std::get<_Str>(val);
-    }
-
-    _Str getTypeName(){
-        return _type->getName();
-    }
-
-    PyObject(const _Value& val): _native(val) {}
-    PyObject(_Value&& val): _native(std::move(val)) {}
+    PyVar _typeName(){ return _type->attribs[__name__]; }
 };
+
+template <typename T>
+struct Py_ : PyObject {
+    T _value;
+
+    Py_(const T& val, const PyVar& type) {
+        _value = val;
+        _type = type;
+    }
+    Py_(T&& val, const PyVar& type) {
+        _value = std::move(val);
+        _type = type;
+    }
+};
+
+#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_typeName())

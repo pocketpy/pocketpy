@@ -102,7 +102,7 @@ struct CodeObject {
         _StrStream consts;
         consts << "co_consts: ";
         for(int i=0; i<co_consts.size(); i++){
-            consts << co_consts[i]->getTypeName();
+            consts << UNION_TP_NAME(co_consts[i]);
             if(i != co_consts.size() - 1) consts << ", ";
         }
 
@@ -113,10 +113,10 @@ struct CodeObject {
             if(i != co_names.size() - 1) names << ", ";
         }
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
-        for(int i=0; i<co_consts.size(); i++){
-            auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-            if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
-        }
+        // for(int i=0; i<co_consts.size(); i++){
+        //     auto fn = std::get_if<_Func>(&co_consts[i]->_native);
+        //     if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
+        // }
         return _Str(ss.str());
     }
 };

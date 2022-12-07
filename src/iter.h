@@ -2,13 +2,13 @@
 
 #include "obj.h"
 
-class RangeIterator : public _Iterator {
+class RangeIterator : public BaseIterator {
 private:
     _Int current;
     _Range r;
 public:
-    RangeIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        this->r = std::get<_Range>(_ref->_native);
+    RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        this->r = UNION_GET(_Range, _ref);
         this->current = r.start;
     }
 
@@ -23,13 +23,13 @@ public:
     PyVar next() override;
 };
 
-class VectorIterator : public _Iterator {
+class VectorIterator : public BaseIterator {
 private:
     size_t index = 0;
     const PyVarList* vec;
 public:
-    VectorIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        vec = &std::get<PyVarList>(_ref->_native);
+    VectorIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        vec = &UNION_GET(PyVarList, _ref);
     }
 
     bool hasNext(){
@@ -41,13 +41,13 @@ public:
     }
 };
 
-class StringIterator : public _Iterator {
+class StringIterator : public BaseIterator {
 private:
     int index = 0;
     _Str str;
 public:
-    StringIterator(VM* vm, PyVar _ref) : _Iterator(vm, _ref) {
-        str = std::get<_Str>(_ref->_native);
+    StringIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+        str = UNION_GET(_Str, _ref);
     }
 
     bool hasNext(){
