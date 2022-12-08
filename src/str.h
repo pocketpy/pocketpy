@@ -72,7 +72,7 @@ private:
     pkpy::shared_ptr<_StrMemory> _s;
     bool interned = false;
 public:
-    _Str(const _StrLiteral& s){
+    _Str(_StrLiteral s){
         construct(s);
         intern();
     }
@@ -95,7 +95,7 @@ public:
         this->_s = pkpy::make_shared<_StrMemory>(std::move(s));
     }
 
-    void construct(const std::string_view& sv){
+    void construct(std::string_view sv){
         auto it = _strIntern.find(sv);
         if(it != _strIntern.end()){
             this->_s = it->second;

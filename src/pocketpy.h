@@ -39,12 +39,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
 
-    _vm->bindBuiltinFunc("print", [](VM* vm, const pkpy::ArgList& args) {
-        _StrStream ss;
-        for(int i=0; i<args.size(); i++){
-            ss << vm->PyStr_AS_C(vm->asStr(args[i])) << " ";
-        }
-        (*vm->_stdout) << ss.str() << '\n';
+    _vm->bindBuiltinFunc("__sys_stdout_write", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        (*vm->_stdout) << vm->PyStr_AS_C(args[0]);
         return vm->None;
     });
 

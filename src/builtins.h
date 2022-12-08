@@ -4,6 +4,11 @@ const char* __BUILTINS_CODE = R"(
 def len(x):
     return x.__len__()
 
+def print(*args, sep=' ', end='\n'):
+    s = sep.join([str(i) for i in args])
+    __sys_stdout_write(s + end)
+
+
 str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
 def __str4split(self, sep):

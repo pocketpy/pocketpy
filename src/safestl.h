@@ -58,7 +58,7 @@ public:
     }
 #endif
 
-    PyVarDict() : emhash8::HashMap<_Str, PyVar>(5) {}
+    PyVarDict() : emhash8::HashMap<_Str, PyVar>() {}
 };
 
 
