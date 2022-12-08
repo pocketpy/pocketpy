@@ -1,13 +1,15 @@
 # pocketpy
 
-![build](https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg)
+<p>
+<a title="Build" href="https://github.com/blueloveTH/pocketpy/actions/workflows" ><img src="https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
+</p>
 
-C++17 single-file header-only cross platform Python Interpreter.
+C++17 header-only Python interpreter for game engines.
+
+Please see https://pocketpy.dev for detailed documentations.
 
 ![sample_img](docs/sample.png)
-
-## Documentations
-See https://pocketpy.dev
 
 
 ## Build From Source (Linux)
