@@ -64,6 +64,13 @@ def __list4index(self, value):
 list.index = __list4index
 del __list4index
 
+def __list4pop(self, i=-1):
+    res = self[i]
+    del self[i]
+    return res
+list.pop = __list4pop
+del __list4pop
+
 def __list4__mul__(self, n):
     a = []
     for i in range(n):
@@ -221,6 +228,10 @@ def map(f, iterable):
 
 def zip(a, b):
     return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+
+def reversed(iterable):
+    a = list(iterable)
+    return [a[i] for i in range(len(a)-1, -1, -1)]
 
 def sorted(iterable, key=None, reverse=False):
     if key is None:

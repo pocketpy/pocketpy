@@ -461,15 +461,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyList(vm->PyList_AS_C(args[0]));
     });
 
-    _vm->bindMethod("list", "pop", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkArgSize(args, 1, true);
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
-        if(_self.empty()) vm->indexError("pop from empty list");
-        PyVar ret = _self.back();
-        _self.pop_back();
-        return ret;
-    });      
-
     _vm->bindMethod("list", "__add__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);
         const PyVarList& _obj = vm->PyList_AS_C(args[1]);
