@@ -56,7 +56,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE, false);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals);
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
     _vm->bindBuiltinFunc("isinstance", [](VM* vm, const pkpy::ArgList& args) {
@@ -91,9 +91,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("globals", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 0);
         const auto& d = vm->topFrame()->f_globals();
-        PyVar obj = vm->call(vm->builtins->attribs["dict"], {});
+        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
         for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, {vm->PyStr(k), v});
+            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
         }
         return obj;
     });
@@ -101,9 +101,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("locals", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 0);
         const auto& d = vm->topFrame()->f_locals;
-        PyVar obj = vm->call(vm->builtins->attribs["dict"], {});
+        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
         for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, {vm->PyStr(k), v});
+            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
         }
         return obj;
     });
@@ -642,7 +642,7 @@ void __addModuleJson(VM* vm){
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE, false);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals);
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
     vm->bindFunc(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {

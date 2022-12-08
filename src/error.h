@@ -23,7 +23,9 @@ struct SourceMetadata {
 
     _Str getLine(int lineno) const {
         if(lineno == -1) return "<?>";
-        const char* _start = lineStarts.at(lineno-1);
+        lineno -= 1;
+        if(lineno < 0) lineno = 0;
+        const char* _start = lineStarts.at(lineno);
         const char* i = _start;
         while(*i != '\n' && *i != '\0') i++;
         return _Str(_start, i-_start);

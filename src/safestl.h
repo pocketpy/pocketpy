@@ -58,7 +58,7 @@ public:
     }
 #endif
 
-    PyVarDict() : emhash8::HashMap<_Str, PyVar>() {}
+    using emhash8::HashMap<_Str, PyVar>::HashMap;
 };
 
 
@@ -128,13 +128,6 @@ namespace pkpy {
             other.clear();
         }
 
-        // deprecated, this is very slow, do not use it!!!
-        ArgList(std::initializer_list<PyVar> args){
-            __tryAlloc(args.size());
-            uint8_t i = 0;
-            for(auto& arg: args) this->_args[i++] = arg;
-        }
-
         PyVar& operator[](uint8_t i){
             __checkIndex(i);
             return _args[i];
@@ -161,7 +154,7 @@ namespace pkpy {
             return *this;
         }
 
-        uint8_t size() const {
+        inline uint8_t size() const {
             return _size;
         }
 
@@ -186,4 +179,35 @@ namespace pkpy {
             __tryRelease();
         }
     };
+
+    const ArgList& noArg(){
+        static ArgList ret(0);
+        return ret;
+    }
+
+    ArgList oneArg(PyVar&& a) {
+        ArgList ret(1);
+        ret[0] = std::move(a);
+        return ret;
+    }
+
+    ArgList oneArg(const PyVar& a) {
+        ArgList ret(1);
+        ret[0] = a;
+        return ret;
+    }
+
+    ArgList twoArgs(PyVar&& a, PyVar&& b) {
+        ArgList ret(2);
+        ret[0] = std::move(a);
+        ret[1] = std::move(b);
+        return ret;
+    }
+
+    ArgList twoArgs(const PyVar& a, const PyVar& b) {
+        ArgList ret(2);
+        ret[0] = a;
+        ret[1] = b;
+        return ret;
+    }
 }

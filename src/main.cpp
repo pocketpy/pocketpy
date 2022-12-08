@@ -3,8 +3,8 @@
 
 #include "pocketpy.h"
 
-#define PK_DEBUG_TIME
-//#define PK_DEBUG_THREADED
+//#define PK_DEBUG_TIME
+#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;
@@ -46,6 +46,7 @@ void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
             char* obj = pkpy_tvm_read_jsonrpc_request(vm);
+            // this is not safe, but it's ok for demo
             bool is_input_call = std::string_view(obj).find("\"input\"") != std::string::npos;
             if(is_input_call){
                 std::string line;

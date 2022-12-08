@@ -133,11 +133,15 @@ public:
 
     uint64_t id;
 
+    inline PyVarDict copy_f_locals(){
+        return f_locals;
+    }
+
     inline PyVarDict& f_globals(){
         return _module->attribs;
     }
 
-    Frame(const CodeObject* code, PyVar _module, const PyVarDict& locals)
+    Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(locals) {
         
         static uint64_t frame_id = 1;

@@ -77,7 +77,7 @@ protected:
             } break;
             case OP_BUILD_INDEX_PTR: {
                 PyVar index = frame->popValue(this);
-                PyVar obj = frame->popValue(this);
+                VarRef obj = frame->popValue(this);
                 frame->push(PyPointer(IndexPointer(obj, index)));
             } break;
             case OP_STORE_PTR: {
@@ -182,8 +182,7 @@ protected:
             case OP_CONTAINS_OP:
                 {
                     PyVar rhs = frame->popValue(this);
-                    PyVar lhs = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, {std::move(lhs)}));
+                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::oneArg(frame->popValue(this))));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
@@ -241,18 +240,22 @@ protected:
             case OP_BUILD_MAP:
                 {
                     pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg*2);
-                    PyVar obj = call(builtins->attribs["dict"], {});
+                    PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
-                        call(obj, __setitem__, {items[i], items[i+1]});
+                        call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
                     }
                     frame->push(obj);
                 } break;
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
             case OP_CALL:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, byte.arg);
+                    int ARGC = byte.arg & 0xFFFF;
+                    int KWARGC = (byte.arg >> 16) & 0xFFFF;
+                    pkpy::ArgList kwargs(0);
+                    if(KWARGC > 0) kwargs = frame->popNValuesReversed(this, KWARGC*2);
+                    pkpy::ArgList args = frame->popNValuesReversed(this, ARGC);
                     PyVar callable = frame->popValue(this);
-                    PyVar ret = call(std::move(callable), std::move(args), true);
+                    PyVar ret = call(callable, std::move(args), kwargs, true);
                     if(ret == __py2py_call_signal) return ret;
                     frame->push(std::move(ret));
                 } break;
@@ -272,7 +275,7 @@ protected:
                     PyVar obj = frame->popValue(this);
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
-                        PyVar tmp = call(iter_fn, {obj});
+                        PyVar tmp = call(iter_fn, pkpy::oneArg(obj));
                         VarRef var = frame->__pop();
                         __checkType(var, _tp_pointer);
                         PyIter_AS_C(tmp)->var = var;
@@ -333,18 +336,8 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
-            case OP_WITH_ENTER:
-            {
-                PyVar obj = frame->popValue(this);
-                PyVar enter_fn = getAttr(obj, "__enter__"_c);
-                call(enter_fn, {});
-            } break;
-            case OP_WITH_EXIT:
-            {
-                PyVar obj = frame->popValue(this);
-                PyVar exit_fn = getAttr(obj, "__exit__"_c);
-                call(exit_fn, {});
-            } break;
+            case OP_WITH_ENTER: call(frame->popValue(this), "__enter__"_c); break;
+            case OP_WITH_EXIT: call(frame->popValue(this), "__exit__"_c); break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
@@ -404,7 +397,7 @@ public:
 
     PyVar asStr(const PyVar& obj){
         PyVarOrNull str_fn = getAttr(obj, __str__, false);
-        if(str_fn != nullptr) return call(str_fn, {});
+        if(str_fn != nullptr) return call(str_fn);
         return asRepr(obj);
     }
 
@@ -424,11 +417,11 @@ public:
 
     PyVar asRepr(const PyVar& obj){
         if(obj->isType(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
-        return call(obj, __repr__, {});
+        return call(obj, __repr__);
     }
 
     PyVar asJson(const PyVar& obj){
-        return call(obj, __json__, {});
+        return call(obj, __json__);
     }
 
     const PyVar& asBool(const PyVar& obj){
@@ -438,7 +431,7 @@ public:
         if(obj->_type == _tp_float) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getAttr(obj, __len__, false);
         if(len_fn != nullptr){
-            PyVar ret = call(std::move(len_fn), {});
+            PyVar ret = call(len_fn);
             return PyBool(PyInt_AS_C(ret) > 0);
         }
         return True;
@@ -449,25 +442,39 @@ public:
         PyObject* cls = obj->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);
-            if(it != cls->attribs.end()){
-                return call(it->second, args);
-            }
+            if(it != cls->attribs.end()) return call(it->second, std::move(args));
             cls = cls->attribs[__base__].get();
         }
         attributeError(obj, name);
         return nullptr;
     }
 
-    PyVar call(const PyVar& _callable, pkpy::ArgList args, bool opCall=false){
+    inline PyVar call(const PyVar& _callable){
+        return call(_callable, pkpy::noArg(), pkpy::noArg(), false);
+    }
+
+    inline PyVar call(const PyVar& _callable, pkpy::ArgList args){
+        return call(_callable, args, pkpy::noArg(), false);
+    }
+
+    inline PyVar call(const PyVar& obj, const _Str& func, pkpy::ArgList args){
+        return call(getAttr(obj, func), args, pkpy::noArg(), false);
+    }
+
+    inline PyVar call(const PyVar& obj, const _Str& func){
+        return call(getAttr(obj, func), pkpy::noArg(), pkpy::noArg(), false);
+    }
+
+    PyVar call(const PyVar& _callable, pkpy::ArgList args, const pkpy::ArgList& kwargs, bool opCall){
         if(_callable->isType(_tp_type)){
             auto it = _callable->attribs.find(__new__);
             PyVar obj;
             if(it != _callable->attribs.end()){
-                obj = call(it->second, args);
+                obj = call(it->second, args, kwargs, false);
             }else{
                 obj = newObject(_callable, (_Int)-1);
                 PyVarOrNull init_fn = getAttr(obj, __init__, false);
-                if (init_fn != nullptr) call(init_fn, args);
+                if (init_fn != nullptr) call(init_fn, args, kwargs, false);
             }
             return obj;
         }
@@ -485,54 +492,67 @@ public:
         
         if((*callable)->isType(_tp_native_function)){
             const auto& f = UNION_GET(_CppFunc, *callable);
+            // _CppFunc do not support kwargs
             return f(this, args);
         } else if((*callable)->isType(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
             PyVarDict locals;
             int i = 0;
             for(const auto& name : fn->args){
-                if(i < args.size()) {
-                    locals[name] = args[i++];
-                }else{
-                    typeError("missing positional argument '" + name + "'");
+                if(i < args.size()){
+                    locals.emplace(name, args[i++]);
+                    continue;
                 }
-            }
-            // handle *args
-            if(!fn->starredArg.empty()){
-                PyVarList vargs;
-                while(i < args.size()) vargs.push_back(args[i++]);
-                locals[fn->starredArg] = PyTuple(vargs);
-            }
-            // handle keyword arguments
-            for(const _Str& name : fn->kwArgsOrder){
-                if(i < args.size()) {
-                    locals[name] = args[i++];
-                }else{
-                    locals[name] = fn->kwArgs[name];
-                }
+                typeError("missing positional argument '" + name + "'");
             }
 
-            if(i < args.size()) typeError("too many arguments");
+            locals.insert(fn->kwArgs.begin(), fn->kwArgs.end());
+
+            std::vector<_Str> positional_overrided_keys;
+            if(!fn->starredArg.empty()){
+                // handle *args
+                PyVarList vargs;
+                while(i < args.size()) vargs.push_back(args[i++]);
+                locals.emplace(fn->starredArg, PyTuple(std::move(vargs)));
+            }else{
+                for(const auto& key : fn->kwArgsOrder){
+                    if(i < args.size()){
+                        locals[key] = args[i++];
+                        positional_overrided_keys.push_back(key);
+                    }else{
+                        break;
+                    }
+                }
+                if(i < args.size()) typeError("too many arguments");
+            }
+            
+            for(int i=0; i<kwargs.size(); i+=2){
+                const _Str& key = PyStr_AS_C(kwargs[i]);
+                if(fn->kwArgs.find(key) == fn->kwArgs.end()){
+                    typeError(key.__escape(true) + " is an invalid keyword argument for " + fn->name + "()");
+                }
+                const PyVar& val = kwargs[i+1];
+                if(!positional_overrided_keys.empty()){
+                    auto it = std::find(positional_overrided_keys.begin(), positional_overrided_keys.end(), key);
+                    if(it != positional_overrided_keys.end()){
+                        typeError("multiple values for argument '" + key + "'");
+                    }
+                }
+                locals[key] = val;
+            }
 
             auto it_m = (*callable)->attribs.find(__module__);
             PyVar _module = it_m != (*callable)->attribs.end() ? it_m->second : topFrame()->_module;
             if(opCall){
-                __pushNewFrame(fn->code, _module, locals);
+                __pushNewFrame(fn->code, _module, std::move(locals));
                 return __py2py_call_signal;
             }
-            return _exec(fn->code, _module, locals);
+            return _exec(fn->code, _module, std::move(locals));
         }
         typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func, const pkpy::ArgList& args){
-        return call(getAttr(obj, func), args);
-    }
-
-    inline PyVar call(const PyVar& obj, const _Str& func, pkpy::ArgList&& args){
-        return call(getAttr(obj, func), args);
-    }
 
     // repl mode is only for setting `frame->id` to 0
     virtual PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
@@ -552,18 +572,18 @@ public:
         exec(code);
     }
 
-    Frame* __pushNewFrame(const _Code& code, PyVar _module, const PyVarDict& locals){
+    Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
         if(code == nullptr) UNREACHABLE();
         if(callstack.size() > maxRecursionDepth){
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
-        Frame* frame = new Frame(code.get(), _module, locals);
+        Frame* frame = new Frame(code.get(), _module, std::move(locals));
         callstack.emplace_back(pkpy::unique_ptr<Frame>(frame));
         return frame;
     }
 
-    PyVar _exec(const _Code& code, PyVar _module, const PyVarDict& locals){
-        Frame* frame = __pushNewFrame(code, _module, locals);
+    PyVar _exec(const _Code& code, PyVar _module, PyVarDict&& locals){
+        Frame* frame = __pushNewFrame(code, _module, std::move(locals));
         if(code->mode() == SINGLE_MODE) frame->id = 0;
         Frame* frameBase = frame;
         PyVar ret = nullptr;
@@ -710,10 +730,10 @@ public:
 
     bool isInstance(PyVar obj, PyVar type){
         __checkType(type, _tp_type);
-        PyVar t = obj->_type;
-        while (t != None){
-            if (t == type) return true;
-            t = t->attribs[__base__];
+        PyObject* t = obj->_type.get();
+        while (t != None.get()){
+            if (t == type.get()) return true;
+            t = t->attribs[__base__].get();
         }
         return false;
     }
@@ -1008,15 +1028,15 @@ void AttrPointer::del(VM* vm, Frame* frame) const{
 }
 
 PyVar IndexPointer::get(VM* vm, Frame* frame) const{
-    return vm->call(obj, __getitem__, {index});
+    return vm->call(obj, __getitem__, pkpy::oneArg(index));
 }
 
 void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->call(obj, __setitem__, {index, val});
+    vm->call(obj, __setitem__, pkpy::twoArgs(index, val));
 }
 
 void IndexPointer::del(VM* vm, Frame* frame) const{
-    vm->call(obj, __delitem__, {index});
+    vm->call(obj, __delitem__, pkpy::oneArg(index));
 }
 
 PyVar CompoundPointer::get(VM* vm, Frame* frame) const{

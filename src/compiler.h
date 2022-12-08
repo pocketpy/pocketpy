@@ -276,8 +276,14 @@ public:
         parser->setNextToken(TK("@eof"));
     }
 
-    _TokenType peek() {
+    inline _TokenType peek() {
         return parser->current.type;
+    }
+
+    // not sure this will work
+    _TokenType peekNext() {
+        if(parser->nexts.empty()) return TK("@eof");
+        return parser->nexts.front().type;
     }
 
     bool match(_TokenType expected) {
@@ -545,15 +551,26 @@ __LISTCOMP:
 
     void exprCall() {
         int ARGC = 0;
+        int KWARGC = 0;
         do {
             matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
-            EXPR();
-            ARGC++;
+            if(peek() == TK("@id") && peekNext() == TK("=")) {
+                consume(TK("@id"));
+                const _Str& key = parser->previous.str();
+                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(key)));
+                consume(TK("="));
+                EXPR();
+                KWARGC++;
+            } else{
+                if(KWARGC > 0) syntaxError("positional argument follows keyword argument");
+                EXPR();
+                ARGC++;
+            }
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
-        emitCode(OP_CALL, ARGC);
+        emitCode(OP_CALL, (KWARGC << 16) | ARGC);
     }
 
     void exprName() {
