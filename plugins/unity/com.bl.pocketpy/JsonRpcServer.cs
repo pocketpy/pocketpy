@@ -1,18 +1,31 @@
+using PlasticPipe.PlasticProtocol.Messages;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Threading.Tasks;
 
-public class JsonRpcServer : MonoBehaviour
+namespace pkpy
 {
-    // Start is called before the first frame update
-    void Start()
+    public abstract class JsonRpcServer
     {
-        
-    }
+        protected abstract Task<string> dispatch(ThreadedVM vm, string request);
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        public async Task attach(ThreadedVM vm)
+        {
+            while (vm.state <= ThreadState.running) await Task.Yield();
+            switch (vm.state)
+            {
+                case ThreadState.suspended:
+                    string request = vm.read_jsonrpc_request();
+                    string response = await dispatch(vm, request);
+                    vm.write_jsonrpc_response(response);
+                    await attach(vm);
+                    break;
+                case ThreadState.finished:
+                    break;
+                default:
+                    throw new Exception("Unexpected state");
+            }
+        }
     }
 }
