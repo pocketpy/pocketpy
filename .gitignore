@@ -1,12 +1,6 @@
-# Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
-
 .vscode
 .ipynb_checkpoints
-
-__pypackages__/
 
 src/main
 gmon.out
