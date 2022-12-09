@@ -9,3 +9,10 @@ The initial version. Hello, world!
 + Fix some bugs
 + Add `list.pop` and `reversed` builtin function
 + Optimize `dict` performance
+
+## 0.4.8+2
+
++ Fix a bug of `bool`
++ Support type hints
++ Fix a bug about comment and indentation
++ Fix a bug about compile error line number

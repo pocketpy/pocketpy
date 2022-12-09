@@ -133,7 +133,7 @@ struct Parser {
         int count = 0;
         while (true) {
             switch (peekChar()) {
-                case ' ': count++; break;
+                case ' ' : count+=1; break;
                 case '\t': count+=4; break;
                 default: return count;
             }
@@ -144,6 +144,8 @@ struct Parser {
     bool eatIndentation(){
         if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
         int spaces = eatSpaces();
+        if(peekChar() == '#') skipLineComment();
+        if(peekChar() == '\0' || peekChar() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);

@@ -175,7 +175,7 @@ public:
         parser->previous = parser->current;
         parser->current = parser->nextToken();
 
-        //_Str _info = parser->current.info(); printf("%s\n", (const char*)_info);
+        //_Str _info = parser->current.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
         while (parser->peekChar() != '\0') {
             parser->token_start = parser->current_char;
@@ -250,7 +250,7 @@ public:
                 case '\r': break;       // just ignore '\r'
                 case ' ': case '\t': parser->eatSpaces(); break;
                 case '\n': {
-                    parser->setNextToken(TK("@eol")); while(parser->matchChar('\n'));
+                    parser->setNextToken(TK("@eol"));
                     if(!parser->eatIndentation()) indentationError("unindent does not match any outer indentation level");
                     return;
                 }
@@ -263,7 +263,7 @@ public:
                         eatNumber();
                     } else if (parser->isNameStart(c)) {
                         int ret = parser->eatName();
-                        if(ret!=0) syntaxError("identifier is illegal, err " + std::to_string(ret));
+                        if(ret!=0) syntaxError("@id is illegal, err " + std::to_string(ret));
                     } else {
                         syntaxError("unknown character: " + std::string(1, c));
                     }
@@ -366,7 +366,7 @@ public:
         _Func func = pkpy::make_shared<Function>();
         func->name = "<lambda>";
         if(!match(TK(":"))){
-            __compileFunctionArgs(func);
+            __compileFunctionArgs(func, false);
             consume(TK(":"));
         }
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
@@ -901,7 +901,7 @@ __LISTCOMP:
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 
-    void __compileFunctionArgs(_Func func){
+    void __compileFunctionArgs(_Func func, bool enableTypeHints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) syntaxError("**kwargs should be the last argument");
@@ -917,6 +917,9 @@ __LISTCOMP:
             consume(TK("@id"));
             const _Str& name = parser->previous.str();
             if(func->hasName(name)) syntaxError("duplicate argument name");
+
+            // eat type hints
+            if(enableTypeHints && match(TK(":"))) consume(TK("@id"));
 
             if(state == 0 && peek() == TK("=")) state = 2;
 
@@ -948,9 +951,12 @@ __LISTCOMP:
         func->name = parser->previous.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
-            __compileFunctionArgs(func);
+            __compileFunctionArgs(func, true);
             consume(TK(")"));
         }
+
+        // eat type hints
+        if(match(TK("->"))) consume(TK("@id"));
 
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
@@ -1021,7 +1027,7 @@ __LISTCOMP:
 
     /***** Error Reporter *****/
     _Str getLineSnapshot(){
-        int lineno = parser->current_line;
+        int lineno = parser->current.line;
         if(parser->peekChar() == '\n') lineno--;
         return parser->src->snapshot(lineno);
     }
