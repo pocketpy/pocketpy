@@ -2,9 +2,10 @@
 
 The initial version. Hello, world!
 
-## 0.4.8
+## 0.4.8+1
 
-+ Optimize performance
-+ Add keyword call, i.e., `print(1, 2, sep=', ', end='\n')
++ Add keyword call, i.e., `print(1, 2, sep=', ', end='\n')`
 + Support hex integer literal `0xFFFF`
 + Fix some bugs
++ Add `list.pop` and `reversed` builtin function
++ Optimize `dict` performance

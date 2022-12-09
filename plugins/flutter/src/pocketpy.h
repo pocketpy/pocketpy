@@ -6855,7 +6855,7 @@ void __addModuleMath(VM* vm){
         vm->__checkArgSize(args, 2);
         _Float a = vm->numToFloat(args[0]);
         _Float b = vm->numToFloat(args[1]);
-        return vm->PyBool(fabs(a - b) < 1e-6);
+        return vm->PyBool(fabs(a - b) < 1e-9);
     });
 }
 
