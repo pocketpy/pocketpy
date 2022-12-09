@@ -2545,6 +2545,13 @@ def __list4index(self, value):
 list.index = __list4index
 del __list4index
 
+def __list4pop(self, i=-1):
+    res = self[i]
+    del self[i]
+    return res
+list.pop = __list4pop
+del __list4pop
+
 def __list4__mul__(self, n):
     a = []
     for i in range(n):
@@ -2587,8 +2594,8 @@ list.__new__ = lambda obj: [i for i in obj]
 
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
-    def __init__(self):
-        self._capacity = 8
+    def __init__(self, capacity=16):
+        self._capacity = capacity
         self._a = [None] * self._capacity
         self._len = 0
         
@@ -2600,7 +2607,7 @@ class dict:
         while self._a[i] is not None:
             if self._a[i][0] == key:
                 return True, i
-            i = ((5*i) + 1) % self._capacity
+            i = (i + 1) % self._capacity
         return False, i
 
     def __getitem__(self, key):
@@ -2620,8 +2627,9 @@ class dict:
         else:
             self._a[i] = [key, value]
             self._len += 1
-            if self._len > self._capacity * 0.6:
-                self.__resize_2x()
+            if self._len > self._capacity * 0.8:
+                self._capacity *= 2
+                self.__rehash()
 
     def __delitem__(self, key):
         ok, i = self.__probe(key)
@@ -2630,9 +2638,8 @@ class dict:
         self._a[i] = None
         self._len -= 1
 
-    def __resize_2x(self):
+    def __rehash(self):
         old_a = self._a
-        self._capacity *= 2
         self._a = [None] * self._capacity
         self._len = 0
         for kv in old_a:
@@ -2702,6 +2709,10 @@ def map(f, iterable):
 
 def zip(a, b):
     return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+
+def reversed(iterable):
+    a = list(iterable)
+    return [a[i] for i in range(len(a)-1, -1, -1)]
 
 def sorted(iterable, key=None, reverse=False):
     if key is None:
@@ -6625,15 +6636,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1, true);
         return vm->PyList(vm->PyList_AS_C(args[0]));
     });
-
-    _vm->bindMethod("list", "pop", [](VM* vm, const pkpy::ArgList& args) {
-        vm->__checkArgSize(args, 1, true);
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
-        if(_self.empty()) vm->indexError("pop from empty list");
-        PyVar ret = _self.back();
-        _self.pop_back();
-        return ret;
-    });      
 
     _vm->bindMethod("list", "__add__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);

@@ -113,8 +113,8 @@ list.__new__ = lambda obj: [i for i in obj]
 
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
-    def __init__(self):
-        self._capacity = 8
+    def __init__(self, capacity=16):
+        self._capacity = capacity
         self._a = [None] * self._capacity
         self._len = 0
         
@@ -126,7 +126,7 @@ class dict:
         while self._a[i] is not None:
             if self._a[i][0] == key:
                 return True, i
-            i = ((5*i) + 1) % self._capacity
+            i = (i + 1) % self._capacity
         return False, i
 
     def __getitem__(self, key):
@@ -146,8 +146,9 @@ class dict:
         else:
             self._a[i] = [key, value]
             self._len += 1
-            if self._len > self._capacity * 0.6:
-                self.__resize_2x()
+            if self._len > self._capacity * 0.8:
+                self._capacity *= 2
+                self.__rehash()
 
     def __delitem__(self, key):
         ok, i = self.__probe(key)
@@ -156,9 +157,8 @@ class dict:
         self._a[i] = None
         self._len -= 1
 
-    def __resize_2x(self):
+    def __rehash(self):
         old_a = self._a
-        self._capacity *= 2
         self._a = [None] * self._capacity
         self._len = 0
         for kv in old_a:
