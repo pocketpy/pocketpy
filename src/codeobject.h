@@ -142,7 +142,7 @@ public:
     }
 
     Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
-        : code(code), _module(_module), f_locals(locals) {
+        : code(code), _module(_module), f_locals(std::move(locals)) {
         
         static uint64_t frame_id = 1;
         id = frame_id++;
@@ -192,12 +192,9 @@ public:
         return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
 
-    inline void push(const PyVar& v){
-        s_data.push_back(v);
-    }
-
-    inline void push(PyVar&& v){
-        s_data.emplace_back(std::move(v));
+    template<typename T>
+    inline void push(T&& obj){
+        s_data.push_back(std::forward<T>(obj));
     }
 
 

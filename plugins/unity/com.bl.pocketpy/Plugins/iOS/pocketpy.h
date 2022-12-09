@@ -3779,7 +3779,7 @@ public:
     }
 
     Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
-        : code(code), _module(_module), f_locals(locals) {
+        : code(code), _module(_module), f_locals(std::move(locals)) {
         
         static uint64_t frame_id = 1;
         id = frame_id++;
@@ -3829,12 +3829,9 @@ public:
         return __deref_pointer(vm, s_data[s_data.size() + n]);
     }
 
-    inline void push(const PyVar& v){
-        s_data.push_back(v);
-    }
-
-    inline void push(PyVar&& v){
-        s_data.emplace_back(std::move(v));
+    template<typename T>
+    inline void push(T&& obj){
+        s_data.push_back(std::forward<T>(obj));
     }
 
 
@@ -4315,14 +4312,13 @@ public:
     }
 
     PyVar fastCall(const _Str& name, pkpy::ArgList&& args){
-        const PyVar& obj = args[0];
-        PyObject* cls = obj->_type.get();
+        PyObject* cls = args[0]->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);
             if(it != cls->attribs.end()) return call(it->second, std::move(args));
             cls = cls->attribs[__base__].get();
         }
-        attributeError(obj, name);
+        attributeError(args[0], name);
         return nullptr;
     }
 
@@ -4330,12 +4326,16 @@ public:
         return call(_callable, pkpy::noArg(), pkpy::noArg(), false);
     }
 
-    inline PyVar call(const PyVar& _callable, pkpy::ArgList args){
-        return call(_callable, args, pkpy::noArg(), false);
+    template<typename ArgT>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    call(const PyVar& _callable, ArgT&& args){
+        return call(_callable, std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func, pkpy::ArgList args){
-        return call(getAttr(obj, func), args, pkpy::noArg(), false);
+    template<typename ArgT>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    call(const PyVar& obj, const _Str& func, ArgT&& args){
+        return call(getAttr(obj, func), std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
     inline PyVar call(const PyVar& obj, const _Str& func){

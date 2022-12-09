@@ -438,14 +438,13 @@ public:
     }
 
     PyVar fastCall(const _Str& name, pkpy::ArgList&& args){
-        const PyVar& obj = args[0];
-        PyObject* cls = obj->_type.get();
+        PyObject* cls = args[0]->_type.get();
         while(cls != None.get()) {
             auto it = cls->attribs.find(name);
             if(it != cls->attribs.end()) return call(it->second, std::move(args));
             cls = cls->attribs[__base__].get();
         }
-        attributeError(obj, name);
+        attributeError(args[0], name);
         return nullptr;
     }
 
@@ -453,12 +452,16 @@ public:
         return call(_callable, pkpy::noArg(), pkpy::noArg(), false);
     }
 
-    inline PyVar call(const PyVar& _callable, pkpy::ArgList args){
-        return call(_callable, args, pkpy::noArg(), false);
+    template<typename ArgT>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    call(const PyVar& _callable, ArgT&& args){
+        return call(_callable, std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func, pkpy::ArgList args){
-        return call(getAttr(obj, func), args, pkpy::noArg(), false);
+    template<typename ArgT>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    call(const PyVar& obj, const _Str& func, ArgT&& args){
+        return call(getAttr(obj, func), std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
     inline PyVar call(const PyVar& obj, const _Str& func){
