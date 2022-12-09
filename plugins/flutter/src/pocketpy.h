@@ -6710,6 +6710,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyBool ************/
+    _vm->bindMethod("bool", "__new__", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->asBool(args[0]);
+    });
+
     _vm->bindMethod("bool", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         bool val = vm->PyBool_AS_C(args[0]);
         return vm->PyStr(val ? "True" : "False");

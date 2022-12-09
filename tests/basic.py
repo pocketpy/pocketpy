@@ -75,6 +75,13 @@ assert True or False
 assert not False
 assert not (not True)
 
+assert bool(0) == False
+assert bool(1) == True
+assert bool([]) == False
+assert bool("abc") == True
+assert bool([1,2]) == True
+assert bool('') == False
+
 # generate assert test for str
 
 assert 'testing' == 'test' + 'ing'
