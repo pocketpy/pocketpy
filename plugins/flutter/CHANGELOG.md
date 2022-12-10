@@ -25,6 +25,6 @@ The initial version. Hello, world!
 + Add `math.isnan` and `math.isinf`
 + Fix a bug of `__checkType`
 
-## 0.5.0+1
+## 0.5.0+2
 
 + Fix a bug on Windows

@@ -399,7 +399,8 @@ public:
     _Str __lstrip() const {
         std::string copy(*_s);
         copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
-            return !std::isspace(c);
+            // std::isspace(c) does not working on windows (Debug)
+            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
         }));
         return _Str(copy);
     }
