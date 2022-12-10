@@ -91,3 +91,4 @@ struct Py_ : PyObject {
 
 #define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
 #define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_typeName())
+#define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
