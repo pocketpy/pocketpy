@@ -17,7 +17,9 @@ The initial version. Hello, world!
 + Fix a bug about comment and indentation
 + Fix a bug about compile error line number
 
-## 0.4.8+4
+## 0.4.8+5
 
 + Downgrade to `sdk>=2.17.0`
 + Fix some bugs about compile error
++ Fix a bug for jsonify `nan` or `inf`
++ Add `math.isnan` and `math.isinf`

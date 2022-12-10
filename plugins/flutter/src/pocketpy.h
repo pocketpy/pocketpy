@@ -6481,7 +6481,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("float", "__json__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyStr(std::to_string((float)vm->PyFloat_AS_C(args[0])));
+        _Float val = vm->PyFloat_AS_C(args[0]);
+        if(std::isinf(val) || std::isnan(val)){
+            vm->valueError("cannot jsonify 'nan' or 'inf'");
+        }
+        return vm->PyStr(std::to_string(val));
     });
 
     /************ PyString ************/
@@ -6886,6 +6890,16 @@ void __addModuleMath(VM* vm){
         _Float a = vm->numToFloat(args[0]);
         _Float b = vm->numToFloat(args[1]);
         return vm->PyBool(fabs(a - b) < 1e-9);
+    });
+
+    vm->bindFunc(mod, "isnan", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyBool(std::isnan(vm->numToFloat(args[0])));
+    });
+
+    vm->bindFunc(mod, "isinf", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->PyBool(std::isinf(vm->numToFloat(args[0])));
     });
 }
 
