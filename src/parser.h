@@ -179,12 +179,6 @@ struct Parser {
         return c;
     }
 
-    inline bool isNameStart(char c){
-        if(isalpha(c) || c=='_') return true;
-        if(!isascii(c)) return true;
-        return false;
-    }
-
     int eatName() {
         current_char--;
         while(true){

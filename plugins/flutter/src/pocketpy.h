@@ -2904,14 +2904,14 @@ struct SourceMetadata {
     std::vector<const char*> lineStarts;
     CompileMode mode;
 
-    _Str getLine(int lineno) const {
-        if(lineno == -1) return "<?>";
+    std::pair<const char*,const char*> getLine(int lineno) const {
+        if(lineno == -1) return {nullptr, nullptr};
         lineno -= 1;
         if(lineno < 0) lineno = 0;
         const char* _start = lineStarts.at(lineno);
         const char* i = _start;
         while(*i != '\n' && *i != '\0') i++;
-        return _Str(_start, i-_start);
+        return {_start, i};
     }
 
     SourceMetadata(const char* source, _Str filename, CompileMode mode) {
@@ -2924,12 +2924,24 @@ struct SourceMetadata {
         this->mode = mode;
     }
 
-    _Str snapshot(int lineno){
+    _Str snapshot(int lineno, const char* cursor=nullptr){
         _StrStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
-        _Str line = getLine(lineno).__lstrip();
-        if(line.empty()) line = "<?>";
+        std::pair<const char*,const char*> pair = getLine(lineno);
+        _Str line = "<?>";
+        int removedSpaces = 0;
+        if(pair.first && pair.second){
+            line = _Str(pair.first, pair.second-pair.first).__lstrip();
+            removedSpaces = pair.second - pair.first - line.size();
+            if(line.empty()) line = "<?>";
+        }
         ss << "    " << line << '\n';
+        if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
+            int column = cursor - pair.first - removedSpaces;
+            if(column >= 0){
+                ss << "    " << std::string(column, ' ') << "^\n";
+            }
+        }
         return ss.str();
     }
 
@@ -3299,12 +3311,6 @@ struct Parser {
             src->lineStarts.push_back(current_char);
         }
         return c;
-    }
-
-    inline bool isNameStart(char c){
-        if(isalpha(c) || c=='_') return true;
-        if(!isascii(c)) return true;
-        return false;
     }
 
     int eatName() {
@@ -5090,6 +5096,7 @@ public:
     std::stack<_Code> codes;
     std::stack<Loop> loops;
     bool isCompilingClass = false;
+    int lexingCnt = 0;
     VM* vm;
 
     emhash8::HashMap<_TokenType, GrammarRule> rules;
@@ -5233,8 +5240,14 @@ public:
         } 
     }
 
+    void lexToken(){
+        lexingCnt++;
+        _lexToken();
+        lexingCnt--;
+    }
+
     // Lex the next token and set it as the next token.
-    void lexToken() {
+    void _lexToken() {
         parser->previous = parser->current;
         parser->current = parser->nextToken();
 
@@ -5324,11 +5337,17 @@ public:
                     }
                     if (isdigit(c)) {
                         eatNumber();
-                    } else if (parser->isNameStart(c)) {
-                        int ret = parser->eatName();
-                        if(ret!=0) syntaxError("@id is illegal, err " + std::to_string(ret));
-                    } else {
-                        syntaxError("unknown character: " + std::string(1, c));
+                        return;
+                    }
+                    
+                    switch (parser->eatName())
+                    {
+                        case 0: break;
+                        case 1: syntaxError("invalid char: " + std::string(1, c));
+                        case 2: syntaxError("invalid utf8 sequence: " + std::string(1, c));
+                        case 3: syntaxError("@id contains invalid char"); break;
+                        case 4: syntaxError("invalid JSON token"); break;
+                        default: UNREACHABLE();
                     }
                     return;
                 }
@@ -6091,21 +6110,19 @@ __LISTCOMP:
     /***** Error Reporter *****/
     _Str getLineSnapshot(){
         int lineno = parser->current.line;
+        const char* cursor = parser->current.start;
+        // if error occurs in lexing, lineno should be `parser->current_line`
+        if(lexingCnt > 0){
+            lineno = parser->current_line;
+            cursor = parser->current_char;
+        }
         if(parser->peekChar() == '\n') lineno--;
-        return parser->src->snapshot(lineno);
+        return parser->src->snapshot(lineno, cursor);
     }
 
-    void syntaxError(_Str msg){
-        throw CompileError("SyntaxError", msg, getLineSnapshot());
-    }
-
-    void indentationError(_Str msg){
-        throw CompileError("IndentationError", msg, getLineSnapshot());
-    }
-
-    void unexpectedError(_Str msg){
-        throw CompileError("UnexpectedError", msg, getLineSnapshot());
-    }
+    void syntaxError(_Str msg){ throw CompileError("SyntaxError", msg, getLineSnapshot()); }
+    void indentationError(_Str msg){ throw CompileError("IndentationError", msg, getLineSnapshot()); }
+    void unexpectedError(_Str msg){ throw CompileError("UnexpectedError", msg, getLineSnapshot()); }
 };
 
 _Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE, bool noThrow=true) {
