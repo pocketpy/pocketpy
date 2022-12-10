@@ -101,7 +101,7 @@ class VM {
     var ret = _Bindings.pkpy_vm_eval(pointer, _Str(source).p);
     if (ret == ffi.nullptr) return null;
     String s = ret.toDartString();
-    calloc.free(ret);
+    _Bindings.pkpy_delete(ret);
     return s;
   }
 
@@ -118,7 +118,7 @@ class VM {
     var ret = _Bindings.pkpy_vm_get_global(pointer, _Str(name).p);
     if (ret == ffi.nullptr) return null;
     String s = ret.toDartString();
-    calloc.free(ret);
+    _Bindings.pkpy_delete(ret);
     return s;
   }
 
@@ -142,7 +142,7 @@ class ThreadedVM extends VM {
     var ret = _Bindings.pkpy_tvm_read_jsonrpc_request(pointer);
     if (ret == ffi.nullptr) return null;
     String s = ret.toDartString();
-    calloc.free(ret);
+    _Bindings.pkpy_delete(ret);
     return s;
   }
 
