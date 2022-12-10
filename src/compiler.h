@@ -266,7 +266,7 @@ public:
                         if(parser->matchChar('\'')) {eatString('\'', true); return;}
                         if(parser->matchChar('"')) {eatString('"', true); return;}
                     }
-                    if (isdigit(c)) {
+                    if (c >= '0' && c <= '9') {
                         eatNumber();
                         return;
                     }

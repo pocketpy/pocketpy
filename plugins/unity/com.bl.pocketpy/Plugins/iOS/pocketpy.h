@@ -37,7 +37,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.4.8"
+#define PK_VERSION "0.5.0"
 
 //#define PKPY_NO_TYPE_CHECK
 //#define PKPY_NO_INDEX_CHECK
@@ -2277,7 +2277,7 @@ private:
 struct PyObject;
 typedef pkpy::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
-typedef PyVar VarRef;
+typedef PyVar PyVarRef;
 
 class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
@@ -2407,6 +2407,10 @@ namespace pkpy {
         }
 
         inline PyVar& _index(uint8_t i){
+            return _args[i];
+        }
+
+        inline const PyVar& _index(uint8_t i) const {
             return _args[i];
         }
 
@@ -2992,7 +2996,7 @@ typedef int64_t _Int;
 typedef double _Float;
 
 struct CodeObject;
-struct BasePointer;
+struct BaseRef;
 class VM;
 class Frame;
 
@@ -3045,7 +3049,7 @@ protected:
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
-    VarRef var;
+    PyVarRef var;
     BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
     virtual ~BaseIterator() = default;
 };
@@ -3447,11 +3451,11 @@ struct Parser {
 
 class Frame;
 
-struct BasePointer {
+struct BaseRef {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;
     virtual void del(VM*, Frame*) const = 0;
-    virtual ~BasePointer() = default;
+    virtual ~BaseRef() = default;
 };
 
 enum NameScope {
@@ -3460,49 +3464,49 @@ enum NameScope {
     NAME_ATTR = 2,
 };
 
-struct NamePointer : BasePointer {
+struct NameRef : BaseRef {
     const std::pair<_Str, NameScope>* pair;
-    NamePointer(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
+    NameRef(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
 
-struct AttrPointer : BasePointer {
+struct AttrRef : BaseRef {
     mutable PyVar obj;
-    const NamePointer attr;
-    AttrPointer(PyVar obj, const NamePointer attr) : obj(obj), attr(attr) {}
+    const NameRef attr;
+    AttrRef(PyVar obj, const NameRef attr) : obj(obj), attr(attr) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
 
-struct IndexPointer : BasePointer {
+struct IndexRef : BaseRef {
     mutable PyVar obj;
     PyVar index;
-    IndexPointer(PyVar obj, PyVar index) : obj(obj), index(index) {}
+    IndexRef(PyVar obj, PyVar index) : obj(obj), index(index) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
 
-struct CompoundPointer : BasePointer {
+struct TupleRef : BaseRef {
     PyVarList varRefs;
-    CompoundPointer(const PyVarList& varRefs) : varRefs(varRefs) {}
-    CompoundPointer(PyVarList&& varRefs) : varRefs(std::move(varRefs)) {}
+    TupleRef(const PyVarList& varRefs) : varRefs(varRefs) {}
+    TupleRef(PyVarList&& varRefs) : varRefs(std::move(varRefs)) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
 
-struct UserPointer : BasePointer {
-    VarRef p;
+struct UserPointer : BaseRef {
+    PyVarRef p;
     uint64_t f_id;
-    UserPointer(VarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
+    UserPointer(PyVarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3563,13 +3567,13 @@ OPCODE(RAISE_ERROR)
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
 
-OPCODE(LOAD_NAME_PTR)       // no arg
-OPCODE(BUILD_ATTR_PTR)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
-OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
-OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
-OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
-OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_PTR_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
+OPCODE(LOAD_NAME_REF)       // no arg
+OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
+OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
+OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
+OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
+OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
+OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
@@ -3638,13 +3642,13 @@ OPCODE(RAISE_ERROR)
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
 
-OPCODE(LOAD_NAME_PTR)       // no arg
-OPCODE(BUILD_ATTR_PTR)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
-OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
-OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
-OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
-OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_PTR_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
+OPCODE(LOAD_NAME_REF)       // no arg
+OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
+OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
+OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
+OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
+OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
+OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
@@ -3934,48 +3938,48 @@ protected:
                 setAttr(obj, __module__, frame->_module);
                 frame->push(obj);
             } break;
-            case OP_LOAD_NAME_PTR: {
-                frame->push(PyPointer(NamePointer(
+            case OP_LOAD_NAME_REF: {
+                frame->push(PyRef(NameRef(
                     &(frame->code->co_names[byte.arg])
                 )));
             } break;
-            case OP_STORE_NAME_PTR: {
+            case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
-                NamePointer(&p).set(this, frame, frame->popValue(this));
+                NameRef(&p).set(this, frame, frame->popValue(this));
             } break;
-            case OP_BUILD_ATTR_PTR: {
+            case OP_BUILD_ATTR_REF: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyPointer(AttrPointer(obj, NamePointer(&attr))));
+                frame->push(PyRef(AttrRef(obj, NameRef(&attr))));
             } break;
-            case OP_BUILD_ATTR_PTR_PTR: {
+            case OP_BUILD_ATTR_REF_PTR: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
                 __checkType(obj, _tp_user_pointer);
-                const VarRef& var = UNION_GET(VarRef, obj);
-                auto p = PyPointer_AS_C(var);
-                frame->push(PyPointer(AttrPointer(p->get(this, frame), &attr)));
+                const PyVarRef& var = UNION_GET(PyVarRef, obj);
+                auto p = PyRef_AS_C(var);
+                frame->push(PyRef(AttrRef(p->get(this, frame), &attr)));
             } break;
-            case OP_BUILD_INDEX_PTR: {
+            case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->popValue(this);
-                VarRef obj = frame->popValue(this);
-                frame->push(PyPointer(IndexPointer(obj, index)));
+                PyVarRef obj = frame->popValue(this);
+                frame->push(PyRef(IndexRef(obj, index)));
             } break;
-            case OP_STORE_PTR: {
+            case OP_STORE_REF: {
                 PyVar obj = frame->popValue(this);
-                VarRef r = frame->__pop();
-                PyPointer_AS_C(r)->set(this, frame, std::move(obj));
+                PyVarRef r = frame->__pop();
+                PyRef_AS_C(r)->set(this, frame, std::move(obj));
             } break;
-            case OP_DELETE_PTR: {
-                VarRef r = frame->__pop();
-                PyPointer_AS_C(r)->del(this, frame);
+            case OP_DELETE_REF: {
+                PyVarRef r = frame->__pop();
+                PyRef_AS_C(r)->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
                 pkpy::ArgList items = frame->__popNReversed(byte.arg);
                 bool done = false;
                 for(int i=0; i<items.size(); i++){
-                    if(!items[i]->isType(_tp_pointer)) {
+                    if(!items[i]->isType(_tp_ref)) {
                         done = true;
                         PyVarList values(items.size());
                         for(int i=0; i<items.size(); i++){
@@ -3986,7 +3990,7 @@ protected:
                     }
                 }
                 if(done) break;
-                frame->push(PyPointer(CompoundPointer(items.toList())));
+                frame->push(PyRef(TupleRef(items.toList())));
             } break;
             case OP_BUILD_STRING:
             {
@@ -4037,20 +4041,23 @@ protected:
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
-                    frame->push(fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    frame->push(
+                        fastCall(BINARY_SPECIAL_METHODS[byte.arg],
+                        frame->popNValuesReversed(this, 2))
+                    );
                 } break;
             case OP_BITWISE_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
-                    frame->push(fastCall(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    frame->push(
+                        fastCall(BITWISE_SPECIAL_METHODS[byte.arg],
+                        frame->popNValuesReversed(this, 2))
+                    );
                 } break;
             case OP_COMPARE_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], std::move(args));
+                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], frame->popNValuesReversed(this, 2));
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(std::move(res));
                 } break;
@@ -4081,11 +4088,11 @@ protected:
             case OP_UNARY_REF:
                 {
                     // _pointer to pointer
-                    VarRef obj = frame->__pop();
-                    __checkType(obj, _tp_pointer);
+                    PyVarRef obj = frame->__pop();
+                    __checkType(obj, _tp_ref);
                     frame->push(newObject(
                         _tp_user_pointer,
-                        PyPointer(UserPointer(obj, frame->id))
+                        PyRef(UserPointer(obj, frame->id))
                     ));
                 } break;
             case OP_UNARY_DEREF:
@@ -4093,7 +4100,7 @@ protected:
                     // pointer to _pointer
                     PyVar obj = frame->popValue(this);
                     __checkType(obj, _tp_user_pointer);
-                    frame->push(UNION_GET(VarRef, obj));
+                    frame->push(UNION_GET(PyVarRef, obj));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -4145,11 +4152,11 @@ protected:
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
-                auto it = frame->code->co_labels.find(label);
-                if(it == frame->code->co_labels.end()){
+                int* target = frame->code->co_labels.try_get(label);
+                if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->safeJump(it->second);
+                frame->safeJump(*target);
             } break;
             case OP_GET_ITER:
                 {
@@ -4157,8 +4164,8 @@ protected:
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn, pkpy::oneArg(obj));
-                        VarRef var = frame->__pop();
-                        __checkType(var, _tp_pointer);
+                        PyVarRef var = frame->__pop();
+                        __checkType(var, _tp_ref);
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
@@ -4171,7 +4178,7 @@ protected:
                     // __top() must be PyIter, so no need to __deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
-                        PyPointer_AS_C(it->var)->set(this, frame, it->next());
+                        PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
                         frame->safeJump(byte.arg);
@@ -4321,8 +4328,8 @@ public:
     PyVar fastCall(const _Str& name, pkpy::ArgList&& args){
         PyObject* cls = args[0]->_type.get();
         while(cls != None.get()) {
-            auto it = cls->attribs.find(name);
-            if(it != cls->attribs.end()) return call(it->second, std::move(args));
+            PyVar* val = cls->attribs.try_get(name);
+            if(val != nullptr) return call(*val, std::move(args));
             cls = cls->attribs[__base__].get();
         }
         attributeError(args[0], name);
@@ -4412,7 +4419,7 @@ public:
             
             for(int i=0; i<kwargs.size(); i+=2){
                 const _Str& key = PyStr_AS_C(kwargs[i]);
-                if(fn->kwArgs.find(key) == fn->kwArgs.end()){
+                if(!fn->kwArgs.contains(key)){
                     typeError(key.__escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
@@ -4425,8 +4432,8 @@ public:
                 locals[key] = val;
             }
 
-            auto it_m = (*callable)->attribs.find(__module__);
-            PyVar _module = it_m != (*callable)->attribs.end() ? it_m->second : topFrame()->_module;
+            PyVar* it_m = (*callable)->attribs.try_get(__module__);
+            PyVar _module = it_m != nullptr ? *it_m : topFrame()->_module;
             if(opCall){
                 __pushNewFrame(fn->code, _module, std::move(locals));
                 return __py2py_call_signal;
@@ -4661,19 +4668,19 @@ public:
     PyVar _tp_object, _tp_type, _tp_int, _tp_float, _tp_bool, _tp_str;
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
-    PyVar _tp_slice, _tp_range, _tp_module, _tp_pointer;
+    PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
     PyVar _tp_user_pointer, _tp_super;
 
     template<typename P>
-    inline VarRef PyPointer(P value) {
-        static_assert(std::is_base_of<BasePointer, P>::value, "P should derive from BasePointer");
-        return newObject(_tp_pointer, value);
+    inline PyVarRef PyRef(P&& value) {
+        static_assert(std::is_base_of<BaseRef, P>::value, "P should derive from BaseRef");
+        return newObject(_tp_ref, std::forward<P>(value));
     }
 
-    inline const BasePointer* PyPointer_AS_C(const PyVar& obj)
+    inline const BaseRef* PyRef_AS_C(const PyVar& obj)
     {
-        if(!obj->isType(_tp_pointer)) typeError("expected an l-value");
-        return (const BasePointer*)(obj->value());
+        if(!obj->isType(_tp_ref)) typeError("expected an l-value");
+        return (const BaseRef*)(obj->value());
     }
 
     __DEF_PY_AS_C(Int, _Int, _tp_int)
@@ -4713,7 +4720,7 @@ public:
         _tp_slice = newClassType("slice");
         _tp_range = newClassType("range");
         _tp_module = newClassType("module");
-        _tp_pointer = newClassType("_pointer");
+        _tp_ref = newClassType("_pointer");
         _tp_user_pointer = newClassType("pointer");
 
         newClassType("NoneType");
@@ -4848,18 +4855,18 @@ public:
 
 /***** Pointers' Impl *****/
 
-PyVar NamePointer::get(VM* vm, Frame* frame) const{
-    auto it = frame->f_locals.find(pair->first);
-    if(it != frame->f_locals.end()) return it->second;
-    it = frame->f_globals().find(pair->first);
-    if(it != frame->f_globals().end()) return it->second;
-    it = vm->builtins->attribs.find(pair->first);
-    if(it != vm->builtins->attribs.end()) return it->second;
+PyVar NameRef::get(VM* vm, Frame* frame) const{
+    PyVar* val = frame->f_locals.try_get(pair->first);
+    if(val) return *val;
+    val = frame->f_globals().try_get(pair->first);
+    if(val) return *val;
+    val = vm->builtins->attribs.try_get(pair->first);
+    if(val) return *val;
     vm->nameError(pair->first);
     return nullptr;
 }
 
-void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
+void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
     switch(pair->second) {
         case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
@@ -4874,7 +4881,7 @@ void NamePointer::set(VM* vm, Frame* frame, PyVar val) const{
     }
 }
 
-void NamePointer::del(VM* vm, Frame* frame) const{
+void NameRef::del(VM* vm, Frame* frame) const{
     switch(pair->second) {
         case NAME_LOCAL: {
             if(frame->f_locals.count(pair->first) > 0){
@@ -4899,39 +4906,39 @@ void NamePointer::del(VM* vm, Frame* frame) const{
     }
 }
 
-PyVar AttrPointer::get(VM* vm, Frame* frame) const{
+PyVar AttrRef::get(VM* vm, Frame* frame) const{
     return vm->getAttr(obj, attr.pair->first);
 }
 
-void AttrPointer::set(VM* vm, Frame* frame, PyVar val) const{
+void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
     vm->setAttr(obj, attr.pair->first, val);
 }
 
-void AttrPointer::del(VM* vm, Frame* frame) const{
+void AttrRef::del(VM* vm, Frame* frame) const{
     vm->typeError("cannot delete attribute");
 }
 
-PyVar IndexPointer::get(VM* vm, Frame* frame) const{
+PyVar IndexRef::get(VM* vm, Frame* frame) const{
     return vm->call(obj, __getitem__, pkpy::oneArg(index));
 }
 
-void IndexPointer::set(VM* vm, Frame* frame, PyVar val) const{
+void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
     vm->call(obj, __setitem__, pkpy::twoArgs(index, val));
 }
 
-void IndexPointer::del(VM* vm, Frame* frame) const{
+void IndexRef::del(VM* vm, Frame* frame) const{
     vm->call(obj, __delitem__, pkpy::oneArg(index));
 }
 
-PyVar CompoundPointer::get(VM* vm, Frame* frame) const{
+PyVar TupleRef::get(VM* vm, Frame* frame) const{
     PyVarList args(varRefs.size());
     for (int i = 0; i < varRefs.size(); i++) {
-        args[i] = vm->PyPointer_AS_C(varRefs[i])->get(vm, frame);
+        args[i] = vm->PyRef_AS_C(varRefs[i])->get(vm, frame);
     }
     return vm->PyTuple(args);
 }
 
-void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
+void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->isType(vm->_tp_tuple) && !val->isType(vm->_tp_list)){
         vm->typeError("only tuple or list can be unpacked");
     }
@@ -4939,24 +4946,24 @@ void CompoundPointer::set(VM* vm, Frame* frame, PyVar val) const{
     if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
     if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
     for (int i = 0; i < varRefs.size(); i++) {
-        vm->PyPointer_AS_C(varRefs[i])->set(vm, frame, args[i]);
+        vm->PyRef_AS_C(varRefs[i])->set(vm, frame, args[i]);
     }
 }
 
-void CompoundPointer::del(VM* vm, Frame* frame) const{
-    for (auto& r : varRefs) vm->PyPointer_AS_C(r)->del(vm, frame);
+void TupleRef::del(VM* vm, Frame* frame) const{
+    for (auto& r : varRefs) vm->PyRef_AS_C(r)->del(vm, frame);
 }
 
 PyVar UserPointer::get(VM* vm, Frame* frame) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    return vm->PyPointer_AS_C(p)->get(vm, frame);
+    return vm->PyRef_AS_C(p)->get(vm, frame);
 }
 
 void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
     frame = vm->__findFrame(f_id);
     if(frame == nullptr) vm->nullPointerError();
-    vm->PyPointer_AS_C(p)->set(vm, frame, val);
+    vm->PyRef_AS_C(p)->set(vm, frame, val);
 }
 
 void UserPointer::del(VM* vm, Frame* frame) const{
@@ -4965,7 +4972,7 @@ void UserPointer::del(VM* vm, Frame* frame) const{
 
 /***** Frame's Impl *****/
 inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
-    if(v->isType(vm->_tp_pointer)) return vm->PyPointer_AS_C(v)->get(vm, this);
+    if(v->isType(vm->_tp_ref)) return vm->PyRef_AS_C(v)->get(vm, this);
     return v;
 }
 
@@ -5336,7 +5343,7 @@ public:
                         if(parser->matchChar('\'')) {eatString('\'', true); return;}
                         if(parser->matchChar('"')) {eatString('"', true); return;}
                     }
-                    if (isdigit(c)) {
+                    if (c >= '0' && c <= '9') {
                         eatNumber();
                         return;
                     }
@@ -5464,7 +5471,7 @@ public:
         _TokenType op = parser->previous.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            emitCode(OP_STORE_PTR);
+            emitCode(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
             emitCode(OP_DUP_TOP);
@@ -5477,7 +5484,7 @@ public:
                 case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
                 default: UNREACHABLE();
             }
-            emitCode(OP_STORE_PTR);
+            emitCode(OP_STORE_REF);
         }
     }
 
@@ -5662,21 +5669,21 @@ __LISTCOMP:
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
-        emitCode(OP_LOAD_NAME_PTR, index);
+        emitCode(OP_LOAD_NAME_REF, index);
     }
 
     void exprAttrib() {
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_PTR, index);
+        emitCode(OP_BUILD_ATTR_REF, index);
     }
 
     void exprAttribPtr(){
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_PTR_PTR, index);
+        emitCode(OP_BUILD_ATTR_REF_PTR, index);
     }
 
     // [:], [:b]
@@ -5706,7 +5713,7 @@ __LISTCOMP:
             }
         }
 
-        emitCode(OP_BUILD_INDEX_PTR);
+        emitCode(OP_BUILD_INDEX_REF);
     }
 
     void exprValue() {
@@ -5773,7 +5780,7 @@ __LISTCOMP:
                 tkmodule = parser->previous;
             }
             int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         consumeEndStatement();
     }
@@ -5787,13 +5794,13 @@ __LISTCOMP:
             consume(TK("@id"));
             Token tkname = parser->previous;
             int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_BUILD_ATTR_PTR, index);
+            emitCode(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 tkname = parser->previous;
             }
             index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         emitCode(OP_POP_TOP);
         consumeEndStatement();
@@ -5916,11 +5923,11 @@ __LISTCOMP:
                 tkname.str(),
                 codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
             );
-            emitCode(OP_STORE_NAME_PTR, index);
-            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
+            emitCode(OP_LOAD_NAME_REF, index);
             emitCode(OP_WITH_ENTER);
             compileBlockBody();
-            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_LOAD_NAME_REF, index);
             emitCode(OP_WITH_EXIT);
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
@@ -5942,7 +5949,7 @@ __LISTCOMP:
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
-            emitCode(OP_DELETE_PTR);
+            emitCode(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
             consume(TK("@id"));
@@ -5956,7 +5963,7 @@ __LISTCOMP:
 
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
-            if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
+            if( lastOp != OP_STORE_NAME_REF && lastOp != OP_STORE_REF){
                 if(mode()==SINGLE_MODE && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
@@ -5980,7 +5987,7 @@ __LISTCOMP:
         isCompilingClass = false;
 
         if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
-        else emitCode(OP_LOAD_NAME_PTR, superClsNameIdx);
+        else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 
@@ -6207,13 +6214,13 @@ __NOT_ENOUGH_LINES:
 
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){               \
+    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->isIntOrFloat(args[0], args[1]))                                                         \
-            vm->typeError("unsupported operand type(s) for " #op );                        \
-        if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){                               \
-            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
+            vm->typeError("unsupported operand type(s) for " #op );                                     \
+        if(args._index(0)->isType(vm->_tp_int) && args._index(1)->isType(vm->_tp_int)){                 \
+            return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));         \
         }else{                                                                                          \
-            return vm->PyFloat(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                     \
+            return vm->PyFloat(vm->numToFloat(args._index(0)) op vm->numToFloat(args._index(1)));       \
         }                                                                                               \
     });
 
@@ -6223,7 +6230,7 @@ __NOT_ENOUGH_LINES:
             if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
-        return vm->PyBool(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                          \
+        return vm->PyBool(vm->numToFloat(args._index(0)) op vm->numToFloat(args._index(1)));            \
     });
     
 
@@ -6407,17 +6414,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
-        _Int rhs = vm->PyInt_AS_C(args[1]);
+        _Int rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) / rhs);
     });
 
     _vm->bindMethod("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "%" );
-        _Int rhs = vm->PyInt_AS_C(args[1]);
+        _Int rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) % rhs);
     });
 
     _vm->bindMethod("int", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -6429,10 +6436,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
 #define __INT_BITWISE_OP(name,op) \
-    _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) { \
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int)) \
-            vm->typeError("unsupported operand type(s) for " #op ); \
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1])); \
+    _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) {                       \
+        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))                      \
+            vm->typeError("unsupported operand type(s) for " #op );                             \
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));     \
     });
 
     __INT_BITWISE_OP(__lshift__, <<)
@@ -6442,12 +6449,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     __INT_BITWISE_OP(__xor__, ^)
 
 #undef __INT_BITWISE_OP
-
-    _vm->bindMethod("int", "__xor__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
-            vm->typeError("unsupported operand type(s) for " "^" );
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) ^ vm->PyInt_AS_C(args[1]));
-    });
 
     /************ PyFloat ************/
     _vm->bindMethod("float", "__new__", [](VM* vm, const pkpy::ArgList& args) {

@@ -24,3 +24,7 @@ The initial version. Hello, world!
 + Fix a bug for jsonify `nan` or `inf`
 + Add `math.isnan` and `math.isinf`
 + Fix a bug of `__checkType`
+
+## 0.5.0+1
+
++ Fix a bug on Windows
