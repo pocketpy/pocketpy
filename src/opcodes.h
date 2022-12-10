@@ -49,13 +49,13 @@ OPCODE(RAISE_ERROR)
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
 
-OPCODE(LOAD_NAME_PTR)       // no arg
-OPCODE(BUILD_ATTR_PTR)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
-OPCODE(BUILD_INDEX_PTR)     // no arg, [ptr, expr] -> (*ptr)[expr]
-OPCODE(STORE_NAME_PTR)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
-OPCODE(STORE_PTR)           // no arg, [ptr, expr] -> *ptr = expr
-OPCODE(DELETE_PTR)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_PTR_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
+OPCODE(LOAD_NAME_REF)       // no arg
+OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
+OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
+OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
+OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
+OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
+OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack

@@ -394,7 +394,7 @@ public:
         _TokenType op = parser->previous.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            emitCode(OP_STORE_PTR);
+            emitCode(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
             emitCode(OP_DUP_TOP);
@@ -407,7 +407,7 @@ public:
                 case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
                 default: UNREACHABLE();
             }
-            emitCode(OP_STORE_PTR);
+            emitCode(OP_STORE_REF);
         }
     }
 
@@ -592,21 +592,21 @@ __LISTCOMP:
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
-        emitCode(OP_LOAD_NAME_PTR, index);
+        emitCode(OP_LOAD_NAME_REF, index);
     }
 
     void exprAttrib() {
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_PTR, index);
+        emitCode(OP_BUILD_ATTR_REF, index);
     }
 
     void exprAttribPtr(){
         consume(TK("@id"));
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_PTR_PTR, index);
+        emitCode(OP_BUILD_ATTR_REF_PTR, index);
     }
 
     // [:], [:b]
@@ -636,7 +636,7 @@ __LISTCOMP:
             }
         }
 
-        emitCode(OP_BUILD_INDEX_PTR);
+        emitCode(OP_BUILD_INDEX_REF);
     }
 
     void exprValue() {
@@ -703,7 +703,7 @@ __LISTCOMP:
                 tkmodule = parser->previous;
             }
             int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         consumeEndStatement();
     }
@@ -717,13 +717,13 @@ __LISTCOMP:
             consume(TK("@id"));
             Token tkname = parser->previous;
             int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_BUILD_ATTR_PTR, index);
+            emitCode(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 tkname = parser->previous;
             }
             index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         emitCode(OP_POP_TOP);
         consumeEndStatement();
@@ -846,11 +846,11 @@ __LISTCOMP:
                 tkname.str(),
                 codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
             );
-            emitCode(OP_STORE_NAME_PTR, index);
-            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_STORE_NAME_REF, index);
+            emitCode(OP_LOAD_NAME_REF, index);
             emitCode(OP_WITH_ENTER);
             compileBlockBody();
-            emitCode(OP_LOAD_NAME_PTR, index);
+            emitCode(OP_LOAD_NAME_REF, index);
             emitCode(OP_WITH_EXIT);
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
@@ -872,7 +872,7 @@ __LISTCOMP:
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
-            emitCode(OP_DELETE_PTR);
+            emitCode(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
             consume(TK("@id"));
@@ -886,7 +886,7 @@ __LISTCOMP:
 
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
-            if( lastOp != OP_STORE_NAME_PTR && lastOp != OP_STORE_PTR){
+            if( lastOp != OP_STORE_NAME_REF && lastOp != OP_STORE_REF){
                 if(mode()==SINGLE_MODE && parser->indents.top() == 0){
                     emitCode(OP_PRINT_EXPR);
                 }
@@ -910,7 +910,7 @@ __LISTCOMP:
         isCompilingClass = false;
 
         if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
-        else emitCode(OP_LOAD_NAME_PTR, superClsNameIdx);
+        else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
         emitCode(OP_BUILD_CLASS, clsNameIdx);
     }
 

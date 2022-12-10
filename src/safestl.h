@@ -7,7 +7,7 @@
 struct PyObject;
 typedef pkpy::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
-typedef PyVar VarRef;
+typedef PyVar PyVarRef;
 
 class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;

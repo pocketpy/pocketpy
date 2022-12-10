@@ -6,7 +6,7 @@ typedef int64_t _Int;
 typedef double _Float;
 
 struct CodeObject;
-struct BasePointer;
+struct BaseRef;
 class VM;
 class Frame;
 
@@ -59,7 +59,7 @@ protected:
 public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
-    VarRef var;
+    PyVarRef var;
     BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
     virtual ~BaseIterator() = default;
 };
