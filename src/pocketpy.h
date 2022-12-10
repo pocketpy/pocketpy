@@ -5,13 +5,13 @@
 #include "repl.h"
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){               \
+    _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->isIntOrFloat(args[0], args[1]))                                                         \
-            vm->typeError("unsupported operand type(s) for " #op );                        \
-        if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){                               \
-            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
+            vm->typeError("unsupported operand type(s) for " #op );                                     \
+        if(args._index(0)->isType(vm->_tp_int) && args._index(1)->isType(vm->_tp_int)){                 \
+            return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));         \
         }else{                                                                                          \
-            return vm->PyFloat(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                     \
+            return vm->PyFloat(vm->numToFloat(args._index(0)) op vm->numToFloat(args._index(1)));       \
         }                                                                                               \
     });
 
@@ -21,7 +21,7 @@
             if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
-        return vm->PyBool(vm->numToFloat(args[0]) op vm->numToFloat(args[1]));                          \
+        return vm->PyBool(vm->numToFloat(args._index(0)) op vm->numToFloat(args._index(1)));            \
     });
     
 
@@ -205,17 +205,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
-        _Int rhs = vm->PyInt_AS_C(args[1]);
+        _Int rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) / rhs);
     });
 
     _vm->bindMethod("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "%" );
-        _Int rhs = vm->PyInt_AS_C(args[1]);
+        _Int rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) % rhs);
     });
 
     _vm->bindMethod("int", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -227,10 +227,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
 #define __INT_BITWISE_OP(name,op) \
-    _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) { \
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int)) \
-            vm->typeError("unsupported operand type(s) for " #op ); \
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1])); \
+    _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) {                       \
+        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))                      \
+            vm->typeError("unsupported operand type(s) for " #op );                             \
+        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));     \
     });
 
     __INT_BITWISE_OP(__lshift__, <<)
@@ -240,12 +240,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     __INT_BITWISE_OP(__xor__, ^)
 
 #undef __INT_BITWISE_OP
-
-    _vm->bindMethod("int", "__xor__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
-            vm->typeError("unsupported operand type(s) for " "^" );
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) ^ vm->PyInt_AS_C(args[1]));
-    });
 
     /************ PyFloat ************/
     _vm->bindMethod("float", "__new__", [](VM* vm, const pkpy::ArgList& args) {

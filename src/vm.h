@@ -156,20 +156,23 @@ protected:
             case OP_POP_TOP: frame->popValue(this); break;
             case OP_BINARY_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
-                    frame->push(fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    frame->push(
+                        fastCall(BINARY_SPECIAL_METHODS[byte.arg],
+                        frame->popNValuesReversed(this, 2))
+                    );
                 } break;
             case OP_BITWISE_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
-                    frame->push(fastCall(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args)));
+                    frame->push(
+                        fastCall(BITWISE_SPECIAL_METHODS[byte.arg],
+                        frame->popNValuesReversed(this, 2))
+                    );
                 } break;
             case OP_COMPARE_OP:
                 {
-                    pkpy::ArgList args = frame->popNValuesReversed(this, 2);
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], std::move(args));
+                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], frame->popNValuesReversed(this, 2));
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(std::move(res));
                 } break;
@@ -264,11 +267,11 @@ protected:
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
-                auto it = frame->code->co_labels.find(label);
-                if(it == frame->code->co_labels.end()){
+                int* target = frame->code->co_labels.try_get(label);
+                if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->safeJump(it->second);
+                frame->safeJump(*target);
             } break;
             case OP_GET_ITER:
                 {
@@ -440,8 +443,8 @@ public:
     PyVar fastCall(const _Str& name, pkpy::ArgList&& args){
         PyObject* cls = args[0]->_type.get();
         while(cls != None.get()) {
-            auto it = cls->attribs.find(name);
-            if(it != cls->attribs.end()) return call(it->second, std::move(args));
+            PyVar* val = cls->attribs.try_get(name);
+            if(val != nullptr) return call(*val, std::move(args));
             cls = cls->attribs[__base__].get();
         }
         attributeError(args[0], name);
@@ -531,7 +534,7 @@ public:
             
             for(int i=0; i<kwargs.size(); i+=2){
                 const _Str& key = PyStr_AS_C(kwargs[i]);
-                if(fn->kwArgs.find(key) == fn->kwArgs.end()){
+                if(!fn->kwArgs.contains(key)){
                     typeError(key.__escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
@@ -544,8 +547,8 @@ public:
                 locals[key] = val;
             }
 
-            auto it_m = (*callable)->attribs.find(__module__);
-            PyVar _module = it_m != (*callable)->attribs.end() ? it_m->second : topFrame()->_module;
+            PyVar* it_m = (*callable)->attribs.try_get(__module__);
+            PyVar _module = it_m != nullptr ? *it_m : topFrame()->_module;
             if(opCall){
                 __pushNewFrame(fn->code, _module, std::move(locals));
                 return __py2py_call_signal;
@@ -968,12 +971,12 @@ public:
 /***** Pointers' Impl *****/
 
 PyVar NameRef::get(VM* vm, Frame* frame) const{
-    auto it = frame->f_locals.find(pair->first);
-    if(it != frame->f_locals.end()) return it->second;
-    it = frame->f_globals().find(pair->first);
-    if(it != frame->f_globals().end()) return it->second;
-    it = vm->builtins->attribs.find(pair->first);
-    if(it != vm->builtins->attribs.end()) return it->second;
+    PyVar* val = frame->f_locals.try_get(pair->first);
+    if(val) return *val;
+    val = frame->f_globals().try_get(pair->first);
+    if(val) return *val;
+    val = vm->builtins->attribs.try_get(pair->first);
+    if(val) return *val;
     vm->nameError(pair->first);
     return nullptr;
 }

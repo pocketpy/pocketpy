@@ -4507,9 +4507,9 @@ public:
     }
 
     template<typename T>
-    inline PyVar newObject(PyVar type, T _value) {
+    inline PyVar newObject(PyVar type, T&& _value) {
         __checkType(type, _tp_type);
-        return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
+        return pkpy::make_shared<PyObject, Py_<T>>(std::forward<T>(_value), type);
     }
 
     PyVar newModule(_Str name) {
