@@ -784,10 +784,9 @@ public:
     PyVar _tp_user_pointer, _tp_super;
 
     template<typename P>
-    inline PyVarRef PyRef(P value) {
-        // TODO: use perfect forwarding
+    inline PyVarRef PyRef(P&& value) {
         static_assert(std::is_base_of<BaseRef, P>::value, "P should derive from BaseRef");
-        return newObject(_tp_ref, value);
+        return newObject(_tp_ref, std::forward<P>(value));
     }
 
     inline const BaseRef* PyRef_AS_C(const PyVar& obj)
