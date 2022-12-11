@@ -8,3 +8,7 @@ gprof.txt
 /pocketpy
 amalgamated
 web/lib
+
+*.so
+*.dll
+plugins/unity/
