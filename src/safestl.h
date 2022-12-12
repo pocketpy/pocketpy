@@ -113,14 +113,14 @@ namespace pkpy {
             }
         }
 
-        ArgList(ArgList&& other){
+        ArgList(ArgList&& other) noexcept {
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
             other._size = 0;
         }
 
-        ArgList(PyVarList&& other){
+        ArgList(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
             for(uint8_t i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
@@ -147,7 +147,7 @@ namespace pkpy {
         }
 
         // overload = for &&
-        ArgList& operator=(ArgList&& other){
+        ArgList& operator=(ArgList&& other) noexcept {
             if(this != &other){
                 __tryRelease();
                 this->_args = other._args;

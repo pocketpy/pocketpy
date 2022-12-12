@@ -17,7 +17,7 @@ namespace pkpy{
         shared_ptr(const shared_ptr& other) : counter(other.counter) {
             _inc_counter();
         }
-        shared_ptr(shared_ptr&& other) : counter(other.counter) {
+        shared_ptr(shared_ptr&& other) noexcept : counter(other.counter) {
             other.counter = nullptr;
         }
         ~shared_ptr() {
@@ -49,7 +49,7 @@ namespace pkpy{
             return *this;
         }
 
-        shared_ptr& operator=(shared_ptr&& other) {
+        shared_ptr& operator=(shared_ptr&& other) noexcept {
             if (this != &other) {
                 _dec_counter();
                 counter = other.counter;
