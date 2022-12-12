@@ -617,17 +617,17 @@ __LISTCOMP:
             if(match(TK("]"))){
                 emitCode(OP_LOAD_NONE);
             }else{
-                EXPR();
+                EXPR_TUPLE();
                 consume(TK("]"));
             }
             emitCode(OP_BUILD_SLICE);
         }else{
-            EXPR();
+            EXPR_TUPLE();
             if(match(TK(":"))){
                 if(match(TK("]"))){
                     emitCode(OP_LOAD_NONE);
                 }else{
-                    EXPR();
+                    EXPR_TUPLE();
                     consume(TK("]"));
                 }
                 emitCode(OP_BUILD_SLICE);
