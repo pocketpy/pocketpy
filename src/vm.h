@@ -285,7 +285,7 @@ protected:
                     PyVar obj = frame->popValue(this);
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
-                        PyVar tmp = call(iter_fn, pkpy::oneArg(obj));
+                        PyVar tmp = call(iter_fn);
                         PyVarRef var = frame->__pop();
                         __checkType(var, _tp_ref);
                         PyIter_AS_C(tmp)->var = var;

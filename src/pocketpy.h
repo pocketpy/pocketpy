@@ -118,6 +118,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
         PyVarList ret;
         for (const auto& name : names) ret.push_back(vm->PyStr(name));
+        std::sort(ret.begin(), ret.end(), [vm](const PyVar& a, const PyVar& b) {
+            return vm->PyStr_AS_C(a) < vm->PyStr_AS_C(b);
+        });
         return vm->PyList(ret);
     });
 

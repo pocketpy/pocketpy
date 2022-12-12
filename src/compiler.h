@@ -409,7 +409,7 @@ public:
                 case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
                 case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
                 case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
-                
+
                 case TK("%="):      emitCode(OP_BINARY_OP, 5);  break;
                 case TK("&="):      emitCode(OP_BITWISE_OP, 2);  break;
                 case TK("|="):      emitCode(OP_BITWISE_OP, 3);  break;
@@ -575,7 +575,7 @@ __LISTCOMP:
         matchNewLines();
         consume(TK("}"));
 
-        if(parsing_dict) emitCode(OP_BUILD_MAP, size);
+        if(size == 0 || parsing_dict) emitCode(OP_BUILD_MAP, size);
         else emitCode(OP_BUILD_SET, size);
     }
 
