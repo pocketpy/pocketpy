@@ -249,6 +249,13 @@ protected:
                     }
                     frame->push(obj);
                 } break;
+            case OP_BUILD_SET:
+                {
+                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
+                    PyVar list = PyList(items.toList());
+                    PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
+                    frame->push(obj);
+                } break;
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
             case OP_CALL:
                 {

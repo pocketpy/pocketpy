@@ -95,6 +95,10 @@ public:
         rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("%=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("&=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("|=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("^=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
@@ -199,10 +203,10 @@ public:
                 case ')': parser->setNextToken(TK(")")); return;
                 case '[': parser->setNextToken(TK("[")); return;
                 case ']': parser->setNextToken(TK("]")); return;
-                case '%': parser->setNextToken(TK("%")); return;
-                case '&': parser->setNextToken(TK("&")); return;
-                case '|': parser->setNextToken(TK("|")); return;
-                case '^': parser->setNextToken(TK("^")); return;
+                case '%': parser->setNextTwoCharToken('=', TK("%"), TK("%=")); return;
+                case '&': parser->setNextTwoCharToken('=', TK("&"), TK("&=")); return;
+                case '|': parser->setNextTwoCharToken('=', TK("|"), TK("|=")); return;
+                case '^': parser->setNextTwoCharToken('=', TK("^"), TK("^=")); return;
                 case '?': parser->setNextToken(TK("?")); return;
                 case '.': {
                     if(parser->matchChar('.')) {
@@ -405,6 +409,11 @@ public:
                 case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
                 case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
                 case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
+                
+                case TK("%="):      emitCode(OP_BINARY_OP, 5);  break;
+                case TK("&="):      emitCode(OP_BITWISE_OP, 2);  break;
+                case TK("|="):      emitCode(OP_BITWISE_OP, 3);  break;
+                case TK("^="):      emitCode(OP_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
             }
             emitCode(OP_STORE_REF);
@@ -549,17 +558,25 @@ __LISTCOMP:
     }
 
     void exprMap() {
+        bool parsing_dict = false;
         int size = 0;
         do {
             matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK("}")) break;
-            EXPR();consume(TK(":"));EXPR();
+            EXPR();
+            if(peek() == TK(":")) parsing_dict = true;
+            if(parsing_dict){
+                consume(TK(":"));
+                EXPR();
+            }
             size++;
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         matchNewLines();
         consume(TK("}"));
-        emitCode(OP_BUILD_MAP, size);
+
+        if(parsing_dict) emitCode(OP_BUILD_MAP, size);
+        else emitCode(OP_BUILD_SET, size);
     }
 
     void exprCall() {
