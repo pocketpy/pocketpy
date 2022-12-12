@@ -58,7 +58,7 @@ namespace pkpy{
         shared_ptr(const shared_ptr& other) : counter(other.counter) {
             _inc_counter();
         }
-        shared_ptr(shared_ptr&& other) : counter(other.counter) {
+        shared_ptr(shared_ptr&& other) noexcept : counter(other.counter) {
             other.counter = nullptr;
         }
         ~shared_ptr() {
@@ -90,7 +90,7 @@ namespace pkpy{
             return *this;
         }
 
-        shared_ptr& operator=(shared_ptr&& other) {
+        shared_ptr& operator=(shared_ptr&& other) noexcept {
             if (this != &other) {
                 _dec_counter();
                 counter = other.counter;
@@ -2382,14 +2382,14 @@ namespace pkpy {
             }
         }
 
-        ArgList(ArgList&& other){
+        ArgList(ArgList&& other) noexcept {
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
             other._size = 0;
         }
 
-        ArgList(PyVarList&& other){
+        ArgList(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
             for(uint8_t i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
@@ -2416,7 +2416,7 @@ namespace pkpy {
         }
 
         // overload = for &&
-        ArgList& operator=(ArgList&& other){
+        ArgList& operator=(ArgList&& other) noexcept {
             if(this != &other){
                 __tryRelease();
                 this->_args = other._args;
@@ -2782,6 +2782,103 @@ class FileIO:
 
 def open(path, mode='r'):
     return FileIO(path, mode)
+
+
+class set:
+    def __init__(self, iterable=None):
+        iterable = iterable or []
+        self._a = dict()
+        for item in iterable:
+            self.add(item)
+
+    def add(self, elem):
+        self._a[elem] = None
+        
+    def discard(self, elem):
+        if elem in self._a:
+            del self._a[elem]
+
+    def remove(self, elem):
+        del self._a[elem]
+        
+    def clear(self):
+        self._a.clear()
+
+    def update(self,other):
+        for elem in other:
+            self.add(elem)
+        return self
+
+    def __len__(self):
+        return len(self._a)
+    
+    def copy(self):
+        return set(self._a.keys())
+    
+    def __and__(self, other):
+        ret = set()
+        for elem in self:
+            if elem in other:
+                ret.add(elem)
+        return ret
+    
+    def __or__(self, other):
+        ret = self.copy()
+        for elem in other:
+            ret.add(elem)
+        return ret
+
+    def __sub__(self, other):
+        ret = set() 
+        for elem in self:
+            if elem not in other: 
+                ret.add(elem) 
+        return ret
+    
+    def __xor__(self, other): 
+        ret = set() 
+        for elem in self: 
+            if elem not in other: 
+                ret.add(elem) 
+        for elem in other: 
+            if elem not in self: 
+                ret.add(elem) 
+        return ret
+
+    def union(self, other):
+        return self | other
+
+    def intersection(self, other):
+        return self & other
+
+    def difference(self, other):
+        return self - other
+
+    def symmetric_difference(self, other):      
+        return self ^ other
+    
+    def __eq__(self, other):
+        return self.__xor__(other).__len__() == 0
+    
+    def isdisjoint(self, other):
+        return self.__and__(other).__len__() == 0
+    
+    def issubset(self, other):
+        return self.__sub__(other).__len__() == 0
+    
+    def issuperset(self, other):
+        return other.__sub__(self).__len__() == 0
+
+    def __contains__(self, elem):
+        return elem in self._a
+    
+    def __repr__(self):
+        if len(self) == 0:
+            return 'set()'
+        return '{'+ ', '.join(self._a.keys()) + '}'
+    
+    def __iter__(self):
+        return self._a.keys().__iter__()
 )";
 
 const char* __OS_CODE = R"(
@@ -3150,7 +3247,7 @@ constexpr const char* __TOKENS[] = {
     "+", "-", "*", "/", "//", "**", "=", ">", "<", "...", "->",
     "<<", ">>", "&", "|", "^", "?",
     "==", "!=", ">=", "<=",
-    "+=", "-=", "*=", "/=", "//=",
+    "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with",
     "None", "in", "is", "and", "or", "not", "True", "False", "global",
@@ -3541,6 +3638,7 @@ OPCODE(DUP_TOP)
 
 OPCODE(BUILD_LIST)
 OPCODE(BUILD_MAP)
+OPCODE(BUILD_SET)
 OPCODE(BUILD_SLICE)
 
 OPCODE(LIST_APPEND)
@@ -3616,6 +3714,7 @@ OPCODE(DUP_TOP)
 
 OPCODE(BUILD_LIST)
 OPCODE(BUILD_MAP)
+OPCODE(BUILD_SET)
 OPCODE(BUILD_SLICE)
 
 OPCODE(LIST_APPEND)
@@ -4135,6 +4234,13 @@ protected:
                     }
                     frame->push(obj);
                 } break;
+            case OP_BUILD_SET:
+                {
+                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
+                    PyVar list = PyList(items.toList());
+                    PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
+                    frame->push(obj);
+                } break;
             case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
             case OP_CALL:
                 {
@@ -4164,7 +4270,7 @@ protected:
                     PyVar obj = frame->popValue(this);
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
-                        PyVar tmp = call(iter_fn, pkpy::oneArg(obj));
+                        PyVar tmp = call(iter_fn);
                         PyVarRef var = frame->__pop();
                         __checkType(var, _tp_ref);
                         PyIter_AS_C(tmp)->var = var;
@@ -5173,6 +5279,10 @@ public:
         rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("%=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("&=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("|=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("^=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
@@ -5277,10 +5387,10 @@ public:
                 case ')': parser->setNextToken(TK(")")); return;
                 case '[': parser->setNextToken(TK("[")); return;
                 case ']': parser->setNextToken(TK("]")); return;
-                case '%': parser->setNextToken(TK("%")); return;
-                case '&': parser->setNextToken(TK("&")); return;
-                case '|': parser->setNextToken(TK("|")); return;
-                case '^': parser->setNextToken(TK("^")); return;
+                case '%': parser->setNextTwoCharToken('=', TK("%"), TK("%=")); return;
+                case '&': parser->setNextTwoCharToken('=', TK("&"), TK("&=")); return;
+                case '|': parser->setNextTwoCharToken('=', TK("|"), TK("|=")); return;
+                case '^': parser->setNextTwoCharToken('=', TK("^"), TK("^=")); return;
                 case '?': parser->setNextToken(TK("?")); return;
                 case '.': {
                     if(parser->matchChar('.')) {
@@ -5483,6 +5593,11 @@ public:
                 case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
                 case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
                 case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
+
+                case TK("%="):      emitCode(OP_BINARY_OP, 5);  break;
+                case TK("&="):      emitCode(OP_BITWISE_OP, 2);  break;
+                case TK("|="):      emitCode(OP_BITWISE_OP, 3);  break;
+                case TK("^="):      emitCode(OP_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
             }
             emitCode(OP_STORE_REF);
@@ -5627,17 +5742,25 @@ __LISTCOMP:
     }
 
     void exprMap() {
+        bool parsing_dict = false;
         int size = 0;
         do {
             matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK("}")) break;
-            EXPR();consume(TK(":"));EXPR();
+            EXPR();
+            if(peek() == TK(":")) parsing_dict = true;
+            if(parsing_dict){
+                consume(TK(":"));
+                EXPR();
+            }
             size++;
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         matchNewLines();
         consume(TK("}"));
-        emitCode(OP_BUILD_MAP, size);
+
+        if(size == 0 || parsing_dict) emitCode(OP_BUILD_MAP, size);
+        else emitCode(OP_BUILD_SET, size);
     }
 
     void exprCall() {
@@ -5695,17 +5818,17 @@ __LISTCOMP:
             if(match(TK("]"))){
                 emitCode(OP_LOAD_NONE);
             }else{
-                EXPR();
+                EXPR_TUPLE();
                 consume(TK("]"));
             }
             emitCode(OP_BUILD_SLICE);
         }else{
-            EXPR();
+            EXPR_TUPLE();
             if(match(TK(":"))){
                 if(match(TK("]"))){
                     emitCode(OP_LOAD_NONE);
                 }else{
-                    EXPR();
+                    EXPR_TUPLE();
                     consume(TK("]"));
                 }
                 emitCode(OP_BUILD_SLICE);
@@ -6328,6 +6451,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
         PyVarList ret;
         for (const auto& name : names) ret.push_back(vm->PyStr(name));
+        std::sort(ret.begin(), ret.end(), [vm](const PyVar& a, const PyVar& b) {
+            return vm->PyStr_AS_C(a) < vm->PyStr_AS_C(b);
+        });
         return vm->PyList(ret);
     });
 

@@ -1,3 +1,9 @@
+## 0.5.0+4
+
++ Fix a bug on Windows
++ Add `set` class
++ Fix a bug of `[]`
+
 ## 0.4.7+3
 
 The initial version. Hello, world!
@@ -24,7 +30,3 @@ The initial version. Hello, world!
 + Fix a bug for jsonify `nan` or `inf`
 + Add `math.isnan` and `math.isinf`
 + Fix a bug of `__checkType`
-
-## 0.5.0+3
-
-+ Fix a bug on Windows
