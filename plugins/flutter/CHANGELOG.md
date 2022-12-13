@@ -1,3 +1,7 @@
+## 0.5.0+5
+
++ Fix a bug of crash when using multi-thread
+
 ## 0.5.0+4
 
 + Fix a bug on Windows

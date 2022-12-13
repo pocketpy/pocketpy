@@ -255,14 +255,7 @@ public:
     }
 };
 
-
-std::map<std::string, pkpy::shared_ptr<_StrMemory>, std::less<>> _strIntern;
-
-
-class _StrLiteral : public std::string_view {
-public:
-    constexpr _StrLiteral(const char* str, size_t len) : std::string_view(str, len) {}
-};
+typedef std::string_view _StrLiteral;
 
 inline constexpr _StrLiteral operator "" _c(const char* str, size_t len){
     return _StrLiteral(str, len);
@@ -271,48 +264,26 @@ inline constexpr _StrLiteral operator "" _c(const char* str, size_t len){
 class _Str {
 private:
     pkpy::shared_ptr<_StrMemory> _s;
-    bool interned = false;
 public:
     _Str(_StrLiteral s){
-        construct(s);
-        intern();
+        _s = pkpy::make_shared<_StrMemory>(std::string(s));
     }
     _Str(const char* s){
-        construct(s);
+        _s = pkpy::make_shared<_StrMemory>(std::string(s));
     }
     _Str(const char* s, size_t len){
-        construct(std::string_view(s, len));
+        _s = pkpy::make_shared<_StrMemory>(std::string(s, len));
     }
     _Str(){
-        construct("");
+        _s = pkpy::make_shared<_StrMemory>(std::string());
     }
     _Str(const std::string& s){
-        construct(s);
+        _s = pkpy::make_shared<_StrMemory>(s);
     }
-    _Str(const _Str& s) : _s(s._s), interned(s.interned) {}
+    _Str(const _Str& s) : _s(s._s) {}
 
-    // for move constructor, we do not check if the string is interned!!
     _Str(std::string&& s){
         this->_s = pkpy::make_shared<_StrMemory>(std::move(s));
-    }
-
-    void construct(std::string_view sv){
-        auto it = _strIntern.find(sv);
-        if(it != _strIntern.end()){
-            this->_s = it->second;
-            interned = true;
-        }else{
-            this->_s = pkpy::make_shared<_StrMemory>(std::string(sv));
-        }
-    }
-
-    // force the string to be interned
-    void intern(){
-        if(interned) return;
-        auto it = _strIntern.find(*this->_s);
-        if(it == _strIntern.end()) _strIntern[*this->_s] = this->_s;
-        else this->_s = it->second;
-        interned = true;
     }
 
     inline int u8_length() const {
@@ -340,12 +311,10 @@ public:
     }
 
     bool operator==(const _Str& other) const {
-        if(interned && other.interned) return _s == other._s;
         return *_s == *other._s;
     }
 
     bool operator!=(const _Str& other) const {
-        if(interned && other.interned) return _s != other._s;
         return *_s != *other._s;
     }
 
@@ -460,6 +429,11 @@ const _Str& __init__ = _Str("__init__"_c);
 const _Str& __json__ = _Str("__json__"_c);
 const _Str& __name__ = _Str("__name__"_c);
 const _Str& __len__ = _Str("__len__"_c);
+
+const _Str& m_append = _Str("append"_c);
+const _Str& m_eval = _Str("eval"_c);
+const _Str& __enter__ = _Str("__enter__"_c);
+const _Str& __exit__ = _Str("__exit__"_c);
 
 const _Str CMP_SPECIAL_METHODS[] = {
     "__lt__"_c, "__le__"_c, "__eq__"_c, "__ne__"_c, "__gt__"_c, "__ge__"_c
@@ -3806,7 +3780,6 @@ struct CodeObject {
     }
 
     int addName(_Str name, NameScope scope){
-        name.intern();
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
@@ -4100,13 +4073,13 @@ protected:
                 frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
-                frame->push(builtins->attribs["eval"_c]);
+                frame->push(builtins->attribs[m_eval]);
             } break;
             case OP_LIST_APPEND: {
                 pkpy::ArgList args(2);
                 args[1] = frame->popValue(this);            // obj
                 args[0] = frame->__topValueN(this, -2);     // list
-                fastCall("append"_c, std::move(args));
+                fastCall(m_append, std::move(args));
             } break;
             case OP_STORE_FUNCTION:
                 {
@@ -4331,8 +4304,8 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
-            case OP_WITH_ENTER: call(frame->popValue(this), "__enter__"_c); break;
-            case OP_WITH_EXIT: call(frame->popValue(this), "__exit__"_c); break;
+            case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
+            case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
@@ -4703,7 +4676,6 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
-        funcName.intern();
         PyVar type = _types[typeName];
         PyVar func = PyNativeFunction(fn);
         setAttr(type, funcName, func);
@@ -4720,7 +4692,6 @@ public:
     }
 
     void bindFunc(PyVar module, _Str funcName, _CppFunc fn) {
-        funcName.intern();
         __checkType(module, _tp_module);
         PyVar func = PyNativeFunction(fn);
         setAttr(module, funcName, func);
@@ -5104,7 +5075,7 @@ enum ThreadState {
 class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
-    _Str _sharedStr = ""_c;
+    _Str _sharedStr = "";
     
     void __deleteThread(){
         if(_thread != nullptr){
@@ -5142,7 +5113,7 @@ public:
 
     _Str readJsonRpcRequest(){
         _Str copy = _sharedStr;
-        _sharedStr = ""_c;
+        _sharedStr = "";
         return copy;
     }
 
