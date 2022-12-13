@@ -64,7 +64,7 @@ public:
 
 namespace pkpy {
     const uint8_t MAX_POOLING_N = 10;
-    static std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
+    static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
         PyVar* _args = nullptr;
@@ -185,7 +185,7 @@ namespace pkpy {
     };
 
     const ArgList& noArg(){
-        static ArgList ret(0);
+        static const ArgList ret(0);
         return ret;
     }
 

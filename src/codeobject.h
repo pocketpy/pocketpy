@@ -143,7 +143,7 @@ public:
     Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(std::move(locals)) {
         
-        static uint64_t frame_id = 1;
+        static thread_local uint64_t frame_id = 1;
         id = frame_id++;
     }
 
