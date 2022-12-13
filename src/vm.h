@@ -115,13 +115,13 @@ protected:
                 frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
-                frame->push(builtins->attribs["eval"_c]);
+                frame->push(builtins->attribs[m_eval]);
             } break;
             case OP_LIST_APPEND: {
                 pkpy::ArgList args(2);
                 args[1] = frame->popValue(this);            // obj
                 args[0] = frame->__topValueN(this, -2);     // list
-                fastCall("append"_c, std::move(args));
+                fastCall(m_append, std::move(args));
             } break;
             case OP_STORE_FUNCTION:
                 {
@@ -346,8 +346,8 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
-            case OP_WITH_ENTER: call(frame->popValue(this), "__enter__"_c); break;
-            case OP_WITH_EXIT: call(frame->popValue(this), "__exit__"_c); break;
+            case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
+            case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
@@ -718,7 +718,6 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
-        funcName.intern();
         PyVar type = _types[typeName];
         PyVar func = PyNativeFunction(fn);
         setAttr(type, funcName, func);
@@ -735,7 +734,6 @@ public:
     }
 
     void bindFunc(PyVar module, _Str funcName, _CppFunc fn) {
-        funcName.intern();
         __checkType(module, _tp_module);
         PyVar func = PyNativeFunction(fn);
         setAttr(module, funcName, func);
@@ -1119,7 +1117,7 @@ enum ThreadState {
 class ThreadedVM : public VM {
     std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
-    _Str _sharedStr = ""_c;
+    _Str _sharedStr = "";
     
     void __deleteThread(){
         if(_thread != nullptr){
@@ -1157,7 +1155,7 @@ public:
 
     _Str readJsonRpcRequest(){
         _Str copy = _sharedStr;
-        _sharedStr = ""_c;
+        _sharedStr = "";
         return copy;
     }
 
