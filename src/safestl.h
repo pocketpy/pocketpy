@@ -51,7 +51,7 @@ public:
     const PyVar& operator[](const _Str& key) const {
         auto it = find(key);
         if (it == end()){
-            auto msg = "map key not found, '" + key.str() + "'";
+            auto msg = "map key not found, '" + key + "'";
             throw std::out_of_range(msg);
         }
         return it->second;

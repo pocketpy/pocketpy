@@ -353,7 +353,7 @@ public:
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
         PyVar value = parser->previous.value;
-        std::string s = vm->PyStr_AS_C(value).str();
+        _Str s = vm->PyStr_AS_C(value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
         int size = 0;

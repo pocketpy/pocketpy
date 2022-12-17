@@ -47,7 +47,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("super", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 0);
-        auto it = vm->topFrame()->f_locals.find("self"_c);
+        auto it = vm->topFrame()->f_locals.find(m_self);
         if(it == vm->topFrame()->f_locals.end()) vm->typeError("super() can only be called in a class method");
         return vm->newObject(vm->_tp_super, it->second);
     });
@@ -113,7 +113,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         std::vector<_Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
         for (auto& [k, _] : args[0]->_type->attribs) {
-            if (k.str().find("__") == 0) continue;
+            if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
         PyVarList ret;
@@ -194,8 +194,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
-                _Int val = std::stoll(s.str(), &parsed, 10);
-                if(parsed != s.str().size()) throw std::invalid_argument("");
+                _Int val = std::stoll(s, &parsed, 10);
+                if(parsed != s.size()) throw std::invalid_argument("");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for int(): '" + s + "'");
@@ -256,7 +256,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
-                _Float val = std::stod(s.str());
+                _Float val = std::stod(s);
                 return vm->PyFloat(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for float(): '" + s + "'");
@@ -306,7 +306,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("str", "__contains__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().find(_other.str()) != _Str::npos);
+        return vm->PyBool(_self.find(_other) != _Str::npos);
     });
 
     _vm->bindMethod("str", "__str__", [](VM* vm, const pkpy::ArgList& args) {
@@ -365,7 +365,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
-        for(auto c : _self.str()) ss << (char)toupper(c);
+        for(auto c : _self) ss << (char)toupper(c);
         return vm->PyStr(ss.str());
     });
 
@@ -373,7 +373,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
-        for(auto c : _self.str()) ss << (char)tolower(c);
+        for(auto c : _self) ss << (char)tolower(c);
         return vm->PyStr(ss.str());
     });
 
@@ -382,12 +382,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _old = vm->PyStr_AS_C(args[1]);
         const _Str& _new = vm->PyStr_AS_C(args[2]);
-        std::string _copy = _self.str();
+        _Str _copy = _self;
         // replace all occurences of _old with _new in _copy
         size_t pos = 0;
-        while ((pos = _copy.find(_old.str(), pos)) != std::string::npos) {
-            _copy.replace(pos, _old.str().length(), _new.str());
-            pos += _new.str().length();
+        while ((pos = _copy.find(_old, pos)) != std::string::npos) {
+            _copy.replace(pos, _old.length(), _new);
+            pos += _new.length();
         }
         return vm->PyStr(_copy);
     });
@@ -396,14 +396,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _prefix = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().find(_prefix.str()) == 0);
+        return vm->PyBool(_self.find(_prefix) == 0);
     });
 
     _vm->bindMethod("str", "endswith", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _suffix = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().rfind(_suffix.str()) == _self.str().length() - _suffix.str().length());
+        return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
     _vm->bindMethod("str", "join", [](VM* vm, const pkpy::ArgList& args) {

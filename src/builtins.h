@@ -8,6 +8,56 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     __sys_stdout_write(s + end)
 
+def round(x):
+    if x >= 0:
+        return int(x + 0.5)
+    else:
+        return int(x - 0.5)
+
+def abs(x):
+    if x < 0:
+        return -x
+    return x
+
+def max(a, b):
+    if a > b:
+        return a
+    return b
+
+def min(a, b):
+    if a < b:
+        return a
+    return b
+
+def sum(iterable):
+    res = 0
+    for i in iterable:
+        res += i
+    return res
+
+def map(f, iterable):
+    return [f(i) for i in iterable]
+
+def zip(a, b):
+    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+
+def reversed(iterable):
+    a = list(iterable)
+    return [a[i] for i in range(len(a)-1, -1, -1)]
+
+def sorted(iterable, key=None, reverse=False):
+    if key is None:
+        key = lambda x: x
+    a = [key(i) for i in iterable]
+    b = list(iterable)
+    for i in range(len(a)):
+        for j in range(i+1, len(a)):
+            if (a[i] > a[j]) ^ reverse:
+                a[i], a[j] = a[j], a[i]
+                b[i], b[j] = b[j], b[i]
+    return b
+
+##### str #####
 
 str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
@@ -29,12 +79,26 @@ str.split = __str4split
 del __str4split
 
 def __str4index(self, sub):
-    for i in range(len(self) - len(sub) + 1):
+    for i in range(len(self)):
         if self[i:i+len(sub)] == sub:
             return i
     return -1
 str.index = __str4index
 del __str4index
+
+def __str4strip(self, chars=None):
+    chars = chars or ' \t\n\r'
+    i = 0
+    while i < len(self) and self[i] in chars:
+        i += 1
+    j = len(self) - 1
+    while j >= 0 and self[j] in chars:
+        j -= 1
+    return self[i:j+1]
+str.strip = __str4strip
+del __str4strip
+
+##### list #####
 
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
@@ -200,50 +264,6 @@ class dict:
                 raise TypeError('json keys must be strings, got ' + repr(k) )
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
-
-def round(x):
-    if x >= 0:
-        return int(x + 0.5)
-    else:
-        return int(x - 0.5)
-
-def max(a, b):
-    if a > b:
-        return a
-    return b
-
-def min(a, b):
-    if a < b:
-        return a
-    return b
-
-def sum(iterable):
-    res = 0
-    for i in iterable:
-        res += i
-    return res
-
-def map(f, iterable):
-    return [f(i) for i in iterable]
-
-def zip(a, b):
-    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
-
-def reversed(iterable):
-    a = list(iterable)
-    return [a[i] for i in range(len(a)-1, -1, -1)]
-
-def sorted(iterable, key=None, reverse=False):
-    if key is None:
-        key = lambda x: x
-    a = [key(i) for i in iterable]
-    b = list(iterable)
-    for i in range(len(a)):
-        for j in range(i+1, len(a)):
-            if (a[i] > a[j]) ^ reverse:
-                a[i], a[j] = a[j], a[i]
-                b[i], b[j] = b[j], b[i]
-    return b
 
 import json as _json
 

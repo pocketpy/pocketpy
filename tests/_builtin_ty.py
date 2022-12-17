@@ -167,3 +167,9 @@ a = [1,2,3,-1]
 assert sorted(a) == [-1,1,2,3]
 assert sorted(a, lambda x:-x) == [3,2,1,-1]
 assert sorted(a, None, True) == [3,2,1,-1]
+
+assert abs(0) == 0
+assert abs(1.0) == 1.0
+assert abs(-1.0) == 1.0
+assert abs(1) == 1
+assert abs(-1) == 1
