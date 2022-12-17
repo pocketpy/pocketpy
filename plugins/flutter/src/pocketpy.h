@@ -205,9 +205,8 @@ namespace pkpy{
 
 typedef std::stringstream _StrStream;
 
-class _StrMemory : public std::string {
+class _Str : public std::string {
     mutable std::vector<uint16_t>* _u8_index = nullptr;
-
     mutable bool hash_initialized = false;
     mutable size_t _hash;
 
@@ -223,6 +222,13 @@ class _StrMemory : public std::string {
         }
     }
 public:
+    _Str() : std::string() {}
+    _Str(const char* s) : std::string(s) {}
+    _Str(const char* s, size_t n) : std::string(s, n) {}
+    _Str(const std::string& s) : std::string(s) {}
+    _Str(const _Str& s) : std::string(s) {}
+    _Str(_Str&& s) : std::string(std::move(s)) {}
+
     size_t hash() const{
         if(!hash_initialized){
             _hash = std::hash<std::string>()(*this);
@@ -236,137 +242,19 @@ public:
         return _u8_index->size();
     }
 
-    std::string u8_getitem(int i) const{
+    _Str u8_getitem(int i) const{
         return u8_substr(i, i+1);
     }
 
-    std::string u8_substr(int start, int end) const{
+    _Str u8_substr(int start, int end) const{
         utf8_lazy_init();
-        if(start >= end) return std::string();
+        if(start >= end) return _Str();
         int c_end = end >= _u8_index->size() ? size() : _u8_index->at(end);
         return substr(_u8_index->at(start), c_end - _u8_index->at(start));
     }
 
-    _StrMemory(const std::string& s) : std::string(s) {}
-    _StrMemory(std::string&& s) : std::string(std::move(s)) {}
-
-    ~_StrMemory(){
-        if(_u8_index != nullptr) delete _u8_index;
-    }
-};
-
-typedef std::string_view _StrLiteral;
-
-inline constexpr _StrLiteral operator "" _c(const char* str, size_t len){
-    return _StrLiteral(str, len);
-}
-
-class _Str {
-private:
-    pkpy::shared_ptr<_StrMemory> _s;
-public:
-    _Str(_StrLiteral s){
-        _s = pkpy::make_shared<_StrMemory>(std::string(s));
-    }
-    _Str(const char* s){
-        _s = pkpy::make_shared<_StrMemory>(std::string(s));
-    }
-    _Str(const char* s, size_t len){
-        _s = pkpy::make_shared<_StrMemory>(std::string(s, len));
-    }
-    _Str(){
-        _s = pkpy::make_shared<_StrMemory>(std::string());
-    }
-    _Str(const std::string& s){
-        _s = pkpy::make_shared<_StrMemory>(s);
-    }
-    _Str(const _Str& s) : _s(s._s) {}
-
-    _Str(std::string&& s){
-        this->_s = pkpy::make_shared<_StrMemory>(std::move(s));
-    }
-
-    inline int u8_length() const {
-        return this->_s->u8_length();
-    }
-
-    inline _Str u8_getitem(int i) const{
-        return _Str(this->_s->u8_getitem(i));
-    }
-
-    inline _Str u8_substr(int start, int end) const{
-        return _Str(this->_s->u8_substr(start, end));
-    }
-
-    inline size_t hash() const{
-        return _s->hash();
-    }
-
-    inline int size() const {
-        return _s->size();
-    }
-
-    inline bool empty() const {
-        return _s->empty();
-    }
-
-    bool operator==(const _Str& other) const {
-        return *_s == *other._s;
-    }
-
-    bool operator!=(const _Str& other) const {
-        return *_s != *other._s;
-    }
-
-    bool operator<(const _Str& other) const {
-        return *_s < *other._s;
-    }
-
-    bool operator>(const _Str& other) const {
-        return *_s > *other._s;
-    }
-
-    char operator[](int i) const {
-        return _s->at(i);
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const _Str& s) {
-        os << *s._s;
-        return os;
-    }
-
-    _Str operator+(const _Str& other) const {
-        return _Str(*_s + *other._s);
-    }
-
-    _Str operator+(const char* other) const {
-        return _Str(*_s + other);
-    }
-
-    _Str operator+(const std::string& other) const {
-        return _Str(*_s + other);
-    }
-
-    friend _Str operator+(const char* other, const _Str& s){
-        return _Str(other + *s._s);
-    }
-
-    friend _Str operator+(const std::string& other, const _Str& s){
-        return _Str(other + *s._s);
-    }
-
-    const std::string& str() const {
-        return *_s;
-    }
-
-    const char* c_str() const {
-        return _s->c_str();
-    }
-
-    static const std::size_t npos = std::string::npos;
-
     _Str __lstrip() const {
-        std::string copy(*_s);
+        _Str copy(*this);
         copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
             // std::isspace(c) does not working on windows (Debug)
             return c != ' ' && c != '\t' && c != '\r' && c != '\n';
@@ -377,8 +265,9 @@ public:
     _Str __escape(bool single_quote) const {
         _StrStream ss;
         ss << (single_quote ? '\'' : '"');
-        for (auto c = _s->cbegin(); c != _s->cend(); c++) {
-            switch (*c) {
+        for (int i=0; i<length(); i++) {
+            char c = this->operator[](i);
+            switch (c) {
                 case '"':
                     if(!single_quote) ss << '\\';
                     ss << '"';
@@ -392,16 +281,38 @@ public:
                 case '\r': ss << "\\r"; break;
                 case '\t': ss << "\\t"; break;
                 default:
-                    if ('\x00' <= *c && *c <= '\x1f') {
+                    if ('\x00' <= c && c <= '\x1f') {
                         ss << "\\u"
-                        << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(*c);
+                        << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
                     } else {
-                        ss << *c;
+                        ss << c;
                     }
             }
         }
         ss << (single_quote ? '\'' : '"');
         return ss.str();
+    }
+
+    _Str& operator=(const _Str& s){
+        this->std::string::operator=(s);
+        if(_u8_index != nullptr) delete _u8_index;
+        this->_u8_index = s._u8_index;
+        this->hash_initialized = s.hash_initialized;
+        this->_hash = s._hash;
+        return *this;
+    }
+
+    _Str& operator=(_Str&& s){
+        this->std::string::operator=(std::move(s));
+        if(_u8_index != nullptr) delete _u8_index;
+        this->_u8_index = s._u8_index;
+        this->hash_initialized = s.hash_initialized;
+        this->_hash = s._hash;
+        return *this;
+    }
+
+    ~_Str(){
+        if(_u8_index != nullptr) delete _u8_index;
     }
 };
 
@@ -414,37 +325,38 @@ namespace std {
     };
 }
 
-// const _Str& __class__ = _Str("__class__"_c);
-const _Str& __base__ = _Str("__base__"_c);
-const _Str& __new__ = _Str("__new__"_c);
-const _Str& __iter__ = _Str("__iter__"_c);
-const _Str& __str__ = _Str("__str__"_c);
-const _Str& __repr__ = _Str("__repr__"_c);
-const _Str& __module__ = _Str("__module__"_c);
-const _Str& __getitem__ = _Str("__getitem__"_c);
-const _Str& __setitem__ = _Str("__setitem__"_c);
-const _Str& __delitem__ = _Str("__delitem__"_c);
-const _Str& __contains__ = _Str("__contains__"_c);
-const _Str& __init__ = _Str("__init__"_c);
-const _Str& __json__ = _Str("__json__"_c);
-const _Str& __name__ = _Str("__name__"_c);
-const _Str& __len__ = _Str("__len__"_c);
+const _Str& __class__ = _Str("__class__");
+const _Str& __base__ = _Str("__base__");
+const _Str& __new__ = _Str("__new__");
+const _Str& __iter__ = _Str("__iter__");
+const _Str& __str__ = _Str("__str__");
+const _Str& __repr__ = _Str("__repr__");
+const _Str& __module__ = _Str("__module__");
+const _Str& __getitem__ = _Str("__getitem__");
+const _Str& __setitem__ = _Str("__setitem__");
+const _Str& __delitem__ = _Str("__delitem__");
+const _Str& __contains__ = _Str("__contains__");
+const _Str& __init__ = _Str("__init__");
+const _Str& __json__ = _Str("__json__");
+const _Str& __name__ = _Str("__name__");
+const _Str& __len__ = _Str("__len__");
 
-const _Str& m_append = _Str("append"_c);
-const _Str& m_eval = _Str("eval"_c);
-const _Str& __enter__ = _Str("__enter__"_c);
-const _Str& __exit__ = _Str("__exit__"_c);
+const _Str& m_append = _Str("append");
+const _Str& m_eval = _Str("eval");
+const _Str& m_self = _Str("self");
+const _Str& __enter__ = _Str("__enter__");
+const _Str& __exit__ = _Str("__exit__");
 
 const _Str CMP_SPECIAL_METHODS[] = {
-    "__lt__"_c, "__le__"_c, "__eq__"_c, "__ne__"_c, "__gt__"_c, "__ge__"_c
+    "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"
 };  // __ne__ should not be used
 
 const _Str BINARY_SPECIAL_METHODS[] = {
-    "__add__"_c, "__sub__"_c, "__mul__"_c, "__truediv__"_c, "__floordiv__"_c, "__mod__"_c, "__pow__"_c
+    "__add__", "__sub__", "__mul__", "__truediv__", "__floordiv__", "__mod__", "__pow__"
 };
 
 const _Str BITWISE_SPECIAL_METHODS[] = {
-    "__lshift__"_c, "__rshift__"_c, "__and__"_c, "__or__"_c, "__xor__"_c
+    "__lshift__", "__rshift__", "__and__", "__or__", "__xor__"
 };
 
 const uint32_t __LoRangeA[] = {170,186,443,448,660,1488,1519,1568,1601,1646,1649,1749,1774,1786,1791,1808,1810,1869,1969,1994,2048,2112,2144,2208,2230,2308,2365,2384,2392,2418,2437,2447,2451,2474,2482,2486,2493,2510,2524,2527,2544,2556,2565,2575,2579,2602,2610,2613,2616,2649,2654,2674,2693,2703,2707,2730,2738,2741,2749,2768,2784,2809,2821,2831,2835,2858,2866,2869,2877,2908,2911,2929,2947,2949,2958,2962,2969,2972,2974,2979,2984,2990,3024,3077,3086,3090,3114,3133,3160,3168,3200,3205,3214,3218,3242,3253,3261,3294,3296,3313,3333,3342,3346,3389,3406,3412,3423,3450,3461,3482,3507,3517,3520,3585,3634,3648,3713,3716,3718,3724,3749,3751,3762,3773,3776,3804,3840,3904,3913,3976,4096,4159,4176,4186,4193,4197,4206,4213,4238,4352,4682,4688,4696,4698,4704,4746,4752,4786,4792,4800,4802,4808,4824,4882,4888,4992,5121,5743,5761,5792,5873,5888,5902,5920,5952,5984,5998,6016,6108,6176,6212,6272,6279,6314,6320,6400,6480,6512,6528,6576,6656,6688,6917,6981,7043,7086,7098,7168,7245,7258,7401,7406,7413,7418,8501,11568,11648,11680,11688,11696,11704,11712,11720,11728,11736,12294,12348,12353,12447,12449,12543,12549,12593,12704,12784,13312,19968,40960,40982,42192,42240,42512,42538,42606,42656,42895,42999,43003,43011,43015,43020,43072,43138,43250,43259,43261,43274,43312,43360,43396,43488,43495,43514,43520,43584,43588,43616,43633,43642,43646,43697,43701,43705,43712,43714,43739,43744,43762,43777,43785,43793,43808,43816,43968,44032,55216,55243,63744,64112,64285,64287,64298,64312,64318,64320,64323,64326,64467,64848,64914,65008,65136,65142,65382,65393,65440,65474,65482,65490,65498,65536,65549,65576,65596,65599,65616,65664,66176,66208,66304,66349,66370,66384,66432,66464,66504,66640,66816,66864,67072,67392,67424,67584,67592,67594,67639,67644,67647,67680,67712,67808,67828,67840,67872,67968,68030,68096,68112,68117,68121,68192,68224,68288,68297,68352,68416,68448,68480,68608,68864,69376,69415,69424,69600,69635,69763,69840,69891,69956,69968,70006,70019,70081,70106,70108,70144,70163,70272,70280,70282,70287,70303,70320,70405,70415,70419,70442,70450,70453,70461,70480,70493,70656,70727,70751,70784,70852,70855,71040,71128,71168,71236,71296,71352,71424,71680,71935,72096,72106,72161,72163,72192,72203,72250,72272,72284,72349,72384,72704,72714,72768,72818,72960,72968,72971,73030,73056,73063,73066,73112,73440,73728,74880,77824,82944,92160,92736,92880,92928,93027,93053,93952,94032,94208,100352,110592,110928,110948,110960,113664,113776,113792,113808,123136,123214,123584,124928,126464,126469,126497,126500,126503,126505,126516,126521,126523,126530,126535,126537,126539,126541,126545,126548,126551,126553,126555,126557,126559,126561,126564,126567,126572,126580,126585,126590,126592,126603,126625,126629,126635,131072,173824,177984,178208,183984,194560};
@@ -457,6 +369,7 @@ bool __isLoChar(uint32_t c) {
     if(index < 0) return false;
     return c >= __LoRangeA[index] && c <= __LoRangeB[index];
 }
+
 // emhash8::HashMap for C++11/14/17
 // version 1.6.3
 //
@@ -2294,7 +2207,7 @@ public:
     const PyVar& operator[](const _Str& key) const {
         auto it = find(key);
         if (it == end()){
-            auto msg = "map key not found, '" + key.str() + "'";
+            auto msg = "map key not found, '" + key + "'";
             throw std::out_of_range(msg);
         }
         return it->second;
@@ -2468,6 +2381,56 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     __sys_stdout_write(s + end)
 
+def round(x):
+    if x >= 0:
+        return int(x + 0.5)
+    else:
+        return int(x - 0.5)
+
+def abs(x):
+    if x < 0:
+        return -x
+    return x
+
+def max(a, b):
+    if a > b:
+        return a
+    return b
+
+def min(a, b):
+    if a < b:
+        return a
+    return b
+
+def sum(iterable):
+    res = 0
+    for i in iterable:
+        res += i
+    return res
+
+def map(f, iterable):
+    return [f(i) for i in iterable]
+
+def zip(a, b):
+    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+
+def reversed(iterable):
+    a = list(iterable)
+    return [a[i] for i in range(len(a)-1, -1, -1)]
+
+def sorted(iterable, key=None, reverse=False):
+    if key is None:
+        key = lambda x: x
+    a = [key(i) for i in iterable]
+    b = list(iterable)
+    for i in range(len(a)):
+        for j in range(i+1, len(a)):
+            if (a[i] > a[j]) ^ reverse:
+                a[i], a[j] = a[j], a[i]
+                b[i], b[j] = b[j], b[i]
+    return b
+
+##### str #####
 
 str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
@@ -2489,12 +2452,26 @@ str.split = __str4split
 del __str4split
 
 def __str4index(self, sub):
-    for i in range(len(self) - len(sub) + 1):
+    for i in range(len(self)):
         if self[i:i+len(sub)] == sub:
             return i
     return -1
 str.index = __str4index
 del __str4index
+
+def __str4strip(self, chars=None):
+    chars = chars or ' \t\n\r'
+    i = 0
+    while i < len(self) and self[i] in chars:
+        i += 1
+    j = len(self) - 1
+    while j >= 0 and self[j] in chars:
+        j -= 1
+    return self[i:j+1]
+str.strip = __str4strip
+del __str4strip
+
+##### list #####
 
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
@@ -2660,50 +2637,6 @@ class dict:
                 raise TypeError('json keys must be strings, got ' + repr(k) )
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
-
-def round(x):
-    if x >= 0:
-        return int(x + 0.5)
-    else:
-        return int(x - 0.5)
-
-def max(a, b):
-    if a > b:
-        return a
-    return b
-
-def min(a, b):
-    if a < b:
-        return a
-    return b
-
-def sum(iterable):
-    res = 0
-    for i in iterable:
-        res += i
-    return res
-
-def map(f, iterable):
-    return [f(i) for i in iterable]
-
-def zip(a, b):
-    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
-
-def reversed(iterable):
-    a = list(iterable)
-    return [a[i] for i in range(len(a)-1, -1, -1)]
-
-def sorted(iterable, key=None, reverse=False):
-    if key is None:
-        key = lambda x: x
-    a = [key(i) for i in iterable]
-    b = list(iterable)
-    for i in range(len(a)):
-        for j in range(i+1, len(a)):
-            if (a[i] > a[j]) ^ reverse:
-                a[i], a[j] = a[j], a[i]
-                b[i], b[j] = b[j], b[i]
-    return b
 
 import json as _json
 
@@ -4815,7 +4748,7 @@ public:
         this->True = newObject(_tp_bool, true);
         this->False = newObject(_tp_bool, false);
         this->builtins = newModule("builtins");
-        this->_main = newModule("__main__"_c);
+        this->_main = newModule("__main__");
 
         setAttr(_tp_type, __base__, _tp_object);
         _tp_type->_type = _tp_type;
@@ -5508,7 +5441,7 @@ public:
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
         PyVar value = parser->previous.value;
-        std::string s = vm->PyStr_AS_C(value).str();
+        _Str s = vm->PyStr_AS_C(value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
         int size = 0;
@@ -6351,7 +6284,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("super", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 0);
-        auto it = vm->topFrame()->f_locals.find("self"_c);
+        auto it = vm->topFrame()->f_locals.find(m_self);
         if(it == vm->topFrame()->f_locals.end()) vm->typeError("super() can only be called in a class method");
         return vm->newObject(vm->_tp_super, it->second);
     });
@@ -6417,7 +6350,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         std::vector<_Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
         for (auto& [k, _] : args[0]->_type->attribs) {
-            if (k.str().find("__") == 0) continue;
+            if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
         PyVarList ret;
@@ -6498,8 +6431,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
-                _Int val = std::stoll(s.str(), &parsed, 10);
-                if(parsed != s.str().size()) throw std::invalid_argument("");
+                _Int val = std::stoll(s, &parsed, 10);
+                if(parsed != s.size()) throw std::invalid_argument("");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for int(): '" + s + "'");
@@ -6560,7 +6493,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
-                _Float val = std::stod(s.str());
+                _Float val = std::stod(s);
                 return vm->PyFloat(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for float(): '" + s + "'");
@@ -6610,7 +6543,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("str", "__contains__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().find(_other.str()) != _Str::npos);
+        return vm->PyBool(_self.find(_other) != _Str::npos);
     });
 
     _vm->bindMethod("str", "__str__", [](VM* vm, const pkpy::ArgList& args) {
@@ -6669,7 +6602,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
-        for(auto c : _self.str()) ss << (char)toupper(c);
+        for(auto c : _self) ss << (char)toupper(c);
         return vm->PyStr(ss.str());
     });
 
@@ -6677,7 +6610,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1, true);
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         _StrStream ss;
-        for(auto c : _self.str()) ss << (char)tolower(c);
+        for(auto c : _self) ss << (char)tolower(c);
         return vm->PyStr(ss.str());
     });
 
@@ -6686,12 +6619,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _old = vm->PyStr_AS_C(args[1]);
         const _Str& _new = vm->PyStr_AS_C(args[2]);
-        std::string _copy = _self.str();
+        _Str _copy = _self;
         // replace all occurences of _old with _new in _copy
         size_t pos = 0;
-        while ((pos = _copy.find(_old.str(), pos)) != std::string::npos) {
-            _copy.replace(pos, _old.str().length(), _new.str());
-            pos += _new.str().length();
+        while ((pos = _copy.find(_old, pos)) != std::string::npos) {
+            _copy.replace(pos, _old.length(), _new);
+            pos += _new.length();
         }
         return vm->PyStr(_copy);
     });
@@ -6700,14 +6633,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _prefix = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().find(_prefix.str()) == 0);
+        return vm->PyBool(_self.find(_prefix) == 0);
     });
 
     _vm->bindMethod("str", "endswith", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _suffix = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.str().rfind(_suffix.str()) == _self.str().length() - _suffix.str().length());
+        return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
     _vm->bindMethod("str", "join", [](VM* vm, const pkpy::ArgList& args) {

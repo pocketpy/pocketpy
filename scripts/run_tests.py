@@ -21,5 +21,5 @@ def test_dir(path):
 
 if __name__ == '__main__':
     ok = test_dir('./tests')
-    if not ok:
-        exit(1)
+    if ok:
+        print("ALL TESTS PASSED")

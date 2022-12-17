@@ -1,4 +1,4 @@
-## 0.5.0+6
+## 0.5.0+7
 
 + Fix a bug of crash when using multi-thread
 

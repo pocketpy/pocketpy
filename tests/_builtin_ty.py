@@ -42,6 +42,12 @@ s = "123abcrunoob321"
 # assert str.strip( '*' ) == "this is **string** example....wow!!!"
 # assert s.strip( '12' ) == "3abcrunoob3"
 
+assert str.strip( '*' ) == "this is **string** example....wow!!!"
+assert s.strip( '12' ) == "3abcrunoob3"
+
+s = ' asd\n  asd \n'
+assert s.strip() == 'asd\n  asd'
+
 s1 = "-"
 s2 = ""
 seq = ["r","u","n","o","o","b"]
