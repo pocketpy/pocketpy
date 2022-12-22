@@ -55,7 +55,6 @@ public:
 #define NO_INFIX nullptr, PREC_NONE
         for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, NO_INFIX };
         rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
-        rules[TK("->")] =   { nullptr,               METHOD(exprAttribPtr),      PREC_ATTRIB };
         rules[TK("(")] =    { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
         rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
         rules[TK("{")] =    { METHOD(exprMap),       NO_INFIX };
@@ -102,7 +101,7 @@ public:
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK("&")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_BITWISE_AND };
+        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
 #undef METHOD
@@ -492,8 +491,7 @@ public:
         switch (op) {
             case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emitCode(OP_UNARY_NOT);      break;
-            case TK("&"):     emitCode(OP_UNARY_REF);      break;
-            case TK("*"):     emitCode(OP_UNARY_DEREF);    break;
+            case TK("*"):     syntaxError("cannot use '*' as unary operator"); break;
             default: UNREACHABLE();
         }
     }
@@ -617,13 +615,6 @@ __LISTCOMP:
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
         emitCode(OP_BUILD_ATTR_REF, index);
-    }
-
-    void exprAttribPtr(){
-        consume(TK("@id"));
-        const _Str& name = parser->previous.str();
-        int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_REF_PTR, index);
     }
 
     // [:], [:b]

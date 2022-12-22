@@ -55,13 +55,3 @@ struct TupleRef : BaseRef {
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
-
-struct UserPointer : BaseRef {
-    PyVarRef p;
-    uint64_t f_id;
-    UserPointer(PyVarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
-
-    PyVar get(VM* vm, Frame* frame) const;
-    void set(VM* vm, Frame* frame, PyVar val) const;
-    void del(VM* vm, Frame* frame) const;
-};

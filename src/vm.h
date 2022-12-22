@@ -67,14 +67,6 @@ protected:
                 PyVar obj = frame->popValue(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(&attr))));
             } break;
-            case OP_BUILD_ATTR_REF_PTR: {
-                const auto& attr = frame->code->co_names[byte.arg];
-                PyVar obj = frame->popValue(this);
-                __checkType(obj, _tp_user_pointer);
-                const PyVarRef& var = UNION_GET(PyVarRef, obj);
-                auto p = PyRef_AS_C(var);
-                frame->push(PyRef(AttrRef(p->get(this, frame), &attr)));
-            } break;
             case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->popValue(this);
                 PyVarRef obj = frame->popValue(this);
@@ -199,23 +191,6 @@ protected:
                     PyVar obj = frame->popValue(this);
                     const PyVar& obj_bool = asBool(obj);
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
-                } break;
-            case OP_UNARY_REF:
-                {
-                    // _pointer to pointer
-                    PyVarRef obj = frame->__pop();
-                    __checkType(obj, _tp_ref);
-                    frame->push(newObject(
-                        _tp_user_pointer,
-                        PyRef(UserPointer(obj, frame->id))
-                    ));
-                } break;
-            case OP_UNARY_DEREF:
-                {
-                    // pointer to _pointer
-                    PyVar obj = frame->popValue(this);
-                    __checkType(obj, _tp_user_pointer);
-                    frame->push(UNION_GET(PyVarRef, obj));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -791,7 +766,7 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
-    PyVar _tp_user_pointer, _tp_super;
+    PyVar _tp_super;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -842,8 +817,7 @@ public:
         _tp_slice = newClassType("slice");
         _tp_range = newClassType("range");
         _tp_module = newClassType("module");
-        _tp_ref = newClassType("_pointer");
-        _tp_user_pointer = newClassType("pointer");
+        _tp_ref = newClassType("_ref");
 
         newClassType("NoneType");
         newClassType("ellipsis");
@@ -925,10 +899,6 @@ public:
 
     void systemError(const _Str& msg){
         _error("SystemError", msg);
-    }
-
-    void nullPointerError(){
-        _error("NullPointerError", "pointer is invalid");
     }
 
     void zeroDivisionError(){
@@ -1074,22 +1044,6 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
 
 void TupleRef::del(VM* vm, Frame* frame) const{
     for (auto& r : varRefs) vm->PyRef_AS_C(r)->del(vm, frame);
-}
-
-PyVar UserPointer::get(VM* vm, Frame* frame) const{
-    frame = vm->__findFrame(f_id);
-    if(frame == nullptr) vm->nullPointerError();
-    return vm->PyRef_AS_C(p)->get(vm, frame);
-}
-
-void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    frame = vm->__findFrame(f_id);
-    if(frame == nullptr) vm->nullPointerError();
-    vm->PyRef_AS_C(p)->set(vm, frame, val);
-}
-
-void UserPointer::del(VM* vm, Frame* frame) const{
-    vm->typeError("delete is unsupported");
 }
 
 /***** Frame's Impl *****/

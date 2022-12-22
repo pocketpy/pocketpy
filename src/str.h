@@ -25,8 +25,24 @@ public:
     _Str(const char* s) : std::string(s) {}
     _Str(const char* s, size_t n) : std::string(s, n) {}
     _Str(const std::string& s) : std::string(s) {}
-    _Str(const _Str& s) : std::string(s) {}
-    _Str(_Str&& s) : std::string(std::move(s)) {}
+    _Str(const _Str& s) : std::string(s) {
+        if(s._u8_index != nullptr){
+            _u8_index = new std::vector<uint16_t>(*s._u8_index);
+        }
+        if(s.hash_initialized){
+            _hash = s._hash;
+            hash_initialized = true;
+        }
+    }
+    _Str(_Str&& s) : std::string(std::move(s)) {
+        if(_u8_index != nullptr) delete _u8_index;
+        _u8_index = s._u8_index;
+        s._u8_index = nullptr;
+        if(s.hash_initialized){
+            _hash = s._hash;
+            hash_initialized = true;
+        }
+    }
 
     size_t hash() const{
         if(!hash_initialized){

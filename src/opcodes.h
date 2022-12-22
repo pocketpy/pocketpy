@@ -56,14 +56,11 @@ OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
 OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
 OPCODE(GOTO)
-OPCODE(UNARY_REF)           // for &
-OPCODE(UNARY_DEREF)         // for *
 
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
