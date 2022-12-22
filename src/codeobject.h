@@ -232,6 +232,12 @@ public:
         return v;
     }
 
+    PyVarList popNValuesReversedUnlimited(VM* vm, int n){
+        PyVarList v(n);
+        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        return v;
+    }
+
     pkpy::ArgList __popNReversed(int n){
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--) v._index(i) = __pop();

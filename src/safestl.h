@@ -79,7 +79,7 @@ namespace pkpy {
 #endif
         }
 
-        void __tryAlloc(uint8_t n){
+        void __tryAlloc(size_t n){
             if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
                 this->_size = n;
@@ -102,7 +102,7 @@ namespace pkpy {
         }
 
     public:
-        ArgList(uint8_t n){
+        ArgList(size_t n){
             if(n != 0) __tryAlloc(n);
         }
 

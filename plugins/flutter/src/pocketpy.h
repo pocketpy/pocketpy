@@ -37,7 +37,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.5.0"
+#define PK_VERSION "0.5.1"
 
 //#define PKPY_NO_TYPE_CHECK
 //#define PKPY_NO_INDEX_CHECK
@@ -2235,7 +2235,7 @@ namespace pkpy {
 #endif
         }
 
-        void __tryAlloc(uint8_t n){
+        void __tryAlloc(size_t n){
             if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
                 this->_size = n;
@@ -2258,7 +2258,7 @@ namespace pkpy {
         }
 
     public:
-        ArgList(uint8_t n){
+        ArgList(size_t n){
             if(n != 0) __tryAlloc(n);
         }
 
@@ -3887,6 +3887,12 @@ public:
         return v;
     }
 
+    PyVarList popNValuesReversedUnlimited(VM* vm, int n){
+        PyVarList v(n);
+        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        return v;
+    }
+
     pkpy::ArgList __popNReversed(int n){
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--) v._index(i) = __pop();
@@ -4128,12 +4134,13 @@ protected:
                 } break;
             case OP_BUILD_LIST:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
-                    frame->push(PyList(items.toList()));
+                    frame->push(PyList(
+                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                    ));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg*2);
+                    PyVarList items = frame->popNValuesReversedUnlimited(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -4142,8 +4149,9 @@ protected:
                 } break;
             case OP_BUILD_SET:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
-                    PyVar list = PyList(items.toList());
+                    PyVar list = PyList(
+                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                    );
                     PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
                     frame->push(obj);
                 } break;

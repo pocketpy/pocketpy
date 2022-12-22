@@ -237,12 +237,13 @@ protected:
                 } break;
             case OP_BUILD_LIST:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
-                    frame->push(PyList(items.toList()));
+                    frame->push(PyList(
+                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                    ));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg*2);
+                    PyVarList items = frame->popNValuesReversedUnlimited(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -251,8 +252,9 @@ protected:
                 } break;
             case OP_BUILD_SET:
                 {
-                    pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
-                    PyVar list = PyList(items.toList());
+                    PyVar list = PyList(
+                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                    );
                     PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
                     frame->push(obj);
                 } break;
