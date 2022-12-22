@@ -2664,17 +2664,17 @@ class FileIO:
   def __init__(self, path, mode):
     assert type(path) is str
     assert type(mode) is str
-    assert mode in ['r', 'w']
+    assert mode in ['r', 'w', 'rt', 'wt']
     self.path = path
     self.mode = mode
     self.fp = jsonrpc('fopen', [path, mode])
 
   def read(self):
-    assert self.mode == 'r'
+    assert self.mode in ['r', 'rt']
     return jsonrpc('fread', [self.fp])
 
   def write(self, s):
-    assert self.mode == 'w'
+    assert self.mode in ['w', 'wt']
     assert type(s) is str
     jsonrpc('fwrite', [self.fp, s])
 
@@ -2812,6 +2812,16 @@ def __path4exists(path):
   return jsonrpc("os.path.exists", [path])
 path.exists = __path4exists
 del __path4exists
+
+def __path4join(*paths):
+  s = '/'.join(paths)
+  s = s.replace('\\', '/')
+  s = s.replace('//', '/')
+  s = s.replace('//', '/')
+  return s
+
+path.join = __path4join
+del __path4join
 )";
 
 const char* __RANDOM_CODE = R"(
