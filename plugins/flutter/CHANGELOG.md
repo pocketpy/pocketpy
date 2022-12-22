@@ -1,3 +1,7 @@
+## 0.5.1+1
+
++ Fix a bug of parsing large `list/dict/set`
+
 ## 0.5.0+7
 
 + Fix a bug of crash when using multi-thread
