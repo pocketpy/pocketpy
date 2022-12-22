@@ -226,8 +226,24 @@ public:
     _Str(const char* s) : std::string(s) {}
     _Str(const char* s, size_t n) : std::string(s, n) {}
     _Str(const std::string& s) : std::string(s) {}
-    _Str(const _Str& s) : std::string(s) {}
-    _Str(_Str&& s) : std::string(std::move(s)) {}
+    _Str(const _Str& s) : std::string(s) {
+        if(s._u8_index != nullptr){
+            _u8_index = new std::vector<uint16_t>(*s._u8_index);
+        }
+        if(s.hash_initialized){
+            _hash = s._hash;
+            hash_initialized = true;
+        }
+    }
+    _Str(_Str&& s) : std::string(std::move(s)) {
+        if(_u8_index != nullptr) delete _u8_index;
+        _u8_index = s._u8_index;
+        s._u8_index = nullptr;
+        if(s.hash_initialized){
+            _hash = s._hash;
+            hash_initialized = true;
+        }
+    }
 
     size_t hash() const{
         if(!hash_initialized){
@@ -3518,16 +3534,6 @@ struct TupleRef : BaseRef {
     void del(VM* vm, Frame* frame) const;
 };
 
-struct UserPointer : BaseRef {
-    PyVarRef p;
-    uint64_t f_id;
-    UserPointer(PyVarRef p, uint64_t f_id) : p(p), f_id(f_id) {}
-
-    PyVar get(VM* vm, Frame* frame) const;
-    void set(VM* vm, Frame* frame, PyVar val) const;
-    void del(VM* vm, Frame* frame) const;
-};
-
 
 enum Opcode {
     #define OPCODE(name) OP_##name,
@@ -3589,14 +3595,11 @@ OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
 OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
 OPCODE(GOTO)
-OPCODE(UNARY_REF)           // for &
-OPCODE(UNARY_DEREF)         // for *
 
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
@@ -3665,14 +3668,11 @@ OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
 OPCODE(STORE_REF)           // no arg, [ptr, expr] -> *ptr = expr
 OPCODE(DELETE_REF)          // no arg, [ptr] -> [] -> delete ptr
-OPCODE(BUILD_ATTR_REF_PTR)  // arg for the name_ptr, [ptr, name_ptr] -> (*ptr)->name_ptr
 
 OPCODE(BUILD_SMART_TUPLE)   // if all elements are pointers, build a compound pointer, otherwise build a tuple
 OPCODE(BUILD_STRING)        // arg is the expr count, build a string from the top of the stack
 
 OPCODE(GOTO)
-OPCODE(UNARY_REF)           // for &
-OPCODE(UNARY_DEREF)         // for *
 
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
@@ -3974,14 +3974,6 @@ protected:
                 PyVar obj = frame->popValue(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(&attr))));
             } break;
-            case OP_BUILD_ATTR_REF_PTR: {
-                const auto& attr = frame->code->co_names[byte.arg];
-                PyVar obj = frame->popValue(this);
-                __checkType(obj, _tp_user_pointer);
-                const PyVarRef& var = UNION_GET(PyVarRef, obj);
-                auto p = PyRef_AS_C(var);
-                frame->push(PyRef(AttrRef(p->get(this, frame), &attr)));
-            } break;
             case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->popValue(this);
                 PyVarRef obj = frame->popValue(this);
@@ -4106,23 +4098,6 @@ protected:
                     PyVar obj = frame->popValue(this);
                     const PyVar& obj_bool = asBool(obj);
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
-                } break;
-            case OP_UNARY_REF:
-                {
-                    // _pointer to pointer
-                    PyVarRef obj = frame->__pop();
-                    __checkType(obj, _tp_ref);
-                    frame->push(newObject(
-                        _tp_user_pointer,
-                        PyRef(UserPointer(obj, frame->id))
-                    ));
-                } break;
-            case OP_UNARY_DEREF:
-                {
-                    // pointer to _pointer
-                    PyVar obj = frame->popValue(this);
-                    __checkType(obj, _tp_user_pointer);
-                    frame->push(UNION_GET(PyVarRef, obj));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
                 if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
@@ -4698,7 +4673,7 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
-    PyVar _tp_user_pointer, _tp_super;
+    PyVar _tp_super;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -4749,8 +4724,7 @@ public:
         _tp_slice = newClassType("slice");
         _tp_range = newClassType("range");
         _tp_module = newClassType("module");
-        _tp_ref = newClassType("_pointer");
-        _tp_user_pointer = newClassType("pointer");
+        _tp_ref = newClassType("_ref");
 
         newClassType("NoneType");
         newClassType("ellipsis");
@@ -4832,10 +4806,6 @@ public:
 
     void systemError(const _Str& msg){
         _error("SystemError", msg);
-    }
-
-    void nullPointerError(){
-        _error("NullPointerError", "pointer is invalid");
     }
 
     void zeroDivisionError(){
@@ -4981,22 +4951,6 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
 
 void TupleRef::del(VM* vm, Frame* frame) const{
     for (auto& r : varRefs) vm->PyRef_AS_C(r)->del(vm, frame);
-}
-
-PyVar UserPointer::get(VM* vm, Frame* frame) const{
-    frame = vm->__findFrame(f_id);
-    if(frame == nullptr) vm->nullPointerError();
-    return vm->PyRef_AS_C(p)->get(vm, frame);
-}
-
-void UserPointer::set(VM* vm, Frame* frame, PyVar val) const{
-    frame = vm->__findFrame(f_id);
-    if(frame == nullptr) vm->nullPointerError();
-    vm->PyRef_AS_C(p)->set(vm, frame, val);
-}
-
-void UserPointer::del(VM* vm, Frame* frame) const{
-    vm->typeError("delete is unsupported");
 }
 
 /***** Frame's Impl *****/
@@ -5161,7 +5115,6 @@ public:
 #define NO_INFIX nullptr, PREC_NONE
         for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, NO_INFIX };
         rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
-        rules[TK("->")] =   { nullptr,               METHOD(exprAttribPtr),      PREC_ATTRIB };
         rules[TK("(")] =    { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
         rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
         rules[TK("{")] =    { METHOD(exprMap),       NO_INFIX };
@@ -5208,7 +5161,7 @@ public:
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK("&")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_BITWISE_AND };
+        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
 #undef METHOD
@@ -5598,8 +5551,7 @@ public:
         switch (op) {
             case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emitCode(OP_UNARY_NOT);      break;
-            case TK("&"):     emitCode(OP_UNARY_REF);      break;
-            case TK("*"):     emitCode(OP_UNARY_DEREF);    break;
+            case TK("*"):     syntaxError("cannot use '*' as unary operator"); break;
             default: UNREACHABLE();
         }
     }
@@ -5723,13 +5675,6 @@ __LISTCOMP:
         const _Str& name = parser->previous.str();
         int index = getCode()->addName(name, NAME_ATTR);
         emitCode(OP_BUILD_ATTR_REF, index);
-    }
-
-    void exprAttribPtr(){
-        consume(TK("@id"));
-        const _Str& name = parser->previous.str();
-        int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_REF_PTR, index);
     }
 
     // [:], [:b]

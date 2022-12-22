@@ -1,4 +1,4 @@
-## 0.5.1+2
+## 0.5.1+3
 
 + Fix a bug of parsing large `list/dict/set`
 + Add `os.path.join`
