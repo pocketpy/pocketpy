@@ -128,7 +128,7 @@ protected:
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
-                    PyVar cls = newUserClassType(clsName, clsBase);
+                    PyVar cls = newUserClassType(frame->_module, clsName, clsBase);
                     while(true){
                         PyVar fn = frame->popValue(this);
                         if(fn == None) break;
@@ -136,7 +136,7 @@ protected:
                         setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
-                    frame->f_globals()[clsName] = cls;
+                    // frame->f_globals()[clsName] = cls;
                 } break;
             case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
@@ -342,6 +342,7 @@ protected:
 
 public:
     PyVarDict _types;
+    PyVarDict _userTypes;
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -597,10 +598,13 @@ public:
         return ret;
     }
 
-    PyVar newUserClassType(_Str name, PyVar base){
-        PyVar obj = newClassType(name, base);
-        setAttr(obj, __name__, PyStr(name));
-        _types.erase(name);
+    PyVar newUserClassType(PyVar mod, _Str name, PyVar base){
+        PyVar obj = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)1, _tp_type);
+        setAttr(obj, __base__, base);
+        _Str fullName = UNION_NAME(mod) + "." +name;
+        setAttr(obj, __name__, PyStr(fullName));
+        _userTypes[fullName] = obj;
+        setAttr(mod, name, obj);
         return obj;
     }
 
@@ -695,9 +699,11 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
-        PyVar type = _types[typeName];
+        PyVar* type = _types.try_get(typeName);
+        if(type == nullptr) type = _userTypes.try_get(typeName);
+        if(type == nullptr) UNREACHABLE();
         PyVar func = PyNativeFunction(fn);
-        setAttr(type, funcName, func);
+        setAttr(*type, funcName, func);
     }
 
     void bindMethodMulti(std::vector<_Str> typeNames, _Str funcName, _CppFunc fn) {

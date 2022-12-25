@@ -701,6 +701,99 @@ void __addModuleMath(VM* vm){
     });
 }
 
+PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
+    std::regex re(pattern);
+    std::smatch m;
+    if(std::regex_search(string, m, re)){
+        if(fromStart && m.position() != 0){
+            return vm->None;
+        }
+        PyVar ret = vm->newObject(vm->_userTypes["re.Match"], (_Int)1);
+        vm->setAttr(ret, "_start", vm->PyInt(
+            string.__to_u8_index(m.position())
+        ));
+        vm->setAttr(ret, "_end", vm->PyInt(
+            string.__to_u8_index(m.position() + m.length())
+        ));
+        PyVarList groups(m.size());
+        for(size_t i = 0; i < m.size(); ++i){
+            groups[i] = vm->PyStr(m[i].str());
+        }
+        vm->setAttr(ret, "_groups", vm->PyTuple(groups));
+        return ret;
+    }
+    return vm->None;
+};
+
+void __addModuleRe(VM* vm){
+    PyVar mod = vm->newModule("re");
+    PyVar _tp_match = vm->newUserClassType(mod, "Match", vm->_tp_object);
+
+    vm->bindMethod("re.Match", "start", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        return vm->getAttr(self, "_start");
+    });
+
+    vm->bindMethod("re.Match", "end", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        return vm->getAttr(self, "_end");
+    });
+
+    vm->bindMethod("re.Match", "span", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        PyVarList vec = { vm->getAttr(self, "_start"), vm->getAttr(self, "_end") };
+        return vm->PyTuple(vec);
+    });
+
+    vm->bindMethod("re.Match", "group", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2, true);
+        _Int index = vm->PyInt_AS_C(args[1]);
+        const auto& vec = vm->PyTuple_AS_C(vm->getAttr(args[0], "_groups"));
+        vm->normalizedIndex(index, vec.size());
+        return vec[index];
+    });
+
+    vm->bindFunc(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        return __regex_search(pattern, string, true, vm);
+    });
+
+    vm->bindFunc(mod, "search", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        return __regex_search(pattern, string, false, vm);
+    });
+
+    vm->bindFunc(mod, "sub", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 3);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& repl = vm->PyStr_AS_C(args[1]);
+        const _Str& string = vm->PyStr_AS_C(args[2]);
+        std::regex re(pattern);
+        return vm->PyStr(std::regex_replace(string, re, repl));
+    });
+
+    vm->bindFunc(mod, "split", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        std::regex re(pattern);
+        std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
+        std::sregex_token_iterator end;
+        PyVarList vec;
+        for(; it != end; ++it){
+            vec.push_back(vm->PyStr(it->str()));
+        }
+        return vm->PyList(vec);
+    });
+}
+
 class _PkExported{
 public:
     virtual ~_PkExported() = default;
@@ -826,6 +919,7 @@ extern "C" {
         __addModuleTime(vm);
         __addModuleJson(vm);
         __addModuleMath(vm);
+        __addModuleRe(vm);
 
         _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);

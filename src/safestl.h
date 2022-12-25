@@ -39,25 +39,6 @@ public:
 #include "hash_table8.hpp"
 
 class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
-    PyVar& at(const _Str&) = delete;
-
-public:
-
-#ifndef PKPY_NO_INDEX_CHECK
-    PyVar& operator[](const _Str& key) {
-        return emhash8::HashMap<_Str, PyVar>::operator[](key);
-    }
-
-    const PyVar& operator[](const _Str& key) const {
-        auto it = find(key);
-        if (it == end()){
-            auto msg = "map key not found, '" + key + "'";
-            throw std::out_of_range(msg);
-        }
-        return it->second;
-    }
-#endif
-
     using emhash8::HashMap<_Str, PyVar>::HashMap;
 };
 
