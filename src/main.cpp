@@ -26,19 +26,12 @@ struct Timer{
 
 // these code is for demo use, feel free to modify it
 REPL* _repl;
-
 extern "C" {
     __EXPORT
-    void repl_start(){
-        _repl = pkpy_new_repl(pkpy_new_vm(true));
-    }
-
+    void repl_start(){ _repl = pkpy_new_repl(pkpy_new_vm(true));}
     __EXPORT
-    bool repl_input(const char* line){
-        return pkpy_repl_input(_repl, line) == NEED_MORE_LINES;
-    }
+    bool repl_input(const char* line){ return pkpy_repl_input(_repl, line) == NEED_MORE_LINES;}
 }
-
 #else
 
 

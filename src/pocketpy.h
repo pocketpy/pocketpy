@@ -589,6 +589,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #define __EXPORT __declspec(dllexport)
 #elif __APPLE__
 #define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
+#elif defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
+#include <emscripten.h>
+#define __EXPORT EMSCRIPTEN_KEEPALIVE
 #else
 #define __EXPORT
 #endif
