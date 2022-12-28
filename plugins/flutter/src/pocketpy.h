@@ -6784,6 +6784,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #elif defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
 #include <emscripten.h>
 #define __EXPORT EMSCRIPTEN_KEEPALIVE
+#define __NO_MAIN
 #else
 #define __EXPORT
 #endif

@@ -3,6 +3,7 @@ const term = new Terminal();
 var command = "";
 var need_more_lines = false;
 var stopped = false;
+var repl = 0;
 
 var Module = {
     'print': function(text) { 
@@ -12,7 +13,8 @@ var Module = {
       term.write(text + "\r\n");
     },
     'onRuntimeInitialized': function(text) { 
-      Module.ccall('repl_start', null, [], []);
+      var vm = Module.ccall('pkpy_new_vm', 'number', ['boolean'], [true]);
+      repl = Module.ccall('pkpy_new_repl', 'number', ['number'], [vm]);
       term.write(need_more_lines ? "... " : ">>> ");
     },
     'onAbort': function(text) { 
@@ -32,7 +34,7 @@ function term_init() {
             term.write("Bye!\r\n");
             break;
           }
-          need_more_lines = Module.ccall('repl_input', Boolean, ['string'], [command]);
+          need_more_lines = Module.ccall('pkpy_repl_input', 'number', ['number', 'string'], [repl, command]) == 0;
           command = '';
           term.write(need_more_lines ? "... " : ">>> ");
           break;

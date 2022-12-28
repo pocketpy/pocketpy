@@ -22,19 +22,6 @@ struct Timer{
     }
 };
 
-#if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
-
-// these code is for demo use, feel free to modify it
-REPL* _repl;
-extern "C" {
-    __EXPORT
-    void repl_start(){ _repl = pkpy_new_repl(pkpy_new_vm(true));}
-    __EXPORT
-    bool repl_input(const char* line){ return pkpy_repl_input(_repl, line) == NEED_MORE_LINES;}
-}
-#else
-
-
 void _tvm_dispatch(ThreadedVM* vm){
     while(pkpy_tvm_get_state(vm) != THREAD_FINISHED){
         if(pkpy_tvm_get_state(vm) == THREAD_SUSPENDED){
@@ -59,6 +46,7 @@ void _tvm_dispatch(ThreadedVM* vm){
     }
 }
 
+#ifndef __NO_MAIN
 
 int main(int argc, char** argv){
     if(argc == 1){
