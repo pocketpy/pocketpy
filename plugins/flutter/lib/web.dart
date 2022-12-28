@@ -45,7 +45,7 @@ class VM {
     var _o = _Bindings.pkpy_vm_read_output(pointer);
     String _j = _o;
     var ret = PyOutput.fromJson(cvt.jsonDecode(_j));
-    _Bindings.pkpy_delete(_o);
+    
     return ret;
   }
 
