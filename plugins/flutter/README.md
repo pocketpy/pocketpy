@@ -59,6 +59,32 @@ android {
 
 It should work without any setup.
 
+#### For Web
+
+Download an artifact from https://github.com/blueloveTH/pocketpy/releases/latest.
+
+Unzip it and copy `web/lib` into your root folder where `index.html` locates.
+
+```
+...
+lib/pocketpy.js
+lib/pocketpy.wasm
+index.html
+...
+```
+
+Then open `index.html` and add this line before `flutter.js` tag.
+
+```
+...
+  <!-- This script initializes WASM of pocketpy -->
+  <script src="./lib/pocketpy.js"></script>
+
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+...
+```
+
 
 #### For Windows
 

@@ -1,3 +1,8 @@
+## 0.5.2+3
+
++ Add web support
++ Add `re` module
+
 ## 0.5.1+3
 
 + Fix a bug of parsing large `list/dict/set`
