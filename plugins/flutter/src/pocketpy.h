@@ -37,7 +37,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.5.1"
+#define PK_VERSION "0.5.2"
 
 //#define PKPY_NO_TYPE_CHECK
 //#define PKPY_NO_INDEX_CHECK
@@ -251,6 +251,13 @@ public:
             hash_initialized = true;
         }
         return _hash;
+    }
+
+    int __to_u8_index(int index) const{
+        utf8_lazy_init();
+        auto p = std::lower_bound(_u8_index->begin(), _u8_index->end(), index);
+        if(*p != index) UNREACHABLE();
+        return p - _u8_index->begin();
     }
 
     int u8_length() const {
@@ -2211,25 +2218,6 @@ public:
 
 
 class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
-    PyVar& at(const _Str&) = delete;
-
-public:
-
-#ifndef PKPY_NO_INDEX_CHECK
-    PyVar& operator[](const _Str& key) {
-        return emhash8::HashMap<_Str, PyVar>::operator[](key);
-    }
-
-    const PyVar& operator[](const _Str& key) const {
-        auto it = find(key);
-        if (it == end()){
-            auto msg = "map key not found, '" + key + "'";
-            throw std::out_of_range(msg);
-        }
-        return it->second;
-    }
-#endif
-
     using emhash8::HashMap<_Str, PyVar>::HashMap;
 };
 
@@ -4035,7 +4023,7 @@ protected:
                     PyVar clsBase = frame->popValue(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
-                    PyVar cls = newUserClassType(clsName, clsBase);
+                    PyVar cls = newUserClassType(frame->_module, clsName, clsBase);
                     while(true){
                         PyVar fn = frame->popValue(this);
                         if(fn == None) break;
@@ -4043,7 +4031,7 @@ protected:
                         setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
-                    frame->f_globals()[clsName] = cls;
+                    // frame->f_globals()[clsName] = cls;
                 } break;
             case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
@@ -4249,6 +4237,7 @@ protected:
 
 public:
     PyVarDict _types;
+    PyVarDict _userTypes;
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -4504,10 +4493,13 @@ public:
         return ret;
     }
 
-    PyVar newUserClassType(_Str name, PyVar base){
-        PyVar obj = newClassType(name, base);
-        setAttr(obj, __name__, PyStr(name));
-        _types.erase(name);
+    PyVar newUserClassType(PyVar mod, _Str name, PyVar base){
+        PyVar obj = pkpy::make_shared<PyObject, Py_<_Int>>((_Int)1, _tp_type);
+        setAttr(obj, __base__, base);
+        _Str fullName = UNION_NAME(mod) + "." +name;
+        setAttr(obj, __name__, PyStr(fullName));
+        _userTypes[fullName] = obj;
+        setAttr(mod, name, obj);
         return obj;
     }
 
@@ -4602,9 +4594,11 @@ public:
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
-        PyVar type = _types[typeName];
+        PyVar* type = _types.try_get(typeName);
+        if(type == nullptr) type = _userTypes.try_get(typeName);
+        if(type == nullptr) UNREACHABLE();
         PyVar func = PyNativeFunction(fn);
-        setAttr(type, funcName, func);
+        setAttr(*type, funcName, func);
     }
 
     void bindMethodMulti(std::vector<_Str> typeNames, _Str funcName, _CppFunc fn) {
@@ -6787,6 +6781,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #define __EXPORT __declspec(dllexport)
 #elif __APPLE__
 #define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
+#elif defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
+#include <emscripten.h>
+#define __EXPORT EMSCRIPTEN_KEEPALIVE
 #else
 #define __EXPORT
 #endif
@@ -6896,6 +6893,99 @@ void __addModuleMath(VM* vm){
     vm->bindFunc(mod, "isinf", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         return vm->PyBool(std::isinf(vm->numToFloat(args[0])));
+    });
+}
+
+PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
+    std::regex re(pattern);
+    std::smatch m;
+    if(std::regex_search(string, m, re)){
+        if(fromStart && m.position() != 0){
+            return vm->None;
+        }
+        PyVar ret = vm->newObject(vm->_userTypes["re.Match"], (_Int)1);
+        vm->setAttr(ret, "_start", vm->PyInt(
+            string.__to_u8_index(m.position())
+        ));
+        vm->setAttr(ret, "_end", vm->PyInt(
+            string.__to_u8_index(m.position() + m.length())
+        ));
+        PyVarList groups(m.size());
+        for(size_t i = 0; i < m.size(); ++i){
+            groups[i] = vm->PyStr(m[i].str());
+        }
+        vm->setAttr(ret, "_groups", vm->PyTuple(groups));
+        return ret;
+    }
+    return vm->None;
+};
+
+void __addModuleRe(VM* vm){
+    PyVar mod = vm->newModule("re");
+    PyVar _tp_match = vm->newUserClassType(mod, "Match", vm->_tp_object);
+
+    vm->bindMethod("re.Match", "start", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        return vm->getAttr(self, "_start");
+    });
+
+    vm->bindMethod("re.Match", "end", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        return vm->getAttr(self, "_end");
+    });
+
+    vm->bindMethod("re.Match", "span", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1, true);
+        PyVar self = args[0];
+        PyVarList vec = { vm->getAttr(self, "_start"), vm->getAttr(self, "_end") };
+        return vm->PyTuple(vec);
+    });
+
+    vm->bindMethod("re.Match", "group", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2, true);
+        _Int index = vm->PyInt_AS_C(args[1]);
+        const auto& vec = vm->PyTuple_AS_C(vm->getAttr(args[0], "_groups"));
+        vm->normalizedIndex(index, vec.size());
+        return vec[index];
+    });
+
+    vm->bindFunc(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        return __regex_search(pattern, string, true, vm);
+    });
+
+    vm->bindFunc(mod, "search", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        return __regex_search(pattern, string, false, vm);
+    });
+
+    vm->bindFunc(mod, "sub", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 3);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& repl = vm->PyStr_AS_C(args[1]);
+        const _Str& string = vm->PyStr_AS_C(args[2]);
+        std::regex re(pattern);
+        return vm->PyStr(std::regex_replace(string, re, repl));
+    });
+
+    vm->bindFunc(mod, "split", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2);
+        const _Str& pattern = vm->PyStr_AS_C(args[0]);
+        const _Str& string = vm->PyStr_AS_C(args[1]);
+        std::regex re(pattern);
+        std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
+        std::sregex_token_iterator end;
+        PyVarList vec;
+        for(; it != end; ++it){
+            vec.push_back(vm->PyStr(it->str()));
+        }
+        return vm->PyList(vec);
     });
 }
 
@@ -7024,6 +7114,7 @@ extern "C" {
         __addModuleTime(vm);
         __addModuleJson(vm);
         __addModuleMath(vm);
+        __addModuleRe(vm);
 
         _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
         if(code == nullptr) exit(1);
