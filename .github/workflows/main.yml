@@ -26,6 +26,8 @@ jobs:
     - name: Compiling
       run: |
         bash build_wasm.sh
+        mkdir -p output/web/lib
+        cp web/lib/* output/web/lib
     - uses: crazy-max/ghaction-github-pages@v3
       with:
         target_branch: gh-pages
