@@ -42,9 +42,8 @@ class _Bindings
   static final pkpy_vm_read_output = _lib.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Pointer vm), ffi.Pointer<Utf8> Function(ffi.Pointer vm)>("pkpy_vm_read_output");
 }
 
-
 class _Str {
-  static final Finalizer<ffi.Pointer<Utf8>> finalizer = Finalizer((p) => calloc.free(p));
+  static final Finalizer<ffi.Pointer<Utf8>> finalizer = Finalizer((p) => malloc.free(p));
 
   late final ffi.Pointer<Utf8> _p;
   _Str(String s) {
@@ -54,7 +53,6 @@ class _Str {
 
   ffi.Pointer<Utf8> get p => _p;
 }
-
 class VM {
   late final ffi.Pointer pointer;
 
