@@ -253,11 +253,11 @@ public:
         return _hash;
     }
 
-    int __to_u8_index(int index) const{
+    int __to_u8_index(int64_t index) const{
         utf8_lazy_init();
         auto p = std::lower_bound(_u8_index->begin(), _u8_index->end(), index);
         if(*p != index) UNREACHABLE();
-        return p - _u8_index->begin();
+        return (int)(p - _u8_index->begin());
     }
 
     int u8_length() const {
@@ -2960,7 +2960,7 @@ struct SourceMetadata {
         }
         ss << "    " << line << '\n';
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
-            int column = cursor - pair.first - removedSpaces;
+            auto column = cursor - pair.first - removedSpaces;
             if(column >= 0){
                 ss << "    " << std::string(column, ' ') << "^\n";
             }
@@ -6946,7 +6946,7 @@ void __addModuleRe(VM* vm){
 
     vm->bindMethod("re.Match", "group", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
-        _Int index = vm->PyInt_AS_C(args[1]);
+        int index = (int)vm->PyInt_AS_C(args[1]);
         const auto& vec = vm->PyTuple_AS_C(vm->getAttr(args[0], "_groups"));
         vm->normalizedIndex(index, vec.size());
         return vec[index];

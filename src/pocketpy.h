@@ -754,7 +754,7 @@ void __addModuleRe(VM* vm){
 
     vm->bindMethod("re.Match", "group", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 2, true);
-        _Int index = vm->PyInt_AS_C(args[1]);
+        int index = (int)vm->PyInt_AS_C(args[1]);
         const auto& vec = vm->PyTuple_AS_C(vm->getAttr(args[0], "_groups"));
         vm->normalizedIndex(index, vec.size());
         return vec[index];

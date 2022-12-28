@@ -54,7 +54,7 @@ struct SourceMetadata {
         }
         ss << "    " << line << '\n';
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
-            int column = cursor - pair.first - removedSpaces;
+            auto column = cursor - pair.first - removedSpaces;
             if(column >= 0){
                 ss << "    " << std::string(column, ' ') << "^\n";
             }

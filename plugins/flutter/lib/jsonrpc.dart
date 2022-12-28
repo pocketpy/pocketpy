@@ -4,7 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:pocketpy/pocketpy.dart';
+import 'no_web.dart' if (dart.library.html) 'web.dart';
 
 class _JsonRpcError {
   final Map<String, dynamic> payload = {};
