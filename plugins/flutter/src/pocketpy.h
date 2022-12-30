@@ -5026,13 +5026,11 @@ public:
     void terminate(){
         if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
             keyboardInterrupt();
-            while(_state != THREAD_FINISHED) {
 #ifdef __EMSCRIPTEN__
-            emscripten_sleep(20);
+            // no way to terminate safely
 #else
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            while(_state != THREAD_FINISHED);
 #endif
-            }
         }
     }
 
