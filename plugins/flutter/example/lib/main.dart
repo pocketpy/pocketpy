@@ -50,7 +50,8 @@ class _MyAppState extends State<MyApp> {
       buffer.write(needMoreLines ? '... $text' : '>>> $text\n');
     });
     if (text == "exit()") exit(0);
-    needMoreLines = repl.input(text) == 0;
+    repl.input(text);
+    needMoreLines = repl.last_input_result() == 0;
     refresh();
   }
 

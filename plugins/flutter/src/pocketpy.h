@@ -4278,13 +4278,12 @@ public:
 
     void sleepForSecs(_Float sec){
         _Int ms = (_Int)(sec * 1000);
-        const _Int step = 20;
-        for(_Int i=0; i<ms; i+=step){
+        for(_Int i=0; i<ms; i+=20){
             _checkStopFlag();
 #ifdef __EMSCRIPTEN__
-            emscripten_sleep(step);
+            emscripten_sleep(20);
 #else
-            std::this_thread::sleep_for(std::chrono::milliseconds(step));
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
 #endif
         }
     }
@@ -5026,7 +5025,14 @@ public:
     void suspend(){
         if(_state != THREAD_RUNNING) UNREACHABLE();
         _state = THREAD_SUSPENDED;
-        while(_state == THREAD_SUSPENDED) _checkStopFlag();
+        while(_state == THREAD_SUSPENDED){
+            _checkStopFlag();
+#ifdef __EMSCRIPTEN__
+            emscripten_sleep(20);
+#else
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+#endif
+        }
     }
 
     _Str readJsonRpcRequest(){
