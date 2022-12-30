@@ -54,9 +54,7 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            _Code code = compile(vm, line.c_str(), "<stdin>", SINGLE_MODE);
-            if(code == nullptr) return EXEC_SKIPPED;
-            vm->execAsync(code);
+            vm->execAsync(line.c_str(), "<stdin>", SINGLE_MODE);
             return EXEC_DONE;
         }catch(NeedMoreLines& ne){
             buffer += line;

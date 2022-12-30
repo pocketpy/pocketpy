@@ -26,7 +26,7 @@ class VM {
 protected:
     std::deque< pkpy::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
-    std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
+    std::map<_Str, _Str> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
     
     void _checkStopFlag(){
@@ -313,7 +313,8 @@ protected:
                         if(it2 == _lazyModules.end()){
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
-                            _Code code = it2->second;
+                            const _Str& source = it2->second;
+                            _Code code = compile(source.c_str(), name, EXEC_MODE);
                             PyVar _m = newModule(name);
                             _exec(code, _m, {});
                             frame->push(_m);
@@ -377,9 +378,14 @@ public:
 
     void sleepForSecs(_Float sec){
         _Int ms = (_Int)(sec * 1000);
-        for(_Int i=0; i<ms; i+=20){
+        const _Int step = 20;
+        for(_Int i=0; i<ms; i+=step){
             _checkStopFlag();
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+#ifdef __EMSCRIPTEN__
+            emscripten_sleep(step);
+#else
+            std::this_thread::sleep_for(std::chrono::milliseconds(step));
+#endif
         }
     }
 
@@ -546,9 +552,10 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    virtual PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
+    virtual PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
+            _Code code = compile(source, filename, mode);
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
@@ -559,8 +566,8 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(const _Code& code) {
-        exec(code);
+    virtual void execAsync(const char* source, _Str filename, CompileMode mode) {
+        exec(source, filename, mode);
     }
 
     Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
@@ -629,8 +636,8 @@ public:
         return obj;
     }
 
-    void addLazyModule(_Str name, _Code code){
-        _lazyModules[name] = code;
+    void addLazyModule(_Str name, const char* source){
+        _lazyModules[name] = source;
     }
 
     PyVarOrNull getAttr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -949,6 +956,8 @@ public:
             delete _stderr;
         }
     }
+
+    _Code compile(const char* source, _Str filename, CompileMode mode);
 };
 
 /***** Pointers' Impl *****/
@@ -1077,10 +1086,11 @@ enum ThreadState {
 };
 
 class ThreadedVM : public VM {
-    std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
     _Str _sharedStr = "";
-    
+
+#ifndef __EMSCRIPTEN__
+    std::thread* _thread = nullptr;
     void __deleteThread(){
         if(_thread != nullptr){
             terminate();
@@ -1089,6 +1099,10 @@ class ThreadedVM : public VM {
             _thread = nullptr;
         }
     }
+#else
+    void __deleteThread(){}
+#endif
+
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {
         bindBuiltinFunc("__string_channel_call", [](VM* vm, const pkpy::ArgList& args){
@@ -1133,21 +1147,28 @@ public:
         _state = THREAD_RUNNING;
     }
 
-    void execAsync(const _Code& code) override {
+    void execAsync(const char* source, _Str filename, CompileMode mode) override {
         if(_state != THREAD_READY) UNREACHABLE();
+
+#ifdef __EMSCRIPTEN__
+        this->_state = THREAD_RUNNING;
+        VM::exec(source, filename, mode);
+        this->_state = THREAD_FINISHED;
+#else
         __deleteThread();
-        _thread = new std::thread([this, code](){
+        _thread = new std::thread([=](){
             this->_state = THREAD_RUNNING;
-            VM::exec(code);
+            VM::exec(source, filename, mode);
             this->_state = THREAD_FINISHED;
         });
+#endif
     }
 
-    PyVarOrNull exec(const _Code& code, PyVar _module = nullptr) override {
-        if(_state == THREAD_READY) return VM::exec(code, _module);
+    PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
+        if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
         auto callstackBackup = std::move(callstack);
         callstack.clear();
-        PyVarOrNull ret = VM::exec(code, _module);
+        PyVarOrNull ret = VM::exec(source, filename, mode, _module);
         callstack = std::move(callstackBackup);
         return ret;
     }

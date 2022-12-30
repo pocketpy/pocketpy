@@ -1063,17 +1063,3 @@ __LISTCOMP:
     void indentationError(_Str msg){ throw CompileError("IndentationError", msg, getLineSnapshot()); }
     void unexpectedError(_Str msg){ throw CompileError("UnexpectedError", msg, getLineSnapshot()); }
 };
-
-_Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE, bool noThrow=true) {
-    Compiler compiler(vm, source, filename, mode);
-    if(!noThrow) return compiler.__fillCode();
-    try{
-        return compiler.__fillCode();
-    }catch(_Error& e){
-        (*vm->_stderr) << e.what() << '\n';
-    }catch(std::exception& e){
-        auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
-        (*vm->_stderr) << ce.what() << '\n';
-    }
-    return nullptr;
-}

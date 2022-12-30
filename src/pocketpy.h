@@ -4,6 +4,17 @@
 #include "compiler.h"
 #include "repl.h"
 
+_Code VM::compile(const char* source, _Str filename, CompileMode mode) {
+    Compiler compiler(this, source, filename, mode);
+    try{
+        return compiler.__fillCode();
+    }catch(_Error& e){
+        throw e;
+    }catch(std::exception& e){
+        throw CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+    }
+}
+
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->isIntOrFloat(args[0], args[1]))                                                         \
@@ -55,7 +66,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE, false);
+        _Code code = vm->compile(expr.c_str(), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -589,8 +600,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #define __EXPORT __declspec(dllexport)
 #elif __APPLE__
 #define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
-#elif defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
-#include <emscripten.h>
+#elif __EMSCRIPTEN__
 #define __EXPORT EMSCRIPTEN_KEEPALIVE
 #define __NO_MAIN
 #else
@@ -642,7 +652,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE, false);
+        _Code code = vm->compile(expr.c_str(), "<json>", JSON_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -846,13 +856,8 @@ extern "C" {
 
     __EXPORT
     /// Run a given source on a virtual machine.
-    /// 
-    /// Return `true` if there is no compile error.
-    bool pkpy_vm_exec(VM* vm, const char* source){
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->exec(code);
-        return true;
+    void pkpy_vm_exec(VM* vm, const char* source){
+        vm->exec(source, "main.py", EXEC_MODE);
     }
 
     __EXPORT
@@ -877,9 +882,7 @@ extern "C" {
     /// Return a json representing the result.
     /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(VM* vm, const char* source){
-        _Code code = compile(vm, source, "<eval>", EVAL_MODE);
-        if(code == nullptr) return nullptr;
-        PyVarOrNull ret = vm->exec(code);
+        PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
             _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
@@ -907,14 +910,8 @@ extern "C" {
 
     __EXPORT
     /// Add a source module into a virtual machine.
-    ///
-    /// Return `true` if there is no complie error.
-    bool pkpy_vm_add_module(VM* vm, const char* name, const char* source){
-        // compile the module but don't execute it
-        _Code code = compile(vm, source, name + _Str(".py"));
-        if(code == nullptr) return false;
-        vm->addLazyModule(name, code);
-        return true;
+    void pkpy_vm_add_module(VM* vm, const char* name, const char* source){
+        vm->addLazyModule(name, source);
     }
 
     void __vm_init(VM* vm){
@@ -925,9 +922,10 @@ extern "C" {
         __addModuleMath(vm);
         __addModuleRe(vm);
 
-        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
-        if(code == nullptr) exit(1);
+        // add builtins | no exception handler | must succeed
+        _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, {});
+
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
         pkpy_vm_add_module(vm, "os", __OS_CODE);
     }
@@ -1009,13 +1007,7 @@ extern "C" {
     __EXPORT
     /// Run a given source on a threaded virtual machine.
     /// The excution will be started in a new thread.
-    /// 
-    /// Return `true` if there is no compile error.
-    bool pkpy_tvm_exec_async(VM* vm, const char* source){
-        // although this is a method of VM, it's only used in ThreadedVM
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->execAsync(code);
-        return true;
+    void pkpy_tvm_exec_async(VM* vm, const char* source){
+        vm->execAsync(source, "main.py", EXEC_MODE);
     }
 }

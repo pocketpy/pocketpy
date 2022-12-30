@@ -26,10 +26,6 @@ jobs:
     - name: Compiling
       run: |
         mkdir -p output/web/lib
-        mkdir -p output/web/lib_pthread
-        bash build_wasm.sh
-        mv web/lib/* output/web/lib_pthread
-        export PTHREAD_FLAG=" "
         bash build_wasm.sh
         cp web/lib/* output/web/lib
     - uses: crazy-max/ghaction-github-pages@v3

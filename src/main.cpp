@@ -4,7 +4,7 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
-//#define PK_DEBUG_THREADED
+#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;
@@ -83,25 +83,15 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         ThreadedVM* vm = pkpy_new_tvm(true);
-        _Code code = nullptr;
-        Timer("Compile time").run([&]{
-            code = compile(vm, src.c_str(), filename);
-        });
-        if(code == nullptr) return 1;
-
         //std::cout << code->toString() << std::endl;
-
-        // for(auto& kv : _strIntern)
-        //     std::cout << kv.first << ", ";
-        
 #ifdef PK_DEBUG_THREADED
         Timer("Running time").run([=]{
-            vm->execAsync(code);
+            vm->execAsync(src.c_str(), filename, EXEC_MODE);
             _tvm_dispatch(vm);
         });
 #else
         Timer("Running time").run([=]{
-            vm->exec(code);
+            vm->exec(src.c_str(), filename, EXEC_MODE);
         });
 #endif
 
