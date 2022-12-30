@@ -4214,7 +4214,7 @@ protected:
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
                             const _Str& source = it2->second;
-                            _Code code = compile(source.c_str(), name, EXEC_MODE);
+                            _Code code = compile(source, name, EXEC_MODE);
                             PyVar _m = newModule(name);
                             _exec(code, _m, {});
                             frame->push(_m);
@@ -4452,7 +4452,7 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    virtual PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr){
+    virtual PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
@@ -4466,7 +4466,7 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(const char* source, _Str filename, CompileMode mode) {
+    virtual void execAsync(_Str source, _Str filename, CompileMode mode) {
         exec(source, filename, mode);
     }
 
@@ -4536,7 +4536,7 @@ public:
         return obj;
     }
 
-    void addLazyModule(_Str name, const char* source){
+    void addLazyModule(_Str name, _Str source){
         _lazyModules[name] = source;
     }
 
@@ -4857,7 +4857,7 @@ public:
         }
     }
 
-    _Code compile(const char* source, _Str filename, CompileMode mode);
+    _Code compile(_Str source, _Str filename, CompileMode mode);
 };
 
 /***** Pointers' Impl *****/
@@ -5047,7 +5047,7 @@ public:
         _state = THREAD_RUNNING;
     }
 
-    void execAsync(const char* source, _Str filename, CompileMode mode) override {
+    void execAsync(_Str source, _Str filename, CompileMode mode) override {
         if(_state != THREAD_READY) UNREACHABLE();
 
 #ifdef __EMSCRIPTEN__
@@ -5064,7 +5064,7 @@ public:
 #endif
     }
 
-    PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
+    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
         if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
         auto callstackBackup = std::move(callstack);
         callstack.clear();
@@ -6196,20 +6196,24 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            vm->execAsync(line.c_str(), "<stdin>", SINGLE_MODE);
-            return EXEC_DONE;
+            // duplicated compile to catch NeedMoreLines
+            vm->compile(line, "<stdin>", SINGLE_MODE);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
             return NEED_MORE_LINES;
+        }catch(...){
+            // do nothing
         }
+        vm->execAsync(line, "<stdin>", SINGLE_MODE);
+        return EXEC_DONE;
     }
 };
 
 
-_Code VM::compile(const char* source, _Str filename, CompileMode mode) {
-    Compiler compiler(this, source, filename, mode);
+_Code VM::compile(_Str source, _Str filename, CompileMode mode) {
+    Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.__fillCode();
     }catch(_Error& e){
@@ -6270,7 +6274,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr.c_str(), "<eval>", EVAL_MODE);
+        _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -6854,7 +6858,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr.c_str(), "<json>", JSON_MODE);
+        _Code code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 

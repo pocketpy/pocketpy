@@ -314,7 +314,7 @@ protected:
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
                             const _Str& source = it2->second;
-                            _Code code = compile(source.c_str(), name, EXEC_MODE);
+                            _Code code = compile(source, name, EXEC_MODE);
                             PyVar _m = newModule(name);
                             _exec(code, _m, {});
                             frame->push(_m);
@@ -552,7 +552,7 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    virtual PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr){
+    virtual PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
@@ -566,7 +566,7 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(const char* source, _Str filename, CompileMode mode) {
+    virtual void execAsync(_Str source, _Str filename, CompileMode mode) {
         exec(source, filename, mode);
     }
 
@@ -636,7 +636,7 @@ public:
         return obj;
     }
 
-    void addLazyModule(_Str name, const char* source){
+    void addLazyModule(_Str name, _Str source){
         _lazyModules[name] = source;
     }
 
@@ -957,7 +957,7 @@ public:
         }
     }
 
-    _Code compile(const char* source, _Str filename, CompileMode mode);
+    _Code compile(_Str source, _Str filename, CompileMode mode);
 };
 
 /***** Pointers' Impl *****/
@@ -1147,7 +1147,7 @@ public:
         _state = THREAD_RUNNING;
     }
 
-    void execAsync(const char* source, _Str filename, CompileMode mode) override {
+    void execAsync(_Str source, _Str filename, CompileMode mode) override {
         if(_state != THREAD_READY) UNREACHABLE();
 
 #ifdef __EMSCRIPTEN__
@@ -1164,7 +1164,7 @@ public:
 #endif
     }
 
-    PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
+    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
         if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
         auto callstackBackup = std::move(callstack);
         callstack.clear();

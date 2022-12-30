@@ -4,8 +4,8 @@
 #include "compiler.h"
 #include "repl.h"
 
-_Code VM::compile(const char* source, _Str filename, CompileMode mode) {
-    Compiler compiler(this, source, filename, mode);
+_Code VM::compile(_Str source, _Str filename, CompileMode mode) {
+    Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.__fillCode();
     }catch(_Error& e){
@@ -66,7 +66,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr.c_str(), "<eval>", EVAL_MODE);
+        _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -652,7 +652,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr.c_str(), "<json>", JSON_MODE);
+        _Code code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
