@@ -3,28 +3,35 @@ import 'dart:convert' as cvt;
 import 'package:js/js.dart';
 import 'common.dart';
 
+@JS()
+@anonymous
+class Opt {
+  external bool get async;
+  external factory Opt({bool async});
+}
+
 @JS("Module.ccall")
-external dynamic ccall(String name, String? returnType, List<String> argTypes, List<dynamic> args);
+external dynamic ccall(String name, String? returnType, List<String> argTypes, List<dynamic> args, Opt opt);
 
 class _Bindings
 {
-  static final pkpy_delete = (dynamic p) => ccall("pkpy_delete", null, ["number"], [p]);
-  static final pkpy_new_repl = (dynamic vm) => ccall("pkpy_new_repl", "number", ["number"], [vm]);
-  static final pkpy_repl_input = (dynamic r, String line) => ccall("pkpy_repl_input", null, ["number", "string"], [r, line]);
-  static final pkpy_repl_last_input_result = (dynamic r) => ccall("pkpy_repl_last_input_result", "number", ["number"], [r]);
-  static final pkpy_new_tvm = (bool use_stdio) => ccall("pkpy_new_tvm", "number", ["boolean"], [use_stdio]);
-  static final pkpy_tvm_exec_async = (dynamic vm, String source) => ccall("pkpy_tvm_exec_async", null, ["number", "string"], [vm, source]);
-  static final pkpy_tvm_get_state = (dynamic vm) => ccall("pkpy_tvm_get_state", "number", ["number"], [vm]);
-  static final pkpy_tvm_read_jsonrpc_request = (dynamic vm) => ccall("pkpy_tvm_read_jsonrpc_request", "string", ["number"], [vm]);
-  static final pkpy_tvm_reset_state = (dynamic vm) => ccall("pkpy_tvm_reset_state", null, ["number"], [vm]);
-  static final pkpy_tvm_terminate = (dynamic vm) => ccall("pkpy_tvm_terminate", null, ["number"], [vm]);
-  static final pkpy_tvm_write_jsonrpc_response = (dynamic vm, String value) => ccall("pkpy_tvm_write_jsonrpc_response", null, ["number", "string"], [vm, value]);
-  static final pkpy_new_vm = (bool use_stdio) => ccall("pkpy_new_vm", "number", ["boolean"], [use_stdio]);
-  static final pkpy_vm_add_module = (dynamic vm, String name, String source) => ccall("pkpy_vm_add_module", null, ["number", "string", "string"], [vm, name, source]);
-  static final pkpy_vm_eval = (dynamic vm, String source) => ccall("pkpy_vm_eval", "string", ["number", "string"], [vm, source]);
-  static final pkpy_vm_exec = (dynamic vm, String source) => ccall("pkpy_vm_exec", null, ["number", "string"], [vm, source]);
-  static final pkpy_vm_get_global = (dynamic vm, String name) => ccall("pkpy_vm_get_global", "string", ["number", "string"], [vm, name]);
-  static final pkpy_vm_read_output = (dynamic vm) => ccall("pkpy_vm_read_output", "string", ["number"], [vm]);
+  static final pkpy_delete = (dynamic p) => ccall("pkpy_delete", null, ["number"], [p], Opt(async: false));
+  static final pkpy_new_repl = (dynamic vm) => ccall("pkpy_new_repl", "number", ["number"], [vm], Opt(async: false));
+  static final pkpy_repl_input = (dynamic r, String line) => ccall("pkpy_repl_input", null, ["number", "string"], [r, line], Opt(async: true));
+  static final pkpy_repl_last_input_result = (dynamic r) => ccall("pkpy_repl_last_input_result", "number", ["number"], [r], Opt(async: false));
+  static final pkpy_new_tvm = (bool use_stdio) => ccall("pkpy_new_tvm", "number", ["boolean"], [use_stdio], Opt(async: false));
+  static final pkpy_tvm_exec_async = (dynamic vm, String source) => ccall("pkpy_tvm_exec_async", null, ["number", "string"], [vm, source], Opt(async: true));
+  static final pkpy_tvm_get_state = (dynamic vm) => ccall("pkpy_tvm_get_state", "number", ["number"], [vm], Opt(async: false));
+  static final pkpy_tvm_read_jsonrpc_request = (dynamic vm) => ccall("pkpy_tvm_read_jsonrpc_request", "string", ["number"], [vm], Opt(async: false));
+  static final pkpy_tvm_reset_state = (dynamic vm) => ccall("pkpy_tvm_reset_state", null, ["number"], [vm], Opt(async: false));
+  static final pkpy_tvm_terminate = (dynamic vm) => ccall("pkpy_tvm_terminate", null, ["number"], [vm], Opt(async: false));
+  static final pkpy_tvm_write_jsonrpc_response = (dynamic vm, String value) => ccall("pkpy_tvm_write_jsonrpc_response", null, ["number", "string"], [vm, value], Opt(async: false));
+  static final pkpy_new_vm = (bool use_stdio) => ccall("pkpy_new_vm", "number", ["boolean"], [use_stdio], Opt(async: false));
+  static final pkpy_vm_add_module = (dynamic vm, String name, String source) => ccall("pkpy_vm_add_module", null, ["number", "string", "string"], [vm, name, source], Opt(async: false));
+  static final pkpy_vm_eval = (dynamic vm, String source) => ccall("pkpy_vm_eval", "string", ["number", "string"], [vm, source], Opt(async: false));
+  static final pkpy_vm_exec = (dynamic vm, String source) => ccall("pkpy_vm_exec", null, ["number", "string"], [vm, source], Opt(async: false));
+  static final pkpy_vm_get_global = (dynamic vm, String name) => ccall("pkpy_vm_get_global", "string", ["number", "string"], [vm, name], Opt(async: false));
+  static final pkpy_vm_read_output = (dynamic vm) => ccall("pkpy_vm_read_output", "string", ["number"], [vm], Opt(async: false));
 }
 
 class VM {
