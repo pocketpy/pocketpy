@@ -23,7 +23,6 @@
 #include <atomic>
 #include <iostream>
 
-#define EMH_WYHASH_HASH 1
 #include "hash_table8.hpp"
 
 #ifdef POCKETPY_H

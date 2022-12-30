@@ -25,6 +25,11 @@
 
 #pragma once
 
+// Modification:
+// 1. Add #define EMH_WYHASH_HASH 1
+// 2. Add static for wymix
+#define EMH_WYHASH_HASH 1
+
 #include <cstring>
 #include <string>
 #include <cstdlib>
