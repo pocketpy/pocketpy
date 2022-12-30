@@ -12,16 +12,16 @@ class _Bindings
   static final pkpy_new_repl = (dynamic vm) => ccall("pkpy_new_repl", "number", ["number"], [vm]);
   static final pkpy_repl_input = (dynamic r, String line) => ccall("pkpy_repl_input", "number", ["number", "string"], [r, line]);
   static final pkpy_new_tvm = (bool use_stdio) => ccall("pkpy_new_tvm", "number", ["boolean"], [use_stdio]);
-  static final pkpy_tvm_exec_async = (dynamic vm, String source) => ccall("pkpy_tvm_exec_async", "boolean", ["number", "string"], [vm, source]);
+  static final pkpy_tvm_exec_async = (dynamic vm, String source) => ccall("pkpy_tvm_exec_async", null, ["number", "string"], [vm, source]);
   static final pkpy_tvm_get_state = (dynamic vm) => ccall("pkpy_tvm_get_state", "number", ["number"], [vm]);
   static final pkpy_tvm_read_jsonrpc_request = (dynamic vm) => ccall("pkpy_tvm_read_jsonrpc_request", "string", ["number"], [vm]);
   static final pkpy_tvm_reset_state = (dynamic vm) => ccall("pkpy_tvm_reset_state", null, ["number"], [vm]);
   static final pkpy_tvm_terminate = (dynamic vm) => ccall("pkpy_tvm_terminate", null, ["number"], [vm]);
   static final pkpy_tvm_write_jsonrpc_response = (dynamic vm, String value) => ccall("pkpy_tvm_write_jsonrpc_response", null, ["number", "string"], [vm, value]);
   static final pkpy_new_vm = (bool use_stdio) => ccall("pkpy_new_vm", "number", ["boolean"], [use_stdio]);
-  static final pkpy_vm_add_module = (dynamic vm, String name, String source) => ccall("pkpy_vm_add_module", "boolean", ["number", "string", "string"], [vm, name, source]);
+  static final pkpy_vm_add_module = (dynamic vm, String name, String source) => ccall("pkpy_vm_add_module", null, ["number", "string", "string"], [vm, name, source]);
   static final pkpy_vm_eval = (dynamic vm, String source) => ccall("pkpy_vm_eval", "string", ["number", "string"], [vm, source]);
-  static final pkpy_vm_exec = (dynamic vm, String source) => ccall("pkpy_vm_exec", "boolean", ["number", "string"], [vm, source]);
+  static final pkpy_vm_exec = (dynamic vm, String source) => ccall("pkpy_vm_exec", null, ["number", "string"], [vm, source]);
   static final pkpy_vm_get_global = (dynamic vm, String name) => ccall("pkpy_vm_get_global", "string", ["number", "string"], [vm, name]);
   static final pkpy_vm_read_output = (dynamic vm) => ccall("pkpy_vm_read_output", "string", ["number"], [vm]);
 }
@@ -49,11 +49,10 @@ class VM {
     return ret;
   }
 
-  /// Add a source module into a virtual machine.  Return `true` if there is no complie error.
-  bool add_module(String name, String source)
+  /// Add a source module into a virtual machine.
+  void add_module(String name, String source)
   {
-    var ret = _Bindings.pkpy_vm_add_module(pointer, name, source);
-    return ret;
+    _Bindings.pkpy_vm_add_module(pointer, name, source);
   }
 
   /// Evaluate an expression.  Return a json representing the result. If there is any error, return `nullptr`.
@@ -63,11 +62,10 @@ class VM {
     return ret;
   }
 
-  /// Run a given source on a virtual machine.  Return `true` if there is no compile error.
-  bool exec(String source)
+  /// Run a given source on a virtual machine.
+  void exec(String source)
   {
-    var ret = _Bindings.pkpy_vm_exec(pointer, source);
-    return ret;
+    _Bindings.pkpy_vm_exec(pointer, source);
   }
 
   /// Get a global variable of a virtual machine.  Return a json representing the result. If the variable is not found, return `nullptr`.
@@ -84,11 +82,10 @@ enum ThreadState { ready, running, suspended, finished }
 class ThreadedVM extends VM {
   ThreadState get state => ThreadState.values[_Bindings.pkpy_tvm_get_state(pointer)];
   
-  /// Run a given source on a threaded virtual machine. The excution will be started in a new thread.  Return `true` if there is no compile error.
-  bool exec_async(String source)
+  /// Run a given source on a threaded virtual machine. The excution will be started in a new thread.
+  void exec_async(String source)
   {
-    var ret = _Bindings.pkpy_tvm_exec_async(pointer, source);
-    return ret;
+    _Bindings.pkpy_tvm_exec_async(pointer, source);
   }
 
   /// Read the current JSONRPC request from shared string buffer.

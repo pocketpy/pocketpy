@@ -1,3 +1,7 @@
+## 0.6.0+1
+
++ Break change
+
 ## 0.5.2+3
 
 + Add web support

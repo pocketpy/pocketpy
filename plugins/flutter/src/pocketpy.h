@@ -27,7 +27,6 @@
 #include <iomanip>
 #include <map>
 
-#include <thread>
 #include <atomic>
 #include <iostream>
 
@@ -37,7 +36,13 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.5.2"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#else
+#include <thread>
+#endif
+
+#define PK_VERSION "0.6.0"
 
 //#define PKPY_NO_TYPE_CHECK
 //#define PKPY_NO_INDEX_CHECK
@@ -3921,7 +3926,7 @@ class VM {
 protected:
     std::deque< pkpy::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
-    std::map<_Str, _Code> _lazyModules;     // lazy loaded modules
+    std::map<_Str, _Str> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
     
     void _checkStopFlag(){
@@ -4208,7 +4213,8 @@ protected:
                         if(it2 == _lazyModules.end()){
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
-                            _Code code = it2->second;
+                            const _Str& source = it2->second;
+                            _Code code = compile(source.c_str(), name, EXEC_MODE);
                             PyVar _m = newModule(name);
                             _exec(code, _m, {});
                             frame->push(_m);
@@ -4272,9 +4278,14 @@ public:
 
     void sleepForSecs(_Float sec){
         _Int ms = (_Int)(sec * 1000);
-        for(_Int i=0; i<ms; i+=20){
+        const _Int step = 20;
+        for(_Int i=0; i<ms; i+=step){
             _checkStopFlag();
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+#ifdef __EMSCRIPTEN__
+            emscripten_sleep(step);
+#else
+            std::this_thread::sleep_for(std::chrono::milliseconds(step));
+#endif
         }
     }
 
@@ -4441,9 +4452,10 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    virtual PyVarOrNull exec(const _Code& code, PyVar _module=nullptr){
+    virtual PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
+            _Code code = compile(source, filename, mode);
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
@@ -4454,8 +4466,8 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(const _Code& code) {
-        exec(code);
+    virtual void execAsync(const char* source, _Str filename, CompileMode mode) {
+        exec(source, filename, mode);
     }
 
     Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
@@ -4524,8 +4536,8 @@ public:
         return obj;
     }
 
-    void addLazyModule(_Str name, _Code code){
-        _lazyModules[name] = code;
+    void addLazyModule(_Str name, const char* source){
+        _lazyModules[name] = source;
     }
 
     PyVarOrNull getAttr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -4844,6 +4856,8 @@ public:
             delete _stderr;
         }
     }
+
+    _Code compile(const char* source, _Str filename, CompileMode mode);
 };
 
 /***** Pointers' Impl *****/
@@ -4972,10 +4986,11 @@ enum ThreadState {
 };
 
 class ThreadedVM : public VM {
-    std::thread* _thread = nullptr;
     std::atomic<ThreadState> _state = THREAD_READY;
     _Str _sharedStr = "";
-    
+
+#ifndef __EMSCRIPTEN__
+    std::thread* _thread = nullptr;
     void __deleteThread(){
         if(_thread != nullptr){
             terminate();
@@ -4984,6 +4999,10 @@ class ThreadedVM : public VM {
             _thread = nullptr;
         }
     }
+#else
+    void __deleteThread(){}
+#endif
+
 public:
     ThreadedVM(bool use_stdio) : VM(use_stdio) {
         bindBuiltinFunc("__string_channel_call", [](VM* vm, const pkpy::ArgList& args){
@@ -5028,21 +5047,28 @@ public:
         _state = THREAD_RUNNING;
     }
 
-    void execAsync(const _Code& code) override {
+    void execAsync(const char* source, _Str filename, CompileMode mode) override {
         if(_state != THREAD_READY) UNREACHABLE();
+
+#ifdef __EMSCRIPTEN__
+        this->_state = THREAD_RUNNING;
+        VM::exec(source, filename, mode);
+        this->_state = THREAD_FINISHED;
+#else
         __deleteThread();
-        _thread = new std::thread([this, code](){
+        _thread = new std::thread([=](){
             this->_state = THREAD_RUNNING;
-            VM::exec(code);
+            VM::exec(source, filename, mode);
             this->_state = THREAD_FINISHED;
         });
+#endif
     }
 
-    PyVarOrNull exec(const _Code& code, PyVar _module = nullptr) override {
-        if(_state == THREAD_READY) return VM::exec(code, _module);
+    PyVarOrNull exec(const char* source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
+        if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
         auto callstackBackup = std::move(callstack);
         callstack.clear();
-        PyVarOrNull ret = VM::exec(code, _module);
+        PyVarOrNull ret = VM::exec(source, filename, mode, _module);
         callstack = std::move(callstackBackup);
         return ret;
     }
@@ -6118,20 +6144,6 @@ __LISTCOMP:
     void unexpectedError(_Str msg){ throw CompileError("UnexpectedError", msg, getLineSnapshot()); }
 };
 
-_Code compile(VM* vm, const char* source, _Str filename, CompileMode mode=EXEC_MODE, bool noThrow=true) {
-    Compiler compiler(vm, source, filename, mode);
-    if(!noThrow) return compiler.__fillCode();
-    try{
-        return compiler.__fillCode();
-    }catch(_Error& e){
-        (*vm->_stderr) << e.what() << '\n';
-    }catch(std::exception& e){
-        auto ce = CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
-        (*vm->_stderr) << ce.what() << '\n';
-    }
-    return nullptr;
-}
-
 
 enum InputResult {
     NEED_MORE_LINES = 0,
@@ -6184,9 +6196,7 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            _Code code = compile(vm, line.c_str(), "<stdin>", SINGLE_MODE);
-            if(code == nullptr) return EXEC_SKIPPED;
-            vm->execAsync(code);
+            vm->execAsync(line.c_str(), "<stdin>", SINGLE_MODE);
             return EXEC_DONE;
         }catch(NeedMoreLines& ne){
             buffer += line;
@@ -6197,6 +6207,17 @@ __NOT_ENOUGH_LINES:
     }
 };
 
+
+_Code VM::compile(const char* source, _Str filename, CompileMode mode) {
+    Compiler compiler(this, source, filename, mode);
+    try{
+        return compiler.__fillCode();
+    }catch(_Error& e){
+        throw e;
+    }catch(std::exception& e){
+        throw CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+    }
+}
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
@@ -6249,7 +6270,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc("eval", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<eval>", EVAL_MODE, false);
+        _Code code = vm->compile(expr.c_str(), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -6781,8 +6802,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #define __EXPORT __declspec(dllexport)
 #elif __APPLE__
 #define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
-#elif defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) || defined(__wasm64__)
-#include <emscripten.h>
+#elif __EMSCRIPTEN__
 #define __EXPORT EMSCRIPTEN_KEEPALIVE
 #define __NO_MAIN
 #else
@@ -6834,7 +6854,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = compile(vm, expr.c_str(), "<json>", JSON_MODE, false);
+        _Code code = vm->compile(expr.c_str(), "<json>", JSON_MODE);
         return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
     });
 
@@ -7038,13 +7058,8 @@ extern "C" {
 
     __EXPORT
     /// Run a given source on a virtual machine.
-    /// 
-    /// Return `true` if there is no compile error.
-    bool pkpy_vm_exec(VM* vm, const char* source){
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->exec(code);
-        return true;
+    void pkpy_vm_exec(VM* vm, const char* source){
+        vm->exec(source, "main.py", EXEC_MODE);
     }
 
     __EXPORT
@@ -7069,9 +7084,7 @@ extern "C" {
     /// Return a json representing the result.
     /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(VM* vm, const char* source){
-        _Code code = compile(vm, source, "<eval>", EVAL_MODE);
-        if(code == nullptr) return nullptr;
-        PyVarOrNull ret = vm->exec(code);
+        PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
             _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
@@ -7099,14 +7112,8 @@ extern "C" {
 
     __EXPORT
     /// Add a source module into a virtual machine.
-    ///
-    /// Return `true` if there is no complie error.
-    bool pkpy_vm_add_module(VM* vm, const char* name, const char* source){
-        // compile the module but don't execute it
-        _Code code = compile(vm, source, name + _Str(".py"));
-        if(code == nullptr) return false;
-        vm->addLazyModule(name, code);
-        return true;
+    void pkpy_vm_add_module(VM* vm, const char* name, const char* source){
+        vm->addLazyModule(name, source);
     }
 
     void __vm_init(VM* vm){
@@ -7117,9 +7124,10 @@ extern "C" {
         __addModuleMath(vm);
         __addModuleRe(vm);
 
-        _Code code = compile(vm, __BUILTINS_CODE, "<builtins>");
-        if(code == nullptr) exit(1);
+        // add builtins | no exception handler | must succeed
+        _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, {});
+
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
         pkpy_vm_add_module(vm, "os", __OS_CODE);
     }
@@ -7201,14 +7209,8 @@ extern "C" {
     __EXPORT
     /// Run a given source on a threaded virtual machine.
     /// The excution will be started in a new thread.
-    /// 
-    /// Return `true` if there is no compile error.
-    bool pkpy_tvm_exec_async(VM* vm, const char* source){
-        // although this is a method of VM, it's only used in ThreadedVM
-        _Code code = compile(vm, source, "main.py");
-        if(code == nullptr) return false;
-        vm->execAsync(code);
-        return true;
+    void pkpy_tvm_exec_async(VM* vm, const char* source){
+        vm->execAsync(source, "main.py", EXEC_MODE);
     }
 }
 

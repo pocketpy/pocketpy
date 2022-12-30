@@ -28,16 +28,16 @@ class _Bindings
   static final pkpy_new_repl = _lib.lookupFunction<ffi.Pointer Function(ffi.Pointer vm), ffi.Pointer Function(ffi.Pointer vm)>("pkpy_new_repl");
   static final pkpy_repl_input = _lib.lookupFunction<ffi.Int32 Function(ffi.Pointer r, ffi.Pointer<Utf8> line), int Function(ffi.Pointer r, ffi.Pointer<Utf8> line)>("pkpy_repl_input");
   static final pkpy_new_tvm = _lib.lookupFunction<ffi.Pointer Function(ffi.Bool use_stdio), ffi.Pointer Function(bool use_stdio)>("pkpy_new_tvm");
-  static final pkpy_tvm_exec_async = _lib.lookupFunction<ffi.Bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_tvm_exec_async");
+  static final pkpy_tvm_exec_async = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_tvm_exec_async");
   static final pkpy_tvm_get_state = _lib.lookupFunction<ffi.Int32 Function(ffi.Pointer vm), int Function(ffi.Pointer vm)>("pkpy_tvm_get_state");
   static final pkpy_tvm_read_jsonrpc_request = _lib.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Pointer vm), ffi.Pointer<Utf8> Function(ffi.Pointer vm)>("pkpy_tvm_read_jsonrpc_request");
   static final pkpy_tvm_reset_state = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm), void Function(ffi.Pointer vm)>("pkpy_tvm_reset_state");
   static final pkpy_tvm_terminate = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm), void Function(ffi.Pointer vm)>("pkpy_tvm_terminate");
   static final pkpy_tvm_write_jsonrpc_response = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm, ffi.Pointer<Utf8> value), void Function(ffi.Pointer vm, ffi.Pointer<Utf8> value)>("pkpy_tvm_write_jsonrpc_response");
   static final pkpy_new_vm = _lib.lookupFunction<ffi.Pointer Function(ffi.Bool use_stdio), ffi.Pointer Function(bool use_stdio)>("pkpy_new_vm");
-  static final pkpy_vm_add_module = _lib.lookupFunction<ffi.Bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> name, ffi.Pointer<Utf8> source), bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> name, ffi.Pointer<Utf8> source)>("pkpy_vm_add_module");
+  static final pkpy_vm_add_module = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm, ffi.Pointer<Utf8> name, ffi.Pointer<Utf8> source), void Function(ffi.Pointer vm, ffi.Pointer<Utf8> name, ffi.Pointer<Utf8> source)>("pkpy_vm_add_module");
   static final pkpy_vm_eval = _lib.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_vm_eval");
-  static final pkpy_vm_exec = _lib.lookupFunction<ffi.Bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), bool Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_vm_exec");
+  static final pkpy_vm_exec = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_vm_exec");
   static final pkpy_vm_get_global = _lib.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> name), ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> name)>("pkpy_vm_get_global");
   static final pkpy_vm_read_output = _lib.lookupFunction<ffi.Pointer<Utf8> Function(ffi.Pointer vm), ffi.Pointer<Utf8> Function(ffi.Pointer vm)>("pkpy_vm_read_output");
 }
@@ -76,11 +76,10 @@ class VM {
     return ret;
   }
 
-  /// Add a source module into a virtual machine.  Return `true` if there is no complie error.
-  bool add_module(String name, String source)
+  /// Add a source module into a virtual machine.
+  void add_module(String name, String source)
   {
-    var ret = _Bindings.pkpy_vm_add_module(pointer, _Str(name).p, _Str(source).p);
-    return ret;
+    _Bindings.pkpy_vm_add_module(pointer, _Str(name).p, _Str(source).p);
   }
 
   /// Evaluate an expression.  Return a json representing the result. If there is any error, return `nullptr`.
@@ -93,11 +92,10 @@ class VM {
     return s;
   }
 
-  /// Run a given source on a virtual machine.  Return `true` if there is no compile error.
-  bool exec(String source)
+  /// Run a given source on a virtual machine.
+  void exec(String source)
   {
-    var ret = _Bindings.pkpy_vm_exec(pointer, _Str(source).p);
-    return ret;
+    _Bindings.pkpy_vm_exec(pointer, _Str(source).p);
   }
 
   /// Get a global variable of a virtual machine.  Return a json representing the result. If the variable is not found, return `nullptr`.
@@ -117,11 +115,10 @@ enum ThreadState { ready, running, suspended, finished }
 class ThreadedVM extends VM {
   ThreadState get state => ThreadState.values[_Bindings.pkpy_tvm_get_state(pointer)];
   
-  /// Run a given source on a threaded virtual machine. The excution will be started in a new thread.  Return `true` if there is no compile error.
-  bool exec_async(String source)
+  /// Run a given source on a threaded virtual machine. The excution will be started in a new thread.
+  void exec_async(String source)
   {
-    var ret = _Bindings.pkpy_tvm_exec_async(pointer, _Str(source).p);
-    return ret;
+    _Bindings.pkpy_tvm_exec_async(pointer, _Str(source).p);
   }
 
   /// Read the current JSONRPC request from shared string buffer.
