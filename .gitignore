@@ -12,3 +12,5 @@ web/lib
 *.so
 *.dll
 plugins/unity/
+plugins/flutter/example/web/lib/pocketpy.js
+plugins/flutter/example/web/lib/pocketpy.wasm
