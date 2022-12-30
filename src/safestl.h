@@ -36,8 +36,6 @@ public:
 };
 
 
-#include "hash_table8.hpp"
-
 class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
     using emhash8::HashMap<_Str, PyVar>::HashMap;
 };

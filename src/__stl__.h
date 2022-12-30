@@ -23,6 +23,9 @@
 #include <atomic>
 #include <iostream>
 
+#define EMH_WYHASH_HASH 1
+#include "hash_table8.hpp"
+
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()! This should be a bug, please report it");
 #else

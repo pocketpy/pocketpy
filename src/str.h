@@ -46,7 +46,8 @@ public:
 
     size_t hash() const{
         if(!hash_initialized){
-            _hash = std::hash<std::string>()(*this);
+            //_hash = std::hash<std::string>()(*this);
+            _hash = emhash8::HashMap<int,int>::wyhashstr(data(), size());
             hash_initialized = true;
         }
         return _hash;
