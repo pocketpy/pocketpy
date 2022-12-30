@@ -10,7 +10,8 @@ class _Bindings
 {
   static final pkpy_delete = (dynamic p) => ccall("pkpy_delete", null, ["number"], [p]);
   static final pkpy_new_repl = (dynamic vm) => ccall("pkpy_new_repl", "number", ["number"], [vm]);
-  static final pkpy_repl_input = (dynamic r, String line) => ccall("pkpy_repl_input", "number", ["number", "string"], [r, line]);
+  static final pkpy_repl_input = (dynamic r, String line) => ccall("pkpy_repl_input", null, ["number", "string"], [r, line]);
+  static final pkpy_repl_last_input_result = (dynamic r) => ccall("pkpy_repl_last_input_result", "number", ["number"], [r]);
   static final pkpy_new_tvm = (bool use_stdio) => ccall("pkpy_new_tvm", "number", ["boolean"], [use_stdio]);
   static final pkpy_tvm_exec_async = (dynamic vm, String source) => ccall("pkpy_tvm_exec_async", null, ["number", "string"], [vm, source]);
   static final pkpy_tvm_get_state = (dynamic vm) => ccall("pkpy_tvm_get_state", "number", ["number"], [vm]);
@@ -126,10 +127,16 @@ class REPL {
     _Bindings.pkpy_delete(pointer);
   }
 
-  /// Input a source line to an interactive console.  Return `0` if need more lines, `1` if execution happened, `2` if execution skipped (compile error or empty input).
-  int input(String line)
+  /// Input a source line to an interactive console.
+  void input(String line)
   {
-    var ret = _Bindings.pkpy_repl_input(pointer, line);
+    _Bindings.pkpy_repl_input(pointer, line);
+  }
+
+  /// Check if the REPL needs more lines.
+  int last_input_result()
+  {
+    var ret = _Bindings.pkpy_repl_last_input_result(pointer);
     return ret;
   }
 

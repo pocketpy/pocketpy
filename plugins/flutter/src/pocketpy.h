@@ -6147,7 +6147,7 @@ __LISTCOMP:
 
 enum InputResult {
     NEED_MORE_LINES = 0,
-    EXEC_DONE = 1,
+    EXEC_STARTED = 1,
     EXEC_SKIPPED = 2,
 };
 
@@ -6156,12 +6156,7 @@ protected:
     int need_more_lines = 0;
     std::string buffer;
     VM* vm;
-    bool exited = false;
-
-    void _exit(){
-        exited = true;
-        exit(0);
-    }
+    InputResult lastResult = EXEC_SKIPPED;
 public:
     REPL(VM* vm) : vm(vm){
         (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
@@ -6169,12 +6164,11 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    bool is_need_more_lines() const {
-        return need_more_lines;
+    InputResult last_input_result() const {
+        return lastResult;
     }
 
-    InputResult input(std::string line){
-        if(exited) return EXEC_SKIPPED;
+    void input(std::string line){
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -6188,11 +6182,15 @@ public:
                 buffer.clear();
             }else{
 __NOT_ENOUGH_LINES:
-                return NEED_MORE_LINES;
+                lastResult = NEED_MORE_LINES;
+                return;
             }
         }else{
-            if(line == "exit()") _exit();
-            if(line.empty()) return EXEC_SKIPPED;
+            if(line == "exit()") exit(0);
+            if(line.empty()) {
+                lastResult = EXEC_SKIPPED;
+                return;
+            }
         }
 
         try{
@@ -6202,12 +6200,16 @@ __NOT_ENOUGH_LINES:
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
-            return NEED_MORE_LINES;
+            if (need_more_lines) {
+                lastResult = NEED_MORE_LINES;
+            }
+            return;
         }catch(...){
             // do nothing
         }
+
+        lastResult = EXEC_STARTED;
         vm->execAsync(line, "<stdin>", SINGLE_MODE);
-        return EXEC_DONE;
     }
 };
 
@@ -7106,12 +7108,14 @@ extern "C" {
 
     __EXPORT
     /// Input a source line to an interactive console.
-    /// 
-    /// Return `0` if need more lines,
-    /// `1` if execution happened,
-    /// `2` if execution skipped (compile error or empty input).
-    int pkpy_repl_input(REPL* r, const char* line){
-        return r->input(line);
+    void pkpy_repl_input(REPL* r, const char* line){
+        r->input(line);
+    }
+
+    __EXPORT
+    /// Check if the REPL needs more lines.
+    int pkpy_repl_last_input_result(REPL* r){
+        return (int)(r->last_input_result());
     }
 
     __EXPORT

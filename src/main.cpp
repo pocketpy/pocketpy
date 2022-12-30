@@ -56,13 +56,15 @@ int main(int argc, char** argv){
         ThreadedVM* vm = pkpy_new_tvm(true);
 #endif
         REPL repl(vm);
+        int result = -1;
         while(true){
-            (*vm->_stdout) << (repl.is_need_more_lines() ? "... " : ">>> ");
+            (*vm->_stdout) << (result==0 ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            int result = pkpy_repl_input(&repl, line.c_str());
+            pkpy_repl_input(&repl, line.c_str());
+            result = pkpy_repl_last_input_result(&repl);
 #ifdef PK_DEBUG_THREADED
-            if(result == (int)EXEC_DONE){
+            if(result == (int)EXEC_STARTED){
                 _tvm_dispatch(vm);
                 pkpy_tvm_reset_state(vm);
             }

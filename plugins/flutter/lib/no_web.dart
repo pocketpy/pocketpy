@@ -26,7 +26,8 @@ class _Bindings
 
   static final pkpy_delete = _lib.lookupFunction<ffi.Void Function(ffi.Pointer p), void Function(ffi.Pointer p)>("pkpy_delete");
   static final pkpy_new_repl = _lib.lookupFunction<ffi.Pointer Function(ffi.Pointer vm), ffi.Pointer Function(ffi.Pointer vm)>("pkpy_new_repl");
-  static final pkpy_repl_input = _lib.lookupFunction<ffi.Int32 Function(ffi.Pointer r, ffi.Pointer<Utf8> line), int Function(ffi.Pointer r, ffi.Pointer<Utf8> line)>("pkpy_repl_input");
+  static final pkpy_repl_input = _lib.lookupFunction<ffi.Void Function(ffi.Pointer r, ffi.Pointer<Utf8> line), void Function(ffi.Pointer r, ffi.Pointer<Utf8> line)>("pkpy_repl_input");
+  static final pkpy_repl_last_input_result = _lib.lookupFunction<ffi.Int32 Function(ffi.Pointer r), int Function(ffi.Pointer r)>("pkpy_repl_last_input_result");
   static final pkpy_new_tvm = _lib.lookupFunction<ffi.Pointer Function(ffi.Bool use_stdio), ffi.Pointer Function(bool use_stdio)>("pkpy_new_tvm");
   static final pkpy_tvm_exec_async = _lib.lookupFunction<ffi.Void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source), void Function(ffi.Pointer vm, ffi.Pointer<Utf8> source)>("pkpy_tvm_exec_async");
   static final pkpy_tvm_get_state = _lib.lookupFunction<ffi.Int32 Function(ffi.Pointer vm), int Function(ffi.Pointer vm)>("pkpy_tvm_get_state");
@@ -162,10 +163,16 @@ class REPL {
     _Bindings.pkpy_delete(pointer);
   }
 
-  /// Input a source line to an interactive console.  Return `0` if need more lines, `1` if execution happened, `2` if execution skipped (compile error or empty input).
-  int input(String line)
+  /// Input a source line to an interactive console.
+  void input(String line)
   {
-    var ret = _Bindings.pkpy_repl_input(pointer, _Str(line).p);
+    _Bindings.pkpy_repl_input(pointer, _Str(line).p);
+  }
+
+  /// Check if the REPL needs more lines.
+  int last_input_result()
+  {
+    var ret = _Bindings.pkpy_repl_last_input_result(pointer);
     return ret;
   }
 

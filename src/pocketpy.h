@@ -900,12 +900,14 @@ extern "C" {
 
     __EXPORT
     /// Input a source line to an interactive console.
-    /// 
-    /// Return `0` if need more lines,
-    /// `1` if execution happened,
-    /// `2` if execution skipped (compile error or empty input).
-    int pkpy_repl_input(REPL* r, const char* line){
-        return r->input(line);
+    void pkpy_repl_input(REPL* r, const char* line){
+        r->input(line);
+    }
+
+    __EXPORT
+    /// Check if the REPL needs more lines.
+    int pkpy_repl_last_input_result(REPL* r){
+        return (int)(r->last_input_result());
     }
 
     __EXPORT
