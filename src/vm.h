@@ -26,7 +26,7 @@ class VM {
 protected:
     std::deque< pkpy::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
-    std::map<_Str, _Str> _lazyModules;     // lazy loaded modules
+    emhash8::HashMap<_Str, _Str> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
     
     void _checkStopFlag(){
