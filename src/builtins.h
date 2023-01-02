@@ -1,33 +1,27 @@
 #pragma once
 
 const char* __BUILTINS_CODE = R"(
-def len(x):
-    return x.__len__()
-
 def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     __sys_stdout_write(s + end)
 
-def round(x):
+def round(x, ndigits=0):
+    assert ndigits >= 0
+    if ndigits == 0:
+        return x >= 0 ? int(x + 0.5) : int(x - 0.5)
     if x >= 0:
-        return int(x + 0.5)
+        return int(x * 10**ndigits + 0.5) / 10**ndigits
     else:
-        return int(x - 0.5)
+        return int(x * 10**ndigits - 0.5) / 10**ndigits
 
 def abs(x):
-    if x < 0:
-        return -x
-    return x
+    return x < 0 ? -x : x
 
 def max(a, b):
-    if a > b:
-        return a
-    return b
+    return a > b ? a : b
 
 def min(a, b):
-    if a < b:
-        return a
-    return b
+    return a < b ? a : b
 
 def sum(iterable):
     res = 0

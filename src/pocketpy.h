@@ -85,6 +85,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(vm->hash(args[0]));
     });
 
+    _vm->bindBuiltinFunc("len", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->call(args[0], __len__, pkpy::noArg());
+    });
+
     _vm->bindBuiltinFunc("chr", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         _Int i = vm->PyInt_AS_C(args[0]);
@@ -144,6 +149,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("type", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         return args[0]->_type;
+    });
+
+    _vm->bindMethod("type", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2, true);
+        return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {

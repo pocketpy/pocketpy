@@ -4,6 +4,7 @@
 #pragma warning (disable:4267)
 #pragma warning (disable:4101)
 #define _CRT_NONSTDC_NO_DEPRECATE
+#define strdup _strdup
 #endif
 
 #include <sstream>
@@ -18,7 +19,6 @@
 #include <string_view>
 #include <queue>
 #include <iomanip>
-#include <map>
 
 #include <atomic>
 #include <iostream>

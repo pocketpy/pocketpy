@@ -35,11 +35,7 @@ public:
     using std::vector<PyVar>::vector;
 };
 
-
-class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
-    using emhash8::HashMap<_Str, PyVar>::HashMap;
-};
-
+typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
     const uint8_t MAX_POOLING_N = 10;

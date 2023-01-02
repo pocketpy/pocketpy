@@ -883,8 +883,10 @@ __LISTCOMP:
             emitCode(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
-            consume(TK("@id"));
-            getCode()->co_global_names.push_back(parser->previous.str());
+            do {
+                consume(TK("@id"));
+                getCode()->co_global_names.push_back(parser->previous.str());
+            } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();

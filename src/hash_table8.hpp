@@ -25,11 +25,6 @@
 
 #pragma once
 
-// Modification:
-// 1. Add #define EMH_WYHASH_HASH 1
-// 2. Add static for wymix
-#define EMH_WYHASH_HASH 1
-
 #include <cstring>
 #include <string>
 #include <cstdlib>
@@ -1665,7 +1660,7 @@ one-way search strategy.
 
 #if EMH_WYHASH_HASH
     //#define WYHASH_CONDOM 1
-    inline static uint64_t wymix(uint64_t A, uint64_t B)
+    inline uint64_t wymix(uint64_t A, uint64_t B)
     {
 #if defined(__SIZEOF_INT128__)
         __uint128_t r = A; r *= B;
@@ -1791,4 +1786,3 @@ private:
     size_type _etail;
 };
 } // namespace emhash
-
