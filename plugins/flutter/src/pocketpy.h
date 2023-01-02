@@ -32,11 +32,6 @@
 
 
 
-// Modification:
-// 1. Add #define EMH_WYHASH_HASH 1
-// 2. Add static for wymix
-#define EMH_WYHASH_HASH 1
-
 #include <cstring>
 #include <string>
 #include <cstdlib>
@@ -1672,7 +1667,7 @@ one-way search strategy.
 
 #if EMH_WYHASH_HASH
     //#define WYHASH_CONDOM 1
-    inline static uint64_t wymix(uint64_t A, uint64_t B)
+    inline uint64_t wymix(uint64_t A, uint64_t B)
     {
 #if defined(__SIZEOF_INT128__)
         __uint128_t r = A; r *= B;
@@ -1801,11 +1796,11 @@ private:
 
 
 
-
 #ifdef _MSC_VER
 #pragma warning (disable:4267)
 #pragma warning (disable:4101)
 #define _CRT_NONSTDC_NO_DEPRECATE
+#define strdup _strdup
 #endif
 
 #include <sstream>
@@ -1820,7 +1815,6 @@ private:
 #include <string_view>
 #include <queue>
 #include <iomanip>
-#include <map>
 
 #include <atomic>
 #include <iostream>
@@ -2047,8 +2041,7 @@ public:
 
     size_t hash() const{
         if(!hash_initialized){
-            //_hash = std::hash<std::string>()(*this);
-            _hash = emhash8::HashMap<int,int>::wyhashstr(data(), size());
+            _hash = std::hash<std::string>()(*this);
             hash_initialized = true;
         }
         return _hash;
@@ -2227,11 +2220,7 @@ public:
     using std::vector<PyVar>::vector;
 };
 
-
-class PyVarDict: public emhash8::HashMap<_Str, PyVar> {
-    using emhash8::HashMap<_Str, PyVar>::HashMap;
-};
-
+typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
     const uint8_t MAX_POOLING_N = 10;
@@ -2389,33 +2378,27 @@ namespace pkpy {
 
 
 const char* __BUILTINS_CODE = R"(
-def len(x):
-    return x.__len__()
-
 def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     __sys_stdout_write(s + end)
 
-def round(x):
+def round(x, ndigits=0):
+    assert ndigits >= 0
+    if ndigits == 0:
+        return x >= 0 ? int(x + 0.5) : int(x - 0.5)
     if x >= 0:
-        return int(x + 0.5)
+        return int(x * 10**ndigits + 0.5) / 10**ndigits
     else:
-        return int(x - 0.5)
+        return int(x * 10**ndigits - 0.5) / 10**ndigits
 
 def abs(x):
-    if x < 0:
-        return -x
-    return x
+    return x < 0 ? -x : x
 
 def max(a, b):
-    if a > b:
-        return a
-    return b
+    return a > b ? a : b
 
 def min(a, b):
-    if a < b:
-        return a
-    return b
+    return a < b ? a : b
 
 def sum(iterable):
     res = 0
@@ -3932,7 +3915,7 @@ class VM {
 protected:
     std::deque< pkpy::unique_ptr<Frame> > callstack;
     PyVarDict _modules;                     // loaded modules
-    std::map<_Str, _Str> _lazyModules;     // lazy loaded modules
+    emhash8::HashMap<_Str, _Str> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
     
     void _checkStopFlag(){
@@ -5981,8 +5964,10 @@ __LISTCOMP:
             emitCode(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
-            consume(TK("@id"));
-            getCode()->co_global_names.push_back(parser->previous.str());
+            do {
+                consume(TK("@id"));
+                getCode()->co_global_names.push_back(parser->previous.str());
+            } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
             consumeEndStatement();
@@ -6313,6 +6298,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(vm->hash(args[0]));
     });
 
+    _vm->bindBuiltinFunc("len", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        return vm->call(args[0], __len__, pkpy::noArg());
+    });
+
     _vm->bindBuiltinFunc("chr", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         _Int i = vm->PyInt_AS_C(args[0]);
@@ -6372,6 +6362,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("type", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         return args[0]->_type;
+    });
+
+    _vm->bindMethod("type", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 2, true);
+        return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bindMethod("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
