@@ -124,6 +124,15 @@ struct Parser {
         return *current_char;
     }
 
+    std::string_view lookahead(int n){
+        const char* c = current_char;
+        for(int i=0; i<n; i++){
+            if(*c == '\0') return std::string_view(current_char, i);
+            c++;
+        }
+        return std::string_view(current_char, n);
+    }
+
     char peekNextChar() {
         if (peekChar() == '\0') return '\0';
         return *(current_char + 1);

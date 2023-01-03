@@ -115,11 +115,43 @@ public:
     }
 
     _Str eatStringUntil(char quote, bool raw) {
+        bool quote3 = false;
+        std::string_view sv = parser->lookahead(2);
+        if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
+            quote3 = true;
+            parser->eatChar();
+            parser->eatChar();
+        }
+
         std::vector<char> buff;
         while (true) {
             char c = parser->eatCharIncludeNewLine();
-            if (c == quote) break;
-            if (c == '\0' || c == '\n') syntaxError("EOL while scanning string literal");
+            if (c == quote){
+                if(quote3){
+                    sv = parser->lookahead(2);
+                    if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
+                        parser->eatChar();
+                        parser->eatChar();
+                        break;
+                    }
+                    buff.push_back(c);
+                } else {
+                    break;
+                }
+            }
+            if (c == '\0'){
+                if(quote3 && parser->src->mode == SINGLE_MODE){
+                    throw NeedMoreLines(false);
+                }
+                syntaxError("EOL while scanning string literal");
+            }
+            if (c == '\n'){
+                if(!quote3) syntaxError("EOL while scanning string literal");
+                else{
+                    buff.push_back(c);
+                    continue;
+                }
+            }
             if (!raw && c == '\\') {
                 switch (parser->eatCharIncludeNewLine()) {
                     case '"':  buff.push_back('"');  break;
@@ -128,7 +160,6 @@ public:
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
-                    case '\n': case '\r': break;
                     default: syntaxError("invalid escape character");
                 }
             } else {
