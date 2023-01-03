@@ -21,6 +21,8 @@ struct Loop {
     Loop(int start) : start(start) {}
 };
 
+enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
+
 class Compiler {
 public:
     pkpy::unique_ptr<Parser> parser;
@@ -112,13 +114,13 @@ public:
 #define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
     }
 
-    _Str eatStringUntil(char quote) {
+    _Str eatStringUntil(char quote, bool raw) {
         std::vector<char> buff;
         while (true) {
             char c = parser->eatCharIncludeNewLine();
             if (c == quote) break;
             if (c == '\0' || c == '\n') syntaxError("EOL while scanning string literal");
-            if (c == '\\') {
+            if (!raw && c == '\\') {
                 switch (parser->eatCharIncludeNewLine()) {
                     case '"':  buff.push_back('"');  break;
                     case '\'': buff.push_back('\''); break;
@@ -136,9 +138,9 @@ public:
         return _Str(buff.data(), buff.size());
     }
 
-    void eatString(char quote, bool fstr) {
-        _Str s = eatStringUntil(quote);
-        if(fstr){
+    void eatString(char quote, StringType type) {
+        _Str s = eatStringUntil(quote, type == RAW_STRING);
+        if(type == F_STRING){
             parser->setNextToken(TK("@fstr"), vm->PyStr(s));
         }else{
             parser->setNextToken(TK("@str"), vm->PyStr(s));
@@ -191,7 +193,7 @@ public:
             parser->token_start = parser->current_char;
             char c = parser->eatCharIncludeNewLine();
             switch (c) {
-                case '\'': case '"': eatString(c, false); return;
+                case '\'': case '"': eatString(c, NORMAL_STRING); return;
                 case '#': parser->skipLineComment(); break;
                 case '{': parser->setNextToken(TK("{")); return;
                 case '}': parser->setNextToken(TK("}")); return;
@@ -266,9 +268,13 @@ public:
                 }
                 default: {
                     if(c == 'f'){
-                        if(parser->matchChar('\'')) {eatString('\'', true); return;}
-                        if(parser->matchChar('"')) {eatString('"', true); return;}
+                        if(parser->matchChar('\'')) {eatString('\'', F_STRING); return;}
+                        if(parser->matchChar('"')) {eatString('"', F_STRING); return;}
+                    }else if(c == 'r'){
+                        if(parser->matchChar('\'')) {eatString('\'', RAW_STRING); return;}
+                        if(parser->matchChar('"')) {eatString('"', RAW_STRING); return;}
                     }
+
                     if (c >= '0' && c <= '9') {
                         eatNumber();
                         return;
