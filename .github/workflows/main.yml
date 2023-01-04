@@ -22,7 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - uses: mymindstorm/setup-emsdk@v11
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v11
+      with:
+        version: 3.1.25
+        actions-cache-folder: 'emsdk-cache'
+    - name: Verify emsdk
+      run: emcc -v
     - name: Compiling
       run: |
         mkdir -p output/web/lib
