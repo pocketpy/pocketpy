@@ -193,7 +193,7 @@ protected:
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
-                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
+                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jumpAbsolute(byte.arg);
                 break;
             case OP_LOAD_NONE: frame->push(None); break;
             case OP_LOAD_TRUE: frame->push(True); break;
@@ -246,8 +246,9 @@ protected:
                     if(ret == __py2py_call_signal) return ret;
                     frame->push(std::move(ret));
                 } break;
-            case OP_JUMP_ABSOLUTE: frame->jump(byte.arg); break;
-            case OP_SAFE_JUMP_ABSOLUTE: frame->safeJump(byte.arg); break;
+            case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
+            case OP_JUMP_RELATIVE: frame->jumpRelative(byte.arg); break;
+            case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); frame->__safeJumpClean(); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
@@ -255,7 +256,8 @@ protected:
                 if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->safeJump(*target);
+                frame->jumpAbsolute(*target);
+                frame->__safeJumpClean();
             } break;
             case OP_GET_ITER:
                 {
@@ -280,19 +282,20 @@ protected:
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
-                        frame->safeJump(byte.arg);
+                        frame->jumpAbsolute(byte.arg);
+                        frame->__safeJumpClean();
                     }
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
                     const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==False) frame->jump(byte.arg);
+                    if(asBool(expr)==False) frame->jumpAbsolute(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
                     const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==True) frame->jump(byte.arg);
+                    if(asBool(expr)==True) frame->jumpAbsolute(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_BUILD_SLICE:
@@ -324,6 +327,7 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
+            // TODO: goto inside with block is unsafe
             case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
             default:
@@ -392,15 +396,6 @@ public:
         PyVarOrNull str_fn = getAttr(obj, __str__, false);
         if(str_fn != nullptr) return call(str_fn);
         return asRepr(obj);
-    }
-
-    Frame* __findFrame(uint64_t up_f_id){
-        for(auto it=callstack.crbegin(); it!=callstack.crend(); ++it){
-            uint64_t f_id = it->get()->id;
-            if(f_id == up_f_id) return it->get();
-            if(f_id < up_f_id) return nullptr;
-        }
-        return nullptr;
     }
 
     Frame* topFrame(){
@@ -555,6 +550,11 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
+
+            if(filename == "<stdin>"){
+                std::cout << disassemble(code) << std::endl;
+            }
+            
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
@@ -574,14 +574,13 @@ public:
         if(callstack.size() > maxRecursionDepth){
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
-        Frame* frame = new Frame(code.get(), _module, std::move(locals));
+        Frame* frame = new Frame(code, _module, std::move(locals));
         callstack.emplace_back(pkpy::unique_ptr<Frame>(frame));
         return frame;
     }
 
-    PyVar _exec(const _Code& code, PyVar _module, PyVarDict&& locals){
+    PyVar _exec(_Code code, PyVar _module, PyVarDict&& locals){
         Frame* frame = __pushNewFrame(code, _module, std::move(locals));
-        if(code->mode() == SINGLE_MODE) frame->id = 0;
         Frame* frameBase = frame;
         PyVar ret = nullptr;
 
@@ -771,6 +770,38 @@ public:
             indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
         }
         return index;
+    }
+
+    _Str disassemble(_Code code){
+        _StrStream ss;
+        int prev_line = -1;
+        for(int i=0; i<code->co_code.size(); i++){
+            const ByteCode& byte = code->co_code[i];
+            if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
+            _Str line = std::to_string(byte.line);
+            if(byte.line == prev_line) line = "";
+            else{
+                if(prev_line != -1) ss << "\n";
+                prev_line = byte.line;
+            }
+            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
+            ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+            ss << (byte.arg == -1 ? "" : std::to_string(byte.arg));
+            if(i != code->co_code.size() - 1) ss << '\n';
+        }
+        _StrStream consts;
+        consts << "co_consts: ";
+        consts << PyStr_AS_C(asRepr(PyList(code->co_consts)));
+
+        _StrStream names;
+        names << "co_names: ";
+        PyVarList list;
+        for(int i=0; i<code->co_names.size(); i++){
+            list.push_back(PyStr(code->co_names[i].first));
+        }
+        names << PyStr_AS_C(asRepr(PyList(list)));
+        ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+        return _Str(ss.str());
     }
 
     // for quick access

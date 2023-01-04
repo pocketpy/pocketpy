@@ -73,51 +73,6 @@ struct CodeObject {
         co_consts.push_back(v);
         return co_consts.size() - 1;
     }
-
-    void __moveToEnd(int start, int end){
-        auto _start = co_code.begin() + start;
-        auto _end = co_code.begin() + end;
-        co_code.insert(co_code.end(), _start, _end);
-        for(int i=start; i<end; i++) co_code[i].op = OP_DELETED_OP;
-    }
-
-    _Str toString(){
-        _StrStream ss;
-        int prev_line = -1;
-        for(int i=0; i<co_code.size(); i++){
-            const ByteCode& byte = co_code[i];
-            if(byte.op == OP_NO_OP) continue;
-            _Str line = std::to_string(byte.line);
-            if(byte.line == prev_line) line = "";
-            else{
-                if(prev_line != -1) ss << "\n";
-                prev_line = byte.line;
-            }
-            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
-            ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            ss << (byte.arg == -1 ? "" : std::to_string(byte.arg));
-            if(i != co_code.size() - 1) ss << '\n';
-        }
-        _StrStream consts;
-        consts << "co_consts: ";
-        for(int i=0; i<co_consts.size(); i++){
-            consts << UNION_TP_NAME(co_consts[i]);
-            if(i != co_consts.size() - 1) consts << ", ";
-        }
-
-        _StrStream names;
-        names << "co_names: ";
-        for(int i=0; i<co_names.size(); i++){
-            names << co_names[i].first;
-            if(i != co_names.size() - 1) names << ", ";
-        }
-        ss << '\n' << consts.str() << '\n' << names.str() << '\n';
-        // for(int i=0; i<co_consts.size(); i++){
-        //     auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-        //     if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
-        // }
-        return _Str(ss.str());
-    }
 };
 
 class Frame {
@@ -126,11 +81,9 @@ private:
     int ip = 0;
     std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
-    const CodeObject* code;
+    const _Code code;
     PyVar _module;
     PyVarDict f_locals;
-
-    uint64_t id;
 
     inline PyVarDict copy_f_locals(){
         return f_locals;
@@ -140,11 +93,8 @@ public:
         return _module->attribs;
     }
 
-    Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
+    Frame(const _Code code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(std::move(locals)) {
-        
-        static thread_local uint64_t frame_id = 1;
-        id = frame_id++;
     }
 
     inline const ByteCode& readCode() {
@@ -207,16 +157,19 @@ public:
         }
     }
 
-    inline void jump(int i){
+    inline void jumpAbsolute(int i){
         this->ip = i;
     }
 
-    void safeJump(int i){
-        this->ip = i;
+    inline void jumpRelative(int i){
+        this->ip += i;
+    }
+
+    void __safeJumpClean(){
         while(!forLoops.empty()){
             int start = forLoops.top();
             int end = code->co_code[start].arg;
-            if(i < start || i >= end){
+            if(ip < start || ip >= end){
                 //printf("%d <- [%d, %d)\n", i, start, end);
                 __pop();    // pop the iterator
                 forLoops.pop();

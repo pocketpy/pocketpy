@@ -4,7 +4,7 @@
 #include "pocketpy.h"
 
 //#define PK_DEBUG_TIME
-#define PK_DEBUG_THREADED
+//#define PK_DEBUG_THREADED
 
 struct Timer{
     const char* title;
@@ -85,7 +85,6 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         ThreadedVM* vm = pkpy_new_tvm(true);
-        //std::cout << code->toString() << std::endl;
 #ifdef PK_DEBUG_THREADED
         Timer("Running time").run([=]{
             vm->execAsync(src.c_str(), filename, EXEC_MODE);

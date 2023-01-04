@@ -557,6 +557,7 @@ public:
         return;
 
 __LISTCOMP:
+        int _body_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
         int _body_end = getCode()->co_code.size();
         getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
         getCode()->co_code[_patch].arg = _body_end;
@@ -566,22 +567,28 @@ __LISTCOMP:
         
         int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
         int _cond_start = getCode()->co_code.size();
-        if(match(TK("if"))) EXPR_TUPLE();
-        int _cond_end = getCode()->co_code.size();
+        int _cond_end_return = -1;
+        if(match(TK("if"))) {
+            EXPR_TUPLE();
+            _cond_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
+        }
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
         Loop& loop = enterLoop();
         int patch = emitCode(OP_FOR_ITER);
 
-        if(_cond_end != _cond_start) {      // there is an if condition
-            getCode()->__moveToEnd(_cond_start, _cond_end);
+        if(_cond_end_return != -1) {      // there is an if condition
+            emitCode(OP_JUMP_ABSOLUTE, _cond_start);
+            patchJump(_cond_end_return);
             int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
-            getCode()->__moveToEnd(_body_start, _body_end);
+            emitCode(OP_JUMP_ABSOLUTE, _body_start);
+            patchJump(_body_end_return);
             emitCode(OP_LIST_APPEND);
             patchJump(ifpatch);
         }else{
-            getCode()->__moveToEnd(_body_start, _body_end);
+            emitCode(OP_JUMP_ABSOLUTE, _body_start);
+            patchJump(_body_end_return);
             emitCode(OP_LIST_APPEND);
         }
 
