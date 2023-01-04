@@ -248,7 +248,7 @@ protected:
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
             case OP_JUMP_RELATIVE: frame->jumpRelative(byte.arg); break;
-            case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); frame->__safeJumpClean(); break;
+            case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsoluteSafe(byte.arg); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
@@ -256,8 +256,7 @@ protected:
                 if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->jumpAbsolute(*target);
-                frame->__safeJumpClean();
+                frame->jumpAbsoluteSafe(*target);
             } break;
             case OP_GET_ITER:
                 {
@@ -275,15 +274,13 @@ protected:
                 } break;
             case OP_FOR_ITER:
                 {
-                    frame->__reportForIter();
                     // __top() must be PyIter, so no need to __deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
-                        frame->jumpAbsolute(byte.arg);
-                        frame->__safeJumpClean();
+                        frame->jumpAbsoluteSafe(byte.arg);
                     }
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
@@ -327,7 +324,7 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
-            // TODO: goto inside with block is unsafe
+            // TODO: using "goto" inside with block may cause __exit__ not called
             case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
             default:
@@ -551,9 +548,9 @@ public:
         try {
             _Code code = compile(source, filename, mode);
 
-            if(filename == "<stdin>"){
-                std::cout << disassemble(code) << std::endl;
-            }
+            // if(filename != "<builtins>"){
+            //     std::cout << disassemble(code) << std::endl;
+            // }
             
             return _exec(code, _module, {});
         }catch (const _Error& e){
@@ -777,7 +774,7 @@ public:
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
             const ByteCode& byte = code->co_code[i];
-            if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
+            //if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -786,7 +783,8 @@ public:
             }
             ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
             ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            ss << (byte.arg == -1 ? "" : std::to_string(byte.arg));
+            ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            ss << '[' << code->getBlockStr(byte.block) << ']';
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;

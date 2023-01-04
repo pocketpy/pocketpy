@@ -710,7 +710,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line}
+            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currLoopIndex}
         );
         return getCode()->co_code.size() - 1;
     }
@@ -818,12 +818,14 @@ __LISTCOMP:
     }
 
     Loop& enterLoop(){
+        getCode()->__enterLoop(loops.size()+1);
         Loop lp((int)getCode()->co_code.size());
         loops.push(lp);
         return loops.top();
     }
 
     void exitLoop(){
+        getCode()->__exitLoop();
         Loop& lp = loops.top();
         for(int addr : lp.breaks) patchJump(addr);
         loops.pop();
@@ -1062,7 +1064,12 @@ __LISTCOMP:
         }
     }
 
+    bool _used = false;
     _Code __fillCode(){
+        // can only be called once
+        if(_used) UNREACHABLE();
+        _used = true;
+
         _Code code = pkpy::make_shared<CodeObject>(parser->src, _Str("<module>"));
         codes.push(code);
 

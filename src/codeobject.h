@@ -20,6 +20,7 @@ struct ByteCode{
     uint8_t op;
     int arg;
     uint16_t line;
+    uint16_t block;     // the block id of this bytecode
 };
 
 _Str pad(const _Str& s, const int n){
@@ -43,6 +44,46 @@ struct CodeObject {
     PyVarList co_consts;
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
+
+    std::vector<std::vector<int>> co_loops = {{}};
+    int _currLoopIndex = 0;
+
+    std::string getBlockStr(int block){
+        std::vector<int> loopId = co_loops[block];
+        std::string s = "";
+        for(int i=0; i<loopId.size(); i++){
+            s += std::to_string(loopId[i]);
+            if(i != loopId.size()-1) s += "-";
+        }
+        return s;
+    }
+
+    void __enterLoop(int depth){
+        const std::vector<int>& prevLoopId = co_loops[_currLoopIndex];
+        if(depth - prevLoopId.size() == 1){
+            std::vector<int> copy = prevLoopId;
+            copy.push_back(0);
+            int t = 0;
+            while(true){
+                copy[copy.size()-1] = t;
+                auto it = std::find(co_loops.begin(), co_loops.end(), copy);
+                if(it == co_loops.end()) break;
+                t++;
+            }
+            co_loops.push_back(copy);
+        }else{
+            UNREACHABLE();
+        }
+        _currLoopIndex = co_loops.size()-1;
+    }
+
+    void __exitLoop(){
+        std::vector<int> copy = co_loops[_currLoopIndex];
+        copy.pop_back();
+        auto it = std::find(co_loops.begin(), co_loops.end(), copy);
+        if(it == co_loops.end()) UNREACHABLE();
+        _currLoopIndex = it - co_loops.begin();
+    }
 
     // for goto use
     // note: some opcodes moves the bytecode, such as listcomp
@@ -79,7 +120,6 @@ class Frame {
 private:
     std::vector<PyVar> s_data;
     int ip = 0;
-    std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
     const _Code code;
     PyVar _module;
@@ -146,17 +186,6 @@ public:
         s_data.push_back(std::forward<T>(obj));
     }
 
-
-    void __reportForIter(){
-        int lastIp = ip - 1;
-        if(forLoops.empty()) forLoops.push(lastIp);
-        else{
-            if(forLoops.top() == lastIp) return;
-            if(forLoops.top() < lastIp) forLoops.push(lastIp);
-            else UNREACHABLE();
-        }
-    }
-
     inline void jumpAbsolute(int i){
         this->ip = i;
     }
@@ -165,18 +194,27 @@ public:
         this->ip += i;
     }
 
-    void __safeJumpClean(){
-        while(!forLoops.empty()){
-            int start = forLoops.top();
-            int end = code->co_code[start].arg;
-            if(ip < start || ip >= end){
-                //printf("%d <- [%d, %d)\n", i, start, end);
-                __pop();    // pop the iterator
-                forLoops.pop();
-            }else{
-                break;
+    void jumpAbsoluteSafe(int i){
+        const ByteCode& prev = code->co_code[this->ip];
+        const std::vector<int> prevLoopId = code->co_loops[prev.block];
+        this->ip = i;
+        if(isCodeEnd()){
+            for(int i=0; i<prevLoopId.size(); i++) __pop();
+            return;
+        }
+        const ByteCode& next = code->co_code[i];
+        const std::vector<int> nextLoopId = code->co_loops[next.block];
+        int sizeDelta = prevLoopId.size() - nextLoopId.size();
+        if(sizeDelta < 0){
+            throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
+        }else{
+            for(int i=0; i<nextLoopId.size(); i++){
+                if(nextLoopId[i] != prevLoopId[i]){
+                    throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
+                }
             }
         }
+        for(int i=0; i<sizeDelta; i++) __pop();
     }
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
