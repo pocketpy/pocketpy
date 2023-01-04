@@ -1831,7 +1831,7 @@ private:
 #include <thread>
 #endif
 
-#define PK_VERSION "0.6.1"
+#define PK_VERSION "0.6.2"
 
 //#define PKPY_NO_TYPE_CHECK
 //#define PKPY_NO_INDEX_CHECK
@@ -3595,6 +3595,8 @@ OPCODE(GOTO)
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
 
+OPCODE(JUMP_RELATIVE)
+
 #endif
     #undef OPCODE
 };
@@ -3668,6 +3670,8 @@ OPCODE(GOTO)
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
 
+OPCODE(JUMP_RELATIVE)
+
 #endif
     #undef OPCODE
 };
@@ -3676,6 +3680,7 @@ struct ByteCode{
     uint8_t op;
     int arg;
     uint16_t line;
+    uint16_t block;     // the block id of this bytecode
 };
 
 _Str pad(const _Str& s, const int n){
@@ -3699,6 +3704,46 @@ struct CodeObject {
     PyVarList co_consts;
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
+
+    std::vector<std::vector<int>> co_loops = {{}};
+    int _currLoopIndex = 0;
+
+    std::string getBlockStr(int block){
+        std::vector<int> loopId = co_loops[block];
+        std::string s = "";
+        for(int i=0; i<loopId.size(); i++){
+            s += std::to_string(loopId[i]);
+            if(i != loopId.size()-1) s += "-";
+        }
+        return s;
+    }
+
+    void __enterLoop(int depth){
+        const std::vector<int>& prevLoopId = co_loops[_currLoopIndex];
+        if(depth - prevLoopId.size() == 1){
+            std::vector<int> copy = prevLoopId;
+            copy.push_back(0);
+            int t = 0;
+            while(true){
+                copy[copy.size()-1] = t;
+                auto it = std::find(co_loops.begin(), co_loops.end(), copy);
+                if(it == co_loops.end()) break;
+                t++;
+            }
+            co_loops.push_back(copy);
+        }else{
+            UNREACHABLE();
+        }
+        _currLoopIndex = co_loops.size()-1;
+    }
+
+    void __exitLoop(){
+        std::vector<int> copy = co_loops[_currLoopIndex];
+        copy.pop_back();
+        auto it = std::find(co_loops.begin(), co_loops.end(), copy);
+        if(it == co_loops.end()) UNREACHABLE();
+        _currLoopIndex = it - co_loops.begin();
+    }
 
     // for goto use
     // note: some opcodes moves the bytecode, such as listcomp
@@ -3729,64 +3774,16 @@ struct CodeObject {
         co_consts.push_back(v);
         return co_consts.size() - 1;
     }
-
-    void __moveToEnd(int start, int end){
-        auto _start = co_code.begin() + start;
-        auto _end = co_code.begin() + end;
-        co_code.insert(co_code.end(), _start, _end);
-        for(int i=start; i<end; i++) co_code[i].op = OP_DELETED_OP;
-    }
-
-    _Str toString(){
-        _StrStream ss;
-        int prev_line = -1;
-        for(int i=0; i<co_code.size(); i++){
-            const ByteCode& byte = co_code[i];
-            if(byte.op == OP_NO_OP) continue;
-            _Str line = std::to_string(byte.line);
-            if(byte.line == prev_line) line = "";
-            else{
-                if(prev_line != -1) ss << "\n";
-                prev_line = byte.line;
-            }
-            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
-            ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            ss << (byte.arg == -1 ? "" : std::to_string(byte.arg));
-            if(i != co_code.size() - 1) ss << '\n';
-        }
-        _StrStream consts;
-        consts << "co_consts: ";
-        for(int i=0; i<co_consts.size(); i++){
-            consts << UNION_TP_NAME(co_consts[i]);
-            if(i != co_consts.size() - 1) consts << ", ";
-        }
-
-        _StrStream names;
-        names << "co_names: ";
-        for(int i=0; i<co_names.size(); i++){
-            names << co_names[i].first;
-            if(i != co_names.size() - 1) names << ", ";
-        }
-        ss << '\n' << consts.str() << '\n' << names.str() << '\n';
-        // for(int i=0; i<co_consts.size(); i++){
-        //     auto fn = std::get_if<_Func>(&co_consts[i]->_native);
-        //     if(fn) ss << '\n' << (*fn)->code->name << ":\n" << (*fn)->code->toString();
-        // }
-        return _Str(ss.str());
-    }
 };
 
 class Frame {
 private:
     std::vector<PyVar> s_data;
     int ip = 0;
-    std::stack<int> forLoops;       // record the FOR_ITER bytecode index
 public:
-    const CodeObject* code;
+    const _Code code;
     PyVar _module;
     PyVarDict f_locals;
-
-    uint64_t id;
 
     inline PyVarDict copy_f_locals(){
         return f_locals;
@@ -3796,11 +3793,8 @@ public:
         return _module->attribs;
     }
 
-    Frame(const CodeObject* code, PyVar _module, PyVarDict&& locals)
+    Frame(const _Code code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(std::move(locals)) {
-        
-        static thread_local uint64_t frame_id = 1;
-        id = frame_id++;
     }
 
     inline const ByteCode& readCode() {
@@ -3852,34 +3846,35 @@ public:
         s_data.push_back(std::forward<T>(obj));
     }
 
+    inline void jumpAbsolute(int i){
+        this->ip = i;
+    }
 
-    void __reportForIter(){
-        int lastIp = ip - 1;
-        if(forLoops.empty()) forLoops.push(lastIp);
-        else{
-            if(forLoops.top() == lastIp) return;
-            if(forLoops.top() < lastIp) forLoops.push(lastIp);
-            else UNREACHABLE();
+    inline void jumpRelative(int i){
+        this->ip += i;
+    }
+
+    void jumpAbsoluteSafe(int i){
+        const ByteCode& prev = code->co_code[this->ip];
+        const std::vector<int> prevLoopId = code->co_loops[prev.block];
+        this->ip = i;
+        if(isCodeEnd()){
+            for(int i=0; i<prevLoopId.size(); i++) __pop();
+            return;
         }
-    }
-
-    inline void jump(int i){
-        this->ip = i;
-    }
-
-    void safeJump(int i){
-        this->ip = i;
-        while(!forLoops.empty()){
-            int start = forLoops.top();
-            int end = code->co_code[start].arg;
-            if(i < start || i >= end){
-                //printf("%d <- [%d, %d)\n", i, start, end);
-                __pop();    // pop the iterator
-                forLoops.pop();
-            }else{
-                break;
+        const ByteCode& next = code->co_code[i];
+        const std::vector<int> nextLoopId = code->co_loops[next.block];
+        int sizeDelta = prevLoopId.size() - nextLoopId.size();
+        if(sizeDelta < 0){
+            throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
+        }else{
+            for(int i=0; i<nextLoopId.size(); i++){
+                if(nextLoopId[i] != prevLoopId[i]){
+                    throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
+                }
             }
         }
+        for(int i=0; i<sizeDelta; i++) __pop();
     }
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
@@ -4091,7 +4086,7 @@ protected:
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
-                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jump(byte.arg);
+                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jumpAbsolute(byte.arg);
                 break;
             case OP_LOAD_NONE: frame->push(None); break;
             case OP_LOAD_TRUE: frame->push(True); break;
@@ -4144,8 +4139,9 @@ protected:
                     if(ret == __py2py_call_signal) return ret;
                     frame->push(std::move(ret));
                 } break;
-            case OP_JUMP_ABSOLUTE: frame->jump(byte.arg); break;
-            case OP_SAFE_JUMP_ABSOLUTE: frame->safeJump(byte.arg); break;
+            case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
+            case OP_JUMP_RELATIVE: frame->jumpRelative(byte.arg); break;
+            case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsoluteSafe(byte.arg); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
                 const _Str& label = PyStr_AS_C(obj);
@@ -4153,7 +4149,7 @@ protected:
                 if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->safeJump(*target);
+                frame->jumpAbsoluteSafe(*target);
             } break;
             case OP_GET_ITER:
                 {
@@ -4171,26 +4167,25 @@ protected:
                 } break;
             case OP_FOR_ITER:
                 {
-                    frame->__reportForIter();
                     // __top() must be PyIter, so no need to __deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
-                        frame->safeJump(byte.arg);
+                        frame->jumpAbsoluteSafe(byte.arg);
                     }
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
                     const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==False) frame->jump(byte.arg);
+                    if(asBool(expr)==False) frame->jumpAbsolute(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
                     const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==True) frame->jump(byte.arg);
+                    if(asBool(expr)==True) frame->jumpAbsolute(byte.arg);
                     else frame->popValue(this);
                 } break;
             case OP_BUILD_SLICE:
@@ -4222,6 +4217,7 @@ protected:
                         frame->push(it->second);
                     }
                 } break;
+            // TODO: using "goto" inside with block may cause __exit__ not called
             case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
             default:
@@ -4290,15 +4286,6 @@ public:
         PyVarOrNull str_fn = getAttr(obj, __str__, false);
         if(str_fn != nullptr) return call(str_fn);
         return asRepr(obj);
-    }
-
-    Frame* __findFrame(uint64_t up_f_id){
-        for(auto it=callstack.crbegin(); it!=callstack.crend(); ++it){
-            uint64_t f_id = it->get()->id;
-            if(f_id == up_f_id) return it->get();
-            if(f_id < up_f_id) return nullptr;
-        }
-        return nullptr;
     }
 
     Frame* topFrame(){
@@ -4453,6 +4440,11 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
+
+            // if(filename != "<builtins>"){
+            //     std::cout << disassemble(code) << std::endl;
+            // }
+            
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
@@ -4472,14 +4464,13 @@ public:
         if(callstack.size() > maxRecursionDepth){
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
-        Frame* frame = new Frame(code.get(), _module, std::move(locals));
+        Frame* frame = new Frame(code, _module, std::move(locals));
         callstack.emplace_back(pkpy::unique_ptr<Frame>(frame));
         return frame;
     }
 
-    PyVar _exec(const _Code& code, PyVar _module, PyVarDict&& locals){
+    PyVar _exec(_Code code, PyVar _module, PyVarDict&& locals){
         Frame* frame = __pushNewFrame(code, _module, std::move(locals));
-        if(code->mode() == SINGLE_MODE) frame->id = 0;
         Frame* frameBase = frame;
         PyVar ret = nullptr;
 
@@ -4669,6 +4660,39 @@ public:
             indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
         }
         return index;
+    }
+
+    _Str disassemble(_Code code){
+        _StrStream ss;
+        int prev_line = -1;
+        for(int i=0; i<code->co_code.size(); i++){
+            const ByteCode& byte = code->co_code[i];
+            //if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
+            _Str line = std::to_string(byte.line);
+            if(byte.line == prev_line) line = "";
+            else{
+                if(prev_line != -1) ss << "\n";
+                prev_line = byte.line;
+            }
+            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
+            ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+            ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            ss << '[' << code->getBlockStr(byte.block) << ']';
+            if(i != code->co_code.size() - 1) ss << '\n';
+        }
+        _StrStream consts;
+        consts << "co_consts: ";
+        consts << PyStr_AS_C(asRepr(PyList(code->co_consts)));
+
+        _StrStream names;
+        names << "co_names: ";
+        PyVarList list;
+        for(int i=0; i<code->co_names.size(); i++){
+            list.push_back(PyStr(code->co_names[i].first));
+        }
+        names << PyStr_AS_C(asRepr(PyList(list)));
+        ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+        return _Str(ss.str());
     }
 
     // for quick access
@@ -5647,6 +5671,7 @@ public:
         return;
 
 __LISTCOMP:
+        int _body_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
         int _body_end = getCode()->co_code.size();
         getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
         getCode()->co_code[_patch].arg = _body_end;
@@ -5656,22 +5681,28 @@ __LISTCOMP:
         
         int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
         int _cond_start = getCode()->co_code.size();
-        if(match(TK("if"))) EXPR_TUPLE();
-        int _cond_end = getCode()->co_code.size();
+        int _cond_end_return = -1;
+        if(match(TK("if"))) {
+            EXPR_TUPLE();
+            _cond_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
+        }
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
         Loop& loop = enterLoop();
         int patch = emitCode(OP_FOR_ITER);
 
-        if(_cond_end != _cond_start) {      // there is an if condition
-            getCode()->__moveToEnd(_cond_start, _cond_end);
+        if(_cond_end_return != -1) {      // there is an if condition
+            emitCode(OP_JUMP_ABSOLUTE, _cond_start);
+            patchJump(_cond_end_return);
             int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
-            getCode()->__moveToEnd(_body_start, _body_end);
+            emitCode(OP_JUMP_ABSOLUTE, _body_start);
+            patchJump(_body_end_return);
             emitCode(OP_LIST_APPEND);
             patchJump(ifpatch);
         }else{
-            getCode()->__moveToEnd(_body_start, _body_end);
+            emitCode(OP_JUMP_ABSOLUTE, _body_start);
+            patchJump(_body_end_return);
             emitCode(OP_LIST_APPEND);
         }
 
@@ -5793,7 +5824,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line}
+            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currLoopIndex}
         );
         return getCode()->co_code.size() - 1;
     }
@@ -5901,12 +5932,14 @@ __LISTCOMP:
     }
 
     Loop& enterLoop(){
+        getCode()->__enterLoop(loops.size()+1);
         Loop lp((int)getCode()->co_code.size());
         loops.push(lp);
         return loops.top();
     }
 
     void exitLoop(){
+        getCode()->__exitLoop();
         Loop& lp = loops.top();
         for(int addr : lp.breaks) patchJump(addr);
         loops.pop();
@@ -6145,7 +6178,12 @@ __LISTCOMP:
         }
     }
 
+    bool _used = false;
     _Code __fillCode(){
+        // can only be called once
+        if(_used) UNREACHABLE();
+        _used = true;
+
         _Code code = pkpy::make_shared<CodeObject>(parser->src, _Str("<module>"));
         codes.push(code);
 
