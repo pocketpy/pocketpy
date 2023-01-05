@@ -15,19 +15,12 @@ struct GrammarRule{
     Precedence precedence;
 };
 
-struct Loop {
-    int start;
-    std::vector<int> breaks;
-    Loop(int start) : start(start) {}
-};
-
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
 class Compiler {
 public:
     pkpy::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
-    std::stack<Loop> loops;
     bool isCompilingClass = false;
     int lexingCnt = 0;
     VM* vm;
@@ -40,10 +33,6 @@ public:
 
     CompileMode mode() {
         return parser->src->mode;
-    }
-
-    Loop& getLoop() {
-        return loops.top();
     }
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
@@ -575,8 +564,8 @@ __LISTCOMP:
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop(); getCode()->__enterBlock(FOR_LOOP);
-        int patch = emitCode(OP_FOR_ITER);
+        getCode()->__enterBlock(FOR_LOOP);
+        emitCode(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
             emitCode(OP_JUMP_ABSOLUTE, _cond_start);
@@ -592,9 +581,8 @@ __LISTCOMP:
             emitCode(OP_LIST_APPEND);
         }
 
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
-        patchJump(patch);
-        exitLoop(); getCode()->__exitBlock();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
+        getCode()->__exitBlock();
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -817,26 +805,14 @@ __LISTCOMP:
         }
     }
 
-    Loop& enterLoop(){
-        Loop lp((int)getCode()->co_code.size());
-        loops.push(lp);
-        return loops.top();
-    }
-
-    void exitLoop(){
-        Loop& lp = loops.top();
-        for(int addr : lp.breaks) patchJump(addr);
-        loops.pop();
-    }
-
     void compileWhileLoop() {
-        Loop& loop = enterLoop();
+        getCode()->__enterBlock(WHILE_LOOP);
         EXPR_TUPLE();
         int patch = emitCode(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
         patchJump(patch);
-        exitLoop();
+        getCode()->__exitBlock();
     }
 
     void EXPR_FOR_VARS(){
@@ -851,24 +827,42 @@ __LISTCOMP:
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop(); getCode()->__enterBlock(FOR_LOOP);
-        int patch = emitCode(OP_FOR_ITER);
+        getCode()->__enterBlock(FOR_LOOP);
+        emitCode(OP_FOR_ITER);
         compileBlockBody();
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
+        getCode()->__exitBlock();
+    }
+
+    void compileTryExcept() {
+        getCode()->__enterBlock(TRY_EXCEPT);
+        compileBlockBody();
+        getCode()->__exitBlock();
+        int patch = emitCode(OP_JUMP_ABSOLUTE);
+        consume(TK("except"));
+        if(match(TK("@id"))){       // exception name
+            if(match(TK("as"))){    // exception name as alias
+                consume(TK("@id"));
+                exprName();
+            }
+            compileBlockBody();
+        }
+        if(match(TK("finally"))){
+            consume(TK(":"));
+            syntaxError("finally is not supported yet");
+        }
         patchJump(patch);
-        exitLoop(); getCode()->__exitBlock();
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (loops.empty()) syntaxError("'break' outside loop");
+            if (!getCode()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
             consumeEndStatement();
-            int patch = emitCode(OP_SAFE_JUMP_ABSOLUTE);
-            getLoop().breaks.push_back(patch);
+            emitCode(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (loops.empty()) syntaxError("'continue' not properly in loop");
+            if (!getCode()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
-            emitCode(OP_JUMP_ABSOLUTE, getLoop().start);
+            emitCode(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
                 syntaxError("'return' outside function");
@@ -885,7 +879,9 @@ __LISTCOMP:
             compileWhileLoop();
         } else if (match(TK("for"))) {
             compileForLoop();
-        } else if(match(TK("assert"))){
+        } else if (match(TK("try"))) {
+            compileTryExcept();
+        }else if(match(TK("assert"))){
             EXPR();
             emitCode(OP_ASSERT);
             consumeEndStatement();
@@ -937,13 +933,10 @@ __LISTCOMP:
         } else {
             EXPR_ANY();
             consumeEndStatement();
-
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
-            if( lastOp != OP_STORE_NAME_REF && lastOp != OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top() == 0){
-                    emitCode(OP_PRINT_EXPR);
-                }
+            if( lastOp!=OP_STORE_NAME_REF && lastOp!=OP_STORE_REF){
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emitCode(OP_PRINT_EXPR);
                 emitCode(OP_POP_TOP);
             }
         }
@@ -962,7 +955,6 @@ __LISTCOMP:
         isCompilingClass = true;
         __compileBlockBody(&Compiler::compileFunction);
         isCompilingClass = false;
-
         if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
         else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
         emitCode(OP_BUILD_CLASS, clsNameIdx);

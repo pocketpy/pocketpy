@@ -279,8 +279,19 @@ protected:
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }
                     else{
-                        frame->jumpAbsoluteSafe(byte.arg);
+                        int blockEnd = frame->code->co_blocks[byte.block].end;
+                        frame->jumpAbsoluteSafe(blockEnd);
                     }
+                } break;
+            case OP_LOOP_CONTINUE:
+                {
+                    int blockStart = frame->code->co_blocks[byte.block].start;
+                    frame->jumpAbsolute(blockStart);
+                } break;
+            case OP_LOOP_BREAK:
+                {
+                    int blockEnd = frame->code->co_blocks[byte.block].end;
+                    frame->jumpAbsoluteSafe(blockEnd);
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
@@ -546,11 +557,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-
-            if(filename != "<builtins>"){
-                std::cout << disassemble(code) << std::endl;
-            }
-            
+            // if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';

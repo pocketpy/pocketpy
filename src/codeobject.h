@@ -30,6 +30,7 @@ _Str pad(const _Str& s, const int n){
 enum CodeBlockType {
     NO_BLOCK,
     FOR_LOOP,
+    WHILE_LOOP,
     CONTEXT_MANAGER,
     TRY_EXCEPT,
 };
@@ -38,6 +39,9 @@ struct CodeBlock {
     CodeBlockType type;
     std::vector<int> id;
     int parent;        // parent index in co_blocks
+
+    int start;          // start index of this block in co_code, inclusive
+    int end;            // end index of this block in co_code, exclusive
 
     std::string toString() const {
         if(parent == -1) return "";
@@ -87,6 +91,9 @@ struct CodeObject {
 
     // tmp variables
     int _currBlockIndex = 0;
+    bool __isCurrBlockLoop() const {
+        return co_blocks[_currBlockIndex].type == FOR_LOOP || co_blocks[_currBlockIndex].type == WHILE_LOOP;
+    }
 
     void __enterBlock(CodeBlockType type){
         const CodeBlock& currBlock = co_blocks[_currBlockIndex];
@@ -99,11 +106,12 @@ struct CodeObject {
             if(it == co_blocks.end()) break;
             t++;
         }
-        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex});
+        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex, (int)co_code.size()});
         _currBlockIndex = co_blocks.size()-1;
     }
 
     void __exitBlock(){
+        co_blocks[_currBlockIndex].end = co_code.size();
         _currBlockIndex = co_blocks[_currBlockIndex].parent;
         if(_currBlockIndex < 0) UNREACHABLE();
     }
