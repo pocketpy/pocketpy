@@ -220,10 +220,6 @@ public:
         this->ip = i;
     }
 
-    inline void jumpRelative(int i){
-        this->ip += i;
-    }
-
     void jumpAbsoluteSafe(int target){
         const ByteCode& prev = code->co_code[this->ip];
         int i = prev.block;

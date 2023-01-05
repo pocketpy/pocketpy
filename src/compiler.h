@@ -837,14 +837,10 @@ __LISTCOMP:
     void compileTryExcept() {
         getCode()->__enterBlock(TRY_EXCEPT);
         compileBlockBody();
-        getCode()->__exitBlock();
         int patch = emitCode(OP_JUMP_ABSOLUTE);
+        getCode()->__exitBlock();
         consume(TK("except"));
         if(match(TK("@id"))){       // exception name
-            if(match(TK("as"))){    // exception name as alias
-                consume(TK("@id"));
-                exprName();
-            }
             compileBlockBody();
         }
         if(match(TK("finally"))){
@@ -915,7 +911,12 @@ __LISTCOMP:
         } else if(match(TK("raise"))){
             consume(TK("@id"));         // dummy exception type
             emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
-            consume(TK("("));EXPR();consume(TK(")"));
+            if(match(TK("("))){
+                EXPR();
+                consume(TK(")"));
+            }else{
+                emitCode(OP_LOAD_NONE); // ...?
+            }
             emitCode(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){

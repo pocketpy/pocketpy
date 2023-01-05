@@ -246,7 +246,6 @@ protected:
                     frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
-            case OP_JUMP_RELATIVE: frame->jumpRelative(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsoluteSafe(byte.arg); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
@@ -277,8 +276,7 @@ protected:
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
-                    }
-                    else{
+                    }else{
                         int blockEnd = frame->code->co_blocks[byte.block].end;
                         frame->jumpAbsoluteSafe(blockEnd);
                     }
@@ -405,7 +403,7 @@ public:
         return asRepr(obj);
     }
 
-    Frame* topFrame(){
+    inline Frame* topFrame() const {
         if(callstack.size() == 0) UNREACHABLE();
         return callstack.back().get();
     }
