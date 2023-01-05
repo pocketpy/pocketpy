@@ -136,7 +136,6 @@ protected:
                         setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
-                    // frame->f_globals()[clsName] = cls;
                 } break;
             case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
@@ -548,9 +547,9 @@ public:
         try {
             _Code code = compile(source, filename, mode);
 
-            // if(filename != "<builtins>"){
-            //     std::cout << disassemble(code) << std::endl;
-            // }
+            if(filename != "<builtins>"){
+                std::cout << disassemble(code) << std::endl;
+            }
             
             return _exec(code, _module, {});
         }catch (const _Error& e){
@@ -774,7 +773,6 @@ public:
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
             const ByteCode& byte = code->co_code[i];
-            //if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -784,7 +782,7 @@ public:
             ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
             ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
             ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-            ss << '[' << code->getBlockStr(byte.block) << ']';
+            ss << code->co_blocks[byte.block].toString();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;

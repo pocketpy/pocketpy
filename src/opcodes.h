@@ -1,8 +1,15 @@
 #ifdef OPCODE
 
+// Do nothing
 OPCODE(NO_OP)
+
+// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
+
+// Load a constant from the `co_consts`
+// ARG: array index
 OPCODE(LOAD_CONST)
+
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
@@ -66,5 +73,7 @@ OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
 
 OPCODE(JUMP_RELATIVE)
+
+OPCODE(RAISE_VARARGS)
 
 #endif

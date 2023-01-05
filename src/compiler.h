@@ -575,7 +575,7 @@ __LISTCOMP:
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop();
+        Loop& loop = enterLoop(); getCode()->__enterBlock(FOR_LOOP);
         int patch = emitCode(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
@@ -594,7 +594,7 @@ __LISTCOMP:
 
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
-        exitLoop();
+        exitLoop(); getCode()->__exitBlock();
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -710,7 +710,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currLoopIndex}
+            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currBlockIndex}
         );
         return getCode()->co_code.size() - 1;
     }
@@ -818,14 +818,12 @@ __LISTCOMP:
     }
 
     Loop& enterLoop(){
-        getCode()->__enterLoop(loops.size()+1);
         Loop lp((int)getCode()->co_code.size());
         loops.push(lp);
         return loops.top();
     }
 
     void exitLoop(){
-        getCode()->__exitLoop();
         Loop& lp = loops.top();
         for(int addr : lp.breaks) patchJump(addr);
         loops.pop();
@@ -851,14 +849,14 @@ __LISTCOMP:
     }
 
     void compileForLoop() {
-        EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
+        EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop();
+        Loop& loop = enterLoop(); getCode()->__enterBlock(FOR_LOOP);
         int patch = emitCode(OP_FOR_ITER);
         compileBlockBody();
         emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
         patchJump(patch);
-        exitLoop();
+        exitLoop(); getCode()->__exitBlock();
     }
 
     void compileStatement() {

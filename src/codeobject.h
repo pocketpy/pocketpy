@@ -27,6 +27,44 @@ _Str pad(const _Str& s, const int n){
     return s + std::string(n - s.size(), ' ');
 }
 
+enum CodeBlockType {
+    NO_BLOCK,
+    FOR_LOOP,
+    CONTEXT_MANAGER,
+    TRY_EXCEPT,
+};
+
+struct CodeBlock {
+    CodeBlockType type;
+    std::vector<int> id;
+    int parent;        // parent index in co_blocks
+
+    std::string toString() const {
+        if(parent == -1) return "";
+        std::string s = "[";
+        for(int i = 0; i < id.size(); i++){
+            s += std::to_string(id[i]);
+            if(i != id.size()-1) s += "-";
+        }
+        s += ": ";
+        s += std::to_string(type);
+        s += "]";
+        return s;
+    }
+
+    bool operator==(const std::vector<int>& other) const {
+        return id == other;
+    }
+
+    bool operator!=(const std::vector<int>& other) const {
+        return id != other;
+    }
+
+    int depth() const {
+        return id.size();
+    }
+};
+
 struct CodeObject {
     _Source src;
     _Str name;
@@ -45,48 +83,32 @@ struct CodeObject {
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
 
-    std::vector<std::vector<int>> co_loops = {{}};
-    int _currLoopIndex = 0;
+    std::vector<CodeBlock> co_blocks = { CodeBlock{NO_BLOCK, {}, -1} };
 
-    std::string getBlockStr(int block){
-        std::vector<int> loopId = co_loops[block];
-        std::string s = "";
-        for(int i=0; i<loopId.size(); i++){
-            s += std::to_string(loopId[i]);
-            if(i != loopId.size()-1) s += "-";
+    // tmp variables
+    int _currBlockIndex = 0;
+
+    void __enterBlock(CodeBlockType type){
+        const CodeBlock& currBlock = co_blocks[_currBlockIndex];
+        std::vector<int> copy(currBlock.id);
+        copy.push_back(-1);
+        int t = 0;
+        while(true){
+            copy[copy.size()-1] = t;
+            auto it = std::find(co_blocks.begin(), co_blocks.end(), copy);
+            if(it == co_blocks.end()) break;
+            t++;
         }
-        return s;
+        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex});
+        _currBlockIndex = co_blocks.size()-1;
     }
 
-    void __enterLoop(int depth){
-        const std::vector<int>& prevLoopId = co_loops[_currLoopIndex];
-        if(depth - prevLoopId.size() == 1){
-            std::vector<int> copy = prevLoopId;
-            copy.push_back(0);
-            int t = 0;
-            while(true){
-                copy[copy.size()-1] = t;
-                auto it = std::find(co_loops.begin(), co_loops.end(), copy);
-                if(it == co_loops.end()) break;
-                t++;
-            }
-            co_loops.push_back(copy);
-        }else{
-            UNREACHABLE();
-        }
-        _currLoopIndex = co_loops.size()-1;
-    }
-
-    void __exitLoop(){
-        std::vector<int> copy = co_loops[_currLoopIndex];
-        copy.pop_back();
-        auto it = std::find(co_loops.begin(), co_loops.end(), copy);
-        if(it == co_loops.end()) UNREACHABLE();
-        _currLoopIndex = it - co_loops.begin();
+    void __exitBlock(){
+        _currBlockIndex = co_blocks[_currBlockIndex].parent;
+        if(_currBlockIndex < 0) UNREACHABLE();
     }
 
     // for goto use
-    // note: some opcodes moves the bytecode, such as listcomp
     // goto/label should be put at toplevel statements
     emhash8::HashMap<_Str, int> co_labels;
 
@@ -125,7 +147,7 @@ public:
     PyVar _module;
     PyVarDict f_locals;
 
-    inline PyVarDict copy_f_locals(){
+    inline PyVarDict copy_f_locals() const {
         return f_locals;
     }
 
@@ -194,27 +216,25 @@ public:
         this->ip += i;
     }
 
-    void jumpAbsoluteSafe(int i){
+    void jumpAbsoluteSafe(int target){
         const ByteCode& prev = code->co_code[this->ip];
-        const std::vector<int> prevLoopId = code->co_loops[prev.block];
-        this->ip = i;
+        int i = prev.block;
+        this->ip = target;
         if(isCodeEnd()){
-            for(int i=0; i<prevLoopId.size(); i++) __pop();
-            return;
-        }
-        const ByteCode& next = code->co_code[i];
-        const std::vector<int> nextLoopId = code->co_loops[next.block];
-        int sizeDelta = prevLoopId.size() - nextLoopId.size();
-        if(sizeDelta < 0){
-            throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
-        }else{
-            for(int i=0; i<nextLoopId.size(); i++){
-                if(nextLoopId[i] != prevLoopId[i]){
-                    throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
-                }
+            while(i>=0){
+                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                i = code->co_blocks[i].parent;
             }
+        }else{
+            const ByteCode& next = code->co_code[target];
+            while(i>=0 && i!=next.block){
+                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                i = code->co_blocks[i].parent;
+            }
+            if(i!=next.block) throw std::runtime_error(
+                "invalid jump from " + code->co_blocks[prev.block].toString() + " to " + code->co_blocks[next.block].toString()
+            );
         }
-        for(int i=0; i<sizeDelta; i++) __pop();
     }
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
