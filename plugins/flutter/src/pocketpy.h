@@ -3165,7 +3165,7 @@ constexpr const char* __TOKENS[] = {
     "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with",
-    "None", "in", "is", "and", "or", "not", "True", "False", "global",
+    "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
     "goto", "label",      // extended keywords, not available in cpython
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise",
     /** KW_END **/
@@ -3530,9 +3530,16 @@ enum Opcode {
     #define OPCODE(name) OP_##name,
     #ifdef OPCODE
 
+// Do nothing
 OPCODE(NO_OP)
+
+// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
+
+// Load a constant from the `co_consts`
+// ARG: array index
 OPCODE(LOAD_CONST)
+
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
@@ -3595,7 +3602,10 @@ OPCODE(GOTO)
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
 
-OPCODE(JUMP_RELATIVE)
+OPCODE(RAISE_VARARGS)
+
+OPCODE(LOOP_BREAK)
+OPCODE(LOOP_CONTINUE)
 
 #endif
     #undef OPCODE
@@ -3605,9 +3615,16 @@ static const char* OP_NAMES[] = {
     #define OPCODE(name) #name,
     #ifdef OPCODE
 
+// Do nothing
 OPCODE(NO_OP)
+
+// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
+
+// Load a constant from the `co_consts`
+// ARG: array index
 OPCODE(LOAD_CONST)
+
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
@@ -3670,7 +3687,10 @@ OPCODE(GOTO)
 OPCODE(WITH_ENTER)
 OPCODE(WITH_EXIT)
 
-OPCODE(JUMP_RELATIVE)
+OPCODE(RAISE_VARARGS)
+
+OPCODE(LOOP_BREAK)
+OPCODE(LOOP_CONTINUE)
 
 #endif
     #undef OPCODE
@@ -3686,6 +3706,48 @@ struct ByteCode{
 _Str pad(const _Str& s, const int n){
     return s + std::string(n - s.size(), ' ');
 }
+
+enum CodeBlockType {
+    NO_BLOCK,
+    FOR_LOOP,
+    WHILE_LOOP,
+    CONTEXT_MANAGER,
+    TRY_EXCEPT,
+};
+
+struct CodeBlock {
+    CodeBlockType type;
+    std::vector<int> id;
+    int parent;        // parent index in co_blocks
+
+    int start;          // start index of this block in co_code, inclusive
+    int end;            // end index of this block in co_code, exclusive
+
+    std::string toString() const {
+        if(parent == -1) return "";
+        std::string s = "[";
+        for(int i = 0; i < id.size(); i++){
+            s += std::to_string(id[i]);
+            if(i != id.size()-1) s += "-";
+        }
+        s += ": ";
+        s += std::to_string(type);
+        s += "]";
+        return s;
+    }
+
+    bool operator==(const std::vector<int>& other) const {
+        return id == other;
+    }
+
+    bool operator!=(const std::vector<int>& other) const {
+        return id != other;
+    }
+
+    int depth() const {
+        return id.size();
+    }
+};
 
 struct CodeObject {
     _Source src;
@@ -3705,48 +3767,36 @@ struct CodeObject {
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
 
-    std::vector<std::vector<int>> co_loops = {{}};
-    int _currLoopIndex = 0;
+    std::vector<CodeBlock> co_blocks = { CodeBlock{NO_BLOCK, {}, -1} };
 
-    std::string getBlockStr(int block){
-        std::vector<int> loopId = co_loops[block];
-        std::string s = "";
-        for(int i=0; i<loopId.size(); i++){
-            s += std::to_string(loopId[i]);
-            if(i != loopId.size()-1) s += "-";
-        }
-        return s;
+    // tmp variables
+    int _currBlockIndex = 0;
+    bool __isCurrBlockLoop() const {
+        return co_blocks[_currBlockIndex].type == FOR_LOOP || co_blocks[_currBlockIndex].type == WHILE_LOOP;
     }
 
-    void __enterLoop(int depth){
-        const std::vector<int>& prevLoopId = co_loops[_currLoopIndex];
-        if(depth - prevLoopId.size() == 1){
-            std::vector<int> copy = prevLoopId;
-            copy.push_back(0);
-            int t = 0;
-            while(true){
-                copy[copy.size()-1] = t;
-                auto it = std::find(co_loops.begin(), co_loops.end(), copy);
-                if(it == co_loops.end()) break;
-                t++;
-            }
-            co_loops.push_back(copy);
-        }else{
-            UNREACHABLE();
+    void __enterBlock(CodeBlockType type){
+        const CodeBlock& currBlock = co_blocks[_currBlockIndex];
+        std::vector<int> copy(currBlock.id);
+        copy.push_back(-1);
+        int t = 0;
+        while(true){
+            copy[copy.size()-1] = t;
+            auto it = std::find(co_blocks.begin(), co_blocks.end(), copy);
+            if(it == co_blocks.end()) break;
+            t++;
         }
-        _currLoopIndex = co_loops.size()-1;
+        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex, (int)co_code.size()});
+        _currBlockIndex = co_blocks.size()-1;
     }
 
-    void __exitLoop(){
-        std::vector<int> copy = co_loops[_currLoopIndex];
-        copy.pop_back();
-        auto it = std::find(co_loops.begin(), co_loops.end(), copy);
-        if(it == co_loops.end()) UNREACHABLE();
-        _currLoopIndex = it - co_loops.begin();
+    void __exitBlock(){
+        co_blocks[_currBlockIndex].end = co_code.size();
+        _currBlockIndex = co_blocks[_currBlockIndex].parent;
+        if(_currBlockIndex < 0) UNREACHABLE();
     }
 
     // for goto use
-    // note: some opcodes moves the bytecode, such as listcomp
     // goto/label should be put at toplevel statements
     emhash8::HashMap<_Str, int> co_labels;
 
@@ -3785,7 +3835,7 @@ public:
     PyVar _module;
     PyVarDict f_locals;
 
-    inline PyVarDict copy_f_locals(){
+    inline PyVarDict copy_f_locals() const {
         return f_locals;
     }
 
@@ -3850,31 +3900,25 @@ public:
         this->ip = i;
     }
 
-    inline void jumpRelative(int i){
-        this->ip += i;
-    }
-
-    void jumpAbsoluteSafe(int i){
+    void jumpAbsoluteSafe(int target){
         const ByteCode& prev = code->co_code[this->ip];
-        const std::vector<int> prevLoopId = code->co_loops[prev.block];
-        this->ip = i;
+        int i = prev.block;
+        this->ip = target;
         if(isCodeEnd()){
-            for(int i=0; i<prevLoopId.size(); i++) __pop();
-            return;
-        }
-        const ByteCode& next = code->co_code[i];
-        const std::vector<int> nextLoopId = code->co_loops[next.block];
-        int sizeDelta = prevLoopId.size() - nextLoopId.size();
-        if(sizeDelta < 0){
-            throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
-        }else{
-            for(int i=0; i<nextLoopId.size(); i++){
-                if(nextLoopId[i] != prevLoopId[i]){
-                    throw std::runtime_error("invalid jump from " + code->getBlockStr(prev.block) + " to " + code->getBlockStr(next.block));
-                }
+            while(i>=0){
+                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                i = code->co_blocks[i].parent;
             }
+        }else{
+            const ByteCode& next = code->co_code[target];
+            while(i>=0 && i!=next.block){
+                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                i = code->co_blocks[i].parent;
+            }
+            if(i!=next.block) throw std::runtime_error(
+                "invalid jump from " + code->co_blocks[prev.block].toString() + " to " + code->co_blocks[next.block].toString()
+            );
         }
-        for(int i=0; i<sizeDelta; i++) __pop();
     }
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
@@ -4029,7 +4073,6 @@ protected:
                         setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
-                    // frame->f_globals()[clsName] = cls;
                 } break;
             case OP_RETURN_VALUE: return frame->popValue(this);
             case OP_PRINT_EXPR:
@@ -4140,7 +4183,6 @@ protected:
                     frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
-            case OP_JUMP_RELATIVE: frame->jumpRelative(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsoluteSafe(byte.arg); break;
             case OP_GOTO: {
                 PyVar obj = frame->popValue(this);
@@ -4171,10 +4213,20 @@ protected:
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
+                    }else{
+                        int blockEnd = frame->code->co_blocks[byte.block].end;
+                        frame->jumpAbsoluteSafe(blockEnd);
                     }
-                    else{
-                        frame->jumpAbsoluteSafe(byte.arg);
-                    }
+                } break;
+            case OP_LOOP_CONTINUE:
+                {
+                    int blockStart = frame->code->co_blocks[byte.block].start;
+                    frame->jumpAbsolute(blockStart);
+                } break;
+            case OP_LOOP_BREAK:
+                {
+                    int blockEnd = frame->code->co_blocks[byte.block].end;
+                    frame->jumpAbsoluteSafe(blockEnd);
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
@@ -4288,7 +4340,7 @@ public:
         return asRepr(obj);
     }
 
-    Frame* topFrame(){
+    inline Frame* topFrame() const {
         if(callstack.size() == 0) UNREACHABLE();
         return callstack.back().get();
     }
@@ -4440,11 +4492,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-
-            // if(filename != "<builtins>"){
-            //     std::cout << disassemble(code) << std::endl;
-            // }
-            
+            // if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
@@ -4667,7 +4715,6 @@ public:
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
             const ByteCode& byte = code->co_code[i];
-            //if(byte.op == OP_NO_OP || byte.op == OP_DELETED_OP) continue;
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -4677,7 +4724,7 @@ public:
             ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
             ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
             ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-            ss << '[' << code->getBlockStr(byte.block) << ']';
+            ss << code->co_blocks[byte.block].toString();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;
@@ -5129,19 +5176,12 @@ struct GrammarRule{
     Precedence precedence;
 };
 
-struct Loop {
-    int start;
-    std::vector<int> breaks;
-    Loop(int start) : start(start) {}
-};
-
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
 class Compiler {
 public:
     pkpy::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
-    std::stack<Loop> loops;
     bool isCompilingClass = false;
     int lexingCnt = 0;
     VM* vm;
@@ -5154,10 +5194,6 @@ public:
 
     CompileMode mode() {
         return parser->src->mode;
-    }
-
-    Loop& getLoop() {
-        return loops.top();
     }
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
@@ -5689,8 +5725,8 @@ __LISTCOMP:
         patchJump(_skipPatch);
 
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop();
-        int patch = emitCode(OP_FOR_ITER);
+        getCode()->__enterBlock(FOR_LOOP);
+        emitCode(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
             emitCode(OP_JUMP_ABSOLUTE, _cond_start);
@@ -5706,9 +5742,8 @@ __LISTCOMP:
             emitCode(OP_LIST_APPEND);
         }
 
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
-        patchJump(patch);
-        exitLoop();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
+        getCode()->__exitBlock();
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -5824,7 +5859,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currLoopIndex}
+            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currBlockIndex}
         );
         return getCode()->co_code.size() - 1;
     }
@@ -5931,28 +5966,14 @@ __LISTCOMP:
         }
     }
 
-    Loop& enterLoop(){
-        getCode()->__enterLoop(loops.size()+1);
-        Loop lp((int)getCode()->co_code.size());
-        loops.push(lp);
-        return loops.top();
-    }
-
-    void exitLoop(){
-        getCode()->__exitLoop();
-        Loop& lp = loops.top();
-        for(int addr : lp.breaks) patchJump(addr);
-        loops.pop();
-    }
-
     void compileWhileLoop() {
-        Loop& loop = enterLoop();
+        getCode()->__enterBlock(WHILE_LOOP);
         EXPR_TUPLE();
         int patch = emitCode(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
         patchJump(patch);
-        exitLoop();
+        getCode()->__exitBlock();
     }
 
     void EXPR_FOR_VARS(){
@@ -5965,26 +5986,40 @@ __LISTCOMP:
     }
 
     void compileForLoop() {
-        EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
+        EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emitCode(OP_GET_ITER);
-        Loop& loop = enterLoop();
-        int patch = emitCode(OP_FOR_ITER);
+        getCode()->__enterBlock(FOR_LOOP);
+        emitCode(OP_FOR_ITER);
         compileBlockBody();
-        emitCode(OP_JUMP_ABSOLUTE, loop.start); keepOpcodeLine();
+        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
+        getCode()->__exitBlock();
+    }
+
+    void compileTryExcept() {
+        getCode()->__enterBlock(TRY_EXCEPT);
+        compileBlockBody();
+        int patch = emitCode(OP_JUMP_ABSOLUTE);
+        getCode()->__exitBlock();
+        consume(TK("except"));
+        if(match(TK("@id"))){       // exception name
+            compileBlockBody();
+        }
+        if(match(TK("finally"))){
+            consume(TK(":"));
+            syntaxError("finally is not supported yet");
+        }
         patchJump(patch);
-        exitLoop();
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (loops.empty()) syntaxError("'break' outside loop");
+            if (!getCode()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
             consumeEndStatement();
-            int patch = emitCode(OP_SAFE_JUMP_ABSOLUTE);
-            getLoop().breaks.push_back(patch);
+            emitCode(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (loops.empty()) syntaxError("'continue' not properly in loop");
+            if (!getCode()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
-            emitCode(OP_JUMP_ABSOLUTE, getLoop().start);
+            emitCode(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
                 syntaxError("'return' outside function");
@@ -6001,7 +6036,9 @@ __LISTCOMP:
             compileWhileLoop();
         } else if (match(TK("for"))) {
             compileForLoop();
-        } else if(match(TK("assert"))){
+        } else if (match(TK("try"))) {
+            compileTryExcept();
+        }else if(match(TK("assert"))){
             EXPR();
             emitCode(OP_ASSERT);
             consumeEndStatement();
@@ -6035,7 +6072,12 @@ __LISTCOMP:
         } else if(match(TK("raise"))){
             consume(TK("@id"));         // dummy exception type
             emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
-            consume(TK("("));EXPR();consume(TK(")"));
+            if(match(TK("("))){
+                EXPR();
+                consume(TK(")"));
+            }else{
+                emitCode(OP_LOAD_NONE); // ...?
+            }
             emitCode(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){
@@ -6053,13 +6095,10 @@ __LISTCOMP:
         } else {
             EXPR_ANY();
             consumeEndStatement();
-
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = getCode()->co_code.back().op;
-            if( lastOp != OP_STORE_NAME_REF && lastOp != OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top() == 0){
-                    emitCode(OP_PRINT_EXPR);
-                }
+            if( lastOp!=OP_STORE_NAME_REF && lastOp!=OP_STORE_REF){
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emitCode(OP_PRINT_EXPR);
                 emitCode(OP_POP_TOP);
             }
         }
@@ -6078,7 +6117,6 @@ __LISTCOMP:
         isCompilingClass = true;
         __compileBlockBody(&Compiler::compileFunction);
         isCompilingClass = false;
-
         if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
         else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
         emitCode(OP_BUILD_CLASS, clsNameIdx);
