@@ -87,7 +87,7 @@ protected:
                     if(!items[i]->isType(_tp_ref)) {
                         done = true;
                         PyVarList values = items.toList();
-                        for(int j=i; j<values.size(); j++) frame->__deref(this, values[j]);
+                        for(int j=i; j<values.size(); j++) frame->try_deref(this, values[j]);
                         frame->push(PyTuple(values));
                         break;
                     }
@@ -272,7 +272,7 @@ protected:
                 } break;
             case OP_FOR_ITER:
                 {
-                    // __top() must be PyIter, so no need to __deref()
+                    // __top() must be PyIter, so no need to try_deref()
                     auto& it = PyIter_AS_C(frame->__top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
@@ -1078,7 +1078,7 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 }
 
 /***** Frame's Impl *****/
-inline void Frame::__deref(VM* vm, PyVar& v){
+inline void Frame::try_deref(VM* vm, PyVar& v){
     if(v->isType(vm->_tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 

@@ -194,17 +194,17 @@ public:
         return v;
     }
 
-    inline void __deref(VM*, PyVar&);
+    inline void try_deref(VM*, PyVar&);
 
     inline PyVar popValue(VM* vm){
         PyVar value = __pop();
-        __deref(vm, value);
+        try_deref(vm, value);
         return value;
     }
 
     inline PyVar topValue(VM* vm){
         PyVar value = __top();
-        __deref(vm, value);
+        try_deref(vm, value);
         return value;
     }
 
@@ -215,7 +215,7 @@ public:
 
     inline PyVar __topValueN(VM* vm, int n=-1){
         PyVar value = s_data[s_data.size() + n];
-        __deref(vm, value);
+        try_deref(vm, value);
         return value;
     }
 
@@ -255,7 +255,7 @@ public:
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--){
             v._index(i) = std::move(s_data[new_size + i]);
-            __deref(vm, v._index(i));
+            try_deref(vm, v._index(i));
         }
         s_data.resize(new_size);
         return v;
