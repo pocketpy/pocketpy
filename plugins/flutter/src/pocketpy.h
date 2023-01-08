@@ -3488,7 +3488,7 @@ enum NameScope {
 
 struct NameRef : BaseRef {
     const std::pair<_Str, NameScope>* pair;
-    NameRef(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
+    NameRef(const std::pair<_Str, NameScope>& pair) : pair(&pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -3699,7 +3699,7 @@ OPCODE(LOOP_CONTINUE)
 struct ByteCode{
     uint8_t op;
     int arg;
-    uint16_t line;
+    int line;
     uint16_t block;     // the block id of this bytecode
 };
 
@@ -3829,7 +3829,8 @@ struct CodeObject {
 class Frame {
 private:
     std::vector<PyVar> s_data;
-    int ip = 0;
+    int ip = -1;
+    int next_ip = 0;
 public:
     const _Code code;
     PyVar _module;
@@ -3847,12 +3848,14 @@ public:
         : code(code), _module(_module), f_locals(std::move(locals)) {
     }
 
-    inline const ByteCode& readCode() {
-        return code->co_code[ip++];
+    inline const ByteCode& next_bytecode() {
+        ip = next_ip;
+        next_ip = ip + 1;
+        return code->co_code[ip];
     }
 
     _Str errorSnapshot(){
-        int line = code->co_code[ip-1].line;
+        int line = code->co_code[ip].line;
         return code->src->snapshot(line);
     }
 
@@ -3860,8 +3863,8 @@ public:
         return s_data.size();
     }
 
-    inline bool isCodeEnd() const {
-        return ip >= code->co_code.size();
+    inline bool has_next_bytecode() const {
+        return next_ip < code->co_code.size();
     }
 
     inline PyVar __pop(){
@@ -3871,15 +3874,18 @@ public:
         return v;
     }
 
-    inline PyVar __deref_pointer(VM*, PyVar);
+    inline void __deref(VM*, PyVar&);
 
     inline PyVar popValue(VM* vm){
-        return __deref_pointer(vm, __pop());
+        PyVar value = __pop();
+        __deref(vm, value);
+        return value;
     }
 
     inline PyVar topValue(VM* vm){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        return __deref_pointer(vm, s_data.back());
+        PyVar value = __top();
+        __deref(vm, value);
+        return value;
     }
 
     inline PyVar& __top(){
@@ -3888,7 +3894,9 @@ public:
     }
 
     inline PyVar __topValueN(VM* vm, int n=-1){
-        return __deref_pointer(vm, s_data[s_data.size() + n]);
+        PyVar value = s_data[s_data.size() + n];
+        __deref(vm, value);
+        return value;
     }
 
     template<typename T>
@@ -3897,14 +3905,14 @@ public:
     }
 
     inline void jumpAbsolute(int i){
-        this->ip = i;
+        next_ip = i;
     }
 
     void jumpAbsoluteSafe(int target){
-        const ByteCode& prev = code->co_code[this->ip];
+        const ByteCode& prev = code->co_code[ip];
         int i = prev.block;
-        this->ip = target;
-        if(isCodeEnd()){
+        next_ip = target;
+        if(next_ip >= code->co_code.size()){
             while(i>=0){
                 if(code->co_blocks[i].type == FOR_LOOP) __pop();
                 i = code->co_blocks[i].parent;
@@ -3922,8 +3930,14 @@ public:
     }
 
     pkpy::ArgList popNValuesReversed(VM* vm, int n){
+        int new_size = s_data.size() - n;
+        if(new_size < 0) throw std::runtime_error("stackSize() < n");
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = popValue(vm);
+        for(int i=n-1; i>=0; i--){
+            v._index(i) = std::move(s_data[new_size + i]);
+            __deref(vm, v._index(i));
+        }
+        s_data.resize(new_size);
         return v;
     }
 
@@ -3974,8 +3988,8 @@ protected:
     }
 
     PyVar runFrame(Frame* frame){
-        while(!frame->isCodeEnd()){
-            const ByteCode& byte = frame->readCode();
+        while(frame->has_next_bytecode()){
+            const ByteCode& byte = frame->next_bytecode();
             //printf("[%d] %s (%d)\n", frame->stackSize(), OP_NAMES[byte.op], byte.arg);
             //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
 
@@ -3991,18 +4005,16 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_REF: {
-                frame->push(PyRef(NameRef(
-                    &(frame->code->co_names[byte.arg])
-                )));
+                frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
             } break;
             case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
-                NameRef(&p).set(this, frame, frame->popValue(this));
+                NameRef(p).set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_REF: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyRef(AttrRef(obj, NameRef(&attr))));
+                frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
             case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->popValue(this);
@@ -4025,10 +4037,8 @@ protected:
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->isType(_tp_ref)) {
                         done = true;
-                        PyVarList values(items.size());
-                        for(int i=0; i<items.size(); i++){
-                            values[i] = frame->__deref_pointer(this, items[i]);
-                        }
+                        PyVarList values = items.toList();
+                        for(int j=i; j<values.size(); j++) frame->__deref(this, values[j]);
                         frame->push(PyTuple(values));
                         break;
                     }
@@ -4088,6 +4098,10 @@ protected:
                         fastCall(BINARY_SPECIAL_METHODS[byte.arg],
                         frame->popNValuesReversed(this, 2))
                     );
+                    // pkpy::ArgList args(2);
+                    // args._index(1) = frame->popValue(this);
+                    // args._index(0) = frame->topValue(this);
+                    // frame->__top() = fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_BITWISE_OP:
                 {
@@ -4561,7 +4575,7 @@ public:
 
     template<typename T>
     inline PyVar newObject(PyVar type, T _value) {
-        __checkType(type, _tp_type);
+        if(!type->isType(_tp_type)) UNREACHABLE();
         return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
     }
 
@@ -4615,30 +4629,15 @@ public:
         return nullptr;
     }
 
-    void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
-        if(obj->isType(_tp_super)){
-            const PyVar* root = &obj;
-            while(true){
-                root = &UNION_GET(PyVar, *root);
-                if(!(*root)->isType(_tp_super)) break;
-            }
-            (*root)->attribs[name] = value;
-        }else{
-            obj->attribs[name] = value;
-        }
+    template<typename T>
+    void setAttr(PyObject* obj, const _Str& name, T&& value) {
+        while(obj->isType(_tp_super)) obj = ((Py_<PyVar>*)obj)->_valueT.get();
+        obj->attribs[name] = value;
     }
 
-    void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
-        if(obj->isType(_tp_super)){
-            const PyVar* root = &obj;
-            while(true){
-                root = &UNION_GET(PyVar, *root);
-                if(!(*root)->isType(_tp_super)) break;
-            }
-            (*root)->attribs[name] = std::move(value);
-        }else{
-            obj->attribs[name] = std::move(value);
-        }
+    template<typename T>
+    inline void setAttr(PyVar& obj, const _Str& name, T&& value) {
+        setAttr(obj.get(), name, value);
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
@@ -5030,9 +5029,8 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 }
 
 /***** Frame's Impl *****/
-inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
-    if(v->isType(vm->_tp_ref)) return vm->PyRef_AS_C(v)->get(vm, this);
-    return v;
+inline void Frame::__deref(VM* vm, PyVar& v){
+    if(v->isType(vm->_tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
 /***** Iterators' Impl *****/
@@ -5859,7 +5857,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currBlockIndex}
+            ByteCode{(uint8_t)opcode, arg, line, (uint16_t)getCode()->_currBlockIndex}
         );
         return getCode()->co_code.size() - 1;
     }
