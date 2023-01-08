@@ -19,7 +19,7 @@ enum NameScope {
 
 struct NameRef : BaseRef {
     const std::pair<_Str, NameScope>* pair;
-    NameRef(const std::pair<_Str, NameScope>* pair) : pair(pair) {}
+    NameRef(const std::pair<_Str, NameScope>& pair) : pair(&pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

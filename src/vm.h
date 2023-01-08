@@ -37,8 +37,8 @@ protected:
     }
 
     PyVar runFrame(Frame* frame){
-        while(!frame->isCodeEnd()){
-            const ByteCode& byte = frame->readCode();
+        while(frame->has_next_bytecode()){
+            const ByteCode& byte = frame->next_bytecode();
             //printf("[%d] %s (%d)\n", frame->stackSize(), OP_NAMES[byte.op], byte.arg);
             //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
 
@@ -54,18 +54,16 @@ protected:
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_REF: {
-                frame->push(PyRef(NameRef(
-                    &(frame->code->co_names[byte.arg])
-                )));
+                frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
             } break;
             case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
-                NameRef(&p).set(this, frame, frame->popValue(this));
+                NameRef(p).set(this, frame, frame->popValue(this));
             } break;
             case OP_BUILD_ATTR_REF: {
                 const auto& attr = frame->code->co_names[byte.arg];
                 PyVar obj = frame->popValue(this);
-                frame->push(PyRef(AttrRef(obj, NameRef(&attr))));
+                frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
             case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->popValue(this);
@@ -88,10 +86,8 @@ protected:
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->isType(_tp_ref)) {
                         done = true;
-                        PyVarList values(items.size());
-                        for(int i=0; i<items.size(); i++){
-                            values[i] = frame->__deref_pointer(this, items[i]);
-                        }
+                        PyVarList values = items.toList();
+                        for(int j=i; j<values.size(); j++) frame->__deref(this, values[j]);
                         frame->push(PyTuple(values));
                         break;
                     }
@@ -151,6 +147,10 @@ protected:
                         fastCall(BINARY_SPECIAL_METHODS[byte.arg],
                         frame->popNValuesReversed(this, 2))
                     );
+                    // pkpy::ArgList args(2);
+                    // args._index(1) = frame->popValue(this);
+                    // args._index(0) = frame->topValue(this);
+                    // frame->__top() = fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_BITWISE_OP:
                 {
@@ -624,7 +624,7 @@ public:
 
     template<typename T>
     inline PyVar newObject(PyVar type, T _value) {
-        __checkType(type, _tp_type);
+        if(!type->isType(_tp_type)) UNREACHABLE();
         return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
     }
 
@@ -678,30 +678,15 @@ public:
         return nullptr;
     }
 
-    void setAttr(PyVar& obj, const _Str& name, const PyVar& value) {
-        if(obj->isType(_tp_super)){
-            const PyVar* root = &obj;
-            while(true){
-                root = &UNION_GET(PyVar, *root);
-                if(!(*root)->isType(_tp_super)) break;
-            }
-            (*root)->attribs[name] = value;
-        }else{
-            obj->attribs[name] = value;
-        }
+    template<typename T>
+    void setAttr(PyObject* obj, const _Str& name, T&& value) {
+        while(obj->isType(_tp_super)) obj = ((Py_<PyVar>*)obj)->_valueT.get();
+        obj->attribs[name] = value;
     }
 
-    void setAttr(PyVar& obj, const _Str& name, PyVar&& value) {
-        if(obj->isType(_tp_super)){
-            const PyVar* root = &obj;
-            while(true){
-                root = &UNION_GET(PyVar, *root);
-                if(!(*root)->isType(_tp_super)) break;
-            }
-            (*root)->attribs[name] = std::move(value);
-        }else{
-            obj->attribs[name] = std::move(value);
-        }
+    template<typename T>
+    inline void setAttr(PyVar& obj, const _Str& name, T&& value) {
+        setAttr(obj.get(), name, value);
     }
 
     void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
@@ -1093,9 +1078,8 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 }
 
 /***** Frame's Impl *****/
-inline PyVar Frame::__deref_pointer(VM* vm, PyVar v){
-    if(v->isType(vm->_tp_ref)) return vm->PyRef_AS_C(v)->get(vm, this);
-    return v;
+inline void Frame::__deref(VM* vm, PyVar& v){
+    if(v->isType(vm->_tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
 /***** Iterators' Impl *****/

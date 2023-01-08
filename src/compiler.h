@@ -698,7 +698,7 @@ __LISTCOMP:
     int emitCode(Opcode opcode, int arg=-1) {
         int line = parser->previous.line;
         getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, (uint16_t)line, (uint16_t)getCode()->_currBlockIndex}
+            ByteCode{(uint8_t)opcode, arg, line, (uint16_t)getCode()->_currBlockIndex}
         );
         return getCode()->co_code.size() - 1;
     }
