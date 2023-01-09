@@ -1,6 +1,6 @@
 name: pocketpy
 description: A lightweight Python interpreter for game engines.
-version: 0.6.2
+version: 0.6.2+1
 homepage: https://pocketpy.dev
 repository: https://github.com/blueloveth/pocketpy
 

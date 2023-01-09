@@ -3530,15 +3530,8 @@ enum Opcode {
     #define OPCODE(name) OP_##name,
     #ifdef OPCODE
 
-// Do nothing
 OPCODE(NO_OP)
-
-// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
-
-// Load a constant from the `co_consts`
-// ARG: array index
-OPCODE(LOAD_CONST)
 
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
@@ -3573,21 +3566,21 @@ OPCODE(SAFE_JUMP_ABSOLUTE)
 OPCODE(JUMP_IF_TRUE_OR_POP)
 OPCODE(JUMP_IF_FALSE_OR_POP)
 
-// non-standard python opcodes
+OPCODE(LOAD_CONST)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
-OPCODE(LOAD_EVAL_FN)        // load eval() callable into stack
-OPCODE(LOAD_LAMBDA)         // LOAD_CONST + set __module__ attr
+OPCODE(LOAD_EVAL_FN)
+OPCODE(LOAD_LAMBDA)
 OPCODE(LOAD_ELLIPSIS)
+OPCODE(LOAD_NAME)
+OPCODE(LOAD_NAME_REF)       // no arg
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
 
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
-
-OPCODE(LOAD_NAME_REF)       // no arg
 OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
 OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
@@ -3615,15 +3608,8 @@ static const char* OP_NAMES[] = {
     #define OPCODE(name) #name,
     #ifdef OPCODE
 
-// Do nothing
 OPCODE(NO_OP)
-
-// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
-
-// Load a constant from the `co_consts`
-// ARG: array index
-OPCODE(LOAD_CONST)
 
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
@@ -3658,21 +3644,21 @@ OPCODE(SAFE_JUMP_ABSOLUTE)
 OPCODE(JUMP_IF_TRUE_OR_POP)
 OPCODE(JUMP_IF_FALSE_OR_POP)
 
-// non-standard python opcodes
+OPCODE(LOAD_CONST)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
-OPCODE(LOAD_EVAL_FN)        // load eval() callable into stack
-OPCODE(LOAD_LAMBDA)         // LOAD_CONST + set __module__ attr
+OPCODE(LOAD_EVAL_FN)
+OPCODE(LOAD_LAMBDA)
 OPCODE(LOAD_ELLIPSIS)
+OPCODE(LOAD_NAME)
+OPCODE(LOAD_NAME_REF)       // no arg
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
 
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
-
-OPCODE(LOAD_NAME_REF)       // no arg
 OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
 OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
@@ -3704,6 +3690,7 @@ struct ByteCode{
 };
 
 _Str pad(const _Str& s, const int n){
+    if(s.size() >= n) return s.substr(0, n);
     return s + std::string(n - s.size(), ' ');
 }
 
@@ -3730,7 +3717,7 @@ struct CodeBlock {
             s += std::to_string(id[i]);
             if(i != id.size()-1) s += "-";
         }
-        s += ": ";
+        s += ": type=";
         s += std::to_string(type);
         s += "]";
         return s;
@@ -3823,6 +3810,41 @@ struct CodeObject {
     int addConst(PyVar v){
         co_consts.push_back(v);
         return co_consts.size() - 1;
+    }
+
+    void optimize_level_1(){
+        for(int i=0; i<co_code.size(); i++){
+            if(co_code[i].op >= OP_BINARY_OP && co_code[i].op <= OP_CONTAINS_OP){
+                for(int j=0; j<2; j++){
+                    ByteCode& bc = co_code[i-j-1];
+                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
+                        if(bc.op == OP_LOAD_NAME_REF){
+                            bc.op = OP_LOAD_NAME;
+                        }
+                    }else{
+                        break;
+                    }
+                }
+            }else if(co_code[i].op == OP_CALL){
+                int ARGC = co_code[i].arg & 0xFFFF;
+                int KWARGC = (co_code[i].arg >> 16) & 0xFFFF;
+                if(KWARGC != 0) continue;
+                for(int j=0; j<ARGC+1; j++){
+                    ByteCode& bc = co_code[i-j-1];
+                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
+                        if(bc.op == OP_LOAD_NAME_REF){
+                            bc.op = OP_LOAD_NAME;
+                        }
+                    }else{
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    void optimize(int level=1){
+        optimize_level_1();
     }
 };
 
@@ -4006,6 +4028,9 @@ protected:
             } break;
             case OP_LOAD_NAME_REF: {
                 frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
+            } break;
+            case OP_LOAD_NAME: {
+                frame->push(NameRef(frame->code->co_names[byte.arg]).get(this, frame));
             } break;
             case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
@@ -4506,11 +4531,12 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-            // if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
+            //if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
-        }catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
             *_stderr << re.what() << '\n';
         }
@@ -4710,7 +4736,15 @@ public:
     }
 
     _Str disassemble(_Code code){
+        std::vector<int> jumpTargets;
+        for(auto byte : code->co_code){
+            if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+                jumpTargets.push_back(byte.arg);
+            }
+        }
         _StrStream ss;
+        ss << std::string(54, '-') << '\n';
+        ss << code->name << ":\n";
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
             const ByteCode& byte = code->co_code[i];
@@ -4720,9 +4754,24 @@ public:
                 if(prev_line != -1) ss << "\n";
                 prev_line = byte.line;
             }
-            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
+
+            std::string pointer;
+            if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
+                pointer = "-> ";
+            }else{
+                pointer = "   ";
+            }
+            ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
             ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+            if(byte.op == OP_LOAD_CONST){
+                argStr += " (" + PyStr_AS_C(asRepr(code->co_consts[byte.arg])) + ")";
+            }
+            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME){
+                argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
+            }
+            ss << pad(argStr, 20);      // may overflow
             ss << code->co_blocks[byte.block].toString();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
@@ -4738,6 +4787,14 @@ public:
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+
+        for(int i=0; i<code->co_consts.size(); i++){
+            PyVar obj = code->co_consts[i];
+            if(obj->isType(_tp_function)){
+                const auto& f = PyFunction_AS_C(obj);
+                ss << disassemble(f->code);
+            }
+        }
         return _Str(ss.str());
     }
 
@@ -5574,6 +5631,7 @@ public:
         this->codes.push(func->code);
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
+        func->code->optimize();
         this->codes.pop();
         emitCode(OP_LOAD_LAMBDA, getCode()->addConst(vm->PyFunction(func)));
     }
@@ -6180,6 +6238,7 @@ __LISTCOMP:
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         compileBlockBody();
+        func->code->optimize();
         this->codes.pop();
         emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
         if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
@@ -6231,6 +6290,7 @@ __LISTCOMP:
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
+            code->optimize();
             return code;
         }else if(mode()==JSON_MODE){
             PyVarOrNull value = readLiteral();
@@ -6239,13 +6299,14 @@ __LISTCOMP:
             else if(match(TK("["))) exprList();
             else syntaxError("expect a JSON object or array");
             consume(TK("@eof"));
-            return code;
+            return code;    // no need to optimize for JSON decoding
         }
 
         while (!match(TK("@eof"))) {
             compileTopLevelStatement();
             matchNewLines();
         }
+        code->optimize();
         return code;
     }
 
@@ -6457,6 +6518,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return obj;
     });
 
+    _vm->bindBuiltinFunc("hex", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        std::stringstream ss;
+        ss << std::hex << vm->PyInt_AS_C(args[0]);
+        return vm->PyStr("0x" + ss.str());
+    });
+
     _vm->bindBuiltinFunc("dir", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         std::vector<_Str> names;
@@ -6475,7 +6543,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("object", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         PyVar _self = args[0];
-        _Str s = "<" + UNION_TP_NAME(_self) + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
+        std::stringstream ss;
+        ss << std::hex << (uintptr_t)_self.get();
+        _Str s = "<" + UNION_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 

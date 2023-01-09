@@ -1,6 +1,7 @@
-## 0.6.2
+## 0.6.2+1
 
 + Break change
++ Enable bytecode optimization, which improves performance by 50%
 
 ## 0.5.2+3
 
