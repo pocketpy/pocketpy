@@ -124,6 +124,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return obj;
     });
 
+    _vm->bindBuiltinFunc("hex", [](VM* vm, const pkpy::ArgList& args) {
+        vm->__checkArgSize(args, 1);
+        std::stringstream ss;
+        ss << std::hex << vm->PyInt_AS_C(args[0]);
+        return vm->PyStr("0x" + ss.str());
+    });
+
     _vm->bindBuiltinFunc("dir", [](VM* vm, const pkpy::ArgList& args) {
         vm->__checkArgSize(args, 1);
         std::vector<_Str> names;
@@ -142,7 +149,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("object", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         PyVar _self = args[0];
-        _Str s = "<" + UNION_TP_NAME(_self) + " object at " + std::to_string((uintptr_t)_self.get()) + ">";
+        std::stringstream ss;
+        ss << std::hex << (uintptr_t)_self.get();
+        _Str s = "<" + UNION_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 

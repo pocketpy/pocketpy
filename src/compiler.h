@@ -415,6 +415,7 @@ public:
         this->codes.push(func->code);
         EXPR_TUPLE();
         emitCode(OP_RETURN_VALUE);
+        func->code->optimize();
         this->codes.pop();
         emitCode(OP_LOAD_LAMBDA, getCode()->addConst(vm->PyFunction(func)));
     }
@@ -1021,6 +1022,7 @@ __LISTCOMP:
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         compileBlockBody();
+        func->code->optimize();
         this->codes.pop();
         emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
         if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
@@ -1072,6 +1074,7 @@ __LISTCOMP:
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
+            code->optimize();
             return code;
         }else if(mode()==JSON_MODE){
             PyVarOrNull value = readLiteral();
@@ -1080,13 +1083,14 @@ __LISTCOMP:
             else if(match(TK("["))) exprList();
             else syntaxError("expect a JSON object or array");
             consume(TK("@eof"));
-            return code;
+            return code;    // no need to optimize for JSON decoding
         }
 
         while (!match(TK("@eof"))) {
             compileTopLevelStatement();
             matchNewLines();
         }
+        code->optimize();
         return code;
     }
 

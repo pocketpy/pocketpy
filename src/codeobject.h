@@ -24,6 +24,7 @@ struct ByteCode{
 };
 
 _Str pad(const _Str& s, const int n){
+    if(s.size() >= n) return s.substr(0, n);
     return s + std::string(n - s.size(), ' ');
 }
 
@@ -50,7 +51,7 @@ struct CodeBlock {
             s += std::to_string(id[i]);
             if(i != id.size()-1) s += "-";
         }
-        s += ": ";
+        s += ": type=";
         s += std::to_string(type);
         s += "]";
         return s;
@@ -146,7 +147,38 @@ struct CodeObject {
     }
 
     void optimize_level_1(){
-        
+        for(int i=0; i<co_code.size(); i++){
+            if(co_code[i].op >= OP_BINARY_OP && co_code[i].op <= OP_CONTAINS_OP){
+                for(int j=0; j<2; j++){
+                    ByteCode& bc = co_code[i-j-1];
+                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
+                        if(bc.op == OP_LOAD_NAME_REF){
+                            bc.op = OP_LOAD_NAME;
+                        }
+                    }else{
+                        break;
+                    }
+                }
+            }else if(co_code[i].op == OP_CALL){
+                int ARGC = co_code[i].arg & 0xFFFF;
+                int KWARGC = (co_code[i].arg >> 16) & 0xFFFF;
+                if(KWARGC != 0) continue;
+                for(int j=0; j<ARGC+1; j++){
+                    ByteCode& bc = co_code[i-j-1];
+                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
+                        if(bc.op == OP_LOAD_NAME_REF){
+                            bc.op = OP_LOAD_NAME;
+                        }
+                    }else{
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    void optimize(int level=1){
+        optimize_level_1();
     }
 };
 

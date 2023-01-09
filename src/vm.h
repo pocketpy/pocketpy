@@ -56,6 +56,9 @@ protected:
             case OP_LOAD_NAME_REF: {
                 frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
             } break;
+            case OP_LOAD_NAME: {
+                frame->push(NameRef(frame->code->co_names[byte.arg]).get(this, frame));
+            } break;
             case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
                 NameRef(p).set(this, frame, frame->popValue(this));
@@ -555,11 +558,12 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-            if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
+            //if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, {});
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
-        }catch (const std::exception& e) {
+        }
+        catch (const std::exception& e) {
             auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
             *_stderr << re.what() << '\n';
         }
@@ -759,7 +763,15 @@ public:
     }
 
     _Str disassemble(_Code code){
+        std::vector<int> jumpTargets;
+        for(auto byte : code->co_code){
+            if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+                jumpTargets.push_back(byte.arg);
+            }
+        }
         _StrStream ss;
+        ss << std::string(54, '-') << '\n';
+        ss << code->name << ":\n";
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
             const ByteCode& byte = code->co_code[i];
@@ -769,9 +781,24 @@ public:
                 if(prev_line != -1) ss << "\n";
                 prev_line = byte.line;
             }
-            ss << pad(line, 12) << " " << pad(std::to_string(i), 3);
+
+            std::string pointer;
+            if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
+                pointer = "-> ";
+            }else{
+                pointer = "   ";
+            }
+            ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
             ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+            std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+            if(byte.op == OP_LOAD_CONST){
+                argStr += " (" + PyStr_AS_C(asRepr(code->co_consts[byte.arg])) + ")";
+            }
+            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME){
+                argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
+            }
+            ss << pad(argStr, 20);      // may overflow
             ss << code->co_blocks[byte.block].toString();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
@@ -787,6 +814,14 @@ public:
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+
+        for(int i=0; i<code->co_consts.size(); i++){
+            PyVar obj = code->co_consts[i];
+            if(obj->isType(_tp_function)){
+                const auto& f = PyFunction_AS_C(obj);
+                ss << disassemble(f->code);
+            }
+        }
         return _Str(ss.str());
     }
 

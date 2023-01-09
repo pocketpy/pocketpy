@@ -1,14 +1,7 @@
 #ifdef OPCODE
 
-// Do nothing
 OPCODE(NO_OP)
-
-// This op is a placeholder that should never be executed
 OPCODE(DELETED_OP)
-
-// Load a constant from the `co_consts`
-// ARG: array index
-OPCODE(LOAD_CONST)
 
 OPCODE(IMPORT_NAME)
 OPCODE(PRINT_EXPR)
@@ -43,21 +36,21 @@ OPCODE(SAFE_JUMP_ABSOLUTE)
 OPCODE(JUMP_IF_TRUE_OR_POP)
 OPCODE(JUMP_IF_FALSE_OR_POP)
 
-// non-standard python opcodes
+OPCODE(LOAD_CONST)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
 OPCODE(LOAD_FALSE)
-OPCODE(LOAD_EVAL_FN)        // load eval() callable into stack
-OPCODE(LOAD_LAMBDA)         // LOAD_CONST + set __module__ attr
+OPCODE(LOAD_EVAL_FN)
+OPCODE(LOAD_LAMBDA)
 OPCODE(LOAD_ELLIPSIS)
+OPCODE(LOAD_NAME)
+OPCODE(LOAD_NAME_REF)       // no arg
 
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
 
 OPCODE(STORE_FUNCTION)
 OPCODE(BUILD_CLASS)
-
-OPCODE(LOAD_NAME_REF)       // no arg
 OPCODE(BUILD_ATTR_REF)      // arg for the name_ptr, [ptr, name_ptr] -> (*ptr).name_ptr
 OPCODE(BUILD_INDEX_REF)     // no arg, [ptr, expr] -> (*ptr)[expr]
 OPCODE(STORE_NAME_REF)      // arg for the name_ptr, [expr], directly store to the name_ptr without pushing it to the stack
