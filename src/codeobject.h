@@ -144,6 +144,10 @@ struct CodeObject {
         co_consts.push_back(v);
         return co_consts.size() - 1;
     }
+
+    void optimize_level_1(){
+        
+    }
 };
 
 class Frame {

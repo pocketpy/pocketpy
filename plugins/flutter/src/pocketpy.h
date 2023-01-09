@@ -3080,7 +3080,7 @@ struct PyObject {
     // currently __name__ is only used for 'type'
     PyVar _typeName(){ return _type->attribs[__name__]; }
 
-    PyObject(PyVar type) : _type(type) {}
+    PyObject(const PyVar& type) : _type(type) {}
     virtual ~PyObject() = default;
 };
 
