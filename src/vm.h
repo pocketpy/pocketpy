@@ -335,17 +335,17 @@ protected:
             case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
             default:
-                systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
+                throw std::runtime_error(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
             }
         }
 
         if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
-            if(frame->stack_size() != 1) systemError("stack size is not 1 in EVAL_MODE/JSON_MODE");
+            if(frame->stack_size() != 1) throw std::runtime_error("stack size is not 1 in EVAL_MODE/JSON_MODE");
             return frame->pop_value(this);
         }
 
-        if(frame->stack_size() != 0) systemError("stack not empty in EXEC_MODE");
+        if(frame->stack_size() != 0) throw std::runtime_error("stack not empty in EXEC_MODE");
         return None;
     }
 
@@ -403,7 +403,7 @@ public:
     }
 
     inline Frame* top_frame() const {
-        if(callstack.size() == 0) UNREACHABLE();
+        if(callstack.empty()) UNREACHABLE();
         return callstack.back().get();
     }
 
@@ -953,38 +953,18 @@ private:
     }
 
 public:
-    void typeError(const _Str& msg){
-        _error("TypeError", msg);
-    }
-
-    void systemError(const _Str& msg){
-        _error("SystemError", msg);
-    }
-
-    void zeroDivisionError(){
-        _error("ZeroDivisionError", "division by zero");
-    }
-
-    void indexError(const _Str& msg){
-        _error("IndexError", msg);
-    }
-
-    void valueError(const _Str& msg){
-        _error("ValueError", msg);
-    }
-
-    void nameError(const _Str& name){
-        _error("NameError", "name '" + name + "' is not defined");
-    }
+    void typeError(const _Str& msg){ _error("TypeError", msg); }
+    void zeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
+    void indexError(const _Str& msg){ _error("IndexError", msg); }
+    void valueError(const _Str& msg){ _error("ValueError", msg); }
+    void nameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
 
     void attributeError(PyVar obj, const _Str& name){
         _error("AttributeError", "type '" +  UNION_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-#ifndef PKPY_NO_TYPE_CHECK
         if(!obj->is_type(type)) typeError("expected '" + UNION_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
-#endif
     }
 
     inline void check_args_size(const pkpy::ArgList& args, int size, bool method=false){
@@ -1006,7 +986,8 @@ public:
 /***** Pointers' Impl *****/
 
 PyVar NameRef::get(VM* vm, Frame* frame) const{
-    PyVar* val = frame->f_locals.try_get(pair->first);
+    PyVar* val;
+    val = frame->f_locals.try_get(pair->first);
     if(val) return *val;
     val = frame->f_globals().try_get(pair->first);
     if(val) return *val;
@@ -1021,7 +1002,7 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
         case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(pair->first) > 0){
+            if(frame->f_locals.contains(pair->first)){
                 frame->f_locals[pair->first] = std::move(val);
             }else{
                 frame->f_globals()[pair->first] = std::move(val);
