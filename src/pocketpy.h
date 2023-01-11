@@ -19,7 +19,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     _vm->bindMethodMulti({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->is_int_or_float(args[0], args[1]))                                                         \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
-        if(args._index(0)->isType(vm->_tp_int) && args._index(1)->isType(vm->_tp_int)){                 \
+        if(args._index(0)->is_type(vm->_tp_int) && args._index(1)->is_type(vm->_tp_int)){                 \
             return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));         \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args._index(0)) op vm->num_to_float(args._index(1)));       \
@@ -92,7 +92,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc("chr", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1);
-        _Int i = vm->PyInt_AS_C(args[0]);
+        i64 i = vm->PyInt_AS_C(args[0]);
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(std::string(1, (char)i));
     });
@@ -101,7 +101,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->check_args_size(args, 1);
         _Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
-        return vm->PyInt((_Int)s[0]);
+        return vm->PyInt((i64)s[0]);
     });
 
     _vm->bindBuiltinFunc("globals", [](VM* vm, const pkpy::ArgList& args) {
@@ -198,7 +198,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethodMulti({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!vm->is_int_or_float(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "/" );
-        _Float rhs = vm->num_to_float(args[1]);
+        f64 rhs = vm->num_to_float(args[1]);
         if (rhs == 0) vm->zeroDivisionError();
         return vm->PyFloat(vm->num_to_float(args[0]) / rhs);
     });
@@ -206,10 +206,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethodMulti({"int", "float"}, "__pow__", [](VM* vm, const pkpy::ArgList& args) {
         if(!vm->is_int_or_float(args[0], args[1]))
             vm->typeError("unsupported operand type(s) for " "**" );
-        if(args[0]->isType(vm->_tp_int) && args[1]->isType(vm->_tp_int)){
-            return vm->PyInt((_Int)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
+        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){
+            return vm->PyInt((i64)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
-            return vm->PyFloat((_Float)pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
+            return vm->PyFloat((f64)pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
         }
     });
 
@@ -217,14 +217,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("int", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         if(args.size() == 0) return vm->PyInt(0);
         vm->check_args_size(args, 1);
-        if (args[0]->isType(vm->_tp_int)) return args[0];
-        if (args[0]->isType(vm->_tp_float)) return vm->PyInt((_Int)vm->PyFloat_AS_C(args[0]));
-        if (args[0]->isType(vm->_tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
-        if (args[0]->isType(vm->_tp_str)) {
+        if (args[0]->is_type(vm->_tp_int)) return args[0];
+        if (args[0]->is_type(vm->_tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
+        if (args[0]->is_type(vm->_tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
+        if (args[0]->is_type(vm->_tp_str)) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
-                _Int val = std::stoll(s, &parsed, 10);
+                i64 val = std::stoll(s, &parsed, 10);
                 if(parsed != s.size()) throw std::invalid_argument("");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
@@ -236,17 +236,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
+        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
-        _Int rhs = vm->PyInt_AS_C(args._index(1));
+        i64 rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args._index(0)) / rhs);
     });
 
     _vm->bindMethod("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))
+        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "%" );
-        _Int rhs = vm->PyInt_AS_C(args._index(1));
+        i64 rhs = vm->PyInt_AS_C(args._index(1));
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args._index(0)) % rhs);
     });
@@ -261,7 +261,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 #define __INT_BITWISE_OP(name,op) \
     _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) {                       \
-        if(!args[0]->isType(vm->_tp_int) || !args[1]->isType(vm->_tp_int))                      \
+        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))                      \
             vm->typeError("unsupported operand type(s) for " #op );                             \
         return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));     \
     });
@@ -278,15 +278,15 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("float", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         if(args.size() == 0) return vm->PyFloat(0.0);
         vm->check_args_size(args, 1);
-        if (args[0]->isType(vm->_tp_int)) return vm->PyFloat((_Float)vm->PyInt_AS_C(args[0]));
-        if (args[0]->isType(vm->_tp_float)) return args[0];
-        if (args[0]->isType(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
-        if (args[0]->isType(vm->_tp_str)) {
+        if (args[0]->is_type(vm->_tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
+        if (args[0]->is_type(vm->_tp_float)) return args[0];
+        if (args[0]->is_type(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (args[0]->is_type(vm->_tp_str)) {
             const _Str& s = vm->PyStr_AS_C(args[0]);
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
-                _Float val = std::stod(s);
+                f64 val = std::stod(s);
                 return vm->PyFloat(val);
             }catch(std::invalid_argument&){
                 vm->valueError("invalid literal for float(): '" + s + "'");
@@ -297,17 +297,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("float", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
-        _Float val = vm->PyFloat_AS_C(args[0]);
+        f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
         _StrStream ss;
-        ss << std::setprecision(std::numeric_limits<_Float>::max_digits10-1) << val;
+        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return vm->PyStr(s);
     });
 
     _vm->bindMethod("float", "__json__", [](VM* vm, const pkpy::ArgList& args) {
-        _Float val = vm->PyFloat_AS_C(args[0]);
+        f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)){
             vm->valueError("cannot jsonify 'nan' or 'inf'");
         }
@@ -321,7 +321,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__add__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->isType(vm->_tp_str) || !args[1]->isType(vm->_tp_str))
+        if(!args[0]->is_type(vm->_tp_str) || !args[1]->is_type(vm->_tp_str))
             vm->typeError("unsupported operand type(s) for " "+" );
         const _Str& lhs = vm->PyStr_AS_C(args[0]);
         const _Str& rhs = vm->PyStr_AS_C(args[1]);
@@ -360,7 +360,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
-        if(args[0]->isType(vm->_tp_str) && args[1]->isType(vm->_tp_str))
+        if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);      // fallback
     });
@@ -368,7 +368,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("str", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
 
-        if(args[1]->isType(vm->_tp_slice)){
+        if(args[1]->is_type(vm->_tp_slice)){
             _Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.u8_length());
             return vm->PyStr(_self.u8_substr(s.start, s.stop));
@@ -440,9 +440,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->check_args_size(args, 2, true);
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         PyVarList* _list;
-        if(args[1]->isType(vm->_tp_list)){
+        if(args[1]->is_type(vm->_tp_list)){
             _list = &vm->PyList_AS_C(args[1]);
-        }else if(args[1]->isType(vm->_tp_tuple)){
+        }else if(args[1]->is_type(vm->_tp_tuple)){
             _list = &vm->PyTuple_AS_C(args[1]);
         }else{
             vm->typeError("can only join a list or tuple");
@@ -508,7 +508,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("list", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);
 
-        if(args[1]->isType(vm->_tp_slice)){
+        if(args[1]->is_type(vm->_tp_slice)){
             _Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.size());
             PyVarList _new_list;
@@ -718,8 +718,8 @@ void __addModuleMath(VM* vm){
 
     vm->bindFunc(mod, "isclose", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 2);
-        _Float a = vm->num_to_float(args[0]);
-        _Float b = vm->num_to_float(args[1]);
+        f64 a = vm->num_to_float(args[0]);
+        f64 b = vm->num_to_float(args[1]);
         return vm->PyBool(fabs(a - b) < 1e-9);
     });
 
@@ -741,7 +741,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
         if(fromStart && m.position() != 0){
             return vm->None;
         }
-        PyVar ret = vm->new_object(vm->_userTypes["re.Match"], (_Int)1);
+        PyVar ret = vm->new_object(vm->_userTypes["re.Match"], (i64)1);
         vm->setattr(ret, "_start", vm->PyInt(
             string.__to_u8_index(m.position())
         ));

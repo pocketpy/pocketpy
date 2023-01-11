@@ -2,8 +2,8 @@
 
 #include "safestl.h"
 
-typedef int64_t _Int;
-typedef double _Float;
+typedef int64_t i64;
+typedef double f64;
 
 struct CodeObject;
 struct BaseRef;
@@ -35,9 +35,9 @@ struct _BoundedMethod {
 };
 
 struct _Range {
-    _Int start = 0;
-    _Int stop = -1;
-    _Int step = 1;
+    i64 start = 0;
+    i64 stop = -1;
+    i64 step = 1;
 };
 
 struct _Slice {
@@ -71,11 +71,8 @@ struct PyObject {
     PyVar _type;
     PyVarDict attribs;
 
-    inline bool isType(const PyVar& type){ return this->_type == type; }
+    inline bool is_type(const PyVar& type) const noexcept{ return this->_type == type; }
     inline virtual void* value() = 0;
-
-    // currently __name__ is only used for 'type'
-    PyVar _typeName(){ return _type->attribs[__name__]; }
 
     PyObject(const PyVar& type) : _type(type) {}
     virtual ~PyObject() = default;
@@ -90,5 +87,5 @@ struct Py_ : PyObject {
 };
 
 #define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
-#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_typeName())
 #define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
+#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_type->attribs[__name__])

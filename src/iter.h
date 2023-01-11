@@ -4,7 +4,7 @@
 
 class RangeIterator : public BaseIterator {
 private:
-    _Int current;
+    i64 current;
     _Range r;
 public:
     RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
