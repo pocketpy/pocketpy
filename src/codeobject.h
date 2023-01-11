@@ -16,7 +16,7 @@ static const char* OP_NAMES[] = {
     #undef OPCODE
 };
 
-struct ByteCode{
+struct Bytecode{
     uint8_t op;
     int arg;
     int line;
@@ -44,7 +44,7 @@ struct CodeBlock {
     int start;          // start index of this block in co_code, inclusive
     int end;            // end index of this block in co_code, exclusive
 
-    std::string toString() const {
+    std::string to_string() const {
         if(parent == -1) return "";
         std::string s = "[";
         for(int i = 0; i < id.size(); i++){
@@ -57,17 +57,9 @@ struct CodeBlock {
         return s;
     }
 
-    bool operator==(const std::vector<int>& other) const {
-        return id == other;
-    }
-
-    bool operator!=(const std::vector<int>& other) const {
-        return id != other;
-    }
-
-    int depth() const {
-        return id.size();
-    }
+    bool operator==(const std::vector<int>& other) const{ return id == other; }
+    bool operator!=(const std::vector<int>& other) const{ return id != other; }
+    int depth() const{ return id.size(); }
 };
 
 struct CodeObject {
@@ -79,11 +71,7 @@ struct CodeObject {
         this->name = name;
     }
 
-    CompileMode mode() const {
-        return src->mode;
-    }
-
-    std::vector<ByteCode> co_code;
+    std::vector<Bytecode> co_code;
     PyVarList co_consts;
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
@@ -121,7 +109,7 @@ struct CodeObject {
     // goto/label should be put at toplevel statements
     emhash8::HashMap<_Str, int> co_labels;
 
-    void addLabel(const _Str& label){
+    void add_label(const _Str& label){
         if(co_labels.find(label) != co_labels.end()){
             _Str msg = "label '" + label + "' already exists";
             throw std::runtime_error(msg.c_str());
@@ -129,7 +117,7 @@ struct CodeObject {
         co_labels[label] = co_code.size();
     }
 
-    int addName(_Str name, NameScope scope){
+    int add_name(_Str name, NameScope scope){
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
@@ -141,7 +129,7 @@ struct CodeObject {
         return co_names.size() - 1;
     }
 
-    int addConst(PyVar v){
+    int add_const(PyVar v){
         co_consts.push_back(v);
         return co_consts.size() - 1;
     }
@@ -150,7 +138,7 @@ struct CodeObject {
         for(int i=0; i<co_code.size(); i++){
             if(co_code[i].op >= OP_BINARY_OP && co_code[i].op <= OP_CONTAINS_OP){
                 for(int j=0; j<2; j++){
-                    ByteCode& bc = co_code[i-j-1];
+                    Bytecode& bc = co_code[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -164,7 +152,7 @@ struct CodeObject {
                 int KWARGC = (co_code[i].arg >> 16) & 0xFFFF;
                 if(KWARGC != 0) continue;
                 for(int j=0; j<ARGC+1; j++){
-                    ByteCode& bc = co_code[i-j-1];
+                    Bytecode& bc = co_code[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -192,38 +180,28 @@ public:
     PyVar _module;
     PyVarDict f_locals;
 
-    inline PyVarDict copy_f_locals() const {
-        return f_locals;
-    }
-
-    inline PyVarDict& f_globals(){
-        return _module->attribs;
-    }
+    inline PyVarDict f_locals_copy() const { return f_locals; }
+    inline PyVarDict& f_globals(){ return _module->attribs; }
 
     Frame(const _Code code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(std::move(locals)) {
     }
 
-    inline const ByteCode& next_bytecode() {
+    inline const Bytecode& next_bytecode() {
         ip = next_ip;
         next_ip = ip + 1;
         return code->co_code[ip];
     }
 
-    _Str errorSnapshot(){
+    _Str curr_snapshot(){
         int line = code->co_code[ip].line;
         return code->src->snapshot(line);
     }
 
-    inline int stackSize() const {
-        return s_data.size();
-    }
+    inline int stack_size() const{ return s_data.size(); }
+    inline bool has_next_bytecode() const{ return next_ip < code->co_code.size(); }
 
-    inline bool has_next_bytecode() const {
-        return next_ip < code->co_code.size();
-    }
-
-    inline PyVar __pop(){
+    inline PyVar pop(){
         if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         PyVar v = std::move(s_data.back());
         s_data.pop_back();
@@ -232,62 +210,58 @@ public:
 
     inline void try_deref(VM*, PyVar&);
 
-    inline PyVar popValue(VM* vm){
-        PyVar value = __pop();
+    inline PyVar pop_value(VM* vm){
+        PyVar value = pop();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar topValue(VM* vm){
-        PyVar value = __top();
+    inline PyVar top_value(VM* vm){
+        PyVar value = top();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar& __top(){
+    inline PyVar& top(){
         if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         return s_data.back();
     }
 
-    inline PyVar __topValueN(VM* vm, int n=-1){
+    inline PyVar top_value_offset(VM* vm, int n){
         PyVar value = s_data[s_data.size() + n];
         try_deref(vm, value);
         return value;
     }
 
     template<typename T>
-    inline void push(T&& obj){
-        s_data.push_back(std::forward<T>(obj));
-    }
+    inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
 
-    inline void jumpAbsolute(int i){
-        next_ip = i;
-    }
+    inline void jump_abs(int i){ next_ip = i; }
 
-    void jumpAbsoluteSafe(int target){
-        const ByteCode& prev = code->co_code[ip];
+    void jump_abs_safe(int target){
+        const Bytecode& prev = code->co_code[ip];
         int i = prev.block;
         next_ip = target;
         if(next_ip >= code->co_code.size()){
             while(i>=0){
-                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                if(code->co_blocks[i].type == FOR_LOOP) pop();
                 i = code->co_blocks[i].parent;
             }
         }else{
-            const ByteCode& next = code->co_code[target];
+            const Bytecode& next = code->co_code[target];
             while(i>=0 && i!=next.block){
-                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                if(code->co_blocks[i].type == FOR_LOOP) pop();
                 i = code->co_blocks[i].parent;
             }
             if(i!=next.block) throw std::runtime_error(
-                "invalid jump from " + code->co_blocks[prev.block].toString() + " to " + code->co_blocks[next.block].toString()
+                "invalid jump from " + code->co_blocks[prev.block].to_string() + " to " + code->co_blocks[next.block].to_string()
             );
         }
     }
 
-    pkpy::ArgList popNValuesReversed(VM* vm, int n){
+    pkpy::ArgList pop_n_values_reversed(VM* vm, int n){
         int new_size = s_data.size() - n;
-        if(new_size < 0) throw std::runtime_error("stackSize() < n");
+        if(new_size < 0) throw std::runtime_error("stack_size() < n");
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--){
             v._index(i) = std::move(s_data[new_size + i]);
@@ -297,15 +271,15 @@ public:
         return v;
     }
 
-    PyVarList popNValuesReversedUnlimited(VM* vm, int n){
+    PyVarList pop_n_values_reversed_unlimited(VM* vm, int n){
         PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        for(int i=n-1; i>=0; i--) v[i] = pop_value(vm);
         return v;
     }
 
-    pkpy::ArgList __popNReversed(int n){
+    pkpy::ArgList pop_n_reversed(int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = __pop();
+        for(int i=n-1; i>=0; i--) v._index(i) = pop();
         return v;
     }
 };

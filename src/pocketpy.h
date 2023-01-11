@@ -67,7 +67,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals_copy());
     });
 
     _vm->bindBuiltinFunc("isinstance", [](VM* vm, const pkpy::ArgList& args) {
@@ -672,7 +672,7 @@ void __addModuleJson(VM* vm){
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals_copy());
     });
 
     vm->bindFunc(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {

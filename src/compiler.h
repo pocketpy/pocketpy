@@ -27,7 +27,7 @@ public:
 
     emhash8::HashMap<_TokenType, GrammarRule> rules;
 
-    _Code getCode() {
+    _Code co() {
         return codes.top();
     }
 
@@ -204,13 +204,13 @@ public:
 
     // Lex the next token and set it as the next token.
     void _lexToken() {
-        parser->previous = parser->current;
-        parser->current = parser->nextToken();
+        parser->prev = parser->curr;
+        parser->curr = parser->nextToken();
 
-        //_Str _info = parser->current.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
+        //_Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
-        while (parser->peekChar() != '\0') {
-            parser->token_start = parser->current_char;
+        while (parser->peek_char() != '\0') {
+            parser->token_start = parser->curr_char;
             char c = parser->eatCharIncludeNewLine();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
@@ -314,16 +314,16 @@ public:
             }
         }
 
-        parser->token_start = parser->current_char;
+        parser->token_start = parser->curr_char;
         parser->setNextToken(TK("@eof"));
     }
 
     inline _TokenType peek() {
-        return parser->current.type;
+        return parser->curr.type;
     }
 
     // not sure this will work
-    _TokenType peekNext() {
+    _TokenType peek_next() {
         if(parser->nexts.empty()) return TK("@eof");
         return parser->nexts.front().type;
     }
@@ -370,14 +370,14 @@ public:
     }
 
     void exprLiteral() {
-        PyVar value = parser->previous.value;
-        int index = getCode()->addConst(value);
-        emitCode(OP_LOAD_CONST, index);
+        PyVar value = parser->prev.value;
+        int index = co()->add_const(value);
+        emit(OP_LOAD_CONST, index);
     }
 
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
-        PyVar value = parser->previous.value;
+        PyVar value = parser->prev.value;
         _Str s = vm->PyStr_AS_C(value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
@@ -387,21 +387,21 @@ public:
             std::smatch m = *it;
             if (i < m.position()) {
                 std::string literal = s.substr(i, m.position() - i);
-                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
                 size++;
             }
-            emitCode(OP_LOAD_EVAL_FN);
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(m[1].str())));
-            emitCode(OP_CALL, 1);
+            emit(OP_LOAD_EVAL_FN);
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(m[1].str())));
+            emit(OP_CALL, 1);
             size++;
             i = (int)(m.position() + m.length());
         }
         if (i < s.size()) {
             std::string literal = s.substr(i, s.size() - i);
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
             size++;
         }
-        emitCode(OP_BUILD_STRING, size);
+        emit(OP_BUILD_STRING, size);
     }
 
     void exprLambda() {
@@ -414,35 +414,35 @@ public:
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         EXPR_TUPLE();
-        emitCode(OP_RETURN_VALUE);
+        emit(OP_RETURN_VALUE);
         func->code->optimize();
         this->codes.pop();
-        emitCode(OP_LOAD_LAMBDA, getCode()->addConst(vm->PyFunction(func)));
+        emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
     }
 
     void exprAssign() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            emitCode(OP_STORE_REF);
+            emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
-            emitCode(OP_DUP_TOP);
+            emit(OP_DUP_TOP);
             EXPR();
             switch (op) {
-                case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
-                case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;
-                case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
-                case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
-                case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
+                case TK("+="):      emit(OP_BINARY_OP, 0);  break;
+                case TK("-="):      emit(OP_BINARY_OP, 1);  break;
+                case TK("*="):      emit(OP_BINARY_OP, 2);  break;
+                case TK("/="):      emit(OP_BINARY_OP, 3);  break;
+                case TK("//="):     emit(OP_BINARY_OP, 4);  break;
 
-                case TK("%="):      emitCode(OP_BINARY_OP, 5);  break;
-                case TK("&="):      emitCode(OP_BITWISE_OP, 2);  break;
-                case TK("|="):      emitCode(OP_BITWISE_OP, 3);  break;
-                case TK("^="):      emitCode(OP_BITWISE_OP, 4);  break;
+                case TK("%="):      emit(OP_BINARY_OP, 5);  break;
+                case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
+                case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
+                case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
             }
-            emitCode(OP_STORE_REF);
+            emit(OP_STORE_REF);
         }
     }
 
@@ -452,72 +452,72 @@ public:
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
             size++;
         } while(match(TK(",")));
-        emitCode(OP_BUILD_SMART_TUPLE, size);
+        emit(OP_BUILD_SMART_TUPLE, size);
     }
 
     void exprOr() {
-        int patch = emitCode(OP_JUMP_IF_TRUE_OR_POP);
+        int patch = emit(OP_JUMP_IF_TRUE_OR_POP);
         parsePrecedence(PREC_LOGICAL_OR);
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void exprAnd() {
-        int patch = emitCode(OP_JUMP_IF_FALSE_OR_POP);
+        int patch = emit(OP_JUMP_IF_FALSE_OR_POP);
         parsePrecedence(PREC_LOGICAL_AND);
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void exprTernary() {
-        int patch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int patch = emit(OP_POP_JUMP_IF_FALSE);
         EXPR();         // if true
-        int patch2 = emitCode(OP_JUMP_ABSOLUTE);
+        int patch2 = emit(OP_JUMP_ABSOLUTE);
         consume(TK(":"));
-        patchJump(patch);
+        patch_jump(patch);
         EXPR();         // if false
-        patchJump(patch2);
+        patch_jump(patch2);
     }
 
     void exprBinaryOp() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         parsePrecedence((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
-            case TK("+"):   emitCode(OP_BINARY_OP, 0);  break;
-            case TK("-"):   emitCode(OP_BINARY_OP, 1);  break;
-            case TK("*"):   emitCode(OP_BINARY_OP, 2);  break;
-            case TK("/"):   emitCode(OP_BINARY_OP, 3);  break;
-            case TK("//"):  emitCode(OP_BINARY_OP, 4);  break;
-            case TK("%"):   emitCode(OP_BINARY_OP, 5);  break;
-            case TK("**"):  emitCode(OP_BINARY_OP, 6);  break;
+            case TK("+"):   emit(OP_BINARY_OP, 0);  break;
+            case TK("-"):   emit(OP_BINARY_OP, 1);  break;
+            case TK("*"):   emit(OP_BINARY_OP, 2);  break;
+            case TK("/"):   emit(OP_BINARY_OP, 3);  break;
+            case TK("//"):  emit(OP_BINARY_OP, 4);  break;
+            case TK("%"):   emit(OP_BINARY_OP, 5);  break;
+            case TK("**"):  emit(OP_BINARY_OP, 6);  break;
 
-            case TK("<"):   emitCode(OP_COMPARE_OP, 0);    break;
-            case TK("<="):  emitCode(OP_COMPARE_OP, 1);    break;
-            case TK("=="):  emitCode(OP_COMPARE_OP, 2);    break;
-            case TK("!="):  emitCode(OP_COMPARE_OP, 3);    break;
-            case TK(">"):   emitCode(OP_COMPARE_OP, 4);    break;
-            case TK(">="):  emitCode(OP_COMPARE_OP, 5);    break;
-            case TK("in"):      emitCode(OP_CONTAINS_OP, 0);   break;
-            case TK("not in"):  emitCode(OP_CONTAINS_OP, 1);   break;
-            case TK("is"):      emitCode(OP_IS_OP, 0);         break;
-            case TK("is not"):  emitCode(OP_IS_OP, 1);         break;
+            case TK("<"):   emit(OP_COMPARE_OP, 0);    break;
+            case TK("<="):  emit(OP_COMPARE_OP, 1);    break;
+            case TK("=="):  emit(OP_COMPARE_OP, 2);    break;
+            case TK("!="):  emit(OP_COMPARE_OP, 3);    break;
+            case TK(">"):   emit(OP_COMPARE_OP, 4);    break;
+            case TK(">="):  emit(OP_COMPARE_OP, 5);    break;
+            case TK("in"):      emit(OP_CONTAINS_OP, 0);   break;
+            case TK("not in"):  emit(OP_CONTAINS_OP, 1);   break;
+            case TK("is"):      emit(OP_IS_OP, 0);         break;
+            case TK("is not"):  emit(OP_IS_OP, 1);         break;
 
-            case TK("<<"):  emitCode(OP_BITWISE_OP, 0);    break;
-            case TK(">>"):  emitCode(OP_BITWISE_OP, 1);    break;
-            case TK("&"):   emitCode(OP_BITWISE_OP, 2);    break;
-            case TK("|"):   emitCode(OP_BITWISE_OP, 3);    break;
-            case TK("^"):   emitCode(OP_BITWISE_OP, 4);    break;
+            case TK("<<"):  emit(OP_BITWISE_OP, 0);    break;
+            case TK(">>"):  emit(OP_BITWISE_OP, 1);    break;
+            case TK("&"):   emit(OP_BITWISE_OP, 2);    break;
+            case TK("|"):   emit(OP_BITWISE_OP, 3);    break;
+            case TK("^"):   emit(OP_BITWISE_OP, 4);    break;
             default: UNREACHABLE();
         }
     }
 
     void exprUnaryOp() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         matchNewLines();
         parsePrecedence((Precedence)(PREC_UNARY + 1));
 
         switch (op) {
-            case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
-            case TK("not"):   emitCode(OP_UNARY_NOT);      break;
+            case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
+            case TK("not"):   emit(OP_UNARY_NOT);      break;
             case TK("*"):     syntaxError("cannot use '*' as unary operator"); break;
             default: UNREACHABLE();
         }
@@ -531,8 +531,8 @@ public:
     }
 
     void exprList() {
-        int _patch = emitCode(OP_NO_OP);
-        int _body_start = getCode()->co_code.size();
+        int _patch = emit(OP_NO_OP);
+        int _body_start = co()->co_code.size();
         int ARGC = 0;
         do {
             matchNewLines(mode()==SINGLE_MODE);
@@ -543,47 +543,47 @@ public:
         } while (match(TK(",")));
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
-        emitCode(OP_BUILD_LIST, ARGC);
+        emit(OP_BUILD_LIST, ARGC);
         return;
 
 __LISTCOMP:
-        int _body_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
-        int _body_end = getCode()->co_code.size();
-        getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
-        getCode()->co_code[_patch].arg = _body_end;
-        emitCode(OP_BUILD_LIST, 0);
+        int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
+        int _body_end = co()->co_code.size();
+        co()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
+        co()->co_code[_patch].arg = _body_end;
+        emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         matchNewLines(mode()==SINGLE_MODE);
         
-        int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
-        int _cond_start = getCode()->co_code.size();
+        int _skipPatch = emit(OP_JUMP_ABSOLUTE);
+        int _cond_start = co()->co_code.size();
         int _cond_end_return = -1;
         if(match(TK("if"))) {
             EXPR_TUPLE();
-            _cond_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
+            _cond_end_return = emit(OP_JUMP_ABSOLUTE, -1);
         }
-        patchJump(_skipPatch);
+        patch_jump(_skipPatch);
 
-        emitCode(OP_GET_ITER);
-        getCode()->__enterBlock(FOR_LOOP);
-        emitCode(OP_FOR_ITER);
+        emit(OP_GET_ITER);
+        co()->__enterBlock(FOR_LOOP);
+        emit(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
-            emitCode(OP_JUMP_ABSOLUTE, _cond_start);
-            patchJump(_cond_end_return);
-            int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
-            emitCode(OP_JUMP_ABSOLUTE, _body_start);
-            patchJump(_body_end_return);
-            emitCode(OP_LIST_APPEND);
-            patchJump(ifpatch);
+            emit(OP_JUMP_ABSOLUTE, _cond_start);
+            patch_jump(_cond_end_return);
+            int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
+            patch_jump(ifpatch);
         }else{
-            emitCode(OP_JUMP_ABSOLUTE, _body_start);
-            patchJump(_body_end_return);
-            emitCode(OP_LIST_APPEND);
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
         }
 
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        co()->__exitBlock();
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -606,8 +606,8 @@ __LISTCOMP:
         matchNewLines();
         consume(TK("}"));
 
-        if(size == 0 || parsing_dict) emitCode(OP_BUILD_MAP, size);
-        else emitCode(OP_BUILD_SET, size);
+        if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
+        else emit(OP_BUILD_SET, size);
     }
 
     void exprCall() {
@@ -616,10 +616,10 @@ __LISTCOMP:
         do {
             matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
-            if(peek() == TK("@id") && peekNext() == TK("=")) {
+            if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
-                const _Str& key = parser->previous.str();
-                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(key)));
+                const _Str& key = parser->prev.str();
+                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
                 consume(TK("="));
                 EXPR();
                 KWARGC++;
@@ -631,82 +631,79 @@ __LISTCOMP:
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
-        emitCode(OP_CALL, (KWARGC << 16) | ARGC);
+        emit(OP_CALL, (KWARGC << 16) | ARGC);
     }
 
     void exprName() {
-        Token tkname = parser->previous;
-        int index = getCode()->addName(
+        Token tkname = parser->prev;
+        int index = co()->add_name(
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
-        emitCode(OP_LOAD_NAME_REF, index);
+        emit(OP_LOAD_NAME_REF, index);
     }
 
     void exprAttrib() {
         consume(TK("@id"));
-        const _Str& name = parser->previous.str();
-        int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_REF, index);
+        const _Str& name = parser->prev.str();
+        int index = co()->add_name(name, NAME_ATTR);
+        emit(OP_BUILD_ATTR_REF, index);
     }
 
     // [:], [:b]
     // [a], [a:], [a:b]
     void exprSubscript() {
         if(match(TK(":"))){
-            emitCode(OP_LOAD_NONE);
+            emit(OP_LOAD_NONE);
             if(match(TK("]"))){
-                emitCode(OP_LOAD_NONE);
+                emit(OP_LOAD_NONE);
             }else{
                 EXPR_TUPLE();
                 consume(TK("]"));
             }
-            emitCode(OP_BUILD_SLICE);
+            emit(OP_BUILD_SLICE);
         }else{
             EXPR_TUPLE();
             if(match(TK(":"))){
                 if(match(TK("]"))){
-                    emitCode(OP_LOAD_NONE);
+                    emit(OP_LOAD_NONE);
                 }else{
                     EXPR_TUPLE();
                     consume(TK("]"));
                 }
-                emitCode(OP_BUILD_SLICE);
+                emit(OP_BUILD_SLICE);
             }else{
                 consume(TK("]"));
             }
         }
 
-        emitCode(OP_BUILD_INDEX_REF);
+        emit(OP_BUILD_INDEX_REF);
     }
 
     void exprValue() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         switch (op) {
-            case TK("None"):    emitCode(OP_LOAD_NONE);  break;
-            case TK("True"):    emitCode(OP_LOAD_TRUE);  break;
-            case TK("False"):   emitCode(OP_LOAD_FALSE); break;
-            case TK("..."):     emitCode(OP_LOAD_ELLIPSIS); break;
+            case TK("None"):    emit(OP_LOAD_NONE);  break;
+            case TK("True"):    emit(OP_LOAD_TRUE);  break;
+            case TK("False"):   emit(OP_LOAD_FALSE); break;
+            case TK("..."):     emit(OP_LOAD_ELLIPSIS); break;
             default: UNREACHABLE();
         }
     }
 
-    void keepOpcodeLine(){
-        int i = getCode()->co_code.size() - 1;
-        getCode()->co_code[i].line = getCode()->co_code[i-1].line;
-    }
-
-    int emitCode(Opcode opcode, int arg=-1) {
-        int line = parser->previous.line;
-        getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, line, (uint16_t)getCode()->_currBlockIndex}
+    int emit(Opcode opcode, int arg=-1, bool keepline=false) {
+        int line = parser->prev.line;
+        co()->co_code.push_back(
+            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_currBlockIndex}
         );
-        return getCode()->co_code.size() - 1;
+        int i = co()->co_code.size() - 1;
+        if(keepline && i>=1) co()->co_code[i].line = co()->co_code[i-1].line;
+        return i;
     }
 
-    inline void patchJump(int addr_index) {
-        int target = getCode()->co_code.size();
-        getCode()->co_code[addr_index].arg = target;
+    inline void patch_jump(int addr_index) {
+        int target = co()->co_code.size();
+        co()->co_code[addr_index].arg = target;
     }
 
     void compileBlockBody(){
@@ -729,9 +726,9 @@ __LISTCOMP:
 
     Token compileImportPath() {
         consume(TK("@id"));
-        Token tkmodule = parser->previous;
-        int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-        emitCode(OP_IMPORT_NAME, index);
+        Token tkmodule = parser->prev;
+        int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+        emit(OP_IMPORT_NAME, index);
         return tkmodule;
     }
 
@@ -741,10 +738,10 @@ __LISTCOMP:
             Token tkmodule = compileImportPath();
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkmodule = parser->previous;
+                tkmodule = parser->prev;
             }
-            int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_REF, index);
+            int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+            emit(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         consumeEndStatement();
     }
@@ -754,30 +751,30 @@ __LISTCOMP:
         Token tkmodule = compileImportPath();
         consume(TK("import"));
         do {
-            emitCode(OP_DUP_TOP);
+            emit(OP_DUP_TOP);
             consume(TK("@id"));
-            Token tkname = parser->previous;
-            int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_BUILD_ATTR_REF, index);
+            Token tkname = parser->prev;
+            int index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            emit(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkname = parser->previous;
+                tkname = parser->prev;
             }
-            index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_REF, index);
+            index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            emit(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
-        emitCode(OP_POP_TOP);
+        emit(OP_POP_TOP);
         consumeEndStatement();
     }
 
     void parsePrecedence(Precedence precedence) {
         lexToken();
-        GrammarFn prefix = rules[parser->previous.type].prefix;
-        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->previous.type));
+        GrammarFn prefix = rules[parser->prev.type].prefix;
+        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lexToken();
-            _TokenType op = parser->previous.type;
+            _TokenType op = parser->prev.type;
             GrammarFn infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
@@ -788,32 +785,32 @@ __LISTCOMP:
         matchNewLines();
         EXPR_TUPLE();
 
-        int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
 
         if (match(TK("elif"))) {
-            int exit_jump = emitCode(OP_JUMP_ABSOLUTE);
-            patchJump(ifpatch);
+            int exit_jump = emit(OP_JUMP_ABSOLUTE);
+            patch_jump(ifpatch);
             compileIfStatement();
-            patchJump(exit_jump);
+            patch_jump(exit_jump);
         } else if (match(TK("else"))) {
-            int exit_jump = emitCode(OP_JUMP_ABSOLUTE);
-            patchJump(ifpatch);
+            int exit_jump = emit(OP_JUMP_ABSOLUTE);
+            patch_jump(ifpatch);
             compileBlockBody();
-            patchJump(exit_jump);
+            patch_jump(exit_jump);
         } else {
-            patchJump(ifpatch);
+            patch_jump(ifpatch);
         }
     }
 
     void compileWhileLoop() {
-        getCode()->__enterBlock(WHILE_LOOP);
+        co()->__enterBlock(WHILE_LOOP);
         EXPR_TUPLE();
-        int patch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int patch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        patchJump(patch);
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        patch_jump(patch);
+        co()->__exitBlock();
     }
 
     void EXPR_FOR_VARS(){
@@ -822,24 +819,24 @@ __LISTCOMP:
             consume(TK("@id"));
             exprName(); size++;
         } while (match(TK(",")));
-        if(size > 1) emitCode(OP_BUILD_SMART_TUPLE, size);
+        if(size > 1) emit(OP_BUILD_SMART_TUPLE, size);
     }
 
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
-        emitCode(OP_GET_ITER);
-        getCode()->__enterBlock(FOR_LOOP);
-        emitCode(OP_FOR_ITER);
+        emit(OP_GET_ITER);
+        co()->__enterBlock(FOR_LOOP);
+        emit(OP_FOR_ITER);
         compileBlockBody();
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        co()->__exitBlock();
     }
 
     void compileTryExcept() {
-        getCode()->__enterBlock(TRY_EXCEPT);
+        co()->__enterBlock(TRY_EXCEPT);
         compileBlockBody();
-        int patch = emitCode(OP_JUMP_ABSOLUTE);
-        getCode()->__exitBlock();
+        int patch = emit(OP_JUMP_ABSOLUTE);
+        co()->__exitBlock();
         consume(TK("except"));
         if(match(TK("@id"))){       // exception name
             compileBlockBody();
@@ -848,28 +845,28 @@ __LISTCOMP:
             consume(TK(":"));
             syntaxError("finally is not supported yet");
         }
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (!getCode()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
+            if (!co()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
             consumeEndStatement();
-            emitCode(OP_LOOP_BREAK);
+            emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!getCode()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
+            if (!co()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
-            emitCode(OP_LOOP_CONTINUE);
+            emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
                 syntaxError("'return' outside function");
             if(matchEndStatement()){
-                emitCode(OP_LOAD_NONE);
+                emit(OP_LOAD_NONE);
             }else{
                 EXPR_TUPLE();
                 consumeEndStatement();
             }
-            emitCode(OP_RETURN_VALUE);
+            emit(OP_RETURN_VALUE);
         } else if (match(TK("if"))) {
             compileIfStatement();
         } else if (match(TK("while"))) {
@@ -880,54 +877,54 @@ __LISTCOMP:
             compileTryExcept();
         }else if(match(TK("assert"))){
             EXPR();
-            emitCode(OP_ASSERT);
+            emit(OP_ASSERT);
             consumeEndStatement();
         } else if(match(TK("with"))){
             EXPR();
             consume(TK("as"));
             consume(TK("@id"));
-            Token tkname = parser->previous;
-            int index = getCode()->addName(
+            Token tkname = parser->prev;
+            int index = co()->add_name(
                 tkname.str(),
                 codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
             );
-            emitCode(OP_STORE_NAME_REF, index);
-            emitCode(OP_LOAD_NAME_REF, index);
-            emitCode(OP_WITH_ENTER);
+            emit(OP_STORE_NAME_REF, index);
+            emit(OP_LOAD_NAME_REF, index);
+            emit(OP_WITH_ENTER);
             compileBlockBody();
-            emitCode(OP_LOAD_NAME_REF, index);
-            emitCode(OP_WITH_EXIT);
+            emit(OP_LOAD_NAME_REF, index);
+            emit(OP_WITH_EXIT);
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            getCode()->addLabel(parser->previous.str());
+            co()->add_label(parser->prev.str());
             consumeEndStatement();
         } else if(match(TK("goto"))){
             // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
-            emitCode(OP_GOTO);
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
+            emit(OP_GOTO);
             consumeEndStatement();
         } else if(match(TK("raise"))){
             consume(TK("@id"));         // dummy exception type
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
             if(match(TK("("))){
                 EXPR();
                 consume(TK(")"));
             }else{
-                emitCode(OP_LOAD_NONE); // ...?
+                emit(OP_LOAD_NONE); // ...?
             }
-            emitCode(OP_RAISE_ERROR);
+            emit(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
-            emitCode(OP_DELETE_REF);
+            emit(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
-                getCode()->co_global_names.push_back(parser->previous.str());
+                co()->co_global_names.push_back(parser->prev.str());
             } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
@@ -936,30 +933,30 @@ __LISTCOMP:
             EXPR_ANY();
             consumeEndStatement();
             // If last op is not an assignment, pop the result.
-            uint8_t lastOp = getCode()->co_code.back().op;
+            uint8_t lastOp = co()->co_code.back().op;
             if( lastOp!=OP_STORE_NAME_REF && lastOp!=OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top()==0) emitCode(OP_PRINT_EXPR);
-                emitCode(OP_POP_TOP);
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR);
+                emit(OP_POP_TOP);
             }
         }
     }
 
     void compileClass(){
         consume(TK("@id"));
-        int clsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+        int clsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
         if(match(TK("("))){
             consume(TK("@id"));
-            superClsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+            superClsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
-        emitCode(OP_LOAD_NONE);
+        emit(OP_LOAD_NONE);
         isCompilingClass = true;
         __compileBlockBody(&Compiler::compileFunction);
         isCompilingClass = false;
-        if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
-        else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
-        emitCode(OP_BUILD_CLASS, clsNameIdx);
+        if(superClsNameIdx == -1) emit(OP_LOAD_NONE);
+        else emit(OP_LOAD_NAME_REF, superClsNameIdx);
+        emit(OP_BUILD_CLASS, clsNameIdx);
     }
 
     void __compileFunctionArgs(_Func func, bool enableTypeHints){
@@ -976,7 +973,7 @@ __LISTCOMP:
             }
 
             consume(TK("@id"));
-            const _Str& name = parser->previous.str();
+            const _Str& name = parser->prev.str();
             if(func->hasName(name)) syntaxError("duplicate argument name");
 
             // eat type hints
@@ -992,7 +989,7 @@ __LISTCOMP:
                     consume(TK("="));
                     PyVarOrNull value = readLiteral();
                     if(value == nullptr){
-                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
+                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
                     func->kwArgs[name] = value;
                     func->kwArgsOrder.push_back(name);
@@ -1009,7 +1006,7 @@ __LISTCOMP:
         }
         _Func func = pkpy::make_shared<Function>();
         consume(TK("@id"));
-        func->name = parser->previous.str();
+        func->name = parser->prev.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
             __compileFunctionArgs(func, true);
@@ -1024,18 +1021,18 @@ __LISTCOMP:
         compileBlockBody();
         func->code->optimize();
         this->codes.pop();
-        emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
-        if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
+        emit(OP_LOAD_CONST, co()->add_const(vm->PyFunction(func)));
+        if(!isCompilingClass) emit(OP_STORE_FUNCTION);
     }
 
     PyVarOrNull readLiteral(){
         if(match(TK("-"))){
             consume(TK("@num"));
-            PyVar val = parser->previous.value;
+            PyVar val = parser->prev.value;
             return vm->numNegated(val);
         }
-        if(match(TK("@num"))) return parser->previous.value;
-        if(match(TK("@str"))) return parser->previous.value;
+        if(match(TK("@num"))) return parser->prev.value;
+        if(match(TK("@str"))) return parser->prev.value;
         if(match(TK("True"))) return vm->PyBool(true);
         if(match(TK("False"))) return vm->PyBool(false);
         if(match(TK("None"))) return vm->None;
@@ -1078,7 +1075,7 @@ __LISTCOMP:
             return code;
         }else if(mode()==JSON_MODE){
             PyVarOrNull value = readLiteral();
-            if(value != nullptr) emitCode(OP_LOAD_CONST, code->addConst(value));
+            if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();
             else syntaxError("expect a JSON object or array");
@@ -1096,14 +1093,14 @@ __LISTCOMP:
 
     /***** Error Reporter *****/
     _Str getLineSnapshot(){
-        int lineno = parser->current.line;
-        const char* cursor = parser->current.start;
+        int lineno = parser->curr.line;
+        const char* cursor = parser->curr.start;
         // if error occurs in lexing, lineno should be `parser->current_line`
         if(lexingCnt > 0){
             lineno = parser->current_line;
-            cursor = parser->current_char;
+            cursor = parser->curr_char;
         }
-        if(parser->peekChar() == '\n') lineno--;
+        if(parser->peek_char() == '\n') lineno--;
         return parser->src->snapshot(lineno, cursor);
     }
 

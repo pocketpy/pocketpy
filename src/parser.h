@@ -98,9 +98,9 @@ struct Parser {
     _Source src;
 
     const char* token_start;
-    const char* current_char;
+    const char* curr_char;
     int current_line = 1;
-    Token previous, current;
+    Token prev, curr;
     std::queue<Token> nexts;
     std::stack<int> indents;
 
@@ -120,28 +120,23 @@ struct Parser {
         return t;
     }
 
-    char peekChar() {
-        return *current_char;
+    inline char peek_char() {
+        return *curr_char;
     }
 
     std::string_view lookahead(int n){
-        const char* c = current_char;
+        const char* c = curr_char;
         for(int i=0; i<n; i++){
-            if(*c == '\0') return std::string_view(current_char, i);
+            if(*c == '\0') return std::string_view(curr_char, i);
             c++;
         }
-        return std::string_view(current_char, n);
-    }
-
-    char peekNextChar() {
-        if (peekChar() == '\0') return '\0';
-        return *(current_char + 1);
+        return std::string_view(curr_char, n);
     }
 
     int eatSpaces(){
         int count = 0;
         while (true) {
-            switch (peekChar()) {
+            switch (peek_char()) {
                 case ' ' : count+=1; break;
                 case '\t': count+=4; break;
                 default: return count;
@@ -153,8 +148,8 @@ struct Parser {
     bool eatIndentation(){
         if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
         int spaces = eatSpaces();
-        if(peekChar() == '#') skipLineComment();
-        if(peekChar() == '\0' || peekChar() == '\n') return true;
+        if(peek_char() == '#') skipLineComment();
+        if(peek_char() == '\0' || peek_char() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
@@ -172,26 +167,26 @@ struct Parser {
     }
 
     char eatChar() {
-        char c = peekChar();
+        char c = peek_char();
         if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
-        current_char++;
+        curr_char++;
         return c;
     }
 
     char eatCharIncludeNewLine() {
-        char c = peekChar();
-        current_char++;
+        char c = peek_char();
+        curr_char++;
         if (c == '\n'){
             current_line++;
-            src->lineStarts.push_back(current_char);
+            src->lineStarts.push_back(curr_char);
         }
         return c;
     }
 
     int eatName() {
-        current_char--;
+        curr_char--;
         while(true){
-            uint8_t c = peekChar();
+            uint8_t c = peek_char();
             int u8bytes = 0;
             if((c & 0b10000000) == 0b00000000) u8bytes = 1;
             else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
@@ -200,14 +195,14 @@ struct Parser {
             else return 1;
             if(u8bytes == 1){
                 if(isalpha(c) || c=='_' || isdigit(c)) {
-                    current_char++;
+                    curr_char++;
                     continue;
                 }else{
                     break;
                 }
             }
             // handle multibyte char
-            std::string u8str(current_char, u8bytes);
+            std::string u8str(curr_char, u8bytes);
             if(u8str.size() != u8bytes) return 2;
             uint32_t value = 0;
             for(int k=0; k < u8bytes; k++){
@@ -220,11 +215,11 @@ struct Parser {
                     value |= (b & 0b00111111) << (6*(u8bytes-k-1));
                 }
             }
-            if(__isLoChar(value)) current_char += u8bytes;
+            if(__isLoChar(value)) curr_char += u8bytes;
             else break;
         }
 
-        int length = (int)(current_char - token_start);
+        int length = (int)(curr_char - token_start);
         if(length == 0) return 3;
         std::string_view name(token_start, length);
 
@@ -243,14 +238,14 @@ struct Parser {
 
         if(__KW_MAP.count(name)){
             if(name == "not"){
-                if(strncmp(current_char, " in", 3) == 0){
-                    current_char += 3;
+                if(strncmp(curr_char, " in", 3) == 0){
+                    curr_char += 3;
                     setNextToken(TK("not in"));
                     return 0;
                 }
             }else if(name == "is"){
-                if(strncmp(current_char, " not", 4) == 0){
-                    current_char += 4;
+                if(strncmp(curr_char, " not", 4) == 0){
+                    curr_char += 4;
                     setNextToken(TK("is not"));
                     return 0;
                 }
@@ -264,7 +259,7 @@ struct Parser {
 
     void skipLineComment() {
         char c;
-        while ((c = peekChar()) != '\0') {
+        while ((c = peek_char()) != '\0') {
             if (c == '\n') return;
             eatChar();
         }
@@ -273,14 +268,14 @@ struct Parser {
     // If the current char is [c] consume it and advance char by 1 and returns
     // true otherwise returns false.
     bool matchChar(char c) {
-        if (peekChar() != c) return false;
+        if (peek_char() != c) return false;
         eatCharIncludeNewLine();
         return true;
     }
 
     // Returns an error token from the current position for reporting error.
     Token makeErrToken() {
-        return Token{TK("@error"), token_start, (int)(current_char - token_start), current_line};
+        return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
     }
 
     // Initialize the next token as the type.
@@ -298,7 +293,7 @@ struct Parser {
         nexts.push( Token{
             type,
             token_start,
-            (int)(current_char - token_start),
+            (int)(curr_char - token_start),
             current_line - ((type == TK("@eol")) ? 1 : 0),
             value
         });
@@ -312,7 +307,7 @@ struct Parser {
     Parser(_Source src) {
         this->src = src;
         this->token_start = src->source;
-        this->current_char = src->source;
+        this->curr_char = src->source;
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }

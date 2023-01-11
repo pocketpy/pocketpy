@@ -3250,9 +3250,9 @@ struct Parser {
     _Source src;
 
     const char* token_start;
-    const char* current_char;
+    const char* curr_char;
     int current_line = 1;
-    Token previous, current;
+    Token prev, curr;
     std::queue<Token> nexts;
     std::stack<int> indents;
 
@@ -3272,28 +3272,23 @@ struct Parser {
         return t;
     }
 
-    char peekChar() {
-        return *current_char;
+    inline char peek_char() {
+        return *curr_char;
     }
 
     std::string_view lookahead(int n){
-        const char* c = current_char;
+        const char* c = curr_char;
         for(int i=0; i<n; i++){
-            if(*c == '\0') return std::string_view(current_char, i);
+            if(*c == '\0') return std::string_view(curr_char, i);
             c++;
         }
-        return std::string_view(current_char, n);
-    }
-
-    char peekNextChar() {
-        if (peekChar() == '\0') return '\0';
-        return *(current_char + 1);
+        return std::string_view(curr_char, n);
     }
 
     int eatSpaces(){
         int count = 0;
         while (true) {
-            switch (peekChar()) {
+            switch (peek_char()) {
                 case ' ' : count+=1; break;
                 case '\t': count+=4; break;
                 default: return count;
@@ -3305,8 +3300,8 @@ struct Parser {
     bool eatIndentation(){
         if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
         int spaces = eatSpaces();
-        if(peekChar() == '#') skipLineComment();
-        if(peekChar() == '\0' || peekChar() == '\n') return true;
+        if(peek_char() == '#') skipLineComment();
+        if(peek_char() == '\0' || peek_char() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
@@ -3324,26 +3319,26 @@ struct Parser {
     }
 
     char eatChar() {
-        char c = peekChar();
+        char c = peek_char();
         if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
-        current_char++;
+        curr_char++;
         return c;
     }
 
     char eatCharIncludeNewLine() {
-        char c = peekChar();
-        current_char++;
+        char c = peek_char();
+        curr_char++;
         if (c == '\n'){
             current_line++;
-            src->lineStarts.push_back(current_char);
+            src->lineStarts.push_back(curr_char);
         }
         return c;
     }
 
     int eatName() {
-        current_char--;
+        curr_char--;
         while(true){
-            uint8_t c = peekChar();
+            uint8_t c = peek_char();
             int u8bytes = 0;
             if((c & 0b10000000) == 0b00000000) u8bytes = 1;
             else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
@@ -3352,14 +3347,14 @@ struct Parser {
             else return 1;
             if(u8bytes == 1){
                 if(isalpha(c) || c=='_' || isdigit(c)) {
-                    current_char++;
+                    curr_char++;
                     continue;
                 }else{
                     break;
                 }
             }
             // handle multibyte char
-            std::string u8str(current_char, u8bytes);
+            std::string u8str(curr_char, u8bytes);
             if(u8str.size() != u8bytes) return 2;
             uint32_t value = 0;
             for(int k=0; k < u8bytes; k++){
@@ -3372,11 +3367,11 @@ struct Parser {
                     value |= (b & 0b00111111) << (6*(u8bytes-k-1));
                 }
             }
-            if(__isLoChar(value)) current_char += u8bytes;
+            if(__isLoChar(value)) curr_char += u8bytes;
             else break;
         }
 
-        int length = (int)(current_char - token_start);
+        int length = (int)(curr_char - token_start);
         if(length == 0) return 3;
         std::string_view name(token_start, length);
 
@@ -3395,14 +3390,14 @@ struct Parser {
 
         if(__KW_MAP.count(name)){
             if(name == "not"){
-                if(strncmp(current_char, " in", 3) == 0){
-                    current_char += 3;
+                if(strncmp(curr_char, " in", 3) == 0){
+                    curr_char += 3;
                     setNextToken(TK("not in"));
                     return 0;
                 }
             }else if(name == "is"){
-                if(strncmp(current_char, " not", 4) == 0){
-                    current_char += 4;
+                if(strncmp(curr_char, " not", 4) == 0){
+                    curr_char += 4;
                     setNextToken(TK("is not"));
                     return 0;
                 }
@@ -3416,7 +3411,7 @@ struct Parser {
 
     void skipLineComment() {
         char c;
-        while ((c = peekChar()) != '\0') {
+        while ((c = peek_char()) != '\0') {
             if (c == '\n') return;
             eatChar();
         }
@@ -3425,14 +3420,14 @@ struct Parser {
     // If the current char is [c] consume it and advance char by 1 and returns
     // true otherwise returns false.
     bool matchChar(char c) {
-        if (peekChar() != c) return false;
+        if (peek_char() != c) return false;
         eatCharIncludeNewLine();
         return true;
     }
 
     // Returns an error token from the current position for reporting error.
     Token makeErrToken() {
-        return Token{TK("@error"), token_start, (int)(current_char - token_start), current_line};
+        return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
     }
 
     // Initialize the next token as the type.
@@ -3450,7 +3445,7 @@ struct Parser {
         nexts.push( Token{
             type,
             token_start,
-            (int)(current_char - token_start),
+            (int)(curr_char - token_start),
             current_line - ((type == TK("@eol")) ? 1 : 0),
             value
         });
@@ -3464,7 +3459,7 @@ struct Parser {
     Parser(_Source src) {
         this->src = src;
         this->token_start = src->source;
-        this->current_char = src->source;
+        this->curr_char = src->source;
         this->nexts.push(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }
@@ -3682,7 +3677,7 @@ OPCODE(LOOP_CONTINUE)
     #undef OPCODE
 };
 
-struct ByteCode{
+struct Bytecode{
     uint8_t op;
     int arg;
     int line;
@@ -3710,7 +3705,7 @@ struct CodeBlock {
     int start;          // start index of this block in co_code, inclusive
     int end;            // end index of this block in co_code, exclusive
 
-    std::string toString() const {
+    std::string to_string() const {
         if(parent == -1) return "";
         std::string s = "[";
         for(int i = 0; i < id.size(); i++){
@@ -3723,17 +3718,9 @@ struct CodeBlock {
         return s;
     }
 
-    bool operator==(const std::vector<int>& other) const {
-        return id == other;
-    }
-
-    bool operator!=(const std::vector<int>& other) const {
-        return id != other;
-    }
-
-    int depth() const {
-        return id.size();
-    }
+    bool operator==(const std::vector<int>& other) const{ return id == other; }
+    bool operator!=(const std::vector<int>& other) const{ return id != other; }
+    int depth() const{ return id.size(); }
 };
 
 struct CodeObject {
@@ -3745,11 +3732,7 @@ struct CodeObject {
         this->name = name;
     }
 
-    CompileMode mode() const {
-        return src->mode;
-    }
-
-    std::vector<ByteCode> co_code;
+    std::vector<Bytecode> co_code;
     PyVarList co_consts;
     std::vector<std::pair<_Str, NameScope>> co_names;
     std::vector<_Str> co_global_names;
@@ -3787,7 +3770,7 @@ struct CodeObject {
     // goto/label should be put at toplevel statements
     emhash8::HashMap<_Str, int> co_labels;
 
-    void addLabel(const _Str& label){
+    void add_label(const _Str& label){
         if(co_labels.find(label) != co_labels.end()){
             _Str msg = "label '" + label + "' already exists";
             throw std::runtime_error(msg.c_str());
@@ -3795,7 +3778,7 @@ struct CodeObject {
         co_labels[label] = co_code.size();
     }
 
-    int addName(_Str name, NameScope scope){
+    int add_name(_Str name, NameScope scope){
         if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
             scope = NAME_GLOBAL;
         }
@@ -3807,7 +3790,7 @@ struct CodeObject {
         return co_names.size() - 1;
     }
 
-    int addConst(PyVar v){
+    int add_const(PyVar v){
         co_consts.push_back(v);
         return co_consts.size() - 1;
     }
@@ -3816,7 +3799,7 @@ struct CodeObject {
         for(int i=0; i<co_code.size(); i++){
             if(co_code[i].op >= OP_BINARY_OP && co_code[i].op <= OP_CONTAINS_OP){
                 for(int j=0; j<2; j++){
-                    ByteCode& bc = co_code[i-j-1];
+                    Bytecode& bc = co_code[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -3830,7 +3813,7 @@ struct CodeObject {
                 int KWARGC = (co_code[i].arg >> 16) & 0xFFFF;
                 if(KWARGC != 0) continue;
                 for(int j=0; j<ARGC+1; j++){
-                    ByteCode& bc = co_code[i-j-1];
+                    Bytecode& bc = co_code[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -3858,38 +3841,28 @@ public:
     PyVar _module;
     PyVarDict f_locals;
 
-    inline PyVarDict copy_f_locals() const {
-        return f_locals;
-    }
-
-    inline PyVarDict& f_globals(){
-        return _module->attribs;
-    }
+    inline PyVarDict f_locals_copy() const { return f_locals; }
+    inline PyVarDict& f_globals(){ return _module->attribs; }
 
     Frame(const _Code code, PyVar _module, PyVarDict&& locals)
         : code(code), _module(_module), f_locals(std::move(locals)) {
     }
 
-    inline const ByteCode& next_bytecode() {
+    inline const Bytecode& next_bytecode() {
         ip = next_ip;
         next_ip = ip + 1;
         return code->co_code[ip];
     }
 
-    _Str errorSnapshot(){
+    _Str curr_snapshot(){
         int line = code->co_code[ip].line;
         return code->src->snapshot(line);
     }
 
-    inline int stackSize() const {
-        return s_data.size();
-    }
+    inline int stack_size() const{ return s_data.size(); }
+    inline bool has_next_bytecode() const{ return next_ip < code->co_code.size(); }
 
-    inline bool has_next_bytecode() const {
-        return next_ip < code->co_code.size();
-    }
-
-    inline PyVar __pop(){
+    inline PyVar pop(){
         if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         PyVar v = std::move(s_data.back());
         s_data.pop_back();
@@ -3898,62 +3871,58 @@ public:
 
     inline void try_deref(VM*, PyVar&);
 
-    inline PyVar popValue(VM* vm){
-        PyVar value = __pop();
+    inline PyVar pop_value(VM* vm){
+        PyVar value = pop();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar topValue(VM* vm){
-        PyVar value = __top();
+    inline PyVar top_value(VM* vm){
+        PyVar value = top();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar& __top(){
+    inline PyVar& top(){
         if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
         return s_data.back();
     }
 
-    inline PyVar __topValueN(VM* vm, int n=-1){
+    inline PyVar top_value_offset(VM* vm, int n){
         PyVar value = s_data[s_data.size() + n];
         try_deref(vm, value);
         return value;
     }
 
     template<typename T>
-    inline void push(T&& obj){
-        s_data.push_back(std::forward<T>(obj));
-    }
+    inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
 
-    inline void jumpAbsolute(int i){
-        next_ip = i;
-    }
+    inline void jump_abs(int i){ next_ip = i; }
 
-    void jumpAbsoluteSafe(int target){
-        const ByteCode& prev = code->co_code[ip];
+    void jump_abs_safe(int target){
+        const Bytecode& prev = code->co_code[ip];
         int i = prev.block;
         next_ip = target;
         if(next_ip >= code->co_code.size()){
             while(i>=0){
-                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                if(code->co_blocks[i].type == FOR_LOOP) pop();
                 i = code->co_blocks[i].parent;
             }
         }else{
-            const ByteCode& next = code->co_code[target];
+            const Bytecode& next = code->co_code[target];
             while(i>=0 && i!=next.block){
-                if(code->co_blocks[i].type == FOR_LOOP) __pop();
+                if(code->co_blocks[i].type == FOR_LOOP) pop();
                 i = code->co_blocks[i].parent;
             }
             if(i!=next.block) throw std::runtime_error(
-                "invalid jump from " + code->co_blocks[prev.block].toString() + " to " + code->co_blocks[next.block].toString()
+                "invalid jump from " + code->co_blocks[prev.block].to_string() + " to " + code->co_blocks[next.block].to_string()
             );
         }
     }
 
-    pkpy::ArgList popNValuesReversed(VM* vm, int n){
+    pkpy::ArgList pop_n_values_reversed(VM* vm, int n){
         int new_size = s_data.size() - n;
-        if(new_size < 0) throw std::runtime_error("stackSize() < n");
+        if(new_size < 0) throw std::runtime_error("stack_size() < n");
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--){
             v._index(i) = std::move(s_data[new_size + i]);
@@ -3963,15 +3932,15 @@ public:
         return v;
     }
 
-    PyVarList popNValuesReversedUnlimited(VM* vm, int n){
+    PyVarList pop_n_values_reversed_unlimited(VM* vm, int n){
         PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = popValue(vm);
+        for(int i=n-1; i>=0; i--) v[i] = pop_value(vm);
         return v;
     }
 
-    pkpy::ArgList __popNReversed(int n){
+    pkpy::ArgList pop_n_reversed(int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = __pop();
+        for(int i=n-1; i>=0; i--) v._index(i) = pop();
         return v;
     }
 };
@@ -3994,28 +3963,28 @@ public:
 
 
 class VM {
-    std::atomic<bool> _stopFlag = false;
-    std::vector<PyVar> _smallIntegers;      // [-5, 256]
+    std::atomic<bool> _stop_flag = false;
+    std::vector<PyVar> _small_integers;             // [-5, 256]
+    PyVarDict _modules;                             // loaded modules
+    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
 protected:
     std::deque< pkpy::unique_ptr<Frame> > callstack;
-    PyVarDict _modules;                     // loaded modules
-    emhash8::HashMap<_Str, _Str> _lazyModules;     // lazy loaded modules
     PyVar __py2py_call_signal;
     
-    void _checkStopFlag(){
-        if(_stopFlag){
-            _stopFlag = false;
+    inline void test_stop_flag(){
+        if(_stop_flag){
+            _stop_flag = false;
             _error("KeyboardInterrupt", "");
         }
     }
 
-    PyVar runFrame(Frame* frame){
+    PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
-            const ByteCode& byte = frame->next_bytecode();
-            //printf("[%d] %s (%d)\n", frame->stackSize(), OP_NAMES[byte.op], byte.arg);
+            const Bytecode& byte = frame->next_bytecode();
+            //printf("[%d] %s (%d)\n", frame->stack_size(), OP_NAMES[byte.op], byte.arg);
             //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
 
-            _checkStopFlag();
+            test_stop_flag();
 
             switch (byte.op)
             {
@@ -4034,30 +4003,30 @@ protected:
             } break;
             case OP_STORE_NAME_REF: {
                 const auto& p = frame->code->co_names[byte.arg];
-                NameRef(p).set(this, frame, frame->popValue(this));
+                NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
             case OP_BUILD_ATTR_REF: {
                 const auto& attr = frame->code->co_names[byte.arg];
-                PyVar obj = frame->popValue(this);
+                PyVar obj = frame->pop_value(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
             case OP_BUILD_INDEX_REF: {
-                PyVar index = frame->popValue(this);
-                PyVarRef obj = frame->popValue(this);
+                PyVar index = frame->pop_value(this);
+                PyVarRef obj = frame->pop_value(this);
                 frame->push(PyRef(IndexRef(obj, index)));
             } break;
             case OP_STORE_REF: {
-                PyVar obj = frame->popValue(this);
-                PyVarRef r = frame->__pop();
+                PyVar obj = frame->pop_value(this);
+                PyVarRef r = frame->pop();
                 PyRef_AS_C(r)->set(this, frame, std::move(obj));
             } break;
             case OP_DELETE_REF: {
-                PyVarRef r = frame->__pop();
+                PyVarRef r = frame->pop();
                 PyRef_AS_C(r)->del(this, frame);
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
-                pkpy::ArgList items = frame->__popNReversed(byte.arg);
+                pkpy::ArgList items = frame->pop_n_reversed(byte.arg);
                 bool done = false;
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->isType(_tp_ref)) {
@@ -4073,7 +4042,7 @@ protected:
             } break;
             case OP_BUILD_STRING:
             {
-                pkpy::ArgList items = frame->popNValuesReversed(this, byte.arg);
+                pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg);
                 _StrStream ss;
                 for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
                 frame->push(PyStr(ss.str()));
@@ -4083,13 +4052,13 @@ protected:
             } break;
             case OP_LIST_APPEND: {
                 pkpy::ArgList args(2);
-                args[1] = frame->popValue(this);            // obj
-                args[0] = frame->__topValueN(this, -2);     // list
+                args[1] = frame->pop_value(this);            // obj
+                args[0] = frame->top_value_offset(this, -2);     // list
                 fastCall(m_append, std::move(args));
             } break;
             case OP_STORE_FUNCTION:
                 {
-                    PyVar obj = frame->popValue(this);
+                    PyVar obj = frame->pop_value(this);
                     const _Func& fn = PyFunction_AS_C(obj);
                     setAttr(obj, __module__, frame->_module);
                     frame->f_globals()[fn->name] = obj;
@@ -4097,78 +4066,78 @@ protected:
             case OP_BUILD_CLASS:
                 {
                     const _Str& clsName = frame->code->co_names[byte.arg].first;
-                    PyVar clsBase = frame->popValue(this);
+                    PyVar clsBase = frame->pop_value(this);
                     if(clsBase == None) clsBase = _tp_object;
                     __checkType(clsBase, _tp_type);
                     PyVar cls = newUserClassType(frame->_module, clsName, clsBase);
                     while(true){
-                        PyVar fn = frame->popValue(this);
+                        PyVar fn = frame->pop_value(this);
                         if(fn == None) break;
                         const _Func& f = PyFunction_AS_C(fn);
                         setAttr(fn, __module__, frame->_module);
                         setAttr(cls, f->name, fn);
                     }
                 } break;
-            case OP_RETURN_VALUE: return frame->popValue(this);
+            case OP_RETURN_VALUE: return frame->pop_value(this);
             case OP_PRINT_EXPR:
                 {
-                    const PyVar expr = frame->topValue(this);
+                    const PyVar expr = frame->top_value(this);
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
-            case OP_POP_TOP: frame->popValue(this); break;
+            case OP_POP_TOP: frame->pop_value(this); break;
             case OP_BINARY_OP:
                 {
                     frame->push(
                         fastCall(BINARY_SPECIAL_METHODS[byte.arg],
-                        frame->popNValuesReversed(this, 2))
+                        frame->pop_n_values_reversed(this, 2))
                     );
                     // pkpy::ArgList args(2);
-                    // args._index(1) = frame->popValue(this);
-                    // args._index(0) = frame->topValue(this);
-                    // frame->__top() = fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
+                    // args._index(1) = frame->pop_value(this);
+                    // args._index(0) = frame->top_value(this);
+                    // frame->top() = fastCall(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_BITWISE_OP:
                 {
                     frame->push(
                         fastCall(BITWISE_SPECIAL_METHODS[byte.arg],
-                        frame->popNValuesReversed(this, 2))
+                        frame->pop_n_values_reversed(this, 2))
                     );
                 } break;
             case OP_COMPARE_OP:
                 {
                     // for __ne__ we use the negation of __eq__
                     int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], frame->popNValuesReversed(this, 2));
+                    PyVar res = fastCall(CMP_SPECIAL_METHODS[op], frame->pop_n_values_reversed(this, 2));
                     if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
                     frame->push(std::move(res));
                 } break;
             case OP_IS_OP:
                 {
-                    bool ret_c = frame->popValue(this) == frame->popValue(this);
+                    bool ret_c = frame->pop_value(this) == frame->pop_value(this);
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
             case OP_CONTAINS_OP:
                 {
-                    PyVar rhs = frame->popValue(this);
-                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::oneArg(frame->popValue(this))));
+                    PyVar rhs = frame->pop_value(this);
+                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::oneArg(frame->pop_value(this))));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
             case OP_UNARY_NEGATIVE:
                 {
-                    PyVar obj = frame->popValue(this);
+                    PyVar obj = frame->pop_value(this);
                     frame->push(numNegated(obj));
                 } break;
             case OP_UNARY_NOT:
                 {
-                    PyVar obj = frame->popValue(this);
+                    PyVar obj = frame->pop_value(this);
                     const PyVar& obj_bool = asBool(obj);
                     frame->push(PyBool(!PyBool_AS_C(obj_bool)));
                 } break;
             case OP_POP_JUMP_IF_FALSE:
-                if(!PyBool_AS_C(asBool(frame->popValue(this)))) frame->jumpAbsolute(byte.arg);
+                if(!PyBool_AS_C(asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
                 break;
             case OP_LOAD_NONE: frame->push(None); break;
             case OP_LOAD_TRUE: frame->push(True); break;
@@ -4176,24 +4145,24 @@ protected:
             case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); break;
             case OP_ASSERT:
                 {
-                    PyVar expr = frame->popValue(this);
+                    PyVar expr = frame->pop_value(this);
                     _assert(PyBool_AS_C(expr), "assertion failed");
                 } break;
             case OP_RAISE_ERROR:
                 {
-                    _Str msg = PyStr_AS_C(asRepr(frame->popValue(this)));
-                    _Str type = PyStr_AS_C(frame->popValue(this));
+                    _Str msg = PyStr_AS_C(asRepr(frame->pop_value(this)));
+                    _Str type = PyStr_AS_C(frame->pop_value(this));
                     _error(type, msg);
                 } break;
             case OP_BUILD_LIST:
                 {
                     frame->push(PyList(
-                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                        frame->pop_n_values_reversed_unlimited(this, byte.arg)
                     ));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    PyVarList items = frame->popNValuesReversedUnlimited(this, byte.arg*2);
+                    PyVarList items = frame->pop_n_values_reversed_unlimited(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -4203,42 +4172,42 @@ protected:
             case OP_BUILD_SET:
                 {
                     PyVar list = PyList(
-                        frame->popNValuesReversedUnlimited(this, byte.arg)
+                        frame->pop_n_values_reversed_unlimited(this, byte.arg)
                     );
                     PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
                     frame->push(obj);
                 } break;
-            case OP_DUP_TOP: frame->push(frame->topValue(this)); break;
+            case OP_DUP_TOP: frame->push(frame->top_value(this)); break;
             case OP_CALL:
                 {
                     int ARGC = byte.arg & 0xFFFF;
                     int KWARGC = (byte.arg >> 16) & 0xFFFF;
                     pkpy::ArgList kwargs(0);
-                    if(KWARGC > 0) kwargs = frame->popNValuesReversed(this, KWARGC*2);
-                    pkpy::ArgList args = frame->popNValuesReversed(this, ARGC);
-                    PyVar callable = frame->popValue(this);
+                    if(KWARGC > 0) kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
+                    pkpy::ArgList args = frame->pop_n_values_reversed(this, ARGC);
+                    PyVar callable = frame->pop_value(this);
                     PyVar ret = call(callable, std::move(args), kwargs, true);
                     if(ret == __py2py_call_signal) return ret;
                     frame->push(std::move(ret));
                 } break;
-            case OP_JUMP_ABSOLUTE: frame->jumpAbsolute(byte.arg); break;
-            case OP_SAFE_JUMP_ABSOLUTE: frame->jumpAbsoluteSafe(byte.arg); break;
+            case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
+            case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
             case OP_GOTO: {
-                PyVar obj = frame->popValue(this);
+                PyVar obj = frame->pop_value(this);
                 const _Str& label = PyStr_AS_C(obj);
                 int* target = frame->code->co_labels.try_get(label);
                 if(target == nullptr){
                     _error("KeyError", "label '" + label + "' not found");
                 }
-                frame->jumpAbsoluteSafe(*target);
+                frame->jump_abs_safe(*target);
             } break;
             case OP_GET_ITER:
                 {
-                    PyVar obj = frame->popValue(this);
+                    PyVar obj = frame->pop_value(this);
                     PyVarOrNull iter_fn = getAttr(obj, __iter__, false);
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn);
-                        PyVarRef var = frame->__pop();
+                        PyVarRef var = frame->pop();
                         __checkType(var, _tp_ref);
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
@@ -4248,41 +4217,41 @@ protected:
                 } break;
             case OP_FOR_ITER:
                 {
-                    // __top() must be PyIter, so no need to try_deref()
-                    auto& it = PyIter_AS_C(frame->__top());
+                    // top() must be PyIter, so no need to try_deref()
+                    auto& it = PyIter_AS_C(frame->top());
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }else{
                         int blockEnd = frame->code->co_blocks[byte.block].end;
-                        frame->jumpAbsoluteSafe(blockEnd);
+                        frame->jump_abs_safe(blockEnd);
                     }
                 } break;
             case OP_LOOP_CONTINUE:
                 {
                     int blockStart = frame->code->co_blocks[byte.block].start;
-                    frame->jumpAbsolute(blockStart);
+                    frame->jump_abs(blockStart);
                 } break;
             case OP_LOOP_BREAK:
                 {
                     int blockEnd = frame->code->co_blocks[byte.block].end;
-                    frame->jumpAbsoluteSafe(blockEnd);
+                    frame->jump_abs_safe(blockEnd);
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
                 {
-                    const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==False) frame->jumpAbsolute(byte.arg);
-                    else frame->popValue(this);
+                    const PyVar expr = frame->top_value(this);
+                    if(asBool(expr)==False) frame->jump_abs(byte.arg);
+                    else frame->pop_value(this);
                 } break;
             case OP_JUMP_IF_TRUE_OR_POP:
                 {
-                    const PyVar expr = frame->topValue(this);
-                    if(asBool(expr)==True) frame->jumpAbsolute(byte.arg);
-                    else frame->popValue(this);
+                    const PyVar expr = frame->top_value(this);
+                    if(asBool(expr)==True) frame->jump_abs(byte.arg);
+                    else frame->pop_value(this);
                 } break;
             case OP_BUILD_SLICE:
                 {
-                    PyVar stop = frame->popValue(this);
-                    PyVar start = frame->popValue(this);
+                    PyVar stop = frame->pop_value(this);
+                    PyVar start = frame->pop_value(this);
                     _Slice s;
                     if(start != None) {__checkType(start, _tp_int); s.start = (int)PyInt_AS_C(start);}
                     if(stop != None) {__checkType(stop, _tp_int); s.stop = (int)PyInt_AS_C(stop);}
@@ -4293,8 +4262,8 @@ protected:
                     const _Str& name = frame->code->co_names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
-                        auto it2 = _lazyModules.find(name);
-                        if(it2 == _lazyModules.end()){
+                        auto it2 = _lazy_modules.find(name);
+                        if(it2 == _lazy_modules.end()){
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
                             const _Str& source = it2->second;
@@ -4302,15 +4271,15 @@ protected:
                             PyVar _m = newModule(name);
                             _exec(code, _m, {});
                             frame->push(_m);
-                            _lazyModules.erase(it2);
+                            _lazy_modules.erase(it2);
                         }
                     }else{
                         frame->push(it->second);
                     }
                 } break;
             // TODO: using "goto" inside with block may cause __exit__ not called
-            case OP_WITH_ENTER: call(frame->popValue(this), __enter__); break;
-            case OP_WITH_EXIT: call(frame->popValue(this), __exit__); break;
+            case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
+            case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
             default:
                 systemError(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
@@ -4318,11 +4287,11 @@ protected:
         }
 
         if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
-            if(frame->stackSize() != 1) systemError("stack size is not 1 in EVAL_MODE/JSON_MODE");
-            return frame->popValue(this);
+            if(frame->stack_size() != 1) systemError("stack size is not 1 in EVAL_MODE/JSON_MODE");
+            return frame->pop_value(this);
         }
 
-        if(frame->stackSize() != 0) systemError("stack not empty in EXEC_MODE");
+        if(frame->stack_size() != 0) systemError("stack not empty in EXEC_MODE");
         return None;
     }
 
@@ -4353,18 +4322,18 @@ public:
         }
         initializeBuiltinClasses();
 
-        _smallIntegers.reserve(300);
-        for(_Int i=-5; i<=256; i++) _smallIntegers.push_back(newObject(_tp_int, i));
+        _small_integers.reserve(300);
+        for(_Int i=-5; i<=256; i++) _small_integers.push_back(newObject(_tp_int, i));
     }
 
     void keyboardInterrupt(){
-        _stopFlag = true;
+        _stop_flag = true;
     }
 
     void sleepForSecs(_Float sec){
         _Int ms = (_Int)(sec * 1000);
         for(_Int i=0; i<ms; i+=20){
-            _checkStopFlag();
+            test_stop_flag();
 #ifdef __EMSCRIPTEN__
             emscripten_sleep(20);
 #else
@@ -4563,7 +4532,7 @@ public:
         PyVar ret = nullptr;
 
         while(true){
-            ret = runFrame(frame);
+            ret = run_frame(frame);
             if(ret != __py2py_call_signal){
                 if(frame == frameBase){         // [ frameBase<- ]
                     break;
@@ -4613,7 +4582,7 @@ public:
     }
 
     void addLazyModule(_Str name, _Str source){
-        _lazyModules[name] = source;
+        _lazy_modules[name] = source;
     }
 
     PyVarOrNull getAttr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -4747,7 +4716,7 @@ public:
         ss << code->name << ":\n";
         int prev_line = -1;
         for(int i=0; i<code->co_code.size(); i++){
-            const ByteCode& byte = code->co_code[i];
+            const Bytecode& byte = code->co_code[i];
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -4772,7 +4741,7 @@ public:
                 argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
-            ss << code->co_blocks[byte.block].toString();
+            ss << code->co_blocks[byte.block].to_string();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;
@@ -4819,7 +4788,7 @@ public:
 
     __DEF_PY_AS_C(Int, _Int, _tp_int)
     inline PyVar PyInt(_Int value) { 
-        if(value >= -5 && value <= 256) return _smallIntegers[value + 5];
+        if(value >= -5 && value <= 256) return _small_integers[value + 5];
         return newObject(_tp_int, value);
     }
 
@@ -4922,7 +4891,7 @@ private:
         std::stack<_Str> snapshots;
         while (!callstack.empty()){
             if(snapshots.size() < 8){
-                snapshots.push(callstack.back()->errorSnapshot());
+                snapshots.push(callstack.back()->curr_snapshot());
             }
             callstack.pop_back();
         }
@@ -5156,7 +5125,7 @@ public:
         if(_state != THREAD_RUNNING) UNREACHABLE();
         _state = THREAD_SUSPENDED;
         while(_state == THREAD_SUSPENDED){
-            _checkStopFlag();
+            test_stop_flag();
 #ifdef __EMSCRIPTEN__
             emscripten_sleep(20);
 #else
@@ -5243,7 +5212,7 @@ public:
 
     emhash8::HashMap<_TokenType, GrammarRule> rules;
 
-    _Code getCode() {
+    _Code co() {
         return codes.top();
     }
 
@@ -5420,13 +5389,13 @@ public:
 
     // Lex the next token and set it as the next token.
     void _lexToken() {
-        parser->previous = parser->current;
-        parser->current = parser->nextToken();
+        parser->prev = parser->curr;
+        parser->curr = parser->nextToken();
 
-        //_Str _info = parser->current.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
+        //_Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
-        while (parser->peekChar() != '\0') {
-            parser->token_start = parser->current_char;
+        while (parser->peek_char() != '\0') {
+            parser->token_start = parser->curr_char;
             char c = parser->eatCharIncludeNewLine();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
@@ -5530,16 +5499,16 @@ public:
             }
         }
 
-        parser->token_start = parser->current_char;
+        parser->token_start = parser->curr_char;
         parser->setNextToken(TK("@eof"));
     }
 
     inline _TokenType peek() {
-        return parser->current.type;
+        return parser->curr.type;
     }
 
     // not sure this will work
-    _TokenType peekNext() {
+    _TokenType peek_next() {
         if(parser->nexts.empty()) return TK("@eof");
         return parser->nexts.front().type;
     }
@@ -5586,14 +5555,14 @@ public:
     }
 
     void exprLiteral() {
-        PyVar value = parser->previous.value;
-        int index = getCode()->addConst(value);
-        emitCode(OP_LOAD_CONST, index);
+        PyVar value = parser->prev.value;
+        int index = co()->add_const(value);
+        emit(OP_LOAD_CONST, index);
     }
 
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
-        PyVar value = parser->previous.value;
+        PyVar value = parser->prev.value;
         _Str s = vm->PyStr_AS_C(value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
@@ -5603,21 +5572,21 @@ public:
             std::smatch m = *it;
             if (i < m.position()) {
                 std::string literal = s.substr(i, m.position() - i);
-                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
                 size++;
             }
-            emitCode(OP_LOAD_EVAL_FN);
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(m[1].str())));
-            emitCode(OP_CALL, 1);
+            emit(OP_LOAD_EVAL_FN);
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(m[1].str())));
+            emit(OP_CALL, 1);
             size++;
             i = (int)(m.position() + m.length());
         }
         if (i < s.size()) {
             std::string literal = s.substr(i, s.size() - i);
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(literal)));
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
             size++;
         }
-        emitCode(OP_BUILD_STRING, size);
+        emit(OP_BUILD_STRING, size);
     }
 
     void exprLambda() {
@@ -5630,35 +5599,35 @@ public:
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         EXPR_TUPLE();
-        emitCode(OP_RETURN_VALUE);
+        emit(OP_RETURN_VALUE);
         func->code->optimize();
         this->codes.pop();
-        emitCode(OP_LOAD_LAMBDA, getCode()->addConst(vm->PyFunction(func)));
+        emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
     }
 
     void exprAssign() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            emitCode(OP_STORE_REF);
+            emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
             // TODO: optimization is needed for inplace operators
-            emitCode(OP_DUP_TOP);
+            emit(OP_DUP_TOP);
             EXPR();
             switch (op) {
-                case TK("+="):      emitCode(OP_BINARY_OP, 0);  break;
-                case TK("-="):      emitCode(OP_BINARY_OP, 1);  break;
-                case TK("*="):      emitCode(OP_BINARY_OP, 2);  break;
-                case TK("/="):      emitCode(OP_BINARY_OP, 3);  break;
-                case TK("//="):     emitCode(OP_BINARY_OP, 4);  break;
+                case TK("+="):      emit(OP_BINARY_OP, 0);  break;
+                case TK("-="):      emit(OP_BINARY_OP, 1);  break;
+                case TK("*="):      emit(OP_BINARY_OP, 2);  break;
+                case TK("/="):      emit(OP_BINARY_OP, 3);  break;
+                case TK("//="):     emit(OP_BINARY_OP, 4);  break;
 
-                case TK("%="):      emitCode(OP_BINARY_OP, 5);  break;
-                case TK("&="):      emitCode(OP_BITWISE_OP, 2);  break;
-                case TK("|="):      emitCode(OP_BITWISE_OP, 3);  break;
-                case TK("^="):      emitCode(OP_BITWISE_OP, 4);  break;
+                case TK("%="):      emit(OP_BINARY_OP, 5);  break;
+                case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
+                case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
+                case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
             }
-            emitCode(OP_STORE_REF);
+            emit(OP_STORE_REF);
         }
     }
 
@@ -5668,72 +5637,72 @@ public:
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
             size++;
         } while(match(TK(",")));
-        emitCode(OP_BUILD_SMART_TUPLE, size);
+        emit(OP_BUILD_SMART_TUPLE, size);
     }
 
     void exprOr() {
-        int patch = emitCode(OP_JUMP_IF_TRUE_OR_POP);
+        int patch = emit(OP_JUMP_IF_TRUE_OR_POP);
         parsePrecedence(PREC_LOGICAL_OR);
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void exprAnd() {
-        int patch = emitCode(OP_JUMP_IF_FALSE_OR_POP);
+        int patch = emit(OP_JUMP_IF_FALSE_OR_POP);
         parsePrecedence(PREC_LOGICAL_AND);
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void exprTernary() {
-        int patch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int patch = emit(OP_POP_JUMP_IF_FALSE);
         EXPR();         // if true
-        int patch2 = emitCode(OP_JUMP_ABSOLUTE);
+        int patch2 = emit(OP_JUMP_ABSOLUTE);
         consume(TK(":"));
-        patchJump(patch);
+        patch_jump(patch);
         EXPR();         // if false
-        patchJump(patch2);
+        patch_jump(patch2);
     }
 
     void exprBinaryOp() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         parsePrecedence((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
-            case TK("+"):   emitCode(OP_BINARY_OP, 0);  break;
-            case TK("-"):   emitCode(OP_BINARY_OP, 1);  break;
-            case TK("*"):   emitCode(OP_BINARY_OP, 2);  break;
-            case TK("/"):   emitCode(OP_BINARY_OP, 3);  break;
-            case TK("//"):  emitCode(OP_BINARY_OP, 4);  break;
-            case TK("%"):   emitCode(OP_BINARY_OP, 5);  break;
-            case TK("**"):  emitCode(OP_BINARY_OP, 6);  break;
+            case TK("+"):   emit(OP_BINARY_OP, 0);  break;
+            case TK("-"):   emit(OP_BINARY_OP, 1);  break;
+            case TK("*"):   emit(OP_BINARY_OP, 2);  break;
+            case TK("/"):   emit(OP_BINARY_OP, 3);  break;
+            case TK("//"):  emit(OP_BINARY_OP, 4);  break;
+            case TK("%"):   emit(OP_BINARY_OP, 5);  break;
+            case TK("**"):  emit(OP_BINARY_OP, 6);  break;
 
-            case TK("<"):   emitCode(OP_COMPARE_OP, 0);    break;
-            case TK("<="):  emitCode(OP_COMPARE_OP, 1);    break;
-            case TK("=="):  emitCode(OP_COMPARE_OP, 2);    break;
-            case TK("!="):  emitCode(OP_COMPARE_OP, 3);    break;
-            case TK(">"):   emitCode(OP_COMPARE_OP, 4);    break;
-            case TK(">="):  emitCode(OP_COMPARE_OP, 5);    break;
-            case TK("in"):      emitCode(OP_CONTAINS_OP, 0);   break;
-            case TK("not in"):  emitCode(OP_CONTAINS_OP, 1);   break;
-            case TK("is"):      emitCode(OP_IS_OP, 0);         break;
-            case TK("is not"):  emitCode(OP_IS_OP, 1);         break;
+            case TK("<"):   emit(OP_COMPARE_OP, 0);    break;
+            case TK("<="):  emit(OP_COMPARE_OP, 1);    break;
+            case TK("=="):  emit(OP_COMPARE_OP, 2);    break;
+            case TK("!="):  emit(OP_COMPARE_OP, 3);    break;
+            case TK(">"):   emit(OP_COMPARE_OP, 4);    break;
+            case TK(">="):  emit(OP_COMPARE_OP, 5);    break;
+            case TK("in"):      emit(OP_CONTAINS_OP, 0);   break;
+            case TK("not in"):  emit(OP_CONTAINS_OP, 1);   break;
+            case TK("is"):      emit(OP_IS_OP, 0);         break;
+            case TK("is not"):  emit(OP_IS_OP, 1);         break;
 
-            case TK("<<"):  emitCode(OP_BITWISE_OP, 0);    break;
-            case TK(">>"):  emitCode(OP_BITWISE_OP, 1);    break;
-            case TK("&"):   emitCode(OP_BITWISE_OP, 2);    break;
-            case TK("|"):   emitCode(OP_BITWISE_OP, 3);    break;
-            case TK("^"):   emitCode(OP_BITWISE_OP, 4);    break;
+            case TK("<<"):  emit(OP_BITWISE_OP, 0);    break;
+            case TK(">>"):  emit(OP_BITWISE_OP, 1);    break;
+            case TK("&"):   emit(OP_BITWISE_OP, 2);    break;
+            case TK("|"):   emit(OP_BITWISE_OP, 3);    break;
+            case TK("^"):   emit(OP_BITWISE_OP, 4);    break;
             default: UNREACHABLE();
         }
     }
 
     void exprUnaryOp() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         matchNewLines();
         parsePrecedence((Precedence)(PREC_UNARY + 1));
 
         switch (op) {
-            case TK("-"):     emitCode(OP_UNARY_NEGATIVE); break;
-            case TK("not"):   emitCode(OP_UNARY_NOT);      break;
+            case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
+            case TK("not"):   emit(OP_UNARY_NOT);      break;
             case TK("*"):     syntaxError("cannot use '*' as unary operator"); break;
             default: UNREACHABLE();
         }
@@ -5747,8 +5716,8 @@ public:
     }
 
     void exprList() {
-        int _patch = emitCode(OP_NO_OP);
-        int _body_start = getCode()->co_code.size();
+        int _patch = emit(OP_NO_OP);
+        int _body_start = co()->co_code.size();
         int ARGC = 0;
         do {
             matchNewLines(mode()==SINGLE_MODE);
@@ -5759,47 +5728,47 @@ public:
         } while (match(TK(",")));
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
-        emitCode(OP_BUILD_LIST, ARGC);
+        emit(OP_BUILD_LIST, ARGC);
         return;
 
 __LISTCOMP:
-        int _body_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
-        int _body_end = getCode()->co_code.size();
-        getCode()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
-        getCode()->co_code[_patch].arg = _body_end;
-        emitCode(OP_BUILD_LIST, 0);
+        int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
+        int _body_end = co()->co_code.size();
+        co()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
+        co()->co_code[_patch].arg = _body_end;
+        emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         matchNewLines(mode()==SINGLE_MODE);
         
-        int _skipPatch = emitCode(OP_JUMP_ABSOLUTE);
-        int _cond_start = getCode()->co_code.size();
+        int _skipPatch = emit(OP_JUMP_ABSOLUTE);
+        int _cond_start = co()->co_code.size();
         int _cond_end_return = -1;
         if(match(TK("if"))) {
             EXPR_TUPLE();
-            _cond_end_return = emitCode(OP_JUMP_ABSOLUTE, -1);
+            _cond_end_return = emit(OP_JUMP_ABSOLUTE, -1);
         }
-        patchJump(_skipPatch);
+        patch_jump(_skipPatch);
 
-        emitCode(OP_GET_ITER);
-        getCode()->__enterBlock(FOR_LOOP);
-        emitCode(OP_FOR_ITER);
+        emit(OP_GET_ITER);
+        co()->__enterBlock(FOR_LOOP);
+        emit(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
-            emitCode(OP_JUMP_ABSOLUTE, _cond_start);
-            patchJump(_cond_end_return);
-            int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
-            emitCode(OP_JUMP_ABSOLUTE, _body_start);
-            patchJump(_body_end_return);
-            emitCode(OP_LIST_APPEND);
-            patchJump(ifpatch);
+            emit(OP_JUMP_ABSOLUTE, _cond_start);
+            patch_jump(_cond_end_return);
+            int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
+            patch_jump(ifpatch);
         }else{
-            emitCode(OP_JUMP_ABSOLUTE, _body_start);
-            patchJump(_body_end_return);
-            emitCode(OP_LIST_APPEND);
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
         }
 
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        co()->__exitBlock();
         matchNewLines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -5822,8 +5791,8 @@ __LISTCOMP:
         matchNewLines();
         consume(TK("}"));
 
-        if(size == 0 || parsing_dict) emitCode(OP_BUILD_MAP, size);
-        else emitCode(OP_BUILD_SET, size);
+        if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
+        else emit(OP_BUILD_SET, size);
     }
 
     void exprCall() {
@@ -5832,10 +5801,10 @@ __LISTCOMP:
         do {
             matchNewLines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
-            if(peek() == TK("@id") && peekNext() == TK("=")) {
+            if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
-                const _Str& key = parser->previous.str();
-                emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(key)));
+                const _Str& key = parser->prev.str();
+                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
                 consume(TK("="));
                 EXPR();
                 KWARGC++;
@@ -5847,82 +5816,79 @@ __LISTCOMP:
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
-        emitCode(OP_CALL, (KWARGC << 16) | ARGC);
+        emit(OP_CALL, (KWARGC << 16) | ARGC);
     }
 
     void exprName() {
-        Token tkname = parser->previous;
-        int index = getCode()->addName(
+        Token tkname = parser->prev;
+        int index = co()->add_name(
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
-        emitCode(OP_LOAD_NAME_REF, index);
+        emit(OP_LOAD_NAME_REF, index);
     }
 
     void exprAttrib() {
         consume(TK("@id"));
-        const _Str& name = parser->previous.str();
-        int index = getCode()->addName(name, NAME_ATTR);
-        emitCode(OP_BUILD_ATTR_REF, index);
+        const _Str& name = parser->prev.str();
+        int index = co()->add_name(name, NAME_ATTR);
+        emit(OP_BUILD_ATTR_REF, index);
     }
 
     // [:], [:b]
     // [a], [a:], [a:b]
     void exprSubscript() {
         if(match(TK(":"))){
-            emitCode(OP_LOAD_NONE);
+            emit(OP_LOAD_NONE);
             if(match(TK("]"))){
-                emitCode(OP_LOAD_NONE);
+                emit(OP_LOAD_NONE);
             }else{
                 EXPR_TUPLE();
                 consume(TK("]"));
             }
-            emitCode(OP_BUILD_SLICE);
+            emit(OP_BUILD_SLICE);
         }else{
             EXPR_TUPLE();
             if(match(TK(":"))){
                 if(match(TK("]"))){
-                    emitCode(OP_LOAD_NONE);
+                    emit(OP_LOAD_NONE);
                 }else{
                     EXPR_TUPLE();
                     consume(TK("]"));
                 }
-                emitCode(OP_BUILD_SLICE);
+                emit(OP_BUILD_SLICE);
             }else{
                 consume(TK("]"));
             }
         }
 
-        emitCode(OP_BUILD_INDEX_REF);
+        emit(OP_BUILD_INDEX_REF);
     }
 
     void exprValue() {
-        _TokenType op = parser->previous.type;
+        _TokenType op = parser->prev.type;
         switch (op) {
-            case TK("None"):    emitCode(OP_LOAD_NONE);  break;
-            case TK("True"):    emitCode(OP_LOAD_TRUE);  break;
-            case TK("False"):   emitCode(OP_LOAD_FALSE); break;
-            case TK("..."):     emitCode(OP_LOAD_ELLIPSIS); break;
+            case TK("None"):    emit(OP_LOAD_NONE);  break;
+            case TK("True"):    emit(OP_LOAD_TRUE);  break;
+            case TK("False"):   emit(OP_LOAD_FALSE); break;
+            case TK("..."):     emit(OP_LOAD_ELLIPSIS); break;
             default: UNREACHABLE();
         }
     }
 
-    void keepOpcodeLine(){
-        int i = getCode()->co_code.size() - 1;
-        getCode()->co_code[i].line = getCode()->co_code[i-1].line;
-    }
-
-    int emitCode(Opcode opcode, int arg=-1) {
-        int line = parser->previous.line;
-        getCode()->co_code.push_back(
-            ByteCode{(uint8_t)opcode, arg, line, (uint16_t)getCode()->_currBlockIndex}
+    int emit(Opcode opcode, int arg=-1, bool keepline=false) {
+        int line = parser->prev.line;
+        co()->co_code.push_back(
+            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_currBlockIndex}
         );
-        return getCode()->co_code.size() - 1;
+        int i = co()->co_code.size() - 1;
+        if(keepline && i>=1) co()->co_code[i].line = co()->co_code[i-1].line;
+        return i;
     }
 
-    inline void patchJump(int addr_index) {
-        int target = getCode()->co_code.size();
-        getCode()->co_code[addr_index].arg = target;
+    inline void patch_jump(int addr_index) {
+        int target = co()->co_code.size();
+        co()->co_code[addr_index].arg = target;
     }
 
     void compileBlockBody(){
@@ -5945,9 +5911,9 @@ __LISTCOMP:
 
     Token compileImportPath() {
         consume(TK("@id"));
-        Token tkmodule = parser->previous;
-        int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-        emitCode(OP_IMPORT_NAME, index);
+        Token tkmodule = parser->prev;
+        int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+        emit(OP_IMPORT_NAME, index);
         return tkmodule;
     }
 
@@ -5957,10 +5923,10 @@ __LISTCOMP:
             Token tkmodule = compileImportPath();
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkmodule = parser->previous;
+                tkmodule = parser->prev;
             }
-            int index = getCode()->addName(tkmodule.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_REF, index);
+            int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+            emit(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
         consumeEndStatement();
     }
@@ -5970,30 +5936,30 @@ __LISTCOMP:
         Token tkmodule = compileImportPath();
         consume(TK("import"));
         do {
-            emitCode(OP_DUP_TOP);
+            emit(OP_DUP_TOP);
             consume(TK("@id"));
-            Token tkname = parser->previous;
-            int index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_BUILD_ATTR_REF, index);
+            Token tkname = parser->prev;
+            int index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            emit(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkname = parser->previous;
+                tkname = parser->prev;
             }
-            index = getCode()->addName(tkname.str(), NAME_GLOBAL);
-            emitCode(OP_STORE_NAME_REF, index);
+            index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            emit(OP_STORE_NAME_REF, index);
         } while (match(TK(",")));
-        emitCode(OP_POP_TOP);
+        emit(OP_POP_TOP);
         consumeEndStatement();
     }
 
     void parsePrecedence(Precedence precedence) {
         lexToken();
-        GrammarFn prefix = rules[parser->previous.type].prefix;
-        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->previous.type));
+        GrammarFn prefix = rules[parser->prev.type].prefix;
+        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lexToken();
-            _TokenType op = parser->previous.type;
+            _TokenType op = parser->prev.type;
             GrammarFn infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
@@ -6004,32 +5970,32 @@ __LISTCOMP:
         matchNewLines();
         EXPR_TUPLE();
 
-        int ifpatch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
 
         if (match(TK("elif"))) {
-            int exit_jump = emitCode(OP_JUMP_ABSOLUTE);
-            patchJump(ifpatch);
+            int exit_jump = emit(OP_JUMP_ABSOLUTE);
+            patch_jump(ifpatch);
             compileIfStatement();
-            patchJump(exit_jump);
+            patch_jump(exit_jump);
         } else if (match(TK("else"))) {
-            int exit_jump = emitCode(OP_JUMP_ABSOLUTE);
-            patchJump(ifpatch);
+            int exit_jump = emit(OP_JUMP_ABSOLUTE);
+            patch_jump(ifpatch);
             compileBlockBody();
-            patchJump(exit_jump);
+            patch_jump(exit_jump);
         } else {
-            patchJump(ifpatch);
+            patch_jump(ifpatch);
         }
     }
 
     void compileWhileLoop() {
-        getCode()->__enterBlock(WHILE_LOOP);
+        co()->__enterBlock(WHILE_LOOP);
         EXPR_TUPLE();
-        int patch = emitCode(OP_POP_JUMP_IF_FALSE);
+        int patch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        patchJump(patch);
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        patch_jump(patch);
+        co()->__exitBlock();
     }
 
     void EXPR_FOR_VARS(){
@@ -6038,24 +6004,24 @@ __LISTCOMP:
             consume(TK("@id"));
             exprName(); size++;
         } while (match(TK(",")));
-        if(size > 1) emitCode(OP_BUILD_SMART_TUPLE, size);
+        if(size > 1) emit(OP_BUILD_SMART_TUPLE, size);
     }
 
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
-        emitCode(OP_GET_ITER);
-        getCode()->__enterBlock(FOR_LOOP);
-        emitCode(OP_FOR_ITER);
+        emit(OP_GET_ITER);
+        co()->__enterBlock(FOR_LOOP);
+        emit(OP_FOR_ITER);
         compileBlockBody();
-        emitCode(OP_LOOP_CONTINUE); keepOpcodeLine();
-        getCode()->__exitBlock();
+        emit(OP_LOOP_CONTINUE, -1, true);
+        co()->__exitBlock();
     }
 
     void compileTryExcept() {
-        getCode()->__enterBlock(TRY_EXCEPT);
+        co()->__enterBlock(TRY_EXCEPT);
         compileBlockBody();
-        int patch = emitCode(OP_JUMP_ABSOLUTE);
-        getCode()->__exitBlock();
+        int patch = emit(OP_JUMP_ABSOLUTE);
+        co()->__exitBlock();
         consume(TK("except"));
         if(match(TK("@id"))){       // exception name
             compileBlockBody();
@@ -6064,28 +6030,28 @@ __LISTCOMP:
             consume(TK(":"));
             syntaxError("finally is not supported yet");
         }
-        patchJump(patch);
+        patch_jump(patch);
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (!getCode()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
+            if (!co()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
             consumeEndStatement();
-            emitCode(OP_LOOP_BREAK);
+            emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!getCode()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
+            if (!co()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
-            emitCode(OP_LOOP_CONTINUE);
+            emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
                 syntaxError("'return' outside function");
             if(matchEndStatement()){
-                emitCode(OP_LOAD_NONE);
+                emit(OP_LOAD_NONE);
             }else{
                 EXPR_TUPLE();
                 consumeEndStatement();
             }
-            emitCode(OP_RETURN_VALUE);
+            emit(OP_RETURN_VALUE);
         } else if (match(TK("if"))) {
             compileIfStatement();
         } else if (match(TK("while"))) {
@@ -6096,54 +6062,54 @@ __LISTCOMP:
             compileTryExcept();
         }else if(match(TK("assert"))){
             EXPR();
-            emitCode(OP_ASSERT);
+            emit(OP_ASSERT);
             consumeEndStatement();
         } else if(match(TK("with"))){
             EXPR();
             consume(TK("as"));
             consume(TK("@id"));
-            Token tkname = parser->previous;
-            int index = getCode()->addName(
+            Token tkname = parser->prev;
+            int index = co()->add_name(
                 tkname.str(),
                 codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
             );
-            emitCode(OP_STORE_NAME_REF, index);
-            emitCode(OP_LOAD_NAME_REF, index);
-            emitCode(OP_WITH_ENTER);
+            emit(OP_STORE_NAME_REF, index);
+            emit(OP_LOAD_NAME_REF, index);
+            emit(OP_WITH_ENTER);
             compileBlockBody();
-            emitCode(OP_LOAD_NAME_REF, index);
-            emitCode(OP_WITH_EXIT);
+            emit(OP_LOAD_NAME_REF, index);
+            emit(OP_WITH_EXIT);
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            getCode()->addLabel(parser->previous.str());
+            co()->add_label(parser->prev.str());
             consumeEndStatement();
         } else if(match(TK("goto"))){
             // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
-            emitCode(OP_GOTO);
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
+            emit(OP_GOTO);
             consumeEndStatement();
         } else if(match(TK("raise"))){
             consume(TK("@id"));         // dummy exception type
-            emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyStr(parser->previous.str())));
+            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
             if(match(TK("("))){
                 EXPR();
                 consume(TK(")"));
             }else{
-                emitCode(OP_LOAD_NONE); // ...?
+                emit(OP_LOAD_NONE); // ...?
             }
-            emitCode(OP_RAISE_ERROR);
+            emit(OP_RAISE_ERROR);
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
-            emitCode(OP_DELETE_REF);
+            emit(OP_DELETE_REF);
             consumeEndStatement();
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
-                getCode()->co_global_names.push_back(parser->previous.str());
+                co()->co_global_names.push_back(parser->prev.str());
             } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
@@ -6152,30 +6118,30 @@ __LISTCOMP:
             EXPR_ANY();
             consumeEndStatement();
             // If last op is not an assignment, pop the result.
-            uint8_t lastOp = getCode()->co_code.back().op;
+            uint8_t lastOp = co()->co_code.back().op;
             if( lastOp!=OP_STORE_NAME_REF && lastOp!=OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top()==0) emitCode(OP_PRINT_EXPR);
-                emitCode(OP_POP_TOP);
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR);
+                emit(OP_POP_TOP);
             }
         }
     }
 
     void compileClass(){
         consume(TK("@id"));
-        int clsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+        int clsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
         if(match(TK("("))){
             consume(TK("@id"));
-            superClsNameIdx = getCode()->addName(parser->previous.str(), NAME_GLOBAL);
+            superClsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
-        emitCode(OP_LOAD_NONE);
+        emit(OP_LOAD_NONE);
         isCompilingClass = true;
         __compileBlockBody(&Compiler::compileFunction);
         isCompilingClass = false;
-        if(superClsNameIdx == -1) emitCode(OP_LOAD_NONE);
-        else emitCode(OP_LOAD_NAME_REF, superClsNameIdx);
-        emitCode(OP_BUILD_CLASS, clsNameIdx);
+        if(superClsNameIdx == -1) emit(OP_LOAD_NONE);
+        else emit(OP_LOAD_NAME_REF, superClsNameIdx);
+        emit(OP_BUILD_CLASS, clsNameIdx);
     }
 
     void __compileFunctionArgs(_Func func, bool enableTypeHints){
@@ -6192,7 +6158,7 @@ __LISTCOMP:
             }
 
             consume(TK("@id"));
-            const _Str& name = parser->previous.str();
+            const _Str& name = parser->prev.str();
             if(func->hasName(name)) syntaxError("duplicate argument name");
 
             // eat type hints
@@ -6208,7 +6174,7 @@ __LISTCOMP:
                     consume(TK("="));
                     PyVarOrNull value = readLiteral();
                     if(value == nullptr){
-                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->current.type));
+                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
                     func->kwArgs[name] = value;
                     func->kwArgsOrder.push_back(name);
@@ -6225,7 +6191,7 @@ __LISTCOMP:
         }
         _Func func = pkpy::make_shared<Function>();
         consume(TK("@id"));
-        func->name = parser->previous.str();
+        func->name = parser->prev.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
             __compileFunctionArgs(func, true);
@@ -6240,18 +6206,18 @@ __LISTCOMP:
         compileBlockBody();
         func->code->optimize();
         this->codes.pop();
-        emitCode(OP_LOAD_CONST, getCode()->addConst(vm->PyFunction(func)));
-        if(!isCompilingClass) emitCode(OP_STORE_FUNCTION);
+        emit(OP_LOAD_CONST, co()->add_const(vm->PyFunction(func)));
+        if(!isCompilingClass) emit(OP_STORE_FUNCTION);
     }
 
     PyVarOrNull readLiteral(){
         if(match(TK("-"))){
             consume(TK("@num"));
-            PyVar val = parser->previous.value;
+            PyVar val = parser->prev.value;
             return vm->numNegated(val);
         }
-        if(match(TK("@num"))) return parser->previous.value;
-        if(match(TK("@str"))) return parser->previous.value;
+        if(match(TK("@num"))) return parser->prev.value;
+        if(match(TK("@str"))) return parser->prev.value;
         if(match(TK("True"))) return vm->PyBool(true);
         if(match(TK("False"))) return vm->PyBool(false);
         if(match(TK("None"))) return vm->None;
@@ -6294,7 +6260,7 @@ __LISTCOMP:
             return code;
         }else if(mode()==JSON_MODE){
             PyVarOrNull value = readLiteral();
-            if(value != nullptr) emitCode(OP_LOAD_CONST, code->addConst(value));
+            if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();
             else syntaxError("expect a JSON object or array");
@@ -6312,14 +6278,14 @@ __LISTCOMP:
 
     /***** Error Reporter *****/
     _Str getLineSnapshot(){
-        int lineno = parser->current.line;
-        const char* cursor = parser->current.start;
+        int lineno = parser->curr.line;
+        const char* cursor = parser->curr.start;
         // if error occurs in lexing, lineno should be `parser->current_line`
         if(lexingCnt > 0){
             lineno = parser->current_line;
-            cursor = parser->current_char;
+            cursor = parser->curr_char;
         }
-        if(parser->peekChar() == '\n') lineno--;
+        if(parser->peek_char() == '\n') lineno--;
         return parser->src->snapshot(lineno, cursor);
     }
 
@@ -6461,7 +6427,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals_copy());
     });
 
     _vm->bindBuiltinFunc("isinstance", [](VM* vm, const pkpy::ArgList& args) {
@@ -7064,7 +7030,7 @@ void __addModuleJson(VM* vm){
         vm->__checkArgSize(args, 1);
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->copy_f_locals());
+        return vm->_exec(code, vm->topFrame()->_module, vm->topFrame()->f_locals_copy());
     });
 
     vm->bindFunc(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {
