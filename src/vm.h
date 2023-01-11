@@ -143,7 +143,7 @@ protected:
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
-            case OP_POP_TOP: frame->pop_value(this); break;
+            case OP_POP_TOP: frame->pop(); break;
             case OP_BINARY_OP:
                 {
                     pkpy::ArgList args(2);
@@ -576,7 +576,7 @@ public:
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
         Frame* frame = new Frame(code, _module, std::move(locals));
-        callstack.emplace_back(std::unique_ptr<Frame>(frame));
+        callstack.emplace_back(frame);
         return frame;
     }
 
