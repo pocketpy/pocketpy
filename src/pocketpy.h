@@ -261,8 +261,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 #define __INT_BITWISE_OP(name,op) \
     _vm->bindMethod("int", #name, [](VM* vm, const pkpy::ArgList& args) {                       \
-        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))                      \
-            vm->typeError("unsupported operand type(s) for " #op );                             \
+        vm->check_args_size(args, 2, true);                                                     \
         return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));     \
     });
 
@@ -308,21 +307,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod("float", "__json__", [](VM* vm, const pkpy::ArgList& args) {
         f64 val = vm->PyFloat_AS_C(args[0]);
-        if(std::isinf(val) || std::isnan(val)){
-            vm->valueError("cannot jsonify 'nan' or 'inf'");
-        }
+        if(std::isinf(val) || std::isnan(val)) vm->valueError("cannot jsonify 'nan' or 'inf'");
         return vm->PyStr(std::to_string(val));
     });
 
     /************ PyString ************/
     _vm->bindMethod("str", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1);
-        return vm->asStr(args[0]);
+        return vm->asStr(args._index(0));
     });
 
     _vm->bindMethod("str", "__add__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->is_type(vm->_tp_str) || !args[1]->is_type(vm->_tp_str))
-            vm->typeError("unsupported operand type(s) for " "+" );
         const _Str& lhs = vm->PyStr_AS_C(args[0]);
         const _Str& rhs = vm->PyStr_AS_C(args[1]);
         return vm->PyStr(lhs + rhs);
@@ -344,9 +339,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyIter(
-            pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0])
-        );
+        return vm->PyIter(pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0]));
     });
 
     _vm->bindMethod("str", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -389,22 +382,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         const _Str& _obj (vm->PyStr_AS_C(args[1]));
         return vm->PyBool(_self < _obj);
-    });
-
-    _vm->bindMethod("str", "upper", [](VM* vm, const pkpy::ArgList& args) {
-        vm->check_args_size(args, 1, true);
-        const _Str& _self (vm->PyStr_AS_C(args[0]));
-        _StrStream ss;
-        for(auto c : _self) ss << (char)toupper(c);
-        return vm->PyStr(ss.str());
-    });
-
-    _vm->bindMethod("str", "lower", [](VM* vm, const pkpy::ArgList& args) {
-        vm->check_args_size(args, 1, true);
-        const _Str& _self (vm->PyStr_AS_C(args[0]));
-        _StrStream ss;
-        for(auto c : _self) ss << (char)tolower(c);
-        return vm->PyStr(ss.str());
     });
 
     _vm->bindMethod("str", "replace", [](VM* vm, const pkpy::ArgList& args) {
@@ -466,7 +443,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod("list", "append", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 2, true);
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        _self.push_back(args[1]);
+        _self.push_back(args._index(1));
         return vm->None;
     });
 
