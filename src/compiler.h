@@ -1029,7 +1029,7 @@ __LISTCOMP:
         if(match(TK("-"))){
             consume(TK("@num"));
             PyVar val = parser->prev.value;
-            return vm->numNegated(val);
+            return vm->num_negated(val);
         }
         if(match(TK("@num"))) return parser->prev.value;
         if(match(TK("@str"))) return parser->prev.value;
