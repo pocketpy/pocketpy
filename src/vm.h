@@ -26,7 +26,7 @@ class VM {
     PyVarDict _modules;                             // loaded modules
     emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
 protected:
-    std::deque< pkpy::unique_ptr<Frame> > callstack;
+    std::deque< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
     inline void test_stop_flag(){
@@ -580,7 +580,7 @@ public:
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
         Frame* frame = new Frame(code, _module, std::move(locals));
-        callstack.emplace_back(pkpy::unique_ptr<Frame>(frame));
+        callstack.emplace_back(std::unique_ptr<Frame>(frame));
         return frame;
     }
 

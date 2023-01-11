@@ -19,6 +19,7 @@
 #include <string_view>
 #include <queue>
 #include <iomanip>
+#include <memory>
 
 #include <atomic>
 #include <iostream>

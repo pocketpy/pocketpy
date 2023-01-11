@@ -19,7 +19,7 @@ enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
 class Compiler {
 public:
-    pkpy::unique_ptr<Parser> parser;
+    std::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
     bool isCompilingClass = false;
     int lexingCnt = 0;
@@ -37,7 +37,7 @@ public:
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
-        this->parser = pkpy::make_unique<Parser>(
+        this->parser = std::make_unique<Parser>(
             pkpy::make_shared<SourceMetadata>(source, filename, mode)
         );
 
