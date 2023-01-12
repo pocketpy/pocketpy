@@ -349,12 +349,8 @@ public:
     }
 
     bool matchEndStatement() {
-        if (match(TK(";"))) {
-            matchNewLines();
-            return true;
-        }
-        if (matchNewLines() || peek() == TK("@eof"))
-            return true;
+        if (match(TK(";"))) { matchNewLines(); return true; }
+        if (matchNewLines() || peek()==TK("@eof")) return true;
         if (peek() == TK("@dedent")) return true;
         return false;
     }
@@ -420,7 +416,6 @@ public:
             EXPR_TUPLE();
             emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
-            // TODO: optimization is needed for inplace operators
             emit(OP_DUP_TOP);
             EXPR();
             switch (op) {
@@ -429,7 +424,6 @@ public:
                 case TK("*="):      emit(OP_BINARY_OP, 2);  break;
                 case TK("/="):      emit(OP_BINARY_OP, 3);  break;
                 case TK("//="):     emit(OP_BINARY_OP, 4);  break;
-
                 case TK("%="):      emit(OP_BINARY_OP, 5);  break;
                 case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
                 case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
@@ -506,9 +500,7 @@ public:
 
     void exprUnaryOp() {
         _TokenType op = parser->prev.type;
-        matchNewLines();
         parsePrecedence((Precedence)(PREC_UNARY + 1));
-
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emit(OP_UNARY_NOT);      break;
@@ -597,7 +589,6 @@ __LISTCOMP:
             size++;
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
-        matchNewLines();
         consume(TK("}"));
 
         if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
