@@ -37,7 +37,6 @@ constexpr _TokenType TK(const char* const token) {
 }
 
 #define TK_STR(t) __TOKENS[t]
-
 const _TokenType __KW_BEGIN = TK("class");
 const _TokenType __KW_END = TK("raise");
 
@@ -56,9 +55,7 @@ struct Token{
   int line;          //< Line number of the token (1 based).
   PyVar value;       //< Literal value of the token.
 
-  const _Str str() const {
-    return _Str(start, length);
-  }
+  const _Str str() const { return _Str(start, length);}
 
   const _Str info() const {
     _StrStream ss;
@@ -108,8 +105,10 @@ struct Parser {
     int brackets_level_1 = 0;
     int brackets_level_2 = 0;
 
-    Token nextToken(){
-        if(nexts.empty()) return makeErrToken();
+    Token next_token(){
+        if(nexts.empty()){
+            return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
+        }
         Token t = nexts.front();
         if(t.type == TK("@eof") && indents.size()>1){
             nexts.pop();
@@ -120,11 +119,9 @@ struct Parser {
         return t;
     }
 
-    inline char peek_char() {
-        return *curr_char;
-    }
+    inline char peekchar() const{ return *curr_char; }
 
-    std::string_view lookahead(int n){
+    std::string_view lookahead(int n) const{
         const char* c = curr_char;
         for(int i=0; i<n; i++){
             if(*c == '\0') return std::string_view(curr_char, i);
@@ -133,23 +130,23 @@ struct Parser {
         return std::string_view(curr_char, n);
     }
 
-    int eatSpaces(){
+    int eat_spaces(){
         int count = 0;
         while (true) {
-            switch (peek_char()) {
+            switch (peekchar()) {
                 case ' ' : count+=1; break;
                 case '\t': count+=4; break;
                 default: return count;
             }
-            eatChar();
+            eatchar();
         }
     }
 
-    bool eatIndentation(){
+    bool eat_indentation(){
         if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
-        int spaces = eatSpaces();
-        if(peek_char() == '#') skipLineComment();
-        if(peek_char() == '\0' || peek_char() == '\n') return true;
+        int spaces = eat_spaces();
+        if(peekchar() == '#') skip_line_comment();
+        if(peekchar() == '\0' || peekchar() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
@@ -166,15 +163,15 @@ struct Parser {
         return true;
     }
 
-    char eatChar() {
-        char c = peek_char();
-        if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
+    char eatchar() {
+        char c = peekchar();
+        if(c == '\n') throw std::runtime_error("eatchar() cannot consume a newline");
         curr_char++;
         return c;
     }
 
-    char eatCharIncludeNewLine() {
-        char c = peek_char();
+    char eatchar_include_newLine() {
+        char c = peekchar();
         curr_char++;
         if (c == '\n'){
             current_line++;
@@ -183,10 +180,10 @@ struct Parser {
         return c;
     }
 
-    int eatName() {
+    int eat_name() {
         curr_char--;
         while(true){
-            uint8_t c = peek_char();
+            uint8_t c = peekchar();
             int u8bytes = 0;
             if((c & 0b10000000) == 0b00000000) u8bytes = 1;
             else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
@@ -225,11 +222,11 @@ struct Parser {
 
         if(src->mode == JSON_MODE){
             if(name == "true"){
-                setNextToken(TK("True"));
+                set_next_token(TK("True"));
             } else if(name == "false"){
-                setNextToken(TK("False"));
+                set_next_token(TK("False"));
             } else if(name == "null"){
-                setNextToken(TK("None"));
+                set_next_token(TK("None"));
             } else {
                 return 4;
             }
@@ -240,46 +237,41 @@ struct Parser {
             if(name == "not"){
                 if(strncmp(curr_char, " in", 3) == 0){
                     curr_char += 3;
-                    setNextToken(TK("not in"));
+                    set_next_token(TK("not in"));
                     return 0;
                 }
             }else if(name == "is"){
                 if(strncmp(curr_char, " not", 4) == 0){
                     curr_char += 4;
-                    setNextToken(TK("is not"));
+                    set_next_token(TK("is not"));
                     return 0;
                 }
             }
-            setNextToken(__KW_MAP.at(name));
+            set_next_token(__KW_MAP.at(name));
         } else {
-            setNextToken(TK("@id"));
+            set_next_token(TK("@id"));
         }
         return 0;
     }
 
-    void skipLineComment() {
+    void skip_line_comment() {
         char c;
-        while ((c = peek_char()) != '\0') {
+        while ((c = peekchar()) != '\0') {
             if (c == '\n') return;
-            eatChar();
+            eatchar();
         }
     }
     
     // If the current char is [c] consume it and advance char by 1 and returns
     // true otherwise returns false.
-    bool matchChar(char c) {
-        if (peek_char() != c) return false;
-        eatCharIncludeNewLine();
+    bool matchchar(char c) {
+        if (peekchar() != c) return false;
+        eatchar_include_newLine();
         return true;
     }
 
-    // Returns an error token from the current position for reporting error.
-    Token makeErrToken() {
-        return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
-    }
-
     // Initialize the next token as the type.
-    void setNextToken(_TokenType type, PyVar value=nullptr) {
+    void set_next_token(_TokenType type, PyVar value=nullptr) {
 
         switch(type){
             case TK("("): brackets_level_0++; break;
@@ -299,9 +291,9 @@ struct Parser {
         });
     }
 
-    void setNextTwoCharToken(char c, _TokenType one, _TokenType two) {
-        if (matchChar(c)) setNextToken(two);
-        else setNextToken(one);
+    void set_next_token_2(char c, _TokenType one, _TokenType two) {
+        if (matchchar(c)) set_next_token(two);
+        else set_next_token(one);
     }
 
     Parser(_Source src) {

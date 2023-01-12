@@ -24,16 +24,10 @@ public:
     bool isCompilingClass = false;
     int lexingCnt = 0;
     VM* vm;
-
     emhash8::HashMap<_TokenType, GrammarRule> rules;
 
-    _Code co() {
-        return codes.top();
-    }
-
-    CompileMode mode() {
-        return parser->src->mode;
-    }
+    _Code co() const{ return codes.top(); }
+    CompileMode mode() const{ return parser->src->mode;}
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
@@ -99,7 +93,7 @@ public:
 #undef NO_INFIX
 
 #define EXPR() parsePrecedence(PREC_TERNARY)             // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)            // no '=', but ',' is allowed
+#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)         // no '=', but ',' is allowed
 #define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
     }
 
@@ -108,19 +102,19 @@ public:
         std::string_view sv = parser->lookahead(2);
         if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
             quote3 = true;
-            parser->eatChar();
-            parser->eatChar();
+            parser->eatchar();
+            parser->eatchar();
         }
 
         std::vector<char> buff;
         while (true) {
-            char c = parser->eatCharIncludeNewLine();
+            char c = parser->eatchar_include_newLine();
             if (c == quote){
                 if(quote3){
                     sv = parser->lookahead(2);
                     if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-                        parser->eatChar();
-                        parser->eatChar();
+                        parser->eatchar();
+                        parser->eatchar();
                         break;
                     }
                     buff.push_back(c);
@@ -142,7 +136,7 @@ public:
                 }
             }
             if (!raw && c == '\\') {
-                switch (parser->eatCharIncludeNewLine()) {
+                switch (parser->eatchar_include_newLine()) {
                     case '"':  buff.push_back('"');  break;
                     case '\'': buff.push_back('\''); break;
                     case '\\': buff.push_back('\\'); break;
@@ -161,9 +155,9 @@ public:
     void eatString(char quote, StringType type) {
         _Str s = eatStringUntil(quote, type == RAW_STRING);
         if(type == F_STRING){
-            parser->setNextToken(TK("@fstr"), vm->PyStr(s));
+            parser->set_next_token(TK("@fstr"), vm->PyStr(s));
         }else{
-            parser->setNextToken(TK("@str"), vm->PyStr(s));
+            parser->set_next_token(TK("@str"), vm->PyStr(s));
         }
     }
 
@@ -177,17 +171,17 @@ public:
 
         try{
             if (std::regex_search(s, m, pattern)) {
-                // here is m.length()-1, since the first char is eaten by lexToken()
-                for(int j=0; j<m.length()-1; j++) parser->eatChar();
+                // here is m.length()-1, since the first char was eaten by lexToken()
+                for(int j=0; j<m.length()-1; j++) parser->eatchar();
 
                 int base = 10;
                 size_t size;
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) syntaxError("hex literal should not contain a dot");
-                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
+                    parser->set_next_token(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
                 } else {
-                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
+                    parser->set_next_token(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
                 }
                 if (size != m.length()) throw std::runtime_error("length mismatch");
             }
@@ -205,94 +199,94 @@ public:
     // Lex the next token and set it as the next token.
     void _lexToken() {
         parser->prev = parser->curr;
-        parser->curr = parser->nextToken();
+        parser->curr = parser->next_token();
 
         //_Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
-        while (parser->peek_char() != '\0') {
+        while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;
-            char c = parser->eatCharIncludeNewLine();
+            char c = parser->eatchar_include_newLine();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
-                case '#': parser->skipLineComment(); break;
-                case '{': parser->setNextToken(TK("{")); return;
-                case '}': parser->setNextToken(TK("}")); return;
-                case ',': parser->setNextToken(TK(",")); return;
-                case ':': parser->setNextToken(TK(":")); return;
-                case ';': parser->setNextToken(TK(";")); return;
-                case '(': parser->setNextToken(TK("(")); return;
-                case ')': parser->setNextToken(TK(")")); return;
-                case '[': parser->setNextToken(TK("[")); return;
-                case ']': parser->setNextToken(TK("]")); return;
-                case '%': parser->setNextTwoCharToken('=', TK("%"), TK("%=")); return;
-                case '&': parser->setNextTwoCharToken('=', TK("&"), TK("&=")); return;
-                case '|': parser->setNextTwoCharToken('=', TK("|"), TK("|=")); return;
-                case '^': parser->setNextTwoCharToken('=', TK("^"), TK("^=")); return;
-                case '?': parser->setNextToken(TK("?")); return;
+                case '#': parser->skip_line_comment(); break;
+                case '{': parser->set_next_token(TK("{")); return;
+                case '}': parser->set_next_token(TK("}")); return;
+                case ',': parser->set_next_token(TK(",")); return;
+                case ':': parser->set_next_token(TK(":")); return;
+                case ';': parser->set_next_token(TK(";")); return;
+                case '(': parser->set_next_token(TK("(")); return;
+                case ')': parser->set_next_token(TK(")")); return;
+                case '[': parser->set_next_token(TK("[")); return;
+                case ']': parser->set_next_token(TK("]")); return;
+                case '%': parser->set_next_token_2('=', TK("%"), TK("%=")); return;
+                case '&': parser->set_next_token_2('=', TK("&"), TK("&=")); return;
+                case '|': parser->set_next_token_2('=', TK("|"), TK("|=")); return;
+                case '^': parser->set_next_token_2('=', TK("^"), TK("^=")); return;
+                case '?': parser->set_next_token(TK("?")); return;
                 case '.': {
-                    if(parser->matchChar('.')) {
-                        if(parser->matchChar('.')) {
-                            parser->setNextToken(TK("..."));
+                    if(parser->matchchar('.')) {
+                        if(parser->matchchar('.')) {
+                            parser->set_next_token(TK("..."));
                         } else {
                             syntaxError("invalid token '..'");
                         }
                     } else {
-                        parser->setNextToken(TK("."));
+                        parser->set_next_token(TK("."));
                     }
                     return;
                 }
-                case '=': parser->setNextTwoCharToken('=', TK("="), TK("==")); return;
-                case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
+                case '=': parser->set_next_token_2('=', TK("="), TK("==")); return;
+                case '+': parser->set_next_token_2('=', TK("+"), TK("+=")); return;
                 case '>': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK(">="));
-                    else if(parser->matchChar('>')) parser->setNextToken(TK(">>"));
-                    else parser->setNextToken(TK(">"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK(">="));
+                    else if(parser->matchchar('>')) parser->set_next_token(TK(">>"));
+                    else parser->set_next_token(TK(">"));
                     return;
                 }
                 case '<': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK("<="));
-                    else if(parser->matchChar('<')) parser->setNextToken(TK("<<"));
-                    else parser->setNextToken(TK("<"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("<="));
+                    else if(parser->matchchar('<')) parser->set_next_token(TK("<<"));
+                    else parser->set_next_token(TK("<"));
                     return;
                 }
                 case '-': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK("-="));
-                    else if(parser->matchChar('>')) parser->setNextToken(TK("->"));
-                    else parser->setNextToken(TK("-"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("-="));
+                    else if(parser->matchchar('>')) parser->set_next_token(TK("->"));
+                    else parser->set_next_token(TK("-"));
                     return;
                 }
                 case '!':
-                    if(parser->matchChar('=')) parser->setNextToken(TK("!="));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("!="));
                     else syntaxError("expected '=' after '!'");
                     break;
                 case '*':
-                    if (parser->matchChar('*')) {
-                        parser->setNextToken(TK("**"));  // '**'
+                    if (parser->matchchar('*')) {
+                        parser->set_next_token(TK("**"));  // '**'
                     } else {
-                        parser->setNextTwoCharToken('=', TK("*"), TK("*="));
+                        parser->set_next_token_2('=', TK("*"), TK("*="));
                     }
                     return;
                 case '/':
-                    if(parser->matchChar('/')) {
-                        parser->setNextTwoCharToken('=', TK("//"), TK("//="));
+                    if(parser->matchchar('/')) {
+                        parser->set_next_token_2('=', TK("//"), TK("//="));
                     } else {
-                        parser->setNextTwoCharToken('=', TK("/"), TK("/="));
+                        parser->set_next_token_2('=', TK("/"), TK("/="));
                     }
                     return;
                 case '\r': break;       // just ignore '\r'
-                case ' ': case '\t': parser->eatSpaces(); break;
+                case ' ': case '\t': parser->eat_spaces(); break;
                 case '\n': {
-                    parser->setNextToken(TK("@eol"));
-                    if(!parser->eatIndentation()) indentationError("unindent does not match any outer indentation level");
+                    parser->set_next_token(TK("@eol"));
+                    if(!parser->eat_indentation()) indentationError("unindent does not match any outer indentation level");
                     return;
                 }
                 default: {
                     if(c == 'f'){
-                        if(parser->matchChar('\'')) {eatString('\'', F_STRING); return;}
-                        if(parser->matchChar('"')) {eatString('"', F_STRING); return;}
+                        if(parser->matchchar('\'')) {eatString('\'', F_STRING); return;}
+                        if(parser->matchchar('"')) {eatString('"', F_STRING); return;}
                     }else if(c == 'r'){
-                        if(parser->matchChar('\'')) {eatString('\'', RAW_STRING); return;}
-                        if(parser->matchChar('"')) {eatString('"', RAW_STRING); return;}
+                        if(parser->matchchar('\'')) {eatString('\'', RAW_STRING); return;}
+                        if(parser->matchchar('"')) {eatString('"', RAW_STRING); return;}
                     }
 
                     if (c >= '0' && c <= '9') {
@@ -300,7 +294,7 @@ public:
                         return;
                     }
                     
-                    switch (parser->eatName())
+                    switch (parser->eat_name())
                     {
                         case 0: break;
                         case 1: syntaxError("invalid char: " + std::string(1, c));
@@ -315,7 +309,7 @@ public:
         }
 
         parser->token_start = parser->curr_char;
-        parser->setNextToken(TK("@eof"));
+        parser->set_next_token(TK("@eof"));
     }
 
     inline _TokenType peek() {
@@ -1100,7 +1094,7 @@ __LISTCOMP:
             lineno = parser->current_line;
             cursor = parser->curr_char;
         }
-        if(parser->peek_char() == '\n') lineno--;
+        if(parser->peekchar() == '\n') lineno--;
         return parser->src->snapshot(lineno, cursor);
     }
 
