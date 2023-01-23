@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 blueloveTH
+ *  Copyright (c) 2023 blueloveTH
  *  Distributed Under The LGPLv3 License
  */
 
@@ -3123,7 +3123,6 @@ constexpr _TokenType TK(const char* const token) {
 }
 
 #define TK_STR(t) __TOKENS[t]
-
 const _TokenType __KW_BEGIN = TK("class");
 const _TokenType __KW_END = TK("raise");
 
@@ -3142,9 +3141,7 @@ struct Token{
   int line;          //< Line number of the token (1 based).
   PyVar value;       //< Literal value of the token.
 
-  const _Str str() const {
-    return _Str(start, length);
-  }
+  const _Str str() const { return _Str(start, length);}
 
   const _Str info() const {
     _StrStream ss;
@@ -3194,8 +3191,10 @@ struct Parser {
     int brackets_level_1 = 0;
     int brackets_level_2 = 0;
 
-    Token nextToken(){
-        if(nexts.empty()) return makeErrToken();
+    Token next_token(){
+        if(nexts.empty()){
+            return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
+        }
         Token t = nexts.front();
         if(t.type == TK("@eof") && indents.size()>1){
             nexts.pop();
@@ -3206,11 +3205,9 @@ struct Parser {
         return t;
     }
 
-    inline char peek_char() {
-        return *curr_char;
-    }
+    inline char peekchar() const{ return *curr_char; }
 
-    std::string_view lookahead(int n){
+    std::string_view lookahead(int n) const{
         const char* c = curr_char;
         for(int i=0; i<n; i++){
             if(*c == '\0') return std::string_view(curr_char, i);
@@ -3219,23 +3216,23 @@ struct Parser {
         return std::string_view(curr_char, n);
     }
 
-    int eatSpaces(){
+    int eat_spaces(){
         int count = 0;
         while (true) {
-            switch (peek_char()) {
+            switch (peekchar()) {
                 case ' ' : count+=1; break;
                 case '\t': count+=4; break;
                 default: return count;
             }
-            eatChar();
+            eatchar();
         }
     }
 
-    bool eatIndentation(){
+    bool eat_indentation(){
         if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
-        int spaces = eatSpaces();
-        if(peek_char() == '#') skipLineComment();
-        if(peek_char() == '\0' || peek_char() == '\n') return true;
+        int spaces = eat_spaces();
+        if(peekchar() == '#') skip_line_comment();
+        if(peekchar() == '\0' || peekchar() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
@@ -3252,15 +3249,15 @@ struct Parser {
         return true;
     }
 
-    char eatChar() {
-        char c = peek_char();
-        if(c == '\n') throw std::runtime_error("eatChar() cannot consume a newline");
+    char eatchar() {
+        char c = peekchar();
+        if(c == '\n') throw std::runtime_error("eatchar() cannot consume a newline");
         curr_char++;
         return c;
     }
 
-    char eatCharIncludeNewLine() {
-        char c = peek_char();
+    char eatchar_include_newLine() {
+        char c = peekchar();
         curr_char++;
         if (c == '\n'){
             current_line++;
@@ -3269,10 +3266,10 @@ struct Parser {
         return c;
     }
 
-    int eatName() {
+    int eat_name() {
         curr_char--;
         while(true){
-            uint8_t c = peek_char();
+            uint8_t c = peekchar();
             int u8bytes = 0;
             if((c & 0b10000000) == 0b00000000) u8bytes = 1;
             else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
@@ -3311,11 +3308,11 @@ struct Parser {
 
         if(src->mode == JSON_MODE){
             if(name == "true"){
-                setNextToken(TK("True"));
+                set_next_token(TK("True"));
             } else if(name == "false"){
-                setNextToken(TK("False"));
+                set_next_token(TK("False"));
             } else if(name == "null"){
-                setNextToken(TK("None"));
+                set_next_token(TK("None"));
             } else {
                 return 4;
             }
@@ -3326,46 +3323,41 @@ struct Parser {
             if(name == "not"){
                 if(strncmp(curr_char, " in", 3) == 0){
                     curr_char += 3;
-                    setNextToken(TK("not in"));
+                    set_next_token(TK("not in"));
                     return 0;
                 }
             }else if(name == "is"){
                 if(strncmp(curr_char, " not", 4) == 0){
                     curr_char += 4;
-                    setNextToken(TK("is not"));
+                    set_next_token(TK("is not"));
                     return 0;
                 }
             }
-            setNextToken(__KW_MAP.at(name));
+            set_next_token(__KW_MAP.at(name));
         } else {
-            setNextToken(TK("@id"));
+            set_next_token(TK("@id"));
         }
         return 0;
     }
 
-    void skipLineComment() {
+    void skip_line_comment() {
         char c;
-        while ((c = peek_char()) != '\0') {
+        while ((c = peekchar()) != '\0') {
             if (c == '\n') return;
-            eatChar();
+            eatchar();
         }
     }
     
     // If the current char is [c] consume it and advance char by 1 and returns
     // true otherwise returns false.
-    bool matchChar(char c) {
-        if (peek_char() != c) return false;
-        eatCharIncludeNewLine();
+    bool matchchar(char c) {
+        if (peekchar() != c) return false;
+        eatchar_include_newLine();
         return true;
     }
 
-    // Returns an error token from the current position for reporting error.
-    Token makeErrToken() {
-        return Token{TK("@error"), token_start, (int)(curr_char - token_start), current_line};
-    }
-
     // Initialize the next token as the type.
-    void setNextToken(_TokenType type, PyVar value=nullptr) {
+    void set_next_token(_TokenType type, PyVar value=nullptr) {
 
         switch(type){
             case TK("("): brackets_level_0++; break;
@@ -3385,9 +3377,9 @@ struct Parser {
         });
     }
 
-    void setNextTwoCharToken(char c, _TokenType one, _TokenType two) {
-        if (matchChar(c)) setNextToken(two);
-        else setNextToken(one);
+    void set_next_token_2(char c, _TokenType one, _TokenType two) {
+        if (matchchar(c)) set_next_token(two);
+        else set_next_token(one);
     }
 
     Parser(_Source src) {
@@ -5104,16 +5096,10 @@ public:
     bool isCompilingClass = false;
     int lexingCnt = 0;
     VM* vm;
-
     emhash8::HashMap<_TokenType, GrammarRule> rules;
 
-    _Code co() {
-        return codes.top();
-    }
-
-    CompileMode mode() {
-        return parser->src->mode;
-    }
+    _Code co() const{ return codes.top(); }
+    CompileMode mode() const{ return parser->src->mode;}
 
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
@@ -5179,7 +5165,7 @@ public:
 #undef NO_INFIX
 
 #define EXPR() parsePrecedence(PREC_TERNARY)             // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)            // no '=', but ',' is allowed
+#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)         // no '=', but ',' is allowed
 #define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
     }
 
@@ -5188,19 +5174,19 @@ public:
         std::string_view sv = parser->lookahead(2);
         if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
             quote3 = true;
-            parser->eatChar();
-            parser->eatChar();
+            parser->eatchar();
+            parser->eatchar();
         }
 
         std::vector<char> buff;
         while (true) {
-            char c = parser->eatCharIncludeNewLine();
+            char c = parser->eatchar_include_newLine();
             if (c == quote){
                 if(quote3){
                     sv = parser->lookahead(2);
                     if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-                        parser->eatChar();
-                        parser->eatChar();
+                        parser->eatchar();
+                        parser->eatchar();
                         break;
                     }
                     buff.push_back(c);
@@ -5222,7 +5208,7 @@ public:
                 }
             }
             if (!raw && c == '\\') {
-                switch (parser->eatCharIncludeNewLine()) {
+                switch (parser->eatchar_include_newLine()) {
                     case '"':  buff.push_back('"');  break;
                     case '\'': buff.push_back('\''); break;
                     case '\\': buff.push_back('\\'); break;
@@ -5241,9 +5227,9 @@ public:
     void eatString(char quote, StringType type) {
         _Str s = eatStringUntil(quote, type == RAW_STRING);
         if(type == F_STRING){
-            parser->setNextToken(TK("@fstr"), vm->PyStr(s));
+            parser->set_next_token(TK("@fstr"), vm->PyStr(s));
         }else{
-            parser->setNextToken(TK("@str"), vm->PyStr(s));
+            parser->set_next_token(TK("@str"), vm->PyStr(s));
         }
     }
 
@@ -5257,17 +5243,17 @@ public:
 
         try{
             if (std::regex_search(s, m, pattern)) {
-                // here is m.length()-1, since the first char is eaten by lexToken()
-                for(int j=0; j<m.length()-1; j++) parser->eatChar();
+                // here is m.length()-1, since the first char was eaten by lexToken()
+                for(int j=0; j<m.length()-1; j++) parser->eatchar();
 
                 int base = 10;
                 size_t size;
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) syntaxError("hex literal should not contain a dot");
-                    parser->setNextToken(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
+                    parser->set_next_token(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
                 } else {
-                    parser->setNextToken(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
+                    parser->set_next_token(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
                 }
                 if (size != m.length()) throw std::runtime_error("length mismatch");
             }
@@ -5285,94 +5271,94 @@ public:
     // Lex the next token and set it as the next token.
     void _lexToken() {
         parser->prev = parser->curr;
-        parser->curr = parser->nextToken();
+        parser->curr = parser->next_token();
 
         //_Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
-        while (parser->peek_char() != '\0') {
+        while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;
-            char c = parser->eatCharIncludeNewLine();
+            char c = parser->eatchar_include_newLine();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
-                case '#': parser->skipLineComment(); break;
-                case '{': parser->setNextToken(TK("{")); return;
-                case '}': parser->setNextToken(TK("}")); return;
-                case ',': parser->setNextToken(TK(",")); return;
-                case ':': parser->setNextToken(TK(":")); return;
-                case ';': parser->setNextToken(TK(";")); return;
-                case '(': parser->setNextToken(TK("(")); return;
-                case ')': parser->setNextToken(TK(")")); return;
-                case '[': parser->setNextToken(TK("[")); return;
-                case ']': parser->setNextToken(TK("]")); return;
-                case '%': parser->setNextTwoCharToken('=', TK("%"), TK("%=")); return;
-                case '&': parser->setNextTwoCharToken('=', TK("&"), TK("&=")); return;
-                case '|': parser->setNextTwoCharToken('=', TK("|"), TK("|=")); return;
-                case '^': parser->setNextTwoCharToken('=', TK("^"), TK("^=")); return;
-                case '?': parser->setNextToken(TK("?")); return;
+                case '#': parser->skip_line_comment(); break;
+                case '{': parser->set_next_token(TK("{")); return;
+                case '}': parser->set_next_token(TK("}")); return;
+                case ',': parser->set_next_token(TK(",")); return;
+                case ':': parser->set_next_token(TK(":")); return;
+                case ';': parser->set_next_token(TK(";")); return;
+                case '(': parser->set_next_token(TK("(")); return;
+                case ')': parser->set_next_token(TK(")")); return;
+                case '[': parser->set_next_token(TK("[")); return;
+                case ']': parser->set_next_token(TK("]")); return;
+                case '%': parser->set_next_token_2('=', TK("%"), TK("%=")); return;
+                case '&': parser->set_next_token_2('=', TK("&"), TK("&=")); return;
+                case '|': parser->set_next_token_2('=', TK("|"), TK("|=")); return;
+                case '^': parser->set_next_token_2('=', TK("^"), TK("^=")); return;
+                case '?': parser->set_next_token(TK("?")); return;
                 case '.': {
-                    if(parser->matchChar('.')) {
-                        if(parser->matchChar('.')) {
-                            parser->setNextToken(TK("..."));
+                    if(parser->matchchar('.')) {
+                        if(parser->matchchar('.')) {
+                            parser->set_next_token(TK("..."));
                         } else {
                             syntaxError("invalid token '..'");
                         }
                     } else {
-                        parser->setNextToken(TK("."));
+                        parser->set_next_token(TK("."));
                     }
                     return;
                 }
-                case '=': parser->setNextTwoCharToken('=', TK("="), TK("==")); return;
-                case '+': parser->setNextTwoCharToken('=', TK("+"), TK("+=")); return;
+                case '=': parser->set_next_token_2('=', TK("="), TK("==")); return;
+                case '+': parser->set_next_token_2('=', TK("+"), TK("+=")); return;
                 case '>': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK(">="));
-                    else if(parser->matchChar('>')) parser->setNextToken(TK(">>"));
-                    else parser->setNextToken(TK(">"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK(">="));
+                    else if(parser->matchchar('>')) parser->set_next_token(TK(">>"));
+                    else parser->set_next_token(TK(">"));
                     return;
                 }
                 case '<': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK("<="));
-                    else if(parser->matchChar('<')) parser->setNextToken(TK("<<"));
-                    else parser->setNextToken(TK("<"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("<="));
+                    else if(parser->matchchar('<')) parser->set_next_token(TK("<<"));
+                    else parser->set_next_token(TK("<"));
                     return;
                 }
                 case '-': {
-                    if(parser->matchChar('=')) parser->setNextToken(TK("-="));
-                    else if(parser->matchChar('>')) parser->setNextToken(TK("->"));
-                    else parser->setNextToken(TK("-"));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("-="));
+                    else if(parser->matchchar('>')) parser->set_next_token(TK("->"));
+                    else parser->set_next_token(TK("-"));
                     return;
                 }
                 case '!':
-                    if(parser->matchChar('=')) parser->setNextToken(TK("!="));
+                    if(parser->matchchar('=')) parser->set_next_token(TK("!="));
                     else syntaxError("expected '=' after '!'");
                     break;
                 case '*':
-                    if (parser->matchChar('*')) {
-                        parser->setNextToken(TK("**"));  // '**'
+                    if (parser->matchchar('*')) {
+                        parser->set_next_token(TK("**"));  // '**'
                     } else {
-                        parser->setNextTwoCharToken('=', TK("*"), TK("*="));
+                        parser->set_next_token_2('=', TK("*"), TK("*="));
                     }
                     return;
                 case '/':
-                    if(parser->matchChar('/')) {
-                        parser->setNextTwoCharToken('=', TK("//"), TK("//="));
+                    if(parser->matchchar('/')) {
+                        parser->set_next_token_2('=', TK("//"), TK("//="));
                     } else {
-                        parser->setNextTwoCharToken('=', TK("/"), TK("/="));
+                        parser->set_next_token_2('=', TK("/"), TK("/="));
                     }
                     return;
                 case '\r': break;       // just ignore '\r'
-                case ' ': case '\t': parser->eatSpaces(); break;
+                case ' ': case '\t': parser->eat_spaces(); break;
                 case '\n': {
-                    parser->setNextToken(TK("@eol"));
-                    if(!parser->eatIndentation()) indentationError("unindent does not match any outer indentation level");
+                    parser->set_next_token(TK("@eol"));
+                    if(!parser->eat_indentation()) indentationError("unindent does not match any outer indentation level");
                     return;
                 }
                 default: {
                     if(c == 'f'){
-                        if(parser->matchChar('\'')) {eatString('\'', F_STRING); return;}
-                        if(parser->matchChar('"')) {eatString('"', F_STRING); return;}
+                        if(parser->matchchar('\'')) {eatString('\'', F_STRING); return;}
+                        if(parser->matchchar('"')) {eatString('"', F_STRING); return;}
                     }else if(c == 'r'){
-                        if(parser->matchChar('\'')) {eatString('\'', RAW_STRING); return;}
-                        if(parser->matchChar('"')) {eatString('"', RAW_STRING); return;}
+                        if(parser->matchchar('\'')) {eatString('\'', RAW_STRING); return;}
+                        if(parser->matchchar('"')) {eatString('"', RAW_STRING); return;}
                     }
 
                     if (c >= '0' && c <= '9') {
@@ -5380,7 +5366,7 @@ public:
                         return;
                     }
                     
-                    switch (parser->eatName())
+                    switch (parser->eat_name())
                     {
                         case 0: break;
                         case 1: syntaxError("invalid char: " + std::string(1, c));
@@ -5395,7 +5381,7 @@ public:
         }
 
         parser->token_start = parser->curr_char;
-        parser->setNextToken(TK("@eof"));
+        parser->set_next_token(TK("@eof"));
     }
 
     inline _TokenType peek() {
@@ -5435,12 +5421,8 @@ public:
     }
 
     bool matchEndStatement() {
-        if (match(TK(";"))) {
-            matchNewLines();
-            return true;
-        }
-        if (matchNewLines() || peek() == TK("@eof"))
-            return true;
+        if (match(TK(";"))) { matchNewLines(); return true; }
+        if (matchNewLines() || peek()==TK("@eof")) return true;
         if (peek() == TK("@dedent")) return true;
         return false;
     }
@@ -5506,7 +5488,6 @@ public:
             EXPR_TUPLE();
             emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
-            // TODO: optimization is needed for inplace operators
             emit(OP_DUP_TOP);
             EXPR();
             switch (op) {
@@ -5515,7 +5496,6 @@ public:
                 case TK("*="):      emit(OP_BINARY_OP, 2);  break;
                 case TK("/="):      emit(OP_BINARY_OP, 3);  break;
                 case TK("//="):     emit(OP_BINARY_OP, 4);  break;
-
                 case TK("%="):      emit(OP_BINARY_OP, 5);  break;
                 case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
                 case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
@@ -5592,9 +5572,7 @@ public:
 
     void exprUnaryOp() {
         _TokenType op = parser->prev.type;
-        matchNewLines();
         parsePrecedence((Precedence)(PREC_UNARY + 1));
-
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emit(OP_UNARY_NOT);      break;
@@ -5683,7 +5661,6 @@ __LISTCOMP:
             size++;
             matchNewLines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
-        matchNewLines();
         consume(TK("}"));
 
         if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
@@ -6180,7 +6157,7 @@ __LISTCOMP:
             lineno = parser->current_line;
             cursor = parser->curr_char;
         }
-        if(parser->peek_char() == '\n') lineno--;
+        if(parser->peekchar() == '\n') lineno--;
         return parser->src->snapshot(lineno, cursor);
     }
 
