@@ -5,6 +5,12 @@
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
 
+> This project is undergoing a major reconstruction!!!
+> 
+> Advanced features such as exception, yield/coroutine and complete C bindings support will be added.
+> 
+> Interfaces will be changed a lot. Be cautious!
+
 C++17 header-only Python interpreter for game engines.
 
 Please see https://pocketpy.dev for detailed documentations.
