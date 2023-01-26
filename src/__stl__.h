@@ -34,8 +34,6 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#else
-#include <thread>
 #endif
 
 #define PK_VERSION "0.6.2"

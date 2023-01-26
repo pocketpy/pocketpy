@@ -610,16 +610,6 @@ void __addModuleTime(VM* vm){
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
-
-    vm->bindFunc(mod, "sleep", [](VM* vm, const pkpy::ArgList& args) {
-        vm->check_args_size(args, 1);
-        if(!vm->is_int_or_float(args[0])){
-            vm->typeError("time.sleep() argument must be int or float");
-        }
-        double sec = vm->num_to_float(args[0]);
-        vm->sleepForSecs(sec);
-        return vm->None;
-    });
 }
 
 void __addModuleSys(VM* vm){
@@ -833,7 +823,7 @@ public:
 extern "C" {
     __EXPORT
     /// Delete a pointer allocated by `pkpy_xxx_xxx`.
-    /// It can be `VM*`, `REPL*`, `ThreadedVM*`, `char*`, etc.
+    /// It can be `VM*`, `REPL*`, `char*`, etc.
     /// 
     /// !!!
     /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
@@ -896,14 +886,8 @@ extern "C" {
 
     __EXPORT
     /// Input a source line to an interactive console.
-    void pkpy_repl_input(REPL* r, const char* line){
-        r->input(line);
-    }
-
-    __EXPORT
-    /// Check if the REPL needs more lines.
-    int pkpy_repl_last_input_result(REPL* r){
-        return (int)(r->last_input_result());
+    int pkpy_repl_input(REPL* r, const char* line){
+        return r->input(line);
     }
 
     __EXPORT
@@ -937,14 +921,6 @@ extern "C" {
     }
 
     __EXPORT
-    /// Create a virtual machine that supports asynchronous execution.
-    ThreadedVM* pkpy_new_tvm(bool use_stdio){
-        ThreadedVM* vm = pkpy_allocate(ThreadedVM, use_stdio);
-        __vm_init(vm);
-        return vm;
-    }
-
-    __EXPORT
     /// Read the standard output and standard error as string of a virtual machine.
     /// The `vm->use_stdio` should be `false`.
     /// After this operation, both stream will be cleared.
@@ -963,49 +939,5 @@ extern "C" {
         s_out->str("");
         s_err->str("");
         return strdup(ss.str().c_str());
-    }
-
-    __EXPORT
-    /// Get the current state of a threaded virtual machine.
-    ///
-    /// Return `0` for `THREAD_READY`,
-    /// `1` for `THREAD_RUNNING`,
-    /// `2` for `THREAD_SUSPENDED`,
-    /// `3` for `THREAD_FINISHED`.
-    int pkpy_tvm_get_state(ThreadedVM* vm){
-        return vm->getState();
-    }
-
-    __EXPORT
-    /// Set the state of a threaded virtual machine to `THREAD_READY`.
-    /// The current state should be `THREAD_FINISHED`.
-    void pkpy_tvm_reset_state(ThreadedVM* vm){
-        vm->resetState();
-    }
-
-    __EXPORT
-    /// Read the current JSONRPC request from shared string buffer.
-    char* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
-        _Str s = vm->readJsonRpcRequest();
-        return strdup(s.c_str());
-    }
-
-    __EXPORT
-    /// Write a JSONRPC response to shared string buffer.
-    void pkpy_tvm_write_jsonrpc_response(ThreadedVM* vm, const char* value){
-        vm->writeJsonrpcResponse(value);
-    }
-
-    __EXPORT
-    /// Emit a KeyboardInterrupt signal to stop a running threaded virtual machine. 
-    void pkpy_tvm_terminate(ThreadedVM* vm){
-        vm->terminate();
-    }
-
-    __EXPORT
-    /// Run a given source on a threaded virtual machine.
-    /// The excution will be started in a new thread.
-    void pkpy_tvm_exec_async(VM* vm, const char* source){
-        vm->execAsync(source, "main.py", EXEC_MODE);
     }
 }

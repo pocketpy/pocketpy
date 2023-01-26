@@ -14,7 +14,6 @@ protected:
     int need_more_lines = 0;
     std::string buffer;
     VM* vm;
-    InputResult lastResult = EXEC_SKIPPED;
 public:
     REPL(VM* vm) : vm(vm){
         (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
@@ -22,11 +21,7 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    InputResult last_input_result() const {
-        return lastResult;
-    }
-
-    void input(std::string line){
+    InputResult input(std::string line){
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -40,15 +35,10 @@ public:
                 buffer.clear();
             }else{
 __NOT_ENOUGH_LINES:
-                lastResult = NEED_MORE_LINES;
-                return;
+                return NEED_MORE_LINES;
             }
         }else{
-            if(line == "exit()") exit(0);
-            if(line.empty()) {
-                lastResult = EXEC_SKIPPED;
-                return;
-            }
+            if(line.empty()) return EXEC_SKIPPED;
         }
 
         try{
@@ -58,15 +48,11 @@ __NOT_ENOUGH_LINES:
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
-            if (need_more_lines) {
-                lastResult = NEED_MORE_LINES;
-            }
-            return;
+            if (need_more_lines) return NEED_MORE_LINES;
         }catch(...){
             // do nothing
         }
-
-        lastResult = EXEC_STARTED;
-        vm->execAsync(line, "<stdin>", SINGLE_MODE);
+        vm->exec(line, "<stdin>", SINGLE_MODE);
+        return EXEC_STARTED;
     }
 };

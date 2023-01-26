@@ -28,9 +28,7 @@ constexpr _TokenType TK(const char* const token) {
     for(int k=0; k<__TOKENS_LEN; k++){
         const char* i = __TOKENS[k];
         const char* j = token;
-        while(*i && *j && *i == *j){
-            i++; j++;
-        }
+        while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
     return 0;
@@ -101,9 +99,7 @@ struct Parser {
     std::queue<Token> nexts;
     std::stack<int> indents;
 
-    int brackets_level_0 = 0;
-    int brackets_level_1 = 0;
-    int brackets_level_2 = 0;
+    int brackets_level = 0;
 
     Token next_token(){
         if(nexts.empty()){
@@ -143,7 +139,7 @@ struct Parser {
     }
 
     bool eat_indentation(){
-        if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
+        if(brackets_level > 0) return true;
         int spaces = eat_spaces();
         if(peekchar() == '#') skip_line_comment();
         if(peekchar() == '\0' || peekchar() == '\n') return true;
@@ -272,16 +268,10 @@ struct Parser {
 
     // Initialize the next token as the type.
     void set_next_token(_TokenType type, PyVar value=nullptr) {
-
         switch(type){
-            case TK("("): brackets_level_0++; break;
-            case TK(")"): brackets_level_0--; break;
-            case TK("["): brackets_level_1++; break;
-            case TK("]"): brackets_level_1--; break;
-            case TK("{"): brackets_level_2++; break;
-            case TK("}"): brackets_level_2--; break;
+            case TK("{"): case TK("["): case TK("("): brackets_level++; break;
+            case TK(")"): case TK("]"): case TK("}"): brackets_level--; break;
         }
-
         nexts.push( Token{
             type,
             token_start,

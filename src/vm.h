@@ -21,7 +21,6 @@
 
 
 class VM {
-    std::atomic<bool> _stop_flag = false;
     std::vector<PyVar> _small_integers;             // [-5, 256]
     PyVarDict _modules;                             // loaded modules
     emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
@@ -29,21 +28,11 @@ protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
-    inline void test_stop_flag(){
-        if(_stop_flag){
-            _stop_flag = false;
-            _error("KeyboardInterrupt", "");
-        }
-    }
-
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
             //printf("[%d] %s (%d)\n", frame->stack_size(), OP_NAMES[byte.op], byte.arg);
             //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
-
-            test_stop_flag();
-
             switch (byte.op)
             {
             case OP_NO_OP: break;       // do nothing
@@ -380,22 +369,6 @@ public:
         for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
     }
 
-    void keyboardInterrupt(){
-        _stop_flag = true;
-    }
-
-    void sleepForSecs(f64 sec){
-        i64 ms = (i64)(sec * 1000);
-        for(i64 i=0; i<ms; i+=20){
-            test_stop_flag();
-#ifdef __EMSCRIPTEN__
-            emscripten_sleep(20);
-#else
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-#endif
-        }
-    }
-
     PyVar asStr(const PyVar& obj){
         PyVarOrNull str_fn = getattr(obj, __str__, false);
         if(str_fn != nullptr) return call(str_fn);
@@ -566,10 +539,6 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(_Str source, _Str filename, CompileMode mode) {
-        exec(source, filename, mode);
-    }
-
     Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
         if(code == nullptr) UNREACHABLE();
         if(callstack.size() > maxRecursionDepth){
@@ -737,7 +706,8 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        UNREACHABLE();
+        typeError("expected int or float");
+        return 0;
     }
 
     PyVar num_negated(const PyVar& obj){
@@ -925,9 +895,7 @@ public:
             i64 x = 1000003;
             for (const auto& item : PyTuple_AS_C(obj)) {
                 i64 y = hash(item);
-                // this is recommended by Github Copilot
-                // i am not sure whether it is a good idea
-                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
             }
             return x;
         }
@@ -1023,10 +991,10 @@ void NameRef::del(VM* vm, Frame* frame) const{
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(pair->first) > 0){
+            if(frame->f_locals.contains(pair->first)){
                 frame->f_locals.erase(pair->first);
             }else{
-                if(frame->f_globals().count(pair->first) > 0){
+                if(frame->f_globals().contains(pair->first)){
                     frame->f_globals().erase(pair->first);
                 }else{
                     vm->nameError(pair->first);
@@ -1100,121 +1068,3 @@ PyVar RangeIterator::next(){
 PyVar StringIterator::next(){
     return vm->PyStr(str.u8_getitem(index++));
 }
-
-enum ThreadState {
-    THREAD_READY,
-    THREAD_RUNNING,
-    THREAD_SUSPENDED,
-    THREAD_FINISHED
-};
-
-class ThreadedVM : public VM {
-    std::atomic<ThreadState> _state = THREAD_READY;
-    _Str _sharedStr = "";
-
-#ifndef __EMSCRIPTEN__
-    std::thread* _thread = nullptr;
-    void __deleteThread(){
-        if(_thread != nullptr){
-            terminate();
-            _thread->join();
-            delete _thread;
-            _thread = nullptr;
-        }
-    }
-#else
-    void __deleteThread(){
-        terminate();
-    }
-#endif
-
-public:
-    ThreadedVM(bool use_stdio) : VM(use_stdio) {
-        bindBuiltinFunc("__string_channel_call", [](VM* vm, const pkpy::ArgList& args){
-            vm->check_args_size(args, 1);
-            _Str data = vm->PyStr_AS_C(args[0]);
-
-            ThreadedVM* tvm = (ThreadedVM*)vm;
-            tvm->_sharedStr = data;
-            tvm->suspend();
-            return tvm->PyStr(tvm->readJsonRpcRequest());
-        });
-    }
-
-    void terminate(){
-        if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
-            keyboardInterrupt();
-#ifdef __EMSCRIPTEN__
-            // no way to terminate safely
-#else
-            while(_state != THREAD_FINISHED);
-#endif
-        }
-    }
-
-    void suspend(){
-        if(_state != THREAD_RUNNING) UNREACHABLE();
-        _state = THREAD_SUSPENDED;
-        while(_state == THREAD_SUSPENDED){
-            test_stop_flag();
-#ifdef __EMSCRIPTEN__
-            emscripten_sleep(20);
-#else
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-#endif
-        }
-    }
-
-    _Str readJsonRpcRequest(){
-        _Str copy = _sharedStr;
-        _sharedStr = "";
-        return copy;
-    }
-
-    /***** For outer use *****/
-
-    ThreadState getState(){
-        return _state;
-    }
-
-    void writeJsonrpcResponse(const char* value){
-        if(_state != THREAD_SUSPENDED) UNREACHABLE();
-        _sharedStr = _Str(value);
-        _state = THREAD_RUNNING;
-    }
-
-    void execAsync(_Str source, _Str filename, CompileMode mode) override {
-        if(_state != THREAD_READY) UNREACHABLE();
-
-#ifdef __EMSCRIPTEN__
-        this->_state = THREAD_RUNNING;
-        VM::exec(source, filename, mode);
-        this->_state = THREAD_FINISHED;
-#else
-        __deleteThread();
-        _thread = new std::thread([=](){
-            this->_state = THREAD_RUNNING;
-            VM::exec(source, filename, mode);
-            this->_state = THREAD_FINISHED;
-        });
-#endif
-    }
-
-    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
-        if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
-        auto callstackBackup = std::move(callstack);
-        callstack.clear();
-        PyVarOrNull ret = VM::exec(source, filename, mode, _module);
-        callstack = std::move(callstackBackup);
-        return ret;
-    }
-
-    void resetState(){
-        if(this->_state != THREAD_FINISHED) return;
-        this->_state = THREAD_READY;
-    }
-
-    ~ThreadedVM(){
-        __deleteThread();
-    }
-};
