@@ -14,6 +14,15 @@ def round(x, ndigits=0):
     else:
         return int(x * 10**ndigits - 0.5) / 10**ndigits
 
+def isinstance(obj, cls):
+    assert type(cls) is type
+    obj_t = type(obj)
+    while obj_t is not None:
+        if obj_t is cls:
+            return True
+        obj_t = obj_t.__base__
+    return False
+
 def abs(x):
     return x < 0 ? -x : x
 

@@ -42,7 +42,6 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            // duplicated compile to catch NeedMoreLines
             vm->compile(line, "<stdin>", SINGLE_MODE);
         }catch(NeedMoreLines& ne){
             buffer += line;

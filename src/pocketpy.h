@@ -70,11 +70,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->f_locals_copy());
     });
 
-    _vm->bindBuiltinFunc("isinstance", [](VM* vm, const pkpy::ArgList& args) {
-        vm->check_args_size(args, 2);
-        return vm->PyBool(vm->isinstance(args[0], args[1]));
-    });
-
     _vm->bindBuiltinFunc("repr", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1);
         return vm->asRepr(args[0]);

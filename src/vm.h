@@ -365,7 +365,7 @@ public:
         }
         initializeBuiltinClasses();
 
-        _small_integers.reserve(300);
+        _small_integers.reserve(270);
         for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
     }
 
@@ -680,16 +680,6 @@ public:
         check_type(module, _tp_module);
         PyVar func = PyNativeFunction(fn);
         setattr(module, funcName, func);
-    }
-
-    bool isinstance(PyVar obj, PyVar type){
-        check_type(type, _tp_type);
-        PyObject* t = obj->_type.get();
-        while (t != None.get()){
-            if (t == type.get()) return true;
-            t = t->attribs[__base__].get();
-        }
-        return false;
     }
 
     inline bool is_int_or_float(const PyVar& obj) const{

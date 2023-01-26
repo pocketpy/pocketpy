@@ -65,3 +65,14 @@ assert D.__base__ is C
 d = D(1, 2, 3, 4, 5)
 assert d.add() == 15
 assert d.sub() == -13
+
+assert isinstance(1, int)
+assert isinstance(1, object)
+assert isinstance(C, type)
+assert isinstance(C, object)
+assert isinstance(d, object)
+assert isinstance(d, C)
+assert isinstance(d, B)
+assert isinstance(d, A)
+assert isinstance(object, object)
+assert isinstance(type, object)
