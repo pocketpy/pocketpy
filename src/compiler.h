@@ -726,7 +726,7 @@ __LISTCOMP:
                 tkmodule = parser->prev;
             }
             int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
-            emit(OP_STORE_NAME_REF, index);
+            emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
         consumeEndStatement();
     }
@@ -746,7 +746,7 @@ __LISTCOMP:
                 tkname = parser->prev;
             }
             index = co()->add_name(tkname.str(), NAME_GLOBAL);
-            emit(OP_STORE_NAME_REF, index);
+            emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
         emit(OP_POP_TOP);
         consumeEndStatement();
@@ -873,7 +873,7 @@ __LISTCOMP:
                 tkname.str(),
                 codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
             );
-            emit(OP_STORE_NAME_REF, index);
+            emit(OP_STORE_NAME, index);
             emit(OP_LOAD_NAME_REF, index);
             emit(OP_WITH_ENTER);
             compileBlockBody();
@@ -919,7 +919,7 @@ __LISTCOMP:
             consumeEndStatement();
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = co()->co_code.back().op;
-            if( lastOp!=OP_STORE_NAME_REF && lastOp!=OP_STORE_REF){
+            if( lastOp!=OP_STORE_NAME && lastOp!=OP_STORE_REF){
                 if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR);
                 emit(OP_POP_TOP);
             }

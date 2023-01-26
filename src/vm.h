@@ -48,7 +48,7 @@ protected:
             case OP_LOAD_NAME: {
                 frame->push(NameRef(frame->code->co_names[byte.arg]).get(this, frame));
             } break;
-            case OP_STORE_NAME_REF: {
+            case OP_STORE_NAME: {
                 const auto& p = frame->code->co_names[byte.arg];
                 NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
@@ -960,8 +960,9 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
         case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.contains(pair->first)){
-                frame->f_locals[pair->first] = std::move(val);
+            PyVar* existing = frame->f_locals.try_get(pair->first);
+            if(existing != nullptr){
+                *existing = std::move(val);
             }else{
                 frame->f_globals()[pair->first] = std::move(val);
             }
@@ -973,7 +974,7 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
 void NameRef::del(VM* vm, Frame* frame) const{
     switch(pair->second) {
         case NAME_LOCAL: {
-            if(frame->f_locals.count(pair->first) > 0){
+            if(frame->f_locals.contains(pair->first)){
                 frame->f_locals.erase(pair->first);
             }else{
                 vm->nameError(pair->first);
