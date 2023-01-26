@@ -52,11 +52,11 @@ public:
         return _hash;
     }
 
-    int __to_u8_index(int64_t index) const{
+    i64 __to_u8_index(i64 index) const{
         utf8_lazy_init();
         auto p = std::lower_bound(_u8_index->begin(), _u8_index->end(), index);
-        if(*p != index) UNREACHABLE();
-        return (int)(p - _u8_index->begin());
+        if(p != _u8_index->end() && *p != index) UNREACHABLE();
+        return p - _u8_index->begin();
     }
 
     int u8_length() const {

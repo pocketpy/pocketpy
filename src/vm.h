@@ -440,7 +440,7 @@ public:
             if(it != _callable->attribs.end()){
                 obj = call(it->second, args, kwargs, false);
             }else{
-                obj = new_object(_callable, (i64)-1);
+                obj = new_object(_callable, DUMMY_VAL);
                 PyVarOrNull init_fn = getattr(obj, __init__, false);
                 if (init_fn != nullptr) call(init_fn, args, kwargs, false);
             }

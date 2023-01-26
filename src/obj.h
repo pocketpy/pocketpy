@@ -2,15 +2,13 @@
 
 #include "safestl.h"
 
-typedef int64_t i64;
-typedef double f64;
-
 struct CodeObject;
 struct BaseRef;
 class VM;
 class Frame;
 
 typedef PyVar (*_CppFunc)(VM*, const pkpy::ArgList&);
+//typedef std::function<PyVar(VM*, const pkpy::ArgList&)> _CppFunc;
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
 struct Function {

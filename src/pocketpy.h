@@ -696,26 +696,23 @@ void __addModuleMath(VM* vm){
     });
 }
 
+
+struct ReMatch {
+    i64 start;
+    i64 end;
+    std::smatch m;
+    ReMatch(i64 start, i64 end, std::smatch m) : start(start), end(end), m(m) {}
+};
+
+
 PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
     std::smatch m;
     if(std::regex_search(string, m, re)){
-        if(fromStart && m.position() != 0){
-            return vm->None;
-        }
-        PyVar ret = vm->new_object(vm->_userTypes["re.Match"], (i64)1);
-        vm->setattr(ret, "_start", vm->PyInt(
-            string.__to_u8_index(m.position())
-        ));
-        vm->setattr(ret, "_end", vm->PyInt(
-            string.__to_u8_index(m.position() + m.length())
-        ));
-        PyVarList groups(m.size());
-        for(size_t i = 0; i < m.size(); ++i){
-            groups[i] = vm->PyStr(m[i].str());
-        }
-        vm->setattr(ret, "_groups", vm->PyTuple(groups));
-        return ret;
+        if(fromStart && m.position() != 0) return vm->None;
+        i64 start = string.__to_u8_index(m.position());
+        i64 end = string.__to_u8_index(m.position() + m.length());
+        return vm->new_object(vm->_userTypes["re.Match"], ReMatch(start, end, m));
     }
     return vm->None;
 };
@@ -723,32 +720,29 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
 void __addModuleRe(VM* vm){
     PyVar mod = vm->newModule("re");
     PyVar _tp_match = vm->new_user_type_object(mod, "Match", vm->_tp_object);
-
     vm->bindMethod("re.Match", "start", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1, true);
-        PyVar self = args[0];
-        return vm->getattr(self, "_start");
+        return vm->PyInt(UNION_GET(ReMatch, args[0]).start);
     });
 
     vm->bindMethod("re.Match", "end", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1, true);
-        PyVar self = args[0];
-        return vm->getattr(self, "_end");
+        return vm->PyInt(UNION_GET(ReMatch, args[0]).end);
     });
 
     vm->bindMethod("re.Match", "span", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 1, true);
-        PyVar self = args[0];
-        PyVarList vec = { vm->getattr(self, "_start"), vm->getattr(self, "_end") };
+        auto& m = UNION_GET(ReMatch, args[0]);
+        PyVarList vec = { vm->PyInt(m.start), vm->PyInt(m.end) };
         return vm->PyTuple(vec);
     });
 
     vm->bindMethod("re.Match", "group", [](VM* vm, const pkpy::ArgList& args) {
         vm->check_args_size(args, 2, true);
+        auto& m = UNION_GET(ReMatch, args[0]);
         int index = (int)vm->PyInt_AS_C(args[1]);
-        const auto& vec = vm->PyTuple_AS_C(vm->getattr(args[0], "_groups"));
-        vm->normalizedIndex(index, vec.size());
-        return vec[index];
+        vm->normalizedIndex(index, m.m.size());
+        return vm->PyStr(m.m[index].str());
     });
 
     vm->bindFunc(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
