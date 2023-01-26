@@ -3,7 +3,7 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 
 pipeline = [
 	["hash_table8.hpp", "__stl__.h", "memory.h", "str.h", "safestl.h", "builtins.h", "error.h"],
-	["obj.h", "iter.h", "parser.h", "pointer.h", "codeobject.h"],
+	["obj.h", "iter.h", "parser.h", "ref.h", "codeobject.h"],
 	["vm.h", "compiler.h", "repl.h"],
 	["pocketpy.h"]
 ]
@@ -51,7 +51,7 @@ r'''/*
 	f.write(final_text)
 
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
-os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17 -pthread")
+os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17")
 os.system("rm pocketpy")
 
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")

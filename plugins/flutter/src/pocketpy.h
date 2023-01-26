@@ -1828,11 +1828,9 @@ private:
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#else
-#include <thread>
 #endif
 
-#define PK_VERSION "0.6.2"
+#define PK_VERSION "0.8.0"
 
 //#define PKPY_NO_INDEX_CHECK
 
@@ -3114,9 +3112,7 @@ constexpr _TokenType TK(const char* const token) {
     for(int k=0; k<__TOKENS_LEN; k++){
         const char* i = __TOKENS[k];
         const char* j = token;
-        while(*i && *j && *i == *j){
-            i++; j++;
-        }
+        while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
     return 0;
@@ -3187,9 +3183,7 @@ struct Parser {
     std::queue<Token> nexts;
     std::stack<int> indents;
 
-    int brackets_level_0 = 0;
-    int brackets_level_1 = 0;
-    int brackets_level_2 = 0;
+    int brackets_level = 0;
 
     Token next_token(){
         if(nexts.empty()){
@@ -3229,7 +3223,7 @@ struct Parser {
     }
 
     bool eat_indentation(){
-        if(brackets_level_0 > 0 || brackets_level_1 > 0 || brackets_level_2 > 0) return true;
+        if(brackets_level > 0) return true;
         int spaces = eat_spaces();
         if(peekchar() == '#') skip_line_comment();
         if(peekchar() == '\0' || peekchar() == '\n') return true;
@@ -3358,16 +3352,10 @@ struct Parser {
 
     // Initialize the next token as the type.
     void set_next_token(_TokenType type, PyVar value=nullptr) {
-
         switch(type){
-            case TK("("): brackets_level_0++; break;
-            case TK(")"): brackets_level_0--; break;
-            case TK("["): brackets_level_1++; break;
-            case TK("]"): brackets_level_1--; break;
-            case TK("{"): brackets_level_2++; break;
-            case TK("}"): brackets_level_2--; break;
+            case TK("{"): case TK("["): case TK("("): brackets_level++; break;
+            case TK(")"): case TK("]"): case TK("}"): brackets_level--; break;
         }
-
         nexts.push( Token{
             type,
             token_start,
@@ -3877,7 +3865,6 @@ public:
 
 
 class VM {
-    std::atomic<bool> _stop_flag = false;
     std::vector<PyVar> _small_integers;             // [-5, 256]
     PyVarDict _modules;                             // loaded modules
     emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
@@ -3885,21 +3872,11 @@ protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
-    inline void test_stop_flag(){
-        if(_stop_flag){
-            _stop_flag = false;
-            _error("KeyboardInterrupt", "");
-        }
-    }
-
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
             //printf("[%d] %s (%d)\n", frame->stack_size(), OP_NAMES[byte.op], byte.arg);
             //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
-
-            test_stop_flag();
-
             switch (byte.op)
             {
             case OP_NO_OP: break;       // do nothing
@@ -4236,22 +4213,6 @@ public:
         for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
     }
 
-    void keyboardInterrupt(){
-        _stop_flag = true;
-    }
-
-    void sleepForSecs(f64 sec){
-        i64 ms = (i64)(sec * 1000);
-        for(i64 i=0; i<ms; i+=20){
-            test_stop_flag();
-#ifdef __EMSCRIPTEN__
-            emscripten_sleep(20);
-#else
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-#endif
-        }
-    }
-
     PyVar asStr(const PyVar& obj){
         PyVarOrNull str_fn = getattr(obj, __str__, false);
         if(str_fn != nullptr) return call(str_fn);
@@ -4422,10 +4383,6 @@ public:
         return nullptr;
     }
 
-    virtual void execAsync(_Str source, _Str filename, CompileMode mode) {
-        exec(source, filename, mode);
-    }
-
     Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
         if(code == nullptr) UNREACHABLE();
         if(callstack.size() > maxRecursionDepth){
@@ -4593,7 +4550,8 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        UNREACHABLE();
+        typeError("expected int or float");
+        return 0;
     }
 
     PyVar num_negated(const PyVar& obj){
@@ -4781,9 +4739,7 @@ public:
             i64 x = 1000003;
             for (const auto& item : PyTuple_AS_C(obj)) {
                 i64 y = hash(item);
-                // this is recommended by Github Copilot
-                // i am not sure whether it is a good idea
-                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
             }
             return x;
         }
@@ -4879,10 +4835,10 @@ void NameRef::del(VM* vm, Frame* frame) const{
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.count(pair->first) > 0){
+            if(frame->f_locals.contains(pair->first)){
                 frame->f_locals.erase(pair->first);
             }else{
-                if(frame->f_globals().count(pair->first) > 0){
+                if(frame->f_globals().contains(pair->first)){
                     frame->f_globals().erase(pair->first);
                 }else{
                     vm->nameError(pair->first);
@@ -4956,124 +4912,6 @@ PyVar RangeIterator::next(){
 PyVar StringIterator::next(){
     return vm->PyStr(str.u8_getitem(index++));
 }
-
-enum ThreadState {
-    THREAD_READY,
-    THREAD_RUNNING,
-    THREAD_SUSPENDED,
-    THREAD_FINISHED
-};
-
-class ThreadedVM : public VM {
-    std::atomic<ThreadState> _state = THREAD_READY;
-    _Str _sharedStr = "";
-
-#ifndef __EMSCRIPTEN__
-    std::thread* _thread = nullptr;
-    void __deleteThread(){
-        if(_thread != nullptr){
-            terminate();
-            _thread->join();
-            delete _thread;
-            _thread = nullptr;
-        }
-    }
-#else
-    void __deleteThread(){
-        terminate();
-    }
-#endif
-
-public:
-    ThreadedVM(bool use_stdio) : VM(use_stdio) {
-        bindBuiltinFunc("__string_channel_call", [](VM* vm, const pkpy::ArgList& args){
-            vm->check_args_size(args, 1);
-            _Str data = vm->PyStr_AS_C(args[0]);
-
-            ThreadedVM* tvm = (ThreadedVM*)vm;
-            tvm->_sharedStr = data;
-            tvm->suspend();
-            return tvm->PyStr(tvm->readJsonRpcRequest());
-        });
-    }
-
-    void terminate(){
-        if(_state == THREAD_RUNNING || _state == THREAD_SUSPENDED){
-            keyboardInterrupt();
-#ifdef __EMSCRIPTEN__
-            // no way to terminate safely
-#else
-            while(_state != THREAD_FINISHED);
-#endif
-        }
-    }
-
-    void suspend(){
-        if(_state != THREAD_RUNNING) UNREACHABLE();
-        _state = THREAD_SUSPENDED;
-        while(_state == THREAD_SUSPENDED){
-            test_stop_flag();
-#ifdef __EMSCRIPTEN__
-            emscripten_sleep(20);
-#else
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-#endif
-        }
-    }
-
-    _Str readJsonRpcRequest(){
-        _Str copy = _sharedStr;
-        _sharedStr = "";
-        return copy;
-    }
-
-    /***** For outer use *****/
-
-    ThreadState getState(){
-        return _state;
-    }
-
-    void writeJsonrpcResponse(const char* value){
-        if(_state != THREAD_SUSPENDED) UNREACHABLE();
-        _sharedStr = _Str(value);
-        _state = THREAD_RUNNING;
-    }
-
-    void execAsync(_Str source, _Str filename, CompileMode mode) override {
-        if(_state != THREAD_READY) UNREACHABLE();
-
-#ifdef __EMSCRIPTEN__
-        this->_state = THREAD_RUNNING;
-        VM::exec(source, filename, mode);
-        this->_state = THREAD_FINISHED;
-#else
-        __deleteThread();
-        _thread = new std::thread([=](){
-            this->_state = THREAD_RUNNING;
-            VM::exec(source, filename, mode);
-            this->_state = THREAD_FINISHED;
-        });
-#endif
-    }
-
-    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr) override {
-        if(_state == THREAD_READY) return VM::exec(source, filename, mode, _module);
-        auto callstackBackup = std::move(callstack);
-        callstack.clear();
-        PyVarOrNull ret = VM::exec(source, filename, mode, _module);
-        callstack = std::move(callstackBackup);
-        return ret;
-    }
-
-    void resetState(){
-        if(this->_state != THREAD_FINISHED) return;
-        this->_state = THREAD_READY;
-    }
-
-    ~ThreadedVM(){
-        __deleteThread();
-    }
-};
 
 
 class Compiler;
@@ -6178,7 +6016,6 @@ protected:
     int need_more_lines = 0;
     std::string buffer;
     VM* vm;
-    InputResult lastResult = EXEC_SKIPPED;
 public:
     REPL(VM* vm) : vm(vm){
         (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
@@ -6186,11 +6023,7 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    InputResult last_input_result() const {
-        return lastResult;
-    }
-
-    void input(std::string line){
+    InputResult input(std::string line){
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -6204,15 +6037,10 @@ public:
                 buffer.clear();
             }else{
 __NOT_ENOUGH_LINES:
-                lastResult = NEED_MORE_LINES;
-                return;
+                return NEED_MORE_LINES;
             }
         }else{
-            if(line == "exit()") exit(0);
-            if(line.empty()) {
-                lastResult = EXEC_SKIPPED;
-                return;
-            }
+            if(line.empty()) return EXEC_SKIPPED;
         }
 
         try{
@@ -6222,16 +6050,12 @@ __NOT_ENOUGH_LINES:
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
-            if (need_more_lines) {
-                lastResult = NEED_MORE_LINES;
-            }
-            return;
+            if (need_more_lines) return NEED_MORE_LINES;
         }catch(...){
             // do nothing
         }
-
-        lastResult = EXEC_STARTED;
-        vm->execAsync(line, "<stdin>", SINGLE_MODE);
+        vm->exec(line, "<stdin>", SINGLE_MODE);
+        return EXEC_STARTED;
     }
 };
 
@@ -6840,16 +6664,6 @@ void __addModuleTime(VM* vm){
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
-
-    vm->bindFunc(mod, "sleep", [](VM* vm, const pkpy::ArgList& args) {
-        vm->check_args_size(args, 1);
-        if(!vm->is_int_or_float(args[0])){
-            vm->typeError("time.sleep() argument must be int or float");
-        }
-        double sec = vm->num_to_float(args[0]);
-        vm->sleepForSecs(sec);
-        return vm->None;
-    });
 }
 
 void __addModuleSys(VM* vm){
@@ -7063,7 +6877,7 @@ public:
 extern "C" {
     __EXPORT
     /// Delete a pointer allocated by `pkpy_xxx_xxx`.
-    /// It can be `VM*`, `REPL*`, `ThreadedVM*`, `char*`, etc.
+    /// It can be `VM*`, `REPL*`, `char*`, etc.
     /// 
     /// !!!
     /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
@@ -7126,14 +6940,8 @@ extern "C" {
 
     __EXPORT
     /// Input a source line to an interactive console.
-    void pkpy_repl_input(REPL* r, const char* line){
-        r->input(line);
-    }
-
-    __EXPORT
-    /// Check if the REPL needs more lines.
-    int pkpy_repl_last_input_result(REPL* r){
-        return (int)(r->last_input_result());
+    int pkpy_repl_input(REPL* r, const char* line){
+        return r->input(line);
     }
 
     __EXPORT
@@ -7167,14 +6975,6 @@ extern "C" {
     }
 
     __EXPORT
-    /// Create a virtual machine that supports asynchronous execution.
-    ThreadedVM* pkpy_new_tvm(bool use_stdio){
-        ThreadedVM* vm = pkpy_allocate(ThreadedVM, use_stdio);
-        __vm_init(vm);
-        return vm;
-    }
-
-    __EXPORT
     /// Read the standard output and standard error as string of a virtual machine.
     /// The `vm->use_stdio` should be `false`.
     /// After this operation, both stream will be cleared.
@@ -7193,50 +6993,6 @@ extern "C" {
         s_out->str("");
         s_err->str("");
         return strdup(ss.str().c_str());
-    }
-
-    __EXPORT
-    /// Get the current state of a threaded virtual machine.
-    ///
-    /// Return `0` for `THREAD_READY`,
-    /// `1` for `THREAD_RUNNING`,
-    /// `2` for `THREAD_SUSPENDED`,
-    /// `3` for `THREAD_FINISHED`.
-    int pkpy_tvm_get_state(ThreadedVM* vm){
-        return vm->getState();
-    }
-
-    __EXPORT
-    /// Set the state of a threaded virtual machine to `THREAD_READY`.
-    /// The current state should be `THREAD_FINISHED`.
-    void pkpy_tvm_reset_state(ThreadedVM* vm){
-        vm->resetState();
-    }
-
-    __EXPORT
-    /// Read the current JSONRPC request from shared string buffer.
-    char* pkpy_tvm_read_jsonrpc_request(ThreadedVM* vm){
-        _Str s = vm->readJsonRpcRequest();
-        return strdup(s.c_str());
-    }
-
-    __EXPORT
-    /// Write a JSONRPC response to shared string buffer.
-    void pkpy_tvm_write_jsonrpc_response(ThreadedVM* vm, const char* value){
-        vm->writeJsonrpcResponse(value);
-    }
-
-    __EXPORT
-    /// Emit a KeyboardInterrupt signal to stop a running threaded virtual machine. 
-    void pkpy_tvm_terminate(ThreadedVM* vm){
-        vm->terminate();
-    }
-
-    __EXPORT
-    /// Run a given source on a threaded virtual machine.
-    /// The excution will be started in a new thread.
-    void pkpy_tvm_exec_async(VM* vm, const char* source){
-        vm->execAsync(source, "main.py", EXEC_MODE);
     }
 }
 

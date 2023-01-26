@@ -1,7 +1,7 @@
 #pragma once
 
 #include "obj.h"
-#include "pointer.h"
+#include "ref.h"
 #include "error.h"
 
 enum Opcode {

@@ -36,6 +36,6 @@
 #include <emscripten.h>
 #endif
 
-#define PK_VERSION "0.6.2"
+#define PK_VERSION "0.8.0"
 
 //#define PKPY_NO_INDEX_CHECK
