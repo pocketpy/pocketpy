@@ -17,8 +17,6 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
-        if(!vm->is_int_or_float(args[0], args[1]))                                                         \
-            vm->typeError("unsupported operand type(s) for " #op );                                     \
         if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                 \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));         \
         }else{                                                                                          \
@@ -153,16 +151,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("NoneType", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
 
     _vm->bindMethodMulti<1>({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!vm->is_int_or_float(args[0], args[1]))
-            vm->typeError("unsupported operand type(s) for " "/" );
         f64 rhs = vm->num_to_float(args[1]);
         if (rhs == 0) vm->zeroDivisionError();
         return vm->PyFloat(vm->num_to_float(args[0]) / rhs);
     });
 
     _vm->bindMethodMulti<1>({"int", "float"}, "__pow__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!vm->is_int_or_float(args[0], args[1]))
-            vm->typeError("unsupported operand type(s) for " "**" );
         if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){
             return vm->PyInt((i64)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
@@ -191,16 +185,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod<1>("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
-            vm->typeError("unsupported operand type(s) for " "//" );
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
     });
 
     _vm->bindMethod<1>("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
-        if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
-            vm->typeError("unsupported operand type(s) for " "%" );
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);

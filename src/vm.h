@@ -706,7 +706,7 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        typeError("expected int or float");
+        typeError("expected int or float, got " + UNION_TP_NAME(obj));
         return 0;
     }
 
