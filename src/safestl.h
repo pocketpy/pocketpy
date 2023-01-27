@@ -128,6 +128,15 @@ namespace pkpy {
             return ret;
         }
 
+        ArgList move_extended_self(const PyVar& self){
+            static_assert(std::is_standard_layout_v<PyVar>);
+            pkpy::ArgList ret(size()+1);
+            ret[0] = self;
+            memcpy(ret._args+1, _args, sizeof(PyVar)*size());
+            memset(_args, 0, sizeof(PyVar)*size());
+            return ret;
+        }
+
         ~ArgList(){
             __tryRelease();
         }

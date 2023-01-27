@@ -449,12 +449,14 @@ public:
         const PyVar* callable = &_callable;
         if((*callable)->is_type(_tp_bounded_method)){
             auto& bm = PyBoundedMethod_AS_C((*callable));
+            callable = &bm.method;      // get unbound method
+
             // TODO: avoid insertion here, bad performance
-            pkpy::ArgList new_args(args.size()+1);
-            new_args[0] = bm.obj;
-            for(int i=0; i<args.size(); i++) new_args[i+1] = args[i];
-            callable = &bm.method;
-            args = std::move(new_args);
+            // pkpy::ArgList new_args(args.size()+1);
+            // new_args[0] = bm.obj;
+            // for(int i=0; i<args.size(); i++) new_args[i+1] = args[i];
+            // args = std::move(new_args);
+            args = args.move_extended_self(bm.obj);
         }
         
         if((*callable)->is_type(_tp_native_function)){

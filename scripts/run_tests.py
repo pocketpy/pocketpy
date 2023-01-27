@@ -1,8 +1,11 @@
 import os
+import sys
 
 def test_file(filepath):
-    return os.system("./pocketpy " + filepath) == 0
-    #return os.system("python3 " + filepath) == 0
+    if sys.platform == 'win32':
+        return os.system("pocketpy.exe " + filepath) == 0
+    else:
+        return os.system("./pocketpy " + filepath) == 0
 
 def test_dir(path):
     has_error = False
