@@ -618,7 +618,7 @@ struct ReMatch {
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::ArgList& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
-            vm->normalizedIndex(index, m.m.size());
+            index = vm->normalizedIndex(index, m.m.size());
             return vm->PyStr(m.m[index].str());
         });
         return _tp_match;
