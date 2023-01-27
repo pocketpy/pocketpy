@@ -19,7 +19,7 @@ def test_dir(path):
                 print("[x] " + filepath)
                 has_error = True
             else:
-                print("[√] " + filepath)
+                print("[v] " + filepath)
     return not has_error
 
 if __name__ == '__main__':
