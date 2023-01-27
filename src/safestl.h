@@ -13,12 +13,10 @@ class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
 
     inline void __checkIndex(size_t i) const {
-#ifndef PKPY_NO_INDEX_CHECK
         if (i >= size()){
             auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
             throw std::out_of_range(msg);
         }
-#endif
     }
 public:
     PyVar& operator[](size_t i) {

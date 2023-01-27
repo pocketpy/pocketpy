@@ -67,17 +67,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->f_locals_copy());
     });
 
-    _vm->bindBuiltinFunc<1>("repr", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->asRepr(args[0]);
-    });
-
-    _vm->bindBuiltinFunc<1>("hash", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyInt(vm->hash(args[0]));
-    });
-
-    _vm->bindBuiltinFunc<1>("len", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->call(args[0], __len__, pkpy::noArg());
-    });
+    _vm->bindBuiltinFunc<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
+    _vm->bindBuiltinFunc<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
+    _vm->bindBuiltinFunc<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::noArg())));
 
     _vm->bindBuiltinFunc<1>("chr", [](VM* vm, const pkpy::ArgList& args) {
         i64 i = vm->PyInt_AS_C(args[0]);
@@ -138,13 +130,8 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(s);
     });
 
-    _vm->bindStaticMethod<1>("type", "__new__", [](VM* vm, const pkpy::ArgList& args) {
-        return args[0]->_type;
-    });
-
-    _vm->bindMethod<1>("type", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(args[0] == args[1]);
-    });
+    _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
+    _vm->bindMethod<1>("type", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         _Range r;
@@ -157,23 +144,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyRange(r);
     });
 
-    _vm->bindMethod<0>("range", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyIter(
-            pkpy::make_shared<BaseIterator, RangeIterator>(vm, args[0])
-        );
-    });
+    _vm->bindMethod<0>("range", "__iter__", CPP_LAMBDA(
+        vm->PyIter(pkpy::make_shared<BaseIterator, RangeIterator>(vm, args[0]))
+    ));
 
-    _vm->bindMethod<0>("NoneType", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyStr("None");
-    });
-
-    _vm->bindMethod<0>("NoneType", "__json__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyStr("null");
-    });
-
-    _vm->bindMethod<1>("NoneType", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(args[0] == args[1]);
-    });
+    _vm->bindMethod<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
+    _vm->bindMethod<0>("NoneType", "__json__", CPP_LAMBDA(vm->PyStr("null")));
+    _vm->bindMethod<1>("NoneType", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
 
     _vm->bindMethodMulti<1>({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!vm->is_int_or_float(args[0], args[1]))
@@ -287,9 +264,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyString ************/
-    _vm->bindStaticMethod<1>("str", "__new__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->asStr(args[0]);
-    });
+    _vm->bindStaticMethod<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
 
     _vm->bindMethod<1>("str", "__add__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& lhs = vm->PyStr_AS_C(args[0]);
@@ -308,13 +283,11 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyBool(_self.find(_other) != _Str::npos);
     });
 
-    _vm->bindMethod<0>("str", "__str__", [](VM* vm, const pkpy::ArgList& args) {
-        return args[0]; // str is immutable
-    });
+    _vm->bindMethod<0>("str", "__str__", CPP_LAMBDA(args[0]));
 
-    _vm->bindMethod<0>("str", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyIter(pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0]));
-    });
+    _vm->bindMethod<0>("str", "__iter__", CPP_LAMBDA(
+        vm->PyIter(pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0]))
+    ));
 
     _vm->bindMethod<0>("str", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
@@ -503,9 +476,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyBool ************/
-    _vm->bindStaticMethod<1>("bool", "__new__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->asBool(args[0]);
-    });
+    _vm->bindStaticMethod<1>("bool", "__new__", CPP_LAMBDA(vm->asBool(args[0])));
 
     _vm->bindMethod<0>("bool", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
         bool val = vm->PyBool_AS_C(args[0]);
@@ -527,9 +498,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyBool(_self ^ _obj);
     });
 
-    _vm->bindMethod<0>("ellipsis", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyStr("Ellipsis");
-    });
+    _vm->bindMethod<0>("ellipsis", "__repr__", CPP_LAMBDA(vm->PyStr("Ellipsis")));
 }
 
 #include "builtins.h"
