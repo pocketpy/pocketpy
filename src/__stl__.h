@@ -20,7 +20,7 @@
 #include <queue>
 #include <iomanip>
 #include <memory>
-// #include <functional>
+#include <functional>
 
 #include <atomic>
 #include <iostream>

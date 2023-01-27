@@ -22,7 +22,6 @@
 
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
-    PyVarDict _modules;                             // loaded modules
     emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
@@ -340,7 +339,7 @@ protected:
 
 public:
     PyVarDict _types;
-    PyVarDict _userTypes;
+    PyVarDict _modules;                             // loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -578,7 +577,6 @@ public:
         setattr(obj, __base__, base);
         _Str fullName = UNION_NAME(mod) + "." +name;
         setattr(obj, __name__, PyStr(fullName));
-        _userTypes[fullName] = obj;
         setattr(mod, name, obj);
         return obj;
     }
@@ -595,6 +593,11 @@ public:
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(_tp_type)) UNREACHABLE();
         return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
+    }
+
+    template<typename T, typename... Args>
+    inline PyVar new_object_c(Args&&... args) {
+        return new_object(T::_tp(this), T(std::forward<Args>(args)...));
     }
 
     PyVar newModule(_Str name) {
@@ -658,28 +661,35 @@ public:
         setattr(obj.get(), name, value);
     }
 
-    void bindMethod(_Str typeName, _Str funcName, _CppFunc fn) {
-        PyVar* type = _types.try_get(typeName);
-        if(type == nullptr) type = _userTypes.try_get(typeName);
-        if(type == nullptr) UNREACHABLE();
-        PyVar func = PyNativeFunction(fn);
-        setattr(*type, funcName, func);
+    template<int ARGC>
+    void bindMethod(PyVar obj, _Str funcName, _CppFuncRaw fn) {
+        check_type(obj, _tp_type);
+        setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, true)));
     }
 
-    void bindMethodMulti(std::vector<_Str> typeNames, _Str funcName, _CppFunc fn) {
-        for(auto& typeName : typeNames){
-            bindMethod(typeName, funcName, fn);
-        }
+    template<int ARGC>
+    void bindFunc(PyVar obj, _Str funcName, _CppFuncRaw fn) {
+        setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, false)));
     }
 
-    void bindBuiltinFunc(_Str funcName, _CppFunc fn) {
-        bindFunc(builtins, funcName, fn);
+    template<int ARGC>
+    void bindMethod(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+        bindMethod<ARGC>(_types[typeName], funcName, fn);
     }
 
-    void bindFunc(PyVar module, _Str funcName, _CppFunc fn) {
-        check_type(module, _tp_module);
-        PyVar func = PyNativeFunction(fn);
-        setattr(module, funcName, func);
+    template<int ARGC>
+    void bindStaticMethod(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+        bindFunc<ARGC>(_types[typeName], funcName, fn);
+    }
+
+    template<int ARGC>
+    void bindMethodMulti(std::vector<_Str> typeNames, _Str funcName, _CppFuncRaw fn) {
+        for(auto& typeName : typeNames) bindMethod<ARGC>(typeName, funcName, fn);
+    }
+
+    template<int ARGC>
+    void bindBuiltinFunc(_Str funcName, _CppFuncRaw fn) {
+        bindFunc<ARGC>(builtins, funcName, fn);
     }
 
     inline bool is_int_or_float(const PyVar& obj) const{
@@ -848,8 +858,8 @@ public:
         _tp_bounded_method = new_type_object("_bounded_method");
         _tp_super = new_type_object("super");
 
-        this->None = new_object(_types["NoneType"], (i64)0);
-        this->Ellipsis = new_object(_types["ellipsis"], (i64)0);
+        this->None = new_object(_types["NoneType"], DUMMY_VAL);
+        this->Ellipsis = new_object(_types["ellipsis"], DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
         this->builtins = newModule("builtins");
@@ -923,12 +933,6 @@ public:
 
     inline void check_type(const PyVar& obj, const PyVar& type){
         if(!obj->is_type(type)) typeError("expected '" + UNION_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
-    }
-
-    inline void check_args_size(const pkpy::ArgList& args, int size, bool method=false){
-        if(args.size() == size) return;
-        if(method) typeError(args.size()>size ? "too many arguments" : "too few arguments");
-        else typeError("expected " + std::to_string(size) + " arguments, but got " + std::to_string(args.size()));
     }
 
     virtual ~VM() {
@@ -1058,4 +1062,12 @@ PyVar RangeIterator::next(){
 
 PyVar StringIterator::next(){
     return vm->PyStr(str.u8_getitem(index++));
+}
+
+PyVar _CppFunc::operator()(VM* vm, const pkpy::ArgList& args) const{
+    int args_size = args.size() - (int)method;  // remove self
+    if(argc != -1 && args_size != argc) {
+        vm->typeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
+    }
+    return f(vm, args);
 }
