@@ -20,6 +20,6 @@ def test_dir(path):
     return not has_error
 
 if __name__ == '__main__':
-    ok = test_dir('./tests')
+    ok = test_dir('tests')
     if ok:
         print("ALL TESTS PASSED")
