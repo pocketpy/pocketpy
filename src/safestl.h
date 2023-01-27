@@ -45,15 +45,6 @@ namespace pkpy {
         PyVar* _args = nullptr;
         uint8_t _size = 0;
 
-        inline void __checkIndex(uint8_t i) const {
-#ifndef PKPY_NO_INDEX_CHECK
-            if (i >= _size){
-                auto msg = "pkpy:ArgList index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
-                throw std::out_of_range(msg);
-            }
-#endif
-        }
-
         void __tryAlloc(size_t n){
             if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
@@ -103,23 +94,8 @@ namespace pkpy {
             other.clear();
         }
 
-        PyVar& operator[](uint8_t i){
-            __checkIndex(i);
-            return _args[i];
-        }
-
-        const PyVar& operator[](uint8_t i) const {
-            __checkIndex(i);
-            return _args[i];
-        }
-
-        inline PyVar& _index(uint8_t i){
-            return _args[i];
-        }
-
-        inline const PyVar& _index(uint8_t i) const {
-            return _args[i];
-        }
+        PyVar& operator[](uint8_t i){ return _args[i]; }
+        const PyVar& operator[](uint8_t i) const { return _args[i]; }
 
         // overload = for &&
         ArgList& operator=(ArgList&& other) noexcept {
@@ -164,29 +140,18 @@ namespace pkpy {
         return ret;
     }
 
-    ArgList oneArg(PyVar&& a) {
+    template<typename T>
+    ArgList oneArg(T&& a) {
         ArgList ret(1);
-        ret[0] = std::move(a);
+        ret[0] = std::forward<T>(a);
         return ret;
     }
 
-    ArgList oneArg(const PyVar& a) {
-        ArgList ret(1);
-        ret[0] = a;
-        return ret;
-    }
-
-    ArgList twoArgs(PyVar&& a, PyVar&& b) {
+    template<typename T1, typename T2>
+    ArgList twoArgs(T1&& a, T2&& b) {
         ArgList ret(2);
-        ret[0] = std::move(a);
-        ret[1] = std::move(b);
-        return ret;
-    }
-
-    ArgList twoArgs(const PyVar& a, const PyVar& b) {
-        ArgList ret(2);
-        ret[0] = a;
-        ret[1] = b;
+        ret[0] = std::forward<T1>(a);
+        ret[1] = std::forward<T2>(b);
         return ret;
     }
 }

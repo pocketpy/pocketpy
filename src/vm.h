@@ -135,8 +135,8 @@ protected:
             case OP_BINARY_OP:
                 {
                     pkpy::ArgList args(2);
-                    args._index(1) = frame->pop_value(this);
-                    args._index(0) = frame->top_value(this);
+                    args[1] = frame->pop_value(this);
+                    args[0] = frame->top_value(this);
                     frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_BITWISE_OP:
@@ -522,7 +522,7 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    virtual PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr){
+    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
@@ -935,7 +935,7 @@ public:
         if(!obj->is_type(type)) typeError("expected '" + UNION_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
     }
 
-    virtual ~VM() {
+    ~VM() {
         if(!use_stdio){
             delete _stdout;
             delete _stderr;

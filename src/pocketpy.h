@@ -19,10 +19,10 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
         if(!vm->is_int_or_float(args[0], args[1]))                                                         \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
-        if(args._index(0)->is_type(vm->_tp_int) && args._index(1)->is_type(vm->_tp_int)){                 \
-            return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));         \
+        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                 \
+            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));         \
         }else{                                                                                          \
-            return vm->PyFloat(vm->num_to_float(args._index(0)) op vm->num_to_float(args._index(1)));       \
+            return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));       \
         }                                                                                               \
     });
 
@@ -32,7 +32,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
             if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
-        return vm->PyBool(vm->num_to_float(args._index(0)) op vm->num_to_float(args._index(1)));            \
+        return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));            \
     });
     
 
@@ -216,17 +216,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "//" );
-        i64 rhs = vm->PyInt_AS_C(args._index(1));
+        i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) / rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
     });
 
     _vm->bindMethod<1>("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
         if(!args[0]->is_type(vm->_tp_int) || !args[1]->is_type(vm->_tp_int))
             vm->typeError("unsupported operand type(s) for " "%" );
-        i64 rhs = vm->PyInt_AS_C(args._index(1));
+        i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) % rhs);
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
     });
 
     _vm->bindMethod<0>("int", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
@@ -239,7 +239,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 #define __INT_BITWISE_OP(name,op) \
     _vm->bindMethod<1>("int", #name, [](VM* vm, const pkpy::ArgList& args) {                    \
-        return vm->PyInt(vm->PyInt_AS_C(args._index(0)) op vm->PyInt_AS_C(args._index(1)));     \
+        return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));     \
     });
 
     __INT_BITWISE_OP(__lshift__, <<)
@@ -288,7 +288,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     /************ PyString ************/
     _vm->bindStaticMethod<1>("str", "__new__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->asStr(args._index(0));
+        return vm->asStr(args[0]);
     });
 
     _vm->bindMethod<1>("str", "__add__", [](VM* vm, const pkpy::ArgList& args) {
@@ -411,7 +411,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<1>("list", "append", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
-        _self.push_back(args._index(1));
+        _self.push_back(args[1]);
         return vm->None;
     });
 

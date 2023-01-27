@@ -264,8 +264,8 @@ public:
         if(new_size < 0) throw std::runtime_error("stack_size() < n");
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--){
-            v._index(i) = std::move(s_data[new_size + i]);
-            try_deref(vm, v._index(i));
+            v[i] = std::move(s_data[new_size + i]);
+            try_deref(vm, v[i]);
         }
         s_data.resize(new_size);
         return v;
@@ -279,7 +279,7 @@ public:
 
     pkpy::ArgList pop_n_reversed(int n){
         pkpy::ArgList v(n);
-        for(int i=n-1; i>=0; i--) v._index(i) = pop();
+        for(int i=n-1; i>=0; i--) v[i] = pop();
         return v;
     }
 };
