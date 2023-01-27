@@ -40,14 +40,19 @@ namespace pkpy {
     static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
-        PyVar* _args = nullptr;
-        uint8_t _size = 0;
+        PyVar* _args;
+        uint8_t _size;
 
         void __tryAlloc(size_t n){
+            if(n == 0){
+                this->_args = nullptr;
+                this->_size = 0;
+                return;
+            }
             if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
-                this->_size = n;
                 this->_args = new PyVar[n];
+                this->_size = n;
             }else{
                 this->_args = _poolArgList[n].back();
                 this->_size = n;
@@ -67,7 +72,7 @@ namespace pkpy {
 
     public:
         ArgList(size_t n){
-            if(n != 0) __tryAlloc(n);
+            __tryAlloc(n);
         }
 
         ArgList(const ArgList& other){
@@ -128,13 +133,23 @@ namespace pkpy {
             return ret;
         }
 
-        ArgList move_extended_self(const PyVar& self){
+        void extended_self(const PyVar& self){
             static_assert(std::is_standard_layout_v<PyVar>);
-            pkpy::ArgList ret(size()+1);
-            ret[0] = self;
-            memcpy(ret._args+1, _args, sizeof(PyVar)*size());
-            memset(_args, 0, sizeof(PyVar)*size());
-            return ret;
+            PyVar* old_args = _args;
+            uint8_t old_size = _size;
+            __tryAlloc(old_size+1);
+            _args[0] = self;
+
+            if(old_size == 0) return;
+
+            memcpy(_args+1, old_args, sizeof(PyVar)*old_size);
+            memset(old_args, 0, sizeof(PyVar)*old_size);
+
+            if(old_size >= MAX_POOLING_N || _poolArgList[old_size].size() > 32){
+                delete[] old_args;
+            }else{
+                _poolArgList[old_size].push_back(old_args);
+            }
         }
 
         ~ArgList(){
