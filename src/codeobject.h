@@ -253,9 +253,7 @@ public:
                 if(code->co_blocks[i].type == FOR_LOOP) pop();
                 i = code->co_blocks[i].parent;
             }
-            if(i!=next.block) throw std::runtime_error(
-                "invalid jump from " + code->co_blocks[prev.block].to_string() + " to " + code->co_blocks[next.block].to_string()
-            );
+            if(i!=next.block) throw std::runtime_error("invalid jump");
         }
     }
 

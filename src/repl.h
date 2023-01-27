@@ -22,6 +22,7 @@ public:
     }
 
     InputResult input(std::string line){
+        CompileMode mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
@@ -33,6 +34,7 @@ public:
                 need_more_lines = 0;
                 line = buffer;
                 buffer.clear();
+                mode = EXEC_MODE;
             }else{
 __NOT_ENOUGH_LINES:
                 return NEED_MORE_LINES;
@@ -42,7 +44,7 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            vm->compile(line, "<stdin>", SINGLE_MODE);
+            vm->compile(line, "<stdin>", mode);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
@@ -51,7 +53,7 @@ __NOT_ENOUGH_LINES:
         }catch(...){
             // do nothing
         }
-        vm->exec(line, "<stdin>", SINGLE_MODE);
+        vm->exec(line, "<stdin>", mode);
         return EXEC_STARTED;
     }
 };
