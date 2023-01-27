@@ -77,9 +77,7 @@ namespace pkpy {
 
         ArgList(const ArgList& other){
             __tryAlloc(other._size);
-            for(uint8_t i=0; i<_size; i++){
-                _args[i] = other._args[i];
-            }
+            for(uint8_t i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
         ArgList(ArgList&& other) noexcept {
@@ -112,24 +110,11 @@ namespace pkpy {
             return *this;
         }
 
-        inline uint8_t size() const {
-            return _size;
-        }
-
-        ArgList subList(uint8_t start) const {
-            if(start >= _size) return ArgList(0);
-            ArgList ret(_size - start);
-            for(uint8_t i=start; i<_size; i++){
-                ret[i-start] = _args[i];
-            }
-            return ret;
-        }
+        inline uint8_t size() const { return _size; }
 
         PyVarList toList() const {
             PyVarList ret(_size);
-            for(uint8_t i=0; i<_size; i++){
-                ret[i] = _args[i];
-            }
+            for(uint8_t i=0; i<_size; i++) ret[i] = _args[i];
             return ret;
         }
 
@@ -139,12 +124,10 @@ namespace pkpy {
             uint8_t old_size = _size;
             __tryAlloc(old_size+1);
             _args[0] = self;
-
             if(old_size == 0) return;
 
             memcpy(_args+1, old_args, sizeof(PyVar)*old_size);
             memset(old_args, 0, sizeof(PyVar)*old_size);
-
             if(old_size >= MAX_POOLING_N || _poolArgList[old_size].size() > 32){
                 delete[] old_args;
             }else{
