@@ -686,14 +686,6 @@ public:
         bindFunc<ARGC>(builtins, funcName, fn);
     }
 
-    inline bool is_int_or_float(const PyVar& obj) const{
-        return obj->is_type(_tp_int) || obj->is_type(_tp_float);
-    }
-
-    inline bool is_int_or_float(const PyVar& obj1, const PyVar& obj2) const{
-        return is_int_or_float(obj1) && is_int_or_float(obj2);
-    }
-
     inline f64 num_to_float(const PyVar& obj){
         if (obj->is_type(_tp_int)){
             return (f64)PyInt_AS_C(obj);
