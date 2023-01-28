@@ -311,7 +311,7 @@ protected:
                             const _Str& source = it2->second;
                             _Code code = compile(source, name, EXEC_MODE);
                             PyVar _m = newModule(name);
-                            _exec(code, _m, {});
+                            _exec(code, _m, pkpy::make_shared<PyVarDict>());
                             frame->push(_m);
                             _lazy_modules.erase(it2);
                         }
@@ -459,7 +459,9 @@ public:
             return f(this, args);
         } else if((*callable)->is_type(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
-            PyVarDict locals;
+            pkpy::shared_ptr<PyVarDict> _locals = pkpy::make_shared<PyVarDict>();
+            PyVarDict& locals = *_locals;
+
             int i = 0;
             for(const auto& name : fn->args){
                 if(i < args.size()){
@@ -507,10 +509,10 @@ public:
             PyVar* it_m = (*callable)->attribs.try_get(__module__);
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
-                __pushNewFrame(fn->code, _module, std::move(locals));
+                __push_new_frame(fn->code, _module, _locals);
                 return __py2py_call_signal;
             }
-            return _exec(fn->code, _module, std::move(locals));
+            return _exec(fn->code, _module, _locals);
         }
         typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
         return None;
@@ -523,7 +525,7 @@ public:
         try {
             _Code code = compile(source, filename, mode);
             //if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
-            return _exec(code, _module, {});
+            return _exec(code, _module, pkpy::make_shared<PyVarDict>());
         }catch (const _Error& e){
             *_stderr << e.what() << '\n';
         }
@@ -534,18 +536,18 @@ public:
         return nullptr;
     }
 
-    Frame* __pushNewFrame(const _Code& code, PyVar _module, PyVarDict&& locals){
-        if(code == nullptr) UNREACHABLE();
+    template<typename ...Args>
+    Frame* __push_new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
             throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
         }
-        Frame* frame = new Frame(code, _module, std::move(locals));
-        callstack.emplace_back(frame);
-        return frame;
+        callstack.emplace_back(std::make_unique<Frame>(std::forward<Args>(args)...));
+        return callstack.back().get();
     }
 
-    PyVar _exec(_Code code, PyVar _module, PyVarDict&& locals){
-        Frame* frame = __pushNewFrame(code, _module, std::move(locals));
+    template<typename ...Args>
+    PyVar _exec(Args&&... args){
+        Frame* frame = __push_new_frame(std::forward<Args>(args)...);
         Frame* frameBase = frame;
         PyVar ret = nullptr;
 
@@ -945,7 +947,7 @@ public:
 
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
-    val = frame->f_locals.try_get(pair->first);
+    val = frame->f_locals().try_get(pair->first);
     if(val) return *val;
     val = frame->f_globals().try_get(pair->first);
     if(val) return *val;
@@ -957,10 +959,10 @@ PyVar NameRef::get(VM* vm, Frame* frame) const{
 
 void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
     switch(pair->second) {
-        case NAME_LOCAL: frame->f_locals[pair->first] = std::move(val); break;
+        case NAME_LOCAL: frame->f_locals()[pair->first] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            PyVar* existing = frame->f_locals.try_get(pair->first);
+            PyVar* existing = frame->f_locals().try_get(pair->first);
             if(existing != nullptr){
                 *existing = std::move(val);
             }else{
@@ -974,16 +976,16 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
 void NameRef::del(VM* vm, Frame* frame) const{
     switch(pair->second) {
         case NAME_LOCAL: {
-            if(frame->f_locals.contains(pair->first)){
-                frame->f_locals.erase(pair->first);
+            if(frame->f_locals().contains(pair->first)){
+                frame->f_locals().erase(pair->first);
             }else{
                 vm->nameError(pair->first);
             }
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals.contains(pair->first)){
-                frame->f_locals.erase(pair->first);
+            if(frame->f_locals().contains(pair->first)){
+                frame->f_locals().erase(pair->first);
             }else{
                 if(frame->f_globals().contains(pair->first)){
                     frame->f_globals().erase(pair->first);

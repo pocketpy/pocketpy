@@ -178,13 +178,13 @@ private:
 public:
     const _Code code;
     PyVar _module;
-    PyVarDict f_locals;
+    pkpy::shared_ptr<PyVarDict> _locals;
 
-    inline PyVarDict f_locals_copy() const { return f_locals; }
+    inline PyVarDict& f_locals(){ return *_locals; }
     inline PyVarDict& f_globals(){ return _module->attribs; }
 
-    Frame(const _Code code, PyVar _module, PyVarDict&& locals)
-        : code(code), _module(_module), f_locals(std::move(locals)) {
+    Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
+        : code(code), _module(_module), _locals(_locals) {
     }
 
     inline const Bytecode& next_bytecode() {

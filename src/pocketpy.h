@@ -54,15 +54,22 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc<0>("super", [](VM* vm, const pkpy::ArgList& args) {
-        auto it = vm->top_frame()->f_locals.find(m_self);
-        if(it == vm->top_frame()->f_locals.end()) vm->typeError("super() can only be called in a class method");
+        auto it = vm->top_frame()->f_locals().find(m_self);
+        if(it == vm->top_frame()->f_locals().end()) vm->typeError("super() can only be called in a class method");
         return vm->new_object(vm->_tp_super, it->second);
     });
 
     _vm->bindBuiltinFunc<1>("eval", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->f_locals_copy());
+        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+    });
+
+    _vm->bindBuiltinFunc<1>("exec", [](VM* vm, const pkpy::ArgList& args) {
+        const _Str& expr = vm->PyStr_AS_C(args[0]);
+        _Code code = vm->compile(expr, "<exec>", EXEC_MODE);
+        vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        return vm->None;
     });
 
     _vm->bindBuiltinFunc<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
@@ -91,7 +98,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc<0>("locals", [](VM* vm, const pkpy::ArgList& args) {
-        const auto& d = vm->top_frame()->f_locals;
+        const auto& d = vm->top_frame()->f_locals();
         PyVar obj = vm->call(vm->builtins->attribs["dict"]);
         for (const auto& [k, v] : d) {
             vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
@@ -532,7 +539,7 @@ void __addModuleJson(VM* vm){
     vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->f_locals_copy());
+        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     vm->bindFunc<1>(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {
@@ -789,7 +796,7 @@ extern "C" {
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
-        vm->_exec(code, vm->builtins, {});
+        vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
 
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
         pkpy_vm_add_module(vm, "os", __OS_CODE);
