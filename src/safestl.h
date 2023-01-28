@@ -36,12 +36,12 @@ public:
 typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
-    const uint8_t MAX_POOLING_N = 10;
+    const int MAX_POOLING_N = 10;
     static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
         PyVar* _args;
-        uint8_t _size;
+        int _size;
 
         void __tryAlloc(size_t n){
             if(n == 0){
@@ -49,7 +49,6 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
@@ -65,7 +64,7 @@ namespace pkpy {
             if(_size >= MAX_POOLING_N || _poolArgList[_size].size() > 32){
                 delete[] _args;
             }else{
-                for(uint8_t i = 0; i < _size; i++) _args[i].reset();
+                for(int i = 0; i < _size; i++) _args[i].reset();
                 _poolArgList[_size].push_back(_args);
             }
         }
@@ -77,7 +76,7 @@ namespace pkpy {
 
         ArgList(const ArgList& other){
             __tryAlloc(other._size);
-            for(uint8_t i=0; i<_size; i++) _args[i] = other._args[i];
+            for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
         ArgList(ArgList&& other) noexcept {
@@ -89,14 +88,14 @@ namespace pkpy {
 
         ArgList(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
-            for(uint8_t i=0; i<_size; i++){
+            for(int i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
             }
             other.clear();
         }
 
-        PyVar& operator[](uint8_t i){ return _args[i]; }
-        const PyVar& operator[](uint8_t i) const { return _args[i]; }
+        PyVar& operator[](int i){ return _args[i]; }
+        const PyVar& operator[](int i) const { return _args[i]; }
 
         ArgList& operator=(ArgList&& other) noexcept {
             __tryRelease();
@@ -107,18 +106,18 @@ namespace pkpy {
             return *this;
         }
 
-        inline uint8_t size() const { return _size; }
+        inline int size() const { return _size; }
 
         PyVarList toList() const {
             PyVarList ret(_size);
-            for(uint8_t i=0; i<_size; i++) ret[i] = _args[i];
+            for(int i=0; i<_size; i++) ret[i] = _args[i];
             return ret;
         }
 
         void extend_self(const PyVar& self){
             static_assert(std::is_standard_layout_v<PyVar>);
             PyVar* old_args = _args;
-            uint8_t old_size = _size;
+            int old_size = _size;
             __tryAlloc(old_size+1);
             _args[0] = self;
             if(old_size == 0) return;
