@@ -98,7 +98,6 @@ namespace pkpy {
         PyVar& operator[](uint8_t i){ return _args[i]; }
         const PyVar& operator[](uint8_t i) const { return _args[i]; }
 
-        // overload = for &&
         ArgList& operator=(ArgList&& other) noexcept {
             if(this != &other){
                 __tryRelease();

@@ -645,14 +645,10 @@ public:
     }
 
     template<typename T>
-    void setattr(PyObject* obj, const _Str& name, T&& value) {
-        while(obj->is_type(_tp_super)) obj = ((Py_<PyVar>*)obj)->_valueT.get();
-        obj->attribs[name] = value;
-    }
-
-    template<typename T>
     inline void setattr(PyVar& obj, const _Str& name, T&& value) {
-        setattr(obj.get(), name, value);
+        PyObject* p = obj.get();
+        while(p->is_type(_tp_super)) p = ((Py_<PyVar>*)p)->_valueT.get();
+        p->attribs[name] = std::forward<T>(value);
     }
 
     template<int ARGC>

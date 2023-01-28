@@ -88,22 +88,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt((i64)s[0]);
     });
 
-    _vm->bindBuiltinFunc<0>("globals", [](VM* vm, const pkpy::ArgList& args) {
-        const auto& d = vm->top_frame()->f_globals();
-        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
-        for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
-        }
-        return obj;
+    _vm->bindBuiltinFunc<2>("hasattr", [](VM* vm, const pkpy::ArgList& args) {
+        return vm->PyBool(vm->getattr(args[0], vm->PyStr_AS_C(args[1]), false) != nullptr);
     });
 
-    _vm->bindBuiltinFunc<0>("locals", [](VM* vm, const pkpy::ArgList& args) {
-        const auto& d = vm->top_frame()->f_locals();
-        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
-        for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
-        }
-        return obj;
+    _vm->bindBuiltinFunc<3>("setattr", [](VM* vm, const pkpy::ArgList& args) {
+        PyVar obj = args[0];
+        vm->setattr(obj, vm->PyStr_AS_C(args[1]), args[2]);
+        return vm->None;
+    });
+
+    _vm->bindBuiltinFunc<2>("getattr", [](VM* vm, const pkpy::ArgList& args) {
+        _Str name = vm->PyStr_AS_C(args[1]);
+        return vm->getattr(args[0], name);
     });
 
     _vm->bindBuiltinFunc<1>("hex", [](VM* vm, const pkpy::ArgList& args) {
