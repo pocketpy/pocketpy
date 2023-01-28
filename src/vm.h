@@ -450,7 +450,7 @@ public:
         if((*callable)->is_type(_tp_bounded_method)){
             auto& bm = PyBoundedMethod_AS_C((*callable));
             callable = &bm.method;      // get unbound method
-            args.extended_self(bm.obj);
+            args.extend_self(bm.obj);
         }
         
         if((*callable)->is_type(_tp_native_function)){

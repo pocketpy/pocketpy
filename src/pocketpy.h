@@ -128,8 +128,9 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(s);
     });
 
+    _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
+
     _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
-    _vm->bindMethod<1>("type", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
         _Range r;
@@ -148,7 +149,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
     _vm->bindMethod<0>("NoneType", "__json__", CPP_LAMBDA(vm->PyStr("null")));
-    _vm->bindMethod<1>("NoneType", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
 
     _vm->bindMethodMulti<1>({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
         f64 rhs = vm->num_to_float(args[1]);
@@ -292,7 +292,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("str", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
         if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
-        return vm->PyBool(args[0] == args[1]);      // fallback
+        return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bindMethod<1>("str", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
@@ -476,10 +476,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<0>("bool", "__json__", [](VM* vm, const pkpy::ArgList& args) {
         bool val = vm->PyBool_AS_C(args[0]);
         return vm->PyStr(val ? "true" : "false");
-    });
-
-    _vm->bindMethod<1>("bool", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bindMethod<1>("bool", "__xor__", [](VM* vm, const pkpy::ArgList& args) {

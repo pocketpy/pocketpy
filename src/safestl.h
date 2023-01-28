@@ -118,7 +118,7 @@ namespace pkpy {
             return ret;
         }
 
-        void extended_self(const PyVar& self){
+        void extend_self(const PyVar& self){
             static_assert(std::is_standard_layout_v<PyVar>);
             PyVar* old_args = _args;
             uint8_t old_size = _size;
@@ -126,8 +126,8 @@ namespace pkpy {
             _args[0] = self;
             if(old_size == 0) return;
 
-            memcpy(_args+1, old_args, sizeof(PyVar)*old_size);
-            memset(old_args, 0, sizeof(PyVar)*old_size);
+            memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
+            memset((void*)old_args, 0, sizeof(PyVar)*old_size);
             if(old_size >= MAX_POOLING_N || _poolArgList[old_size].size() > 32){
                 delete[] old_args;
             }else{
