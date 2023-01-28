@@ -22,5 +22,11 @@ assert f(2) == 2
 exec(
     "exec('a = eval(\"3 + 5\")')"
 )
-
 assert a == 8
+
+def f():
+    b = 1
+    exec(
+        "exec('b = eval(\"3 + 5\")')"
+    )
+    assert b == 8

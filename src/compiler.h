@@ -118,6 +118,7 @@ public:
                         break;
                     }
                     buff.push_back(c);
+                    continue;
                 } else {
                     break;
                 }
