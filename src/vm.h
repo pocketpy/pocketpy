@@ -389,8 +389,8 @@ public:
     }
 
     const PyVar& asBool(const PyVar& obj){
-        if(obj == None) return False;
         if(obj->is_type(_tp_bool)) return obj;
+        if(obj == None) return False;
         if(obj->is_type(_tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
         if(obj->is_type(_tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getattr(obj, __len__, false);
