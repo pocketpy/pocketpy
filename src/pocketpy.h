@@ -509,7 +509,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 
 void __addModuleTime(VM* vm){
-    PyVar mod = vm->newModule("time");
+    PyVar mod = vm->new_module("time");
     vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::ArgList& args) {
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
@@ -517,7 +517,7 @@ void __addModuleTime(VM* vm){
 }
 
 void __addModuleSys(VM* vm){
-    PyVar mod = vm->newModule("sys");
+    PyVar mod = vm->new_module("sys");
     vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyInt(args[0].use_count());
     });
@@ -535,7 +535,7 @@ void __addModuleSys(VM* vm){
 }
 
 void __addModuleJson(VM* vm){
-    PyVar mod = vm->newModule("json");
+    PyVar mod = vm->new_module("json");
     vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
@@ -548,7 +548,7 @@ void __addModuleJson(VM* vm){
 }
 
 void __addModuleMath(VM* vm){
-    PyVar mod = vm->newModule("math");
+    PyVar mod = vm->new_module("math");
     vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
     vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
@@ -647,7 +647,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
 };
 
 void __addModuleRe(VM* vm){
-    PyVar mod = vm->newModule("re");
+    PyVar mod = vm->new_module("re");
     ReMatch::_bind(vm);
 
     vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
@@ -783,7 +783,7 @@ extern "C" {
     __EXPORT
     /// Add a source module into a virtual machine.
     void pkpy_vm_add_module(VM* vm, const char* name, const char* source){
-        vm->addLazyModule(name, source);
+        vm->_lazy_modules[name] = source;
     }
 
     void __vm_init(VM* vm){

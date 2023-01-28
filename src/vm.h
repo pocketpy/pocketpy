@@ -22,7 +22,6 @@
 
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
-    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
@@ -310,7 +309,7 @@ protected:
                         }else{
                             const _Str& source = it2->second;
                             _Code code = compile(source, name, EXEC_MODE);
-                            PyVar _m = newModule(name);
+                            PyVar _m = new_module(name);
                             _exec(code, _m, pkpy::make_shared<PyVarDict>());
                             frame->push(_m);
                             _lazy_modules.erase(it2);
@@ -340,6 +339,7 @@ protected:
 public:
     PyVarDict _types;
     PyVarDict _modules;                             // loaded modules
+    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -598,15 +598,11 @@ public:
         return new_object(T::_tp(this), T(std::forward<Args>(args)...));
     }
 
-    PyVar newModule(_Str name) {
-        PyVar obj = new_object(_tp_module, (i64)-2);
+    PyVar new_module(_Str name) {
+        PyVar obj = new_object(_tp_module, DUMMY_VAL);
         setattr(obj, __name__, PyStr(name));
         _modules[name] = obj;
         return obj;
-    }
-
-    void addLazyModule(_Str name, _Str source){
-        _lazy_modules[name] = source;
     }
 
     PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -860,8 +856,8 @@ public:
         this->Ellipsis = new_object(_types["ellipsis"], DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
-        this->builtins = newModule("builtins");
-        this->_main = newModule("__main__");
+        this->builtins = new_module("builtins");
+        this->_main = new_module("__main__");
 
         setattr(_tp_type, __base__, _tp_object);
         _tp_type->_type = _tp_type;
