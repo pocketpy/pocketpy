@@ -180,8 +180,8 @@ public:
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
 
-    inline PyVarDict& f_locals(){ return *_locals; }
-    inline PyVarDict& f_globals(){ return _module->attribs; }
+    inline PyVarDict& f_locals() noexcept { return *_locals; }
+    inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
     Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
         : code(code), _module(_module), _locals(_locals) {
