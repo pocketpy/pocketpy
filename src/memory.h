@@ -41,20 +41,16 @@ namespace pkpy{
         }
 
         shared_ptr& operator=(const shared_ptr& other) {
-            if (this != &other) {
-                _dec_counter();
-                counter = other.counter;
-                _inc_counter();
-            }
+            _dec_counter();
+            counter = other.counter;
+            _inc_counter();
             return *this;
         }
 
         shared_ptr& operator=(shared_ptr&& other) noexcept {
-            if (this != &other) {
-                _dec_counter();
-                counter = other.counter;
-                other.counter = nullptr;
-            }
+            _dec_counter();
+            counter = other.counter;
+            other.counter = nullptr;
             return *this;
         }
 

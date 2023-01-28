@@ -99,13 +99,11 @@ namespace pkpy {
         const PyVar& operator[](uint8_t i) const { return _args[i]; }
 
         ArgList& operator=(ArgList&& other) noexcept {
-            if(this != &other){
-                __tryRelease();
-                this->_args = other._args;
-                this->_size = other._size;
-                other._args = nullptr;
-                other._size = 0;
-            }
+            __tryRelease();
+            this->_args = other._args;
+            this->_size = other._size;
+            other._args = nullptr;
+            other._size = 0;
             return *this;
         }
 
