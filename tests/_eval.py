@@ -18,3 +18,9 @@ def f(x):
     return a
 
 assert f(2) == 2
+
+exec(
+    "exec('a = eval(\"3 + 5\")')"
+)
+
+assert a == 8

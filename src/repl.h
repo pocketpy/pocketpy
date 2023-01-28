@@ -44,16 +44,13 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            vm->compile(line, "<stdin>", mode);
+            vm->exec(line, "<stdin>", mode);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
             if (need_more_lines) return NEED_MORE_LINES;
-        }catch(...){
-            // do nothing
         }
-        vm->exec(line, "<stdin>", mode);
         return EXEC_STARTED;
     }
 };

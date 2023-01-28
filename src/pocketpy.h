@@ -62,14 +62,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc<1>("eval", [](VM* vm, const pkpy::ArgList& args) {
-        const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
+        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     _vm->bindBuiltinFunc<1>("exec", [](VM* vm, const pkpy::ArgList& args) {
-        const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr, "<exec>", EXEC_MODE);
+        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
     });
