@@ -12,7 +12,7 @@ jobs:
         CL -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
-  build_test_linux:
+  build_linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -21,3 +21,23 @@ jobs:
         bash build_cpp.sh
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
+  build_web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v11
+      with:
+        version: 3.1.25
+        actions-cache-folder: 'emsdk-cache'
+    - name: Verify emsdk
+      run: emcc -v
+    - name: Compiling
+      run: |
+        bash build_wasm.sh
+    - uses: crazy-max/ghaction-github-pages@v3
+      with:
+        target_branch: gh-pages
+        build_dir: web
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
