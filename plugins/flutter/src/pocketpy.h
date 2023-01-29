@@ -1879,20 +1879,16 @@ namespace pkpy{
         }
 
         shared_ptr& operator=(const shared_ptr& other) {
-            if (this != &other) {
-                _dec_counter();
-                counter = other.counter;
-                _inc_counter();
-            }
+            _dec_counter();
+            counter = other.counter;
+            _inc_counter();
             return *this;
         }
 
         shared_ptr& operator=(shared_ptr&& other) noexcept {
-            if (this != &other) {
-                _dec_counter();
-                counter = other.counter;
-                other.counter = nullptr;
-            }
+            _dec_counter();
+            counter = other.counter;
+            other.counter = nullptr;
             return *this;
         }
 
@@ -2161,12 +2157,12 @@ public:
 typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
-    const uint8_t MAX_POOLING_N = 10;
+    const int MAX_POOLING_N = 10;
     static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
 
     class ArgList {
         PyVar* _args;
-        uint8_t _size;
+        int _size;
 
         void __tryAlloc(size_t n){
             if(n == 0){
@@ -2174,7 +2170,6 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n > 255) UNREACHABLE();
             if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
@@ -2190,7 +2185,7 @@ namespace pkpy {
             if(_size >= MAX_POOLING_N || _poolArgList[_size].size() > 32){
                 delete[] _args;
             }else{
-                for(uint8_t i = 0; i < _size; i++) _args[i].reset();
+                for(int i = 0; i < _size; i++) _args[i].reset();
                 _poolArgList[_size].push_back(_args);
             }
         }
@@ -2202,7 +2197,7 @@ namespace pkpy {
 
         ArgList(const ArgList& other){
             __tryAlloc(other._size);
-            for(uint8_t i=0; i<_size; i++) _args[i] = other._args[i];
+            for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
         ArgList(ArgList&& other) noexcept {
@@ -2214,39 +2209,36 @@ namespace pkpy {
 
         ArgList(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
-            for(uint8_t i=0; i<_size; i++){
+            for(int i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
             }
             other.clear();
         }
 
-        PyVar& operator[](uint8_t i){ return _args[i]; }
-        const PyVar& operator[](uint8_t i) const { return _args[i]; }
+        PyVar& operator[](int i){ return _args[i]; }
+        const PyVar& operator[](int i) const { return _args[i]; }
 
-        // overload = for &&
         ArgList& operator=(ArgList&& other) noexcept {
-            if(this != &other){
-                __tryRelease();
-                this->_args = other._args;
-                this->_size = other._size;
-                other._args = nullptr;
-                other._size = 0;
-            }
+            __tryRelease();
+            this->_args = other._args;
+            this->_size = other._size;
+            other._args = nullptr;
+            other._size = 0;
             return *this;
         }
 
-        inline uint8_t size() const { return _size; }
+        inline int size() const { return _size; }
 
         PyVarList toList() const {
             PyVarList ret(_size);
-            for(uint8_t i=0; i<_size; i++) ret[i] = _args[i];
+            for(int i=0; i<_size; i++) ret[i] = _args[i];
             return ret;
         }
 
         void extend_self(const PyVar& self){
             static_assert(std::is_standard_layout_v<PyVar>);
             PyVar* old_args = _args;
-            uint8_t old_size = _size;
+            int old_size = _size;
             __tryAlloc(old_size+1);
             _args[0] = self;
             if(old_size == 0) return;
@@ -3734,8 +3726,8 @@ public:
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
 
-    inline PyVarDict& f_locals(){ return *_locals; }
-    inline PyVarDict& f_globals(){ return _module->attribs; }
+    inline PyVarDict& f_locals() noexcept { return *_locals; }
+    inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
     Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
         : code(code), _module(_module), _locals(_locals) {
@@ -3823,12 +3815,6 @@ public:
         return v;
     }
 
-    PyVarList pop_n_values_reversed_unlimited(VM* vm, int n){
-        PyVarList v(n);
-        for(int i=n-1; i>=0; i--) v[i] = pop_value(vm);
-        return v;
-    }
-
     pkpy::ArgList pop_n_reversed(int n){
         pkpy::ArgList v(n);
         for(int i=n-1; i>=0; i--) v[i] = pop();
@@ -3855,7 +3841,6 @@ public:
 
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
-    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
 protected:
     std::deque< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
@@ -4032,12 +4017,12 @@ protected:
             case OP_BUILD_LIST:
                 {
                     frame->push(PyList(
-                        frame->pop_n_values_reversed_unlimited(this, byte.arg)
+                        frame->pop_n_values_reversed(this, byte.arg).toList()
                     ));
                 } break;
             case OP_BUILD_MAP:
                 {
-                    PyVarList items = frame->pop_n_values_reversed_unlimited(this, byte.arg*2);
+                    pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -4047,7 +4032,7 @@ protected:
             case OP_BUILD_SET:
                 {
                     PyVar list = PyList(
-                        frame->pop_n_values_reversed_unlimited(this, byte.arg)
+                        frame->pop_n_values_reversed(this, byte.arg).toList()
                     );
                     PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
                     frame->push(obj);
@@ -4143,7 +4128,7 @@ protected:
                         }else{
                             const _Str& source = it2->second;
                             _Code code = compile(source, name, EXEC_MODE);
-                            PyVar _m = newModule(name);
+                            PyVar _m = new_module(name);
                             _exec(code, _m, pkpy::make_shared<PyVarDict>());
                             frame->push(_m);
                             _lazy_modules.erase(it2);
@@ -4173,6 +4158,7 @@ protected:
 public:
     PyVarDict _types;
     PyVarDict _modules;                             // loaded modules
+    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -4222,8 +4208,8 @@ public:
     }
 
     const PyVar& asBool(const PyVar& obj){
-        if(obj == None) return False;
         if(obj->is_type(_tp_bool)) return obj;
+        if(obj == None) return False;
         if(obj->is_type(_tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
         if(obj->is_type(_tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getattr(obj, __len__, false);
@@ -4431,15 +4417,11 @@ public:
         return new_object(T::_tp(this), T(std::forward<Args>(args)...));
     }
 
-    PyVar newModule(_Str name) {
-        PyVar obj = new_object(_tp_module, (i64)-2);
+    PyVar new_module(_Str name) {
+        PyVar obj = new_object(_tp_module, DUMMY_VAL);
         setattr(obj, __name__, PyStr(name));
         _modules[name] = obj;
         return obj;
-    }
-
-    void addLazyModule(_Str name, _Str source){
-        _lazy_modules[name] = source;
     }
 
     PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -4482,14 +4464,10 @@ public:
     }
 
     template<typename T>
-    void setattr(PyObject* obj, const _Str& name, T&& value) {
-        while(obj->is_type(_tp_super)) obj = ((Py_<PyVar>*)obj)->_valueT.get();
-        obj->attribs[name] = value;
-    }
-
-    template<typename T>
     inline void setattr(PyVar& obj, const _Str& name, T&& value) {
-        setattr(obj.get(), name, value);
+        PyObject* p = obj.get();
+        while(p->is_type(_tp_super)) p = ((Py_<PyVar>*)p)->_valueT.get();
+        p->attribs[name] = std::forward<T>(value);
     }
 
     template<int ARGC>
@@ -4521,14 +4499,6 @@ public:
     template<int ARGC>
     void bindBuiltinFunc(_Str funcName, _CppFuncRaw fn) {
         bindFunc<ARGC>(builtins, funcName, fn);
-    }
-
-    inline bool is_int_or_float(const PyVar& obj) const{
-        return obj->is_type(_tp_int) || obj->is_type(_tp_float);
-    }
-
-    inline bool is_int_or_float(const PyVar& obj1, const PyVar& obj2) const{
-        return is_int_or_float(obj1) && is_int_or_float(obj2);
     }
 
     inline f64 num_to_float(const PyVar& obj){
@@ -4693,8 +4663,8 @@ public:
         this->Ellipsis = new_object(_types["ellipsis"], DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
-        this->builtins = newModule("builtins");
-        this->_main = newModule("__main__");
+        this->builtins = new_module("builtins");
+        this->_main = new_module("__main__");
 
         setattr(_tp_type, __base__, _tp_object);
         _tp_type->_type = _tp_type;
@@ -5018,6 +4988,7 @@ public:
                         break;
                     }
                     buff.push_back(c);
+                    continue;
                 } else {
                     break;
                 }
@@ -6036,16 +6007,13 @@ __NOT_ENOUGH_LINES:
         }
 
         try{
-            vm->compile(line, "<stdin>", mode);
+            vm->exec(line, "<stdin>", mode);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
             if (need_more_lines) return NEED_MORE_LINES;
-        }catch(...){
-            // do nothing
         }
-        vm->exec(line, "<stdin>", mode);
         return EXEC_STARTED;
     }
 };
@@ -6063,21 +6031,23 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
-        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                 \
-            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));         \
+    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){              \
+        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                             \
+            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
-            return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));       \
+            return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
         }                                                                                               \
     });
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
-    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){                 \
-        if(!vm->is_int_or_float(args[0], args[1])){                                                        \
+    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){              \
+        bool _0 = args[0]->is_type(vm->_tp_int) || args[0]->is_type(vm->_tp_float);                     \
+        bool _1 = args[1]->is_type(vm->_tp_int) || args[1]->is_type(vm->_tp_float);                     \
+        if(!_0 || !_1){                                                                                 \
             if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
-        return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));            \
+        return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
     });
     
 
@@ -6107,14 +6077,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindBuiltinFunc<1>("eval", [](VM* vm, const pkpy::ArgList& args) {
-        const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr, "<eval>", EVAL_MODE);
+        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     _vm->bindBuiltinFunc<1>("exec", [](VM* vm, const pkpy::ArgList& args) {
-        const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr, "<exec>", EXEC_MODE);
+        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
     });
@@ -6135,22 +6103,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt((i64)s[0]);
     });
 
-    _vm->bindBuiltinFunc<0>("globals", [](VM* vm, const pkpy::ArgList& args) {
-        const auto& d = vm->top_frame()->f_globals();
-        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
-        for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
-        }
-        return obj;
+    _vm->bindBuiltinFunc<2>("hasattr", [](VM* vm, const pkpy::ArgList& args) {
+        return vm->PyBool(vm->getattr(args[0], vm->PyStr_AS_C(args[1]), false) != nullptr);
     });
 
-    _vm->bindBuiltinFunc<0>("locals", [](VM* vm, const pkpy::ArgList& args) {
-        const auto& d = vm->top_frame()->f_locals();
-        PyVar obj = vm->call(vm->builtins->attribs["dict"]);
-        for (const auto& [k, v] : d) {
-            vm->call(obj, __setitem__, pkpy::twoArgs(vm->PyStr(k), v));
-        }
-        return obj;
+    _vm->bindBuiltinFunc<3>("setattr", [](VM* vm, const pkpy::ArgList& args) {
+        PyVar obj = args[0];
+        vm->setattr(obj, vm->PyStr_AS_C(args[1]), args[2]);
+        return vm->None;
+    });
+
+    _vm->bindBuiltinFunc<2>("getattr", [](VM* vm, const pkpy::ArgList& args) {
+        _Str name = vm->PyStr_AS_C(args[1]);
+        return vm->getattr(args[0], name);
     });
 
     _vm->bindBuiltinFunc<1>("hex", [](VM* vm, const pkpy::ArgList& args) {
@@ -6554,7 +6519,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 
 void __addModuleTime(VM* vm){
-    PyVar mod = vm->newModule("time");
+    PyVar mod = vm->new_module("time");
     vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::ArgList& args) {
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
@@ -6562,7 +6527,7 @@ void __addModuleTime(VM* vm){
 }
 
 void __addModuleSys(VM* vm){
-    PyVar mod = vm->newModule("sys");
+    PyVar mod = vm->new_module("sys");
     vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyInt(args[0].use_count());
     });
@@ -6580,7 +6545,7 @@ void __addModuleSys(VM* vm){
 }
 
 void __addModuleJson(VM* vm){
-    PyVar mod = vm->newModule("json");
+    PyVar mod = vm->new_module("json");
     vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
@@ -6593,7 +6558,7 @@ void __addModuleJson(VM* vm){
 }
 
 void __addModuleMath(VM* vm){
-    PyVar mod = vm->newModule("math");
+    PyVar mod = vm->new_module("math");
     vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
     vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
@@ -6692,7 +6657,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
 };
 
 void __addModuleRe(VM* vm){
-    PyVar mod = vm->newModule("re");
+    PyVar mod = vm->new_module("re");
     ReMatch::_bind(vm);
 
     vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
@@ -6828,7 +6793,7 @@ extern "C" {
     __EXPORT
     /// Add a source module into a virtual machine.
     void pkpy_vm_add_module(VM* vm, const char* name, const char* source){
-        vm->addLazyModule(name, source);
+        vm->_lazy_modules[name] = source;
     }
 
     void __vm_init(VM* vm){
