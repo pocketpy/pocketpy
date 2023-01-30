@@ -856,7 +856,7 @@ public:
             setattr(type, __name__, PyStr(name));
         }
 
-        this->__py2py_call_signal = new_object(_tp_object, (i64)7);
+        this->__py2py_call_signal = new_object(_tp_object, DUMMY_VAL);
 
         std::vector<_Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
         for (auto& name : publicTypes) {
