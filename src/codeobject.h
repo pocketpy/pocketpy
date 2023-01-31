@@ -208,6 +208,11 @@ public:
         return v;
     }
 
+    inline void __pop(){
+        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
+        s_data.pop_back();
+    }
+
     inline void try_deref(VM*, PyVar&);
 
     inline PyVar pop_value(VM* vm){

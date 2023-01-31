@@ -130,7 +130,7 @@ protected:
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
-            case OP_POP_TOP: frame->pop(); break;
+            case OP_POP_TOP: frame->__pop(); break;
             case OP_BINARY_OP:
                 {
                     pkpy::ArgList args(2);
