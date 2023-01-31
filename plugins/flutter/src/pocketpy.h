@@ -3184,13 +3184,15 @@ struct Parser {
 
     inline char peekchar() const{ return *curr_char; }
 
-    std::string_view lookahead(int n) const{
+    bool match_n_chars(int n, char c0){
         const char* c = curr_char;
         for(int i=0; i<n; i++){
-            if(*c == '\0') return std::string_view(curr_char, i);
+            if(*c == '\0') return false;
+            if(*c != c0) return false;
             c++;
         }
-        return std::string_view(curr_char, n);
+        for(int i=0; i<n; i++) eatchar_include_newline();
+        return true;
     }
 
     int eat_spaces(){
@@ -3233,7 +3235,7 @@ struct Parser {
         return c;
     }
 
-    char eatchar_include_newLine() {
+    char eatchar_include_newline() {
         char c = peekchar();
         curr_char++;
         if (c == '\n'){
@@ -3329,7 +3331,7 @@ struct Parser {
     // true otherwise returns false.
     bool matchchar(char c) {
         if (peekchar() != c) return false;
-        eatchar_include_newLine();
+        eatchar_include_newline();
         return true;
     }
 
@@ -4675,7 +4677,7 @@ public:
             setattr(type, __name__, PyStr(name));
         }
 
-        this->__py2py_call_signal = new_object(_tp_object, (i64)7);
+        this->__py2py_call_signal = new_object(_tp_object, DUMMY_VAL);
 
         std::vector<_Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
         for (auto& name : publicTypes) {
@@ -4968,30 +4970,16 @@ public:
     }
 
     _Str eatStringUntil(char quote, bool raw) {
-        bool quote3 = false;
-        std::string_view sv = parser->lookahead(2);
-        if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-            quote3 = true;
-            parser->eatchar();
-            parser->eatchar();
-        }
-
+        bool quote3 = parser->match_n_chars(2, quote);
         std::vector<char> buff;
         while (true) {
-            char c = parser->eatchar_include_newLine();
+            char c = parser->eatchar_include_newline();
             if (c == quote){
-                if(quote3){
-                    sv = parser->lookahead(2);
-                    if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-                        parser->eatchar();
-                        parser->eatchar();
-                        break;
-                    }
+                if(quote3 && !parser->match_n_chars(2, quote)){
                     buff.push_back(c);
                     continue;
-                } else {
-                    break;
                 }
+                break;
             }
             if (c == '\0'){
                 if(quote3 && parser->src->mode == SINGLE_MODE){
@@ -5007,7 +4995,7 @@ public:
                 }
             }
             if (!raw && c == '\\') {
-                switch (parser->eatchar_include_newLine()) {
+                switch (parser->eatchar_include_newline()) {
                     case '"':  buff.push_back('"');  break;
                     case '\'': buff.push_back('\''); break;
                     case '\\': buff.push_back('\\'); break;
@@ -5076,7 +5064,7 @@ public:
 
         while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;
-            char c = parser->eatchar_include_newLine();
+            char c = parser->eatchar_include_newline();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
                 case '#': parser->skip_line_comment(); break;

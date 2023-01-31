@@ -101,15 +101,13 @@ public:
         bool quote3 = parser->match_n_chars(2, quote);
         std::vector<char> buff;
         while (true) {
-            char c = parser->eatchar_include_newLine();
+            char c = parser->eatchar_include_newline();
             if (c == quote){
-                if(!quote3) break;
-                if(parser->match_n_chars(2, quote)) {
-                    break;
-                }else{
+                if(quote3 && !parser->match_n_chars(2, quote)){
                     buff.push_back(c);
                     continue;
                 }
+                break;
             }
             if (c == '\0'){
                 if(quote3 && parser->src->mode == SINGLE_MODE){
@@ -125,7 +123,7 @@ public:
                 }
             }
             if (!raw && c == '\\') {
-                switch (parser->eatchar_include_newLine()) {
+                switch (parser->eatchar_include_newline()) {
                     case '"':  buff.push_back('"');  break;
                     case '\'': buff.push_back('\''); break;
                     case '\\': buff.push_back('\\'); break;
@@ -194,7 +192,7 @@ public:
 
         while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;
-            char c = parser->eatchar_include_newLine();
+            char c = parser->eatchar_include_newline();
             switch (c) {
                 case '\'': case '"': eatString(c, NORMAL_STRING); return;
                 case '#': parser->skip_line_comment(); break;

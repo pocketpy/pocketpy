@@ -124,7 +124,7 @@ struct Parser {
             if(*c != c0) return false;
             c++;
         }
-        for(int i=0; i<n; i++) eatchar_include_newLine();
+        for(int i=0; i<n; i++) eatchar_include_newline();
         return true;
     }
 
@@ -168,7 +168,7 @@ struct Parser {
         return c;
     }
 
-    char eatchar_include_newLine() {
+    char eatchar_include_newline() {
         char c = peekchar();
         curr_char++;
         if (c == '\n'){
@@ -264,7 +264,7 @@ struct Parser {
     // true otherwise returns false.
     bool matchchar(char c) {
         if (peekchar() != c) return false;
-        eatchar_include_newLine();
+        eatchar_include_newline();
         return true;
     }
 
