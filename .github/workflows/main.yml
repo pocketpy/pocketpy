@@ -12,6 +12,7 @@ jobs:
         CL -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
+        ./pocketpy tests/2.py
   build_linux:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +22,7 @@ jobs:
         bash build_cpp.sh
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
+        ./pocketpy tests/2.py
   build_web:
     runs-on: ubuntu-latest
     steps:

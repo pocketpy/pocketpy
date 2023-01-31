@@ -29,7 +29,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
         bool _0 = args[0]->is_type(vm->_tp_int) || args[0]->is_type(vm->_tp_float);                     \
         bool _1 = args[1]->is_type(vm->_tp_int) || args[1]->is_type(vm->_tp_float);                     \
         if(!_0 || !_1){                                                                                 \
-            if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
+            if constexpr(is_eq) return vm->PyBool(args[0].get() op args[1].get());                      \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
@@ -46,6 +46,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     BIND_NUM_LOGICAL_OPT(__gt__, >, false)
     BIND_NUM_LOGICAL_OPT(__ge__, >=, false)
     BIND_NUM_LOGICAL_OPT(__eq__, ==, true)
+    BIND_NUM_LOGICAL_OPT(__ne__, !=, true)
 
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
@@ -133,7 +134,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
-
+    _vm->bindMethod<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
     _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
@@ -297,6 +298,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);
+    });
+
+    _vm->bindMethod<1>("str", "__ne__", [](VM* vm, const pkpy::ArgList& args) {
+        if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
+            return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
+        return vm->PyBool(args[0] != args[1]);
     });
 
     _vm->bindMethod<1>("str", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {

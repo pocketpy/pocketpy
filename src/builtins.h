@@ -155,6 +155,8 @@ def __iterable4__eq__(self, other):
     return True
 list.__eq__ = __iterable4__eq__
 tuple.__eq__ = __iterable4__eq__
+list.__ne__ = lambda self, other: not self.__eq__(other)
+tuple.__ne__ = lambda self, other: not self.__eq__(other)
 del __iterable4__eq__
 
 def __iterable4count(self, x):
@@ -396,6 +398,9 @@ class set:
     
     def __eq__(self, other):
         return self.__xor__(other).__len__() == 0
+
+    def __ne__(self, other):
+        return self.__xor__(other).__len__() != 0
     
     def isdisjoint(self, other):
         return self.__and__(other).__len__() == 0

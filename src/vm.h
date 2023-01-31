@@ -147,17 +147,17 @@ protected:
                 } break;
             case OP_COMPARE_OP:
                 {
-                    // for __ne__ we use the negation of __eq__
-                    int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fast_call(CMP_SPECIAL_METHODS[op], frame->pop_n_values_reversed(this, 2));
-                    if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
-                    frame->push(std::move(res));
+                    pkpy::ArgList args(2);
+                    args[1] = frame->pop_value(this);
+                    args[0] = frame->top_value(this);
+                    frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_IS_OP:
                 {
-                    bool ret_c = frame->pop_value(this) == frame->pop_value(this);
+                    PyVar rhs = frame->pop_value(this);
+                    bool ret_c = rhs == frame->top_value(this);
                     if(byte.arg == 1) ret_c = !ret_c;
-                    frame->push(PyBool(ret_c));
+                    frame->top() = PyBool(ret_c);
                 } break;
             case OP_CONTAINS_OP:
                 {
@@ -167,10 +167,8 @@ protected:
                     frame->push(PyBool(ret_c));
                 } break;
             case OP_UNARY_NEGATIVE:
-                {
-                    PyVar obj = frame->pop_value(this);
-                    frame->push(num_negated(obj));
-                } break;
+                frame->top() = num_negated(frame->top_value(this));
+                break;
             case OP_UNARY_NOT:
                 {
                     PyVar obj = frame->pop_value(this);
