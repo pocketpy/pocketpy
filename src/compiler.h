@@ -98,29 +98,17 @@ public:
     }
 
     _Str eatStringUntil(char quote, bool raw) {
-        bool quote3 = false;
-        std::string_view sv = parser->lookahead(2);
-        if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-            quote3 = true;
-            parser->eatchar();
-            parser->eatchar();
-        }
-
+        bool quote3 = parser->match_n_chars(2, quote);
         std::vector<char> buff;
         while (true) {
             char c = parser->eatchar_include_newLine();
             if (c == quote){
-                if(quote3){
-                    sv = parser->lookahead(2);
-                    if(sv.size() == 2 && sv[0] == quote && sv[1] == quote) {
-                        parser->eatchar();
-                        parser->eatchar();
-                        break;
-                    }
+                if(!quote3) break;
+                if(parser->match_n_chars(2, quote)) {
+                    break;
+                }else{
                     buff.push_back(c);
                     continue;
-                } else {
-                    break;
                 }
             }
             if (c == '\0'){

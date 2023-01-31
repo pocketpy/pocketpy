@@ -117,13 +117,15 @@ struct Parser {
 
     inline char peekchar() const{ return *curr_char; }
 
-    std::string_view lookahead(int n) const{
+    bool match_n_chars(int n, char c0){
         const char* c = curr_char;
         for(int i=0; i<n; i++){
-            if(*c == '\0') return std::string_view(curr_char, i);
+            if(*c == '\0') return false;
+            if(*c != c0) return false;
             c++;
         }
-        return std::string_view(curr_char, n);
+        for(int i=0; i<n; i++) eatchar_include_newLine();
+        return true;
     }
 
     int eat_spaces(){
