@@ -588,6 +588,15 @@ void __addModuleMath(VM* vm){
     });
 }
 
+void __addModuleDis(VM* vm){
+    PyVar mod = vm->new_module("dis");
+    vm->bindFunc<1>(mod, "dis", [](VM* vm, const pkpy::ArgList& args) {
+        _Code code = vm->PyFunction_AS_C(args[0])->code;
+        (*vm->_stdout) << vm->disassemble(code);
+        return vm->None;
+    });
+}
+
 
 #define PY_CLASS(mod, name) inline static PyVar _tp(VM* vm) { return vm->_modules[#mod]->attribs[#name]; }
 
@@ -790,6 +799,7 @@ extern "C" {
         __addModuleJson(vm);
         __addModuleMath(vm);
         __addModuleRe(vm);
+        __addModuleDis(vm);
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);

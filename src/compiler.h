@@ -838,7 +838,7 @@ __LISTCOMP:
                 EXPR_TUPLE();
                 consumeEndStatement();
             }
-            emit(OP_RETURN_VALUE);
+            emit(OP_RETURN_VALUE, -1, true);
         } else if (match(TK("if"))) {
             compileIfStatement();
         } else if (match(TK("while"))) {
