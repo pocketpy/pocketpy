@@ -6638,7 +6638,7 @@ extern "C" {
     __EXPORT
     /// Get a global variable of a virtual machine.
     /// 
-    /// Return __repr__ of the result.
+    /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
@@ -6654,7 +6654,7 @@ extern "C" {
     __EXPORT
     /// Evaluate an expression.
     /// 
-    /// Return __repr__ of the result.
+    /// Return `__repr__` of the result.
     /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(VM* vm, const char* source){
         PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
