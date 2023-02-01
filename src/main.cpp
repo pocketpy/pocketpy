@@ -49,7 +49,7 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         PyVarOrNull ret = nullptr;
 
-        if(filename[0] != '_'){
+        if(filename.find("1.py") != std::string::npos || filename.find("2.py") != std::string::npos){
             Timer("Running time").run([&]{
                 ret = vm->exec(src.c_str(), filename, EXEC_MODE);
             });
