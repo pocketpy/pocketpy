@@ -805,3 +805,5 @@ extern "C" {
         return strdup(ss.str().c_str());
     }
 }
+
+#include "_bindings.h"

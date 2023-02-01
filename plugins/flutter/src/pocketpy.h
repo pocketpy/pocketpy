@@ -1827,10 +1827,6 @@ private:
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 #define PK_VERSION "0.8.0"
 
 typedef int64_t i64;
@@ -1975,7 +1971,7 @@ public:
         }
     }
 
-    size_t hash() const{
+    inline size_t hash() const{
         if(!hash_initialized){
             _hash = std::hash<std::string>()(*this);
             hash_initialized = true;
@@ -2064,6 +2060,10 @@ public:
         return *this;
     }
 
+    operator const char*() const {
+        return c_str();
+    }
+
     ~_Str(){
         if(_u8_index != nullptr) delete _u8_index;
     }
@@ -2072,7 +2072,7 @@ public:
 namespace std {
     template<>
     struct hash<_Str> {
-        std::size_t operator()(const _Str& s) const {
+        inline std::size_t operator()(const _Str& s) const {
             return s.hash();
         }
     };
@@ -2102,7 +2102,7 @@ const _Str& __exit__ = _Str("__exit__");
 
 const _Str CMP_SPECIAL_METHODS[] = {
     "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"
-};  // __ne__ should not be used
+};
 
 const _Str BINARY_SPECIAL_METHODS[] = {
     "__add__", "__sub__", "__mul__", "__truediv__", "__floordiv__", "__mod__", "__pow__"
@@ -2434,6 +2434,8 @@ def __iterable4__eq__(self, other):
     return True
 list.__eq__ = __iterable4__eq__
 tuple.__eq__ = __iterable4__eq__
+list.__ne__ = lambda self, other: not self.__eq__(other)
+tuple.__ne__ = lambda self, other: not self.__eq__(other)
 del __iterable4__eq__
 
 def __iterable4count(self, x):
@@ -2547,28 +2549,11 @@ class dict:
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
-import json as _json
+import ffi
 
-def jsonrpc(method, params, raw=False):
-  assert type(method) is str
-  assert type(params) is list or type(params) is tuple
-  data = {
-    'jsonrpc': '2.0',
-    'method': method,
-    'params': params,
-  }
-  ret = __string_channel_call(_json.dumps(data))
-  ret = _json.loads(ret)
-  if raw:
-    return ret
-  assert type(ret) is dict
-  if 'result' in ret:
-    return ret['result']
-  raise JsonRpcError(ret['error']['message'])
+def input():
+  return ffi.input()
 
-def input(prompt=None):
-  return jsonrpc('input', [prompt])
-  
 class FileIO:
   def __init__(self, path, mode):
     assert type(path) is str
@@ -2576,19 +2561,19 @@ class FileIO:
     assert mode in ['r', 'w', 'rt', 'wt']
     self.path = path
     self.mode = mode
-    self.fp = jsonrpc('fopen', [path, mode])
+    self.fp = ffi.fopen(path, mode)
 
   def read(self):
     assert self.mode in ['r', 'rt']
-    return jsonrpc('fread', [self.fp])
+    return ffi.fread(self.fp)
 
   def write(self, s):
     assert self.mode in ['w', 'wt']
     assert type(s) is str
-    jsonrpc('fwrite', [self.fp, s])
+    ffi.fwrite(self.fp, s)
 
   def close(self):
-    jsonrpc('fclose', [self.fp])
+    ffi.fclose(self.fp)
 
   def __enter__(self):
     pass
@@ -2675,6 +2660,9 @@ class set:
     
     def __eq__(self, other):
         return self.__xor__(other).__len__() == 0
+
+    def __ne__(self, other):
+        return self.__xor__(other).__len__() != 0
     
     def isdisjoint(self, other):
         return self.__and__(other).__len__() == 0
@@ -2695,42 +2683,6 @@ class set:
     
     def __iter__(self):
         return self._a.keys().__iter__()
-)";
-
-const char* __OS_CODE = R"(
-def listdir(path):
-  assert type(path) is str
-  return jsonrpc("os.listdir", [path])
-
-def mkdir(path):
-  assert type(path) is str
-  return jsonrpc("os.mkdir", [path])
-
-def rmdir(path):
-  assert type(path) is str
-  return jsonrpc("os.rmdir", [path])
-
-def remove(path):
-  assert type(path) is str
-  return jsonrpc("os.remove", [path])
-
-path = object()
-
-def __path4exists(path):
-  assert type(path) is str
-  return jsonrpc("os.path.exists", [path])
-path.exists = __path4exists
-del __path4exists
-
-def __path4join(*paths):
-  s = '/'.join(paths)
-  s = s.replace('\\', '/')
-  s = s.replace('//', '/')
-  s = s.replace('//', '/')
-  return s
-
-path.join = __path4join
-del __path4join
 )";
 
 const char* __RANDOM_CODE = R"(
@@ -2921,8 +2873,8 @@ struct BaseRef;
 class VM;
 class Frame;
 
-typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::ArgList&);
-//typedef std::function<PyVar(VM*, const pkpy::ArgList&)> _CppFunc;
+//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::ArgList&);
+typedef std::function<PyVar(VM*, const pkpy::ArgList&)> _CppFuncRaw;
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
 struct _CppFunc {
@@ -3425,8 +3377,6 @@ enum Opcode {
     #ifdef OPCODE
 
 OPCODE(NO_OP)
-OPCODE(IMPORT_NAME)
-OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
 OPCODE(DUP_TOP)
 OPCODE(CALL)
@@ -3445,8 +3395,13 @@ OPCODE(BUILD_LIST)
 OPCODE(BUILD_MAP)
 OPCODE(BUILD_SET)
 OPCODE(BUILD_SLICE)
+OPCODE(BUILD_CLASS)
+OPCODE(BUILD_SMART_TUPLE)
+OPCODE(BUILD_STRING)
 
 OPCODE(LIST_APPEND)
+OPCODE(IMPORT_NAME)
+OPCODE(PRINT_EXPR)
 
 OPCODE(GET_ITER)
 OPCODE(FOR_ITER)
@@ -3462,6 +3417,8 @@ OPCODE(SAFE_JUMP_ABSOLUTE)
 OPCODE(JUMP_IF_TRUE_OR_POP)
 OPCODE(JUMP_IF_FALSE_OR_POP)
 
+OPCODE(GOTO)
+
 OPCODE(LOAD_CONST)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
@@ -3475,18 +3432,12 @@ OPCODE(LOAD_NAME_REF)
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
 
-OPCODE(BUILD_CLASS)
+OPCODE(BUILD_INDEX_REF)
 OPCODE(BUILD_ATTR_REF)
 OPCODE(STORE_NAME)
 OPCODE(STORE_FUNCTION)
-OPCODE(BUILD_INDEX_REF)
 OPCODE(STORE_REF)
 OPCODE(DELETE_REF)
-
-OPCODE(BUILD_SMART_TUPLE)
-OPCODE(BUILD_STRING)
-
-OPCODE(GOTO)
 
 #endif
     #undef OPCODE
@@ -3497,8 +3448,6 @@ static const char* OP_NAMES[] = {
     #ifdef OPCODE
 
 OPCODE(NO_OP)
-OPCODE(IMPORT_NAME)
-OPCODE(PRINT_EXPR)
 OPCODE(POP_TOP)
 OPCODE(DUP_TOP)
 OPCODE(CALL)
@@ -3517,8 +3466,13 @@ OPCODE(BUILD_LIST)
 OPCODE(BUILD_MAP)
 OPCODE(BUILD_SET)
 OPCODE(BUILD_SLICE)
+OPCODE(BUILD_CLASS)
+OPCODE(BUILD_SMART_TUPLE)
+OPCODE(BUILD_STRING)
 
 OPCODE(LIST_APPEND)
+OPCODE(IMPORT_NAME)
+OPCODE(PRINT_EXPR)
 
 OPCODE(GET_ITER)
 OPCODE(FOR_ITER)
@@ -3534,6 +3488,8 @@ OPCODE(SAFE_JUMP_ABSOLUTE)
 OPCODE(JUMP_IF_TRUE_OR_POP)
 OPCODE(JUMP_IF_FALSE_OR_POP)
 
+OPCODE(GOTO)
+
 OPCODE(LOAD_CONST)
 OPCODE(LOAD_NONE)
 OPCODE(LOAD_TRUE)
@@ -3547,18 +3503,12 @@ OPCODE(LOAD_NAME_REF)
 OPCODE(ASSERT)
 OPCODE(RAISE_ERROR)
 
-OPCODE(BUILD_CLASS)
+OPCODE(BUILD_INDEX_REF)
 OPCODE(BUILD_ATTR_REF)
 OPCODE(STORE_NAME)
 OPCODE(STORE_FUNCTION)
-OPCODE(BUILD_INDEX_REF)
 OPCODE(STORE_REF)
 OPCODE(DELETE_REF)
-
-OPCODE(BUILD_SMART_TUPLE)
-OPCODE(BUILD_STRING)
-
-OPCODE(GOTO)
 
 #endif
     #undef OPCODE
@@ -3756,6 +3706,11 @@ public:
         return v;
     }
 
+    inline void __pop(){
+        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
+        s_data.pop_back();
+    }
+
     inline void try_deref(VM*, PyVar&);
 
     inline PyVar pop_value(VM* vm){
@@ -3951,7 +3906,7 @@ protected:
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
-            case OP_POP_TOP: frame->pop(); break;
+            case OP_POP_TOP: frame->__pop(); break;
             case OP_BINARY_OP:
                 {
                     pkpy::ArgList args(2);
@@ -3968,17 +3923,17 @@ protected:
                 } break;
             case OP_COMPARE_OP:
                 {
-                    // for __ne__ we use the negation of __eq__
-                    int op = byte.arg == 3 ? 2 : byte.arg;
-                    PyVar res = fast_call(CMP_SPECIAL_METHODS[op], frame->pop_n_values_reversed(this, 2));
-                    if(op != byte.arg) res = PyBool(!PyBool_AS_C(res));
-                    frame->push(std::move(res));
+                    pkpy::ArgList args(2);
+                    args[1] = frame->pop_value(this);
+                    args[0] = frame->top_value(this);
+                    frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
                 } break;
             case OP_IS_OP:
                 {
-                    bool ret_c = frame->pop_value(this) == frame->pop_value(this);
+                    PyVar rhs = frame->pop_value(this);
+                    bool ret_c = rhs == frame->top_value(this);
                     if(byte.arg == 1) ret_c = !ret_c;
-                    frame->push(PyBool(ret_c));
+                    frame->top() = PyBool(ret_c);
                 } break;
             case OP_CONTAINS_OP:
                 {
@@ -3988,10 +3943,8 @@ protected:
                     frame->push(PyBool(ret_c));
                 } break;
             case OP_UNARY_NEGATIVE:
-                {
-                    PyVar obj = frame->pop_value(this);
-                    frame->push(num_negated(obj));
-                } break;
+                frame->top() = num_negated(frame->top_value(this));
+                break;
             case OP_UNARY_NOT:
                 {
                     PyVar obj = frame->pop_value(this);
@@ -4426,6 +4379,12 @@ public:
         return obj;
     }
 
+    PyVar new_module_if_not_existed(_Str name) {
+        PyVar* it = _modules.try_get(name);
+        if(it != nullptr) return *it;
+        return new_module(name);
+    }
+
     PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
         PyVarDict::iterator it;
         PyObject* cls;
@@ -4523,7 +4482,7 @@ public:
         return nullptr;
     }
 
-    int normalizedIndex(int index, int size){
+    int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
             indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
@@ -5710,7 +5669,7 @@ __LISTCOMP:
                 EXPR_TUPLE();
                 consumeEndStatement();
             }
-            emit(OP_RETURN_VALUE);
+            emit(OP_RETURN_VALUE, -1, true);
         } else if (match(TK("if"))) {
             compileIfStatement();
         } else if (match(TK("while"))) {
@@ -6032,7 +5991,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
         bool _0 = args[0]->is_type(vm->_tp_int) || args[0]->is_type(vm->_tp_float);                     \
         bool _1 = args[1]->is_type(vm->_tp_int) || args[1]->is_type(vm->_tp_float);                     \
         if(!_0 || !_1){                                                                                 \
-            if constexpr(is_eq) return vm->PyBool(args[0] == args[1]);                                  \
+            if constexpr(is_eq) return vm->PyBool(args[0].get() op args[1].get());                      \
             vm->typeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
@@ -6049,6 +6008,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     BIND_NUM_LOGICAL_OPT(__gt__, >, false)
     BIND_NUM_LOGICAL_OPT(__ge__, >=, false)
     BIND_NUM_LOGICAL_OPT(__eq__, ==, true)
+    BIND_NUM_LOGICAL_OPT(__ne__, !=, true)
 
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
@@ -6136,7 +6096,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
-
+    _vm->bindMethod<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
     _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
@@ -6302,6 +6262,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyBool(args[0] == args[1]);
     });
 
+    _vm->bindMethod<1>("str", "__ne__", [](VM* vm, const pkpy::ArgList& args) {
+        if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
+            return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
+        return vm->PyBool(args[0] != args[1]);
+    });
+
     _vm->bindMethod<1>("str", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
 
@@ -6312,7 +6278,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.u8_length());
+        _index = vm->normalized_index(_index, _self.u8_length());
         return vm->PyStr(_self.u8_getitem(_index));
     });
 
@@ -6430,14 +6396,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         return _self[_index];
     });
 
     _vm->bindMethod<2>("list", "__setitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         _self[_index] = args[2];
         return vm->None;
     });
@@ -6445,7 +6411,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("list", "__delitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         _self.erase(_self.begin() + _index);
         return vm->None;
     });
@@ -6468,7 +6434,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("tuple", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         return _self[_index];
     });
 
@@ -6506,7 +6472,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #endif
 
 
-void __addModuleTime(VM* vm){
+void __add_module_time(VM* vm){
     PyVar mod = vm->new_module("time");
     vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::ArgList& args) {
         auto now = std::chrono::high_resolution_clock::now();
@@ -6514,7 +6480,7 @@ void __addModuleTime(VM* vm){
     });
 }
 
-void __addModuleSys(VM* vm){
+void __add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
     vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyInt(args[0].use_count());
@@ -6532,7 +6498,7 @@ void __addModuleSys(VM* vm){
     vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
-void __addModuleJson(VM* vm){
+void __add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
     vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
@@ -6545,50 +6511,29 @@ void __addModuleJson(VM* vm){
     });
 }
 
-void __addModuleMath(VM* vm){
+void __add_module_math(VM* vm){
     PyVar mod = vm->new_module("math");
     vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
     vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
-    vm->bindFunc<1>(mod, "log", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "log10", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log10(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "log2", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log2(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "sin", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(sin(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "cos", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(cos(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "tan", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(tan(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<2>(mod, "isclose", [](VM* vm, const pkpy::ArgList& args) {
-        f64 a = vm->num_to_float(args[0]);
-        f64 b = vm->num_to_float(args[1]);
-        return vm->PyBool(fabs(a - b) < 1e-9);
-    });
-
-    vm->bindFunc<1>(mod, "isnan", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(std::isnan(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "isinf", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(std::isinf(vm->num_to_float(args[0])));
-    });
+    vm->bindFunc<1>(mod, "log", CPP_LAMBDA(vm->PyFloat(log(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "log10", CPP_LAMBDA(vm->PyFloat(log10(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "log2", CPP_LAMBDA(vm->PyFloat(log2(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "sin", CPP_LAMBDA(vm->PyFloat(sin(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "cos", CPP_LAMBDA(vm->PyFloat(cos(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "tan", CPP_LAMBDA(vm->PyFloat(tan(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
 }
 
+void __add_module_dis(VM* vm){
+    PyVar mod = vm->new_module("dis");
+    vm->bindFunc<1>(mod, "dis", [](VM* vm, const pkpy::ArgList& args) {
+        _Code code = vm->PyFunction_AS_C(args[0])->code;
+        (*vm->_stdout) << vm->disassemble(code);
+        return vm->None;
+    });
+}
 
 #define PY_CLASS(mod, name) inline static PyVar _tp(VM* vm) { return vm->_modules[#mod]->attribs[#name]; }
 
@@ -6602,35 +6547,23 @@ struct ReMatch {
 
     static PyVar _bind(VM* vm){
         PyVar _tp_match = vm->new_user_type_object(vm->_modules["re"], "Match", vm->_tp_object);
-        vm->bindMethod<0>(_tp_match, "start", [](VM* vm, const pkpy::ArgList& args) {
-            return vm->PyInt(UNION_GET(ReMatch, args[0]).start);
-        });
-
-        vm->bindMethod<0>(_tp_match, "end", [](VM* vm, const pkpy::ArgList& args) {
-            return vm->PyInt(UNION_GET(ReMatch, args[0]).end);
-        });
+        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).start)));
+        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).end)));
 
         vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::ArgList& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
-            PyVarList vec = { vm->PyInt(m.start), vm->PyInt(m.end) };
-            return vm->PyTuple(vec);
+            return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
         });
 
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::ArgList& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
-            index = vm->normalizedIndex(index, m.m.size());
+            index = vm->normalized_index(index, m.m.size());
             return vm->PyStr(m.m[index].str());
         });
         return _tp_match;
     }
 };
-
-
-// C绑定过程
-// 一个C原生类
-// static PyVar _tp(VM* vm); 实现从VM中获取该类的类型对象
-// static PyVar _bind(VM* vm); 实现初始化该类的绑定，在VM中注册该类的类型对象，并返回生成的类型对象
 
 PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
@@ -6644,7 +6577,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
     return vm->None;
 };
 
-void __addModuleRe(VM* vm){
+void __add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
     ReMatch::_bind(vm);
 
@@ -6786,18 +6719,21 @@ extern "C" {
 
     void __vm_init(VM* vm){
         __initializeBuiltinFunctions(vm);
-        __addModuleSys(vm);
-        __addModuleTime(vm);
-        __addModuleJson(vm);
-        __addModuleMath(vm);
-        __addModuleRe(vm);
+        __add_module_sys(vm);
+        __add_module_time(vm);
+        __add_module_json(vm);
+        __add_module_math(vm);
+        __add_module_re(vm);
+        __add_module_dis(vm);
+        
+
+        vm->new_module("ffi");
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
 
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
-        pkpy_vm_add_module(vm, "os", __OS_CODE);
     }
 
     __EXPORT
@@ -6828,6 +6764,5398 @@ extern "C" {
         s_err->str("");
         return strdup(ss.str().c_str());
     }
+}
+
+extern "C" {
+typedef i64 (*__f_int__int_int_int)(VM*, i64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_int_int(VM* vm, const char* mod, const char* name, __f_int__int_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_int_float)(VM*, i64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_int_float(VM* vm, const char* mod, const char* name, __f_int__int_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_int_str)(VM*, i64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__int_int_str(VM* vm, const char* mod, const char* name, __f_int__int_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_int_bool)(VM*, i64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__int_int_bool(VM* vm, const char* mod, const char* name, __f_int__int_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_float_int)(VM*, i64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_float_int(VM* vm, const char* mod, const char* name, __f_int__int_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_float_float)(VM*, i64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_float_float(VM* vm, const char* mod, const char* name, __f_int__int_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_float_str)(VM*, i64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__int_float_str(VM* vm, const char* mod, const char* name, __f_int__int_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_float_bool)(VM*, i64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__int_float_bool(VM* vm, const char* mod, const char* name, __f_int__int_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_str_int)(VM*, i64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_str_int(VM* vm, const char* mod, const char* name, __f_int__int_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_str_float)(VM*, i64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_str_float(VM* vm, const char* mod, const char* name, __f_int__int_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_str_str)(VM*, i64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__int_str_str(VM* vm, const char* mod, const char* name, __f_int__int_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_str_bool)(VM*, i64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__int_str_bool(VM* vm, const char* mod, const char* name, __f_int__int_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_bool_int)(VM*, i64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_bool_int(VM* vm, const char* mod, const char* name, __f_int__int_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_bool_float)(VM*, i64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_bool_float(VM* vm, const char* mod, const char* name, __f_int__int_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_bool_str)(VM*, i64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__int_bool_str(VM* vm, const char* mod, const char* name, __f_int__int_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_bool_bool)(VM*, i64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__int_bool_bool(VM* vm, const char* mod, const char* name, __f_int__int_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_int_int)(VM*, f64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_int_int(VM* vm, const char* mod, const char* name, __f_int__float_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_int_float)(VM*, f64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_int_float(VM* vm, const char* mod, const char* name, __f_int__float_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_int_str)(VM*, f64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__float_int_str(VM* vm, const char* mod, const char* name, __f_int__float_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_int_bool)(VM*, f64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__float_int_bool(VM* vm, const char* mod, const char* name, __f_int__float_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_float_int)(VM*, f64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_float_int(VM* vm, const char* mod, const char* name, __f_int__float_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_float_float)(VM*, f64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_float_float(VM* vm, const char* mod, const char* name, __f_int__float_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_float_str)(VM*, f64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__float_float_str(VM* vm, const char* mod, const char* name, __f_int__float_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_float_bool)(VM*, f64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__float_float_bool(VM* vm, const char* mod, const char* name, __f_int__float_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_str_int)(VM*, f64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_str_int(VM* vm, const char* mod, const char* name, __f_int__float_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_str_float)(VM*, f64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_str_float(VM* vm, const char* mod, const char* name, __f_int__float_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_str_str)(VM*, f64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__float_str_str(VM* vm, const char* mod, const char* name, __f_int__float_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_str_bool)(VM*, f64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__float_str_bool(VM* vm, const char* mod, const char* name, __f_int__float_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_bool_int)(VM*, f64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_bool_int(VM* vm, const char* mod, const char* name, __f_int__float_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_bool_float)(VM*, f64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_bool_float(VM* vm, const char* mod, const char* name, __f_int__float_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_bool_str)(VM*, f64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__float_bool_str(VM* vm, const char* mod, const char* name, __f_int__float_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_bool_bool)(VM*, f64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__float_bool_bool(VM* vm, const char* mod, const char* name, __f_int__float_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_int_int)(VM*, const char*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_int_int(VM* vm, const char* mod, const char* name, __f_int__str_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_int_float)(VM*, const char*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_int_float(VM* vm, const char* mod, const char* name, __f_int__str_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_int_str)(VM*, const char*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str_int_str(VM* vm, const char* mod, const char* name, __f_int__str_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_int_bool)(VM*, const char*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__str_int_bool(VM* vm, const char* mod, const char* name, __f_int__str_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_float_int)(VM*, const char*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_float_int(VM* vm, const char* mod, const char* name, __f_int__str_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_float_float)(VM*, const char*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_float_float(VM* vm, const char* mod, const char* name, __f_int__str_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_float_str)(VM*, const char*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str_float_str(VM* vm, const char* mod, const char* name, __f_int__str_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_float_bool)(VM*, const char*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__str_float_bool(VM* vm, const char* mod, const char* name, __f_int__str_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_str_int)(VM*, const char*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_str_int(VM* vm, const char* mod, const char* name, __f_int__str_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_str_float)(VM*, const char*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_str_float(VM* vm, const char* mod, const char* name, __f_int__str_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_str_str)(VM*, const char*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str_str_str(VM* vm, const char* mod, const char* name, __f_int__str_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_str_bool)(VM*, const char*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__str_str_bool(VM* vm, const char* mod, const char* name, __f_int__str_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_bool_int)(VM*, const char*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_bool_int(VM* vm, const char* mod, const char* name, __f_int__str_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_bool_float)(VM*, const char*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_bool_float(VM* vm, const char* mod, const char* name, __f_int__str_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_bool_str)(VM*, const char*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str_bool_str(VM* vm, const char* mod, const char* name, __f_int__str_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_bool_bool)(VM*, const char*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__str_bool_bool(VM* vm, const char* mod, const char* name, __f_int__str_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_int_int)(VM*, bool, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_int_int(VM* vm, const char* mod, const char* name, __f_int__bool_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_int_float)(VM*, bool, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_int_float(VM* vm, const char* mod, const char* name, __f_int__bool_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_int_str)(VM*, bool, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_int_str(VM* vm, const char* mod, const char* name, __f_int__bool_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_int_bool)(VM*, bool, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_int_bool(VM* vm, const char* mod, const char* name, __f_int__bool_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_float_int)(VM*, bool, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_float_int(VM* vm, const char* mod, const char* name, __f_int__bool_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_float_float)(VM*, bool, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_float_float(VM* vm, const char* mod, const char* name, __f_int__bool_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_float_str)(VM*, bool, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_float_str(VM* vm, const char* mod, const char* name, __f_int__bool_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_float_bool)(VM*, bool, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_float_bool(VM* vm, const char* mod, const char* name, __f_int__bool_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_str_int)(VM*, bool, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_str_int(VM* vm, const char* mod, const char* name, __f_int__bool_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_str_float)(VM*, bool, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_str_float(VM* vm, const char* mod, const char* name, __f_int__bool_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_str_str)(VM*, bool, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_str_str(VM* vm, const char* mod, const char* name, __f_int__bool_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_str_bool)(VM*, bool, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_str_bool(VM* vm, const char* mod, const char* name, __f_int__bool_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_bool_int)(VM*, bool, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_bool_int(VM* vm, const char* mod, const char* name, __f_int__bool_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_bool_float)(VM*, bool, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_bool_float(VM* vm, const char* mod, const char* name, __f_int__bool_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_bool_str)(VM*, bool, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_bool_str(VM* vm, const char* mod, const char* name, __f_int__bool_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_bool_bool)(VM*, bool, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_int__bool_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        i64 ret = f(vm, _0, _1, _2);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_int_int)(VM*, i64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_int_int(VM* vm, const char* mod, const char* name, __f_float__int_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_int_float)(VM*, i64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_int_float(VM* vm, const char* mod, const char* name, __f_float__int_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_int_str)(VM*, i64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__int_int_str(VM* vm, const char* mod, const char* name, __f_float__int_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_int_bool)(VM*, i64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__int_int_bool(VM* vm, const char* mod, const char* name, __f_float__int_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_float_int)(VM*, i64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_float_int(VM* vm, const char* mod, const char* name, __f_float__int_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_float_float)(VM*, i64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_float_float(VM* vm, const char* mod, const char* name, __f_float__int_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_float_str)(VM*, i64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__int_float_str(VM* vm, const char* mod, const char* name, __f_float__int_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_float_bool)(VM*, i64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__int_float_bool(VM* vm, const char* mod, const char* name, __f_float__int_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_str_int)(VM*, i64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_str_int(VM* vm, const char* mod, const char* name, __f_float__int_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_str_float)(VM*, i64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_str_float(VM* vm, const char* mod, const char* name, __f_float__int_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_str_str)(VM*, i64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__int_str_str(VM* vm, const char* mod, const char* name, __f_float__int_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_str_bool)(VM*, i64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__int_str_bool(VM* vm, const char* mod, const char* name, __f_float__int_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_bool_int)(VM*, i64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_bool_int(VM* vm, const char* mod, const char* name, __f_float__int_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_bool_float)(VM*, i64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_bool_float(VM* vm, const char* mod, const char* name, __f_float__int_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_bool_str)(VM*, i64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__int_bool_str(VM* vm, const char* mod, const char* name, __f_float__int_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_bool_bool)(VM*, i64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__int_bool_bool(VM* vm, const char* mod, const char* name, __f_float__int_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_int_int)(VM*, f64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_int_int(VM* vm, const char* mod, const char* name, __f_float__float_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_int_float)(VM*, f64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_int_float(VM* vm, const char* mod, const char* name, __f_float__float_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_int_str)(VM*, f64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__float_int_str(VM* vm, const char* mod, const char* name, __f_float__float_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_int_bool)(VM*, f64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__float_int_bool(VM* vm, const char* mod, const char* name, __f_float__float_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_float_int)(VM*, f64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_float_int(VM* vm, const char* mod, const char* name, __f_float__float_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_float_float)(VM*, f64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_float_float(VM* vm, const char* mod, const char* name, __f_float__float_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_float_str)(VM*, f64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__float_float_str(VM* vm, const char* mod, const char* name, __f_float__float_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_float_bool)(VM*, f64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__float_float_bool(VM* vm, const char* mod, const char* name, __f_float__float_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_str_int)(VM*, f64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_str_int(VM* vm, const char* mod, const char* name, __f_float__float_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_str_float)(VM*, f64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_str_float(VM* vm, const char* mod, const char* name, __f_float__float_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_str_str)(VM*, f64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__float_str_str(VM* vm, const char* mod, const char* name, __f_float__float_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_str_bool)(VM*, f64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__float_str_bool(VM* vm, const char* mod, const char* name, __f_float__float_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_bool_int)(VM*, f64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_bool_int(VM* vm, const char* mod, const char* name, __f_float__float_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_bool_float)(VM*, f64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_bool_float(VM* vm, const char* mod, const char* name, __f_float__float_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_bool_str)(VM*, f64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__float_bool_str(VM* vm, const char* mod, const char* name, __f_float__float_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_bool_bool)(VM*, f64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__float_bool_bool(VM* vm, const char* mod, const char* name, __f_float__float_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_int_int)(VM*, const char*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_int_int(VM* vm, const char* mod, const char* name, __f_float__str_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_int_float)(VM*, const char*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_int_float(VM* vm, const char* mod, const char* name, __f_float__str_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_int_str)(VM*, const char*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str_int_str(VM* vm, const char* mod, const char* name, __f_float__str_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_int_bool)(VM*, const char*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__str_int_bool(VM* vm, const char* mod, const char* name, __f_float__str_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_float_int)(VM*, const char*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_float_int(VM* vm, const char* mod, const char* name, __f_float__str_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_float_float)(VM*, const char*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_float_float(VM* vm, const char* mod, const char* name, __f_float__str_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_float_str)(VM*, const char*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str_float_str(VM* vm, const char* mod, const char* name, __f_float__str_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_float_bool)(VM*, const char*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__str_float_bool(VM* vm, const char* mod, const char* name, __f_float__str_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_str_int)(VM*, const char*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_str_int(VM* vm, const char* mod, const char* name, __f_float__str_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_str_float)(VM*, const char*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_str_float(VM* vm, const char* mod, const char* name, __f_float__str_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_str_str)(VM*, const char*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str_str_str(VM* vm, const char* mod, const char* name, __f_float__str_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_str_bool)(VM*, const char*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__str_str_bool(VM* vm, const char* mod, const char* name, __f_float__str_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_bool_int)(VM*, const char*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_bool_int(VM* vm, const char* mod, const char* name, __f_float__str_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_bool_float)(VM*, const char*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_bool_float(VM* vm, const char* mod, const char* name, __f_float__str_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_bool_str)(VM*, const char*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str_bool_str(VM* vm, const char* mod, const char* name, __f_float__str_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_bool_bool)(VM*, const char*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__str_bool_bool(VM* vm, const char* mod, const char* name, __f_float__str_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_int_int)(VM*, bool, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_int_int(VM* vm, const char* mod, const char* name, __f_float__bool_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_int_float)(VM*, bool, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_int_float(VM* vm, const char* mod, const char* name, __f_float__bool_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_int_str)(VM*, bool, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_int_str(VM* vm, const char* mod, const char* name, __f_float__bool_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_int_bool)(VM*, bool, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_int_bool(VM* vm, const char* mod, const char* name, __f_float__bool_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_float_int)(VM*, bool, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_float_int(VM* vm, const char* mod, const char* name, __f_float__bool_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_float_float)(VM*, bool, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_float_float(VM* vm, const char* mod, const char* name, __f_float__bool_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_float_str)(VM*, bool, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_float_str(VM* vm, const char* mod, const char* name, __f_float__bool_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_float_bool)(VM*, bool, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_float_bool(VM* vm, const char* mod, const char* name, __f_float__bool_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_str_int)(VM*, bool, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_str_int(VM* vm, const char* mod, const char* name, __f_float__bool_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_str_float)(VM*, bool, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_str_float(VM* vm, const char* mod, const char* name, __f_float__bool_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_str_str)(VM*, bool, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_str_str(VM* vm, const char* mod, const char* name, __f_float__bool_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_str_bool)(VM*, bool, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_str_bool(VM* vm, const char* mod, const char* name, __f_float__bool_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_bool_int)(VM*, bool, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_bool_int(VM* vm, const char* mod, const char* name, __f_float__bool_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_bool_float)(VM*, bool, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_bool_float(VM* vm, const char* mod, const char* name, __f_float__bool_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_bool_str)(VM*, bool, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_bool_str(VM* vm, const char* mod, const char* name, __f_float__bool_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_bool_bool)(VM*, bool, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_float__bool_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f64 ret = f(vm, _0, _1, _2);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_int_int)(VM*, i64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_int_int(VM* vm, const char* mod, const char* name, __f_str__int_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_int_float)(VM*, i64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_int_float(VM* vm, const char* mod, const char* name, __f_str__int_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_int_str)(VM*, i64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__int_int_str(VM* vm, const char* mod, const char* name, __f_str__int_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_int_bool)(VM*, i64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__int_int_bool(VM* vm, const char* mod, const char* name, __f_str__int_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_float_int)(VM*, i64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_float_int(VM* vm, const char* mod, const char* name, __f_str__int_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_float_float)(VM*, i64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_float_float(VM* vm, const char* mod, const char* name, __f_str__int_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_float_str)(VM*, i64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__int_float_str(VM* vm, const char* mod, const char* name, __f_str__int_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_float_bool)(VM*, i64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__int_float_bool(VM* vm, const char* mod, const char* name, __f_str__int_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_str_int)(VM*, i64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_str_int(VM* vm, const char* mod, const char* name, __f_str__int_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_str_float)(VM*, i64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_str_float(VM* vm, const char* mod, const char* name, __f_str__int_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_str_str)(VM*, i64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__int_str_str(VM* vm, const char* mod, const char* name, __f_str__int_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_str_bool)(VM*, i64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__int_str_bool(VM* vm, const char* mod, const char* name, __f_str__int_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_bool_int)(VM*, i64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_bool_int(VM* vm, const char* mod, const char* name, __f_str__int_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_bool_float)(VM*, i64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_bool_float(VM* vm, const char* mod, const char* name, __f_str__int_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_bool_str)(VM*, i64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__int_bool_str(VM* vm, const char* mod, const char* name, __f_str__int_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_bool_bool)(VM*, i64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__int_bool_bool(VM* vm, const char* mod, const char* name, __f_str__int_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_int_int)(VM*, f64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_int_int(VM* vm, const char* mod, const char* name, __f_str__float_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_int_float)(VM*, f64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_int_float(VM* vm, const char* mod, const char* name, __f_str__float_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_int_str)(VM*, f64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__float_int_str(VM* vm, const char* mod, const char* name, __f_str__float_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_int_bool)(VM*, f64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__float_int_bool(VM* vm, const char* mod, const char* name, __f_str__float_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_float_int)(VM*, f64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_float_int(VM* vm, const char* mod, const char* name, __f_str__float_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_float_float)(VM*, f64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_float_float(VM* vm, const char* mod, const char* name, __f_str__float_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_float_str)(VM*, f64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__float_float_str(VM* vm, const char* mod, const char* name, __f_str__float_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_float_bool)(VM*, f64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__float_float_bool(VM* vm, const char* mod, const char* name, __f_str__float_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_str_int)(VM*, f64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_str_int(VM* vm, const char* mod, const char* name, __f_str__float_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_str_float)(VM*, f64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_str_float(VM* vm, const char* mod, const char* name, __f_str__float_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_str_str)(VM*, f64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__float_str_str(VM* vm, const char* mod, const char* name, __f_str__float_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_str_bool)(VM*, f64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__float_str_bool(VM* vm, const char* mod, const char* name, __f_str__float_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_bool_int)(VM*, f64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_bool_int(VM* vm, const char* mod, const char* name, __f_str__float_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_bool_float)(VM*, f64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_bool_float(VM* vm, const char* mod, const char* name, __f_str__float_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_bool_str)(VM*, f64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__float_bool_str(VM* vm, const char* mod, const char* name, __f_str__float_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_bool_bool)(VM*, f64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__float_bool_bool(VM* vm, const char* mod, const char* name, __f_str__float_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_int_int)(VM*, const char*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_int_int(VM* vm, const char* mod, const char* name, __f_str__str_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_int_float)(VM*, const char*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_int_float(VM* vm, const char* mod, const char* name, __f_str__str_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_int_str)(VM*, const char*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str_int_str(VM* vm, const char* mod, const char* name, __f_str__str_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_int_bool)(VM*, const char*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__str_int_bool(VM* vm, const char* mod, const char* name, __f_str__str_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_float_int)(VM*, const char*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_float_int(VM* vm, const char* mod, const char* name, __f_str__str_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_float_float)(VM*, const char*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_float_float(VM* vm, const char* mod, const char* name, __f_str__str_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_float_str)(VM*, const char*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str_float_str(VM* vm, const char* mod, const char* name, __f_str__str_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_float_bool)(VM*, const char*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__str_float_bool(VM* vm, const char* mod, const char* name, __f_str__str_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_str_int)(VM*, const char*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_str_int(VM* vm, const char* mod, const char* name, __f_str__str_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_str_float)(VM*, const char*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_str_float(VM* vm, const char* mod, const char* name, __f_str__str_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_str_str)(VM*, const char*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str_str_str(VM* vm, const char* mod, const char* name, __f_str__str_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_str_bool)(VM*, const char*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__str_str_bool(VM* vm, const char* mod, const char* name, __f_str__str_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_bool_int)(VM*, const char*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_bool_int(VM* vm, const char* mod, const char* name, __f_str__str_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_bool_float)(VM*, const char*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_bool_float(VM* vm, const char* mod, const char* name, __f_str__str_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_bool_str)(VM*, const char*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str_bool_str(VM* vm, const char* mod, const char* name, __f_str__str_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_bool_bool)(VM*, const char*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__str_bool_bool(VM* vm, const char* mod, const char* name, __f_str__str_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_int_int)(VM*, bool, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_int_int(VM* vm, const char* mod, const char* name, __f_str__bool_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_int_float)(VM*, bool, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_int_float(VM* vm, const char* mod, const char* name, __f_str__bool_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_int_str)(VM*, bool, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_int_str(VM* vm, const char* mod, const char* name, __f_str__bool_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_int_bool)(VM*, bool, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_int_bool(VM* vm, const char* mod, const char* name, __f_str__bool_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_float_int)(VM*, bool, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_float_int(VM* vm, const char* mod, const char* name, __f_str__bool_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_float_float)(VM*, bool, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_float_float(VM* vm, const char* mod, const char* name, __f_str__bool_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_float_str)(VM*, bool, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_float_str(VM* vm, const char* mod, const char* name, __f_str__bool_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_float_bool)(VM*, bool, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_float_bool(VM* vm, const char* mod, const char* name, __f_str__bool_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_str_int)(VM*, bool, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_str_int(VM* vm, const char* mod, const char* name, __f_str__bool_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_str_float)(VM*, bool, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_str_float(VM* vm, const char* mod, const char* name, __f_str__bool_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_str_str)(VM*, bool, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_str_str(VM* vm, const char* mod, const char* name, __f_str__bool_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_str_bool)(VM*, bool, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_str_bool(VM* vm, const char* mod, const char* name, __f_str__bool_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_bool_int)(VM*, bool, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_bool_int(VM* vm, const char* mod, const char* name, __f_str__bool_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_bool_float)(VM*, bool, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_bool_float(VM* vm, const char* mod, const char* name, __f_str__bool_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_bool_str)(VM*, bool, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_bool_str(VM* vm, const char* mod, const char* name, __f_str__bool_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_bool_bool)(VM*, bool, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_str__bool_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        const char* ret = f(vm, _0, _1, _2);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_int_int)(VM*, i64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_int_int(VM* vm, const char* mod, const char* name, __f_bool__int_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_int_float)(VM*, i64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_int_float(VM* vm, const char* mod, const char* name, __f_bool__int_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_int_str)(VM*, i64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_int_str(VM* vm, const char* mod, const char* name, __f_bool__int_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_int_bool)(VM*, i64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_int_bool(VM* vm, const char* mod, const char* name, __f_bool__int_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_float_int)(VM*, i64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_float_int(VM* vm, const char* mod, const char* name, __f_bool__int_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_float_float)(VM*, i64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_float_float(VM* vm, const char* mod, const char* name, __f_bool__int_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_float_str)(VM*, i64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_float_str(VM* vm, const char* mod, const char* name, __f_bool__int_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_float_bool)(VM*, i64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_float_bool(VM* vm, const char* mod, const char* name, __f_bool__int_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_str_int)(VM*, i64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_str_int(VM* vm, const char* mod, const char* name, __f_bool__int_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_str_float)(VM*, i64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_str_float(VM* vm, const char* mod, const char* name, __f_bool__int_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_str_str)(VM*, i64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_str_str(VM* vm, const char* mod, const char* name, __f_bool__int_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_str_bool)(VM*, i64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_str_bool(VM* vm, const char* mod, const char* name, __f_bool__int_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_bool_int)(VM*, i64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_bool_int(VM* vm, const char* mod, const char* name, __f_bool__int_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_bool_float)(VM*, i64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_bool_float(VM* vm, const char* mod, const char* name, __f_bool__int_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_bool_str)(VM*, i64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_bool_str(VM* vm, const char* mod, const char* name, __f_bool__int_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_bool_bool)(VM*, i64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_bool_bool(VM* vm, const char* mod, const char* name, __f_bool__int_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_int_int)(VM*, f64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_int_int(VM* vm, const char* mod, const char* name, __f_bool__float_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_int_float)(VM*, f64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_int_float(VM* vm, const char* mod, const char* name, __f_bool__float_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_int_str)(VM*, f64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_int_str(VM* vm, const char* mod, const char* name, __f_bool__float_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_int_bool)(VM*, f64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_int_bool(VM* vm, const char* mod, const char* name, __f_bool__float_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_float_int)(VM*, f64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_float_int(VM* vm, const char* mod, const char* name, __f_bool__float_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_float_float)(VM*, f64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_float_float(VM* vm, const char* mod, const char* name, __f_bool__float_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_float_str)(VM*, f64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_float_str(VM* vm, const char* mod, const char* name, __f_bool__float_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_float_bool)(VM*, f64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_float_bool(VM* vm, const char* mod, const char* name, __f_bool__float_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_str_int)(VM*, f64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_str_int(VM* vm, const char* mod, const char* name, __f_bool__float_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_str_float)(VM*, f64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_str_float(VM* vm, const char* mod, const char* name, __f_bool__float_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_str_str)(VM*, f64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_str_str(VM* vm, const char* mod, const char* name, __f_bool__float_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_str_bool)(VM*, f64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_str_bool(VM* vm, const char* mod, const char* name, __f_bool__float_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_bool_int)(VM*, f64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_bool_int(VM* vm, const char* mod, const char* name, __f_bool__float_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_bool_float)(VM*, f64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_bool_float(VM* vm, const char* mod, const char* name, __f_bool__float_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_bool_str)(VM*, f64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_bool_str(VM* vm, const char* mod, const char* name, __f_bool__float_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_bool_bool)(VM*, f64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_bool_bool(VM* vm, const char* mod, const char* name, __f_bool__float_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_int_int)(VM*, const char*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_int_int(VM* vm, const char* mod, const char* name, __f_bool__str_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_int_float)(VM*, const char*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_int_float(VM* vm, const char* mod, const char* name, __f_bool__str_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_int_str)(VM*, const char*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_int_str(VM* vm, const char* mod, const char* name, __f_bool__str_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_int_bool)(VM*, const char*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_int_bool(VM* vm, const char* mod, const char* name, __f_bool__str_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_float_int)(VM*, const char*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_float_int(VM* vm, const char* mod, const char* name, __f_bool__str_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_float_float)(VM*, const char*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_float_float(VM* vm, const char* mod, const char* name, __f_bool__str_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_float_str)(VM*, const char*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_float_str(VM* vm, const char* mod, const char* name, __f_bool__str_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_float_bool)(VM*, const char*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_float_bool(VM* vm, const char* mod, const char* name, __f_bool__str_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_str_int)(VM*, const char*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_str_int(VM* vm, const char* mod, const char* name, __f_bool__str_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_str_float)(VM*, const char*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_str_float(VM* vm, const char* mod, const char* name, __f_bool__str_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_str_str)(VM*, const char*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_str_str(VM* vm, const char* mod, const char* name, __f_bool__str_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_str_bool)(VM*, const char*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_str_bool(VM* vm, const char* mod, const char* name, __f_bool__str_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_bool_int)(VM*, const char*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_bool_int(VM* vm, const char* mod, const char* name, __f_bool__str_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_bool_float)(VM*, const char*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_bool_float(VM* vm, const char* mod, const char* name, __f_bool__str_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_bool_str)(VM*, const char*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_bool_str(VM* vm, const char* mod, const char* name, __f_bool__str_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_bool_bool)(VM*, const char*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_bool_bool(VM* vm, const char* mod, const char* name, __f_bool__str_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_int_int)(VM*, bool, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_int_int(VM* vm, const char* mod, const char* name, __f_bool__bool_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_int_float)(VM*, bool, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_int_float(VM* vm, const char* mod, const char* name, __f_bool__bool_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_int_str)(VM*, bool, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_int_str(VM* vm, const char* mod, const char* name, __f_bool__bool_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_int_bool)(VM*, bool, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_int_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_float_int)(VM*, bool, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_float_int(VM* vm, const char* mod, const char* name, __f_bool__bool_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_float_float)(VM*, bool, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_float_float(VM* vm, const char* mod, const char* name, __f_bool__bool_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_float_str)(VM*, bool, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_float_str(VM* vm, const char* mod, const char* name, __f_bool__bool_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_float_bool)(VM*, bool, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_float_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_str_int)(VM*, bool, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_str_int(VM* vm, const char* mod, const char* name, __f_bool__bool_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_str_float)(VM*, bool, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_str_float(VM* vm, const char* mod, const char* name, __f_bool__bool_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_str_str)(VM*, bool, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_str_str(VM* vm, const char* mod, const char* name, __f_bool__bool_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_str_bool)(VM*, bool, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_str_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_bool_int)(VM*, bool, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_bool_int(VM* vm, const char* mod, const char* name, __f_bool__bool_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_bool_float)(VM*, bool, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_bool_float(VM* vm, const char* mod, const char* name, __f_bool__bool_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_bool_str)(VM*, bool, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_bool_str(VM* vm, const char* mod, const char* name, __f_bool__bool_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_bool_bool)(VM*, bool, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        bool ret = f(vm, _0, _1, _2);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef void (*__f_None__int_int_int)(VM*, i64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_int_int(VM* vm, const char* mod, const char* name, __f_None__int_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_int_float)(VM*, i64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_int_float(VM* vm, const char* mod, const char* name, __f_None__int_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_int_str)(VM*, i64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__int_int_str(VM* vm, const char* mod, const char* name, __f_None__int_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_int_bool)(VM*, i64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__int_int_bool(VM* vm, const char* mod, const char* name, __f_None__int_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_float_int)(VM*, i64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_float_int(VM* vm, const char* mod, const char* name, __f_None__int_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_float_float)(VM*, i64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_float_float(VM* vm, const char* mod, const char* name, __f_None__int_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_float_str)(VM*, i64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__int_float_str(VM* vm, const char* mod, const char* name, __f_None__int_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_float_bool)(VM*, i64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__int_float_bool(VM* vm, const char* mod, const char* name, __f_None__int_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_str_int)(VM*, i64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_str_int(VM* vm, const char* mod, const char* name, __f_None__int_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_str_float)(VM*, i64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_str_float(VM* vm, const char* mod, const char* name, __f_None__int_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_str_str)(VM*, i64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__int_str_str(VM* vm, const char* mod, const char* name, __f_None__int_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_str_bool)(VM*, i64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__int_str_bool(VM* vm, const char* mod, const char* name, __f_None__int_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_bool_int)(VM*, i64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_bool_int(VM* vm, const char* mod, const char* name, __f_None__int_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_bool_float)(VM*, i64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_bool_float(VM* vm, const char* mod, const char* name, __f_None__int_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_bool_str)(VM*, i64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__int_bool_str(VM* vm, const char* mod, const char* name, __f_None__int_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_bool_bool)(VM*, i64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__int_bool_bool(VM* vm, const char* mod, const char* name, __f_None__int_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_int_int)(VM*, f64, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_int_int(VM* vm, const char* mod, const char* name, __f_None__float_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_int_float)(VM*, f64, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_int_float(VM* vm, const char* mod, const char* name, __f_None__float_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_int_str)(VM*, f64, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__float_int_str(VM* vm, const char* mod, const char* name, __f_None__float_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_int_bool)(VM*, f64, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__float_int_bool(VM* vm, const char* mod, const char* name, __f_None__float_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_float_int)(VM*, f64, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_float_int(VM* vm, const char* mod, const char* name, __f_None__float_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_float_float)(VM*, f64, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_float_float(VM* vm, const char* mod, const char* name, __f_None__float_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_float_str)(VM*, f64, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__float_float_str(VM* vm, const char* mod, const char* name, __f_None__float_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_float_bool)(VM*, f64, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__float_float_bool(VM* vm, const char* mod, const char* name, __f_None__float_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_str_int)(VM*, f64, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_str_int(VM* vm, const char* mod, const char* name, __f_None__float_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_str_float)(VM*, f64, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_str_float(VM* vm, const char* mod, const char* name, __f_None__float_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_str_str)(VM*, f64, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__float_str_str(VM* vm, const char* mod, const char* name, __f_None__float_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_str_bool)(VM*, f64, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__float_str_bool(VM* vm, const char* mod, const char* name, __f_None__float_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_bool_int)(VM*, f64, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_bool_int(VM* vm, const char* mod, const char* name, __f_None__float_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_bool_float)(VM*, f64, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_bool_float(VM* vm, const char* mod, const char* name, __f_None__float_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_bool_str)(VM*, f64, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__float_bool_str(VM* vm, const char* mod, const char* name, __f_None__float_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_bool_bool)(VM*, f64, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__float_bool_bool(VM* vm, const char* mod, const char* name, __f_None__float_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_int_int)(VM*, const char*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_int_int(VM* vm, const char* mod, const char* name, __f_None__str_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_int_float)(VM*, const char*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_int_float(VM* vm, const char* mod, const char* name, __f_None__str_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_int_str)(VM*, const char*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str_int_str(VM* vm, const char* mod, const char* name, __f_None__str_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_int_bool)(VM*, const char*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__str_int_bool(VM* vm, const char* mod, const char* name, __f_None__str_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_float_int)(VM*, const char*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_float_int(VM* vm, const char* mod, const char* name, __f_None__str_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_float_float)(VM*, const char*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_float_float(VM* vm, const char* mod, const char* name, __f_None__str_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_float_str)(VM*, const char*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str_float_str(VM* vm, const char* mod, const char* name, __f_None__str_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_float_bool)(VM*, const char*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__str_float_bool(VM* vm, const char* mod, const char* name, __f_None__str_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_str_int)(VM*, const char*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_str_int(VM* vm, const char* mod, const char* name, __f_None__str_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_str_float)(VM*, const char*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_str_float(VM* vm, const char* mod, const char* name, __f_None__str_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_str_str)(VM*, const char*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str_str_str(VM* vm, const char* mod, const char* name, __f_None__str_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_str_bool)(VM*, const char*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__str_str_bool(VM* vm, const char* mod, const char* name, __f_None__str_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_bool_int)(VM*, const char*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_bool_int(VM* vm, const char* mod, const char* name, __f_None__str_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_bool_float)(VM*, const char*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_bool_float(VM* vm, const char* mod, const char* name, __f_None__str_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_bool_str)(VM*, const char*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str_bool_str(VM* vm, const char* mod, const char* name, __f_None__str_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_bool_bool)(VM*, const char*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__str_bool_bool(VM* vm, const char* mod, const char* name, __f_None__str_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_int_int)(VM*, bool, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_int_int(VM* vm, const char* mod, const char* name, __f_None__bool_int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_int_float)(VM*, bool, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_int_float(VM* vm, const char* mod, const char* name, __f_None__bool_int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_int_str)(VM*, bool, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_int_str(VM* vm, const char* mod, const char* name, __f_None__bool_int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_int_bool)(VM*, bool, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_int_bool(VM* vm, const char* mod, const char* name, __f_None__bool_int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_float_int)(VM*, bool, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_float_int(VM* vm, const char* mod, const char* name, __f_None__bool_float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_float_float)(VM*, bool, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_float_float(VM* vm, const char* mod, const char* name, __f_None__bool_float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_float_str)(VM*, bool, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_float_str(VM* vm, const char* mod, const char* name, __f_None__bool_float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_float_bool)(VM*, bool, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_float_bool(VM* vm, const char* mod, const char* name, __f_None__bool_float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_str_int)(VM*, bool, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_str_int(VM* vm, const char* mod, const char* name, __f_None__bool_str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_str_float)(VM*, bool, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_str_float(VM* vm, const char* mod, const char* name, __f_None__bool_str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_str_str)(VM*, bool, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_str_str(VM* vm, const char* mod, const char* name, __f_None__bool_str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_str_bool)(VM*, bool, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_str_bool(VM* vm, const char* mod, const char* name, __f_None__bool_str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_bool_int)(VM*, bool, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_bool_int(VM* vm, const char* mod, const char* name, __f_None__bool_bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 _2 = vm->PyInt_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_bool_float)(VM*, bool, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_bool_float(VM* vm, const char* mod, const char* name, __f_None__bool_bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 _2 = vm->PyFloat_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_bool_str)(VM*, bool, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_bool_str(VM* vm, const char* mod, const char* name, __f_None__bool_bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* _2 = vm->PyStr_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_bool_bool)(VM*, bool, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_None__bool_bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool _2 = vm->PyBool_AS_C(args[2]);
+        f(vm, _0, _1, _2);
+        return vm->None;
+    });
+}
+
+typedef i64 (*__f_int__int_int)(VM*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_int(VM* vm, const char* mod, const char* name, __f_int__int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_float)(VM*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__int_float(VM* vm, const char* mod, const char* name, __f_int__int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_str)(VM*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__int_str(VM* vm, const char* mod, const char* name, __f_int__int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__int_bool)(VM*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__int_bool(VM* vm, const char* mod, const char* name, __f_int__int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_int)(VM*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_int(VM* vm, const char* mod, const char* name, __f_int__float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_float)(VM*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float_float(VM* vm, const char* mod, const char* name, __f_int__float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_str)(VM*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__float_str(VM* vm, const char* mod, const char* name, __f_int__float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float_bool)(VM*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__float_bool(VM* vm, const char* mod, const char* name, __f_int__float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_int)(VM*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_int(VM* vm, const char* mod, const char* name, __f_int__str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_float)(VM*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__str_float(VM* vm, const char* mod, const char* name, __f_int__str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_str)(VM*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str_str(VM* vm, const char* mod, const char* name, __f_int__str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str_bool)(VM*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__str_bool(VM* vm, const char* mod, const char* name, __f_int__str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_int)(VM*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_int(VM* vm, const char* mod, const char* name, __f_int__bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_float)(VM*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_float(VM* vm, const char* mod, const char* name, __f_int__bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_str)(VM*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_str(VM* vm, const char* mod, const char* name, __f_int__bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool_bool)(VM*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool_bool(VM* vm, const char* mod, const char* name, __f_int__bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        i64 ret = f(vm, _0, _1);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_int)(VM*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_int(VM* vm, const char* mod, const char* name, __f_float__int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_float)(VM*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__int_float(VM* vm, const char* mod, const char* name, __f_float__int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_str)(VM*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__int_str(VM* vm, const char* mod, const char* name, __f_float__int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__int_bool)(VM*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__int_bool(VM* vm, const char* mod, const char* name, __f_float__int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_int)(VM*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_int(VM* vm, const char* mod, const char* name, __f_float__float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_float)(VM*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float_float(VM* vm, const char* mod, const char* name, __f_float__float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_str)(VM*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__float_str(VM* vm, const char* mod, const char* name, __f_float__float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float_bool)(VM*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__float_bool(VM* vm, const char* mod, const char* name, __f_float__float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_int)(VM*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_int(VM* vm, const char* mod, const char* name, __f_float__str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_float)(VM*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__str_float(VM* vm, const char* mod, const char* name, __f_float__str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_str)(VM*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str_str(VM* vm, const char* mod, const char* name, __f_float__str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str_bool)(VM*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__str_bool(VM* vm, const char* mod, const char* name, __f_float__str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_int)(VM*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_int(VM* vm, const char* mod, const char* name, __f_float__bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_float)(VM*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_float(VM* vm, const char* mod, const char* name, __f_float__bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_str)(VM*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_str(VM* vm, const char* mod, const char* name, __f_float__bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool_bool)(VM*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool_bool(VM* vm, const char* mod, const char* name, __f_float__bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f64 ret = f(vm, _0, _1);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_int)(VM*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_int(VM* vm, const char* mod, const char* name, __f_str__int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_float)(VM*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__int_float(VM* vm, const char* mod, const char* name, __f_str__int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_str)(VM*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__int_str(VM* vm, const char* mod, const char* name, __f_str__int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__int_bool)(VM*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__int_bool(VM* vm, const char* mod, const char* name, __f_str__int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_int)(VM*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_int(VM* vm, const char* mod, const char* name, __f_str__float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_float)(VM*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float_float(VM* vm, const char* mod, const char* name, __f_str__float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_str)(VM*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__float_str(VM* vm, const char* mod, const char* name, __f_str__float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float_bool)(VM*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__float_bool(VM* vm, const char* mod, const char* name, __f_str__float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_int)(VM*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_int(VM* vm, const char* mod, const char* name, __f_str__str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_float)(VM*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__str_float(VM* vm, const char* mod, const char* name, __f_str__str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_str)(VM*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str_str(VM* vm, const char* mod, const char* name, __f_str__str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str_bool)(VM*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__str_bool(VM* vm, const char* mod, const char* name, __f_str__str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_int)(VM*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_int(VM* vm, const char* mod, const char* name, __f_str__bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_float)(VM*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_float(VM* vm, const char* mod, const char* name, __f_str__bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_str)(VM*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_str(VM* vm, const char* mod, const char* name, __f_str__bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool_bool)(VM*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool_bool(VM* vm, const char* mod, const char* name, __f_str__bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        const char* ret = f(vm, _0, _1);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_int)(VM*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_int(VM* vm, const char* mod, const char* name, __f_bool__int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_float)(VM*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_float(VM* vm, const char* mod, const char* name, __f_bool__int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_str)(VM*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_str(VM* vm, const char* mod, const char* name, __f_bool__int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__int_bool)(VM*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__int_bool(VM* vm, const char* mod, const char* name, __f_bool__int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_int)(VM*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_int(VM* vm, const char* mod, const char* name, __f_bool__float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_float)(VM*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_float(VM* vm, const char* mod, const char* name, __f_bool__float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_str)(VM*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_str(VM* vm, const char* mod, const char* name, __f_bool__float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float_bool)(VM*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__float_bool(VM* vm, const char* mod, const char* name, __f_bool__float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_int)(VM*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_int(VM* vm, const char* mod, const char* name, __f_bool__str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_float)(VM*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_float(VM* vm, const char* mod, const char* name, __f_bool__str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_str)(VM*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_str(VM* vm, const char* mod, const char* name, __f_bool__str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str_bool)(VM*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__str_bool(VM* vm, const char* mod, const char* name, __f_bool__str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_int)(VM*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_int(VM* vm, const char* mod, const char* name, __f_bool__bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_float)(VM*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_float(VM* vm, const char* mod, const char* name, __f_bool__bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_str)(VM*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_str(VM* vm, const char* mod, const char* name, __f_bool__bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool_bool)(VM*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        bool ret = f(vm, _0, _1);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef void (*__f_None__int_int)(VM*, i64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_int(VM* vm, const char* mod, const char* name, __f_None__int_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_float)(VM*, i64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__int_float(VM* vm, const char* mod, const char* name, __f_None__int_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_str)(VM*, i64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__int_str(VM* vm, const char* mod, const char* name, __f_None__int_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__int_bool)(VM*, i64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__int_bool(VM* vm, const char* mod, const char* name, __f_None__int_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_int)(VM*, f64, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_int(VM* vm, const char* mod, const char* name, __f_None__float_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_float)(VM*, f64, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float_float(VM* vm, const char* mod, const char* name, __f_None__float_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_str)(VM*, f64, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__float_str(VM* vm, const char* mod, const char* name, __f_None__float_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float_bool)(VM*, f64, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__float_bool(VM* vm, const char* mod, const char* name, __f_None__float_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_int)(VM*, const char*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_int(VM* vm, const char* mod, const char* name, __f_None__str_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_float)(VM*, const char*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__str_float(VM* vm, const char* mod, const char* name, __f_None__str_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_str)(VM*, const char*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str_str(VM* vm, const char* mod, const char* name, __f_None__str_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str_bool)(VM*, const char*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__str_bool(VM* vm, const char* mod, const char* name, __f_None__str_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_int)(VM*, bool, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_int(VM* vm, const char* mod, const char* name, __f_None__bool_int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 _1 = vm->PyInt_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_float)(VM*, bool, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_float(VM* vm, const char* mod, const char* name, __f_None__bool_float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 _1 = vm->PyFloat_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_str)(VM*, bool, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_str(VM* vm, const char* mod, const char* name, __f_None__bool_str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* _1 = vm->PyStr_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool_bool)(VM*, bool, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool_bool(VM* vm, const char* mod, const char* name, __f_None__bool_bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool _1 = vm->PyBool_AS_C(args[1]);
+        f(vm, _0, _1);
+        return vm->None;
+    });
+}
+
+typedef i64 (*__f_int__int)(VM*, i64);
+__EXPORT
+void pkpy_vm_bind__f_int__int(VM* vm, const char* mod, const char* name, __f_int__int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        i64 ret = f(vm, _0);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__float)(VM*, f64);
+__EXPORT
+void pkpy_vm_bind__f_int__float(VM* vm, const char* mod, const char* name, __f_int__float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        i64 ret = f(vm, _0);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__str)(VM*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_int__str(VM* vm, const char* mod, const char* name, __f_int__str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        i64 ret = f(vm, _0);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef i64 (*__f_int__bool)(VM*, bool);
+__EXPORT
+void pkpy_vm_bind__f_int__bool(VM* vm, const char* mod, const char* name, __f_int__bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        i64 ret = f(vm, _0);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef f64 (*__f_float__int)(VM*, i64);
+__EXPORT
+void pkpy_vm_bind__f_float__int(VM* vm, const char* mod, const char* name, __f_float__int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f64 ret = f(vm, _0);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__float)(VM*, f64);
+__EXPORT
+void pkpy_vm_bind__f_float__float(VM* vm, const char* mod, const char* name, __f_float__float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f64 ret = f(vm, _0);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__str)(VM*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_float__str(VM* vm, const char* mod, const char* name, __f_float__str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f64 ret = f(vm, _0);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef f64 (*__f_float__bool)(VM*, bool);
+__EXPORT
+void pkpy_vm_bind__f_float__bool(VM* vm, const char* mod, const char* name, __f_float__bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f64 ret = f(vm, _0);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef const char* (*__f_str__int)(VM*, i64);
+__EXPORT
+void pkpy_vm_bind__f_str__int(VM* vm, const char* mod, const char* name, __f_str__int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        const char* ret = f(vm, _0);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__float)(VM*, f64);
+__EXPORT
+void pkpy_vm_bind__f_str__float(VM* vm, const char* mod, const char* name, __f_str__float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        const char* ret = f(vm, _0);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__str)(VM*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_str__str(VM* vm, const char* mod, const char* name, __f_str__str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        const char* ret = f(vm, _0);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef const char* (*__f_str__bool)(VM*, bool);
+__EXPORT
+void pkpy_vm_bind__f_str__bool(VM* vm, const char* mod, const char* name, __f_str__bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        const char* ret = f(vm, _0);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef bool (*__f_bool__int)(VM*, i64);
+__EXPORT
+void pkpy_vm_bind__f_bool__int(VM* vm, const char* mod, const char* name, __f_bool__int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        bool ret = f(vm, _0);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__float)(VM*, f64);
+__EXPORT
+void pkpy_vm_bind__f_bool__float(VM* vm, const char* mod, const char* name, __f_bool__float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        bool ret = f(vm, _0);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__str)(VM*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_bool__str(VM* vm, const char* mod, const char* name, __f_bool__str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        bool ret = f(vm, _0);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef bool (*__f_bool__bool)(VM*, bool);
+__EXPORT
+void pkpy_vm_bind__f_bool__bool(VM* vm, const char* mod, const char* name, __f_bool__bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        bool ret = f(vm, _0);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef void (*__f_None__int)(VM*, i64);
+__EXPORT
+void pkpy_vm_bind__f_None__int(VM* vm, const char* mod, const char* name, __f_None__int f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 _0 = vm->PyInt_AS_C(args[0]);
+        f(vm, _0);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__float)(VM*, f64);
+__EXPORT
+void pkpy_vm_bind__f_None__float(VM* vm, const char* mod, const char* name, __f_None__float f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 _0 = vm->PyFloat_AS_C(args[0]);
+        f(vm, _0);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__str)(VM*, const char*);
+__EXPORT
+void pkpy_vm_bind__f_None__str(VM* vm, const char* mod, const char* name, __f_None__str f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* _0 = vm->PyStr_AS_C(args[0]);
+        f(vm, _0);
+        return vm->None;
+    });
+}
+
+typedef void (*__f_None__bool)(VM*, bool);
+__EXPORT
+void pkpy_vm_bind__f_None__bool(VM* vm, const char* mod, const char* name, __f_None__bool f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool _0 = vm->PyBool_AS_C(args[0]);
+        f(vm, _0);
+        return vm->None;
+    });
+}
+
+typedef i64 (*__f_int__)(VM*);
+__EXPORT
+void pkpy_vm_bind__f_int__(VM* vm, const char* mod, const char* name, __f_int__ f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        i64 ret = f(vm);
+        return vm->PyInt(ret);
+    });
+}
+
+typedef f64 (*__f_float__)(VM*);
+__EXPORT
+void pkpy_vm_bind__f_float__(VM* vm, const char* mod, const char* name, __f_float__ f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f64 ret = f(vm);
+        return vm->PyFloat(ret);
+    });
+}
+
+typedef const char* (*__f_str__)(VM*);
+__EXPORT
+void pkpy_vm_bind__f_str__(VM* vm, const char* mod, const char* name, __f_str__ f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        const char* ret = f(vm);
+        return vm->PyStr(ret);
+    });
+}
+
+typedef bool (*__f_bool__)(VM*);
+__EXPORT
+void pkpy_vm_bind__f_bool__(VM* vm, const char* mod, const char* name, __f_bool__ f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        bool ret = f(vm);
+        return vm->PyBool(ret);
+    });
+}
+
+typedef void (*__f_None__)(VM*);
+__EXPORT
+void pkpy_vm_bind__f_None__(VM* vm, const char* mod, const char* name, __f_None__ f) {
+    PyVar obj = vm->new_module_if_not_existed(mod);
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+        f(vm);
+        return vm->None;
+    });
+}
 }
 
 #endif // POCKETPY_H

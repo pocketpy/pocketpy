@@ -33,10 +33,6 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 #define PK_VERSION "0.8.0"
 
 typedef int64_t i64;

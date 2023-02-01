@@ -603,6 +603,12 @@ public:
         return obj;
     }
 
+    PyVar new_module_if_not_existed(_Str name) {
+        PyVar* it = _modules.try_get(name);
+        if(it != nullptr) return *it;
+        return new_module(name);
+    }
+
     PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
         PyVarDict::iterator it;
         PyObject* cls;

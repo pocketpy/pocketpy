@@ -1,8 +1,10 @@
 with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 	OPCODES_TEXT = f.read()
+with open("src/_bindings.h", "rt", encoding='utf-8') as f:
+	_BINDINGS_TEXT = f.read()
 
 pipeline = [
-	["hash_table8.hpp", "__stl__.h", "memory.h", "str.h", "safestl.h", "builtins.h", "error.h"],
+	["hash_table8.hpp", "common.h", "memory.h", "str.h", "safestl.h", "builtins.h", "error.h"],
 	["obj.h", "iter.h", "parser.h", "ref.h", "codeobject.h"],
 	["vm.h", "compiler.h", "repl.h"],
 	["pocketpy.h"]
@@ -30,6 +32,7 @@ def remove_copied_include(text):
 		text
 	)
 	text = text.replace('#include "opcodes.h"', OPCODES_TEXT)
+	text = text.replace('#include "_bindings.h"', _BINDINGS_TEXT)
 	return text
 
 for seq in pipeline:

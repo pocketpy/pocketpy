@@ -1,6 +1,6 @@
 #pragma once
 
-#include "__stl__.h"
+#include "common.h"
 
 typedef std::stringstream _StrStream;
 
@@ -131,6 +131,10 @@ public:
         this->hash_initialized = s.hash_initialized;
         this->_hash = s._hash;
         return *this;
+    }
+
+    operator const char*() const {
+        return c_str();
     }
 
     ~_Str(){
