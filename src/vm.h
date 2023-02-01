@@ -571,7 +571,8 @@ public:
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
         PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)1, _tp_type);
         setattr(obj, __base__, base);
-        _Str fullName = UNION_NAME(mod) + "." +name;
+        _Str fullName = name;
+        if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         return obj;
