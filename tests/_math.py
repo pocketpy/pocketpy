@@ -1,4 +1,7 @@
-from math import log, log10, log2, sin, cos, tan, e, pi, isclose, isnan, isinf
+from math import log, log10, log2, sin, cos, tan, e, pi, isnan, isinf
+
+def isclose(a, b):
+    return abs(a-b) < 0.000001
 
 assert isclose(e, 2.718281828459045)
 assert isclose(pi, 3.141592653589793)

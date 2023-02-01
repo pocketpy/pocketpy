@@ -316,7 +316,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.u8_length());
+        _index = vm->normalized_index(_index, _self.u8_length());
         return vm->PyStr(_self.u8_getitem(_index));
     });
 
@@ -434,14 +434,14 @@ void __initializeBuiltinFunctions(VM* _vm) {
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         return _self[_index];
     });
 
     _vm->bindMethod<2>("list", "__setitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         _self[_index] = args[2];
         return vm->None;
     });
@@ -449,7 +449,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("list", "__delitem__", [](VM* vm, const pkpy::ArgList& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         _self.erase(_self.begin() + _index);
         return vm->None;
     });
@@ -472,7 +472,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("tuple", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalizedIndex(_index, _self.size());
+        _index = vm->normalized_index(_index, _self.size());
         return _self[_index];
     });
 
@@ -575,7 +575,6 @@ void __add_module_dis(VM* vm){
     });
 }
 
-
 #define PY_CLASS(mod, name) inline static PyVar _tp(VM* vm) { return vm->_modules[#mod]->attribs[#name]; }
 
 struct ReMatch {
@@ -588,24 +587,18 @@ struct ReMatch {
 
     static PyVar _bind(VM* vm){
         PyVar _tp_match = vm->new_user_type_object(vm->_modules["re"], "Match", vm->_tp_object);
-        vm->bindMethod<0>(_tp_match, "start", [](VM* vm, const pkpy::ArgList& args) {
-            return vm->PyInt(UNION_GET(ReMatch, args[0]).start);
-        });
-
-        vm->bindMethod<0>(_tp_match, "end", [](VM* vm, const pkpy::ArgList& args) {
-            return vm->PyInt(UNION_GET(ReMatch, args[0]).end);
-        });
+        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).start)));
+        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).end)));
 
         vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::ArgList& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
-            PyVarList vec = { vm->PyInt(m.start), vm->PyInt(m.end) };
-            return vm->PyTuple(vec);
+            return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
         });
 
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::ArgList& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
-            index = vm->normalizedIndex(index, m.m.size());
+            index = vm->normalized_index(index, m.m.size());
             return vm->PyStr(m.m[index].str());
         });
         return _tp_match;
@@ -772,13 +765,15 @@ extern "C" {
         __add_module_math(vm);
         __add_module_re(vm);
         __add_module_dis(vm);
+        
+
+        vm->new_module("ffi");
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
 
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
-        pkpy_vm_add_module(vm, "os", __OS_CODE);
     }
 
     __EXPORT

@@ -700,7 +700,7 @@ public:
         return nullptr;
     }
 
-    int normalizedIndex(int index, int size){
+    int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
             indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");

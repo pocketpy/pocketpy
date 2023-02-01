@@ -270,28 +270,11 @@ class dict:
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
-import json as _json
+import ffi
 
-def jsonrpc(method, params, raw=False):
-  assert type(method) is str
-  assert type(params) is list or type(params) is tuple
-  data = {
-    'jsonrpc': '2.0',
-    'method': method,
-    'params': params,
-  }
-  ret = __string_channel_call(_json.dumps(data))
-  ret = _json.loads(ret)
-  if raw:
-    return ret
-  assert type(ret) is dict
-  if 'result' in ret:
-    return ret['result']
-  raise JsonRpcError(ret['error']['message'])
+def input():
+  return ffi.input()
 
-def input(prompt=None):
-  return jsonrpc('input', [prompt])
-  
 class FileIO:
   def __init__(self, path, mode):
     assert type(path) is str
@@ -299,19 +282,19 @@ class FileIO:
     assert mode in ['r', 'w', 'rt', 'wt']
     self.path = path
     self.mode = mode
-    self.fp = jsonrpc('fopen', [path, mode])
+    self.fp = ffi.fopen(path, mode)
 
   def read(self):
     assert self.mode in ['r', 'rt']
-    return jsonrpc('fread', [self.fp])
+    return ffi.fread(self.fp)
 
   def write(self, s):
     assert self.mode in ['w', 'wt']
     assert type(s) is str
-    jsonrpc('fwrite', [self.fp, s])
+    ffi.fwrite(self.fp, s)
 
   def close(self):
-    jsonrpc('fclose', [self.fp])
+    ffi.fclose(self.fp)
 
   def __enter__(self):
     pass
@@ -421,42 +404,6 @@ class set:
     
     def __iter__(self):
         return self._a.keys().__iter__()
-)";
-
-const char* __OS_CODE = R"(
-def listdir(path):
-  assert type(path) is str
-  return jsonrpc("os.listdir", [path])
-
-def mkdir(path):
-  assert type(path) is str
-  return jsonrpc("os.mkdir", [path])
-
-def rmdir(path):
-  assert type(path) is str
-  return jsonrpc("os.rmdir", [path])
-
-def remove(path):
-  assert type(path) is str
-  return jsonrpc("os.remove", [path])
-
-path = object()
-
-def __path4exists(path):
-  assert type(path) is str
-  return jsonrpc("os.path.exists", [path])
-path.exists = __path4exists
-del __path4exists
-
-def __path4join(*paths):
-  s = '/'.join(paths)
-  s = s.replace('\\', '/')
-  s = s.replace('//', '/')
-  s = s.replace('//', '/')
-  return s
-
-path.join = __path4join
-del __path4join
 )";
 
 const char* __RANDOM_CODE = R"(
