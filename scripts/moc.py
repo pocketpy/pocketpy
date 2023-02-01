@@ -8,6 +8,9 @@ mapping = {
 
 def args(n, a: list, res: list, first=True):
     if n == 0:
+        # 3 args must be the same type
+        if len(a) == 4 and len(set(a[1:])) != 1:
+            return
         res.append(tuple(a))
         return
     for p_ret, c_ret in mapping.items():
