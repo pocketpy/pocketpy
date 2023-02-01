@@ -710,14 +710,14 @@ extern "C" {
     __EXPORT
     /// Get a global variable of a virtual machine.
     /// 
-    /// Return a json representing the result.
+    /// Return __repr__ of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(VM* vm, const char* name){
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
         try{
-            _Str _json = vm->PyStr_AS_C(vm->asJson(it->second));
-            return strdup(_json.c_str());
+            _Str _repr = vm->PyStr_AS_C(vm->asRepr(it->second));
+            return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
         }
@@ -726,14 +726,14 @@ extern "C" {
     __EXPORT
     /// Evaluate an expression.
     /// 
-    /// Return a json representing the result.
+    /// Return __repr__ of the result.
     /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(VM* vm, const char* source){
         PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            _Str _json = vm->PyStr_AS_C(vm->asJson(ret));
-            return strdup(_json.c_str());
+            _Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
+            return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
         }
