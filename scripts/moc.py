@@ -28,6 +28,8 @@ for n in [4,3,2,1]:
         c_args = ['VM*'] + [mapping[i] for i in p_args]
         c_ret = mapping[p_ret]
         name = f'__f_{p_ret}__{"_".join(p_args)}'
+        # if c_ret == 'const char*':
+        #     c_ret = 'char*'
         s = f'typedef {c_ret} (*{name})({", ".join(c_args)});'
         s += '\n'
 

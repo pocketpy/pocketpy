@@ -765,9 +765,6 @@ extern "C" {
         __add_module_math(vm);
         __add_module_re(vm);
         __add_module_dis(vm);
-        
-
-        vm->new_module("ffi");
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);

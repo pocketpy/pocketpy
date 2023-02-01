@@ -3,31 +3,28 @@
 
 #include "pocketpy.h"
 
-#define PK_DEBUG_TIME
-
 struct Timer{
     const char* title;
     Timer(const char* title) : title(title) {}
     void run(std::function<void()> f){
-#ifdef PK_DEBUG_TIME
         auto start = std::chrono::high_resolution_clock::now();
         f();
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0;
         std::cout << title << ": " << elapsed << " s" << std::endl;
-#else
-        f();
-#endif
     }
 };
-
-
 
 #ifndef __NO_MAIN
 
 int main(int argc, char** argv){
+    VM* vm = pkpy_new_vm(true);
+    pkpy_vm_bind__f_str__(vm, "builtins", "input", [](VM* vm){
+        static std::string line;
+        std::getline(std::cin, line);
+        return line.c_str();
+    });
     if(argc == 1){
-        VM* vm = pkpy_new_vm(true);
         REPL repl(vm);
         int result = -1;
         while(true){
@@ -36,6 +33,7 @@ int main(int argc, char** argv){
             std::getline(std::cin, line);
             result = pkpy_repl_input(&repl, line.c_str());
         }
+        pkpy_delete(vm);
         return 0;
     }
     
@@ -49,13 +47,17 @@ int main(int argc, char** argv){
             return 1;
         }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        PyVarOrNull ret = nullptr;
 
-        VM* vm = pkpy_new_vm(true);
-        Timer("Running time").run([=]{
-            vm->exec(src.c_str(), filename, EXEC_MODE);
-        });
+        if(filename[0] != '_'){
+            Timer("Running time").run([&]{
+                ret = vm->exec(src.c_str(), filename, EXEC_MODE);
+            });
+        }else{
+            ret = vm->exec(src.c_str(), filename, EXEC_MODE);
+        }
         pkpy_delete(vm);
-        return 0;
+        return ret != nullptr ? 0 : 1;
     }
 
 __HELP:

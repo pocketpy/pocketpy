@@ -270,42 +270,6 @@ class dict:
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
 
-import ffi
-
-def input():
-  return ffi.input()
-
-class FileIO:
-  def __init__(self, path, mode):
-    assert type(path) is str
-    assert type(mode) is str
-    assert mode in ['r', 'w', 'rt', 'wt']
-    self.path = path
-    self.mode = mode
-    self.fp = ffi.fopen(path, mode)
-
-  def read(self):
-    assert self.mode in ['r', 'rt']
-    return ffi.fread(self.fp)
-
-  def write(self, s):
-    assert self.mode in ['w', 'wt']
-    assert type(s) is str
-    ffi.fwrite(self.fp, s)
-
-  def close(self):
-    ffi.fclose(self.fp)
-
-  def __enter__(self):
-    pass
-
-  def __exit__(self):
-    self.close()
-
-def open(path, mode='r'):
-    return FileIO(path, mode)
-
-
 class set:
     def __init__(self, iterable=None):
         iterable = iterable or []
