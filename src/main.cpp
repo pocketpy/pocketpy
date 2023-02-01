@@ -25,13 +25,13 @@ int main(int argc, char** argv){
         return line.c_str();
     });
     if(argc == 1){
-        REPL repl(vm);
+        REPL* repl = pkpy_new_repl(vm);
         int result = -1;
         while(true){
             (*vm->_stdout) << (result==0 ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            result = pkpy_repl_input(&repl, line.c_str());
+            result = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete(vm);
         return 0;

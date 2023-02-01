@@ -6616,7 +6616,6 @@ extern "C" {
     /// 
     /// !!!
     /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
-    /// For char*, you can also use trivial `delete` in your language.
     /// !!!
     void pkpy_delete(void* p){
         for(int i = 0; i < _pkLookupTable.size(); i++){
@@ -6685,7 +6684,10 @@ extern "C" {
         vm->_lazy_modules[name] = source;
     }
 
-    void __vm_init(VM* vm){
+    __EXPORT
+    /// Create a virtual machine.
+    VM* pkpy_new_vm(bool use_stdio){
+        VM* vm = pkpy_allocate(VM, use_stdio);
         __initializeBuiltinFunctions(vm);
         __add_module_sys(vm);
         __add_module_time(vm);
@@ -6699,13 +6701,6 @@ extern "C" {
         vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
 
         pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
-    }
-
-    __EXPORT
-    /// Create a virtual machine.
-    VM* pkpy_new_vm(bool use_stdio){
-        VM* vm = pkpy_allocate(VM, use_stdio);
-        __vm_init(vm);
         return vm;
     }
 

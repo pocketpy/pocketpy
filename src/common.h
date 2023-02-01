@@ -21,8 +21,6 @@
 #include <iomanip>
 #include <memory>
 #include <functional>
-
-#include <atomic>
 #include <iostream>
 
 #include "hash_table8.hpp"
