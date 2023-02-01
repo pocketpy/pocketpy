@@ -835,9 +835,6 @@ public:
         _tp_range = new_type_object("range");
         _tp_module = new_type_object("module");
         _tp_ref = new_type_object("_ref");
-
-        new_type_object("NoneType");
-        new_type_object("ellipsis");
         
         _tp_function = new_type_object("function");
         _tp_native_function = new_type_object("_native_function");
@@ -845,8 +842,8 @@ public:
         _tp_bounded_method = new_type_object("_bounded_method");
         _tp_super = new_type_object("super");
 
-        this->None = new_object(_types["NoneType"], DUMMY_VAL);
-        this->Ellipsis = new_object(_types["ellipsis"], DUMMY_VAL);
+        this->None = new_object(new_type_object("NoneType"), DUMMY_VAL);
+        this->Ellipsis = new_object(new_type_object("ellipsis"), DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
