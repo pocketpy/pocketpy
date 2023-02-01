@@ -44,7 +44,7 @@ for n in [4,3,2,1]:
             impl.append ( f'{mapping[p_ret]} ret = {call_impl};' )
             impl.append( f'return vm->Py{p_ret.capitalize()}(ret);' )
         impl = '\n'.join([' '*8 + i for i in impl])
-        s += f'''__EXPORT\nvoid pkpy_vm_bind{name}(VM* vm, const char* mod, const char* name, {name} f) {{
+        s += f'''__EXPORT\nvoid pkpy_vm_bind{name[3:]}(VM* vm, const char* mod, const char* name, {name} f) {{
     PyVar obj = vm->new_module_if_not_existed(mod);
     vm->bindFunc<{len(p_args)}>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {{
 {impl}
