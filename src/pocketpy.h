@@ -421,16 +421,16 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(_self.size());
     });
 
-    _vm->bindMethod<1>("list", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
-        const PyVarList& _self = vm->PyList_AS_C(args[0]);
+    _vm->bindMethodMulti<1>({"list", "tuple"}, "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
+        bool list = args[0]->is_type(vm->_tp_list);
+        const PyVarList& _self = list ? vm->PyList_AS_C(args[0]) : vm->PyTuple_AS_C(args[0]);
 
         if(args[1]->is_type(vm->_tp_slice)){
             _Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.size());
             PyVarList _new_list;
-            for(size_t i = s.start; i < s.stop; i++)
-                _new_list.push_back(_self[i]);
-            return vm->PyList(_new_list);
+            for(size_t i = s.start; i < s.stop; i++) _new_list.push_back(_self[i]);
+            return list ? vm->PyList(_new_list) : vm->PyTuple(_new_list);
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
@@ -467,13 +467,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<0>("tuple", "__len__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
         return vm->PyInt(_self.size());
-    });
-
-    _vm->bindMethod<1>("tuple", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
-        const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalized_index(_index, _self.size());
-        return _self[_index];
     });
 
     /************ PyBool ************/

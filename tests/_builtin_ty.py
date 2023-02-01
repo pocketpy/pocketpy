@@ -77,6 +77,14 @@ assert l[1:4] == [2,3,4]
 assert l[-1:-3] == []
 assert l[-3:-1] == [2,3]
 
+l = (1,2,3,4)
+assert l[2] == 3
+assert l[-1] == 4
+assert l[:32] == (1,2,3,4)
+assert l[32:] == tuple([])
+assert l[1:4] == (2,3,4)
+assert l[-1:-3] == tuple([])
+assert l[-3:-1] == (2,3)
 
 l1 = [1];l2 = l1;l1.append(2);l3 = [1,1,2]
 assert l2[1] == 2
