@@ -19,7 +19,7 @@ struct Timer{
 
 int main(int argc, char** argv){
     VM* vm = pkpy_new_vm(true);
-    pkpy_vm_bind__f_str__(vm, "builtins", "input", [](VM* vm){
+    pkpy_vm_bind__f_str__(vm, "builtins", "input", [](){
         static std::string line;
         std::getline(std::cin, line);
         return line.c_str();
