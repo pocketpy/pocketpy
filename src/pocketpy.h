@@ -512,7 +512,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #endif
 
 
-void __addModuleTime(VM* vm){
+void __add_module_time(VM* vm){
     PyVar mod = vm->new_module("time");
     vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::ArgList& args) {
         auto now = std::chrono::high_resolution_clock::now();
@@ -520,7 +520,7 @@ void __addModuleTime(VM* vm){
     });
 }
 
-void __addModuleSys(VM* vm){
+void __add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
     vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::ArgList& args) {
         return vm->PyInt(args[0].use_count());
@@ -538,7 +538,7 @@ void __addModuleSys(VM* vm){
     vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
-void __addModuleJson(VM* vm){
+void __add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
     vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
@@ -551,51 +551,22 @@ void __addModuleJson(VM* vm){
     });
 }
 
-void __addModuleMath(VM* vm){
+void __add_module_math(VM* vm){
     PyVar mod = vm->new_module("math");
     vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
     vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
-    vm->bindFunc<1>(mod, "log", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "log10", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log10(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "log2", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(log2(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "sin", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(sin(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "cos", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(cos(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "tan", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyFloat(tan(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<2>(mod, "isclose", [](VM* vm, const pkpy::ArgList& args) {
-        f64 a = vm->num_to_float(args[0]);
-        f64 b = vm->num_to_float(args[1]);
-        return vm->PyBool(fabs(a - b) < 1e-9);
-    });
-
-    vm->bindFunc<1>(mod, "isnan", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(std::isnan(vm->num_to_float(args[0])));
-    });
-
-    vm->bindFunc<1>(mod, "isinf", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->PyBool(std::isinf(vm->num_to_float(args[0])));
-    });
+    vm->bindFunc<1>(mod, "log", CPP_LAMBDA(vm->PyFloat(log(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "log10", CPP_LAMBDA(vm->PyFloat(log10(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "log2", CPP_LAMBDA(vm->PyFloat(log2(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "sin", CPP_LAMBDA(vm->PyFloat(sin(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "cos", CPP_LAMBDA(vm->PyFloat(cos(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "tan", CPP_LAMBDA(vm->PyFloat(tan(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
+    vm->bindFunc<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
 }
 
-void __addModuleDis(VM* vm){
+void __add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
     vm->bindFunc<1>(mod, "dis", [](VM* vm, const pkpy::ArgList& args) {
         _Code code = vm->PyFunction_AS_C(args[0])->code;
@@ -641,12 +612,6 @@ struct ReMatch {
     }
 };
 
-
-// C绑定过程
-// 一个C原生类
-// static PyVar _tp(VM* vm); 实现从VM中获取该类的类型对象
-// static PyVar _bind(VM* vm); 实现初始化该类的绑定，在VM中注册该类的类型对象，并返回生成的类型对象
-
 PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
     std::smatch m;
@@ -659,7 +624,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
     return vm->None;
 };
 
-void __addModuleRe(VM* vm){
+void __add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
     ReMatch::_bind(vm);
 
@@ -801,12 +766,12 @@ extern "C" {
 
     void __vm_init(VM* vm){
         __initializeBuiltinFunctions(vm);
-        __addModuleSys(vm);
-        __addModuleTime(vm);
-        __addModuleJson(vm);
-        __addModuleMath(vm);
-        __addModuleRe(vm);
-        __addModuleDis(vm);
+        __add_module_sys(vm);
+        __add_module_time(vm);
+        __add_module_json(vm);
+        __add_module_math(vm);
+        __add_module_re(vm);
+        __add_module_dis(vm);
 
         // add builtins | no exception handler | must succeed
         _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
