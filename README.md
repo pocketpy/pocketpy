@@ -36,3 +36,7 @@ All threaded interfaces will be deleted. PocketPy will no longer provide thread 
 + [byterun](http://qingyunha.github.io/taotao/)
 
 + [emhash](https://github.com/ktprime/emhash)
+
+## License
+
+MIT License
