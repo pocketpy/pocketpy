@@ -5,7 +5,9 @@
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
 
-C++17 header-only Python interpreter for game engines.
+PocketPy is a lightweight(~5000 LOC) Python interpreter for game engines.
+
+It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
 Please see https://pocketpy.dev for details or try [Live Demo](https://blueloveth.github.io/pocketpy).
 
