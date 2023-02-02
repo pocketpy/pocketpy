@@ -45,7 +45,8 @@ with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
 	final_text = \
 r'''/*
  *  Copyright (c) 2023 blueloveTH
- *  Distributed Under The LGPLv3 License
+ *  Distributed Under The MIT License
+ *  https://github.com/blueloveTH/pocketpy
  */
 
 #ifndef POCKETPY_H
@@ -61,13 +62,6 @@ os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
 
 unity_ios_header = 'plugins/unity/My project/Assets/com.bl.pocketpy/Plugins/iOS/pocketpy.h'
 os.system(f'cp amalgamated/pocketpy.h "{unity_ios_header}"')
-
-if os.path.exists("plugins/unity"):
-	with open(unity_ios_header, "rt", encoding='utf-8') as f:
-		text = f.read()
-		text = text.replace("Distributed Under The LGPLv3 License", "Distributed Under The PocketPy Unity Exclusive License")
-	with open(unity_ios_header, "wt", encoding='utf-8') as f:
-		f.write(text)
 
 if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
 	os.system("cp amalgamated/pocketpy.h plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
