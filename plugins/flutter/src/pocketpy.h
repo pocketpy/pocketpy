@@ -1,6 +1,7 @@
 /*
  *  Copyright (c) 2023 blueloveTH
- *  Distributed Under The LGPLv3 License
+ *  Distributed Under The MIT License
+ *  https://github.com/blueloveTH/pocketpy
  */
 
 #ifndef POCKETPY_H
@@ -1817,8 +1818,6 @@ private:
 #include <iomanip>
 #include <memory>
 #include <functional>
-
-#include <atomic>
 #include <iostream>
 
 #ifdef POCKETPY_H
@@ -4315,7 +4314,8 @@ public:
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
         PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)1, _tp_type);
         setattr(obj, __base__, base);
-        _Str fullName = UNION_NAME(mod) + "." +name;
+        _Str fullName = name;
+        if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         return obj;
@@ -4578,9 +4578,6 @@ public:
         _tp_range = new_type_object("range");
         _tp_module = new_type_object("module");
         _tp_ref = new_type_object("_ref");
-
-        new_type_object("NoneType");
-        new_type_object("ellipsis");
         
         _tp_function = new_type_object("function");
         _tp_native_function = new_type_object("_native_function");
@@ -4588,8 +4585,8 @@ public:
         _tp_bounded_method = new_type_object("_bounded_method");
         _tp_super = new_type_object("super");
 
-        this->None = new_object(_types["NoneType"], DUMMY_VAL);
-        this->Ellipsis = new_object(_types["ellipsis"], DUMMY_VAL);
+        this->None = new_object(new_type_object("NoneType"), DUMMY_VAL);
+        this->Ellipsis = new_object(new_type_object("ellipsis"), DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
@@ -6351,16 +6348,16 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyInt(_self.size());
     });
 
-    _vm->bindMethod<1>("list", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
-        const PyVarList& _self = vm->PyList_AS_C(args[0]);
+    _vm->bindMethodMulti<1>({"list", "tuple"}, "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
+        bool list = args[0]->is_type(vm->_tp_list);
+        const PyVarList& _self = list ? vm->PyList_AS_C(args[0]) : vm->PyTuple_AS_C(args[0]);
 
         if(args[1]->is_type(vm->_tp_slice)){
             _Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.size());
             PyVarList _new_list;
-            for(size_t i = s.start; i < s.stop; i++)
-                _new_list.push_back(_self[i]);
-            return vm->PyList(_new_list);
+            for(size_t i = s.start; i < s.stop; i++) _new_list.push_back(_self[i]);
+            return list ? vm->PyList(_new_list) : vm->PyTuple(_new_list);
         }
 
         int _index = (int)vm->PyInt_AS_C(args[1]);
@@ -6397,13 +6394,6 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<0>("tuple", "__len__", [](VM* vm, const pkpy::ArgList& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
         return vm->PyInt(_self.size());
-    });
-
-    _vm->bindMethod<1>("tuple", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
-        const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalized_index(_index, _self.size());
-        return _self[_index];
     });
 
     /************ PyBool ************/
