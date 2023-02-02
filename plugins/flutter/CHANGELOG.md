@@ -1,6 +1,10 @@
 ## 0.8.0+1
 
-+ Reconstruction
++ add complete reflection (exec/eval/getattr/setattr/hasattr)
++ fix a bug of raw string
++ add slice support for `tuple`
++ improve performance
++ remove thread support
 
 ## 0.6.2+1
 

@@ -3,7 +3,7 @@
 PocketPy is a lightweight Python interpreter for game engines.
 
 ![](https://pocketpy.dev/static/logo_flat.png)
-# Basic Features
+# basic
 
 The following table shows the basic features of PocketPy with respect to [CPython](https://github.com/python/cpython).
 The features marked with `YES` are supported, and the features marked with `NO` are not supported.
@@ -25,7 +25,7 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 | Star Unpacking  | `a, *b = [1, 2, 3]`        | NO        |
 | Throw Exception | `assert/raise`             | YES       |
 | Catch Exception | `try..catch`               | NO        |
-| Eval            | `eval()`                   | YES       |
+| Eval/Exec       | `eval()/exec()`            | YES       |
 | Import          | `import/from..import`      | YES       |
 | Context Block   | `with <expr> as <id>:`     | YES       |
 
