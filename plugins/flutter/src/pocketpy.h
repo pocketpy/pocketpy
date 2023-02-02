@@ -6013,7 +6013,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc<1>("ord", [](VM* vm, const pkpy::ArgList& args) {
         _Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
-        return vm->PyInt((i64)s[0]);
+        return vm->PyInt((i64)(s.c_str()[0]));
     });
 
     _vm->bindBuiltinFunc<2>("hasattr", [](VM* vm, const pkpy::ArgList& args) {
