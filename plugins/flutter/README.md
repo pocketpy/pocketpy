@@ -36,7 +36,6 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 </p>
 
 This plugin provides object-oriented interfaces including full functionality of PocketPy [C-API](https://pocketpy.dev/c-api/vm).
-It also provides `JsonRpcServer` class and `os` module bindings.
 
 Run the following script to install this plugin.
 
