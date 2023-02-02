@@ -60,3 +60,33 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         path: output
+  build_android:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.3.0'
+          channel: 'stable'
+      - run: flutter --version
+      - name: Compiling
+        run: |
+          python3 amalgamate.py
+          cd plugins/flutter/example
+          flutter build apk --split-debug-info=.debug-info --split-per-abi
+          cd build/app/outputs/flutter-apk
+          mkdir -p output/android/arm64-v8a
+          mkdir -p output/android/armeabi-v7a
+          mkdir -p output/android/x86_64
+          unzip -q app-arm64-v8a-release.apk -d tmp
+          mv tmp/lib/arm64-v8a/libpocketpy.so output/android/arm64-v8a/libpocketpy.so
+          rm -rf tmp
+          unzip -q app-armeabi-v7a-release.apk -d tmp
+          mv tmp/lib/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a/libpocketpy.so
+          rm -rf tmp
+          unzip -q app-x86_64-release.apk -d tmp
+          mv tmp/lib/x86_64/libpocketpy.so output/android/x86_64/libpocketpy.so
+          rm -rf tmp
+      - uses: actions/upload-artifact@v3
+        with:
+          path: plugins/flutter/example/build/app/outputs/flutter-apk/output
