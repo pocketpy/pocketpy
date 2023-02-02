@@ -1,4 +1,4 @@
-## 0.8.0+1
+## 0.8.0+2
 
 + add complete reflection (exec/eval/getattr/setattr/hasattr)
 + fix a bug of raw string

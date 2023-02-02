@@ -4,5 +4,6 @@ class PyOutput {
   PyOutput(this.stdout, this.stderr);
 
   PyOutput.fromJson(Map<String, dynamic> json)
-    : stdout = json['stdout'], stderr = json['stderr'];
+      : stdout = json['stdout'],
+        stderr = json['stderr'];
 }
