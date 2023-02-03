@@ -8,7 +8,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.__fillCode();
-    }catch(_Error0& e){
+    }catch(_Exception& e){
         throw e;
     }catch(std::exception& e){
         compiler.__throw_e("UnexpectedError", e.what());

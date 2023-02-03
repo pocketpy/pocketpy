@@ -194,7 +194,7 @@ protected:
                     _Str type = frame->code->co_names[byte.arg].first;
                     _error(type, msg);
                 } break;
-            case OP_RE_RAISE: break;
+            case OP_RE_RAISE: _raise(); break;
             case OP_BUILD_LIST:
                 frame->push(PyList(
                     frame->pop_n_values_reversed(this, byte.arg).toList()));
@@ -317,6 +317,8 @@ protected:
             // TODO: using "goto" inside with block may cause __exit__ not called
             case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
+            case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); break;
+            case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); break;
             default:
                 throw std::runtime_error(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
@@ -521,15 +523,14 @@ public:
         try {
             _Code code = compile(source, filename, mode);
             return _exec(code, _module, pkpy::make_shared<PyVarDict>());
-        }catch (const _Error0& e){
+        }catch (const _Exception& e){
             *_stderr << e.what() << '\n';
         }
         catch (const std::exception& e) {
-            auto re = _Error0("UnexpectedError", e.what(), false);
-            auto snapshots = _cleanErrorAndGetSnapshots();
-            while(!snapshots.empty()){
-                re.st_push(snapshots.top());
-                snapshots.pop();
+            auto re = _Exception("UnexpectedError", e.what(), false);
+            while (!callstack.empty()){
+                re.st_push(callstack.back()->curr_snapshot());
+                callstack.pop_back();
             }
             *_stderr << re.what() << '\n';
         }
@@ -571,7 +572,7 @@ public:
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)1, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
         setattr(obj, __base__, base);
         _Str fullName = name;
         if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
@@ -582,7 +583,7 @@ public:
 
     PyVar new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -785,7 +786,7 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
-    PyVar _tp_super;
+    PyVar _tp_super, _tp_exception;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -815,15 +816,15 @@ public:
     DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
+    DEF_NATIVE(Exception, _Exception, _tp_exception)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, nullptr);
-        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, nullptr);
-
+        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
+        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
@@ -843,6 +844,7 @@ public:
         _tp_native_iterator = new_type_object("_native_iterator");
         _tp_bounded_method = new_type_object("_bounded_method");
         _tp_super = new_type_object("super");
+        _tp_exception = new_type_object("Exception");
 
         this->None = new_object(new_type_object("NoneType"), DUMMY_VAL);
         this->Ellipsis = new_object(new_type_object("ellipsis"), DUMMY_VAL);
@@ -891,25 +893,23 @@ public:
 
     /***** Error Reporter *****/
 private:
+    bool _error_lock = false;
+
     void _error(const _Str& name, const _Str& msg){
-        auto e = _Error0(name, msg, true);
-        std::stack<_Str> snapshots = _cleanErrorAndGetSnapshots();
-        while (!snapshots.empty()){
-            e.st_push(snapshots.top());
-            snapshots.pop();
-        }
-        throw e;
+        if(_error_lock) UNREACHABLE();
+        auto e = _Exception(name, msg, true);
+        top_frame()->push(PyException(e));
+        _raise();
     }
 
-    std::stack<_Str> _cleanErrorAndGetSnapshots(){
-        std::stack<_Str> snapshots;
-        while (!callstack.empty()){
-            if(snapshots.size() < 8){
-                snapshots.push(callstack.back()->curr_snapshot());
-            }
-            callstack.pop_back();
-        }
-        return snapshots;
+    void _raise(){
+        bool ok = top_frame()->jump_to_exception_handler();
+        if(ok) return;
+        // 当前帧里面没有异常处理器了，应推到上一层
+        _error_lock = true;
+        const auto& e = PyException_AS_C(top_frame()->top());
+        _error_lock = false;
+        throw e;
     }
 
 public:

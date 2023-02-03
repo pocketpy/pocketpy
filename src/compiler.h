@@ -805,7 +805,9 @@ __LISTCOMP:
 
     void compileTryExcept() {
         co()->__enter_block(TRY_EXCEPT);
+        emit(OP_TRY_BLOCK_ENTER);
         compileBlockBody();
+        emit(OP_TRY_BLOCK_EXIT);
         int patch = emit(OP_JUMP_ABSOLUTE);
         co()->__exit_block();
         consume(TK("except"));
@@ -1077,7 +1079,7 @@ __LISTCOMP:
     }
 
     void __throw_e(_Str type, _Str msg){
-        auto e = _Error0("SyntaxError", msg, false);
+        auto e = _Exception("SyntaxError", msg, false);
         e.st_push(getLineSnapshot());
         throw e;
     }

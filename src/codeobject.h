@@ -244,6 +244,25 @@ public:
     inline void jump_abs(int i){ next_ip = i; }
     inline void jump_rel(int i){ next_ip = ip + i; }
 
+    std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
+
+    inline void on_try_block_enter(){
+        s_try_block.push(std::make_pair(code->co_code[ip].block, s_data));
+    }
+
+    inline void on_try_block_exit(){
+        s_try_block.pop();
+    }
+
+    bool jump_to_exception_handler(){
+        if(s_try_block.empty()) return false;
+        auto& p = s_try_block.top();
+        s_data = std::move(p.second);
+        next_ip = code->co_blocks[p.first].end;
+        on_try_block_exit();
+        return true;
+    }
+
     void jump_abs_safe(int target){
         const Bytecode& prev = code->co_code[ip];
         int i = prev.block;

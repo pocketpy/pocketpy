@@ -67,7 +67,7 @@ struct SourceMetadata {
 
 typedef pkpy::shared_ptr<SourceMetadata> _Source;
 
-class _Error0 : public std::exception {
+class _Exception : public std::exception {
     _Str type;
     _Str msg;
     bool is_runtime_error;
@@ -75,8 +75,12 @@ class _Error0 : public std::exception {
 
     mutable _Str _what_cached;
 public:
-    _Error0(_Str type, _Str msg, bool is_runtime_error): type(type), msg(msg), is_runtime_error(is_runtime_error) {}
-    void st_push(_Str snapshot){ stacktrace.push(snapshot); }
+    _Exception(_Str type, _Str msg, bool is_runtime_error): type(type), msg(msg), is_runtime_error(is_runtime_error) {}
+
+    void st_push(_Str snapshot){
+        if(stacktrace.size() >= 8) return;
+        stacktrace.push(snapshot);
+    }
 
     const char* what() const noexcept override {
         std::stack<_Str> st(stacktrace);
