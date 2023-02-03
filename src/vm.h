@@ -187,10 +187,16 @@ protected:
                     PyVar expr = frame->pop_value(this);
                     if(asBool(expr) != True) _error("AssertionError", "");
                 } break;
-            case OP_EXCEPTION_MATCH: break;
+            case OP_EXCEPTION_MATCH:
+                {
+                    const auto& _e = PyException_AS_C(frame->top());
+                    _Str name = frame->code->co_names[byte.arg].first;
+                    frame->push(PyBool(_e.match_type(name)));
+                } break;
             case OP_RAISE:
                 {
-                    _Str msg = PyStr_AS_C(asStr(frame->pop_value(this)));
+                    PyVar obj = frame->pop_value(this);
+                    _Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
                     _Str type = frame->code->co_names[byte.arg].first;
                     _error(type, msg);
                 } break;
@@ -549,13 +555,34 @@ public:
     template<typename ...Args>
     PyVar _exec(Args&&... args){
         Frame* frame = __push_new_frame(std::forward<Args>(args)...);
-        Frame* frameBase = frame;
+        i64 base_id = frame->id();
         PyVar ret = nullptr;
+        bool need_raise = false;
 
         while(true){
-            ret = run_frame(frame);
+            if(frame->id() < base_id) UNREACHABLE();
+            try{
+                if(need_raise){ need_raise = false; _raise(); }
+                ret = run_frame(frame);
+            }catch(HandledException& e){
+                continue;
+            }catch(UnhandledException& e){
+                _Exception& _e = UNION_GET(_Exception, e.obj);
+                _e.st_push(frame->curr_snapshot());
+                callstack.pop_back();
+
+                if(!callstack.empty()){
+                    frame = callstack.back().get();
+                    if(frame->id() < base_id) throw e;
+                    frame->push(ret);
+                    need_raise = true;
+                    continue;
+                }
+                throw _e;
+            }
+            
             if(ret != __py2py_call_signal){
-                if(frame == frameBase){         // [ frameBase<- ]
+                if(frame->id() == base_id){         // [ frameBase<- ]
                     break;
                 }else{
                     callstack.pop_back();
@@ -893,10 +920,7 @@ public:
 
     /***** Error Reporter *****/
 private:
-    bool _error_lock = false;
-
     void _error(const _Str& name, const _Str& msg){
-        if(_error_lock) UNREACHABLE();
         auto e = _Exception(name, msg, true);
         top_frame()->push(PyException(e));
         _raise();
@@ -904,12 +928,8 @@ private:
 
     void _raise(){
         bool ok = top_frame()->jump_to_exception_handler();
-        if(ok) return;
-        // 当前帧里面没有异常处理器了，应推到上一层
-        _error_lock = true;
-        const auto& e = PyException_AS_C(top_frame()->top());
-        _error_lock = false;
-        throw e;
+        if(ok) throw HandledException();
+        throw UnhandledException(top_frame()->top());
     }
 
 public:
@@ -938,7 +958,6 @@ public:
 };
 
 /***** Pointers' Impl *****/
-
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
     val = frame->f_locals().try_get(pair->first);

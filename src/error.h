@@ -2,10 +2,16 @@
 
 #include "safestl.h"
 
-class NeedMoreLines {
-public:
+struct NeedMoreLines {
     NeedMoreLines(bool isClassDef) : isClassDef(isClassDef) {}
     bool isClassDef;
+};
+
+struct HandledException {};
+
+struct UnhandledException {
+    PyVar obj;
+    UnhandledException(PyVar obj) : obj(obj) {}
 };
 
 enum CompileMode {
@@ -76,6 +82,10 @@ class _Exception : public std::exception {
     mutable _Str _what_cached;
 public:
     _Exception(_Str type, _Str msg, bool is_runtime_error): type(type), msg(msg), is_runtime_error(is_runtime_error) {}
+
+    bool match_type(const _Str& type) const {
+        return this->type == type;
+    }
 
     void st_push(_Str snapshot){
         if(stacktrace.size() >= 8) return;

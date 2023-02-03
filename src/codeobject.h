@@ -175,6 +175,7 @@ private:
     std::vector<PyVar> s_data;
     int ip = -1;
     int next_ip = 0;
+    int m_id;
 public:
     const _Code code;
     PyVar _module;
@@ -183,8 +184,12 @@ public:
     inline PyVarDict& f_locals() noexcept { return *_locals; }
     inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
+    inline i64 id() const noexcept { return m_id; }
+
     Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
         : code(code), _module(_module), _locals(_locals) {
+        static thread_local i64 _id = 0;
+        m_id = _id++;
     }
 
     inline const Bytecode& next_bytecode() {
