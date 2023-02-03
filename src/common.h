@@ -41,4 +41,4 @@ typedef int64_t i64;
 typedef double f64;
 #define DUMMY_VAL (i64)0
 
-#define CPP_LAMBDA(x) ([](VM* vm, const pkpy::ArgList& args) { return x; })
+#define CPP_LAMBDA(x) ([](VM* vm, const pkpy::Args& args) { return x; })

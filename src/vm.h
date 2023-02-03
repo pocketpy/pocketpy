@@ -71,7 +71,7 @@ protected:
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
-                pkpy::ArgList items = frame->pop_n_reversed(byte.arg);
+                pkpy::Args items = frame->pop_n_reversed(byte.arg);
                 bool done = false;
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->is_type(_tp_ref)) {
@@ -87,7 +87,7 @@ protected:
             } break;
             case OP_BUILD_STRING:
             {
-                pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg);
+                pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
                 _StrStream ss;
                 for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
                 frame->push(PyStr(ss.str()));
@@ -96,7 +96,7 @@ protected:
                 frame->push(builtins->attribs[m_eval]);
             } break;
             case OP_LIST_APPEND: {
-                pkpy::ArgList args(2);
+                pkpy::Args args(2);
                 args[1] = frame->pop_value(this);            // obj
                 args[0] = frame->top_value_offset(this, -2);     // list
                 fast_call(m_append, std::move(args));
@@ -133,7 +133,7 @@ protected:
             case OP_POP_TOP: frame->__pop(); break;
             case OP_BINARY_OP:
                 {
-                    pkpy::ArgList args(2);
+                    pkpy::Args args(2);
                     args[1] = frame->pop_value(this);
                     args[0] = frame->top_value(this);
                     frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -147,7 +147,7 @@ protected:
                 } break;
             case OP_COMPARE_OP:
                 {
-                    pkpy::ArgList args(2);
+                    pkpy::Args args(2);
                     args[1] = frame->pop_value(this);
                     args[0] = frame->top_value(this);
                     frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -201,7 +201,7 @@ protected:
                 break;
             case OP_BUILD_MAP:
                 {
-                    pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg*2);
+                    pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -221,9 +221,9 @@ protected:
                 {
                     int ARGC = byte.arg & 0xFFFF;
                     int KWARGC = (byte.arg >> 16) & 0xFFFF;
-                    pkpy::ArgList kwargs(0);
+                    pkpy::Args kwargs(0);
                     if(KWARGC > 0) kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
-                    pkpy::ArgList args = frame->pop_n_values_reversed(this, ARGC);
+                    pkpy::Args args = frame->pop_n_values_reversed(this, ARGC);
                     PyVar callable = frame->pop_value(this);
                     PyVar ret = call(callable, std::move(args), kwargs, true);
                     if(ret == __py2py_call_signal) return ret;
@@ -397,7 +397,7 @@ public:
         return True;
     }
 
-    PyVar fast_call(const _Str& name, pkpy::ArgList&& args){
+    PyVar fast_call(const _Str& name, pkpy::Args&& args){
         PyObject* cls = args[0]->_type.get();
         while(cls != None.get()) {
             PyVar* val = cls->attribs.try_get(name);
@@ -413,13 +413,13 @@ public:
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
         return call(_callable, std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& obj, const _Str& func, ArgT&& args){
         return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::noArg(), false);
     }
@@ -428,7 +428,7 @@ public:
         return call(getattr(obj, func), pkpy::noArg(), pkpy::noArg(), false);
     }
 
-    PyVar call(const PyVar& _callable, pkpy::ArgList args, const pkpy::ArgList& kwargs, bool opCall){
+    PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
         if(_callable->is_type(_tp_type)){
             auto it = _callable->attribs.find(__new__);
             PyVar obj;
@@ -1056,7 +1056,7 @@ PyVar StringIterator::next(){
     return vm->PyStr(str.u8_getitem(index++));
 }
 
-PyVar _CppFunc::operator()(VM* vm, const pkpy::ArgList& args) const{
+PyVar _CppFunc::operator()(VM* vm, const pkpy::Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->typeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));

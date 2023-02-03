@@ -7,8 +7,8 @@ struct BaseRef;
 class VM;
 class Frame;
 
-//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::ArgList&);
-typedef std::function<PyVar(VM*, const pkpy::ArgList&)> _CppFuncRaw;
+//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::Args&);
+typedef std::function<PyVar(VM*, const pkpy::Args&)> _CppFuncRaw;
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
 struct _CppFunc {
@@ -17,7 +17,7 @@ struct _CppFunc {
     bool method;
     
     _CppFunc(_CppFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyVar operator()(VM* vm, const pkpy::ArgList& args) const;
+    inline PyVar operator()(VM* vm, const pkpy::Args& args) const;
 };
 
 struct Function {

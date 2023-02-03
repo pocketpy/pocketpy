@@ -263,10 +263,10 @@ public:
         }
     }
 
-    pkpy::ArgList pop_n_values_reversed(VM* vm, int n){
+    pkpy::Args pop_n_values_reversed(VM* vm, int n){
         int new_size = s_data.size() - n;
         if(new_size < 0) throw std::runtime_error("stack_size() < n");
-        pkpy::ArgList v(n);
+        pkpy::Args v(n);
         for(int i=n-1; i>=0; i--){
             v[i] = std::move(s_data[new_size + i]);
             try_deref(vm, v[i]);
@@ -275,8 +275,8 @@ public:
         return v;
     }
 
-    pkpy::ArgList pop_n_reversed(int n){
-        pkpy::ArgList v(n);
+    pkpy::Args pop_n_reversed(int n){
+        pkpy::Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = pop();
         return v;
     }

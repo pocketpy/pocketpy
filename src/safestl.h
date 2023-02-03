@@ -37,9 +37,9 @@ typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
     const int MAX_POOLING_N = 10;
-    static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
+    static thread_local std::vector<PyVar*>* _poolArgs = new std::vector<PyVar*>[MAX_POOLING_N];
 
-    class ArgList {
+    class Args {
         PyVar* _args;
         int _size;
 
@@ -49,44 +49,44 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
+            if(n >= MAX_POOLING_N || _poolArgs[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
             }else{
-                this->_args = _poolArgList[n].back();
+                this->_args = _poolArgs[n].back();
                 this->_size = n;
-                _poolArgList[n].pop_back();
+                _poolArgs[n].pop_back();
             }
         }
 
         void __tryRelease(){
             if(_size == 0 || _args == nullptr) return;
-            if(_size >= MAX_POOLING_N || _poolArgList[_size].size() > 32){
+            if(_size >= MAX_POOLING_N || _poolArgs[_size].size() > 32){
                 delete[] _args;
             }else{
                 for(int i = 0; i < _size; i++) _args[i].reset();
-                _poolArgList[_size].push_back(_args);
+                _poolArgs[_size].push_back(_args);
             }
         }
 
     public:
-        ArgList(size_t n){
+        Args(size_t n){
             __tryAlloc(n);
         }
 
-        ArgList(const ArgList& other){
+        Args(const Args& other){
             __tryAlloc(other._size);
             for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
-        ArgList(ArgList&& other) noexcept {
+        Args(Args&& other) noexcept {
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
             other._size = 0;
         }
 
-        ArgList(PyVarList&& other) noexcept {
+        Args(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
             for(int i=0; i<_size; i++){
                 _args[i] = std::move(other[i]);
@@ -97,7 +97,7 @@ namespace pkpy {
         PyVar& operator[](int i){ return _args[i]; }
         const PyVar& operator[](int i) const { return _args[i]; }
 
-        ArgList& operator=(ArgList&& other) noexcept {
+        Args& operator=(Args&& other) noexcept {
             __tryRelease();
             this->_args = other._args;
             this->_size = other._size;
@@ -124,33 +124,33 @@ namespace pkpy {
 
             memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
             memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            if(old_size >= MAX_POOLING_N || _poolArgList[old_size].size() > 32){
+            if(old_size >= MAX_POOLING_N || _poolArgs[old_size].size() > 32){
                 delete[] old_args;
             }else{
-                _poolArgList[old_size].push_back(old_args);
+                _poolArgs[old_size].push_back(old_args);
             }
         }
 
-        ~ArgList(){
+        ~Args(){
             __tryRelease();
         }
     };
 
-    const ArgList& noArg(){
-        static const ArgList ret(0);
+    const Args& noArg(){
+        static const Args ret(0);
         return ret;
     }
 
     template<typename T>
-    ArgList oneArg(T&& a) {
-        ArgList ret(1);
+    Args oneArg(T&& a) {
+        Args ret(1);
         ret[0] = std::forward<T>(a);
         return ret;
     }
 
     template<typename T1, typename T2>
-    ArgList twoArgs(T1&& a, T2&& b) {
-        ArgList ret(2);
+    Args twoArgs(T1&& a, T2&& b) {
+        Args ret(2);
         ret[0] = std::forward<T1>(a);
         ret[1] = std::forward<T2>(b);
         return ret;
