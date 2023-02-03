@@ -52,12 +52,10 @@ struct SourceMetadata {
             removedSpaces = pair.second - pair.first - line.size();
             if(line.empty()) line = "<?>";
         }
-        ss << "    " << line << '\n';
+        ss << "    " << line;
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
             auto column = cursor - pair.first - removedSpaces;
-            if(column >= 0){
-                ss << "    " << std::string(column, ' ') << "^\n";
-            }
+            if(column >= 0) ss << "\n    " << std::string(column, ' ') << "^";
         }
         return ss.str();
     }
@@ -69,37 +67,24 @@ struct SourceMetadata {
 
 typedef pkpy::shared_ptr<SourceMetadata> _Source;
 
-class _Error : public std::exception {
-private:
-    _Str _what;
+class _Error0 : public std::exception {
+    _Str type;
+    _Str msg;
+    bool is_runtime_error;
+    std::stack<_Str> stacktrace;
+
+    mutable _Str _what_cached;
 public:
-    _Error(_Str type, _Str msg, _Str desc){
-        _what = desc + type + ": " + msg;
-    }
+    _Error0(_Str type, _Str msg, bool is_runtime_error): type(type), msg(msg), is_runtime_error(is_runtime_error) {}
+    void st_push(_Str snapshot){ stacktrace.push(snapshot); }
 
     const char* what() const noexcept override {
-        return _what.c_str();
-    }
-};
-
-class CompileError : public _Error {
-public:
-    CompileError(_Str type, _Str msg, _Str snapshot)
-        : _Error(type, msg, snapshot) {}
-};
-
-class RuntimeError : public _Error {
-private:
-    static _Str __concat(std::stack<_Str> snapshots){
+        std::stack<_Str> st(stacktrace);
         _StrStream ss;
-        ss << "Traceback (most recent call last):" << '\n';
-        while(!snapshots.empty()){
-            ss << snapshots.top();
-            snapshots.pop();
-        }
-        return ss.str();
+        if(is_runtime_error) ss << "Traceback (most recent call last):\n";
+        while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
+        ss << type << ": " << msg;
+        _what_cached = ss.str();
+        return _what_cached.c_str();
     }
-public:
-    RuntimeError(_Str type, _Str msg, const std::stack<_Str>& snapshots)
-        : _Error(type, msg, __concat(snapshots)) {}
 };

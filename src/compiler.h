@@ -884,8 +884,7 @@ __LISTCOMP:
             consume(TK("@id"));
             int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
             if(match(TK("("))){
-                EXPR();
-                consume(TK(")"));
+                EXPR(); consume(TK(")"));
             }else{
                 emit(OP_LOAD_NONE);
             }
@@ -1077,7 +1076,11 @@ __LISTCOMP:
         return parser->src->snapshot(lineno, cursor);
     }
 
-    void syntaxError(_Str msg){ throw CompileError("SyntaxError", msg, getLineSnapshot()); }
-    void indentationError(_Str msg){ throw CompileError("IndentationError", msg, getLineSnapshot()); }
-    void unexpectedError(_Str msg){ throw CompileError("UnexpectedError", msg, getLineSnapshot()); }
+    void __throw_e(_Str type, _Str msg){
+        auto e = _Error0("SyntaxError", msg, false);
+        e.st_push(getLineSnapshot());
+        throw e;
+    }
+    void syntaxError(_Str msg){ __throw_e("SyntaxError", msg); }
+    void indentationError(_Str msg){ __throw_e("IndentationError", msg); }
 };

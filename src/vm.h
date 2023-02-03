@@ -520,13 +520,17 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-            //if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, pkpy::make_shared<PyVarDict>());
-        }catch (const _Error& e){
+        }catch (const _Error0& e){
             *_stderr << e.what() << '\n';
         }
         catch (const std::exception& e) {
-            auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
+            auto re = _Error0("UnexpectedError", e.what(), false);
+            auto snapshots = _cleanErrorAndGetSnapshots();
+            while(!snapshots.empty()){
+                re.st_push(snapshots.top());
+                snapshots.pop();
+            }
             *_stderr << re.what() << '\n';
         }
         return nullptr;
@@ -535,7 +539,7 @@ public:
     template<typename ...Args>
     Frame* __push_new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
-            throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
+            _error("RecursionError", "maximum recursion depth exceeded");
         }
         callstack.emplace_back(std::make_unique<Frame>(std::forward<Args>(args)...));
         return callstack.back().get();
@@ -888,7 +892,13 @@ public:
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
-        throw RuntimeError(name, msg, _cleanErrorAndGetSnapshots());
+        auto e = _Error0(name, msg, true);
+        std::stack<_Str> snapshots = _cleanErrorAndGetSnapshots();
+        while (!snapshots.empty()){
+            e.st_push(snapshots.top());
+            snapshots.pop();
+        }
+        throw e;
     }
 
     std::stack<_Str> _cleanErrorAndGetSnapshots(){

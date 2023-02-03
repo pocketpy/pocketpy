@@ -8,10 +8,11 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.__fillCode();
-    }catch(_Error& e){
+    }catch(_Error0& e){
         throw e;
     }catch(std::exception& e){
-        throw CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+        compiler.__throw_e("UnexpectedError", e.what());
+        return nullptr;
     }
 }
 
