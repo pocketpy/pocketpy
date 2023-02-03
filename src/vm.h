@@ -29,8 +29,9 @@ protected:
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
-            //printf("[%d] %s (%d)\n", frame->stack_size(), OP_NAMES[byte.op], byte.arg);
-            //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
+            // if(frame->_module != builtins){
+            //     printf("%d: %s (%d) %s\n", frame->get_ip(), OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
+            // }
             switch (byte.op)
             {
             case OP_NO_OP: break;       // do nothing
@@ -530,16 +531,13 @@ public:
             _Code code = compile(source, filename, mode);
             return _exec(code, _module, pkpy::make_shared<PyVarDict>());
         }catch (const _Exception& e){
-            *_stderr << e.what() << '\n';
+            *_stderr << e.summary() << '\n';
         }
-        catch (const std::exception& e) {
-            auto re = _Exception("UnexpectedError", e.what(), false);
-            while (!callstack.empty()){
-                re.st_push(callstack.back()->curr_snapshot());
-                callstack.pop_back();
-            }
-            *_stderr << re.what() << '\n';
-        }
+        // catch (const std::exception& e) {
+        //     *_stderr << "A std::exception occurred! It may be a bug, please report it!!\n";
+        //     *_stderr << e.what() << '\n';
+        // }
+        callstack.clear();
         return nullptr;
     }
 
@@ -564,33 +562,34 @@ public:
             try{
                 if(need_raise){ need_raise = false; _raise(); }
                 ret = run_frame(frame);
+
+                if(ret != __py2py_call_signal){
+                    if(frame->id() == base_id){         // [ frameBase<- ]
+                        break;
+                    }else{
+                        callstack.pop_back();
+                        frame = callstack.back().get();
+                        frame->push(ret);
+                    }
+                }else{
+                    frame = callstack.back().get();  // [ frameBase, newFrame<- ]
+                }
             }catch(HandledException& e){
                 continue;
             }catch(UnhandledException& e){
-                _Exception& _e = UNION_GET(_Exception, e.obj);
+                PyVar obj = frame->pop();
+                _Exception& _e = PyException_AS_C(obj);
                 _e.st_push(frame->curr_snapshot());
                 callstack.pop_back();
 
                 if(!callstack.empty()){
                     frame = callstack.back().get();
                     if(frame->id() < base_id) throw e;
-                    frame->push(ret);
+                    frame->push(obj);
                     need_raise = true;
                     continue;
                 }
                 throw _e;
-            }
-            
-            if(ret != __py2py_call_signal){
-                if(frame->id() == base_id){         // [ frameBase<- ]
-                    break;
-                }else{
-                    callstack.pop_back();
-                    frame = callstack.back().get();
-                    frame->push(ret);
-                }
-            }else{
-                frame = callstack.back().get();  // [ frameBase, newFrame<- ]
             }
         }
 
@@ -778,7 +777,7 @@ public:
             if(byte.op == OP_LOAD_CONST){
                 argStr += " (" + PyStr_AS_C(asRepr(code->co_consts[byte.arg])) + ")";
             }
-            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME){
+            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
                 argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
@@ -879,6 +878,7 @@ public:
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
+        this->__py2py_call_signal = new_object(new_type_object("_signal"), DUMMY_VAL);
 
         setattr(_tp_type, __base__, _tp_object);
         _tp_type->_type = _tp_type;
@@ -888,8 +888,6 @@ public:
         for (auto& [name, type] : _types) {
             setattr(type, __name__, PyStr(name));
         }
-
-        this->__py2py_call_signal = new_object(_tp_object, DUMMY_VAL);
 
         std::vector<_Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
         for (auto& name : publicTypes) {
@@ -929,7 +927,7 @@ private:
     void _raise(){
         bool ok = top_frame()->jump_to_exception_handler();
         if(ok) throw HandledException();
-        throw UnhandledException(top_frame()->top());
+        else throw UnhandledException();
     }
 
 public:

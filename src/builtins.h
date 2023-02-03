@@ -201,7 +201,7 @@ class dict:
     def __getitem__(self, key):
         ok, i = self.__probe(key)
         if not ok:
-            raise KeyError(key)
+            raise KeyError(repr(key))
         return self._a[i][1]
 
     def __contains__(self, key):
@@ -222,7 +222,7 @@ class dict:
     def __delitem__(self, key):
         ok, i = self.__probe(key)
         if not ok:
-            raise KeyError(key)
+            raise KeyError(repr(key))
         self._a[i] = None
         self._len -= 1
 

@@ -910,8 +910,8 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = co()->co_code.back().op;
             if( lastOp!=OP_STORE_NAME && lastOp!=OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR);
-                emit(OP_POP_TOP);
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
+                emit(OP_POP_TOP, -1, true);
             }
         }
     }

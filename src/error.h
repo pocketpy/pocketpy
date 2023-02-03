@@ -8,11 +8,7 @@ struct NeedMoreLines {
 };
 
 struct HandledException {};
-
-struct UnhandledException {
-    PyVar obj;
-    UnhandledException(PyVar obj) : obj(obj) {}
-};
+struct UnhandledException {};
 
 enum CompileMode {
     EXEC_MODE,
@@ -73,32 +69,26 @@ struct SourceMetadata {
 
 typedef pkpy::shared_ptr<SourceMetadata> _Source;
 
-class _Exception : public std::exception {
+class _Exception {
     _Str type;
     _Str msg;
-    bool is_runtime_error;
+    bool is_re;
     std::stack<_Str> stacktrace;
-
-    mutable _Str _what_cached;
 public:
-    _Exception(_Str type, _Str msg, bool is_runtime_error): type(type), msg(msg), is_runtime_error(is_runtime_error) {}
-
-    bool match_type(const _Str& type) const {
-        return this->type == type;
-    }
+    _Exception(_Str type, _Str msg, bool is_re): type(type), msg(msg), is_re(is_re) {}
+    bool match_type(const _Str& type) const { return this->type == type;}
 
     void st_push(_Str snapshot){
         if(stacktrace.size() >= 8) return;
         stacktrace.push(snapshot);
     }
 
-    const char* what() const noexcept override {
+    _Str summary() const {
         std::stack<_Str> st(stacktrace);
         _StrStream ss;
-        if(is_runtime_error) ss << "Traceback (most recent call last):\n";
+        if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
         ss << type << ": " << msg;
-        _what_cached = ss.str();
-        return _what_cached.c_str();
+        return ss.str();
     }
 };

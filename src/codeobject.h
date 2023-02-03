@@ -204,6 +204,17 @@ public:
     }
 
     inline int stack_size() const{ return s_data.size(); }
+    _Str stack_info(){
+        _StrStream ss;
+        ss << "[";
+        for(int i=0; i<s_data.size(); i++){
+            ss << UNION_TP_NAME(s_data[i]);
+            if(i != s_data.size()-1) ss << ", ";
+        }
+        ss << "]";
+        return ss.str();
+    }
+
     inline bool has_next_bytecode() const{ return next_ip < code->co_code.size(); }
 
     inline PyVar pop(){
@@ -247,7 +258,7 @@ public:
     inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
 
     inline void jump_abs(int i){ next_ip = i; }
-    inline void jump_rel(int i){ next_ip = ip + i; }
+    inline void jump_rel(int i){ next_ip += i; }
 
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
@@ -259,10 +270,14 @@ public:
         s_try_block.pop();
     }
 
+    inline int get_ip() const{ return ip; }
+
     bool jump_to_exception_handler(){
         if(s_try_block.empty()) return false;
+        PyVar obj = pop();
         auto& p = s_try_block.top();
         s_data = std::move(p.second);
+        s_data.push_back(obj);
         next_ip = code->co_blocks[p.first].end;
         on_try_block_exit();
         return true;

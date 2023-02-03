@@ -6,14 +6,7 @@
 
 _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
-    try{
-        return compiler.__fillCode();
-    }catch(_Exception& e){
-        throw e;
-    }catch(std::exception& e){
-        compiler.__throw_e("UnexpectedError", e.what());
-        return nullptr;
-    }
+    return compiler.__fillCode();
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
@@ -136,6 +129,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
     _vm->bindMethod<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
+
     _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::Args& args) {
