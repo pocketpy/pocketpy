@@ -84,7 +84,7 @@ struct CodeObject {
         return co_blocks[_currBlockIndex].type == FOR_LOOP || co_blocks[_currBlockIndex].type == WHILE_LOOP;
     }
 
-    void __enterBlock(CodeBlockType type){
+    void __enter_block(CodeBlockType type){
         const CodeBlock& currBlock = co_blocks[_currBlockIndex];
         std::vector<int> copy(currBlock.id);
         copy.push_back(-1);
@@ -99,7 +99,7 @@ struct CodeObject {
         _currBlockIndex = co_blocks.size()-1;
     }
 
-    void __exitBlock(){
+    void __exit_block(){
         co_blocks[_currBlockIndex].end = co_code.size();
         _currBlockIndex = co_blocks[_currBlockIndex].parent;
         if(_currBlockIndex < 0) UNREACHABLE();
@@ -242,6 +242,7 @@ public:
     inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
 
     inline void jump_abs(int i){ next_ip = i; }
+    inline void jump_rel(int i){ next_ip = ip + i; }
 
     void jump_abs_safe(int target){
         const Bytecode& prev = code->co_code[ip];

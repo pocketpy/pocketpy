@@ -323,7 +323,7 @@ public:
         }
     }
 
-    bool matchNewLines(bool repl_throw=false) {
+    bool match_newlines(bool repl_throw=false) {
         bool consumed = false;
         if (peek() == TK("@eol")) {
             while (peek() == TK("@eol")) lexToken();
@@ -336,8 +336,8 @@ public:
     }
 
     bool matchEndStatement() {
-        if (match(TK(";"))) { matchNewLines(); return true; }
-        if (matchNewLines() || peek()==TK("@eof")) return true;
+        if (match(TK(";"))) { match_newlines(); return true; }
+        if (match_newlines() || peek()==TK("@eof")) return true;
         if (peek() == TK("@dedent")) return true;
         return false;
     }
@@ -497,9 +497,9 @@ public:
     }
 
     void exprGrouping() {
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         EXPR_TUPLE();
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK(")"));
     }
 
@@ -508,13 +508,13 @@ public:
         int _body_start = co()->co_code.size();
         int ARGC = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK("]")) break;
             EXPR(); ARGC++;
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
         } while (match(TK(",")));
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK("]"));
         emit(OP_BUILD_LIST, ARGC);
         return;
@@ -526,7 +526,7 @@ __LISTCOMP:
         co()->co_code[_patch].arg = _body_end;
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
         int _cond_start = co()->co_code.size();
@@ -538,7 +538,7 @@ __LISTCOMP:
         patch_jump(_skipPatch);
 
         emit(OP_GET_ITER);
-        co()->__enterBlock(FOR_LOOP);
+        co()->__enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
@@ -556,8 +556,8 @@ __LISTCOMP:
         }
 
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exitBlock();
-        matchNewLines(mode()==SINGLE_MODE);
+        co()->__exit_block();
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
 
@@ -565,7 +565,7 @@ __LISTCOMP:
         bool parsing_dict = false;
         int size = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK("}")) break;
             EXPR();
             if(peek() == TK(":")) parsing_dict = true;
@@ -574,7 +574,7 @@ __LISTCOMP:
                 EXPR();
             }
             size++;
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK("}"));
 
@@ -586,7 +586,7 @@ __LISTCOMP:
         int ARGC = 0;
         int KWARGC = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
@@ -600,7 +600,7 @@ __LISTCOMP:
                 EXPR();
                 ARGC++;
             }
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
         emit(OP_CALL, (KWARGC << 16) | ARGC);
@@ -648,7 +648,6 @@ __LISTCOMP:
                 consume(TK("]"));
             }
         }
-
         emit(OP_BUILD_INDEX_REF);
     }
 
@@ -684,14 +683,14 @@ __LISTCOMP:
     
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
-        if(!matchNewLines(mode()==SINGLE_MODE)){
+        if(!match_newlines(mode()==SINGLE_MODE)){
             syntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
-            matchNewLines();
+            match_newlines();
             (this->*action)();
-            matchNewLines();
+            match_newlines();
         }
         consume(TK("@dedent"));
     }
@@ -699,7 +698,7 @@ __LISTCOMP:
     Token compileImportPath() {
         consume(TK("@id"));
         Token tkmodule = parser->prev;
-        int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+        int index = co()->add_name(tkmodule.str(), NAME_SPECIAL);
         emit(OP_IMPORT_NAME, index);
         return tkmodule;
     }
@@ -726,7 +725,7 @@ __LISTCOMP:
             emit(OP_DUP_TOP);
             consume(TK("@id"));
             Token tkname = parser->prev;
-            int index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            int index = co()->add_name(tkname.str(), NAME_ATTR);
             emit(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
@@ -754,7 +753,7 @@ __LISTCOMP:
     }
 
     void compileIfStatement() {
-        matchNewLines();
+        match_newlines();
         EXPR_TUPLE();
 
         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
@@ -776,13 +775,13 @@ __LISTCOMP:
     }
 
     void compileWhileLoop() {
-        co()->__enterBlock(WHILE_LOOP);
+        co()->__enter_block(WHILE_LOOP);
         EXPR_TUPLE();
         int patch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
         emit(OP_LOOP_CONTINUE, -1, true);
         patch_jump(patch);
-        co()->__exitBlock();
+        co()->__exit_block();
     }
 
     void EXPR_FOR_VARS(){
@@ -797,26 +796,31 @@ __LISTCOMP:
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emit(OP_GET_ITER);
-        co()->__enterBlock(FOR_LOOP);
+        co()->__enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
         compileBlockBody();
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exitBlock();
+        co()->__exit_block();
     }
 
     void compileTryExcept() {
-        co()->__enterBlock(TRY_EXCEPT);
+        co()->__enter_block(TRY_EXCEPT);
         compileBlockBody();
         int patch = emit(OP_JUMP_ABSOLUTE);
-        co()->__exitBlock();
+        co()->__exit_block();
         consume(TK("except"));
-        if(match(TK("@id"))){       // exception name
-            compileBlockBody();
+        if(match(TK("@id"))){
+            int name_idx = co()->add_name(parser->prev.str(), NAME_SPECIAL);
+            emit(OP_EXCEPTION_MATCH, name_idx);
+        }else{
+            emit(OP_LOAD_TRUE);
         }
-        if(match(TK("finally"))){
-            consume(TK(":"));
-            syntaxError("finally is not supported yet");
-        }
+        int patch_2 = emit(OP_POP_JUMP_IF_FALSE);
+        emit(OP_POP_TOP);       // pop the exception on match
+        compileBlockBody();
+        emit(OP_JUMP_RELATIVE, 1);
+        patch_jump(patch_2);
+        emit(OP_RE_RAISE);      // no match, re-raise
         patch_jump(patch);
     }
 
@@ -871,23 +875,21 @@ __LISTCOMP:
             consume(TK(".")); consume(TK("@id"));
             co()->add_label(parser->prev.str());
             consumeEndStatement();
-        } else if(match(TK("goto"))){
-            // https://entrian.com/goto/
+        } else if(match(TK("goto"))){ // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
-            emit(OP_GOTO);
+            emit(OP_GOTO, co()->add_name(parser->prev.str(), NAME_SPECIAL));
             consumeEndStatement();
         } else if(match(TK("raise"))){
-            consume(TK("@id"));         // dummy exception type
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
+            consume(TK("@id"));
+            int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
             if(match(TK("("))){
                 EXPR();
                 consume(TK(")"));
             }else{
-                emit(OP_LOAD_NONE); // ...?
+                emit(OP_LOAD_NONE);
             }
-            emit(OP_RAISE_ERROR);
+            emit(OP_RAISE, dummy_t);
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
@@ -917,8 +919,7 @@ __LISTCOMP:
         consume(TK("@id"));
         int clsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
-        if(match(TK("("))){
-            consume(TK("@id"));
+        if(match(TK("(")) && match(TK("@id"))){
             superClsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
@@ -935,7 +936,7 @@ __LISTCOMP:
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) syntaxError("**kwargs should be the last argument");
-            matchNewLines();
+            match_newlines();
             if(match(TK("*"))){
                 if(state < 1) state = 1;
                 else syntaxError("*args should be placed before **kwargs");
@@ -1038,7 +1039,7 @@ __LISTCOMP:
         // Lex initial tokens. current <-- next.
         lexToken();
         lexToken();
-        matchNewLines();
+        match_newlines();
 
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
@@ -1057,7 +1058,7 @@ __LISTCOMP:
 
         while (!match(TK("@eof"))) {
             compileTopLevelStatement();
-            matchNewLines();
+            match_newlines();
         }
         code->optimize();
         return code;

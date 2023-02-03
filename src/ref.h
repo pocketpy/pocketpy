@@ -13,8 +13,9 @@ struct BaseRef {
 
 enum NameScope {
     NAME_LOCAL = 0,
-    NAME_GLOBAL = 1,
-    NAME_ATTR = 2,
+    NAME_GLOBAL,
+    NAME_ATTR,
+    NAME_SPECIAL,
 };
 
 struct NameRef : BaseRef {

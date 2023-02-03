@@ -187,18 +187,18 @@ protected:
                     PyVar expr = frame->pop_value(this);
                     if(asBool(expr) != True) _error("AssertionError", "");
                 } break;
-            case OP_RAISE_ERROR:
+            case OP_EXCEPTION_MATCH: break;
+            case OP_RAISE:
                 {
-                    _Str msg = PyStr_AS_C(asRepr(frame->pop_value(this)));
-                    _Str type = PyStr_AS_C(frame->pop_value(this));
+                    _Str msg = PyStr_AS_C(asStr(frame->pop_value(this)));
+                    _Str type = frame->code->co_names[byte.arg].first;
                     _error(type, msg);
                 } break;
+            case OP_RE_RAISE: break;
             case OP_BUILD_LIST:
-                {
-                    frame->push(PyList(
-                        frame->pop_n_values_reversed(this, byte.arg).toList()
-                    ));
-                } break;
+                frame->push(PyList(
+                    frame->pop_n_values_reversed(this, byte.arg).toList()));
+                break;
             case OP_BUILD_MAP:
                 {
                     pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg*2);
@@ -230,14 +230,12 @@ protected:
                     frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
+            case OP_JUMP_RELATIVE: frame->jump_rel(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
             case OP_GOTO: {
-                PyVar obj = frame->pop_value(this);
-                const _Str& label = PyStr_AS_C(obj);
+                const _Str& label = frame->code->co_names[byte.arg].first;
                 int* target = frame->code->co_labels.try_get(label);
-                if(target == nullptr){
-                    _error("KeyError", "label '" + label + "' not found");
-                }
+                if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
                 frame->jump_abs_safe(*target);
             } break;
             case OP_GET_ITER:
@@ -326,7 +324,7 @@ protected:
         }
 
         if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
-            if(frame->stack_size() != 1) throw std::runtime_error("stack size is not 1 in EVAL_MODE/JSON_MODE");
+            if(frame->stack_size() != 1) throw std::runtime_error("stack size is not 1 in EVAL/JSON_MODE");
             return frame->pop_value(this);
         }
 

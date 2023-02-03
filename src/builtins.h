@@ -420,13 +420,10 @@ class Random:
 		return self.extract_number() / 2 ** 32
 		
 	def randint(self, a, b):
-		assert type(a) is int and type(b) is int
 		assert a <= b
 		return int(self.random() * (b - a + 1)) + a
 		
 	def uniform(self, a, b):
-        assert type(a) is int or type(a) is float
-        assert type(b) is int or type(b) is float
 		if a > b:
 			a, b = b, a
 		return self.random() * (b - a) + a
