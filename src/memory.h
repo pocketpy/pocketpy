@@ -69,7 +69,8 @@ namespace pkpy{
 
     template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
-        static_assert(std::is_base_of<T, U>::value, "U must be derived from T");
+        static_assert(std::is_base_of_v<T, U>, "U must be derived from T");
+        static_assert(std::has_virtual_destructor_v<T>, "T must have virtual destructor");
         int* p = (int*)malloc(sizeof(int) + sizeof(U));
         *p = 1;
         new(p+1) U(std::forward<Args>(args)...);
