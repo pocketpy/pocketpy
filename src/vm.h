@@ -23,7 +23,7 @@
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
 protected:
-    std::deque< std::unique_ptr<Frame> > callstack;
+    std::stack< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
     PyVar run_frame(Frame* frame){
@@ -35,24 +35,24 @@ protected:
             switch (byte.op)
             {
             case OP_NO_OP: break;       // do nothing
-            case OP_LOAD_CONST: frame->push(frame->code->co_consts[byte.arg]); break;
+            case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); break;
             case OP_LOAD_LAMBDA: {
-                PyVar obj = frame->code->co_consts[byte.arg];
+                PyVar obj = frame->co->consts[byte.arg];
                 setattr(obj, __module__, frame->_module);
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_REF: {
-                frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
+                frame->push(PyRef(NameRef(frame->co->names[byte.arg])));
             } break;
             case OP_LOAD_NAME: {
-                frame->push(NameRef(frame->code->co_names[byte.arg]).get(this, frame));
+                frame->push(NameRef(frame->co->names[byte.arg]).get(this, frame));
             } break;
             case OP_STORE_NAME: {
-                const auto& p = frame->code->co_names[byte.arg];
+                const auto& p = frame->co->names[byte.arg];
                 NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
             case OP_BUILD_ATTR_REF: {
-                const auto& attr = frame->code->co_names[byte.arg];
+                const auto& attr = frame->co->names[byte.arg];
                 PyVar obj = frame->pop_value(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
@@ -111,7 +111,7 @@ protected:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg].first;
+                    const _Str& clsName = frame->co->names[byte.arg].first;
                     PyVar clsBase = frame->pop_value(this);
                     if(clsBase == None) clsBase = _tp_object;
                     check_type(clsBase, _tp_type);
@@ -191,14 +191,14 @@ protected:
             case OP_EXCEPTION_MATCH:
                 {
                     const auto& _e = PyException_AS_C(frame->top());
-                    _Str name = frame->code->co_names[byte.arg].first;
+                    _Str name = frame->co->names[byte.arg].first;
                     frame->push(PyBool(_e.match_type(name)));
                 } break;
             case OP_RAISE:
                 {
                     PyVar obj = frame->pop_value(this);
                     _Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
-                    _Str type = frame->code->co_names[byte.arg].first;
+                    _Str type = frame->co->names[byte.arg].first;
                     _error(type, msg);
                 } break;
             case OP_RE_RAISE: _raise(); break;
@@ -237,11 +237,10 @@ protected:
                     frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
-            case OP_JUMP_RELATIVE: frame->jump_rel(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
             case OP_GOTO: {
-                const _Str& label = frame->code->co_names[byte.arg].first;
-                int* target = frame->code->co_labels.try_get(label);
+                const _Str& label = frame->co->names[byte.arg].first;
+                int* target = frame->co->labels.try_get(label);
                 if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
                 frame->jump_abs_safe(*target);
             } break;
@@ -266,18 +265,18 @@ protected:
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }else{
-                        int blockEnd = frame->code->co_blocks[byte.block].end;
+                        int blockEnd = frame->co->blocks[byte.block].end;
                         frame->jump_abs_safe(blockEnd);
                     }
                 } break;
             case OP_LOOP_CONTINUE:
                 {
-                    int blockStart = frame->code->co_blocks[byte.block].start;
+                    int blockStart = frame->co->blocks[byte.block].start;
                     frame->jump_abs(blockStart);
                 } break;
             case OP_LOOP_BREAK:
                 {
-                    int blockEnd = frame->code->co_blocks[byte.block].end;
+                    int blockEnd = frame->co->blocks[byte.block].end;
                     frame->jump_abs_safe(blockEnd);
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
@@ -303,7 +302,7 @@ protected:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg].first;
+                    const _Str& name = frame->co->names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazy_modules.find(name);
@@ -332,12 +331,12 @@ protected:
             }
         }
 
-        if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
-            if(frame->stack_size() != 1) throw std::runtime_error("stack size is not 1 in EVAL/JSON_MODE");
+        if(frame->co->src->mode == EVAL_MODE || frame->co->src->mode == JSON_MODE){
+            if(frame->_data.size() != 1) throw std::runtime_error("_data.size() != 1 in EVAL/JSON_MODE");
             return frame->pop_value(this);
         }
 
-        if(frame->stack_size() != 0) throw std::runtime_error("stack not empty in EXEC_MODE");
+        if(!frame->_data.empty()) throw std::runtime_error("_data.size() != 0 in EXEC_MODE");
         return None;
     }
 
@@ -381,7 +380,7 @@ public:
 
     inline Frame* top_frame() const {
         if(callstack.empty()) UNREACHABLE();
-        return callstack.back().get();
+        return callstack.top().get();
     }
 
     PyVar asRepr(const PyVar& obj){
@@ -407,7 +406,7 @@ public:
     }
 
     PyVar fast_call(const _Str& name, pkpy::Args&& args){
-        PyObject* cls = args[0]->_type.get();
+        PyObject* cls = args[0]->type.get();
         while(cls != None.get()) {
             PyVar* val = cls->attribs.try_get(name);
             if(val != nullptr) return call(*val, std::move(args));
@@ -514,7 +513,7 @@ public:
             PyVar* it_m = (*callable)->attribs.try_get(__module__);
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
-                __push_new_frame(fn->code, _module, _locals);
+                __new_frame(fn->code, _module, _locals);
                 return __py2py_call_signal;
             }
             return _exec(fn->code, _module, _locals);
@@ -533,46 +532,46 @@ public:
         }catch (const _Exception& e){
             *_stderr << e.summary() << '\n';
         }
-        // catch (const std::exception& e) {
-        //     *_stderr << "A std::exception occurred! It may be a bug, please report it!!\n";
-        //     *_stderr << e.what() << '\n';
-        // }
-        callstack.clear();
+        catch (const std::exception& e) {
+            *_stderr << "A std::exception occurred! It may be a bug, please report it!!\n";
+            *_stderr << e.what() << '\n';
+        }
+        callstack = {};
         return nullptr;
     }
 
     template<typename ...Args>
-    Frame* __push_new_frame(Args&&... args){
+    Frame* __new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
-        callstack.emplace_back(std::make_unique<Frame>(std::forward<Args>(args)...));
-        return callstack.back().get();
+        callstack.emplace(std::make_unique<Frame>(std::forward<Args>(args)...));
+        return callstack.top().get();
     }
 
     template<typename ...Args>
     PyVar _exec(Args&&... args){
-        Frame* frame = __push_new_frame(std::forward<Args>(args)...);
-        i64 base_id = frame->id();
+        Frame* frame = __new_frame(std::forward<Args>(args)...);
+        i64 base_id = frame->_id;
         PyVar ret = nullptr;
         bool need_raise = false;
 
         while(true){
-            if(frame->id() < base_id) UNREACHABLE();
+            if(frame->_id < base_id) UNREACHABLE();
             try{
                 if(need_raise){ need_raise = false; _raise(); }
                 ret = run_frame(frame);
 
                 if(ret != __py2py_call_signal){
-                    if(frame->id() == base_id){         // [ frameBase<- ]
+                    if(frame->_id == base_id){      // [ frameBase<- ]
                         break;
                     }else{
-                        callstack.pop_back();
-                        frame = callstack.back().get();
+                        callstack.pop();
+                        frame = callstack.top().get();
                         frame->push(ret);
                     }
                 }else{
-                    frame = callstack.back().get();  // [ frameBase, newFrame<- ]
+                    frame = callstack.top().get();  // [ frameBase, newFrame<- ]
                 }
             }catch(HandledException& e){
                 continue;
@@ -580,11 +579,11 @@ public:
                 PyVar obj = frame->pop();
                 _Exception& _e = PyException_AS_C(obj);
                 _e.st_push(frame->curr_snapshot());
-                callstack.pop_back();
+                callstack.pop();
 
                 if(!callstack.empty()){
-                    frame = callstack.back().get();
-                    if(frame->id() < base_id) throw e;
+                    frame = callstack.top().get();
+                    if(frame->_id < base_id) throw e;
                     frame->push(obj);
                     need_raise = true;
                     continue;
@@ -593,7 +592,7 @@ public:
             }
         }
 
-        callstack.pop_back();
+        callstack.pop();
         return ret;
     }
 
@@ -651,7 +650,7 @@ public:
                 if(!(*root)->is_type(_tp_super)) break;
                 depth++;
             }
-            cls = (*root)->_type.get();
+            cls = (*root)->type.get();
             for(int i=0; i<depth; i++) cls = cls->attribs[__base__].get();
 
             it = (*root)->attribs.find(name);
@@ -659,7 +658,7 @@ public:
         }else{
             it = obj->attribs.find(name);
             if(it != obj->attribs.end()) return it->second;
-            cls = obj->_type.get();
+            cls = obj->type.get();
         }
 
         while(cls != None.get()) {
@@ -775,30 +774,30 @@ public:
             // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
             std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
             if(byte.op == OP_LOAD_CONST){
-                argStr += " (" + PyStr_AS_C(asRepr(code->co_consts[byte.arg])) + ")";
+                argStr += " (" + PyStr_AS_C(asRepr(code->consts[byte.arg])) + ")";
             }
             if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
-                argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
+                argStr += " (" + code->names[byte.arg].first.__escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
-            ss << code->co_blocks[byte.block].to_string();
+            ss << code->blocks[byte.block].to_string();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;
-        consts << "co_consts: ";
-        consts << PyStr_AS_C(asRepr(PyList(code->co_consts)));
+        consts << "consts: ";
+        consts << PyStr_AS_C(asRepr(PyList(code->consts)));
 
         _StrStream names;
-        names << "co_names: ";
+        names << "names: ";
         PyVarList list;
-        for(int i=0; i<code->co_names.size(); i++){
-            list.push_back(PyStr(code->co_names[i].first));
+        for(int i=0; i<code->names.size(); i++){
+            list.push_back(PyStr(code->names[i].first));
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
-        for(int i=0; i<code->co_consts.size(); i++){
-            PyVar obj = code->co_consts[i];
+        for(int i=0; i<code->consts.size(); i++){
+            PyVar obj = code->consts[i];
             if(obj->is_type(_tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
                 ss << disassemble(f->code);
@@ -881,9 +880,9 @@ public:
         this->__py2py_call_signal = new_object(new_type_object("_signal"), DUMMY_VAL);
 
         setattr(_tp_type, __base__, _tp_object);
-        _tp_type->_type = _tp_type;
+        _tp_type->type = _tp_type;
         setattr(_tp_object, __base__, None);
-        _tp_object->_type = _tp_type;
+        _tp_object->type = _tp_type;
         
         for (auto& [name, type] : _types) {
             setattr(type, __name__, PyStr(name));

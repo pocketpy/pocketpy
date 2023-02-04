@@ -90,7 +90,7 @@ enum Precedence {
 
 // The context of the parsing phase for the compiler.
 struct Parser {
-    _Source src;
+    pkpy::shared_ptr<SourceData> src;
 
     const char* token_start;
     const char* curr_char;
@@ -260,15 +260,12 @@ struct Parser {
         }
     }
     
-    // If the current char is [c] consume it and advance char by 1 and returns
-    // true otherwise returns false.
     bool matchchar(char c) {
         if (peekchar() != c) return false;
         eatchar_include_newline();
         return true;
     }
 
-    // Initialize the next token as the type.
     void set_next_token(_TokenType type, PyVar value=nullptr) {
         switch(type){
             case TK("{"): case TK("["): case TK("("): brackets_level++; break;
@@ -288,7 +285,7 @@ struct Parser {
         else set_next_token(one);
     }
 
-    Parser(_Source src) {
+    Parser(pkpy::shared_ptr<SourceData> src) {
         this->src = src;
         this->token_start = src->source;
         this->curr_char = src->source;

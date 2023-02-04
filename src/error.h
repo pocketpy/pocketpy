@@ -17,7 +17,7 @@ enum CompileMode {
     JSON_MODE,
 };
 
-struct SourceMetadata {
+struct SourceData {
     const char* source;
     _Str filename;
     std::vector<const char*> lineStarts;
@@ -33,7 +33,7 @@ struct SourceMetadata {
         return {_start, i};
     }
 
-    SourceMetadata(const char* source, _Str filename, CompileMode mode) {
+    SourceData(const char* source, _Str filename, CompileMode mode) {
         source = strdup(source);
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
@@ -62,12 +62,10 @@ struct SourceMetadata {
         return ss.str();
     }
 
-    ~SourceMetadata(){
+    ~SourceData(){
         free((void*)source);
     }
 };
-
-typedef pkpy::shared_ptr<SourceMetadata> _Source;
 
 class _Exception {
     _Str type;

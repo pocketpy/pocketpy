@@ -75,13 +75,13 @@ typedef pkpy::shared_ptr<Function> _Func;
 typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
-    PyVar _type;
+    PyVar type;
     PyVarDict attribs;
 
-    inline bool is_type(const PyVar& type) const noexcept{ return this->_type == type; }
+    inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
     inline virtual void* value() = 0;
 
-    PyObject(const PyVar& type) : _type(type) {}
+    PyObject(const PyVar& type) : type(type) {}
     virtual ~PyObject() = default;
 };
 
@@ -95,4 +95,4 @@ struct Py_ : PyObject {
 
 #define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
 #define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
-#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_type->attribs[__name__])
+#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->type->attribs[__name__])

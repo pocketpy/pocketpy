@@ -107,7 +107,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc<1>("dir", [](VM* vm, const pkpy::Args& args) {
         std::vector<_Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
-        for (auto& [k, _] : args[0]->_type->attribs) {
+        for (auto& [k, _] : args[0]->type->attribs) {
             if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
@@ -130,7 +130,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
     _vm->bindMethod<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
 
-    _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
+    _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->type));
 
     _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::Args& args) {
         _Range r;

@@ -20,7 +20,7 @@ struct Bytecode{
     uint8_t op;
     int arg;
     int line;
-    uint16_t block;     // the block id of this bytecode
+    uint16_t block;
 };
 
 _Str pad(const _Str& s, const int n){
@@ -38,100 +38,69 @@ enum CodeBlockType {
 
 struct CodeBlock {
     CodeBlockType type;
-    std::vector<int> id;
-    int parent;        // parent index in co_blocks
-
+    int parent;         // parent index in blocks
     int start;          // start index of this block in co_code, inclusive
     int end;            // end index of this block in co_code, exclusive
 
     std::string to_string() const {
         if(parent == -1) return "";
-        std::string s = "[";
-        for(int i = 0; i < id.size(); i++){
-            s += std::to_string(id[i]);
-            if(i != id.size()-1) s += "-";
-        }
-        s += ": type=";
-        s += std::to_string(type);
-        s += "]";
-        return s;
+        return "[B:" + std::to_string(type) + "]";
     }
-
-    bool operator==(const std::vector<int>& other) const{ return id == other; }
-    bool operator!=(const std::vector<int>& other) const{ return id != other; }
-    int depth() const{ return id.size(); }
 };
 
 struct CodeObject {
-    _Source src;
+    pkpy::shared_ptr<SourceData> src;
     _Str name;
 
-    CodeObject(_Source src, _Str name) {
+    CodeObject(pkpy::shared_ptr<SourceData> src, _Str name) {
         this->src = src;
         this->name = name;
     }
 
     std::vector<Bytecode> co_code;
-    PyVarList co_consts;
-    std::vector<std::pair<_Str, NameScope>> co_names;
-    std::vector<_Str> co_global_names;
-
-    std::vector<CodeBlock> co_blocks = { CodeBlock{NO_BLOCK, {}, -1} };
+    PyVarList consts;
+    std::vector<std::pair<_Str, NameScope>> names;
+    emhash8::HashMap<_Str, int> global_names;
+    std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, {}, -1} };
+    emhash8::HashMap<_Str, int> labels;
 
     // tmp variables
-    int _currBlockIndex = 0;
-    bool __isCurrBlockLoop() const {
-        return co_blocks[_currBlockIndex].type == FOR_LOOP || co_blocks[_currBlockIndex].type == WHILE_LOOP;
+    int _curr_block_i = 0;
+    bool __is_curr_block_loop() const {
+        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
     }
 
     void __enter_block(CodeBlockType type){
-        const CodeBlock& currBlock = co_blocks[_currBlockIndex];
-        std::vector<int> copy(currBlock.id);
-        copy.push_back(-1);
-        int t = 0;
-        while(true){
-            copy[copy.size()-1] = t;
-            auto it = std::find(co_blocks.begin(), co_blocks.end(), copy);
-            if(it == co_blocks.end()) break;
-            t++;
-        }
-        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex, (int)co_code.size()});
-        _currBlockIndex = co_blocks.size()-1;
+        const CodeBlock& currBlock = blocks[_curr_block_i];
+        blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
+        _curr_block_i = blocks.size()-1;
     }
 
     void __exit_block(){
-        co_blocks[_currBlockIndex].end = co_code.size();
-        _currBlockIndex = co_blocks[_currBlockIndex].parent;
-        if(_currBlockIndex < 0) UNREACHABLE();
+        blocks[_curr_block_i].end = co_code.size();
+        _curr_block_i = blocks[_curr_block_i].parent;
+        if(_curr_block_i < 0) UNREACHABLE();
     }
 
-    // for goto use
-    // goto/label should be put at toplevel statements
-    emhash8::HashMap<_Str, int> co_labels;
-
-    void add_label(const _Str& label){
-        if(co_labels.find(label) != co_labels.end()){
-            _Str msg = "label '" + label + "' already exists";
-            throw std::runtime_error(msg.c_str());
-        }
-        co_labels[label] = co_code.size();
+    bool add_label(const _Str& label){
+        if(labels.contains(label)) return false;
+        labels[label] = co_code.size();
+        return true;
     }
 
     int add_name(_Str name, NameScope scope){
-        if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
-            scope = NAME_GLOBAL;
-        }
+        if(scope == NAME_LOCAL && global_names.contains(name)) scope = NAME_GLOBAL;
         auto p = std::make_pair(name, scope);
-        for(int i=0; i<co_names.size(); i++){
-            if(co_names[i] == p) return i;
+        for(int i=0; i<names.size(); i++){
+            if(names[i] == p) return i;
         }
-        co_names.push_back(p);
-        return co_names.size() - 1;
+        names.push_back(p);
+        return names.size() - 1;
     }
 
     int add_const(PyVar v){
-        co_consts.push_back(v);
-        return co_consts.size() - 1;
+        consts.push_back(v);
+        return consts.size() - 1;
     }
 
     void optimize_level_1(){
@@ -170,63 +139,61 @@ struct CodeObject {
     }
 };
 
-class Frame {
-private:
-    std::vector<PyVar> s_data;
-    int ip = -1;
-    int next_ip = 0;
-    int m_id;
-public:
-    const _Code code;
+struct Frame {
+    std::vector<PyVar> _data;
+    int _ip = -1;
+    int _next_ip = 0;
+
+    const _Code co;
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
+    i64 _id;
 
     inline PyVarDict& f_locals() noexcept { return *_locals; }
     inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
-    inline i64 id() const noexcept { return m_id; }
-
-    Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
-        : code(code), _module(_module), _locals(_locals) {
-        static thread_local i64 _id = 0;
-        m_id = _id++;
+    Frame(const _Code co, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
+        : co(co), _module(_module), _locals(_locals) {
+        static thread_local i64 kGlobalId = 0;
+        _id = kGlobalId++;
     }
 
     inline const Bytecode& next_bytecode() {
-        ip = next_ip;
-        next_ip = ip + 1;
-        return code->co_code[ip];
+        _ip = _next_ip;
+        _next_ip = _ip + 1;
+        return co->co_code[_ip];
     }
 
     _Str curr_snapshot(){
-        int line = code->co_code[ip].line;
-        return code->src->snapshot(line);
+        int line = co->co_code[_ip].line;
+        return co->src->snapshot(line);
     }
 
-    inline int stack_size() const{ return s_data.size(); }
     _Str stack_info(){
         _StrStream ss;
         ss << "[";
-        for(int i=0; i<s_data.size(); i++){
-            ss << UNION_TP_NAME(s_data[i]);
-            if(i != s_data.size()-1) ss << ", ";
+        for(int i=0; i<_data.size(); i++){
+            ss << UNION_TP_NAME(_data[i]);
+            if(i != _data.size()-1) ss << ", ";
         }
         ss << "]";
         return ss.str();
     }
 
-    inline bool has_next_bytecode() const{ return next_ip < code->co_code.size(); }
+    inline bool has_next_bytecode() const {
+        return _next_ip < co->co_code.size();
+    }
 
     inline PyVar pop(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        PyVar v = std::move(s_data.back());
-        s_data.pop_back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        PyVar v = std::move(_data.back());
+        _data.pop_back();
         return v;
     }
 
     inline void __pop(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        s_data.pop_back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        _data.pop_back();
     }
 
     inline void try_deref(VM*, PyVar&);
@@ -244,73 +211,68 @@ public:
     }
 
     inline PyVar& top(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        return s_data.back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        return _data.back();
     }
 
     inline PyVar top_value_offset(VM* vm, int n){
-        PyVar value = s_data[s_data.size() + n];
+        PyVar value = _data[_data.size() + n];
         try_deref(vm, value);
         return value;
     }
 
     template<typename T>
-    inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
+    inline void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
 
-    inline void jump_abs(int i){ next_ip = i; }
-    inline void jump_rel(int i){ next_ip += i; }
+    inline void jump_abs(int i){ _next_ip = i; }
+    inline void jump_rel(int i){ _next_ip += i; }
 
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline void on_try_block_enter(){
-        s_try_block.push(std::make_pair(code->co_code[ip].block, s_data));
+        s_try_block.push(std::make_pair(co->co_code[_ip].block, _data));
     }
 
     inline void on_try_block_exit(){
         s_try_block.pop();
     }
 
-    inline int get_ip() const{ return ip; }
-
     bool jump_to_exception_handler(){
         if(s_try_block.empty()) return false;
         PyVar obj = pop();
         auto& p = s_try_block.top();
-        s_data = std::move(p.second);
-        s_data.push_back(obj);
-        next_ip = code->co_blocks[p.first].end;
+        _data = std::move(p.second);
+        _data.push_back(obj);
+        _next_ip = co->blocks[p.first].end;
         on_try_block_exit();
         return true;
     }
 
     void jump_abs_safe(int target){
-        const Bytecode& prev = code->co_code[ip];
+        const Bytecode& prev = co->co_code[_ip];
         int i = prev.block;
-        next_ip = target;
-        if(next_ip >= code->co_code.size()){
+        _next_ip = target;
+        if(_next_ip >= co->co_code.size()){
             while(i>=0){
-                if(code->co_blocks[i].type == FOR_LOOP) pop();
-                i = code->co_blocks[i].parent;
+                if(co->blocks[i].type == FOR_LOOP) pop();
+                i = co->blocks[i].parent;
             }
         }else{
-            const Bytecode& next = code->co_code[target];
+            const Bytecode& next = co->co_code[target];
             while(i>=0 && i!=next.block){
-                if(code->co_blocks[i].type == FOR_LOOP) pop();
-                i = code->co_blocks[i].parent;
+                if(co->blocks[i].type == FOR_LOOP) pop();
+                i = co->blocks[i].parent;
             }
             if(i!=next.block) throw std::runtime_error("invalid jump");
         }
     }
 
     pkpy::Args pop_n_values_reversed(VM* vm, int n){
-        int new_size = s_data.size() - n;
-        if(new_size < 0) throw std::runtime_error("stack_size() < n");
         pkpy::Args v(n);
         for(int i=n-1; i>=0; i--){
-            v[i] = std::move(s_data[new_size + i]);
+            v[i] = pop();
             try_deref(vm, v[i]);
         }
-        s_data.resize(new_size);
         return v;
     }
 

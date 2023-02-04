@@ -17,8 +17,7 @@ struct GrammarRule{
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
-class Compiler {
-public:
+struct Compiler {
     std::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
     bool isCompilingClass = false;
@@ -32,7 +31,7 @@ public:
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
-            pkpy::make_shared<SourceMetadata>(source, filename, mode)
+            pkpy::make_shared<SourceData>(source, filename, mode)
         );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
@@ -665,7 +664,7 @@ __LISTCOMP:
     int emit(Opcode opcode, int arg=-1, bool keepline=false) {
         int line = parser->prev.line;
         co()->co_code.push_back(
-            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_currBlockIndex}
+            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_curr_block_i}
         );
         int i = co()->co_code.size() - 1;
         if(keepline && i>=1) co()->co_code[i].line = co()->co_code[i-1].line;
@@ -808,31 +807,34 @@ __LISTCOMP:
         emit(OP_TRY_BLOCK_ENTER);
         compileBlockBody();
         emit(OP_TRY_BLOCK_EXIT);
-        int patch = emit(OP_JUMP_ABSOLUTE);
+        std::vector<int> patches = { emit(OP_JUMP_ABSOLUTE) };
         co()->__exit_block();
-        consume(TK("except"));
-        if(match(TK("@id"))){
-            int name_idx = co()->add_name(parser->prev.str(), NAME_SPECIAL);
-            emit(OP_EXCEPTION_MATCH, name_idx);
-        }else{
-            emit(OP_LOAD_TRUE);
-        }
-        int patch_2 = emit(OP_POP_JUMP_IF_FALSE);
-        emit(OP_POP_TOP);       // pop the exception on match
-        compileBlockBody();
-        emit(OP_JUMP_RELATIVE, 1);
-        patch_jump(patch_2);
+
+        do {
+            consume(TK("except"));
+            if(match(TK("@id"))){
+                int name_idx = co()->add_name(parser->prev.str(), NAME_SPECIAL);
+                emit(OP_EXCEPTION_MATCH, name_idx);
+            }else{
+                emit(OP_LOAD_TRUE);
+            }
+            int patch = emit(OP_POP_JUMP_IF_FALSE);
+            emit(OP_POP_TOP);       // pop the exception on match
+            compileBlockBody();
+            patches.push_back(emit(OP_JUMP_ABSOLUTE));
+            patch_jump(patch);
+        }while(peek() == TK("except"));
         emit(OP_RE_RAISE);      // no match, re-raise
-        patch_jump(patch);
+        for (int patch : patches) patch_jump(patch);
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (!co()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
+            if (!co()->__is_curr_block_loop()) syntaxError("'break' outside loop");
             consumeEndStatement();
             emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!co()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
+            if (!co()->__is_curr_block_loop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
             emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
@@ -875,7 +877,9 @@ __LISTCOMP:
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            co()->add_label(parser->prev.str());
+            _Str label = parser->prev.str();
+            bool ok = co()->add_label(label);
+            if(!ok) syntaxError("label '" + label + "' already exists");
             consumeEndStatement();
         } else if(match(TK("goto"))){ // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
@@ -899,7 +903,7 @@ __LISTCOMP:
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
-                co()->co_global_names.push_back(parser->prev.str());
+                co()->global_names[parser->prev.str()] = 1;
             } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
