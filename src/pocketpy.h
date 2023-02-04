@@ -534,9 +534,7 @@ void __add_module_json(VM* vm){
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
-    vm->bindFunc<1>(mod, "dumps", [](VM* vm, const pkpy::Args& args) {
-        return vm->asJson(args[0]);
-    });
+    vm->bindFunc<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__)));
 }
 
 void __add_module_math(VM* vm){
@@ -778,10 +776,8 @@ extern "C" {
         _Str _stderr = s_err->str();
         _StrStream ss;
         ss << '{' << "\"stdout\": " << _stdout.__escape(false);
-        ss << ", ";
-        ss << "\"stderr\": " << _stderr.__escape(false) << '}';
-        s_out->str("");
-        s_err->str("");
+        ss << ", " << "\"stderr\": " << _stderr.__escape(false) << '}';
+        s_out->str(""); s_err->str("");
         return strdup(ss.str().c_str());
     }
 }

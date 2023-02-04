@@ -22,7 +22,6 @@
 
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
-protected:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
@@ -373,8 +372,8 @@ public:
     }
 
     PyVar asStr(const PyVar& obj){
-        PyVarOrNull str_fn = getattr(obj, __str__, false);
-        if(str_fn != nullptr) return call(str_fn);
+        PyVarOrNull f = getattr(obj, __str__, false);
+        if(f != nullptr) return call(f);
         return asRepr(obj);
     }
 
@@ -386,10 +385,6 @@ public:
     PyVar asRepr(const PyVar& obj){
         if(obj->is_type(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__);
-    }
-
-    PyVar asJson(const PyVar& obj){
-        return call(obj, __json__);
     }
 
     const PyVar& asBool(const PyVar& obj){

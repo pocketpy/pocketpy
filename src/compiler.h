@@ -4,7 +4,7 @@
 #include "error.h"
 #include "vm.h"
 
-class Compiler;
+struct Compiler;
 
 typedef void (Compiler::*GrammarFn)();
 typedef void (Compiler::*CompilerAction)();
@@ -169,7 +169,7 @@ struct Compiler {
                 } else {
                     parser->set_next_token(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
                 }
-                if (size != m.length()) throw std::runtime_error("length mismatch");
+                if (size != m.length()) UNREACHABLE();
             }
         }catch(std::exception& _){
             syntaxError("invalid number literal");

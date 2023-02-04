@@ -29,15 +29,14 @@ public:
         return std::vector<PyVar>::operator[](i);
     }
 
-    // define constructors the same as std::vector
     using std::vector<PyVar>::vector;
 };
 
 typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
-    const int MAX_POOLING_N = 10;
-    static thread_local std::vector<PyVar*>* _poolArgs = new std::vector<PyVar*>[MAX_POOLING_N];
+    const int kMaxPoolSize = 10;
+    static thread_local std::vector<PyVar*>* _poolArgs = new std::vector<PyVar*>[kMaxPoolSize];
 
     class Args {
         PyVar* _args;
@@ -49,7 +48,7 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n >= MAX_POOLING_N || _poolArgs[n].empty()){
+            if(n >= kMaxPoolSize || _poolArgs[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
             }else{
@@ -61,7 +60,7 @@ namespace pkpy {
 
         void __tryRelease(){
             if(_size == 0 || _args == nullptr) return;
-            if(_size >= MAX_POOLING_N || _poolArgs[_size].size() > 32){
+            if(_size >= kMaxPoolSize || _poolArgs[_size].size() > 32){
                 delete[] _args;
             }else{
                 for(int i = 0; i < _size; i++) _args[i].reset();
@@ -70,9 +69,7 @@ namespace pkpy {
         }
 
     public:
-        Args(size_t n){
-            __tryAlloc(n);
-        }
+        Args(size_t n){ __tryAlloc(n); }
 
         Args(const Args& other){
             __tryAlloc(other._size);
@@ -88,9 +85,7 @@ namespace pkpy {
 
         Args(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
-            for(int i=0; i<_size; i++){
-                _args[i] = std::move(other[i]);
-            }
+            for(int i=0; i<_size; i++) _args[i] = std::move(other[i]);
             other.clear();
         }
 
@@ -124,16 +119,14 @@ namespace pkpy {
 
             memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
             memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            if(old_size >= MAX_POOLING_N || _poolArgs[old_size].size() > 32){
+            if(old_size >= kMaxPoolSize || _poolArgs[old_size].size() > 32){
                 delete[] old_args;
             }else{
                 _poolArgs[old_size].push_back(old_args);
             }
         }
 
-        ~Args(){
-            __tryRelease();
-        }
+        ~Args(){ __tryRelease(); }
     };
 
     const Args& noArg(){

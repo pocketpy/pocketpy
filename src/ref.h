@@ -2,8 +2,6 @@
 
 #include "obj.h"
 
-class Frame;
-
 struct BaseRef {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;

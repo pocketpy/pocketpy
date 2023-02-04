@@ -3,9 +3,9 @@
 #include "safestl.h"
 
 struct CodeObject;
+struct Frame;
 struct BaseRef;
 class VM;
-class Frame;
 
 //typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::Args&);
 typedef std::function<PyVar(VM*, const pkpy::Args&)> _CppFuncRaw;
