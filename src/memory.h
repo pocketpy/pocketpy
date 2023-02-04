@@ -20,9 +20,7 @@ namespace pkpy{
         shared_ptr(shared_ptr&& other) noexcept : counter(other.counter) {
             other.counter = nullptr;
         }
-        ~shared_ptr() {
-            _dec_counter();
-        }
+        ~shared_ptr() { _dec_counter(); }
 
         bool operator==(const shared_ptr& other) const {
             return counter == other.counter;
@@ -54,18 +52,11 @@ namespace pkpy{
             return *this;
         }
 
-        T& operator*() const {
-            return *_t();
-        }
-        T* operator->() const {
-            return _t();
-        }
-        T* get() const {
-            return _t();
-        }
-        int use_count() const {
-            return counter ? *counter : 0;
-        }
+        T& operator*() const { return *_t(); }
+        T* operator->() const { return _t(); }
+        T* get() const { return _t(); }
+        int use_count() const { return counter ? *counter : 0; }
+
         void reset(){
             _dec_counter();
             counter = nullptr;
