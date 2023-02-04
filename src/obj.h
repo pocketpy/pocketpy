@@ -93,6 +93,7 @@ struct Py_ : PyObject {
     virtual void* value() override { return &_valueT; }
 };
 
-#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
+//#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
+#define UNION_GET(T, obj) (*static_cast<T*>((obj)->value()))
 #define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
 #define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->type->attribs[__name__])
