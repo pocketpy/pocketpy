@@ -29,7 +29,7 @@ class VM {
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
             // if(frame->_module != builtins){
-            //     printf("%d: %s (%d) %s\n", frame->get_ip(), OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
+            //     printf("%d: %s (%d) %s\n", frame->_ip, OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
             // }
             switch (byte.op)
             {
@@ -558,10 +558,10 @@ public:
                 ret = run_frame(frame);
 
                 if(ret != __py2py_call_signal){
+                    callstack.pop();
                     if(frame->id == base_id){      // [ frameBase<- ]
-                        break;
+                        return ret;
                     }else{
-                        callstack.pop();
                         frame = callstack.top().get();
                         frame->push(ret);
                     }
@@ -575,20 +575,15 @@ public:
                 _Exception& _e = PyException_AS_C(obj);
                 _e.st_push(frame->curr_snapshot());
                 callstack.pop();
-
-                if(!callstack.empty()){
-                    frame = callstack.top().get();
-                    if(frame->id < base_id) throw e;
-                    frame->push(obj);
-                    need_raise = true;
-                    continue;
-                }
-                throw _e;
+                if(callstack.empty()) throw _e;
+                frame = callstack.top().get();
+                frame->push(obj);
+                if(frame->id < base_id) throw ToBeRaisedException();
+                need_raise = true;
+            }catch(ToBeRaisedException& e){
+                need_raise = true;
             }
         }
-
-        callstack.pop();
-        return ret;
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){

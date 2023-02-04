@@ -9,6 +9,7 @@ struct NeedMoreLines {
 
 struct HandledException {};
 struct UnhandledException {};
+struct ToBeRaisedException {};
 
 enum CompileMode {
     EXEC_MODE,
