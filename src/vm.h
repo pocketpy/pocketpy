@@ -446,8 +446,8 @@ public:
         }
 
         const PyVar* callable = &_callable;
-        if((*callable)->is_type(_tp_bounded_method)){
-            auto& bm = PyBoundedMethod_AS_C((*callable));
+        if((*callable)->is_type(_tp_bound_method)){
+            auto& bm = PyBoundMethod_AS_C((*callable));
             callable = &bm.method;      // get unbound method
             args.extend_self(bm.obj);
         }
@@ -656,7 +656,7 @@ public:
             if(it != cls->attribs.end()){
                 PyVar valueFromCls = it->second;
                 if(valueFromCls->is_type(_tp_function) || valueFromCls->is_type(_tp_native_function)){
-                    return PyBoundedMethod({obj, std::move(valueFromCls)});
+                    return PyBoundMethod({obj, std::move(valueFromCls)});
                 }else{
                     return valueFromCls;
                 }
@@ -799,7 +799,7 @@ public:
     // for quick access
     PyVar _tp_object, _tp_type, _tp_int, _tp_float, _tp_bool, _tp_str;
     PyVar _tp_list, _tp_tuple;
-    PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bounded_method;
+    PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bound_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
     PyVar _tp_super, _tp_exception;
 
@@ -828,7 +828,7 @@ public:
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
     DEF_NATIVE(Iter, _Iterator, _tp_native_iterator)
-    DEF_NATIVE(BoundedMethod, _BoundedMethod, _tp_bounded_method)
+    DEF_NATIVE(BoundMethod, _BoundMethod, _tp_bound_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
     DEF_NATIVE(Exception, _Exception, _tp_exception)
@@ -857,7 +857,7 @@ public:
         _tp_function = new_type_object("function");
         _tp_native_function = new_type_object("_native_function");
         _tp_native_iterator = new_type_object("_native_iterator");
-        _tp_bounded_method = new_type_object("_bounded_method");
+        _tp_bound_method = new_type_object("bound_method");
         _tp_super = new_type_object("super");
         _tp_exception = new_type_object("Exception");
 

@@ -36,7 +36,7 @@ struct Function {
     }
 };
 
-struct _BoundedMethod {
+struct _BoundMethod {
     PyVar obj;
     PyVar method;
 };
