@@ -139,6 +139,8 @@ struct CodeObject {
     }
 };
 
+static thread_local i64 kFrameGlobalId = 0;
+
 struct Frame {
     std::vector<PyVar> _data;
     int _ip = -1;
@@ -147,16 +149,13 @@ struct Frame {
     const _Code co;
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
-    i64 _id;
+    const i64 id;
 
     inline PyVarDict& f_locals() noexcept { return *_locals; }
     inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
     Frame(const _Code co, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
-        : co(co), _module(_module), _locals(_locals) {
-        static thread_local i64 kGlobalId = 0;
-        _id = kGlobalId++;
-    }
+        : co(co), _module(_module), _locals(_locals), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
         _ip = _next_ip;

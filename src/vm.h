@@ -547,18 +547,18 @@ public:
     template<typename ...Args>
     PyVar _exec(Args&&... args){
         Frame* frame = __new_frame(std::forward<Args>(args)...);
-        i64 base_id = frame->_id;
+        i64 base_id = frame->id;
         PyVar ret = nullptr;
         bool need_raise = false;
 
         while(true){
-            if(frame->_id < base_id) UNREACHABLE();
+            if(frame->id < base_id) UNREACHABLE();
             try{
                 if(need_raise){ need_raise = false; _raise(); }
                 ret = run_frame(frame);
 
                 if(ret != __py2py_call_signal){
-                    if(frame->_id == base_id){      // [ frameBase<- ]
+                    if(frame->id == base_id){      // [ frameBase<- ]
                         break;
                     }else{
                         callstack.pop();
@@ -578,7 +578,7 @@ public:
 
                 if(!callstack.empty()){
                     frame = callstack.top().get();
-                    if(frame->_id < base_id) throw e;
+                    if(frame->id < base_id) throw e;
                     frame->push(obj);
                     need_raise = true;
                     continue;
