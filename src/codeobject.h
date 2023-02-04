@@ -61,7 +61,7 @@ struct CodeObject {
     PyVarList consts;
     std::vector<std::pair<_Str, NameScope>> names;
     emhash8::HashMap<_Str, int> global_names;
-    std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, {}, -1} };
+    std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     emhash8::HashMap<_Str, int> labels;
 
     // tmp variables
