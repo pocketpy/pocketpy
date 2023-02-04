@@ -908,7 +908,14 @@ public:
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
-        auto e = _Exception(name, msg, true);
+        _error(_Exception(name, msg));
+    }
+
+    void _error(_Exception e){
+        if(callstack.empty()){
+            e.is_re = false;
+            throw e;
+        }
         top_frame()->push(PyException(e));
         _raise();
     }

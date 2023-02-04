@@ -1083,7 +1083,7 @@ __LISTCOMP:
     }
 
     void __throw_e(_Str type, _Str msg){
-        auto e = _Exception("SyntaxError", msg, false);
+        auto e = _Exception("SyntaxError", msg);
         e.st_push(getLineSnapshot());
         throw e;
     }

@@ -71,11 +71,11 @@ struct SourceData {
 class _Exception {
     _Str type;
     _Str msg;
-    bool is_re;
     std::stack<_Str> stacktrace;
 public:
-    _Exception(_Str type, _Str msg, bool is_re): type(type), msg(msg), is_re(is_re) {}
+    _Exception(_Str type, _Str msg): type(type), msg(msg) {}
     bool match_type(const _Str& type) const { return this->type == type;}
+    bool is_re = true;
 
     void st_push(_Str snapshot){
         if(stacktrace.size() >= 8) return;

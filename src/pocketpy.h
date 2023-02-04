@@ -6,7 +6,12 @@
 
 _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
-    return compiler.__fillCode();
+    try{
+        return compiler.__fillCode();
+    }catch(_Exception& e){
+        _error(e);
+        return nullptr;
+    }
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
