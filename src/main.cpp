@@ -26,12 +26,12 @@ int main(int argc, char** argv){
     });
     if(argc == 1){
         REPL* repl = pkpy_new_repl(vm);
-        int result = -1;
+        bool need_more_lines = false;
         while(true){
-            (*vm->_stdout) << (result==0 ? "... " : ">>> ");
+            (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
             std::string line;
             std::getline(std::cin, line);
-            result = pkpy_repl_input(repl, line.c_str());
+            need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete(vm);
         return 0;

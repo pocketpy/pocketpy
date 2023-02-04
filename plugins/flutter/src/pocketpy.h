@@ -1830,13 +1830,13 @@ private:
 #include <emscripten.h>
 #endif
 
-#define PK_VERSION "0.8.0"
+#define PK_VERSION "0.8.1"
 
 typedef int64_t i64;
 typedef double f64;
 #define DUMMY_VAL (i64)0
 
-#define CPP_LAMBDA(x) ([](VM* vm, const pkpy::ArgList& args) { return x; })
+#define CPP_LAMBDA(x) ([](VM* vm, const pkpy::Args& args) { return x; })
 
 
 namespace pkpy{
@@ -2153,17 +2153,16 @@ public:
         return std::vector<PyVar>::operator[](i);
     }
 
-    // define constructors the same as std::vector
     using std::vector<PyVar>::vector;
 };
 
 typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
-    const int MAX_POOLING_N = 10;
-    static thread_local std::vector<PyVar*>* _poolArgList = new std::vector<PyVar*>[MAX_POOLING_N];
+    const int kMaxPoolSize = 10;
+    static thread_local std::vector<PyVar*>* _poolArgs = new std::vector<PyVar*>[kMaxPoolSize];
 
-    class ArgList {
+    class Args {
         PyVar* _args;
         int _size;
 
@@ -2173,55 +2172,51 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n >= MAX_POOLING_N || _poolArgList[n].empty()){
+            if(n >= kMaxPoolSize || _poolArgs[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
             }else{
-                this->_args = _poolArgList[n].back();
+                this->_args = _poolArgs[n].back();
                 this->_size = n;
-                _poolArgList[n].pop_back();
+                _poolArgs[n].pop_back();
             }
         }
 
         void __tryRelease(){
             if(_size == 0 || _args == nullptr) return;
-            if(_size >= MAX_POOLING_N || _poolArgList[_size].size() > 32){
+            if(_size >= kMaxPoolSize || _poolArgs[_size].size() > 32){
                 delete[] _args;
             }else{
                 for(int i = 0; i < _size; i++) _args[i].reset();
-                _poolArgList[_size].push_back(_args);
+                _poolArgs[_size].push_back(_args);
             }
         }
 
     public:
-        ArgList(size_t n){
-            __tryAlloc(n);
-        }
+        Args(size_t n){ __tryAlloc(n); }
 
-        ArgList(const ArgList& other){
+        Args(const Args& other){
             __tryAlloc(other._size);
             for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
-        ArgList(ArgList&& other) noexcept {
+        Args(Args&& other) noexcept {
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
             other._size = 0;
         }
 
-        ArgList(PyVarList&& other) noexcept {
+        Args(PyVarList&& other) noexcept {
             __tryAlloc(other.size());
-            for(int i=0; i<_size; i++){
-                _args[i] = std::move(other[i]);
-            }
+            for(int i=0; i<_size; i++) _args[i] = std::move(other[i]);
             other.clear();
         }
 
         PyVar& operator[](int i){ return _args[i]; }
         const PyVar& operator[](int i) const { return _args[i]; }
 
-        ArgList& operator=(ArgList&& other) noexcept {
+        Args& operator=(Args&& other) noexcept {
             __tryRelease();
             this->_args = other._args;
             this->_size = other._size;
@@ -2248,33 +2243,31 @@ namespace pkpy {
 
             memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
             memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            if(old_size >= MAX_POOLING_N || _poolArgList[old_size].size() > 32){
+            if(old_size >= kMaxPoolSize || _poolArgs[old_size].size() > 32){
                 delete[] old_args;
             }else{
-                _poolArgList[old_size].push_back(old_args);
+                _poolArgs[old_size].push_back(old_args);
             }
         }
 
-        ~ArgList(){
-            __tryRelease();
-        }
+        ~Args(){ __tryRelease(); }
     };
 
-    const ArgList& noArg(){
-        static const ArgList ret(0);
+    const Args& noArg(){
+        static const Args ret(0);
         return ret;
     }
 
     template<typename T>
-    ArgList oneArg(T&& a) {
-        ArgList ret(1);
+    Args oneArg(T&& a) {
+        Args ret(1);
         ret[0] = std::forward<T>(a);
         return ret;
     }
 
     template<typename T1, typename T2>
-    ArgList twoArgs(T1&& a, T2&& b) {
-        ArgList ret(2);
+    Args twoArgs(T1&& a, T2&& b) {
+        Args ret(2);
         ret[0] = std::forward<T1>(a);
         ret[1] = std::forward<T2>(b);
         return ret;
@@ -2483,7 +2476,7 @@ class dict:
     def __getitem__(self, key):
         ok, i = self.__probe(key)
         if not ok:
-            raise KeyError(key)
+            raise KeyError(repr(key))
         return self._a[i][1]
 
     def __contains__(self, key):
@@ -2504,7 +2497,7 @@ class dict:
     def __delitem__(self, key):
         ok, i = self.__probe(key)
         if not ok:
-            raise KeyError(key)
+            raise KeyError(repr(key))
         self._a[i] = None
         self._len -= 1
 
@@ -2702,13 +2695,10 @@ class Random:
 		return self.extract_number() / 2 ** 32
 		
 	def randint(self, a, b):
-		assert type(a) is int and type(b) is int
 		assert a <= b
 		return int(self.random() * (b - a + 1)) + a
 		
 	def uniform(self, a, b):
-        assert type(a) is int or type(a) is float
-        assert type(b) is int or type(b) is float
 		if a > b:
 			a, b = b, a
 		return self.random() * (b - a) + a
@@ -2732,11 +2722,14 @@ choice = _inst.choice
 )";
 
 
-class NeedMoreLines {
-public:
+struct NeedMoreLines {
     NeedMoreLines(bool isClassDef) : isClassDef(isClassDef) {}
     bool isClassDef;
 };
+
+struct HandledException {};
+struct UnhandledException {};
+struct ToBeRaisedException {};
 
 enum CompileMode {
     EXEC_MODE,
@@ -2745,7 +2738,7 @@ enum CompileMode {
     JSON_MODE,
 };
 
-struct SourceMetadata {
+struct SourceData {
     const char* source;
     _Str filename;
     std::vector<const char*> lineStarts;
@@ -2761,7 +2754,7 @@ struct SourceMetadata {
         return {_start, i};
     }
 
-    SourceMetadata(const char* source, _Str filename, CompileMode mode) {
+    SourceData(const char* source, _Str filename, CompileMode mode) {
         source = strdup(source);
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
@@ -2782,66 +2775,51 @@ struct SourceMetadata {
             removedSpaces = pair.second - pair.first - line.size();
             if(line.empty()) line = "<?>";
         }
-        ss << "    " << line << '\n';
+        ss << "    " << line;
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
             auto column = cursor - pair.first - removedSpaces;
-            if(column >= 0){
-                ss << "    " << std::string(column, ' ') << "^\n";
-            }
+            if(column >= 0) ss << "\n    " << std::string(column, ' ') << "^";
         }
         return ss.str();
     }
 
-    ~SourceMetadata(){
+    ~SourceData(){
         free((void*)source);
     }
 };
 
-typedef pkpy::shared_ptr<SourceMetadata> _Source;
-
-class _Error : public std::exception {
-private:
-    _Str _what;
+class _Exception {
+    _Str type;
+    _Str msg;
+    std::stack<_Str> stacktrace;
 public:
-    _Error(_Str type, _Str msg, _Str desc){
-        _what = desc + type + ": " + msg;
+    _Exception(_Str type, _Str msg): type(type), msg(msg) {}
+    bool match_type(const _Str& type) const { return this->type == type;}
+    bool is_re = true;
+
+    void st_push(_Str snapshot){
+        if(stacktrace.size() >= 8) return;
+        stacktrace.push(snapshot);
     }
 
-    const char* what() const noexcept override {
-        return _what.c_str();
-    }
-};
-
-class CompileError : public _Error {
-public:
-    CompileError(_Str type, _Str msg, _Str snapshot)
-        : _Error(type, msg, snapshot) {}
-};
-
-class RuntimeError : public _Error {
-private:
-    static _Str __concat(std::stack<_Str> snapshots){
+    _Str summary() const {
+        std::stack<_Str> st(stacktrace);
         _StrStream ss;
-        ss << "Traceback (most recent call last):" << '\n';
-        while(!snapshots.empty()){
-            ss << snapshots.top();
-            snapshots.pop();
-        }
+        if(is_re) ss << "Traceback (most recent call last):\n";
+        while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
+        ss << type << ": " << msg;
         return ss.str();
     }
-public:
-    RuntimeError(_Str type, _Str msg, const std::stack<_Str>& snapshots)
-        : _Error(type, msg, __concat(snapshots)) {}
 };
 
 
 struct CodeObject;
+struct Frame;
 struct BaseRef;
 class VM;
-class Frame;
 
-//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::ArgList&);
-typedef std::function<PyVar(VM*, const pkpy::ArgList&)> _CppFuncRaw;
+//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::Args&);
+typedef std::function<PyVar(VM*, const pkpy::Args&)> _CppFuncRaw;
 typedef pkpy::shared_ptr<CodeObject> _Code;
 
 struct _CppFunc {
@@ -2850,7 +2828,7 @@ struct _CppFunc {
     bool method;
     
     _CppFunc(_CppFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyVar operator()(VM* vm, const pkpy::ArgList& args) const;
+    inline PyVar operator()(VM* vm, const pkpy::Args& args) const;
 };
 
 struct Function {
@@ -2908,13 +2886,13 @@ typedef pkpy::shared_ptr<Function> _Func;
 typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
-    PyVar _type;
+    PyVar type;
     PyVarDict attribs;
 
-    inline bool is_type(const PyVar& type) const noexcept{ return this->_type == type; }
+    inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
     inline virtual void* value() = 0;
 
-    PyObject(const PyVar& type) : _type(type) {}
+    PyObject(const PyVar& type) : type(type) {}
     virtual ~PyObject() = default;
 };
 
@@ -2928,7 +2906,7 @@ struct Py_ : PyObject {
 
 #define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
 #define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
-#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->_type->attribs[__name__])
+#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->type->attribs[__name__])
 
 
 class RangeIterator : public BaseIterator {
@@ -3076,7 +3054,7 @@ enum Precedence {
 
 // The context of the parsing phase for the compiler.
 struct Parser {
-    _Source src;
+    pkpy::shared_ptr<SourceData> src;
 
     const char* token_start;
     const char* curr_char;
@@ -3246,15 +3224,12 @@ struct Parser {
         }
     }
     
-    // If the current char is [c] consume it and advance char by 1 and returns
-    // true otherwise returns false.
     bool matchchar(char c) {
         if (peekchar() != c) return false;
         eatchar_include_newline();
         return true;
     }
 
-    // Initialize the next token as the type.
     void set_next_token(_TokenType type, PyVar value=nullptr) {
         switch(type){
             case TK("{"): case TK("["): case TK("("): brackets_level++; break;
@@ -3274,7 +3249,7 @@ struct Parser {
         else set_next_token(one);
     }
 
-    Parser(_Source src) {
+    Parser(pkpy::shared_ptr<SourceData> src) {
         this->src = src;
         this->token_start = src->source;
         this->curr_char = src->source;
@@ -3283,8 +3258,6 @@ struct Parser {
     }
 };
 
-
-class Frame;
 
 struct BaseRef {
     virtual PyVar get(VM*, Frame*) const = 0;
@@ -3295,8 +3268,9 @@ struct BaseRef {
 
 enum NameScope {
     NAME_LOCAL = 0,
-    NAME_GLOBAL = 1,
-    NAME_ATTR = 2,
+    NAME_GLOBAL,
+    NAME_ATTR,
+    NAME_SPECIAL,
 };
 
 struct NameRef : BaseRef {
@@ -3397,7 +3371,9 @@ OPCODE(LOAD_NAME)
 OPCODE(LOAD_NAME_REF)
 
 OPCODE(ASSERT)
-OPCODE(RAISE_ERROR)
+OPCODE(EXCEPTION_MATCH)
+OPCODE(RAISE)
+OPCODE(RE_RAISE)
 
 OPCODE(BUILD_INDEX_REF)
 OPCODE(BUILD_ATTR_REF)
@@ -3405,6 +3381,9 @@ OPCODE(STORE_NAME)
 OPCODE(STORE_FUNCTION)
 OPCODE(STORE_REF)
 OPCODE(DELETE_REF)
+
+OPCODE(TRY_BLOCK_ENTER)
+OPCODE(TRY_BLOCK_EXIT)
 
 #endif
     #undef OPCODE
@@ -3468,7 +3447,9 @@ OPCODE(LOAD_NAME)
 OPCODE(LOAD_NAME_REF)
 
 OPCODE(ASSERT)
-OPCODE(RAISE_ERROR)
+OPCODE(EXCEPTION_MATCH)
+OPCODE(RAISE)
+OPCODE(RE_RAISE)
 
 OPCODE(BUILD_INDEX_REF)
 OPCODE(BUILD_ATTR_REF)
@@ -3476,6 +3457,9 @@ OPCODE(STORE_NAME)
 OPCODE(STORE_FUNCTION)
 OPCODE(STORE_REF)
 OPCODE(DELETE_REF)
+
+OPCODE(TRY_BLOCK_ENTER)
+OPCODE(TRY_BLOCK_EXIT)
 
 #endif
     #undef OPCODE
@@ -3485,7 +3469,7 @@ struct Bytecode{
     uint8_t op;
     int arg;
     int line;
-    uint16_t block;     // the block id of this bytecode
+    uint16_t block;
 };
 
 _Str pad(const _Str& s, const int n){
@@ -3503,100 +3487,69 @@ enum CodeBlockType {
 
 struct CodeBlock {
     CodeBlockType type;
-    std::vector<int> id;
-    int parent;        // parent index in co_blocks
-
+    int parent;         // parent index in blocks
     int start;          // start index of this block in co_code, inclusive
     int end;            // end index of this block in co_code, exclusive
 
     std::string to_string() const {
         if(parent == -1) return "";
-        std::string s = "[";
-        for(int i = 0; i < id.size(); i++){
-            s += std::to_string(id[i]);
-            if(i != id.size()-1) s += "-";
-        }
-        s += ": type=";
-        s += std::to_string(type);
-        s += "]";
-        return s;
+        return "[B:" + std::to_string(type) + "]";
     }
-
-    bool operator==(const std::vector<int>& other) const{ return id == other; }
-    bool operator!=(const std::vector<int>& other) const{ return id != other; }
-    int depth() const{ return id.size(); }
 };
 
 struct CodeObject {
-    _Source src;
+    pkpy::shared_ptr<SourceData> src;
     _Str name;
 
-    CodeObject(_Source src, _Str name) {
+    CodeObject(pkpy::shared_ptr<SourceData> src, _Str name) {
         this->src = src;
         this->name = name;
     }
 
     std::vector<Bytecode> co_code;
-    PyVarList co_consts;
-    std::vector<std::pair<_Str, NameScope>> co_names;
-    std::vector<_Str> co_global_names;
-
-    std::vector<CodeBlock> co_blocks = { CodeBlock{NO_BLOCK, {}, -1} };
+    PyVarList consts;
+    std::vector<std::pair<_Str, NameScope>> names;
+    emhash8::HashMap<_Str, int> global_names;
+    std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
+    emhash8::HashMap<_Str, int> labels;
 
     // tmp variables
-    int _currBlockIndex = 0;
-    bool __isCurrBlockLoop() const {
-        return co_blocks[_currBlockIndex].type == FOR_LOOP || co_blocks[_currBlockIndex].type == WHILE_LOOP;
+    int _curr_block_i = 0;
+    bool __is_curr_block_loop() const {
+        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
     }
 
-    void __enterBlock(CodeBlockType type){
-        const CodeBlock& currBlock = co_blocks[_currBlockIndex];
-        std::vector<int> copy(currBlock.id);
-        copy.push_back(-1);
-        int t = 0;
-        while(true){
-            copy[copy.size()-1] = t;
-            auto it = std::find(co_blocks.begin(), co_blocks.end(), copy);
-            if(it == co_blocks.end()) break;
-            t++;
-        }
-        co_blocks.push_back(CodeBlock{type, copy, _currBlockIndex, (int)co_code.size()});
-        _currBlockIndex = co_blocks.size()-1;
+    void __enter_block(CodeBlockType type){
+        const CodeBlock& currBlock = blocks[_curr_block_i];
+        blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
+        _curr_block_i = blocks.size()-1;
     }
 
-    void __exitBlock(){
-        co_blocks[_currBlockIndex].end = co_code.size();
-        _currBlockIndex = co_blocks[_currBlockIndex].parent;
-        if(_currBlockIndex < 0) UNREACHABLE();
+    void __exit_block(){
+        blocks[_curr_block_i].end = co_code.size();
+        _curr_block_i = blocks[_curr_block_i].parent;
+        if(_curr_block_i < 0) UNREACHABLE();
     }
 
-    // for goto use
-    // goto/label should be put at toplevel statements
-    emhash8::HashMap<_Str, int> co_labels;
-
-    void add_label(const _Str& label){
-        if(co_labels.find(label) != co_labels.end()){
-            _Str msg = "label '" + label + "' already exists";
-            throw std::runtime_error(msg.c_str());
-        }
-        co_labels[label] = co_code.size();
+    bool add_label(const _Str& label){
+        if(labels.contains(label)) return false;
+        labels[label] = co_code.size();
+        return true;
     }
 
     int add_name(_Str name, NameScope scope){
-        if(scope == NAME_LOCAL && std::find(co_global_names.begin(), co_global_names.end(), name) != co_global_names.end()){
-            scope = NAME_GLOBAL;
-        }
+        if(scope == NAME_LOCAL && global_names.contains(name)) scope = NAME_GLOBAL;
         auto p = std::make_pair(name, scope);
-        for(int i=0; i<co_names.size(); i++){
-            if(co_names[i] == p) return i;
+        for(int i=0; i<names.size(); i++){
+            if(names[i] == p) return i;
         }
-        co_names.push_back(p);
-        return co_names.size() - 1;
+        names.push_back(p);
+        return names.size() - 1;
     }
 
     int add_const(PyVar v){
-        co_consts.push_back(v);
-        return co_consts.size() - 1;
+        consts.push_back(v);
+        return consts.size() - 1;
     }
 
     void optimize_level_1(){
@@ -3635,47 +3588,60 @@ struct CodeObject {
     }
 };
 
-class Frame {
-private:
-    std::vector<PyVar> s_data;
-    int ip = -1;
-    int next_ip = 0;
-public:
-    const _Code code;
+static thread_local i64 kFrameGlobalId = 0;
+
+struct Frame {
+    std::vector<PyVar> _data;
+    int _ip = -1;
+    int _next_ip = 0;
+
+    const _Code co;
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
+    const i64 id;
 
     inline PyVarDict& f_locals() noexcept { return *_locals; }
     inline PyVarDict& f_globals() noexcept { return _module->attribs; }
 
-    Frame(const _Code code, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
-        : code(code), _module(_module), _locals(_locals) {
-    }
+    Frame(const _Code co, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
+        : co(co), _module(_module), _locals(_locals), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
-        ip = next_ip;
-        next_ip = ip + 1;
-        return code->co_code[ip];
+        _ip = _next_ip;
+        _next_ip = _ip + 1;
+        return co->co_code[_ip];
     }
 
     _Str curr_snapshot(){
-        int line = code->co_code[ip].line;
-        return code->src->snapshot(line);
+        int line = co->co_code[_ip].line;
+        return co->src->snapshot(line);
     }
 
-    inline int stack_size() const{ return s_data.size(); }
-    inline bool has_next_bytecode() const{ return next_ip < code->co_code.size(); }
+    _Str stack_info(){
+        _StrStream ss;
+        ss << "[";
+        for(int i=0; i<_data.size(); i++){
+            ss << UNION_TP_NAME(_data[i]);
+            if(i != _data.size()-1) ss << ", ";
+        }
+        ss << "]";
+        return ss.str();
+    }
+
+    inline bool has_next_bytecode() const {
+        return _next_ip < co->co_code.size();
+    }
 
     inline PyVar pop(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        PyVar v = std::move(s_data.back());
-        s_data.pop_back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        PyVar v = std::move(_data.back());
+        _data.pop_back();
         return v;
     }
 
     inline void __pop(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        s_data.pop_back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        _data.pop_back();
     }
 
     inline void try_deref(VM*, PyVar&);
@@ -3693,54 +3659,73 @@ public:
     }
 
     inline PyVar& top(){
-        if(s_data.empty()) throw std::runtime_error("s_data.empty() is true");
-        return s_data.back();
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+        return _data.back();
     }
 
     inline PyVar top_value_offset(VM* vm, int n){
-        PyVar value = s_data[s_data.size() + n];
+        PyVar value = _data[_data.size() + n];
         try_deref(vm, value);
         return value;
     }
 
     template<typename T>
-    inline void push(T&& obj){ s_data.push_back(std::forward<T>(obj)); }
+    inline void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
 
-    inline void jump_abs(int i){ next_ip = i; }
+    inline void jump_abs(int i){ _next_ip = i; }
+    inline void jump_rel(int i){ _next_ip += i; }
+
+    std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
+
+    inline void on_try_block_enter(){
+        s_try_block.push(std::make_pair(co->co_code[_ip].block, _data));
+    }
+
+    inline void on_try_block_exit(){
+        s_try_block.pop();
+    }
+
+    bool jump_to_exception_handler(){
+        if(s_try_block.empty()) return false;
+        PyVar obj = pop();
+        auto& p = s_try_block.top();
+        _data = std::move(p.second);
+        _data.push_back(obj);
+        _next_ip = co->blocks[p.first].end;
+        on_try_block_exit();
+        return true;
+    }
 
     void jump_abs_safe(int target){
-        const Bytecode& prev = code->co_code[ip];
+        const Bytecode& prev = co->co_code[_ip];
         int i = prev.block;
-        next_ip = target;
-        if(next_ip >= code->co_code.size()){
+        _next_ip = target;
+        if(_next_ip >= co->co_code.size()){
             while(i>=0){
-                if(code->co_blocks[i].type == FOR_LOOP) pop();
-                i = code->co_blocks[i].parent;
+                if(co->blocks[i].type == FOR_LOOP) pop();
+                i = co->blocks[i].parent;
             }
         }else{
-            const Bytecode& next = code->co_code[target];
+            const Bytecode& next = co->co_code[target];
             while(i>=0 && i!=next.block){
-                if(code->co_blocks[i].type == FOR_LOOP) pop();
-                i = code->co_blocks[i].parent;
+                if(co->blocks[i].type == FOR_LOOP) pop();
+                i = co->blocks[i].parent;
             }
             if(i!=next.block) throw std::runtime_error("invalid jump");
         }
     }
 
-    pkpy::ArgList pop_n_values_reversed(VM* vm, int n){
-        int new_size = s_data.size() - n;
-        if(new_size < 0) throw std::runtime_error("stack_size() < n");
-        pkpy::ArgList v(n);
+    pkpy::Args pop_n_values_reversed(VM* vm, int n){
+        pkpy::Args v(n);
         for(int i=n-1; i>=0; i--){
-            v[i] = std::move(s_data[new_size + i]);
+            v[i] = pop();
             try_deref(vm, v[i]);
         }
-        s_data.resize(new_size);
         return v;
     }
 
-    pkpy::ArgList pop_n_reversed(int n){
-        pkpy::ArgList v(n);
+    pkpy::Args pop_n_reversed(int n){
+        pkpy::Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = pop();
         return v;
     }
@@ -3765,36 +3750,36 @@ public:
 
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
-protected:
-    std::deque< std::unique_ptr<Frame> > callstack;
+    std::stack< std::unique_ptr<Frame> > callstack;
     PyVar __py2py_call_signal;
     
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
-            //printf("[%d] %s (%d)\n", frame->stack_size(), OP_NAMES[byte.op], byte.arg);
-            //printf("%s\n", frame->code->src->getLine(byte.line).c_str());
+            // if(frame->_module != builtins){
+            //     printf("%d: %s (%d) %s\n", frame->_ip, OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
+            // }
             switch (byte.op)
             {
             case OP_NO_OP: break;       // do nothing
-            case OP_LOAD_CONST: frame->push(frame->code->co_consts[byte.arg]); break;
+            case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); break;
             case OP_LOAD_LAMBDA: {
-                PyVar obj = frame->code->co_consts[byte.arg];
+                PyVar obj = frame->co->consts[byte.arg];
                 setattr(obj, __module__, frame->_module);
                 frame->push(obj);
             } break;
             case OP_LOAD_NAME_REF: {
-                frame->push(PyRef(NameRef(frame->code->co_names[byte.arg])));
+                frame->push(PyRef(NameRef(frame->co->names[byte.arg])));
             } break;
             case OP_LOAD_NAME: {
-                frame->push(NameRef(frame->code->co_names[byte.arg]).get(this, frame));
+                frame->push(NameRef(frame->co->names[byte.arg]).get(this, frame));
             } break;
             case OP_STORE_NAME: {
-                const auto& p = frame->code->co_names[byte.arg];
+                const auto& p = frame->co->names[byte.arg];
                 NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
             case OP_BUILD_ATTR_REF: {
-                const auto& attr = frame->code->co_names[byte.arg];
+                const auto& attr = frame->co->names[byte.arg];
                 PyVar obj = frame->pop_value(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
@@ -3814,7 +3799,7 @@ protected:
             } break;
             case OP_BUILD_SMART_TUPLE:
             {
-                pkpy::ArgList items = frame->pop_n_reversed(byte.arg);
+                pkpy::Args items = frame->pop_n_reversed(byte.arg);
                 bool done = false;
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->is_type(_tp_ref)) {
@@ -3830,7 +3815,7 @@ protected:
             } break;
             case OP_BUILD_STRING:
             {
-                pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg);
+                pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
                 _StrStream ss;
                 for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
                 frame->push(PyStr(ss.str()));
@@ -3839,7 +3824,7 @@ protected:
                 frame->push(builtins->attribs[m_eval]);
             } break;
             case OP_LIST_APPEND: {
-                pkpy::ArgList args(2);
+                pkpy::Args args(2);
                 args[1] = frame->pop_value(this);            // obj
                 args[0] = frame->top_value_offset(this, -2);     // list
                 fast_call(m_append, std::move(args));
@@ -3853,7 +3838,7 @@ protected:
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->code->co_names[byte.arg].first;
+                    const _Str& clsName = frame->co->names[byte.arg].first;
                     PyVar clsBase = frame->pop_value(this);
                     if(clsBase == None) clsBase = _tp_object;
                     check_type(clsBase, _tp_type);
@@ -3876,7 +3861,7 @@ protected:
             case OP_POP_TOP: frame->__pop(); break;
             case OP_BINARY_OP:
                 {
-                    pkpy::ArgList args(2);
+                    pkpy::Args args(2);
                     args[1] = frame->pop_value(this);
                     args[0] = frame->top_value(this);
                     frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -3890,7 +3875,7 @@ protected:
                 } break;
             case OP_COMPARE_OP:
                 {
-                    pkpy::ArgList args(2);
+                    pkpy::Args args(2);
                     args[1] = frame->pop_value(this);
                     args[0] = frame->top_value(this);
                     frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -3930,21 +3915,27 @@ protected:
                     PyVar expr = frame->pop_value(this);
                     if(asBool(expr) != True) _error("AssertionError", "");
                 } break;
-            case OP_RAISE_ERROR:
+            case OP_EXCEPTION_MATCH:
                 {
-                    _Str msg = PyStr_AS_C(asRepr(frame->pop_value(this)));
-                    _Str type = PyStr_AS_C(frame->pop_value(this));
+                    const auto& _e = PyException_AS_C(frame->top());
+                    _Str name = frame->co->names[byte.arg].first;
+                    frame->push(PyBool(_e.match_type(name)));
+                } break;
+            case OP_RAISE:
+                {
+                    PyVar obj = frame->pop_value(this);
+                    _Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
+                    _Str type = frame->co->names[byte.arg].first;
                     _error(type, msg);
                 } break;
+            case OP_RE_RAISE: _raise(); break;
             case OP_BUILD_LIST:
-                {
-                    frame->push(PyList(
-                        frame->pop_n_values_reversed(this, byte.arg).toList()
-                    ));
-                } break;
+                frame->push(PyList(
+                    frame->pop_n_values_reversed(this, byte.arg).toList()));
+                break;
             case OP_BUILD_MAP:
                 {
-                    pkpy::ArgList items = frame->pop_n_values_reversed(this, byte.arg*2);
+                    pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
@@ -3964,9 +3955,9 @@ protected:
                 {
                     int ARGC = byte.arg & 0xFFFF;
                     int KWARGC = (byte.arg >> 16) & 0xFFFF;
-                    pkpy::ArgList kwargs(0);
+                    pkpy::Args kwargs(0);
                     if(KWARGC > 0) kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
-                    pkpy::ArgList args = frame->pop_n_values_reversed(this, ARGC);
+                    pkpy::Args args = frame->pop_n_values_reversed(this, ARGC);
                     PyVar callable = frame->pop_value(this);
                     PyVar ret = call(callable, std::move(args), kwargs, true);
                     if(ret == __py2py_call_signal) return ret;
@@ -3975,12 +3966,9 @@ protected:
             case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
             case OP_GOTO: {
-                PyVar obj = frame->pop_value(this);
-                const _Str& label = PyStr_AS_C(obj);
-                int* target = frame->code->co_labels.try_get(label);
-                if(target == nullptr){
-                    _error("KeyError", "label '" + label + "' not found");
-                }
+                const _Str& label = frame->co->names[byte.arg].first;
+                int* target = frame->co->labels.try_get(label);
+                if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
                 frame->jump_abs_safe(*target);
             } break;
             case OP_GET_ITER:
@@ -4004,18 +3992,18 @@ protected:
                     if(it->hasNext()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }else{
-                        int blockEnd = frame->code->co_blocks[byte.block].end;
+                        int blockEnd = frame->co->blocks[byte.block].end;
                         frame->jump_abs_safe(blockEnd);
                     }
                 } break;
             case OP_LOOP_CONTINUE:
                 {
-                    int blockStart = frame->code->co_blocks[byte.block].start;
+                    int blockStart = frame->co->blocks[byte.block].start;
                     frame->jump_abs(blockStart);
                 } break;
             case OP_LOOP_BREAK:
                 {
-                    int blockEnd = frame->code->co_blocks[byte.block].end;
+                    int blockEnd = frame->co->blocks[byte.block].end;
                     frame->jump_abs_safe(blockEnd);
                 } break;
             case OP_JUMP_IF_FALSE_OR_POP:
@@ -4041,7 +4029,7 @@ protected:
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->code->co_names[byte.arg].first;
+                    const _Str& name = frame->co->names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazy_modules.find(name);
@@ -4062,18 +4050,20 @@ protected:
             // TODO: using "goto" inside with block may cause __exit__ not called
             case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
+            case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); break;
+            case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); break;
             default:
                 throw std::runtime_error(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
             }
         }
 
-        if(frame->code->src->mode == EVAL_MODE || frame->code->src->mode == JSON_MODE){
-            if(frame->stack_size() != 1) throw std::runtime_error("stack size is not 1 in EVAL_MODE/JSON_MODE");
+        if(frame->co->src->mode == EVAL_MODE || frame->co->src->mode == JSON_MODE){
+            if(frame->_data.size() != 1) throw std::runtime_error("_data.size() != 1 in EVAL/JSON_MODE");
             return frame->pop_value(this);
         }
 
-        if(frame->stack_size() != 0) throw std::runtime_error("stack not empty in EXEC_MODE");
+        if(!frame->_data.empty()) throw std::runtime_error("_data.size() != 0 in EXEC_MODE");
         return None;
     }
 
@@ -4110,23 +4100,19 @@ public:
     }
 
     PyVar asStr(const PyVar& obj){
-        PyVarOrNull str_fn = getattr(obj, __str__, false);
-        if(str_fn != nullptr) return call(str_fn);
+        PyVarOrNull f = getattr(obj, __str__, false);
+        if(f != nullptr) return call(f);
         return asRepr(obj);
     }
 
     inline Frame* top_frame() const {
         if(callstack.empty()) UNREACHABLE();
-        return callstack.back().get();
+        return callstack.top().get();
     }
 
     PyVar asRepr(const PyVar& obj){
         if(obj->is_type(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__);
-    }
-
-    PyVar asJson(const PyVar& obj){
-        return call(obj, __json__);
     }
 
     const PyVar& asBool(const PyVar& obj){
@@ -4142,8 +4128,8 @@ public:
         return True;
     }
 
-    PyVar fast_call(const _Str& name, pkpy::ArgList&& args){
-        PyObject* cls = args[0]->_type.get();
+    PyVar fast_call(const _Str& name, pkpy::Args&& args){
+        PyObject* cls = args[0]->type.get();
         while(cls != None.get()) {
             PyVar* val = cls->attribs.try_get(name);
             if(val != nullptr) return call(*val, std::move(args));
@@ -4158,13 +4144,13 @@ public:
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
         return call(_callable, std::forward<ArgT>(args), pkpy::noArg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::ArgList>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& obj, const _Str& func, ArgT&& args){
         return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::noArg(), false);
     }
@@ -4173,7 +4159,7 @@ public:
         return call(getattr(obj, func), pkpy::noArg(), pkpy::noArg(), false);
     }
 
-    PyVar call(const PyVar& _callable, pkpy::ArgList args, const pkpy::ArgList& kwargs, bool opCall){
+    PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
         if(_callable->is_type(_tp_type)){
             auto it = _callable->attribs.find(__new__);
             PyVar obj;
@@ -4250,7 +4236,7 @@ public:
             PyVar* it_m = (*callable)->attribs.try_get(__module__);
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
-                __push_new_frame(fn->code, _module, _locals);
+                __new_frame(fn->code, _module, _locals);
                 return __py2py_call_signal;
             }
             return _exec(fn->code, _module, _locals);
@@ -4265,54 +4251,71 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             _Code code = compile(source, filename, mode);
-            //if(filename != "<builtins>") std::cout << disassemble(code) << std::endl;
             return _exec(code, _module, pkpy::make_shared<PyVarDict>());
-        }catch (const _Error& e){
-            *_stderr << e.what() << '\n';
+        }catch (const _Exception& e){
+            *_stderr << e.summary() << '\n';
         }
         catch (const std::exception& e) {
-            auto re = RuntimeError("UnexpectedError", e.what(), _cleanErrorAndGetSnapshots());
-            *_stderr << re.what() << '\n';
+            *_stderr << "A std::exception occurred! It may be a bug, please report it!!\n";
+            *_stderr << e.what() << '\n';
         }
+        callstack = {};
         return nullptr;
     }
 
     template<typename ...Args>
-    Frame* __push_new_frame(Args&&... args){
+    Frame* __new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
-            throw RuntimeError("RecursionError", "maximum recursion depth exceeded", _cleanErrorAndGetSnapshots());
+            _error("RecursionError", "maximum recursion depth exceeded");
         }
-        callstack.emplace_back(std::make_unique<Frame>(std::forward<Args>(args)...));
-        return callstack.back().get();
+        callstack.emplace(std::make_unique<Frame>(std::forward<Args>(args)...));
+        return callstack.top().get();
     }
 
     template<typename ...Args>
     PyVar _exec(Args&&... args){
-        Frame* frame = __push_new_frame(std::forward<Args>(args)...);
-        Frame* frameBase = frame;
+        Frame* frame = __new_frame(std::forward<Args>(args)...);
+        i64 base_id = frame->id;
         PyVar ret = nullptr;
+        bool need_raise = false;
 
         while(true){
-            ret = run_frame(frame);
-            if(ret != __py2py_call_signal){
-                if(frame == frameBase){         // [ frameBase<- ]
-                    break;
+            if(frame->id < base_id) UNREACHABLE();
+            try{
+                if(need_raise){ need_raise = false; _raise(); }
+                ret = run_frame(frame);
+
+                if(ret != __py2py_call_signal){
+                    callstack.pop();
+                    if(frame->id == base_id){      // [ frameBase<- ]
+                        return ret;
+                    }else{
+                        frame = callstack.top().get();
+                        frame->push(ret);
+                    }
                 }else{
-                    callstack.pop_back();
-                    frame = callstack.back().get();
-                    frame->push(ret);
+                    frame = callstack.top().get();  // [ frameBase, newFrame<- ]
                 }
-            }else{
-                frame = callstack.back().get();  // [ frameBase, newFrame<- ]
+            }catch(HandledException& e){
+                continue;
+            }catch(UnhandledException& e){
+                PyVar obj = frame->pop();
+                _Exception& _e = PyException_AS_C(obj);
+                _e.st_push(frame->curr_snapshot());
+                callstack.pop();
+                if(callstack.empty()) throw _e;
+                frame = callstack.top().get();
+                frame->push(obj);
+                if(frame->id < base_id) throw ToBeRaisedException();
+                need_raise = true;
+            }catch(ToBeRaisedException& e){
+                need_raise = true;
             }
         }
-
-        callstack.pop_back();
-        return ret;
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)1, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
         setattr(obj, __base__, base);
         _Str fullName = name;
         if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
@@ -4323,7 +4326,7 @@ public:
 
     PyVar new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -4365,7 +4368,7 @@ public:
                 if(!(*root)->is_type(_tp_super)) break;
                 depth++;
             }
-            cls = (*root)->_type.get();
+            cls = (*root)->type.get();
             for(int i=0; i<depth; i++) cls = cls->attribs[__base__].get();
 
             it = (*root)->attribs.find(name);
@@ -4373,7 +4376,7 @@ public:
         }else{
             it = obj->attribs.find(name);
             if(it != obj->attribs.end()) return it->second;
-            cls = obj->_type.get();
+            cls = obj->type.get();
         }
 
         while(cls != None.get()) {
@@ -4489,30 +4492,30 @@ public:
             // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
             std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
             if(byte.op == OP_LOAD_CONST){
-                argStr += " (" + PyStr_AS_C(asRepr(code->co_consts[byte.arg])) + ")";
+                argStr += " (" + PyStr_AS_C(asRepr(code->consts[byte.arg])) + ")";
             }
-            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME){
-                argStr += " (" + code->co_names[byte.arg].first.__escape(true) + ")";
+            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
+                argStr += " (" + code->names[byte.arg].first.__escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
-            ss << code->co_blocks[byte.block].to_string();
+            ss << code->blocks[byte.block].to_string();
             if(i != code->co_code.size() - 1) ss << '\n';
         }
         _StrStream consts;
-        consts << "co_consts: ";
-        consts << PyStr_AS_C(asRepr(PyList(code->co_consts)));
+        consts << "consts: ";
+        consts << PyStr_AS_C(asRepr(PyList(code->consts)));
 
         _StrStream names;
-        names << "co_names: ";
+        names << "names: ";
         PyVarList list;
-        for(int i=0; i<code->co_names.size(); i++){
-            list.push_back(PyStr(code->co_names[i].first));
+        for(int i=0; i<code->names.size(); i++){
+            list.push_back(PyStr(code->names[i].first));
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
-        for(int i=0; i<code->co_consts.size(); i++){
-            PyVar obj = code->co_consts[i];
+        for(int i=0; i<code->consts.size(); i++){
+            PyVar obj = code->consts[i];
             if(obj->is_type(_tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
                 ss << disassemble(f->code);
@@ -4526,7 +4529,7 @@ public:
     PyVar _tp_list, _tp_tuple;
     PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bound_method;
     PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
-    PyVar _tp_super;
+    PyVar _tp_super, _tp_exception;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -4556,15 +4559,15 @@ public:
     DEF_NATIVE(BoundMethod, _BoundMethod, _tp_bound_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
+    DEF_NATIVE(Exception, _Exception, _tp_exception)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, nullptr);
-        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>((i64)0, nullptr);
-
+        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
+        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
@@ -4584,6 +4587,7 @@ public:
         _tp_native_iterator = new_type_object("_native_iterator");
         _tp_bound_method = new_type_object("bound_method");
         _tp_super = new_type_object("super");
+        _tp_exception = new_type_object("Exception");
 
         this->None = new_object(new_type_object("NoneType"), DUMMY_VAL);
         this->Ellipsis = new_object(new_type_object("ellipsis"), DUMMY_VAL);
@@ -4591,17 +4595,16 @@ public:
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
+        this->__py2py_call_signal = new_object(new_type_object("_signal"), DUMMY_VAL);
 
         setattr(_tp_type, __base__, _tp_object);
-        _tp_type->_type = _tp_type;
+        _tp_type->type = _tp_type;
         setattr(_tp_object, __base__, None);
-        _tp_object->_type = _tp_type;
+        _tp_object->type = _tp_type;
         
         for (auto& [name, type] : _types) {
             setattr(type, __name__, PyStr(name));
         }
-
-        this->__py2py_call_signal = new_object(_tp_object, DUMMY_VAL);
 
         std::vector<_Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
         for (auto& name : publicTypes) {
@@ -4633,18 +4636,22 @@ public:
     /***** Error Reporter *****/
 private:
     void _error(const _Str& name, const _Str& msg){
-        throw RuntimeError(name, msg, _cleanErrorAndGetSnapshots());
+        _error(_Exception(name, msg));
     }
 
-    std::stack<_Str> _cleanErrorAndGetSnapshots(){
-        std::stack<_Str> snapshots;
-        while (!callstack.empty()){
-            if(snapshots.size() < 8){
-                snapshots.push(callstack.back()->curr_snapshot());
-            }
-            callstack.pop_back();
+    void _error(_Exception e){
+        if(callstack.empty()){
+            e.is_re = false;
+            throw e;
         }
-        return snapshots;
+        top_frame()->push(PyException(e));
+        _raise();
+    }
+
+    void _raise(){
+        bool ok = top_frame()->jump_to_exception_handler();
+        if(ok) throw HandledException();
+        else throw UnhandledException();
     }
 
 public:
@@ -4673,7 +4680,6 @@ public:
 };
 
 /***** Pointers' Impl *****/
-
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
     val = frame->f_locals().try_get(pair->first);
@@ -4791,7 +4797,7 @@ PyVar StringIterator::next(){
     return vm->PyStr(str.u8_getitem(index++));
 }
 
-PyVar _CppFunc::operator()(VM* vm, const pkpy::ArgList& args) const{
+PyVar _CppFunc::operator()(VM* vm, const pkpy::Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->typeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
@@ -4800,7 +4806,7 @@ PyVar _CppFunc::operator()(VM* vm, const pkpy::ArgList& args) const{
 }
 
 
-class Compiler;
+struct Compiler;
 
 typedef void (Compiler::*GrammarFn)();
 typedef void (Compiler::*CompilerAction)();
@@ -4813,8 +4819,7 @@ struct GrammarRule{
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
-class Compiler {
-public:
+struct Compiler {
     std::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
     bool isCompilingClass = false;
@@ -4828,7 +4833,7 @@ public:
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
-            pkpy::make_shared<SourceMetadata>(source, filename, mode)
+            pkpy::make_shared<SourceData>(source, filename, mode)
         );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
@@ -4966,7 +4971,7 @@ public:
                 } else {
                     parser->set_next_token(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
                 }
-                if (size != m.length()) throw std::runtime_error("length mismatch");
+                if (size != m.length()) UNREACHABLE();
             }
         }catch(std::exception& _){
             syntaxError("invalid number literal");
@@ -5119,7 +5124,7 @@ public:
         }
     }
 
-    bool matchNewLines(bool repl_throw=false) {
+    bool match_newlines(bool repl_throw=false) {
         bool consumed = false;
         if (peek() == TK("@eol")) {
             while (peek() == TK("@eol")) lexToken();
@@ -5132,8 +5137,8 @@ public:
     }
 
     bool matchEndStatement() {
-        if (match(TK(";"))) { matchNewLines(); return true; }
-        if (matchNewLines() || peek()==TK("@eof")) return true;
+        if (match(TK(";"))) { match_newlines(); return true; }
+        if (match_newlines() || peek()==TK("@eof")) return true;
         if (peek() == TK("@dedent")) return true;
         return false;
     }
@@ -5293,9 +5298,9 @@ public:
     }
 
     void exprGrouping() {
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         EXPR_TUPLE();
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK(")"));
     }
 
@@ -5304,13 +5309,13 @@ public:
         int _body_start = co()->co_code.size();
         int ARGC = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK("]")) break;
             EXPR(); ARGC++;
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
         } while (match(TK(",")));
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK("]"));
         emit(OP_BUILD_LIST, ARGC);
         return;
@@ -5322,7 +5327,7 @@ __LISTCOMP:
         co()->co_code[_patch].arg = _body_end;
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
-        matchNewLines(mode()==SINGLE_MODE);
+        match_newlines(mode()==SINGLE_MODE);
         
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
         int _cond_start = co()->co_code.size();
@@ -5334,7 +5339,7 @@ __LISTCOMP:
         patch_jump(_skipPatch);
 
         emit(OP_GET_ITER);
-        co()->__enterBlock(FOR_LOOP);
+        co()->__enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
@@ -5352,8 +5357,8 @@ __LISTCOMP:
         }
 
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exitBlock();
-        matchNewLines(mode()==SINGLE_MODE);
+        co()->__exit_block();
+        match_newlines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
 
@@ -5361,7 +5366,7 @@ __LISTCOMP:
         bool parsing_dict = false;
         int size = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK("}")) break;
             EXPR();
             if(peek() == TK(":")) parsing_dict = true;
@@ -5370,7 +5375,7 @@ __LISTCOMP:
                 EXPR();
             }
             size++;
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK("}"));
 
@@ -5382,7 +5387,7 @@ __LISTCOMP:
         int ARGC = 0;
         int KWARGC = 0;
         do {
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
             if (peek() == TK(")")) break;
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
@@ -5396,7 +5401,7 @@ __LISTCOMP:
                 EXPR();
                 ARGC++;
             }
-            matchNewLines(mode()==SINGLE_MODE);
+            match_newlines(mode()==SINGLE_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
         emit(OP_CALL, (KWARGC << 16) | ARGC);
@@ -5444,7 +5449,6 @@ __LISTCOMP:
                 consume(TK("]"));
             }
         }
-
         emit(OP_BUILD_INDEX_REF);
     }
 
@@ -5462,7 +5466,7 @@ __LISTCOMP:
     int emit(Opcode opcode, int arg=-1, bool keepline=false) {
         int line = parser->prev.line;
         co()->co_code.push_back(
-            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_currBlockIndex}
+            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_curr_block_i}
         );
         int i = co()->co_code.size() - 1;
         if(keepline && i>=1) co()->co_code[i].line = co()->co_code[i-1].line;
@@ -5480,14 +5484,14 @@ __LISTCOMP:
     
     void __compileBlockBody(CompilerAction action) {
         consume(TK(":"));
-        if(!matchNewLines(mode()==SINGLE_MODE)){
+        if(!match_newlines(mode()==SINGLE_MODE)){
             syntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
-            matchNewLines();
+            match_newlines();
             (this->*action)();
-            matchNewLines();
+            match_newlines();
         }
         consume(TK("@dedent"));
     }
@@ -5495,7 +5499,7 @@ __LISTCOMP:
     Token compileImportPath() {
         consume(TK("@id"));
         Token tkmodule = parser->prev;
-        int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+        int index = co()->add_name(tkmodule.str(), NAME_SPECIAL);
         emit(OP_IMPORT_NAME, index);
         return tkmodule;
     }
@@ -5522,7 +5526,7 @@ __LISTCOMP:
             emit(OP_DUP_TOP);
             consume(TK("@id"));
             Token tkname = parser->prev;
-            int index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            int index = co()->add_name(tkname.str(), NAME_ATTR);
             emit(OP_BUILD_ATTR_REF, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
@@ -5550,7 +5554,7 @@ __LISTCOMP:
     }
 
     void compileIfStatement() {
-        matchNewLines();
+        match_newlines();
         EXPR_TUPLE();
 
         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
@@ -5572,13 +5576,13 @@ __LISTCOMP:
     }
 
     void compileWhileLoop() {
-        co()->__enterBlock(WHILE_LOOP);
+        co()->__enter_block(WHILE_LOOP);
         EXPR_TUPLE();
         int patch = emit(OP_POP_JUMP_IF_FALSE);
         compileBlockBody();
         emit(OP_LOOP_CONTINUE, -1, true);
         patch_jump(patch);
-        co()->__exitBlock();
+        co()->__exit_block();
     }
 
     void EXPR_FOR_VARS(){
@@ -5593,36 +5597,46 @@ __LISTCOMP:
     void compileForLoop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emit(OP_GET_ITER);
-        co()->__enterBlock(FOR_LOOP);
+        co()->__enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
         compileBlockBody();
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exitBlock();
+        co()->__exit_block();
     }
 
     void compileTryExcept() {
-        co()->__enterBlock(TRY_EXCEPT);
+        co()->__enter_block(TRY_EXCEPT);
+        emit(OP_TRY_BLOCK_ENTER);
         compileBlockBody();
-        int patch = emit(OP_JUMP_ABSOLUTE);
-        co()->__exitBlock();
-        consume(TK("except"));
-        if(match(TK("@id"))){       // exception name
+        emit(OP_TRY_BLOCK_EXIT);
+        std::vector<int> patches = { emit(OP_JUMP_ABSOLUTE) };
+        co()->__exit_block();
+
+        do {
+            consume(TK("except"));
+            if(match(TK("@id"))){
+                int name_idx = co()->add_name(parser->prev.str(), NAME_SPECIAL);
+                emit(OP_EXCEPTION_MATCH, name_idx);
+            }else{
+                emit(OP_LOAD_TRUE);
+            }
+            int patch = emit(OP_POP_JUMP_IF_FALSE);
+            emit(OP_POP_TOP);       // pop the exception on match
             compileBlockBody();
-        }
-        if(match(TK("finally"))){
-            consume(TK(":"));
-            syntaxError("finally is not supported yet");
-        }
-        patch_jump(patch);
+            patches.push_back(emit(OP_JUMP_ABSOLUTE));
+            patch_jump(patch);
+        }while(peek() == TK("except"));
+        emit(OP_RE_RAISE);      // no match, re-raise
+        for (int patch : patches) patch_jump(patch);
     }
 
     void compileStatement() {
         if (match(TK("break"))) {
-            if (!co()->__isCurrBlockLoop()) syntaxError("'break' outside loop");
+            if (!co()->__is_curr_block_loop()) syntaxError("'break' outside loop");
             consumeEndStatement();
             emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!co()->__isCurrBlockLoop()) syntaxError("'continue' not properly in loop");
+            if (!co()->__is_curr_block_loop()) syntaxError("'continue' not properly in loop");
             consumeEndStatement();
             emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
@@ -5665,25 +5679,24 @@ __LISTCOMP:
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            co()->add_label(parser->prev.str());
+            _Str label = parser->prev.str();
+            bool ok = co()->add_label(label);
+            if(!ok) syntaxError("label '" + label + "' already exists");
             consumeEndStatement();
-        } else if(match(TK("goto"))){
-            // https://entrian.com/goto/
+        } else if(match(TK("goto"))){ // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
-            emit(OP_GOTO);
+            emit(OP_GOTO, co()->add_name(parser->prev.str(), NAME_SPECIAL));
             consumeEndStatement();
         } else if(match(TK("raise"))){
-            consume(TK("@id"));         // dummy exception type
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(parser->prev.str())));
+            consume(TK("@id"));
+            int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
             if(match(TK("("))){
-                EXPR();
-                consume(TK(")"));
+                EXPR(); consume(TK(")"));
             }else{
-                emit(OP_LOAD_NONE); // ...?
+                emit(OP_LOAD_NONE);
             }
-            emit(OP_RAISE_ERROR);
+            emit(OP_RAISE, dummy_t);
             consumeEndStatement();
         } else if(match(TK("del"))){
             EXPR();
@@ -5692,7 +5705,7 @@ __LISTCOMP:
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
-                co()->co_global_names.push_back(parser->prev.str());
+                co()->global_names[parser->prev.str()] = 1;
             } while (match(TK(",")));
             consumeEndStatement();
         } else if(match(TK("pass"))){
@@ -5703,8 +5716,8 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t lastOp = co()->co_code.back().op;
             if( lastOp!=OP_STORE_NAME && lastOp!=OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR);
-                emit(OP_POP_TOP);
+                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
+                emit(OP_POP_TOP, -1, true);
             }
         }
     }
@@ -5713,8 +5726,7 @@ __LISTCOMP:
         consume(TK("@id"));
         int clsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
         int superClsNameIdx = -1;
-        if(match(TK("("))){
-            consume(TK("@id"));
+        if(match(TK("(")) && match(TK("@id"))){
             superClsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
@@ -5731,7 +5743,7 @@ __LISTCOMP:
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) syntaxError("**kwargs should be the last argument");
-            matchNewLines();
+            match_newlines();
             if(match(TK("*"))){
                 if(state < 1) state = 1;
                 else syntaxError("*args should be placed before **kwargs");
@@ -5834,7 +5846,7 @@ __LISTCOMP:
         // Lex initial tokens. current <-- next.
         lexToken();
         lexToken();
-        matchNewLines();
+        match_newlines();
 
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
@@ -5853,7 +5865,7 @@ __LISTCOMP:
 
         while (!match(TK("@eof"))) {
             compileTopLevelStatement();
-            matchNewLines();
+            match_newlines();
         }
         code->optimize();
         return code;
@@ -5872,17 +5884,15 @@ __LISTCOMP:
         return parser->src->snapshot(lineno, cursor);
     }
 
-    void syntaxError(_Str msg){ throw CompileError("SyntaxError", msg, getLineSnapshot()); }
-    void indentationError(_Str msg){ throw CompileError("IndentationError", msg, getLineSnapshot()); }
-    void unexpectedError(_Str msg){ throw CompileError("UnexpectedError", msg, getLineSnapshot()); }
+    void __throw_e(_Str type, _Str msg){
+        auto e = _Exception("SyntaxError", msg);
+        e.st_push(getLineSnapshot());
+        throw e;
+    }
+    void syntaxError(_Str msg){ __throw_e("SyntaxError", msg); }
+    void indentationError(_Str msg){ __throw_e("IndentationError", msg); }
 };
 
-
-enum InputResult {
-    NEED_MORE_LINES = 0,
-    EXEC_STARTED = 1,
-    EXEC_SKIPPED = 2,
-};
 
 class REPL {
 protected:
@@ -5896,7 +5906,7 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    InputResult input(std::string line){
+    bool input(std::string line){
         CompileMode mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
@@ -5912,21 +5922,19 @@ public:
                 mode = EXEC_MODE;
             }else{
 __NOT_ENOUGH_LINES:
-                return NEED_MORE_LINES;
+                return true;
             }
-        }else{
-            if(line.empty()) return EXEC_SKIPPED;
         }
-
+        
         try{
             vm->exec(line, "<stdin>", mode);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
-            if (need_more_lines) return NEED_MORE_LINES;
+            if (need_more_lines) return true;
         }
-        return EXEC_STARTED;
+        return false;
     }
 };
 
@@ -5935,15 +5943,14 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.__fillCode();
-    }catch(_Error& e){
-        throw e;
-    }catch(std::exception& e){
-        throw CompileError("UnexpectedError", e.what(), compiler.getLineSnapshot());
+    }catch(_Exception& e){
+        _error(e);
+        return nullptr;
     }
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){              \
+    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::Args& args){                 \
         if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                             \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
@@ -5952,7 +5959,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     });
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
-    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::ArgList& args){              \
+    _vm->bindMethodMulti<1>({"int","float"}, #name, [](VM* vm, const pkpy::Args& args){                 \
         bool _0 = args[0]->is_type(vm->_tp_int) || args[0]->is_type(vm->_tp_float);                     \
         bool _1 = args[1]->is_type(vm->_tp_int) || args[1]->is_type(vm->_tp_float);                     \
         if(!_0 || !_1){                                                                                 \
@@ -5978,23 +5985,23 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
 
-    _vm->bindBuiltinFunc<1>("__sys_stdout_write", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("__sys_stdout_write", [](VM* vm, const pkpy::Args& args) {
         (*vm->_stdout) << vm->PyStr_AS_C(args[0]);
         return vm->None;
     });
 
-    _vm->bindBuiltinFunc<0>("super", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<0>("super", [](VM* vm, const pkpy::Args& args) {
         auto it = vm->top_frame()->f_locals().find(m_self);
         if(it == vm->top_frame()->f_locals().end()) vm->typeError("super() can only be called in a class method");
         return vm->new_object(vm->_tp_super, it->second);
     });
 
-    _vm->bindBuiltinFunc<1>("eval", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("eval", [](VM* vm, const pkpy::Args& args) {
         _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
-    _vm->bindBuiltinFunc<1>("exec", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("exec", [](VM* vm, const pkpy::Args& args) {
         _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
@@ -6004,43 +6011,43 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindBuiltinFunc<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
     _vm->bindBuiltinFunc<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::noArg())));
 
-    _vm->bindBuiltinFunc<1>("chr", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("chr", [](VM* vm, const pkpy::Args& args) {
         i64 i = vm->PyInt_AS_C(args[0]);
         if (i < 0 || i > 128) vm->valueError("chr() arg not in range(128)");
         return vm->PyStr(std::string(1, (char)i));
     });
 
-    _vm->bindBuiltinFunc<1>("ord", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("ord", [](VM* vm, const pkpy::Args& args) {
         _Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->typeError("ord() expected an ASCII character");
         return vm->PyInt((i64)(s.c_str()[0]));
     });
 
-    _vm->bindBuiltinFunc<2>("hasattr", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<2>("hasattr", [](VM* vm, const pkpy::Args& args) {
         return vm->PyBool(vm->getattr(args[0], vm->PyStr_AS_C(args[1]), false) != nullptr);
     });
 
-    _vm->bindBuiltinFunc<3>("setattr", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<3>("setattr", [](VM* vm, const pkpy::Args& args) {
         PyVar obj = args[0];
         vm->setattr(obj, vm->PyStr_AS_C(args[1]), args[2]);
         return vm->None;
     });
 
-    _vm->bindBuiltinFunc<2>("getattr", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<2>("getattr", [](VM* vm, const pkpy::Args& args) {
         _Str name = vm->PyStr_AS_C(args[1]);
         return vm->getattr(args[0], name);
     });
 
-    _vm->bindBuiltinFunc<1>("hex", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("hex", [](VM* vm, const pkpy::Args& args) {
         std::stringstream ss;
         ss << std::hex << vm->PyInt_AS_C(args[0]);
         return vm->PyStr("0x" + ss.str());
     });
 
-    _vm->bindBuiltinFunc<1>("dir", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindBuiltinFunc<1>("dir", [](VM* vm, const pkpy::Args& args) {
         std::vector<_Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
-        for (auto& [k, _] : args[0]->_type->attribs) {
+        for (auto& [k, _] : args[0]->type->attribs) {
             if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
@@ -6052,7 +6059,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyList(ret);
     });
 
-    _vm->bindMethod<0>("object", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("object", "__repr__", [](VM* vm, const pkpy::Args& args) {
         PyVar _self = args[0];
         std::stringstream ss;
         ss << std::hex << (uintptr_t)_self.get();
@@ -6062,9 +6069,10 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
     _vm->bindMethod<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
-    _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->_type));
 
-    _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindStaticMethod<1>("type", "__new__", CPP_LAMBDA(args[0]->type));
+
+    _vm->bindStaticMethod<-1>("range", "__new__", [](VM* vm, const pkpy::Args& args) {
         _Range r;
         switch (args.size()) {
             case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
@@ -6082,13 +6090,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
     _vm->bindMethod<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
     _vm->bindMethod<0>("NoneType", "__json__", CPP_LAMBDA(vm->PyStr("null")));
 
-    _vm->bindMethodMulti<1>({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethodMulti<1>({"int", "float"}, "__truediv__", [](VM* vm, const pkpy::Args& args) {
         f64 rhs = vm->num_to_float(args[1]);
         if (rhs == 0) vm->zeroDivisionError();
         return vm->PyFloat(vm->num_to_float(args[0]) / rhs);
     });
 
-    _vm->bindMethodMulti<1>({"int", "float"}, "__pow__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethodMulti<1>({"int", "float"}, "__pow__", [](VM* vm, const pkpy::Args& args) {
         if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){
             return vm->PyInt((i64)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
@@ -6097,7 +6105,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyInt ************/
-    _vm->bindStaticMethod<1>("int", "__new__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindStaticMethod<1>("int", "__new__", [](VM* vm, const pkpy::Args& args) {
         if (args[0]->is_type(vm->_tp_int)) return args[0];
         if (args[0]->is_type(vm->_tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
         if (args[0]->is_type(vm->_tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
@@ -6116,28 +6124,28 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bindMethod<1>("int", "__floordiv__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("int", "__floordiv__", [](VM* vm, const pkpy::Args& args) {
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
     });
 
-    _vm->bindMethod<1>("int", "__mod__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("int", "__mod__", [](VM* vm, const pkpy::Args& args) {
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->zeroDivisionError();
         return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
     });
 
-    _vm->bindMethod<0>("int", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("int", "__repr__", [](VM* vm, const pkpy::Args& args) {
         return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
 
-    _vm->bindMethod<0>("int", "__json__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("int", "__json__", [](VM* vm, const pkpy::Args& args) {
         return vm->PyStr(std::to_string((int)vm->PyInt_AS_C(args[0])));
     });
 
 #define __INT_BITWISE_OP(name,op) \
-    _vm->bindMethod<1>("int", #name, [](VM* vm, const pkpy::ArgList& args) {                    \
+    _vm->bindMethod<1>("int", #name, [](VM* vm, const pkpy::Args& args) {                    \
         return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));     \
     });
 
@@ -6150,7 +6158,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 #undef __INT_BITWISE_OP
 
     /************ PyFloat ************/
-    _vm->bindStaticMethod<1>("float", "__new__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindStaticMethod<1>("float", "__new__", [](VM* vm, const pkpy::Args& args) {
         if (args[0]->is_type(vm->_tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
         if (args[0]->is_type(vm->_tp_float)) return args[0];
         if (args[0]->is_type(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
@@ -6169,7 +6177,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bindMethod<0>("float", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("float", "__repr__", [](VM* vm, const pkpy::Args& args) {
         f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
         _StrStream ss;
@@ -6179,7 +6187,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(s);
     });
 
-    _vm->bindMethod<0>("float", "__json__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("float", "__json__", [](VM* vm, const pkpy::Args& args) {
         f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)) vm->valueError("cannot jsonify 'nan' or 'inf'");
         return vm->PyStr(std::to_string(val));
@@ -6188,18 +6196,18 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyString ************/
     _vm->bindStaticMethod<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
 
-    _vm->bindMethod<1>("str", "__add__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__add__", [](VM* vm, const pkpy::Args& args) {
         const _Str& lhs = vm->PyStr_AS_C(args[0]);
         const _Str& rhs = vm->PyStr_AS_C(args[1]);
         return vm->PyStr(lhs + rhs);
     });
 
-    _vm->bindMethod<0>("str", "__len__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("str", "__len__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyInt(_self.u8_length());
     });
 
-    _vm->bindMethod<1>("str", "__contains__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__contains__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _other = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.find(_other) != _Str::npos);
@@ -6211,29 +6219,29 @@ void __initializeBuiltinFunctions(VM* _vm) {
         vm->PyIter(pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0]))
     ));
 
-    _vm->bindMethod<0>("str", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("str", "__repr__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyStr(_self.__escape(true));
     });
 
-    _vm->bindMethod<0>("str", "__json__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("str", "__json__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyStr(_self.__escape(false));
     });
 
-    _vm->bindMethod<1>("str", "__eq__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__eq__", [](VM* vm, const pkpy::Args& args) {
         if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);
     });
 
-    _vm->bindMethod<1>("str", "__ne__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__ne__", [](VM* vm, const pkpy::Args& args) {
         if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] != args[1]);
     });
 
-    _vm->bindMethod<1>("str", "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__getitem__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
 
         if(args[1]->is_type(vm->_tp_slice)){
@@ -6247,19 +6255,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(_self.u8_getitem(_index));
     });
 
-    _vm->bindMethod<1>("str", "__gt__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__gt__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         const _Str& _obj (vm->PyStr_AS_C(args[1]));
         return vm->PyBool(_self > _obj);
     });
 
-    _vm->bindMethod<1>("str", "__lt__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "__lt__", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self (vm->PyStr_AS_C(args[0]));
         const _Str& _obj (vm->PyStr_AS_C(args[1]));
         return vm->PyBool(_self < _obj);
     });
 
-    _vm->bindMethod<2>("str", "replace", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<2>("str", "replace", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _old = vm->PyStr_AS_C(args[1]);
         const _Str& _new = vm->PyStr_AS_C(args[2]);
@@ -6273,19 +6281,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyStr(_copy);
     });
 
-    _vm->bindMethod<1>("str", "startswith", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "startswith", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _prefix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.find(_prefix) == 0);
     });
 
-    _vm->bindMethod<1>("str", "endswith", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "endswith", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         const _Str& _suffix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
-    _vm->bindMethod<1>("str", "join", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("str", "join", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
         PyVarList* _list;
         if(args[1]->is_type(vm->_tp_list)){
@@ -6304,19 +6312,19 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyList ************/
-    _vm->bindMethod<0>("list", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("list", "__iter__", [](VM* vm, const pkpy::Args& args) {
         return vm->PyIter(
             pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
         );
     });
 
-    _vm->bindMethod<1>("list", "append", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("list", "append", [](VM* vm, const pkpy::Args& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         _self.push_back(args[1]);
         return vm->None;
     });
 
-    _vm->bindMethod<2>("list", "insert", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<2>("list", "insert", [](VM* vm, const pkpy::Args& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         if(_index < 0) _index += _self.size();
@@ -6326,16 +6334,16 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bindMethod<0>("list", "clear", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("list", "clear", [](VM* vm, const pkpy::Args& args) {
         vm->PyList_AS_C(args[0]).clear();
         return vm->None;
     });
 
-    _vm->bindMethod<0>("list", "copy", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("list", "copy", [](VM* vm, const pkpy::Args& args) {
         return vm->PyList(vm->PyList_AS_C(args[0]));
     });
 
-    _vm->bindMethod<1>("list", "__add__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("list", "__add__", [](VM* vm, const pkpy::Args& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);
         const PyVarList& _obj = vm->PyList_AS_C(args[1]);
         PyVarList _new_list = _self;
@@ -6343,12 +6351,12 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->PyList(_new_list);
     });
 
-    _vm->bindMethod<0>("list", "__len__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("list", "__len__", [](VM* vm, const pkpy::Args& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);
         return vm->PyInt(_self.size());
     });
 
-    _vm->bindMethodMulti<1>({"list", "tuple"}, "__getitem__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethodMulti<1>({"list", "tuple"}, "__getitem__", [](VM* vm, const pkpy::Args& args) {
         bool list = args[0]->is_type(vm->_tp_list);
         const PyVarList& _self = list ? vm->PyList_AS_C(args[0]) : vm->PyTuple_AS_C(args[0]);
 
@@ -6365,7 +6373,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return _self[_index];
     });
 
-    _vm->bindMethod<2>("list", "__setitem__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<2>("list", "__setitem__", [](VM* vm, const pkpy::Args& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalized_index(_index, _self.size());
@@ -6373,7 +6381,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bindMethod<1>("list", "__delitem__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("list", "__delitem__", [](VM* vm, const pkpy::Args& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalized_index(_index, _self.size());
@@ -6382,16 +6390,16 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     /************ PyTuple ************/
-    _vm->bindStaticMethod<1>("tuple", "__new__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindStaticMethod<1>("tuple", "__new__", [](VM* vm, const pkpy::Args& args) {
         PyVarList _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
         return vm->PyTuple(_list);
     });
 
-    _vm->bindMethod<0>("tuple", "__iter__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("tuple", "__iter__", [](VM* vm, const pkpy::Args& args) {
         return vm->PyIter(pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0]));
     });
 
-    _vm->bindMethod<0>("tuple", "__len__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("tuple", "__len__", [](VM* vm, const pkpy::Args& args) {
         const PyVarList& _self = vm->PyTuple_AS_C(args[0]);
         return vm->PyInt(_self.size());
     });
@@ -6399,17 +6407,17 @@ void __initializeBuiltinFunctions(VM* _vm) {
     /************ PyBool ************/
     _vm->bindStaticMethod<1>("bool", "__new__", CPP_LAMBDA(vm->asBool(args[0])));
 
-    _vm->bindMethod<0>("bool", "__repr__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("bool", "__repr__", [](VM* vm, const pkpy::Args& args) {
         bool val = vm->PyBool_AS_C(args[0]);
         return vm->PyStr(val ? "True" : "False");
     });
 
-    _vm->bindMethod<0>("bool", "__json__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<0>("bool", "__json__", [](VM* vm, const pkpy::Args& args) {
         bool val = vm->PyBool_AS_C(args[0]);
         return vm->PyStr(val ? "true" : "false");
     });
 
-    _vm->bindMethod<1>("bool", "__xor__", [](VM* vm, const pkpy::ArgList& args) {
+    _vm->bindMethod<1>("bool", "__xor__", [](VM* vm, const pkpy::Args& args) {
         bool _self = vm->PyBool_AS_C(args[0]);
         bool _obj = vm->PyBool_AS_C(args[1]);
         return vm->PyBool(_self ^ _obj);
@@ -6432,7 +6440,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
 void __add_module_time(VM* vm){
     PyVar mod = vm->new_module("time");
-    vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(mod, "time", [](VM* vm, const pkpy::Args& args) {
         auto now = std::chrono::high_resolution_clock::now();
         return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
@@ -6440,15 +6448,15 @@ void __add_module_time(VM* vm){
 
 void __add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
-    vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(mod, "getrefcount", [](VM* vm, const pkpy::Args& args) {
         return vm->PyInt(args[0].use_count());
     });
 
-    vm->bindFunc<0>(mod, "getrecursionlimit", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(mod, "getrecursionlimit", [](VM* vm, const pkpy::Args& args) {
         return vm->PyInt(vm->maxRecursionDepth);
     });
 
-    vm->bindFunc<1>(mod, "setrecursionlimit", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(mod, "setrecursionlimit", [](VM* vm, const pkpy::Args& args) {
         vm->maxRecursionDepth = (int)vm->PyInt_AS_C(args[0]);
         return vm->None;
     });
@@ -6458,15 +6466,13 @@ void __add_module_sys(VM* vm){
 
 void __add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
-    vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(mod, "loads", [](VM* vm, const pkpy::Args& args) {
         const _Str& expr = vm->PyStr_AS_C(args[0]);
         _Code code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
-    vm->bindFunc<1>(mod, "dumps", [](VM* vm, const pkpy::ArgList& args) {
-        return vm->asJson(args[0]);
-    });
+    vm->bindFunc<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__)));
 }
 
 void __add_module_math(VM* vm){
@@ -6486,7 +6492,7 @@ void __add_module_math(VM* vm){
 
 void __add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
-    vm->bindFunc<1>(mod, "dis", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(mod, "dis", [](VM* vm, const pkpy::Args& args) {
         _Code code = vm->PyFunction_AS_C(args[0])->code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
@@ -6508,12 +6514,12 @@ struct ReMatch {
         vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).start)));
         vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).end)));
 
-        vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::ArgList& args) {
+        vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::Args& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
             return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
         });
 
-        vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::ArgList& args) {
+        vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::Args& args) {
             auto& m = UNION_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
             index = vm->normalized_index(index, m.m.size());
@@ -6539,19 +6545,19 @@ void __add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
     ReMatch::_bind(vm);
 
-    vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
         const _Str& string = vm->PyStr_AS_C(args[1]);
         return __regex_search(pattern, string, true, vm);
     });
 
-    vm->bindFunc<2>(mod, "search", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(mod, "search", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
         const _Str& string = vm->PyStr_AS_C(args[1]);
         return __regex_search(pattern, string, false, vm);
     });
 
-    vm->bindFunc<3>(mod, "sub", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(mod, "sub", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
         const _Str& repl = vm->PyStr_AS_C(args[1]);
         const _Str& string = vm->PyStr_AS_C(args[2]);
@@ -6559,7 +6565,7 @@ void __add_module_re(VM* vm){
         return vm->PyStr(std::regex_replace(string, re, repl));
     });
 
-    vm->bindFunc<2>(mod, "split", [](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(mod, "split", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
         const _Str& string = vm->PyStr_AS_C(args[1]);
         std::regex re(pattern);
@@ -6663,8 +6669,8 @@ extern "C" {
     }
 
     __EXPORT
-    /// Input a source line to an interactive console.
-    int pkpy_repl_input(REPL* r, const char* line){
+    /// Input a source line to an interactive console. Return true if need more lines.
+    bool pkpy_repl_input(REPL* r, const char* line){
         return r->input(line);
     }
 
@@ -6708,10 +6714,8 @@ extern "C" {
         _Str _stderr = s_err->str();
         _StrStream ss;
         ss << '{' << "\"stdout\": " << _stdout.__escape(false);
-        ss << ", ";
-        ss << "\"stderr\": " << _stderr.__escape(false) << '}';
-        s_out->str("");
-        s_err->str("");
+        ss << ", " << "\"stderr\": " << _stderr.__escape(false) << '}';
+        s_out->str(""); s_err->str("");
         return strdup(ss.str().c_str());
     }
 }
@@ -6721,7 +6725,7 @@ typedef i64 (*__f_int__int_int_int)(i64, i64, i64);
 __EXPORT
 void pkpy_vm_bind_int__int_int_int(VM* vm, const char* mod, const char* name, __f_int__int_int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 _2 = vm->PyInt_AS_C(args[2]);
@@ -6734,7 +6738,7 @@ typedef i64 (*__f_int__float_float_float)(f64, f64, f64);
 __EXPORT
 void pkpy_vm_bind_int__float_float_float(VM* vm, const char* mod, const char* name, __f_int__float_float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 _2 = vm->PyFloat_AS_C(args[2]);
@@ -6747,7 +6751,7 @@ typedef i64 (*__f_int__str_str_str)(const char*, const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_int__str_str_str(VM* vm, const char* mod, const char* name, __f_int__str_str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* _2 = vm->PyStr_AS_C(args[2]);
@@ -6760,7 +6764,7 @@ typedef i64 (*__f_int__bool_bool_bool)(bool, bool, bool);
 __EXPORT
 void pkpy_vm_bind_int__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_int__bool_bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool _2 = vm->PyBool_AS_C(args[2]);
@@ -6773,7 +6777,7 @@ typedef f64 (*__f_float__int_int_int)(i64, i64, i64);
 __EXPORT
 void pkpy_vm_bind_float__int_int_int(VM* vm, const char* mod, const char* name, __f_float__int_int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 _2 = vm->PyInt_AS_C(args[2]);
@@ -6786,7 +6790,7 @@ typedef f64 (*__f_float__float_float_float)(f64, f64, f64);
 __EXPORT
 void pkpy_vm_bind_float__float_float_float(VM* vm, const char* mod, const char* name, __f_float__float_float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 _2 = vm->PyFloat_AS_C(args[2]);
@@ -6799,7 +6803,7 @@ typedef f64 (*__f_float__str_str_str)(const char*, const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_float__str_str_str(VM* vm, const char* mod, const char* name, __f_float__str_str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* _2 = vm->PyStr_AS_C(args[2]);
@@ -6812,7 +6816,7 @@ typedef f64 (*__f_float__bool_bool_bool)(bool, bool, bool);
 __EXPORT
 void pkpy_vm_bind_float__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_float__bool_bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool _2 = vm->PyBool_AS_C(args[2]);
@@ -6825,7 +6829,7 @@ typedef const char* (*__f_str__int_int_int)(i64, i64, i64);
 __EXPORT
 void pkpy_vm_bind_str__int_int_int(VM* vm, const char* mod, const char* name, __f_str__int_int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 _2 = vm->PyInt_AS_C(args[2]);
@@ -6838,7 +6842,7 @@ typedef const char* (*__f_str__float_float_float)(f64, f64, f64);
 __EXPORT
 void pkpy_vm_bind_str__float_float_float(VM* vm, const char* mod, const char* name, __f_str__float_float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 _2 = vm->PyFloat_AS_C(args[2]);
@@ -6851,7 +6855,7 @@ typedef const char* (*__f_str__str_str_str)(const char*, const char*, const char
 __EXPORT
 void pkpy_vm_bind_str__str_str_str(VM* vm, const char* mod, const char* name, __f_str__str_str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* _2 = vm->PyStr_AS_C(args[2]);
@@ -6864,7 +6868,7 @@ typedef const char* (*__f_str__bool_bool_bool)(bool, bool, bool);
 __EXPORT
 void pkpy_vm_bind_str__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_str__bool_bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool _2 = vm->PyBool_AS_C(args[2]);
@@ -6877,7 +6881,7 @@ typedef bool (*__f_bool__int_int_int)(i64, i64, i64);
 __EXPORT
 void pkpy_vm_bind_bool__int_int_int(VM* vm, const char* mod, const char* name, __f_bool__int_int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 _2 = vm->PyInt_AS_C(args[2]);
@@ -6890,7 +6894,7 @@ typedef bool (*__f_bool__float_float_float)(f64, f64, f64);
 __EXPORT
 void pkpy_vm_bind_bool__float_float_float(VM* vm, const char* mod, const char* name, __f_bool__float_float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 _2 = vm->PyFloat_AS_C(args[2]);
@@ -6903,7 +6907,7 @@ typedef bool (*__f_bool__str_str_str)(const char*, const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_bool__str_str_str(VM* vm, const char* mod, const char* name, __f_bool__str_str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* _2 = vm->PyStr_AS_C(args[2]);
@@ -6916,7 +6920,7 @@ typedef bool (*__f_bool__bool_bool_bool)(bool, bool, bool);
 __EXPORT
 void pkpy_vm_bind_bool__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool _2 = vm->PyBool_AS_C(args[2]);
@@ -6929,7 +6933,7 @@ typedef void (*__f_None__int_int_int)(i64, i64, i64);
 __EXPORT
 void pkpy_vm_bind_None__int_int_int(VM* vm, const char* mod, const char* name, __f_None__int_int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 _2 = vm->PyInt_AS_C(args[2]);
@@ -6942,7 +6946,7 @@ typedef void (*__f_None__float_float_float)(f64, f64, f64);
 __EXPORT
 void pkpy_vm_bind_None__float_float_float(VM* vm, const char* mod, const char* name, __f_None__float_float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 _2 = vm->PyFloat_AS_C(args[2]);
@@ -6955,7 +6959,7 @@ typedef void (*__f_None__str_str_str)(const char*, const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_None__str_str_str(VM* vm, const char* mod, const char* name, __f_None__str_str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* _2 = vm->PyStr_AS_C(args[2]);
@@ -6968,7 +6972,7 @@ typedef void (*__f_None__bool_bool_bool)(bool, bool, bool);
 __EXPORT
 void pkpy_vm_bind_None__bool_bool_bool(VM* vm, const char* mod, const char* name, __f_None__bool_bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<3>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool _2 = vm->PyBool_AS_C(args[2]);
@@ -6981,7 +6985,7 @@ typedef i64 (*__f_int__int_int)(i64, i64);
 __EXPORT
 void pkpy_vm_bind_int__int_int(VM* vm, const char* mod, const char* name, __f_int__int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -6993,7 +6997,7 @@ typedef i64 (*__f_int__int_float)(i64, f64);
 __EXPORT
 void pkpy_vm_bind_int__int_float(VM* vm, const char* mod, const char* name, __f_int__int_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7005,7 +7009,7 @@ typedef i64 (*__f_int__int_str)(i64, const char*);
 __EXPORT
 void pkpy_vm_bind_int__int_str(VM* vm, const char* mod, const char* name, __f_int__int_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7017,7 +7021,7 @@ typedef i64 (*__f_int__int_bool)(i64, bool);
 __EXPORT
 void pkpy_vm_bind_int__int_bool(VM* vm, const char* mod, const char* name, __f_int__int_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7029,7 +7033,7 @@ typedef i64 (*__f_int__float_int)(f64, i64);
 __EXPORT
 void pkpy_vm_bind_int__float_int(VM* vm, const char* mod, const char* name, __f_int__float_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7041,7 +7045,7 @@ typedef i64 (*__f_int__float_float)(f64, f64);
 __EXPORT
 void pkpy_vm_bind_int__float_float(VM* vm, const char* mod, const char* name, __f_int__float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7053,7 +7057,7 @@ typedef i64 (*__f_int__float_str)(f64, const char*);
 __EXPORT
 void pkpy_vm_bind_int__float_str(VM* vm, const char* mod, const char* name, __f_int__float_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7065,7 +7069,7 @@ typedef i64 (*__f_int__float_bool)(f64, bool);
 __EXPORT
 void pkpy_vm_bind_int__float_bool(VM* vm, const char* mod, const char* name, __f_int__float_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7077,7 +7081,7 @@ typedef i64 (*__f_int__str_int)(const char*, i64);
 __EXPORT
 void pkpy_vm_bind_int__str_int(VM* vm, const char* mod, const char* name, __f_int__str_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7089,7 +7093,7 @@ typedef i64 (*__f_int__str_float)(const char*, f64);
 __EXPORT
 void pkpy_vm_bind_int__str_float(VM* vm, const char* mod, const char* name, __f_int__str_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7101,7 +7105,7 @@ typedef i64 (*__f_int__str_str)(const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_int__str_str(VM* vm, const char* mod, const char* name, __f_int__str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7113,7 +7117,7 @@ typedef i64 (*__f_int__str_bool)(const char*, bool);
 __EXPORT
 void pkpy_vm_bind_int__str_bool(VM* vm, const char* mod, const char* name, __f_int__str_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7125,7 +7129,7 @@ typedef i64 (*__f_int__bool_int)(bool, i64);
 __EXPORT
 void pkpy_vm_bind_int__bool_int(VM* vm, const char* mod, const char* name, __f_int__bool_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7137,7 +7141,7 @@ typedef i64 (*__f_int__bool_float)(bool, f64);
 __EXPORT
 void pkpy_vm_bind_int__bool_float(VM* vm, const char* mod, const char* name, __f_int__bool_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7149,7 +7153,7 @@ typedef i64 (*__f_int__bool_str)(bool, const char*);
 __EXPORT
 void pkpy_vm_bind_int__bool_str(VM* vm, const char* mod, const char* name, __f_int__bool_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7161,7 +7165,7 @@ typedef i64 (*__f_int__bool_bool)(bool, bool);
 __EXPORT
 void pkpy_vm_bind_int__bool_bool(VM* vm, const char* mod, const char* name, __f_int__bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         i64 ret = f(_0, _1);
@@ -7173,7 +7177,7 @@ typedef f64 (*__f_float__int_int)(i64, i64);
 __EXPORT
 void pkpy_vm_bind_float__int_int(VM* vm, const char* mod, const char* name, __f_float__int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7185,7 +7189,7 @@ typedef f64 (*__f_float__int_float)(i64, f64);
 __EXPORT
 void pkpy_vm_bind_float__int_float(VM* vm, const char* mod, const char* name, __f_float__int_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7197,7 +7201,7 @@ typedef f64 (*__f_float__int_str)(i64, const char*);
 __EXPORT
 void pkpy_vm_bind_float__int_str(VM* vm, const char* mod, const char* name, __f_float__int_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7209,7 +7213,7 @@ typedef f64 (*__f_float__int_bool)(i64, bool);
 __EXPORT
 void pkpy_vm_bind_float__int_bool(VM* vm, const char* mod, const char* name, __f_float__int_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7221,7 +7225,7 @@ typedef f64 (*__f_float__float_int)(f64, i64);
 __EXPORT
 void pkpy_vm_bind_float__float_int(VM* vm, const char* mod, const char* name, __f_float__float_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7233,7 +7237,7 @@ typedef f64 (*__f_float__float_float)(f64, f64);
 __EXPORT
 void pkpy_vm_bind_float__float_float(VM* vm, const char* mod, const char* name, __f_float__float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7245,7 +7249,7 @@ typedef f64 (*__f_float__float_str)(f64, const char*);
 __EXPORT
 void pkpy_vm_bind_float__float_str(VM* vm, const char* mod, const char* name, __f_float__float_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7257,7 +7261,7 @@ typedef f64 (*__f_float__float_bool)(f64, bool);
 __EXPORT
 void pkpy_vm_bind_float__float_bool(VM* vm, const char* mod, const char* name, __f_float__float_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7269,7 +7273,7 @@ typedef f64 (*__f_float__str_int)(const char*, i64);
 __EXPORT
 void pkpy_vm_bind_float__str_int(VM* vm, const char* mod, const char* name, __f_float__str_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7281,7 +7285,7 @@ typedef f64 (*__f_float__str_float)(const char*, f64);
 __EXPORT
 void pkpy_vm_bind_float__str_float(VM* vm, const char* mod, const char* name, __f_float__str_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7293,7 +7297,7 @@ typedef f64 (*__f_float__str_str)(const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_float__str_str(VM* vm, const char* mod, const char* name, __f_float__str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7305,7 +7309,7 @@ typedef f64 (*__f_float__str_bool)(const char*, bool);
 __EXPORT
 void pkpy_vm_bind_float__str_bool(VM* vm, const char* mod, const char* name, __f_float__str_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7317,7 +7321,7 @@ typedef f64 (*__f_float__bool_int)(bool, i64);
 __EXPORT
 void pkpy_vm_bind_float__bool_int(VM* vm, const char* mod, const char* name, __f_float__bool_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7329,7 +7333,7 @@ typedef f64 (*__f_float__bool_float)(bool, f64);
 __EXPORT
 void pkpy_vm_bind_float__bool_float(VM* vm, const char* mod, const char* name, __f_float__bool_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7341,7 +7345,7 @@ typedef f64 (*__f_float__bool_str)(bool, const char*);
 __EXPORT
 void pkpy_vm_bind_float__bool_str(VM* vm, const char* mod, const char* name, __f_float__bool_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7353,7 +7357,7 @@ typedef f64 (*__f_float__bool_bool)(bool, bool);
 __EXPORT
 void pkpy_vm_bind_float__bool_bool(VM* vm, const char* mod, const char* name, __f_float__bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f64 ret = f(_0, _1);
@@ -7365,7 +7369,7 @@ typedef const char* (*__f_str__int_int)(i64, i64);
 __EXPORT
 void pkpy_vm_bind_str__int_int(VM* vm, const char* mod, const char* name, __f_str__int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7377,7 +7381,7 @@ typedef const char* (*__f_str__int_float)(i64, f64);
 __EXPORT
 void pkpy_vm_bind_str__int_float(VM* vm, const char* mod, const char* name, __f_str__int_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7389,7 +7393,7 @@ typedef const char* (*__f_str__int_str)(i64, const char*);
 __EXPORT
 void pkpy_vm_bind_str__int_str(VM* vm, const char* mod, const char* name, __f_str__int_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7401,7 +7405,7 @@ typedef const char* (*__f_str__int_bool)(i64, bool);
 __EXPORT
 void pkpy_vm_bind_str__int_bool(VM* vm, const char* mod, const char* name, __f_str__int_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7413,7 +7417,7 @@ typedef const char* (*__f_str__float_int)(f64, i64);
 __EXPORT
 void pkpy_vm_bind_str__float_int(VM* vm, const char* mod, const char* name, __f_str__float_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7425,7 +7429,7 @@ typedef const char* (*__f_str__float_float)(f64, f64);
 __EXPORT
 void pkpy_vm_bind_str__float_float(VM* vm, const char* mod, const char* name, __f_str__float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7437,7 +7441,7 @@ typedef const char* (*__f_str__float_str)(f64, const char*);
 __EXPORT
 void pkpy_vm_bind_str__float_str(VM* vm, const char* mod, const char* name, __f_str__float_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7449,7 +7453,7 @@ typedef const char* (*__f_str__float_bool)(f64, bool);
 __EXPORT
 void pkpy_vm_bind_str__float_bool(VM* vm, const char* mod, const char* name, __f_str__float_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7461,7 +7465,7 @@ typedef const char* (*__f_str__str_int)(const char*, i64);
 __EXPORT
 void pkpy_vm_bind_str__str_int(VM* vm, const char* mod, const char* name, __f_str__str_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7473,7 +7477,7 @@ typedef const char* (*__f_str__str_float)(const char*, f64);
 __EXPORT
 void pkpy_vm_bind_str__str_float(VM* vm, const char* mod, const char* name, __f_str__str_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7485,7 +7489,7 @@ typedef const char* (*__f_str__str_str)(const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_str__str_str(VM* vm, const char* mod, const char* name, __f_str__str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7497,7 +7501,7 @@ typedef const char* (*__f_str__str_bool)(const char*, bool);
 __EXPORT
 void pkpy_vm_bind_str__str_bool(VM* vm, const char* mod, const char* name, __f_str__str_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7509,7 +7513,7 @@ typedef const char* (*__f_str__bool_int)(bool, i64);
 __EXPORT
 void pkpy_vm_bind_str__bool_int(VM* vm, const char* mod, const char* name, __f_str__bool_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7521,7 +7525,7 @@ typedef const char* (*__f_str__bool_float)(bool, f64);
 __EXPORT
 void pkpy_vm_bind_str__bool_float(VM* vm, const char* mod, const char* name, __f_str__bool_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7533,7 +7537,7 @@ typedef const char* (*__f_str__bool_str)(bool, const char*);
 __EXPORT
 void pkpy_vm_bind_str__bool_str(VM* vm, const char* mod, const char* name, __f_str__bool_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7545,7 +7549,7 @@ typedef const char* (*__f_str__bool_bool)(bool, bool);
 __EXPORT
 void pkpy_vm_bind_str__bool_bool(VM* vm, const char* mod, const char* name, __f_str__bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         const char* ret = f(_0, _1);
@@ -7557,7 +7561,7 @@ typedef bool (*__f_bool__int_int)(i64, i64);
 __EXPORT
 void pkpy_vm_bind_bool__int_int(VM* vm, const char* mod, const char* name, __f_bool__int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7569,7 +7573,7 @@ typedef bool (*__f_bool__int_float)(i64, f64);
 __EXPORT
 void pkpy_vm_bind_bool__int_float(VM* vm, const char* mod, const char* name, __f_bool__int_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7581,7 +7585,7 @@ typedef bool (*__f_bool__int_str)(i64, const char*);
 __EXPORT
 void pkpy_vm_bind_bool__int_str(VM* vm, const char* mod, const char* name, __f_bool__int_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7593,7 +7597,7 @@ typedef bool (*__f_bool__int_bool)(i64, bool);
 __EXPORT
 void pkpy_vm_bind_bool__int_bool(VM* vm, const char* mod, const char* name, __f_bool__int_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7605,7 +7609,7 @@ typedef bool (*__f_bool__float_int)(f64, i64);
 __EXPORT
 void pkpy_vm_bind_bool__float_int(VM* vm, const char* mod, const char* name, __f_bool__float_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7617,7 +7621,7 @@ typedef bool (*__f_bool__float_float)(f64, f64);
 __EXPORT
 void pkpy_vm_bind_bool__float_float(VM* vm, const char* mod, const char* name, __f_bool__float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7629,7 +7633,7 @@ typedef bool (*__f_bool__float_str)(f64, const char*);
 __EXPORT
 void pkpy_vm_bind_bool__float_str(VM* vm, const char* mod, const char* name, __f_bool__float_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7641,7 +7645,7 @@ typedef bool (*__f_bool__float_bool)(f64, bool);
 __EXPORT
 void pkpy_vm_bind_bool__float_bool(VM* vm, const char* mod, const char* name, __f_bool__float_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7653,7 +7657,7 @@ typedef bool (*__f_bool__str_int)(const char*, i64);
 __EXPORT
 void pkpy_vm_bind_bool__str_int(VM* vm, const char* mod, const char* name, __f_bool__str_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7665,7 +7669,7 @@ typedef bool (*__f_bool__str_float)(const char*, f64);
 __EXPORT
 void pkpy_vm_bind_bool__str_float(VM* vm, const char* mod, const char* name, __f_bool__str_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7677,7 +7681,7 @@ typedef bool (*__f_bool__str_str)(const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_bool__str_str(VM* vm, const char* mod, const char* name, __f_bool__str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7689,7 +7693,7 @@ typedef bool (*__f_bool__str_bool)(const char*, bool);
 __EXPORT
 void pkpy_vm_bind_bool__str_bool(VM* vm, const char* mod, const char* name, __f_bool__str_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7701,7 +7705,7 @@ typedef bool (*__f_bool__bool_int)(bool, i64);
 __EXPORT
 void pkpy_vm_bind_bool__bool_int(VM* vm, const char* mod, const char* name, __f_bool__bool_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7713,7 +7717,7 @@ typedef bool (*__f_bool__bool_float)(bool, f64);
 __EXPORT
 void pkpy_vm_bind_bool__bool_float(VM* vm, const char* mod, const char* name, __f_bool__bool_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7725,7 +7729,7 @@ typedef bool (*__f_bool__bool_str)(bool, const char*);
 __EXPORT
 void pkpy_vm_bind_bool__bool_str(VM* vm, const char* mod, const char* name, __f_bool__bool_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7737,7 +7741,7 @@ typedef bool (*__f_bool__bool_bool)(bool, bool);
 __EXPORT
 void pkpy_vm_bind_bool__bool_bool(VM* vm, const char* mod, const char* name, __f_bool__bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         bool ret = f(_0, _1);
@@ -7749,7 +7753,7 @@ typedef void (*__f_None__int_int)(i64, i64);
 __EXPORT
 void pkpy_vm_bind_None__int_int(VM* vm, const char* mod, const char* name, __f_None__int_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f(_0, _1);
@@ -7761,7 +7765,7 @@ typedef void (*__f_None__int_float)(i64, f64);
 __EXPORT
 void pkpy_vm_bind_None__int_float(VM* vm, const char* mod, const char* name, __f_None__int_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f(_0, _1);
@@ -7773,7 +7777,7 @@ typedef void (*__f_None__int_str)(i64, const char*);
 __EXPORT
 void pkpy_vm_bind_None__int_str(VM* vm, const char* mod, const char* name, __f_None__int_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f(_0, _1);
@@ -7785,7 +7789,7 @@ typedef void (*__f_None__int_bool)(i64, bool);
 __EXPORT
 void pkpy_vm_bind_None__int_bool(VM* vm, const char* mod, const char* name, __f_None__int_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f(_0, _1);
@@ -7797,7 +7801,7 @@ typedef void (*__f_None__float_int)(f64, i64);
 __EXPORT
 void pkpy_vm_bind_None__float_int(VM* vm, const char* mod, const char* name, __f_None__float_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f(_0, _1);
@@ -7809,7 +7813,7 @@ typedef void (*__f_None__float_float)(f64, f64);
 __EXPORT
 void pkpy_vm_bind_None__float_float(VM* vm, const char* mod, const char* name, __f_None__float_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f(_0, _1);
@@ -7821,7 +7825,7 @@ typedef void (*__f_None__float_str)(f64, const char*);
 __EXPORT
 void pkpy_vm_bind_None__float_str(VM* vm, const char* mod, const char* name, __f_None__float_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f(_0, _1);
@@ -7833,7 +7837,7 @@ typedef void (*__f_None__float_bool)(f64, bool);
 __EXPORT
 void pkpy_vm_bind_None__float_bool(VM* vm, const char* mod, const char* name, __f_None__float_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f(_0, _1);
@@ -7845,7 +7849,7 @@ typedef void (*__f_None__str_int)(const char*, i64);
 __EXPORT
 void pkpy_vm_bind_None__str_int(VM* vm, const char* mod, const char* name, __f_None__str_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f(_0, _1);
@@ -7857,7 +7861,7 @@ typedef void (*__f_None__str_float)(const char*, f64);
 __EXPORT
 void pkpy_vm_bind_None__str_float(VM* vm, const char* mod, const char* name, __f_None__str_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f(_0, _1);
@@ -7869,7 +7873,7 @@ typedef void (*__f_None__str_str)(const char*, const char*);
 __EXPORT
 void pkpy_vm_bind_None__str_str(VM* vm, const char* mod, const char* name, __f_None__str_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f(_0, _1);
@@ -7881,7 +7885,7 @@ typedef void (*__f_None__str_bool)(const char*, bool);
 __EXPORT
 void pkpy_vm_bind_None__str_bool(VM* vm, const char* mod, const char* name, __f_None__str_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f(_0, _1);
@@ -7893,7 +7897,7 @@ typedef void (*__f_None__bool_int)(bool, i64);
 __EXPORT
 void pkpy_vm_bind_None__bool_int(VM* vm, const char* mod, const char* name, __f_None__bool_int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 _1 = vm->PyInt_AS_C(args[1]);
         f(_0, _1);
@@ -7905,7 +7909,7 @@ typedef void (*__f_None__bool_float)(bool, f64);
 __EXPORT
 void pkpy_vm_bind_None__bool_float(VM* vm, const char* mod, const char* name, __f_None__bool_float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 _1 = vm->PyFloat_AS_C(args[1]);
         f(_0, _1);
@@ -7917,7 +7921,7 @@ typedef void (*__f_None__bool_str)(bool, const char*);
 __EXPORT
 void pkpy_vm_bind_None__bool_str(VM* vm, const char* mod, const char* name, __f_None__bool_str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* _1 = vm->PyStr_AS_C(args[1]);
         f(_0, _1);
@@ -7929,7 +7933,7 @@ typedef void (*__f_None__bool_bool)(bool, bool);
 __EXPORT
 void pkpy_vm_bind_None__bool_bool(VM* vm, const char* mod, const char* name, __f_None__bool_bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<2>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool _1 = vm->PyBool_AS_C(args[1]);
         f(_0, _1);
@@ -7941,7 +7945,7 @@ typedef i64 (*__f_int__int)(i64);
 __EXPORT
 void pkpy_vm_bind_int__int(VM* vm, const char* mod, const char* name, __f_int__int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         i64 ret = f(_0);
         return vm->PyInt(ret);
@@ -7952,7 +7956,7 @@ typedef i64 (*__f_int__float)(f64);
 __EXPORT
 void pkpy_vm_bind_int__float(VM* vm, const char* mod, const char* name, __f_int__float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         i64 ret = f(_0);
         return vm->PyInt(ret);
@@ -7963,7 +7967,7 @@ typedef i64 (*__f_int__str)(const char*);
 __EXPORT
 void pkpy_vm_bind_int__str(VM* vm, const char* mod, const char* name, __f_int__str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         i64 ret = f(_0);
         return vm->PyInt(ret);
@@ -7974,7 +7978,7 @@ typedef i64 (*__f_int__bool)(bool);
 __EXPORT
 void pkpy_vm_bind_int__bool(VM* vm, const char* mod, const char* name, __f_int__bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         i64 ret = f(_0);
         return vm->PyInt(ret);
@@ -7985,7 +7989,7 @@ typedef f64 (*__f_float__int)(i64);
 __EXPORT
 void pkpy_vm_bind_float__int(VM* vm, const char* mod, const char* name, __f_float__int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f64 ret = f(_0);
         return vm->PyFloat(ret);
@@ -7996,7 +8000,7 @@ typedef f64 (*__f_float__float)(f64);
 __EXPORT
 void pkpy_vm_bind_float__float(VM* vm, const char* mod, const char* name, __f_float__float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f64 ret = f(_0);
         return vm->PyFloat(ret);
@@ -8007,7 +8011,7 @@ typedef f64 (*__f_float__str)(const char*);
 __EXPORT
 void pkpy_vm_bind_float__str(VM* vm, const char* mod, const char* name, __f_float__str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f64 ret = f(_0);
         return vm->PyFloat(ret);
@@ -8018,7 +8022,7 @@ typedef f64 (*__f_float__bool)(bool);
 __EXPORT
 void pkpy_vm_bind_float__bool(VM* vm, const char* mod, const char* name, __f_float__bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f64 ret = f(_0);
         return vm->PyFloat(ret);
@@ -8029,7 +8033,7 @@ typedef const char* (*__f_str__int)(i64);
 __EXPORT
 void pkpy_vm_bind_str__int(VM* vm, const char* mod, const char* name, __f_str__int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         const char* ret = f(_0);
         return vm->PyStr(ret);
@@ -8040,7 +8044,7 @@ typedef const char* (*__f_str__float)(f64);
 __EXPORT
 void pkpy_vm_bind_str__float(VM* vm, const char* mod, const char* name, __f_str__float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         const char* ret = f(_0);
         return vm->PyStr(ret);
@@ -8051,7 +8055,7 @@ typedef const char* (*__f_str__str)(const char*);
 __EXPORT
 void pkpy_vm_bind_str__str(VM* vm, const char* mod, const char* name, __f_str__str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         const char* ret = f(_0);
         return vm->PyStr(ret);
@@ -8062,7 +8066,7 @@ typedef const char* (*__f_str__bool)(bool);
 __EXPORT
 void pkpy_vm_bind_str__bool(VM* vm, const char* mod, const char* name, __f_str__bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         const char* ret = f(_0);
         return vm->PyStr(ret);
@@ -8073,7 +8077,7 @@ typedef bool (*__f_bool__int)(i64);
 __EXPORT
 void pkpy_vm_bind_bool__int(VM* vm, const char* mod, const char* name, __f_bool__int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         bool ret = f(_0);
         return vm->PyBool(ret);
@@ -8084,7 +8088,7 @@ typedef bool (*__f_bool__float)(f64);
 __EXPORT
 void pkpy_vm_bind_bool__float(VM* vm, const char* mod, const char* name, __f_bool__float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         bool ret = f(_0);
         return vm->PyBool(ret);
@@ -8095,7 +8099,7 @@ typedef bool (*__f_bool__str)(const char*);
 __EXPORT
 void pkpy_vm_bind_bool__str(VM* vm, const char* mod, const char* name, __f_bool__str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         bool ret = f(_0);
         return vm->PyBool(ret);
@@ -8106,7 +8110,7 @@ typedef bool (*__f_bool__bool)(bool);
 __EXPORT
 void pkpy_vm_bind_bool__bool(VM* vm, const char* mod, const char* name, __f_bool__bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         bool ret = f(_0);
         return vm->PyBool(ret);
@@ -8117,7 +8121,7 @@ typedef void (*__f_None__int)(i64);
 __EXPORT
 void pkpy_vm_bind_None__int(VM* vm, const char* mod, const char* name, __f_None__int f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 _0 = vm->PyInt_AS_C(args[0]);
         f(_0);
         return vm->None;
@@ -8128,7 +8132,7 @@ typedef void (*__f_None__float)(f64);
 __EXPORT
 void pkpy_vm_bind_None__float(VM* vm, const char* mod, const char* name, __f_None__float f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 _0 = vm->PyFloat_AS_C(args[0]);
         f(_0);
         return vm->None;
@@ -8139,7 +8143,7 @@ typedef void (*__f_None__str)(const char*);
 __EXPORT
 void pkpy_vm_bind_None__str(VM* vm, const char* mod, const char* name, __f_None__str f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* _0 = vm->PyStr_AS_C(args[0]);
         f(_0);
         return vm->None;
@@ -8150,7 +8154,7 @@ typedef void (*__f_None__bool)(bool);
 __EXPORT
 void pkpy_vm_bind_None__bool(VM* vm, const char* mod, const char* name, __f_None__bool f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<1>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool _0 = vm->PyBool_AS_C(args[0]);
         f(_0);
         return vm->None;
@@ -8161,7 +8165,7 @@ typedef i64 (*__f_int__)();
 __EXPORT
 void pkpy_vm_bind_int__(VM* vm, const char* mod, const char* name, __f_int__ f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         i64 ret = f();
         return vm->PyInt(ret);
     });
@@ -8171,7 +8175,7 @@ typedef f64 (*__f_float__)();
 __EXPORT
 void pkpy_vm_bind_float__(VM* vm, const char* mod, const char* name, __f_float__ f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f64 ret = f();
         return vm->PyFloat(ret);
     });
@@ -8181,7 +8185,7 @@ typedef const char* (*__f_str__)();
 __EXPORT
 void pkpy_vm_bind_str__(VM* vm, const char* mod, const char* name, __f_str__ f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         const char* ret = f();
         return vm->PyStr(ret);
     });
@@ -8191,7 +8195,7 @@ typedef bool (*__f_bool__)();
 __EXPORT
 void pkpy_vm_bind_bool__(VM* vm, const char* mod, const char* name, __f_bool__ f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         bool ret = f();
         return vm->PyBool(ret);
     });
@@ -8201,7 +8205,7 @@ typedef void (*__f_None__)();
 __EXPORT
 void pkpy_vm_bind_None__(VM* vm, const char* mod, const char* name, __f_None__ f) {
     PyVar obj = vm->new_module_if_not_existed(mod);
-    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::ArgList& args) {
+    vm->bindFunc<0>(obj, name, [f](VM* vm, const pkpy::Args& args) {
         f();
         return vm->None;
     });

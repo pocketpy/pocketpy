@@ -87,13 +87,13 @@ struct PyObject {
 
 template <typename T>
 struct Py_ : PyObject {
-    T _valueT;
+    T _value;
 
-    Py_(T val, const PyVar& type) : PyObject(type), _valueT(val) {}
-    virtual void* value() override { return &_valueT; }
+    Py_(const PyVar& type, T val) : PyObject(type), _value(val) {}
+    virtual void* value() override { return &_value; }
 };
 
-//#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
-#define UNION_GET(T, obj) (*static_cast<T*>((obj)->value()))
-#define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
-#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->type->attribs[__name__])
+//#define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+#define OBJ_GET(T, obj) (*static_cast<T*>((obj)->value()))
+#define OBJ_NAME(obj) OBJ_GET(_Str, (obj)->attribs[__name__])
+#define OBJ_TP_NAME(obj) OBJ_GET(_Str, (obj)->type->attribs[__name__])

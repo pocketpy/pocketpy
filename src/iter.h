@@ -8,7 +8,7 @@ private:
     _Range r;
 public:
     RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        this->r = UNION_GET(_Range, _ref);
+        this->r = OBJ_GET(_Range, _ref);
         this->current = r.start;
     }
 
@@ -29,7 +29,7 @@ private:
     const PyVarList* vec;
 public:
     VectorIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        vec = &UNION_GET(PyVarList, _ref);
+        vec = &OBJ_GET(PyVarList, _ref);
     }
 
     bool hasNext(){
@@ -47,7 +47,7 @@ private:
     _Str str;
 public:
     StringIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        str = UNION_GET(_Str, _ref);
+        str = OBJ_GET(_Str, _ref);
     }
 
     bool hasNext(){

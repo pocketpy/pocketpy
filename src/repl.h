@@ -3,12 +3,6 @@
 #include "compiler.h"
 #include "vm.h"
 
-enum InputResult {
-    NEED_MORE_LINES = 0,
-    EXEC_STARTED = 1,
-    EXEC_SKIPPED = 2,
-};
-
 class REPL {
 protected:
     int need_more_lines = 0;
@@ -21,7 +15,7 @@ public:
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }
 
-    InputResult input(std::string line){
+    bool input(std::string line){
         CompileMode mode = SINGLE_MODE;
         if(need_more_lines){
             buffer += line;
@@ -37,20 +31,18 @@ public:
                 mode = EXEC_MODE;
             }else{
 __NOT_ENOUGH_LINES:
-                return NEED_MORE_LINES;
+                return true;
             }
-        }else{
-            if(line.empty()) return EXEC_SKIPPED;
         }
-
+        
         try{
             vm->exec(line, "<stdin>", mode);
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.isClassDef ? 3 : 2;
-            if (need_more_lines) return NEED_MORE_LINES;
+            if (need_more_lines) return true;
         }
-        return EXEC_STARTED;
+        return false;
     }
 };

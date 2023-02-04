@@ -7,7 +7,7 @@
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         check_type(obj, ptype);                                \
-        return UNION_GET(ctype, obj);                           \
+        return OBJ_GET(ctype, obj);                           \
     }
 
 #define __DEF_PY(type, ctype, ptype)                            \
@@ -254,7 +254,7 @@ class VM {
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        typeError("'" + UNION_TP_NAME(obj) + "' object is not iterable");
+                        typeError("'" + OBJ_TP_NAME(obj) + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -383,7 +383,7 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->is_type(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
+        if(obj->is_type(_tp_type)) return PyStr("<class '" + OBJ_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__);
     }
 
@@ -453,7 +453,7 @@ public:
         }
         
         if((*callable)->is_type(_tp_native_function)){
-            const auto& f = UNION_GET(_CppFunc, *callable);
+            const auto& f = OBJ_GET(_CppFunc, *callable);
             // _CppFunc do not support kwargs
             return f(this, args);
         } else if((*callable)->is_type(_tp_function)){
@@ -513,7 +513,7 @@ public:
             }
             return _exec(fn->code, _module, _locals);
         }
-        typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
+        typeError("'" + OBJ_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
@@ -587,10 +587,10 @@ public:
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _Str fullName = name;
-        if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
+        if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         return obj;
@@ -598,7 +598,7 @@ public:
 
     PyVar new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -607,7 +607,7 @@ public:
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(_tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
+        return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
     }
 
     template<typename T, typename... Args>
@@ -636,7 +636,7 @@ public:
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
-                root = &UNION_GET(PyVar, *root);
+                root = &OBJ_GET(PyVar, *root);
                 if(!(*root)->is_type(_tp_super)) break;
                 depth++;
             }
@@ -670,7 +670,7 @@ public:
     template<typename T>
     inline void setattr(PyVar& obj, const _Str& name, T&& value) {
         PyObject* p = obj.get();
-        while(p->is_type(_tp_super)) p = ((Py_<PyVar>*)p)->_valueT.get();
+        while(p->is_type(_tp_super)) p = static_cast<PyVar*>(p->value())->get();
         p->attribs[name] = std::forward<T>(value);
     }
 
@@ -711,7 +711,7 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        typeError("expected int or float, got " + UNION_TP_NAME(obj));
+        typeError("expected int or float, got " + OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -838,8 +838,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
-        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
+        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
+        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
@@ -901,7 +901,7 @@ public:
             }
             return x;
         }
-        typeError("unhashable type: " +  UNION_TP_NAME(obj));
+        typeError("unhashable type: " +  OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -934,11 +934,11 @@ public:
     void nameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
 
     void attributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" +  UNION_TP_NAME(obj) + "' has no attribute '" + name + "'");
+        _error("AttributeError", "type '" +  OBJ_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-        if(!obj->is_type(type)) typeError("expected '" + UNION_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
+        if(!obj->is_type(type)) typeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
     }
 
     ~VM() {
@@ -1041,7 +1041,7 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->is_type(vm->_tp_tuple) && !val->is_type(vm->_tp_list)){
         vm->typeError("only tuple or list can be unpacked");
     }
-    const PyVarList& args = UNION_GET(PyVarList, val);
+    const PyVarList& args = OBJ_GET(PyVarList, val);
     if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
     if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
     for (int i = 0; i < varRefs.size(); i++) {

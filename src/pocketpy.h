@@ -128,7 +128,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         PyVar _self = args[0];
         std::stringstream ss;
         ss << std::hex << (uintptr_t)_self.get();
-        _Str s = "<" + UNION_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
+        _Str s = "<" + OBJ_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 
@@ -578,16 +578,16 @@ struct ReMatch {
 
     static PyVar _bind(VM* vm){
         PyVar _tp_match = vm->new_user_type_object(vm->_modules["re"], "Match", vm->_tp_object);
-        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).start)));
-        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).end)));
+        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).start)));
+        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).end)));
 
         vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::Args& args) {
-            auto& m = UNION_GET(ReMatch, args[0]);
+            auto& m = OBJ_GET(ReMatch, args[0]);
             return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
         });
 
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::Args& args) {
-            auto& m = UNION_GET(ReMatch, args[0]);
+            auto& m = OBJ_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
             index = vm->normalized_index(index, m.m.size());
             return vm->PyStr(m.m[index].str());
@@ -736,8 +736,8 @@ extern "C" {
     }
 
     __EXPORT
-    /// Input a source line to an interactive console.
-    int pkpy_repl_input(REPL* r, const char* line){
+    /// Input a source line to an interactive console. Return true if need more lines.
+    bool pkpy_repl_input(REPL* r, const char* line){
         return r->input(line);
     }
 

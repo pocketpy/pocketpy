@@ -13,7 +13,7 @@ class _Bindings {
   static final pkpy_new_repl =
       (dynamic vm) => ccall("pkpy_new_repl", "number", ["number"], [vm]);
   static final pkpy_repl_input = (dynamic r, String line) =>
-      ccall("pkpy_repl_input", "number", ["number", "string"], [r, line]);
+      ccall("pkpy_repl_input", "boolean", ["number", "string"], [r, line]);
   static final pkpy_new_vm = (bool use_stdio) =>
       ccall("pkpy_new_vm", "number", ["boolean"], [use_stdio]);
   static final pkpy_vm_add_module = (dynamic vm, String name, String source) =>
@@ -78,8 +78,8 @@ class REPL {
     _Bindings.pkpy_delete(pointer);
   }
 
-  /// Input a source line to an interactive console.
-  int input(String line) {
+  /// Input a source line to an interactive console. Return true if need more lines.
+  bool input(String line) {
     var ret = _Bindings.pkpy_repl_input(pointer, line);
     return ret;
   }

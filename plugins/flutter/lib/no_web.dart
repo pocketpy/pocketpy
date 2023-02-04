@@ -30,8 +30,8 @@ class _Bindings {
       ffi.Pointer Function(ffi.Pointer vm),
       ffi.Pointer Function(ffi.Pointer vm)>("pkpy_new_repl");
   static final pkpy_repl_input = _lib.lookupFunction<
-      ffi.Int32 Function(ffi.Pointer r, ffi.Pointer<Utf8> line),
-      int Function(ffi.Pointer r, ffi.Pointer<Utf8> line)>("pkpy_repl_input");
+      ffi.Bool Function(ffi.Pointer r, ffi.Pointer<Utf8> line),
+      bool Function(ffi.Pointer r, ffi.Pointer<Utf8> line)>("pkpy_repl_input");
   static final pkpy_new_vm = _lib.lookupFunction<
       ffi.Pointer Function(ffi.Bool use_stdio),
       ffi.Pointer Function(bool use_stdio)>("pkpy_new_vm");
@@ -124,8 +124,8 @@ class REPL {
     _Bindings.pkpy_delete(pointer);
   }
 
-  /// Input a source line to an interactive console.
-  int input(String line) {
+  /// Input a source line to an interactive console. Return true if need more lines.
+  bool input(String line) {
     var ret = _Bindings.pkpy_repl_input(pointer, _Str(line).p);
     return ret;
   }

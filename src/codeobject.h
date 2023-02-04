@@ -172,7 +172,7 @@ struct Frame {
         _StrStream ss;
         ss << "[";
         for(int i=0; i<_data.size(); i++){
-            ss << UNION_TP_NAME(_data[i]);
+            ss << OBJ_TP_NAME(_data[i]);
             if(i != _data.size()-1) ss << ", ";
         }
         ss << "]";

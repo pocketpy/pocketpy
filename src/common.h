@@ -35,7 +35,7 @@
 #include <emscripten.h>
 #endif
 
-#define PK_VERSION "0.8.0"
+#define PK_VERSION "0.8.1"
 
 typedef int64_t i64;
 typedef double f64;

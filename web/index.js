@@ -34,7 +34,7 @@ function term_init() {
             term.write("Bye!\r\n");
             break;
           }
-          need_more_lines = Module.ccall('pkpy_repl_input', 'number', ['number', 'string'], [repl, command]) == 0;
+          need_more_lines = Module.ccall('pkpy_repl_input', 'bool', ['number', 'string'], [repl, command]);
           command = '';
           term.write(need_more_lines ? "... " : ">>> ");
           break;
