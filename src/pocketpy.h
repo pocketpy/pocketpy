@@ -360,7 +360,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<1>("str", "join", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
-        PyVarList* _list;
+        PyVarList* _list = nullptr;
         if(args[1]->is_type(vm->_tp_list)){
             _list = &vm->PyList_AS_C(args[1]);
         }else if(args[1]->is_type(vm->_tp_tuple)){

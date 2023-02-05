@@ -71,7 +71,6 @@ struct CodeObject {
     }
 
     void __enter_block(CodeBlockType type){
-        const CodeBlock& currBlock = blocks[_curr_block_i];
         blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
         _curr_block_i = blocks.size()-1;
     }
