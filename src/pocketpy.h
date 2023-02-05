@@ -72,6 +72,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bindBuiltinFunc<-1>("exit", [](VM* vm, const pkpy::Args& args) {
+        if(args.size() == 0) std::exit(0);
+        else if(args.size() == 1) std::exit(vm->PyInt_AS_C(args[0]));
+        else vm->typeError("exit() takes at most 1 argument");
+        return vm->None;
+    });
+
     _vm->bindBuiltinFunc<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
     _vm->bindBuiltinFunc<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
     _vm->bindBuiltinFunc<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::noArg())));

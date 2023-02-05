@@ -3513,7 +3513,6 @@ struct CodeObject {
     }
 
     void __enter_block(CodeBlockType type){
-        const CodeBlock& currBlock = blocks[_curr_block_i];
         blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
         _curr_block_i = blocks.size()-1;
     }
@@ -6000,6 +5999,13 @@ void __initializeBuiltinFunctions(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bindBuiltinFunc<-1>("exit", [](VM* vm, const pkpy::Args& args) {
+        if(args.size() == 0) std::exit(0);
+        else if(args.size() == 1) std::exit(vm->PyInt_AS_C(args[0]));
+        else vm->typeError("exit() takes at most 1 argument");
+        return vm->None;
+    });
+
     _vm->bindBuiltinFunc<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
     _vm->bindBuiltinFunc<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
     _vm->bindBuiltinFunc<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::noArg())));
@@ -6288,7 +6294,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindMethod<1>("str", "join", [](VM* vm, const pkpy::Args& args) {
         const _Str& _self = vm->PyStr_AS_C(args[0]);
-        PyVarList* _list;
+        PyVarList* _list = nullptr;
         if(args[1]->is_type(vm->_tp_list)){
             _list = &vm->PyList_AS_C(args[1]);
         }else if(args[1]->is_type(vm->_tp_tuple)){
