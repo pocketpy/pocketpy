@@ -25,3 +25,20 @@ def f():
     assert True
 
 f()
+
+def f1():
+    try:
+        assert 1 + 2 == 3
+        try:
+            a = {1: 2, 3: 4}
+            x = a[0]
+        except A:
+            print('<?>')
+    except B:
+        print('<?>')
+    print('<?>')
+
+try:
+    f1()
+except KeyError:
+    print("PASS 04")
