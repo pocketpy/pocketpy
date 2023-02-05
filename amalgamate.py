@@ -61,7 +61,7 @@ os.system("rm pocketpy")
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
 os.system("cp amalgamated/pocketpy.h plugins/macos/pocketpy/pocketpy/pocketpy.h")
 
-unity_ios_header = 'plugins/unity/PocketPyUnityPlugin/Assets/com.bl.pocketpy/Plugins/Src/pocketpy.h'
+unity_ios_header = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPy/Plugins/iOS/pocketpy.h'
 os.system(f'cp amalgamated/pocketpy.h "{unity_ios_header}"')
 
 if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
