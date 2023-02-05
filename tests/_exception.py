@@ -33,10 +33,10 @@ def f1():
             a = {1: 2, 3: 4}
             x = a[0]
         except A:
-            print('<?>')
+            exit(1)
     except B:
-        print('<?>')
-    print('<?>')
+        exit(1)
+    exit(1)
 
 try:
     f1()

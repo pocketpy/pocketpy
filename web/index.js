@@ -29,11 +29,6 @@ function term_init() {
       switch (e) {
         case '\r': // Enter
           term.write("\r\n");
-          if(command == 'exit()'){
-            stopped = true;
-            term.write("Bye!\r\n");
-            break;
-          }
           need_more_lines = Module.ccall('pkpy_repl_input', 'bool', ['number', 'string'], [repl, command]);
           command = '';
           term.write(need_more_lines ? "... " : ">>> ");
