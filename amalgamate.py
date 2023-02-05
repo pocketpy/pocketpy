@@ -59,6 +59,7 @@ os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17")
 os.system("rm pocketpy")
 
 os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
+os.system("cp amalgamated/pocketpy.h plugins/macos/pocketpy/pocketpy/pocketpy.h")
 
 unity_ios_header = 'plugins/unity/PocketPyUnityPlugin/Assets/com.bl.pocketpy/Plugins/Src/pocketpy.h'
 os.system(f'cp amalgamated/pocketpy.h "{unity_ios_header}"')
