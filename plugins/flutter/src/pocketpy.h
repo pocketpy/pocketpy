@@ -1857,9 +1857,7 @@ namespace pkpy{
         shared_ptr(shared_ptr&& other) noexcept : counter(other.counter) {
             other.counter = nullptr;
         }
-        ~shared_ptr() {
-            _dec_counter();
-        }
+        ~shared_ptr() { _dec_counter(); }
 
         bool operator==(const shared_ptr& other) const {
             return counter == other.counter;
@@ -1891,18 +1889,11 @@ namespace pkpy{
             return *this;
         }
 
-        T& operator*() const {
-            return *_t();
-        }
-        T* operator->() const {
-            return _t();
-        }
-        T* get() const {
-            return _t();
-        }
-        int use_count() const {
-            return counter ? *counter : 0;
-        }
+        T& operator*() const { return *_t(); }
+        T* operator->() const { return _t(); }
+        T* get() const { return _t(); }
+        int use_count() const { return counter ? *counter : 0; }
+
         void reset(){
             _dec_counter();
             counter = nullptr;
@@ -1915,7 +1906,8 @@ namespace pkpy{
 
     template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
-        static_assert(std::is_base_of<T, U>::value, "U must be derived from T");
+        static_assert(std::is_base_of_v<T, U>, "U must be derived from T");
+        static_assert(std::has_virtual_destructor_v<T>, "T must have virtual destructor");
         int* p = (int*)malloc(sizeof(int) + sizeof(U));
         *p = 1;
         new(p+1) U(std::forward<Args>(args)...);
@@ -2898,15 +2890,16 @@ struct PyObject {
 
 template <typename T>
 struct Py_ : PyObject {
-    T _valueT;
+    T _value;
 
-    Py_(T val, const PyVar& type) : PyObject(type), _valueT(val) {}
-    virtual void* value() override { return &_valueT; }
+    Py_(const PyVar& type, T val) : PyObject(type), _value(val) {}
+    virtual void* value() override { return &_value; }
 };
 
-#define UNION_GET(T, obj) (((Py_<T>*)((obj).get()))->_valueT)
-#define UNION_NAME(obj) UNION_GET(_Str, (obj)->attribs[__name__])
-#define UNION_TP_NAME(obj) UNION_GET(_Str, (obj)->type->attribs[__name__])
+//#define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+#define OBJ_GET(T, obj) (*static_cast<T*>((obj)->value()))
+#define OBJ_NAME(obj) OBJ_GET(_Str, (obj)->attribs[__name__])
+#define OBJ_TP_NAME(obj) OBJ_GET(_Str, (obj)->type->attribs[__name__])
 
 
 class RangeIterator : public BaseIterator {
@@ -2915,7 +2908,7 @@ private:
     _Range r;
 public:
     RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        this->r = UNION_GET(_Range, _ref);
+        this->r = OBJ_GET(_Range, _ref);
         this->current = r.start;
     }
 
@@ -2936,7 +2929,7 @@ private:
     const PyVarList* vec;
 public:
     VectorIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        vec = &UNION_GET(PyVarList, _ref);
+        vec = &OBJ_GET(PyVarList, _ref);
     }
 
     bool hasNext(){
@@ -2954,7 +2947,7 @@ private:
     _Str str;
 public:
     StringIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
-        str = UNION_GET(_Str, _ref);
+        str = OBJ_GET(_Str, _ref);
     }
 
     bool hasNext(){
@@ -3621,7 +3614,7 @@ struct Frame {
         _StrStream ss;
         ss << "[";
         for(int i=0; i<_data.size(); i++){
-            ss << UNION_TP_NAME(_data[i]);
+            ss << OBJ_TP_NAME(_data[i]);
             if(i != _data.size()-1) ss << ", ";
         }
         ss << "]";
@@ -3735,7 +3728,7 @@ struct Frame {
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         check_type(obj, ptype);                                \
-        return UNION_GET(ctype, obj);                           \
+        return OBJ_GET(ctype, obj);                           \
     }
 
 #define __DEF_PY(type, ctype, ptype)                            \
@@ -3982,7 +3975,7 @@ class VM {
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        typeError("'" + UNION_TP_NAME(obj) + "' object is not iterable");
+                        typeError("'" + OBJ_TP_NAME(obj) + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -4111,7 +4104,7 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->is_type(_tp_type)) return PyStr("<class '" + UNION_GET(_Str, obj->attribs[__name__]) + "'>");
+        if(obj->is_type(_tp_type)) return PyStr("<class '" + OBJ_GET(_Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__);
     }
 
@@ -4181,7 +4174,7 @@ public:
         }
         
         if((*callable)->is_type(_tp_native_function)){
-            const auto& f = UNION_GET(_CppFunc, *callable);
+            const auto& f = OBJ_GET(_CppFunc, *callable);
             // _CppFunc do not support kwargs
             return f(this, args);
         } else if((*callable)->is_type(_tp_function)){
@@ -4241,7 +4234,7 @@ public:
             }
             return _exec(fn->code, _module, _locals);
         }
-        typeError("'" + UNION_TP_NAME(*callable) + "' object is not callable");
+        typeError("'" + OBJ_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
@@ -4315,10 +4308,10 @@ public:
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _Str fullName = name;
-        if(mod != builtins) fullName = UNION_NAME(mod) + "." + name;
+        if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         return obj;
@@ -4326,7 +4319,7 @@ public:
 
     PyVar new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, _tp_type);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -4335,7 +4328,7 @@ public:
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(_tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<T>>(_value, type);
+        return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
     }
 
     template<typename T, typename... Args>
@@ -4364,7 +4357,7 @@ public:
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
-                root = &UNION_GET(PyVar, *root);
+                root = &OBJ_GET(PyVar, *root);
                 if(!(*root)->is_type(_tp_super)) break;
                 depth++;
             }
@@ -4398,7 +4391,7 @@ public:
     template<typename T>
     inline void setattr(PyVar& obj, const _Str& name, T&& value) {
         PyObject* p = obj.get();
-        while(p->is_type(_tp_super)) p = ((Py_<PyVar>*)p)->_valueT.get();
+        while(p->is_type(_tp_super)) p = static_cast<PyVar*>(p->value())->get();
         p->attribs[name] = std::forward<T>(value);
     }
 
@@ -4439,7 +4432,7 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        typeError("expected int or float, got " + UNION_TP_NAME(obj));
+        typeError("expected int or float, got " + OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -4566,8 +4559,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void initializeBuiltinClasses(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
-        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(DUMMY_VAL, nullptr);
+        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
+        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
@@ -4629,7 +4622,7 @@ public:
             }
             return x;
         }
-        typeError("unhashable type: " +  UNION_TP_NAME(obj));
+        typeError("unhashable type: " +  OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -4662,11 +4655,11 @@ public:
     void nameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
 
     void attributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" +  UNION_TP_NAME(obj) + "' has no attribute '" + name + "'");
+        _error("AttributeError", "type '" +  OBJ_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-        if(!obj->is_type(type)) typeError("expected '" + UNION_NAME(type) + "', but got '" + UNION_TP_NAME(obj) + "'");
+        if(!obj->is_type(type)) typeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
     }
 
     ~VM() {
@@ -4769,7 +4762,7 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->is_type(vm->_tp_tuple) && !val->is_type(vm->_tp_list)){
         vm->typeError("only tuple or list can be unpacked");
     }
-    const PyVarList& args = UNION_GET(PyVarList, val);
+    const PyVarList& args = OBJ_GET(PyVarList, val);
     if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
     if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
     for (int i = 0; i < varRefs.size(); i++) {
@@ -6063,7 +6056,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
         PyVar _self = args[0];
         std::stringstream ss;
         ss << std::hex << (uintptr_t)_self.get();
-        _Str s = "<" + UNION_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
+        _Str s = "<" + OBJ_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 
@@ -6511,16 +6504,16 @@ struct ReMatch {
 
     static PyVar _bind(VM* vm){
         PyVar _tp_match = vm->new_user_type_object(vm->_modules["re"], "Match", vm->_tp_object);
-        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).start)));
-        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(UNION_GET(ReMatch, args[0]).end)));
+        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).start)));
+        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).end)));
 
         vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::Args& args) {
-            auto& m = UNION_GET(ReMatch, args[0]);
+            auto& m = OBJ_GET(ReMatch, args[0]);
             return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
         });
 
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::Args& args) {
-            auto& m = UNION_GET(ReMatch, args[0]);
+            auto& m = OBJ_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
             index = vm->normalized_index(index, m.m.size());
             return vm->PyStr(m.m[index].str());
