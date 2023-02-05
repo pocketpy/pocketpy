@@ -64,9 +64,14 @@ jobs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v3
-      - run:
+      - run: |
           cd plugins/macos/pocketpy
-          xcodebuild
+          mkdir -p output/macos/x86_64
+          xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          cp build/Release/libpocketpy.dylib output/macos/x86_64
+      - uses: actions/upload-artifact@v3
+        with:
+          path: plugins/macos/pocketpy/output
   build_android:
       runs-on: ubuntu-latest
       steps:
