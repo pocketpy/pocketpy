@@ -60,18 +60,6 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         path: output
-  build_macos:
-      runs-on: macos-latest
-      steps:
-      - uses: actions/checkout@v3
-      - run: |
-          cd plugins/macos/pocketpy
-          mkdir -p output/macos
-          xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-          cp build/Release/libpocketpy.a output/macos
-      - uses: actions/upload-artifact@v3
-        with:
-          path: plugins/macos/pocketpy/output
   build_android:
       runs-on: ubuntu-latest
       steps:

@@ -14,8 +14,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0869DA46298F9AD300B00FD8"
-               BuildableName = "libpocketpy.dylib"
+               BlueprintIdentifier = "08F367BF298FCCF000C97415"
+               BuildableName = "pocketpy.bundle"
                BlueprintName = "pocketpy"
                ReferencedContainer = "container:pocketpy.xcodeproj">
             </BuildableReference>
@@ -50,8 +50,8 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "0869DA46298F9AD300B00FD8"
-            BuildableName = "libpocketpy.dylib"
+            BlueprintIdentifier = "08F367BF298FCCF000C97415"
+            BuildableName = "pocketpy.bundle"
             BlueprintName = "pocketpy"
             ReferencedContainer = "container:pocketpy.xcodeproj">
          </BuildableReference>

@@ -7,18 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0869DA4F298F9AD300B00FD8 /* pocketpy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0869DA4E298F9AD300B00FD8 /* pocketpy.cpp */; };
-		0869DA56298F9C5800B00FD8 /* pocketpy.h in Headers */ = {isa = PBXBuildFile; fileRef = 0869DA55298F9C5800B00FD8 /* pocketpy.h */; };
+		08F367CA298FCDB100C97415 /* pocketpy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08F367C9298FCDB100C97415 /* pocketpy.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0869DA47298F9AD300B00FD8 /* libpocketpy.a */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libpocketpy.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		0869DA4E298F9AD300B00FD8 /* pocketpy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = pocketpy.cpp; sourceTree = "<group>"; };
-		0869DA55298F9C5800B00FD8 /* pocketpy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pocketpy.h; sourceTree = "<group>"; };
+		08F367C0298FCCF000C97415 /* pocketpy.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = pocketpy.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		08F367C9298FCDB100C97415 /* pocketpy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pocketpy.cpp; sourceTree = "<group>"; };
+		08F367CB298FCDC600C97415 /* pocketpy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pocketpy.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		0869DA45298F9AD300B00FD8 /* Frameworks */ = {
+		08F367BD298FCCF000C97415 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -28,52 +27,33 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0869DA3E298F9AD300B00FD8 = {
+		08F367B7298FCCF000C97415 = {
 			isa = PBXGroup;
 			children = (
-				0869DA49298F9AD300B00FD8 /* pocketpy */,
-				0869DA48298F9AD300B00FD8 /* Products */,
+				08F367CB298FCDC600C97415 /* pocketpy.h */,
+				08F367C9298FCDB100C97415 /* pocketpy.cpp */,
+				08F367C1298FCCF000C97415 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		0869DA48298F9AD300B00FD8 /* Products */ = {
+		08F367C1298FCCF000C97415 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0869DA47298F9AD300B00FD8 /* libpocketpy.a */,
+				08F367C0298FCCF000C97415 /* pocketpy.bundle */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		0869DA49298F9AD300B00FD8 /* pocketpy */ = {
-			isa = PBXGroup;
-			children = (
-				0869DA55298F9C5800B00FD8 /* pocketpy.h */,
-				0869DA4E298F9AD300B00FD8 /* pocketpy.cpp */,
-			);
-			path = pocketpy;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
-/* Begin PBXHeadersBuildPhase section */
-		0869DA43298F9AD300B00FD8 /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0869DA56298F9C5800B00FD8 /* pocketpy.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXHeadersBuildPhase section */
-
 /* Begin PBXNativeTarget section */
-		0869DA46298F9AD300B00FD8 /* pocketpy */ = {
+		08F367BF298FCCF000C97415 /* pocketpy */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0869DA52298F9AD300B00FD8 /* Build configuration list for PBXNativeTarget "pocketpy" */;
+			buildConfigurationList = 08F367C4298FCCF000C97415 /* Build configuration list for PBXNativeTarget "pocketpy" */;
 			buildPhases = (
-				0869DA43298F9AD300B00FD8 /* Headers */,
-				0869DA44298F9AD300B00FD8 /* Sources */,
-				0869DA45298F9AD300B00FD8 /* Frameworks */,
+				08F367BC298FCCF000C97415 /* Sources */,
+				08F367BD298FCCF000C97415 /* Frameworks */,
+				08F367BE298FCCF000C97415 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -81,53 +61,64 @@
 			);
 			name = pocketpy;
 			productName = pocketpy;
-			productReference = 0869DA47298F9AD300B00FD8 /* libpocketpy.a */;
-			productType = "com.apple.product-type.library.dynamic";
+			productReference = 08F367C0298FCCF000C97415 /* pocketpy.bundle */;
+			productType = "com.apple.product-type.bundle";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		0869DA3F298F9AD300B00FD8 /* Project object */ = {
+		08F367B8298FCCF000C97415 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1330;
 				TargetAttributes = {
-					0869DA46298F9AD300B00FD8 = {
+					08F367BF298FCCF000C97415 = {
 						CreatedOnToolsVersion = 13.3;
 					};
 				};
 			};
-			buildConfigurationList = 0869DA42298F9AD300B00FD8 /* Build configuration list for PBXProject "pocketpy" */;
+			buildConfigurationList = 08F367BB298FCCF000C97415 /* Build configuration list for PBXProject "pocketpy" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
-			mainGroup = 0869DA3E298F9AD300B00FD8;
-			productRefGroup = 0869DA48298F9AD300B00FD8 /* Products */;
+			mainGroup = 08F367B7298FCCF000C97415;
+			productRefGroup = 08F367C1298FCCF000C97415 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0869DA46298F9AD300B00FD8 /* pocketpy */,
+				08F367BF298FCCF000C97415 /* pocketpy */,
 			);
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		08F367BE298FCCF000C97415 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
-		0869DA44298F9AD300B00FD8 /* Sources */ = {
+		08F367BC298FCCF000C97415 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0869DA4F298F9AD300B00FD8 /* pocketpy.cpp in Sources */,
+				08F367CA298FCDB100C97415 /* pocketpy.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		0869DA50298F9AD300B00FD8 /* Debug */ = {
+		08F367C2298FCCF000C97415 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -171,7 +162,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -180,12 +171,12 @@
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
-		0869DA51298F9AD300B00FD8 /* Release */ = {
+		08F367C3298FCCF000C97415 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -223,7 +214,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -232,81 +223,84 @@
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
 			};
 			name = Release;
 		};
-		0869DA53298F9AD300B00FD8 /* Debug */ = {
+		08F367C5298FCCF000C97415 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CLANG_DEBUG_INFORMATION_LEVEL = "line-tables-only";
+				CLANG_ENABLE_CPP_STATIC_DESTRUCTORS = NO;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = A7A93GC9AY;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				EXECUTABLE_EXTENSION = a;
-				EXECUTABLE_PREFIX = lib;
-				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
-				MACH_O_TYPE = staticlib;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bl.pocketpy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				STRIP_STYLE = all;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = bundle;
 			};
 			name = Debug;
 		};
-		0869DA54298F9AD300B00FD8 /* Release */ = {
+		08F367C6298FCCF000C97415 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
-				CLANG_DEBUG_INFORMATION_LEVEL = "line-tables-only";
+				CLANG_ENABLE_CPP_STATIC_DESTRUCTORS = NO;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = A7A93GC9AY;
-				DYLIB_COMPATIBILITY_VERSION = 1;
-				DYLIB_CURRENT_VERSION = 1;
-				EXECUTABLE_EXTENSION = a;
-				EXECUTABLE_PREFIX = lib;
-				GCC_ENABLE_CPP_EXCEPTIONS = YES;
 				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
-				MACH_O_TYPE = staticlib;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bl.pocketpy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
-				STRIP_STYLE = all;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0869DA42298F9AD300B00FD8 /* Build configuration list for PBXProject "pocketpy" */ = {
+		08F367BB298FCCF000C97415 /* Build configuration list for PBXProject "pocketpy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0869DA50298F9AD300B00FD8 /* Debug */,
-				0869DA51298F9AD300B00FD8 /* Release */,
+				08F367C2298FCCF000C97415 /* Debug */,
+				08F367C3298FCCF000C97415 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0869DA52298F9AD300B00FD8 /* Build configuration list for PBXNativeTarget "pocketpy" */ = {
+		08F367C4298FCCF000C97415 /* Build configuration list for PBXNativeTarget "pocketpy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				0869DA53298F9AD300B00FD8 /* Debug */,
-				0869DA54298F9AD300B00FD8 /* Release */,
+				08F367C5298FCCF000C97415 /* Debug */,
+				08F367C6298FCCF000C97415 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 0869DA3F298F9AD300B00FD8 /* Project object */;
+	rootObject = 08F367B8298FCCF000C97415 /* Project object */;
 }
