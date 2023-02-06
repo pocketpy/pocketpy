@@ -6140,7 +6140,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
     });
 
     _vm->bindMethod<0>("int", "__json__", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyStr(std::to_string((int)vm->PyInt_AS_C(args[0])));
+        return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
     });
 
 #define __INT_BITWISE_OP(name,op) \
@@ -6754,7 +6754,8 @@ extern "C" {
             ss << f_header << ' ';
             for(int i=0; i<args.size(); i++){
                 PyVar x = vm->call(args[i], __json__);
-                ss << vm->PyStr_AS_C(x) << ' ';
+                ss << vm->PyStr_AS_C(x);
+                if(i != args.size() - 1) ss << ' ';
             }
             switch(ret_code){
                 case 'i': return vm->PyInt(f_int(ss.str().c_str()));
