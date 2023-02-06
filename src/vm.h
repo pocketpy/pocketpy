@@ -558,10 +558,11 @@ public:
                 ret = run_frame(frame);
 
                 if(ret != __py2py_call_signal){
-                    callstack.pop();
                     if(frame->id == base_id){      // [ frameBase<- ]
+                        callstack.pop();
                         return ret;
                     }else{
+                        callstack.pop();
                         frame = callstack.top().get();
                         frame->push(ret);
                     }

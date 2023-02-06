@@ -31,6 +31,12 @@ class _Bindings {
 
 class VM {
   late final pointer = _Bindings.pkpy_new_vm(false);
+  static bool _firstNew = true;
+
+  VM() {
+    if (!_firstNew) return;
+    _firstNew = false;
+  }
 
   void dispose() {
     _Bindings.pkpy_delete(pointer);

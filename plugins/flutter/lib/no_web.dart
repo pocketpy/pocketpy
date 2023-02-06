@@ -4,6 +4,7 @@ import 'dart:convert' as cvt;
 import 'dart:ffi' as ffi;
 import 'dart:io';
 import 'package:ffi/ffi.dart';
+import '_ffi.dart';
 import 'common.dart';
 
 class _Bindings {
@@ -26,6 +27,11 @@ class _Bindings {
   static final pkpy_delete = _lib.lookupFunction<
       ffi.Void Function(ffi.Pointer p),
       void Function(ffi.Pointer p)>("pkpy_delete");
+  static final pkpy_setup_callbacks = _lib.lookupFunction<
+      ffi.Void Function(ffi.Pointer f_int, ffi.Pointer f_float,
+          ffi.Pointer f_bool, ffi.Pointer f_str, ffi.Pointer f_None),
+      void Function(ffi.Pointer f_int, ffi.Pointer f_float, ffi.Pointer f_bool,
+          ffi.Pointer f_str, ffi.Pointer f_None)>("pkpy_setup_callbacks");
   static final pkpy_new_repl = _lib.lookupFunction<
       ffi.Pointer Function(ffi.Pointer vm),
       ffi.Pointer Function(ffi.Pointer vm)>("pkpy_new_repl");
@@ -40,6 +46,11 @@ class _Bindings {
           ffi.Pointer vm, ffi.Pointer<Utf8> name, ffi.Pointer<Utf8> source),
       void Function(ffi.Pointer vm, ffi.Pointer<Utf8> name,
           ffi.Pointer<Utf8> source)>("pkpy_vm_add_module");
+  static final pkpy_vm_bind = _lib.lookupFunction<
+      ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> mod,
+          ffi.Pointer<Utf8> name, ffi.Int32 ret_code),
+      ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> mod,
+          ffi.Pointer<Utf8> name, int ret_code)>("pkpy_vm_bind");
   static final pkpy_vm_eval = _lib.lookupFunction<
       ffi.Pointer<Utf8> Function(ffi.Pointer vm, ffi.Pointer<Utf8> source),
       ffi.Pointer<Utf8> Function(
@@ -56,21 +67,16 @@ class _Bindings {
       ffi.Pointer<Utf8> Function(ffi.Pointer vm)>("pkpy_vm_read_output");
 }
 
-class _Str {
-  static final Finalizer<ffi.Pointer<Utf8>> finalizer =
-      Finalizer((p) => malloc.free(p));
-
-  late final ffi.Pointer<Utf8> _p;
-  _Str(String s) {
-    _p = s.toNativeUtf8();
-    finalizer.attach(this, _p);
-  }
-
-  ffi.Pointer<Utf8> get p => _p;
-}
-
 class VM {
   late final pointer = _Bindings.pkpy_new_vm(false);
+  static bool _firstNew = true;
+
+  VM() {
+    if (!_firstNew) return;
+    _firstNew = false;
+    _Bindings.pkpy_setup_callbacks(
+        f_int(), f_float(), f_bool(), f_str(), f_None());
+  }
 
   void dispose() {
     _Bindings.pkpy_delete(pointer);
@@ -86,12 +92,13 @@ class VM {
 
   /// Add a source module into a virtual machine.
   void add_module(String name, String source) {
-    _Bindings.pkpy_vm_add_module(pointer, _Str(name).p, _Str(source).p);
+    _Bindings.pkpy_vm_add_module(
+        pointer, StrWrapper(name).p, StrWrapper(source).p);
   }
 
   /// Evaluate an expression.  Return `__repr__` of the result. If there is any error, return `nullptr`.
   String? eval(String source) {
-    var ret = _Bindings.pkpy_vm_eval(pointer, _Str(source).p);
+    var ret = _Bindings.pkpy_vm_eval(pointer, StrWrapper(source).p);
     if (ret == ffi.nullptr) return null;
     String s = ret.toDartString();
     _Bindings.pkpy_delete(ret);
@@ -100,16 +107,25 @@ class VM {
 
   /// Run a given source on a virtual machine.
   void exec(String source) {
-    _Bindings.pkpy_vm_exec(pointer, _Str(source).p);
+    _Bindings.pkpy_vm_exec(pointer, StrWrapper(source).p);
   }
 
   /// Get a global variable of a virtual machine.  Return `__repr__` of the result. If the variable is not found, return `nullptr`.
   String? get_global(String name) {
-    var ret = _Bindings.pkpy_vm_get_global(pointer, _Str(name).p);
+    var ret = _Bindings.pkpy_vm_get_global(pointer, StrWrapper(name).p);
     if (ret == ffi.nullptr) return null;
     String s = ret.toDartString();
     _Bindings.pkpy_delete(ret);
     return s;
+  }
+
+  void bind<T>(String mod, String name, Function f) {
+    ffi.Pointer<Utf8> p = _Bindings.pkpy_vm_bind(
+        pointer, StrWrapper(mod).p, StrWrapper(name).p, t_code<T>());
+    if (p == ffi.nullptr) throw Exception("vm.bind() failed");
+    String s = p.toDartString();
+    malloc.free(p);
+    register(s, f);
   }
 }
 
@@ -126,7 +142,7 @@ class REPL {
 
   /// Input a source line to an interactive console. Return true if need more lines.
   bool input(String line) {
-    var ret = _Bindings.pkpy_repl_input(pointer, _Str(line).p);
+    var ret = _Bindings.pkpy_repl_input(pointer, StrWrapper(line).p);
     return ret;
   }
 }

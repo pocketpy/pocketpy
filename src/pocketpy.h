@@ -74,7 +74,7 @@ void __initializeBuiltinFunctions(VM* _vm) {
 
     _vm->bindBuiltinFunc<-1>("exit", [](VM* vm, const pkpy::Args& args) {
         if(args.size() == 0) std::exit(0);
-        else if(args.size() == 1) std::exit(vm->PyInt_AS_C(args[0]));
+        else if(args.size() == 1) std::exit((int)vm->PyInt_AS_C(args[0]));
         else vm->typeError("exit() takes at most 1 argument");
         return vm->None;
     });
