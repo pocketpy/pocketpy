@@ -123,6 +123,10 @@ vm.exec(code);
 var _o = vm.read_output();
 print(_o.stdout)	// "Hello world!\n"
 print(_o.stderr)	// ""
+    
+// Create a binding
+vm.bind<int>("builtins", "add", (int x, int y) => x + y);
+vm.eval("add(1, 2)");	// '3'
 ```
 
 

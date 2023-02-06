@@ -1,3 +1,8 @@
+## 0.8.1
+
++ Bug fix
++ Add `vm.bind<T>` support
+
 ## 0.8.0+2
 
 + add complete reflection (exec/eval/getattr/setattr/hasattr)
