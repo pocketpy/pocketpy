@@ -133,10 +133,6 @@ public:
         return *this;
     }
 
-    operator const char*() const {
-        return c_str();
-    }
-
     ~_Str(){
         if(_u8_index != nullptr) delete _u8_index;
     }

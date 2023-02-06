@@ -32,6 +32,10 @@ class _MyAppState extends State<MyApp> {
     // create a REPL
     repl = pkpy.REPL(vm);
 
+    // create a binding
+    vm.bind<int>("builtins", "add", (int x, int y) => x + y);
+    vm.bind<String>("builtins", "test", (String x) => x.split(',').join('|'));
+
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       refresh();
     });

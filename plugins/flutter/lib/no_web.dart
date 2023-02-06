@@ -124,7 +124,7 @@ class VM {
         pointer, StrWrapper(mod).p, StrWrapper(name).p, t_code<T>());
     if (p == ffi.nullptr) throw Exception("vm.bind() failed");
     String s = p.toDartString();
-    malloc.free(p);
+    _Bindings.pkpy_delete(p);
     register(s, f);
   }
 }

@@ -21,7 +21,6 @@ class StrWrapper {
 
 dynamic invoke_f_any(ffi.Pointer<Utf8> p) {
   String s = p.toDartString();
-  malloc.free(p);
   var parts = s.split(' ');
   List<dynamic> args = [];
   for (int i = 1; i < parts.length; i++) {

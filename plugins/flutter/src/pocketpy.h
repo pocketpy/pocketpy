@@ -2055,10 +2055,6 @@ public:
         return *this;
     }
 
-    operator const char*() const {
-        return c_str();
-    }
-
     ~_Str(){
         if(_u8_index != nullptr) delete _u8_index;
     }
@@ -6719,11 +6715,11 @@ extern "C" {
         return strdup(ss.str().c_str());
     }
 
-    typedef i64 (*f_int_t)(const char*);
-    typedef f64 (*f_float_t)(const char*);
-    typedef bool (*f_bool_t)(const char*);
-    typedef const char* (*f_str_t)(const char*);
-    typedef void (*f_None_t)(const char*);
+    typedef i64 (*f_int_t)(char*);
+    typedef f64 (*f_float_t)(char*);
+    typedef bool (*f_bool_t)(char*);
+    typedef char* (*f_str_t)(char*);
+    typedef void (*f_None_t)(char*);
 
     static f_int_t f_int = nullptr;
     static f_float_t f_float = nullptr;
@@ -6752,19 +6748,25 @@ extern "C" {
         PyVar obj = vm->new_module_if_not_existed(mod);
         vm->bindFunc<-1>(obj, name, [ret_code, f_header](VM* vm, const pkpy::Args& args){
             _StrStream ss;
-            ss << f_header << ' ';
+            ss << f_header;
             for(int i=0; i<args.size(); i++){
+                ss << ' ';
                 PyVar x = vm->call(args[i], __json__);
                 ss << vm->PyStr_AS_C(x);
-                if(i != args.size() - 1) ss << ' ';
             }
+            char* packet = strdup(ss.str().c_str());
             switch(ret_code){
-                case 'i': return vm->PyInt(f_int(ss.str().c_str()));
-                case 'f': return vm->PyFloat(f_float(ss.str().c_str()));
-                case 'b': return vm->PyBool(f_bool(ss.str().c_str()));
-                case 's': return vm->PyStr(f_str(ss.str().c_str()));
-                case 'N': f_None(ss.str().c_str()); return vm->None;
+                case 'i': return vm->PyInt(f_int(packet));
+                case 'f': return vm->PyFloat(f_float(packet));
+                case 'b': return vm->PyBool(f_bool(packet));
+                case 's': {
+                    char* p = f_str(packet);
+                    if(p == nullptr) return vm->None;
+                    return vm->PyStr(p); // no need to free(p)
+                }
+                case 'N': f_None(packet); return vm->None;
             }
+            free(packet);
             UNREACHABLE();
             return vm->None;
         });
