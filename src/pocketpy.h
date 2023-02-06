@@ -792,6 +792,55 @@ extern "C" {
         s_out->str(""); s_err->str("");
         return strdup(ss.str().c_str());
     }
-}
 
-#include "_bindings.h"
+    typedef i64 (*f_int_t)(const char*);
+    typedef f64 (*f_float_t)(const char*);
+    typedef bool (*f_bool_t)(const char*);
+    typedef const char* (*f_str_t)(const char*);
+    typedef void (*f_None_t)(const char*);
+
+    static f_int_t f_int = nullptr;
+    static f_float_t f_float = nullptr;
+    static f_bool_t f_bool = nullptr;
+    static f_str_t f_str = nullptr;
+    static f_None_t f_None = nullptr;
+
+    __EXPORT
+    /// Setup the callback functions.
+    void pkpy_setup_callbacks(f_int_t f_int, f_float_t f_float, f_bool_t f_bool, f_str_t f_str, f_None_t f_None){
+        ::f_int = f_int;
+        ::f_float = f_float;
+        ::f_bool = f_bool;
+        ::f_str = f_str;
+        ::f_None = f_None;
+    }
+
+    __EXPORT
+    /// Bind a function to a virtual machine.
+    char* pkpy_vm_bind(VM* vm, const char* mod, const char* name, int ret_code){
+        if(!f_int || !f_float || !f_bool || !f_str || !f_None) return nullptr;
+        static int kGlobalBindId = 0;
+        for(int i=0; mod[i]; i++) if(mod[i] == ' ') return nullptr;
+        for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
+        std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
+        PyVar obj = vm->new_module_if_not_existed(mod);
+        vm->bindFunc<-1>(obj, name, [ret_code, f_header](VM* vm, const pkpy::Args& args){
+            _StrStream ss;
+            ss << f_header << ' ';
+            for(int i=0; i<args.size(); i++){
+                PyVar x = vm->call(args[i], __json__);
+                ss << vm->PyStr_AS_C(x) << ' ';
+            }
+            switch(ret_code){
+                case 'i': return vm->PyInt(f_int(ss.str().c_str()));
+                case 'f': return vm->PyFloat(f_float(ss.str().c_str()));
+                case 'b': return vm->PyBool(f_bool(ss.str().c_str()));
+                case 's': return vm->PyStr(f_str(ss.str().c_str()));
+                case 'N': f_None(ss.str().c_str()); return vm->None;
+            }
+            UNREACHABLE();
+            return vm->None;
+        });
+        return strdup(f_header.c_str());
+    }
+}
