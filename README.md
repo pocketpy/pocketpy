@@ -149,4 +149,6 @@ You can download `artifact.zip` from [Github Release](https://github.com/bluelov
 
 ## License
 
-MIT License
+PocketPy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
+
+PocketPy uses [emhash](https://github.com/ktprime/emhash)(MIT License) to implement Python's internal `__dict__` object. [emhash](https://github.com/ktprime/emhash) is 40% faster than `std::unordered_map`.
