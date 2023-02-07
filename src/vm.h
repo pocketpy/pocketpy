@@ -454,7 +454,7 @@ public:
         
         if((*callable)->is_type(_tp_native_function)){
             const auto& f = OBJ_GET(_CppFunc, *callable);
-            // _CppFunc do not support kwargs
+            if(kwargs.size() != 0) typeError("_native_function does not accept keyword arguments");
             return f(this, args);
         } else if((*callable)->is_type(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
@@ -588,6 +588,7 @@ public:
     }
 
     PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
+        if(!base->is_type(_tp_type)) UNREACHABLE();
         PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _Str fullName = name;
@@ -729,7 +730,7 @@ public:
     int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
-            indexError("index out of range, " + std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
+            indexError(std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
         }
         return index;
     }
@@ -928,6 +929,7 @@ private:
     }
 
 public:
+    void notImplementedError(){ _error("NotImplementedError", ""); }
     void typeError(const _Str& msg){ _error("TypeError", msg); }
     void zeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void indexError(const _Str& msg){ _error("IndexError", msg); }

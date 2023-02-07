@@ -583,21 +583,25 @@ struct ReMatch {
     std::smatch m;
     ReMatch(i64 start, i64 end, std::smatch m) : start(start), end(end), m(m) {}
 
-    static PyVar _bind(VM* vm){
-        PyVar _tp_match = vm->new_user_type_object(vm->_modules["re"], "Match", vm->_tp_object);
+    static PyVar _register(VM* vm, PyVar mod){
+        PyVar _tp_match = vm->new_user_type_object(mod, "Match", vm->_tp_object);
+        vm->bindMethod<-1>(_tp_match, "__init__", [](VM* vm, const pkpy::Args& args){
+            vm->notImplementedError();
+            return vm->None;
+        });
         vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).start)));
         vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).end)));
 
         vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::Args& args) {
-            auto& m = OBJ_GET(ReMatch, args[0]);
-            return vm->PyTuple({ vm->PyInt(m.start), vm->PyInt(m.end) });
+            auto& self = OBJ_GET(ReMatch, args[0]);
+            return vm->PyTuple({ vm->PyInt(self.start), vm->PyInt(self.end) });
         });
 
         vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::Args& args) {
-            auto& m = OBJ_GET(ReMatch, args[0]);
+            auto& self = OBJ_GET(ReMatch, args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
-            index = vm->normalized_index(index, m.m.size());
-            return vm->PyStr(m.m[index].str());
+            index = vm->normalized_index(index, self.m.size());
+            return vm->PyStr(self.m[index].str());
         });
         return _tp_match;
     }
@@ -617,7 +621,7 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
 
 void __add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
-    ReMatch::_bind(vm);
+    ReMatch::_register(vm, mod);
 
     vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
