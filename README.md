@@ -151,6 +151,17 @@ You can download `artifact.zip` from [Github Release](https://github.com/bluelov
     - pocketpy.exe
 ```
 
+## Contribution
+
+All kinds of contributions are welcome.
+
+- Submit a Pull Request
+  - fix a bug
+  - add a new feature
+- Open an Issue
+  - any suggestions
+  - any questions
+
 ## Reference
 
 + [cpython](https://github.com/python/cpython)
