@@ -1,4 +1,4 @@
-g++ -o pocketpy src/main.cpp --std=c++17 -pg -O1 -pthread -fno-rtti
+g++ -o pocketpy src/main.cpp --std=c++17 -pg -O1 -fno-rtti
 
 ./pocketpy tests/1.py
 

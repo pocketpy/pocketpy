@@ -52,11 +52,13 @@ jobs:
     - name: Compiling
       run: |
         bash build_cpp.sh
+        bash build_linux.sh
         python3 scripts/run_tests.py
         ./pocketpy tests/1.py
         ./pocketpy tests/2.py
         mkdir -p output/linux/x86_64
         mv pocketpy output/linux/x86_64
+        mv pocketpy.so output/linux/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
