@@ -21,6 +21,124 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://bluelovet
 
 ![sample_img](docs/sample.png)
 
+## Features
+
+| Name            | Example                         | Supported |
+| --------------- | ------------------------------- | --------- |
+| If Else         | `if..else..elif`                | YES       |
+| Loop            | `for/while/break/continue`      | YES       |
+| Function        | `def f(x,*args,y=1):`           | YES       |
+| Subclass        | `class A(B):`                   | YES       |
+| List            | `[1, 2, 'a']`                   | YES       |
+| ListComp        | `[i for i in range(5)]`         | YES       |
+| Slice           | `a[1:2], a[:2], a[1:]`          | YES       |
+| Tuple           | `(1, 2, 'a')`                   | YES       |
+| Dict            | `{'a': 1, 'b': 2}`              | YES       |
+| F-String        | `f'value is {x}'`               | YES       |
+| Unpacking       | `a, b = 1, 2`                   | YES       |
+| Star Unpacking  | `a, *b = [1, 2, 3]`             | NO        |
+| Exception       | `raise/try..catch`              | YES       |
+| Dynamic Code    | `eval()/exec()`                 | YES       |
+| Reflection      | `hasattr()/getattr()/setattr()` | YES       |
+| Import          | `import/from..import`           | YES       |
+| Context Block   | `with <expr> as <id>:`          | YES       |
+| Type Annotation | `def  f(a: int, b : float = 1)` | YES       |
+
+## Getting Started
+
+#### C/C++
+
+For C/C++ developers, you can download the `pocketpy.h` on our GitHub release page.
+
+https://github.com/blueloveTH/pocketpy/releases/latest
+
+Check [C-API](https://pocketpy.dev/c-api/vm/) for references.
+
+```cpp
+#include "pocketpy.h"
+
+int main(){
+    // Create a virtual machine
+    VM* vm = pkpy_new_vm(true);
+    // Exec some code
+    pkpy_vm_exec(vm, "print('Hello world!')");
+    return 0;
+}
+```
+
+#### Unity Engine
+
+PocketPy for Unity can be installed via Unity Asset Store.
+
+https://assetstore.unity.com/packages/slug/241120
+
+```csharp
+using UnityEngine;
+
+public class Test01 : MonoBehaviour
+{
+    // Start is called before the first frame update
+    void Start()
+    {
+        // Create a virtual machine
+        pkpy.VM vm = new pkpy.VM();
+
+        // Create a list
+        vm.exec("a = [1, 2, 3]");
+
+        // Eval the sum of the list
+        string result = vm.eval("sum(a)");
+        Debug.Log(result);   // 6
+
+        // Print to the standard output
+        vm.exec("print(a)");
+        pkpy.PyOutput o = vm.read_output();
+        Debug.Log(o.stdout); // [1, 2, 3]
+
+        // Create a binding
+        vm.bind("builtins", "test", (double x) => x+1);  
+        Debug.Log(vm.eval("test(3.14)")); // '4.14'
+    }
+}
+```
+
+#### Flutter
+
+Run the following script to install this plugin.
+
+```
+flutter pub add pocketpy
+```
+
+See https://pocketpy.dev/getting-started/flutter/
+
+#### Pre-compiled Libs
+
+You can download `artifact.zip` from [Github Release](https://github.com/blueloveTH/pocketpy/releases/latest) page. In this archive, there are pre-compiled libraries for many platforms. The file structure is as follows.
+
+```
+- android/
+  - arm64-v8a/
+    - libpocketpy.so
+  - armeabi-v7a/
+    - libpocketpy.so
+  - x86_64/
+    - libpocketpy.so
+- linux/
+  - x86_64/
+    - pocketpy
+- macos/
+  - pocketpy.bundle/
+- web/
+  - lib/
+    - pocketpy.js
+    - pocketpy.wasm
+- windows/
+  - x86_64/
+    - pocketpy.dll
+    - pocketpy.exe
+```
+
 ## Reference
 
 + [cpython](https://github.com/python/cpython)
