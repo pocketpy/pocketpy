@@ -53,10 +53,21 @@ PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 
 int main(){
     // 创建一个虚拟机
-    // 参数为true表示使用std::cout作为标准输出
     VM* vm = pkpy_new_vm(true);
-    // 执行代码
+    
+    // Hello world!
     pkpy_vm_exec(vm, "print('Hello world!')");
+
+    // 构建一个列表
+    pkpy_vm_exec(vm, "a = [1, 2, 3]");
+
+    // 对列表进行求和
+    char* result = pkpy_vm_eval(vm, "sum(a)");
+    std::cout << result << std::endl;   // 6
+
+    // 释放资源
+    pkpy_delete(result);
+    pkpy_delete(vm);
     return 0;
 }
 ```
