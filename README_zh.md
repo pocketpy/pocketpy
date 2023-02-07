@@ -9,17 +9,15 @@
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 <a title="Discord" href="https://discord.gg/WWaq72GzXv" ><img src="https://img.shields.io/discord/1048978026131640390" /></a>
 </p>
-PocketPy is a lightweight(~5000 LOC) Python interpreter for game engines.
+PocketPy 是一个轻量级的Python解释器，为嵌入至游戏引擎而设计。
 
-**English | [简体中文](README_zh.md) **
+它包含一个编译器和基于字节码的虚拟机，以及交互式命令窗的实现。所有功能均集成在单个头文件`pocketpy.h`中，不包含外部依赖项，能很方便地嵌入至你的应用。
 
-It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
-
-Please see https://pocketpy.dev for details or try [Live Demo](https://blueloveth.github.io/pocketpy).
+请查阅 https://pocketpy.dev 获取更多细节，或者尝试 [在线Demo](https://blueloveth.github.io/pocketpy)。
 
 ![sample_img](docs/sample.png)
 
-## Reference
+## 参考
 
 + [cpython](https://github.com/python/cpython)
 
@@ -27,6 +25,6 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://bluelovet
 
 + [emhash](https://github.com/ktprime/emhash)
 
-## License
+## 开源协议
 
 MIT License
