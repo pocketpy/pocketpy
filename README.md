@@ -11,7 +11,7 @@
 </p>
 PocketPy is a lightweight(~5000 LOC) Python interpreter for game engines.
 
-**English | [简体中文](README_zh.md) **
+**English |** [**简体中文**](README_zh.md)
 
 It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
