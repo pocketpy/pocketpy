@@ -69,7 +69,7 @@ int main(){
 
     // Eval the sum of the list
     char* result = pkpy_vm_eval(vm, "sum(a)");
-    std::cout << result << std::endl;   // 6
+    printf("%s", result);   // 6
 
     // Free the resources
     pkpy_delete(result);

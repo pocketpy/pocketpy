@@ -63,7 +63,7 @@ int main(){
 
     // 对列表进行求和
     char* result = pkpy_vm_eval(vm, "sum(a)");
-    std::cout << result << std::endl;   // 6
+    printf("%s", result);   // 6
 
     // 释放资源
     pkpy_delete(result);
