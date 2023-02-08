@@ -167,7 +167,7 @@ All kinds of contributions are welcome.
 
 + [cpython](https://github.com/python/cpython)
 
-+ [byterun](http://qingyunha.github.io/taotao/)
++ [byterun](https://www.aosabook.org/en/500L/a-python-interpreter-written-in-python.html)
 
 + [emhash](https://github.com/ktprime/emhash)
 
