@@ -210,7 +210,7 @@ struct Parser {
                     value |= (b & 0b00111111) << (6*(u8bytes-k-1));
                 }
             }
-            if(__isLoChar(value)) curr_char += u8bytes;
+            if(is_unicode_Lo_char(value)) curr_char += u8bytes;
             else break;
         }
 

@@ -100,6 +100,7 @@ struct Py_ : PyObject {
 
 #define PY_CLASS(mod, name) \
     inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attribs[#name]; } \
+    inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
 
 #define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->_tp_##name; }

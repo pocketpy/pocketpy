@@ -493,7 +493,7 @@ public:
             for(int i=0; i<kwargs.size(); i+=2){
                 const _Str& key = PyStr_AS_C(kwargs[i]);
                 if(!fn->kwArgs.contains(key)){
-                    typeError(key.__escape(true) + " is an invalid keyword argument for " + fn->name + "()");
+                    typeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
                 if(!positional_overrided_keys.empty()){
@@ -671,34 +671,34 @@ public:
     }
 
     template<int ARGC>
-    void bindMethod(PyVar obj, _Str funcName, _CppFuncRaw fn) {
+    void bind_method(PyVar obj, _Str funcName, _CppFuncRaw fn) {
         check_type(obj, _tp_type);
         setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, true)));
     }
 
     template<int ARGC>
-    void bindFunc(PyVar obj, _Str funcName, _CppFuncRaw fn) {
+    void bind_func(PyVar obj, _Str funcName, _CppFuncRaw fn) {
         setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, false)));
     }
 
     template<int ARGC>
-    void bindMethod(_Str typeName, _Str funcName, _CppFuncRaw fn) {
-        bindMethod<ARGC>(_types[typeName], funcName, fn);
+    void bind_method(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+        bind_method<ARGC>(_types[typeName], funcName, fn);
     }
 
     template<int ARGC>
-    void bindStaticMethod(_Str typeName, _Str funcName, _CppFuncRaw fn) {
-        bindFunc<ARGC>(_types[typeName], funcName, fn);
+    void bind_static_method(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+        bind_func<ARGC>(_types[typeName], funcName, fn);
     }
 
     template<int ARGC>
-    void bindMethodMulti(std::vector<_Str> typeNames, _Str funcName, _CppFuncRaw fn) {
-        for(auto& typeName : typeNames) bindMethod<ARGC>(typeName, funcName, fn);
+    void _bind_methods(std::vector<_Str> typeNames, _Str funcName, _CppFuncRaw fn) {
+        for(auto& typeName : typeNames) bind_method<ARGC>(typeName, funcName, fn);
     }
 
     template<int ARGC>
-    void bindBuiltinFunc(_Str funcName, _CppFuncRaw fn) {
-        bindFunc<ARGC>(builtins, funcName, fn);
+    void bind_builtin_func(_Str funcName, _CppFuncRaw fn) {
+        bind_func<ARGC>(builtins, funcName, fn);
     }
 
     inline f64 num_to_float(const PyVar& obj){
@@ -763,7 +763,7 @@ public:
                 argStr += " (" + PyStr_AS_C(asRepr(code->consts[byte.arg])) + ")";
             }
             if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
-                argStr += " (" + code->names[byte.arg].first.__escape(true) + ")";
+                argStr += " (" + code->names[byte.arg].first.escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
             ss << code->blocks[byte.block].to_string();
@@ -941,6 +941,7 @@ public:
     template<typename T>
     PyVar register_class(PyVar mod){
         PyVar type = new_user_type_object(mod, T::_name(), _tp_object);
+        if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
         T::_register(this, mod, type);
         return type;
     }

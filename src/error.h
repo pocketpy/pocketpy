@@ -51,7 +51,7 @@ struct SourceData {
         _Str line = "<?>";
         int removedSpaces = 0;
         if(pair.first && pair.second){
-            line = _Str(pair.first, pair.second-pair.first).__lstrip();
+            line = _Str(pair.first, pair.second-pair.first).lstrip();
             removedSpaces = pair.second - pair.first - line.size();
             if(line.empty()) line = "<?>";
         }
