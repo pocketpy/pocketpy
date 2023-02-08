@@ -167,12 +167,19 @@ All kinds of contributions are welcome.
 
 + [cpython](https://github.com/python/cpython)
 
+  The official implementation of Python programming language.
+
 + [byterun](https://www.aosabook.org/en/500L/a-python-interpreter-written-in-python.html)
 
+  An excellent learning material. It illustrates how Python's virtual machine works.
+
 + [emhash](https://github.com/ktprime/emhash)
+
+  A very fast and memory efficient c++ flat hash map/set. In our test case, it is 40% faster than `std::unordered_map`.
+
 
 ## License
 
 PocketPy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
 
-PocketPy uses [emhash](https://github.com/ktprime/emhash)(MIT License) to implement Python's internal `__dict__` object. [emhash](https://github.com/ktprime/emhash) is 40% faster than `std::unordered_map`.
+PocketPy uses [emhash](https://github.com/ktprime/emhash)(MIT License) to implement Python's internal `__dict__` object. 
