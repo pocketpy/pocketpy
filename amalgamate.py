@@ -19,7 +19,12 @@ import time
 
 if os.path.exists("amalgamated"):
 	shutil.rmtree("amalgamated")
-	time.sleep(1)
+	if os.name == "nt":
+		# On Windows, making a directory too soon after shutil.rmtree can fail
+		# with PermissionError. Sleep for 1 second as a simple hedge against
+		# this.
+		# See https://stackoverflow.com/a/60181105/569183
+		time.sleep(1)
 os.mkdir("amalgamated")
 
 def remove_copied_include(text):
