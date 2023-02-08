@@ -93,7 +93,13 @@ struct Py_ : PyObject {
     virtual void* value() override { return &_value; }
 };
 
-//#define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+// Unsafe cast from PyObject to C++ type
 #define OBJ_GET(T, obj) (*static_cast<T*>((obj)->value()))
 #define OBJ_NAME(obj) OBJ_GET(_Str, (obj)->attribs[__name__])
 #define OBJ_TP_NAME(obj) OBJ_GET(_Str, (obj)->type->attribs[__name__])
+
+#define PY_CLASS(mod, name) \
+    inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attribs[#name]; } \
+    inline static const char* _name() { return #name; }
+
+#define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->_tp_##name; }

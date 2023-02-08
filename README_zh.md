@@ -132,6 +132,7 @@ flutter pub add pocketpy
 - linux/
   - x86_64/
     - pocketpy
+    - pocketpy.so
 - macos/
   - pocketpy.bundle/
 - web/

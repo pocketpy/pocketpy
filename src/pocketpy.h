@@ -573,8 +573,6 @@ void __add_module_dis(VM* vm){
     });
 }
 
-#define PY_CLASS(mod, name) inline static PyVar _tp(VM* vm) { return vm->_modules[#mod]->attribs[#name]; }
-
 struct ReMatch {
     PY_CLASS(re, Match)
 
@@ -583,27 +581,22 @@ struct ReMatch {
     std::smatch m;
     ReMatch(i64 start, i64 end, std::smatch m) : start(start), end(end), m(m) {}
 
-    static PyVar _register(VM* vm, PyVar mod){
-        PyVar _tp_match = vm->new_user_type_object(mod, "Match", vm->_tp_object);
-        vm->bindMethod<-1>(_tp_match, "__init__", [](VM* vm, const pkpy::Args& args){
-            vm->notImplementedError();
-            return vm->None;
-        });
-        vm->bindMethod<0>(_tp_match, "start", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).start)));
-        vm->bindMethod<0>(_tp_match, "end", CPP_LAMBDA(vm->PyInt(OBJ_GET(ReMatch, args[0]).end)));
+    static void _register(VM* vm, PyVar mod, PyVar type){
+        vm->bindMethod<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
+        vm->bindMethod<0>(type, "start", CPP_LAMBDA(vm->PyInt(vm->py_cast<ReMatch>(args[0]).start)));
+        vm->bindMethod<0>(type, "end", CPP_LAMBDA(vm->PyInt(vm->py_cast<ReMatch>(args[0]).end)));
 
-        vm->bindMethod<0>(_tp_match, "span", [](VM* vm, const pkpy::Args& args) {
-            auto& self = OBJ_GET(ReMatch, args[0]);
+        vm->bindMethod<0>(type, "span", [](VM* vm, const pkpy::Args& args) {
+            auto& self = vm->py_cast<ReMatch>(args[0]);
             return vm->PyTuple({ vm->PyInt(self.start), vm->PyInt(self.end) });
         });
 
-        vm->bindMethod<1>(_tp_match, "group", [](VM* vm, const pkpy::Args& args) {
-            auto& self = OBJ_GET(ReMatch, args[0]);
+        vm->bindMethod<1>(type, "group", [](VM* vm, const pkpy::Args& args) {
+            auto& self = vm->py_cast<ReMatch>(args[0]);
             int index = (int)vm->PyInt_AS_C(args[1]);
             index = vm->normalized_index(index, self.m.size());
             return vm->PyStr(self.m[index].str());
         });
-        return _tp_match;
     }
 };
 
@@ -614,14 +607,14 @@ PyVar __regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM
         if(fromStart && m.position() != 0) return vm->None;
         i64 start = string.__to_u8_index(m.position());
         i64 end = string.__to_u8_index(m.position() + m.length());
-        return vm->new_object_c<ReMatch>(start, end, m);
+        return vm->new_object<ReMatch>(start, end, m);
     }
     return vm->None;
 };
 
 void __add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
-    ReMatch::_register(vm, mod);
+    vm->register_class<ReMatch>(mod);
 
     vm->bindFunc<2>(mod, "match", [](VM* vm, const pkpy::Args& args) {
         const _Str& pattern = vm->PyStr_AS_C(args[0]);
@@ -827,7 +820,7 @@ extern "C" {
         for(int i=0; mod[i]; i++) if(mod[i] == ' ') return nullptr;
         for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
-        PyVar obj = vm->new_module_if_not_existed(mod);
+        PyVar obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
         vm->bindFunc<-1>(obj, name, [ret_code, f_header](VM* vm, const pkpy::Args& args){
             _StrStream ss;
             ss << f_header;

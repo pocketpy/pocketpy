@@ -52,7 +52,7 @@ For C/C++ developers, you can download the `pocketpy.h` on our GitHub release pa
 
 https://github.com/blueloveTH/pocketpy/releases/latest
 
-Check [C-API](https://pocketpy.dev/c-api/vm/) for references.
+Check [C-API](https://pocketpy.dev/c-api/vm/) for references. C++ APIs will be available soon.
 
 ```cpp
 #include "pocketpy.h"
@@ -139,6 +139,7 @@ You can download `artifact.zip` from [Github Release](https://github.com/bluelov
 - linux/
   - x86_64/
     - pocketpy
+    - pocketpy.so
 - macos/
   - pocketpy.bundle/
 - web/

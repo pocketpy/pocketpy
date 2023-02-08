@@ -613,21 +613,15 @@ public:
     }
 
     template<typename T, typename... Args>
-    inline PyVar new_object_c(Args&&... args) {
-        return new_object(T::_tp(this), T(std::forward<Args>(args)...));
+    inline PyVar new_object(Args&&... args) {
+        return new_object(T::_type(this), T(std::forward<Args>(args)...));
     }
 
-    PyVar new_module(_Str name) {
+    PyVar new_module(const _Str& name) {
         PyVar obj = new_object(_tp_module, DUMMY_VAL);
         setattr(obj, __name__, PyStr(name));
         _modules[name] = obj;
         return obj;
-    }
-
-    PyVar new_module_if_not_existed(_Str name) {
-        PyVar* it = _modules.try_get(name);
-        if(it != nullptr) return *it;
-        return new_module(name);
     }
 
     PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
@@ -942,6 +936,19 @@ public:
 
     inline void check_type(const PyVar& obj, const PyVar& type){
         if(!obj->is_type(type)) typeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
+    }
+
+    template<typename T>
+    PyVar register_class(PyVar mod){
+        PyVar type = new_user_type_object(mod, T::_name(), _tp_object);
+        T::_register(this, mod, type);
+        return type;
+    }
+
+    template<typename T>
+    T& py_cast(const PyVar& obj){
+        check_type(obj, T::_type(this));
+        return OBJ_GET(T, obj);
     }
 
     ~VM() {

@@ -13,11 +13,7 @@ public:
     }
 
     bool hasNext() override {
-        if(r.step > 0){
-            return current < r.stop;
-        }else{
-            return current > r.stop;
-        }
+        return r.step > 0 ? current < r.stop : current > r.stop;
     }
 
     PyVar next() override;
@@ -32,13 +28,8 @@ public:
         vec = &OBJ_GET(PyVarList, _ref);
     }
 
-    bool hasNext(){
-        return index < vec->size();
-    }
-
-    PyVar next(){
-        return vec->operator[](index++);
-    }
+    bool hasNext(){ return index < vec->size(); }
+    PyVar next(){ return vec->operator[](index++); }
 };
 
 class StringIterator : public BaseIterator {
@@ -50,9 +41,6 @@ public:
         str = OBJ_GET(_Str, _ref);
     }
 
-    bool hasNext(){
-        return index < str.u8_length();
-    }
-
+    bool hasNext(){ return index < str.u8_length(); }
     PyVar next();
 };
