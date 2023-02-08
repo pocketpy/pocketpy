@@ -52,7 +52,7 @@ For C/C++ developers, you can download the `pocketpy.h` on our GitHub release pa
 
 https://github.com/blueloveTH/pocketpy/releases/latest
 
-Check [C-API](https://pocketpy.dev/c-api/vm/) for references. C++ APIs will be available soon.
+Check [C-API](https://pocketpy.dev/c-api/vm/) for references. For further customization, you can use [C++ API](https://pocketpy.dev/getting-started/cpp/).
 
 ```cpp
 #include "pocketpy.h"
