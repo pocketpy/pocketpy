@@ -254,12 +254,14 @@ struct Frame {
         if(_next_ip >= co->codes.size()){
             while(i>=0){
                 if(co->blocks[i].type == FOR_LOOP) pop();
+                else if(co->blocks[i].type == TRY_EXCEPT) on_try_block_exit();
                 i = co->blocks[i].parent;
             }
         }else{
             const Bytecode& next = co->codes[target];
             while(i>=0 && i!=next.block){
                 if(co->blocks[i].type == FOR_LOOP) pop();
+                else if(co->blocks[i].type == TRY_EXCEPT) on_try_block_exit();
                 i = co->blocks[i].parent;
             }
             if(i!=next.block) throw std::runtime_error("invalid jump");

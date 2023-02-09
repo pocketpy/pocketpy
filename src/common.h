@@ -35,11 +35,8 @@
 #include <emscripten.h>
 #endif
 
-#define PK_VERSION "0.8.2"
+#define PK_VERSION "0.8.3"
 
 typedef int64_t i64;
 typedef double f64;
 #define DUMMY_VAL (i64)0
-
-#define CPP_LAMBDA(x) ([](VM* vm, const pkpy::Args& args) { return x; })
-#define CPP_NOT_IMPLEMENTED() ([](VM* vm, const pkpy::Args& args) { vm->NotImplementedError(); return vm->None; })

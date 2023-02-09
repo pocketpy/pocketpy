@@ -253,7 +253,7 @@ class VM {
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        TypeError("'" + OBJ_TP_NAME(obj) + "' object is not iterable");
+                        TypeError(OBJ_TP_NAME(obj).escape(true) + " object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:

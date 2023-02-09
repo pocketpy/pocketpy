@@ -162,6 +162,8 @@ All kinds of contributions are welcome.
   - any suggestions
   - any questions
 
+Check our [Coding Style Guide](https://pocketpy.dev/coding_style_guide/) if you want to contribute C++ code.
+
 ## Reference
 
 + [cpython](https://github.com/python/cpython)
