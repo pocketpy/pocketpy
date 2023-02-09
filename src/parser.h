@@ -231,7 +231,7 @@ struct Parser {
             return 0;
         }
 
-        if(kTokenKwMap.count(name)){
+        if(kTokenKwMap.contains(name)){
             if(name == "not"){
                 if(strncmp(curr_char, " in", 3) == 0){
                     curr_char += 3;
