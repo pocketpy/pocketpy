@@ -597,11 +597,11 @@ __LISTCOMP:
                 const _Str& key = parser->prev.str();
                 emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
                 consume(TK("="));
-                EXPR();
+                co()->_rvalue=true; EXPR(); co()->_rvalue=false;
                 KWARGC++;
             } else{
                 if(KWARGC > 0) SyntaxError("positional argument follows keyword argument");
-                EXPR();
+                co()->_rvalue=true; EXPR(); co()->_rvalue=false;
                 ARGC++;
             }
             match_newlines(mode()==REPL_MODE);
@@ -758,8 +758,9 @@ __LISTCOMP:
 
     void compile_if_stmt() {
         match_newlines();
-        EXPR_TUPLE();
-
+        co()->_rvalue = true;
+        EXPR_TUPLE();   // condition
+        co()->_rvalue = false;
         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
         compile_block_body();
 
@@ -780,7 +781,9 @@ __LISTCOMP:
 
     void compile_while_loop() {
         co()->_enter_block(WHILE_LOOP);
-        EXPR_TUPLE();
+        co()->_rvalue = true;
+        EXPR_TUPLE();   // condition
+        co()->_rvalue = false;
         int patch = emit(OP_POP_JUMP_IF_FALSE);
         compile_block_body();
         emit(OP_LOOP_CONTINUE, -1, true);
@@ -848,7 +851,9 @@ __LISTCOMP:
             if(match_end_stmt()){
                 emit(OP_LOAD_NONE);
             }else{
-                EXPR_TUPLE();
+                co()->_rvalue = true;
+                EXPR_TUPLE();   // return value
+                co()->_rvalue = false;
                 consume_end_stmt();
             }
             emit(OP_RETURN_VALUE, -1, true);

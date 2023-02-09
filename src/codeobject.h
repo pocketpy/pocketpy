@@ -86,34 +86,7 @@ struct CodeObject {
     }
 
     void optimize(){
-        for(int i=0; i<codes.size(); i++){
-            if(codes[i].op >= OP_BINARY_OP && codes[i].op <= OP_CONTAINS_OP){
-                for(int j=0; j<2; j++){
-                    Bytecode& bc = codes[i-j-1];
-                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
-                        if(bc.op == OP_LOAD_NAME_REF){
-                            bc.op = OP_LOAD_NAME;
-                        }
-                    }else{
-                        break;
-                    }
-                }
-            }else if(codes[i].op == OP_CALL){
-                int ARGC = codes[i].arg & 0xFFFF;
-                int KWARGC = (codes[i].arg >> 16) & 0xFFFF;
-                if(KWARGC != 0) continue;
-                for(int j=0; j<ARGC+1; j++){
-                    Bytecode& bc = codes[i-j-1];
-                    if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
-                        if(bc.op == OP_LOAD_NAME_REF){
-                            bc.op = OP_LOAD_NAME;
-                        }
-                    }else{
-                        break;
-                    }
-                }
-            }
-        }
+        for(int i=0; i<codes.size(); i++){}
     }
 
     /************************************************/

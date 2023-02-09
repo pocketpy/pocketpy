@@ -13,4 +13,8 @@ def test(n):
       k += 1
   return k
 
+# from dis import dis
+# dis(test)
+# dis(is_prime)
+
 print(test(10000))
