@@ -520,20 +520,15 @@ void add_module_time(VM* vm){
 
 void add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
-    vm->bind_func<1>(mod, "getrefcount", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyInt(args[0].use_count());
-    });
+    vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 
-    vm->bind_func<0>(mod, "getrecursionlimit", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyInt(vm->maxRecursionDepth);
-    });
+    vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(vm->PyInt(args[0].use_count())));
+    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(vm->PyInt(vm->maxRecursionDepth)));
 
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, const pkpy::Args& args) {
         vm->maxRecursionDepth = (int)vm->PyInt_AS_C(args[0]);
         return vm->None;
     });
-
-    vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 }
 
 void add_module_json(VM* vm){
