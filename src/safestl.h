@@ -135,10 +135,8 @@ namespace pkpy {
         ~Args(){ _free(); }
     };
 
-    const Args& no_arg(){
-        static const Args ret(0);
-        return ret;
-    }
+    static const Args _zero(0);
+    inline const Args& no_arg() { return _zero; }
 
     template<typename T>
     Args one_arg(T&& a) {
