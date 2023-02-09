@@ -16,21 +16,21 @@ public:
     }
 
     bool input(std::string line){
-        CompileMode mode = SINGLE_MODE;
+        CompileMode mode = REPL_MODE;
         if(need_more_lines){
             buffer += line;
             buffer += '\n';
             int n = buffer.size();
             if(n>=need_more_lines){
                 for(int i=buffer.size()-need_more_lines; i<buffer.size(); i++){
-                    if(buffer[i] != '\n') goto __NOT_ENOUGH_LINES;
+                    // no enough lines
+                    if(buffer[i] != '\n') return true;
                 }
                 need_more_lines = 0;
                 line = buffer;
                 buffer.clear();
                 mode = EXEC_MODE;
             }else{
-__NOT_ENOUGH_LINES:
                 return true;
             }
         }
@@ -40,7 +40,7 @@ __NOT_ENOUGH_LINES:
         }catch(NeedMoreLines& ne){
             buffer += line;
             buffer += '\n';
-            need_more_lines = ne.isClassDef ? 3 : 2;
+            need_more_lines = ne.is_compiling_class ? 3 : 2;
             if (need_more_lines) return true;
         }
         return false;

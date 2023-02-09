@@ -2,9 +2,9 @@
 
 #include "obj.h"
 
-typedef uint8_t _TokenType;
+typedef uint8_t TokenIndex;
 
-constexpr const char* __TOKENS[] = {
+constexpr const char* kTokens[] = {
     "@error", "@eof", "@eol", "@sof",
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}", "%",
     "+", "-", "*", "/", "//", "**", "=", ">", "<", "...", "->",
@@ -22,11 +22,11 @@ constexpr const char* __TOKENS[] = {
     "@indent", "@dedent"
 };
 
-const _TokenType __TOKENS_LEN = sizeof(__TOKENS) / sizeof(__TOKENS[0]);
+const TokenIndex kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);
 
-constexpr _TokenType TK(const char* const token) {
-    for(int k=0; k<__TOKENS_LEN; k++){
-        const char* i = __TOKENS[k];
+constexpr TokenIndex TK(const char* const token) {
+    for(int k=0; k<kTokenCount; k++){
+        const char* i = kTokens[k];
         const char* j = token;
         while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
@@ -34,19 +34,19 @@ constexpr _TokenType TK(const char* const token) {
     return 0;
 }
 
-#define TK_STR(t) __TOKENS[t]
-const _TokenType __KW_BEGIN = TK("class");
-const _TokenType __KW_END = TK("raise");
+#define TK_STR(t) kTokens[t]
+const TokenIndex kTokenKwBegin = TK("class");
+const TokenIndex kTokenKwEnd = TK("raise");
 
-const emhash8::HashMap<std::string_view, _TokenType> __KW_MAP = [](){
-    emhash8::HashMap<std::string_view, _TokenType> map;
-    for(int k=__KW_BEGIN; k<=__KW_END; k++) map[__TOKENS[k]] = k;
+const emhash8::HashMap<std::string_view, TokenIndex> __KW_MAP = [](){
+    emhash8::HashMap<std::string_view, TokenIndex> map;
+    for(int k=kTokenKwBegin; k<=kTokenKwEnd; k++) map[kTokens[k]] = k;
     return map;
 }();
 
 
 struct Token{
-  _TokenType type;
+  TokenIndex type;
 
   const char* start; //< Begining of the token in the source.
   int length;        //< Number of chars of the token.
@@ -173,7 +173,7 @@ struct Parser {
         curr_char++;
         if (c == '\n'){
             current_line++;
-            src->lineStarts.push_back(curr_char);
+            src->line_starts.push_back(curr_char);
         }
         return c;
     }
@@ -266,7 +266,7 @@ struct Parser {
         return true;
     }
 
-    void set_next_token(_TokenType type, PyVar value=nullptr) {
+    void set_next_token(TokenIndex type, PyVar value=nullptr) {
         switch(type){
             case TK("{"): case TK("["): case TK("("): brackets_level++; break;
             case TK(")"): case TK("]"): case TK("}"): brackets_level--; break;
@@ -280,7 +280,7 @@ struct Parser {
         });
     }
 
-    void set_next_token_2(char c, _TokenType one, _TokenType two) {
+    void set_next_token_2(char c, TokenIndex one, TokenIndex two) {
         if (matchchar(c)) set_next_token(two);
         else set_next_token(one);
     }

@@ -75,14 +75,14 @@ class VM {
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->is_type(_tp_ref)) {
                         done = true;
-                        PyVarList values = items.toList();
+                        PyVarList values = items.to_list();
                         for(int j=i; j<values.size(); j++) frame->try_deref(this, values[j]);
                         frame->push(PyTuple(values));
                         break;
                     }
                 }
                 if(done) break;
-                frame->push(PyRef(TupleRef(items.toList())));
+                frame->push(PyRef(TupleRef(items.to_list())));
             } break;
             case OP_BUILD_STRING:
             {
@@ -161,7 +161,7 @@ class VM {
             case OP_CONTAINS_OP:
                 {
                     PyVar rhs = frame->pop_value(this);
-                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::oneArg(frame->pop_value(this))));
+                    bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::one_arg(frame->pop_value(this))));
                     if(byte.arg == 1) ret_c = !ret_c;
                     frame->push(PyBool(ret_c));
                 } break;
@@ -202,23 +202,23 @@ class VM {
             case OP_RE_RAISE: _raise(); break;
             case OP_BUILD_LIST:
                 frame->push(PyList(
-                    frame->pop_n_values_reversed(this, byte.arg).toList()));
+                    frame->pop_n_values_reversed(this, byte.arg).to_list()));
                 break;
             case OP_BUILD_MAP:
                 {
                     pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
                     PyVar obj = call(builtins->attribs["dict"]);
                     for(int i=0; i<items.size(); i+=2){
-                        call(obj, __setitem__, pkpy::twoArgs(items[i], items[i+1]));
+                        call(obj, __setitem__, pkpy::two_args(items[i], items[i+1]));
                     }
                     frame->push(obj);
                 } break;
             case OP_BUILD_SET:
                 {
                     PyVar list = PyList(
-                        frame->pop_n_values_reversed(this, byte.arg).toList()
+                        frame->pop_n_values_reversed(this, byte.arg).to_list()
                     );
-                    PyVar obj = call(builtins->attribs["set"], pkpy::oneArg(list));
+                    PyVar obj = call(builtins->attribs["set"], pkpy::one_arg(list));
                     frame->push(obj);
                 } break;
             case OP_DUP_TOP: frame->push(frame->top_value(this)); break;
@@ -411,23 +411,23 @@ public:
     }
 
     inline PyVar call(const PyVar& _callable){
-        return call(_callable, pkpy::noArg(), pkpy::noArg(), false);
+        return call(_callable, pkpy::no_arg(), pkpy::no_arg(), false);
     }
 
     template<typename ArgT>
     inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
-        return call(_callable, std::forward<ArgT>(args), pkpy::noArg(), false);
+        return call(_callable, std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
 
     template<typename ArgT>
     inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
     call(const PyVar& obj, const _Str& func, ArgT&& args){
-        return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::noArg(), false);
+        return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
 
     inline PyVar call(const PyVar& obj, const _Str& func){
-        return call(getattr(obj, func), pkpy::noArg(), pkpy::noArg(), false);
+        return call(getattr(obj, func), pkpy::no_arg(), pkpy::no_arg(), false);
     }
 
     PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
@@ -1028,15 +1028,15 @@ void AttrRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar IndexRef::get(VM* vm, Frame* frame) const{
-    return vm->call(obj, __getitem__, pkpy::oneArg(index));
+    return vm->call(obj, __getitem__, pkpy::one_arg(index));
 }
 
 void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->call(obj, __setitem__, pkpy::twoArgs(index, val));
+    vm->call(obj, __setitem__, pkpy::two_args(index, val));
 }
 
 void IndexRef::del(VM* vm, Frame* frame) const{
-    vm->call(obj, __delitem__, pkpy::oneArg(index));
+    vm->call(obj, __delitem__, pkpy::one_arg(index));
 }
 
 PyVar TupleRef::get(VM* vm, Frame* frame) const{

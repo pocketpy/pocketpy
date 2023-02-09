@@ -3,8 +3,8 @@
 #include "safestl.h"
 
 struct NeedMoreLines {
-    NeedMoreLines(bool isClassDef) : isClassDef(isClassDef) {}
-    bool isClassDef;
+    NeedMoreLines(bool is_compiling_class) : is_compiling_class(is_compiling_class) {}
+    bool is_compiling_class;
 };
 
 struct HandledException {};
@@ -14,21 +14,21 @@ struct ToBeRaisedException {};
 enum CompileMode {
     EXEC_MODE,
     EVAL_MODE,
-    SINGLE_MODE,     // for REPL
+    REPL_MODE,
     JSON_MODE,
 };
 
 struct SourceData {
     const char* source;
     _Str filename;
-    std::vector<const char*> lineStarts;
+    std::vector<const char*> line_starts;
     CompileMode mode;
 
-    std::pair<const char*,const char*> getLine(int lineno) const {
+    std::pair<const char*,const char*> get_line(int lineno) const {
         if(lineno == -1) return {nullptr, nullptr};
         lineno -= 1;
         if(lineno < 0) lineno = 0;
-        const char* _start = lineStarts.at(lineno);
+        const char* _start = line_starts.at(lineno);
         const char* i = _start;
         while(*i != '\n' && *i != '\0') i++;
         return {_start, i};
@@ -40,32 +40,30 @@ struct SourceData {
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
         this->filename = filename;
         this->source = source;
-        lineStarts.push_back(source);
+        line_starts.push_back(source);
         this->mode = mode;
     }
 
     _Str snapshot(int lineno, const char* cursor=nullptr){
         _StrStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
-        std::pair<const char*,const char*> pair = getLine(lineno);
+        std::pair<const char*,const char*> pair = get_line(lineno);
         _Str line = "<?>";
-        int removedSpaces = 0;
+        int removed_spaces = 0;
         if(pair.first && pair.second){
             line = _Str(pair.first, pair.second-pair.first).lstrip();
-            removedSpaces = pair.second - pair.first - line.size();
+            removed_spaces = pair.second - pair.first - line.size();
             if(line.empty()) line = "<?>";
         }
         ss << "    " << line;
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second){
-            auto column = cursor - pair.first - removedSpaces;
+            auto column = cursor - pair.first - removed_spaces;
             if(column >= 0) ss << "\n    " << std::string(column, ' ') << "^";
         }
         return ss.str();
     }
 
-    ~SourceData(){
-        free((void*)source);
-    }
+    ~SourceData() { free((void*)source); }
 };
 
 class _Exception {

@@ -24,7 +24,7 @@ class Compiler {
     int lexing_count = 0;
     bool used = false;
     VM* vm;
-    emhash8::HashMap<_TokenType, GrammarRule> rules;
+    emhash8::HashMap<TokenIndex, GrammarRule> rules;
 
     _Code co() const{ return codes.top(); }
     CompileMode mode() const{ return parser->src->mode; }
@@ -39,7 +39,7 @@ public:
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
 #define NO_INFIX nullptr, PREC_NONE
-        for(_TokenType i=0; i<__TOKENS_LEN; i++) rules[i] = { nullptr, NO_INFIX };
+        for(TokenIndex i=0; i<kTokenCount; i++) rules[i] = { nullptr, NO_INFIX };
         rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
         rules[TK("(")] =    { METHOD(exprGrouping),  METHOD(exprCall),           PREC_CALL };
         rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscript),      PREC_SUBSCRIPT };
@@ -112,7 +112,7 @@ private:
                 break;
             }
             if (c == '\0'){
-                if(quote3 && parser->src->mode == SINGLE_MODE){
+                if(quote3 && parser->src->mode == REPL_MODE){
                     throw NeedMoreLines(false);
                 }
                 SyntaxError("EOL while scanning string literal");
@@ -301,23 +301,23 @@ private:
         parser->set_next_token(TK("@eof"));
     }
 
-    inline _TokenType peek() {
+    inline TokenIndex peek() {
         return parser->curr.type;
     }
 
     // not sure this will work
-    _TokenType peek_next() {
+    TokenIndex peek_next() {
         if(parser->nexts.empty()) return TK("@eof");
         return parser->nexts.front().type;
     }
 
-    bool match(_TokenType expected) {
+    bool match(TokenIndex expected) {
         if (peek() != expected) return false;
         lex_token();
         return true;
     }
 
-    void consume(_TokenType expected) {
+    void consume(TokenIndex expected) {
         if (!match(expected)){
             _StrStream ss;
             ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(peek()) << "'";
@@ -400,7 +400,7 @@ private:
     }
 
     void exprAssign() {
-        _TokenType op = parser->prev.type;
+        TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
             emit(OP_STORE_REF);
@@ -455,7 +455,7 @@ private:
     }
 
     void exprBinaryOp() {
-        _TokenType op = parser->prev.type;
+        TokenIndex op = parser->prev.type;
         parse_expression((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
@@ -488,7 +488,7 @@ private:
     }
 
     void exprUnaryOp() {
-        _TokenType op = parser->prev.type;
+        TokenIndex op = parser->prev.type;
         parse_expression((Precedence)(PREC_UNARY + 1));
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
@@ -499,9 +499,9 @@ private:
     }
 
     void exprGrouping() {
-        match_newlines(mode()==SINGLE_MODE);
+        match_newlines(mode()==REPL_MODE);
         EXPR_TUPLE();
-        match_newlines(mode()==SINGLE_MODE);
+        match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
     }
 
@@ -510,13 +510,13 @@ private:
         int _body_start = co()->co_code.size();
         int ARGC = 0;
         do {
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
             if (peek() == TK("]")) break;
             EXPR(); ARGC++;
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
             if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
         } while (match(TK(",")));
-        match_newlines(mode()==SINGLE_MODE);
+        match_newlines(mode()==REPL_MODE);
         consume(TK("]"));
         emit(OP_BUILD_LIST, ARGC);
         return;
@@ -528,7 +528,7 @@ __LISTCOMP:
         co()->co_code[_patch].arg = _body_end;
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
-        match_newlines(mode()==SINGLE_MODE);
+        match_newlines(mode()==REPL_MODE);
         
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
         int _cond_start = co()->co_code.size();
@@ -559,7 +559,7 @@ __LISTCOMP:
 
         emit(OP_LOOP_CONTINUE, -1, true);
         co()->_exit_block();
-        match_newlines(mode()==SINGLE_MODE);
+        match_newlines(mode()==REPL_MODE);
         consume(TK("]"));
     }
 
@@ -567,7 +567,7 @@ __LISTCOMP:
         bool parsing_dict = false;
         int size = 0;
         do {
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
             if (peek() == TK("}")) break;
             EXPR();
             if(peek() == TK(":")) parsing_dict = true;
@@ -576,7 +576,7 @@ __LISTCOMP:
                 EXPR();
             }
             size++;
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK("}"));
 
@@ -588,7 +588,7 @@ __LISTCOMP:
         int ARGC = 0;
         int KWARGC = 0;
         do {
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
             if (peek() == TK(")")) break;
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
@@ -602,7 +602,7 @@ __LISTCOMP:
                 EXPR();
                 ARGC++;
             }
-            match_newlines(mode()==SINGLE_MODE);
+            match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
         emit(OP_CALL, (KWARGC << 16) | ARGC);
@@ -654,7 +654,7 @@ __LISTCOMP:
     }
 
     void exprValue() {
-        _TokenType op = parser->prev.type;
+        TokenIndex op = parser->prev.type;
         switch (op) {
             case TK("None"):    emit(OP_LOAD_NONE);  break;
             case TK("True"):    emit(OP_LOAD_TRUE);  break;
@@ -682,7 +682,7 @@ __LISTCOMP:
     void compile_block_body(CompilerAction action=nullptr) {
         if(action == nullptr) action = &Compiler::compile_stmt;
         consume(TK(":"));
-        if(!match_newlines(mode()==SINGLE_MODE)){
+        if(!match_newlines(mode()==REPL_MODE)){
             SyntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
@@ -744,7 +744,7 @@ __LISTCOMP:
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lex_token();
-            _TokenType op = parser->prev.type;
+            TokenIndex op = parser->prev.type;
             GrammarFn infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
@@ -914,7 +914,7 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->co_code.back().op;
             if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF){
-                if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
+                if(mode()==REPL_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
         }

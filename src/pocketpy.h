@@ -82,7 +82,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
     _vm->bind_builtin_func<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
-    _vm->bind_builtin_func<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::noArg())));
+    _vm->bind_builtin_func<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::no_arg())));
 
     _vm->bind_builtin_func<1>("chr", [](VM* vm, const pkpy::Args& args) {
         i64 i = vm->PyInt_AS_C(args[0]);

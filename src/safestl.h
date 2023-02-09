@@ -36,43 +36,43 @@ typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
 
 namespace pkpy {
     const int kMaxPoolSize = 10;
-    static thread_local std::vector<PyVar*>* _poolArgs = new std::vector<PyVar*>[kMaxPoolSize];
+    static thread_local std::vector<PyVar*>* _args_pool = new std::vector<PyVar*>[kMaxPoolSize];
 
     class Args {
         PyVar* _args;
         int _size;
 
-        void __tryAlloc(size_t n){
+        void _alloc(int n){
             if(n == 0){
                 this->_args = nullptr;
                 this->_size = 0;
                 return;
             }
-            if(n >= kMaxPoolSize || _poolArgs[n].empty()){
+            if(n >= kMaxPoolSize || _args_pool[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
             }else{
-                this->_args = _poolArgs[n].back();
+                this->_args = _args_pool[n].back();
                 this->_size = n;
-                _poolArgs[n].pop_back();
+                _args_pool[n].pop_back();
             }
         }
 
-        void __tryRelease(){
+        void _release(){
             if(_size == 0 || _args == nullptr) return;
-            if(_size >= kMaxPoolSize || _poolArgs[_size].size() > 32){
+            if(_size >= kMaxPoolSize || _args_pool[_size].size() > 32){
                 delete[] _args;
             }else{
                 for(int i = 0; i < _size; i++) _args[i].reset();
-                _poolArgs[_size].push_back(_args);
+                _args_pool[_size].push_back(_args);
             }
         }
 
     public:
-        Args(size_t n){ __tryAlloc(n); }
+        Args(int n){ _alloc(n); }
 
         Args(const Args& other){
-            __tryAlloc(other._size);
+            _alloc(other._size);
             for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
@@ -84,7 +84,7 @@ namespace pkpy {
         }
 
         Args(PyVarList&& other) noexcept {
-            __tryAlloc(other.size());
+            _alloc(other.size());
             for(int i=0; i<_size; i++) _args[i] = std::move(other[i]);
             other.clear();
         }
@@ -93,7 +93,7 @@ namespace pkpy {
         const PyVar& operator[](int i) const { return _args[i]; }
 
         Args& operator=(Args&& other) noexcept {
-            __tryRelease();
+            _release();
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
@@ -103,7 +103,7 @@ namespace pkpy {
 
         inline int size() const { return _size; }
 
-        PyVarList toList() const {
+        PyVarList to_list() const {
             PyVarList ret(_size);
             for(int i=0; i<_size; i++) ret[i] = _args[i];
             return ret;
@@ -113,36 +113,36 @@ namespace pkpy {
             static_assert(std::is_standard_layout_v<PyVar>);
             PyVar* old_args = _args;
             int old_size = _size;
-            __tryAlloc(old_size+1);
+            _alloc(old_size+1);
             _args[0] = self;
             if(old_size == 0) return;
 
             memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
             memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            if(old_size >= kMaxPoolSize || _poolArgs[old_size].size() > 32){
+            if(old_size >= kMaxPoolSize || _args_pool[old_size].size() > 32){
                 delete[] old_args;
             }else{
-                _poolArgs[old_size].push_back(old_args);
+                _args_pool[old_size].push_back(old_args);
             }
         }
 
-        ~Args(){ __tryRelease(); }
+        ~Args(){ _release(); }
     };
 
-    const Args& noArg(){
+    const Args& no_arg(){
         static const Args ret(0);
         return ret;
     }
 
     template<typename T>
-    Args oneArg(T&& a) {
+    Args one_arg(T&& a) {
         Args ret(1);
         ret[0] = std::forward<T>(a);
         return ret;
     }
 
     template<typename T1, typename T2>
-    Args twoArgs(T1&& a, T2&& b) {
+    Args two_args(T1&& a, T2&& b) {
         Args ret(2);
         ret[0] = std::forward<T1>(a);
         ret[1] = std::forward<T2>(b);
