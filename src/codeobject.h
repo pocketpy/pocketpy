@@ -39,8 +39,8 @@ enum CodeBlockType {
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
-    int start;          // start index of this block in co_code, inclusive
-    int end;            // end index of this block in co_code, exclusive
+    int start;          // start index of this block in codes, inclusive
+    int end;            // end index of this block in codes, exclusive
 
     std::string to_string() const {
         if(parent == -1) return "";
@@ -57,7 +57,7 @@ struct CodeObject {
         this->name = name;
     }
 
-    std::vector<Bytecode> co_code;
+    std::vector<Bytecode> codes;
     PyVarList consts;
     std::vector<std::pair<_Str, NameScope>> names;
     emhash8::HashMap<_Str, int> global_names;
@@ -66,7 +66,7 @@ struct CodeObject {
 
     bool add_label(const _Str& label){
         if(labels.contains(label)) return false;
-        labels[label] = co_code.size();
+        labels[label] = codes.size();
         return true;
     }
 
@@ -86,10 +86,10 @@ struct CodeObject {
     }
 
     void optimize_level_1(){
-        for(int i=0; i<co_code.size(); i++){
-            if(co_code[i].op >= OP_BINARY_OP && co_code[i].op <= OP_CONTAINS_OP){
+        for(int i=0; i<codes.size(); i++){
+            if(codes[i].op >= OP_BINARY_OP && codes[i].op <= OP_CONTAINS_OP){
                 for(int j=0; j<2; j++){
-                    Bytecode& bc = co_code[i-j-1];
+                    Bytecode& bc = codes[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -98,12 +98,12 @@ struct CodeObject {
                         break;
                     }
                 }
-            }else if(co_code[i].op == OP_CALL){
-                int ARGC = co_code[i].arg & 0xFFFF;
-                int KWARGC = (co_code[i].arg >> 16) & 0xFFFF;
+            }else if(codes[i].op == OP_CALL){
+                int ARGC = codes[i].arg & 0xFFFF;
+                int KWARGC = (codes[i].arg >> 16) & 0xFFFF;
                 if(KWARGC != 0) continue;
                 for(int j=0; j<ARGC+1; j++){
-                    Bytecode& bc = co_code[i-j-1];
+                    Bytecode& bc = codes[i-j-1];
                     if(bc.op >= OP_LOAD_CONST && bc.op <= OP_LOAD_NAME_REF){
                         if(bc.op == OP_LOAD_NAME_REF){
                             bc.op = OP_LOAD_NAME;
@@ -127,12 +127,12 @@ struct CodeObject {
     }
 
     void _enter_block(CodeBlockType type){
-        blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
+        blocks.push_back(CodeBlock{type, _curr_block_i, (int)codes.size()});
         _curr_block_i = blocks.size()-1;
     }
 
     void _exit_block(){
-        blocks[_curr_block_i].end = co_code.size();
+        blocks[_curr_block_i].end = codes.size();
         _curr_block_i = blocks[_curr_block_i].parent;
         if(_curr_block_i < 0) UNREACHABLE();
     }
@@ -160,11 +160,11 @@ struct Frame {
     inline const Bytecode& next_bytecode() {
         _ip = _next_ip;
         _next_ip = _ip + 1;
-        return co->co_code[_ip];
+        return co->codes[_ip];
     }
 
     _Str snapshot(){
-        int line = co->co_code[_ip].line;
+        int line = co->codes[_ip].line;
         return co->src->snapshot(line);
     }
 
@@ -180,7 +180,7 @@ struct Frame {
     }
 
     inline bool has_next_bytecode() const {
-        return _next_ip < co->co_code.size();
+        return _next_ip < co->codes.size();
     }
 
     inline PyVar pop(){
@@ -229,7 +229,7 @@ struct Frame {
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline void on_try_block_enter(){
-        s_try_block.push(std::make_pair(co->co_code[_ip].block, _data));
+        s_try_block.push(std::make_pair(co->codes[_ip].block, _data));
     }
 
     inline void on_try_block_exit(){
@@ -248,16 +248,16 @@ struct Frame {
     }
 
     void jump_abs_safe(int target){
-        const Bytecode& prev = co->co_code[_ip];
+        const Bytecode& prev = co->codes[_ip];
         int i = prev.block;
         _next_ip = target;
-        if(_next_ip >= co->co_code.size()){
+        if(_next_ip >= co->codes.size()){
             while(i>=0){
                 if(co->blocks[i].type == FOR_LOOP) pop();
                 i = co->blocks[i].parent;
             }
         }else{
-            const Bytecode& next = co->co_code[target];
+            const Bytecode& next = co->codes[target];
             while(i>=0 && i!=next.block){
                 if(co->blocks[i].type == FOR_LOOP) pop();
                 i = co->blocks[i].parent;

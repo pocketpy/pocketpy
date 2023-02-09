@@ -507,7 +507,7 @@ private:
 
     void exprList() {
         int _patch = emit(OP_NO_OP);
-        int _body_start = co()->co_code.size();
+        int _body_start = co()->codes.size();
         int ARGC = 0;
         do {
             match_newlines(mode()==REPL_MODE);
@@ -523,15 +523,15 @@ private:
 
 __LISTCOMP:
         int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
-        int _body_end = co()->co_code.size();
-        co()->co_code[_patch].op = OP_JUMP_ABSOLUTE;
-        co()->co_code[_patch].arg = _body_end;
+        int _body_end = co()->codes.size();
+        co()->codes[_patch].op = OP_JUMP_ABSOLUTE;
+        co()->codes[_patch].arg = _body_end;
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         match_newlines(mode()==REPL_MODE);
         
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
-        int _cond_start = co()->co_code.size();
+        int _cond_start = co()->codes.size();
         int _cond_end_return = -1;
         if(match(TK("if"))) {
             EXPR_TUPLE();
@@ -666,17 +666,17 @@ __LISTCOMP:
 
     int emit(Opcode opcode, int arg=-1, bool keepline=false) {
         int line = parser->prev.line;
-        co()->co_code.push_back(
+        co()->codes.push_back(
             Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_curr_block_i}
         );
-        int i = co()->co_code.size() - 1;
-        if(keepline && i>=1) co()->co_code[i].line = co()->co_code[i-1].line;
+        int i = co()->codes.size() - 1;
+        if(keepline && i>=1) co()->codes[i].line = co()->codes[i-1].line;
         return i;
     }
 
     inline void patch_jump(int addr_index) {
-        int target = co()->co_code.size();
-        co()->co_code[addr_index].arg = target;
+        int target = co()->codes.size();
+        co()->codes[addr_index].arg = target;
     }
 
     void compile_block_body(CompilerAction action=nullptr) {
@@ -912,7 +912,7 @@ __LISTCOMP:
             EXPR_ANY();
             consume_end_stmt();
             // If last op is not an assignment, pop the result.
-            uint8_t last_op = co()->co_code.back().op;
+            uint8_t last_op = co()->codes.back().op;
             if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF){
                 if(mode()==REPL_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);

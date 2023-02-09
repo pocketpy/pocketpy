@@ -113,7 +113,7 @@ class VM {
                     PyVar clsBase = frame->pop_value(this);
                     if(clsBase == None) clsBase = _tp_object;
                     check_type(clsBase, _tp_type);
-                    PyVar cls = new_user_type_object(frame->_module, clsName, clsBase);
+                    PyVar cls = new_type_object(frame->_module, clsName, clsBase);
                     while(true){
                         PyVar fn = frame->pop_value(this);
                         if(fn == None) break;
@@ -507,7 +507,7 @@ public:
             PyVar* it_m = (*callable)->attribs.try_get(__module__);
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
-                __new_frame(fn->code, _module, _locals);
+                _new_frame(fn->code, _module, _locals);
                 return _py_op_call;
             }
             return _exec(fn->code, _module, _locals);
@@ -535,7 +535,7 @@ public:
     }
 
     template<typename ...Args>
-    Frame* __new_frame(Args&&... args){
+    Frame* _new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
@@ -545,7 +545,7 @@ public:
 
     template<typename ...Args>
     PyVar _exec(Args&&... args){
-        Frame* frame = __new_frame(std::forward<Args>(args)...);
+        Frame* frame = _new_frame(std::forward<Args>(args)...);
         i64 base_id = frame->id;
         PyVar ret = nullptr;
         bool need_raise = false;
@@ -586,7 +586,7 @@ public:
         }
     }
 
-    PyVar new_user_type_object(PyVar mod, _Str name, PyVar base){
+    PyVar new_type_object(PyVar mod, _Str name, PyVar base){
         if(!base->is_type(_tp_type)) UNREACHABLE();
         PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
@@ -597,7 +597,7 @@ public:
         return obj;
     }
 
-    PyVar new_type_object(_Str name, PyVar base=nullptr) {
+    PyVar _new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
         PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
@@ -706,7 +706,7 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        TypeError("expected int or float, got " + OBJ_TP_NAME(obj));
+        TypeError("expected 'int' or 'float', got " + OBJ_TP_NAME(obj).escape(true));
         return 0;
     }
 
@@ -728,19 +728,19 @@ public:
         return index;
     }
 
-    _Str disassemble(_Code code){
+    _Str disassemble(_Code co){
         std::vector<int> jumpTargets;
-        for(auto byte : code->co_code){
+        for(auto byte : co->codes){
             if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
                 jumpTargets.push_back(byte.arg);
             }
         }
         _StrStream ss;
         ss << std::string(54, '-') << '\n';
-        ss << code->name << ":\n";
+        ss << co->name << ":\n";
         int prev_line = -1;
-        for(int i=0; i<code->co_code.size(); i++){
-            const Bytecode& byte = code->co_code[i];
+        for(int i=0; i<co->codes.size(); i++){
+            const Bytecode& byte = co->codes[i];
             _Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -759,30 +759,30 @@ public:
             // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
             std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
             if(byte.op == OP_LOAD_CONST){
-                argStr += " (" + PyStr_AS_C(asRepr(code->consts[byte.arg])) + ")";
+                argStr += " (" + PyStr_AS_C(asRepr(co->consts[byte.arg])) + ")";
             }
             if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
-                argStr += " (" + code->names[byte.arg].first.escape(true) + ")";
+                argStr += " (" + co->names[byte.arg].first.escape(true) + ")";
             }
             ss << pad(argStr, 20);      // may overflow
-            ss << code->blocks[byte.block].to_string();
-            if(i != code->co_code.size() - 1) ss << '\n';
+            ss << co->blocks[byte.block].to_string();
+            if(i != co->codes.size() - 1) ss << '\n';
         }
         _StrStream consts;
-        consts << "consts: ";
-        consts << PyStr_AS_C(asRepr(PyList(code->consts)));
+        consts << "co_consts: ";
+        consts << PyStr_AS_C(asRepr(PyList(co->consts)));
 
         _StrStream names;
-        names << "names: ";
+        names << "co_names: ";
         PyVarList list;
-        for(int i=0; i<code->names.size(); i++){
-            list.push_back(PyStr(code->names[i].first));
+        for(int i=0; i<co->names.size(); i++){
+            list.push_back(PyStr(co->names[i].first));
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
-        for(int i=0; i<code->consts.size(); i++){
-            PyVar obj = code->consts[i];
+        for(int i=0; i<co->consts.size(); i++){
+            PyVar obj = co->consts[i];
             if(obj->is_type(_tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
                 ss << disassemble(f->code);
@@ -838,31 +838,31 @@ public:
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
-        _tp_bool = new_type_object("bool");
-        _tp_int = new_type_object("int");
-        _tp_float = new_type_object("float");
-        _tp_str = new_type_object("str");
-        _tp_list = new_type_object("list");
-        _tp_tuple = new_type_object("tuple");
-        _tp_slice = new_type_object("slice");
-        _tp_range = new_type_object("range");
-        _tp_module = new_type_object("module");
-        _tp_ref = new_type_object("_ref");
+        _tp_bool = _new_type_object("bool");
+        _tp_int = _new_type_object("int");
+        _tp_float = _new_type_object("float");
+        _tp_str = _new_type_object("str");
+        _tp_list = _new_type_object("list");
+        _tp_tuple = _new_type_object("tuple");
+        _tp_slice = _new_type_object("slice");
+        _tp_range = _new_type_object("range");
+        _tp_module = _new_type_object("module");
+        _tp_ref = _new_type_object("_ref");
         
-        _tp_function = new_type_object("function");
-        _tp_native_function = new_type_object("native_function");
-        _tp_native_iterator = new_type_object("native_iterator");
-        _tp_bound_method = new_type_object("bound_method");
-        _tp_super = new_type_object("super");
-        _tp_exception = new_type_object("Exception");
+        _tp_function = _new_type_object("function");
+        _tp_native_function = _new_type_object("native_function");
+        _tp_native_iterator = _new_type_object("native_iterator");
+        _tp_bound_method = _new_type_object("bound_method");
+        _tp_super = _new_type_object("super");
+        _tp_exception = _new_type_object("Exception");
 
-        this->None = new_object(new_type_object("NoneType"), DUMMY_VAL);
-        this->Ellipsis = new_object(new_type_object("ellipsis"), DUMMY_VAL);
+        this->None = new_object(_new_type_object("NoneType"), DUMMY_VAL);
+        this->Ellipsis = new_object(_new_type_object("ellipsis"), DUMMY_VAL);
         this->True = new_object(_tp_bool, true);
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
-        this->_py_op_call = new_object(new_type_object("_internal"), DUMMY_VAL);
+        this->_py_op_call = new_object(_new_type_object("_internal"), DUMMY_VAL);
 
         setattr(_tp_type, __base__, _tp_object);
         _tp_type->type = _tp_type;
@@ -939,7 +939,7 @@ public:
 
     template<typename T>
     PyVar register_class(PyVar mod){
-        PyVar type = new_user_type_object(mod, T::_name(), _tp_object);
+        PyVar type = new_type_object(mod, T::_name(), _tp_object);
         if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
         T::_register(this, mod, type);
         return type;
