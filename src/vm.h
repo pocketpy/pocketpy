@@ -583,7 +583,7 @@ public:
 
     PyVar new_type_object(PyVar mod, _Str name, PyVar base){
         if(!base->is_type(_tp_type)) UNREACHABLE();
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _Str fullName = name;
         if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
@@ -594,7 +594,7 @@ public:
 
     PyVar _new_type_object(_Str name, PyVar base=nullptr) {
         if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<i64>>(_tp_type, DUMMY_VAL);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(_tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -830,8 +830,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void init_builtin_types(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
-        _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
+        _tp_object = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
+        _tp_type = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 

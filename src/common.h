@@ -35,8 +35,11 @@
 
 typedef int64_t i64;
 typedef double f64;
-#define DUMMY_VAL (char)1
-#define DUMMY_VAL_TP char
+
+struct Dummy { char _; };
+
+#define DUMMY_VAL Dummy()
+#define DUMMY_VAL_TP Dummy
 
 template<typename T>
 void* tid() {
