@@ -22,16 +22,14 @@ public:
     }
 };
 
-class VectorIter : public BaseIter {
+template <typename T>
+class ArrayIter : public BaseIter {
     size_t index = 0;
-    const PyVarList* vec;
+    const T* p;
 public:
-    VectorIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        vec = &OBJ_GET(PyVarList, _ref);
-    }
-
-    bool hasNext(){ return index < vec->size(); }
-    PyVar next(){ return vec->operator[](index++); }
+    ArrayIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) { p = &OBJ_GET(T, _ref);}
+    bool hasNext(){ return index < p->size(); }
+    PyVar next(){ return p->operator[](index++); }
 };
 
 class StringIter : public BaseIter {

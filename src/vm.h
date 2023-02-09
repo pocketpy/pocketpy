@@ -20,14 +20,14 @@
 
 
 class VM {
-    std::vector<PyVar> _small_integers;             // [-5, 256]
+    // std::vector<PyVar> _small_integers;             // [-5, 256]
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
-    
+
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
-            // if(frame->_module != builtins){
+            // if(true || frame->_module != builtins){
             //     printf("%d: %s (%d) %s\n", frame->_ip, OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
             // }
             switch (byte.op)
@@ -46,11 +46,11 @@ class VM {
                 frame->push(NameRef(frame->co->names[byte.arg]).get(this, frame));
             } break;
             case OP_STORE_NAME: {
-                const auto& p = frame->co->names[byte.arg];
+                auto& p = frame->co->names[byte.arg];
                 NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
             case OP_BUILD_ATTR_REF: {
-                const auto& attr = frame->co->names[byte.arg];
+                auto& attr = frame->co->names[byte.arg];
                 PyVar obj = frame->pop_value(this);
                 frame->push(PyRef(AttrRef(obj, NameRef(attr))));
             } break;
@@ -75,14 +75,13 @@ class VM {
                 for(int i=0; i<items.size(); i++){
                     if(!items[i]->is_type(_tp_ref)) {
                         done = true;
-                        PyVarList values = items.to_list();
-                        for(int j=i; j<values.size(); j++) frame->try_deref(this, values[j]);
-                        frame->push(PyTuple(values));
+                        for(int j=i; j<items.size(); j++) frame->try_deref(this, items[j]);
+                        frame->push(PyTuple(std::move(items)));
                         break;
                     }
                 }
                 if(done) break;
-                frame->push(PyRef(TupleRef(items.to_list())));
+                frame->push(PyRef(TupleRef(std::move(items))));
             } break;
             case OP_BUILD_STRING:
             {
@@ -364,10 +363,9 @@ public:
             this->_stdout = new _StrStream();
             this->_stderr = new _StrStream();
         }
-        initializeBuiltinClasses();
 
-        _small_integers.reserve(270);
-        for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
+        init_builtin_types();
+        // for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
     }
 
     PyVar asStr(const PyVar& obj){
@@ -473,8 +471,7 @@ public:
 
             std::vector<_Str> positional_overrided_keys;
             if(!fn->starredArg.empty()){
-                // handle *args
-                PyVarList vargs;
+                PyVarList vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
                 locals.emplace(fn->starredArg, PyTuple(std::move(vargs)));
             }else{
@@ -608,7 +605,14 @@ public:
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(_tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
+        std::vector<int*>& pool = _obj_pool[obj_tid<T>((void*)type.get())];
+        if(pool.empty()) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
+        int* counter = pool.back(); pool.pop_back();
+        *counter = 1;
+        Py_<T>* obj = (Py_<T>*)(counter + 1);
+        obj->_value = std::move(_value);
+        obj->attribs.clear();
+        return PyVar(counter);
     }
 
     template<typename T, typename... Args>
@@ -810,16 +814,11 @@ public:
         return (const BaseRef*)(obj->value());
     }
 
-    __DEF_PY_AS_C(Int, i64, _tp_int)
-    inline PyVar PyInt(i64 value) { 
-        if(value >= -5 && value <= 256) return _small_integers[value + 5];
-        return new_object(_tp_int, value);
-    }
-
+    DEF_NATIVE(Int, i64, _tp_int)
     DEF_NATIVE(Float, f64, _tp_float)
     DEF_NATIVE(Str, _Str, _tp_str)
     DEF_NATIVE(List, PyVarList, _tp_list)
-    DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
+    DEF_NATIVE(Tuple, _Tuple, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
     DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, _tp_native_iterator)
@@ -832,7 +831,7 @@ public:
     inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
-    void initializeBuiltinClasses(){
+    void init_builtin_types(){
         _tp_object = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
         _tp_type = pkpy::make_shared<PyObject, Py_<i64>>(nullptr, DUMMY_VAL);
         _types["object"] = _tp_object;
@@ -890,8 +889,9 @@ public:
         if (obj->is_type(_tp_type)) return (i64)obj.get();
         if (obj->is_type(_tp_tuple)) {
             i64 x = 1000003;
-            for (const auto& item : PyTuple_AS_C(obj)) {
-                i64 y = hash(item);
+            const _Tuple& items = PyTuple_AS_C(obj);
+            for (int i=0; i<items.size(); i++) {
+                i64 y = hash(items[i]);
                 x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
             }
             return x;
@@ -964,26 +964,26 @@ public:
 /***** Pointers' Impl *****/
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
-    val = frame->f_locals().try_get(pair->first);
+    val = frame->f_locals().try_get(name());
     if(val) return *val;
-    val = frame->f_globals().try_get(pair->first);
+    val = frame->f_globals().try_get(name());
     if(val) return *val;
-    val = vm->builtins->attribs.try_get(pair->first);
+    val = vm->builtins->attribs.try_get(name());
     if(val) return *val;
-    vm->NameError(pair->first);
+    vm->NameError(name());
     return nullptr;
 }
 
 void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
-    switch(pair->second) {
-        case NAME_LOCAL: frame->f_locals()[pair->first] = std::move(val); break;
+    switch(scope()) {
+        case NAME_LOCAL: frame->f_locals()[name()] = std::move(val); break;
         case NAME_GLOBAL:
         {
-            PyVar* existing = frame->f_locals().try_get(pair->first);
+            PyVar* existing = frame->f_locals().try_get(name());
             if(existing != nullptr){
                 *existing = std::move(val);
             }else{
-                frame->f_globals()[pair->first] = std::move(val);
+                frame->f_globals()[name()] = std::move(val);
             }
         } break;
         default: UNREACHABLE();
@@ -991,23 +991,23 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void NameRef::del(VM* vm, Frame* frame) const{
-    switch(pair->second) {
+    switch(scope()) {
         case NAME_LOCAL: {
-            if(frame->f_locals().contains(pair->first)){
-                frame->f_locals().erase(pair->first);
+            if(frame->f_locals().contains(name())){
+                frame->f_locals().erase(name());
             }else{
-                vm->NameError(pair->first);
+                vm->NameError(name());
             }
         } break;
         case NAME_GLOBAL:
         {
-            if(frame->f_locals().contains(pair->first)){
-                frame->f_locals().erase(pair->first);
+            if(frame->f_locals().contains(name())){
+                frame->f_locals().erase(name());
             }else{
-                if(frame->f_globals().contains(pair->first)){
-                    frame->f_globals().erase(pair->first);
+                if(frame->f_globals().contains(name())){
+                    frame->f_globals().erase(name());
                 }else{
-                    vm->NameError(pair->first);
+                    vm->NameError(name());
                 }
             }
         } break;
@@ -1016,11 +1016,11 @@ void NameRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar AttrRef::get(VM* vm, Frame* frame) const{
-    return vm->getattr(obj, attr.pair->first);
+    return vm->getattr(obj, attr.name());
 }
 
 void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->setattr(obj, attr.pair->first, val);
+    vm->setattr(obj, attr.name(), val);
 }
 
 void AttrRef::del(VM* vm, Frame* frame) const{
@@ -1040,27 +1040,33 @@ void IndexRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar TupleRef::get(VM* vm, Frame* frame) const{
-    PyVarList args(varRefs.size());
-    for (int i = 0; i < varRefs.size(); i++) {
-        args[i] = vm->PyRef_AS_C(varRefs[i])->get(vm, frame);
+    _Tuple args(objs.size());
+    for (int i = 0; i < objs.size(); i++) {
+        args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
     }
-    return vm->PyTuple(args);
+    return vm->PyTuple(std::move(args));
 }
 
 void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
-    if(!val->is_type(vm->_tp_tuple) && !val->is_type(vm->_tp_list)){
+#define TUPLE_REF_SET() \
+    if(args.size() > objs.size()) vm->ValueError("too many values to unpack");       \
+    if(args.size() < objs.size()) vm->ValueError("not enough values to unpack");     \
+    for (int i = 0; i < objs.size(); i++) vm->PyRef_AS_C(objs[i])->set(vm, frame, args[i]);
+
+    if(val->is_type(vm->_tp_tuple)){
+        const _Tuple& args = OBJ_GET(_Tuple, val);
+        TUPLE_REF_SET()
+    }else if(val->is_type(vm->_tp_list)){
+        const PyVarList& args = OBJ_GET(PyVarList, val);
+        TUPLE_REF_SET()
+    }else{
         vm->TypeError("only tuple or list can be unpacked");
     }
-    const PyVarList& args = OBJ_GET(PyVarList, val);
-    if(args.size() > varRefs.size()) vm->ValueError("too many values to unpack");
-    if(args.size() < varRefs.size()) vm->ValueError("not enough values to unpack");
-    for (int i = 0; i < varRefs.size(); i++) {
-        vm->PyRef_AS_C(varRefs[i])->set(vm, frame, args[i]);
-    }
+#undef TUPLE_REF_SET
 }
 
 void TupleRef::del(VM* vm, Frame* frame) const{
-    for (auto& r : varRefs) vm->PyRef_AS_C(r)->del(vm, frame);
+    for(int i=0; i<objs.size(); i++) vm->PyRef_AS_C(objs[i])->del(vm, frame);
 }
 
 /***** Frame's Impl *****/

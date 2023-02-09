@@ -17,8 +17,10 @@ enum NameScope {
 };
 
 struct NameRef : BaseRef {
-    const std::pair<_Str, NameScope>* pair;
-    NameRef(const std::pair<_Str, NameScope>& pair) : pair(&pair) {}
+    std::pair<_Str, NameScope>* _pair;
+    inline const _Str& name() const { return _pair->first; }
+    inline NameScope scope() const { return _pair->second; }
+    NameRef(std::pair<_Str, NameScope>& pair) : _pair(&pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -27,8 +29,8 @@ struct NameRef : BaseRef {
 
 struct AttrRef : BaseRef {
     mutable PyVar obj;
-    const NameRef attr;
-    AttrRef(PyVar obj, const NameRef attr) : obj(obj), attr(attr) {}
+    NameRef attr;
+    AttrRef(PyVar obj, NameRef attr) : obj(obj), attr(attr) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -46,9 +48,8 @@ struct IndexRef : BaseRef {
 };
 
 struct TupleRef : BaseRef {
-    PyVarList varRefs;
-    TupleRef(const PyVarList& varRefs) : varRefs(varRefs) {}
-    TupleRef(PyVarList&& varRefs) : varRefs(std::move(varRefs)) {}
+    _Tuple objs;
+    TupleRef(_Tuple&& objs) : objs(std::move(objs)) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

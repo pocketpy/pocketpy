@@ -58,7 +58,7 @@ namespace pkpy {
             }
         }
 
-        void _release(){
+        void _free(){
             if(_size == 0 || _args == nullptr) return;
             if(_size >= kMaxPoolSize || _args_pool[_size].size() > 32){
                 delete[] _args;
@@ -74,6 +74,12 @@ namespace pkpy {
         Args(const Args& other){
             _alloc(other._size);
             for(int i=0; i<_size; i++) _args[i] = other._args[i];
+        }
+
+        Args(std::initializer_list<PyVar> a){
+            _alloc(a.size());
+            int i = 0;
+            for(auto& v: a) _args[i++] = v;
         }
 
         Args(Args&& other) noexcept {
@@ -93,7 +99,7 @@ namespace pkpy {
         const PyVar& operator[](int i) const { return _args[i]; }
 
         Args& operator=(Args&& other) noexcept {
-            _release();
+            _free();
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
@@ -126,7 +132,7 @@ namespace pkpy {
             }
         }
 
-        ~Args(){ _release(); }
+        ~Args(){ _free(); }
     };
 
     const Args& no_arg(){
@@ -149,3 +155,5 @@ namespace pkpy {
         return ret;
     }
 }
+
+typedef pkpy::Args _Tuple;

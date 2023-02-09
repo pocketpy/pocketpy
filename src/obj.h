@@ -78,7 +78,8 @@ struct PyObject {
     PyVarDict attribs;
 
     inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
-    inline virtual void* value() = 0;
+    virtual void* value() = 0;
+    virtual void* type_id() = 0;
 
     PyObject(const PyVar& type) : type(type) {}
     virtual ~PyObject() = default;
@@ -89,7 +90,8 @@ struct Py_ : PyObject {
     T _value;
 
     Py_(const PyVar& type, T val) : PyObject(type), _value(val) {}
-    virtual void* value() override { return &_value; }
+    void* value() override { return &_value; }
+    void* type_id() override { return obj_tid<T>((void*)type.get()); }
 };
 
 // Unsafe cast from PyObject to C++ type
@@ -103,3 +105,23 @@ struct Py_ : PyObject {
     inline static const char* _name() { return #name; }
 
 #define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->_tp_##name; }
+
+
+// memory pool _tp -> [obj1, obj2, ...]
+static thread_local emhash8::HashMap<void*, std::vector<int*>> _obj_pool;
+
+namespace pkpy {
+    template<>
+    struct sp_deleter<PyObject> {
+        inline static void call(int* counter) {
+            PyObject* obj = (PyObject*)(counter + 1);
+            std::vector<int*>& pool = _obj_pool[obj->type_id()];
+            if(pool.size() > 100){
+                obj->~PyObject();
+                free(counter);
+            }else{
+                pool.push_back(counter);
+            }
+        }
+    };
+}

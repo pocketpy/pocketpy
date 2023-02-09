@@ -3,17 +3,25 @@
 #include "common.h"
 
 namespace pkpy{
+    template<typename T>
+    struct sp_deleter {
+        inline static void call(int* counter){
+            ((T*)(counter + 1))->~T();
+            free(counter);
+        }
+    };
+
     template <typename T>
     class shared_ptr {
         int* counter = nullptr;
 
 #define _t() ((T*)(counter + 1))
 #define _inc_counter() if(counter) ++(*counter)
-#define _dec_counter() if(counter && --(*counter) == 0){ _t()->~T(); free(counter); }
+#define _dec_counter() if(counter && --(*counter) == 0){ pkpy::sp_deleter<T>::call(counter); }
 
     public:
         shared_ptr() {}
-        shared_ptr(int* block) : counter(block) {}
+        shared_ptr(int* counter) : counter(counter) {}
         shared_ptr(const shared_ptr& other) : counter(other.counter) {
             _inc_counter();
         }

@@ -117,8 +117,10 @@ public:
 
     _Str& operator=(const _Str& s){
         this->std::string::operator=(s);
-        if(_u8_index != nullptr) delete _u8_index;
-        this->_u8_index = s._u8_index;
+        if(_u8_index != nullptr){
+            delete _u8_index;
+            _u8_index = new std::vector<uint16_t>(*s._u8_index);
+        }
         this->hash_initialized = s.hash_initialized;
         this->_hash = s._hash;
         return *this;
@@ -128,6 +130,7 @@ public:
         this->std::string::operator=(std::move(s));
         if(_u8_index != nullptr) delete _u8_index;
         this->_u8_index = s._u8_index;
+        s._u8_index = nullptr;
         this->hash_initialized = s.hash_initialized;
         this->_hash = s._hash;
         return *this;
