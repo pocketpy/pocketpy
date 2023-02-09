@@ -3,20 +3,14 @@
 #include "codeobject.h"
 #include "error.h"
 
-#define __DEF_PY_AS_C(type, ctype, ptype)                       \
-    inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
-        check_type(obj, ptype);                                \
-        return OBJ_GET(ctype, obj);                           \
-    }
-
-#define __DEF_PY(type, ctype, ptype)                            \
-    inline PyVar Py##type(ctype value) {                        \
-        return new_object(ptype, value);                         \
-    }
-
 #define DEF_NATIVE(type, ctype, ptype)                          \
-    __DEF_PY(type, ctype, ptype)                                \
-    __DEF_PY_AS_C(type, ctype, ptype)
+    inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
+        check_type(obj, ptype);                                 \
+        return OBJ_GET(ctype, obj);                             \
+    }                                                           \
+    inline PyVar Py##type(ctype value) {                        \
+        return new_object(ptype, value);                        \
+    }
 
 
 class VM {
@@ -55,8 +49,7 @@ class VM {
             } break;
             case OP_BUILD_INDEX_REF: {
                 PyVar index = frame->pop_value(this);
-                PyVarRef obj = frame->pop_value(this);
-                frame->push(PyRef(IndexRef(obj, index)));
+                frame->push(PyRef(IndexRef(frame->pop_value(this), index)));
             } break;
             case OP_STORE_REF: {
                 PyVar obj = frame->pop_value(this);
