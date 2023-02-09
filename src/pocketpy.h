@@ -7,7 +7,7 @@
 _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
-        return compiler.__fillCode();
+        return compiler.compile();
     }catch(_Exception& e){
         _error(e);
         return nullptr;

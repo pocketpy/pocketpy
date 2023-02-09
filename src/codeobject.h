@@ -64,23 +64,6 @@ struct CodeObject {
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     emhash8::HashMap<_Str, int> labels;
 
-    // tmp variables
-    int _curr_block_i = 0;
-    bool __is_curr_block_loop() const {
-        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
-    }
-
-    void __enter_block(CodeBlockType type){
-        blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
-        _curr_block_i = blocks.size()-1;
-    }
-
-    void __exit_block(){
-        blocks[_curr_block_i].end = co_code.size();
-        _curr_block_i = blocks[_curr_block_i].parent;
-        if(_curr_block_i < 0) UNREACHABLE();
-    }
-
     bool add_label(const _Str& label){
         if(labels.contains(label)) return false;
         labels[label] = co_code.size();
@@ -136,6 +119,24 @@ struct CodeObject {
     void optimize(int level=1){
         optimize_level_1();
     }
+
+    /************************************************/
+    int _curr_block_i = 0;
+    bool _is_curr_block_loop() const {
+        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
+    }
+
+    void _enter_block(CodeBlockType type){
+        blocks.push_back(CodeBlock{type, _curr_block_i, (int)co_code.size()});
+        _curr_block_i = blocks.size()-1;
+    }
+
+    void _exit_block(){
+        blocks[_curr_block_i].end = co_code.size();
+        _curr_block_i = blocks[_curr_block_i].parent;
+        if(_curr_block_i < 0) UNREACHABLE();
+    }
+    /************************************************/
 };
 
 static thread_local i64 kFrameGlobalId = 0;
@@ -162,7 +163,7 @@ struct Frame {
         return co->co_code[_ip];
     }
 
-    _Str curr_snapshot(){
+    _Str snapshot(){
         int line = co->co_code[_ip].line;
         return co->src->snapshot(line);
     }

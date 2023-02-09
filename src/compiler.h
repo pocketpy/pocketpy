@@ -4,7 +4,7 @@
 #include "error.h"
 #include "vm.h"
 
-struct Compiler;
+class Compiler;
 
 typedef void (Compiler::*GrammarFn)();
 typedef void (Compiler::*CompilerAction)();
@@ -17,17 +17,19 @@ struct GrammarRule{
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
-struct Compiler {
+class Compiler {
     std::unique_ptr<Parser> parser;
     std::stack<_Code> codes;
-    bool isCompilingClass = false;
-    int lexingCnt = 0;
+    bool is_compiling_class = false;
+    int lexing_count = 0;
+    bool used = false;
     VM* vm;
     emhash8::HashMap<_TokenType, GrammarRule> rules;
 
     _Code co() const{ return codes.top(); }
-    CompileMode mode() const{ return parser->src->mode;}
+    CompileMode mode() const{ return parser->src->mode; }
 
+public:
     Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
@@ -91,12 +93,13 @@ struct Compiler {
 #undef METHOD
 #undef NO_INFIX
 
-#define EXPR() parsePrecedence(PREC_TERNARY)             // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parsePrecedence(PREC_COMMA)         // no '=', but ',' is allowed
-#define EXPR_ANY() parsePrecedence(PREC_ASSIGNMENT)
+#define EXPR() parse_expression(PREC_TERNARY)             // no '=' and ',' just a simple expression
+#define EXPR_TUPLE() parse_expression(PREC_COMMA)         // no '=', but ',' is allowed
+#define EXPR_ANY() parse_expression(PREC_ASSIGNMENT)
     }
 
-    _Str eatStringUntil(char quote, bool raw) {
+private:
+    _Str eat_string_until(char quote, bool raw) {
         bool quote3 = parser->match_n_chars(2, quote);
         std::vector<char> buff;
         while (true) {
@@ -138,8 +141,8 @@ struct Compiler {
         return _Str(buff.data(), buff.size());
     }
 
-    void eatString(char quote, StringType type) {
-        _Str s = eatStringUntil(quote, type == RAW_STRING);
+    void eat_string(char quote, StringType type) {
+        _Str s = eat_string_until(quote, type == RAW_STRING);
         if(type == F_STRING){
             parser->set_next_token(TK("@fstr"), vm->PyStr(s));
         }else{
@@ -147,7 +150,7 @@ struct Compiler {
         }
     }
 
-    void eatNumber() {
+    void eat_number() {
         static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?");
         std::smatch m;
 
@@ -157,7 +160,7 @@ struct Compiler {
 
         try{
             if (std::regex_search(s, m, pattern)) {
-                // here is m.length()-1, since the first char was eaten by lexToken()
+                // here is m.length()-1, since the first char was eaten by lex_token()
                 for(int j=0; j<m.length()-1; j++) parser->eatchar();
 
                 int base = 10;
@@ -176,14 +179,14 @@ struct Compiler {
         } 
     }
 
-    void lexToken(){
-        lexingCnt++;
-        _lexToken();
-        lexingCnt--;
+    void lex_token(){
+        lexing_count++;
+        _lex_token();
+        lexing_count--;
     }
 
     // Lex the next token and set it as the next token.
-    void _lexToken() {
+    void _lex_token() {
         parser->prev = parser->curr;
         parser->curr = parser->next_token();
 
@@ -193,7 +196,7 @@ struct Compiler {
             parser->token_start = parser->curr_char;
             char c = parser->eatchar_include_newline();
             switch (c) {
-                case '\'': case '"': eatString(c, NORMAL_STRING); return;
+                case '\'': case '"': eat_string(c, NORMAL_STRING); return;
                 case '#': parser->skip_line_comment(); break;
                 case '{': parser->set_next_token(TK("{")); return;
                 case '}': parser->set_next_token(TK("}")); return;
@@ -268,15 +271,15 @@ struct Compiler {
                 }
                 default: {
                     if(c == 'f'){
-                        if(parser->matchchar('\'')) {eatString('\'', F_STRING); return;}
-                        if(parser->matchchar('"')) {eatString('"', F_STRING); return;}
+                        if(parser->matchchar('\'')) {eat_string('\'', F_STRING); return;}
+                        if(parser->matchchar('"')) {eat_string('"', F_STRING); return;}
                     }else if(c == 'r'){
-                        if(parser->matchchar('\'')) {eatString('\'', RAW_STRING); return;}
-                        if(parser->matchchar('"')) {eatString('"', RAW_STRING); return;}
+                        if(parser->matchchar('\'')) {eat_string('\'', RAW_STRING); return;}
+                        if(parser->matchchar('"')) {eat_string('"', RAW_STRING); return;}
                     }
 
                     if (c >= '0' && c <= '9') {
-                        eatNumber();
+                        eat_number();
                         return;
                     }
                     
@@ -310,7 +313,7 @@ struct Compiler {
 
     bool match(_TokenType expected) {
         if (peek() != expected) return false;
-        lexToken();
+        lex_token();
         return true;
     }
 
@@ -325,24 +328,24 @@ struct Compiler {
     bool match_newlines(bool repl_throw=false) {
         bool consumed = false;
         if (peek() == TK("@eol")) {
-            while (peek() == TK("@eol")) lexToken();
+            while (peek() == TK("@eol")) lex_token();
             consumed = true;
         }
         if (repl_throw && peek() == TK("@eof")){
-            throw NeedMoreLines(isCompilingClass);
+            throw NeedMoreLines(is_compiling_class);
         }
         return consumed;
     }
 
-    bool matchEndStatement() {
+    bool match_end_stmt() {
         if (match(TK(";"))) { match_newlines(); return true; }
         if (match_newlines() || peek()==TK("@eof")) return true;
         if (peek() == TK("@dedent")) return true;
         return false;
     }
 
-    void consumeEndStatement() {
-        if (!matchEndStatement()) syntaxError("expected statement end");
+    void consume_end_stmt() {
+        if (!match_end_stmt()) syntaxError("expected statement end");
     }
 
     void exprLiteral() {
@@ -384,7 +387,7 @@ struct Compiler {
         _Func func = pkpy::make_shared<Function>();
         func->name = "<lambda>";
         if(!match(TK(":"))){
-            __compileFunctionArgs(func, false);
+            _compile_f_args(func, false);
             consume(TK(":"));
         }
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
@@ -431,13 +434,13 @@ struct Compiler {
 
     void exprOr() {
         int patch = emit(OP_JUMP_IF_TRUE_OR_POP);
-        parsePrecedence(PREC_LOGICAL_OR);
+        parse_expression(PREC_LOGICAL_OR);
         patch_jump(patch);
     }
 
     void exprAnd() {
         int patch = emit(OP_JUMP_IF_FALSE_OR_POP);
-        parsePrecedence(PREC_LOGICAL_AND);
+        parse_expression(PREC_LOGICAL_AND);
         patch_jump(patch);
     }
 
@@ -453,7 +456,7 @@ struct Compiler {
 
     void exprBinaryOp() {
         _TokenType op = parser->prev.type;
-        parsePrecedence((Precedence)(rules[op].precedence + 1));
+        parse_expression((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
             case TK("+"):   emit(OP_BINARY_OP, 0);  break;
@@ -486,7 +489,7 @@ struct Compiler {
 
     void exprUnaryOp() {
         _TokenType op = parser->prev.type;
-        parsePrecedence((Precedence)(PREC_UNARY + 1));
+        parse_expression((Precedence)(PREC_UNARY + 1));
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emit(OP_UNARY_NOT);      break;
@@ -537,7 +540,7 @@ __LISTCOMP:
         patch_jump(_skipPatch);
 
         emit(OP_GET_ITER);
-        co()->__enter_block(FOR_LOOP);
+        co()->_enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
 
         if(_cond_end_return != -1) {      // there is an if condition
@@ -555,7 +558,7 @@ __LISTCOMP:
         }
 
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exit_block();
+        co()->_exit_block();
         match_newlines(mode()==SINGLE_MODE);
         consume(TK("]"));
     }
@@ -676,11 +679,8 @@ __LISTCOMP:
         co()->co_code[addr_index].arg = target;
     }
 
-    void compileBlockBody(){
-        __compileBlockBody(&Compiler::compileStatement);
-    }
-    
-    void __compileBlockBody(CompilerAction action) {
+    void compile_block_body(CompilerAction action=nullptr) {
+        if(action == nullptr) action = &Compiler::compile_stmt;
         consume(TK(":"));
         if(!match_newlines(mode()==SINGLE_MODE)){
             syntaxError("expected a new line after ':'");
@@ -694,7 +694,7 @@ __LISTCOMP:
         consume(TK("@dedent"));
     }
 
-    Token compileImportPath() {
+    Token _compile_import() {
         consume(TK("@id"));
         Token tkmodule = parser->prev;
         int index = co()->add_name(tkmodule.str(), NAME_SPECIAL);
@@ -703,9 +703,9 @@ __LISTCOMP:
     }
 
     // import a as b
-    void compileRegularImport() {
+    void compile_normal_import() {
         do {
-            Token tkmodule = compileImportPath();
+            Token tkmodule = _compile_import();
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 tkmodule = parser->prev;
@@ -713,12 +713,12 @@ __LISTCOMP:
             int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
             emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
-        consumeEndStatement();
+        consume_end_stmt();
     }
 
     // from a import b as c, d as e
-    void compileFromImport() {
-        Token tkmodule = compileImportPath();
+    void compile_from_import() {
+        Token tkmodule = _compile_import();
         consume(TK("import"));
         do {
             emit(OP_DUP_TOP);
@@ -734,16 +734,16 @@ __LISTCOMP:
             emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
         emit(OP_POP_TOP);
-        consumeEndStatement();
+        consume_end_stmt();
     }
 
-    void parsePrecedence(Precedence precedence) {
-        lexToken();
+    void parse_expression(Precedence precedence) {
+        lex_token();
         GrammarFn prefix = rules[parser->prev.type].prefix;
         if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
-            lexToken();
+            lex_token();
             _TokenType op = parser->prev.type;
             GrammarFn infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
@@ -751,36 +751,36 @@ __LISTCOMP:
         }
     }
 
-    void compileIfStatement() {
+    void compile_if_stmt() {
         match_newlines();
         EXPR_TUPLE();
 
         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
-        compileBlockBody();
+        compile_block_body();
 
         if (match(TK("elif"))) {
             int exit_jump = emit(OP_JUMP_ABSOLUTE);
             patch_jump(ifpatch);
-            compileIfStatement();
+            compile_if_stmt();
             patch_jump(exit_jump);
         } else if (match(TK("else"))) {
             int exit_jump = emit(OP_JUMP_ABSOLUTE);
             patch_jump(ifpatch);
-            compileBlockBody();
+            compile_block_body();
             patch_jump(exit_jump);
         } else {
             patch_jump(ifpatch);
         }
     }
 
-    void compileWhileLoop() {
-        co()->__enter_block(WHILE_LOOP);
+    void compile_while_loop() {
+        co()->_enter_block(WHILE_LOOP);
         EXPR_TUPLE();
         int patch = emit(OP_POP_JUMP_IF_FALSE);
-        compileBlockBody();
+        compile_block_body();
         emit(OP_LOOP_CONTINUE, -1, true);
         patch_jump(patch);
-        co()->__exit_block();
+        co()->_exit_block();
     }
 
     void EXPR_FOR_VARS(){
@@ -792,23 +792,23 @@ __LISTCOMP:
         if(size > 1) emit(OP_BUILD_SMART_TUPLE, size);
     }
 
-    void compileForLoop() {
+    void compile_for_loop() {
         EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
         emit(OP_GET_ITER);
-        co()->__enter_block(FOR_LOOP);
+        co()->_enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
-        compileBlockBody();
+        compile_block_body();
         emit(OP_LOOP_CONTINUE, -1, true);
-        co()->__exit_block();
+        co()->_exit_block();
     }
 
-    void compileTryExcept() {
-        co()->__enter_block(TRY_EXCEPT);
+    void compile_try_except() {
+        co()->_enter_block(TRY_EXCEPT);
         emit(OP_TRY_BLOCK_ENTER);
-        compileBlockBody();
+        compile_block_body();
         emit(OP_TRY_BLOCK_EXIT);
         std::vector<int> patches = { emit(OP_JUMP_ABSOLUTE) };
-        co()->__exit_block();
+        co()->_exit_block();
 
         do {
             consume(TK("except"));
@@ -820,7 +820,7 @@ __LISTCOMP:
             }
             int patch = emit(OP_POP_JUMP_IF_FALSE);
             emit(OP_POP_TOP);       // pop the exception on match
-            compileBlockBody();
+            compile_block_body();
             patches.push_back(emit(OP_JUMP_ABSOLUTE));
             patch_jump(patch);
         }while(peek() == TK("except"));
@@ -828,37 +828,37 @@ __LISTCOMP:
         for (int patch : patches) patch_jump(patch);
     }
 
-    void compileStatement() {
+    void compile_stmt() {
         if (match(TK("break"))) {
-            if (!co()->__is_curr_block_loop()) syntaxError("'break' outside loop");
-            consumeEndStatement();
+            if (!co()->_is_curr_block_loop()) syntaxError("'break' outside loop");
+            consume_end_stmt();
             emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!co()->__is_curr_block_loop()) syntaxError("'continue' not properly in loop");
-            consumeEndStatement();
+            if (!co()->_is_curr_block_loop()) syntaxError("'continue' not properly in loop");
+            consume_end_stmt();
             emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
                 syntaxError("'return' outside function");
-            if(matchEndStatement()){
+            if(match_end_stmt()){
                 emit(OP_LOAD_NONE);
             }else{
                 EXPR_TUPLE();
-                consumeEndStatement();
+                consume_end_stmt();
             }
             emit(OP_RETURN_VALUE, -1, true);
         } else if (match(TK("if"))) {
-            compileIfStatement();
+            compile_if_stmt();
         } else if (match(TK("while"))) {
-            compileWhileLoop();
+            compile_while_loop();
         } else if (match(TK("for"))) {
-            compileForLoop();
+            compile_for_loop();
         } else if (match(TK("try"))) {
-            compileTryExcept();
+            compile_try_except();
         }else if(match(TK("assert"))){
             EXPR();
             emit(OP_ASSERT);
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("with"))){
             EXPR();
             consume(TK("as"));
@@ -871,7 +871,7 @@ __LISTCOMP:
             emit(OP_STORE_NAME, index);
             emit(OP_LOAD_NAME_REF, index);
             emit(OP_WITH_ENTER);
-            compileBlockBody();
+            compile_block_body();
             emit(OP_LOAD_NAME_REF, index);
             emit(OP_WITH_EXIT);
         } else if(match(TK("label"))){
@@ -880,12 +880,12 @@ __LISTCOMP:
             _Str label = parser->prev.str();
             bool ok = co()->add_label(label);
             if(!ok) syntaxError("label '" + label + "' already exists");
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("goto"))){ // https://entrian.com/goto/
             if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
             emit(OP_GOTO, co()->add_name(parser->prev.str(), NAME_SPECIAL));
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("raise"))){
             consume(TK("@id"));
             int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
@@ -895,49 +895,49 @@ __LISTCOMP:
                 emit(OP_LOAD_NONE);
             }
             emit(OP_RAISE, dummy_t);
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("del"))){
             EXPR();
             emit(OP_DELETE_REF);
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
                 co()->global_names[parser->prev.str()] = 1;
             } while (match(TK(",")));
-            consumeEndStatement();
+            consume_end_stmt();
         } else if(match(TK("pass"))){
-            consumeEndStatement();
+            consume_end_stmt();
         } else {
             EXPR_ANY();
-            consumeEndStatement();
+            consume_end_stmt();
             // If last op is not an assignment, pop the result.
-            uint8_t lastOp = co()->co_code.back().op;
-            if( lastOp!=OP_STORE_NAME && lastOp!=OP_STORE_REF){
+            uint8_t last_op = co()->co_code.back().op;
+            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF){
                 if(mode()==SINGLE_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
         }
     }
 
-    void compileClass(){
+    void compile_class(){
         consume(TK("@id"));
-        int clsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
-        int superClsNameIdx = -1;
+        int cls_name_idx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
+        int super_cls_name_idx = -1;
         if(match(TK("(")) && match(TK("@id"))){
-            superClsNameIdx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
+            super_cls_name_idx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
         emit(OP_LOAD_NONE);
-        isCompilingClass = true;
-        __compileBlockBody(&Compiler::compileFunction);
-        isCompilingClass = false;
-        if(superClsNameIdx == -1) emit(OP_LOAD_NONE);
-        else emit(OP_LOAD_NAME_REF, superClsNameIdx);
-        emit(OP_BUILD_CLASS, clsNameIdx);
+        is_compiling_class = true;
+        compile_block_body(&Compiler::compile_function);
+        is_compiling_class = false;
+        if(super_cls_name_idx == -1) emit(OP_LOAD_NONE);
+        else emit(OP_LOAD_NAME_REF, super_cls_name_idx);
+        emit(OP_BUILD_CLASS, cls_name_idx);
     }
 
-    void __compileFunctionArgs(_Func func, bool enableTypeHints){
+    void _compile_f_args(_Func func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) syntaxError("**kwargs should be the last argument");
@@ -955,7 +955,7 @@ __LISTCOMP:
             if(func->hasName(name)) syntaxError("duplicate argument name");
 
             // eat type hints
-            if(enableTypeHints && match(TK(":"))) consume(TK("@id"));
+            if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
 
             if(state == 0 && peek() == TK("=")) state = 2;
 
@@ -965,7 +965,7 @@ __LISTCOMP:
                 case 1: func->starredArg = name; state+=1; break;
                 case 2: {
                     consume(TK("="));
-                    PyVarOrNull value = readLiteral();
+                    PyVarOrNull value = read_literal();
                     if(value == nullptr){
                         syntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
@@ -977,8 +977,8 @@ __LISTCOMP:
         } while (match(TK(",")));
     }
 
-    void compileFunction(){
-        if(isCompilingClass){
+    void compile_function(){
+        if(is_compiling_class){
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
@@ -987,7 +987,7 @@ __LISTCOMP:
         func->name = parser->prev.str();
 
         if (match(TK("(")) && !match(TK(")"))) {
-            __compileFunctionArgs(func, true);
+            _compile_f_args(func, true);
             consume(TK(")"));
         }
 
@@ -996,14 +996,14 @@ __LISTCOMP:
 
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
-        compileBlockBody();
+        compile_block_body();
         func->code->optimize();
         this->codes.pop();
         emit(OP_LOAD_CONST, co()->add_const(vm->PyFunction(func)));
-        if(!isCompilingClass) emit(OP_STORE_FUNCTION);
+        if(!is_compiling_class) emit(OP_STORE_FUNCTION);
     }
 
-    PyVarOrNull readLiteral(){
+    PyVarOrNull read_literal(){
         if(match(TK("-"))){
             consume(TK("@num"));
             PyVar val = parser->prev.value;
@@ -1018,32 +1018,33 @@ __LISTCOMP:
         return nullptr;
     }
 
-    void compileTopLevelStatement() {
-        if (match(TK("class"))) {
-            compileClass();
-        } else if (match(TK("def"))) {
-            compileFunction();
-        } else if (match(TK("import"))) {
-            compileRegularImport();
-        } else if (match(TK("from"))) {
-            compileFromImport();
-        } else {
-            compileStatement();
+    /***** Error Reporter *****/
+    void throw_err(_Str type, _Str msg){
+        int lineno = parser->curr.line;
+        const char* cursor = parser->curr.start;
+        // if error occurs in lexing, lineno should be `parser->current_line`
+        if(lexing_count > 0){
+            lineno = parser->current_line;
+            cursor = parser->curr_char;
         }
+        if(parser->peekchar() == '\n') lineno--;
+        auto e = _Exception("SyntaxError", msg);
+        e.st_push(parser->src->snapshot(lineno, cursor));
+        throw e;
     }
+    void syntaxError(_Str msg){ throw_err("SyntaxError", msg); }
+    void indentationError(_Str msg){ throw_err("IndentationError", msg); }
 
-    bool _used = false;
-    _Code __fillCode(){
+public:
+    _Code compile(){
         // can only be called once
-        if(_used) UNREACHABLE();
-        _used = true;
+        if(used) UNREACHABLE();
+        used = true;
 
         _Code code = pkpy::make_shared<CodeObject>(parser->src, _Str("<module>"));
         codes.push(code);
 
-        // Lex initial tokens. current <-- next.
-        lexToken();
-        lexToken();
+        lex_token(); lex_token();
         match_newlines();
 
         if(mode()==EVAL_MODE) {
@@ -1052,7 +1053,7 @@ __LISTCOMP:
             code->optimize();
             return code;
         }else if(mode()==JSON_MODE){
-            PyVarOrNull value = readLiteral();
+            PyVarOrNull value = read_literal();
             if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();
@@ -1062,31 +1063,21 @@ __LISTCOMP:
         }
 
         while (!match(TK("@eof"))) {
-            compileTopLevelStatement();
+            // compile top-level statement
+            if (match(TK("class"))) {
+                compile_class();
+            } else if (match(TK("def"))) {
+                compile_function();
+            } else if (match(TK("import"))) {
+                compile_normal_import();
+            } else if (match(TK("from"))) {
+                compile_from_import();
+            } else {
+                compile_stmt();
+            }
             match_newlines();
         }
         code->optimize();
         return code;
     }
-
-    /***** Error Reporter *****/
-    _Str getLineSnapshot(){
-        int lineno = parser->curr.line;
-        const char* cursor = parser->curr.start;
-        // if error occurs in lexing, lineno should be `parser->current_line`
-        if(lexingCnt > 0){
-            lineno = parser->current_line;
-            cursor = parser->curr_char;
-        }
-        if(parser->peekchar() == '\n') lineno--;
-        return parser->src->snapshot(lineno, cursor);
-    }
-
-    void __throw_e(_Str type, _Str msg){
-        auto e = _Exception("SyntaxError", msg);
-        e.st_push(getLineSnapshot());
-        throw e;
-    }
-    void syntaxError(_Str msg){ __throw_e("SyntaxError", msg); }
-    void indentationError(_Str msg){ __throw_e("IndentationError", msg); }
 };

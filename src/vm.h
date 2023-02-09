@@ -574,7 +574,7 @@ public:
             }catch(UnhandledException& e){
                 PyVar obj = frame->pop();
                 _Exception& _e = PyException_AS_C(obj);
-                _e.st_push(frame->curr_snapshot());
+                _e.st_push(frame->snapshot());
                 callstack.pop();
                 if(callstack.empty()) throw _e;
                 frame = callstack.top().get();
