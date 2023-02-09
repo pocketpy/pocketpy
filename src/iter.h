@@ -1,30 +1,32 @@
 #pragma once
 
-#include "obj.h"
+#include "vm.h"
 
-class RangeIterator : public BaseIterator {
-private:
+class RangeIter : public BaseIter {
     i64 current;
     _Range r;
 public:
-    RangeIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+    RangeIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
         this->r = OBJ_GET(_Range, _ref);
         this->current = r.start;
     }
 
-    bool hasNext() override {
+    bool hasNext(){
         return r.step > 0 ? current < r.stop : current > r.stop;
     }
 
-    PyVar next() override;
+    PyVar next(){
+        PyVar val = vm->PyInt(current);
+        current += r.step;
+        return val;
+    }
 };
 
-class VectorIterator : public BaseIterator {
-private:
+class VectorIter : public BaseIter {
     size_t index = 0;
     const PyVarList* vec;
 public:
-    VectorIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+    VectorIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
         vec = &OBJ_GET(PyVarList, _ref);
     }
 
@@ -32,15 +34,14 @@ public:
     PyVar next(){ return vec->operator[](index++); }
 };
 
-class StringIterator : public BaseIterator {
-private:
+class StringIter : public BaseIter {
     int index = 0;
     _Str str;
 public:
-    StringIterator(VM* vm, PyVar _ref) : BaseIterator(vm, _ref) {
+    StringIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
         str = OBJ_GET(_Str, _ref);
     }
 
     bool hasNext(){ return index < str.u8_length(); }
-    PyVar next();
+    PyVar next() { return vm->PyStr(str.u8_getitem(index++)); }
 };

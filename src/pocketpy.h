@@ -3,6 +3,7 @@
 #include "vm.h"
 #include "compiler.h"
 #include "repl.h"
+#include "iter.h"
 
 _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
@@ -156,7 +157,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("range", "__iter__", CPP_LAMBDA(
-        vm->PyIter(pkpy::make_shared<BaseIterator, RangeIterator>(vm, args[0]))
+        vm->PyIter(pkpy::make_shared<BaseIter, RangeIter>(vm, args[0]))
     ));
 
     _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
@@ -288,7 +289,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
 
     _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(
-        vm->PyIter(pkpy::make_shared<BaseIterator, StringIterator>(vm, args[0]))
+        vm->PyIter(pkpy::make_shared<BaseIter, StringIter>(vm, args[0]))
     ));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, const pkpy::Args& args) {
@@ -384,12 +385,6 @@ void init_builtins(VM* _vm) {
     });
 
     /************ PyList ************/
-    _vm->bind_method<0>("list", "__iter__", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyIter(
-            pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0])
-        );
-    });
-
     _vm->bind_method<1>("list", "append", [](VM* vm, const pkpy::Args& args) {
         PyVarList& _self = vm->PyList_AS_C(args[0]);
         _self.push_back(args[1]);
@@ -426,6 +421,10 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("list", "__len__", [](VM* vm, const pkpy::Args& args) {
         const PyVarList& _self = vm->PyList_AS_C(args[0]);
         return vm->PyInt(_self.size());
+    });
+
+    _vm->_bind_methods<0>({"list", "tuple"}, "__iter__", [](VM* vm, const pkpy::Args& args) {
+        return vm->PyIter(pkpy::make_shared<BaseIter, VectorIter>(vm, args[0]));
     });
 
     _vm->_bind_methods<1>({"list", "tuple"}, "__getitem__", [](VM* vm, const pkpy::Args& args) {
@@ -465,10 +464,6 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, const pkpy::Args& args) {
         PyVarList _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
         return vm->PyTuple(_list);
-    });
-
-    _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyIter(pkpy::make_shared<BaseIterator, VectorIterator>(vm, args[0]));
     });
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, const pkpy::Args& args) {

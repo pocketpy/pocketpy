@@ -3,9 +3,9 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 
 pipeline = [
 	["hash_table8.hpp", "common.h", "memory.h", "str.h", "safestl.h", "builtins.h", "error.h"],
-	["obj.h", "iter.h", "parser.h", "ref.h", "codeobject.h"],
+	["obj.h", "parser.h", "ref.h", "codeobject.h"],
 	["vm.h", "compiler.h", "repl.h"],
-	["pocketpy.h"]
+	["iter.h", "pocketpy.h"]
 ]
 
 copied = set()

@@ -59,7 +59,7 @@ struct _Slice {
     }
 };
 
-class BaseIterator {
+class BaseIter {
 protected:
     VM* vm;
     PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
@@ -67,12 +67,11 @@ public:
     virtual PyVar next() = 0;
     virtual bool hasNext() = 0;
     PyVarRef var;
-    BaseIterator(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
-    virtual ~BaseIterator() = default;
+    BaseIter(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual ~BaseIter() = default;
 };
 
 typedef pkpy::shared_ptr<Function> _Func;
-typedef pkpy::shared_ptr<BaseIterator> _Iterator;
 
 struct PyObject {
     PyVar type;

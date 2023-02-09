@@ -1,7 +1,6 @@
 #pragma once
 
 #include "codeobject.h"
-#include "iter.h"
 #include "error.h"
 
 #define __DEF_PY_AS_C(type, ctype, ptype)                       \
@@ -823,7 +822,7 @@ public:
     DEF_NATIVE(Tuple, PyVarList, _tp_tuple)
     DEF_NATIVE(Function, _Func, _tp_function)
     DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
-    DEF_NATIVE(Iter, _Iterator, _tp_native_iterator)
+    DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, _tp_native_iterator)
     DEF_NATIVE(BoundMethod, _BoundMethod, _tp_bound_method)
     DEF_NATIVE(Range, _Range, _tp_range)
     DEF_NATIVE(Slice, _Slice, _tp_slice)
@@ -1067,17 +1066,6 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 /***** Frame's Impl *****/
 inline void Frame::try_deref(VM* vm, PyVar& v){
     if(v->is_type(vm->_tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
-}
-
-/***** Iterators' Impl *****/
-PyVar RangeIterator::next(){
-    PyVar val = vm->PyInt(current);
-    current += r.step;
-    return val;
-}
-
-PyVar StringIterator::next(){
-    return vm->PyStr(str.u8_getitem(index++));
 }
 
 PyVar _CppFunc::operator()(VM* vm, const pkpy::Args& args) const{
