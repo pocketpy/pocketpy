@@ -23,7 +23,7 @@
 class VM {
     std::vector<PyVar> _small_integers;             // [-5, 256]
     std::stack< std::unique_ptr<Frame> > callstack;
-    PyVar __py2py_call_signal;
+    PyVar _py_op_call;
     
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
@@ -232,7 +232,7 @@ class VM {
                     pkpy::Args args = frame->pop_n_values_reversed(this, ARGC);
                     PyVar callable = frame->pop_value(this);
                     PyVar ret = call(callable, std::move(args), kwargs, true);
-                    if(ret == __py2py_call_signal) return ret;
+                    if(ret == _py_op_call) return ret;
                     frame->push(std::move(ret));
                 } break;
             case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
@@ -254,7 +254,7 @@ class VM {
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        typeError("'" + OBJ_TP_NAME(obj) + "' object is not iterable");
+                        TypeError("'" + OBJ_TP_NAME(obj) + "' object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -407,7 +407,7 @@ public:
             if(val != nullptr) return call(*val, std::move(args));
             cls = cls->attribs[__base__].get();
         }
-        attributeError(args[0], name);
+        AttributeError(args[0], name);
         return nullptr;
     }
 
@@ -454,7 +454,7 @@ public:
         
         if((*callable)->is_type(_tp_native_function)){
             const auto& f = OBJ_GET(_CppFunc, *callable);
-            if(kwargs.size() != 0) typeError("_native_function does not accept keyword arguments");
+            if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
             return f(this, args);
         } else if((*callable)->is_type(_tp_function)){
             const _Func& fn = PyFunction_AS_C((*callable));
@@ -467,7 +467,7 @@ public:
                     locals.emplace(name, args[i++]);
                     continue;
                 }
-                typeError("missing positional argument '" + name + "'");
+                TypeError("missing positional argument '" + name + "'");
             }
 
             locals.insert(fn->kwArgs.begin(), fn->kwArgs.end());
@@ -487,19 +487,19 @@ public:
                         break;
                     }
                 }
-                if(i < args.size()) typeError("too many arguments");
+                if(i < args.size()) TypeError("too many arguments");
             }
             
             for(int i=0; i<kwargs.size(); i+=2){
                 const _Str& key = PyStr_AS_C(kwargs[i]);
                 if(!fn->kwArgs.contains(key)){
-                    typeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
+                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
                 if(!positional_overrided_keys.empty()){
                     auto it = std::find(positional_overrided_keys.begin(), positional_overrided_keys.end(), key);
                     if(it != positional_overrided_keys.end()){
-                        typeError("multiple values for argument '" + key + "'");
+                        TypeError("multiple values for argument '" + key + "'");
                     }
                 }
                 locals[key] = val;
@@ -509,11 +509,11 @@ public:
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
                 __new_frame(fn->code, _module, _locals);
-                return __py2py_call_signal;
+                return _py_op_call;
             }
             return _exec(fn->code, _module, _locals);
         }
-        typeError("'" + OBJ_TP_NAME(*callable) + "' object is not callable");
+        TypeError("'" + OBJ_TP_NAME(*callable) + "' object is not callable");
         return None;
     }
 
@@ -557,7 +557,7 @@ public:
                 if(need_raise){ need_raise = false; _raise(); }
                 ret = run_frame(frame);
 
-                if(ret != __py2py_call_signal){
+                if(ret != _py_op_call){
                     if(frame->id == base_id){      // [ frameBase<- ]
                         callstack.pop();
                         return ret;
@@ -659,7 +659,7 @@ public:
             }
             cls = cls->attribs[__base__].get();
         }
-        if(throw_err) attributeError(obj, name);
+        if(throw_err) AttributeError(obj, name);
         return nullptr;
     }
 
@@ -707,7 +707,7 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat_AS_C(obj);
         }
-        typeError("expected int or float, got " + OBJ_TP_NAME(obj));
+        TypeError("expected int or float, got " + OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -717,14 +717,14 @@ public:
         }else if(obj->is_type(_tp_float)){
             return PyFloat(-PyFloat_AS_C(obj));
         }
-        typeError("unsupported operand type(s) for -");
+        TypeError("unsupported operand type(s) for -");
         return nullptr;
     }
 
     int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
-            indexError(std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
+            IndexError(std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
         }
         return index;
     }
@@ -807,7 +807,7 @@ public:
 
     inline const BaseRef* PyRef_AS_C(const PyVar& obj)
     {
-        if(!obj->is_type(_tp_ref)) typeError("expected an l-value");
+        if(!obj->is_type(_tp_ref)) TypeError("expected an l-value");
         return (const BaseRef*)(obj->value());
     }
 
@@ -851,8 +851,8 @@ public:
         _tp_ref = new_type_object("_ref");
         
         _tp_function = new_type_object("function");
-        _tp_native_function = new_type_object("_native_function");
-        _tp_native_iterator = new_type_object("_native_iterator");
+        _tp_native_function = new_type_object("native_function");
+        _tp_native_iterator = new_type_object("native_iterator");
         _tp_bound_method = new_type_object("bound_method");
         _tp_super = new_type_object("super");
         _tp_exception = new_type_object("Exception");
@@ -863,7 +863,7 @@ public:
         this->False = new_object(_tp_bool, false);
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
-        this->__py2py_call_signal = new_object(new_type_object("_signal"), DUMMY_VAL);
+        this->_py_op_call = new_object(new_type_object("_internal"), DUMMY_VAL);
 
         setattr(_tp_type, __base__, _tp_object);
         _tp_type->type = _tp_type;
@@ -897,7 +897,7 @@ public:
             }
             return x;
         }
-        typeError("unhashable type: " +  OBJ_TP_NAME(obj));
+        TypeError("unhashable type: " +  OBJ_TP_NAME(obj));
         return 0;
     }
 
@@ -923,19 +923,19 @@ private:
     }
 
 public:
-    void notImplementedError(){ _error("NotImplementedError", ""); }
-    void typeError(const _Str& msg){ _error("TypeError", msg); }
-    void zeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
-    void indexError(const _Str& msg){ _error("IndexError", msg); }
-    void valueError(const _Str& msg){ _error("ValueError", msg); }
-    void nameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
+    void NotImplementedError(){ _error("NotImplementedError", ""); }
+    void TypeError(const _Str& msg){ _error("TypeError", msg); }
+    void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
+    void IndexError(const _Str& msg){ _error("IndexError", msg); }
+    void ValueError(const _Str& msg){ _error("ValueError", msg); }
+    void NameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
 
-    void attributeError(PyVar obj, const _Str& name){
+    void AttributeError(PyVar obj, const _Str& name){
         _error("AttributeError", "type '" +  OBJ_TP_NAME(obj) + "' has no attribute '" + name + "'");
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-        if(!obj->is_type(type)) typeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
+        if(!obj->is_type(type)) TypeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
     }
 
     template<typename T>
@@ -971,7 +971,7 @@ PyVar NameRef::get(VM* vm, Frame* frame) const{
     if(val) return *val;
     val = vm->builtins->attribs.try_get(pair->first);
     if(val) return *val;
-    vm->nameError(pair->first);
+    vm->NameError(pair->first);
     return nullptr;
 }
 
@@ -997,7 +997,7 @@ void NameRef::del(VM* vm, Frame* frame) const{
             if(frame->f_locals().contains(pair->first)){
                 frame->f_locals().erase(pair->first);
             }else{
-                vm->nameError(pair->first);
+                vm->NameError(pair->first);
             }
         } break;
         case NAME_GLOBAL:
@@ -1008,7 +1008,7 @@ void NameRef::del(VM* vm, Frame* frame) const{
                 if(frame->f_globals().contains(pair->first)){
                     frame->f_globals().erase(pair->first);
                 }else{
-                    vm->nameError(pair->first);
+                    vm->NameError(pair->first);
                 }
             }
         } break;
@@ -1025,7 +1025,7 @@ void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void AttrRef::del(VM* vm, Frame* frame) const{
-    vm->typeError("cannot delete attribute");
+    vm->TypeError("cannot delete attribute");
 }
 
 PyVar IndexRef::get(VM* vm, Frame* frame) const{
@@ -1050,11 +1050,11 @@ PyVar TupleRef::get(VM* vm, Frame* frame) const{
 
 void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(!val->is_type(vm->_tp_tuple) && !val->is_type(vm->_tp_list)){
-        vm->typeError("only tuple or list can be unpacked");
+        vm->TypeError("only tuple or list can be unpacked");
     }
     const PyVarList& args = OBJ_GET(PyVarList, val);
-    if(args.size() > varRefs.size()) vm->valueError("too many values to unpack");
-    if(args.size() < varRefs.size()) vm->valueError("not enough values to unpack");
+    if(args.size() > varRefs.size()) vm->ValueError("too many values to unpack");
+    if(args.size() < varRefs.size()) vm->ValueError("not enough values to unpack");
     for (int i = 0; i < varRefs.size(); i++) {
         vm->PyRef_AS_C(varRefs[i])->set(vm, frame, args[i]);
     }
@@ -1083,7 +1083,7 @@ PyVar StringIterator::next(){
 PyVar _CppFunc::operator()(VM* vm, const pkpy::Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
-        vm->typeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
+        vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
     }
     return f(vm, args);
 }

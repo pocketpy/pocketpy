@@ -115,10 +115,10 @@ private:
                 if(quote3 && parser->src->mode == SINGLE_MODE){
                     throw NeedMoreLines(false);
                 }
-                syntaxError("EOL while scanning string literal");
+                SyntaxError("EOL while scanning string literal");
             }
             if (c == '\n'){
-                if(!quote3) syntaxError("EOL while scanning string literal");
+                if(!quote3) SyntaxError("EOL while scanning string literal");
                 else{
                     buff.push_back(c);
                     continue;
@@ -132,7 +132,7 @@ private:
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
-                    default: syntaxError("invalid escape character");
+                    default: SyntaxError("invalid escape character");
                 }
             } else {
                 buff.push_back(c);
@@ -167,7 +167,7 @@ private:
                 size_t size;
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
-                    if(base == 16) syntaxError("hex literal should not contain a dot");
+                    if(base == 16) SyntaxError("hex literal should not contain a dot");
                     parser->set_next_token(TK("@num"), vm->PyFloat(std::stod(m[0], &size)));
                 } else {
                     parser->set_next_token(TK("@num"), vm->PyInt(std::stoll(m[0], &size, base)));
@@ -175,7 +175,7 @@ private:
                 if (size != m.length()) UNREACHABLE();
             }
         }catch(std::exception& _){
-            syntaxError("invalid number literal");
+            SyntaxError("invalid number literal");
         } 
     }
 
@@ -217,7 +217,7 @@ private:
                         if(parser->matchchar('.')) {
                             parser->set_next_token(TK("..."));
                         } else {
-                            syntaxError("invalid token '..'");
+                            SyntaxError("invalid token '..'");
                         }
                     } else {
                         parser->set_next_token(TK("."));
@@ -246,7 +246,7 @@ private:
                 }
                 case '!':
                     if(parser->matchchar('=')) parser->set_next_token(TK("!="));
-                    else syntaxError("expected '=' after '!'");
+                    else SyntaxError("expected '=' after '!'");
                     break;
                 case '*':
                     if (parser->matchchar('*')) {
@@ -266,7 +266,7 @@ private:
                 case ' ': case '\t': parser->eat_spaces(); break;
                 case '\n': {
                     parser->set_next_token(TK("@eol"));
-                    if(!parser->eat_indentation()) indentationError("unindent does not match any outer indentation level");
+                    if(!parser->eat_indentation()) IndentationError("unindent does not match any outer indentation level");
                     return;
                 }
                 default: {
@@ -286,10 +286,10 @@ private:
                     switch (parser->eat_name())
                     {
                         case 0: break;
-                        case 1: syntaxError("invalid char: " + std::string(1, c));
-                        case 2: syntaxError("invalid utf8 sequence: " + std::string(1, c));
-                        case 3: syntaxError("@id contains invalid char"); break;
-                        case 4: syntaxError("invalid JSON token"); break;
+                        case 1: SyntaxError("invalid char: " + std::string(1, c));
+                        case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c));
+                        case 3: SyntaxError("@id contains invalid char"); break;
+                        case 4: SyntaxError("invalid JSON token"); break;
                         default: UNREACHABLE();
                     }
                     return;
@@ -321,7 +321,7 @@ private:
         if (!match(expected)){
             _StrStream ss;
             ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(peek()) << "'";
-            syntaxError(ss.str());
+            SyntaxError(ss.str());
         }
     }
 
@@ -345,7 +345,7 @@ private:
     }
 
     void consume_end_stmt() {
-        if (!match_end_stmt()) syntaxError("expected statement end");
+        if (!match_end_stmt()) SyntaxError("expected statement end");
     }
 
     void exprLiteral() {
@@ -493,7 +493,7 @@ private:
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emit(OP_UNARY_NOT);      break;
-            case TK("*"):     syntaxError("cannot use '*' as unary operator"); break;
+            case TK("*"):     SyntaxError("cannot use '*' as unary operator"); break;
             default: UNREACHABLE();
         }
     }
@@ -598,7 +598,7 @@ __LISTCOMP:
                 EXPR();
                 KWARGC++;
             } else{
-                if(KWARGC > 0) syntaxError("positional argument follows keyword argument");
+                if(KWARGC > 0) SyntaxError("positional argument follows keyword argument");
                 EXPR();
                 ARGC++;
             }
@@ -683,7 +683,7 @@ __LISTCOMP:
         if(action == nullptr) action = &Compiler::compile_stmt;
         consume(TK(":"));
         if(!match_newlines(mode()==SINGLE_MODE)){
-            syntaxError("expected a new line after ':'");
+            SyntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
         while (peek() != TK("@dedent")) {
@@ -740,7 +740,7 @@ __LISTCOMP:
     void parse_expression(Precedence precedence) {
         lex_token();
         GrammarFn prefix = rules[parser->prev.type].prefix;
-        if (prefix == nullptr) syntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
+        if (prefix == nullptr) SyntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lex_token();
@@ -830,16 +830,16 @@ __LISTCOMP:
 
     void compile_stmt() {
         if (match(TK("break"))) {
-            if (!co()->_is_curr_block_loop()) syntaxError("'break' outside loop");
+            if (!co()->_is_curr_block_loop()) SyntaxError("'break' outside loop");
             consume_end_stmt();
             emit(OP_LOOP_BREAK);
         } else if (match(TK("continue"))) {
-            if (!co()->_is_curr_block_loop()) syntaxError("'continue' not properly in loop");
+            if (!co()->_is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
             consume_end_stmt();
             emit(OP_LOOP_CONTINUE);
         } else if (match(TK("return"))) {
             if (codes.size() == 1)
-                syntaxError("'return' outside function");
+                SyntaxError("'return' outside function");
             if(match_end_stmt()){
                 emit(OP_LOAD_NONE);
             }else{
@@ -875,14 +875,14 @@ __LISTCOMP:
             emit(OP_LOAD_NAME_REF, index);
             emit(OP_WITH_EXIT);
         } else if(match(TK("label"))){
-            if(mode() != EXEC_MODE) syntaxError("'label' is only available in EXEC_MODE");
+            if(mode() != EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
             _Str label = parser->prev.str();
             bool ok = co()->add_label(label);
-            if(!ok) syntaxError("label '" + label + "' already exists");
+            if(!ok) SyntaxError("label '" + label + "' already exists");
             consume_end_stmt();
         } else if(match(TK("goto"))){ // https://entrian.com/goto/
-            if(mode() != EXEC_MODE) syntaxError("'goto' is only available in EXEC_MODE");
+            if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
             emit(OP_GOTO, co()->add_name(parser->prev.str(), NAME_SPECIAL));
             consume_end_stmt();
@@ -940,11 +940,11 @@ __LISTCOMP:
     void _compile_f_args(_Func func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
-            if(state == 3) syntaxError("**kwargs should be the last argument");
+            if(state == 3) SyntaxError("**kwargs should be the last argument");
             match_newlines();
             if(match(TK("*"))){
                 if(state < 1) state = 1;
-                else syntaxError("*args should be placed before **kwargs");
+                else SyntaxError("*args should be placed before **kwargs");
             }
             else if(match(TK("**"))){
                 state = 3;
@@ -952,7 +952,7 @@ __LISTCOMP:
 
             consume(TK("@id"));
             const _Str& name = parser->prev.str();
-            if(func->hasName(name)) syntaxError("duplicate argument name");
+            if(func->hasName(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
@@ -967,12 +967,12 @@ __LISTCOMP:
                     consume(TK("="));
                     PyVarOrNull value = read_literal();
                     if(value == nullptr){
-                        syntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
+                        SyntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
                     func->kwArgs[name] = value;
                     func->kwArgsOrder.push_back(name);
                 } break;
-                case 3: syntaxError("**kwargs is not supported yet"); break;
+                case 3: SyntaxError("**kwargs is not supported yet"); break;
             }
         } while (match(TK(",")));
     }
@@ -1032,8 +1032,8 @@ __LISTCOMP:
         e.st_push(parser->src->snapshot(lineno, cursor));
         throw e;
     }
-    void syntaxError(_Str msg){ throw_err("SyntaxError", msg); }
-    void indentationError(_Str msg){ throw_err("IndentationError", msg); }
+    void SyntaxError(_Str msg){ throw_err("SyntaxError", msg); }
+    void IndentationError(_Str msg){ throw_err("IndentationError", msg); }
 
 public:
     _Code compile(){
@@ -1057,7 +1057,7 @@ public:
             if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();
-            else syntaxError("expect a JSON object or array");
+            else SyntaxError("expect a JSON object or array");
             consume(TK("@eof"));
             return code;    // no need to optimize for JSON decoding
         }
