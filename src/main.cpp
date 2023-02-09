@@ -30,7 +30,9 @@ int main(int argc, char** argv){
         while(true){
             (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
             std::string line;
-            std::getline(std::cin, line);
+            if (!std::getline(std::cin, line)) {
+                break;
+            }
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete(vm);
