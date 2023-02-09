@@ -49,14 +49,13 @@ def reversed(iterable):
     return [a[i] for i in range(len(a)-1, -1, -1)]
 
 def sorted(iterable, key=None, reverse=False):
-    if key is None:
-        key = lambda x: x
-    a = [key(i) for i in iterable]
     b = list(iterable)
+    a = (key is None) ? b : [key(i) for i in iterable]
     for i in range(len(a)):
         for j in range(i+1, len(a)):
             if (a[i] > a[j]) ^ reverse:
-                a[i], a[j] = a[j], a[i]
+                if a is not b:
+                    a[i], a[j] = a[j], a[i]
                 b[i], b[j] = b[j], b[i]
     return b
 

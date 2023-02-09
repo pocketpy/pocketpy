@@ -129,7 +129,7 @@ class VM {
                     if(expr == None) break;
                     *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
                 } break;
-            case OP_POP_TOP: frame->__pop(); break;
+            case OP_POP_TOP: frame->_pop(); break;
             case OP_BINARY_OP:
                 {
                     pkpy::Args args(2);

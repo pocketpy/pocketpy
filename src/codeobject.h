@@ -85,7 +85,7 @@ struct CodeObject {
         return consts.size() - 1;
     }
 
-    void optimize_level_1(){
+    void optimize(){
         for(int i=0; i<codes.size(); i++){
             if(codes[i].op >= OP_BINARY_OP && codes[i].op <= OP_CONTAINS_OP){
                 for(int j=0; j<2; j++){
@@ -114,10 +114,6 @@ struct CodeObject {
                 }
             }
         }
-    }
-
-    void optimize(int level=1){
-        optimize_level_1();
     }
 
     /************************************************/
@@ -150,6 +146,7 @@ struct Frame {
     PyVar _module;
     pkpy::shared_ptr<PyVarDict> _locals;
     const i64 id;
+    std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline PyVarDict& f_locals() noexcept { return *_locals; }
     inline PyVarDict& f_globals() noexcept { return _module->attribs; }
@@ -190,7 +187,7 @@ struct Frame {
         return v;
     }
 
-    inline void __pop(){
+    inline void _pop(){
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
         _data.pop_back();
     }
@@ -225,8 +222,6 @@ struct Frame {
 
     inline void jump_abs(int i){ _next_ip = i; }
     inline void jump_rel(int i){ _next_ip += i; }
-
-    std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline void on_try_block_enter(){
         s_try_block.push(std::make_pair(co->codes[_ip].block, _data));
