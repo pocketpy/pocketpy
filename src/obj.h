@@ -106,8 +106,6 @@ struct Py_ : PyObject {
 
 #define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->_tp_##name; }
 
-
-// memory pool _tp -> [obj1, obj2, ...]
 static thread_local emhash8::HashMap<void*, std::vector<int*>> _obj_pool;
 
 namespace pkpy {
@@ -116,7 +114,7 @@ namespace pkpy {
         inline static void call(int* counter) {
             PyObject* obj = (PyObject*)(counter + 1);
             std::vector<int*>& pool = _obj_pool[obj->type_id()];
-            if(pool.size() > 100){
+            if(pool.size() > 60){
                 obj->~PyObject();
                 free(counter);
             }else{
