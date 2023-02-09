@@ -12,7 +12,7 @@ typedef PyVar PyVarRef;
 class PyVarList: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
 
-    inline void __checkIndex(size_t i) const {
+    inline void _check_index(size_t i) const {
         if (i >= size()){
             auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
             throw std::out_of_range(msg);
@@ -20,12 +20,12 @@ class PyVarList: public std::vector<PyVar> {
     }
 public:
     PyVar& operator[](size_t i) {
-        __checkIndex(i);
+        _check_index(i);
         return std::vector<PyVar>::operator[](i);
     }
 
     const PyVar& operator[](size_t i) const {
-        __checkIndex(i);
+        _check_index(i);
         return std::vector<PyVar>::operator[](i);
     }
 

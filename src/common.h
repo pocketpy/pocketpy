@@ -50,7 +50,6 @@ void* tid() {
 // This does not ensure to be unique when the pointer of obj->type is deleted & reused.
 // But it is good enough for now.
 template<typename T>
-void* obj_tid(void* alt){
-    if constexpr(std::is_same_v<T, DUMMY_VAL_TP>) return alt;
-    return tid<T>();
-}
+inline void* obj_tid(void* alt) { return tid<T>(); }
+template<>
+inline void* obj_tid<Dummy>(void* alt) { return alt; }
