@@ -15,7 +15,7 @@ struct Timer{
     }
 };
 
-#ifndef __NO_MAIN
+#ifndef __EMSCRIPTEN__
 
 int main(int argc, char** argv){
     VM* vm = pkpy_new_vm(true);

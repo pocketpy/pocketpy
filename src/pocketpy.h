@@ -503,8 +503,8 @@ void init_builtins(VM* _vm) {
 #elif __APPLE__
 #define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
 #elif __EMSCRIPTEN__
+#include <emscripten.h>
 #define __EXPORT EMSCRIPTEN_KEEPALIVE
-#define __NO_MAIN
 #else
 #define __EXPORT
 #endif
@@ -654,7 +654,7 @@ public:
     virtual void* get() = 0;
 };
 
-static std::vector<_PkExported*> _pkLookupTable;
+static std::vector<_PkExported*> _pk_lookup_table;
 
 template<typename T>
 class PkExported : public _PkExported{
@@ -663,7 +663,7 @@ public:
     template<typename... Args>
     PkExported(Args&&... args) {
         _ptr = new T(std::forward<Args>(args)...);
-        _pkLookupTable.push_back(this);
+        _pk_lookup_table.push_back(this);
     }
     
     ~PkExported() override { delete _ptr; }
@@ -683,10 +683,10 @@ extern "C" {
     /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
     /// !!!
     void pkpy_delete(void* p){
-        for(int i = 0; i < _pkLookupTable.size(); i++){
-            if(_pkLookupTable[i]->get() == p){
-                delete _pkLookupTable[i];
-                _pkLookupTable.erase(_pkLookupTable.begin() + i);
+        for(int i = 0; i < _pk_lookup_table.size(); i++){
+            if(_pk_lookup_table[i]->get() == p){
+                delete _pk_lookup_table[i];
+                _pk_lookup_table.erase(_pk_lookup_table.begin() + i);
                 return;
             }
         }
@@ -761,11 +761,10 @@ extern "C" {
         add_module_re(vm);
         add_module_dis(vm);
 
-        // add builtins | no exception handler | must succeed
-        _Code code = vm->compile(__BUILTINS_CODE, "<builtins>", EXEC_MODE);
+        _Code code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
 
-        pkpy_vm_add_module(vm, "random", __RANDOM_CODE);
+        pkpy_vm_add_module(vm, "random", kRandomCode);
         return vm;
     }
 

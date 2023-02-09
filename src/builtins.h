@@ -1,6 +1,6 @@
 #pragma once
 
-const char* __BUILTINS_CODE = R"(
+const char* kBuiltinsCode = R"(
 def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     __sys_stdout_write(s + end)
@@ -370,7 +370,7 @@ class set:
         return self._a.keys().__iter__()
 )";
 
-const char* __RANDOM_CODE = R"(
+const char* kRandomCode = R"(
 import time as _time
 
 __all__ = ['Random', 'seed', 'random', 'randint', 'uniform']
