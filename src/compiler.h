@@ -400,6 +400,7 @@ private:
     }
 
     void exprAssign() {
+        co()->_rvalue = true;
         TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
@@ -421,6 +422,7 @@ private:
             }
             emit(OP_STORE_REF);
         }
+        co()->_rvalue = false;
     }
 
     void exprComma() {
@@ -608,13 +610,16 @@ __LISTCOMP:
         emit(OP_CALL, (KWARGC << 16) | ARGC);
     }
 
-    void exprName() {
+    void exprName(){ _exprName(false); }
+
+    void _exprName(bool force_lvalue) {
         Token tkname = parser->prev;
         int index = co()->add_name(
             tkname.str(),
             codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
         );
-        emit(OP_LOAD_NAME_REF, index);
+        bool fast_load = !force_lvalue && co()->_rvalue;
+        emit(fast_load ? OP_LOAD_NAME : OP_LOAD_NAME_REF, index);
     }
 
     void exprAttrib() {
@@ -787,7 +792,7 @@ __LISTCOMP:
         int size = 0;
         do {
             consume(TK("@id"));
-            exprName(); size++;
+            _exprName(true); size++;
         } while (match(TK(",")));
         if(size > 1) emit(OP_BUILD_SMART_TUPLE, size);
     }

@@ -118,6 +118,7 @@ struct CodeObject {
 
     /************************************************/
     int _curr_block_i = 0;
+    bool _rvalue = false;
     bool _is_curr_block_loop() const {
         return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
     }
