@@ -17,3 +17,4 @@ plugins/flutter/example/web/lib/pocketpy.js
 plugins/flutter/example/web/lib/pocketpy.wasm
 plugins/flutter/src/pocketpy.h
 plugins/macos/pocketpy/pocketpy.h
+plugins/godot/godot-cpp/
