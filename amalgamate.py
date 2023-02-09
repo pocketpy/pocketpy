@@ -9,17 +9,17 @@ pipeline = [
 ]
 
 copied = set()
-
 text = ""
 
 import re
 import shutil
 import os
+import sys
 import time
 
 if os.path.exists("amalgamated"):
 	shutil.rmtree("amalgamated")
-	time.sleep(1)
+	time.sleep(0.6)
 os.mkdir("amalgamated")
 
 def remove_copied_include(text):
@@ -52,15 +52,22 @@ r'''/*
 	f.write(final_text)
 
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
-os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17")
-os.system("rm pocketpy")
 
-os.system("cp amalgamated/pocketpy.h plugins/flutter/src/pocketpy.h")
-os.system("cp amalgamated/pocketpy.h plugins/macos/pocketpy/pocketpy.h")
+if sys.platform == 'linux':
+	ok = os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17")
+	if ok == 0:
+		print("Test build success!")
+		os.remove("pocketpy")
+
+# plugins sync
+shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
+shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
 
 if os.path.exists("plugins/unity/PocketPyUnityPlugin"):
 	unity_ios_header = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPy/Plugins/iOS/pocketpy.h'
-	os.system(f'cp amalgamated/pocketpy.h "{unity_ios_header}"')
+	shutil.copy("amalgamated/pocketpy.h", unity_ios_header)
 
 if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
-	os.system("cp amalgamated/pocketpy.h plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
+	shutil.copy("amalgamated/pocketpy.h", "plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
+
+print("amalgamated/pocketpy.h")

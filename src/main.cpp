@@ -30,9 +30,7 @@ int main(int argc, char** argv){
         while(true){
             (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
             std::string line;
-            if (!std::getline(std::cin, line)) {
-                break;
-            }
+            if (!std::getline(std::cin, line)) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete(vm);
@@ -51,7 +49,7 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         PyVarOrNull ret = nullptr;
 
-        if(filename.find("1.py") != std::string::npos || filename.find("2.py") != std::string::npos){
+        if(filename.find("t1.py") != std::string::npos || filename.find("t2.py") != std::string::npos){
             Timer("Running time").run([&]{
                 ret = vm->exec(src.c_str(), filename, EXEC_MODE);
             });
