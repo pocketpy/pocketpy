@@ -20,7 +20,6 @@
 
 
 class VM {
-    // std::vector<PyVar> _small_integers;             // [-5, 256]
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
 
@@ -259,7 +258,7 @@ class VM {
                 {
                     // top() must be PyIter, so no need to try_deref()
                     auto& it = PyIter_AS_C(frame->top());
-                    if(it->hasNext()){
+                    if(it->has_next()){
                         PyRef_AS_C(it->var)->set(this, frame, it->next());
                     }else{
                         int blockEnd = frame->co->blocks[byte.block].end;
@@ -365,7 +364,6 @@ public:
         }
 
         init_builtin_types();
-        // for(i64 i=-5; i<=256; i++) _small_integers.push_back(new_object(_tp_int, i));
     }
 
     PyVar asStr(const PyVar& obj){

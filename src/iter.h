@@ -11,14 +11,13 @@ public:
         this->current = r.start;
     }
 
-    bool hasNext(){
+    bool has_next(){
         return r.step > 0 ? current < r.stop : current > r.stop;
     }
 
     PyVar next(){
-        PyVar val = vm->PyInt(current);
         current += r.step;
-        return val;
+        return vm->PyInt(current-r.step);
     }
 };
 
@@ -28,7 +27,7 @@ class ArrayIter : public BaseIter {
     const T* p;
 public:
     ArrayIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) { p = &OBJ_GET(T, _ref);}
-    bool hasNext(){ return index < p->size(); }
+    bool has_next(){ return index < p->size(); }
     PyVar next(){ return p->operator[](index++); }
 };
 
@@ -40,6 +39,6 @@ public:
         str = OBJ_GET(_Str, _ref);
     }
 
-    bool hasNext(){ return index < str.u8_length(); }
+    bool has_next(){ return index < str.u8_length(); }
     PyVar next() { return vm->PyStr(str.u8_getitem(index++)); }
 };

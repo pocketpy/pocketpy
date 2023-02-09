@@ -38,7 +38,7 @@ constexpr TokenIndex TK(const char* const token) {
 const TokenIndex kTokenKwBegin = TK("class");
 const TokenIndex kTokenKwEnd = TK("raise");
 
-const emhash8::HashMap<std::string_view, TokenIndex> __KW_MAP = [](){
+const emhash8::HashMap<std::string_view, TokenIndex> kTokenKwMap = [](){
     emhash8::HashMap<std::string_view, TokenIndex> map;
     for(int k=kTokenKwBegin; k<=kTokenKwEnd; k++) map[kTokens[k]] = k;
     return map;
@@ -231,7 +231,7 @@ struct Parser {
             return 0;
         }
 
-        if(__KW_MAP.count(name)){
+        if(kTokenKwMap.count(name)){
             if(name == "not"){
                 if(strncmp(curr_char, " in", 3) == 0){
                     curr_char += 3;
@@ -245,7 +245,7 @@ struct Parser {
                     return 0;
                 }
             }
-            set_next_token(__KW_MAP.at(name));
+            set_next_token(kTokenKwMap.at(name));
         } else {
             set_next_token(TK("@id"));
         }
