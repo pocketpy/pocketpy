@@ -896,7 +896,7 @@ public:
             }
             return x;
         }
-        TypeError("unhashable type: " +  OBJ_TP_NAME(obj));
+        TypeError("unhashable type: " +  OBJ_TP_NAME(obj).escape(true));
         return 0;
     }
 
@@ -927,14 +927,14 @@ public:
     void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void IndexError(const _Str& msg){ _error("IndexError", msg); }
     void ValueError(const _Str& msg){ _error("ValueError", msg); }
-    void NameError(const _Str& name){ _error("NameError", "name '" + name + "' is not defined"); }
+    void NameError(const _Str& name){ _error("NameError", "name " + name.escape(true) + " is not defined"); }
 
     void AttributeError(PyVar obj, const _Str& name){
-        _error("AttributeError", "type '" +  OBJ_TP_NAME(obj) + "' has no attribute '" + name + "'");
+        _error("AttributeError", "type " +  OBJ_TP_NAME(obj).escape(true) + " has no attribute " + name.escape(true));
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-        if(!obj->is_type(type)) TypeError("expected '" + OBJ_NAME(type) + "', but got '" + OBJ_TP_NAME(obj) + "'");
+        if(!obj->is_type(type)) TypeError("expected " + OBJ_NAME(type).escape(true) + ", but got " + OBJ_TP_NAME(obj).escape(true));
     }
 
     template<typename T>
@@ -946,7 +946,7 @@ public:
     }
 
     template<typename T>
-    T& py_cast(const PyVar& obj){
+    inline T& py_cast(const PyVar& obj){
         check_type(obj, T::_type(this));
         return OBJ_GET(T, obj);
     }
