@@ -7,7 +7,6 @@
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
-<a title="Discord" href="https://discord.gg/WWaq72GzXv" ><img src="https://img.shields.io/discord/1048978026131640390" /></a>
 </p>
 
 PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计。

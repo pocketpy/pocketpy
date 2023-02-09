@@ -7,7 +7,6 @@
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
-<a title="Discord" href="https://discord.gg/WWaq72GzXv" ><img src="https://img.shields.io/discord/1048978026131640390" /></a>
 </p>
 
 PocketPy is a lightweight(~5000 LOC) Python interpreter for game engines.
