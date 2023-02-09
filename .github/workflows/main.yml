@@ -12,6 +12,7 @@ jobs:
         CL -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
         mv src/pocketpy.h src/pocketpy.cpp
         CL -std:c++17 -GR- -EHsc -O2 -LD -Fe:pocketpy src/pocketpy.cpp
+        python3 scripts/run_tests.py
         ./pocketpy tests/t1.py
         ./pocketpy tests/t2.py
         mkdir -p output/windows/x86_64
