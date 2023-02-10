@@ -31,13 +31,12 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.8.4"
+#define PK_VERSION "0.8.5"
 
 typedef int64_t i64;
 typedef double f64;
 
 struct Dummy { char _; };
-
 #define DUMMY_VAL Dummy()
 
 template<typename T>

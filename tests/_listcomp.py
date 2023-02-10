@@ -15,6 +15,16 @@ assert a == [2, 3]
 assert a.pop(-2) == 2
 assert a == [3]
 
+a = []
+a.sort()
+assert len(a) == 0
+assert a == []
+
+a = [1]
+a.sort()
+assert len(a) == 1
+assert a == [1]
+
 a = [1, 2, 3, 4]
 assert reversed(a) == [4, 3, 2, 1]
 assert a == [1, 2, 3, 4]

@@ -256,7 +256,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("float", "__repr__", [](VM* vm, const pkpy::Args& args) {
         f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
-        _StrStream ss;
+        StrStream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
@@ -371,7 +371,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("str", "join", [](VM* vm, const pkpy::Args& args) {
         const Str& self = vm->PyStr_AS_C(args[0]);
-        _StrStream ss;
+        StrStream ss;
         if(args[1]->is_type(vm->tp_list)){
             const pkpy::List& a = vm->PyList_AS_C(args[1]);
             for(int i = 0; i < a.size(); i++){
@@ -793,11 +793,11 @@ extern "C" {
     /// Return a json representing the result.
     char* pkpy_vm_read_output(VM* vm){
         if(vm->use_stdio) return nullptr;
-        _StrStream* s_out = (_StrStream*)(vm->_stdout);
-        _StrStream* s_err = (_StrStream*)(vm->_stderr);
+        StrStream* s_out = (StrStream*)(vm->_stdout);
+        StrStream* s_err = (StrStream*)(vm->_stderr);
         Str _stdout = s_out->str();
         Str _stderr = s_err->str();
-        _StrStream ss;
+        StrStream ss;
         ss << '{' << "\"stdout\": " << _stdout.escape(false);
         ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
         s_out->str(""); s_err->str("");
@@ -836,7 +836,7 @@ extern "C" {
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
         PyVar obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
         vm->bind_func<-1>(obj, name, [ret_code, f_header](VM* vm, const pkpy::Args& args){
-            _StrStream ss;
+            StrStream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';

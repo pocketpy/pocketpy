@@ -319,7 +319,7 @@ private:
 
     void consume(TokenIndex expected) {
         if (!match(expected)){
-            _StrStream ss;
+            StrStream ss;
             ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(peek()) << "'";
             SyntaxError(ss.str());
         }

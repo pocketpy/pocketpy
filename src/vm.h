@@ -78,7 +78,7 @@ class VM {
             case OP_BUILD_STRING:
             {
                 pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
-                _StrStream ss;
+                StrStream ss;
                 for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
                 frame->push(PyStr(ss.str()));
             } break;
@@ -347,13 +347,11 @@ public:
     VM(bool use_stdio){
         this->use_stdio = use_stdio;
         if(use_stdio){
-            std::cout.setf(std::ios::unitbuf);
-            std::cerr.setf(std::ios::unitbuf);
             this->_stdout = &std::cout;
             this->_stderr = &std::cerr;
         }else{
-            this->_stdout = new _StrStream();
-            this->_stderr = new _StrStream();
+            this->_stdout = new StrStream();
+            this->_stderr = new StrStream();
         }
 
         init_builtin_types();
@@ -731,7 +729,7 @@ public:
                 jumpTargets.push_back(byte.arg);
             }
         }
-        _StrStream ss;
+        StrStream ss;
         ss << std::string(54, '-') << '\n';
         ss << co->name << ":\n";
         int prev_line = -1;
@@ -764,11 +762,11 @@ public:
             ss << co->blocks[byte.block].to_string();
             if(i != co->codes.size() - 1) ss << '\n';
         }
-        _StrStream consts;
+        StrStream consts;
         consts << "co_consts: ";
         consts << PyStr_AS_C(asRepr(PyList(co->consts)));
 
-        _StrStream names;
+        StrStream names;
         names << "co_names: ";
         pkpy::List list;
         for(int i=0; i<co->names.size(); i++){

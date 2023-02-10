@@ -45,7 +45,7 @@ struct SourceData {
     }
 
     Str snapshot(int lineno, const char* cursor=nullptr){
-        _StrStream ss;
+        StrStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
         Str line = "<?>";
@@ -83,7 +83,7 @@ public:
 
     Str summary() const {
         std::stack<Str> st(stacktrace);
-        _StrStream ss;
+        StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
         ss << type << ": " << msg;

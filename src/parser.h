@@ -56,7 +56,7 @@ struct Token{
   const Str str() const { return Str(start, length);}
 
   const Str info() const {
-    _StrStream ss;
+    StrStream ss;
     Str raw = str();
     if (raw == Str("\n")) raw = "\\n";
     ss << line << ": " << TK_STR(type) << " '" << raw << "'";

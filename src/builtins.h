@@ -46,18 +46,13 @@ def zip(a, b):
 
 def reversed(iterable):
     a = list(iterable)
-    return [a[i] for i in range(len(a)-1, -1, -1)]
+    a.reverse()
+    return a
 
-def sorted(iterable, key=None, reverse=False):
-    b = list(iterable)
-    a = (key is None) ? b : [key(i) for i in iterable]
-    for i in range(len(a)):
-        for j in range(i+1, len(a)):
-            if (a[i] > a[j]) ^ reverse:
-                if a is not b:
-                    a[i], a[j] = a[j], a[i]
-                b[i], b[j] = b[j], b[i]
-    return b
+def sorted(iterable, reverse=False):
+    a = list(iterable)
+    a.sort(reverse=reverse)
+    return a
 
 ##### str #####
 
@@ -106,6 +101,45 @@ list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
 tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
+
+def __qsort(a: list, i: int, j: int):
+    if i>=j:
+        return
+    d1, d2 = i, j
+    mid = (i+j) // 2
+    a[mid], a[i] = a[i], a[mid]
+    u = a[i];
+    while i < j:
+        while i<j and a[j]>u:
+            j -= 1
+        if i<j:
+            a[i] = a[j]
+            i += 1
+        while i<j and a[i]<u:
+            i += 1
+        if i<j:
+            a[j] = a[i]
+            j -= 1
+    a[i] = u;
+    __qsort(a, d1, i-1)
+    __qsort(a, i+1, d2)
+
+def __list4reverse(self):
+    i, j = 0, len(self)-1
+    while i < j:
+        self[i], self[j] = self[j], self[i]
+        i += 1
+        j -= 1
+list.reverse = __list4reverse
+del __list4reverse
+
+def __list4sort(self, reverse=False):
+    __qsort(self, 0, len(self)-1)
+    if reverse:
+        self.reverse()
+
+list.sort = __list4sort
+del __list4sort
 
 def __list4extend(self, other):
     for i in other:

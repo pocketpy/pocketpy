@@ -139,7 +139,7 @@ struct Frame {
     }
 
     Str stack_info(){
-        _StrStream ss;
+        StrStream ss;
         ss << "[";
         for(int i=0; i<_data.size(); i++){
             ss << OBJ_TP_NAME(_data[i]);

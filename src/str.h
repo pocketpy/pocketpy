@@ -2,7 +2,7 @@
 
 #include "common.h"
 
-typedef std::stringstream _StrStream;
+typedef std::stringstream StrStream;
 
 class Str : public std::string {
     mutable std::vector<uint16_t>* _u8_index = nullptr;
@@ -85,7 +85,7 @@ public:
     }
 
     Str escape(bool single_quote) const {
-        _StrStream ss;
+        StrStream ss;
         ss << (single_quote ? '\'' : '"');
         for (int i=0; i<length(); i++) {
             char c = this->operator[](i);
