@@ -1,19 +1,5 @@
 #include <fstream>
-#include <functional>
-
 #include "pocketpy.h"
-
-struct Timer{
-    const char* title;
-    Timer(const char* title) : title(title) {}
-    void run(std::function<void()> f){
-        auto start = std::chrono::high_resolution_clock::now();
-        f();
-        auto end = std::chrono::high_resolution_clock::now();
-        double elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000000.0;
-        std::cout << title << ": " << elapsed << " s" << std::endl;
-    }
-};
 
 #ifndef __EMSCRIPTEN__
 
@@ -48,14 +34,7 @@ int main(int argc, char** argv){
         }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         PyVarOrNull ret = nullptr;
-
-        if(filename.find("t1.py") != std::string::npos || filename.find("t2.py") != std::string::npos){
-            Timer("Running time").run([&]{
-                ret = vm->exec(src.c_str(), filename, EXEC_MODE);
-            });
-        }else{
-            ret = vm->exec(src.c_str(), filename, EXEC_MODE);
-        }
+        ret = vm->exec(src.c_str(), filename, EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;
     }
