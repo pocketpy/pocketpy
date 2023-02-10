@@ -1,6 +1,3 @@
-import time
-_0 = time.time()
-
 def is_prime(x):
   if x<2:
     return False
@@ -21,4 +18,3 @@ def test(n):
 # dis(is_prime)
 
 print(test(10000))
-print(round(time.time()-_0, 6), 's')

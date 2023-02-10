@@ -1,6 +1,3 @@
-import time
-_0 = time.time()
-
 UPPER_BOUND = 5000000
 PREFIX = 32338
 
@@ -112,5 +109,3 @@ def verify():
 verify()
 results = find(UPPER_BOUND, PREFIX)
 assert results == [323381, 323383, 3233803, 3233809, 3233851, 3233863, 3233873, 3233887, 3233897]
-
-print(round(time.time()-_0, 6), 's')
