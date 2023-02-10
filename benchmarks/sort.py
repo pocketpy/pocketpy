@@ -25,6 +25,6 @@ def __qsort(a: list, i: int, j: int):
     __qsort(a, i+1, d2)
 
 from dis import dis
-dis(__qsort)
+# dis(__qsort)
 
 __qsort(a, 0, len(a)-1)
