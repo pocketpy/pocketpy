@@ -8,11 +8,11 @@
 #define CPP_LAMBDA(x) ([](VM* vm, const pkpy::Args& args) { return x; })
 #define CPP_NOT_IMPLEMENTED() ([](VM* vm, const pkpy::Args& args) { vm->NotImplementedError(); return vm->None; })
 
-_Code VM::compile(_Str source, _Str filename, CompileMode mode) {
+CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.compile();
-    }catch(_Exception& e){
+    }catch(pkpy::Exception& e){
         _error(e);
         return nullptr;
     }
@@ -20,7 +20,7 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, const pkpy::Args& args){                 \
-        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){                             \
+        if(args[0]->is_type(vm->tp_int) && args[1]->is_type(vm->tp_int)){                             \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
@@ -29,8 +29,8 @@ _Code VM::compile(_Str source, _Str filename, CompileMode mode) {
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, const pkpy::Args& args){                 \
-        bool _0 = args[0]->is_type(vm->_tp_int) || args[0]->is_type(vm->_tp_float);                     \
-        bool _1 = args[1]->is_type(vm->_tp_int) || args[1]->is_type(vm->_tp_float);                     \
+        bool _0 = args[0]->is_type(vm->tp_int) || args[0]->is_type(vm->tp_float);                     \
+        bool _1 = args[1]->is_type(vm->tp_int) || args[1]->is_type(vm->tp_float);                     \
         if(!_0 || !_1){                                                                                 \
             if constexpr(is_eq) return vm->PyBool(args[0].get() op args[1].get());                      \
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
@@ -62,16 +62,16 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<0>("super", [](VM* vm, const pkpy::Args& args) {
         auto it = vm->top_frame()->f_locals().find(m_self);
         if(it == vm->top_frame()->f_locals().end()) vm->TypeError("super() can only be called in a class method");
-        return vm->new_object(vm->_tp_super, it->second);
+        return vm->new_object(vm->tp_super, it->second);
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, const pkpy::Args& args) {
-        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
+        CodeObject_ code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, const pkpy::Args& args) {
-        _Code code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
+        CodeObject_ code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
     });
@@ -94,7 +94,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("ord", [](VM* vm, const pkpy::Args& args) {
-        _Str s = vm->PyStr_AS_C(args[0]);
+        Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->TypeError("ord() expected an ASCII character");
         return vm->PyInt((i64)(s.c_str()[0]));
     });
@@ -110,7 +110,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("getattr", [](VM* vm, const pkpy::Args& args) {
-        _Str name = vm->PyStr_AS_C(args[1]);
+        Str name = vm->PyStr_AS_C(args[1]);
         return vm->getattr(args[0], name);
     });
 
@@ -121,13 +121,13 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, const pkpy::Args& args) {
-        std::vector<_Str> names;
+        std::vector<Str> names;
         for (auto& [k, _] : args[0]->attribs) names.push_back(k);
         for (auto& [k, _] : args[0]->type->attribs) {
             if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
-        PyVarList ret;
+        pkpy::List ret;
         for (const auto& name : names) ret.push_back(vm->PyStr(name));
         std::sort(ret.begin(), ret.end(), [vm](const PyVar& a, const PyVar& b) {
             return vm->PyStr_AS_C(a) < vm->PyStr_AS_C(b);
@@ -139,7 +139,7 @@ void init_builtins(VM* _vm) {
         PyVar _self = args[0];
         std::stringstream ss;
         ss << std::hex << (uintptr_t)_self.get();
-        _Str s = "<" + OBJ_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
+        Str s = "<" + OBJ_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 
@@ -149,7 +149,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(args[0]->type));
 
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, const pkpy::Args& args) {
-        _Range r;
+        pkpy::Range r;
         switch (args.size()) {
             case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
             case 2: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); break;
@@ -173,7 +173,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, const pkpy::Args& args) {
-        if(args[0]->is_type(vm->_tp_int) && args[1]->is_type(vm->_tp_int)){
+        if(args[0]->is_type(vm->tp_int) && args[1]->is_type(vm->tp_int)){
             return vm->PyInt((i64)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
         }else{
             return vm->PyFloat((f64)pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
@@ -182,11 +182,11 @@ void init_builtins(VM* _vm) {
 
     /************ PyInt ************/
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, const pkpy::Args& args) {
-        if (args[0]->is_type(vm->_tp_int)) return args[0];
-        if (args[0]->is_type(vm->_tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
-        if (args[0]->is_type(vm->_tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
-        if (args[0]->is_type(vm->_tp_str)) {
-            const _Str& s = vm->PyStr_AS_C(args[0]);
+        if (args[0]->is_type(vm->tp_int)) return args[0];
+        if (args[0]->is_type(vm->tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
+        if (args[0]->is_type(vm->tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
+        if (args[0]->is_type(vm->tp_str)) {
+            const Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
                 i64 val = std::stoll(s, &parsed, 10);
@@ -235,11 +235,11 @@ void init_builtins(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, const pkpy::Args& args) {
-        if (args[0]->is_type(vm->_tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
-        if (args[0]->is_type(vm->_tp_float)) return args[0];
-        if (args[0]->is_type(vm->_tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
-        if (args[0]->is_type(vm->_tp_str)) {
-            const _Str& s = vm->PyStr_AS_C(args[0]);
+        if (args[0]->is_type(vm->tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
+        if (args[0]->is_type(vm->tp_float)) return args[0];
+        if (args[0]->is_type(vm->tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (args[0]->is_type(vm->tp_str)) {
+            const Str& s = vm->PyStr_AS_C(args[0]);
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
@@ -273,20 +273,20 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
 
     _vm->bind_method<1>("str", "__add__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& lhs = vm->PyStr_AS_C(args[0]);
-        const _Str& rhs = vm->PyStr_AS_C(args[1]);
+        const Str& lhs = vm->PyStr_AS_C(args[0]);
+        const Str& rhs = vm->PyStr_AS_C(args[1]);
         return vm->PyStr(lhs + rhs);
     });
 
     _vm->bind_method<0>("str", "__len__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyInt(_self.u8_length());
     });
 
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.find(_other) != _Str::npos);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _other = vm->PyStr_AS_C(args[1]);
+        return vm->PyBool(_self.find(_other) != Str::npos);
     });
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
@@ -296,32 +296,32 @@ void init_builtins(VM* _vm) {
     ));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyStr(_self.escape(true));
     });
 
     _vm->bind_method<0>("str", "__json__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
         return vm->PyStr(_self.escape(false));
     });
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, const pkpy::Args& args) {
-        if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
+        if(args[0]->is_type(vm->tp_str) && args[1]->is_type(vm->tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, const pkpy::Args& args) {
-        if(args[0]->is_type(vm->_tp_str) && args[1]->is_type(vm->_tp_str))
+        if(args[0]->is_type(vm->tp_str) && args[1]->is_type(vm->tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] != args[1]);
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self (vm->PyStr_AS_C(args[0]));
+        const Str& _self (vm->PyStr_AS_C(args[0]));
 
-        if(args[1]->is_type(vm->_tp_slice)){
-            _Slice s = vm->PySlice_AS_C(args[1]);
+        if(args[1]->is_type(vm->tp_slice)){
+            pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.u8_length());
             return vm->PyStr(_self.u8_substr(s.start, s.stop));
         }
@@ -332,22 +332,22 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self (vm->PyStr_AS_C(args[0]));
-        const _Str& _obj (vm->PyStr_AS_C(args[1]));
+        const Str& _self (vm->PyStr_AS_C(args[0]));
+        const Str& _obj (vm->PyStr_AS_C(args[1]));
         return vm->PyBool(_self > _obj);
     });
 
     _vm->bind_method<1>("str", "__lt__", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self (vm->PyStr_AS_C(args[0]));
-        const _Str& _obj (vm->PyStr_AS_C(args[1]));
+        const Str& _self (vm->PyStr_AS_C(args[0]));
+        const Str& _obj (vm->PyStr_AS_C(args[1]));
         return vm->PyBool(_self < _obj);
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _old = vm->PyStr_AS_C(args[1]);
-        const _Str& _new = vm->PyStr_AS_C(args[2]);
-        _Str _copy = _self;
+        const Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _old = vm->PyStr_AS_C(args[1]);
+        const Str& _new = vm->PyStr_AS_C(args[2]);
+        Str _copy = _self;
         // replace all occurences of _old with _new in _copy
         size_t pos = 0;
         while ((pos = _copy.find(_old, pos)) != std::string::npos) {
@@ -358,28 +358,28 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "startswith", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _prefix = vm->PyStr_AS_C(args[1]);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _prefix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.find(_prefix) == 0);
     });
 
     _vm->bind_method<1>("str", "endswith", [](VM* vm, const pkpy::Args& args) {
-        const _Str& _self = vm->PyStr_AS_C(args[0]);
-        const _Str& _suffix = vm->PyStr_AS_C(args[1]);
+        const Str& _self = vm->PyStr_AS_C(args[0]);
+        const Str& _suffix = vm->PyStr_AS_C(args[1]);
         return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, const pkpy::Args& args) {
-        const _Str& self = vm->PyStr_AS_C(args[0]);
+        const Str& self = vm->PyStr_AS_C(args[0]);
         _StrStream ss;
-        if(args[1]->is_type(vm->_tp_list)){
-            const PyVarList& a = vm->PyList_AS_C(args[1]);
+        if(args[1]->is_type(vm->tp_list)){
+            const pkpy::List& a = vm->PyList_AS_C(args[1]);
             for(int i = 0; i < a.size(); i++){
                 if(i > 0) ss << self;
                 ss << vm->PyStr_AS_C(vm->asStr(a[i]));
             }
-        }else if(args[1]->is_type(vm->_tp_tuple)){
-            const _Tuple& a = vm->PyTuple_AS_C(args[1]);
+        }else if(args[1]->is_type(vm->tp_tuple)){
+            const pkpy::Tuple& a = vm->PyTuple_AS_C(args[1]);
             for(int i = 0; i < a.size(); i++){
                 if(i > 0) ss << self;
                 ss << vm->PyStr_AS_C(vm->asStr(a[i]));
@@ -392,13 +392,13 @@ void init_builtins(VM* _vm) {
 
     /************ PyList ************/
     _vm->bind_method<1>("list", "append", [](VM* vm, const pkpy::Args& args) {
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
+        pkpy::List& _self = vm->PyList_AS_C(args[0]);
         _self.push_back(args[1]);
         return vm->None;
     });
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, const pkpy::Args& args) {
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
+        pkpy::List& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         if(_index < 0) _index += _self.size();
         if(_index < 0) _index = 0;
@@ -417,29 +417,29 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__add__", [](VM* vm, const pkpy::Args& args) {
-        const PyVarList& _self = vm->PyList_AS_C(args[0]);
-        const PyVarList& _obj = vm->PyList_AS_C(args[1]);
-        PyVarList _new_list = _self;
+        const pkpy::List& _self = vm->PyList_AS_C(args[0]);
+        const pkpy::List& _obj = vm->PyList_AS_C(args[1]);
+        pkpy::List _new_list = _self;
         _new_list.insert(_new_list.end(), _obj.begin(), _obj.end());
         return vm->PyList(_new_list);
     });
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, const pkpy::Args& args) {
-        const PyVarList& _self = vm->PyList_AS_C(args[0]);
+        const pkpy::List& _self = vm->PyList_AS_C(args[0]);
         return vm->PyInt(_self.size());
     });
 
     _vm->bind_method<0>("list", "__iter__", [](VM* vm, const pkpy::Args& args) {
-        return vm->PyIter(pkpy::make_shared<BaseIter, ArrayIter<PyVarList>>(vm, args[0]));
+        return vm->PyIter(pkpy::make_shared<BaseIter, ArrayIter<pkpy::List>>(vm, args[0]));
     });
 
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, const pkpy::Args& args) {
-        const PyVarList& self = vm->PyList_AS_C(args[0]);
+        const pkpy::List& self = vm->PyList_AS_C(args[0]);
 
-        if(args[1]->is_type(vm->_tp_slice)){
-            _Slice s = vm->PySlice_AS_C(args[1]);
+        if(args[1]->is_type(vm->tp_slice)){
+            pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
-            PyVarList new_list;
+            pkpy::List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
             return vm->PyList(std::move(new_list));
         }
@@ -450,7 +450,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, const pkpy::Args& args) {
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
+        pkpy::List& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalized_index(_index, _self.size());
         _self[_index] = args[2];
@@ -458,7 +458,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, const pkpy::Args& args) {
-        PyVarList& _self = vm->PyList_AS_C(args[0]);
+        pkpy::List& _self = vm->PyList_AS_C(args[0]);
         int _index = (int)vm->PyInt_AS_C(args[1]);
         _index = vm->normalized_index(_index, _self.size());
         _self.erase(_self.begin() + _index);
@@ -467,7 +467,7 @@ void init_builtins(VM* _vm) {
 
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, const pkpy::Args& args) {
-        PyVarList _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
+        pkpy::List _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
         return vm->PyTuple(std::move(_list));
     });
 
@@ -476,12 +476,12 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, const pkpy::Args& args) {
-        const _Tuple& self = vm->PyTuple_AS_C(args[0]);
+        const pkpy::Tuple& self = vm->PyTuple_AS_C(args[0]);
 
-        if(args[1]->is_type(vm->_tp_slice)){
-            _Slice s = vm->PySlice_AS_C(args[1]);
+        if(args[1]->is_type(vm->tp_slice)){
+            pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
-            PyVarList new_list;
+            pkpy::List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
             return vm->PyTuple(std::move(new_list));
         }
@@ -492,7 +492,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, const pkpy::Args& args) {
-        const _Tuple& self = vm->PyTuple_AS_C(args[0]);
+        const pkpy::Tuple& self = vm->PyTuple_AS_C(args[0]);
         return vm->PyInt(self.size());
     });
 
@@ -556,8 +556,8 @@ void add_module_sys(VM* vm){
 void add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, const pkpy::Args& args) {
-        const _Str& expr = vm->PyStr_AS_C(args[0]);
-        _Code code = vm->compile(expr, "<json>", JSON_MODE);
+        const Str& expr = vm->PyStr_AS_C(args[0]);
+        CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
@@ -582,7 +582,7 @@ void add_module_math(VM* vm){
 void add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, const pkpy::Args& args) {
-        _Code code = vm->PyFunction_AS_C(args[0])->code;
+        CodeObject_ code = vm->PyFunction_AS_C(args[0])->code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
     });
@@ -615,7 +615,7 @@ struct ReMatch {
     }
 };
 
-PyVar _regex_search(const _Str& pattern, const _Str& string, bool fromStart, VM* vm){
+PyVar _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
     std::smatch m;
     if(std::regex_search(string, m, re)){
@@ -632,32 +632,32 @@ void add_module_re(VM* vm){
     vm->register_class<ReMatch>(mod);
 
     vm->bind_func<2>(mod, "match", [](VM* vm, const pkpy::Args& args) {
-        const _Str& pattern = vm->PyStr_AS_C(args[0]);
-        const _Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = vm->PyStr_AS_C(args[0]);
+        const Str& string = vm->PyStr_AS_C(args[1]);
         return _regex_search(pattern, string, true, vm);
     });
 
     vm->bind_func<2>(mod, "search", [](VM* vm, const pkpy::Args& args) {
-        const _Str& pattern = vm->PyStr_AS_C(args[0]);
-        const _Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = vm->PyStr_AS_C(args[0]);
+        const Str& string = vm->PyStr_AS_C(args[1]);
         return _regex_search(pattern, string, false, vm);
     });
 
     vm->bind_func<3>(mod, "sub", [](VM* vm, const pkpy::Args& args) {
-        const _Str& pattern = vm->PyStr_AS_C(args[0]);
-        const _Str& repl = vm->PyStr_AS_C(args[1]);
-        const _Str& string = vm->PyStr_AS_C(args[2]);
+        const Str& pattern = vm->PyStr_AS_C(args[0]);
+        const Str& repl = vm->PyStr_AS_C(args[1]);
+        const Str& string = vm->PyStr_AS_C(args[2]);
         std::regex re(pattern);
         return vm->PyStr(std::regex_replace(string, re, repl));
     });
 
     vm->bind_func<2>(mod, "split", [](VM* vm, const pkpy::Args& args) {
-        const _Str& pattern = vm->PyStr_AS_C(args[0]);
-        const _Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = vm->PyStr_AS_C(args[0]);
+        const Str& string = vm->PyStr_AS_C(args[1]);
         std::regex re(pattern);
         std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
         std::sregex_token_iterator end;
-        PyVarList vec;
+        pkpy::List vec;
         for(; it != end; ++it){
             vec.push_back(vm->PyStr(it->str()));
         }
@@ -725,7 +725,7 @@ extern "C" {
         auto it = vm->_main->attribs.find(name);
         if(it == vm->_main->attribs.end()) return nullptr;
         try{
-            _Str _repr = vm->PyStr_AS_C(vm->asRepr(it->second));
+            Str _repr = vm->PyStr_AS_C(vm->asRepr(it->second));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -741,7 +741,7 @@ extern "C" {
         PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            _Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
+            Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -778,8 +778,8 @@ extern "C" {
         add_module_re(vm);
         add_module_dis(vm);
 
-        _Code code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
-        vm->_exec(code, vm->builtins, pkpy::make_shared<PyVarDict>());
+        CodeObject_ code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
+        vm->_exec(code, vm->builtins, pkpy::make_shared<pkpy::NameDict>());
 
         pkpy_vm_add_module(vm, "random", kRandomCode);
         return vm;
@@ -795,8 +795,8 @@ extern "C" {
         if(vm->use_stdio) return nullptr;
         _StrStream* s_out = (_StrStream*)(vm->_stdout);
         _StrStream* s_err = (_StrStream*)(vm->_stderr);
-        _Str _stdout = s_out->str();
-        _Str _stderr = s_err->str();
+        Str _stdout = s_out->str();
+        Str _stderr = s_err->str();
         _StrStream ss;
         ss << '{' << "\"stdout\": " << _stdout.escape(false);
         ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';

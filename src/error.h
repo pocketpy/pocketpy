@@ -20,7 +20,7 @@ enum CompileMode {
 
 struct SourceData {
     const char* source;
-    _Str filename;
+    Str filename;
     std::vector<const char*> line_starts;
     CompileMode mode;
 
@@ -34,7 +34,7 @@ struct SourceData {
         return {_start, i};
     }
 
-    SourceData(const char* source, _Str filename, CompileMode mode) {
+    SourceData(const char* source, Str filename, CompileMode mode) {
         source = strdup(source);
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
@@ -44,14 +44,14 @@ struct SourceData {
         this->mode = mode;
     }
 
-    _Str snapshot(int lineno, const char* cursor=nullptr){
+    Str snapshot(int lineno, const char* cursor=nullptr){
         _StrStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
-        _Str line = "<?>";
+        Str line = "<?>";
         int removed_spaces = 0;
         if(pair.first && pair.second){
-            line = _Str(pair.first, pair.second-pair.first).lstrip();
+            line = Str(pair.first, pair.second-pair.first).lstrip();
             removed_spaces = pair.second - pair.first - line.size();
             if(line.empty()) line = "<?>";
         }
@@ -66,22 +66,23 @@ struct SourceData {
     ~SourceData() { free((void*)source); }
 };
 
-class _Exception {
-    _Str type;
-    _Str msg;
-    std::stack<_Str> stacktrace;
+namespace pkpy{
+class Exception {
+    Str type;
+    Str msg;
+    std::stack<Str> stacktrace;
 public:
-    _Exception(_Str type, _Str msg): type(type), msg(msg) {}
-    bool match_type(const _Str& type) const { return this->type == type;}
+    Exception(Str type, Str msg): type(type), msg(msg) {}
+    bool match_type(const Str& type) const { return this->type == type;}
     bool is_re = true;
 
-    void st_push(_Str snapshot){
+    void st_push(Str snapshot){
         if(stacktrace.size() >= 8) return;
         stacktrace.push(snapshot);
     }
 
-    _Str summary() const {
-        std::stack<_Str> st(stacktrace);
+    Str summary() const {
+        std::stack<Str> st(stacktrace);
         _StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
@@ -89,3 +90,4 @@ public:
         return ss.str();
     }
 };
+}

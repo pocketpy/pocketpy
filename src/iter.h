@@ -4,10 +4,10 @@
 
 class RangeIter : public BaseIter {
     i64 current;
-    _Range r;
+    pkpy::Range r;
 public:
     RangeIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        this->r = OBJ_GET(_Range, _ref);
+        this->r = OBJ_GET(pkpy::Range, _ref);
         this->current = r.start;
     }
 
@@ -33,10 +33,10 @@ public:
 
 class StringIter : public BaseIter {
     int index = 0;
-    _Str str;
+    Str str;
 public:
     StringIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        str = OBJ_GET(_Str, _ref);
+        str = OBJ_GET(Str, _ref);
     }
 
     bool has_next(){ return index < str.u8_length(); }

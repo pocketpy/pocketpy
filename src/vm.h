@@ -65,7 +65,7 @@ class VM {
                 pkpy::Args items = frame->pop_n_reversed(byte.arg);
                 bool done = false;
                 for(int i=0; i<items.size(); i++){
-                    if(!items[i]->is_type(_tp_ref)) {
+                    if(!items[i]->is_type(tp_ref)) {
                         done = true;
                         for(int j=i; j<items.size(); j++) frame->try_deref(this, items[j]);
                         frame->push(PyTuple(std::move(items)));
@@ -94,21 +94,21 @@ class VM {
             case OP_STORE_FUNCTION:
                 {
                     PyVar obj = frame->pop_value(this);
-                    const _Func& fn = PyFunction_AS_C(obj);
+                    const pkpy::Function_& fn = PyFunction_AS_C(obj);
                     setattr(obj, __module__, frame->_module);
                     frame->f_globals()[fn->name] = obj;
                 } break;
             case OP_BUILD_CLASS:
                 {
-                    const _Str& clsName = frame->co->names[byte.arg].first;
+                    const Str& clsName = frame->co->names[byte.arg].first;
                     PyVar clsBase = frame->pop_value(this);
-                    if(clsBase == None) clsBase = _tp_object;
-                    check_type(clsBase, _tp_type);
+                    if(clsBase == None) clsBase = tp_object;
+                    check_type(clsBase, tp_type);
                     PyVar cls = new_type_object(frame->_module, clsName, clsBase);
                     while(true){
                         PyVar fn = frame->pop_value(this);
                         if(fn == None) break;
-                        const _Func& f = PyFunction_AS_C(fn);
+                        const pkpy::Function_& f = PyFunction_AS_C(fn);
                         setattr(fn, __module__, frame->_module);
                         setattr(cls, f->name, fn);
                     }
@@ -180,14 +180,14 @@ class VM {
             case OP_EXCEPTION_MATCH:
                 {
                     const auto& _e = PyException_AS_C(frame->top());
-                    _Str name = frame->co->names[byte.arg].first;
+                    Str name = frame->co->names[byte.arg].first;
                     frame->push(PyBool(_e.match_type(name)));
                 } break;
             case OP_RAISE:
                 {
                     PyVar obj = frame->pop_value(this);
-                    _Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
-                    _Str type = frame->co->names[byte.arg].first;
+                    Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
+                    Str type = frame->co->names[byte.arg].first;
                     _error(type, msg);
                 } break;
             case OP_RE_RAISE: _raise(); break;
@@ -228,7 +228,7 @@ class VM {
             case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
             case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
             case OP_GOTO: {
-                const _Str& label = frame->co->names[byte.arg].first;
+                const Str& label = frame->co->names[byte.arg].first;
                 int* target = frame->co->labels.try_get(label);
                 if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
                 frame->jump_abs_safe(*target);
@@ -240,7 +240,7 @@ class VM {
                     if(iter_fn != nullptr){
                         PyVar tmp = call(iter_fn);
                         PyVarRef var = frame->pop();
-                        check_type(var, _tp_ref);
+                        check_type(var, tp_ref);
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
@@ -284,24 +284,24 @@ class VM {
                 {
                     PyVar stop = frame->pop_value(this);
                     PyVar start = frame->pop_value(this);
-                    _Slice s;
-                    if(start != None) {check_type(start, _tp_int); s.start = (int)PyInt_AS_C(start);}
-                    if(stop != None) {check_type(stop, _tp_int); s.stop = (int)PyInt_AS_C(stop);}
+                    pkpy::Slice s;
+                    if(start != None) {check_type(start, tp_int); s.start = (int)PyInt_AS_C(start);}
+                    if(stop != None) {check_type(stop, tp_int); s.stop = (int)PyInt_AS_C(stop);}
                     frame->push(PySlice(s));
                 } break;
             case OP_IMPORT_NAME:
                 {
-                    const _Str& name = frame->co->names[byte.arg].first;
+                    const Str& name = frame->co->names[byte.arg].first;
                     auto it = _modules.find(name);
                     if(it == _modules.end()){
                         auto it2 = _lazy_modules.find(name);
                         if(it2 == _lazy_modules.end()){
                             _error("ImportError", "module '" + name + "' not found");
                         }else{
-                            const _Str& source = it2->second;
-                            _Code code = compile(source, name, EXEC_MODE);
+                            const Str& source = it2->second;
+                            CodeObject_ code = compile(source, name, EXEC_MODE);
                             PyVar _m = new_module(name);
-                            _exec(code, _m, pkpy::make_shared<PyVarDict>());
+                            _exec(code, _m, pkpy::make_shared<pkpy::NameDict>());
                             frame->push(_m);
                             _lazy_modules.erase(it2);
                         }
@@ -315,7 +315,7 @@ class VM {
             case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); break;
             case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); break;
             default:
-                throw std::runtime_error(_Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
+                throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
                 break;
             }
         }
@@ -330,9 +330,9 @@ class VM {
     }
 
 public:
-    PyVarDict _types;
-    PyVarDict _modules;                             // loaded modules
-    emhash8::HashMap<_Str, _Str> _lazy_modules;     // lazy loaded modules
+    pkpy::NameDict _types;
+    pkpy::NameDict _modules;                             // loaded modules
+    emhash8::HashMap<Str, Str> _lazy_modules;     // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -371,15 +371,15 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->is_type(_tp_type)) return PyStr("<class '" + OBJ_GET(_Str, obj->attribs[__name__]) + "'>");
+        if(obj->is_type(tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attribs[__name__]) + "'>");
         return call(obj, __repr__);
     }
 
     const PyVar& asBool(const PyVar& obj){
-        if(obj->is_type(_tp_bool)) return obj;
+        if(obj->is_type(tp_bool)) return obj;
         if(obj == None) return False;
-        if(obj->is_type(_tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
-        if(obj->is_type(_tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
+        if(obj->is_type(tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
+        if(obj->is_type(tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getattr(obj, __len__, false);
         if(len_fn != nullptr){
             PyVar ret = call(len_fn);
@@ -388,7 +388,7 @@ public:
         return True;
     }
 
-    PyVar fast_call(const _Str& name, pkpy::Args&& args){
+    PyVar fast_call(const Str& name, pkpy::Args&& args){
         PyObject* cls = args[0]->type.get();
         while(cls != None.get()) {
             PyVar* val = cls->attribs.try_get(name);
@@ -411,16 +411,16 @@ public:
 
     template<typename ArgT>
     inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
-    call(const PyVar& obj, const _Str& func, ArgT&& args){
+    call(const PyVar& obj, const Str& func, ArgT&& args){
         return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
 
-    inline PyVar call(const PyVar& obj, const _Str& func){
+    inline PyVar call(const PyVar& obj, const Str& func){
         return call(getattr(obj, func), pkpy::no_arg(), pkpy::no_arg(), false);
     }
 
     PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
-        if(_callable->is_type(_tp_type)){
+        if(_callable->is_type(tp_type)){
             auto it = _callable->attribs.find(__new__);
             PyVar obj;
             if(it != _callable->attribs.end()){
@@ -434,20 +434,20 @@ public:
         }
 
         const PyVar* callable = &_callable;
-        if((*callable)->is_type(_tp_bound_method)){
+        if((*callable)->is_type(tp_bound_method)){
             auto& bm = PyBoundMethod_AS_C((*callable));
             callable = &bm.method;      // get unbound method
             args.extend_self(bm.obj);
         }
         
-        if((*callable)->is_type(_tp_native_function)){
-            const auto& f = OBJ_GET(_CppFunc, *callable);
+        if((*callable)->is_type(tp_native_function)){
+            const auto& f = OBJ_GET(pkpy::NativeFunc, *callable);
             if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
             return f(this, args);
-        } else if((*callable)->is_type(_tp_function)){
-            const _Func& fn = PyFunction_AS_C((*callable));
-            pkpy::shared_ptr<PyVarDict> _locals = pkpy::make_shared<PyVarDict>();
-            PyVarDict& locals = *_locals;
+        } else if((*callable)->is_type(tp_function)){
+            const pkpy::Function_& fn = PyFunction_AS_C((*callable));
+            pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
+            pkpy::NameDict& locals = *_locals;
 
             int i = 0;
             for(const auto& name : fn->args){
@@ -460,9 +460,9 @@ public:
 
             locals.insert(fn->kwArgs.begin(), fn->kwArgs.end());
 
-            std::vector<_Str> positional_overrided_keys;
+            std::vector<Str> positional_overrided_keys;
             if(!fn->starredArg.empty()){
-                PyVarList vargs;        // handle *args
+                pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
                 locals.emplace(fn->starredArg, PyTuple(std::move(vargs)));
             }else{
@@ -478,7 +478,7 @@ public:
             }
             
             for(int i=0; i<kwargs.size(); i+=2){
-                const _Str& key = PyStr_AS_C(kwargs[i]);
+                const Str& key = PyStr_AS_C(kwargs[i]);
                 if(!fn->kwArgs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
@@ -506,12 +506,12 @@ public:
 
 
     // repl mode is only for setting `frame->id` to 0
-    PyVarOrNull exec(_Str source, _Str filename, CompileMode mode, PyVar _module=nullptr){
+    PyVarOrNull exec(Str source, Str filename, CompileMode mode, PyVar _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
-            _Code code = compile(source, filename, mode);
-            return _exec(code, _module, pkpy::make_shared<PyVarDict>());
-        }catch (const _Exception& e){
+            CodeObject_ code = compile(source, filename, mode);
+            return _exec(code, _module, pkpy::make_shared<pkpy::NameDict>());
+        }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
         }
         catch (const std::exception& e) {
@@ -560,7 +560,7 @@ public:
                 continue;
             }catch(UnhandledException& e){
                 PyVar obj = frame->pop();
-                _Exception& _e = PyException_AS_C(obj);
+                pkpy::Exception& _e = PyException_AS_C(obj);
                 _e.st_push(frame->snapshot());
                 callstack.pop();
                 if(callstack.empty()) throw _e;
@@ -574,20 +574,20 @@ public:
         }
     }
 
-    PyVar new_type_object(PyVar mod, _Str name, PyVar base){
-        if(!base->is_type(_tp_type)) UNREACHABLE();
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(_tp_type, DUMMY_VAL);
+    PyVar new_type_object(PyVar mod, Str name, PyVar base){
+        if(!base->is_type(tp_type)) UNREACHABLE();
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
-        _Str fullName = name;
+        Str fullName = name;
         if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         return obj;
     }
 
-    PyVar _new_type_object(_Str name, PyVar base=nullptr) {
-        if(base == nullptr) base = _tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(_tp_type, DUMMY_VAL);
+    PyVar _new_type_object(Str name, PyVar base=nullptr) {
+        if(base == nullptr) base = tp_object;
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(tp_type, DUMMY_VAL);
         setattr(obj, __base__, base);
         _types[name] = obj;
         return obj;
@@ -595,7 +595,7 @@ public:
 
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
-        if(!type->is_type(_tp_type)) UNREACHABLE();
+        if(!type->is_type(tp_type)) UNREACHABLE();
         if constexpr (std::is_same_v<T, Dummy>) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
         std::vector<int*>& pool = _obj_pool[tid<T>()];
         if(pool.empty()) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
@@ -612,23 +612,23 @@ public:
         return new_object(T::_type(this), T(std::forward<Args>(args)...));
     }
 
-    PyVar new_module(const _Str& name) {
-        PyVar obj = new_object(_tp_module, DUMMY_VAL);
+    PyVar new_module(const Str& name) {
+        PyVar obj = new_object(tp_module, DUMMY_VAL);
         setattr(obj, __name__, PyStr(name));
         _modules[name] = obj;
         return obj;
     }
 
-    PyVarOrNull getattr(const PyVar& obj, const _Str& name, bool throw_err=true) {
-        PyVarDict::iterator it;
+    PyVarOrNull getattr(const PyVar& obj, const Str& name, bool throw_err=true) {
+        pkpy::NameDict::iterator it;
         PyObject* cls;
 
-        if(obj->is_type(_tp_super)){
+        if(obj->is_type(tp_super)){
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
                 root = &OBJ_GET(PyVar, *root);
-                if(!(*root)->is_type(_tp_super)) break;
+                if(!(*root)->is_type(tp_super)) break;
                 depth++;
             }
             cls = (*root)->type.get();
@@ -646,7 +646,7 @@ public:
             it = cls->attribs.find(name);
             if(it != cls->attribs.end()){
                 PyVar valueFromCls = it->second;
-                if(valueFromCls->is_type(_tp_function) || valueFromCls->is_type(_tp_native_function)){
+                if(valueFromCls->is_type(tp_function) || valueFromCls->is_type(tp_native_function)){
                     return PyBoundMethod({obj, std::move(valueFromCls)});
                 }else{
                     return valueFromCls;
@@ -659,47 +659,47 @@ public:
     }
 
     template<typename T>
-    inline void setattr(PyVar& obj, const _Str& name, T&& value) {
+    inline void setattr(PyVar& obj, const Str& name, T&& value) {
         PyObject* p = obj.get();
-        while(p->is_type(_tp_super)) p = static_cast<PyVar*>(p->value())->get();
+        while(p->is_type(tp_super)) p = static_cast<PyVar*>(p->value())->get();
         p->attribs[name] = std::forward<T>(value);
     }
 
     template<int ARGC>
-    void bind_method(PyVar obj, _Str funcName, _CppFuncRaw fn) {
-        check_type(obj, _tp_type);
-        setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, true)));
+    void bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
+        check_type(obj, tp_type);
+        setattr(obj, funcName, PyNativeFunc(pkpy::NativeFunc(fn, ARGC, true)));
     }
 
     template<int ARGC>
-    void bind_func(PyVar obj, _Str funcName, _CppFuncRaw fn) {
-        setattr(obj, funcName, PyNativeFunction(_CppFunc(fn, ARGC, false)));
+    void bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
+        setattr(obj, funcName, PyNativeFunc(pkpy::NativeFunc(fn, ARGC, false)));
     }
 
     template<int ARGC>
-    void bind_method(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+    void bind_method(Str typeName, Str funcName, NativeFuncRaw fn) {
         bind_method<ARGC>(_types[typeName], funcName, fn);
     }
 
     template<int ARGC>
-    void bind_static_method(_Str typeName, _Str funcName, _CppFuncRaw fn) {
+    void bind_static_method(Str typeName, Str funcName, NativeFuncRaw fn) {
         bind_func<ARGC>(_types[typeName], funcName, fn);
     }
 
     template<int ARGC>
-    void _bind_methods(std::vector<_Str> typeNames, _Str funcName, _CppFuncRaw fn) {
+    void _bind_methods(std::vector<Str> typeNames, Str funcName, NativeFuncRaw fn) {
         for(auto& typeName : typeNames) bind_method<ARGC>(typeName, funcName, fn);
     }
 
     template<int ARGC>
-    void bind_builtin_func(_Str funcName, _CppFuncRaw fn) {
+    void bind_builtin_func(Str funcName, NativeFuncRaw fn) {
         bind_func<ARGC>(builtins, funcName, fn);
     }
 
     inline f64 num_to_float(const PyVar& obj){
-        if (obj->is_type(_tp_int)){
+        if (obj->is_type(tp_int)){
             return (f64)PyInt_AS_C(obj);
-        }else if(obj->is_type(_tp_float)){
+        }else if(obj->is_type(tp_float)){
             return PyFloat_AS_C(obj);
         }
         TypeError("expected 'int' or 'float', got " + OBJ_TP_NAME(obj).escape(true));
@@ -707,9 +707,9 @@ public:
     }
 
     PyVar num_negated(const PyVar& obj){
-        if (obj->is_type(_tp_int)){
+        if (obj->is_type(tp_int)){
             return PyInt(-PyInt_AS_C(obj));
-        }else if(obj->is_type(_tp_float)){
+        }else if(obj->is_type(tp_float)){
             return PyFloat(-PyFloat_AS_C(obj));
         }
         TypeError("unsupported operand type(s) for -");
@@ -724,7 +724,7 @@ public:
         return index;
     }
 
-    _Str disassemble(_Code co){
+    Str disassemble(CodeObject_ co){
         std::vector<int> jumpTargets;
         for(auto byte : co->codes){
             if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
@@ -737,7 +737,7 @@ public:
         int prev_line = -1;
         for(int i=0; i<co->codes.size(); i++){
             const Bytecode& byte = co->codes[i];
-            _Str line = std::to_string(byte.line);
+            Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
                 if(prev_line != -1) ss << "\n";
@@ -770,7 +770,7 @@ public:
 
         _StrStream names;
         names << "co_names: ";
-        PyVarList list;
+        pkpy::List list;
         for(int i=0; i<co->names.size(); i++){
             list.push_back(PyStr(co->names[i].first));
         }
@@ -779,109 +779,109 @@ public:
 
         for(int i=0; i<co->consts.size(); i++){
             PyVar obj = co->consts[i];
-            if(obj->is_type(_tp_function)){
+            if(obj->is_type(tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
                 ss << disassemble(f->code);
             }
         }
-        return _Str(ss.str());
+        return Str(ss.str());
     }
 
     // for quick access
-    PyVar _tp_object, _tp_type, _tp_int, _tp_float, _tp_bool, _tp_str;
-    PyVar _tp_list, _tp_tuple;
-    PyVar _tp_function, _tp_native_function, _tp_native_iterator, _tp_bound_method;
-    PyVar _tp_slice, _tp_range, _tp_module, _tp_ref;
-    PyVar _tp_super, _tp_exception;
+    PyVar tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
+    PyVar tp_list, tp_tuple;
+    PyVar tp_function, tp_native_function, tp_native_iterator, tp_bound_method;
+    PyVar tp_slice, tp_range, tp_module, tp_ref;
+    PyVar tp_super, tp_exception;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
         static_assert(std::is_base_of<BaseRef, P>::value, "P should derive from BaseRef");
-        return new_object(_tp_ref, std::forward<P>(value));
+        return new_object(tp_ref, std::forward<P>(value));
     }
 
     inline const BaseRef* PyRef_AS_C(const PyVar& obj)
     {
-        if(!obj->is_type(_tp_ref)) TypeError("expected an l-value");
+        if(!obj->is_type(tp_ref)) TypeError("expected an l-value");
         return (const BaseRef*)(obj->value());
     }
 
-    DEF_NATIVE(Int, i64, _tp_int)
-    DEF_NATIVE(Float, f64, _tp_float)
-    DEF_NATIVE(Str, _Str, _tp_str)
-    DEF_NATIVE(List, PyVarList, _tp_list)
-    DEF_NATIVE(Tuple, _Tuple, _tp_tuple)
-    DEF_NATIVE(Function, _Func, _tp_function)
-    DEF_NATIVE(NativeFunction, _CppFunc, _tp_native_function)
-    DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, _tp_native_iterator)
-    DEF_NATIVE(BoundMethod, _BoundMethod, _tp_bound_method)
-    DEF_NATIVE(Range, _Range, _tp_range)
-    DEF_NATIVE(Slice, _Slice, _tp_slice)
-    DEF_NATIVE(Exception, _Exception, _tp_exception)
+    DEF_NATIVE(Int, i64, tp_int)
+    DEF_NATIVE(Float, f64, tp_float)
+    DEF_NATIVE(Str, Str, tp_str)
+    DEF_NATIVE(List, pkpy::List, tp_list)
+    DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
+    DEF_NATIVE(Function, pkpy::Function_, tp_function)
+    DEF_NATIVE(NativeFunc, pkpy::NativeFunc, tp_native_function)
+    DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, tp_native_iterator)
+    DEF_NATIVE(BoundMethod, pkpy::BoundMethod, tp_bound_method)
+    DEF_NATIVE(Range, pkpy::Range, tp_range)
+    DEF_NATIVE(Slice, pkpy::Slice, tp_slice)
+    DEF_NATIVE(Exception, pkpy::Exception, tp_exception)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void init_builtin_types(){
-        _tp_object = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
-        _tp_type = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
-        _types["object"] = _tp_object;
-        _types["type"] = _tp_type;
+        tp_object = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
+        tp_type = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
+        _types["object"] = tp_object;
+        _types["type"] = tp_type;
 
-        _tp_bool = _new_type_object("bool");
-        _tp_int = _new_type_object("int");
-        _tp_float = _new_type_object("float");
-        _tp_str = _new_type_object("str");
-        _tp_list = _new_type_object("list");
-        _tp_tuple = _new_type_object("tuple");
-        _tp_slice = _new_type_object("slice");
-        _tp_range = _new_type_object("range");
-        _tp_module = _new_type_object("module");
-        _tp_ref = _new_type_object("_ref");
+        tp_bool = _new_type_object("bool");
+        tp_int = _new_type_object("int");
+        tp_float = _new_type_object("float");
+        tp_str = _new_type_object("str");
+        tp_list = _new_type_object("list");
+        tp_tuple = _new_type_object("tuple");
+        tp_slice = _new_type_object("slice");
+        tp_range = _new_type_object("range");
+        tp_module = _new_type_object("module");
+        tp_ref = _new_type_object("_ref");
         
-        _tp_function = _new_type_object("function");
-        _tp_native_function = _new_type_object("native_function");
-        _tp_native_iterator = _new_type_object("native_iterator");
-        _tp_bound_method = _new_type_object("bound_method");
-        _tp_super = _new_type_object("super");
-        _tp_exception = _new_type_object("Exception");
+        tp_function = _new_type_object("function");
+        tp_native_function = _new_type_object("native_function");
+        tp_native_iterator = _new_type_object("native_iterator");
+        tp_bound_method = _new_type_object("bound_method");
+        tp_super = _new_type_object("super");
+        tp_exception = _new_type_object("Exception");
 
         this->None = new_object(_new_type_object("NoneType"), DUMMY_VAL);
         this->Ellipsis = new_object(_new_type_object("ellipsis"), DUMMY_VAL);
-        this->True = new_object(_tp_bool, true);
-        this->False = new_object(_tp_bool, false);
+        this->True = new_object(tp_bool, true);
+        this->False = new_object(tp_bool, false);
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
         this->_py_op_call = new_object(_new_type_object("_internal"), DUMMY_VAL);
 
-        setattr(_tp_type, __base__, _tp_object);
-        _tp_type->type = _tp_type;
-        setattr(_tp_object, __base__, None);
-        _tp_object->type = _tp_type;
+        setattr(tp_type, __base__, tp_object);
+        tp_type->type = tp_type;
+        setattr(tp_object, __base__, None);
+        tp_object->type = tp_type;
         
         for (auto& [name, type] : _types) {
             setattr(type, __name__, PyStr(name));
         }
 
-        std::vector<_Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
+        std::vector<Str> publicTypes = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
         for (auto& name : publicTypes) {
             setattr(builtins, name, _types[name]);
         }
     }
 
     i64 hash(const PyVar& obj){
-        if (obj->is_type(_tp_int)) return PyInt_AS_C(obj);
-        if (obj->is_type(_tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
-        if (obj->is_type(_tp_float)){
+        if (obj->is_type(tp_int)) return PyInt_AS_C(obj);
+        if (obj->is_type(tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
+        if (obj->is_type(tp_float)){
             f64 val = PyFloat_AS_C(obj);
             return (i64)std::hash<f64>()(val);
         }
-        if (obj->is_type(_tp_str)) return PyStr_AS_C(obj).hash();
-        if (obj->is_type(_tp_type)) return (i64)obj.get();
-        if (obj->is_type(_tp_tuple)) {
+        if (obj->is_type(tp_str)) return PyStr_AS_C(obj).hash();
+        if (obj->is_type(tp_type)) return (i64)obj.get();
+        if (obj->is_type(tp_tuple)) {
             i64 x = 1000003;
-            const _Tuple& items = PyTuple_AS_C(obj);
+            const pkpy::Tuple& items = PyTuple_AS_C(obj);
             for (int i=0; i<items.size(); i++) {
                 i64 y = hash(items[i]);
                 x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
@@ -894,11 +894,11 @@ public:
 
     /***** Error Reporter *****/
 private:
-    void _error(const _Str& name, const _Str& msg){
-        _error(_Exception(name, msg));
+    void _error(const Str& name, const Str& msg){
+        _error(pkpy::Exception(name, msg));
     }
 
-    void _error(_Exception e){
+    void _error(pkpy::Exception e){
         if(callstack.empty()){
             e.is_re = false;
             throw e;
@@ -915,13 +915,13 @@ private:
 
 public:
     void NotImplementedError(){ _error("NotImplementedError", ""); }
-    void TypeError(const _Str& msg){ _error("TypeError", msg); }
+    void TypeError(const Str& msg){ _error("TypeError", msg); }
     void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
-    void IndexError(const _Str& msg){ _error("IndexError", msg); }
-    void ValueError(const _Str& msg){ _error("ValueError", msg); }
-    void NameError(const _Str& name){ _error("NameError", "name " + name.escape(true) + " is not defined"); }
+    void IndexError(const Str& msg){ _error("IndexError", msg); }
+    void ValueError(const Str& msg){ _error("ValueError", msg); }
+    void NameError(const Str& name){ _error("NameError", "name " + name.escape(true) + " is not defined"); }
 
-    void AttributeError(PyVar obj, const _Str& name){
+    void AttributeError(PyVar obj, const Str& name){
         _error("AttributeError", "type " +  OBJ_TP_NAME(obj).escape(true) + " has no attribute " + name.escape(true));
     }
 
@@ -931,7 +931,7 @@ public:
 
     template<typename T>
     PyVar register_class(PyVar mod){
-        PyVar type = new_type_object(mod, T::_name(), _tp_object);
+        PyVar type = new_type_object(mod, T::_name(), tp_object);
         if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
         T::_register(this, mod, type);
         return type;
@@ -950,7 +950,7 @@ public:
         }
     }
 
-    _Code compile(_Str source, _Str filename, CompileMode mode);
+    CodeObject_ compile(Str source, Str filename, CompileMode mode);
 };
 
 /***** Pointers' Impl *****/
@@ -1032,7 +1032,7 @@ void IndexRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar TupleRef::get(VM* vm, Frame* frame) const{
-    _Tuple args(objs.size());
+    pkpy::Tuple args(objs.size());
     for (int i = 0; i < objs.size(); i++) {
         args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
     }
@@ -1045,11 +1045,11 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(args.size() < objs.size()) vm->ValueError("not enough values to unpack");     \
     for (int i = 0; i < objs.size(); i++) vm->PyRef_AS_C(objs[i])->set(vm, frame, args[i]);
 
-    if(val->is_type(vm->_tp_tuple)){
-        const _Tuple& args = OBJ_GET(_Tuple, val);
+    if(val->is_type(vm->tp_tuple)){
+        const pkpy::Tuple& args = OBJ_GET(pkpy::Tuple, val);
         TUPLE_REF_SET()
-    }else if(val->is_type(vm->_tp_list)){
-        const PyVarList& args = OBJ_GET(PyVarList, val);
+    }else if(val->is_type(vm->tp_list)){
+        const pkpy::List& args = OBJ_GET(pkpy::List, val);
         TUPLE_REF_SET()
     }else{
         vm->TypeError("only tuple or list can be unpacked");
@@ -1063,10 +1063,10 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 
 /***** Frame's Impl *****/
 inline void Frame::try_deref(VM* vm, PyVar& v){
-    if(v->is_type(vm->_tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
+    if(v->is_type(vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
-PyVar _CppFunc::operator()(VM* vm, const pkpy::Args& args) const{
+PyVar pkpy::NativeFunc::operator()(VM* vm, const pkpy::Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));

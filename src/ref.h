@@ -17,10 +17,10 @@ enum NameScope {
 };
 
 struct NameRef : BaseRef {
-    std::pair<_Str, NameScope>* _pair;
-    inline const _Str& name() const { return _pair->first; }
+    std::pair<Str, NameScope>* _pair;
+    inline const Str& name() const { return _pair->first; }
     inline NameScope scope() const { return _pair->second; }
-    NameRef(std::pair<_Str, NameScope>& pair) : _pair(&pair) {}
+    NameRef(std::pair<Str, NameScope>& pair) : _pair(&pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
@@ -48,8 +48,8 @@ struct IndexRef : BaseRef {
 };
 
 struct TupleRef : BaseRef {
-    _Tuple objs;
-    TupleRef(_Tuple&& objs) : objs(std::move(objs)) {}
+    pkpy::Tuple objs;
+    TupleRef(pkpy::Tuple&& objs) : objs(std::move(objs)) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

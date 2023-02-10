@@ -23,7 +23,7 @@ struct Bytecode{
     uint16_t block;
 };
 
-_Str pad(const _Str& s, const int n){
+Str pad(const Str& s, const int n){
     if(s.size() >= n) return s.substr(0, n);
     return s + std::string(n - s.size(), ' ');
 }
@@ -50,27 +50,27 @@ struct CodeBlock {
 
 struct CodeObject {
     pkpy::shared_ptr<SourceData> src;
-    _Str name;
+    Str name;
 
-    CodeObject(pkpy::shared_ptr<SourceData> src, _Str name) {
+    CodeObject(pkpy::shared_ptr<SourceData> src, Str name) {
         this->src = src;
         this->name = name;
     }
 
     std::vector<Bytecode> codes;
-    PyVarList consts;
-    std::vector<std::pair<_Str, NameScope>> names;
-    emhash8::HashMap<_Str, int> global_names;
+    pkpy::List consts;
+    std::vector<std::pair<Str, NameScope>> names;
+    emhash8::HashMap<Str, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
-    emhash8::HashMap<_Str, int> labels;
+    emhash8::HashMap<Str, int> labels;
 
-    bool add_label(const _Str& label){
+    bool add_label(const Str& label){
         if(labels.contains(label)) return false;
         labels[label] = codes.size();
         return true;
     }
 
-    int add_name(_Str name, NameScope scope){
+    int add_name(Str name, NameScope scope){
         if(scope == NAME_LOCAL && global_names.contains(name)) scope = NAME_GLOBAL;
         auto p = std::make_pair(name, scope);
         for(int i=0; i<names.size(); i++){
@@ -116,16 +116,16 @@ struct Frame {
     int _ip = -1;
     int _next_ip = 0;
 
-    const _Code co;
+    const CodeObject_ co;
     PyVar _module;
-    pkpy::shared_ptr<PyVarDict> _locals;
+    pkpy::shared_ptr<pkpy::NameDict> _locals;
     const i64 id;
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
-    inline PyVarDict& f_locals() noexcept { return *_locals; }
-    inline PyVarDict& f_globals() noexcept { return _module->attribs; }
+    inline pkpy::NameDict& f_locals() noexcept { return *_locals; }
+    inline pkpy::NameDict& f_globals() noexcept { return _module->attribs; }
 
-    Frame(const _Code co, PyVar _module, pkpy::shared_ptr<PyVarDict> _locals)
+    Frame(const CodeObject_ co, PyVar _module, pkpy::shared_ptr<pkpy::NameDict> _locals)
         : co(co), _module(_module), _locals(_locals), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
@@ -134,12 +134,12 @@ struct Frame {
         return co->codes[_ip];
     }
 
-    _Str snapshot(){
+    Str snapshot(){
         int line = co->codes[_ip].line;
         return co->src->snapshot(line);
     }
 
-    _Str stack_info(){
+    Str stack_info(){
         _StrStream ss;
         ss << "[";
         for(int i=0; i<_data.size(); i++){

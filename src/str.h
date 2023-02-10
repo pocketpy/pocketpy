@@ -4,7 +4,7 @@
 
 typedef std::stringstream _StrStream;
 
-class _Str : public std::string {
+class Str : public std::string {
     mutable std::vector<uint16_t>* _u8_index = nullptr;
     mutable bool hash_initialized = false;
     mutable size_t _hash;
@@ -21,11 +21,11 @@ class _Str : public std::string {
         }
     }
 public:
-    _Str() : std::string() {}
-    _Str(const char* s) : std::string(s) {}
-    _Str(const char* s, size_t n) : std::string(s, n) {}
-    _Str(const std::string& s) : std::string(s) {}
-    _Str(const _Str& s) : std::string(s) {
+    Str() : std::string() {}
+    Str(const char* s) : std::string(s) {}
+    Str(const char* s, size_t n) : std::string(s, n) {}
+    Str(const std::string& s) : std::string(s) {}
+    Str(const Str& s) : std::string(s) {
         if(s._u8_index != nullptr){
             _u8_index = new std::vector<uint16_t>(*s._u8_index);
         }
@@ -34,7 +34,7 @@ public:
             hash_initialized = true;
         }
     }
-    _Str(_Str&& s) : std::string(std::move(s)) {
+    Str(Str&& s) : std::string(std::move(s)) {
         if(_u8_index != nullptr) delete _u8_index;
         _u8_index = s._u8_index;
         s._u8_index = nullptr;
@@ -64,27 +64,27 @@ public:
         return _u8_index->size();
     }
 
-    _Str u8_getitem(int i) const{
+    Str u8_getitem(int i) const{
         return u8_substr(i, i+1);
     }
 
-    _Str u8_substr(int start, int end) const{
+    Str u8_substr(int start, int end) const{
         utf8_lazy_init();
-        if(start >= end) return _Str();
+        if(start >= end) return Str();
         int c_end = end >= _u8_index->size() ? size() : _u8_index->at(end);
         return substr(_u8_index->at(start), c_end - _u8_index->at(start));
     }
 
-    _Str lstrip() const {
-        _Str copy(*this);
+    Str lstrip() const {
+        Str copy(*this);
         copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
             // std::isspace(c) does not working on windows (Debug)
             return c != ' ' && c != '\t' && c != '\r' && c != '\n';
         }));
-        return _Str(copy);
+        return Str(copy);
     }
 
-    _Str escape(bool single_quote) const {
+    Str escape(bool single_quote) const {
         _StrStream ss;
         ss << (single_quote ? '\'' : '"');
         for (int i=0; i<length(); i++) {
@@ -115,7 +115,7 @@ public:
         return ss.str();
     }
 
-    _Str& operator=(const _Str& s){
+    Str& operator=(const Str& s){
         this->std::string::operator=(s);
         if(_u8_index != nullptr){
             delete _u8_index;
@@ -126,7 +126,7 @@ public:
         return *this;
     }
 
-    _Str& operator=(_Str&& s){
+    Str& operator=(Str&& s){
         this->std::string::operator=(std::move(s));
         if(_u8_index != nullptr) delete _u8_index;
         this->_u8_index = s._u8_index;
@@ -136,51 +136,51 @@ public:
         return *this;
     }
 
-    ~_Str(){
+    ~Str(){
         if(_u8_index != nullptr) delete _u8_index;
     }
 };
 
 namespace std {
     template<>
-    struct hash<_Str> {
-        inline std::size_t operator()(const _Str& s) const {
+    struct hash<Str> {
+        inline std::size_t operator()(const Str& s) const {
             return s.hash();
         }
     };
 }
 
-const _Str __class__ = _Str("__class__");
-const _Str __base__ = _Str("__base__");
-const _Str __new__ = _Str("__new__");
-const _Str __iter__ = _Str("__iter__");
-const _Str __str__ = _Str("__str__");
-const _Str __repr__ = _Str("__repr__");
-const _Str __module__ = _Str("__module__");
-const _Str __getitem__ = _Str("__getitem__");
-const _Str __setitem__ = _Str("__setitem__");
-const _Str __delitem__ = _Str("__delitem__");
-const _Str __contains__ = _Str("__contains__");
-const _Str __init__ = _Str("__init__");
-const _Str __json__ = _Str("__json__");
-const _Str __name__ = _Str("__name__");
-const _Str __len__ = _Str("__len__");
+const Str __class__ = Str("__class__");
+const Str __base__ = Str("__base__");
+const Str __new__ = Str("__new__");
+const Str __iter__ = Str("__iter__");
+const Str __str__ = Str("__str__");
+const Str __repr__ = Str("__repr__");
+const Str __module__ = Str("__module__");
+const Str __getitem__ = Str("__getitem__");
+const Str __setitem__ = Str("__setitem__");
+const Str __delitem__ = Str("__delitem__");
+const Str __contains__ = Str("__contains__");
+const Str __init__ = Str("__init__");
+const Str __json__ = Str("__json__");
+const Str __name__ = Str("__name__");
+const Str __len__ = Str("__len__");
 
-const _Str m_append = _Str("append");
-const _Str m_eval = _Str("eval");
-const _Str m_self = _Str("self");
-const _Str __enter__ = _Str("__enter__");
-const _Str __exit__ = _Str("__exit__");
+const Str m_append = Str("append");
+const Str m_eval = Str("eval");
+const Str m_self = Str("self");
+const Str __enter__ = Str("__enter__");
+const Str __exit__ = Str("__exit__");
 
-const _Str CMP_SPECIAL_METHODS[] = {
+const Str CMP_SPECIAL_METHODS[] = {
     "__lt__", "__le__", "__eq__", "__ne__", "__gt__", "__ge__"
 };
 
-const _Str BINARY_SPECIAL_METHODS[] = {
+const Str BINARY_SPECIAL_METHODS[] = {
     "__add__", "__sub__", "__mul__", "__truediv__", "__floordiv__", "__mod__", "__pow__"
 };
 
-const _Str BITWISE_SPECIAL_METHODS[] = {
+const Str BITWISE_SPECIAL_METHODS[] = {
     "__lshift__", "__rshift__", "__and__", "__or__", "__xor__"
 };
 

@@ -53,12 +53,12 @@ struct Token{
   int line;          //< Line number of the token (1 based).
   PyVar value;       //< Literal value of the token.
 
-  const _Str str() const { return _Str(start, length);}
+  const Str str() const { return Str(start, length);}
 
-  const _Str info() const {
+  const Str info() const {
     _StrStream ss;
-    _Str raw = str();
-    if (raw == _Str("\n")) raw = "\\n";
+    Str raw = str();
+    if (raw == Str("\n")) raw = "\\n";
     ss << line << ": " << TK_STR(type) << " '" << raw << "'";
     return ss.str();
   }

@@ -19,18 +19,18 @@ enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
 class Compiler {
     std::unique_ptr<Parser> parser;
-    std::stack<_Code> codes;
+    std::stack<CodeObject_> codes;
     bool is_compiling_class = false;
     int lexing_count = 0;
     bool used = false;
     VM* vm;
     emhash8::HashMap<TokenIndex, GrammarRule> rules;
 
-    _Code co() const{ return codes.top(); }
+    CodeObject_ co() const{ return codes.top(); }
     CompileMode mode() const{ return parser->src->mode; }
 
 public:
-    Compiler(VM* vm, const char* source, _Str filename, CompileMode mode){
+    Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
             pkpy::make_shared<SourceData>(source, filename, mode)
@@ -99,7 +99,7 @@ public:
     }
 
 private:
-    _Str eat_string_until(char quote, bool raw) {
+    Str eat_string_until(char quote, bool raw) {
         bool quote3 = parser->match_n_chars(2, quote);
         std::vector<char> buff;
         while (true) {
@@ -138,11 +138,11 @@ private:
                 buff.push_back(c);
             }
         }
-        return _Str(buff.data(), buff.size());
+        return Str(buff.data(), buff.size());
     }
 
     void eat_string(char quote, StringType type) {
-        _Str s = eat_string_until(quote, type == RAW_STRING);
+        Str s = eat_string_until(quote, type == RAW_STRING);
         if(type == F_STRING){
             parser->set_next_token(TK("@fstr"), vm->PyStr(s));
         }else{
@@ -190,7 +190,7 @@ private:
         parser->prev = parser->curr;
         parser->curr = parser->next_token();
 
-        //_Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
+        //Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
 
         while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;
@@ -357,7 +357,7 @@ private:
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
         PyVar value = parser->prev.value;
-        _Str s = vm->PyStr_AS_C(value);
+        Str s = vm->PyStr_AS_C(value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
         int size = 0;
@@ -384,7 +384,7 @@ private:
     }
 
     void exprLambda() {
-        _Func func = pkpy::make_shared<Function>();
+        pkpy::Function_ func = pkpy::make_shared<pkpy::Function>();
         func->name = "<lambda>";
         if(!match(TK(":"))){
             _compile_f_args(func, false);
@@ -594,7 +594,7 @@ __LISTCOMP:
             if (peek() == TK(")")) break;
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
-                const _Str& key = parser->prev.str();
+                const Str& key = parser->prev.str();
                 emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
                 consume(TK("="));
                 co()->_rvalue=true; EXPR(); co()->_rvalue=false;
@@ -624,7 +624,7 @@ __LISTCOMP:
 
     void exprAttrib() {
         consume(TK("@id"));
-        const _Str& name = parser->prev.str();
+        const Str& name = parser->prev.str();
         int index = co()->add_name(name, NAME_ATTR);
         emit(OP_BUILD_ATTR_REF, index);
     }
@@ -745,7 +745,7 @@ __LISTCOMP:
     void parse_expression(Precedence precedence) {
         lex_token();
         GrammarFn prefix = rules[parser->prev.type].prefix;
-        if (prefix == nullptr) SyntaxError(_Str("expected an expression, but got ") + TK_STR(parser->prev.type));
+        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
         while (rules[peek()].precedence >= precedence) {
             lex_token();
@@ -887,7 +887,7 @@ __LISTCOMP:
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            _Str label = parser->prev.str();
+            Str label = parser->prev.str();
             bool ok = co()->add_label(label);
             if(!ok) SyntaxError("label '" + label + "' already exists");
             consume_end_stmt();
@@ -947,7 +947,7 @@ __LISTCOMP:
         emit(OP_BUILD_CLASS, cls_name_idx);
     }
 
-    void _compile_f_args(_Func func, bool enable_type_hints){
+    void _compile_f_args(pkpy::Function_ func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) SyntaxError("**kwargs should be the last argument");
@@ -961,7 +961,7 @@ __LISTCOMP:
             }
 
             consume(TK("@id"));
-            const _Str& name = parser->prev.str();
+            const Str& name = parser->prev.str();
             if(func->hasName(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
@@ -977,7 +977,7 @@ __LISTCOMP:
                     consume(TK("="));
                     PyVarOrNull value = read_literal();
                     if(value == nullptr){
-                        SyntaxError(_Str("expect a literal, not ") + TK_STR(parser->curr.type));
+                        SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
                     func->kwArgs[name] = value;
                     func->kwArgsOrder.push_back(name);
@@ -992,7 +992,7 @@ __LISTCOMP:
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
-        _Func func = pkpy::make_shared<Function>();
+        pkpy::Function_ func = pkpy::make_shared<pkpy::Function>();
         consume(TK("@id"));
         func->name = parser->prev.str();
 
@@ -1029,7 +1029,7 @@ __LISTCOMP:
     }
 
     /***** Error Reporter *****/
-    void throw_err(_Str type, _Str msg){
+    void throw_err(Str type, Str msg){
         int lineno = parser->curr.line;
         const char* cursor = parser->curr.start;
         // if error occurs in lexing, lineno should be `parser->current_line`
@@ -1038,20 +1038,20 @@ __LISTCOMP:
             cursor = parser->curr_char;
         }
         if(parser->peekchar() == '\n') lineno--;
-        auto e = _Exception("SyntaxError", msg);
+        auto e = pkpy::Exception("SyntaxError", msg);
         e.st_push(parser->src->snapshot(lineno, cursor));
         throw e;
     }
-    void SyntaxError(_Str msg){ throw_err("SyntaxError", msg); }
-    void IndentationError(_Str msg){ throw_err("IndentationError", msg); }
+    void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
+    void IndentationError(Str msg){ throw_err("IndentationError", msg); }
 
 public:
-    _Code compile(){
+    CodeObject_ compile(){
         // can only be called once
         if(used) UNREACHABLE();
         used = true;
 
-        _Code code = pkpy::make_shared<CodeObject>(parser->src, _Str("<module>"));
+        CodeObject_ code = pkpy::make_shared<CodeObject>(parser->src, Str("<module>"));
         codes.push(code);
 
         lex_token(); lex_token();

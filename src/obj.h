@@ -7,28 +7,28 @@ struct Frame;
 struct BaseRef;
 class VM;
 
-//typedef PyVar (*_CppFuncRaw)(VM*, const pkpy::Args&);
-typedef std::function<PyVar(VM*, const pkpy::Args&)> _CppFuncRaw;
-typedef pkpy::shared_ptr<CodeObject> _Code;
+typedef std::function<PyVar(VM*, const pkpy::Args&)> NativeFuncRaw;
+typedef pkpy::shared_ptr<CodeObject> CodeObject_;
 
-struct _CppFunc {
-    _CppFuncRaw f;
+namespace pkpy{
+struct NativeFunc {
+    NativeFuncRaw f;
     int argc;       // DONOT include self
     bool method;
     
-    _CppFunc(_CppFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
+    NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
     inline PyVar operator()(VM* vm, const pkpy::Args& args) const;
 };
 
 struct Function {
-    _Str name;
-    _Code code;
-    std::vector<_Str> args;
-    _Str starredArg;        // empty if no *arg
-    PyVarDict kwArgs;       // empty if no k=v
-    std::vector<_Str> kwArgsOrder;
+    Str name;
+    CodeObject_ code;
+    std::vector<Str> args;
+    Str starredArg;                // empty if no *arg
+    pkpy::NameDict kwArgs;          // empty if no k=v
+    std::vector<Str> kwArgsOrder;
 
-    bool hasName(const _Str& val) const {
+    bool hasName(const Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
         bool _1 = starredArg == val;
         bool _2 = kwArgs.find(val) != kwArgs.end();
@@ -36,18 +36,18 @@ struct Function {
     }
 };
 
-struct _BoundMethod {
+struct BoundMethod {
     PyVar obj;
     PyVar method;
 };
 
-struct _Range {
+struct Range {
     i64 start = 0;
     i64 stop = -1;
     i64 step = 1;
 };
 
-struct _Slice {
+struct Slice {
     int start = 0;
     int stop = 0x7fffffff; 
 
@@ -58,6 +58,9 @@ struct _Slice {
         if(stop > len) stop = len;
     }
 };
+
+typedef shared_ptr<Function> Function_;
+}
 
 class BaseIter {
 protected:
@@ -71,11 +74,9 @@ public:
     virtual ~BaseIter() = default;
 };
 
-typedef pkpy::shared_ptr<Function> _Func;
-
 struct PyObject {
     PyVar type;
-    PyVarDict attribs;
+    pkpy::NameDict attribs;
     void* _tid;
 
     inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
@@ -94,15 +95,15 @@ struct Py_ : PyObject {
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
-#define OBJ_NAME(obj) OBJ_GET(_Str, (obj)->attribs[__name__])
-#define OBJ_TP_NAME(obj) OBJ_GET(_Str, (obj)->type->attribs[__name__])
+#define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attribs[__name__])
+#define OBJ_TP_NAME(obj) OBJ_GET(Str, (obj)->type->attribs[__name__])
 
 #define PY_CLASS(mod, name) \
     inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attribs[#name]; } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
 
-#define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->_tp_##name; }
+#define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->tp_##name; }
 
 static thread_local emhash8::HashMap<void*, std::vector<int*>> _obj_pool;
 

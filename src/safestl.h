@@ -9,7 +9,8 @@ typedef pkpy::shared_ptr<PyObject> PyVar;
 typedef PyVar PyVarOrNull;
 typedef PyVar PyVarRef;
 
-class PyVarList: public std::vector<PyVar> {
+namespace pkpy{
+class List: public std::vector<PyVar> {
     PyVar& at(size_t) = delete;
 
     inline void _check_index(size_t i) const {
@@ -32,7 +33,9 @@ public:
     using std::vector<PyVar>::vector;
 };
 
-typedef emhash8::HashMap<_Str, PyVar> PyVarDict;
+typedef emhash8::HashMap<Str, PyVar> NameDict;
+
+}
 
 namespace pkpy {
     const int kMaxPoolSize = 10;
@@ -89,7 +92,7 @@ namespace pkpy {
             other._size = 0;
         }
 
-        Args(PyVarList&& other) noexcept {
+        Args(pkpy::List&& other) noexcept {
             _alloc(other.size());
             for(int i=0; i<_size; i++) _args[i] = std::move(other[i]);
             other.clear();
@@ -109,8 +112,8 @@ namespace pkpy {
 
         inline int size() const { return _size; }
 
-        PyVarList to_list() const {
-            PyVarList ret(_size);
+        pkpy::List to_list() const {
+            pkpy::List ret(_size);
             for(int i=0; i<_size; i++) ret[i] = _args[i];
             return ret;
         }
@@ -152,6 +155,6 @@ namespace pkpy {
         ret[1] = std::forward<T2>(b);
         return ret;
     }
-}
 
-typedef pkpy::Args _Tuple;
+    typedef Args Tuple;
+}
