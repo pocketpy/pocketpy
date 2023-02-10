@@ -688,7 +688,7 @@ public:
     operator T*() { return _ptr; }
 };
 
-#define pkpy_allocate(T, ...) *(new PkExported<T>(__VA_ARGS__))
+#define PKPY_ALLOCATE(T, ...) *(new PkExported<T>(__VA_ARGS__))
 
 
 extern "C" {
@@ -751,7 +751,7 @@ extern "C" {
     __EXPORT
     /// Create a REPL, using the given virtual machine as the backend.
     REPL* pkpy_new_repl(VM* vm){
-        return pkpy_allocate(REPL, vm);
+        return PKPY_ALLOCATE(REPL, vm);
     }
 
     __EXPORT
@@ -769,7 +769,7 @@ extern "C" {
     __EXPORT
     /// Create a virtual machine.
     VM* pkpy_new_vm(bool use_stdio){
-        VM* vm = pkpy_allocate(VM, use_stdio);
+        VM* vm = PKPY_ALLOCATE(VM, use_stdio);
         init_builtins(vm);
         add_module_sys(vm);
         add_module_time(vm);
