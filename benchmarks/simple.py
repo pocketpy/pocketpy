@@ -17,4 +17,4 @@ def test(n):
 # dis(test)
 # dis(is_prime)
 
-print(test(10000))
+assert test(10000) == 1229

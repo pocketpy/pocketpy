@@ -1,4 +1,4 @@
-from math import log, log10, log2, sin, cos, tan, e, pi, isnan, isinf, fabs, floor, ceil
+from math import log, log10, log2, sin, cos, tan, e, pi, isnan, isinf, fabs, floor, ceil, sqrt
 
 def isclose(a, b):
     return abs(a-b) < 0.000001
@@ -24,3 +24,5 @@ assert floor(1.2) == 1
 assert floor(-1.2) == -2
 assert ceil(1.2) == 2
 assert ceil(-1.2) == -1
+
+assert isclose(sqrt(4), 2.0)

@@ -580,6 +580,7 @@ void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(vm->PyFloat(std::fabs(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(vm->PyInt(std::floor(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(vm->PyInt(std::ceil(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(vm->PyFloat(std::sqrt(vm->num_to_float(args[0])))));
 }
 
 void add_module_dis(VM* vm){
