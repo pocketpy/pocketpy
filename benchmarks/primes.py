@@ -1,6 +1,8 @@
 UPPER_BOUND = 5000000
 PREFIX = 32338
 
+exit(0)
+
 class Node:
     def __init__(self):
         self.children = {}

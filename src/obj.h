@@ -113,7 +113,7 @@ namespace pkpy {
         inline static void call(int* counter) {
             PyObject* obj = (PyObject*)(counter + 1);
             std::vector<int*>& pool = _obj_pool[obj->_tid];
-            if(obj->_tid==tid<Dummy>() || pool.size() > 60){
+            if(obj->_tid==tid<Dummy>() || pool.size() > 32){
                 obj->~PyObject();
                 free(counter);
             }else{

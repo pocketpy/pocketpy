@@ -27,6 +27,12 @@ class VM {
             {
             case OP_NO_OP: break;       // do nothing
             case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); break;
+            case OP_STORE_INCREMENT:{
+                const BaseRef* r = PyRef_AS_C(frame->top());
+                i64 val = PyInt_AS_C(r->get(this, frame));
+                r->set(this, frame, PyInt(val+byte.arg));
+                frame->_pop();
+            } break;
             case OP_LOAD_LAMBDA: {
                 PyVar obj = frame->co->consts[byte.arg];
                 setattr(obj, __module__, frame->_module);
@@ -42,14 +48,20 @@ class VM {
                 auto& p = frame->co->names[byte.arg];
                 NameRef(p).set(this, frame, frame->pop_value(this));
             } break;
-            case OP_BUILD_ATTR_REF: {
-                auto& attr = frame->co->names[byte.arg];
+            case OP_BUILD_ATTR: {
+                int name = byte.arg >> 1;
+                bool _rvalue = byte.arg % 2 == 1;
+                auto& attr = frame->co->names[name];
                 PyVar obj = frame->pop_value(this);
-                frame->push(PyRef(AttrRef(obj, NameRef(attr))));
+                AttrRef ref = AttrRef(obj, NameRef(attr));
+                if(_rvalue) frame->push(ref.get(this, frame));
+                else frame->push(PyRef(ref));
             } break;
-            case OP_BUILD_INDEX_REF: {
+            case OP_BUILD_INDEX: {
                 PyVar index = frame->pop_value(this);
-                frame->push(PyRef(IndexRef(frame->pop_value(this), index)));
+                auto ref = IndexRef(frame->pop_value(this), index);
+                if(byte.arg == 0) frame->push(PyRef(ref));
+                else frame->push(ref.get(this, frame));
             } break;
             case OP_STORE_REF: {
                 PyVar obj = frame->pop_value(this);
@@ -794,7 +806,7 @@ public:
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
-        static_assert(std::is_base_of<BaseRef, P>::value, "P should derive from BaseRef");
+        static_assert(std::is_base_of<BaseRef, std::remove_reference_t<P>>::value, "P should derive from BaseRef");
         return new_object(tp_ref, std::forward<P>(value));
     }
 

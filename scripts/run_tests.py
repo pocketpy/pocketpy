@@ -4,7 +4,14 @@ import time
 
 def test_file(filepath, cpython=False):
     if cpython:
-        return os.system("python3 " + filepath) == 0
+        with open(filepath, 'rt') as f:
+            text = f.read().replace('++', '+=1').replace('--', '-=1')
+        with open("tmp.py", 'wt') as f:
+            f.write(text)
+        x = os.system("python3 tmp.py") == 0
+        os.remove("tmp.py")
+        return x
+            
     if sys.platform == 'win32':
         return os.system("pocketpy.exe " + filepath) == 0
     else:
@@ -16,7 +23,7 @@ def test_dir(path):
         if not filename.endswith('.py'):
             continue
         filepath = os.path.join(path, filename)
-        print("> " + filepath)
+        print("> " + filepath, flush=True)
 
         if path == 'benchmarks/':
             _0 = time.time()
@@ -30,7 +37,7 @@ def test_dir(path):
             if not test_file(filepath): exit(1)
 
 if len(sys.argv) == 2:
-    assert sys.argv[1] == 'benchmark'
+    assert 'benchmark' in sys.argv[1]
     d = 'benchmarks/'
 else:
     d = 'tests/'

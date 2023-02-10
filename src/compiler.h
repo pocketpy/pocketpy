@@ -73,6 +73,8 @@ public:
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
+        rules[TK("++")] =       { nullptr,               METHOD(exprSelfInc),        PREC_UNARY };
+        rules[TK("--")] =       { nullptr,               METHOD(exprSelfDec),        PREC_UNARY };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
@@ -225,7 +227,12 @@ private:
                     return;
                 }
                 case '=': parser->set_next_token_2('=', TK("="), TK("==")); return;
-                case '+': parser->set_next_token_2('=', TK("+"), TK("+=")); return;
+                case '+': {
+                    if(parser->matchchar('+')) parser->set_next_token(TK("++"));
+                    else if(parser->matchchar('=')) parser->set_next_token(TK("+="));
+                    else parser->set_next_token(TK("+"));
+                    return;
+                }
                 case '>': {
                     if(parser->matchchar('=')) parser->set_next_token(TK(">="));
                     else if(parser->matchchar('>')) parser->set_next_token(TK(">>"));
@@ -241,6 +248,7 @@ private:
                 case '-': {
                     if(parser->matchchar('=')) parser->set_next_token(TK("-="));
                     else if(parser->matchchar('>')) parser->set_next_token(TK("->"));
+                    else if(parser->matchchar('-')) parser->set_next_token(TK("--"));
                     else parser->set_next_token(TK("-"));
                     return;
                 }
@@ -456,6 +464,16 @@ private:
         patch_jump(patch2);
     }
 
+    void exprSelfInc() {
+        emit(OP_STORE_INCREMENT, 1);
+        consume_end_stmt();
+    }
+
+    void exprSelfDec() {
+        emit(OP_STORE_INCREMENT, -1);
+        consume_end_stmt();
+    }
+
     void exprBinaryOp() {
         TokenIndex op = parser->prev.type;
         parse_expression((Precedence)(rules[op].precedence + 1));
@@ -626,7 +644,8 @@ __LISTCOMP:
         consume(TK("@id"));
         const Str& name = parser->prev.str();
         int index = co()->add_name(name, NAME_ATTR);
-        emit(OP_BUILD_ATTR_REF, index);
+        index = (index<<1) + (int)co()->_rvalue;
+        emit(OP_BUILD_ATTR, index);
     }
 
     // [:], [:b]
@@ -655,7 +674,8 @@ __LISTCOMP:
                 consume(TK("]"));
             }
         }
-        emit(OP_BUILD_INDEX_REF);
+
+        emit(OP_BUILD_INDEX, (int)co()->_rvalue);
     }
 
     void exprValue() {
@@ -730,7 +750,7 @@ __LISTCOMP:
             consume(TK("@id"));
             Token tkname = parser->prev;
             int index = co()->add_name(tkname.str(), NAME_ATTR);
-            emit(OP_BUILD_ATTR_REF, index);
+            emit(OP_BUILD_ATTR, (index<<1)+1);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 tkname = parser->prev;
@@ -923,7 +943,7 @@ __LISTCOMP:
             consume_end_stmt();
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
-            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF){
+            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_STORE_INCREMENT){
                 if(mode()==REPL_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
