@@ -39,17 +39,9 @@ typedef double f64;
 struct Dummy { char _; };
 
 #define DUMMY_VAL Dummy()
-#define DUMMY_VAL_TP Dummy
 
 template<typename T>
 void* tid() {
 	static volatile int8_t _x;
 	return (void*)(&_x);
 }
-
-// This does not ensure to be unique when the pointer of obj->type is deleted & reused.
-// But it is good enough for now.
-template<typename T>
-inline void* obj_tid(void* alt) { return tid<T>(); }
-template<>
-inline void* obj_tid<Dummy>(void* alt) { return alt; }

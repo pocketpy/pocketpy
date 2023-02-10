@@ -76,12 +76,12 @@ typedef pkpy::shared_ptr<Function> _Func;
 struct PyObject {
     PyVar type;
     PyVarDict attribs;
+    void* _tid;
 
     inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
-    virtual void* type_id() = 0;
 
-    PyObject(const PyVar& type) : type(type) {}
+    PyObject(const PyVar& type, void* _tid) : type(type), _tid(_tid) {}
     virtual ~PyObject() = default;
 };
 
@@ -89,13 +89,11 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(const PyVar& type, T val) : PyObject(type), _value(val) {}
+    Py_(const PyVar& type, T val) : PyObject(type, tid<T>()), _value(val) {}
     void* value() override { return &_value; }
-    void* type_id() override { return obj_tid<T>((void*)type.get()); }
 };
 
-// Unsafe cast from PyObject to C++ type
-#define OBJ_GET(T, obj) (*static_cast<T*>((obj)->value()))
+#define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
 #define OBJ_NAME(obj) OBJ_GET(_Str, (obj)->attribs[__name__])
 #define OBJ_TP_NAME(obj) OBJ_GET(_Str, (obj)->type->attribs[__name__])
 
@@ -113,8 +111,8 @@ namespace pkpy {
     struct sp_deleter<PyObject> {
         inline static void call(int* counter) {
             PyObject* obj = (PyObject*)(counter + 1);
-            std::vector<int*>& pool = _obj_pool[obj->type_id()];
-            if(pool.size() > 60){
+            std::vector<int*>& pool = _obj_pool[obj->_tid];
+            if(obj->_tid==tid<Dummy>() || pool.size() > 60){
                 obj->~PyObject();
                 free(counter);
             }else{

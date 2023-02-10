@@ -596,7 +596,8 @@ public:
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(_tp_type)) UNREACHABLE();
-        std::vector<int*>& pool = _obj_pool[obj_tid<T>((void*)type.get())];
+        if constexpr (std::is_same_v<T, Dummy>) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
+        std::vector<int*>& pool = _obj_pool[tid<T>()];
         if(pool.empty()) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
         int* counter = pool.back(); pool.pop_back();
         *counter = 1;
