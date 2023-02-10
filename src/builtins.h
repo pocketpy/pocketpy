@@ -32,6 +32,18 @@ def max(a, b):
 def min(a, b):
     return a < b ? a : b
 
+def all(iterable):
+    for i in iterable:
+        if not i:
+            return False
+    return True
+
+def any(iterable):
+    for i in iterable:
+        if i:
+            return True
+    return False
+
 def sum(iterable):
     res = 0
     for i in iterable:

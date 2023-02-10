@@ -187,3 +187,15 @@ assert abs(1.0) == 1.0
 assert abs(-1.0) == 1.0
 assert abs(1) == 1
 assert abs(-1) == 1
+
+assert any([1])
+assert any([1,False,True])
+assert not any([])
+assert not any([False])
+
+assert all([])
+assert all([True])
+assert all([True, 1])
+assert not all([False])
+assert not all([True, False])
+assert not all([False, False])
