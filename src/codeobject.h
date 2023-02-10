@@ -129,8 +129,7 @@ struct Frame {
         : co(co), _module(_module), _locals(_locals), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
-        _ip = _next_ip;
-        _next_ip = _ip + 1;
+        _ip = _next_ip++;
         return co->codes[_ip];
     }
 
