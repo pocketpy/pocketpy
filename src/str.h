@@ -13,11 +13,10 @@ class Str : public std::string {
         if(_u8_index != nullptr) return;
         _u8_index = new std::vector<uint16_t>();
         _u8_index->reserve(size());
-        if(size() > 65535) throw std::runtime_error("String has more than 65535 bytes.");
+        if(size() > 65535) throw std::runtime_error("str has more than 65535 bytes.");
         for(uint16_t i = 0; i < size(); i++){
             // https://stackoverflow.com/questions/3911536/utf-8-unicode-whats-with-0xc0-and-0x80
-            if((at(i) & 0xC0) != 0x80)
-                _u8_index->push_back(i);
+            if((at(i) & 0xC0) != 0x80) _u8_index->push_back(i);
         }
     }
 public:
@@ -35,7 +34,7 @@ public:
         }
     }
     Str(Str&& s) : std::string(std::move(s)) {
-        if(_u8_index != nullptr) delete _u8_index;
+        delete _u8_index;
         _u8_index = s._u8_index;
         s._u8_index = nullptr;
         if(s.hash_initialized){
@@ -117,8 +116,8 @@ public:
 
     Str& operator=(const Str& s){
         this->std::string::operator=(s);
-        if(_u8_index != nullptr){
-            delete _u8_index;
+        delete _u8_index;
+        if(s._u8_index != nullptr){
             _u8_index = new std::vector<uint16_t>(*s._u8_index);
         }
         this->hash_initialized = s.hash_initialized;
@@ -128,7 +127,7 @@ public:
 
     Str& operator=(Str&& s){
         this->std::string::operator=(std::move(s));
-        if(_u8_index != nullptr) delete _u8_index;
+        delete _u8_index;
         this->_u8_index = s._u8_index;
         s._u8_index = nullptr;
         this->hash_initialized = s.hash_initialized;
@@ -136,9 +135,7 @@ public:
         return *this;
     }
 
-    ~Str(){
-        if(_u8_index != nullptr) delete _u8_index;
-    }
+    ~Str(){ delete _u8_index;}
 };
 
 namespace std {

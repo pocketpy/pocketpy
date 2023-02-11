@@ -122,8 +122,8 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, const pkpy::Args& args) {
         std::vector<Str> names;
-        for (auto& [k, _] : args[0]->attribs) names.push_back(k);
-        for (auto& [k, _] : args[0]->type->attribs) {
+        for (auto& [k, _] : args[0]->attr()) names.push_back(k);
+        for (auto& [k, _] : args[0]->type->attr()) {
             if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
@@ -279,14 +279,14 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("str", "__len__", [](VM* vm, const pkpy::Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        return vm->PyInt(_self.u8_length());
+        const Str& self = vm->PyStr_AS_C(args[0]);
+        return vm->PyInt(self.u8_length());
     });
 
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, const pkpy::Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        const Str& _other = vm->PyStr_AS_C(args[1]);
-        return vm->PyBool(_self.find(_other) != Str::npos);
+        const Str& self = vm->PyStr_AS_C(args[0]);
+        const Str& other = vm->PyStr_AS_C(args[1]);
+        return vm->PyBool(self.find(other) != Str::npos);
     });
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
@@ -476,7 +476,7 @@ void init_builtins(VM* _vm) {
 
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, const pkpy::Args& args) {
-        pkpy::List _list = vm->PyList_AS_C(vm->call(vm->builtins->attribs["list"], args));
+        pkpy::List _list = vm->PyList_AS_C(vm->call(vm->builtins->attr("list"), args));
         return vm->PyTuple(std::move(_list));
     });
 
@@ -763,8 +763,8 @@ extern "C" {
     /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(VM* vm, const char* name){
-        auto it = vm->_main->attribs.find(name);
-        if(it == vm->_main->attribs.end()) return nullptr;
+        auto it = vm->_main->attr().find(name);
+        if(it == vm->_main->attr().end()) return nullptr;
         try{
             Str _repr = vm->PyStr_AS_C(vm->asRepr(it->second));
             return strdup(_repr.c_str());

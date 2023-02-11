@@ -123,7 +123,7 @@ struct Frame {
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline pkpy::NameDict& f_locals() noexcept { return *_locals; }
-    inline pkpy::NameDict& f_globals() noexcept { return _module->attribs; }
+    inline pkpy::NameDict& f_globals() noexcept { return _module->attr(); }
 
     Frame(const CodeObject_ co, PyVar _module, pkpy::shared_ptr<pkpy::NameDict> _locals)
         : co(co), _module(_module), _locals(_locals), id(kFrameGlobalId++) { }

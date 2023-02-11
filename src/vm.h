@@ -17,7 +17,7 @@
 class VM {
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
-    PyVar _ascii_str_pool[128];
+    // PyVar _ascii_str_pool[128];
 
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
@@ -91,7 +91,7 @@ class VM {
                 frame->push(PyStr(ss.str()));
             } break;
             case OP_LOAD_EVAL_FN: {
-                frame->push(builtins->attribs[m_eval]);
+                frame->push(builtins->attr(m_eval));
             } break;
             case OP_LIST_APPEND: {
                 pkpy::Args args(2);
@@ -206,7 +206,7 @@ class VM {
             case OP_BUILD_MAP:
                 {
                     pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
-                    PyVar obj = call(builtins->attribs["dict"]);
+                    PyVar obj = call(builtins->attr("dict"));
                     for(int i=0; i<items.size(); i+=2){
                         call(obj, __setitem__, pkpy::two_args(items[i], items[i+1]));
                     }
@@ -217,7 +217,7 @@ class VM {
                     PyVar list = PyList(
                         frame->pop_n_values_reversed(this, byte.arg).to_list()
                     );
-                    PyVar obj = call(builtins->attribs["set"], pkpy::one_arg(list));
+                    PyVar obj = call(builtins->attr("set"), pkpy::one_arg(list));
                     frame->push(obj);
                 } break;
             case OP_DUP_TOP: frame->push(frame->top_value(this)); break;
@@ -363,7 +363,7 @@ public:
         }
 
         init_builtin_types();
-        for(int i=0; i<128; i++) _ascii_str_pool[i] = new_object(tp_str, std::string(1, (char)i));
+        // for(int i=0; i<128; i++) _ascii_str_pool[i] = new_object(tp_str, std::string(1, (char)i));
     }
 
     PyVar asStr(const PyVar& obj){
@@ -378,7 +378,7 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->is_type(tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attribs[__name__]) + "'>");
+        if(obj->is_type(tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
         return call(obj, __repr__);
     }
 
@@ -398,9 +398,9 @@ public:
     PyVar fast_call(const Str& name, pkpy::Args&& args){
         PyObject* cls = args[0]->type.get();
         while(cls != None.get()) {
-            PyVar* val = cls->attribs.try_get(name);
+            PyVar* val = cls->attr().try_get(name);
             if(val != nullptr) return call(*val, std::move(args));
-            cls = cls->attribs[__base__].get();
+            cls = cls->attr(__base__).get();
         }
         AttributeError(args[0], name);
         return nullptr;
@@ -428,14 +428,14 @@ public:
 
     PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
         if(_callable->is_type(tp_type)){
-            auto it = _callable->attribs.find(__new__);
+            PyVar* new_f = _callable->attr().try_get(__new__);
             PyVar obj;
-            if(it != _callable->attribs.end()){
-                obj = call(it->second, args, kwargs, false);
+            if(new_f != nullptr){
+                obj = call(*new_f, args, kwargs, false);
             }else{
                 obj = new_object(_callable, DUMMY_VAL);
-                PyVarOrNull init_fn = getattr(obj, __init__, false);
-                if (init_fn != nullptr) call(init_fn, args, kwargs, false);
+                PyVarOrNull init_f = getattr(obj, __init__, false);
+                if (init_f != nullptr) call(init_f, args, kwargs, false);
             }
             return obj;
         }
@@ -500,7 +500,7 @@ public:
                 locals[key] = val;
             }
 
-            PyVar* it_m = (*callable)->attribs.try_get(__module__);
+            PyVar* it_m = (*callable)->attr().try_get(__module__);
             PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
             if(opCall){
                 _new_frame(fn->code, _module, _locals);
@@ -604,15 +604,7 @@ public:
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(tp_type)) UNREACHABLE();
-        if constexpr (std::is_same_v<T, Dummy>) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
-        std::vector<int*>& pool = _obj_pool[tid<T>()];
-        if(pool.empty()) return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
-        int* counter = pool.back(); pool.pop_back();
-        *counter = 1;
-        Py_<T>* obj = (Py_<T>*)(counter + 1);
-        obj->_value = std::move(_value);
-        obj->attribs.clear();
-        return PyVar(counter);
+        return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
     }
 
     template<typename T, typename... Args>
@@ -640,19 +632,21 @@ public:
                 depth++;
             }
             cls = (*root)->type.get();
-            for(int i=0; i<depth; i++) cls = cls->attribs[__base__].get();
+            for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
 
-            it = (*root)->attribs.find(name);
-            if(it != (*root)->attribs.end()) return it->second;        
+            it = (*root)->attr().find(name);
+            if(it != (*root)->attr().end()) return it->second;        
         }else{
-            it = obj->attribs.find(name);
-            if(it != obj->attribs.end()) return it->second;
+            if(obj->is_attr_valid()){
+                it = obj->attr().find(name);
+                if(it != obj->attr().end()) return it->second;
+            }
             cls = obj->type.get();
         }
 
         while(cls != None.get()) {
-            it = cls->attribs.find(name);
-            if(it != cls->attribs.end()){
+            it = cls->attr().find(name);
+            if(it != cls->attr().end()){
                 PyVar valueFromCls = it->second;
                 if(valueFromCls->is_type(tp_function) || valueFromCls->is_type(tp_native_function)){
                     return PyBoundMethod({obj, std::move(valueFromCls)});
@@ -660,7 +654,7 @@ public:
                     return valueFromCls;
                 }
             }
-            cls = cls->attribs[__base__].get();
+            cls = cls->attr()[__base__].get();
         }
         if(throw_err) AttributeError(obj, name);
         return nullptr;
@@ -670,7 +664,8 @@ public:
     inline void setattr(PyVar& obj, const Str& name, T&& value) {
         PyObject* p = obj.get();
         while(p->is_type(tp_super)) p = static_cast<PyVar*>(p->value())->get();
-        p->attribs[name] = std::forward<T>(value);
+        if(!p->is_attr_valid()) TypeError("cannot set attribute");
+        p->attr()[name] = std::forward<T>(value);
     }
 
     template<int ARGC>
@@ -819,10 +814,11 @@ public:
         return OBJ_GET(Str, obj);
     }
     inline PyVar PyStr(const Str& value) {
-        if(value.size() == 1){
-            char c = value.c_str()[0];
-            if(c > 0) return _ascii_str_pool[(int)c];
-        }
+        // some BUGs here
+        // if(value.size() == 1){
+        //     char c = value.c_str()[0];
+        //     if(c >= 0) return _ascii_str_pool[(int)c];
+        // }
         return new_object(tp_str, value);
     }
 
@@ -980,7 +976,7 @@ PyVar NameRef::get(VM* vm, Frame* frame) const{
     if(val) return *val;
     val = frame->f_globals().try_get(name());
     if(val) return *val;
-    val = vm->builtins->attribs.try_get(name());
+    val = vm->builtins->attr().try_get(name());
     if(val) return *val;
     vm->NameError(name());
     return nullptr;

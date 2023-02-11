@@ -76,49 +76,39 @@ public:
 
 struct PyObject {
     PyVar type;
-    pkpy::NameDict attribs;
-    void* _tid;
+    pkpy::NameDict* _attr;
+    //void* _tid;
+    inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
+    inline pkpy::NameDict& attr() noexcept { return *_attr; }
+    inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
 
     inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
 
-    PyObject(const PyVar& type, void* _tid) : type(type), _tid(_tid) {}
-    virtual ~PyObject() = default;
+    PyObject(const PyVar& type) : type(type) {}
+    virtual ~PyObject() { delete _attr; }
 };
 
 template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(const PyVar& type, T val) : PyObject(type, tid<T>()), _value(val) {}
+    Py_(const PyVar& type, T val) : PyObject(type), _value(val) {
+        if constexpr (std::is_same_v<T, Dummy>
+        || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
+            _attr = new pkpy::NameDict();
+        }else{
+            _attr = nullptr;
+        }
+    }
     void* value() override { return &_value; }
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
-#define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attribs[__name__])
-#define OBJ_TP_NAME(obj) OBJ_GET(Str, (obj)->type->attribs[__name__])
+#define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attr(__name__))
+#define OBJ_TP_NAME(obj) OBJ_GET(Str, (obj)->type->attr(__name__))
 
 #define PY_CLASS(mod, name) \
-    inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attribs[#name]; } \
+    inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attr(#name); } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
-
-// #define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->tp_##name; }
-
-static thread_local emhash8::HashMap<void*, std::vector<int*>> _obj_pool;
-
-namespace pkpy {
-    template<>
-    struct sp_deleter<PyObject> {
-        inline static void call(int* counter) {
-            PyObject* obj = (PyObject*)(counter + 1);
-            std::vector<int*>& pool = _obj_pool[obj->_tid];
-            if(obj->_tid==tid<Dummy>() || pool.size() > 32){
-                obj->~PyObject();
-                free(counter);
-            }else{
-                pool.push_back(counter);
-            }
-        }
-    };
-}
