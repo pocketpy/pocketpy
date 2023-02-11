@@ -392,9 +392,18 @@ void init_builtins(VM* _vm) {
 
     /************ PyList ************/
     _vm->bind_method<1>("list", "append", [](VM* vm, const pkpy::Args& args) {
-        pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        _self.push_back(args[1]);
+        pkpy::List& self = vm->PyList_AS_C(args[0]);
+        self.push_back(args[1]);
         return vm->None;
+    });
+
+    _vm->bind_method<1>("list", "__mul__", [](VM* vm, const pkpy::Args& args) {
+        const pkpy::List& self = vm->PyList_AS_C(args[0]);
+        int n = (int)vm->PyInt_AS_C(args[1]);
+        pkpy::List result;
+        result.reserve(self.size() * n);
+        for(int i = 0; i < n; i++) result.insert(result.end(), self.begin(), self.end());
+        return vm->PyList(std::move(result));
     });
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, const pkpy::Args& args) {

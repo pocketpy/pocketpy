@@ -183,14 +183,6 @@ def __list4pop(self, i=-1):
 list.pop = __list4pop
 del __list4pop
 
-def __list4__mul__(self, n):
-    a = []
-    for i in range(n):
-        a.extend(self)
-    return a
-list.__mul__ = __list4__mul__
-del __list4__mul__
-
 def __iterable4__eq__(self, other):
     if len(self) != len(other):
         return False

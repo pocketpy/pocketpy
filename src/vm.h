@@ -12,6 +12,7 @@
         return new_object(ptype, value);                        \
     }
 
+// static std::map<Str, int> _stats;
 
 class VM {
     std::stack< std::unique_ptr<Frame> > callstack;
@@ -452,6 +453,7 @@ public:
             return f(this, args);
         } else if((*callable)->is_type(tp_function)){
             const pkpy::Function_& fn = PyFunction_AS_C((*callable));
+            // pkpy::_stats[fn->name] += 1;
             pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
             pkpy::NameDict& locals = *_locals;
 
