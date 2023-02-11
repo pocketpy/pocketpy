@@ -943,7 +943,8 @@ public:
     }
 
     inline void check_type(const PyVar& obj, const PyVar& type){
-        if(!obj->is_type(type)) TypeError("expected " + OBJ_NAME(type).escape(true) + ", but got " + OBJ_TP_NAME(obj).escape(true));
+        if(obj->is_type(type)) return;
+        TypeError("expected " + OBJ_NAME(type).escape(true) + ", but got " + OBJ_TP_NAME(obj).escape(true));
     }
 
     template<typename T>

@@ -103,7 +103,7 @@ struct Py_ : PyObject {
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
 
-#define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->tp_##name; }
+// #define PY_BUILTIN_CLASS(name) inline static PyVar _type(VM* vm) { return vm->tp_##name; }
 
 static thread_local emhash8::HashMap<void*, std::vector<int*>> _obj_pool;
 
