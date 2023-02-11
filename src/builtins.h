@@ -121,7 +121,7 @@ def __qsort(a: list, i: int, j: int):
     mid = (i+j) // 2
     a[mid], a[i] = a[i], a[mid]
     u = a[i];
-    while i < j:
+    while i<j:
         while i<j and a[j]>u:
             j -= 1
         if i<j:
@@ -279,6 +279,12 @@ class dict:
             if kv is not None:
                 self[kv[0]] = kv[1]
 
+    def get(self, key, default=None):
+        ok, i = self.__probe(key)
+        if ok:
+            return self._a[i][1]
+        return default
+
     def keys(self):
         return [kv[0] for kv in self._a if kv is not None]
 
@@ -416,77 +422,11 @@ class set:
 )";
 
 const char* kRandomCode = R"(
-import time as _time
+def shuffle(L):
+    for i in range(len(L)):
+        j = randint(i, len(L) - 1)
+        L[i], L[j] = L[j], L[i]
 
-__all__ = ['Random', 'seed', 'random', 'randint', 'uniform']
-
-def _int32(x):
-	return int(0xffffffff & x)
-
-class Random:
-	def __init__(self, seed=None):
-		if seed is None:
-			seed = int(_time.time() * 1000000)
-		seed = _int32(seed)
-		self.mt = [0] * 624
-		self.mt[0] = seed
-		self.mti = 0
-		for i in range(1, 624):
-			self.mt[i] = _int32(1812433253 * (self.mt[i - 1] ^ self.mt[i - 1] >> 30) + i)
-	
-	def extract_number(self):
-		if self.mti == 0:
-			self.twist()
-		y = self.mt[self.mti]
-		y = y ^ y >> 11
-		y = y ^ y << 7 & 2636928640
-		y = y ^ y << 15 & 4022730752
-		y = y ^ y >> 18
-		self.mti = (self.mti + 1) % 624
-		return _int32(y)
-	
-	def twist(self):
-		for i in range(0, 624):
-			y = _int32((self.mt[i] & 0x80000000) + (self.mt[(i + 1) % 624] & 0x7fffffff))
-			self.mt[i] = (y >> 1) ^ self.mt[(i + 397) % 624]
-			
-			if y % 2 != 0:
-				self.mt[i] = self.mt[i] ^ 0x9908b0df
-				
-	def seed(self, x):
-		assert type(x) is int
-		self.mt = [0] * 624
-		self.mt[0] = _int32(x)
-		self.mti = 0
-		for i in range(1, 624):
-			self.mt[i] = _int32(1812433253 * (self.mt[i - 1] ^ self.mt[i - 1] >> 30) + i)
-			
-	def random(self):
-		return self.extract_number() / 2 ** 32
-		
-	def randint(self, a, b):
-		assert a <= b
-		return int(self.random() * (b - a + 1)) + a
-		
-	def uniform(self, a, b):
-		if a > b:
-			a, b = b, a
-		return self.random() * (b - a) + a
-
-    def shuffle(self, L):
-        for i in range(len(L)):
-            j = self.randint(i, len(L) - 1)
-            L[i], L[j] = L[j], L[i]
-
-    def choice(self, L):
-        return L[self.randint(0, len(L) - 1)]
-		
-_inst = Random()
-seed = _inst.seed
-random = _inst.random
-randint = _inst.randint
-uniform = _inst.uniform
-shuffle = _inst.shuffle
-choice = _inst.choice
-
+def choice(L):
+    return L[randint(0, len(L) - 1)]
 )";

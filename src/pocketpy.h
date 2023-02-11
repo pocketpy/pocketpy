@@ -569,12 +569,12 @@ void add_module_math(VM* vm){
     vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
     vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
 
-    vm->bind_func<1>(mod, "log", CPP_LAMBDA(vm->PyFloat(log(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(vm->PyFloat(log10(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(vm->PyFloat(log2(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(vm->PyFloat(sin(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(vm->PyFloat(cos(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(vm->PyFloat(tan(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log", CPP_LAMBDA(vm->PyFloat(std::log(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(vm->PyFloat(std::log10(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(vm->PyFloat(std::log2(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(vm->PyFloat(std::sin(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(vm->PyFloat(std::cos(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(vm->PyFloat(std::tan(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(vm->PyFloat(std::fabs(vm->num_to_float(args[0])))));
@@ -668,6 +668,34 @@ void add_module_re(VM* vm){
         return vm->PyList(vec);
     });
 }
+
+void add_module_random(VM* vm){
+    PyVar mod = vm->new_module("random");
+    std::srand(std::time(nullptr));
+    vm->bind_func<1>(mod, "seed", [](VM* vm, const pkpy::Args& args) {
+        std::srand((unsigned int)vm->PyInt_AS_C(args[0]));
+        return vm->None;
+    });
+
+    vm->bind_func<0>(mod, "random", CPP_LAMBDA(vm->PyFloat((f64)std::rand() / RAND_MAX)));
+    vm->bind_func<2>(mod, "randint", [](VM* vm, const pkpy::Args& args) {
+        i64 a = vm->PyInt_AS_C(args[0]);
+        i64 b = vm->PyInt_AS_C(args[1]);
+        if(a > b) std::swap(a, b);
+        return vm->PyInt(a + std::rand() % (b - a + 1));
+    });
+
+    vm->bind_func<2>(mod, "uniform", [](VM* vm, const pkpy::Args& args) {
+        f64 a = vm->PyFloat_AS_C(args[0]);
+        f64 b = vm->PyFloat_AS_C(args[1]);
+        if(a > b) std::swap(a, b);
+        return vm->PyFloat(a + (b - a) * std::rand() / RAND_MAX);
+    });
+
+    CodeObject_ code = vm->compile(kRandomCode, "random.py", EXEC_MODE);
+    vm->_exec(code, mod, pkpy::make_shared<pkpy::NameDict>());
+}
+
 
 class _PkExported{
 public:
@@ -781,11 +809,10 @@ extern "C" {
         add_module_math(vm);
         add_module_re(vm);
         add_module_dis(vm);
+        add_module_random(vm);
 
         CodeObject_ code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
         vm->_exec(code, vm->builtins, pkpy::make_shared<pkpy::NameDict>());
-
-        pkpy_vm_add_module(vm, "random", kRandomCode);
         return vm;
     }
 

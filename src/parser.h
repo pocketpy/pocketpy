@@ -10,7 +10,7 @@ constexpr const char* kTokens[] = {
     "+", "-", "*", "/", "//", "**", "=", ">", "<", "...", "->",
     "<<", ">>", "&", "|", "^", "?",
     "==", "!=", ">=", "<=",
-    "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=", "++", "--",
+    "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with",
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
@@ -144,7 +144,7 @@ struct Parser {
         if(brackets_level > 0) return true;
         int spaces = eat_spaces();
         if(peekchar() == '#') skip_line_comment();
-        if(peekchar() == '\0' || peekchar() == '\n') return true;
+        if(peekchar() == '\0' || peekchar() == '\n' || peekchar() == '\r') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);

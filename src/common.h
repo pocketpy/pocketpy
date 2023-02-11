@@ -11,6 +11,7 @@
 #include <regex>
 #include <stack>
 #include <cmath>
+#include <cstdlib>
 #include <stdexcept>
 #include <vector>
 #include <string>

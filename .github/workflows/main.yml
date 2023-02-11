@@ -42,6 +42,7 @@ jobs:
         build_dir: web
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.event_name == 'push'
     - uses: actions/upload-artifact@v3
       with:
         path: output

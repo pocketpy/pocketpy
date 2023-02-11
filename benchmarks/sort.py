@@ -11,15 +11,15 @@ def __qsort(a: list, i: int, j: int):
     u = a[i];
     while i<j:
         while i<j and a[j]>u:
-            j--
+            j -= 1
         if i<j:
             a[i] = a[j]
-            i++
+            i += 1
         while i<j and a[i]<u:
-            i++
+            i += 1
         if i<j:
             a[j] = a[i]
-            j--
+            j -= 1
     a[i] = u;
     __qsort(a, d1, i-1)
     __qsort(a, i+1, d2)

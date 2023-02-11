@@ -16,6 +16,7 @@
 class VM {
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
+    PyVar _ascii_str_pool[128];
 
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
@@ -27,12 +28,6 @@ class VM {
             {
             case OP_NO_OP: break;       // do nothing
             case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); break;
-            case OP_STORE_INCREMENT:{
-                const BaseRef* r = PyRef_AS_C(frame->top());
-                i64 val = PyInt_AS_C(r->get(this, frame));
-                r->set(this, frame, PyInt(val+byte.arg));
-                frame->_pop();
-            } break;
             case OP_LOAD_LAMBDA: {
                 PyVar obj = frame->co->consts[byte.arg];
                 setattr(obj, __module__, frame->_module);
@@ -367,6 +362,7 @@ public:
         }
 
         init_builtin_types();
+        for(int i=0; i<128; i++) _ascii_str_pool[i] = new_object(tp_str, std::string(1, (char)i));
     }
 
     PyVar asStr(const PyVar& obj){
@@ -816,9 +812,20 @@ public:
         return (const BaseRef*)(obj->value());
     }
 
+    inline const Str& PyStr_AS_C(const PyVar& obj) {
+        check_type(obj, tp_str);
+        return OBJ_GET(Str, obj);
+    }
+    inline PyVar PyStr(const Str& value) {
+        if(value.size() == 1){
+            char c = value.c_str()[0];
+            if(c > 0) return _ascii_str_pool[(int)c];
+        }
+        return new_object(tp_str, value);
+    }
+
     DEF_NATIVE(Int, i64, tp_int)
     DEF_NATIVE(Float, f64, tp_float)
-    DEF_NATIVE(Str, Str, tp_str)
     DEF_NATIVE(List, pkpy::List, tp_list)
     DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
     DEF_NATIVE(Function, pkpy::Function_, tp_function)

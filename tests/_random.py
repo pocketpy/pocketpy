@@ -5,6 +5,11 @@ for _ in range(100):
     assert i <= 10
     assert i >= 1
 
+a = [1, 2, 3, 4]
+b = (1, 2, 3)
+r.shuffle(a)
+r.choice(a)
+r.choice(b)
 
 from sys import version as v
 

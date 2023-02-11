@@ -4,14 +4,7 @@ import time
 
 def test_file(filepath, cpython=False):
     if cpython:
-        with open(filepath, 'rt') as f:
-            text = f.read().replace('++', '+=1').replace('--', '-=1')
-        with open("tmp.py", 'wt') as f:
-            f.write(text)
-        x = os.system("python3 tmp.py") == 0
-        os.remove("tmp.py")
-        return x
-            
+        return os.system("python3 " + filepath) == 0
     if sys.platform == 'win32':
         return os.system("pocketpy.exe " + filepath) == 0
     else:

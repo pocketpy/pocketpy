@@ -1,3 +1,5 @@
+# BUG!! There is a memory leak in this code
+
 UPPER_BOUND = 5000000
 PREFIX = 32338
 
@@ -29,7 +31,7 @@ class Sieve:
                 while i < self.limit:
                     self.prime[i] = False
                     i = i + r * r
-            r = r + 1
+            r += 1
         return self
 
     def step1(self, x, y):
@@ -53,13 +55,13 @@ class Sieve:
             self.step1(x, y)
             self.step2(x, y)
             self.step3(x, y)
-            y = y + 1
+            y += 1
 
     def loop_x(self):
         x = 1
         while x * x < self.limit:
             self.loop_y(x)
-            x = x + 1
+            x += 1
 
     def calc(self):
         self.loop_x()
@@ -83,10 +85,8 @@ def find(upper_bound, prefix):
     str_prefix = str(prefix)
     head = generate_trie(primes.to_list())
     for ch in str_prefix:
-        if ch not in head.children:
-            return None
-        head = head.children[ch]
-        if head is None:
+        head = head.children.get(ch)
+        if head is None:    # either ch does not exist or the value is None
             return None
 
     queue, result = [(head, str_prefix)], []
