@@ -804,7 +804,8 @@ __LISTCOMP:
     }
 
     void compile_for_loop() {
-        EXPR_FOR_VARS();consume(TK("in")); EXPR_TUPLE();
+        EXPR_FOR_VARS();consume(TK("in"));
+        co()->_rvalue = true; EXPR_TUPLE(); co()->_rvalue = false;
         emit(OP_GET_ITER);
         co()->_enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
