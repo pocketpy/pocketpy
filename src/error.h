@@ -86,7 +86,7 @@ public:
         StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
-        if (msg.compare("") != 0) ss << type << ": " << msg;
+        if (!msg.empty()) ss << type << ": " << msg;
         else ss << type;
         return ss.str();
     }
