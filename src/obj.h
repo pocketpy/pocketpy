@@ -75,17 +75,17 @@ public:
 };
 
 struct PyObject {
-    PyVar type;
+    Type type;
     pkpy::NameDict* _attr;
     //void* _tid;
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
     inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
 
-    inline bool is_type(const PyVar& type) const noexcept{ return this->type == type; }
+    inline bool is_type(Type type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
 
-    PyObject(const PyVar& type) : type(type) {}
+    PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
 };
 
@@ -93,8 +93,8 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(const PyVar& type, T val) : PyObject(type), _value(val) {
-        if constexpr (std::is_same_v<T, Dummy>
+    Py_(Type type, T val) : PyObject(type), _value(val) {
+        if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>
         || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
             _attr = new pkpy::NameDict();
         }else{
@@ -106,9 +106,8 @@ struct Py_ : PyObject {
 
 #define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
 #define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attr(__name__))
-#define OBJ_TP_NAME(obj) OBJ_GET(Str, (obj)->type->attr(__name__))
 
 #define PY_CLASS(mod, name) \
-    inline static PyVar _type(VM* vm) { return vm->_modules[#mod]->attr(#name); } \
+    inline static Type _type(VM* vm) { return OBJ_GET(Type, vm->_modules[#mod]->attr(#name)); } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }

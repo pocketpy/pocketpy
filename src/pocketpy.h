@@ -123,7 +123,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("dir", [](VM* vm, const pkpy::Args& args) {
         std::vector<Str> names;
         for (auto& [k, _] : args[0]->attr()) names.push_back(k);
-        for (auto& [k, _] : args[0]->type->attr()) {
+        for (auto& [k, _] : vm->_t(args[0])->attr()) {
             if (k.find("__") == 0) continue;
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
@@ -136,17 +136,17 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, const pkpy::Args& args) {
-        PyVar _self = args[0];
-        std::stringstream ss;
-        ss << std::hex << (uintptr_t)_self.get();
-        Str s = "<" + OBJ_TP_NAME(_self) + " object at 0x" + ss.str() + ">";
+        PyVar self = args[0];
+        StrStream ss;
+        ss << std::hex << (uintptr_t)self.get();
+        Str s = "<" + OBJ_NAME(vm->_t(self)) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
 
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
 
-    _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(args[0]->type));
+    _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(vm->_t(args[0])));
 
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, const pkpy::Args& args) {
         pkpy::Range r;

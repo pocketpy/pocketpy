@@ -138,16 +138,16 @@ struct Frame {
         return co->src->snapshot(line);
     }
 
-    Str stack_info(){
-        StrStream ss;
-        ss << "[";
-        for(int i=0; i<_data.size(); i++){
-            ss << OBJ_TP_NAME(_data[i]);
-            if(i != _data.size()-1) ss << ", ";
-        }
-        ss << "]";
-        return ss.str();
-    }
+    // Str stack_info(){
+    //     StrStream ss;
+    //     ss << "[";
+    //     for(int i=0; i<_data.size(); i++){
+    //         ss << OBJ_TP_NAME(_data[i]);
+    //         if(i != _data.size()-1) ss << ", ";
+    //     }
+    //     ss << "]";
+    //     return ss.str();
+    // }
 
     inline bool has_next_bytecode() const {
         return _next_ip < co->codes.size();

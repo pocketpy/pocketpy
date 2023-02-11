@@ -110,7 +110,7 @@ class VM {
                 {
                     const Str& clsName = frame->co->names[byte.arg].first;
                     PyVar clsBase = frame->pop_value(this);
-                    if(clsBase == None) clsBase = tp_object;
+                    if(clsBase == None) clsBase = _t(tp_object);
                     check_type(clsBase, tp_type);
                     PyVar cls = new_type_object(frame->_module, clsName, clsBase);
                     while(true){
@@ -254,7 +254,7 @@ class VM {
                         PyIter_AS_C(tmp)->var = var;
                         frame->push(std::move(tmp));
                     }else{
-                        TypeError(OBJ_TP_NAME(obj).escape(true) + " object is not iterable");
+                        TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
                     }
                 } break;
             case OP_FOR_ITER:
@@ -398,7 +398,7 @@ public:
     }
 
     PyVar fast_call(const Str& name, pkpy::Args&& args){
-        PyObject* cls = args[0]->type.get();
+        PyObject* cls = _t(args[0]).get();
         while(cls != None.get()) {
             PyVar* val = cls->attr().try_get(name);
             if(val != nullptr) return call(*val, std::move(args));
@@ -510,7 +510,7 @@ public:
             }
             return _exec(fn->code, _module, _locals);
         }
-        TypeError("'" + OBJ_TP_NAME(*callable) + "' object is not callable");
+        TypeError("'" + OBJ_NAME(_t(*callable)) + "' object is not callable");
         return None;
     }
 
@@ -584,28 +584,37 @@ public:
         }
     }
 
+    std::vector<PyVar> _all_types;
+
     PyVar new_type_object(PyVar mod, Str name, PyVar base){
         if(!base->is_type(tp_type)) UNREACHABLE();
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(tp_type, DUMMY_VAL);
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, base);
         Str fullName = name;
         if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
+        _all_types.push_back(obj);
         return obj;
     }
 
-    PyVar _new_type_object(Str name, PyVar base=nullptr) {
-        if(base == nullptr) base = tp_object;
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Dummy>>(tp_type, DUMMY_VAL);
-        setattr(obj, __base__, base);
+    Type _new_type_object(Str name, Type base=0) {
+        PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
+        setattr(obj, __base__, _t(base));
         _types[name] = obj;
-        return obj;
+        _all_types.push_back(obj);
+        return OBJ_GET(Type, obj);
     }
 
     template<typename T>
     inline PyVar new_object(PyVar type, T _value) {
         if(!type->is_type(tp_type)) UNREACHABLE();
+        return pkpy::make_shared<PyObject, Py_<T>>(
+            OBJ_GET(Type, type), _value);
+    }
+
+    template<typename T>
+    inline PyVar new_object(Type type, T _value) {
         return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
     }
 
@@ -633,7 +642,7 @@ public:
                 if(!(*root)->is_type(tp_super)) break;
                 depth++;
             }
-            cls = (*root)->type.get();
+            cls = _t(*root).get();
             for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
 
             it = (*root)->attr().find(name);
@@ -643,7 +652,7 @@ public:
                 it = obj->attr().find(name);
                 if(it != obj->attr().end()) return it->second;
             }
-            cls = obj->type.get();
+            cls = _t(obj).get();
         }
 
         while(cls != None.get()) {
@@ -707,7 +716,7 @@ public:
         }else if(obj->is_type(tp_float)){
             return PyFloat_AS_C(obj);
         }
-        TypeError("expected 'int' or 'float', got " + OBJ_TP_NAME(obj).escape(true));
+        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
         return 0;
     }
 
@@ -793,11 +802,11 @@ public:
     }
 
     // for quick access
-    PyVar tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
-    PyVar tp_list, tp_tuple;
-    PyVar tp_function, tp_native_function, tp_native_iterator, tp_bound_method;
-    PyVar tp_slice, tp_range, tp_module, tp_ref;
-    PyVar tp_super, tp_exception;
+    Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
+    Type tp_list, tp_tuple;
+    Type tp_function, tp_native_function, tp_native_iterator, tp_bound_method;
+    Type tp_slice, tp_range, tp_module, tp_ref;
+    Type tp_super, tp_exception;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -841,10 +850,14 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void init_builtin_types(){
-        tp_object = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
-        tp_type = pkpy::make_shared<PyObject, Py_<Dummy>>(nullptr, DUMMY_VAL);
-        _types["object"] = tp_object;
-        _types["type"] = tp_type;
+        PyVar _tp_object = pkpy::make_shared<PyObject, Py_<Type>>(1, 0);
+        PyVar _tp_type = pkpy::make_shared<PyObject, Py_<Type>>(1, 1);
+        _all_types.push_back(_tp_object);
+        _all_types.push_back(_tp_type);
+        tp_object = 0; tp_type = 1;
+
+        _types["object"] = _tp_object;
+        _types["type"] = _tp_type;
 
         tp_bool = _new_type_object("bool");
         tp_int = _new_type_object("int");
@@ -872,10 +885,8 @@ public:
         this->_main = new_module("__main__");
         this->_py_op_call = new_object(_new_type_object("_internal"), DUMMY_VAL);
 
-        setattr(tp_type, __base__, tp_object);
-        tp_type->type = tp_type;
-        setattr(tp_object, __base__, None);
-        tp_object->type = tp_type;
+        setattr(_t(tp_type), __base__, _t(tp_object));
+        setattr(_t(tp_object), __base__, None);
         
         for (auto& [name, type] : _types) {
             setattr(type, __name__, PyStr(name));
@@ -905,7 +916,7 @@ public:
             }
             return x;
         }
-        TypeError("unhashable type: " +  OBJ_TP_NAME(obj).escape(true));
+        TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
         return 0;
     }
 
@@ -939,17 +950,25 @@ public:
     void NameError(const Str& name){ _error("NameError", "name " + name.escape(true) + " is not defined"); }
 
     void AttributeError(PyVar obj, const Str& name){
-        _error("AttributeError", "type " +  OBJ_TP_NAME(obj).escape(true) + " has no attribute " + name.escape(true));
+        _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.escape(true));
     }
 
-    inline void check_type(const PyVar& obj, const PyVar& type){
+    inline void check_type(const PyVar& obj, Type type){
         if(obj->is_type(type)) return;
-        TypeError("expected " + OBJ_NAME(type).escape(true) + ", but got " + OBJ_TP_NAME(obj).escape(true));
+        TypeError("expected " + OBJ_NAME(_t(type)).escape(true) + ", but got " + OBJ_NAME(_t(obj)).escape(true));
+    }
+
+    inline PyVar& _t(Type t){
+        return _all_types[t.index];
+    }
+
+    inline PyVar& _t(const PyVar& obj){
+        return _all_types[OBJ_GET(Type, _t(obj->type)).index];
     }
 
     template<typename T>
     PyVar register_class(PyVar mod){
-        PyVar type = new_type_object(mod, T::_name(), tp_object);
+        PyVar type = new_type_object(mod, T::_name(), _t(tp_object));
         if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
         T::_register(this, mod, type);
         return type;
