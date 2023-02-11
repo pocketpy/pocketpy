@@ -1032,7 +1032,9 @@ void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
 }
 
 void AttrRef::del(VM* vm, Frame* frame) const{
-    vm->TypeError("cannot delete attribute");
+    if(!obj->is_attr_valid()) vm->TypeError("cannot delete attribute");
+    if(!obj->attr().contains(attr.name())) vm->AttributeError(obj, attr.name());
+    obj->attr().erase(attr.name());
 }
 
 PyVar IndexRef::get(VM* vm, Frame* frame) const{

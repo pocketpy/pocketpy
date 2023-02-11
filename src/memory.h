@@ -2,12 +2,15 @@
 
 #include "common.h"
 
+#define MALLOC(count) malloc(count)
+#define FREE(p) free(p)
+
 namespace pkpy{
     template<typename T>
     struct sp_deleter {
         inline static void call(int* counter){
             ((T*)(counter + 1))->~T();
-            free(counter);
+            FREE(counter);
         }
     };
 
@@ -79,7 +82,7 @@ namespace pkpy{
     shared_ptr<T> make_shared(Args&&... args) {
         static_assert(std::is_base_of_v<T, U>, "U must be derived from T");
         static_assert(std::has_virtual_destructor_v<T>, "T must have virtual destructor");
-        int* p = (int*)malloc(sizeof(int) + sizeof(U));
+        int* p = (int*)MALLOC(sizeof(int) + sizeof(U));
         *p = 1;
         new(p+1) U(std::forward<Args>(args)...);
         return shared_ptr<T>(p);
@@ -87,7 +90,7 @@ namespace pkpy{
 
     template <typename T, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
-        int* p = (int*)malloc(sizeof(int) + sizeof(T));
+        int* p = (int*)MALLOC(sizeof(int) + sizeof(T));
         *p = 1;
         new(p+1) T(std::forward<Args>(args)...);
         return shared_ptr<T>(p);
