@@ -186,8 +186,10 @@ class VM {
             case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); break;
             case OP_ASSERT:
                 {
+                    PyVar _msg = frame->pop_value(this);
+                    Str msg = PyStr_AS_C(asStr(_msg));
                     PyVar expr = frame->pop_value(this);
-                    if(asBool(expr) != True) _error("AssertionError", "");
+                    if(asBool(expr) != True) _error("AssertionError", msg);
                 } break;
             case OP_EXCEPTION_MATCH:
                 {
