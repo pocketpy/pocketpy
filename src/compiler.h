@@ -871,6 +871,8 @@ __LISTCOMP:
             compile_try_except();
         }else if(match(TK("assert"))){
             EXPR();
+            if (match(TK(","))) EXPR();
+            else emit(OP_LOAD_CONST, co()->add_const(vm->PyStr("")));
             emit(OP_ASSERT);
             consume_end_stmt();
         } else if(match(TK("with"))){
