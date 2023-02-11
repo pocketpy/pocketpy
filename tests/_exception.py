@@ -42,3 +42,10 @@ try:
     f1()
 except KeyError:
     print("PASS 04")
+
+
+assert True, "Msg"
+try:
+    assert False, "Msg"
+except AssertionError:
+    print("PASS 05")
