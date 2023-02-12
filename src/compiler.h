@@ -849,9 +849,16 @@ __LISTCOMP:
             if (!co()->_is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
             consume_end_stmt();
             emit(OP_LOOP_CONTINUE);
+        } else if (match(TK("yield"))) {
+            if (codes.size() == 1) SyntaxError("'yield' outside function");
+            co()->_rvalue = true;
+            EXPR_TUPLE();
+            co()->_rvalue = false;
+            consume_end_stmt();
+            co()->is_generator = true;
+            emit(OP_YIELD_VALUE, -1, true);
         } else if (match(TK("return"))) {
-            if (codes.size() == 1)
-                SyntaxError("'return' outside function");
+            if (codes.size() == 1) SyntaxError("'return' outside function");
             if(match_end_stmt()){
                 emit(OP_LOAD_NONE);
             }else{

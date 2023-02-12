@@ -51,6 +51,7 @@ struct CodeBlock {
 struct CodeObject {
     pkpy::shared_ptr<SourceData> src;
     Str name;
+    bool is_generator = false;
 
     CodeObject(pkpy::shared_ptr<SourceData> src, Str name) {
         this->src = src;

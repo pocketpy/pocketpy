@@ -13,17 +13,20 @@
     }
 
 // static std::map<Str, int> _stats;
+class Generator;
 
 class VM {
+public:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
+    PyVar _py_op_yield;
     // PyVar _ascii_str_pool[128];
 
     PyVar run_frame(Frame* frame){
         while(frame->has_next_bytecode()){
             const Bytecode& byte = frame->next_bytecode();
             // if(true || frame->_module != builtins){
-            //     printf("%d: %s (%d) %s\n", frame->_ip, OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
+            //     printf("%d: %s (%d) %s\n",                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 frame->_ip, OP_NAMES[byte.op], byte.arg, frame->stack_info().c_str());
             // }
             switch (byte.op)
             {
@@ -246,23 +249,28 @@ class VM {
             case OP_GET_ITER:
                 {
                     PyVar obj = frame->pop_value(this);
-                    PyVarOrNull iter_fn = getattr(obj, __iter__, false);
-                    if(iter_fn != nullptr){
-                        PyVar tmp = call(iter_fn);
-                        PyVarRef var = frame->pop();
-                        check_type(var, tp_ref);
-                        PyIter_AS_C(tmp)->var = var;
-                        frame->push(std::move(tmp));
+                    PyVar iter_obj = nullptr;
+                    if(!obj->is_type(tp_native_iterator)){
+                        PyVarOrNull iter_f = getattr(obj, __iter__, false);
+                        if(iter_f != nullptr) iter_obj = call(iter_f);
                     }else{
+                        iter_obj = obj;
+                    }
+                    if(iter_obj == nullptr){
                         TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
                     }
+                    PyVarRef var = frame->pop();
+                    check_type(var, tp_ref);
+                    PyIter_AS_C(iter_obj)->var = var;
+                    frame->push(std::move(iter_obj));
                 } break;
             case OP_FOR_ITER:
                 {
                     // top() must be PyIter, so no need to try_deref()
                     auto& it = PyIter_AS_C(frame->top());
-                    if(it->has_next()){
-                        PyRef_AS_C(it->var)->set(this, frame, it->next());
+                    PyVar obj = it->next();
+                    if(obj != nullptr){
+                        PyRef_AS_C(it->var)->set(this, frame, std::move(obj));
                     }else{
                         int blockEnd = frame->co->blocks[byte.block].end;
                         frame->jump_abs_safe(blockEnd);
@@ -319,6 +327,7 @@ class VM {
                         frame->push(it->second);
                     }
                 } break;
+            case OP_YIELD_VALUE: return _py_op_yield;
             // TODO: using "goto" inside with block may cause __exit__ not called
             case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
             case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
@@ -339,7 +348,6 @@ class VM {
         return None;
     }
 
-public:
     pkpy::NameDict _types;
     pkpy::NameDict _modules;                             // loaded modules
     emhash8::HashMap<Str, Str> _lazy_modules;     // lazy loaded modules
@@ -502,13 +510,16 @@ public:
                 locals[key] = val;
             }
 
-            PyVar* it_m = (*callable)->attr().try_get(__module__);
-            PyVar _module = it_m != nullptr ? *it_m : top_frame()->_module;
-            if(opCall){
-                _new_frame(fn->code, _module, _locals);
-                return _py_op_call;
+            PyVar* _m = (*callable)->attr().try_get(__module__);
+            PyVar _module = _m != nullptr ? *_m : top_frame()->_module;
+            auto _frame = _new_frame(fn->code, _module, _locals);
+            if(fn->code->is_generator){
+                return PyIter(pkpy::make_shared<BaseIter, Generator>(
+                    this, std::move(_frame)));
             }
-            return _exec(fn->code, _module, _locals);
+            callstack.push(std::move(_frame));
+            if(opCall) return _py_op_call;
+            return _exec();
         }
         TypeError("'" + OBJ_NAME(_t(*callable)) + "' object is not callable");
         return None;
@@ -533,17 +544,21 @@ public:
     }
 
     template<typename ...Args>
-    Frame* _new_frame(Args&&... args){
+    inline std::unique_ptr<Frame> _new_frame(Args&&... args){
         if(callstack.size() > maxRecursionDepth){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
-        callstack.emplace(std::make_unique<Frame>(std::forward<Args>(args)...));
-        return callstack.top().get();
+        return std::make_unique<Frame>(std::forward<Args>(args)...);
     }
 
     template<typename ...Args>
-    PyVar _exec(Args&&... args){
-        Frame* frame = _new_frame(std::forward<Args>(args)...);
+    inline PyVar _exec(Args&&... args){
+        callstack.push(_new_frame(std::forward<Args>(args)...));
+        return _exec();
+    }
+
+    PyVar _exec(){
+        Frame* frame = top_frame();
         i64 base_id = frame->id;
         PyVar ret = nullptr;
         bool need_raise = false;
@@ -553,7 +568,7 @@ public:
             try{
                 if(need_raise){ need_raise = false; _raise(); }
                 ret = run_frame(frame);
-
+                if(ret == _py_op_yield) return _py_op_yield;
                 if(ret != _py_op_call){
                     if(frame->id == base_id){      // [ frameBase<- ]
                         callstack.pop();
@@ -884,6 +899,7 @@ public:
         this->builtins = new_module("builtins");
         this->_main = new_module("__main__");
         this->_py_op_call = new_object(_new_type_object("_internal"), DUMMY_VAL);
+        this->_py_op_yield = new_object(_new_type_object("_internal"), DUMMY_VAL);
 
         setattr(_t(tp_type), __base__, _t(tp_object));
         setattr(_t(tp_object), __base__, None);
