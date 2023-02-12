@@ -77,7 +77,7 @@ public:
 struct PyObject {
     Type type;
     pkpy::NameDict* _attr;
-    //void* _tid;
+    void* _tid;
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
     inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
@@ -85,7 +85,7 @@ struct PyObject {
     inline bool is_type(Type type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
 
-    PyObject(Type type) : type(type) {}
+    PyObject(Type type, void* _tid) : type(type), _tid(_tid) {}
     virtual ~PyObject() { delete _attr; }
 };
 
@@ -93,7 +93,7 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(Type type, T val) : PyObject(type), _value(val) {
+    Py_(Type type, T val) : PyObject(type, tid<T>()), _value(val) {
         if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>
         || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
             _attr = new pkpy::NameDict();
@@ -111,3 +111,62 @@ struct Py_ : PyObject {
     inline static Type _type(VM* vm) { return OBJ_GET(Type, vm->_modules[#mod]->attr(#name)); } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
+
+
+namespace pkpy {
+    template<int N>
+    struct MemBlock {
+        std::vector<void*> a;
+        int block_size;
+
+        MemBlock(int block_size) : block_size(block_size) {
+            new_block();
+        }
+
+        void new_block(){
+            int8_t* total = (int8_t*)malloc(N * block_size);
+            for(int i = 0; i < block_size; ++i){
+                a.push_back((void*)(total + i * N));
+            }
+        }
+
+        inline void* alloc(){
+            if(a.empty()) new_block();
+            void* p = a.back();
+            a.pop_back();
+            return p;
+        }
+
+        inline void dealloc(void* p) noexcept{
+            a.push_back(p);
+        }
+
+        ~MemBlock(){
+            free(a[0]);
+        }
+    };
+
+    static_assert(sizeof(i64) == sizeof(f64));
+    static thread_local MemBlock<sizeof(int)+sizeof(Py_<i64>)> _mem_i64(512);
+
+    template<>
+    struct SpAllocator<PyObject> {
+        template<typename U>
+        inline static int* alloc(){
+            if constexpr (std::is_same_v<U, Py_<i64>> || std::is_same_v<U, Py_<f64>>) {
+                return (int*)_mem_i64.alloc();
+            }
+            return (int*)malloc(sizeof(int) + sizeof(U));
+        }
+
+        inline static void dealloc(int* counter){
+            PyObject* obj = (PyObject*)(counter + 1);
+            obj->~PyObject();
+            if(obj->_tid == tid<i64>() || obj->_tid == tid<f64>()){
+                _mem_i64.dealloc(counter);
+            }else{
+                free(counter);
+            }
+        }
+    };
+}

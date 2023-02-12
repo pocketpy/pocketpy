@@ -61,7 +61,7 @@ namespace pkpy {
             }
         }
 
-        void _free(){
+        void _dealloc(){
             if(_size == 0 || _args == nullptr) return;
             if(_size >= kMaxPoolSize || _args_pool[_size].size() > 32){
                 delete[] _args;
@@ -102,7 +102,7 @@ namespace pkpy {
         const PyVar& operator[](int i) const { return _args[i]; }
 
         Args& operator=(Args&& other) noexcept {
-            _free();
+            _dealloc();
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
@@ -135,7 +135,7 @@ namespace pkpy {
             }
         }
 
-        ~Args(){ _free(); }
+        ~Args(){ _dealloc(); }
     };
 
     static const Args _zero(0);
