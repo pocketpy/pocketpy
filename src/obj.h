@@ -77,7 +77,9 @@ public:
 struct PyObject {
     Type type;
     pkpy::NameDict* _attr;
-    void* _tid;
+    // void* _tid;
+    const int _size;
+
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
     inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
@@ -85,7 +87,7 @@ struct PyObject {
     inline bool is_type(Type type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
 
-    PyObject(Type type, void* _tid) : type(type), _tid(_tid) {}
+    PyObject(Type type, const int size) : type(type), _size(size) {}
     virtual ~PyObject() { delete _attr; }
 };
 
@@ -93,7 +95,7 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(Type type, T val) : PyObject(type, tid<T>()), _value(val) {
+    Py_(Type type, T val) : PyObject(type, sizeof(Py_<T>)), _value(val) {
         if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>
         || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
             _attr = new pkpy::NameDict();
@@ -146,15 +148,15 @@ namespace pkpy {
         }
     };
 
-    static_assert(sizeof(i64) == sizeof(f64));
-    static thread_local MemBlock<sizeof(int)+sizeof(Py_<i64>)> _mem_i64(512);
+    constexpr int kMemObjSize = sizeof(int) + sizeof(Py_<i64>);
+    static thread_local MemBlock<kMemObjSize> _mem_pool(512);
 
     template<>
     struct SpAllocator<PyObject> {
         template<typename U>
         inline static int* alloc(){
-            if constexpr (std::is_same_v<U, Py_<i64>> || std::is_same_v<U, Py_<f64>>) {
-                return (int*)_mem_i64.alloc();
+            if constexpr (sizeof(int) + sizeof(U) == kMemObjSize) {
+                return (int*)_mem_pool.alloc();
             }
             return (int*)malloc(sizeof(int) + sizeof(U));
         }
@@ -162,8 +164,8 @@ namespace pkpy {
         inline static void dealloc(int* counter){
             PyObject* obj = (PyObject*)(counter + 1);
             obj->~PyObject();
-            if(obj->_tid == tid<i64>() || obj->_tid == tid<f64>()){
-                _mem_i64.dealloc(counter);
+            if(obj->_size == kMemObjSize - sizeof(int)){
+                _mem_pool.dealloc(counter);
             }else{
                 free(counter);
             }
