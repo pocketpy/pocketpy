@@ -149,7 +149,7 @@ namespace pkpy {
     };
 
     constexpr int kMemObjSize = sizeof(int) + sizeof(Py_<i64>);
-    static thread_local MemBlock<kMemObjSize> _mem_pool(512);
+    static THREAD_LOCAL MemBlock<kMemObjSize> _mem_pool(512);
 
     template<>
     struct SpAllocator<PyObject> {

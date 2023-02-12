@@ -57,3 +57,6 @@ void* tid() {
 	static volatile int8_t _x;
 	return (void*)(&_x);
 }
+
+//#define THREAD_LOCAL thread_local
+#define THREAD_LOCAL

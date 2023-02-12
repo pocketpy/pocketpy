@@ -39,7 +39,7 @@ typedef emhash8::HashMap<Str, PyVar> NameDict;
 
 namespace pkpy {
     const int kMaxPoolSize = 10;
-    static thread_local std::vector<PyVar*>* _args_pool = new std::vector<PyVar*>[kMaxPoolSize];
+    static THREAD_LOCAL std::vector<PyVar*>* _args_pool = new std::vector<PyVar*>[kMaxPoolSize];
 
     class Args {
         PyVar* _args;

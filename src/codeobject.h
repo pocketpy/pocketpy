@@ -109,7 +109,7 @@ struct CodeObject {
     /************************************************/
 };
 
-static thread_local i64 kFrameGlobalId = 0;
+static THREAD_LOCAL i64 kFrameGlobalId = 0;
 
 struct Frame {
     std::vector<PyVar> _data;
