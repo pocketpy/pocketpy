@@ -41,7 +41,8 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://bluelovet
 | Reflection      | `hasattr()/getattr()/setattr()` | YES       |
 | Import          | `import/from..import`           | YES       |
 | Context Block   | `with <expr> as <id>:`          | YES       |
-| Type Annotation | `def  f(a: int, b : float = 1)` | YES       |
+| Type Annotation | `def  f(a:int, b:float=1)`      | YES       |
+| Generator       | `yield i`                       | YES       |
 
 ## Getting Started
 

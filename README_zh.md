@@ -37,7 +37,8 @@ PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 | 反射         | `hasattr()/getattr()/setattr()` | YES  |
 | 导入模块     | `import/from..import`           | YES  |
 | 上下文管理器 | `with <expr> as <id>:`          | YES  |
-| 类型标注     | `def  f(a: int, b : float = 1)` | YES  |
+| 类型标注 | `def  f(a:int, b:float=1)`      | YES       |
+| 生成器       | `yield i`                       | YES       |
 
 ## 快速上手
 

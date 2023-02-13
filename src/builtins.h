@@ -278,13 +278,19 @@ class dict:
         return default
 
     def keys(self):
-        return [kv[0] for kv in self._a if kv is not None]
+        for kv in self._a:
+            if kv is not None:
+                yield kv[0]
 
     def values(self):
-        return [kv[1] for kv in self._a if kv is not None]
+        for kv in self._a:
+            if kv is not None:
+                yield kv[1]
 
     def items(self):
-        return [kv for kv in self._a if kv is not None]
+        for kv in self._a:
+            if kv is not None:
+                yield kv
 
     def clear(self):
         self._a = [None] * self._capacity
@@ -410,7 +416,7 @@ class set:
         return '{'+ ', '.join(self._a.keys()) + '}'
     
     def __iter__(self):
-        return self._a.keys().__iter__()
+        return self._a.keys()
 )";
 
 const char* kRandomCode = R"(

@@ -5,23 +5,25 @@ class A:
 try:
     a = A()
     b = a[1]
+    exit(1)
 except:
-    print("PASS 01")
+    pass
 
 try:
     a = {'1': 3, 4: None}
     x = a[1]
+    exit(1)
 except:
-    print("PASS 02")
+    pass
 assert True
 
 def f():
     try:
         raise KeyError('foo')
     except A:   # will fail to catch
-        assert False
+        exit(1)
     except:
-        print("PASS 03")
+        pass
     assert True
 
 f()
@@ -40,12 +42,14 @@ def f1():
 
 try:
     f1()
+    exit(1)
 except KeyError:
-    print("PASS 04")
+    pass
 
 
 assert True, "Msg"
 try:
     assert False, "Msg"
+    exit(1)
 except AssertionError:
-    print("PASS 05")
+    pass
