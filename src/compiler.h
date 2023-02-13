@@ -395,7 +395,7 @@ private:
         this->codes.push(func->code);
         EXPR_TUPLE();
         emit(OP_RETURN_VALUE);
-        func->code->optimize();
+        func->code->optimize(vm);
         this->codes.pop();
         emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
     }
@@ -912,7 +912,7 @@ __LISTCOMP:
         } else if(match(TK("raise"))){
             consume(TK("@id"));
             int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
-            if(match(TK("("))){
+            if(match(TK("(")) && !match(TK(")"))){
                 EXPR(); consume(TK(")"));
             }else{
                 emit(OP_LOAD_NONE);
@@ -1020,7 +1020,7 @@ __LISTCOMP:
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         compile_block_body();
-        func->code->optimize();
+        func->code->optimize(vm);
         this->codes.pop();
         emit(OP_LOAD_CONST, co()->add_const(vm->PyFunction(func)));
         if(!is_compiling_class) emit(OP_STORE_FUNCTION);
@@ -1073,7 +1073,7 @@ public:
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
-            code->optimize();
+            code->optimize(vm);
             return code;
         }else if(mode()==JSON_MODE){
             PyVarOrNull value = read_literal();
@@ -1100,7 +1100,7 @@ public:
             }
             match_newlines();
         }
-        code->optimize();
+        code->optimize(vm);
         return code;
     }
 };

@@ -12,7 +12,6 @@
         return new_object(ptype, value);                        \
     }
 
-// static std::map<Str, int> _stats;
 class Generator;
 
 class VM {
@@ -463,7 +462,6 @@ public:
             return f(this, args);
         } else if((*callable)->is_type(tp_function)){
             const pkpy::Function_& fn = PyFunction_AS_C((*callable));
-            // pkpy::_stats[fn->name] += 1;
             pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
             pkpy::NameDict& locals = *_locals;
 
@@ -1127,4 +1125,14 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, const pkpy::Args& args) const{
         vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
     }
     return f(vm, args);
+}
+
+void CodeObject::optimize(VM* vm){
+    for(int i=1; i<codes.size(); i++){
+        if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
+            codes[i].op = OP_NO_OP;
+            int pos = codes[i-1].arg;
+            consts[pos] = vm->num_negated(consts[pos]);
+        }
+    }
 }
