@@ -65,6 +65,8 @@ struct CodeObject {
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     emhash8::HashMap<Str, int> labels;
 
+    void optimize(VM* vm);
+
     bool add_label(const Str& label){
         if(labels.contains(label)) return false;
         labels[label] = codes.size();
@@ -85,8 +87,6 @@ struct CodeObject {
         consts.push_back(v);
         return consts.size() - 1;
     }
-
-    void optimize(VM* vm);
 
     /************************************************/
     int _curr_block_i = 0;
