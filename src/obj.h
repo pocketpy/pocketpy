@@ -7,7 +7,7 @@ struct Frame;
 struct BaseRef;
 class VM;
 
-typedef std::function<PyVar(VM*, const pkpy::Args&)> NativeFuncRaw;
+typedef std::function<PyVar(VM*, pkpy::Args&)> NativeFuncRaw;
 typedef pkpy::shared_ptr<CodeObject> CodeObject_;
 
 namespace pkpy{
@@ -17,7 +17,7 @@ struct NativeFunc {
     bool method;
     
     NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyVar operator()(VM* vm, const pkpy::Args& args) const;
+    inline PyVar operator()(VM* vm, pkpy::Args& args) const;
 };
 
 struct Function {
@@ -94,7 +94,10 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(Type type, T val) : PyObject(type, sizeof(Py_<T>)), _value(val) {
+    Py_(Type type, const T& val): PyObject(type, sizeof(Py_<T>)), _value(val) { _init(); }
+    Py_(Type type, T&& val): PyObject(type, sizeof(Py_<T>)), _value(std::move(val)) { _init(); }
+
+    inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>
         || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
             _attr = new pkpy::NameDict();

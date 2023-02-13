@@ -8,9 +8,8 @@
         check_type(obj, ptype);                                 \
         return OBJ_GET(ctype, obj);                             \
     }                                                           \
-    inline PyVar Py##type(ctype value) {                        \
-        return new_object(ptype, value);                        \
-    }
+    inline PyVar Py##type(const ctype& value) { return new_object(ptype, value);} \
+    inline PyVar Py##type(ctype&& value) { return new_object(ptype, std::move(value));}
 
 class Generator;
 
@@ -420,13 +419,13 @@ public:
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<RAW(ArgT), pkpy::Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
         return call(_callable, std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::remove_const_t<std::remove_reference_t<ArgT>>, pkpy::Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<RAW(ArgT), pkpy::Args>, PyVar>
     call(const PyVar& obj, const Str& func, ArgT&& args){
         return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
@@ -620,15 +619,23 @@ public:
     }
 
     template<typename T>
-    inline PyVar new_object(PyVar type, T _value) {
+    inline PyVar new_object(const PyVar& type, const T& _value) {
         if(!type->is_type(tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<T>>(
-            OBJ_GET(Type, type), _value);
+        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
+    }
+    template<typename T>
+    inline PyVar new_object(const PyVar& type, T&& _value) {
+        if(!type->is_type(tp_type)) UNREACHABLE();
+        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
     }
 
     template<typename T>
-    inline PyVar new_object(Type type, T _value) {
-        return pkpy::make_shared<PyObject, Py_<T>>(type, _value);
+    inline PyVar new_object(Type type, const T& _value) {
+        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(type, _value);
+    }
+    template<typename T>
+    inline PyVar new_object(Type type, T&& _value) {
+        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(type, std::move(_value));
     }
 
     template<typename T, typename... Args>
@@ -704,13 +711,18 @@ public:
     }
 
     template<int ARGC>
+    void bind_func(Str typeName, Str funcName, NativeFuncRaw fn) {
+        bind_func<ARGC>(_types[typeName], funcName, fn);     
+    }
+
+    template<int ARGC>
     void bind_method(Str typeName, Str funcName, NativeFuncRaw fn) {
         bind_method<ARGC>(_types[typeName], funcName, fn);
     }
 
-    template<int ARGC>
-    void bind_static_method(Str typeName, Str funcName, NativeFuncRaw fn) {
-        bind_func<ARGC>(_types[typeName], funcName, fn);
+    template<int ARGC, typename... Args>
+    void bind_static_method(Args&&... args) {
+        bind_func<ARGC>(std::forward<Args>(args)...);
     }
 
     template<int ARGC>
@@ -956,6 +968,7 @@ private:
     }
 
 public:
+    void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
     void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
@@ -1119,7 +1132,7 @@ inline void Frame::try_deref(VM* vm, PyVar& v){
     if(v->is_type(vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
-PyVar pkpy::NativeFunc::operator()(VM* vm, const pkpy::Args& args) const{
+PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));

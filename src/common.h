@@ -23,16 +23,18 @@
 #include <memory>
 #include <functional>
 #include <iostream>
+// #include <filesystem>
+// namespace fs = std::filesystem;
 
 #include "hash_table8.hpp"
 
 #ifdef POCKETPY_H
-#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()! This should be a bug, please report it");
+#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
 #else
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.8.6"
+#define PK_VERSION "0.8.7"
 
 typedef int64_t i64;
 typedef double f64;
@@ -60,3 +62,5 @@ void* tid() {
 
 //#define THREAD_LOCAL thread_local
 #define THREAD_LOCAL
+
+#define RAW(T) std::remove_const_t<std::remove_reference_t<T>>

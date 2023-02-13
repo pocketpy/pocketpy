@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv){
     VM* vm = pkpy_new_vm(true);
-    vm->bind_builtin_func<0>("input", [](VM* vm, const pkpy::Args& args){
+    vm->bind_builtin_func<0>("input", [](VM* vm, pkpy::Args& args){
         static std::string line;
         std::getline(std::cin, line);
         return vm->PyStr(line);
