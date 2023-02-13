@@ -86,9 +86,7 @@ struct CodeObject {
         return consts.size() - 1;
     }
 
-    void optimize(){
-        for(int i=0; i<codes.size(); i++){}
-    }
+    void optimize(VM* vm);
 
     /************************************************/
     int _curr_block_i = 0;

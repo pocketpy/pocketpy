@@ -36,15 +36,15 @@ public:
 
 class StringIter : public BaseIter {
     int index = 0;
-    Str str;
+    Str* str;
 public:
     StringIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        str = OBJ_GET(Str, _ref);
+        str = &OBJ_GET(Str, _ref);
     }
 
     PyVar next() {
-        if(index == str.u8_length()) return nullptr;
-        return vm->PyStr(str.u8_getitem(index++));
+        if(index == str->u8_length()) return nullptr;
+        return vm->PyStr(str->u8_getitem(index++));
     }
 };
 

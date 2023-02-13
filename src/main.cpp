@@ -35,10 +35,6 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         PyVarOrNull ret = nullptr;
         ret = vm->exec(src.c_str(), filename, EXEC_MODE);
-
-        // for(auto& [k,v]: pkpy::_stats){
-        //     std::cout << k << ": " << v << std::endl;
-        // }
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;
     }
