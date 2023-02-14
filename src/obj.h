@@ -56,6 +56,7 @@ struct Slice {
         if(stop < 0) stop += len;
         if(start < 0) start = 0;
         if(stop > len) stop = len;
+        if(stop < start) stop = start;
     }
 };
 
