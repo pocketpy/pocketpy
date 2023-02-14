@@ -74,6 +74,8 @@ public:
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
+        // do not include standalone, as it allows naked assignment
+        //rules[TK(":=")] =        { nullptr,               METHOD(exprWalrus),         PREC_ASSIGNMENT };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
@@ -176,7 +178,7 @@ private:
             }
         }catch(std::exception& _){
             SyntaxError("invalid number literal");
-        } 
+        }
     }
 
     void lex_token(){
@@ -201,12 +203,12 @@ private:
                 case '{': parser->set_next_token(TK("{")); return;
                 case '}': parser->set_next_token(TK("}")); return;
                 case ',': parser->set_next_token(TK(",")); return;
-                case ':': parser->set_next_token(TK(":")); return;
                 case ';': parser->set_next_token(TK(";")); return;
                 case '(': parser->set_next_token(TK("(")); return;
                 case ')': parser->set_next_token(TK(")")); return;
                 case '[': parser->set_next_token(TK("[")); return;
                 case ']': parser->set_next_token(TK("]")); return;
+                case ':': parser->set_next_token_2('=', TK(":"), TK(":=")); return;
                 case '%': parser->set_next_token_2('=', TK("%"), TK("%=")); return;
                 case '&': parser->set_next_token_2('=', TK("&"), TK("&=")); return;
                 case '|': parser->set_next_token_2('=', TK("|"), TK("|=")); return;
@@ -283,7 +285,7 @@ private:
                         eat_number();
                         return;
                     }
-                    
+
                     switch (parser->eat_name())
                     {
                         case 0: break;
@@ -400,13 +402,21 @@ private:
         emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
     }
 
+    void exprWalrus() {
+        // NAME is on stack
+        EXPR_TUPLE();
+        // EXPR is on stack
+        emit(OP_STORE_REF); // will pop the value and the name off the stack,
+        // we need to return the value now
+    }
     void exprAssign() {
         co()->_rvalue = true;
         TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
             emit(OP_STORE_REF);
-        }else{                  // a += (expr) -> a = a + (expr)
+        }
+        else{                  // a += (expr) -> a = a + (expr)
             emit(OP_DUP_TOP);
             EXPR();
             switch (op) {
@@ -502,8 +512,48 @@ private:
     }
 
     void exprGrouping() {
+        //  either a expr in parens,
+        // or a tuple.
         match_newlines(mode()==REPL_MODE);
-        EXPR_TUPLE();
+        // do {
+        //     if (peek() == TK("@id")) {
+        //         consume(TK("@id"));
+        //         exprAssign();
+        //     }
+        //     else {
+        //         EXPR();
+        //     }
+        // } while (match(TK(",")));
+    //    EXPR_TUPLE();
+        do {
+            if (peek() == TK(")")) break;
+            if(peek() == TK("@id") && peek_next() == TK(":=")) {
+                consume(TK("@id"));
+                Token tkname = parser->prev;
+                int index = co()->add_name(
+                    tkname.str(),
+                    codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
+                );
+                emit(OP_LOAD_NAME_REF, index);
+                consume(TK(":="));
+                exprWalrus();
+                emit(OP_LOAD_NAME, index);
+
+                // const Str& key = parser->prev.str();
+                // emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
+                // consume(TK("="));
+                // co()->_rvalue=true; EXPR(); co()->_rvalue=false;
+            }
+            else {
+                EXPR_TUPLE();
+            }
+        } while (match(TK(",")));
+        // if (peek() == TK("@id")) {
+        //     consume(TK("@id"));
+        //     exprAssign();
+        // } else {
+        //     EXPR_TUPLE();
+        // }
         match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
     }
@@ -532,7 +582,7 @@ __LISTCOMP:
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         match_newlines(mode()==REPL_MODE);
-        
+
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
         int _cond_start = co()->codes.size();
         int _cond_end_return = -1;

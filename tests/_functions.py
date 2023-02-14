@@ -1,10 +1,21 @@
 ## Function Tests.
-
-
+#a  := 1
+#_b = (1, 2)
+#(d := 4) + 6
+#(D := 4)
+#assert D == 4
+#x = D + 1
+x = (a := 3,4)
+y = (a := 3)
+print(y)
+#assert False # (D := 4)==4
+# b = (d := 4) + (c := 4)
+# c = (d := 2) + 1
+# b = (x := a + 1) + 2
 def f1():
     return 'f1'
 assert f1() == 'f1'
-def f2(a, b, c, d): 
+def f2(a, b, c, d):
     return c
 assert f2('a', 'b', 'c', 'd') == 'c'
 def f3(a,b):
@@ -15,7 +26,7 @@ def fact(n):
     if n == 1:
         return 1
     return n * fact(n - 1)
-assert fact(5)==120    
+assert fact(5)==120
 
 def f(a=1, b=-1):
     return a + b
