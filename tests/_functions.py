@@ -1,17 +1,6 @@
 ## Function Tests.
-#a  := 1
-#_b = (1, 2)
-#(d := 4) + 6
-#(D := 4)
-#assert D == 4
-#x = D + 1
-x = (a := 3,4)
-y = (a := 3)
-print(y)
-#assert False # (D := 4)==4
-# b = (d := 4) + (c := 4)
-# c = (d := 2) + 1
-# b = (x := a + 1) + 2
+
+
 def f1():
     return 'f1'
 assert f1() == 'f1'
