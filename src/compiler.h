@@ -74,8 +74,6 @@ public:
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
-        // do not include standalone, as it allows naked assignment
-        //rules[TK(":=")] =        { nullptr,               METHOD(exprWalrus),         PREC_ASSIGNMENT };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
@@ -402,13 +400,6 @@ private:
         emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
     }
 
-    void exprWalrus() {
-        // NAME is on stack
-        EXPR_TUPLE();
-        // EXPR is on stack
-        emit(OP_STORE_REF); // will pop the value and the name off the stack,
-        // we need to return the value now
-    }
     void exprAssign() {
         co()->_rvalue = true;
         TokenIndex op = parser->prev.type;
@@ -512,21 +503,10 @@ private:
     }
 
     void exprGrouping() {
-        //  either a expr in parens,
-        // or a tuple.
         match_newlines(mode()==REPL_MODE);
-        // do {
-        //     if (peek() == TK("@id")) {
-        //         consume(TK("@id"));
-        //         exprAssign();
-        //     }
-        //     else {
-        //         EXPR();
-        //     }
-        // } while (match(TK(",")));
-    //    EXPR_TUPLE();
         do {
             if (peek() == TK(")")) break;
+            // match walrus operator
             if(peek() == TK("@id") && peek_next() == TK(":=")) {
                 consume(TK("@id"));
                 Token tkname = parser->prev;
@@ -534,26 +514,18 @@ private:
                     tkname.str(),
                     codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
                 );
+                // store the expr into NAME,
+                // and push it on the stack as well,
+                // so it is available as a value
+                // in the expression
                 emit(OP_LOAD_NAME_REF, index);
                 consume(TK(":="));
-                exprWalrus();
+                EXPR();
+                emit(OP_STORE_REF);
                 emit(OP_LOAD_NAME, index);
-
-                // const Str& key = parser->prev.str();
-                // emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
-                // consume(TK("="));
-                // co()->_rvalue=true; EXPR(); co()->_rvalue=false;
             }
-            else {
-                EXPR_TUPLE();
-            }
+            else  EXPR_TUPLE();
         } while (match(TK(",")));
-        // if (peek() == TK("@id")) {
-        //     consume(TK("@id"));
-        //     exprAssign();
-        // } else {
-        //     EXPR_TUPLE();
-        // }
         match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
     }

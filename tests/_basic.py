@@ -4,7 +4,7 @@ assert 0xffff == 65535
 assert 0xAAFFFF == 11206655
 assert 0x7fffffff == 2147483647
 
-# test == != >= <= < > 
+# test == != >= <= < >
 # generate 2 cases for each operator
 assert -1 == -1
 assert -1 != 1
@@ -99,7 +99,7 @@ assert [1, 2, 3] == [1, 2, 3]
 assert [1, 2, 3] != [1, 2, 4]
 
 # test + *=
-assert [1, 2, 3] + [4, 5, 6] == [1, 2, 3, 4, 5, 6]          
+assert [1, 2, 3] + [4, 5, 6] == [1, 2, 3, 4, 5, 6]
 assert [1, 2, 3] * 3 == [1, 2, 3, 1, 2, 3, 1, 2, 3]
 
 # test ?:
@@ -117,3 +117,13 @@ assert round(23.2) == 23
 assert round(23.8) == 24
 assert round(-23.2) == -23
 assert round(-23.8) == -24
+
+assert (x := 1) == 1
+assert (a := 1, b := 2)
+assert a == 1
+assert b == 2
+
+assert (x := (a := 1, b := 2)) == (1, 2)
+assert x == 1
+assert (x := 0) + 1 == 1
+assert (x := 1, y := 2, 3) == (1,2,3)
