@@ -520,7 +520,7 @@ private:
                 // so it is available as a value
                 // in the expression
                 consume(TK(":="));
-               emit(OP_LOAD_NAME_REF, index);
+                emit(OP_LOAD_NAME_REF, index);
                 EXPR_TUPLE();
 //                emit(OP_LOAD_NAME, index);
                 emit(OP_STORE_REF);
