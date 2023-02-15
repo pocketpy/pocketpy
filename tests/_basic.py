@@ -124,6 +124,9 @@ assert z == 2
 assert ((a:=1),(b:=2,3)) == (1, (2,3))
 assert a == 1
 assert b == (2,3)
+z =((a:=1),(b:=2,3))
+assert z == (1, (2,3))
+assert z == (a, b)
 
 # Note in Python3
 # >>> (x := 1,2,y:=3)
