@@ -503,6 +503,7 @@ private:
     }
 
     void exprGrouping() {
+//        co()->_rvalue = true;
         match_newlines(mode()==REPL_MODE);
         do {
             if (peek() == TK(")")) break;
@@ -518,16 +519,18 @@ private:
                 // and push it on the stack as well,
                 // so it is available as a value
                 // in the expression
-                emit(OP_LOAD_NAME_REF, index);
                 consume(TK(":="));
+               emit(OP_LOAD_NAME_REF, index);
                 EXPR();
+//                emit(OP_LOAD_NAME, index);
                 emit(OP_STORE_REF);
-                emit(OP_LOAD_NAME, index);
+                //emit(OP_LOAD_NAME_REF, index);;
             }
-            else  EXPR_TUPLE();
+            else  EXPR();
         } while (match(TK(",")));
         match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
+//        co()->_rvalue = false;
     }
 
     void exprList() {

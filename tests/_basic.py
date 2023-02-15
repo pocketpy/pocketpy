@@ -119,7 +119,9 @@ assert round(-23.2) == -23
 assert round(-23.8) == -24
 
 assert (x := 1) == 1
-assert (a := 1, b := 2)
+assert (x := 1, y := 2 ) == (1, 2)
+z = (a := 1, b := 2)
+print(z)
 assert a == 1
 assert b == 2
 
