@@ -524,7 +524,7 @@ private:
                 EXPR();
 //                emit(OP_LOAD_NAME, index);
                 emit(OP_STORE_REF);
-                //emit(OP_LOAD_NAME_REF, index);;
+                emit(OP_LOAD_NAME_REF, index);;
             }
             else  EXPR();
         } while (match(TK(",")));
