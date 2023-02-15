@@ -690,6 +690,10 @@ __LISTCOMP:
     void compile_block_body(CompilerAction action=nullptr) {
         if(action == nullptr) action = &Compiler::compile_stmt;
         consume(TK(":"));
+        if(peek()!=TK("@eol") && peek()!=TK("@eof")){
+            (this->*action)();  // inline block
+            return;
+        }
         if(!match_newlines(mode()==REPL_MODE)){
             SyntaxError("expected a new line after ':'");
         }
@@ -1009,7 +1013,8 @@ __LISTCOMP:
         consume(TK("@id"));
         func->name = parser->prev.str();
 
-        if (match(TK("(")) && !match(TK(")"))) {
+        consume(TK("("));
+        if (!match(TK(")"))) {
             _compile_f_args(func, true);
             consume(TK(")"));
         }
