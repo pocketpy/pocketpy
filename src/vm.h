@@ -1,6 +1,6 @@
 #pragma once
 
-#include "codeobject.h"
+#include "frame.h"
 #include "error.h"
 
 #define DEF_NATIVE(type, ctype, ptype)                          \

@@ -51,10 +51,12 @@ def sum(iterable):
     return res
 
 def map(f, iterable):
-    return [f(i) for i in iterable]
+    for i in iterable:
+        yield f(i)
 
 def zip(a, b):
-    return [(a[i], b[i]) for i in range(min(len(a), len(b)))]
+    for i in range(min(len(a), len(b))):
+        yield (a[i], b[i])
 
 def reversed(iterable):
     a = list(iterable)
@@ -135,15 +137,6 @@ def __qsort(a: list, i: int, j: int):
     a[i] = u;
     __qsort(a, d1, i-1)
     __qsort(a, i+1, d2)
-
-def __list4reverse(self):
-    i, j = 0, len(self)-1
-    while i < j:
-        self[i], self[j] = self[j], self[i]
-        i += 1
-        j -= 1
-list.reverse = __list4reverse
-del __list4reverse
 
 def __list4sort(self, reverse=False):
     __qsort(self, 0, len(self)-1)

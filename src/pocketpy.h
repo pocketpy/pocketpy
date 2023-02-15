@@ -394,6 +394,12 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bind_method<0>("list", "reverse", [](VM* vm, pkpy::Args& args) {
+        pkpy::List& self = vm->PyList_AS_C(args[0]);
+        std::reverse(self.begin(), self.end());
+        return vm->None;
+    });
+
     _vm->bind_method<1>("list", "__mul__", [](VM* vm, pkpy::Args& args) {
         const pkpy::List& self = vm->PyList_AS_C(args[0]);
         int n = (int)vm->PyInt_AS_C(args[1]);
