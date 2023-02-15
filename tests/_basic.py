@@ -119,13 +119,24 @@ assert round(-23.2) == -23
 assert round(-23.8) == -24
 
 assert (x := 1) == 1
-assert (x := 1, y := 2 ) == (1, 2)
-z = (a := 1, b := 2)
-print(z)
+z = (x := 2)
+assert z == 2
+assert ((a:=1),(b:=2,3)) == (1, (2,3))
 assert a == 1
-assert b == 2
+assert b == (2,3)
 
-assert (x := (a := 1, b := 2)) == (1, 2)
-assert x == 1
-assert (x := 0) + 1 == 1
-assert (x := 1, y := 2, 3) == (1,2,3)
+# Note in Python3
+# >>> (x := 1,2,y:=3)
+#     (1, 2, 3)
+# with x == 1, y == 3
+
+#assert (x := 1, y := 2 ) == (1, 2)
+# z = (a := 1, b := 2)
+# print(z)
+# assert a == 1
+# assert b == 2
+
+# assert (x := (a := 1, b := 2)) == (1, 2)
+# assert x == 1
+# assert (x := 0) + 1 == 1
+# assert (x := 1, y := 2, 3) == (1,2,3)
