@@ -503,7 +503,6 @@ private:
     }
 
     void exprGrouping() {
-       //co()->_rvalue = true;
         match_newlines(mode()==REPL_MODE);
         do {
             if (peek() == TK(")")) break;
@@ -522,7 +521,6 @@ private:
                 consume(TK(":="));
                 emit(OP_LOAD_NAME_REF, index);
                 EXPR_TUPLE();
-//                emit(OP_LOAD_NAME, index);
                 emit(OP_STORE_REF);
                 emit(OP_LOAD_NAME_REF, index);;
             }
@@ -530,7 +528,6 @@ private:
         } while (match(TK(",")));
         match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
-       //co()->_rvalue = false;
     }
 
     void exprList() {

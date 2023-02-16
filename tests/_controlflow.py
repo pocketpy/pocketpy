@@ -64,3 +64,7 @@ count = 0
 while (count < 1000):
    count = count + 1
 assert count == 1000
+
+while (j := count + 1):
+    assert j == count + 1
+    break
