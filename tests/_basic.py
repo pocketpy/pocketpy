@@ -127,19 +127,3 @@ assert b == (2,3)
 z =((a:=1),(b:=2,3))
 assert z == (1, (2,3))
 assert z == (a, b)
-
-# Note in Python3
-# >>> (x := 1,2,y:=3)
-#     (1, 2, 3)
-# with x == 1, y == 3
-
-#assert (x := 1, y := 2 ) == (1, 2)
-# z = (a := 1, b := 2)
-# print(z)
-# assert a == 1
-# assert b == 2
-
-# assert (x := (a := 1, b := 2)) == (1, 2)
-# assert x == 1
-# assert (x := 0) + 1 == 1
-# assert (x := 1, y := 2, 3) == (1,2,3)
