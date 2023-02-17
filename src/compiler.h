@@ -176,7 +176,7 @@ private:
             }
         }catch(std::exception& _){
             SyntaxError("invalid number literal");
-        } 
+        }
     }
 
     void lex_token(){
@@ -283,7 +283,7 @@ private:
                         eat_number();
                         return;
                     }
-                    
+
                     switch (parser->eat_name())
                     {
                         case 0: break;
@@ -532,7 +532,7 @@ __LISTCOMP:
         emit(OP_BUILD_LIST, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         match_newlines(mode()==REPL_MODE);
-        
+
         int _skipPatch = emit(OP_JUMP_ABSOLUTE);
         int _cond_start = co()->codes.size();
         int _cond_end_return = -1;
@@ -567,6 +567,8 @@ __LISTCOMP:
     }
 
     void exprMap() {
+        int _patch = emit(OP_NO_OP);\
+        int _body_start = co()->codes.size();
         bool parsing_dict = false;
         int size = 0;
         do {
@@ -577,7 +579,7 @@ __LISTCOMP:
             if(parsing_dict){
                 consume(TK(":"));
                 EXPR();
-            }
+            } else {if (match(TK("for"))) goto __SETCOMP;}
             size++;
             match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
@@ -585,6 +587,48 @@ __LISTCOMP:
 
         if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
         else emit(OP_BUILD_SET, size);
+        return;
+__SETCOMP:
+        int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
+        int _body_end = co()->codes.size();
+        co()->codes[_patch].op = OP_JUMP_ABSOLUTE;
+        co()->codes[_patch].arg = _body_end;
+        emit(OP_BUILD_LIST, 0);
+        EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
+        match_newlines(mode()==REPL_MODE);
+
+        int _skipPatch = emit(OP_JUMP_ABSOLUTE);
+        int _cond_start = co()->codes.size();
+        int _cond_end_return = -1;
+        if(match(TK("if"))) {
+            EXPR_TUPLE();
+            _cond_end_return = emit(OP_JUMP_ABSOLUTE, -1);
+        }
+        patch_jump(_skipPatch);
+
+        emit(OP_GET_ITER);
+        co()->_enter_block(FOR_LOOP);
+        emit(OP_FOR_ITER);
+
+        if(_cond_end_return != -1) {      // there is an if condition
+            emit(OP_JUMP_ABSOLUTE, _cond_start);
+            patch_jump(_cond_end_return);
+            int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
+            patch_jump(ifpatch);
+        }else{
+            emit(OP_JUMP_ABSOLUTE, _body_start);
+            patch_jump(_body_end_return);
+            emit(OP_LIST_APPEND);
+        }
+
+        emit(OP_LOOP_CONTINUE, -1, true);
+        co()->_exit_block();
+        match_newlines(mode()==REPL_MODE);
+        consume(TK("}"));
+        emit(OP_BUILD_SET, -1);
     }
 
     void exprCall() {
