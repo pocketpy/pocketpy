@@ -567,7 +567,7 @@ __LISTCOMP:
     }
 
     void exprMap() {
-        int _patch = emit(OP_NO_OP);\
+        int _patch = emit(OP_NO_OP);
         int _body_start = co()->codes.size();
         bool parsing_dict = false;
         int size = 0;
