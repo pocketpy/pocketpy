@@ -117,3 +117,12 @@ assert round(23.2) == 23
 assert round(23.8) == 24
 assert round(-23.2) == -23
 assert round(-23.8) == -24
+
+
+assert 7**21 == 558545864083284007
+assert 7**22 == 3909821048582988049
+assert 2**62 == 4611686018427387904
+assert eq(2**-2, 0.25)
+assert 0**0 == 1
+assert 0**1 == 0
+assert 1**0 == 1

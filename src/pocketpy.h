@@ -171,7 +171,18 @@ void init_builtins(VM* _vm) {
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, pkpy::Args& args) {
         if(args[0]->is_type(vm->tp_int) && args[1]->is_type(vm->tp_int)){
-            return vm->PyInt((i64)round(pow(vm->PyInt_AS_C(args[0]), vm->PyInt_AS_C(args[1]))));
+            i64 lhs = vm->PyInt_AS_C(args[0]);
+            i64 rhs = vm->PyInt_AS_C(args[1]);
+            bool flag = false;
+            if(rhs < 0) {flag = true; rhs = -rhs;}
+            i64 ret = 1;
+            while(rhs){
+                if(rhs & 1) ret *= lhs;
+                lhs *= lhs;
+                rhs >>= 1;
+            }
+            if(flag) return vm->PyFloat((f64)(1.0 / ret));
+            return vm->PyInt(ret);
         }else{
             return vm->PyFloat((f64)pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
         }
