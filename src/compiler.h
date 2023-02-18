@@ -976,7 +976,7 @@ __LISTCOMP:
 
             consume(TK("@id"));
             const Str& name = parser->prev.str();
-            if(func->hasName(name)) SyntaxError("duplicate argument name");
+            if(func->has_name(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
@@ -986,15 +986,15 @@ __LISTCOMP:
             switch (state)
             {
                 case 0: func->args.push_back(name); break;
-                case 1: func->starredArg = name; state+=1; break;
+                case 1: func->starred_arg = name; state+=1; break;
                 case 2: {
                     consume(TK("="));
                     PyVarOrNull value = read_literal();
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
-                    func->kwArgs[name] = value;
-                    func->kwArgsOrder.push_back(name);
+                    func->kwargs[name] = value;
+                    func->kwargs_order.push_back(name);
                 } break;
                 case 3: SyntaxError("**kwargs is not supported yet"); break;
             }
@@ -1021,6 +1021,7 @@ __LISTCOMP:
         func->code->optimize(vm);
         this->codes.pop();
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
+        if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
         if(!is_compiling_class) emit(OP_STORE_NAME, co()->add_name(func->name, name_scope()));
     }
 

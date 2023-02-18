@@ -163,15 +163,15 @@ public:
                 TypeError("missing positional argument '" + name + "'");
             }
 
-            locals.insert(fn->kwArgs.begin(), fn->kwArgs.end());
+            locals.insert(fn->kwargs.begin(), fn->kwargs.end());
 
             std::vector<Str> positional_overrided_keys;
-            if(!fn->starredArg.empty()){
+            if(!fn->starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
-                locals.emplace(fn->starredArg, PyTuple(std::move(vargs)));
+                locals.emplace(fn->starred_arg, PyTuple(std::move(vargs)));
             }else{
-                for(const auto& key : fn->kwArgsOrder){
+                for(const auto& key : fn->kwargs_order){
                     if(i < args.size()){
                         locals[key] = args[i++];
                         positional_overrided_keys.push_back(key);
@@ -184,7 +184,7 @@ public:
             
             for(int i=0; i<kwargs.size(); i+=2){
                 const Str& key = PyStr_AS_C(kwargs[i]);
-                if(!fn->kwArgs.contains(key)){
+                if(!fn->kwargs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
@@ -196,10 +196,8 @@ public:
                 }
                 locals[key] = val;
             }
-
-            PyVar* _m = (*callable)->attr().try_get(__module__);
-            PyVar _module = _m != nullptr ? *_m : top_frame()->_module;
-            auto _frame = _new_frame(fn->code, _module, _locals);
+            PyVar _module = fn->_module != nullptr ? fn->_module : top_frame()->_module;
+            auto _frame = _new_frame(fn->code, _module, _locals, fn->_closure);
             if(fn->code->is_generator){
                 return PyIter(pkpy::make_shared<BaseIter, Generator>(
                     this, std::move(_frame)));
@@ -208,7 +206,7 @@ public:
             if(opCall) return _py_op_call;
             return _exec();
         }
-        TypeError("'" + OBJ_NAME(_t(*callable)) + "' object is not callable");
+        TypeError(OBJ_NAME(_t(*callable)).escape(true) + " object is not callable");
         return None;
     }
 
@@ -715,6 +713,8 @@ public:
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
     val = frame->f_locals().try_get(name());
+    if(val) return *val;
+    val = frame->f_closure_try_get(name());
     if(val) return *val;
     val = frame->f_globals().try_get(name());
     if(val) return *val;

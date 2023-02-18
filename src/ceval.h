@@ -14,8 +14,13 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             PyVar obj = frame->co->consts[byte.arg];
-            setattr(obj, __module__, frame->_module);
+            auto& f = PyFunction_AS_C(obj);
+            f->_module = frame->_module;
             frame->push(obj);
+        } continue;
+        case OP_SETUP_CLOSURE: {
+            auto& f = PyFunction_AS_C(frame->top());
+            f->_closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
             frame->push(PyRef(NameRef(frame->co->names[byte.arg])));

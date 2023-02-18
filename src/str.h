@@ -153,7 +153,6 @@ const Str __new__ = Str("__new__");
 const Str __iter__ = Str("__iter__");
 const Str __str__ = Str("__str__");
 const Str __repr__ = Str("__repr__");
-const Str __module__ = Str("__module__");
 const Str __getitem__ = Str("__getitem__");
 const Str __setitem__ = Str("__setitem__");
 const Str __delitem__ = Str("__delitem__");

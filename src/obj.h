@@ -24,14 +24,18 @@ struct Function {
     Str name;
     CodeObject_ code;
     std::vector<Str> args;
-    Str starredArg;                // empty if no *arg
-    pkpy::NameDict kwArgs;          // empty if no k=v
-    std::vector<Str> kwArgsOrder;
+    Str starred_arg;                // empty if no *arg
+    pkpy::NameDict kwargs;          // empty if no k=v
+    std::vector<Str> kwargs_order;
 
-    bool hasName(const Str& val) const {
+    // runtime settings
+    PyVar _module;
+    pkpy::shared_ptr<pkpy::NameDict> _closure;
+
+    bool has_name(const Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
-        bool _1 = starredArg == val;
-        bool _2 = kwArgs.find(val) != kwArgs.end();
+        bool _1 = starred_arg == val;
+        bool _2 = kwargs.find(val) != kwargs.end();
         return _0 || _1 || _2;
     }
 };
@@ -99,8 +103,7 @@ struct Py_ : PyObject {
     Py_(Type type, T&& val): PyObject(type, sizeof(Py_<T>)), _value(std::move(val)) { _init(); }
 
     inline void _init() noexcept {
-        if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>
-        || std::is_same_v<T, pkpy::Function_> || std::is_same_v<T, pkpy::NativeFunc>) {
+        if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>) {
             _attr = new pkpy::NameDict();
         }else{
             _attr = nullptr;

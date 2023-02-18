@@ -18,14 +18,14 @@ namespace pkpy{
 
     template <typename T>
     class shared_ptr {
-        int* counter = nullptr;
+        int* counter;
 
 #define _t() ((T*)(counter + 1))
 #define _inc_counter() if(counter) ++(*counter)
 #define _dec_counter() if(counter && --(*counter) == 0){ SpAllocator<T>::dealloc(counter); }
 
     public:
-        shared_ptr() {}
+        shared_ptr() : counter(nullptr) {}
         shared_ptr(int* counter) : counter(counter) {}
         shared_ptr(const shared_ptr& other) : counter(other.counter) {
             _inc_counter();
