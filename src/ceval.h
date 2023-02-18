@@ -42,6 +42,13 @@ PyVar VM::run_frame(Frame* frame){
             if(byte.arg == 0) frame->push(PyRef(ref));
             else frame->push(ref.get(this, frame));
         } break;
+        case OP_FAST_INDEX: case OP_FAST_INDEX_REF: {
+            auto& a = frame->co->names[byte.arg & 0xFFFF];
+            auto& x = frame->co->names[(byte.arg >> 16) & 0xFFFF];
+            auto ref = IndexRef(NameRef(a).get(this, frame), NameRef(x).get(this, frame));
+            if(byte.op == OP_FAST_INDEX) frame->push(ref.get(this, frame));
+            else frame->push(PyRef(ref));
+        } break;
         case OP_STORE_REF: {
             PyVar obj = frame->pop_value(this);
             PyVarRef r = frame->pop();
@@ -205,7 +212,7 @@ PyVar VM::run_frame(Frame* frame){
                 PyVar obj = call(builtins->attr("set"), pkpy::one_arg(list));
                 frame->push(obj);
             } break;
-        case OP_DUP_TOP: frame->push(frame->top_value(this)); break;
+        case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); break;
         case OP_CALL:
             {
                 int ARGC = byte.arg & 0xFFFF;

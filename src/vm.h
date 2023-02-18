@@ -464,6 +464,7 @@ public:
         int prev_line = -1;
         for(int i=0; i<co->codes.size(); i++){
             const Bytecode& byte = co->codes[i];
+            if(byte.op == OP_NO_OP) continue;
             Str line = std::to_string(byte.line);
             if(byte.line == prev_line) line = "";
             else{
@@ -486,6 +487,11 @@ public:
             }
             if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
                 argStr += " (" + co->names[byte.arg].first.escape(true) + ")";
+            }
+            if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){
+                auto& a = co->names[byte.arg & 0xFFFF];
+                auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
+                argStr += " (" + a.first + '[' + x.first + "])";
             }
             ss << pad(argStr, 20);      // may overflow
             ss << co->blocks[byte.block].to_string();
@@ -834,6 +840,23 @@ void CodeObject::optimize(VM* vm){
             codes[i].op = OP_NO_OP;
             int pos = codes[i-1].arg;
             consts[pos] = vm->num_negated(consts[pos]);
+        }
+
+        if(i>=2 && codes[i].op == OP_BUILD_INDEX){
+            const Bytecode& a = codes[i-1];
+            const Bytecode& x = codes[i-2];
+            if(codes[i].arg == 1){
+                if(a.op == OP_LOAD_NAME && x.op == OP_LOAD_NAME){
+                    codes[i].op = OP_FAST_INDEX;
+                }else continue;
+            }else{
+                if(a.op == OP_LOAD_NAME_REF && x.op == OP_LOAD_NAME_REF){
+                    codes[i].op = OP_FAST_INDEX_REF;
+                }else continue;
+            }
+            codes[i].arg = (a.arg << 16) | x.arg;
+            codes[i-1].op = OP_NO_OP;
+            codes[i-2].op = OP_NO_OP;
         }
     }
 }

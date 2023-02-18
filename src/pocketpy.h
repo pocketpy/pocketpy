@@ -184,7 +184,7 @@ void init_builtins(VM* _vm) {
             if(flag) return vm->PyFloat((f64)(1.0 / ret));
             return vm->PyInt(ret);
         }else{
-            return vm->PyFloat((f64)pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
+            return vm->PyFloat((f64)std::pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
         }
     });
 
@@ -220,26 +220,19 @@ void init_builtins(VM* _vm) {
         return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
     });
 
-    _vm->bind_method<0>("int", "__repr__", [](VM* vm, pkpy::Args& args) {
-        return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
-    });
+    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
+    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
 
-    _vm->bind_method<0>("int", "__json__", [](VM* vm, pkpy::Args& args) {
-        return vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])));
-    });
+#define INT_BITWISE_OP(name,op) \
+    _vm->bind_method<1>("int", #name, CPP_LAMBDA(vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]))));
 
-#define __INT_BITWISE_OP(name,op) \
-    _vm->bind_method<1>("int", #name, [](VM* vm, pkpy::Args& args) {                    \
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));     \
-    });
+    INT_BITWISE_OP(__lshift__, <<)
+    INT_BITWISE_OP(__rshift__, >>)
+    INT_BITWISE_OP(__and__, &)
+    INT_BITWISE_OP(__or__, |)
+    INT_BITWISE_OP(__xor__, ^)
 
-    __INT_BITWISE_OP(__lshift__, <<)
-    __INT_BITWISE_OP(__rshift__, >>)
-    __INT_BITWISE_OP(__and__, &)
-    __INT_BITWISE_OP(__or__, |)
-    __INT_BITWISE_OP(__xor__, ^)
-
-#undef __INT_BITWISE_OP
+#undef INT_BITWISE_OP
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, pkpy::Args& args) {

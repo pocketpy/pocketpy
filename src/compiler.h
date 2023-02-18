@@ -406,7 +406,7 @@ private:
             EXPR_TUPLE();
             emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
-            emit(OP_DUP_TOP);
+            emit(OP_DUP_TOP_VALUE);
             EXPR();
             switch (op) {
                 case TK("+="):      emit(OP_BINARY_OP, 0);  break;
@@ -732,7 +732,7 @@ __LISTCOMP:
         Token tkmodule = _compile_import();
         consume(TK("import"));
         do {
-            emit(OP_DUP_TOP);
+            emit(OP_DUP_TOP_VALUE);
             consume(TK("@id"));
             Token tkname = parser->prev;
             int index = co()->add_name(tkname.str(), NAME_ATTR);
