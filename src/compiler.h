@@ -5,7 +5,6 @@
 #include "ceval.h"
 
 class Compiler;
-
 typedef void (Compiler::*GrammarFn)();
 typedef void (Compiler::*CompilerAction)();
 
@@ -28,6 +27,7 @@ class Compiler {
 
     CodeObject_ co() const{ return codes.top(); }
     CompileMode mode() const{ return parser->src->mode; }
+    NameScope name_scope() const { return codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL; }
 
 public:
     Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
@@ -132,7 +132,7 @@ private:
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
-                    default: SyntaxError("invalid escape character");
+                    default: SyntaxError("invalid escape char");
                 }
             } else {
                 buff.push_back(c);
@@ -396,7 +396,7 @@ private:
         emit(OP_RETURN_VALUE);
         func->code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_LAMBDA, co()->add_const(vm->PyFunction(func)));
+        emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
     }
 
     void exprAssign() {
@@ -612,10 +612,7 @@ __LISTCOMP:
 
     void _exprName(bool force_lvalue) {
         Token tkname = parser->prev;
-        int index = co()->add_name(
-            tkname.str(),
-            codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
-        );
+        int index = co()->add_name(tkname.str(), name_scope());
         bool fast_load = !force_lvalue && co()->_rvalue;
         emit(fast_load ? OP_LOAD_NAME : OP_LOAD_NAME_REF, index);
     }
@@ -719,7 +716,7 @@ __LISTCOMP:
                 consume(TK("@id"));
                 tkmodule = parser->prev;
             }
-            int index = co()->add_name(tkmodule.str(), NAME_GLOBAL);
+            int index = co()->add_name(tkmodule.str(), name_scope());
             emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
         consume_end_stmt();
@@ -739,7 +736,7 @@ __LISTCOMP:
                 consume(TK("@id"));
                 tkname = parser->prev;
             }
-            index = co()->add_name(tkname.str(), NAME_GLOBAL);
+            index = co()->add_name(tkname.str(), name_scope());
             emit(OP_STORE_NAME, index);
         } while (match(TK(",")));
         emit(OP_POP_TOP);
@@ -875,6 +872,12 @@ __LISTCOMP:
             compile_while_loop();
         } else if (match(TK("for"))) {
             compile_for_loop();
+        } else if (match(TK("import"))){
+            compile_normal_import();
+        } else if (match(TK("from"))){
+            compile_from_import();
+        } else if (match(TK("def"))){
+            compile_function();
         } else if (match(TK("try"))) {
             compile_try_except();
         }else if(match(TK("assert"))){
@@ -888,10 +891,7 @@ __LISTCOMP:
             consume(TK("as"));
             consume(TK("@id"));
             Token tkname = parser->prev;
-            int index = co()->add_name(
-                tkname.str(),
-                codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL
-            );
+            int index = co()->add_name(tkname.str(), name_scope());
             emit(OP_STORE_NAME, index);
             emit(OP_LOAD_NAME_REF, index);
             emit(OP_WITH_ENTER);
@@ -1009,23 +1009,19 @@ __LISTCOMP:
         pkpy::Function_ func = pkpy::make_shared<pkpy::Function>();
         consume(TK("@id"));
         func->name = parser->prev.str();
-
         consume(TK("("));
         if (!match(TK(")"))) {
             _compile_f_args(func, true);
             consume(TK(")"));
         }
-
-        // eat type hints
-        if(match(TK("->"))) consume(TK("@id"));
-
+        if(match(TK("->"))) consume(TK("@id")); // eat type hints
         func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
         this->codes.push(func->code);
         compile_block_body();
         func->code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_CONST, co()->add_const(vm->PyFunction(func)));
-        if(!is_compiling_class) emit(OP_STORE_FUNCTION);
+        emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
+        if(!is_compiling_class) emit(OP_STORE_NAME, co()->add_name(func->name, name_scope()));
     }
 
     PyVarOrNull read_literal(){
@@ -1088,15 +1084,8 @@ public:
         }
 
         while (!match(TK("@eof"))) {
-            // compile top-level statement
             if (match(TK("class"))) {
                 compile_class();
-            } else if (match(TK("def"))) {
-                compile_function();
-            } else if (match(TK("import"))) {
-                compile_normal_import();
-            } else if (match(TK("from"))) {
-                compile_from_import();
             } else {
                 compile_stmt();
             }

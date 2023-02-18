@@ -109,7 +109,7 @@ struct Frame {
     }
 
     int _exit_block(int i){
-        if(co->blocks[i].type == FOR_LOOP) pop();
+        if(co->blocks[i].type == FOR_LOOP) _pop();
         else if(co->blocks[i].type == TRY_EXCEPT) on_try_block_exit();
         return co->blocks[i].parent;
     }
