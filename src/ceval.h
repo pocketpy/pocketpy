@@ -186,7 +186,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_RE_RAISE: _raise(); break;
         case OP_BUILD_LIST:
             frame->push(PyList(
-                frame->pop_n_values_reversed(this, byte.arg).to_list()));
+                frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
             break;
         case OP_BUILD_MAP:
             {
@@ -200,7 +200,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_BUILD_SET:
             {
                 PyVar list = PyList(
-                    frame->pop_n_values_reversed(this, byte.arg).to_list()
+                    frame->pop_n_values_reversed(this, byte.arg).move_to_list()
                 );
                 PyVar obj = call(builtins->attr("set"), pkpy::one_arg(list));
                 frame->push(obj);
