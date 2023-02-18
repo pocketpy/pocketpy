@@ -77,3 +77,8 @@ assert {1,2}.issubset({1,2,3})
 assert {1,2,3}.issuperset({1,2})
 assert {1,2,3}.isdisjoint({4,5,6})
 assert not {1,2,3}.isdisjoint({2,3,4})
+
+x = {i for i in range(3)}
+assert x == {0,1,2}
+x = {i for i in range(3) if i > 0}
+assert x == {1,2}
