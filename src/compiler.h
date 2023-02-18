@@ -241,7 +241,6 @@ private:
                 case '-': {
                     if(parser->matchchar('=')) parser->set_next_token(TK("-="));
                     else if(parser->matchchar('>')) parser->set_next_token(TK("->"));
-                    else if(parser->matchchar('-')) parser->set_next_token(TK("--"));
                     else parser->set_next_token(TK("-"));
                     return;
                 }
