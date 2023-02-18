@@ -128,10 +128,28 @@ PyVar VM::run_frame(Frame* frame){
             } break;
         case OP_BITWISE_OP:
             {
-                frame->push(
-                    fast_call(BITWISE_SPECIAL_METHODS[byte.arg],
-                    frame->pop_n_values_reversed(this, 2))
-                );
+                pkpy::Args args(2);
+                args[1] = frame->pop_value(this);
+                args[0] = frame->top_value(this);
+                frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
+            } break;
+        case OP_INPLACE_BINARY_OP:
+            {
+                pkpy::Args args(2);
+                args[1] = frame->pop_value(this);
+                args[0] = frame->top_value(this);
+                PyVar ret = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
+                PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
+                frame->_pop();
+            } break;
+        case OP_INPLACE_BITWISE_OP:
+            {
+                pkpy::Args args(2);
+                args[1] = frame->pop_value(this);
+                args[0] = frame->top_value(this);
+                PyVar ret = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
+                PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
+                frame->_pop();
             } break;
         case OP_COMPARE_OP:
             {

@@ -406,21 +406,19 @@ private:
             EXPR_TUPLE();
             emit(OP_STORE_REF);
         }else{                  // a += (expr) -> a = a + (expr)
-            emit(OP_DUP_TOP_VALUE);
             EXPR();
             switch (op) {
-                case TK("+="):      emit(OP_BINARY_OP, 0);  break;
-                case TK("-="):      emit(OP_BINARY_OP, 1);  break;
-                case TK("*="):      emit(OP_BINARY_OP, 2);  break;
-                case TK("/="):      emit(OP_BINARY_OP, 3);  break;
-                case TK("//="):     emit(OP_BINARY_OP, 4);  break;
-                case TK("%="):      emit(OP_BINARY_OP, 5);  break;
-                case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
-                case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
-                case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
+                case TK("+="):      emit(OP_INPLACE_BINARY_OP, 0);  break;
+                case TK("-="):      emit(OP_INPLACE_BINARY_OP, 1);  break;
+                case TK("*="):      emit(OP_INPLACE_BINARY_OP, 2);  break;
+                case TK("/="):      emit(OP_INPLACE_BINARY_OP, 3);  break;
+                case TK("//="):     emit(OP_INPLACE_BINARY_OP, 4);  break;
+                case TK("%="):      emit(OP_INPLACE_BINARY_OP, 5);  break;
+                case TK("&="):      emit(OP_INPLACE_BITWISE_OP, 2);  break;
+                case TK("|="):      emit(OP_INPLACE_BITWISE_OP, 3);  break;
+                case TK("^="):      emit(OP_INPLACE_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
             }
-            emit(OP_STORE_REF);
         }
         co()->_rvalue = false;
     }
@@ -939,7 +937,7 @@ __LISTCOMP:
             consume_end_stmt();
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
-            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF){
+            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP){
                 if(mode()==REPL_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
