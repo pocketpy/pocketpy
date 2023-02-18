@@ -31,7 +31,7 @@ constexpr TokenIndex TK(const char* const token) {
         while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
-    return 0;
+    UNREACHABLE();
 }
 
 #define TK_STR(t) kTokens[t]
