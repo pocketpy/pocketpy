@@ -2,7 +2,7 @@
 
 #include "parser.h"
 #include "error.h"
-#include "vm.h"
+#include "ceval.h"
 
 class Compiler;
 

@@ -404,7 +404,7 @@ class set:
     def __repr__(self):
         if len(self) == 0:
             return 'set()'
-        return '{'+ ', '.join(self._a.keys()) + '}'
+        return '{'+ ', '.join([repr(i) for i in self._a.keys()]) + '}'
     
     def __iter__(self):
         return self._a.keys()

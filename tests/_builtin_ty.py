@@ -19,31 +19,31 @@ assert b == c
 s = "football"
 q = "abcd"
 r = "zoo"
-str = "this is string example....wow!!!"
+t = "this is string example....wow!!!"
 assert s[0] == 'f'
 assert s[1:4] == 'oot'
 assert s[:-1] == 'footbal'
 assert s[:10] == 'football'
 assert s[-3] == 'a'
-assert str[-5:] == 'ow!!!'
-assert str[3:-3] == 's is string example....wow'
+assert t[-5:] == 'ow!!!'
+assert t[3:-3] == 's is string example....wow'
 assert s > q;assert s < r
 assert s.replace("foo","ball") == "balltball"
 assert s.startswith('f') == True;assert s.endswith('o') == False
-assert str.startswith('this') == True;
+assert t.startswith('this') == True;
 
 
-assert str.split('w') == ['this is string example....', 'o', '!!!']
+assert t.split('w') == ['this is string example....', 'o', '!!!']
 assert "a,b,c".split(',') == ['a', 'b', 'c']
 assert 'a,'.split(',') == ['a', '']
 assert 'foo!!bar!!baz'.split('!!') == ['foo', 'bar', 'baz']
 
-str = "*****this is **string** example....wow!!!*****"
+t = "*****this is **string** example....wow!!!*****"
 s = "123abcrunoob321"
-# assert str.strip( '*' ) == "this is **string** example....wow!!!"
-# assert s.strip( '12' ) == "3abcrunoob3"
+assert t.strip( '*' ) == "this is **string** example....wow!!!"
+assert s.strip( '12' ) == "3abcrunoob3"
 
-assert str.strip( '*' ) == "this is **string** example....wow!!!"
+assert t.strip( '*' ) == "this is **string** example....wow!!!"
 assert s.strip( '12' ) == "3abcrunoob3"
 
 s = ' asd\n  asd \n'
@@ -59,10 +59,13 @@ def test(*seq):
     return s1.join(seq)
 assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
 
+def f():
+    for i in range(5):
+        yield str(i)
+assert '|'.join(f()) == '0|1|2|3|4'
 
-##num = 6
-##assert str(num) == '6'   TypeError: 'str' object is not callable
-
+num = 6
+assert str(num) == '6'
 
 ##############################################
 ##Lists

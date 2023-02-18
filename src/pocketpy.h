@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vm.h"
+#include "ceval.h"
 #include "compiler.h"
 #include "repl.h"
 #include "iter.h"
@@ -369,20 +369,11 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "join", [](VM* vm, pkpy::Args& args) {
         const Str& self = vm->PyStr_AS_C(args[0]);
         StrStream ss;
-        if(args[1]->is_type(vm->tp_list)){
-            const pkpy::List& a = vm->PyList_AS_C(args[1]);
-            for(int i = 0; i < a.size(); i++){
-                if(i > 0) ss << self;
-                ss << vm->PyStr_AS_C(vm->asStr(a[i]));
-            }
-        }else if(args[1]->is_type(vm->tp_tuple)){
-            const pkpy::Tuple& a = vm->PyTuple_AS_C(args[1]);
-            for(int i = 0; i < a.size(); i++){
-                if(i > 0) ss << self;
-                ss << vm->PyStr_AS_C(vm->asStr(a[i]));
-            }
-        }else{
-            vm->TypeError("can only join a list or tuple");
+        PyVar obj = vm->asList(args[1]);
+        const pkpy::List& list = vm->PyList_AS_C(obj);
+        for (int i = 0; i < list.size(); ++i) {
+            if (i > 0) ss << self;
+            ss << vm->PyStr_AS_C(list[i]);
         }
         return vm->PyStr(ss.str());
     });
@@ -411,11 +402,11 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, pkpy::Args& args) {
         pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        if(_index < 0) _index += _self.size();
-        if(_index < 0) _index = 0;
-        if(_index > _self.size()) _index = _self.size();
-        _self.insert(_self.begin() + _index, args[2]);
+        int index = (int)vm->PyInt_AS_C(args[1]);
+        if(index < 0) index += _self.size();
+        if(index < 0) index = 0;
+        if(index > _self.size()) index = _self.size();
+        _self.insert(_self.begin() + index, args[2]);
         return vm->None;
     });
 
@@ -424,21 +415,19 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_method<0>("list", "copy", [](VM* vm, pkpy::Args& args) {
-        return vm->PyList(vm->PyList_AS_C(args[0]));
-    });
+    _vm->bind_method<0>("list", "copy", CPP_LAMBDA(vm->PyList(vm->PyList_AS_C(args[0]))));
 
     _vm->bind_method<1>("list", "__add__", [](VM* vm, pkpy::Args& args) {
-        const pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        const pkpy::List& _obj = vm->PyList_AS_C(args[1]);
-        pkpy::List _new_list = _self;
-        _new_list.insert(_new_list.end(), _obj.begin(), _obj.end());
-        return vm->PyList(_new_list);
+        const pkpy::List& self = vm->PyList_AS_C(args[0]);
+        const pkpy::List& obj = vm->PyList_AS_C(args[1]);
+        pkpy::List new_list = self;
+        new_list.insert(new_list.end(), obj.begin(), obj.end());
+        return vm->PyList(new_list);
     });
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, pkpy::Args& args) {
-        const pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        return vm->PyInt(_self.size());
+        const pkpy::List& self = vm->PyList_AS_C(args[0]);
+        return vm->PyInt(self.size());
     });
 
     _vm->bind_method<0>("list", "__iter__", [](VM* vm, pkpy::Args& args) {
@@ -462,25 +451,25 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, pkpy::Args& args) {
-        pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalized_index(_index, _self.size());
-        _self[_index] = args[2];
+        pkpy::List& self = vm->PyList_AS_C(args[0]);
+        int index = (int)vm->PyInt_AS_C(args[1]);
+        index = vm->normalized_index(index, self.size());
+        self[index] = args[2];
         return vm->None;
     });
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, pkpy::Args& args) {
-        pkpy::List& _self = vm->PyList_AS_C(args[0]);
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalized_index(_index, _self.size());
-        _self.erase(_self.begin() + _index);
+        pkpy::List& self = vm->PyList_AS_C(args[0]);
+        int index = (int)vm->PyInt_AS_C(args[1]);
+        index = vm->normalized_index(index, self.size());
+        self.erase(self.begin() + index);
         return vm->None;
     });
 
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, pkpy::Args& args) {
-        pkpy::List _list = vm->PyList_AS_C(vm->call(vm->builtins->attr("list"), args));
-        return vm->PyTuple(std::move(_list));
+        pkpy::List list = vm->PyList_AS_C(vm->asList(args[0]));
+        return vm->PyTuple(std::move(list));
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, pkpy::Args& args) {
@@ -522,9 +511,9 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("bool", "__xor__", [](VM* vm, pkpy::Args& args) {
-        bool _self = vm->PyBool_AS_C(args[0]);
-        bool _obj = vm->PyBool_AS_C(args[1]);
-        return vm->PyBool(_self ^ _obj);
+        bool self = vm->PyBool_AS_C(args[0]);
+        bool other = vm->PyBool_AS_C(args[1]);
+        return vm->PyBool(self ^ other);
     });
 
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(vm->PyStr("Ellipsis")));
@@ -557,10 +546,10 @@ void add_module_sys(VM* vm){
     vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 
     vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(vm->PyInt(args[0].use_count())));
-    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(vm->PyInt(vm->maxRecursionDepth)));
+    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(vm->PyInt(vm->recursionlimit)));
 
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, pkpy::Args& args) {
-        vm->maxRecursionDepth = (int)vm->PyInt_AS_C(args[0]);
+        vm->recursionlimit = (int)vm->PyInt_AS_C(args[0]);
         return vm->None;
     });
 }

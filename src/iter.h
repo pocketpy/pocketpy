@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vm.h"
+#include "ceval.h"
 
 class RangeIter : public BaseIter {
     i64 current;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "compiler.h"
-#include "vm.h"
+#include "ceval.h"
 
 class REPL {
 protected:
