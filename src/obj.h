@@ -63,8 +63,6 @@ struct Slice {
         if(stop < start) stop = start;
     }
 };
-
-typedef shared_ptr<Function> Function_;
 }
 
 class BaseIter {

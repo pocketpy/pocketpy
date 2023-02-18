@@ -13,14 +13,14 @@ PyVar VM::run_frame(Frame* frame){
         case OP_NO_OP: continue;
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
-            PyVar obj = frame->co->consts[byte.arg];
-            auto& f = PyFunction_AS_C(obj);
-            f->_module = frame->_module;
-            frame->push(obj);
+            const PyVar obj = frame->co->consts[byte.arg];
+            pkpy::Function f = PyFunction_AS_C(obj);  // copy
+            f._module = frame->_module;
+            frame->push(PyFunction(f));
         } continue;
         case OP_SETUP_CLOSURE: {
-            auto& f = PyFunction_AS_C(frame->top());
-            f->_closure = frame->_locals;
+            pkpy::Function& f = PyFunction_AS_C(frame->top());    // reference
+            f._closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
             frame->push(PyRef(NameRef(frame->co->names[byte.arg])));
@@ -98,8 +98,8 @@ PyVar VM::run_frame(Frame* frame){
             while(true){
                 PyVar fn = frame->pop_value(this);
                 if(fn == None) break;
-                const pkpy::Function_& f = PyFunction_AS_C(fn);
-                setattr(cls, f->name, fn);
+                const pkpy::Function& f = PyFunction_AS_C(fn);
+                setattr(cls, f.name, fn);
             }
         } continue;
         case OP_RETURN_VALUE: return frame->pop_value(this);

@@ -384,19 +384,20 @@ private:
     }
 
     void exprLambda() {
-        pkpy::Function_ func = pkpy::make_shared<pkpy::Function>();
-        func->name = "<lambda>";
+        pkpy::Function func;
+        func.name = "<lambda>";
         if(!match(TK(":"))){
             _compile_f_args(func, false);
             consume(TK(":"));
         }
-        func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
-        this->codes.push(func->code);
+        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name);
+        this->codes.push(func.code);
         EXPR_TUPLE();
         emit(OP_RETURN_VALUE);
-        func->code->optimize(vm);
+        func.code->optimize(vm);
         this->codes.pop();
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
+        if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
     }
 
     void exprAssign() {
@@ -961,7 +962,7 @@ __LISTCOMP:
         emit(OP_BUILD_CLASS, cls_name_idx);
     }
 
-    void _compile_f_args(pkpy::Function_ func, bool enable_type_hints){
+    void _compile_f_args(pkpy::Function& func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) SyntaxError("**kwargs should be the last argument");
@@ -976,7 +977,7 @@ __LISTCOMP:
 
             consume(TK("@id"));
             const Str& name = parser->prev.str();
-            if(func->has_name(name)) SyntaxError("duplicate argument name");
+            if(func.has_name(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
@@ -985,16 +986,16 @@ __LISTCOMP:
 
             switch (state)
             {
-                case 0: func->args.push_back(name); break;
-                case 1: func->starred_arg = name; state+=1; break;
+                case 0: func.args.push_back(name); break;
+                case 1: func.starred_arg = name; state+=1; break;
                 case 2: {
                     consume(TK("="));
                     PyVarOrNull value = read_literal();
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
-                    func->kwargs[name] = value;
-                    func->kwargs_order.push_back(name);
+                    func.kwargs[name] = value;
+                    func.kwargs_order.push_back(name);
                 } break;
                 case 3: SyntaxError("**kwargs is not supported yet"); break;
             }
@@ -1006,23 +1007,23 @@ __LISTCOMP:
             if(match(TK("pass"))) return;
             consume(TK("def"));
         }
-        pkpy::Function_ func = pkpy::make_shared<pkpy::Function>();
+        pkpy::Function func;
         consume(TK("@id"));
-        func->name = parser->prev.str();
+        func.name = parser->prev.str();
         consume(TK("("));
         if (!match(TK(")"))) {
             _compile_f_args(func, true);
             consume(TK(")"));
         }
         if(match(TK("->"))) consume(TK("@id")); // eat type hints
-        func->code = pkpy::make_shared<CodeObject>(parser->src, func->name);
-        this->codes.push(func->code);
+        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name);
+        this->codes.push(func.code);
         compile_block_body();
-        func->code->optimize(vm);
+        func.code->optimize(vm);
         this->codes.pop();
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
-        if(!is_compiling_class) emit(OP_STORE_NAME, co()->add_name(func->name, name_scope()));
+        if(!is_compiling_class) emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
     }
 
     PyVarOrNull read_literal(){

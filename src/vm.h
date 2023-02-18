@@ -150,12 +150,12 @@ public:
             if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
             return f(this, args);
         } else if((*callable)->is_type(tp_function)){
-            const pkpy::Function_& fn = PyFunction_AS_C((*callable));
+            const pkpy::Function& fn = PyFunction_AS_C(*callable);
             pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
             pkpy::NameDict& locals = *_locals;
 
             int i = 0;
-            for(const auto& name : fn->args){
+            for(const auto& name : fn.args){
                 if(i < args.size()){
                     locals.emplace(name, args[i++]);
                     continue;
@@ -163,15 +163,15 @@ public:
                 TypeError("missing positional argument '" + name + "'");
             }
 
-            locals.insert(fn->kwargs.begin(), fn->kwargs.end());
+            locals.insert(fn.kwargs.begin(), fn.kwargs.end());
 
             std::vector<Str> positional_overrided_keys;
-            if(!fn->starred_arg.empty()){
+            if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
-                locals.emplace(fn->starred_arg, PyTuple(std::move(vargs)));
+                locals.emplace(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
-                for(const auto& key : fn->kwargs_order){
+                for(const auto& key : fn.kwargs_order){
                     if(i < args.size()){
                         locals[key] = args[i++];
                         positional_overrided_keys.push_back(key);
@@ -184,8 +184,8 @@ public:
             
             for(int i=0; i<kwargs.size(); i+=2){
                 const Str& key = PyStr_AS_C(kwargs[i]);
-                if(!fn->kwargs.contains(key)){
-                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn->name + "()");
+                if(!fn.kwargs.contains(key)){
+                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
                 if(!positional_overrided_keys.empty()){
@@ -196,9 +196,9 @@ public:
                 }
                 locals[key] = val;
             }
-            PyVar _module = fn->_module != nullptr ? fn->_module : top_frame()->_module;
-            auto _frame = _new_frame(fn->code, _module, _locals, fn->_closure);
-            if(fn->code->is_generator){
+            PyVar _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+            auto _frame = _new_frame(fn.code, _module, _locals, fn._closure);
+            if(fn.code->is_generator){
                 return PyIter(pkpy::make_shared<BaseIter, Generator>(
                     this, std::move(_frame)));
             }
@@ -512,7 +512,7 @@ public:
             PyVar obj = co->consts[i];
             if(obj->is_type(tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
-                ss << disassemble(f->code);
+                ss << disassemble(f.code);
             }
         }
         return Str(ss.str());
@@ -554,7 +554,7 @@ public:
     DEF_NATIVE(Float, f64, tp_float)
     DEF_NATIVE(List, pkpy::List, tp_list)
     DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
-    DEF_NATIVE(Function, pkpy::Function_, tp_function)
+    DEF_NATIVE(Function, pkpy::Function, tp_function)
     DEF_NATIVE(NativeFunc, pkpy::NativeFunc, tp_native_function)
     DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, tp_native_iterator)
     DEF_NATIVE(BoundMethod, pkpy::BoundMethod, tp_bound_method)
