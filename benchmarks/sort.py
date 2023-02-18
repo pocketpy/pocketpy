@@ -2,27 +2,19 @@ import random
 
 a = [random.randint(-100000, 100000) for i in range(100000)]
 
-def __qsort(a: list, i: int, j: int):
-    if i>=j:
-        return
-    d1, d2 = i, j
-    mid = (i+j) // 2
-    a[mid], a[i] = a[i], a[mid]
-    u = a[i];
-    while i<j:
-        while i<j and a[j]>u:
-            j -= 1
-        if i<j:
-            a[i] = a[j]
-            i += 1
-        while i<j and a[i]<u:
-            i += 1
-        if i<j:
-            a[j] = a[i]
-            j -= 1
-    a[i] = u;
-    __qsort(a, d1, i-1)
-    __qsort(a, i+1, d2)
+def __qsort(a: list, L: int, R: int):
+    if L >= R: return;
+    mid = a[(R+L)//2];
+    i, j = L, R
+    while i<=j:
+        while a[i]<mid: i+=1
+        while a[j]>mid: j-=1
+        if i<=j:
+            a[i], a[j] = a[j], a[i]
+            i+=1
+            j-=1
+    __qsort(a, L, j)
+    __qsort(a, i, R)
 
 from dis import dis
 # dis(__qsort)
