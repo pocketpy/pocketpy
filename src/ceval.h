@@ -10,23 +10,23 @@ PyVar VM::run_frame(Frame* frame){
         // }
         switch (byte.op)
         {
-        case OP_NO_OP: break;       // do nothing
-        case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); break;
+        case OP_NO_OP: continue;
+        case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_LAMBDA: {
             PyVar obj = frame->co->consts[byte.arg];
             setattr(obj, __module__, frame->_module);
             frame->push(obj);
-        } break;
+        } continue;
         case OP_LOAD_NAME_REF: {
             frame->push(PyRef(NameRef(frame->co->names[byte.arg])));
-        } break;
+        } continue;
         case OP_LOAD_NAME: {
             frame->push(NameRef(frame->co->names[byte.arg]).get(this, frame));
-        } break;
+        } continue;
         case OP_STORE_NAME: {
             auto& p = frame->co->names[byte.arg];
             NameRef(p).set(this, frame, frame->pop_value(this));
-        } break;
+        } continue;
         case OP_BUILD_ATTR: {
             int name = byte.arg >> 1;
             bool _rvalue = byte.arg % 2 == 1;
@@ -35,29 +35,29 @@ PyVar VM::run_frame(Frame* frame){
             AttrRef ref = AttrRef(obj, NameRef(attr));
             if(_rvalue) frame->push(ref.get(this, frame));
             else frame->push(PyRef(ref));
-        } break;
+        } continue;
         case OP_BUILD_INDEX: {
             PyVar index = frame->pop_value(this);
             auto ref = IndexRef(frame->pop_value(this), index);
             if(byte.arg == 0) frame->push(PyRef(ref));
             else frame->push(ref.get(this, frame));
-        } break;
+        } continue;
         case OP_FAST_INDEX: case OP_FAST_INDEX_REF: {
             auto& a = frame->co->names[byte.arg & 0xFFFF];
             auto& x = frame->co->names[(byte.arg >> 16) & 0xFFFF];
             auto ref = IndexRef(NameRef(a).get(this, frame), NameRef(x).get(this, frame));
             if(byte.op == OP_FAST_INDEX) frame->push(ref.get(this, frame));
             else frame->push(PyRef(ref));
-        } break;
+        } continue;
         case OP_STORE_REF: {
             PyVar obj = frame->pop_value(this);
             PyVarRef r = frame->pop();
             PyRef_AS_C(r)->set(this, frame, std::move(obj));
-        } break;
+        } continue;
         case OP_DELETE_REF: {
             PyVarRef r = frame->pop();
             PyRef_AS_C(r)->del(this, frame);
-        } break;
+        } continue;
         case OP_BUILD_SMART_TUPLE:
         {
             pkpy::Args items = frame->pop_n_reversed(byte.arg);
@@ -70,32 +70,31 @@ PyVar VM::run_frame(Frame* frame){
                     break;
                 }
             }
-            if(done) break;
-            frame->push(PyRef(TupleRef(std::move(items))));
-        } break;
+            if(!done) frame->push(PyRef(TupleRef(std::move(items))));
+        } continue;
         case OP_BUILD_STRING:
         {
             pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
             StrStream ss;
             for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
             frame->push(PyStr(ss.str()));
-        } break;
+        } continue;
         case OP_LOAD_EVAL_FN: {
             frame->push(builtins->attr(m_eval));
-        } break;
+        } continue;
         case OP_LIST_APPEND: {
             pkpy::Args args(2);
             args[1] = frame->pop_value(this);            // obj
             args[0] = frame->top_value_offset(this, -2);     // list
             fast_call(m_append, std::move(args));
-        } break;
+        } continue;
         case OP_STORE_FUNCTION:
             {
                 PyVar obj = frame->pop_value(this);
                 const pkpy::Function_& fn = PyFunction_AS_C(obj);
                 setattr(obj, __module__, frame->_module);
                 frame->f_globals()[fn->name] = obj;
-            } break;
+            } continue;
         case OP_BUILD_CLASS:
             {
                 const Str& clsName = frame->co->names[byte.arg].first;
@@ -110,29 +109,29 @@ PyVar VM::run_frame(Frame* frame){
                     setattr(fn, __module__, frame->_module);
                     setattr(cls, f->name, fn);
                 }
-            } break;
+            } continue;
         case OP_RETURN_VALUE: return frame->pop_value(this);
         case OP_PRINT_EXPR:
             {
                 const PyVar expr = frame->top_value(this);
-                if(expr == None) break;
+                if(expr == None) continue;
                 *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
-            } break;
-        case OP_POP_TOP: frame->_pop(); break;
+            } continue;
+        case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP:
             {
                 pkpy::Args args(2);
                 args[1] = frame->pop_value(this);
                 args[0] = frame->top_value(this);
                 frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
-            } break;
+            } continue;
         case OP_BITWISE_OP:
             {
                 pkpy::Args args(2);
                 args[1] = frame->pop_value(this);
                 args[0] = frame->top_value(this);
                 frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
-            } break;
+            } continue;
         case OP_INPLACE_BINARY_OP:
             {
                 pkpy::Args args(2);
@@ -141,7 +140,7 @@ PyVar VM::run_frame(Frame* frame){
                 PyVar ret = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
                 PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
                 frame->_pop();
-            } break;
+            } continue;
         case OP_INPLACE_BITWISE_OP:
             {
                 pkpy::Args args(2);
@@ -150,69 +149,69 @@ PyVar VM::run_frame(Frame* frame){
                 PyVar ret = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
                 PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
                 frame->_pop();
-            } break;
+            } continue;
         case OP_COMPARE_OP:
             {
                 pkpy::Args args(2);
                 args[1] = frame->pop_value(this);
                 args[0] = frame->top_value(this);
                 frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
-            } break;
+            } continue;
         case OP_IS_OP:
             {
                 PyVar rhs = frame->pop_value(this);
                 bool ret_c = rhs == frame->top_value(this);
                 if(byte.arg == 1) ret_c = !ret_c;
                 frame->top() = PyBool(ret_c);
-            } break;
+            } continue;
         case OP_CONTAINS_OP:
             {
                 PyVar rhs = frame->pop_value(this);
                 bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::one_arg(frame->pop_value(this))));
                 if(byte.arg == 1) ret_c = !ret_c;
                 frame->push(PyBool(ret_c));
-            } break;
+            } continue;
         case OP_UNARY_NEGATIVE:
             frame->top() = num_negated(frame->top_value(this));
-            break;
+            continue;
         case OP_UNARY_NOT:
             {
                 PyVar obj = frame->pop_value(this);
                 const PyVar& obj_bool = asBool(obj);
                 frame->push(PyBool(!PyBool_AS_C(obj_bool)));
-            } break;
+            } continue;
         case OP_POP_JUMP_IF_FALSE:
             if(!PyBool_AS_C(asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
-            break;
-        case OP_LOAD_NONE: frame->push(None); break;
-        case OP_LOAD_TRUE: frame->push(True); break;
-        case OP_LOAD_FALSE: frame->push(False); break;
-        case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); break;
+            continue;
+        case OP_LOAD_NONE: frame->push(None); continue;
+        case OP_LOAD_TRUE: frame->push(True); continue;
+        case OP_LOAD_FALSE: frame->push(False); continue;
+        case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
         case OP_ASSERT:
             {
                 PyVar _msg = frame->pop_value(this);
                 Str msg = PyStr_AS_C(asStr(_msg));
                 PyVar expr = frame->pop_value(this);
                 if(asBool(expr) != True) _error("AssertionError", msg);
-            } break;
+            } continue;
         case OP_EXCEPTION_MATCH:
             {
                 const auto& _e = PyException_AS_C(frame->top());
                 Str name = frame->co->names[byte.arg].first;
                 frame->push(PyBool(_e.match_type(name)));
-            } break;
+            } continue;
         case OP_RAISE:
             {
                 PyVar obj = frame->pop_value(this);
                 Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
                 Str type = frame->co->names[byte.arg].first;
                 _error(type, msg);
-            } break;
-        case OP_RE_RAISE: _raise(); break;
+            } continue;
+        case OP_RE_RAISE: _raise(); continue;
         case OP_BUILD_LIST:
             frame->push(PyList(
                 frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
-            break;
+            continue;
         case OP_BUILD_MAP:
             {
                 pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
@@ -221,7 +220,7 @@ PyVar VM::run_frame(Frame* frame){
                     call(obj, __setitem__, pkpy::two_args(items[i], items[i+1]));
                 }
                 frame->push(obj);
-            } break;
+            } continue;
         case OP_BUILD_SET:
             {
                 PyVar list = PyList(
@@ -229,8 +228,8 @@ PyVar VM::run_frame(Frame* frame){
                 );
                 PyVar obj = call(builtins->attr("set"), pkpy::one_arg(list));
                 frame->push(obj);
-            } break;
-        case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); break;
+            } continue;
+        case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
         case OP_CALL:
             {
                 int ARGC = byte.arg & 0xFFFF;
@@ -242,15 +241,15 @@ PyVar VM::run_frame(Frame* frame){
                 PyVar ret = call(callable, std::move(args), kwargs, true);
                 if(ret == _py_op_call) return ret;
                 frame->push(std::move(ret));
-            } break;
-        case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); break;
-        case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); break;
+            } continue;
+        case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); continue;
+        case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
         case OP_GOTO: {
             const Str& label = frame->co->names[byte.arg].first;
             int* target = frame->co->labels.try_get(label);
             if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
             frame->jump_abs_safe(*target);
-        } break;
+        } continue;
         case OP_GET_ITER:
             {
                 PyVar obj = frame->pop_value(this);
@@ -259,7 +258,7 @@ PyVar VM::run_frame(Frame* frame){
                 check_type(var, tp_ref);
                 PyIter_AS_C(iter_obj)->var = var;
                 frame->push(std::move(iter_obj));
-            } break;
+            } continue;
         case OP_FOR_ITER:
             {
                 // top() must be PyIter, so no need to try_deref()
@@ -271,29 +270,29 @@ PyVar VM::run_frame(Frame* frame){
                     int blockEnd = frame->co->blocks[byte.block].end;
                     frame->jump_abs_safe(blockEnd);
                 }
-            } break;
+            } continue;
         case OP_LOOP_CONTINUE:
             {
                 int blockStart = frame->co->blocks[byte.block].start;
                 frame->jump_abs(blockStart);
-            } break;
+            } continue;
         case OP_LOOP_BREAK:
             {
                 int blockEnd = frame->co->blocks[byte.block].end;
                 frame->jump_abs_safe(blockEnd);
-            } break;
+            } continue;
         case OP_JUMP_IF_FALSE_OR_POP:
             {
                 const PyVar expr = frame->top_value(this);
                 if(asBool(expr)==False) frame->jump_abs(byte.arg);
                 else frame->pop_value(this);
-            } break;
+            } continue;
         case OP_JUMP_IF_TRUE_OR_POP:
             {
                 const PyVar expr = frame->top_value(this);
                 if(asBool(expr)==True) frame->jump_abs(byte.arg);
                 else frame->pop_value(this);
-            } break;
+            } continue;
         case OP_BUILD_SLICE:
             {
                 PyVar stop = frame->pop_value(this);
@@ -302,7 +301,7 @@ PyVar VM::run_frame(Frame* frame){
                 if(start != None) {check_type(start, tp_int); s.start = (int)PyInt_AS_C(start);}
                 if(stop != None) {check_type(stop, tp_int); s.stop = (int)PyInt_AS_C(stop);}
                 frame->push(PySlice(s));
-            } break;
+            } continue;
         case OP_IMPORT_NAME:
             {
                 const Str& name = frame->co->names[byte.arg].first;
@@ -322,16 +321,16 @@ PyVar VM::run_frame(Frame* frame){
                 }else{
                     frame->push(it->second);
                 }
-            } break;
+            } continue;
         case OP_YIELD_VALUE: return _py_op_yield;
         // TODO: using "goto" inside with block may cause __exit__ not called
-        case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); break;
-        case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); break;
-        case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); break;
-        case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); break;
+        case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); continue;
+        case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); continue;
+        case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); continue;
+        case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); continue;
         default:
             throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
-            break;
+            continue;
         }
     }
 
