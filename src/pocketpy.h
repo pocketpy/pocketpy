@@ -752,7 +752,7 @@ void add_module_random(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "random", CPP_LAMBDA(vm->PyFloat((f64)std::rand() / RAND_MAX)));
+    vm->bind_func<0>(mod, "random", CPP_LAMBDA(vm->PyFloat(std::rand() / (f64)RAND_MAX)));
     vm->bind_func<2>(mod, "randint", [](VM* vm, pkpy::Args& args) {
         i64 a = vm->PyInt_AS_C(args[0]);
         i64 b = vm->PyInt_AS_C(args[1]);
@@ -764,7 +764,7 @@ void add_module_random(VM* vm){
         f64 a = vm->PyFloat_AS_C(args[0]);
         f64 b = vm->PyFloat_AS_C(args[1]);
         if(a > b) std::swap(a, b);
-        return vm->PyFloat(a + (b - a) * std::rand() / RAND_MAX);
+        return vm->PyFloat(a + (b - a) * std::rand() / (f64)RAND_MAX);
     });
 
     CodeObject_ code = vm->compile(kRandomCode, "random.py", EXEC_MODE);

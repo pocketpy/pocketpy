@@ -36,7 +36,7 @@
 
 #define PK_VERSION "0.8.9"
 
-#if defined(__EMSCRIPTEN__) || defined(PK_32_BIT)
+#if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(PK_32_BIT)
 typedef int32_t i64;
 typedef float f64;
 const i64 kMinSafeInt = -((i64)1 << 30);
