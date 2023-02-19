@@ -34,10 +34,19 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.8.8"
+#define PK_VERSION "0.8.9"
 
+#if defined(__EMSCRIPTEN__) || defined(PK_32_BIT)
+typedef int32_t i64;
+typedef float f64;
+const i64 kMinSafeInt = -((i64)1 << 30);
+const i64 kMaxSafeInt = ((i64)1 << 30) - 1;
+#else
 typedef int64_t i64;
 typedef double f64;
+const i64 kMinSafeInt = -((i64)1 << 62);
+const i64 kMaxSafeInt = ((i64)1 << 62) - 1;
+#endif
 
 struct Dummy { char _; };
 #define DUMMY_VAL Dummy()
