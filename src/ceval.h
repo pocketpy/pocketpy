@@ -282,7 +282,7 @@ PyVar VM::run_frame(Frame* frame){
                     const Str& source = it2->second;
                     CodeObject_ code = compile(source, name, EXEC_MODE);
                     PyVar _m = new_module(name);
-                    _exec(code, _m, pkpy::make_shared<pkpy::NameDict>());
+                    _exec(code, _m);
                     frame->push(_m);
                     _lazy_modules.erase(it2);
                 }

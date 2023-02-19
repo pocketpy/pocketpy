@@ -216,7 +216,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-            return _exec(code, _module, pkpy::make_shared<pkpy::NameDict>());
+            return _exec(code, _module);
         }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
         }

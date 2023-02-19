@@ -768,7 +768,7 @@ void add_module_random(VM* vm){
     });
 
     CodeObject_ code = vm->compile(kRandomCode, "random.py", EXEC_MODE);
-    vm->_exec(code, mod, pkpy::make_shared<pkpy::NameDict>());
+    vm->_exec(code, mod);
 }
 
 
@@ -889,7 +889,7 @@ extern "C" {
         add_module_os(vm);
 
         CodeObject_ code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
-        vm->_exec(code, vm->builtins, pkpy::make_shared<pkpy::NameDict>());
+        vm->_exec(code, vm->builtins);
         return vm;
     }
 

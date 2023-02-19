@@ -16,7 +16,7 @@ struct Frame {
     const i64 id;
     std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
 
-    inline pkpy::NameDict& f_locals() noexcept { return *_locals; }
+    inline pkpy::NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
     inline pkpy::NameDict& f_globals() noexcept { return _module->attr(); }
 
     inline PyVar* f_closure_try_get(const Str& name) noexcept {
@@ -25,7 +25,7 @@ struct Frame {
     }
 
     Frame(const CodeObject_ co, PyVar _module,
-        pkpy::shared_ptr<pkpy::NameDict> _locals, pkpy::shared_ptr<pkpy::NameDict> _closure=nullptr)
+        pkpy::shared_ptr<pkpy::NameDict> _locals=nullptr, pkpy::shared_ptr<pkpy::NameDict> _closure=nullptr)
         : co(co), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
