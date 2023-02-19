@@ -189,8 +189,7 @@ private:
     void _lex_token() {
         parser->prev = parser->curr;
         parser->curr = parser->next_token();
-
-        //Str _info = parser->curr.info(); std::cout << _info << '[' << parser->current_line << ']' << std::endl;
+        //std::cout << parser->curr.info() << std::endl;
 
         while (parser->peekchar() != '\0') {
             parser->token_start = parser->curr_char;

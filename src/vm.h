@@ -221,7 +221,7 @@ public:
             *_stderr << e.summary() << '\n';
         }
         catch (const std::exception& e) {
-            *_stderr << "A std::exception occurred! It may be a bug, please report it!!\n";
+            *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
         }
         callstack = {};
@@ -576,7 +576,7 @@ public:
     inline f64 PyFloat_AS_C(const PyVar& obj){
         check_type(obj, tp_float);
         i64 _int = obj.cast<i64>();
-        return __8B(_int)._float;
+        return __8B(_int & 0b00)._float;
     }
 
     DEF_NATIVE(List, pkpy::List, tp_list)

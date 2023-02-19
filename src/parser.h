@@ -48,14 +48,14 @@ const emhash8::HashMap<std::string_view, TokenIndex> kTokenKwMap = [](){
 struct Token{
   TokenIndex type;
 
-  const char* start; //< Begining of the token in the source.
-  int length;        //< Number of chars of the token.
-  int line;          //< Line number of the token (1 based).
-  PyVar value;       //< Literal value of the token.
+  const char* start;
+  int length;
+  int line;
+  PyVar value;
 
-  const Str str() const { return Str(start, length);}
+  Str str() const { return Str(start, length);}
 
-  const Str info() const {
+  Str info() const {
     StrStream ss;
     Str raw = str();
     if (raw == Str("\n")) raw = "\\n";

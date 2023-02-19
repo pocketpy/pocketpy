@@ -116,7 +116,7 @@ inline bool is_type(const PyVar& obj, Type type) noexcept {
     switch(type.index){
         case kTpIntIndex: return obj.is_tag_01();
         case kTpFloatIndex: return obj.is_tag_10();
-        default: return obj->type == type;
+        default: return !obj.is_tagged() && obj->type == type;
     }
 }
 

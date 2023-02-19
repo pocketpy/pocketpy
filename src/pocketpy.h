@@ -132,8 +132,9 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, pkpy::Args& args) {
         PyVar self = args[0];
+        std::uintptr_t addr = self.is_tagged() ? 0 : (uintptr_t)self.get();
         StrStream ss;
-        ss << std::hex << (uintptr_t)self.get();
+        ss << std::hex << addr;
         Str s = "<" + OBJ_NAME(vm->_t(self)) + " object at 0x" + ss.str() + ">";
         return vm->PyStr(s);
     });
