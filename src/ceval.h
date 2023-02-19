@@ -30,7 +30,7 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_STORE_NAME: {
             auto& p = frame->co->names[byte.arg];
-            NameRef(p).set(this, frame, frame->pop_value(this));
+            NameRef(p).set(this, frame, frame->pop());
         } continue;
         case OP_BUILD_ATTR: {
             int name = byte.arg >> 1;
@@ -113,8 +113,8 @@ PyVar VM::run_frame(Frame* frame){
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {
             pkpy::Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
+            args[1] = frame->pop();
+            args[0] = frame->top();
             frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
         } continue;
         case OP_BITWISE_OP: {
@@ -125,7 +125,7 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_INPLACE_BINARY_OP: {
             pkpy::Args args(2);
-            args[1] = frame->pop_value(this);
+            args[1] = frame->pop();
             args[0] = frame->top_value(this);
             PyVar ret = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
             PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
@@ -141,8 +141,8 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_COMPARE_OP: {
             pkpy::Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
+            args[1] = frame->pop();
+            args[0] = frame->top();
             frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
         } continue;
         case OP_IS_OP: {

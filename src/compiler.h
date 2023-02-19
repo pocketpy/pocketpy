@@ -391,7 +391,7 @@ private:
         }
         func.code = pkpy::make_shared<CodeObject>(parser->src, func.name);
         this->codes.push(func.code);
-        EXPR_TUPLE();
+        co()->_rvalue += 1; EXPR_TUPLE(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
         func.code->optimize(vm);
         this->codes.pop();
@@ -401,7 +401,7 @@ private:
 
     void exprAssign() {
         int lhs = co()->codes.empty() ? -1 : co()->codes.size() - 1;
-        co()->_rvalue = true;
+        co()->_rvalue += 1;
         TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
@@ -427,7 +427,7 @@ private:
                 default: UNREACHABLE();
             }
         }
-        co()->_rvalue = false;
+        co()->_rvalue -= 1;
     }
 
     void exprComma() {
@@ -602,11 +602,11 @@ __LISTCOMP:
                 const Str& key = parser->prev.str();
                 emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
                 consume(TK("="));
-                co()->_rvalue=true; EXPR(); co()->_rvalue=false;
+                co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
                 KWARGC++;
             } else{
                 if(KWARGC > 0) SyntaxError("positional argument follows keyword argument");
-                co()->_rvalue=true; EXPR(); co()->_rvalue=false;
+                co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
                 ARGC++;
             }
             match_newlines(mode()==REPL_MODE);
@@ -620,7 +620,7 @@ __LISTCOMP:
     void _exprName(bool force_lvalue) {
         Token tkname = parser->prev;
         int index = co()->add_name(tkname.str(), name_scope());
-        bool fast_load = !force_lvalue && co()->_rvalue;
+        bool fast_load = !force_lvalue && co()->_rvalue>0;
         emit(fast_load ? OP_LOAD_NAME : OP_LOAD_NAME_REF, index);
     }
 
@@ -628,7 +628,7 @@ __LISTCOMP:
         consume(TK("@id"));
         const Str& name = parser->prev.str();
         int index = co()->add_name(name, NAME_ATTR);
-        index = (index<<1) + (int)co()->_rvalue;
+        index = (index<<1) + (int)(co()->_rvalue>0);
         emit(OP_BUILD_ATTR, index);
     }
 
@@ -659,7 +659,7 @@ __LISTCOMP:
             }
         }
 
-        emit(OP_BUILD_INDEX, (int)co()->_rvalue);
+        emit(OP_BUILD_INDEX, (int)(co()->_rvalue>0));
     }
 
     void exprValue() {
@@ -766,9 +766,9 @@ __LISTCOMP:
 
     void compile_if_stmt() {
         match_newlines();
-        co()->_rvalue = true;
+        co()->_rvalue += 1;
         EXPR_TUPLE();   // condition
-        co()->_rvalue = false;
+        co()->_rvalue -= 1;
         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
         compile_block_body();
 
@@ -789,9 +789,9 @@ __LISTCOMP:
 
     void compile_while_loop() {
         co()->_enter_block(WHILE_LOOP);
-        co()->_rvalue = true;
+        co()->_rvalue += 1;
         EXPR_TUPLE();   // condition
-        co()->_rvalue = false;
+        co()->_rvalue -= 1;
         int patch = emit(OP_POP_JUMP_IF_FALSE);
         compile_block_body();
         emit(OP_LOOP_CONTINUE, -1, true);
@@ -810,7 +810,7 @@ __LISTCOMP:
 
     void compile_for_loop() {
         EXPR_FOR_VARS();consume(TK("in"));
-        co()->_rvalue = true; EXPR_TUPLE(); co()->_rvalue = false;
+        co()->_rvalue += 1; EXPR_TUPLE(); co()->_rvalue -= 1;
         emit(OP_GET_ITER);
         co()->_enter_block(FOR_LOOP);
         emit(OP_FOR_ITER);
@@ -856,9 +856,9 @@ __LISTCOMP:
             emit(OP_LOOP_CONTINUE);
         } else if (match(TK("yield"))) {
             if (codes.size() == 1) SyntaxError("'yield' outside function");
-            co()->_rvalue = true;
+            co()->_rvalue += 1;
             EXPR_TUPLE();
-            co()->_rvalue = false;
+            co()->_rvalue -= 1;
             consume_end_stmt();
             co()->is_generator = true;
             emit(OP_YIELD_VALUE, -1, true);
@@ -867,9 +867,9 @@ __LISTCOMP:
             if(match_end_stmt()){
                 emit(OP_LOAD_NONE);
             }else{
-                co()->_rvalue = true;
+                co()->_rvalue += 1;
                 EXPR_TUPLE();   // return value
-                co()->_rvalue = false;
+                co()->_rvalue -= 1;
                 consume_end_stmt();
             }
             emit(OP_RETURN_VALUE, -1, true);
@@ -887,10 +887,12 @@ __LISTCOMP:
             compile_function();
         } else if (match(TK("try"))) {
             compile_try_except();
-        }else if(match(TK("assert"))){
+        } else if(match(TK("assert"))) {
+            co()->_rvalue += 1;
             EXPR();
             if (match(TK(","))) EXPR();
             else emit(OP_LOAD_CONST, co()->add_const(vm->PyStr("")));
+            co()->_rvalue -= 1;
             emit(OP_ASSERT);
             consume_end_stmt();
         } else if(match(TK("with"))){
