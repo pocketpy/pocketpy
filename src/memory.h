@@ -22,28 +22,9 @@ namespace pkpy{
     class shared_ptr {
         int* counter;
 
-        inline T* _t() const {
-            if constexpr(std::is_same_v<T, PyObject>){
-                if(is_tagged()) UNREACHABLE();
-            }
-            return (T*)(counter + 1);
-        }
-
-        inline void _inc_counter() const {
-            if constexpr(std::is_same_v<T, PyObject>){
-                if(is_tagged()) return;
-            }
-            if(counter) ++(*counter);
-        }
-
-        inline void _dec_counter() const {
-            if constexpr(std::is_same_v<T, PyObject>){
-                if(is_tagged()) return;
-            }
-            if(counter && --(*counter) == 0){
-                SpAllocator<T>::dealloc(counter);
-            }
-        }
+#define _t() (T*)(counter + 1)
+#define _inc_counter() if(!is_tagged() && counter) ++(*counter)
+#define _dec_counter() if(!is_tagged() && counter && --(*counter) == 0) SpAllocator<T>::dealloc(counter)
 
     public:
         shared_ptr() : counter(nullptr) {}
@@ -99,12 +80,19 @@ namespace pkpy{
             return reinterpret_cast<__VAL>(counter);
         }
 
-        inline bool is_tagged() const { return (cast<i64>() & 0b11) != 0b00; }
-        inline bool is_tag_00() const { return (cast<i64>() & 0b11) == 0b00; }
-        inline bool is_tag_01() const { return (cast<i64>() & 0b11) == 0b01; }
-        inline bool is_tag_10() const { return (cast<i64>() & 0b11) == 0b10; }
-        inline bool is_tag_11() const { return (cast<i64>() & 0b11) == 0b11; }
+        inline bool is_tagged() const {
+            if constexpr(!std::is_same_v<T, PyObject>) return false;
+            return (reinterpret_cast<i64>(counter) & 0b11) != 0b00;
+        }
+        inline bool is_tag_00() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b00; }
+        inline bool is_tag_01() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b01; }
+        inline bool is_tag_10() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b10; }
+        inline bool is_tag_11() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b11; }
     };
+
+#undef _t
+#undef _inc_counter
+#undef _dec_counter
 
     template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {
