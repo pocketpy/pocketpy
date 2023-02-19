@@ -354,7 +354,7 @@ public:
             it = (*root)->attr().find(name);
             if(it != (*root)->attr().end()) return it->second;        
         }else{
-            if(obj->is_attr_valid()){
+            if(!obj.is_tagged() && obj->is_attr_valid()){
                 it = obj->attr().find(name);
                 if(it != obj->attr().end()) return it->second;
             }
