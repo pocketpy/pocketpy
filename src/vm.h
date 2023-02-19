@@ -483,7 +483,7 @@ public:
             if(byte.op == OP_LOAD_CONST){
                 argStr += " (" + PyStr_AS_C(asRepr(co->consts[byte.arg])) + ")";
             }
-            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE){
+            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
                 argStr += " (" + co->names[byte.arg].first.escape(true) + ")";
             }
             if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){

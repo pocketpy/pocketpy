@@ -401,11 +401,18 @@ private:
     }
 
     void exprAssign() {
+        int lhs = co()->codes.empty() ? -1 : co()->codes.size() - 1;
         co()->_rvalue = true;
         TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            emit(OP_STORE_REF);
+            if(lhs!=-1 && co()->codes[lhs].op == OP_LOAD_NAME_REF){
+                emit(OP_STORE_NAME, co()->codes[lhs].arg);
+                co()->codes[lhs].op = OP_NO_OP;
+                co()->codes[lhs].arg = -1;
+            }else{
+                emit(OP_STORE_REF);
+            }
         }else{                  // a += (expr) -> a = a + (expr)
             EXPR();
             switch (op) {

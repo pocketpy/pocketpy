@@ -591,7 +591,9 @@ void add_module_math(VM* vm){
 void add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, pkpy::Args& args) {
-        CodeObject_ code = vm->PyFunction_AS_C(args[0]).code;
+        PyVar f = args[0];
+        if(f->is_type(vm->tp_bound_method)) f = vm->PyBoundMethod_AS_C(args[0]).method;
+        CodeObject_ code = vm->PyFunction_AS_C(f).code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
     });
