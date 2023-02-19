@@ -71,7 +71,7 @@ protected:
     PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
     virtual PyVar next() = 0;
-    PyVarRef var;
+    PyVarRef loop_var;
     BaseIter(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
     virtual ~BaseIter() = default;
 };

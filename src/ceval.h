@@ -55,9 +55,11 @@ PyVar VM::run_frame(Frame* frame){
             else frame->push(PyRef(ref));
         } continue;
         case OP_STORE_REF: {
-            PyVar obj = frame->pop_value(this);
-            PyVarRef r = frame->pop();
-            PyRef_AS_C(r)->set(this, frame, std::move(obj));
+            // PyVar obj = frame->pop_value(this);
+            // PyVarRef r = frame->pop();
+            // PyRef_AS_C(r)->set(this, frame, std::move(obj));
+            PyRef_AS_C(frame->top_1())->set(this, frame, frame->top_value(this));
+            frame->_pop(); frame->_pop();
         } continue;
         case OP_DELETE_REF: 
             PyRef_AS_C(frame->top())->del(this, frame);
@@ -228,17 +230,16 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_GET_ITER: {
             PyVar obj = frame->pop_value(this);
-            PyVar iter_obj = asIter(obj);
-            PyVarRef var = frame->pop();
-            check_type(var, tp_ref);
-            PyIter_AS_C(iter_obj)->var = var;
-            frame->push(std::move(iter_obj));
+            PyVar iter = asIter(obj);
+            check_type(frame->top(), tp_ref);
+            PyIter_AS_C(iter)->loop_var = frame->pop();
+            frame->push(std::move(iter));
         } continue;
         case OP_FOR_ITER: {
             auto& it = PyIter_AS_C(frame->top());
             PyVar obj = it->next();
             if(obj != nullptr){
-                PyRef_AS_C(it->var)->set(this, frame, std::move(obj));
+                PyRef_AS_C(it->loop_var)->set(this, frame, std::move(obj));
             }else{
                 int blockEnd = frame->co->blocks[byte.block].end;
                 frame->jump_abs_safe(blockEnd);

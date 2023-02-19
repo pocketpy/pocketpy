@@ -84,6 +84,11 @@ struct Frame {
         return _data.back();
     }
 
+    inline PyVar& top_1(){
+        if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
+        return _data[_data.size()-2];
+    }
+
     inline PyVar top_value_offset(VM* vm, int n){
         PyVar value = _data[_data.size() + n];
         try_deref(vm, value);
