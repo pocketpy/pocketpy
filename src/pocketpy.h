@@ -19,8 +19,8 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                 \
-        if(args[0]->is_type(vm->tp_int) && args[1]->is_type(vm->tp_int)){                             \
+    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                         \
+        if(is_type(args[0], vm->tp_int) && is_type(args[1], vm->tp_int)){                               \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
@@ -28,11 +28,9 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     });
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
-    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                 \
-        bool _0 = args[0]->is_type(vm->tp_int) || args[0]->is_type(vm->tp_float);                     \
-        bool _1 = args[1]->is_type(vm->tp_int) || args[1]->is_type(vm->tp_float);                     \
-        if(!_0 || !_1){                                                                                 \
-            if constexpr(is_eq) return vm->PyBool(args[0].get() op args[1].get());                      \
+    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                         \
+        if(!is_int_or_float(args[0]) || !is_int_or_float(args[1])){                                     \
+            if constexpr(is_eq) return vm->PyBool(args[0] op args[1]);                                  \
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
@@ -170,7 +168,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, pkpy::Args& args) {
-        if(args[0]->is_type(vm->tp_int) && args[1]->is_type(vm->tp_int)){
+        if(is_int(args[0]) && is_int(args[1])){
             i64 lhs = vm->PyInt_AS_C(args[0]);
             i64 rhs = vm->PyInt_AS_C(args[1]);
             bool flag = false;
@@ -190,18 +188,18 @@ void init_builtins(VM* _vm) {
 
     /************ PyInt ************/
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, pkpy::Args& args) {
-        if (args[0]->is_type(vm->tp_int)) return args[0];
-        if (args[0]->is_type(vm->tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
-        if (args[0]->is_type(vm->tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
-        if (args[0]->is_type(vm->tp_str)) {
+        if (is_type(args[0], vm->tp_int)) return args[0];
+        if (is_type(args[0], vm->tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
+        if (is_type(args[0], vm->tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
+        if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
                 i64 val = std::stoll(s, &parsed, 10);
-                if(parsed != s.size()) throw std::invalid_argument("");
+                if(parsed != s.size()) throw std::invalid_argument("<?>");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
-                vm->ValueError("invalid literal for int(): '" + s + "'");
+                vm->ValueError("invalid literal for int(): " + s.escape(true));
             }
         }
         vm->TypeError("int() argument must be a int, float, bool or str");
@@ -236,10 +234,10 @@ void init_builtins(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, pkpy::Args& args) {
-        if (args[0]->is_type(vm->tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
-        if (args[0]->is_type(vm->tp_float)) return args[0];
-        if (args[0]->is_type(vm->tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
-        if (args[0]->is_type(vm->tp_str)) {
+        if (is_type(args[0], vm->tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
+        if (is_type(args[0], vm->tp_float)) return args[0];
+        if (is_type(args[0], vm->tp_bool)) return vm->PyFloat(vm->PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
@@ -258,7 +256,7 @@ void init_builtins(VM* _vm) {
         f64 val = vm->PyFloat_AS_C(args[0]);
         if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
         StrStream ss;
-        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
+        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return vm->PyStr(s);
@@ -307,13 +305,13 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, pkpy::Args& args) {
-        if(args[0]->is_type(vm->tp_str) && args[1]->is_type(vm->tp_str))
+        if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, pkpy::Args& args) {
-        if(args[0]->is_type(vm->tp_str) && args[1]->is_type(vm->tp_str))
+        if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
             return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
         return vm->PyBool(args[0] != args[1]);
     });
@@ -321,7 +319,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, pkpy::Args& args) {
         const Str& _self (vm->PyStr_AS_C(args[0]));
 
-        if(args[1]->is_type(vm->tp_slice)){
+        if(is_type(args[1], vm->tp_slice)){
             pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(_self.u8_length());
             return vm->PyStr(_self.u8_substr(s.start, s.stop));
@@ -441,7 +439,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, pkpy::Args& args) {
         const pkpy::List& self = vm->PyList_AS_C(args[0]);
 
-        if(args[1]->is_type(vm->tp_slice)){
+        if(is_type(args[1], vm->tp_slice)){
             pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
             pkpy::List new_list;
@@ -483,7 +481,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, pkpy::Args& args) {
         const pkpy::Tuple& self = vm->PyTuple_AS_C(args[0]);
 
-        if(args[1]->is_type(vm->tp_slice)){
+        if(is_type(args[1], vm->tp_slice)){
             pkpy::Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
             pkpy::List new_list;
@@ -592,7 +590,7 @@ void add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, pkpy::Args& args) {
         PyVar f = args[0];
-        if(f->is_type(vm->tp_bound_method)) f = vm->PyBoundMethod_AS_C(args[0]).method;
+        if(is_type(f, vm->tp_bound_method)) f = vm->PyBoundMethod_AS_C(args[0]).method;
         CodeObject_ code = vm->PyFunction_AS_C(f).code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;

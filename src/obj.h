@@ -79,17 +79,13 @@ public:
 struct PyObject {
     Type type;
     pkpy::NameDict* _attr;
-    // void* _tid;
-    const int _size;
 
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
     inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
-
-    inline bool is_type(Type type) const noexcept{ return this->type == type; }
     virtual void* value() = 0;
 
-    PyObject(Type type, const int size) : type(type), _size(size) {}
+    PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
 };
 
@@ -97,8 +93,8 @@ template <typename T>
 struct Py_ : PyObject {
     T _value;
 
-    Py_(Type type, const T& val): PyObject(type, sizeof(Py_<T>)), _value(val) { _init(); }
-    Py_(Type type, T&& val): PyObject(type, sizeof(Py_<T>)), _value(std::move(val)) { _init(); }
+    Py_(Type type, const T& val): PyObject(type), _value(val) { _init(); }
+    Py_(Type type, T&& val): PyObject(type), _value(std::move(val)) { _init(); }
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>) {
@@ -113,66 +109,37 @@ struct Py_ : PyObject {
 #define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
 #define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attr(__name__))
 
+const int kTpIntIndex = 2;
+const int kTpFloatIndex = 3;
+
+inline bool is_type(const PyVar& obj, Type type) noexcept {
+    switch(type.index){
+        case kTpIntIndex: return obj.is_tag_01();
+        case kTpFloatIndex: return obj.is_tag_10();
+        default: return obj->type == type;
+    }
+}
+
+inline bool is_int_or_float(const PyVar& obj) noexcept {
+    return obj.is_tag_01() || obj.is_tag_10();
+}
+
+inline bool is_int(const PyVar& obj) noexcept {
+    return obj.is_tag_01();
+}
+
+inline bool is_float(const PyVar& obj) noexcept {
+    return obj.is_tag_10();
+}
+
 #define PY_CLASS(mod, name) \
     inline static Type _type(VM* vm) { return OBJ_GET(Type, vm->_modules[#mod]->attr(#name)); } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
 
-
-namespace pkpy {
-    template<int N>
-    struct MemBlock {
-        std::vector<void*> a;
-        int block_size;
-
-        MemBlock(int block_size) : block_size(block_size) {
-            new_block();
-        }
-
-        void new_block(){
-            int8_t* total = (int8_t*)malloc(N * block_size);
-            for(int i = 0; i < block_size; ++i){
-                a.push_back((void*)(total + i * N));
-            }
-        }
-
-        inline void* alloc(){
-            if(a.empty()) new_block();
-            void* p = a.back();
-            a.pop_back();
-            return p;
-        }
-
-        inline void dealloc(void* p) noexcept{
-            a.push_back(p);
-        }
-
-        ~MemBlock(){
-            free(a[0]);
-        }
-    };
-
-    constexpr int kMemObjSize = sizeof(int) + sizeof(Py_<i64>);
-    static THREAD_LOCAL MemBlock<kMemObjSize> _mem_pool(512);
-
-    template<>
-    struct SpAllocator<PyObject> {
-        template<typename U>
-        inline static int* alloc(){
-            if constexpr (sizeof(int) + sizeof(U) == kMemObjSize) {
-                return (int*)_mem_pool.alloc();
-            }
-            return (int*)malloc(sizeof(int) + sizeof(U));
-        }
-
-        inline static void dealloc(int* counter){
-            PyObject* obj = (PyObject*)(counter + 1);
-            obj->~PyObject();
-            if(obj->_size == kMemObjSize - sizeof(int)){
-                _mem_pool.dealloc(counter);
-            }else{
-                free(counter);
-            }
-        }
-    };
-}
+union __8B {
+    i64 _int;
+    f64 _float;
+    __8B(i64 val) : _int(val) {}
+    __8B(f64 val) : _float(val) {}
+};

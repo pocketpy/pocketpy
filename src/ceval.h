@@ -69,7 +69,7 @@ PyVar VM::run_frame(Frame* frame){
             pkpy::Args items = frame->pop_n_reversed(byte.arg);
             bool done = false;
             for(int i=0; i<items.size(); i++){
-                if(!items[i]->is_type(tp_ref)) {
+                if(!is_type(items[i], tp_ref)) {
                     done = true;
                     for(int j=i; j<items.size(); j++) frame->try_deref(this, items[j]);
                     frame->push(PyTuple(std::move(items)));

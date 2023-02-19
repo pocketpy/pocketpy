@@ -20,38 +20,38 @@ namespace pkpy{
     class shared_ptr {
         int* counter;
 
-#define _t() ((T*)(counter + 1))
-#define _inc_counter() if(counter) ++(*counter)
-#define _dec_counter() if(counter && --(*counter) == 0){ SpAllocator<T>::dealloc(counter); }
+        inline T* _t() const {
+            if(is_tagged()) UNREACHABLE();
+            return (T*)(counter + 1);
+        }
+        inline void _inc_counter() const { if(counter) ++(*counter); }
+        inline void _dec_counter() const { if(counter && --(*counter) == 0){ SpAllocator<T>::dealloc(counter); } }
 
     public:
         shared_ptr() : counter(nullptr) {}
         shared_ptr(int* counter) : counter(counter) {}
         shared_ptr(const shared_ptr& other) : counter(other.counter) {
-            _inc_counter();
+            if(!is_tagged()) _inc_counter();
         }
         shared_ptr(shared_ptr&& other) noexcept : counter(other.counter) {
             other.counter = nullptr;
         }
-        ~shared_ptr() { _dec_counter(); }
+        ~shared_ptr() { if(!is_tagged()) _dec_counter(); }
 
-        bool operator==(const shared_ptr& other) const {
-            return counter == other.counter;
-        }
-
-        bool operator!=(const shared_ptr& other) const {
-            return counter != other.counter;
-        }
-
-        bool operator==(std::nullptr_t) const {
-            return counter == nullptr;
-        }
-
-        bool operator!=(std::nullptr_t) const {
-            return counter != nullptr;
-        }
+        bool operator==(const shared_ptr& other) const { return counter == other.counter; }
+        bool operator!=(const shared_ptr& other) const { return counter != other.counter; }
+        bool operator<(const shared_ptr& other) const { return counter < other.counter; }
+        bool operator>(const shared_ptr& other) const { return counter > other.counter; }
+        bool operator<=(const shared_ptr& other) const { return counter <= other.counter; }
+        bool operator>=(const shared_ptr& other) const { return counter >= other.counter; }
+        bool operator==(std::nullptr_t) const { return counter == nullptr; }
+        bool operator!=(std::nullptr_t) const { return counter != nullptr; }
 
         shared_ptr& operator=(const shared_ptr& other) {
+            if(is_tagged()) {
+                counter = other.counter;
+                return *this;
+            }
             _dec_counter();
             counter = other.counter;
             _inc_counter();
@@ -59,6 +59,11 @@ namespace pkpy{
         }
 
         shared_ptr& operator=(shared_ptr&& other) noexcept {
+            if(is_tagged()) {
+                counter = other.counter;
+                other.counter = nullptr;
+                return *this;
+            }
             _dec_counter();
             counter = other.counter;
             other.counter = nullptr;
@@ -68,17 +73,26 @@ namespace pkpy{
         T& operator*() const { return *_t(); }
         T* operator->() const { return _t(); }
         T* get() const { return _t(); }
-        int use_count() const { return counter ? *counter : 0; }
+
+        int use_count() const { 
+            if(is_tagged()) return 1;
+            return counter ? *counter : 0;
+        }
 
         void reset(){
-            _dec_counter();
+            if(!is_tagged()) _dec_counter();
             counter = nullptr;
         }
-    };
 
-#undef _t
-#undef _inc_counter
-#undef _dec_counter
+        template <typename __VAL>
+        inline __VAL cast() const { return reinterpret_cast<__VAL>(counter); }
+
+        inline bool is_tagged() const { return (cast<std::uintptr_t>() & 0b11) != 0b00; }
+        inline bool is_tag_00() const { return (cast<std::uintptr_t>() & 0b11) == 0b00; }
+        inline bool is_tag_01() const { return (cast<std::uintptr_t>() & 0b11) == 0b01; }
+        inline bool is_tag_10() const { return (cast<std::uintptr_t>() & 0b11) == 0b10; }
+        inline bool is_tag_11() const { return (cast<std::uintptr_t>() & 0b11) == 0b11; }
+    };
 
     template <typename T, typename U, typename... Args>
     shared_ptr<T> make_shared(Args&&... args) {

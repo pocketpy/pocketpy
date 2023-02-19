@@ -63,15 +63,15 @@ public:
     }
 
     PyVar asRepr(const PyVar& obj){
-        if(obj->is_type(tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
+        if(is_type(obj, tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
         return call(obj, __repr__);
     }
 
     const PyVar& asBool(const PyVar& obj){
-        if(obj->is_type(tp_bool)) return obj;
+        if(is_type(obj, tp_bool)) return obj;
         if(obj == None) return False;
-        if(obj->is_type(tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
-        if(obj->is_type(tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
+        if(is_type(obj, tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
+        if(is_type(obj, tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
         PyVarOrNull len_fn = getattr(obj, __len__, false);
         if(len_fn != nullptr){
             PyVar ret = call(len_fn);
@@ -81,7 +81,7 @@ public:
     }
 
     PyVar asIter(const PyVar& obj){
-        if(obj->is_type(tp_native_iterator)) return obj;
+        if(is_type(obj, tp_native_iterator)) return obj;
         PyVarOrNull iter_f = getattr(obj, __iter__, false);
         if(iter_f != nullptr) return call(iter_f);
         TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
@@ -89,7 +89,7 @@ public:
     }
 
     PyVar asList(const PyVar& iterable){
-        if(iterable->is_type(tp_list)) return iterable;
+        if(is_type(iterable, tp_list)) return iterable;
         return call(_t(tp_list), pkpy::one_arg(iterable));
     }
 
@@ -125,7 +125,7 @@ public:
     }
 
     PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
-        if(_callable->is_type(tp_type)){
+        if(is_type(_callable, tp_type)){
             PyVar* new_f = _callable->attr().try_get(__new__);
             PyVar obj;
             if(new_f != nullptr){
@@ -139,17 +139,17 @@ public:
         }
 
         const PyVar* callable = &_callable;
-        if((*callable)->is_type(tp_bound_method)){
+        if(is_type(*callable, tp_bound_method)){
             auto& bm = PyBoundMethod_AS_C((*callable));
             callable = &bm.method;      // get unbound method
             args.extend_self(bm.obj);
         }
         
-        if((*callable)->is_type(tp_native_function)){
+        if(is_type(*callable, tp_native_function)){
             const auto& f = OBJ_GET(pkpy::NativeFunc, *callable);
             if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
             return f(this, args);
-        } else if((*callable)->is_type(tp_function)){
+        } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
             pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
             pkpy::NameDict& locals = *_locals;
@@ -285,7 +285,7 @@ public:
     }
 
     PyVar new_type_object(PyVar mod, Str name, PyVar base){
-        if(!base->is_type(tp_type)) UNREACHABLE();
+        if(!is_type(base, tp_type)) UNREACHABLE();
         PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, base);
         Str fullName = name;
@@ -306,12 +306,12 @@ public:
 
     template<typename T>
     inline PyVar new_object(const PyVar& type, const T& _value) {
-        if(!type->is_type(tp_type)) UNREACHABLE();
+        if(!is_type(type, tp_type)) UNREACHABLE();
         return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
     }
     template<typename T>
     inline PyVar new_object(const PyVar& type, T&& _value) {
-        if(!type->is_type(tp_type)) UNREACHABLE();
+        if(!is_type(type, tp_type)) UNREACHABLE();
         return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
     }
 
@@ -340,12 +340,12 @@ public:
         pkpy::NameDict::iterator it;
         PyObject* cls;
 
-        if(obj->is_type(tp_super)){
+        if(is_type(obj, tp_super)){
             const PyVar* root = &obj;
             int depth = 1;
             while(true){
                 root = &OBJ_GET(PyVar, *root);
-                if(!(*root)->is_type(tp_super)) break;
+                if(!is_type(*root, tp_super)) break;
                 depth++;
             }
             cls = _t(*root).get();
@@ -364,14 +364,13 @@ public:
         while(cls != None.get()) {
             it = cls->attr().find(name);
             if(it != cls->attr().end()){
-                PyVar valueFromCls = it->second;
-                if(valueFromCls->is_type(tp_function) || valueFromCls->is_type(tp_native_function)){
-                    return PyBoundMethod({obj, std::move(valueFromCls)});
+                if(is_type(it->second, tp_function) || is_type(it->second, tp_native_function)){
+                    return PyBoundMethod({obj, it->second});
                 }else{
-                    return valueFromCls;
+                    return it->second;
                 }
             }
-            cls = cls->attr()[__base__].get();
+            cls = cls->attr(__base__).get();
         }
         if(throw_err) AttributeError(obj, name);
         return nullptr;
@@ -379,10 +378,11 @@ public:
 
     template<typename T>
     inline void setattr(PyVar& obj, const Str& name, T&& value) {
+        if(obj.is_tagged()) TypeError("cannot set attribute");
         PyObject* p = obj.get();
-        while(p->is_type(tp_super)) p = static_cast<PyVar*>(p->value())->get();
+        while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
         if(!p->is_attr_valid()) TypeError("cannot set attribute");
-        p->attr()[name] = std::forward<T>(value);
+        p->attr(name) = std::forward<T>(value);
     }
 
     template<int ARGC>
@@ -422,9 +422,9 @@ public:
     }
 
     inline f64 num_to_float(const PyVar& obj){
-        if (obj->is_type(tp_int)){
+        if (is_int(obj)){
             return (f64)PyInt_AS_C(obj);
-        }else if(obj->is_type(tp_float)){
+        }else if(is_float(obj)){
             return PyFloat_AS_C(obj);
         }
         TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
@@ -432,12 +432,12 @@ public:
     }
 
     PyVar num_negated(const PyVar& obj){
-        if (obj->is_type(tp_int)){
+        if (is_int(obj)){
             return PyInt(-PyInt_AS_C(obj));
-        }else if(obj->is_type(tp_float)){
+        }else if(is_float(obj)){
             return PyFloat(-PyFloat_AS_C(obj));
         }
-        TypeError("unsupported operand type(s) for -");
+        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
         return nullptr;
     }
 
@@ -510,7 +510,7 @@ public:
 
         for(int i=0; i<co->consts.size(); i++){
             PyVar obj = co->consts[i];
-            if(obj->is_type(tp_function)){
+            if(is_type(obj, tp_function)){
                 const auto& f = PyFunction_AS_C(obj);
                 ss << disassemble(f.code);
             }
@@ -533,8 +533,8 @@ public:
 
     inline const BaseRef* PyRef_AS_C(const PyVar& obj)
     {
-        if(!obj->is_type(tp_ref)) TypeError("expected an l-value");
-        return (const BaseRef*)(obj->value());
+        if(!is_type(obj, tp_ref)) TypeError("expected an l-value");
+        return static_cast<const BaseRef*>(obj->value());
     }
 
     inline const Str& PyStr_AS_C(const PyVar& obj) {
@@ -550,8 +550,35 @@ public:
         return new_object(tp_str, value);
     }
 
-    DEF_NATIVE(Int, i64, tp_int)
-    DEF_NATIVE(Float, f64, tp_float)
+    inline PyVar PyInt(i64 value) {
+        const i64 MIN_SAFE_INT = -((i64)1 << 62);
+        const i64 MAX_SAFE_INT = ((i64)1 << 62) - 1;
+        if(value < MIN_SAFE_INT || value > MAX_SAFE_INT){
+            _error("OverflowError", std::to_string(value) + " is out of range");
+        }
+        value = (value << 2) | 0b01;
+        return PyVar(reinterpret_cast<int*>(value));
+    }
+
+    inline i64 PyInt_AS_C(const PyVar& obj){
+        check_type(obj, tp_int);
+        i64 value = obj.cast<i64>();
+        return value >> 2;
+    }
+
+    inline PyVar PyFloat(f64 value) {
+        auto bits = __8B(value);
+        i64 _int = bits._int;
+        bits._int = (_int & 0b00) | 0b10;
+        return PyVar(reinterpret_cast<int*>(bits._int));
+    }
+
+    inline f64 PyFloat_AS_C(const PyVar& obj){
+        check_type(obj, tp_float);
+        i64 _int = obj.cast<i64>();
+        return __8B(_int)._float;
+    }
+
     DEF_NATIVE(List, pkpy::List, tp_list)
     DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
     DEF_NATIVE(Function, pkpy::Function, tp_function)
@@ -576,9 +603,11 @@ public:
         _types["object"] = _tp_object;
         _types["type"] = _tp_type;
 
-        tp_bool = _new_type_object("bool");
         tp_int = _new_type_object("int");
         tp_float = _new_type_object("float");
+        if(tp_int.index != kTpIntIndex || tp_float.index != kTpFloatIndex) UNREACHABLE();
+
+        tp_bool = _new_type_object("bool");
         tp_str = _new_type_object("str");
         tp_list = _new_type_object("list");
         tp_tuple = _new_type_object("tuple");
@@ -617,15 +646,9 @@ public:
     }
 
     i64 hash(const PyVar& obj){
-        if (obj->is_type(tp_int)) return PyInt_AS_C(obj);
-        if (obj->is_type(tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
-        if (obj->is_type(tp_float)){
-            f64 val = PyFloat_AS_C(obj);
-            return (i64)std::hash<f64>()(val);
-        }
-        if (obj->is_type(tp_str)) return PyStr_AS_C(obj).hash();
-        if (obj->is_type(tp_type)) return (i64)obj.get();
-        if (obj->is_type(tp_tuple)) {
+        if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
+        if (is_int(obj)) return PyInt_AS_C(obj);        
+        if (is_type(obj, tp_tuple)) {
             i64 x = 1000003;
             const pkpy::Tuple& items = PyTuple_AS_C(obj);
             for (int i=0; i<items.size(); i++) {
@@ -633,6 +656,12 @@ public:
                 x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
             }
             return x;
+        }
+        if (is_type(obj, tp_type)) return obj.cast<i64>();
+        if (is_type(obj, tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
+        if (is_float(obj)){
+            f64 val = PyFloat_AS_C(obj);
+            return (i64)std::hash<f64>()(val);
         }
         TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
         return 0;
@@ -673,7 +702,7 @@ public:
     }
 
     inline void check_type(const PyVar& obj, Type type){
-        if(obj->is_type(type)) return;
+        if(is_type(obj, type)) return;
         TypeError("expected " + OBJ_NAME(_t(type)).escape(true) + ", but got " + OBJ_NAME(_t(obj)).escape(true));
     }
 
@@ -682,6 +711,8 @@ public:
     }
 
     inline PyVar& _t(const PyVar& obj){
+        if(is_int(obj)) return _t(tp_int);
+        if(is_float(obj)) return _t(tp_float);
         return _all_types[OBJ_GET(Type, _t(obj->type)).index];
     }
 
@@ -805,10 +836,10 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     if(args.size() < objs.size()) vm->ValueError("not enough values to unpack");     \
     for (int i = 0; i < objs.size(); i++) vm->PyRef_AS_C(objs[i])->set(vm, frame, args[i]);
 
-    if(val->is_type(vm->tp_tuple)){
+    if(is_type(val, vm->tp_tuple)){
         const pkpy::Tuple& args = OBJ_GET(pkpy::Tuple, val);
         TUPLE_REF_SET()
-    }else if(val->is_type(vm->tp_list)){
+    }else if(is_type(val, vm->tp_list)){
         const pkpy::List& args = OBJ_GET(pkpy::List, val);
         TUPLE_REF_SET()
     }else{
@@ -823,7 +854,7 @@ void TupleRef::del(VM* vm, Frame* frame) const{
 
 /***** Frame's Impl *****/
 inline void Frame::try_deref(VM* vm, PyVar& v){
-    if(v->is_type(vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
+    if(is_type(v, vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
 PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
