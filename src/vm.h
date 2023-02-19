@@ -551,9 +551,7 @@ public:
     }
 
     inline PyVar PyInt(i64 value) {
-        const i64 MIN_SAFE_INT = -((i64)1 << 62);
-        const i64 MAX_SAFE_INT = ((i64)1 << 62) - 1;
-        if(value < MIN_SAFE_INT || value > MAX_SAFE_INT){
+        if(value < kMinSafeInt || value > kMaxSafeInt){
             _error("OverflowError", std::to_string(value) + " is out of range");
         }
         value = (value << 2) | 0b01;
@@ -567,16 +565,17 @@ public:
     }
 
     inline PyVar PyFloat(f64 value) {
-        auto bits = __8B(value);
-        i64 _int = bits._int;
-        bits._int = (_int & 0b00) | 0b10;
-        return PyVar(reinterpret_cast<int*>(bits._int));
+        i64 bits = __8B(value)._int;
+        bits = (bits >> 2) << 2;
+        bits |= 0b10;
+        return PyVar(reinterpret_cast<int*>(bits));
     }
 
     inline f64 PyFloat_AS_C(const PyVar& obj){
         check_type(obj, tp_float);
-        i64 _int = obj.cast<i64>();
-        return __8B(_int & 0b00)._float;
+        i64 bits = obj.cast<i64>();
+        bits = (bits >> 2) << 2;
+        return __8B(bits)._float;
     }
 
     DEF_NATIVE(List, pkpy::List, tp_list)
@@ -647,7 +646,7 @@ public:
 
     i64 hash(const PyVar& obj){
         if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
-        if (is_int(obj)) return PyInt_AS_C(obj);        
+        if (is_int(obj)) return PyInt_AS_C(obj);
         if (is_type(obj, tp_tuple)) {
             i64 x = 1000003;
             const pkpy::Tuple& items = PyTuple_AS_C(obj);

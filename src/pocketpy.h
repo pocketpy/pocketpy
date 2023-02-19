@@ -20,7 +20,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                         \
-        if(is_type(args[0], vm->tp_int) && is_type(args[1], vm->tp_int)){                               \
+        if(is_int(args[0]) && is_int(args[1])){                               \
             return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
@@ -82,8 +82,13 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
-    _vm->bind_builtin_func<1>("hash", CPP_LAMBDA(vm->PyInt(vm->hash(args[0]))));
     _vm->bind_builtin_func<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, pkpy::no_arg())));
+
+    _vm->bind_builtin_func<1>("hash", [](VM* vm, pkpy::Args& args){
+        i64 value = vm->hash(args[0]);
+        if(value < kMinSafeInt || value > kMaxSafeInt) value >>= 2;
+        return vm->PyInt(value);
+    });
 
     _vm->bind_builtin_func<1>("chr", [](VM* vm, pkpy::Args& args) {
         i64 i = vm->PyInt_AS_C(args[0]);

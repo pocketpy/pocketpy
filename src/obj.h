@@ -143,3 +143,6 @@ union __8B {
     __8B(i64 val) : _int(val) {}
     __8B(f64 val) : _float(val) {}
 };
+
+const i64 kMinSafeInt = -((i64)1 << 62);
+const i64 kMaxSafeInt = ((i64)1 << 62) - 1;
