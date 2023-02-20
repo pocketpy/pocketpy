@@ -89,12 +89,6 @@ struct Frame {
         return _data[_data.size()-2];
     }
 
-    inline PyVar top_value_offset(VM* vm, int n){
-        PyVar value = _data[_data.size() + n];
-        try_deref(vm, value);
-        return value;
-    }
-
     template<typename T>
     inline void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
 

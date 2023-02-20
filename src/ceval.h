@@ -86,10 +86,9 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_LIST_APPEND: {
-            pkpy::Args args(2);
-            args[1] = frame->pop_value(this);            // obj
-            args[0] = frame->top_value_offset(this, -2);     // list
-            fast_call(m_append, std::move(args));
+            PyVar obj = frame->pop_value(this);
+            pkpy::List& list = PyList_AS_C(frame->top_1());
+            list.push_back(std::move(obj));
         } continue;
         case OP_BUILD_CLASS: {
             const Str& clsName = frame->co->names[byte.arg].first;
