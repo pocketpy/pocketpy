@@ -51,13 +51,10 @@ namespace pkpy {
                 this->_size = 0;
                 return;
             }
-            if(n >= kMaxPoolSize){
+            if(n >= kMaxPoolSize || _args_pool[n].empty()){
                 this->_args = new PyVar[n];
                 this->_size = n;
             }else{
-                if(_args_pool[n].empty()){
-                    for(int i=0; i<8; i++) _args_pool[n].push_back(new PyVar[n]);
-                }
                 this->_args = _args_pool[n].back();
                 this->_size = n;
                 _args_pool[n].pop_back();
