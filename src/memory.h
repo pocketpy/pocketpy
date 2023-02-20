@@ -114,3 +114,5 @@ namespace pkpy{
 
 static_assert(sizeof(i64) == sizeof(pkpy::shared_ptr<PyObject>));
 static_assert(sizeof(f64) == sizeof(pkpy::shared_ptr<PyObject>));
+static_assert(std::numeric_limits<float>::is_iec559);
+static_assert(std::numeric_limits<double>::is_iec559);
