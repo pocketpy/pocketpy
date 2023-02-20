@@ -551,7 +551,7 @@ public:
     }
 
     inline PyVar PyInt(i64 value) {
-        if(value < kMinSafeInt || value > kMaxSafeInt){
+        if(((value << 2) >> 2) != value){
             _error("OverflowError", std::to_string(value) + " is out of range");
         }
         value = (value << 2) | 0b01;

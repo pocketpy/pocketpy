@@ -86,7 +86,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, pkpy::Args& args){
         i64 value = vm->hash(args[0]);
-        if(value < kMinSafeInt || value > kMaxSafeInt) value >>= 2;
+        if(((value << 2) >> 2) != value) value >>= 2;
         return vm->PyInt(value);
     });
 

@@ -39,13 +39,9 @@
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
 typedef float f64;
-const i64 kMinSafeInt = -((i64)1 << 30);
-const i64 kMaxSafeInt = ((i64)1 << 30) - 1;
 #else
 typedef int64_t i64;
 typedef double f64;
-const i64 kMinSafeInt = -((i64)1 << 62);
-const i64 kMaxSafeInt = ((i64)1 << 62) - 1;
 #endif
 
 struct Dummy { char _; };
