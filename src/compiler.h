@@ -23,7 +23,7 @@ class Compiler {
     int lexing_count = 0;
     bool used = false;
     VM* vm;
-    emhash8::HashMap<TokenIndex, GrammarRule> rules;
+    pkpy::HashMap<TokenIndex, GrammarRule> rules;
 
     CodeObject_ co() const{ return codes.top(); }
     CompileMode mode() const{ return parser->src->mode; }

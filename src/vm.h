@@ -25,7 +25,7 @@ public:
 
     pkpy::NameDict _types;
     pkpy::NameDict _modules;                            // loaded modules
-    emhash8::HashMap<StrName, Str> _lazy_modules;       // lazy loaded modules
+    pkpy::HashMap<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -634,8 +634,8 @@ public:
         setattr(_t(tp_type), __base__, _t(tp_object));
         setattr(_t(tp_object), __base__, None);
         
-        for (auto& [name, type] : _types) {
-            setattr(type, __name__, PyStr(name.str()));
+        for(auto it = _types.begin(); it != _types.end(); it++){
+            setattr(it->second, __name__, PyStr(it->first.str()));
         }
 
         std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};

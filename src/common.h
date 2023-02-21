@@ -27,7 +27,12 @@
 // #include <filesystem>
 // namespace fs = std::filesystem;
 
+#define EMH_EXT 1
 #include "hash_table8.hpp"
+namespace pkpy {
+	template<typename... Args>
+	using HashMap = emhash8::HashMap<Args...>;
+}
 
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");

@@ -160,7 +160,7 @@ bool is_unicode_Lo_char(uint32_t c) {
 
 
 struct StrName {
-    const int index;
+    int index;
     StrName(int index): index(index) {}
     StrName(const char* s): index(get(s).index) {}
     StrName(const Str& s): index(get(s).index) {}
@@ -190,6 +190,10 @@ struct StrName {
         return StrName(index);
     }
 };
+
+// declare static members
+std::map<Str, int, std::less<>> StrName::_interned;
+std::vector<Str> StrName::_r_interned;
 
 template<>
 struct std::hash<StrName> {

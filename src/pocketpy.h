@@ -125,10 +125,13 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("dir", [](VM* vm, pkpy::Args& args) {
         std::vector<StrName> names;
         if(args[0]->is_attr_valid()){
-            for (auto& [k, _] : args[0]->attr()) names.push_back(k);
+            for(auto it = args[0]->attr().begin(); it != args[0]->attr().end(); ++it){
+                names.push_back(it->first);
+            }
         }
-        for (auto& [k, _] : vm->_t(args[0])->attr()) {
-            if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
+        const pkpy::NameDict& t_attr = vm->_t(args[0])->attr();
+        for(auto it = t_attr.begin(); it != t_attr.end(); ++it){
+            if (std::find(names.begin(), names.end(), it->first) == names.end()) names.push_back(it->first);
         }
         pkpy::List ret;
         for (const auto& name : names) ret.push_back(vm->PyStr(name.str()));

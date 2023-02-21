@@ -61,9 +61,9 @@ struct CodeObject {
     std::vector<Bytecode> codes;
     pkpy::List consts;
     std::vector<std::pair<StrName, NameScope>> names;
-    emhash8::HashMap<StrName, int> global_names;
+    pkpy::HashMap<StrName, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
-    emhash8::HashMap<StrName, int> labels;
+    pkpy::HashMap<StrName, int> labels;
 
     void optimize(VM* vm);
 

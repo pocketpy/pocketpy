@@ -33,7 +33,7 @@ public:
     using std::vector<PyVar>::vector;
 };
 
-typedef emhash8::HashMap<StrName, PyVar> NameDict;
+typedef pkpy::HashMap<StrName, PyVar> NameDict;
 
 }
 

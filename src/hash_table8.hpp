@@ -1,4 +1,4 @@
-// emhash8::HashMap for C++11/14/17
+// pkpy::HashMap for C++11/14/17
 // version 1.6.3
 //
 // Licensed under the MIT License <http://opensource.org/licenses/MIT>.

@@ -38,8 +38,8 @@ constexpr TokenIndex TK(const char* const token) {
 const TokenIndex kTokenKwBegin = TK("class");
 const TokenIndex kTokenKwEnd = TK("raise");
 
-const emhash8::HashMap<std::string_view, TokenIndex> kTokenKwMap = [](){
-    emhash8::HashMap<std::string_view, TokenIndex> map;
+const pkpy::HashMap<std::string_view, TokenIndex> kTokenKwMap = [](){
+    pkpy::HashMap<std::string_view, TokenIndex> map;
     for(int k=kTokenKwBegin; k<=kTokenKwEnd; k++) map[kTokens[k]] = k;
     return map;
 }();
