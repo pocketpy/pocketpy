@@ -61,20 +61,20 @@ struct CodeObject {
     std::vector<Bytecode> codes;
     pkpy::List consts;
     std::vector<std::pair<StrName, NameScope>> names;
-    pkpy::HashMap<StrName, int> global_names;
+    std::map<StrName, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
-    pkpy::HashMap<StrName, int> labels;
+    std::map<StrName, int> labels;
 
     void optimize(VM* vm);
 
     bool add_label(StrName label){
-        if(labels.contains(label)) return false;
+        if(labels.count(label)) return false;
         labels[label] = codes.size();
         return true;
     }
 
     int add_name(StrName name, NameScope scope){
-        if(scope == NAME_LOCAL && global_names.contains(name)) scope = NAME_GLOBAL;
+        if(scope == NAME_LOCAL && global_names.count(name)) scope = NAME_GLOBAL;
         auto p = std::make_pair(name, scope);
         for(int i=0; i<names.size(); i++){
             if(names[i] == p) return i;

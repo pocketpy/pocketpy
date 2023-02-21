@@ -223,9 +223,9 @@ PyVar VM::run_frame(Frame* frame){
         case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
         case OP_GOTO: {
             StrName label = frame->co->names[byte.arg].first;
-            int* target = frame->co->labels.try_get(label);
-            if(target == nullptr) _error("KeyError", "label " + label.str().escape(true) + " not found");
-            frame->jump_abs_safe(*target);
+            auto it = frame->co->labels.find(label);
+            if(it == frame->co->labels.end()) _error("KeyError", "label " + label.str().escape(true) + " not found");
+            frame->jump_abs_safe(it->second);
         } continue;
         case OP_GET_ITER: {
             PyVar obj = frame->pop_value(this);

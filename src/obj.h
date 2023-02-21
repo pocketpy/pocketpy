@@ -23,10 +23,10 @@ struct NativeFunc {
 struct Function {
     Str name;
     CodeObject_ code;
-    std::vector<Str> args;
-    Str starred_arg;                // empty if no *arg
+    std::vector<StrName> args;
+    StrName starred_arg;                // empty if no *arg
     pkpy::NameDict kwargs;          // empty if no k=v
-    std::vector<Str> kwargs_order;
+    std::vector<StrName> kwargs_order;
 
     // runtime settings
     PyVar _module;
@@ -35,7 +35,7 @@ struct Function {
     bool has_name(const Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
         bool _1 = starred_arg == val;
-        bool _2 = kwargs.find(val) != kwargs.end();
+        bool _2 = kwargs.contains(val);
         return _0 || _1 || _2;
     }
 };

@@ -28,10 +28,11 @@
 // namespace fs = std::filesystem;
 
 #define EMH_EXT 1
-#include "hash_table8.hpp"
+#define EMH_FIND_HIT 1
+#include "hash_table5.hpp"
 namespace pkpy {
 	template<typename... Args>
-	using HashMap = emhash8::HashMap<Args...>;
+	using HashMap = emhash5::HashMap<Args...>;
 }
 
 #ifdef POCKETPY_H

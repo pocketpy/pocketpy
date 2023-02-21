@@ -155,26 +155,24 @@ public:
             pkpy::NameDict& locals = *_locals;
 
             int i = 0;
-            for(const auto& name : fn.args){
+            for(StrName name : fn.args){
                 if(i < args.size()){
                     locals.emplace(name, args[i++]);
                     continue;
                 }
-                TypeError("missing positional argument '" + name + "'");
+                TypeError("missing positional argument " + name.str().escape(true));
             }
 
             locals.insert(fn.kwargs.begin(), fn.kwargs.end());
 
-            std::vector<Str> positional_overrided_keys;
             if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
                 locals.emplace(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
-                for(const auto& key : fn.kwargs_order){
+                for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
                         locals[key] = args[i++];
-                        positional_overrided_keys.push_back(key);
                     }else{
                         break;
                     }
@@ -188,12 +186,6 @@ public:
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
                 }
                 const PyVar& val = kwargs[i+1];
-                if(!positional_overrided_keys.empty()){
-                    auto it = std::find(positional_overrided_keys.begin(), positional_overrided_keys.end(), key);
-                    if(it != positional_overrided_keys.end()){
-                        TypeError("multiple values for argument '" + key + "'");
-                    }
-                }
                 locals[key] = val;
             }
             PyVar _module = fn._module != nullptr ? fn._module : top_frame()->_module;
@@ -634,7 +626,7 @@ public:
         setattr(_t(tp_type), __base__, _t(tp_object));
         setattr(_t(tp_object), __base__, None);
         
-        for(auto it = _types.begin(); it != _types.end(); it++){
+        for(auto it = _types.begin(); it != _types.end(); ++it){
             setattr(it->second, __name__, PyStr(it->first.str()));
         }
 

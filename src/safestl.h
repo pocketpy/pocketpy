@@ -33,42 +33,21 @@ public:
     using std::vector<PyVar>::vector;
 };
 
-typedef pkpy::HashMap<StrName, PyVar> NameDict;
 
 }
 
 namespace pkpy {
-    const int kMaxPoolSize = 10;
-    static THREAD_LOCAL std::vector<PyVar*>* _args_pool = new std::vector<PyVar*>[kMaxPoolSize];
+    typedef HashMap<StrName, PyVar> NameDict;
 
     class Args {
+        static THREAD_LOCAL SmallArrayPool<PyVar, 10> _pool;
+
         PyVar* _args;
         int _size;
 
-        void _alloc(int n){
-            if(n == 0){
-                this->_args = nullptr;
-                this->_size = 0;
-                return;
-            }
-            if(n >= kMaxPoolSize || _args_pool[n].empty()){
-                this->_args = new PyVar[n];
-                this->_size = n;
-            }else{
-                this->_args = _args_pool[n].back();
-                this->_size = n;
-                _args_pool[n].pop_back();
-            }
-        }
-
-        void _dealloc(){
-            if(_size == 0 || _args == nullptr) return;
-            if(_size >= kMaxPoolSize || _args_pool[_size].size() > 32){
-                delete[] _args;
-            }else{
-                for(int i = 0; i < _size; i++) _args[i].reset();
-                _args_pool[_size].push_back(_args);
-            }
+        inline void _alloc(int n){
+            this->_args = _pool.alloc(n);
+            this->_size = n;
         }
 
     public:
@@ -103,7 +82,7 @@ namespace pkpy {
         const PyVar& operator[](int i) const { return _args[i]; }
 
         Args& operator=(Args&& other) noexcept {
-            _dealloc();
+            _pool.dealloc(_args, _size);
             this->_args = other._args;
             this->_size = other._size;
             other._args = nullptr;
@@ -130,14 +109,10 @@ namespace pkpy {
 
             memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
             memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            if(old_size >= kMaxPoolSize || _args_pool[old_size].size() > 32){
-                delete[] old_args;
-            }else{
-                _args_pool[old_size].push_back(old_args);
-            }
+            _pool.dealloc(old_args, old_size);
         }
 
-        ~Args(){ _dealloc(); }
+        ~Args(){ _pool.dealloc(_args, _size); }
     };
 
     static const Args _zero(0);
@@ -159,4 +134,8 @@ namespace pkpy {
     }
 
     typedef Args Tuple;
-}
+
+    // declare static members
+    THREAD_LOCAL SmallArrayPool<PyVar, 10> Args::_pool;
+    // THREAD_LOCAL SmallArrayPool<NameDictNode, 1> NameDict::_pool;
+}   // namespace pkpy

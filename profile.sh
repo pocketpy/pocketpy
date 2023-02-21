@@ -1,6 +1,6 @@
 g++ -o pocketpy src/main.cpp --std=c++17 -pg -O2 -fno-rtti
 
-./pocketpy benchmarks/loop_1.py
+./pocketpy benchmarks/fib.py
 
 gprof pocketpy gmon.out > gprof.txt
 

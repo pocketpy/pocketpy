@@ -116,3 +116,34 @@ static_assert(sizeof(i64) == sizeof(pkpy::shared_ptr<PyObject>));
 static_assert(sizeof(f64) == sizeof(pkpy::shared_ptr<PyObject>));
 static_assert(std::numeric_limits<float>::is_iec559);
 static_assert(std::numeric_limits<double>::is_iec559);
+
+template<typename T, int __Bucket, int __BucketSize=32>
+struct SmallArrayPool {
+    std::deque<T*> buckets[__Bucket+1];
+
+    T* alloc(int n){
+        if(n == 0) return nullptr;
+        if(n > __Bucket || buckets[n].empty()){
+            return new T[n];
+        }else{
+            T* p = buckets[n].back();
+            buckets[n].pop_back();
+            return p;
+        }
+    }
+
+    void dealloc(T* p, int n){
+        if(n == 0) return;
+        if(n > __Bucket){
+            delete[] p;
+        }else{
+            buckets[n].push_back(p);
+        }
+    }
+
+    ~SmallArrayPool(){
+        for(int i=1; i<=__Bucket; i++){
+            for(auto p: buckets[i]) delete[] p;
+        }
+    }
+};

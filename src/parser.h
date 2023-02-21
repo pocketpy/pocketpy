@@ -38,8 +38,8 @@ constexpr TokenIndex TK(const char* const token) {
 const TokenIndex kTokenKwBegin = TK("class");
 const TokenIndex kTokenKwEnd = TK("raise");
 
-const pkpy::HashMap<std::string_view, TokenIndex> kTokenKwMap = [](){
-    pkpy::HashMap<std::string_view, TokenIndex> map;
+const std::map<std::string_view, TokenIndex> kTokenKwMap = [](){
+    std::map<std::string_view, TokenIndex> map;
     for(int k=kTokenKwBegin; k<=kTokenKwEnd; k++) map[kTokens[k]] = k;
     return map;
 }();
@@ -231,7 +231,7 @@ struct Parser {
             return 0;
         }
 
-        if(kTokenKwMap.contains(name)){
+        if(kTokenKwMap.count(name)){
             if(name == "not"){
                 if(strncmp(curr_char, " in", 3) == 0){
                     curr_char += 3;
