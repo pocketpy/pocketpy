@@ -60,20 +60,20 @@ struct CodeObject {
 
     std::vector<Bytecode> codes;
     pkpy::List consts;
-    std::vector<std::pair<Str, NameScope>> names;
-    emhash8::HashMap<Str, int> global_names;
+    std::vector<std::pair<StrName, NameScope>> names;
+    emhash8::HashMap<StrName, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
-    emhash8::HashMap<Str, int> labels;
+    emhash8::HashMap<StrName, int> labels;
 
     void optimize(VM* vm);
 
-    bool add_label(const Str& label){
+    bool add_label(StrName label){
         if(labels.contains(label)) return false;
         labels[label] = codes.size();
         return true;
     }
 
-    int add_name(Str name, NameScope scope){
+    int add_name(StrName name, NameScope scope){
         if(scope == NAME_LOCAL && global_names.contains(name)) scope = NAME_GLOBAL;
         auto p = std::make_pair(name, scope);
         for(int i=0; i<names.size(); i++){

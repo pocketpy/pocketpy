@@ -82,7 +82,7 @@ struct PyObject {
 
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
-    inline PyVar& attr(const Str& name) noexcept { return (*_attr)[name]; }
+    inline PyVar& attr(StrName name) noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
 
     PyObject(Type type) : type(type) {}

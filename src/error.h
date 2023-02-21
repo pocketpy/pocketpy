@@ -68,12 +68,12 @@ struct SourceData {
 
 namespace pkpy{
 class Exception {
-    Str type;
+    StrName type;
     Str msg;
     std::stack<Str> stacktrace;
 public:
-    Exception(Str type, Str msg): type(type), msg(msg) {}
-    bool match_type(const Str& type) const { return this->type == type;}
+    Exception(StrName type, Str msg): type(type), msg(msg) {}
+    bool match_type(StrName type) const { return this->type == type;}
     bool is_re = true;
 
     void st_push(Str snapshot){
@@ -86,8 +86,8 @@ public:
         StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
-        if (!msg.empty()) ss << type << ": " << msg;
-        else ss << type;
+        if (!msg.empty()) ss << type.str() << ": " << msg;
+        else ss << type.str();
         return ss.str();
     }
 };

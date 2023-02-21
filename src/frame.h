@@ -19,7 +19,7 @@ struct Frame {
     inline pkpy::NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
     inline pkpy::NameDict& f_globals() noexcept { return _module->attr(); }
 
-    inline PyVar* f_closure_try_get(const Str& name) noexcept {
+    inline PyVar* f_closure_try_get(StrName name) noexcept {
         if(_closure == nullptr) return nullptr;
         return _closure->try_get(name);
     }

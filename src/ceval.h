@@ -91,7 +91,7 @@ PyVar VM::run_frame(Frame* frame){
             list.push_back(std::move(obj));
         } continue;
         case OP_BUILD_CLASS: {
-            const Str& clsName = frame->co->names[byte.arg].first;
+            const Str& clsName = frame->co->names[byte.arg].first.str();
             PyVar clsBase = frame->pop_value(this);
             if(clsBase == None) clsBase = _t(tp_object);
             check_type(clsBase, tp_type);
@@ -179,13 +179,13 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_EXCEPTION_MATCH: {
             const auto& e = PyException_AS_C(frame->top());
-            Str name = frame->co->names[byte.arg].first;
+            StrName name = frame->co->names[byte.arg].first;
             frame->push(PyBool(e.match_type(name)));
         } continue;
         case OP_RAISE: {
             PyVar obj = frame->pop_value(this);
             Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
-            Str type = frame->co->names[byte.arg].first;
+            StrName type = frame->co->names[byte.arg].first;
             _error(type, msg);
         } continue;
         case OP_RE_RAISE: _raise(); continue;
@@ -222,9 +222,9 @@ PyVar VM::run_frame(Frame* frame){
         case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); continue;
         case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
         case OP_GOTO: {
-            const Str& label = frame->co->names[byte.arg].first;
+            StrName label = frame->co->names[byte.arg].first;
             int* target = frame->co->labels.try_get(label);
-            if(target == nullptr) _error("KeyError", "label '" + label + "' not found");
+            if(target == nullptr) _error("KeyError", "label " + label.str().escape(true) + " not found");
             frame->jump_abs_safe(*target);
         } continue;
         case OP_GET_ITER: {
@@ -271,15 +271,15 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(PySlice(s));
         } continue;
         case OP_IMPORT_NAME: {
-            const Str& name = frame->co->names[byte.arg].first;
+            StrName name = frame->co->names[byte.arg].first;
             auto it = _modules.find(name);
             if(it == _modules.end()){
                 auto it2 = _lazy_modules.find(name);
                 if(it2 == _lazy_modules.end()){
-                    _error("ImportError", "module " + name.escape(true) + " not found");
+                    _error("ImportError", "module " + name.str().escape(true) + " not found");
                 }else{
                     const Str& source = it2->second;
-                    CodeObject_ code = compile(source, name, EXEC_MODE);
+                    CodeObject_ code = compile(source, name.str(), EXEC_MODE);
                     PyVar _m = new_module(name);
                     _exec(code, _m);
                     frame->push(_m);

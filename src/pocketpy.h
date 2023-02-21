@@ -123,7 +123,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, pkpy::Args& args) {
-        std::vector<Str> names;
+        std::vector<StrName> names;
         if(args[0]->is_attr_valid()){
             for (auto& [k, _] : args[0]->attr()) names.push_back(k);
         }
@@ -131,7 +131,7 @@ void init_builtins(VM* _vm) {
             if (std::find(names.begin(), names.end(), k) == names.end()) names.push_back(k);
         }
         pkpy::List ret;
-        for (const auto& name : names) ret.push_back(vm->PyStr(name));
+        for (const auto& name : names) ret.push_back(vm->PyStr(name.str()));
         return vm->PyList(std::move(ret));
     });
 

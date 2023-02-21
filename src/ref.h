@@ -17,10 +17,10 @@ enum NameScope {
 };
 
 struct NameRef : BaseRef {
-    std::pair<Str, NameScope>* _pair;
-    inline const Str& name() const { return _pair->first; }
-    inline NameScope scope() const { return _pair->second; }
-    NameRef(std::pair<Str, NameScope>& pair) : _pair(&pair) {}
+    const std::pair<StrName, NameScope> pair;
+    inline StrName name() const { return pair.first; }
+    inline NameScope scope() const { return pair.second; }
+    NameRef(std::pair<StrName, NameScope>& pair) : pair(pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

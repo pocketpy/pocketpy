@@ -24,8 +24,8 @@ public:
     PyVar run_frame(Frame* frame);
 
     pkpy::NameDict _types;
-    pkpy::NameDict _modules;                             // loaded modules
-    emhash8::HashMap<Str, Str> _lazy_modules;     // lazy loaded modules
+    pkpy::NameDict _modules;                            // loaded modules
+    emhash8::HashMap<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -93,7 +93,7 @@ public:
         return call(_t(tp_list), pkpy::one_arg(iterable));
     }
 
-    PyVar fast_call(const Str& name, pkpy::Args&& args){
+    PyVar fast_call(StrName name, pkpy::Args&& args){
         PyObject* cls = _t(args[0]).get();
         while(cls != None.get()) {
             PyVar* val = cls->attr().try_get(name);
@@ -116,12 +116,12 @@ public:
 
     template<typename ArgT>
     inline std::enable_if_t<std::is_same_v<RAW(ArgT), pkpy::Args>, PyVar>
-    call(const PyVar& obj, const Str& func, ArgT&& args){
-        return call(getattr(obj, func), std::forward<ArgT>(args), pkpy::no_arg(), false);
+    call(const PyVar& obj, const StrName name, ArgT&& args){
+        return call(getattr(obj, name), std::forward<ArgT>(args), pkpy::no_arg(), false);
     }
 
-    inline PyVar call(const PyVar& obj, const Str& func){
-        return call(getattr(obj, func), pkpy::no_arg(), pkpy::no_arg(), false);
+    inline PyVar call(const PyVar& obj, StrName name){
+        return call(getattr(obj, name), pkpy::no_arg(), pkpy::no_arg(), false);
     }
 
     PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
@@ -284,19 +284,19 @@ public:
         }
     }
 
-    PyVar new_type_object(PyVar mod, Str name, PyVar base){
+    PyVar new_type_object(PyVar mod, StrName name, PyVar base){
         if(!is_type(base, tp_type)) UNREACHABLE();
         PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, base);
-        Str fullName = name;
-        if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name;
+        Str fullName = name.str();
+        if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
         setattr(obj, __name__, PyStr(fullName));
         setattr(mod, name, obj);
         _all_types.push_back(obj);
         return obj;
     }
 
-    Type _new_type_object(Str name, Type base=0) {
+    Type _new_type_object(StrName name, Type base=0) {
         PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, _t(base));
         _types[name] = obj;
@@ -329,14 +329,14 @@ public:
         return new_object(T::_type(this), T(std::forward<Args>(args)...));
     }
 
-    PyVar new_module(const Str& name) {
+    PyVar new_module(StrName name) {
         PyVar obj = new_object(tp_module, DUMMY_VAL);
-        setattr(obj, __name__, PyStr(name));
+        setattr(obj, __name__, PyStr(name.str()));
         _modules[name] = obj;
         return obj;
     }
 
-    PyVarOrNull getattr(const PyVar& obj, const Str& name, bool throw_err=true) {
+    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true) {
         pkpy::NameDict::iterator it;
         PyObject* cls;
 
@@ -377,7 +377,7 @@ public:
     }
 
     template<typename T>
-    inline void setattr(PyVar& obj, const Str& name, T&& value) {
+    inline void setattr(PyVar& obj, StrName name, T&& value) {
         if(obj.is_tagged()) TypeError("cannot set attribute");
         PyObject* p = obj.get();
         while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
@@ -484,12 +484,12 @@ public:
                 argStr += " (" + PyStr_AS_C(asRepr(co->consts[byte.arg])) + ")";
             }
             if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
-                argStr += " (" + co->names[byte.arg].first.escape(true) + ")";
+                argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
             }
             if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){
                 auto& a = co->names[byte.arg & 0xFFFF];
                 auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
-                argStr += " (" + a.first + '[' + x.first + "])";
+                argStr += " (" + a.first.str() + '[' + x.first.str() + "])";
             }
             ss << pad(argStr, 20);      // may overflow
             ss << co->blocks[byte.block].to_string();
@@ -503,7 +503,7 @@ public:
         names << "co_names: ";
         pkpy::List list;
         for(int i=0; i<co->names.size(); i++){
-            list.push_back(PyStr(co->names[i].first));
+            list.push_back(PyStr(co->names[i].first.str()));
         }
         names << PyStr_AS_C(asRepr(PyList(list)));
         ss << '\n' << consts.str() << '\n' << names.str() << '\n';
@@ -635,7 +635,7 @@ public:
         setattr(_t(tp_object), __base__, None);
         
         for (auto& [name, type] : _types) {
-            setattr(type, __name__, PyStr(name));
+            setattr(type, __name__, PyStr(name.str()));
         }
 
         std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
@@ -668,7 +668,7 @@ public:
 
     /***** Error Reporter *****/
 private:
-    void _error(const Str& name, const Str& msg){
+    void _error(StrName name, const Str& msg){
         _error(pkpy::Exception(name, msg));
     }
 
@@ -694,10 +694,10 @@ public:
     void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
-    void NameError(const Str& name){ _error("NameError", "name " + name.escape(true) + " is not defined"); }
+    void NameError(StrName name){ _error("NameError", "name " + name.str().escape(true) + " is not defined"); }
 
-    void AttributeError(PyVar obj, const Str& name){
-        _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.escape(true));
+    void AttributeError(PyVar obj, StrName name){
+        _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.str().escape(true));
     }
 
     inline void check_type(const PyVar& obj, Type type){
