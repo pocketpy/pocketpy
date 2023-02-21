@@ -29,11 +29,6 @@
 
 #define EMH_EXT 1
 #define EMH_FIND_HIT 1
-#include "hash_table5.hpp"
-namespace pkpy {
-	template<typename... Args>
-	using HashMap = emhash5::HashMap<Args...>;
-}
 
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
@@ -65,12 +60,6 @@ struct Type {
 		return this->index != other.index;
 	}
 };
-
-template<typename T>
-void* tid() {
-	static volatile int8_t _x;
-	return (void*)(&_x);
-}
 
 //#define THREAD_LOCAL thread_local
 #define THREAD_LOCAL
