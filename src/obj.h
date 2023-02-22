@@ -124,11 +124,11 @@ inline bool is_type(const PyVar& obj, Type type) noexcept {
 }
 
 inline bool is_both_int_or_float(const PyVar& a, const PyVar& b) noexcept {
-    return ((a.cast<i64>() | b.cast<i64>()) & 0b11) != 0b00;
+    return ((a.bits | b.bits) & 0b11) != 0b00;
 }
 
 inline bool is_both_int(const PyVar& a, const PyVar& b) noexcept {
-    return (a.cast<i64>() & b.cast<i64>() & 0b11) == 0b01;
+    return (a.bits & b.bits & 0b11) == 0b01;
 }
 
 inline bool is_int(const PyVar& obj) noexcept {

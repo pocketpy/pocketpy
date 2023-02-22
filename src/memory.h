@@ -19,8 +19,11 @@ namespace pkpy{
     };
 
     template <typename T>
-    class shared_ptr {
-        int* counter;
+    struct shared_ptr {
+        union {
+            int* counter;
+            i64 bits;
+        };
 
 #define _t() (T*)(counter + 1)
 #define _inc_counter() if(!is_tagged() && counter) ++(*counter)
@@ -74,20 +77,14 @@ namespace pkpy{
             counter = nullptr;
         }
 
-        template <typename __VAL>
-        inline __VAL cast() const {
-            static_assert(std::is_same_v<T, PyObject>, "T must be PyObject");
-            return reinterpret_cast<__VAL>(counter);
-        }
-
         inline constexpr bool is_tagged() const {
             if constexpr(!std::is_same_v<T, PyObject>) return false;
-            return (reinterpret_cast<i64>(counter) & 0b11) != 0b00;
+            return (bits & 0b11) != 0b00;
         }
-        inline bool is_tag_00() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b00; }
-        inline bool is_tag_01() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b01; }
-        inline bool is_tag_10() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b10; }
-        inline bool is_tag_11() const { return (reinterpret_cast<i64>(counter) & 0b11) == 0b11; }
+        inline bool is_tag_00() const { return (bits & 0b11) == 0b00; }
+        inline bool is_tag_01() const { return (bits & 0b11) == 0b01; }
+        inline bool is_tag_10() const { return (bits & 0b11) == 0b10; }
+        inline bool is_tag_11() const { return (bits & 0b11) == 0b11; }
     };
 
 #undef _t
@@ -112,8 +109,9 @@ namespace pkpy{
     }
 };
 
-static_assert(sizeof(i64) == sizeof(pkpy::shared_ptr<PyObject>));
-static_assert(sizeof(f64) == sizeof(pkpy::shared_ptr<PyObject>));
+static_assert(sizeof(i64) == sizeof(int*));
+static_assert(sizeof(f64) == sizeof(int*));
+static_assert(sizeof(pkpy::shared_ptr<PyObject>) == sizeof(int*));
 static_assert(std::numeric_limits<float>::is_iec559);
 static_assert(std::numeric_limits<double>::is_iec559);
 
