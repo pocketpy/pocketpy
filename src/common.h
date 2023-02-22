@@ -69,6 +69,6 @@ struct Type {
 
 #define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
 
-const float kLocalsLoadFactor = 0.8;
+const float kLocalsLoadFactor = 0.67;
 const float kInstAttrLoadFactor = 0.67;
 const float kTypeAttrLoadFactor = 0.34;
