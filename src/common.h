@@ -24,6 +24,7 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <algorithm>
 // #include <filesystem>
 // namespace fs = std::filesystem;
 
@@ -65,3 +66,5 @@ struct Type {
 #define THREAD_LOCAL
 
 #define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
+
+const float kNameDictLoadFactor = 0.8;

@@ -25,7 +25,7 @@ public:
 
     pkpy::NameDict _types;
     pkpy::NameDict _modules;                            // loaded modules
-    pkpy::HashMap<StrName, Str> _lazy_modules;       // lazy loaded modules
+    std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -151,7 +151,7 @@ public:
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
+            auto _locals = pkpy::make_shared<pkpy::NameDict>(fn.code->recommended_hashmap_capacity);
             pkpy::NameDict& locals = *_locals;
 
             int i = 0;
@@ -172,7 +172,7 @@ public:
             }else{
                 for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
-                        locals[key] = args[i++];
+                        locals.emplace(key, args[i++]);
                     }else{
                         break;
                     }
@@ -185,8 +185,7 @@ public:
                 if(!fn.kwargs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
                 }
-                const PyVar& val = kwargs[i+1];
-                locals[key] = val;
+                locals.emplace(key, kwargs[i+1]);
             }
             PyVar _module = fn._module != nullptr ? fn._module : top_frame()->_module;
             auto _frame = _new_frame(fn.code, _module, _locals, fn._closure);
@@ -212,10 +211,12 @@ public:
         }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
         }
+#ifdef _NDEBUG
         catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
         }
+#endif
         callstack = {};
         return nullptr;
     }
@@ -857,6 +858,11 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
 }
 
 void CodeObject::optimize(VM* vm){
+    int n = 0;
+    for(auto& p: names) if(p.second == NAME_LOCAL) n++;
+    recommended_hashmap_capacity = (int)(n / kNameDictLoadFactor + 1.5);
+    if(recommended_hashmap_capacity < 2) recommended_hashmap_capacity = 2;
+
     for(int i=1; i<codes.size(); i++){
         if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
             codes[i].op = OP_NO_OP;

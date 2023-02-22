@@ -64,6 +64,8 @@ struct CodeObject {
     std::map<StrName, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
+    
+    int recommended_hashmap_capacity = 8;
 
     void optimize(VM* vm);
 

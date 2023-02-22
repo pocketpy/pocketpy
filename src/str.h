@@ -140,7 +140,6 @@ struct StrName {
     StrName(const Str& s): index(get(s).index) {}
     inline const Str& str() const { return _r_interned[index]; }
     inline bool empty() const { return index == -1; }
-    inline void reset() { index = -1; }
 
     inline bool operator==(const StrName& other) const noexcept {
         return this->index == other.index;
