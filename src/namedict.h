@@ -11,9 +11,11 @@ struct NameDictNode{
 struct NameDict {
     int _capacity;
     int _size;
+    float _load_factor;
     NameDictNode* _a;
 
-    NameDict(int capacity=2): _capacity(capacity), _size(0) {
+    NameDict(int capacity=4, float load_factor=0.67):
+        _capacity(capacity), _size(0), _load_factor(load_factor) {
         _a = new NameDictNode[_capacity];
     }
 
@@ -38,12 +40,13 @@ struct NameDict {
 
     int size() const { return _size; }
 
+//https://github.com/python/cpython/blob/main/Objects/dictobject.c#L175
 #define HASH_PROBE(key, ok, i) \
     int i = (key).index % _capacity; \
     bool ok = false; \
     while(!_a[i].empty()) { \
         if(_a[i].first == (key)) { ok = true; break; } \
-        i = (i + 1) % _capacity; \
+        i = (5*i + 1) % _capacity; \
     }
 
 #define HASH_PROBE_OVERRIDE(key, ok, i) \
@@ -51,7 +54,7 @@ struct NameDict {
     ok = false; \
     while(!_a[i].empty()) { \
         if(_a[i].first == (key)) { ok = true; break; } \
-        i = (i + 1) % _capacity; \
+        i = (5*i + 1) % _capacity; \
     }
 
     const PyVar& operator[](StrName key) const {
@@ -65,15 +68,15 @@ struct NameDict {
         if(!ok) {
             _a[i].first = key;
             _size++;
-            if(_size > _capacity * kNameDictLoadFactor){
-                __rehash_2x();
+            if(_size > _capacity * _load_factor){
+                _rehash_2x();
                 HASH_PROBE_OVERRIDE(key, ok, i);
             }
         }
         return _a[i].second;
     }
 
-    void __rehash_2x(){
+    void _rehash_2x(){
         NameDictNode* old_a = _a;
         int old_capacity = _capacity;
         _capacity *= 2;
@@ -122,8 +125,8 @@ struct NameDict {
         if(!ok) {
             _a[i].first = key;
             _size++;
-            if(_size > _capacity * kNameDictLoadFactor){
-                __rehash_2x();
+            if(_size > _capacity * _load_factor){
+                _rehash_2x();
                 HASH_PROBE_OVERRIDE(key, ok, i);
             }
         }
@@ -151,4 +154,7 @@ struct NameDict {
 
     inline iterator begin() const { return iterator(this, 0); }
     inline iterator end() const { return iterator(this, _capacity); }
+
+#undef HASH_PROBE
+#undef HASH_PROBE_OVERRIDE
 };

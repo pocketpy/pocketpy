@@ -131,7 +131,7 @@ public:
             if(new_f != nullptr){
                 obj = call(*new_f, args, kwargs, false);
             }else{
-                obj = new_object(_callable, DUMMY_VAL);
+                obj = new_object(_callable, DummyInstance());
                 PyVarOrNull init_f = getattr(obj, __init__, false);
                 if (init_f != nullptr) call(init_f, args, kwargs, false);
             }
@@ -151,7 +151,9 @@ public:
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            auto _locals = pkpy::make_shared<pkpy::NameDict>(fn.code->recommended_hashmap_capacity);
+            auto _locals = pkpy::make_shared<pkpy::NameDict>(
+                fn.code->ideal_locals_capacity, kLocalsLoadFactor
+            );
             pkpy::NameDict& locals = *_locals;
 
             int i = 0;
@@ -323,7 +325,7 @@ public:
     }
 
     PyVar new_module(StrName name) {
-        PyVar obj = new_object(tp_module, DUMMY_VAL);
+        PyVar obj = new_object(tp_module, DummyModule());
         setattr(obj, __name__, PyStr(name.str()));
         _modules[name] = obj;
         return obj;
@@ -635,7 +637,11 @@ public:
         for (auto& name : pb_types) {
             setattr(builtins, name, _types[name]);
         }
+
+        post_init();
     }
+
+    void post_init();
 
     i64 hash(const PyVar& obj){
         if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
@@ -860,8 +866,9 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
 void CodeObject::optimize(VM* vm){
     int n = 0;
     for(auto& p: names) if(p.second == NAME_LOCAL) n++;
-    recommended_hashmap_capacity = (int)(n / kNameDictLoadFactor + 1.5);
-    if(recommended_hashmap_capacity < 2) recommended_hashmap_capacity = 2;
+    int base_n = (int)(n / kLocalsLoadFactor + 1.5);
+    ideal_locals_capacity = 2;
+    while(ideal_locals_capacity < base_n) ideal_locals_capacity *= 2;
 
     for(int i=1; i<codes.size(); i++){
         if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){

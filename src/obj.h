@@ -25,7 +25,7 @@ struct Function {
     CodeObject_ code;
     std::vector<StrName> args;
     StrName starred_arg;                // empty if no *arg
-    pkpy::NameDict kwargs;          // empty if no k=v
+    pkpy::NameDict kwargs;              // empty if no k=v
     std::vector<StrName> kwargs_order;
 
     // runtime settings
@@ -97,8 +97,10 @@ struct Py_ : PyObject {
     Py_(Type type, T&& val): PyObject(type), _value(std::move(val)) { _init(); }
 
     inline void _init() noexcept {
-        if constexpr (std::is_same_v<T, Dummy> || std::is_same_v<T, Type>) {
-            _attr = new pkpy::NameDict();
+        if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
+            _attr = new pkpy::NameDict(8, kTypeAttrLoadFactor);
+        }else if constexpr(std::is_same_v<T, DummyInstance>){
+            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }

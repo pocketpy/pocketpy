@@ -47,7 +47,9 @@ typedef int64_t i64;
 typedef double f64;
 #endif
 
-struct Dummy { char _; };
+struct Dummy {  };
+struct DummyInstance {  };
+struct DummyModule { };
 #define DUMMY_VAL Dummy()
 
 struct Type {
@@ -67,4 +69,6 @@ struct Type {
 
 #define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
 
-const float kNameDictLoadFactor = 0.8;
+const float kLocalsLoadFactor = 0.8;
+const float kInstAttrLoadFactor = 0.67;
+const float kTypeAttrLoadFactor = 0.34;

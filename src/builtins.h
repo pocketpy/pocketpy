@@ -210,7 +210,7 @@ list.__new__ = lambda obj: [i for i in obj]
 
 # https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
-    def __init__(self, capacity=16):
+    def __init__(self, capacity=12):
         self._capacity = capacity
         self._a = [None] * self._capacity
         self._len = 0
@@ -243,7 +243,7 @@ class dict:
         else:
             self._a[i] = [key, value]
             self._len += 1
-            if self._len > self._capacity * 0.8:
+            if self._len > self._capacity * 0.67:
                 self._capacity *= 2
                 self.__rehash()
 
