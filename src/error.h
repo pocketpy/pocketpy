@@ -1,6 +1,7 @@
 #pragma once
 
-#include "safestl.h"
+#include "namedict.h"
+#include "tuplelist.h"
 
 struct NeedMoreLines {
     NeedMoreLines(bool is_compiling_class) : is_compiling_class(is_compiling_class) {}

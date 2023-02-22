@@ -28,16 +28,13 @@
 // #include <filesystem>
 // namespace fs = std::filesystem;
 
-#define EMH_EXT 1
-#define EMH_FIND_HIT 1
-
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
 #else
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.8.9"
+#define PK_VERSION "0.9.0"
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;

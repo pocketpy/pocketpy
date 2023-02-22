@@ -4,18 +4,7 @@
 #include "memory.h"
 #include "str.h"
 
-struct PyObject;
-typedef pkpy::shared_ptr<PyObject> PyVar;
-typedef PyVar PyVarOrNull;
-typedef PyVar PyVarRef;
-
-#include "hash_table5.hpp"
 namespace pkpy {
-    #include "namedict.h"
-	// template<typename... Args>
-	// using HashMap = emhash5::HashMap<Args...>;
-    // typedef HashMap<StrName, PyVar> NameDict;
-    
     class List: public std::vector<PyVar> {
         PyVar& at(size_t) = delete;
 

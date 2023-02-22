@@ -1,6 +1,7 @@
 #pragma once
 
-#include "safestl.h"
+#include "namedict.h"
+#include "tuplelist.h"
 
 struct CodeObject;
 struct Frame;
