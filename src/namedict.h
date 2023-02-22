@@ -30,15 +30,7 @@ namespace pkpy{
             for(int i=0; i<_capacity; i++) _a[i] = other._a[i];
         }
         
-        NameDict& operator=(const NameDict& other){
-            delete[] _a;
-            this->_capacity = other._capacity;
-            this->_size = other._size;
-            this->_a = new NameDictNode[_capacity];
-            for(int i=0; i<_capacity; i++) _a[i] = other._a[i];
-            return *this;
-        }
-
+        NameDict& operator=(const NameDict&) = delete;
         NameDict(NameDict&&) = delete;
         NameDict& operator=(NameDict&&) = delete;
 
