@@ -802,7 +802,7 @@ PyVar AttrRef::get(VM* vm, Frame* frame) const{
 }
 
 void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->setattr(obj, attr.name(), val);
+    vm->setattr(obj, attr.name(), std::move(val));
 }
 
 void AttrRef::del(VM* vm, Frame* frame) const{
@@ -816,7 +816,7 @@ PyVar IndexRef::get(VM* vm, Frame* frame) const{
 }
 
 void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->call(obj, __setitem__, pkpy::two_args(index, val));
+    vm->call(obj, __setitem__, pkpy::two_args(index, std::move(val)));
 }
 
 void IndexRef::del(VM* vm, Frame* frame) const{
