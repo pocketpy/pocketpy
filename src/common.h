@@ -39,9 +39,13 @@
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
 typedef float f64;
+#define S_TO_INT std::stoi
+#define S_TO_FLOAT std::stof
 #else
 typedef int64_t i64;
 typedef double f64;
+#define S_TO_INT std::stoll
+#define S_TO_FLOAT std::stod
 #endif
 
 struct Dummy {  };

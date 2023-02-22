@@ -206,7 +206,7 @@ void init_builtins(VM* _vm) {
             const Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
-                i64 val = std::stoll(s, &parsed, 10);
+                i64 val = S_TO_INT(s, &parsed, 10);
                 if(parsed != s.size()) throw std::invalid_argument("<?>");
                 return vm->PyInt(val);
             }catch(std::invalid_argument&){
@@ -253,7 +253,7 @@ void init_builtins(VM* _vm) {
             if(s == "inf") return vm->PyFloat(INFINITY);
             if(s == "-inf") return vm->PyFloat(-INFINITY);
             try{
-                f64 val = std::stod(s);
+                f64 val = S_TO_FLOAT(s);
                 return vm->PyFloat(val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for float(): '" + s + "'");
