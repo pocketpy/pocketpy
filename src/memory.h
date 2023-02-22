@@ -132,7 +132,7 @@ struct SmallArrayPool {
 
     void dealloc(T* p, int n){
         if(n == 0) return;
-        if(n > __Bucket){
+        if(n > __Bucket || buckets[n].size() >= __BucketSize){
             delete[] p;
         }else{
             buckets[n].push_back(p);
