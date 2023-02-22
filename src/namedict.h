@@ -26,6 +26,7 @@ namespace pkpy{
         NameDict(const NameDict& other) {
             this->_capacity = other._capacity;
             this->_size = other._size;
+            this->_load_factor = other._load_factor;
             this->_a = new NameDictNode[_capacity];
             for(int i=0; i<_capacity; i++) _a[i] = other._a[i];
         }
