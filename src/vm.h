@@ -152,7 +152,9 @@ public:
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
             auto locals = pkpy::make_shared<pkpy::NameDict>(
-                fn.code->ideal_locals_capacity, kLocalsLoadFactor
+                fn.code->perfect_locals_capacity,
+                kLocalsLoadFactor,
+                fn.code->perfect_hash_seed
             );
 
             int i = 0;
@@ -184,7 +186,7 @@ public:
             for(int i=0; i<kwargs.size(); i+=2){
                 const Str& key = PyStr_AS_C(kwargs[i]);
                 if(!fn.kwargs.contains(key)){
-                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
+                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
                 }
                 locals->emplace(key, kwargs[i+1]);
             }
@@ -647,6 +649,10 @@ public:
         }
 
         post_init();
+        for(auto it = _types.begin(); it != _types.end(); ++it){
+            it->second->attr()._try_perfect_rehash();
+        }
+        builtins->attr()._try_perfect_rehash();
     }
 
     void post_init();
@@ -727,6 +733,7 @@ public:
         PyVar type = new_type_object(mod, T::_name(), _t(tp_object));
         if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
         T::_register(this, mod, type);
+        type->attr()._try_perfect_rehash();
         return type;
     }
 
@@ -867,12 +874,11 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
 }
 
 void CodeObject::optimize(VM* vm){
-    int n = 0;
-    for(auto& p: names) if(p.second == NAME_LOCAL) n++;
-    // 0->2, 1->2, 2->4, 3->4, 4->8, 5->8, 6->16
-    int base_n = (int)(n / kLocalsLoadFactor + 0.5);
-    ideal_locals_capacity = 2;
-    while(ideal_locals_capacity < base_n) ideal_locals_capacity *= 2;
+    std::vector<StrName> keys;
+    for(auto& p: names) if(p.second == NAME_LOCAL) keys.push_back(p.first);
+    uint32_t base_n = (uint32_t)(keys.size() / kLocalsLoadFactor + 0.5);
+    perfect_locals_capacity = pkpy::find_next_prime(base_n);
+    perfect_hash_seed = pkpy::find_perfect_hash_seed(perfect_locals_capacity, keys);
 
     for(int i=1; i<codes.size(); i++){
         if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){

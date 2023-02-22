@@ -389,7 +389,7 @@ private:
             _compile_f_args(func, false);
             consume(TK(":"));
         }
-        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name);
+        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         co()->_rvalue += 1; EXPR_TUPLE(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
@@ -1024,7 +1024,7 @@ __LISTCOMP:
             consume(TK(")"));
         }
         if(match(TK("->"))) consume(TK("@id")); // eat type hints
-        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name);
+        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         compile_block_body();
         func.code->optimize(vm);

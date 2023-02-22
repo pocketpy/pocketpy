@@ -65,7 +65,8 @@ struct CodeObject {
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
 
-    int ideal_locals_capacity = 4;
+    uint32_t perfect_locals_capacity = 2;
+    uint32_t perfect_hash_seed = 0xffffffff;
 
     void optimize(VM* vm);
 

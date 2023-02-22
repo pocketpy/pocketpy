@@ -22,7 +22,7 @@ struct NativeFunc {
 };
 
 struct Function {
-    Str name;
+    StrName name;
     CodeObject_ code;
     std::vector<StrName> args;
     StrName starred_arg;                // empty if no *arg
@@ -99,9 +99,9 @@ struct Py_ : PyObject {
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new pkpy::NameDict(8, kTypeAttrLoadFactor);
+            _attr = new pkpy::NameDict(5, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
+            _attr = new pkpy::NameDict(5, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }

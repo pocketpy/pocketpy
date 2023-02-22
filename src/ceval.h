@@ -102,6 +102,7 @@ PyVar VM::run_frame(Frame* frame){
                 const pkpy::Function& f = PyFunction_AS_C(fn);
                 setattr(cls, f.name, fn);
             }
+            cls->attr()._try_perfect_rehash();
         } continue;
         case OP_RETURN_VALUE: return frame->pop_value(this);
         case OP_PRINT_EXPR: {
