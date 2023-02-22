@@ -20,8 +20,8 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                         \
-        if(is_int(args[0]) && is_int(args[1])){                               \
-            return vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]));                       \
+        if(is_both_int(args[0], args[1])){                                                              \
+            return vm->PyInt(vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                     \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
         }                                                                                               \
@@ -29,10 +29,12 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, pkpy::Args& args){                         \
-        if(!is_int_or_float(args[0]) || !is_int_or_float(args[1])){                                     \
+        if(!is_both_int_or_float(args[0], args[1])){                                                    \
             if constexpr(is_eq) return vm->PyBool(args[0] op args[1]);                                  \
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
+        if(is_both_int(args[0], args[1]))                                                               \
+            return vm->PyBool(vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                    \
         return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
     });
     
@@ -177,9 +179,9 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, pkpy::Args& args) {
-        if(is_int(args[0]) && is_int(args[1])){
-            i64 lhs = vm->PyInt_AS_C(args[0]);
-            i64 rhs = vm->PyInt_AS_C(args[1]);
+        if(is_both_int(args[0], args[1])){
+            i64 lhs = vm->_PyInt_AS_C(args[0]);
+            i64 rhs = vm->_PyInt_AS_C(args[1]);
             bool flag = false;
             if(rhs < 0) {flag = true; rhs = -rhs;}
             i64 ret = 1;
@@ -326,29 +328,29 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, pkpy::Args& args) {
-        const Str& _self (vm->PyStr_AS_C(args[0]));
+        const Str& self (vm->PyStr_AS_C(args[0]));
 
         if(is_type(args[1], vm->tp_slice)){
             pkpy::Slice s = vm->PySlice_AS_C(args[1]);
-            s.normalize(_self.u8_length());
-            return vm->PyStr(_self.u8_substr(s.start, s.stop));
+            s.normalize(self.u8_length());
+            return vm->PyStr(self.u8_substr(s.start, s.stop));
         }
 
-        int _index = (int)vm->PyInt_AS_C(args[1]);
-        _index = vm->normalized_index(_index, _self.u8_length());
-        return vm->PyStr(_self.u8_getitem(_index));
+        int index = (int)vm->PyInt_AS_C(args[1]);
+        index = vm->normalized_index(index, self.u8_length());
+        return vm->PyStr(self.u8_getitem(index));
     });
 
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, pkpy::Args& args) {
-        const Str& _self (vm->PyStr_AS_C(args[0]));
-        const Str& _obj (vm->PyStr_AS_C(args[1]));
-        return vm->PyBool(_self > _obj);
+        const Str& self (vm->PyStr_AS_C(args[0]));
+        const Str& obj (vm->PyStr_AS_C(args[1]));
+        return vm->PyBool(self > obj);
     });
 
     _vm->bind_method<1>("str", "__lt__", [](VM* vm, pkpy::Args& args) {
-        const Str& _self (vm->PyStr_AS_C(args[0]));
-        const Str& _obj (vm->PyStr_AS_C(args[1]));
-        return vm->PyBool(_self < _obj);
+        const Str& self (vm->PyStr_AS_C(args[0]));
+        const Str& obj (vm->PyStr_AS_C(args[1]));
+        return vm->PyBool(self < obj);
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, pkpy::Args& args) {

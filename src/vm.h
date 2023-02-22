@@ -416,10 +416,10 @@ public:
     }
 
     inline f64 num_to_float(const PyVar& obj){
-        if (is_int(obj)){
-            return (f64)PyInt_AS_C(obj);
-        }else if(is_float(obj)){
+        if(is_float(obj)){
             return PyFloat_AS_C(obj);
+        } else if (is_int(obj)){
+            return (f64)PyInt_AS_C(obj);
         }
         TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
         return 0;
@@ -554,8 +554,11 @@ public:
 
     inline i64 PyInt_AS_C(const PyVar& obj){
         check_type(obj, tp_int);
-        i64 value = obj.cast<i64>();
-        return value >> 2;
+        return obj.cast<i64>() >> 2;
+    }
+
+    inline i64 _PyInt_AS_C(const PyVar& obj){
+        return obj.cast<i64>() >> 2;
     }
 
     inline PyVar PyFloat(f64 value) {
@@ -567,6 +570,12 @@ public:
 
     inline f64 PyFloat_AS_C(const PyVar& obj){
         check_type(obj, tp_float);
+        i64 bits = obj.cast<i64>();
+        bits = (bits >> 2) << 2;
+        return __8B(bits)._float;
+    }
+
+    inline f64 _PyFloat_AS_C(const PyVar& obj){
         i64 bits = obj.cast<i64>();
         bits = (bits >> 2) << 2;
         return __8B(bits)._float;
