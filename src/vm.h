@@ -25,7 +25,7 @@ public:
 
     pkpy::NameDict _types;
     pkpy::NameDict _modules;                            // loaded modules
-    pkpy::HashMap<StrName, Str> _lazy_modules;       // lazy loaded modules
+    std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
     bool use_stdio;
@@ -129,11 +129,11 @@ public:
             PyVar* new_f = _callable->attr().try_get(__new__);
             PyVar obj;
             if(new_f != nullptr){
-                obj = call(*new_f, args, kwargs, false);
+                obj = call(*new_f, std::move(args), kwargs, false);
             }else{
-                obj = new_object(_callable, DUMMY_VAL);
+                obj = new_object(_callable, DummyInstance());
                 PyVarOrNull init_f = getattr(obj, __init__, false);
-                if (init_f != nullptr) call(init_f, args, kwargs, false);
+                if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
             }
             return obj;
         }
@@ -151,28 +151,29 @@ public:
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            pkpy::shared_ptr<pkpy::NameDict> _locals = pkpy::make_shared<pkpy::NameDict>();
-            pkpy::NameDict& locals = *_locals;
+            auto locals = pkpy::make_shared<pkpy::NameDict>(
+                fn.code->ideal_locals_capacity, kLocalsLoadFactor
+            );
 
             int i = 0;
             for(StrName name : fn.args){
                 if(i < args.size()){
-                    locals.emplace(name, args[i++]);
+                    locals->emplace(name, std::move(args[i++]));
                     continue;
                 }
                 TypeError("missing positional argument " + name.str().escape(true));
             }
 
-            locals.insert(fn.kwargs.begin(), fn.kwargs.end());
+            locals->insert(fn.kwargs.begin(), fn.kwargs.end());
 
             if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
-                while(i < args.size()) vargs.push_back(args[i++]);
-                locals.emplace(fn.starred_arg, PyTuple(std::move(vargs)));
+                while(i < args.size()) vargs.push_back(std::move(args[i++]));
+                locals->emplace(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
                 for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
-                        locals[key] = args[i++];
+                        locals->emplace(key, std::move(args[i++]));
                     }else{
                         break;
                     }
@@ -185,11 +186,10 @@ public:
                 if(!fn.kwargs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
                 }
-                const PyVar& val = kwargs[i+1];
-                locals[key] = val;
+                locals->emplace(key, kwargs[i+1]);
             }
-            PyVar _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-            auto _frame = _new_frame(fn.code, _module, _locals, fn._closure);
+            const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+            auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
             if(fn.code->is_generator){
                 return PyIter(pkpy::make_shared<BaseIter, Generator>(
                     this, std::move(_frame)));
@@ -212,10 +212,12 @@ public:
         }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
         }
+#ifdef _NDEBUG
         catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
         }
+#endif
         callstack = {};
         return nullptr;
     }
@@ -322,7 +324,7 @@ public:
     }
 
     PyVar new_module(StrName name) {
-        PyVar obj = new_object(tp_module, DUMMY_VAL);
+        PyVar obj = new_object(tp_module, DummyModule());
         setattr(obj, __name__, PyStr(name.str()));
         _modules[name] = obj;
         return obj;
@@ -634,7 +636,11 @@ public:
         for (auto& name : pb_types) {
             setattr(builtins, name, _types[name]);
         }
+
+        post_init();
     }
+
+    void post_init();
 
     i64 hash(const PyVar& obj){
         if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
@@ -735,13 +741,13 @@ public:
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
     val = frame->f_locals().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = frame->f_closure_try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = frame->f_globals().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = vm->builtins->attr().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     vm->NameError(name());
     return nullptr;
 }
@@ -750,14 +756,9 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
     switch(scope()) {
         case NAME_LOCAL: frame->f_locals()[name()] = std::move(val); break;
         case NAME_GLOBAL:
-        {
-            PyVar* existing = frame->f_locals().try_get(name());
-            if(existing != nullptr){
-                *existing = std::move(val);
-            }else{
-                frame->f_globals()[name()] = std::move(val);
-            }
-        } break;
+            if(frame->f_locals().try_set(name(), std::move(val))) return;
+            frame->f_globals()[name()] = std::move(val);
+            break;
         default: UNREACHABLE();
     }
 }
@@ -857,6 +858,12 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
 }
 
 void CodeObject::optimize(VM* vm){
+    int n = 0;
+    for(auto& p: names) if(p.second == NAME_LOCAL) n++;
+    int base_n = (int)(n / kLocalsLoadFactor + 1.5);
+    ideal_locals_capacity = 2;
+    while(ideal_locals_capacity < base_n) ideal_locals_capacity *= 2;
+
     for(int i=1; i<codes.size(); i++){
         if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
             codes[i].op = OP_NO_OP;

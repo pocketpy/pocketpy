@@ -774,6 +774,22 @@ void add_module_random(VM* vm){
     vm->_exec(code, mod);
 }
 
+void VM::post_init(){
+    init_builtins(this);
+    add_module_sys(this);
+    add_module_time(this);
+    add_module_json(this);
+    add_module_math(this);
+    add_module_re(this);
+    add_module_dis(this);
+    add_module_random(this);
+    add_module_io(this);
+    add_module_os(this);
+
+    CodeObject_ code = compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
+    this->_exec(code, this->builtins);
+}
+
 
 class _PkExported{
 public:
@@ -879,21 +895,7 @@ extern "C" {
     __EXPORT
     /// Create a virtual machine.
     VM* pkpy_new_vm(bool use_stdio){
-        VM* vm = PKPY_ALLOCATE(VM, use_stdio);
-        init_builtins(vm);
-        add_module_sys(vm);
-        add_module_time(vm);
-        add_module_json(vm);
-        add_module_math(vm);
-        add_module_re(vm);
-        add_module_dis(vm);
-        add_module_random(vm);
-        add_module_io(vm);
-        add_module_os(vm);
-
-        CodeObject_ code = vm->compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
-        vm->_exec(code, vm->builtins);
-        return vm;
+        return PKPY_ALLOCATE(VM, use_stdio);
     }
 
     __EXPORT

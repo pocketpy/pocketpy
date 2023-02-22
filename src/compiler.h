@@ -947,7 +947,7 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
             if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP){
-                if(mode()==REPL_MODE && parser->indents.top()==0) emit(OP_PRINT_EXPR, -1, true);
+                if(mode()==REPL_MODE && name_scope() == NAME_GLOBAL) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
         }

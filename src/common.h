@@ -24,11 +24,9 @@
 #include <functional>
 #include <iostream>
 #include <map>
+#include <algorithm>
 // #include <filesystem>
 // namespace fs = std::filesystem;
-
-#define EMH_EXT 1
-#define EMH_FIND_HIT 1
 
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
@@ -36,7 +34,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.8.9"
+#define PK_VERSION "0.9.0"
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
@@ -46,7 +44,9 @@ typedef int64_t i64;
 typedef double f64;
 #endif
 
-struct Dummy { char _; };
+struct Dummy {  };
+struct DummyInstance {  };
+struct DummyModule { };
 #define DUMMY_VAL Dummy()
 
 struct Type {
@@ -65,3 +65,7 @@ struct Type {
 #define THREAD_LOCAL
 
 #define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
+
+const float kLocalsLoadFactor = 0.67;
+const float kInstAttrLoadFactor = 0.67;
+const float kTypeAttrLoadFactor = 0.34;

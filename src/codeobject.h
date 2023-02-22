@@ -65,6 +65,8 @@ struct CodeObject {
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
 
+    int ideal_locals_capacity = 4;
+
     void optimize(VM* vm);
 
     bool add_label(StrName label){

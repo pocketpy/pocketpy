@@ -80,7 +80,7 @@ namespace pkpy{
             return reinterpret_cast<__VAL>(counter);
         }
 
-        inline bool is_tagged() const {
+        inline constexpr bool is_tagged() const {
             if constexpr(!std::is_same_v<T, PyObject>) return false;
             return (reinterpret_cast<i64>(counter) & 0b11) != 0b00;
         }
@@ -147,3 +147,8 @@ struct SmallArrayPool {
         }
     }
 };
+
+
+typedef pkpy::shared_ptr<PyObject> PyVar;
+typedef PyVar PyVarOrNull;
+typedef PyVar PyVarRef;

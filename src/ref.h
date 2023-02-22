@@ -20,7 +20,7 @@ struct NameRef : BaseRef {
     const std::pair<StrName, NameScope> pair;
     inline StrName name() const { return pair.first; }
     inline NameScope scope() const { return pair.second; }
-    NameRef(std::pair<StrName, NameScope>& pair) : pair(pair) {}
+    NameRef(const std::pair<StrName, NameScope>& pair) : pair(pair) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;

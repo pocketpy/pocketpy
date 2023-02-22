@@ -4,46 +4,29 @@
 #include "memory.h"
 #include "str.h"
 
-struct PyObject;
-typedef pkpy::shared_ptr<PyObject> PyVar;
-typedef PyVar PyVarOrNull;
-typedef PyVar PyVarRef;
-
-#include "hash_table5.hpp"
 namespace pkpy {
-	template<typename... Args>
-	using HashMap = emhash5::HashMap<Args...>;
-}
+    class List: public std::vector<PyVar> {
+        PyVar& at(size_t) = delete;
 
-namespace pkpy{
-class List: public std::vector<PyVar> {
-    PyVar& at(size_t) = delete;
-
-    inline void _check_index(size_t i) const {
-        if (i >= size()){
-            auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
-            throw std::out_of_range(msg);
+        inline void _check_index(size_t i) const {
+            if (i >= size()){
+                auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
+                throw std::out_of_range(msg);
+            }
         }
-    }
-public:
-    PyVar& operator[](size_t i) {
-        _check_index(i);
-        return std::vector<PyVar>::operator[](i);
-    }
+    public:
+        PyVar& operator[](size_t i) {
+            _check_index(i);
+            return std::vector<PyVar>::operator[](i);
+        }
 
-    const PyVar& operator[](size_t i) const {
-        _check_index(i);
-        return std::vector<PyVar>::operator[](i);
-    }
+        const PyVar& operator[](size_t i) const {
+            _check_index(i);
+            return std::vector<PyVar>::operator[](i);
+        }
 
-    using std::vector<PyVar>::vector;
-};
-
-
-}
-
-namespace pkpy {
-    typedef HashMap<StrName, PyVar> NameDict;
+        using std::vector<PyVar>::vector;
+    };
 
     class Args {
         static THREAD_LOCAL SmallArrayPool<PyVar, 10> _pool;
@@ -140,8 +123,5 @@ namespace pkpy {
     }
 
     typedef Args Tuple;
-
-    // declare static members
     THREAD_LOCAL SmallArrayPool<PyVar, 10> Args::_pool;
-    // THREAD_LOCAL SmallArrayPool<NameDictNode, 1> NameDict::_pool;
 }   // namespace pkpy
