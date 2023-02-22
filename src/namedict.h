@@ -39,19 +39,19 @@ namespace pkpy{
 
 //https://github.com/python/cpython/blob/main/Objects/dictobject.c#L175
 #define HASH_PROBE(key, ok, i) \
-    int i = (key).index % _capacity; \
+    int i = (key).index & (_capacity-1); \
     bool ok = false; \
     while(!_a[i].empty()) { \
         if(_a[i].first == (key)) { ok = true; break; } \
-        i = (5*i + 1) % _capacity; \
+        i = (5*i + 1) & (_capacity-1); \
     }
 
 #define HASH_PROBE_OVERRIDE(key, ok, i) \
-    i = (key).index % _capacity; \
+    i = (key).index & (_capacity-1); \
     ok = false; \
     while(!_a[i].empty()) { \
         if(_a[i].first == (key)) { ok = true; break; } \
-        i = (5*i + 1) % _capacity; \
+        i = (5*i + 1) & (_capacity-1); \
     }
 
         const PyVar& operator[](StrName key) const {
