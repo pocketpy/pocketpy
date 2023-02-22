@@ -860,7 +860,8 @@ PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
 void CodeObject::optimize(VM* vm){
     int n = 0;
     for(auto& p: names) if(p.second == NAME_LOCAL) n++;
-    int base_n = (int)(n / kLocalsLoadFactor + 1.5);
+    // 0->2, 1->2, 2->4, 3->4, 4->8, 5->8, 6->16
+    int base_n = (int)(n / kLocalsLoadFactor + 0.5);
     ideal_locals_capacity = 2;
     while(ideal_locals_capacity < base_n) ideal_locals_capacity *= 2;
 
