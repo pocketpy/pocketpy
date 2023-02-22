@@ -151,30 +151,29 @@ public:
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            auto _locals = pkpy::make_shared<pkpy::NameDict>(
+            auto locals = pkpy::make_shared<pkpy::NameDict>(
                 fn.code->ideal_locals_capacity, kLocalsLoadFactor
             );
-            pkpy::NameDict& locals = *_locals;
 
             int i = 0;
             for(StrName name : fn.args){
                 if(i < args.size()){
-                    locals.emplace(name, args[i++]);
+                    locals->emplace(name, args[i++]);
                     continue;
                 }
                 TypeError("missing positional argument " + name.str().escape(true));
             }
 
-            locals.insert(fn.kwargs.begin(), fn.kwargs.end());
+            locals->insert(fn.kwargs.begin(), fn.kwargs.end());
 
             if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(args[i++]);
-                locals.emplace(fn.starred_arg, PyTuple(std::move(vargs)));
+                locals->emplace(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
                 for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
-                        locals.emplace(key, args[i++]);
+                        locals->emplace(key, args[i++]);
                     }else{
                         break;
                     }
@@ -187,10 +186,10 @@ public:
                 if(!fn.kwargs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name + "()");
                 }
-                locals.emplace(key, kwargs[i+1]);
+                locals->emplace(key, kwargs[i+1]);
             }
-            PyVar _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-            auto _frame = _new_frame(fn.code, _module, _locals, fn._closure);
+            const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+            auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
             if(fn.code->is_generator){
                 return PyIter(pkpy::make_shared<BaseIter, Generator>(
                     this, std::move(_frame)));
@@ -742,13 +741,13 @@ public:
 PyVar NameRef::get(VM* vm, Frame* frame) const{
     PyVar* val;
     val = frame->f_locals().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = frame->f_closure_try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = frame->f_globals().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     val = vm->builtins->attr().try_get(name());
-    if(val) return *val;
+    if(val != nullptr) return *val;
     vm->NameError(name());
     return nullptr;
 }
@@ -757,14 +756,9 @@ void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
     switch(scope()) {
         case NAME_LOCAL: frame->f_locals()[name()] = std::move(val); break;
         case NAME_GLOBAL:
-        {
-            PyVar* existing = frame->f_locals().try_get(name());
-            if(existing != nullptr){
-                *existing = std::move(val);
-            }else{
-                frame->f_globals()[name()] = std::move(val);
-            }
-        } break;
+            if(frame->f_locals().try_set(name(), std::move(val))) return;
+            frame->f_globals()[name()] = std::move(val);
+            break;
         default: UNREACHABLE();
     }
 }

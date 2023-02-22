@@ -9,7 +9,7 @@ struct Frame {
     int _ip = -1;
     int _next_ip = 0;
 
-    const CodeObject_ co;
+    const CodeObject* co;
     PyVar _module;
     pkpy::shared_ptr<pkpy::NameDict> _locals;
     pkpy::shared_ptr<pkpy::NameDict> _closure;
@@ -24,9 +24,9 @@ struct Frame {
         return _closure->try_get(name);
     }
 
-    Frame(const CodeObject_ co, PyVar _module,
+    Frame(const CodeObject_& co, const PyVar& _module,
         pkpy::shared_ptr<pkpy::NameDict> _locals=nullptr, pkpy::shared_ptr<pkpy::NameDict> _closure=nullptr)
-        : co(co), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
+        : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
         _ip = _next_ip++;

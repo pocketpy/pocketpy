@@ -36,22 +36,22 @@ namespace pkpy{
 
         int size() const { return _size; }
 
-    //https://github.com/python/cpython/blob/main/Objects/dictobject.c#L175
-    #define HASH_PROBE(key, ok, i) \
-        int i = (key).index % _capacity; \
-        bool ok = false; \
-        while(!_a[i].empty()) { \
-            if(_a[i].first == (key)) { ok = true; break; } \
-            i = (5*i + 1) % _capacity; \
-        }
+//https://github.com/python/cpython/blob/main/Objects/dictobject.c#L175
+#define HASH_PROBE(key, ok, i) \
+    int i = (key).index % _capacity; \
+    bool ok = false; \
+    while(!_a[i].empty()) { \
+        if(_a[i].first == (key)) { ok = true; break; } \
+        i = (5*i + 1) % _capacity; \
+    }
 
-    #define HASH_PROBE_OVERRIDE(key, ok, i) \
-        i = (key).index % _capacity; \
-        ok = false; \
-        while(!_a[i].empty()) { \
-            if(_a[i].first == (key)) { ok = true; break; } \
-            i = (5*i + 1) % _capacity; \
-        }
+#define HASH_PROBE_OVERRIDE(key, ok, i) \
+    i = (key).index % _capacity; \
+    ok = false; \
+    while(!_a[i].empty()) { \
+        if(_a[i].first == (key)) { ok = true; break; } \
+        i = (5*i + 1) % _capacity; \
+    }
 
         const PyVar& operator[](StrName key) const {
             HASH_PROBE(key, ok, i);
@@ -93,6 +93,13 @@ namespace pkpy{
             HASH_PROBE(key, ok, i);
             if(!ok) return nullptr;
             return &_a[i].second;
+        }
+
+        inline bool try_set(StrName key, PyVar&& value){
+            HASH_PROBE(key, ok, i);
+            if(!ok) return false;
+            _a[i].second = std::move(value);
+            return true;
         }
 
         inline bool contains(StrName key) const {
