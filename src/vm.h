@@ -129,11 +129,11 @@ public:
             PyVar* new_f = _callable->attr().try_get(__new__);
             PyVar obj;
             if(new_f != nullptr){
-                obj = call(*new_f, args, kwargs, false);
+                obj = call(*new_f, std::move(args), kwargs, false);
             }else{
                 obj = new_object(_callable, DummyInstance());
                 PyVarOrNull init_f = getattr(obj, __init__, false);
-                if (init_f != nullptr) call(init_f, args, kwargs, false);
+                if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
             }
             return obj;
         }
@@ -158,7 +158,7 @@ public:
             int i = 0;
             for(StrName name : fn.args){
                 if(i < args.size()){
-                    locals->emplace(name, args[i++]);
+                    locals->emplace(name, std::move(args[i++]));
                     continue;
                 }
                 TypeError("missing positional argument " + name.str().escape(true));
@@ -168,12 +168,12 @@ public:
 
             if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
-                while(i < args.size()) vargs.push_back(args[i++]);
+                while(i < args.size()) vargs.push_back(std::move(args[i++]));
                 locals->emplace(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
                 for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
-                        locals->emplace(key, args[i++]);
+                        locals->emplace(key, std::move(args[i++]));
                     }else{
                         break;
                     }
