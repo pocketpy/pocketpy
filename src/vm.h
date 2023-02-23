@@ -333,7 +333,7 @@ public:
     }
 
     PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true) {
-        pkpy::NameDict::iterator it;
+        PyVar* val;
         PyObject* cls;
 
         if(is_type(obj, tp_super)){
@@ -347,23 +347,23 @@ public:
             cls = _t(*root).get();
             for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
 
-            it = (*root)->attr().find(name);
-            if(it != (*root)->attr().end()) return it->second;        
+            val = (*root)->attr().try_get(name);
+            if(val != nullptr) return *val;    
         }else{
             if(!obj.is_tagged() && obj->is_attr_valid()){
-                it = obj->attr().find(name);
-                if(it != obj->attr().end()) return it->second;
+                val = obj->attr().try_get(name);
+                if(val != nullptr) return *val;
             }
             cls = _t(obj).get();
         }
 
         while(cls != None.get()) {
-            it = cls->attr().find(name);
-            if(it != cls->attr().end()){
-                if(is_type(it->second, tp_function) || is_type(it->second, tp_native_function)){
-                    return PyBoundMethod({obj, it->second});
+            val = cls->attr().try_get(name);
+            if(val != nullptr){
+                if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
+                    return PyBoundMethod({obj, *val});
                 }else{
-                    return it->second;
+                    return *val;
                 }
             }
             cls = cls->attr(__base__).get();
