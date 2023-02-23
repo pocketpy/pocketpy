@@ -5,28 +5,7 @@
 #include "str.h"
 
 namespace pkpy {
-    class List: public std::vector<PyVar> {
-        PyVar& at(size_t) = delete;
-
-        inline void _check_index(size_t i) const {
-            if (i >= size()){
-                auto msg = "std::vector index out of range, " + std::to_string(i) + " not in [0, " + std::to_string(size()) + ")";
-                throw std::out_of_range(msg);
-            }
-        }
-    public:
-        PyVar& operator[](size_t i) {
-            _check_index(i);
-            return std::vector<PyVar>::operator[](i);
-        }
-
-        const PyVar& operator[](size_t i) const {
-            _check_index(i);
-            return std::vector<PyVar>::operator[](i);
-        }
-
-        using std::vector<PyVar>::vector;
-    };
+    using List = std::vector<PyVar>;
 
     class Args {
         static THREAD_LOCAL SmallArrayPool<PyVar, 10> _pool;
