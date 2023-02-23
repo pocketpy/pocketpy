@@ -519,7 +519,7 @@ public:
     Type tp_list, tp_tuple;
     Type tp_function, tp_native_function, tp_native_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module, tp_ref;
-    Type tp_super, tp_exception;
+    Type tp_super, tp_exception, tp_star_wrapper;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -592,6 +592,7 @@ public:
     DEF_NATIVE(Range, pkpy::Range, tp_range)
     DEF_NATIVE(Slice, pkpy::Slice, tp_slice)
     DEF_NATIVE(Exception, pkpy::Exception, tp_exception)
+    DEF_NATIVE(StarWrapper, pkpy::StarWrapper, tp_star_wrapper)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
@@ -619,6 +620,7 @@ public:
         tp_range = _new_type_object("range");
         tp_module = _new_type_object("module");
         tp_ref = _new_type_object("_ref");
+        tp_star_wrapper = _new_type_object("_star_wrapper");
         
         tp_function = _new_type_object("function");
         tp_native_function = _new_type_object("native_function");
@@ -741,6 +743,22 @@ public:
     inline T& py_cast(const PyVar& obj){
         check_type(obj, T::_type(this));
         return OBJ_GET(T, obj);
+    }
+
+    void unpack_args(pkpy::Args& args){
+        pkpy::List unpacked;
+        for(int i=0; i<args.size(); i++){
+            if(is_type(args[i], tp_star_wrapper)){
+                auto& star = PyStarWrapper_AS_C(args[i]);
+                if(!star.rvalue) UNREACHABLE();
+                PyVar list = asList(star.obj);
+                pkpy::List& list_c = PyList_AS_C(list);
+                unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
+            }else{
+                unpacked.push_back(args[i]);
+            }
+        }
+        args = std::move(unpacked);
     }
 
     ~VM() {

@@ -52,6 +52,12 @@ struct Range {
     i64 step = 1;
 };
 
+struct StarWrapper {
+    PyVar obj;
+    bool rvalue;
+    StarWrapper(const PyVar& obj, bool rvalue): obj(obj), rvalue(rvalue) {}
+};
+
 struct Slice {
     int start = 0;
     int stop = 0x7fffffff; 

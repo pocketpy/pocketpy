@@ -209,14 +209,30 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(obj);
         } continue;
         case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
-        case OP_CALL: {
+        case OP_UNARY_STAR: {
+            if(byte.arg > 0){   // rvalue
+                frame->top() = PyStarWrapper({frame->top_value(this), true});
+            }else{
+                PyRef_AS_C(frame->top()); // check ref
+                frame->top() = PyStarWrapper({frame->top(), false});
+            }
+        } continue;
+        case OP_CALL_KWARGS_UNPACK: case OP_CALL_KWARGS: {
             int ARGC = byte.arg & 0xFFFF;
             int KWARGC = (byte.arg >> 16) & 0xFFFF;
-            pkpy::Args kwargs(0);
-            if(KWARGC > 0) kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
+            pkpy::Args kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
             pkpy::Args args = frame->pop_n_values_reversed(this, ARGC);
+            if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
             PyVar callable = frame->pop_value(this);
             PyVar ret = call(callable, std::move(args), kwargs, true);
+            if(ret == _py_op_call) return ret;
+            frame->push(std::move(ret));
+        } continue;
+        case OP_CALL_UNPACK: case OP_CALL: {
+            pkpy::Args args = frame->pop_n_values_reversed(this, byte.arg);
+            if(byte.op == OP_CALL_UNPACK) unpack_args(args);
+            PyVar callable = frame->pop_value(this);
+            PyVar ret = call(callable, std::move(args), pkpy::no_arg(), true);
             if(ret == _py_op_call) return ret;
             frame->push(std::move(ret));
         } continue;

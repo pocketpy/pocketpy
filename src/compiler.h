@@ -500,7 +500,7 @@ private:
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
             case TK("not"):   emit(OP_UNARY_NOT);      break;
-            case TK("*"):     SyntaxError("cannot use '*' as unary operator"); break;
+            case TK("*"):     emit(OP_UNARY_STAR, co()->_rvalue);   break;
             default: UNREACHABLE();
         }
     }
@@ -594,6 +594,7 @@ __LISTCOMP:
     void exprCall() {
         int ARGC = 0;
         int KWARGC = 0;
+        bool need_unpack = false;
         do {
             match_newlines(mode()==REPL_MODE);
             if (peek() == TK(")")) break;
@@ -607,12 +608,19 @@ __LISTCOMP:
             } else{
                 if(KWARGC > 0) SyntaxError("positional argument follows keyword argument");
                 co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
+                if(co()->codes.back().op == OP_UNARY_STAR) need_unpack = true;
                 ARGC++;
             }
             match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
-        emit(OP_CALL, (KWARGC << 16) | ARGC);
+        if(ARGC > 32767) SyntaxError("too many positional arguments");
+        if(KWARGC > 32767) SyntaxError("too many keyword arguments");
+        if(KWARGC > 0){
+            emit(need_unpack ? OP_CALL_KWARGS_UNPACK : OP_CALL_KWARGS, (KWARGC << 16) | ARGC);
+        }else{
+            emit(need_unpack ? OP_CALL_UNPACK : OP_CALL, ARGC);
+        }
     }
 
     void exprName(){ _exprName(false); }
