@@ -30,7 +30,6 @@ namespace pkpy{
             }
             float find_hit_score = indices.size() / (float)keys.size();
             std::vector<uint32_t> indices_vec(indices.begin(), indices.end());
-            std::sort(indices_vec.begin(), indices_vec.end());
             float find_miss_score = indices.size();
             for(int j=1; j<indices_vec.size(); j++){
                 int gap = indices_vec[j] - indices_vec[j-1];
