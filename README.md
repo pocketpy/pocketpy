@@ -35,7 +35,7 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://bluelovet
 | Dict            | `{'a': 1, 'b': 2}`              | YES       |
 | F-String        | `f'value is {x}'`               | YES       |
 | Unpacking       | `a, b = 1, 2`                   | YES       |
-| Star Unpacking  | `a, *b = [1, 2, 3]`             | NO        |
+| Star Unpacking  | `a, *b = [1, 2, 3]`             | YES       |
 | Exception       | `raise/try..catch`              | YES       |
 | Dynamic Code    | `eval()/exec()`                 | YES       |
 | Reflection      | `hasattr()/getattr()/setattr()` | YES       |

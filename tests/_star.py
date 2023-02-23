@@ -19,3 +19,17 @@ assert f(1, 2, 3, 4) == 26
 assert f(1, 2, 3, 4, c=32) == 42
 
 assert f(*a, c=-26) == 0
+
+
+a, b = 1, 2
+a, b = b, a
+assert a == 2
+assert b == 1
+
+a, *b = 1, 2, 3, 4
+assert a == 1
+assert b == [2, 3, 4]
+
+a, *b = [1]
+assert a == 1
+assert b == []

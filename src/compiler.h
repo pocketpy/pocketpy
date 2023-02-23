@@ -436,7 +436,7 @@ private:
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
             size++;
         } while(match(TK(",")));
-        emit(OP_BUILD_SMART_TUPLE, size);
+        emit(co()->_rvalue ? OP_BUILD_TUPLE : OP_BUILD_TUPLE_REF, size);
     }
 
     void exprOr() {
@@ -813,7 +813,7 @@ __LISTCOMP:
             consume(TK("@id"));
             _exprName(true); size++;
         } while (match(TK(",")));
-        if(size > 1) emit(OP_BUILD_SMART_TUPLE, size);
+        if(size > 1) emit(OP_BUILD_TUPLE_REF, size);
     }
 
     void compile_for_loop() {

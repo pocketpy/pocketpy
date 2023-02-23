@@ -44,8 +44,8 @@ PyVar VM::run_frame(Frame* frame){
         case OP_BUILD_INDEX: {
             PyVar index = frame->pop_value(this);
             auto ref = IndexRef(frame->pop_value(this), index);
-            if(byte.arg == 0) frame->push(PyRef(ref));
-            else frame->push(ref.get(this, frame));
+            if(byte.arg > 0) frame->push(ref.get(this, frame));
+            else frame->push(PyRef(ref));
         } continue;
         case OP_FAST_INDEX: case OP_FAST_INDEX_REF: {
             auto& a = frame->co->names[byte.arg & 0xFFFF];
@@ -65,18 +65,13 @@ PyVar VM::run_frame(Frame* frame){
             PyRef_AS_C(frame->top())->del(this, frame);
             frame->_pop();
             continue;
-        case OP_BUILD_SMART_TUPLE: {
+        case OP_BUILD_TUPLE: {
             pkpy::Args items = frame->pop_n_reversed(byte.arg);
-            bool done = false;
-            for(int i=0; i<items.size(); i++){
-                if(!is_type(items[i], tp_ref)) {
-                    done = true;
-                    for(int j=i; j<items.size(); j++) frame->try_deref(this, items[j]);
-                    frame->push(PyTuple(std::move(items)));
-                    break;
-                }
-            }
-            if(!done) frame->push(PyRef(TupleRef(std::move(items))));
+            frame->push(PyTuple(std::move(items)));
+        } continue;
+        case OP_BUILD_TUPLE_REF: {
+            pkpy::Args items = frame->pop_n_reversed(byte.arg);
+            frame->push(PyRef(TupleRef(std::move(items))));
         } continue;
         case OP_BUILD_STRING: {
             pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);

@@ -859,21 +859,27 @@ PyVar TupleRef::get(VM* vm, Frame* frame) const{
 }
 
 void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
-#define TUPLE_REF_SET() \
-    if(args.size() > objs.size()) vm->ValueError("too many values to unpack");       \
-    if(args.size() < objs.size()) vm->ValueError("not enough values to unpack");     \
-    for (int i = 0; i < objs.size(); i++) vm->PyRef_AS_C(objs[i])->set(vm, frame, args[i]);
-
-    if(is_type(val, vm->tp_tuple)){
-        const pkpy::Tuple& args = OBJ_GET(pkpy::Tuple, val);
-        TUPLE_REF_SET()
-    }else if(is_type(val, vm->tp_list)){
-        const pkpy::List& args = OBJ_GET(pkpy::List, val);
-        TUPLE_REF_SET()
-    }else{
-        vm->TypeError("only tuple or list can be unpacked");
+    val = vm->asIter(val);
+    pkpy::shared_ptr<BaseIter> iter = vm->PyIter_AS_C(val);
+    for(int i=0; i<objs.size(); i++){
+        PyVarOrNull x;
+        if(is_type(objs[i], vm->tp_star_wrapper)){
+            auto& star = vm->PyStarWrapper_AS_C(objs[i]);
+            if(star.rvalue) vm->ValueError("can't use starred expression here");
+            if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
+            auto ref = vm->PyRef_AS_C(star.obj);
+            pkpy::List list;
+            while((x = iter->next()) != nullptr) list.push_back(x);
+            ref->set(vm, frame, vm->PyList(std::move(list)));
+            return;
+        }else{
+            x = iter->next();
+            if(x == nullptr) vm->ValueError("not enough values to unpack");
+            vm->PyRef_AS_C(objs[i])->set(vm, frame, x);
+        }
     }
-#undef TUPLE_REF_SET
+    PyVarOrNull x = iter->next();
+    if(x != nullptr) vm->ValueError("too many values to unpack");
 }
 
 void TupleRef::del(VM* vm, Frame* frame) const{
