@@ -170,30 +170,6 @@ namespace pkpy{
             _size--;
         }
 
-        void print_stats(){
-            std::map<StrName, uint32_t> stats;
-            for(uint32_t i=0; i<_capacity; i++){
-                if(_a[i].empty()) continue;
-                stats[_a[i].first] = 1;
-            }
-            for(auto [key, _]: stats){
-                bool ok = false; uint32_t i;
-                i = _hash(key, _capacity, _hash_seed);
-                while(!_a[i].empty()) {
-                    if(_a[i].first == (key)) { ok = true; break; }
-                    i = (i + 1) % _capacity;
-                    stats[key]++;
-                }
-            }
-            for(uint32_t i=0; i<_capacity; i++){
-                if(_a[i].empty()) {
-                    std::cout << i << ": <NULL>" << std::endl;
-                    continue;
-                }
-                std::cout << i << ": <" << _a[i].first.str() << ", " << stats[_a[i].first] << '>' << std::endl;
-            }
-        }
-
         std::vector<NameDictNode> items() const {
             std::vector<NameDictNode> v;
             for(uint32_t i=0; i<_capacity; i++){
@@ -212,6 +188,30 @@ namespace pkpy{
             return v;
         }
 #undef HASH_PROBE
+
+        // void print_stats(){
+        //     std::map<StrName, uint32_t> stats;
+        //     for(uint32_t i=0; i<_capacity; i++){
+        //         if(_a[i].empty()) continue;
+        //         stats[_a[i].first] = 1;
+        //     }
+        //     for(auto [key, _]: stats){
+        //         bool ok = false; uint32_t i;
+        //         i = _hash(key, _capacity, _hash_seed);
+        //         while(!_a[i].empty()) {
+        //             if(_a[i].first == (key)) { ok = true; break; }
+        //             i = (i + 1) % _capacity;
+        //             stats[key]++;
+        //         }
+        //     }
+        //     for(uint32_t i=0; i<_capacity; i++){
+        //         if(_a[i].empty()) {
+        //             std::cout << i << ": <NULL>" << std::endl;
+        //             continue;
+        //         }
+        //         std::cout << i << ": <" << _a[i].first.str() << ", " << stats[_a[i].first] << '>' << std::endl;
+        //     }
+        // }
     };
 
 } // namespace pkpy
