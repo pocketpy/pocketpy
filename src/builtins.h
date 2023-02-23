@@ -208,9 +208,8 @@ del __iterable4__contains__
 
 list.__new__ = lambda obj: [i for i in obj]
 
-# https://github.com/python/cpython/blob/main/Objects/dictobject.c
 class dict:
-    def __init__(self, capacity=12):
+    def __init__(self, capacity=13):
         self._capacity = capacity
         self._a = [None] * self._capacity
         self._len = 0
