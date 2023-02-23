@@ -160,22 +160,22 @@ public:
             int i = 0;
             for(StrName name : fn.args){
                 if(i < args.size()){
-                    locals->emplace(name, std::move(args[i++]));
+                    locals->set(name, std::move(args[i++]));
                     continue;
                 }
                 TypeError("missing positional argument " + name.str().escape(true));
             }
 
-            locals->insert(fn.kwargs.begin(), fn.kwargs.end());
+            locals->update(fn.kwargs);
 
             if(!fn.starred_arg.empty()){
                 pkpy::List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(std::move(args[i++]));
-                locals->emplace(fn.starred_arg, PyTuple(std::move(vargs)));
+                locals->set(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
                 for(StrName key : fn.kwargs_order){
                     if(i < args.size()){
-                        locals->emplace(key, std::move(args[i++]));
+                        locals->set(key, std::move(args[i++]));
                     }else{
                         break;
                     }
@@ -188,7 +188,7 @@ public:
                 if(!fn.kwargs.contains(key)){
                     TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
                 }
-                locals->emplace(key, kwargs[i+1]);
+                locals->set(key, kwargs[i+1]);
             }
             const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
             auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
@@ -295,7 +295,7 @@ public:
     Type _new_type_object(StrName name, Type base=0) {
         PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, _t(base));
-        _types[name] = obj;
+        _types.set(name, obj);
         _all_types.push_back(obj);
         return OBJ_GET(Type, obj);
     }
@@ -328,7 +328,7 @@ public:
     PyVar new_module(StrName name) {
         PyVar obj = new_object(tp_module, DummyModule());
         setattr(obj, __name__, PyStr(name.str()));
-        _modules[name] = obj;
+        _modules.set(name, obj);
         return obj;
     }
 
@@ -378,7 +378,7 @@ public:
         PyObject* p = obj.get();
         while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
         if(!p->is_attr_valid()) TypeError("cannot set attribute");
-        p->attr(name) = std::forward<T>(value);
+        p->attr().set(name, std::forward<T>(value));
     }
 
     template<int ARGC>
@@ -604,8 +604,8 @@ public:
         _all_types.push_back(_tp_type);
         tp_object = 0; tp_type = 1;
 
-        _types["object"] = _tp_object;
-        _types["type"] = _tp_type;
+        _types.set("object", _tp_object);
+        _types.set("type", _tp_type);
 
         tp_int = _new_type_object("int");
         tp_float = _new_type_object("float");
@@ -639,8 +639,8 @@ public:
         setattr(_t(tp_type), __base__, _t(tp_object));
         setattr(_t(tp_object), __base__, None);
         
-        for(auto it = _types.begin(); it != _types.end(); ++it){
-            setattr(it->second, __name__, PyStr(it->first.str()));
+        for(auto [k, v]: _types.items()){
+            setattr(v, __name__, PyStr(k.str()));
         }
 
         std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
@@ -649,8 +649,8 @@ public:
         }
 
         post_init();
-        for(auto it = _types.begin(); it != _types.end(); ++it){
-            it->second->attr()._try_perfect_rehash();
+        for(auto [k, v]: _types.items()){
+            v->attr()._try_perfect_rehash();
         }
         builtins->attr()._try_perfect_rehash();
     }
@@ -770,10 +770,10 @@ PyVar NameRef::get(VM* vm, Frame* frame) const{
 
 void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
     switch(scope()) {
-        case NAME_LOCAL: frame->f_locals()[name()] = std::move(val); break;
+        case NAME_LOCAL: frame->f_locals().set(name(), std::move(val)); break;
         case NAME_GLOBAL:
             if(frame->f_locals().try_set(name(), std::move(val))) return;
-            frame->f_globals()[name()] = std::move(val);
+            frame->f_globals().set(name(), std::move(val));
             break;
         default: UNREACHABLE();
     }
@@ -879,7 +879,7 @@ void CodeObject::optimize(VM* vm){
     std::vector<StrName> keys;
     for(auto& p: names) if(p.second == NAME_LOCAL) keys.push_back(p.first);
     uint32_t base_n = (uint32_t)(keys.size() / kLocalsLoadFactor + 0.5);
-    perfect_locals_capacity = pkpy::find_next_prime(base_n);
+    perfect_locals_capacity = pkpy::find_next_capacity(base_n);
     perfect_hash_seed = pkpy::find_perfect_hash_seed(perfect_locals_capacity, keys);
 
     for(int i=1; i<codes.size(); i++){

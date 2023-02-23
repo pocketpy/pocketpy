@@ -1002,7 +1002,7 @@ __LISTCOMP:
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
-                    func.kwargs[name] = value;
+                    func.kwargs.set(name, value);
                     func.kwargs_order.push_back(name);
                 } break;
                 case 3: SyntaxError("**kwargs is not supported yet"); break;

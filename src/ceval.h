@@ -273,21 +273,21 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;
-            auto it = _modules.find(name);
-            if(it == _modules.end()){
+            PyVar* ext_mod = _modules.try_get(name);
+            if(ext_mod == nullptr){
                 auto it2 = _lazy_modules.find(name);
                 if(it2 == _lazy_modules.end()){
                     _error("ImportError", "module " + name.str().escape(true) + " not found");
                 }else{
                     const Str& source = it2->second;
                     CodeObject_ code = compile(source, name.str(), EXEC_MODE);
-                    PyVar _m = new_module(name);
-                    _exec(code, _m);
-                    frame->push(_m);
+                    PyVar new_mod = new_module(name);
+                    _exec(code, new_mod);
+                    frame->push(new_mod);
                     _lazy_modules.erase(it2);
                 }
             }else{
-                frame->push(it->second);
+                frame->push(*ext_mod);
             }
         } continue;
         case OP_YIELD_VALUE: return _py_op_yield;

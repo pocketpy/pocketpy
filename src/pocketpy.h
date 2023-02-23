@@ -59,6 +59,11 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
+    // _vm->bind_builtin_func<1>("test", [](VM* vm, pkpy::Args& args) {
+    //     args[0]->attr().print_stats();
+    //     return vm->None;
+    // });
+
     _vm->bind_builtin_func<0>("super", [](VM* vm, pkpy::Args& args) {
         const PyVar* self = vm->top_frame()->f_locals().try_get(m_self);
         if(self == nullptr) vm->TypeError("super() can only be called in a class");
@@ -125,18 +130,16 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, pkpy::Args& args) {
-        std::vector<StrName> names;
+        std::set<StrName> names;
         if(args[0]->is_attr_valid()){
-            for(auto it = args[0]->attr().begin(); it != args[0]->attr().end(); ++it){
-                names.push_back(it->first);
-            }
+            std::vector<StrName> keys = args[0]->attr().keys();
+            names.insert(keys.begin(), keys.end());
         }
         const pkpy::NameDict& t_attr = vm->_t(args[0])->attr();
-        for(auto it = t_attr.begin(); it != t_attr.end(); ++it){
-            if (std::find(names.begin(), names.end(), it->first) == names.end()) names.push_back(it->first);
-        }
+        std::vector<StrName> keys = t_attr.keys();
+        names.insert(keys.begin(), keys.end());
         pkpy::List ret;
-        for (const auto& name : names) ret.push_back(vm->PyStr(name.str()));
+        for (StrName name : names) ret.push_back(vm->PyStr(name.str()));
         return vm->PyList(std::move(ret));
     });
 
@@ -850,10 +853,10 @@ extern "C" {
     /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(VM* vm, const char* name){
-        auto it = vm->_main->attr().find(name);
-        if(it == vm->_main->attr().end()) return nullptr;
+        PyVar* val = vm->_main->attr().try_get(name);
+        if(val == nullptr) return nullptr;
         try{
-            Str _repr = vm->PyStr_AS_C(vm->asRepr(it->second));
+            Str _repr = vm->PyStr_AS_C(vm->asRepr(*val));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;

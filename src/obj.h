@@ -83,7 +83,7 @@ struct PyObject {
 
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline pkpy::NameDict& attr() noexcept { return *_attr; }
-    inline PyVar& attr(StrName name) noexcept { return (*_attr)[name]; }
+    inline const PyVar& attr(StrName name) const noexcept { return _attr->get(name); }
     virtual void* value() = 0;
 
     PyObject(Type type) : type(type) {}
@@ -99,9 +99,9 @@ struct Py_ : PyObject {
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new pkpy::NameDict(5, kTypeAttrLoadFactor);
+            _attr = new pkpy::NameDict(4, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new pkpy::NameDict(5, kInstAttrLoadFactor);
+            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }

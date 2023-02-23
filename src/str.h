@@ -157,33 +157,30 @@ struct StrName {
         return this->index > other.index;
     }
 
-    static std::map<Str, int, std::less<>> _interned;
-    static std::vector<Str> _r_interned;
+    static std::map<Str, uint32_t, std::less<>> _interned;
+    static std::map<uint32_t, Str, std::less<>> _r_interned;
 
     inline static StrName get(const Str& s){
         return get(s.c_str());
     }
 
+    // https://github.com/python/cpython/blob/main/Objects/dictobject.c#L175
+    static uint64_t _j;
+
     static StrName get(const char* s){
         auto it = _interned.find(s);
         if(it != _interned.end()) return StrName(it->second);
-        int index = _r_interned.size();
+        _j = (5*_j + 1) & 0xffffffff;
+        uint32_t index = (uint32_t)_j;
         _interned[s] = index;
-        _r_interned.push_back(s);
+        _r_interned[index] = s;
         return StrName(index);
     }
 };
 
-// declare static members
-std::map<Str, int, std::less<>> StrName::_interned;
-std::vector<Str> StrName::_r_interned;
-
-template<>
-struct std::hash<StrName> {
-    inline size_t operator()(const StrName& name) const {
-        return name.index;
-    }
-};
+std::map<Str, uint32_t, std::less<>> StrName::_interned;
+std::map<uint32_t, Str, std::less<>> StrName::_r_interned;
+uint64_t StrName::_j = 1;
 
 const StrName __class__ = StrName::get("__class__");
 const StrName __base__ = StrName::get("__base__");
