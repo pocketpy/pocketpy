@@ -819,15 +819,17 @@ void AttrRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar IndexRef::get(VM* vm, Frame* frame) const{
-    return vm->call(obj, __getitem__, pkpy::one_arg(index));
+    return vm->fast_call(__getitem__, pkpy::two_args(obj, index));
 }
 
 void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->call(obj, __setitem__, pkpy::two_args(index, std::move(val)));
+    pkpy::Args args(3);
+    args[0] = obj; args[1] = index; args[2] = std::move(val);
+    vm->fast_call(__setitem__, std::move(args));
 }
 
 void IndexRef::del(VM* vm, Frame* frame) const{
-    vm->call(obj, __delitem__, pkpy::one_arg(index));
+    vm->fast_call(__delitem__, pkpy::two_args(obj, index));
 }
 
 PyVar TupleRef::get(VM* vm, Frame* frame) const{
