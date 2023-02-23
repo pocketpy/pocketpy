@@ -20,7 +20,7 @@ namespace pkpy{
     }
 
     uint32_t find_perfect_hash_seed(uint32_t capacity, const std::vector<StrName>& keys){
-        if(keys.empty()) return 0xffffffff;
+        if(keys.empty()) return -1;
         std::set<uint32_t> indices;
         std::vector<std::pair<uint32_t, float>> scores;
         for(int i=0; i<kHashSeeds.size(); i++){
@@ -49,7 +49,7 @@ namespace pkpy{
         uint32_t _hash_seed;
         NameDictNode* _a;
 
-        NameDict(uint32_t capacity=2, float load_factor=0.67, uint32_t hash_seed=0xffffffff):
+        NameDict(uint32_t capacity=2, float load_factor=0.67, uint32_t hash_seed=-1):
             _capacity(capacity), _size(0), _load_factor(load_factor),
             _hash_seed(hash_seed), _a(new NameDictNode[capacity]) {}
 

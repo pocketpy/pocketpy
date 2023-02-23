@@ -66,7 +66,7 @@ struct CodeObject {
     std::map<StrName, int> labels;
 
     uint32_t perfect_locals_capacity = 2;
-    uint32_t perfect_hash_seed = 0xffffffff;
+    uint32_t perfect_hash_seed = -1;
 
     void optimize(VM* vm);
 
