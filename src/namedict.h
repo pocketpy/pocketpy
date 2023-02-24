@@ -38,6 +38,34 @@ struct DictArrayPool {
     }
 };
 
+template<typename T>
+class arrayset {
+  public:
+    arrayset(size_t capacity) {
+        elements.reserve(capacity);
+    }
+
+    void insert(const T& elem) {
+        for (size_t i = 0; i < elements.size(); i++) {
+            if (elements[i] == elem) {
+                return;
+            }
+        }
+        elements.push_back(elem);
+    }
+
+    void clear() {
+        elements.clear();
+    }
+
+    size_t size() {
+        return elements.size();
+    }
+
+  private:
+  std::vector<T> elements;
+};
+
 namespace pkpy{
     const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143, 3467, 28019, 1051, 39419, 1361, 28547, 48197, 2609, 24317, 22861, 41467, 17623, 52837, 59053, 33589, 32117};
     static DictArrayPool<32> _dict_pool;
@@ -52,7 +80,7 @@ namespace pkpy{
 
     uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
         if(keys.empty()) return kHashSeeds[0];
-        std::set<uint16_t> indices;
+        arrayset<uint16_t> indices(kHashSeeds.size());
         std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0};
         for(int i=0; i<kHashSeeds.size(); i++){
             indices.clear();
