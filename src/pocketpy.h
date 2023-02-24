@@ -169,7 +169,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("range", "__iter__", CPP_LAMBDA(
-        vm->PyIter(pkpy::make_shared<BaseIter, RangeIter>(vm, args[0]))
+        vm->PyIter(RangeIter(vm, args[0]))
     ));
 
     _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
@@ -303,10 +303,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
-
-    _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(
-        vm->PyIter(pkpy::make_shared<BaseIter, StringIter>(vm, args[0]))
-    ));
+    _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, pkpy::Args& args) {
         const Str& _self = vm->PyStr_AS_C(args[0]);
@@ -447,7 +444,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("list", "__iter__", [](VM* vm, pkpy::Args& args) {
-        return vm->PyIter(pkpy::make_shared<BaseIter, ArrayIter<pkpy::List>>(vm, args[0]));
+        return vm->PyIter(ArrayIter<pkpy::List>(vm, args[0]));
     });
 
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, pkpy::Args& args) {
@@ -489,7 +486,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, pkpy::Args& args) {
-        return vm->PyIter(pkpy::make_shared<BaseIter, ArrayIter<pkpy::Args>>(vm, args[0]));
+        return vm->PyIter(ArrayIter<pkpy::Args>(vm, args[0]));
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, pkpy::Args& args) {

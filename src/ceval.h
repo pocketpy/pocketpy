@@ -247,7 +247,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(std::move(iter));
         } continue;
         case OP_FOR_ITER: {
-            auto& it = PyIter_AS_C(frame->top());
+            BaseIter* it = PyIter_AS_C(frame->top());
             PyVar obj = it->next();
             if(obj != nullptr){
                 PyRef_AS_C(it->loop_var)->set(this, frame, std::move(obj));

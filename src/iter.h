@@ -48,25 +48,17 @@ public:
     }
 };
 
-class Generator: public BaseIter {
-    std::unique_ptr<Frame> frame;
-    int state; // 0,1,2
-public:
-    Generator(VM* vm, std::unique_ptr<Frame>&& frame)
-        : BaseIter(vm, nullptr), frame(std::move(frame)), state(0) {}
-
-    PyVar next() {
-        if(state == 2) return nullptr;
-        vm->callstack.push(std::move(frame));
-        PyVar ret = vm->_exec();
-        if(ret == vm->_py_op_yield){
-            frame = std::move(vm->callstack.top());
-            vm->callstack.pop();
-            state = 1;
-            return frame->pop_value(vm);
-        }else{
-            state = 2;
-            return nullptr;
-        }
+PyVar Generator::next(){
+    if(state == 2) return nullptr;
+    vm->callstack.push(std::move(frame));
+    PyVar ret = vm->_exec();
+    if(ret == vm->_py_op_yield){
+        frame = std::move(vm->callstack.top());
+        vm->callstack.pop();
+        state = 1;
+        return frame->pop_value(vm);
+    }else{
+        state = 2;
+        return nullptr;
     }
-};
+}

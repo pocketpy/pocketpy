@@ -11,7 +11,15 @@
     inline PyVar Py##type(const ctype& value) { return new_object(ptype, value);} \
     inline PyVar Py##type(ctype&& value) { return new_object(ptype, std::move(value));}
 
-class Generator;
+class Generator: public BaseIter {
+    std::unique_ptr<Frame> frame;
+    int state; // 0,1,2
+public:
+    Generator(VM* vm, std::unique_ptr<Frame>&& frame)
+        : BaseIter(vm, nullptr), frame(std::move(frame)), state(0) {}
+
+    PyVar next();
+};
 
 class VM {
 public:
@@ -192,10 +200,7 @@ public:
             }
             const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
             auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
-            if(fn.code->is_generator){
-                return PyIter(pkpy::make_shared<BaseIter, Generator>(
-                    this, std::move(_frame)));
-            }
+            if(fn.code->is_generator) return PyIter(Generator(this, std::move(_frame)));
             callstack.push(std::move(_frame));
             if(opCall) return _py_op_call;
             return _exec();
@@ -203,7 +208,6 @@ public:
         TypeError(OBJ_NAME(_t(*callable)).escape(true) + " object is not callable");
         return None;
     }
-
 
     // repl mode is only for setting `frame->id` to 0
     PyVarOrNull exec(Str source, Str filename, CompileMode mode, PyVar _module=nullptr){
@@ -523,7 +527,7 @@ public:
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
-        static_assert(std::is_base_of<BaseRef, std::remove_reference_t<P>>::value, "P should derive from BaseRef");
+        static_assert(std::is_base_of_v<BaseRef, RAW(P)>);
         return new_object(tp_ref, std::forward<P>(value));
     }
 
@@ -531,6 +535,18 @@ public:
     {
         if(!is_type(obj, tp_ref)) TypeError("expected an l-value");
         return static_cast<const BaseRef*>(obj->value());
+    }
+
+    template<typename P>
+    inline PyVar PyIter(P&& value) {
+        static_assert(std::is_base_of_v<BaseIter, RAW(P)>);
+        return new_object(tp_native_iterator, std::forward<P>(value));
+    }
+
+    inline BaseIter* PyIter_AS_C(const PyVar& obj)
+    {
+        check_type(obj, tp_native_iterator);
+        return static_cast<BaseIter*>(obj->value());
     }
 
     inline const Str& PyStr_AS_C(const PyVar& obj) {
@@ -587,7 +603,6 @@ public:
     DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
     DEF_NATIVE(Function, pkpy::Function, tp_function)
     DEF_NATIVE(NativeFunc, pkpy::NativeFunc, tp_native_function)
-    DEF_NATIVE(Iter, pkpy::shared_ptr<BaseIter>, tp_native_iterator)
     DEF_NATIVE(BoundMethod, pkpy::BoundMethod, tp_bound_method)
     DEF_NATIVE(Range, pkpy::Range, tp_range)
     DEF_NATIVE(Slice, pkpy::Slice, tp_slice)
@@ -860,7 +875,7 @@ PyVar TupleRef::get(VM* vm, Frame* frame) const{
 
 void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
     val = vm->asIter(val);
-    pkpy::shared_ptr<BaseIter> iter = vm->PyIter_AS_C(val);
+    BaseIter* iter = vm->PyIter_AS_C(val);
     for(int i=0; i<objs.size(); i++){
         PyVarOrNull x;
         if(is_type(objs[i], vm->tp_star_wrapper)){
