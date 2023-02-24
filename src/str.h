@@ -133,9 +133,9 @@ bool is_unicode_Lo_char(uint32_t c) {
 
 
 struct StrName {
-    uint32_t index;
+    uint16_t index;
     StrName(): index(0) {}
-    StrName(int index): index(index) {}
+    StrName(uint16_t index): index(index) {}
     StrName(const char* s): index(get(s).index) {}
     StrName(const Str& s): index(get(s).index) {}
     inline const Str& str() const { return _r_interned[index-1]; }
@@ -157,7 +157,7 @@ struct StrName {
         return this->index > other.index;
     }
 
-    static std::map<Str, uint32_t, std::less<>> _interned;
+    static std::map<Str, uint16_t, std::less<>> _interned;
     static std::vector<Str> _r_interned;
 
     inline static StrName get(const Str& s){
@@ -167,14 +167,14 @@ struct StrName {
     static StrName get(const char* s){
         auto it = _interned.find(s);
         if(it != _interned.end()) return StrName(it->second);
-        uint32_t index = _r_interned.size() + 1;
+        uint16_t index = (uint16_t)(_r_interned.size() + 1);
         _interned[s] = index;
         _r_interned.push_back(s);
         return StrName(index);
     }
 };
 
-std::map<Str, uint32_t, std::less<>> StrName::_interned;
+std::map<Str, uint16_t, std::less<>> StrName::_interned;
 std::vector<Str> StrName::_r_interned;
 
 const StrName __class__ = StrName::get("__class__");

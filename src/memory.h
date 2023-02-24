@@ -117,7 +117,7 @@ static_assert(std::numeric_limits<double>::is_iec559);
 
 template<typename T, int __Bucket, int __BucketSize=32>
 struct SmallArrayPool {
-    std::deque<T*> buckets[__Bucket+1];
+    std::vector<T*> buckets[__Bucket+1];
 
     T* alloc(int n){
         if(n == 0) return nullptr;
