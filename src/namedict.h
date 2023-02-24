@@ -37,6 +37,34 @@ struct DictArrayPool {
     }
 };
 
+template<typename T>
+class arrayset {
+  public:
+    arrayset(size_t capacity) {
+        elements.reserve(capacity);
+    }
+
+    void insert(const T& elem) {
+        for (size_t i = 0; i < elements.size(); i++) {
+            if (elements[i] == elem) {
+                return;
+            }
+        }
+        elements.push_back(elem);
+    }
+
+    void clear() {
+        elements.clear();
+    }
+
+    size_t size() {
+        return elements.size();
+    }
+
+  private:
+  std::vector<T> elements;
+};
+
 namespace pkpy{
     const std::vector<uint32_t> kHashSeeds = {2654435761, 740041872, 89791836, 2530921597, 3099937610, 4149637300, 2701344377, 1871341841, 1162794509, 172427115, 1636841237, 716883023, 3294650677, 54921151, 3697702254, 632800580, 704251301, 1107400416, 3158440428, 581874317, 3196521560, 2374935651, 3196227762, 2033551959, 2028119291, 348132418, 392150876, 3839168722, 3705071505, 742931757, 2917622539, 3641634736, 3438863246, 1211314974, 1389620692, 3842835768, 165823282, 2225611914, 1862128271, 2147948325, 3759309280, 2087364973, 3453466014, 2082604761, 3627961499, 967790220, 3285133283, 2749567844, 262853493, 142639230, 3079101350, 2942333634, 1470374050, 3719337124, 2487858314, 1605159164, 2958061235, 3310454023, 3143584575, 3696188862, 3455413544, 148400163, 889426286, 1485235735};
     static DictArrayPool<32> _dict_pool;
@@ -51,12 +79,12 @@ namespace pkpy{
 
     uint32_t find_perfect_hash_seed(uint32_t capacity, const std::vector<StrName>& keys){
         if(keys.empty()) return kHashSeeds[0];
-        std::set<uint32_t> indices;
+        arrayset<uint32_t> indices(kHashSeeds.size());
         uint32_t best_seed = 0;
         float best_score = std::numeric_limits<float>::max();
         for(int i=0; i<kHashSeeds.size(); i++){
             indices.clear();
-            for(auto key: keys){
+            for(auto& key: keys){
                 uint32_t index = _hash(key, capacity-1, kHashSeeds[i]);
                 indices.insert(index);
             }
