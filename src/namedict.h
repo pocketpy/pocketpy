@@ -53,7 +53,7 @@ namespace pkpy{
     uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
         if(keys.empty()) return kHashSeeds[0];
         std::set<uint16_t> indices;
-        std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0};
+        std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0.0f};
         for(int i=0; i<kHashSeeds.size(); i++){
             indices.clear();
             for(auto key: keys){
