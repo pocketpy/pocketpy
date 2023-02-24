@@ -10,6 +10,7 @@ class VM;
 
 typedef std::function<PyVar(VM*, pkpy::Args&)> NativeFuncRaw;
 typedef pkpy::shared_ptr<CodeObject> CodeObject_;
+typedef pkpy::shared_ptr<pkpy::NameDict> NameDict_;
 
 namespace pkpy{
 struct NativeFunc {
@@ -30,8 +31,8 @@ struct Function {
     std::vector<StrName> kwargs_order;
 
     // runtime settings
-    PyVar _module;
-    pkpy::shared_ptr<pkpy::NameDict> _closure;
+    PyVar _module = nullptr;
+    NameDict_ _closure = nullptr;
 
     bool has_name(const Str& val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();

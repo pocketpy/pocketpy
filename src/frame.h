@@ -2,7 +2,7 @@
 
 #include "codeobject.h"
 
-static THREAD_LOCAL i64 kFrameGlobalId = 0;
+static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
 
 struct Frame {
     std::vector<PyVar> _data;
@@ -11,10 +11,10 @@ struct Frame {
 
     const CodeObject* co;
     PyVar _module;
-    pkpy::shared_ptr<pkpy::NameDict> _locals;
-    pkpy::shared_ptr<pkpy::NameDict> _closure;
-    const i64 id;
-    std::stack<std::pair<int, std::vector<PyVar>>> s_try_block;
+    NameDict_ _locals;
+    NameDict_ _closure;
+    const uint64_t id;
+    std::vector<std::pair<int, std::vector<PyVar>>> s_try_block;
 
     inline pkpy::NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
     inline pkpy::NameDict& f_globals() noexcept { return _module->attr(); }
@@ -24,9 +24,11 @@ struct Frame {
         return _closure->try_get(name);
     }
 
-    Frame(const CodeObject_& co, const PyVar& _module,
-        pkpy::shared_ptr<pkpy::NameDict> _locals=nullptr, pkpy::shared_ptr<pkpy::NameDict> _closure=nullptr)
-        : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
+    Frame(const CodeObject_& co,
+        const PyVar& _module,
+        const NameDict_& _locals=nullptr,
+        const NameDict_& _closure=nullptr)
+            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
 
     inline const Bytecode& next_bytecode() {
         _ip = _next_ip++;
@@ -96,17 +98,17 @@ struct Frame {
     inline void jump_rel(int i){ _next_ip += i; }
 
     inline void on_try_block_enter(){
-        s_try_block.push(std::make_pair(co->codes[_ip].block, _data));
+        s_try_block.emplace_back(co->codes[_ip].block, _data);
     }
 
     inline void on_try_block_exit(){
-        s_try_block.pop();
+        s_try_block.pop_back();
     }
 
     bool jump_to_exception_handler(){
         if(s_try_block.empty()) return false;
         PyVar obj = pop();
-        auto& p = s_try_block.top();
+        auto& p = s_try_block.back();
         _data = std::move(p.second);
         _data.push_back(obj);
         _next_ip = co->blocks[p.first].end;

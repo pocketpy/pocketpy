@@ -159,7 +159,7 @@ public:
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
             const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            auto locals = pkpy::make_shared<pkpy::NameDict>(
+            NameDict_ locals = pkpy::make_shared<pkpy::NameDict>(
                 fn.code->perfect_locals_capacity,
                 kLocalsLoadFactor,
                 fn.code->perfect_hash_seed
@@ -218,7 +218,7 @@ public:
         }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
         }
-#ifdef _NDEBUG
+#if !defined(__GNUC__)
         catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
