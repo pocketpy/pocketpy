@@ -200,7 +200,7 @@ private:
                 case '{': parser->set_next_token(TK("{")); return;
                 case '}': parser->set_next_token(TK("}")); return;
                 case ',': parser->set_next_token(TK(",")); return;
-                case ':': parser->set_next_token(TK(":")); return;
+                case ':': parser->set_next_token_2(':', TK(":"), TK("::")); return;
                 case ';': parser->set_next_token(TK(";")); return;
                 case '(': parser->set_next_token(TK("(")); return;
                 case ')': parser->set_next_token(TK(")")); return;
@@ -1025,8 +1025,14 @@ __LISTCOMP:
             consume(TK("def"));
         }
         pkpy::Function func;
+        StrName obj_name;
         consume(TK("@id"));
         func.name = parser->prev.str();
+        if(!is_compiling_class && match(TK("::"))){
+            consume(TK("@id"));
+            obj_name = func.name;
+            func.name = parser->prev.str();
+        }
         consume(TK("("));
         if (!match(TK(")"))) {
             _compile_f_args(func, true);
@@ -1040,7 +1046,16 @@ __LISTCOMP:
         this->codes.pop();
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
-        if(!is_compiling_class) emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
+        if(!is_compiling_class){
+            if(obj_name.empty()) emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
+            else {
+                emit(OP_LOAD_NAME, co()->add_name(obj_name, name_scope()));
+                int index = co()->add_name(func.name, NAME_ATTR);
+                emit(OP_BUILD_ATTR, (index<<1)+0);
+                emit(OP_ROT_TWO);
+                emit(OP_STORE_REF);
+            }
+        }
     }
 
     PyVarOrNull read_literal(){

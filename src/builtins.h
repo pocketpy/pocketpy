@@ -78,7 +78,7 @@ def sorted(iterable, reverse=False):
 
 str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
-def __str4split(self, sep):
+def str::split(self, sep):
     if sep == "":
         return list(self)
     res = []
@@ -92,18 +92,14 @@ def __str4split(self, sep):
             i += 1
     res.append(self)
     return res
-str.split = __str4split
-del __str4split
 
-def __str4index(self, sub):
+def str::index(self, sub):
     for i in range(len(self)):
         if self[i:i+len(sub)] == sub:
             return i
     return -1
-str.index = __str4index
-del __str4index
 
-def __str4strip(self, chars=None):
+def str::strip(self, chars=None):
     chars = chars or ' \t\n\r'
     i = 0
     while i < len(self) and self[i] in chars:
@@ -112,8 +108,6 @@ def __str4strip(self, chars=None):
     while j >= 0 and self[j] in chars:
         j -= 1
     return self[i:j+1]
-str.strip = __str4strip
-del __str4strip
 
 ##### list #####
 
@@ -136,76 +130,59 @@ def __qsort(a: list, L: int, R: int):
     __qsort(a, L, j)
     __qsort(a, i, R)
 
-def __list4sort(self, reverse=False):
+def list::sort(self, reverse=False):
     __qsort(self, 0, len(self)-1)
     if reverse:
         self.reverse()
 
-list.sort = __list4sort
-del __list4sort
-
-def __list4extend(self, other):
+def list::extend(self, other):
     for i in other:
         self.append(i)
-list.extend = __list4extend
-del __list4extend
 
-def __list4remove(self, value):
+def list::remove(self, value):
     for i in range(len(self)):
         if self[i] == value:
             del self[i]
             return True
     return False
-list.remove = __list4remove
-del __list4remove
 
-def __list4index(self, value):
+def list::index(self, value):
     for i in range(len(self)):
         if self[i] == value:
             return i
     return -1
-list.index = __list4index
-del __list4index
 
-def __list4pop(self, i=-1):
+def list::pop(self, i=-1):
     res = self[i]
     del self[i]
     return res
-list.pop = __list4pop
-del __list4pop
 
-def __iterable4__eq__(self, other):
+def list::__eq__(self, other):
     if len(self) != len(other):
         return False
     for i in range(len(self)):
         if self[i] != other[i]:
             return False
     return True
-list.__eq__ = __iterable4__eq__
-tuple.__eq__ = __iterable4__eq__
+tuple.__eq__ = list.__eq__
 list.__ne__ = lambda self, other: not self.__eq__(other)
 tuple.__ne__ = lambda self, other: not self.__eq__(other)
-del __iterable4__eq__
 
-def __iterable4count(self, x):
+def list::count(self, x):
     res = 0
     for i in self:
         if i == x:
             res += 1
     return res
-list.count = __iterable4count
-tuple.count = __iterable4count
-del __iterable4count
+tuple.count = list.count
 
-def __iterable4__contains__(self, item):
+def list::__contains__(self, item):
     for i in self:
         if i == item:
             return True
     return False
-list.__contains__ = __iterable4__contains__
-tuple.__contains__ = __iterable4__contains__
-del __iterable4__contains__
 
+tuple.__contains__ = list.__contains__
 list.__new__ = lambda obj: [i for i in obj]
 
 class dict:
