@@ -105,9 +105,9 @@ struct Py_ : PyObject {
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new pkpy::NameDict(17, kTypeAttrLoadFactor);
+            _attr = new pkpy::NameDict(16, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new pkpy::NameDict(5, kInstAttrLoadFactor);
+            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }
