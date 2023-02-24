@@ -52,7 +52,8 @@ namespace pkpy{
     uint32_t find_perfect_hash_seed(uint32_t capacity, const std::vector<StrName>& keys){
         if(keys.empty()) return kHashSeeds[0];
         std::set<uint32_t> indices;
-        std::vector<std::pair<uint32_t, float>> scores(kHashSeeds.size());
+        uint32_t best_seed = 0;
+        float best_score = std::numeric_limits<float>::max();
         for(int i=0; i<kHashSeeds.size(); i++){
             indices.clear();
             for(auto key: keys){
@@ -60,10 +61,12 @@ namespace pkpy{
                 indices.insert(index);
             }
             float score = indices.size() / (float)keys.size();
-            scores[i] = {kHashSeeds[i], score};
+            if (score > best_score) {
+                best_score = score;
+                best_seed = kHashSeeds[i];
+            }
         }
-        std::sort(scores.begin(), scores.end(), [](auto a, auto b){ return a.second > b.second; });
-        return scores[0].first;
+        return best_seed;
     }
 
     struct NameDict {
