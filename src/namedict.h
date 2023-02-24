@@ -82,24 +82,15 @@ namespace pkpy{
             return reinterpret_cast<const PyVar*>(_keys + _capacity)[i];
         }
 
-        inline void _alloc(uint16_t capacity){
-            _keys = _dict_pool.alloc(capacity);
-        }
-
-        inline static void _dealloc(StrName* head, uint16_t capacity){
-            if(head == nullptr) return;
-            _dict_pool.dealloc(head, capacity);
-        }
-
         NameDict(uint16_t capacity=2, float load_factor=0.67, uint16_t hash_seed=kHashSeeds[0]):
             _capacity(capacity), _size(0), _load_factor(load_factor),
             _hash_seed(hash_seed), _mask(capacity-1) {
-                _alloc(capacity);
+                _keys = _dict_pool.alloc(capacity);
             }
 
         NameDict(const NameDict& other) {
             memcpy(this, &other, sizeof(NameDict));
-            _alloc(_capacity);
+            _keys = _dict_pool.alloc(_capacity);
             for(int i=0; i<_capacity; i++){
                 _keys[i] = other._keys[i];
                 value(i) = other.value(i);
@@ -107,9 +98,9 @@ namespace pkpy{
         }
 
         NameDict& operator=(const NameDict& other) {
-            _dealloc(_keys, _capacity);
+            _dict_pool.dealloc(_keys, _capacity);
             memcpy(this, &other, sizeof(NameDict));
-            _alloc(_capacity);
+            _keys = _dict_pool.alloc(_capacity);
             for(int i=0; i<_capacity; i++){
                 _keys[i] = other._keys[i];
                 value(i) = other.value(i);
@@ -168,7 +159,7 @@ namespace pkpy{
                 _capacity = find_next_capacity(_capacity * 2);
                 _mask = _capacity - 1;
             }
-            _alloc(_capacity);
+            _keys = _dict_pool.alloc(_capacity);
             for(uint16_t i=0; i<old_capacity; i++){
                 if(old_keys[i].empty()) continue;
                 bool ok; uint16_t j;
@@ -177,7 +168,7 @@ namespace pkpy{
                 _keys[j] = old_keys[i];
                 value(j) = old_values[i]; // std::move makes a segfault
             }
-            _dealloc(old_keys, old_capacity);
+            _dict_pool.dealloc(old_keys, old_capacity);
         }
 
         void _try_perfect_rehash(){
