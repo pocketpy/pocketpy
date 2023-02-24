@@ -66,7 +66,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->_pop();
             continue;
         case OP_BUILD_TUPLE: {
-            pkpy::Args items = frame->pop_n_reversed(byte.arg);
+            pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
             frame->push(PyTuple(std::move(items)));
         } continue;
         case OP_BUILD_TUPLE_REF: {

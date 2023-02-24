@@ -938,7 +938,7 @@ __LISTCOMP:
             emit(OP_RAISE, dummy_t);
             consume_end_stmt();
         } else if(match(TK("del"))){
-            EXPR();
+            EXPR_TUPLE();
             emit(OP_DELETE_REF);
             consume_end_stmt();
         } else if(match(TK("global"))){
@@ -955,6 +955,7 @@ __LISTCOMP:
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
             if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP){
+                if(last_op == OP_BUILD_TUPLE_REF) co()->codes.back().op = OP_BUILD_TUPLE;
                 if(mode()==REPL_MODE && name_scope() == NAME_GLOBAL) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
             }
