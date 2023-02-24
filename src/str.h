@@ -134,12 +134,12 @@ bool is_unicode_Lo_char(uint32_t c) {
 
 struct StrName {
     uint32_t index;
-    StrName(): index(-1) {}
+    StrName(): index(0) {}
     StrName(int index): index(index) {}
     StrName(const char* s): index(get(s).index) {}
     StrName(const Str& s): index(get(s).index) {}
-    inline const Str& str() const { return _r_interned[index]; }
-    inline bool empty() const { return index == -1; }
+    inline const Str& str() const { return _r_interned[index-1]; }
+    inline bool empty() const { return index == 0; }
 
     inline bool operator==(const StrName& other) const noexcept {
         return this->index == other.index;
@@ -167,7 +167,7 @@ struct StrName {
     static StrName get(const char* s){
         auto it = _interned.find(s);
         if(it != _interned.end()) return StrName(it->second);
-        uint32_t index = _r_interned.size();
+        uint32_t index = _r_interned.size() + 1;
         _interned[s] = index;
         _r_interned.push_back(s);
         return StrName(index);

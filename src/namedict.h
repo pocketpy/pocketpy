@@ -4,8 +4,42 @@
 #include "memory.h"
 #include "str.h"
 
+
+template<int __Bucket, int __BucketSize=32>
+struct DictArrayPool {
+    std::deque<StrName*> buckets[__Bucket+1];
+
+    StrName* alloc(uint32_t n){
+        StrName* _keys;
+        if(n > __Bucket || buckets[n].empty()){
+            _keys = (StrName*)malloc((sizeof(StrName)+sizeof(PyVar)) * n);
+            memset((void*)_keys, 0, (sizeof(StrName)+sizeof(PyVar)) * n);
+        }else{
+            _keys = buckets[n].back();
+            memset((void*)_keys, 0, sizeof(StrName) * n);
+            buckets[n].pop_back();
+        }
+        return _keys;
+    }
+
+    void dealloc(StrName* head, uint32_t n){
+        PyVar* _values = (PyVar*)(head + n);
+        if(n > __Bucket || buckets[n].size() >= __BucketSize){
+            for(int i=0; i<n; i++) _values[i].~PyVar();
+            free(head);
+        }else{
+            buckets[n].push_back(head);
+        }
+    }
+
+    ~DictArrayPool(){
+        // let it leak, since this object is static
+    }
+};
+
 namespace pkpy{
     const std::vector<uint32_t> kHashSeeds = {2654435761, 740041872, 89791836, 2530921597, 3099937610, 4149637300, 2701344377, 1871341841, 1162794509, 172427115, 1636841237, 716883023, 3294650677, 54921151, 3697702254, 632800580, 704251301, 1107400416, 3158440428, 581874317, 3196521560, 2374935651, 3196227762, 2033551959, 2028119291, 348132418, 392150876, 3839168722, 3705071505, 742931757, 2917622539, 3641634736, 3438863246, 1211314974, 1389620692, 3842835768, 165823282, 2225611914, 1862128271, 2147948325, 3759309280, 2087364973, 3453466014, 2082604761, 3627961499, 967790220, 3285133283, 2749567844, 262853493, 142639230, 3079101350, 2942333634, 1470374050, 3719337124, 2487858314, 1605159164, 2958061235, 3310454023, 3143584575, 3696188862, 3455413544, 148400163, 889426286, 1485235735};
+    static DictArrayPool<32> _dict_pool;
 
     uint32_t find_next_capacity(uint32_t n){
         uint32_t x = 2;
@@ -32,32 +66,41 @@ namespace pkpy{
         return scores[0].first;
     }
 
-    struct NameDictNode{
-        StrName first;
-        PyVar second;
-        inline bool empty() const { return first.empty(); }
-    };
-
     struct NameDict {
         uint32_t _capacity;
         uint32_t _size;
         float _load_factor;
         uint32_t _hash_seed;
-        NameDictNode* _a;
         uint32_t _mask;
+        StrName* _keys;
+        PyVar* _values;
+
+        inline void _alloc(uint32_t capacity){
+            _keys = _dict_pool.alloc(capacity);
+            _values = (PyVar*)(_keys + capacity);
+        }
+
+        inline void _dealloc(StrName* head, uint32_t capacity){
+            _dict_pool.dealloc(head, capacity);
+        }
 
         NameDict(uint32_t capacity=2, float load_factor=0.67, uint32_t hash_seed=kHashSeeds[0]):
             _capacity(capacity), _size(0), _load_factor(load_factor),
-            _hash_seed(hash_seed), _a(new NameDictNode[capacity]), _mask(capacity-1) {}
+            _hash_seed(hash_seed), _mask(capacity-1) {
+                _alloc(capacity);
+            }
 
         NameDict(const NameDict& other) {
             this->_capacity = other._capacity;
             this->_size = other._size;
             this->_load_factor = other._load_factor;
             this->_hash_seed = other._hash_seed;
-            this->_a = new NameDictNode[_capacity];
+            _alloc(_capacity);
             this->_mask = other._mask;
-            for(uint32_t i=0; i<_capacity; i++) _a[i] = other._a[i];
+            for(uint32_t i=0; i<_capacity; i++){
+                _keys[i] = other._keys[i];
+                _values[i] = other._values[i];
+            }
         }
         
         NameDict& operator=(const NameDict&) = delete;
@@ -69,23 +112,23 @@ namespace pkpy{
 #define HASH_PROBE(key, ok, i) \
     ok = false; \
     i = _hash(key, _mask, _hash_seed); \
-    while(!_a[i].empty()) { \
-        if(_a[i].first == (key)) { ok = true; break; } \
-        i = (i + 1) % _capacity; \
+    while(!_keys[i].empty()) { \
+        if(_keys[i] == (key)) { ok = true; break; } \
+        i = (i + 1) & _mask; \
     }
 
         const PyVar& operator[](StrName key) const {
             bool ok; uint32_t i;
             HASH_PROBE(key, ok, i);
             if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
-            return _a[i].second;
+            return _values[i];
         }
 
         PyVar& get(StrName key){
             bool ok; uint32_t i;
             HASH_PROBE(key, ok, i);
             if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
-            return _a[i].second;
+            return _values[i];
         }
 
         template<typename T>
@@ -98,27 +141,29 @@ namespace pkpy{
                     _rehash(true);
                     HASH_PROBE(key, ok, i);
                 }
-                _a[i].first = key;
+                _keys[i] = key;
             }
-            _a[i].second = std::forward<T>(value);
+            _values[i] = std::forward<T>(value);
         }
 
         void _rehash(bool resize){
-            NameDictNode* old_a = _a;
+            StrName* old_keys = _keys;
+            PyVar* old_values = _values;
             uint32_t old_capacity = _capacity;
             if(resize){
                 _capacity = find_next_capacity(_capacity * 2);
                 _mask = _capacity - 1;
             }
-            _a = new NameDictNode[_capacity];
+            _alloc(_capacity);
             for(uint32_t i=0; i<old_capacity; i++){
-                if(old_a[i].empty()) continue;
+                if(old_keys[i].empty()) continue;
                 bool ok; uint32_t j;
-                HASH_PROBE(old_a[i].first, ok, j);
+                HASH_PROBE(old_keys[i], ok, j);
                 if(ok) UNREACHABLE();
-                _a[j] = std::move(old_a[i]);
+                _keys[j] = old_keys[i];
+                _values[j] = old_values[i]; // std::move makes a segfault
             }
-            delete[] old_a;
+            _dealloc(old_keys, old_capacity);
         }
 
         void _try_perfect_rehash(){
@@ -130,14 +175,14 @@ namespace pkpy{
             bool ok; uint32_t i;
             HASH_PROBE(key, ok, i);
             if(!ok) return nullptr;
-            return &_a[i].second;
+            return &_values[i];
         }
 
         inline bool try_set(StrName key, PyVar&& value){
             bool ok; uint32_t i;
             HASH_PROBE(key, ok, i);
             if(!ok) return false;
-            _a[i].second = std::move(value);
+            _values[i] = std::move(value);
             return true;
         }
 
@@ -147,12 +192,12 @@ namespace pkpy{
             return ok;
         }
 
-        ~NameDict(){ delete[] _a; }
+        ~NameDict(){ _dealloc(_keys, _capacity); }
 
         void update(const NameDict& other){
             for(uint32_t i=0; i<other._capacity; i++){
-                if(other._a[i].empty()) continue;
-                set(other._a[i].first, other._a[i].second);
+                if(other._keys[i].empty()) continue;
+                set(other._keys[i], other._values[i]);
             }
         }
 
@@ -160,15 +205,16 @@ namespace pkpy{
             bool ok; uint32_t i;
             HASH_PROBE(key, ok, i);
             if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
-            _a[i] = NameDictNode();
+            _keys[i] = StrName();
+            _values[i].reset();
             _size--;
         }
 
-        std::vector<NameDictNode> items() const {
-            std::vector<NameDictNode> v;
+        std::vector<std::pair<StrName, PyVar>> items() const {
+            std::vector<std::pair<StrName, PyVar>> v;
             for(uint32_t i=0; i<_capacity; i++){
-                if(_a[i].empty()) continue;
-                v.push_back(_a[i]);
+                if(_keys[i].empty()) continue;
+                v.push_back(std::make_pair(_keys[i], _values[i]));
             }
             return v;
         }
@@ -176,8 +222,8 @@ namespace pkpy{
         std::vector<StrName> keys() const {
             std::vector<StrName> v;
             for(uint32_t i=0; i<_capacity; i++){
-                if(_a[i].empty()) continue;
-                v.push_back(_a[i].first);
+                if(_keys[i].empty()) continue;
+                v.push_back(_keys[i]);
             }
             return v;
         }
