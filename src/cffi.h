@@ -5,9 +5,9 @@
 struct CType{
     PY_CLASS(c, type)
 
-    StrName name;
+    Str name;
     int size;
-    CType(const StrName& name, int size) : name(name), size(size) {}
+    CType(const Str& name, int size) : name(name), size(size) {}
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
@@ -28,8 +28,80 @@ struct Pointer{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
             StrStream ss;
-            ss << "<" << self.ctype.name.str() << "* at " << std::hex << self.ptr << ">";
+            ss << "<" << self.ctype.name << "* at " << std::hex << self.ptr << ">";
             return vm->PyStr(ss.str());
+        });
+
+        vm->bind_method<1>(type, "cast", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            CType& ctype = vm->py_cast<CType>(args[1]);
+            return vm->new_object<Pointer>(self.ptr, ctype);
+        });
+
+        vm->bind_method<1>(type, "__getitem__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            i64 index = vm->PyInt_AS_C(args[1]);
+            if(self.ctype.name == "char"){
+                return vm->PyInt(((char*)self.ptr)[index]);
+            }else if(self.ctype.name == "int8"){
+                return vm->PyInt(((int8_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "int16"){
+                return vm->PyInt(((int16_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "int32"){
+                return vm->PyInt(((int*)self.ptr)[index]);
+            }else if(self.ctype.name == "int64"){
+                return vm->PyInt(((int64_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "uint8"){
+                return vm->PyInt(((uint8_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "uint16"){
+                return vm->PyInt(((uint16_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "uint32"){
+                return vm->PyInt(((uint32_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "uint64"){
+                return vm->PyInt(((uint64_t*)self.ptr)[index]);
+            }else if(self.ctype.name == "float"){
+                return vm->PyFloat(((float*)self.ptr)[index]);
+            }else if(self.ctype.name == "double"){
+                return vm->PyFloat(((double*)self.ptr)[index]);
+            }else if(self.ctype.name == "bool"){
+                return vm->PyBool(((bool*)self.ptr)[index]);
+            }else{
+                vm->TypeError("unsupported type");
+                return vm->None;
+            }
+        });
+
+        vm->bind_method<2>(type, "__setitem__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            i64 index = vm->PyInt_AS_C(args[1]);
+            if(self.ctype.name == "char"){
+                ((char*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "int8"){
+                ((int8_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "int16"){
+                ((int16_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "int32"){
+                ((int*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "int64"){
+                ((int64_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "uint8"){
+                ((uint8_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "uint16"){
+                ((uint16_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "uint32"){
+                ((uint32_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "uint64"){
+                ((uint64_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]);
+            }else if(self.ctype.name == "float"){
+                ((float*)self.ptr)[index] = vm->PyFloat_AS_C(args[2]);
+            }else if(self.ctype.name == "double"){
+                ((double*)self.ptr)[index] = vm->PyFloat_AS_C(args[2]);
+            }else if(self.ctype.name == "bool"){
+                ((bool*)self.ptr)[index] = vm->PyBool_AS_C(args[2]);
+            }else{
+                vm->TypeError("unsupported type");
+            }
+            return vm->None;
         });
     }
 
@@ -49,7 +121,7 @@ void add_module_c(VM* vm){
     vm->setattr(mod, "int16", vm->new_object<CType>("int16", 2));
     vm->setattr(mod, "int32", vm->new_object<CType>("int32", 4));
     vm->setattr(mod, "int64", vm->new_object<CType>("int64", 8));
-    vm->setattr(mod, "uint8", vm->new_object<CType>("uchar", 1));
+    vm->setattr(mod, "uint8", vm->new_object<CType>("uint8", 1));
     vm->setattr(mod, "uint16", vm->new_object<CType>("uint16", 2));
     vm->setattr(mod, "uint32", vm->new_object<CType>("uint32", 4));
     vm->setattr(mod, "uint64", vm->new_object<CType>("uint64", 8));
