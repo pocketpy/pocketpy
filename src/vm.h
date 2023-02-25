@@ -217,13 +217,10 @@ public:
             return _exec(code, _module);
         }catch (const pkpy::Exception& e){
             *_stderr << e.summary() << '\n';
-        }
-#if !defined(__GNUC__)
-        catch (const std::exception& e) {
+        }catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
         }
-#endif
         callstack = {};
         return nullptr;
     }
