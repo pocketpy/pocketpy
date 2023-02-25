@@ -43,6 +43,7 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://bluelovet
 | Context Block   | `with <expr> as <id>:`          | YES       |
 | Type Annotation | `def  f(a:int, b:float=1)`      | YES       |
 | Generator       | `yield i`                       | YES       |
+| Decorator       | `@cache`                        | YES       |
 
 ## Getting Started
 
@@ -175,13 +176,7 @@ Check our [Coding Style Guide](https://pocketpy.dev/coding_style_guide/) if you 
 
   An excellent learning material. It illustrates how Python's virtual machine works.
 
-+ [emhash](https://github.com/ktprime/emhash)
-
-  A very fast and memory efficient c++ flat hash map/set. In our test case, it is 40% faster than `std::unordered_map`.
-
 
 ## License
 
 PocketPy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
-
-PocketPy uses [emhash](https://github.com/ktprime/emhash)(MIT License) to implement Python's internal `__dict__` object. 

@@ -39,6 +39,7 @@ PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 | 上下文管理器 | `with <expr> as <id>:`          | YES  |
 | 类型标注 | `def  f(a:int, b:float=1)`      | YES       |
 | 生成器       | `yield i`                       | YES       |
+| 装饰器 | `@cache` | YES |
 
 ## 快速上手
 
@@ -149,10 +150,7 @@ flutter pub add pocketpy
 ## 参考
 
 + [cpython](https://github.com/python/cpython)
-
 + [byterun](http://qingyunha.github.io/taotao/)
-
-+ [emhash](https://github.com/ktprime/emhash)
 
 ## 开源协议
 
