@@ -278,8 +278,8 @@ PyVar VM::run_frame(Frame* frame){
             PyVar stop = frame->pop_value(this);
             PyVar start = frame->pop_value(this);
             pkpy::Slice s;
-            if(start != None) {check_type(start, tp_int); s.start = (int)PyInt_AS_C(start);}
-            if(stop != None) {check_type(stop, tp_int); s.stop = (int)PyInt_AS_C(stop);}
+            if(start != None) { s.start = (int)PyInt_AS_C(start);}
+            if(stop != None) { s.stop = (int)PyInt_AS_C(stop);}
             frame->push(PySlice(s));
         } continue;
         case OP_IMPORT_NAME: {
