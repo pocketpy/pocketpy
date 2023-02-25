@@ -763,9 +763,14 @@ __LISTCOMP:
         GrammarFn prefix = rules[parser->prev.type].prefix;
         if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(parser->prev.type));
         (this->*prefix)();
+        bool meet_assign_token = false;
         while (rules[peek()].precedence >= precedence) {
             lex_token();
             TokenIndex op = parser->prev.type;
+            if (op == TK("=")){
+                if(meet_assign_token) SyntaxError("invalid syntax");
+                meet_assign_token = true;
+            }
             GrammarFn infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();

@@ -74,3 +74,6 @@ struct Type {
 const float kLocalsLoadFactor = 0.67;
 const float kInstAttrLoadFactor = 0.67;
 const float kTypeAttrLoadFactor = 0.5;
+
+// do extra check for debug
+// #define PK_EXTRA_CHECK
