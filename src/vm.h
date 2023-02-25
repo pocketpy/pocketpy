@@ -607,7 +607,11 @@ public:
     DEF_NATIVE(StarWrapper, pkpy::StarWrapper, tp_star_wrapper)
     
     // there is only one True/False, so no need to copy them!
-    inline bool PyBool_AS_C(const PyVar& obj){return obj == True;}
+    inline bool PyBool_AS_C(const PyVar& obj){
+        check_type(obj, tp_bool);
+        return obj == True;
+    }
+    inline bool _PyBool_AS_C(const PyVar& obj){ return obj == True; }
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void init_builtin_types(){
@@ -684,7 +688,7 @@ public:
             return x;
         }
         if (is_type(obj, tp_type)) return obj.bits;
-        if (is_type(obj, tp_bool)) return PyBool_AS_C(obj) ? 1 : 0;
+        if (is_type(obj, tp_bool)) return _PyBool_AS_C(obj) ? 1 : 0;
         if (is_float(obj)){
             f64 val = PyFloat_AS_C(obj);
             return (i64)std::hash<f64>()(val);

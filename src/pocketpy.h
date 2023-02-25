@@ -210,7 +210,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, pkpy::Args& args) {
         if (is_type(args[0], vm->tp_int)) return args[0];
         if (is_type(args[0], vm->tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
-        if (is_type(args[0], vm->tp_bool)) return vm->PyInt(vm->PyBool_AS_C(args[0]) ? 1 : 0);
+        if (is_type(args[0], vm->tp_bool)) return vm->PyInt(vm->_PyBool_AS_C(args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
             try{

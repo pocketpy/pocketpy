@@ -158,10 +158,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_UNARY_NOT: {
             PyVar obj = frame->pop_value(this);
             const PyVar& obj_bool = asBool(obj);
-            frame->push(PyBool(!PyBool_AS_C(obj_bool)));
+            frame->push(PyBool(!_PyBool_AS_C(obj_bool)));
         } continue;
         case OP_POP_JUMP_IF_FALSE:
-            if(!PyBool_AS_C(asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
+            if(!_PyBool_AS_C(asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
             continue;
         case OP_LOAD_NONE: frame->push(None); continue;
         case OP_LOAD_TRUE: frame->push(True); continue;

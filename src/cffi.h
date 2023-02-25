@@ -77,7 +77,7 @@ struct Pointer{
                 case ctype("float64"): return vm->PyFloat(((double*)self.ptr)[index]);
                 case ctype("bool8"): return vm->PyBool(((bool*)self.ptr)[index]);
                 case ctype("void"): vm->TypeError("cannot index void*");
-                default: vm->TypeError("unsupported type");
+                default: UNREACHABLE();
             }
             return vm->None;
         });
@@ -98,6 +98,7 @@ struct Pointer{
                 case ctype("float64"): ((double*)self.ptr)[index] = vm->PyFloat_AS_C(args[2]); break;
                 case ctype("bool8"): ((bool*)self.ptr)[index] = vm->PyBool_AS_C(args[2]); break;
                 case ctype("void"): vm->TypeError("cannot index void*");
+                default: UNREACHABLE();
             }
             return vm->None;
         });
