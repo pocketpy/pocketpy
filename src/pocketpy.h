@@ -788,6 +788,8 @@ void add_module_functools(VM* vm){
     vm->_exec(code, mod);
 }
 
+#include "cffi.h"
+
 void VM::post_init(){
     init_builtins(this);
     add_module_sys(this);
@@ -800,6 +802,7 @@ void VM::post_init(){
     add_module_io(this);
     add_module_os(this);
     add_module_functools(this);
+    add_module_c(this);
 
     CodeObject_ code = compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);

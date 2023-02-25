@@ -84,6 +84,8 @@ public:
         rules[TK("&=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("|=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK("^=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK(">>=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        rules[TK("<<=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
         rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
@@ -228,13 +230,13 @@ private:
                 case '+': parser->set_next_token_2('=', TK("+"), TK("+=")); return;
                 case '>': {
                     if(parser->matchchar('=')) parser->set_next_token(TK(">="));
-                    else if(parser->matchchar('>')) parser->set_next_token(TK(">>"));
+                    else if(parser->matchchar('>')) parser->set_next_token_2('=', TK(">>"), TK(">>="));
                     else parser->set_next_token(TK(">"));
                     return;
                 }
                 case '<': {
                     if(parser->matchchar('=')) parser->set_next_token(TK("<="));
-                    else if(parser->matchchar('<')) parser->set_next_token(TK("<<"));
+                    else if(parser->matchchar('<')) parser->set_next_token_2('=', TK("<<"), TK("<<="));
                     else parser->set_next_token(TK("<"));
                     return;
                 }
@@ -422,6 +424,8 @@ private:
                 case TK("/="):      emit(OP_INPLACE_BINARY_OP, 3);  break;
                 case TK("//="):     emit(OP_INPLACE_BINARY_OP, 4);  break;
                 case TK("%="):      emit(OP_INPLACE_BINARY_OP, 5);  break;
+                case TK("<<="):     emit(OP_INPLACE_BITWISE_OP, 0);  break;
+                case TK(">>="):     emit(OP_INPLACE_BITWISE_OP, 1);  break;
                 case TK("&="):      emit(OP_INPLACE_BITWISE_OP, 2);  break;
                 case TK("|="):      emit(OP_INPLACE_BITWISE_OP, 3);  break;
                 case TK("^="):      emit(OP_INPLACE_BITWISE_OP, 4);  break;
