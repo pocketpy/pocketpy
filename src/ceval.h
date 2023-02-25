@@ -11,6 +11,7 @@ PyVar VM::run_frame(Frame* frame){
         switch (byte.op)
         {
         case OP_NO_OP: continue;
+        case OP_SETUP_DECORATOR: continue;
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             const PyVar obj = frame->co->consts[byte.arg];
@@ -32,13 +33,11 @@ PyVar VM::run_frame(Frame* frame){
             auto& p = frame->co->names[byte.arg];
             NameRef(p).set(this, frame, frame->pop());
         } continue;
-        case OP_BUILD_ATTR: {
-            int name = byte.arg >> 1;
-            bool _rvalue = byte.arg % 2 == 1;
-            auto& attr = frame->co->names[name];
+        case OP_BUILD_ATTR_REF: case OP_BUILD_ATTR: {
+            auto& attr = frame->co->names[byte.arg];
             PyVar obj = frame->pop_value(this);
             AttrRef ref = AttrRef(obj, NameRef(attr));
-            if(_rvalue) frame->push(ref.get(this, frame));
+            if(byte.op == OP_BUILD_ATTR) frame->push(ref.get(this, frame));
             else frame->push(PyRef(ref));
         } continue;
         case OP_BUILD_INDEX: {

@@ -206,6 +206,7 @@ private:
                 case ')': parser->set_next_token(TK(")")); return;
                 case '[': parser->set_next_token(TK("[")); return;
                 case ']': parser->set_next_token(TK("]")); return;
+                case '@': parser->set_next_token(TK("@")); return;
                 case '%': parser->set_next_token_2('=', TK("%"), TK("%=")); return;
                 case '&': parser->set_next_token_2('=', TK("&"), TK("&=")); return;
                 case '|': parser->set_next_token_2('=', TK("|"), TK("|=")); return;
@@ -636,8 +637,7 @@ __LISTCOMP:
         consume(TK("@id"));
         const Str& name = parser->prev.str();
         int index = co()->add_name(name, NAME_ATTR);
-        index = (index<<1) + (int)(co()->_rvalue>0);
-        emit(OP_BUILD_ATTR, index);
+        emit(co()->_rvalue ? OP_BUILD_ATTR : OP_BUILD_ATTR_REF, index);
     }
 
     // [:], [:b]
@@ -746,7 +746,7 @@ __LISTCOMP:
             consume(TK("@id"));
             Token tkname = parser->prev;
             int index = co()->add_name(tkname.str(), NAME_ATTR);
-            emit(OP_BUILD_ATTR, (index<<1)+1);
+            emit(OP_BUILD_ATTR, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 tkname = parser->prev;
@@ -893,6 +893,14 @@ __LISTCOMP:
             compile_from_import();
         } else if (match(TK("def"))){
             compile_function();
+        } else if (match(TK("@"))){
+            EXPR();
+            if(!match_newlines(mode()==REPL_MODE)){
+                SyntaxError("expected a new line after '@'");
+            }
+            emit(OP_SETUP_DECORATOR);
+            consume(TK("def"));
+            compile_function();
         } else if (match(TK("try"))) {
             compile_try_except();
         } else if(match(TK("assert"))) {
@@ -1020,6 +1028,7 @@ __LISTCOMP:
     }
 
     void compile_function(){
+        bool has_decorator = !co()->codes.empty() && co()->codes.back().op == OP_SETUP_DECORATOR;
         if(is_compiling_class){
             if(match(TK("pass"))) return;
             consume(TK("def"));
@@ -1047,14 +1056,19 @@ __LISTCOMP:
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
         if(!is_compiling_class){
-            if(obj_name.empty()) emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
-            else {
+            if(obj_name.empty()){
+                if(has_decorator) emit(OP_CALL, 1);
+                emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
+            } else {
+                if(has_decorator) SyntaxError("decorator is not supported here");
                 emit(OP_LOAD_NAME, co()->add_name(obj_name, name_scope()));
                 int index = co()->add_name(func.name, NAME_ATTR);
-                emit(OP_BUILD_ATTR, (index<<1)+0);
+                emit(OP_BUILD_ATTR_REF, index);
                 emit(OP_ROT_TWO);
                 emit(OP_STORE_REF);
             }
+        }else{
+            if(has_decorator) SyntaxError("decorator is not supported here");
         }
     }
 

@@ -395,3 +395,15 @@ def shuffle(L):
 def choice(L):
     return L[randint(0, len(L) - 1)]
 )";
+
+const char* kFuncToolsCode = R"(
+def cache(f):
+    def wrapper(*args):
+        if not hasattr(f, 'cache'):
+            f.cache = {}
+        key = args
+        if key not in f.cache:
+            f.cache[key] = f(*args)
+        return f.cache[key]
+    return wrapper
+)";

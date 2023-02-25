@@ -70,6 +70,12 @@ void init_builtins(VM* _vm) {
         return vm->new_object(vm->tp_super, *self);
     });
 
+    _vm->bind_builtin_func<1>("id", [](VM* vm, pkpy::Args& args) {
+        const PyVar& obj = args[0];
+        if(obj.is_tagged()) return vm->PyInt((i64)0);
+        return vm->PyInt(obj.bits);
+    });
+
     _vm->bind_builtin_func<1>("eval", [](VM* vm, pkpy::Args& args) {
         CodeObject_ code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
@@ -776,6 +782,12 @@ void add_module_random(VM* vm){
     vm->_exec(code, mod);
 }
 
+void add_module_functools(VM* vm){
+    PyVar mod = vm->new_module("functools");
+    CodeObject_ code = vm->compile(kFuncToolsCode, "functools.py", EXEC_MODE);
+    vm->_exec(code, mod);
+}
+
 void VM::post_init(){
     init_builtins(this);
     add_module_sys(this);
@@ -787,6 +799,7 @@ void VM::post_init(){
     add_module_random(this);
     add_module_io(this);
     add_module_os(this);
+    add_module_functools(this);
 
     CodeObject_ code = compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);
