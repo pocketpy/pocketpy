@@ -24,7 +24,7 @@ constexpr const char* kTokens[] = {
 
 const TokenIndex kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);
 
-constexpr TokenIndex TK(const char* const token) {
+constexpr TokenIndex TK(const char token[]) {
     for(int k=0; k<kTokenCount; k++){
         const char* i = kTokens[k];
         const char* j = token;
