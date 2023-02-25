@@ -301,6 +301,14 @@ PyVar VM::run_frame(Frame* frame){
                 frame->push(*ext_mod);
             }
         } continue;
+        case OP_STORE_ALL_NAMES: {
+            PyVar obj = frame->pop_value(this);
+            for(auto& [name, value]: obj->attr().items()){
+                Str s = name.str();
+                if(s.empty() || s[0] == '_') continue;
+                frame->f_globals().set(name, value);
+            }
+        }; continue;
         case OP_YIELD_VALUE: return _py_op_yield;
         // TODO: using "goto" inside with block may cause __exit__ not called
         case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); continue;

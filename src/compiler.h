@@ -745,6 +745,12 @@ __LISTCOMP:
     void compile_from_import() {
         Token tkmodule = _compile_import();
         consume(TK("import"));
+        if (match(TK("*"))) {
+            if(name_scope() != NAME_GLOBAL) SyntaxError("import * can only be used in global scope");
+            emit(OP_STORE_ALL_NAMES);
+            consume_end_stmt();
+            return;
+        }
         do {
             emit(OP_DUP_TOP_VALUE);
             consume(TK("@id"));
@@ -971,7 +977,7 @@ __LISTCOMP:
             consume_end_stmt();
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
-            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP){
+            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP && last_op!=OP_STORE_ALL_NAMES){
                 if(last_op == OP_BUILD_TUPLE_REF) co()->codes.back().op = OP_BUILD_TUPLE;
                 if(mode()==REPL_MODE && name_scope() == NAME_GLOBAL) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);

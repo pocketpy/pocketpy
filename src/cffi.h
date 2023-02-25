@@ -3,7 +3,7 @@
 #include "vm.h"
 
 struct CType{
-    PY_CLASS(c, type)
+    PY_CLASS(c, _type)
 
     const char* name;       // must be a literal
     int size;        
@@ -15,7 +15,7 @@ struct CType{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, pkpy::Args& args) {
             CType& self = vm->py_cast<CType>(args[0]);
             StrStream ss;
-            ss << "<c.type '" << self.name << "'>";
+            ss << "<c._type '" << self.name << "'>";
             return vm->PyStr(ss.str());
         });
     }
@@ -44,7 +44,7 @@ constexpr CType ctype_t(const char name[]){
 }
 
 struct Pointer{
-    PY_CLASS(c, ptr)
+    PY_CLASS(c, _ptr)
 
     void* ptr;
     CType _ctype;
@@ -165,7 +165,7 @@ void add_module_c(VM* vm){
             Pointer& p = vm->py_cast<Pointer>(args[0]);
             return vm->new_object<Pointer>(strdup(p.cast<char*>()), ctype_t("char"));
         }else{
-            vm->TypeError("strdup() argument must be 'str' or 'c.ptr'");
+            vm->TypeError("strdup() argument must be 'str' or 'c._ptr'");
             return vm->None;
         }
     });
