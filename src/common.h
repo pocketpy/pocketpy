@@ -29,12 +29,6 @@
 // #include <filesystem>
 // namespace fs = std::filesystem;
 
-#ifdef POCKETPY_H
-#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
-#else
-#define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
-#endif
-
 #define PK_VERSION "0.9.1"
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
@@ -69,6 +63,14 @@ struct Type {
 
 //#define THREAD_LOCAL thread_local
 #define THREAD_LOCAL
+#define CPP_LAMBDA(x) ([](VM* vm, pkpy::Args& args) { return x; })
+#define CPP_NOT_IMPLEMENTED() ([](VM* vm, pkpy::Args& args) { vm->NotImplementedError(); return vm->None; })
+
+#ifdef POCKETPY_H
+#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
+#else
+#define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
+#endif
 
 #define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
 

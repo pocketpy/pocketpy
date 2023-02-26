@@ -5,7 +5,7 @@ pipeline = [
 	["common.h", "memory.h", "str.h", "tuplelist.h", "namedict.h", "builtins.h", "error.h"],
 	["obj.h", "parser.h", "ref.h", "codeobject.h", "frame.h"],
 	["vm.h", "ceval.h", "compiler.h", "repl.h"],
-	["iter.h", "pocketpy.h"]
+	["iter.h", "cffi.h", "pocketpy.h"]
 ]
 
 copied = set()

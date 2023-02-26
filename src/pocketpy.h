@@ -5,9 +5,6 @@
 #include "repl.h"
 #include "iter.h"
 
-#define CPP_LAMBDA(x) ([](VM* vm, pkpy::Args& args) { return x; })
-#define CPP_NOT_IMPLEMENTED() ([](VM* vm, pkpy::Args& args) { vm->NotImplementedError(); return vm->None; })
-
 CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
