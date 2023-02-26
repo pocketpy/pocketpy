@@ -35,7 +35,7 @@
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define PK_VERSION "0.9.0"
+#define PK_VERSION "0.9.1"
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
