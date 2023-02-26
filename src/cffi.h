@@ -40,6 +40,7 @@ constexpr CType kCTypes[] = {
     CType("int32_", sizeof(int32_t), 8), CType("int64_", sizeof(int64_t), 9), 
     CType("uint8_", sizeof(uint8_t), 10), CType("uint16_", sizeof(uint16_t), 11),
     CType("uint32_", sizeof(uint32_t), 12), CType("uint64_", sizeof(uint64_t), 13),
+    CType("void_p_", sizeof(intptr_t), 14),
     // use macro here to do extension
 };
 
@@ -162,6 +163,7 @@ struct Pointer{
             case C_TYPE("uint16_"): return vm->PyInt(ref<uint16_t>());
             case C_TYPE("uint32_"): return vm->PyInt(ref<uint32_t>());
             case C_TYPE("uint64_"): return vm->PyInt(ref<uint64_t>());
+            case C_TYPE("void_p_"): return vm->new_object<Pointer>(ref<void*>(), C_TYPE_T("void_"));
             // use macro here to do extension
             default: UNREACHABLE();
         }
@@ -184,6 +186,7 @@ struct Pointer{
             case C_TYPE("uint16_"): ref<uint16_t>() = vm->PyInt_AS_C(val); break;
             case C_TYPE("uint32_"): ref<uint32_t>() = vm->PyInt_AS_C(val); break;
             case C_TYPE("uint64_"): ref<uint64_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("void_p_"): ref<void*>() = vm->py_cast<Pointer>(val).ptr; break;
             // use macro here to do extension
             default: UNREACHABLE();
         }
