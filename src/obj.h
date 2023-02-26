@@ -149,7 +149,11 @@ inline bool is_float(const PyVar& obj) noexcept {
 }
 
 #define PY_CLASS(mod, name) \
-    inline static Type _type(VM* vm) { return OBJ_GET(Type, vm->_modules[#mod]->attr(#name)); } \
+    inline static Type _type(VM* vm) {  \
+        static StrName __x0(#mod);      \
+        static StrName __x1(#name);     \
+        return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));  \
+    } \
     inline static const char* _mod() { return #mod; } \
     inline static const char* _name() { return #name; }
 
