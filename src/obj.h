@@ -109,7 +109,7 @@ struct Py_ : PyObject {
             _attr = new pkpy::NameDict(16, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
             _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
-        }else if constexpr(std::is_same_v<T, pkpy::Function> || std::is_same_v<T, pkpy::NativeFunc>){
+        }else if constexpr(std::is_same_v<T, pkpy::Function> || std::is_same_v<T, pkpy::NativeFunc> || std::is_same_v<T, DummyProperty>){
             _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;

@@ -51,6 +51,7 @@ typedef double f64;
 
 struct Dummy {  };
 struct DummyInstance {  };
+struct DummyProperty {  };
 struct DummyModule { };
 #define DUMMY_VAL Dummy()
 

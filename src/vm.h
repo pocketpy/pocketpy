@@ -361,6 +361,7 @@ public:
         while(cls != None.get()) {
             val = cls->attr().try_get(name);
             if(val != nullptr){
+                if(is_type(*val, tp_property)) return call((*val)->attr("__get__"), pkpy::one_arg(obj));
                 if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
                     return PyBoundMethod({obj, *val});
                 }else{
@@ -378,8 +379,24 @@ public:
         if(obj.is_tagged()) TypeError("cannot set attribute");
         PyObject* p = obj.get();
         while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
+
+        // handle property
+        PyVar* prop = _t(obj)->attr().try_get(name);
+        if(prop != nullptr && is_type(*prop, tp_property)){
+            call((*prop)->attr("__set__"), pkpy::two_args(obj, std::forward<T>(value)));
+            return;
+        }
+
         if(!p->is_attr_valid()) TypeError("cannot set attribute");
         p->attr().set(name, std::forward<T>(value));
+    }
+
+    void bind_property(PyVar obj, Str field, NativeFuncRaw getter, NativeFuncRaw setter){
+        check_type(obj, tp_type);
+        PyVar prop = new_object(tp_property, DummyProperty());
+        prop->attr().set("__get__", PyNativeFunc(pkpy::NativeFunc(getter, 0, true)));
+        prop->attr().set("__set__", PyNativeFunc(pkpy::NativeFunc(setter, 1, true)));
+        setattr(obj, field, prop);
     }
 
     template<int ARGC>
@@ -520,7 +537,7 @@ public:
     Type tp_list, tp_tuple;
     Type tp_function, tp_native_function, tp_native_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module, tp_ref;
-    Type tp_super, tp_exception, tp_star_wrapper;
+    Type tp_super, tp_exception, tp_star_wrapper, tp_property;
 
     template<typename P>
     inline PyVarRef PyRef(P&& value) {
@@ -637,6 +654,7 @@ public:
         tp_module = _new_type_object("module");
         tp_ref = _new_type_object("_ref");
         tp_star_wrapper = _new_type_object("_star_wrapper");
+        tp_property = _new_type_object("property");
         
         tp_function = _new_type_object("function");
         tp_native_function = _new_type_object("native_function");

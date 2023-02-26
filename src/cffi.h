@@ -2,8 +2,18 @@
 
 #include "vm.h"
 
+// struct Point2{
+//     int x;
+//     int y;
+// };
+
+// std::map<std::string_view, int> _Point2_members = {
+//     {"x", offsetof(Point2, x)},
+//     {"y", offsetof(Point2, y)},
+// };
+
 struct CType{
-    PY_CLASS(c, _type)
+    PY_CLASS(c, type_)
 
     const char* name;       // must be a literal
     const int size;
@@ -48,12 +58,20 @@ constexpr int ctype(const char name[]){
 #define ctype_t(x) (kCTypes[ctype(x)])
 
 struct Pointer{
-    PY_CLASS(c, _ptr)
+    PY_CLASS(c, ptr_)
 
     void* ptr;
     CType _ctype;       // base type
 
     Pointer(void* ptr, CType _ctype) : ptr(ptr), _ctype(_ctype) {}
+
+    Pointer operator+(i64 offset) const {
+        return Pointer((int8_t*)ptr + offset * _ctype.size, _ctype);
+    }
+
+    Pointer operator-(i64 offset) const {
+        return Pointer((int8_t*)ptr - offset * _ctype.size, _ctype);
+    }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
@@ -67,16 +85,12 @@ struct Pointer{
 
         vm->bind_method<1>(type, "__add__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
-            i64 offset = vm->PyInt_AS_C(args[1]);
-            int8_t* new_ptr = (int8_t*)self.ptr + offset * self._ctype.size;
-            return vm->new_object<Pointer>((void*)new_ptr, self._ctype);
+            return vm->new_object<Pointer>(self + vm->PyInt_AS_C(args[1]));
         });
 
         vm->bind_method<1>(type, "__sub__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
-            i64 offset = vm->PyInt_AS_C(args[1]);
-            int8_t* new_ptr = (int8_t*)self.ptr - offset * self._ctype.size;
-            return vm->new_object<Pointer>((void*)new_ptr, self._ctype);
+            return vm->new_object<Pointer>(self - vm->PyInt_AS_C(args[1]));
         });
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, pkpy::Args& args) {
@@ -95,48 +109,13 @@ struct Pointer{
         vm->bind_method<1>(type, "__getitem__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
             i64 index = vm->PyInt_AS_C(args[1]);
-            switch(self._ctype.index){
-                case ctype("char_"): return vm->PyInt(((char*)self.ptr)[index]);
-                case ctype("int_"): return vm->PyInt(((int*)self.ptr)[index]);
-                case ctype("float_"): return vm->PyFloat(((float*)self.ptr)[index]);
-                case ctype("double_"): return vm->PyFloat(((double*)self.ptr)[index]);
-                case ctype("bool_"): return vm->PyBool(((bool*)self.ptr)[index]);
-                case ctype("void_"): vm->TypeError("cannot index void*"); break;
-                case ctype("int8_"): return vm->PyInt(((int8_t*)self.ptr)[index]);
-                case ctype("int16_"): return vm->PyInt(((int16_t*)self.ptr)[index]);
-                case ctype("int32_"): return vm->PyInt(((int32_t*)self.ptr)[index]);
-                case ctype("int64_"): return vm->PyInt(((int64_t*)self.ptr)[index]);
-                case ctype("uint8_"): return vm->PyInt(((uint8_t*)self.ptr)[index]);
-                case ctype("uint16_"): return vm->PyInt(((uint16_t*)self.ptr)[index]);
-                case ctype("uint32_"): return vm->PyInt(((uint32_t*)self.ptr)[index]);
-                case ctype("uint64_"): return vm->PyInt(((uint64_t*)self.ptr)[index]);
-                // use macro here to do extension
-                default: UNREACHABLE();
-            }
-            return vm->None;
+            return (self+index).get(vm);
         });
 
         vm->bind_method<2>(type, "__setitem__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
             i64 index = vm->PyInt_AS_C(args[1]);
-            switch(self._ctype.index){
-                case ctype("char_"): ((char*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("int_"): ((int*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("float_"): ((float*)self.ptr)[index] = vm->PyFloat_AS_C(args[2]); break;
-                case ctype("double_"): ((double*)self.ptr)[index] = vm->PyFloat_AS_C(args[2]); break;
-                case ctype("bool_"): ((bool*)self.ptr)[index] = vm->PyBool_AS_C(args[2]); break;
-                case ctype("void_"): vm->TypeError("cannot index void*"); break;
-                case ctype("int8_"): ((int8_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("int16_"): ((int16_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("int32_"): ((int32_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("int64_"): ((int64_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("uint8_"): ((uint8_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("uint16_"): ((uint16_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("uint32_"): ((uint32_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                case ctype("uint64_"): ((uint64_t*)self.ptr)[index] = vm->PyInt_AS_C(args[2]); break;
-                // use macro here to do extension
-                default: UNREACHABLE();
-            }
+            (self+index).set(vm, args[2]);
             return vm->None;
         });
 
@@ -147,14 +126,125 @@ struct Pointer{
         });
     }
 
-    template<class T>
-    inline T cast() noexcept { return reinterpret_cast<T>(ptr); }
+    template<typename T>
+    inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
+
+    template<typename TP>
+    inline TP cast() noexcept {
+        static_assert(std::is_pointer_v<TP>);
+        return reinterpret_cast<TP>(ptr);
+    }
+
+    PyVar get(VM* vm){
+        switch(_ctype.index){
+            case ctype("char_"): return vm->PyInt(ref<char>());
+            case ctype("int_"): return vm->PyInt(ref<int>());
+            case ctype("float_"): return vm->PyFloat(ref<float>());
+            case ctype("double_"): return vm->PyFloat(ref<double>());
+            case ctype("bool_"): return vm->PyBool(ref<bool>());
+            case ctype("void_"): vm->ValueError("cannot get void*"); break;
+            case ctype("int8_"): return vm->PyInt(ref<int8_t>());
+            case ctype("int16_"): return vm->PyInt(ref<int16_t>());
+            case ctype("int32_"): return vm->PyInt(ref<int32_t>());
+            case ctype("int64_"): return vm->PyInt(ref<int64_t>());
+            case ctype("uint8_"): return vm->PyInt(ref<uint8_t>());
+            case ctype("uint16_"): return vm->PyInt(ref<uint16_t>());
+            case ctype("uint32_"): return vm->PyInt(ref<uint32_t>());
+            case ctype("uint64_"): return vm->PyInt(ref<uint64_t>());
+            // use macro here to do extension
+            default: UNREACHABLE();
+        }
+        return vm->None;
+    }
+
+    void set(VM* vm, const PyVar& val){
+        switch(_ctype.index){
+            case ctype("char_"): ref<char>() = vm->PyInt_AS_C(val); break;
+            case ctype("int_"): ref<int>() = vm->PyInt_AS_C(val); break;
+            case ctype("float_"): ref<float>() = vm->PyFloat_AS_C(val); break;
+            case ctype("double_"): ref<double>() = vm->PyFloat_AS_C(val); break;
+            case ctype("bool_"): ref<bool>() = vm->PyBool_AS_C(val); break;
+            case ctype("void_"): vm->ValueError("cannot set void*"); break;
+            case ctype("int8_"): ref<int8_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("int16_"): ref<int16_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("int32_"): ref<int32_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("int64_"): ref<int64_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("uint8_"): ref<uint8_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("uint16_"): ref<uint16_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("uint32_"): ref<uint32_t>() = vm->PyInt_AS_C(val); break;
+            case ctype("uint64_"): ref<uint64_t>() = vm->PyInt_AS_C(val); break;
+            // use macro here to do extension
+            default: UNREACHABLE();
+        }
+    }
+};
+
+struct StructMemberInfo {
+    int offset;
+    CType type;
+};
+
+struct StructMetaInfo {
+    Str name;
+    std::map<std::string_view, StructMemberInfo> members;
+};
+
+struct Struct {
+    PY_CLASS(c, struct_)
+
+    const StructMetaInfo* info;
+    int8_t* _data;      // store any `struct`
+
+    Struct(const StructMetaInfo* info, int8_t* data) : info(info), _data(data) {}
+    ~Struct(){ delete[] _data; }
+
+    int8_t* address(std::string_view name){
+        auto it = info->members.find(name);
+        if(it == info->members.end()) return nullptr;
+        return _data + it->second.offset;
+    }
+
+    static void _register(VM* vm, PyVar mod, PyVar type){
+        vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
+
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, pkpy::Args& args) {
+            Struct& self = vm->py_cast<Struct>(args[0]);
+            StrStream ss;
+            ss << "<c._struct '" << self.info->name << "'>";
+            return vm->PyStr(ss.str());
+        });
+
+#define MEMBER_LOOKUP() \
+    Struct& self = vm->py_cast<Struct>(args[0]);            \
+    std::string_view name = vm->PyStr_AS_C(args[1]);        \
+    auto it = self.info->members.find(name);                \
+    if(it == self.info->members.end()){                     \
+        vm->AttributeError(args[0], name.data());           \
+        return vm->None;                                    \
+    }                                                       \
+    const StructMemberInfo& info = it->second;              \
+    Pointer p = Pointer(self._data+info.offset, info.type); \
+
+        vm->bind_method<1>(type, "__getattr__", [](VM* vm, pkpy::Args& args) {
+            MEMBER_LOOKUP()
+            return p.get(vm);
+        });
+
+        vm->bind_method<2>(type, "__setattr__", [](VM* vm, pkpy::Args& args) {
+            MEMBER_LOOKUP()
+            p.set(vm, args[2]);
+            return vm->None;
+        });
+
+#undef MEMBER_LOOKUP
+    }
 };
 
 void add_module_c(VM* vm){
     PyVar mod = vm->new_module("c");
     PyVar ptr_t = vm->register_class<Pointer>(mod);
     vm->register_class<CType>(mod);
+    vm->register_class<Struct>(mod);
 
     for(int i=0; i<kCTypeCount; i++){
         vm->setattr(mod, kCTypes[i].name, vm->new_object<CType>(kCTypes[i]));
