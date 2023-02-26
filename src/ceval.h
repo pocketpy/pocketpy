@@ -136,8 +136,8 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_COMPARE_OP: {
             pkpy::Args args(2);
-            args[1] = frame->pop();
-            args[0] = frame->top();
+            args[1] = frame->pop_value(this);
+            args[0] = frame->top_value(this);
             frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
         } continue;
         case OP_IS_OP: {

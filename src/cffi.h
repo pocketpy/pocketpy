@@ -25,7 +25,7 @@ struct CType{
 constexpr CType kCTypes[] = {
     CType("char_", sizeof(char), 0), CType("int_", sizeof(int), 1),
     CType("float_", sizeof(float), 2), CType("double_", sizeof(double), 3),
-    CType("bool_", sizeof(bool), 4), CType("void_", 0, 5),
+    CType("bool_", sizeof(bool), 4), CType("void_", 1, 5),
     CType("int8_", sizeof(int8_t), 6), CType("int16_", sizeof(int16_t), 7),
     CType("int32_", sizeof(int32_t), 8), CType("int64_", sizeof(int64_t), 9), 
     CType("uint8_", sizeof(uint8_t), 10), CType("uint16_", sizeof(uint16_t), 11),
@@ -61,8 +61,34 @@ struct Pointer{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
             StrStream ss;
-            ss << "<" << self._ctype.name << "* at " << std::hex << self.ptr << ">";
+            ss << "<" << self._ctype.name << "* at " << (i64)self.ptr << ">";
             return vm->PyStr(ss.str());
+        });
+
+        vm->bind_method<1>(type, "__add__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            i64 offset = vm->PyInt_AS_C(args[1]);
+            int8_t* new_ptr = (int8_t*)self.ptr + offset * self._ctype.size;
+            return vm->new_object<Pointer>((void*)new_ptr, self._ctype);
+        });
+
+        vm->bind_method<1>(type, "__sub__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            i64 offset = vm->PyInt_AS_C(args[1]);
+            int8_t* new_ptr = (int8_t*)self.ptr - offset * self._ctype.size;
+            return vm->new_object<Pointer>((void*)new_ptr, self._ctype);
+        });
+
+        vm->bind_method<1>(type, "__eq__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& other = vm->py_cast<Pointer>(args[1]);
+            return vm->PyBool(self.ptr == other.ptr);
+        });
+
+        vm->bind_method<1>(type, "__ne__", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& other = vm->py_cast<Pointer>(args[1]);
+            return vm->PyBool(self.ptr != other.ptr);
         });
 
         // https://docs.python.org/zh-cn/3/library/ctypes.html
@@ -133,6 +159,7 @@ void add_module_c(VM* vm){
     for(int i=0; i<kCTypeCount; i++){
         vm->setattr(mod, kCTypes[i].name, vm->new_object<CType>(kCTypes[i]));
     }
+    vm->setattr(mod, "nullptr", vm->new_object<Pointer>(nullptr, ctype_t("void_")));
 
     vm->bind_func<1>(mod, "malloc", [](VM* vm, pkpy::Args& args) {
         i64 size = vm->PyInt_AS_C(args[0]);
