@@ -124,6 +124,17 @@ struct Pointer{
             CType& ctype = vm->py_cast<CType>(args[1]);
             return vm->new_object<Pointer>(self.ptr, ctype);
         });
+
+        vm->bind_method<0>(type, "get", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            return self.get(vm);
+        });
+
+        vm->bind_method<1>(type, "set", [](VM* vm, pkpy::Args& args) {
+            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            self.set(vm, args[1]);
+            return vm->None;
+        });
     }
 
     template<typename T>
@@ -291,7 +302,7 @@ void add_module_c(VM* vm){
             Pointer& p = vm->py_cast<Pointer>(args[0]);
             return vm->new_object<Pointer>(strdup(p.cast<char*>()), ctype_t("char_"));
         }else{
-            vm->TypeError("strdup() argument must be 'str' or 'c._ptr'");
+            vm->TypeError("strdup() argument must be 'str' or 'char*'");
             return vm->None;
         }
     });
