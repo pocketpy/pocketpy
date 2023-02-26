@@ -10,6 +10,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     try{
         return compiler.compile();
     }catch(pkpy::Exception& e){
+        // std::cout << e.summary() << std::endl;
         _error(e);
         return nullptr;
     }

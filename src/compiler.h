@@ -19,7 +19,6 @@ enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 class Compiler {
     std::unique_ptr<Parser> parser;
     std::stack<CodeObject_> codes;
-    bool is_compiling_class = false;
     int lexing_count = 0;
     bool used = false;
     VM* vm;
@@ -334,7 +333,7 @@ private:
             consumed = true;
         }
         if (repl_throw && peek() == TK("@eof")){
-            throw NeedMoreLines(is_compiling_class);
+            throw NeedMoreLines(co()->_is_compiling_class);
         }
         return consumed;
     }
@@ -409,13 +408,19 @@ private:
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
             if(lhs!=-1 && co()->codes[lhs].op == OP_LOAD_NAME_REF){
-                emit(OP_STORE_NAME, co()->codes[lhs].arg);
+                if(co()->_is_compiling_class){
+                    emit(OP_STORE_CLASS_ATTR, co()->codes[lhs].arg);
+                }else{
+                    emit(OP_STORE_NAME, co()->codes[lhs].arg);
+                }
                 co()->codes[lhs].op = OP_NO_OP;
                 co()->codes[lhs].arg = -1;
             }else{
+                if(co()->_is_compiling_class) SyntaxError();
                 emit(OP_STORE_REF);
             }
         }else{                  // a += (expr) -> a = a + (expr)
+            if(co()->_is_compiling_class) SyntaxError();
             EXPR();
             switch (op) {
                 case TK("+="):      emit(OP_INPLACE_BINARY_OP, 0);  break;
@@ -778,7 +783,7 @@ __LISTCOMP:
             lex_token();
             TokenIndex op = parser->prev.type;
             if (op == TK("=")){
-                if(meet_assign_token) SyntaxError("invalid syntax");
+                if(meet_assign_token) SyntaxError();
                 meet_assign_token = true;
             }
             GrammarFn infix = rules[op].infix;
@@ -977,7 +982,9 @@ __LISTCOMP:
             consume_end_stmt();
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
-            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF && last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP && last_op!=OP_STORE_ALL_NAMES){
+            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF &&
+            last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP &&
+            last_op!=OP_STORE_ALL_NAMES && last_op!=OP_STORE_CLASS_ATTR){
                 if(last_op == OP_BUILD_TUPLE_REF) co()->codes.back().op = OP_BUILD_TUPLE;
                 if(mode()==REPL_MODE && name_scope() == NAME_GLOBAL) emit(OP_PRINT_EXPR, -1, true);
                 emit(OP_POP_TOP, -1, true);
@@ -993,13 +1000,13 @@ __LISTCOMP:
             super_cls_name_idx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
             consume(TK(")"));
         }
-        emit(OP_LOAD_NONE);
-        is_compiling_class = true;
-        compile_block_body(&Compiler::compile_function);
-        is_compiling_class = false;
         if(super_cls_name_idx == -1) emit(OP_LOAD_NONE);
-        else emit(OP_LOAD_NAME_REF, super_cls_name_idx);
-        emit(OP_BUILD_CLASS, cls_name_idx);
+        else emit(OP_LOAD_NAME, super_cls_name_idx);
+        emit(OP_BEGIN_CLASS, cls_name_idx);
+        co()->_is_compiling_class = true;
+        compile_block_body();
+        co()->_is_compiling_class = false;
+        emit(OP_END_CLASS);
     }
 
     void _compile_f_args(pkpy::Function& func, bool enable_type_hints){
@@ -1044,15 +1051,11 @@ __LISTCOMP:
 
     void compile_function(){
         bool has_decorator = !co()->codes.empty() && co()->codes.back().op == OP_SETUP_DECORATOR;
-        if(is_compiling_class){
-            if(match(TK("pass"))) return;
-            consume(TK("def"));
-        }
         pkpy::Function func;
         StrName obj_name;
         consume(TK("@id"));
         func.name = parser->prev.str();
-        if(!is_compiling_class && match(TK("::"))){
+        if(!co()->_is_compiling_class && match(TK("::"))){
             consume(TK("@id"));
             obj_name = func.name;
             func.name = parser->prev.str();
@@ -1070,7 +1073,7 @@ __LISTCOMP:
         this->codes.pop();
         emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
-        if(!is_compiling_class){
+        if(!co()->_is_compiling_class){
             if(obj_name.empty()){
                 if(has_decorator) emit(OP_CALL, 1);
                 emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
@@ -1083,7 +1086,8 @@ __LISTCOMP:
                 emit(OP_STORE_REF);
             }
         }else{
-            if(has_decorator) SyntaxError("decorator is not supported here");
+            if(has_decorator) emit(OP_CALL, 1);
+            emit(OP_STORE_CLASS_ATTR, co()->add_name(func.name, name_scope()));
         }
     }
 
@@ -1117,6 +1121,7 @@ __LISTCOMP:
         throw e;
     }
     void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
+    void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
     void IndentationError(Str msg){ throw_err("IndentationError", msg); }
 
 public:

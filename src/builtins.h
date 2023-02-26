@@ -384,6 +384,13 @@ class set:
     
     def __iter__(self):
         return self._a.keys()
+
+class property:
+    def __init__(self, fget):
+        self.fget = fget
+
+    def __get__(self, obj):
+        return self.fget(obj)
 )";
 
 const char* kRandomCode = R"(

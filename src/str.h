@@ -191,6 +191,7 @@ const StrName __init__ = StrName::get("__init__");
 const StrName __json__ = StrName::get("__json__");
 const StrName __name__ = StrName::get("__name__");
 const StrName __len__ = StrName::get("__len__");
+const StrName __get__ = StrName::get("__get__");
 
 const StrName m_eval = StrName::get("eval");
 const StrName m_self = StrName::get("self");

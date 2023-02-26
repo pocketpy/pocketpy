@@ -45,7 +45,6 @@ typedef double f64;
 
 struct Dummy {  };
 struct DummyInstance {  };
-struct DummyProperty {  };
 struct DummyModule { };
 #define DUMMY_VAL Dummy()
 
@@ -79,4 +78,4 @@ const float kInstAttrLoadFactor = 0.67;
 const float kTypeAttrLoadFactor = 0.5;
 
 // do extra check for debug
-// #define PK_EXTRA_CHECK
+#define PK_EXTRA_CHECK

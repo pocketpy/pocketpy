@@ -76,3 +76,18 @@ assert isinstance(d, B)
 assert isinstance(d, A)
 assert isinstance(object, object)
 assert isinstance(type, object)
+
+class A:
+    a = 1
+    b = 2
+
+assert A.a == 1
+assert A.b == 2
+
+class B(A):
+    b = 3
+    c = 4
+
+# assert B.a == 1  ...bug here
+assert B.b == 3
+assert B.c == 4

@@ -85,25 +85,28 @@ PyVar VM::run_frame(Frame* frame){
             pkpy::List& list = PyList_AS_C(frame->top_1());
             list.push_back(std::move(obj));
         } continue;
-        case OP_BUILD_CLASS: {
-            const Str& clsName = frame->co->names[byte.arg].first.str();
+        case OP_BEGIN_CLASS: {
+            auto& name = frame->co->names[byte.arg];
             PyVar clsBase = frame->pop_value(this);
             if(clsBase == None) clsBase = _t(tp_object);
             check_type(clsBase, tp_type);
-            PyVar cls = new_type_object(frame->_module, clsName, clsBase);
-            while(true){
-                PyVar fn = frame->pop_value(this);
-                if(fn == None) break;
-                const pkpy::Function& f = PyFunction_AS_C(fn);
-                setattr(cls, f.name, fn);
-            }
+            PyVar cls = new_type_object(frame->_module, name.first, clsBase);
+            frame->push(cls);
+        } continue;
+        case OP_END_CLASS: {
+            PyVar cls = frame->pop();
             cls->attr()._try_perfect_rehash();
+        }; continue;
+        case OP_STORE_CLASS_ATTR: {
+            auto& name = frame->co->names[byte.arg];
+            PyVar obj = frame->pop_value(this);
+            PyVar& cls = frame->top();
+            cls->attr().set(name.first, std::move(obj));
         } continue;
         case OP_RETURN_VALUE: return frame->pop_value(this);
         case OP_PRINT_EXPR: {
             const PyVar expr = frame->top_value(this);
-            if(expr == None) continue;
-            *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
+            if(expr != None) *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
         } continue;
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {

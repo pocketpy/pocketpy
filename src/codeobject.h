@@ -94,6 +94,7 @@ struct CodeObject {
     /************************************************/
     int _curr_block_i = 0;
     int _rvalue = 0;
+    bool _is_compiling_class = false;
     bool _is_curr_block_loop() const {
         return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
     }
