@@ -45,7 +45,7 @@ constexpr CType kCTypes[] = {
 
 const int kCTypeCount = sizeof(kCTypes) / sizeof(CType);
 
-constexpr int ctype(const char name[]){
+constexpr int C_TYPE(const char name[]){
     for(int k=0; k<kCTypeCount; k++){
         const char* i = kCTypes[k].name;
         const char* j = name;
@@ -55,22 +55,22 @@ constexpr int ctype(const char name[]){
     UNREACHABLE();
 }
 
-#define ctype_t(x) (kCTypes[ctype(x)])
+#define C_TYPE_T(x) (kCTypes[C_TYPE(x)])
 
 struct Pointer{
     PY_CLASS(c, ptr_)
 
     void* ptr;
-    CType _ctype;       // base type
+    CType ctype;       // base type
 
-    Pointer(void* ptr, CType _ctype) : ptr(ptr), _ctype(_ctype) {}
+    Pointer(void* ptr, CType ctype) : ptr(ptr), ctype(ctype) {}
 
     Pointer operator+(i64 offset) const {
-        return Pointer((int8_t*)ptr + offset * _ctype.size, _ctype);
+        return Pointer((int8_t*)ptr + offset * ctype.size, ctype);
     }
 
     Pointer operator-(i64 offset) const {
-        return Pointer((int8_t*)ptr - offset * _ctype.size, _ctype);
+        return Pointer((int8_t*)ptr - offset * ctype.size, ctype);
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
@@ -79,7 +79,7 @@ struct Pointer{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, pkpy::Args& args) {
             Pointer& self = vm->py_cast<Pointer>(args[0]);
             StrStream ss;
-            ss << "<" << self._ctype.name << "* at " << (i64)self.ptr << ">";
+            ss << "<" << self.ctype.name << "* at " << (i64)self.ptr << ">";
             return vm->PyStr(ss.str());
         });
 
@@ -147,21 +147,21 @@ struct Pointer{
     }
 
     PyVar get(VM* vm){
-        switch(_ctype.index){
-            case ctype("char_"): return vm->PyInt(ref<char>());
-            case ctype("int_"): return vm->PyInt(ref<int>());
-            case ctype("float_"): return vm->PyFloat(ref<float>());
-            case ctype("double_"): return vm->PyFloat(ref<double>());
-            case ctype("bool_"): return vm->PyBool(ref<bool>());
-            case ctype("void_"): vm->ValueError("cannot get void*"); break;
-            case ctype("int8_"): return vm->PyInt(ref<int8_t>());
-            case ctype("int16_"): return vm->PyInt(ref<int16_t>());
-            case ctype("int32_"): return vm->PyInt(ref<int32_t>());
-            case ctype("int64_"): return vm->PyInt(ref<int64_t>());
-            case ctype("uint8_"): return vm->PyInt(ref<uint8_t>());
-            case ctype("uint16_"): return vm->PyInt(ref<uint16_t>());
-            case ctype("uint32_"): return vm->PyInt(ref<uint32_t>());
-            case ctype("uint64_"): return vm->PyInt(ref<uint64_t>());
+        switch(ctype.index){
+            case C_TYPE("char_"): return vm->PyInt(ref<char>());
+            case C_TYPE("int_"): return vm->PyInt(ref<int>());
+            case C_TYPE("float_"): return vm->PyFloat(ref<float>());
+            case C_TYPE("double_"): return vm->PyFloat(ref<double>());
+            case C_TYPE("bool_"): return vm->PyBool(ref<bool>());
+            case C_TYPE("void_"): vm->ValueError("cannot get void*"); break;
+            case C_TYPE("int8_"): return vm->PyInt(ref<int8_t>());
+            case C_TYPE("int16_"): return vm->PyInt(ref<int16_t>());
+            case C_TYPE("int32_"): return vm->PyInt(ref<int32_t>());
+            case C_TYPE("int64_"): return vm->PyInt(ref<int64_t>());
+            case C_TYPE("uint8_"): return vm->PyInt(ref<uint8_t>());
+            case C_TYPE("uint16_"): return vm->PyInt(ref<uint16_t>());
+            case C_TYPE("uint32_"): return vm->PyInt(ref<uint32_t>());
+            case C_TYPE("uint64_"): return vm->PyInt(ref<uint64_t>());
             // use macro here to do extension
             default: UNREACHABLE();
         }
@@ -169,21 +169,21 @@ struct Pointer{
     }
 
     void set(VM* vm, const PyVar& val){
-        switch(_ctype.index){
-            case ctype("char_"): ref<char>() = vm->PyInt_AS_C(val); break;
-            case ctype("int_"): ref<int>() = vm->PyInt_AS_C(val); break;
-            case ctype("float_"): ref<float>() = vm->PyFloat_AS_C(val); break;
-            case ctype("double_"): ref<double>() = vm->PyFloat_AS_C(val); break;
-            case ctype("bool_"): ref<bool>() = vm->PyBool_AS_C(val); break;
-            case ctype("void_"): vm->ValueError("cannot set void*"); break;
-            case ctype("int8_"): ref<int8_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("int16_"): ref<int16_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("int32_"): ref<int32_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("int64_"): ref<int64_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("uint8_"): ref<uint8_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("uint16_"): ref<uint16_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("uint32_"): ref<uint32_t>() = vm->PyInt_AS_C(val); break;
-            case ctype("uint64_"): ref<uint64_t>() = vm->PyInt_AS_C(val); break;
+        switch(ctype.index){
+            case C_TYPE("char_"): ref<char>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("int_"): ref<int>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("float_"): ref<float>() = vm->PyFloat_AS_C(val); break;
+            case C_TYPE("double_"): ref<double>() = vm->PyFloat_AS_C(val); break;
+            case C_TYPE("bool_"): ref<bool>() = vm->PyBool_AS_C(val); break;
+            case C_TYPE("void_"): vm->ValueError("cannot set void*"); break;
+            case C_TYPE("int8_"): ref<int8_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("int16_"): ref<int16_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("int32_"): ref<int32_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("int64_"): ref<int64_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("uint8_"): ref<uint8_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("uint16_"): ref<uint16_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("uint32_"): ref<uint32_t>() = vm->PyInt_AS_C(val); break;
+            case C_TYPE("uint64_"): ref<uint64_t>() = vm->PyInt_AS_C(val); break;
             // use macro here to do extension
             default: UNREACHABLE();
         }
@@ -260,11 +260,11 @@ void add_module_c(VM* vm){
     for(int i=0; i<kCTypeCount; i++){
         vm->setattr(mod, kCTypes[i].name, vm->new_object<CType>(kCTypes[i]));
     }
-    vm->setattr(mod, "nullptr", vm->new_object<Pointer>(nullptr, ctype_t("void_")));
+    vm->setattr(mod, "nullptr", vm->new_object<Pointer>(nullptr, C_TYPE_T("void_")));
 
     vm->bind_func<1>(mod, "malloc", [](VM* vm, pkpy::Args& args) {
         i64 size = vm->PyInt_AS_C(args[0]);
-        return vm->new_object<Pointer>(malloc(size), ctype_t("void_"));
+        return vm->new_object<Pointer>(malloc(size), C_TYPE_T("void_"));
     });
 
     vm->bind_func<1>(mod, "free", [](VM* vm, pkpy::Args& args) {
@@ -297,10 +297,10 @@ void add_module_c(VM* vm){
     vm->bind_func<1>(mod, "strdup", [ptr_t](VM* vm, pkpy::Args& args) {
         if(is_type(args[0], vm->tp_str)){
             const Str& s = vm->PyStr_AS_C(args[0]);
-            return vm->new_object<Pointer>(strdup(s.c_str()), ctype_t("char_"));
+            return vm->new_object<Pointer>(strdup(s.c_str()), C_TYPE_T("char_"));
         }else if(is_type(args[0], OBJ_GET(Type, ptr_t))){
             Pointer& p = vm->py_cast<Pointer>(args[0]);
-            return vm->new_object<Pointer>(strdup(p.cast<char*>()), ctype_t("char_"));
+            return vm->new_object<Pointer>(strdup(p.cast<char*>()), C_TYPE_T("char_"));
         }else{
             vm->TypeError("strdup() argument must be 'str' or 'char*'");
             return vm->None;
