@@ -66,7 +66,9 @@ public:
     }
 
     inline Frame* top_frame() const {
+#ifdef PK_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
+#endif
         return callstack.top().get();
     }
 
@@ -671,10 +673,8 @@ public:
         }
 
         post_init();
-        for(auto [k, v]: _types.items()){
-            v->attr()._try_perfect_rehash();
-        }
-        builtins->attr()._try_perfect_rehash();
+        for(auto [k, v]: _types.items()) v->attr()._try_perfect_rehash();
+        for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
     }
 
     void post_init();
@@ -734,6 +734,8 @@ public:
     void AttributeError(PyVar obj, StrName name){
         _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.str().escape(true));
     }
+
+    void AttributeError(Str msg){ _error("AttributeError", msg); }
 
     inline void check_type(const PyVar& obj, Type type){
         if(is_type(obj, type)) return;

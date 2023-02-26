@@ -299,6 +299,7 @@ PyVar VM::run_frame(Frame* frame){
                     _exec(code, new_mod);
                     frame->push(new_mod);
                     _lazy_modules.erase(it2);
+                    new_mod->attr()._try_perfect_rehash();
                 }
             }else{
                 frame->push(*ext_mod);
