@@ -19,7 +19,7 @@ struct CType{
             CType& self = vm->_cast<CType>(args[0]);
             StrStream ss;
             ss << "<c._type '" << self.name << "' (" << self.size*8 << " bits)>";
-            return py_var(vm, ss.str());
+            return VAR(ss.str());
         });
     }
 };
@@ -73,7 +73,7 @@ struct Pointer{
             Pointer& self = vm->_cast<Pointer>(args[0]);
             StrStream ss;
             ss << "<" << self.ctype.name << "* at " << (i64)self.ptr << ">";
-            return py_var(vm, ss.str());
+            return VAR(ss.str());
         });
 
         vm->bind_method<1>(type, "__add__", [](VM* vm, Args& args) {
@@ -89,13 +89,13 @@ struct Pointer{
         vm->bind_method<1>(type, "__eq__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
             Pointer& other = vm->_cast<Pointer>(args[1]);
-            return py_var(vm, self.ptr == other.ptr);
+            return VAR(self.ptr == other.ptr);
         });
 
         vm->bind_method<1>(type, "__ne__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
             Pointer& other = vm->_cast<Pointer>(args[1]);
-            return py_var(vm, self.ptr != other.ptr);
+            return VAR(self.ptr != other.ptr);
         });
 
         // https://docs.python.org/zh-cn/3/library/ctypes.html
@@ -141,20 +141,20 @@ struct Pointer{
 
     PyVar get(VM* vm){
         switch(ctype.index){
-            case C_TYPE("char_"): return py_var(vm, ref<char>());
-            case C_TYPE("int_"): return py_var(vm, ref<int>());
-            case C_TYPE("float_"): return py_var(vm, ref<float>());
-            case C_TYPE("double_"): return py_var(vm, ref<double>());
-            case C_TYPE("bool_"): return py_var(vm, ref<bool>());
+            case C_TYPE("char_"): return VAR(ref<char>());
+            case C_TYPE("int_"): return VAR(ref<int>());
+            case C_TYPE("float_"): return VAR(ref<float>());
+            case C_TYPE("double_"): return VAR(ref<double>());
+            case C_TYPE("bool_"): return VAR(ref<bool>());
             case C_TYPE("void_"): vm->ValueError("cannot get void*"); break;
-            case C_TYPE("int8_"): return py_var(vm, ref<int8_t>());
-            case C_TYPE("int16_"): return py_var(vm, ref<int16_t>());
-            case C_TYPE("int32_"): return py_var(vm, ref<int32_t>());
-            case C_TYPE("int64_"): return py_var(vm, ref<int64_t>());
-            case C_TYPE("uint8_"): return py_var(vm, ref<uint8_t>());
-            case C_TYPE("uint16_"): return py_var(vm, ref<uint16_t>());
-            case C_TYPE("uint32_"): return py_var(vm, ref<uint32_t>());
-            case C_TYPE("uint64_"): return py_var(vm, ref<uint64_t>());
+            case C_TYPE("int8_"): return VAR(ref<int8_t>());
+            case C_TYPE("int16_"): return VAR(ref<int16_t>());
+            case C_TYPE("int32_"): return VAR(ref<int32_t>());
+            case C_TYPE("int64_"): return VAR(ref<int64_t>());
+            case C_TYPE("uint8_"): return VAR(ref<uint8_t>());
+            case C_TYPE("uint16_"): return VAR(ref<uint16_t>());
+            case C_TYPE("uint32_"): return VAR(ref<uint32_t>());
+            case C_TYPE("uint64_"): return VAR(ref<uint64_t>());
             case C_TYPE("void_p_"): return vm->new_object<Pointer>(ref<void*>(), C_TYPE_T("void_"));
             // use macro here to do extension
             default: UNREACHABLE();
@@ -245,7 +245,7 @@ struct Struct {
             Struct& self = vm->_cast<Struct>(args[0]);
             StrStream ss;
             ss << self.info->name << "(" << ")";
-            return py_var(vm, ss.str());
+            return VAR(ss.str());
         });
     }
 };
@@ -274,7 +274,7 @@ void add_module_c(VM* vm){
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
         CType& ctype = vm->_cast<CType>(args[0]);
-        return py_var(vm, ctype.size);
+        return VAR(ctype.size);
     });
 
     vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
@@ -309,12 +309,12 @@ void add_module_c(VM* vm){
     vm->bind_func<2>(mod, "strcmp", [](VM* vm, Args& args) {
         Pointer& p1 = vm->_cast<Pointer>(args[0]);
         Pointer& p2 = vm->_cast<Pointer>(args[1]);
-        return py_var(vm, strcmp(p1.cast<char*>(), p2.cast<char*>()));
+        return VAR(strcmp(p1.cast<char*>(), p2.cast<char*>()));
     });
 
     vm->bind_func<1>(mod, "strlen", [](VM* vm, Args& args) {
         Pointer& p = vm->_cast<Pointer>(args[0]);
-        return py_var(vm, strlen(p.cast<char*>()));
+        return VAR(strlen(p.cast<char*>()));
     });
 }
 

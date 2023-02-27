@@ -175,6 +175,9 @@ template<typename T>
 T& _py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
 
 #define VAR(x) py_var(vm, x)
-
+#define CAST(T, x) py_cast<T>(vm, x)
+#define CAST_V(T, x) py_cast_v<T>(vm, x)
+#define _CAST(T, x) _py_cast<T>(vm, x)
+#define _CAST_V(T, x) _py_cast_v<T>(vm, x)
 
 }   // namespace pkpy

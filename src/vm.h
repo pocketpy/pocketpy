@@ -443,7 +443,7 @@ template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
 }
 
 PyVar py_var(VM* vm, const char* val){
-    return py_var(vm, Str(val));
+    return VAR(Str(val));
 }
 
 PyVar VM::num_negated(const PyVar& obj){
