@@ -807,6 +807,10 @@ void VM::post_init(){
     this->_exec(code, this->builtins);
 }
 
+}   // namespace pkpy
+
+/*************************GLOBAL NAMESPACE*************************/
+
 class PkExportedBase{
 public:
     virtual ~PkExportedBase() = default;
@@ -852,8 +856,8 @@ extern "C" {
 
     __EXPORT
     /// Run a given source on a virtual machine.
-    void pkpy_vm_exec(VM* vm, const char* source){
-        vm->exec(source, "main.py", EXEC_MODE);
+    void pkpy_vm_exec(pkpy::VM* vm, const char* source){
+        vm->exec(source, "main.py", pkpy::EXEC_MODE);
     }
 
     __EXPORT
@@ -861,11 +865,11 @@ extern "C" {
     /// 
     /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
-    char* pkpy_vm_get_global(VM* vm, const char* name){
-        PyVar* val = vm->_main->attr().try_get(name);
+    char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
+        pkpy::PyVar* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            Str _repr = vm->PyStr_AS_C(vm->asRepr(*val));
+            pkpy::Str _repr = vm->PyStr_AS_C(vm->asRepr(*val));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -877,11 +881,11 @@ extern "C" {
     /// 
     /// Return `__repr__` of the result.
     /// If there is any error, return `nullptr`.
-    char* pkpy_vm_eval(VM* vm, const char* source){
-        PyVarOrNull ret = vm->exec(source, "<eval>", EVAL_MODE);
+    char* pkpy_vm_eval(pkpy::VM* vm, const char* source){
+        pkpy::PyVarOrNull ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
+            pkpy::Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -890,26 +894,26 @@ extern "C" {
 
     __EXPORT
     /// Create a REPL, using the given virtual machine as the backend.
-    REPL* pkpy_new_repl(VM* vm){
-        return PKPY_ALLOCATE(REPL, vm);
+    pkpy::REPL* pkpy_new_repl(pkpy::VM* vm){
+        return PKPY_ALLOCATE(pkpy::REPL, vm);
     }
 
     __EXPORT
     /// Input a source line to an interactive console. Return true if need more lines.
-    bool pkpy_repl_input(REPL* r, const char* line){
+    bool pkpy_repl_input(pkpy::REPL* r, const char* line){
         return r->input(line);
     }
 
     __EXPORT
     /// Add a source module into a virtual machine.
-    void pkpy_vm_add_module(VM* vm, const char* name, const char* source){
+    void pkpy_vm_add_module(pkpy::VM* vm, const char* name, const char* source){
         vm->_lazy_modules[name] = source;
     }
 
     __EXPORT
     /// Create a virtual machine.
-    VM* pkpy_new_vm(bool use_stdio){
-        return PKPY_ALLOCATE(VM, use_stdio);
+    pkpy::VM* pkpy_new_vm(bool use_stdio){
+        return PKPY_ALLOCATE(pkpy::VM, use_stdio);
     }
 
     __EXPORT
@@ -918,13 +922,13 @@ extern "C" {
     /// After this operation, both stream will be cleared.
     ///
     /// Return a json representing the result.
-    char* pkpy_vm_read_output(VM* vm){
+    char* pkpy_vm_read_output(pkpy::VM* vm){
         if(vm->use_stdio) return nullptr;
-        StrStream* s_out = (StrStream*)(vm->_stdout);
-        StrStream* s_err = (StrStream*)(vm->_stderr);
-        Str _stdout = s_out->str();
-        Str _stderr = s_err->str();
-        StrStream ss;
+        pkpy::StrStream* s_out = (pkpy::StrStream*)(vm->_stdout);
+        pkpy::StrStream* s_err = (pkpy::StrStream*)(vm->_stderr);
+        pkpy::Str _stdout = s_out->str();
+        pkpy::Str _stderr = s_err->str();
+        pkpy::StrStream ss;
         ss << '{' << "\"stdout\": " << _stdout.escape(false);
         ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
         s_out->str(""); s_err->str("");
@@ -955,19 +959,19 @@ extern "C" {
 
     __EXPORT
     /// Bind a function to a virtual machine.
-    char* pkpy_vm_bind(VM* vm, const char* mod, const char* name, int ret_code){
+    char* pkpy_vm_bind(pkpy::VM* vm, const char* mod, const char* name, int ret_code){
         if(!f_int || !f_float || !f_bool || !f_str || !f_None) return nullptr;
         static int kGlobalBindId = 0;
         for(int i=0; mod[i]; i++) if(mod[i] == ' ') return nullptr;
         for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
-        PyVar obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
-        vm->bind_func<-1>(obj, name, [ret_code, f_header](VM* vm, const Args& args){
-            StrStream ss;
+        pkpy::PyVar obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
+        vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, const pkpy::Args& args){
+            pkpy::StrStream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
-                PyVar x = vm->call(args[i], __json__);
+                pkpy::PyVar x = vm->call(args[i], pkpy::__json__);
                 ss << vm->PyStr_AS_C(x);
             }
             char* packet = strdup(ss.str().c_str());
@@ -989,5 +993,3 @@ extern "C" {
         return strdup(f_header.c_str());
     }
 }
-
-}   // namespace pkpy

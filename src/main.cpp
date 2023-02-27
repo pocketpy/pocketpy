@@ -1,19 +1,17 @@
 #include <fstream>
 #include "pocketpy.h"
 
-using namespace pkpy;
-
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char** argv){
-    VM* vm = pkpy_new_vm(true);
-    vm->bind_builtin_func<0>("input", [](VM* vm, Args& args){
+    pkpy::VM* vm = pkpy_new_vm(true);
+    vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::Args& args){
         static std::string line;
         std::getline(std::cin, line);
         return vm->PyStr(line);
     });
     if(argc == 1){
-        REPL* repl = pkpy_new_repl(vm);
+        pkpy::REPL* repl = pkpy_new_repl(vm);
         bool need_more_lines = false;
         while(true){
             (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
@@ -35,8 +33,8 @@ int main(int argc, char** argv){
             return 1;
         }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        PyVarOrNull ret = nullptr;
-        ret = vm->exec(src.c_str(), filename, EXEC_MODE);
+        pkpy::PyVarOrNull ret = nullptr;
+        ret = vm->exec(src.c_str(), filename, pkpy::EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;
     }
