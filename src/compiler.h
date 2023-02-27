@@ -1101,8 +1101,8 @@ __LISTCOMP:
         }
         if(match(TK("@num"))) return parser->prev.value;
         if(match(TK("@str"))) return parser->prev.value;
-        if(match(TK("True"))) return vm->PyBool(true);
-        if(match(TK("False"))) return vm->PyBool(false);
+        if(match(TK("True"))) return py_object(vm, true);
+        if(match(TK("False"))) return py_object(vm, false);
         if(match(TK("None"))) return vm->None;
         if(match(TK("..."))) return vm->Ellipsis;
         return nullptr;

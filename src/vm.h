@@ -247,14 +247,6 @@ public:
         return static_cast<BaseIter*>(obj->value());
     }
     
-    // there is only one True/False, so no need to copy them!
-    inline bool PyBool_AS_C(const PyVar& obj){
-        check_type(obj, tp_bool);
-        return obj == True;
-    }
-    inline bool _PyBool_AS_C(const PyVar& obj){ return obj == True; }
-    inline const PyVar& PyBool(bool value){return value ? True : False;}
-
     /***** Error Reporter *****/
     void _error(StrName name, const Str& msg){
         _error(Exception(name, msg));
@@ -433,7 +425,7 @@ template<> f64 _py_cast_v<f64>(VM* vm, const PyVar& obj){
     return __8B(bits)._float;
 }
 
-PyVar py_object(VM* vm, bool val){
+const PyVar& py_object(VM* vm, bool val){
     return val ? vm->True : vm->False;
 }
 template<> bool py_cast_v<bool>(VM* vm, const PyVar& obj){
@@ -471,12 +463,12 @@ f64 VM::num_to_float(const PyVar& obj){
 const PyVar& VM::asBool(const PyVar& obj){
     if(is_type(obj, tp_bool)) return obj;
     if(obj == None) return False;
-    if(is_type(obj, tp_int)) return PyBool(py_cast_v<i64>(this, obj) != 0);
-    if(is_type(obj, tp_float)) return PyBool(py_cast_v<f64>(this, obj) != 0.0);
+    if(is_type(obj, tp_int)) return py_object(this, py_cast_v<i64>(this, obj) != 0);
+    if(is_type(obj, tp_float)) return py_object(this, py_cast_v<f64>(this, obj) != 0.0);
     PyVarOrNull len_fn = getattr(obj, __len__, false);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
-        return PyBool(py_cast_v<i64>(this, ret) > 0);
+        return py_object(this, py_cast_v<i64>(this, ret) > 0);
     }
     return True;
 }
@@ -494,7 +486,7 @@ i64 VM::hash(const PyVar& obj){
         return x;
     }
     if (is_type(obj, tp_type)) return obj.bits;
-    if (is_type(obj, tp_bool)) return _PyBool_AS_C(obj) ? 1 : 0;
+    if (is_type(obj, tp_bool)) return _py_cast_v<bool>(this, obj) ? 1 : 0;
     if (is_float(obj)){
         f64 val = py_cast_v<f64>(this, obj);
         return (i64)std::hash<f64>()(val);

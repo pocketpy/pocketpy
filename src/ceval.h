@@ -150,13 +150,13 @@ PyVar VM::run_frame(Frame* frame){
             PyVar rhs = frame->pop_value(this);
             bool ret_c = rhs == frame->top_value(this);
             if(byte.arg == 1) ret_c = !ret_c;
-            frame->top() = PyBool(ret_c);
+            frame->top() = py_object(this, ret_c);
         } continue;
         case OP_CONTAINS_OP: {
             PyVar rhs = frame->pop_value(this);
-            bool ret_c = PyBool_AS_C(call(rhs, __contains__, one_arg(frame->pop_value(this))));
+            bool ret_c = py_cast_v<bool>(this, call(rhs, __contains__, one_arg(frame->pop_value(this))));
             if(byte.arg == 1) ret_c = !ret_c;
-            frame->push(PyBool(ret_c));
+            frame->push(py_object(this, ret_c));
         } continue;
         case OP_UNARY_NEGATIVE:
             frame->top() = num_negated(frame->top_value(this));
@@ -164,10 +164,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_UNARY_NOT: {
             PyVar obj = frame->pop_value(this);
             const PyVar& obj_bool = asBool(obj);
-            frame->push(PyBool(!_PyBool_AS_C(obj_bool)));
+            frame->push(py_object(this, !_py_cast_v<bool>(this, obj_bool)));
         } continue;
         case OP_POP_JUMP_IF_FALSE:
-            if(!_PyBool_AS_C(asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
+            if(!_py_cast_v<bool>(this, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
             continue;
         case OP_LOAD_NONE: frame->push(None); continue;
         case OP_LOAD_TRUE: frame->push(True); continue;
@@ -182,7 +182,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_EXCEPTION_MATCH: {
             const auto& e = py_cast<Exception>(this, frame->top());
             StrName name = frame->co->names[byte.arg].first;
-            frame->push(PyBool(e.match_type(name)));
+            frame->push(py_object(this, e.match_type(name)));
         } continue;
         case OP_RAISE: {
             PyVar obj = frame->pop_value(this);

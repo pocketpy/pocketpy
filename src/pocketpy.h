@@ -31,12 +31,12 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
         if(!is_both_int_or_float(args[0], args[1])){                                                    \
-            if constexpr(is_eq) return vm->PyBool(args[0] op args[1]);                                  \
+            if constexpr(is_eq) return py_object(vm, args[0] op args[1]);                                  \
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         if(is_both_int(args[0], args[1]))                                                               \
-            return vm->PyBool(_py_cast_v<i64>(vm, args[0]) op _py_cast_v<i64>(vm, args[1]));                    \
-        return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
+            return py_object(vm, _py_cast_v<i64>(vm, args[0]) op _py_cast_v<i64>(vm, args[1]));                    \
+        return py_object(vm, vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
     });
     
 
@@ -117,7 +117,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("hasattr", [](VM* vm, Args& args) {
-        return vm->PyBool(vm->getattr(args[0], py_cast<Str>(vm, args[1]), false) != nullptr);
+        return py_object(vm, vm->getattr(args[0], py_cast<Str>(vm, args[1]), false) != nullptr);
     });
 
     _vm->bind_builtin_func<3>("setattr", [](VM* vm, Args& args) {
@@ -159,8 +159,8 @@ void init_builtins(VM* _vm) {
         return py_object(vm, s);
     });
 
-    _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
-    _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(vm->PyBool(args[0] != args[1])));
+    _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(py_object(vm, args[0] == args[1])));
+    _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(py_object(vm, args[0] != args[1])));
 
     _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(vm->_t(args[0])));
 
@@ -211,7 +211,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, Args& args) {
         if (is_type(args[0], vm->tp_int)) return args[0];
         if (is_type(args[0], vm->tp_float)) return py_object(vm, (i64)py_cast_v<f64>(vm, args[0]));
-        if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1 : 0);
+        if (is_type(args[0], vm->tp_bool)) return py_object(vm, _py_cast_v<bool>(vm, args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = py_cast<Str>(vm, args[0]);
             try{
@@ -257,7 +257,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, Args& args) {
         if (is_type(args[0], vm->tp_int)) return py_object(vm, (f64)py_cast_v<i64>(vm, args[0]));
         if (is_type(args[0], vm->tp_float)) return args[0];
-        if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (is_type(args[0], vm->tp_bool)) return py_object(vm, _py_cast_v<bool>(vm, args[0]) ? 1.0 : 0.0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = py_cast<Str>(vm, args[0]);
             if(s == "inf") return py_object(vm, INFINITY);
@@ -306,7 +306,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, Args& args) {
         const Str& self = py_cast<Str>(vm, args[0]);
         const Str& other = py_cast<Str>(vm, args[1]);
-        return vm->PyBool(self.find(other) != Str::npos);
+        return py_object(vm, self.find(other) != Str::npos);
     });
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
@@ -324,14 +324,14 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return vm->PyBool(py_cast<Str>(vm, args[0]) == py_cast<Str>(vm, args[1]));
-        return vm->PyBool(args[0] == args[1]);
+            return py_object(vm, py_cast<Str>(vm, args[0]) == py_cast<Str>(vm, args[1]));
+        return py_object(vm, args[0] == args[1]);
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return vm->PyBool(py_cast<Str>(vm, args[0]) != py_cast<Str>(vm, args[1]));
-        return vm->PyBool(args[0] != args[1]);
+            return py_object(vm, py_cast<Str>(vm, args[0]) != py_cast<Str>(vm, args[1]));
+        return py_object(vm, args[0] != args[1]);
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, Args& args) {
@@ -351,13 +351,13 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, Args& args) {
         const Str& self (py_cast<Str>(vm, args[0]));
         const Str& obj (py_cast<Str>(vm, args[1]));
-        return vm->PyBool(self > obj);
+        return py_object(vm, self > obj);
     });
 
     _vm->bind_method<1>("str", "__lt__", [](VM* vm, Args& args) {
         const Str& self (py_cast<Str>(vm, args[0]));
         const Str& obj (py_cast<Str>(vm, args[1]));
-        return vm->PyBool(self < obj);
+        return py_object(vm, self < obj);
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, Args& args) {
@@ -377,13 +377,13 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "startswith", [](VM* vm, Args& args) {
         const Str& _self = py_cast<Str>(vm, args[0]);
         const Str& _prefix = py_cast<Str>(vm, args[1]);
-        return vm->PyBool(_self.find(_prefix) == 0);
+        return py_object(vm, _self.find(_prefix) == 0);
     });
 
     _vm->bind_method<1>("str", "endswith", [](VM* vm, Args& args) {
         const Str& _self = py_cast<Str>(vm, args[0]);
         const Str& _suffix = py_cast<Str>(vm, args[1]);
-        return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
+        return py_object(vm, _self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
@@ -521,19 +521,19 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(vm->asBool(args[0])));
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, Args& args) {
-        bool val = vm->PyBool_AS_C(args[0]);
+        bool val = py_cast_v<bool>(vm, args[0]);
         return py_object(vm, val ? "True" : "False");
     });
 
     _vm->bind_method<0>("bool", "__json__", [](VM* vm, Args& args) {
-        bool val = vm->PyBool_AS_C(args[0]);
+        bool val = py_cast_v<bool>(vm, args[0]);
         return py_object(vm, val ? "true" : "false");
     });
 
     _vm->bind_method<1>("bool", "__xor__", [](VM* vm, Args& args) {
-        bool self = vm->PyBool_AS_C(args[0]);
-        bool other = vm->PyBool_AS_C(args[1]);
-        return vm->PyBool(self ^ other);
+        bool self = py_cast_v<bool>(vm, args[0]);
+        bool other = py_cast_v<bool>(vm, args[1]);
+        return py_object(vm, self ^ other);
     });
 
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(py_object(vm, "Ellipsis")));
@@ -596,8 +596,8 @@ void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "sin", CPP_LAMBDA(py_object(vm, std::sin(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "cos", CPP_LAMBDA(py_object(vm, std::cos(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "tan", CPP_LAMBDA(py_object(vm, std::tan(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(py_object(vm, std::isnan(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(py_object(vm, std::isinf(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(py_object(vm, std::fabs(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(py_object(vm, (i64)std::floor(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(py_object(vm, (i64)std::ceil(vm->num_to_float(args[0])))));
@@ -977,7 +977,7 @@ extern "C" {
             switch(ret_code){
                 case 'i': return py_object(vm, f_int(packet));
                 case 'f': return py_object(vm, f_float(packet));
-                case 'b': return vm->PyBool(f_bool(packet));
+                case 'b': return py_object(vm, f_bool(packet));
                 case 's': {
                     char* p = f_str(packet);
                     if(p == nullptr) return vm->None;
