@@ -391,7 +391,7 @@ DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 template<typename T>
-std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, PyVar> py_object(VM* vm, T _val){
+std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<RAW(T), bool>, PyVar> py_object(VM* vm, T _val){
     i64 val = static_cast<i64>(_val);
     if(((val << 2) >> 2) != val){
         vm->_error("OverflowError", std::to_string(val) + " is out of range");
@@ -407,12 +407,6 @@ template<> i64 _py_cast_v<i64>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
 
-PyVar py_object(VM* vm, f64 val){
-    i64 bits = __8B(val)._int;
-    bits = (bits >> 2) << 2;
-    bits |= 0b10;
-    return PyVar(reinterpret_cast<int*>(bits));
-}
 template<> f64 py_cast_v<f64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);
     i64 bits = obj.bits;
@@ -425,9 +419,19 @@ template<> f64 _py_cast_v<f64>(VM* vm, const PyVar& obj){
     return __8B(bits)._float;
 }
 
+template<typename T>
+std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_object(VM* vm, T _val){
+    f64 val = static_cast<f64>(_val);
+    i64 bits = __8B(val)._int;
+    bits = (bits >> 2) << 2;
+    bits |= 0b10;
+    return PyVar(reinterpret_cast<int*>(bits));
+}
+
 const PyVar& py_object(VM* vm, bool val){
     return val ? vm->True : vm->False;
 }
+
 template<> bool py_cast_v<bool>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_bool);
     return obj == vm->True;
