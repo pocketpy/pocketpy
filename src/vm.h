@@ -20,8 +20,8 @@ namespace pkpy{
     template<> ctype _py_cast_v<ctype>(VM* vm, const PyVar& obj) {      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    PyVar py_object(VM* vm, const ctype& value) { return vm->new_object(vm->ptype, value);}     \
-    PyVar py_object(VM* vm, ctype&& value) { return vm->new_object(vm->ptype, std::move(value));}
+    PyVar py_var(VM* vm, const ctype& value) { return vm->new_object(vm->ptype, value);}     \
+    PyVar py_var(VM* vm, ctype&& value) { return vm->new_object(vm->ptype, std::move(value));}
 
 class Generator: public BaseIter {
     std::unique_ptr<Frame> frame;
@@ -391,7 +391,7 @@ DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 template<typename T>
-std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<RAW(T), bool>, PyVar> py_object(VM* vm, T _val){
+std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<RAW(T), bool>, PyVar> py_var(VM* vm, T _val){
     i64 val = static_cast<i64>(_val);
     if(((val << 2) >> 2) != val){
         vm->_error("OverflowError", std::to_string(val) + " is out of range");
@@ -420,7 +420,7 @@ template<> f64 _py_cast_v<f64>(VM* vm, const PyVar& obj){
 }
 
 template<typename T>
-std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_object(VM* vm, T _val){
+std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_var(VM* vm, T _val){
     f64 val = static_cast<f64>(_val);
     i64 bits = __8B(val)._int;
     bits = (bits >> 2) << 2;
@@ -428,7 +428,7 @@ std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_object(VM* vm, T _val){
     return PyVar(reinterpret_cast<int*>(bits));
 }
 
-const PyVar& py_object(VM* vm, bool val){
+const PyVar& py_var(VM* vm, bool val){
     return val ? vm->True : vm->False;
 }
 
@@ -440,15 +440,15 @@ template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
-PyVar py_object(VM* vm, const char* val){
-    return py_object(vm, Str(val));
+PyVar py_var(VM* vm, const char* val){
+    return py_var(vm, Str(val));
 }
 
 PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
-        return py_object(this, -py_cast_v<i64>(this, obj));
+        return py_var(this, -py_cast_v<i64>(this, obj));
     }else if(is_float(obj)){
-        return py_object(this, -py_cast_v<f64>(this, obj));
+        return py_var(this, -py_cast_v<f64>(this, obj));
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return nullptr;
@@ -467,12 +467,12 @@ f64 VM::num_to_float(const PyVar& obj){
 const PyVar& VM::asBool(const PyVar& obj){
     if(is_type(obj, tp_bool)) return obj;
     if(obj == None) return False;
-    if(is_type(obj, tp_int)) return py_object(this, py_cast_v<i64>(this, obj) != 0);
-    if(is_type(obj, tp_float)) return py_object(this, py_cast_v<f64>(this, obj) != 0.0);
+    if(is_type(obj, tp_int)) return py_var(this, py_cast_v<i64>(this, obj) != 0);
+    if(is_type(obj, tp_float)) return py_var(this, py_cast_v<f64>(this, obj) != 0.0);
     PyVarOrNull len_fn = getattr(obj, __len__, false);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
-        return py_object(this, py_cast_v<i64>(this, ret) > 0);
+        return py_var(this, py_cast_v<i64>(this, ret) > 0);
     }
     return True;
 }
@@ -500,7 +500,7 @@ i64 VM::hash(const PyVar& obj){
 }
 
 PyVar VM::asRepr(const PyVar& obj){
-    if(is_type(obj, tp_type)) return py_object(this, "<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
+    if(is_type(obj, tp_type)) return py_var(this, "<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
     return call(obj, __repr__);
 }
 
@@ -510,7 +510,7 @@ PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
     setattr(obj, __base__, base);
     Str fullName = name.str();
     if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
-    setattr(obj, __name__, py_object(this, fullName));
+    setattr(obj, __name__, py_var(this, fullName));
     setattr(mod, name, obj);
     _all_types.push_back(obj);
     return obj;
@@ -518,7 +518,7 @@ PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
 
 PyVar VM::new_module(StrName name) {
     PyVar obj = new_object(tp_module, DummyModule());
-    setattr(obj, __name__, py_object(this, name.str()));
+    setattr(obj, __name__, py_var(this, name.str()));
     _modules.set(name, obj);
     return obj;
 }
@@ -571,15 +571,15 @@ Str VM::disassemble(CodeObject_ co){
     }
     StrStream consts;
     consts << "co_consts: ";
-    consts << py_cast<Str>(this, asRepr(py_object(this, co->consts)));
+    consts << py_cast<Str>(this, asRepr(py_var(this, co->consts)));
 
     StrStream names;
     names << "co_names: ";
     List list;
     for(int i=0; i<co->names.size(); i++){
-        list.push_back(py_object(this, co->names[i].first.str()));
+        list.push_back(py_var(this, co->names[i].first.str()));
     }
-    names << py_cast<Str>(this, asRepr(py_object(this, list)));
+    names << py_cast<Str>(this, asRepr(py_var(this, list)));
     ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
     for(int i=0; i<co->consts.size(); i++){
@@ -636,7 +636,7 @@ void VM::init_builtin_types(){
     setattr(_t(tp_object), __base__, None);
     
     for(auto [k, v]: _types.items()){
-        setattr(v, __name__, py_object(this, k.str()));
+        setattr(v, __name__, py_var(this, k.str()));
     }
 
     std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
@@ -696,7 +696,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         if(!fn.starred_arg.empty()){
             List vargs;        // handle *args
             while(i < args.size()) vargs.push_back(std::move(args[i++]));
-            locals->set(fn.starred_arg, py_object(this, Tuple::from_list(std::move(vargs))));
+            locals->set(fn.starred_arg, py_var(this, Tuple::from_list(std::move(vargs))));
         }else{
             for(StrName key : fn.kwargs_order){
                 if(i < args.size()){
@@ -775,7 +775,7 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
                 return call(descriptor, one_arg(obj));
             }
             if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
-                return py_object(this, BoundMethod(obj, *val));
+                return py_var(this, BoundMethod(obj, *val));
             }else{
                 return *val;
             }
@@ -798,12 +798,12 @@ void VM::setattr(PyVar& obj, StrName name, T&& value) {
 template<int ARGC>
 void VM::bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
     check_type(obj, tp_type);
-    setattr(obj, funcName, py_object(this, NativeFunc(fn, ARGC, true)));
+    setattr(obj, funcName, py_var(this, NativeFunc(fn, ARGC, true)));
 }
 
 template<int ARGC>
 void VM::bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
-    setattr(obj, funcName, py_object(this, NativeFunc(fn, ARGC, false)));
+    setattr(obj, funcName, py_var(this, NativeFunc(fn, ARGC, false)));
 }
 
 void VM::_error(Exception e){
@@ -811,7 +811,7 @@ void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    top_frame()->push(py_object(this, e));
+    top_frame()->push(py_var(this, e));
     _raise();
 }
 

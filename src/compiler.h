@@ -147,9 +147,9 @@ private:
     void eat_string(char quote, StringType type) {
         Str s = eat_string_until(quote, type == RAW_STRING);
         if(type == F_STRING){
-            parser->set_next_token(TK("@fstr"), py_object(vm, s));
+            parser->set_next_token(TK("@fstr"), py_var(vm, s));
         }else{
-            parser->set_next_token(TK("@str"), py_object(vm, s));
+            parser->set_next_token(TK("@str"), py_var(vm, s));
         }
     }
 
@@ -171,9 +171,9 @@ private:
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) SyntaxError("hex literal should not contain a dot");
-                    parser->set_next_token(TK("@num"), py_object(vm, S_TO_FLOAT(m[0], &size)));
+                    parser->set_next_token(TK("@num"), py_var(vm, S_TO_FLOAT(m[0], &size)));
                 } else {
-                    parser->set_next_token(TK("@num"), py_object(vm, S_TO_INT(m[0], &size, base)));
+                    parser->set_next_token(TK("@num"), py_var(vm, S_TO_INT(m[0], &size, base)));
                 }
                 if (size != m.length()) UNREACHABLE();
             }
@@ -369,18 +369,18 @@ private:
             std::smatch m = *it;
             if (i < m.position()) {
                 std::string literal = s.substr(i, m.position() - i);
-                emit(OP_LOAD_CONST, co()->add_const(py_object(vm, literal)));
+                emit(OP_LOAD_CONST, co()->add_const(py_var(vm, literal)));
                 size++;
             }
             emit(OP_LOAD_EVAL_FN);
-            emit(OP_LOAD_CONST, co()->add_const(py_object(vm, m[1].str())));
+            emit(OP_LOAD_CONST, co()->add_const(py_var(vm, m[1].str())));
             emit(OP_CALL, 1);
             size++;
             i = (int)(m.position() + m.length());
         }
         if (i < s.size()) {
             std::string literal = s.substr(i, s.size() - i);
-            emit(OP_LOAD_CONST, co()->add_const(py_object(vm, literal)));
+            emit(OP_LOAD_CONST, co()->add_const(py_var(vm, literal)));
             size++;
         }
         emit(OP_BUILD_STRING, size);
@@ -399,7 +399,7 @@ private:
         emit(OP_RETURN_VALUE);
         func.code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_FUNCTION, co()->add_const(py_object(vm, func)));
+        emit(OP_LOAD_FUNCTION, co()->add_const(py_var(vm, func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
     }
 
@@ -613,7 +613,7 @@ __LISTCOMP:
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
                 const Str& key = parser->prev.str();
-                emit(OP_LOAD_CONST, co()->add_const(py_object(vm, key)));
+                emit(OP_LOAD_CONST, co()->add_const(py_var(vm, key)));
                 consume(TK("="));
                 co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
                 KWARGC++;
@@ -929,7 +929,7 @@ __LISTCOMP:
             co()->_rvalue += 1;
             EXPR();
             if (match(TK(","))) EXPR();
-            else emit(OP_LOAD_CONST, co()->add_const(py_object(vm, "")));
+            else emit(OP_LOAD_CONST, co()->add_const(py_var(vm, "")));
             co()->_rvalue -= 1;
             emit(OP_ASSERT);
             consume_end_stmt();
@@ -1073,7 +1073,7 @@ __LISTCOMP:
         compile_block_body();
         func.code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_FUNCTION, co()->add_const(py_object(vm, func)));
+        emit(OP_LOAD_FUNCTION, co()->add_const(py_var(vm, func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
         if(!co()->_is_compiling_class){
             if(obj_name.empty()){
@@ -1101,8 +1101,8 @@ __LISTCOMP:
         }
         if(match(TK("@num"))) return parser->prev.value;
         if(match(TK("@str"))) return parser->prev.value;
-        if(match(TK("True"))) return py_object(vm, true);
-        if(match(TK("False"))) return py_object(vm, false);
+        if(match(TK("True"))) return py_var(vm, true);
+        if(match(TK("False"))) return py_var(vm, false);
         if(match(TK("None"))) return vm->None;
         if(match(TK("..."))) return vm->Ellipsis;
         return nullptr;

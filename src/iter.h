@@ -20,7 +20,7 @@ public:
     PyVar next(){
         if(!_has_next()) return nullptr;
         current += r.step;
-        return py_object(vm, current-r.step);
+        return py_var(vm, current-r.step);
     }
 };
 
@@ -46,7 +46,7 @@ public:
 
     PyVar next() {
         if(index == str->u8_length()) return nullptr;
-        return py_object(vm, str->u8_getitem(index++));
+        return py_var(vm, str->u8_getitem(index++));
     }
 };
 
