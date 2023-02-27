@@ -22,9 +22,9 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
         if(is_both_int(args[0], args[1])){                                                              \
-            return py_object(vm, vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                     \
+            return py_object(vm, _py_cast_v<i64>(vm, args[0]) op _py_cast_v<i64>(vm, args[1]));                     \
         }else{                                                                                          \
-            return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
+            return py_object(vm, vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
         }                                                                                               \
     });
 
@@ -35,7 +35,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         if(is_both_int(args[0], args[1]))                                                               \
-            return vm->PyBool(vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                    \
+            return vm->PyBool(_py_cast_v<i64>(vm, args[0]) op _py_cast_v<i64>(vm, args[1]));                    \
         return vm->PyBool(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
     });
     
@@ -185,13 +185,13 @@ void init_builtins(VM* _vm) {
     _vm->_bind_methods<1>({"int", "float"}, "__truediv__", [](VM* vm, Args& args) {
         f64 rhs = vm->num_to_float(args[1]);
         if (rhs == 0) vm->ZeroDivisionError();
-        return vm->PyFloat(vm->num_to_float(args[0]) / rhs);
+        return py_object(vm, vm->num_to_float(args[0]) / rhs);
     });
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, Args& args) {
         if(is_both_int(args[0], args[1])){
-            i64 lhs = vm->_PyInt_AS_C(args[0]);
-            i64 rhs = vm->_PyInt_AS_C(args[1]);
+            i64 lhs = _py_cast_v<i64>(vm, args[0]);
+            i64 rhs = _py_cast_v<i64>(vm, args[1]);
             bool flag = false;
             if(rhs < 0) {flag = true; rhs = -rhs;}
             i64 ret = 1;
@@ -200,17 +200,17 @@ void init_builtins(VM* _vm) {
                 lhs *= lhs;
                 rhs >>= 1;
             }
-            if(flag) return vm->PyFloat((f64)(1.0 / ret));
+            if(flag) return py_object(vm, (f64)(1.0 / ret));
             return py_object(vm, ret);
         }else{
-            return vm->PyFloat((f64)std::pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
+            return py_object(vm, (f64)std::pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
         }
     });
 
     /************ PyInt ************/
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, Args& args) {
         if (is_type(args[0], vm->tp_int)) return args[0];
-        if (is_type(args[0], vm->tp_float)) return py_object(vm, (i64)vm->PyFloat_AS_C(args[0]));
+        if (is_type(args[0], vm->tp_float)) return py_object(vm, (i64)py_cast_v<f64>(vm, args[0]));
         if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
@@ -255,16 +255,16 @@ void init_builtins(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, Args& args) {
-        if (is_type(args[0], vm->tp_int)) return vm->PyFloat((f64)py_cast_v<i64>(vm, args[0]));
+        if (is_type(args[0], vm->tp_int)) return py_object(vm, (f64)py_cast_v<i64>(vm, args[0]));
         if (is_type(args[0], vm->tp_float)) return args[0];
-        if (is_type(args[0], vm->tp_bool)) return vm->PyFloat(vm->_PyBool_AS_C(args[0]) ? 1.0 : 0.0);
+        if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1.0 : 0.0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
-            if(s == "inf") return vm->PyFloat(INFINITY);
-            if(s == "-inf") return vm->PyFloat(-INFINITY);
+            if(s == "inf") return py_object(vm, INFINITY);
+            if(s == "-inf") return py_object(vm, -INFINITY);
             try{
                 f64 val = S_TO_FLOAT(s);
-                return vm->PyFloat(val);
+                return py_object(vm, val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for float(): '" + s + "'");
             }
@@ -274,7 +274,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("float", "__repr__", [](VM* vm, Args& args) {
-        f64 val = vm->PyFloat_AS_C(args[0]);
+        f64 val = py_cast_v<f64>(vm, args[0]);
         if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
         StrStream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
@@ -284,7 +284,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("float", "__json__", [](VM* vm, Args& args) {
-        f64 val = vm->PyFloat_AS_C(args[0]);
+        f64 val = py_cast_v<f64>(vm, args[0]);
         if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
         return vm->PyStr(std::to_string(val));
     });
@@ -557,7 +557,7 @@ void add_module_time(VM* vm){
     PyVar mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, Args& args) {
         auto now = std::chrono::high_resolution_clock::now();
-        return vm->PyFloat(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
+        return py_object(vm, std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
 }
 
@@ -587,21 +587,21 @@ void add_module_json(VM* vm){
 
 void add_module_math(VM* vm){
     PyVar mod = vm->new_module("math");
-    vm->setattr(mod, "pi", vm->PyFloat(3.1415926535897932384));
-    vm->setattr(mod, "e" , vm->PyFloat(2.7182818284590452354));
+    vm->setattr(mod, "pi", py_object(vm, 3.1415926535897932384));
+    vm->setattr(mod, "e" , py_object(vm, 2.7182818284590452354));
 
-    vm->bind_func<1>(mod, "log", CPP_LAMBDA(vm->PyFloat(std::log(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(vm->PyFloat(std::log10(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(vm->PyFloat(std::log2(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(vm->PyFloat(std::sin(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(vm->PyFloat(std::cos(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(vm->PyFloat(std::tan(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log", CPP_LAMBDA(py_object(vm, std::log(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(py_object(vm, std::log10(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(py_object(vm, std::log2(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(py_object(vm, std::sin(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(py_object(vm, std::cos(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(py_object(vm, std::tan(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(vm->PyFloat(std::fabs(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(py_object(vm, std::fabs(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(py_object(vm, (i64)std::floor(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(py_object(vm, (i64)std::ceil(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(vm->PyFloat(std::sqrt(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(py_object(vm, std::sqrt(vm->num_to_float(args[0])))));
 }
 
 void add_module_dis(VM* vm){
@@ -763,7 +763,7 @@ void add_module_random(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "random", CPP_LAMBDA(vm->PyFloat(std::rand() / (f64)RAND_MAX)));
+    vm->bind_func<0>(mod, "random", CPP_LAMBDA(py_object(vm, std::rand() / (f64)RAND_MAX)));
     vm->bind_func<2>(mod, "randint", [](VM* vm, Args& args) {
         i64 a = py_cast_v<i64>(vm, args[0]);
         i64 b = py_cast_v<i64>(vm, args[1]);
@@ -772,10 +772,10 @@ void add_module_random(VM* vm){
     });
 
     vm->bind_func<2>(mod, "uniform", [](VM* vm, Args& args) {
-        f64 a = vm->PyFloat_AS_C(args[0]);
-        f64 b = vm->PyFloat_AS_C(args[1]);
+        f64 a = py_cast_v<f64>(vm, args[0]);
+        f64 b = py_cast_v<f64>(vm, args[1]);
         if(a > b) std::swap(a, b);
-        return vm->PyFloat(a + (b - a) * std::rand() / (f64)RAND_MAX);
+        return py_object(vm, a + (b - a) * std::rand() / (f64)RAND_MAX);
     });
 
     CodeObject_ code = vm->compile(kRandomCode, "random.py", EXEC_MODE);
@@ -976,7 +976,7 @@ extern "C" {
             char* packet = strdup(ss.str().c_str());
             switch(ret_code){
                 case 'i': return py_object(vm, f_int(packet));
-                case 'f': return vm->PyFloat(f_float(packet));
+                case 'f': return py_object(vm, f_float(packet));
                 case 'b': return vm->PyBool(f_bool(packet));
                 case 's': {
                     char* p = f_str(packet);

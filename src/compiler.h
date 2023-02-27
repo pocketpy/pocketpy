@@ -171,7 +171,7 @@ private:
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) SyntaxError("hex literal should not contain a dot");
-                    parser->set_next_token(TK("@num"), vm->PyFloat(S_TO_FLOAT(m[0], &size)));
+                    parser->set_next_token(TK("@num"), py_object(vm, S_TO_FLOAT(m[0], &size)));
                 } else {
                     parser->set_next_token(TK("@num"), py_object(vm, S_TO_INT(m[0], &size, base)));
                 }

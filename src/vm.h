@@ -40,7 +40,6 @@ public:
     PyVar _py_op_call;
     PyVar _py_op_yield;
     std::vector<PyVar> _all_types;
-    // PyVar _ascii_str_pool[128];
 
     PyVar run_frame(Frame* frame);
 
@@ -428,8 +427,6 @@ public:
         bind_func<ARGC>(builtins, funcName, fn);
     }
 
-
-
     int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
@@ -526,43 +523,7 @@ public:
         return static_cast<BaseIter*>(obj->value());
     }
 
-    inline const Str& PyStr_AS_C(const PyVar& obj) {
-        check_type(obj, tp_str);
-        return OBJ_GET(Str, obj);
-    }
-    inline PyVar PyStr(const Str& value) {
-        // some BUGs here
-        // if(value.size() == 1){
-        //     char c = value.c_str()[0];
-        //     if(c >= 0) return _ascii_str_pool[(int)c];
-        // }
-        return new_object(tp_str, value);
-    }
-
-    inline i64 _PyInt_AS_C(const PyVar& obj){
-        return obj.bits >> 2;
-    }
-
-    inline PyVar PyFloat(f64 value) {
-        i64 bits = __8B(value)._int;
-        bits = (bits >> 2) << 2;
-        bits |= 0b10;
-        return PyVar(reinterpret_cast<int*>(bits));
-    }
-
-    inline f64 PyFloat_AS_C(const PyVar& obj){
-        check_type(obj, tp_float);
-        i64 bits = obj.bits;
-        bits = (bits >> 2) << 2;
-        return __8B(bits)._float;
-    }
-
-    inline f64 _PyFloat_AS_C(const PyVar& obj){
-        i64 bits = obj.bits;
-        bits = (bits >> 2) << 2;
-        return __8B(bits)._float;
-    }
-
+    DEF_NATIVE(Str, Str, tp_str)
     DEF_NATIVE(List, List, tp_list)
     DEF_NATIVE(Tuple, Tuple, tp_tuple)
     DEF_NATIVE(Function, Function, tp_function)
@@ -825,6 +786,7 @@ template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
+DEF_NATIVE_2(Str, tp_str)
 DEF_NATIVE_2(List, tp_list)
 DEF_NATIVE_2(Tuple, tp_tuple)
 DEF_NATIVE_2(Function, tp_function)
@@ -840,7 +802,7 @@ PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
         return py_object(this, -py_cast_v<i64>(this, obj));
     }else if(is_float(obj)){
-        return py_object(this, -PyFloat_AS_C(obj));
+        return py_object(this, -py_cast_v<f64>(this, obj));
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return nullptr;
@@ -848,7 +810,7 @@ PyVar VM::num_negated(const PyVar& obj){
 
 f64 VM::num_to_float(const PyVar& obj){
     if(is_float(obj)){
-        return PyFloat_AS_C(obj);
+        return py_cast_v<f64>(this, obj);
     } else if (is_int(obj)){
         return (f64)py_cast_v<i64>(this, obj);
     }
@@ -860,7 +822,7 @@ const PyVar& VM::asBool(const PyVar& obj){
     if(is_type(obj, tp_bool)) return obj;
     if(obj == None) return False;
     if(is_type(obj, tp_int)) return PyBool(py_cast_v<i64>(this, obj) != 0);
-    if(is_type(obj, tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
+    if(is_type(obj, tp_float)) return PyBool(py_cast_v<f64>(this, obj) != 0.0);
     PyVarOrNull len_fn = getattr(obj, __len__, false);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
@@ -884,7 +846,7 @@ i64 VM::hash(const PyVar& obj){
     if (is_type(obj, tp_type)) return obj.bits;
     if (is_type(obj, tp_bool)) return _PyBool_AS_C(obj) ? 1 : 0;
     if (is_float(obj)){
-        f64 val = PyFloat_AS_C(obj);
+        f64 val = py_cast_v<f64>(this, obj);
         return (i64)std::hash<f64>()(val);
     }
     TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));

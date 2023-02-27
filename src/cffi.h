@@ -143,8 +143,8 @@ struct Pointer{
         switch(ctype.index){
             case C_TYPE("char_"): return py_object(vm, ref<char>());
             case C_TYPE("int_"): return py_object(vm, ref<int>());
-            case C_TYPE("float_"): return vm->PyFloat(ref<float>());
-            case C_TYPE("double_"): return vm->PyFloat(ref<double>());
+            case C_TYPE("float_"): return py_object(vm, ref<float>());
+            case C_TYPE("double_"): return py_object(vm, ref<double>());
             case C_TYPE("bool_"): return vm->PyBool(ref<bool>());
             case C_TYPE("void_"): vm->ValueError("cannot get void*"); break;
             case C_TYPE("int8_"): return py_object(vm, ref<int8_t>());
@@ -166,8 +166,8 @@ struct Pointer{
         switch(ctype.index){
             case C_TYPE("char_"): ref<char>() = py_cast_v<i64>(vm, val); break;
             case C_TYPE("int_"): ref<int>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("float_"): ref<float>() = vm->PyFloat_AS_C(val); break;
-            case C_TYPE("double_"): ref<double>() = vm->PyFloat_AS_C(val); break;
+            case C_TYPE("float_"): ref<float>() = py_cast_v<f64>(vm, val); break;
+            case C_TYPE("double_"): ref<double>() = py_cast_v<f64>(vm, val); break;
             case C_TYPE("bool_"): ref<bool>() = vm->PyBool_AS_C(val); break;
             case C_TYPE("void_"): vm->ValueError("cannot set void*"); break;
             case C_TYPE("int8_"): ref<int8_t>() = py_cast_v<i64>(vm, val); break;
