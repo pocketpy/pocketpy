@@ -118,7 +118,7 @@ struct TupleRef : BaseRef {
         for (int i = 0; i < objs.size(); i++) {
             args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
         }
-        return vm->PyTuple(std::move(args));
+        return py_object(vm, std::move(args));
     }
 
     void set(VM* vm, Frame* frame, PyVar val) const{
@@ -133,7 +133,7 @@ struct TupleRef : BaseRef {
                 auto ref = vm->PyRef_AS_C(star.obj);
                 List list;
                 while((x = iter->next()) != nullptr) list.push_back(x);
-                ref->set(vm, frame, vm->PyList(std::move(list)));
+                ref->set(vm, frame, py_object(vm, std::move(list)));
                 return;
             }else{
                 x = iter->next();

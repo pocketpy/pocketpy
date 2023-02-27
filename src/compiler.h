@@ -147,9 +147,9 @@ private:
     void eat_string(char quote, StringType type) {
         Str s = eat_string_until(quote, type == RAW_STRING);
         if(type == F_STRING){
-            parser->set_next_token(TK("@fstr"), vm->PyStr(s));
+            parser->set_next_token(TK("@fstr"), py_object(vm, s));
         }else{
-            parser->set_next_token(TK("@str"), vm->PyStr(s));
+            parser->set_next_token(TK("@str"), py_object(vm, s));
         }
     }
 
@@ -360,7 +360,7 @@ private:
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
         PyVar value = parser->prev.value;
-        Str s = vm->PyStr_AS_C(value);
+        Str s = py_cast<Str>(vm, value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
         int size = 0;
@@ -369,18 +369,18 @@ private:
             std::smatch m = *it;
             if (i < m.position()) {
                 std::string literal = s.substr(i, m.position() - i);
-                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
+                emit(OP_LOAD_CONST, co()->add_const(py_object(vm, literal)));
                 size++;
             }
             emit(OP_LOAD_EVAL_FN);
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(m[1].str())));
+            emit(OP_LOAD_CONST, co()->add_const(py_object(vm, m[1].str())));
             emit(OP_CALL, 1);
             size++;
             i = (int)(m.position() + m.length());
         }
         if (i < s.size()) {
             std::string literal = s.substr(i, s.size() - i);
-            emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(literal)));
+            emit(OP_LOAD_CONST, co()->add_const(py_object(vm, literal)));
             size++;
         }
         emit(OP_BUILD_STRING, size);
@@ -399,7 +399,7 @@ private:
         emit(OP_RETURN_VALUE);
         func.code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
+        emit(OP_LOAD_FUNCTION, co()->add_const(py_object(vm, func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
     }
 
@@ -613,7 +613,7 @@ __LISTCOMP:
             if(peek() == TK("@id") && peek_next() == TK("=")) {
                 consume(TK("@id"));
                 const Str& key = parser->prev.str();
-                emit(OP_LOAD_CONST, co()->add_const(vm->PyStr(key)));
+                emit(OP_LOAD_CONST, co()->add_const(py_object(vm, key)));
                 consume(TK("="));
                 co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
                 KWARGC++;
@@ -929,7 +929,7 @@ __LISTCOMP:
             co()->_rvalue += 1;
             EXPR();
             if (match(TK(","))) EXPR();
-            else emit(OP_LOAD_CONST, co()->add_const(vm->PyStr("")));
+            else emit(OP_LOAD_CONST, co()->add_const(py_object(vm, "")));
             co()->_rvalue -= 1;
             emit(OP_ASSERT);
             consume_end_stmt();
@@ -1073,7 +1073,7 @@ __LISTCOMP:
         compile_block_body();
         func.code->optimize(vm);
         this->codes.pop();
-        emit(OP_LOAD_FUNCTION, co()->add_const(vm->PyFunction(func)));
+        emit(OP_LOAD_FUNCTION, co()->add_const(py_object(vm, func)));
         if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
         if(!co()->_is_compiling_class){
             if(obj_name.empty()){

@@ -46,7 +46,7 @@ public:
 
     PyVar next() {
         if(index == str->u8_length()) return nullptr;
-        return vm->PyStr(str->u8_getitem(index++));
+        return py_object(vm, str->u8_getitem(index++));
     }
 };
 

@@ -56,7 +56,7 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     _vm->bind_builtin_func<1>("__sys_stdout_write", [](VM* vm, Args& args) {
-        (*vm->_stdout) << vm->PyStr_AS_C(args[0]);
+        (*vm->_stdout) << py_cast<Str>(vm, args[0]);
         return vm->None;
     });
 
@@ -78,12 +78,12 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(vm->PyStr_AS_C(args[0]), "<eval>", EVAL_MODE);
+        CodeObject_ code = vm->compile(py_cast<Str>(vm, args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(vm->PyStr_AS_C(args[0]), "<exec>", EXEC_MODE);
+        CodeObject_ code = vm->compile(py_cast<Str>(vm, args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
     });
@@ -107,33 +107,33 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("chr", [](VM* vm, Args& args) {
         i64 i = py_cast_v<i64>(vm, args[0]);
         if (i < 0 || i > 128) vm->ValueError("chr() arg not in range(128)");
-        return vm->PyStr(std::string(1, (char)i));
+        return py_object(vm, std::string(1, (char)i));
     });
 
     _vm->bind_builtin_func<1>("ord", [](VM* vm, Args& args) {
-        Str s = vm->PyStr_AS_C(args[0]);
+        Str s = py_cast<Str>(vm, args[0]);
         if (s.size() != 1) vm->TypeError("ord() expected an ASCII character");
         return py_object(vm, (i64)(s.c_str()[0]));
     });
 
     _vm->bind_builtin_func<2>("hasattr", [](VM* vm, Args& args) {
-        return vm->PyBool(vm->getattr(args[0], vm->PyStr_AS_C(args[1]), false) != nullptr);
+        return vm->PyBool(vm->getattr(args[0], py_cast<Str>(vm, args[1]), false) != nullptr);
     });
 
     _vm->bind_builtin_func<3>("setattr", [](VM* vm, Args& args) {
-        vm->setattr(args[0], vm->PyStr_AS_C(args[1]), args[2]);
+        vm->setattr(args[0], py_cast<Str>(vm, args[1]), args[2]);
         return vm->None;
     });
 
     _vm->bind_builtin_func<2>("getattr", [](VM* vm, Args& args) {
-        Str name = vm->PyStr_AS_C(args[1]);
+        Str name = py_cast<Str>(vm, args[1]);
         return vm->getattr(args[0], name);
     });
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, Args& args) {
         std::stringstream ss;
         ss << std::hex << py_cast_v<i64>(vm, args[0]);
-        return vm->PyStr("0x" + ss.str());
+        return py_object(vm, "0x" + ss.str());
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, Args& args) {
@@ -146,8 +146,8 @@ void init_builtins(VM* _vm) {
         std::vector<StrName> keys = t_attr.keys();
         names.insert(keys.begin(), keys.end());
         List ret;
-        for (StrName name : names) ret.push_back(vm->PyStr(name.str()));
-        return vm->PyList(std::move(ret));
+        for (StrName name : names) ret.push_back(py_object(vm, name.str()));
+        return py_object(vm, std::move(ret));
     });
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, Args& args) {
@@ -156,7 +156,7 @@ void init_builtins(VM* _vm) {
         StrStream ss;
         ss << std::hex << addr;
         Str s = "<" + OBJ_NAME(vm->_t(self)) + " object at 0x" + ss.str() + ">";
-        return vm->PyStr(s);
+        return py_object(vm, s);
     });
 
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(vm->PyBool(args[0] == args[1])));
@@ -179,8 +179,8 @@ void init_builtins(VM* _vm) {
         vm->PyIter(RangeIter(vm, args[0]))
     ));
 
-    _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(vm->PyStr("None")));
-    _vm->bind_method<0>("NoneType", "__json__", CPP_LAMBDA(vm->PyStr("null")));
+    _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(py_object(vm, "None")));
+    _vm->bind_method<0>("NoneType", "__json__", CPP_LAMBDA(py_object(vm, "null")));
 
     _vm->_bind_methods<1>({"int", "float"}, "__truediv__", [](VM* vm, Args& args) {
         f64 rhs = vm->num_to_float(args[1]);
@@ -213,7 +213,7 @@ void init_builtins(VM* _vm) {
         if (is_type(args[0], vm->tp_float)) return py_object(vm, (i64)py_cast_v<f64>(vm, args[0]));
         if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
-            const Str& s = vm->PyStr_AS_C(args[0]);
+            const Str& s = py_cast<Str>(vm, args[0]);
             try{
                 size_t parsed = 0;
                 i64 val = S_TO_INT(s, &parsed, 10);
@@ -239,8 +239,8 @@ void init_builtins(VM* _vm) {
         return py_object(vm, py_cast_v<i64>(vm, args[0]) % rhs);
     });
 
-    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(vm->PyStr(std::to_string(py_cast_v<i64>(vm, args[0])))));
-    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(vm->PyStr(std::to_string(py_cast_v<i64>(vm, args[0])))));
+    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(py_object(vm, std::to_string(py_cast_v<i64>(vm, args[0])))));
+    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(py_object(vm, std::to_string(py_cast_v<i64>(vm, args[0])))));
 
 #define INT_BITWISE_OP(name,op) \
     _vm->bind_method<1>("int", #name, CPP_LAMBDA(py_object(vm, py_cast_v<i64>(vm, args[0]) op py_cast_v<i64>(vm, args[1]))));
@@ -259,7 +259,7 @@ void init_builtins(VM* _vm) {
         if (is_type(args[0], vm->tp_float)) return args[0];
         if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1.0 : 0.0);
         if (is_type(args[0], vm->tp_str)) {
-            const Str& s = vm->PyStr_AS_C(args[0]);
+            const Str& s = py_cast<Str>(vm, args[0]);
             if(s == "inf") return py_object(vm, INFINITY);
             if(s == "-inf") return py_object(vm, -INFINITY);
             try{
@@ -275,37 +275,37 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("float", "__repr__", [](VM* vm, Args& args) {
         f64 val = py_cast_v<f64>(vm, args[0]);
-        if(std::isinf(val) || std::isnan(val)) return vm->PyStr(std::to_string(val));
+        if(std::isinf(val) || std::isnan(val)) return py_object(vm, std::to_string(val));
         StrStream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
-        return vm->PyStr(s);
+        return py_object(vm, s);
     });
 
     _vm->bind_method<0>("float", "__json__", [](VM* vm, Args& args) {
         f64 val = py_cast_v<f64>(vm, args[0]);
         if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
-        return vm->PyStr(std::to_string(val));
+        return py_object(vm, std::to_string(val));
     });
 
     /************ PyString ************/
     _vm->bind_static_method<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
 
     _vm->bind_method<1>("str", "__add__", [](VM* vm, Args& args) {
-        const Str& lhs = vm->PyStr_AS_C(args[0]);
-        const Str& rhs = vm->PyStr_AS_C(args[1]);
-        return vm->PyStr(lhs + rhs);
+        const Str& lhs = py_cast<Str>(vm, args[0]);
+        const Str& rhs = py_cast<Str>(vm, args[1]);
+        return py_object(vm, lhs + rhs);
     });
 
     _vm->bind_method<0>("str", "__len__", [](VM* vm, Args& args) {
-        const Str& self = vm->PyStr_AS_C(args[0]);
+        const Str& self = py_cast<Str>(vm, args[0]);
         return py_object(vm, self.u8_length());
     });
 
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, Args& args) {
-        const Str& self = vm->PyStr_AS_C(args[0]);
-        const Str& other = vm->PyStr_AS_C(args[1]);
+        const Str& self = py_cast<Str>(vm, args[0]);
+        const Str& other = py_cast<Str>(vm, args[1]);
         return vm->PyBool(self.find(other) != Str::npos);
     });
 
@@ -313,57 +313,57 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        return vm->PyStr(_self.escape(true));
+        const Str& _self = py_cast<Str>(vm, args[0]);
+        return py_object(vm, _self.escape(true));
     });
 
     _vm->bind_method<0>("str", "__json__", [](VM* vm, Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        return vm->PyStr(_self.escape(false));
+        const Str& _self = py_cast<Str>(vm, args[0]);
+        return py_object(vm, _self.escape(false));
     });
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return vm->PyBool(vm->PyStr_AS_C(args[0]) == vm->PyStr_AS_C(args[1]));
+            return vm->PyBool(py_cast<Str>(vm, args[0]) == py_cast<Str>(vm, args[1]));
         return vm->PyBool(args[0] == args[1]);
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return vm->PyBool(vm->PyStr_AS_C(args[0]) != vm->PyStr_AS_C(args[1]));
+            return vm->PyBool(py_cast<Str>(vm, args[0]) != py_cast<Str>(vm, args[1]));
         return vm->PyBool(args[0] != args[1]);
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, Args& args) {
-        const Str& self (vm->PyStr_AS_C(args[0]));
+        const Str& self (py_cast<Str>(vm, args[0]));
 
         if(is_type(args[1], vm->tp_slice)){
             Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.u8_length());
-            return vm->PyStr(self.u8_substr(s.start, s.stop));
+            return py_object(vm, self.u8_substr(s.start, s.stop));
         }
 
         int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.u8_length());
-        return vm->PyStr(self.u8_getitem(index));
+        return py_object(vm, self.u8_getitem(index));
     });
 
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, Args& args) {
-        const Str& self (vm->PyStr_AS_C(args[0]));
-        const Str& obj (vm->PyStr_AS_C(args[1]));
+        const Str& self (py_cast<Str>(vm, args[0]));
+        const Str& obj (py_cast<Str>(vm, args[1]));
         return vm->PyBool(self > obj);
     });
 
     _vm->bind_method<1>("str", "__lt__", [](VM* vm, Args& args) {
-        const Str& self (vm->PyStr_AS_C(args[0]));
-        const Str& obj (vm->PyStr_AS_C(args[1]));
+        const Str& self (py_cast<Str>(vm, args[0]));
+        const Str& obj (py_cast<Str>(vm, args[1]));
         return vm->PyBool(self < obj);
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        const Str& _old = vm->PyStr_AS_C(args[1]);
-        const Str& _new = vm->PyStr_AS_C(args[2]);
+        const Str& _self = py_cast<Str>(vm, args[0]);
+        const Str& _old = py_cast<Str>(vm, args[1]);
+        const Str& _new = py_cast<Str>(vm, args[2]);
         Str _copy = _self;
         // replace all occurences of _old with _new in _copy
         size_t pos = 0;
@@ -371,82 +371,82 @@ void init_builtins(VM* _vm) {
             _copy.replace(pos, _old.length(), _new);
             pos += _new.length();
         }
-        return vm->PyStr(_copy);
+        return py_object(vm, _copy);
     });
 
     _vm->bind_method<1>("str", "startswith", [](VM* vm, Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        const Str& _prefix = vm->PyStr_AS_C(args[1]);
+        const Str& _self = py_cast<Str>(vm, args[0]);
+        const Str& _prefix = py_cast<Str>(vm, args[1]);
         return vm->PyBool(_self.find(_prefix) == 0);
     });
 
     _vm->bind_method<1>("str", "endswith", [](VM* vm, Args& args) {
-        const Str& _self = vm->PyStr_AS_C(args[0]);
-        const Str& _suffix = vm->PyStr_AS_C(args[1]);
+        const Str& _self = py_cast<Str>(vm, args[0]);
+        const Str& _suffix = py_cast<Str>(vm, args[1]);
         return vm->PyBool(_self.rfind(_suffix) == _self.length() - _suffix.length());
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
-        const Str& self = vm->PyStr_AS_C(args[0]);
+        const Str& self = py_cast<Str>(vm, args[0]);
         StrStream ss;
         PyVar obj = vm->asList(args[1]);
-        const List& list = vm->PyList_AS_C(obj);
+        const List& list = py_cast<List>(vm, obj);
         for (int i = 0; i < list.size(); ++i) {
             if (i > 0) ss << self;
-            ss << vm->PyStr_AS_C(list[i]);
+            ss << py_cast<Str>(vm, list[i]);
         }
-        return vm->PyStr(ss.str());
+        return py_object(vm, ss.str());
     });
 
     /************ PyList ************/
     _vm->bind_method<1>("list", "append", [](VM* vm, Args& args) {
-        List& self = vm->PyList_AS_C(args[0]);
+        List& self = py_cast<List>(vm, args[0]);
         self.push_back(args[1]);
         return vm->None;
     });
 
     _vm->bind_method<0>("list", "reverse", [](VM* vm, Args& args) {
-        List& self = vm->PyList_AS_C(args[0]);
+        List& self = py_cast<List>(vm, args[0]);
         std::reverse(self.begin(), self.end());
         return vm->None;
     });
 
     _vm->bind_method<1>("list", "__mul__", [](VM* vm, Args& args) {
-        const List& self = vm->PyList_AS_C(args[0]);
+        const List& self = py_cast<List>(vm, args[0]);
         int n = (int)py_cast_v<i64>(vm, args[1]);
         List result;
         result.reserve(self.size() * n);
         for(int i = 0; i < n; i++) result.insert(result.end(), self.begin(), self.end());
-        return vm->PyList(std::move(result));
+        return py_object(vm, std::move(result));
     });
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, Args& args) {
-        List& _self = vm->PyList_AS_C(args[0]);
+        List& self = py_cast<List>(vm, args[0]);
         int index = (int)py_cast_v<i64>(vm, args[1]);
-        if(index < 0) index += _self.size();
+        if(index < 0) index += self.size();
         if(index < 0) index = 0;
-        if(index > _self.size()) index = _self.size();
-        _self.insert(_self.begin() + index, args[2]);
+        if(index > self.size()) index = self.size();
+        self.insert(self.begin() + index, args[2]);
         return vm->None;
     });
 
     _vm->bind_method<0>("list", "clear", [](VM* vm, Args& args) {
-        vm->PyList_AS_C(args[0]).clear();
+        py_cast<List>(vm, args[0]).clear();
         return vm->None;
     });
 
-    _vm->bind_method<0>("list", "copy", CPP_LAMBDA(vm->PyList(vm->PyList_AS_C(args[0]))));
+    _vm->bind_method<0>("list", "copy", CPP_LAMBDA(py_object(vm, py_cast<List>(vm, args[0]))));
 
     _vm->bind_method<1>("list", "__add__", [](VM* vm, Args& args) {
-        const List& self = vm->PyList_AS_C(args[0]);
-        const List& obj = vm->PyList_AS_C(args[1]);
+        const List& self = py_cast<List>(vm, args[0]);
+        const List& obj = py_cast<List>(vm, args[1]);
         List new_list = self;
         new_list.insert(new_list.end(), obj.begin(), obj.end());
-        return vm->PyList(new_list);
+        return py_object(vm, new_list);
     });
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, Args& args) {
-        const List& self = vm->PyList_AS_C(args[0]);
+        const List& self = py_cast<List>(vm, args[0]);
         return py_object(vm, self.size());
     });
 
@@ -455,14 +455,14 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, Args& args) {
-        const List& self = vm->PyList_AS_C(args[0]);
+        const List& self = py_cast<List>(vm, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
             Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
-            return vm->PyList(std::move(new_list));
+            return py_object(vm, std::move(new_list));
         }
 
         int index = (int)py_cast_v<i64>(vm, args[1]);
@@ -471,7 +471,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, Args& args) {
-        List& self = vm->PyList_AS_C(args[0]);
+        List& self = py_cast<List>(vm, args[0]);
         int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         self[index] = args[2];
@@ -479,7 +479,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, Args& args) {
-        List& self = vm->PyList_AS_C(args[0]);
+        List& self = py_cast<List>(vm, args[0]);
         int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         self.erase(self.begin() + index);
@@ -488,8 +488,8 @@ void init_builtins(VM* _vm) {
 
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, Args& args) {
-        List list = vm->PyList_AS_C(vm->asList(args[0]));
-        return vm->PyTuple(std::move(list));
+        List list = py_cast<List>(vm, vm->asList(args[0]));
+        return py_object(vm, std::move(list));
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, Args& args) {
@@ -497,14 +497,14 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, Args& args) {
-        const Tuple& self = vm->PyTuple_AS_C(args[0]);
+        const Tuple& self = py_cast<Tuple>(vm, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
             Slice s = vm->PySlice_AS_C(args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
-            return vm->PyTuple(std::move(new_list));
+            return py_object(vm, std::move(new_list));
         }
 
         int index = (int)py_cast_v<i64>(vm, args[1]);
@@ -513,7 +513,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, Args& args) {
-        const Tuple& self = vm->PyTuple_AS_C(args[0]);
+        const Tuple& self = py_cast<Tuple>(vm, args[0]);
         return py_object(vm, self.size());
     });
 
@@ -522,12 +522,12 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, Args& args) {
         bool val = vm->PyBool_AS_C(args[0]);
-        return vm->PyStr(val ? "True" : "False");
+        return py_object(vm, val ? "True" : "False");
     });
 
     _vm->bind_method<0>("bool", "__json__", [](VM* vm, Args& args) {
         bool val = vm->PyBool_AS_C(args[0]);
-        return vm->PyStr(val ? "true" : "false");
+        return py_object(vm, val ? "true" : "false");
     });
 
     _vm->bind_method<1>("bool", "__xor__", [](VM* vm, Args& args) {
@@ -536,7 +536,7 @@ void init_builtins(VM* _vm) {
         return vm->PyBool(self ^ other);
     });
 
-    _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(vm->PyStr("Ellipsis")));
+    _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(py_object(vm, "Ellipsis")));
 }
 
 #include "builtins.h"
@@ -563,7 +563,7 @@ void add_module_time(VM* vm){
 
 void add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
-    vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
+    vm->setattr(mod, "version", py_object(vm, PK_VERSION));
 
     vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(py_object(vm, args[0].use_count())));
     vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(py_object(vm, vm->recursionlimit)));
@@ -577,7 +577,7 @@ void add_module_sys(VM* vm){
 void add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
-        const Str& expr = vm->PyStr_AS_C(args[0]);
+        const Str& expr = py_cast<Str>(vm, args[0]);
         CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
@@ -609,7 +609,7 @@ void add_module_dis(VM* vm){
     vm->bind_func<1>(mod, "dis", [](VM* vm, Args& args) {
         PyVar f = args[0];
         if(is_type(f, vm->tp_bound_method)) f = vm->PyBoundMethod_AS_C(args[0]).method;
-        CodeObject_ code = vm->PyFunction_AS_C(f).code;
+        CodeObject_ code = py_cast<Function>(vm, f).code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
     });
@@ -636,31 +636,31 @@ struct FileIO {
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<2>(type, "__new__", [](VM* vm, Args& args){
             return vm->new_object<FileIO>(
-                vm, vm->PyStr_AS_C(args[0]), vm->PyStr_AS_C(args[1])
+                vm, py_cast<Str>(vm, args[0]), py_cast<Str>(vm, args[1])
             );
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, Args& args){
-            FileIO& io = vm->py_cast<FileIO>(args[0]);
+            FileIO& io = vm->_cast<FileIO>(args[0]);
             std::string buffer;
             io._fs >> buffer;
-            return vm->PyStr(buffer);
+            return py_object(vm, buffer);
         });
 
         vm->bind_method<1>(type, "write", [](VM* vm, Args& args){
-            FileIO& io = vm->py_cast<FileIO>(args[0]);
-            io._fs << vm->PyStr_AS_C(args[1]);
+            FileIO& io = vm->_cast<FileIO>(args[0]);
+            io._fs << py_cast<Str>(vm, args[1]);
             return vm->None;
         });
 
         vm->bind_method<0>(type, "close", [](VM* vm, Args& args){
-            FileIO& io = vm->py_cast<FileIO>(args[0]);
+            FileIO& io = vm->_cast<FileIO>(args[0]);
             io._fs.close();
             return vm->None;
         });
 
         vm->bind_method<0>(type, "__exit__", [](VM* vm, Args& args){
-            FileIO& io = vm->py_cast<FileIO>(args[0]);
+            FileIO& io = vm->_cast<FileIO>(args[0]);
             io._fs.close();
             return vm->None;
         });
@@ -688,19 +688,19 @@ struct ReMatch {
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
-        vm->bind_method<0>(type, "start", CPP_LAMBDA(py_object(vm, vm->py_cast<ReMatch>(args[0]).start)));
-        vm->bind_method<0>(type, "end", CPP_LAMBDA(py_object(vm, vm->py_cast<ReMatch>(args[0]).end)));
+        vm->bind_method<0>(type, "start", CPP_LAMBDA(py_object(vm, vm->_cast<ReMatch>(args[0]).start)));
+        vm->bind_method<0>(type, "end", CPP_LAMBDA(py_object(vm, vm->_cast<ReMatch>(args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
-            auto& self = vm->py_cast<ReMatch>(args[0]);
-            return vm->PyTuple({ py_object(vm, self.start), py_object(vm, self.end) });
+            auto& self = vm->_cast<ReMatch>(args[0]);
+            return py_object(vm, pkpy::Args({ py_object(vm, self.start), py_object(vm, self.end) }));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
-            auto& self = vm->py_cast<ReMatch>(args[0]);
+            auto& self = vm->_cast<ReMatch>(args[0]);
             int index = (int)py_cast_v<i64>(vm, args[1]);
             index = vm->normalized_index(index, self.m.size());
-            return vm->PyStr(self.m[index].str());
+            return py_object(vm, self.m[index].str());
         });
     }
 };
@@ -722,36 +722,36 @@ void add_module_re(VM* vm){
     vm->register_class<ReMatch>(mod);
 
     vm->bind_func<2>(mod, "match", [](VM* vm, Args& args) {
-        const Str& pattern = vm->PyStr_AS_C(args[0]);
-        const Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = py_cast<Str>(vm, args[0]);
+        const Str& string = py_cast<Str>(vm, args[1]);
         return _regex_search(pattern, string, true, vm);
     });
 
     vm->bind_func<2>(mod, "search", [](VM* vm, Args& args) {
-        const Str& pattern = vm->PyStr_AS_C(args[0]);
-        const Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = py_cast<Str>(vm, args[0]);
+        const Str& string = py_cast<Str>(vm, args[1]);
         return _regex_search(pattern, string, false, vm);
     });
 
     vm->bind_func<3>(mod, "sub", [](VM* vm, Args& args) {
-        const Str& pattern = vm->PyStr_AS_C(args[0]);
-        const Str& repl = vm->PyStr_AS_C(args[1]);
-        const Str& string = vm->PyStr_AS_C(args[2]);
+        const Str& pattern = py_cast<Str>(vm, args[0]);
+        const Str& repl = py_cast<Str>(vm, args[1]);
+        const Str& string = py_cast<Str>(vm, args[2]);
         std::regex re(pattern);
-        return vm->PyStr(std::regex_replace(string, re, repl));
+        return py_object(vm, std::regex_replace(string, re, repl));
     });
 
     vm->bind_func<2>(mod, "split", [](VM* vm, Args& args) {
-        const Str& pattern = vm->PyStr_AS_C(args[0]);
-        const Str& string = vm->PyStr_AS_C(args[1]);
+        const Str& pattern = py_cast<Str>(vm, args[0]);
+        const Str& string = py_cast<Str>(vm, args[1]);
         std::regex re(pattern);
         std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
         std::sregex_token_iterator end;
         List vec;
         for(; it != end; ++it){
-            vec.push_back(vm->PyStr(it->str()));
+            vec.push_back(py_object(vm, it->str()));
         }
-        return vm->PyList(vec);
+        return py_object(vm, vec);
     });
 }
 
@@ -868,7 +868,7 @@ extern "C" {
         pkpy::PyVar* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            pkpy::Str _repr = vm->PyStr_AS_C(vm->asRepr(*val));
+            pkpy::Str& _repr = pkpy::py_cast<pkpy::Str>(vm, vm->asRepr(*val));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -884,7 +884,7 @@ extern "C" {
         pkpy::PyVarOrNull ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            pkpy::Str _repr = vm->PyStr_AS_C(vm->asRepr(ret));
+            pkpy::Str& _repr = pkpy::py_cast<pkpy::Str>(vm, vm->asRepr(ret));
             return strdup(_repr.c_str());
         }catch(...){
             return nullptr;
@@ -971,7 +971,7 @@ extern "C" {
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
                 pkpy::PyVar x = vm->call(args[i], pkpy::__json__);
-                ss << vm->PyStr_AS_C(x);
+                ss << pkpy::py_cast<pkpy::Str>(vm, x);
             }
             char* packet = strdup(ss.str().c_str());
             switch(ret_code){
@@ -981,7 +981,7 @@ extern "C" {
                 case 's': {
                     char* p = f_str(packet);
                     if(p == nullptr) return vm->None;
-                    return vm->PyStr(p); // no need to free(p)
+                    return py_object(vm, p); // no need to free(p)
                 }
                 case 'N': f_None(packet); return vm->None;
             }

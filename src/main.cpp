@@ -8,7 +8,7 @@ int main(int argc, char** argv){
     vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::Args& args){
         static std::string line;
         std::getline(std::cin, line);
-        return vm->PyStr(line);
+        return py_object(vm, line);
     });
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);

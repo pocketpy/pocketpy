@@ -39,11 +39,12 @@ namespace pkpy {
             other._size = 0;
         }
 
-        Args(List&& other) noexcept {
-            _alloc(other.size());
-            memcpy((void*)_args, (void*)other.data(), sizeof(PyVar)*_size);
-            memset((void*)other.data(), 0, sizeof(PyVar)*_size);
+        static pkpy::Args from_list(List&& other) noexcept {
+            Args ret(other.size());
+            memcpy((void*)ret._args, (void*)other.data(), sizeof(PyVar)*ret.size());
+            memset((void*)other.data(), 0, sizeof(PyVar)*ret.size());
             other.clear();
+            return ret;
         }
 
         PyVar& operator[](int i){ return _args[i]; }

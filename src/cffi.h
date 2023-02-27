@@ -16,10 +16,10 @@ struct CType{
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            CType& self = vm->py_cast<CType>(args[0]);
+            CType& self = vm->_cast<CType>(args[0]);
             StrStream ss;
             ss << "<c._type '" << self.name << "' (" << self.size*8 << " bits)>";
-            return vm->PyStr(ss.str());
+            return py_object(vm, ss.str());
         });
     }
 };
@@ -70,61 +70,61 @@ struct Pointer{
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             StrStream ss;
             ss << "<" << self.ctype.name << "* at " << (i64)self.ptr << ">";
-            return vm->PyStr(ss.str());
+            return py_object(vm, ss.str());
         });
 
         vm->bind_method<1>(type, "__add__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             return vm->new_object<Pointer>(self + py_cast<i64>(vm, args[1]));
         });
 
         vm->bind_method<1>(type, "__sub__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             return vm->new_object<Pointer>(self - py_cast_v<i64>(vm, args[1]));
         });
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
-            Pointer& other = vm->py_cast<Pointer>(args[1]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
+            Pointer& other = vm->_cast<Pointer>(args[1]);
             return vm->PyBool(self.ptr == other.ptr);
         });
 
         vm->bind_method<1>(type, "__ne__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
-            Pointer& other = vm->py_cast<Pointer>(args[1]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
+            Pointer& other = vm->_cast<Pointer>(args[1]);
             return vm->PyBool(self.ptr != other.ptr);
         });
 
         // https://docs.python.org/zh-cn/3/library/ctypes.html
         vm->bind_method<1>(type, "__getitem__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             i64 index = py_cast_v<i64>(vm, args[1]);
             return (self+index).get(vm);
         });
 
         vm->bind_method<2>(type, "__setitem__", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             i64 index = py_cast_v<i64>(vm, args[1]);
             (self+index).set(vm, args[2]);
             return vm->None;
         });
 
         vm->bind_method<1>(type, "cast", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
-            CType& ctype = vm->py_cast<CType>(args[1]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
+            CType& ctype = vm->_cast<CType>(args[1]);
             return vm->new_object<Pointer>(self.ptr, ctype);
         });
 
         vm->bind_method<0>(type, "get", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             return self.get(vm);
         });
 
         vm->bind_method<1>(type, "set", [](VM* vm, Args& args) {
-            Pointer& self = vm->py_cast<Pointer>(args[0]);
+            Pointer& self = vm->_cast<Pointer>(args[0]);
             self.set(vm, args[1]);
             return vm->None;
         });
@@ -178,7 +178,7 @@ struct Pointer{
             case C_TYPE("uint16_"): ref<uint16_t>() = py_cast_v<i64>(vm, val); break;
             case C_TYPE("uint32_"): ref<uint32_t>() = py_cast_v<i64>(vm, val); break;
             case C_TYPE("uint64_"): ref<uint64_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("void_p_"): ref<void*>() = vm->py_cast<Pointer>(val).ptr; break;
+            case C_TYPE("void_p_"): ref<void*>() = vm->_cast<Pointer>(val).ptr; break;
             // use macro here to do extension
             default: UNREACHABLE();
         }
@@ -242,10 +242,10 @@ struct Struct {
         });
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            Struct& self = vm->py_cast<Struct>(args[0]);
+            Struct& self = vm->_cast<Struct>(args[0]);
             StrStream ss;
             ss << self.info->name << "(" << ")";
-            return vm->PyStr(ss.str());
+            return py_object(vm, ss.str());
         });
     }
 };
@@ -267,26 +267,26 @@ void add_module_c(VM* vm){
     });
 
     vm->bind_func<1>(mod, "free", [](VM* vm, Args& args) {
-        Pointer& self = vm->py_cast<Pointer>(args[0]);
+        Pointer& self = vm->_cast<Pointer>(args[0]);
         free(self.ptr);
         return vm->None;
     });
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
-        CType& ctype = vm->py_cast<CType>(args[0]);
+        CType& ctype = vm->_cast<CType>(args[0]);
         return py_object(vm, ctype.size);
     });
 
     vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
-        Pointer& dst = vm->py_cast<Pointer>(args[0]);
-        Pointer& src = vm->py_cast<Pointer>(args[1]);
+        Pointer& dst = vm->_cast<Pointer>(args[0]);
+        Pointer& src = vm->_cast<Pointer>(args[1]);
         i64 size = py_cast_v<i64>(vm, args[2]);
         memcpy(dst.ptr, src.ptr, size);
         return vm->None;
     });
 
     vm->bind_func<3>(mod, "memset", [](VM* vm, Args& args) {
-        Pointer& dst = vm->py_cast<Pointer>(args[0]);
+        Pointer& dst = vm->_cast<Pointer>(args[0]);
         i64 val = py_cast_v<i64>(vm, args[1]);
         i64 size = py_cast_v<i64>(vm, args[2]);
         memset(dst.ptr, (int)val, size);
@@ -295,10 +295,10 @@ void add_module_c(VM* vm){
 
     vm->bind_func<1>(mod, "strdup", [ptr_t](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str)){
-            const Str& s = vm->PyStr_AS_C(args[0]);
+            const Str& s = py_cast<Str>(vm, args[0]);
             return vm->new_object<Pointer>(strdup(s.c_str()), C_TYPE_T("char_"));
         }else if(is_type(args[0], OBJ_GET(Type, ptr_t))){
-            Pointer& p = vm->py_cast<Pointer>(args[0]);
+            Pointer& p = vm->_cast<Pointer>(args[0]);
             return vm->new_object<Pointer>(strdup(p.cast<char*>()), C_TYPE_T("char_"));
         }else{
             vm->TypeError("strdup() argument must be 'str' or 'char*'");
@@ -307,13 +307,13 @@ void add_module_c(VM* vm){
     });
 
     vm->bind_func<2>(mod, "strcmp", [](VM* vm, Args& args) {
-        Pointer& p1 = vm->py_cast<Pointer>(args[0]);
-        Pointer& p2 = vm->py_cast<Pointer>(args[1]);
+        Pointer& p1 = vm->_cast<Pointer>(args[0]);
+        Pointer& p2 = vm->_cast<Pointer>(args[1]);
         return py_object(vm, strcmp(p1.cast<char*>(), p2.cast<char*>()));
     });
 
     vm->bind_func<1>(mod, "strlen", [](VM* vm, Args& args) {
-        Pointer& p = vm->py_cast<Pointer>(args[0]);
+        Pointer& p = vm->_cast<Pointer>(args[0]);
         return py_object(vm, strlen(p.cast<char*>()));
     });
 }

@@ -21,6 +21,13 @@ namespace pkpy{
     template<> ctype& _py_cast<ctype>(VM* vm, const PyVar& obj) {       \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
+    template<> ctype py_cast_v<ctype>(VM* vm, const PyVar& obj) {       \
+        vm->check_type(obj, vm->ptype);                                 \
+        return OBJ_GET(ctype, obj);                                     \
+    }                                                                   \
+    template<> ctype _py_cast_v<ctype>(VM* vm, const PyVar& obj) {      \
+        return OBJ_GET(ctype, obj);                                     \
+    }                                                                   \
     PyVar py_object(VM* vm, const ctype& value) { return vm->new_object(vm->ptype, value);}     \
     PyVar py_object(VM* vm, ctype&& value) { return vm->new_object(vm->ptype, std::move(value));}
 
@@ -84,11 +91,6 @@ public:
         return callstack.top().get();
     }
 
-    PyVar asRepr(const PyVar& obj){
-        if(is_type(obj, tp_type)) return PyStr("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
-        return call(obj, __repr__);
-    }
-
     PyVar asIter(const PyVar& obj){
         if(is_type(obj, tp_native_iterator)) return obj;
         PyVarOrNull iter_f = getattr(obj, __iter__, false);
@@ -133,82 +135,6 @@ public:
         return call(getattr(obj, name), no_arg(), no_arg(), false);
     }
 
-    PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall){
-        if(is_type(_callable, tp_type)){
-            PyVar* new_f = _callable->attr().try_get(__new__);
-            PyVar obj;
-            if(new_f != nullptr){
-                obj = call(*new_f, std::move(args), kwargs, false);
-            }else{
-                obj = new_object(_callable, DummyInstance());
-                PyVarOrNull init_f = getattr(obj, __init__, false);
-                if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
-            }
-            return obj;
-        }
-
-        const PyVar* callable = &_callable;
-        if(is_type(*callable, tp_bound_method)){
-            auto& bm = PyBoundMethod_AS_C((*callable));
-            callable = &bm.method;      // get unbound method
-            args.extend_self(bm.obj);
-        }
-        
-        if(is_type(*callable, tp_native_function)){
-            const auto& f = OBJ_GET(NativeFunc, *callable);
-            if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
-            return f(this, args);
-        } else if(is_type(*callable, tp_function)){
-            const Function& fn = PyFunction_AS_C(*callable);
-            NameDict_ locals = make_sp<NameDict>(
-                fn.code->perfect_locals_capacity,
-                kLocalsLoadFactor,
-                fn.code->perfect_hash_seed
-            );
-
-            int i = 0;
-            for(StrName name : fn.args){
-                if(i < args.size()){
-                    locals->set(name, std::move(args[i++]));
-                    continue;
-                }
-                TypeError("missing positional argument " + name.str().escape(true));
-            }
-
-            locals->update(fn.kwargs);
-
-            if(!fn.starred_arg.empty()){
-                List vargs;        // handle *args
-                while(i < args.size()) vargs.push_back(std::move(args[i++]));
-                locals->set(fn.starred_arg, PyTuple(std::move(vargs)));
-            }else{
-                for(StrName key : fn.kwargs_order){
-                    if(i < args.size()){
-                        locals->set(key, std::move(args[i++]));
-                    }else{
-                        break;
-                    }
-                }
-                if(i < args.size()) TypeError("too many arguments");
-            }
-            
-            for(int i=0; i<kwargs.size(); i+=2){
-                const Str& key = PyStr_AS_C(kwargs[i]);
-                if(!fn.kwargs.contains(key)){
-                    TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
-                }
-                locals->set(key, kwargs[i+1]);
-            }
-            const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-            auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
-            if(fn.code->is_generator) return PyIter(Generator(this, std::move(_frame)));
-            callstack.push(std::move(_frame));
-            if(opCall) return _py_op_call;
-            return _exec();
-        }
-        TypeError(OBJ_NAME(_t(*callable)).escape(true) + " object is not callable");
-        return None;
-    }
 
     // repl mode is only for setting `frame->id` to 0
     PyVarOrNull exec(Str source, Str filename, CompileMode mode, PyVar _module=nullptr){
@@ -282,18 +208,6 @@ public:
         }
     }
 
-    PyVar new_type_object(PyVar mod, StrName name, PyVar base){
-        if(!is_type(base, tp_type)) UNREACHABLE();
-        PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
-        setattr(obj, __base__, base);
-        Str fullName = name.str();
-        if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
-        setattr(obj, __name__, PyStr(fullName));
-        setattr(mod, name, obj);
-        _all_types.push_back(obj);
-        return obj;
-    }
-
     Type _new_type_object(StrName name, Type base=0) {
         PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, _t(base));
@@ -329,13 +243,6 @@ public:
     template<typename T, typename... Args>
     inline PyVar new_object(Args&&... args) {
         return new_object(T::_type(this), T(std::forward<Args>(args)...));
-    }
-
-    PyVar new_module(StrName name) {
-        PyVar obj = new_object(tp_module, DummyModule());
-        setattr(obj, __name__, PyStr(name.str()));
-        _modules.set(name, obj);
-        return obj;
     }
 
     PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true) {
@@ -435,75 +342,6 @@ public:
         return index;
     }
 
-    Str disassemble(CodeObject_ co){
-        std::vector<int> jumpTargets;
-        for(auto byte : co->codes){
-            if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
-                jumpTargets.push_back(byte.arg);
-            }
-        }
-        StrStream ss;
-        ss << std::string(54, '-') << '\n';
-        ss << co->name << ":\n";
-        int prev_line = -1;
-        for(int i=0; i<co->codes.size(); i++){
-            const Bytecode& byte = co->codes[i];
-            if(byte.op == OP_NO_OP) continue;
-            Str line = std::to_string(byte.line);
-            if(byte.line == prev_line) line = "";
-            else{
-                if(prev_line != -1) ss << "\n";
-                prev_line = byte.line;
-            }
-
-            std::string pointer;
-            if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
-                pointer = "-> ";
-            }else{
-                pointer = "   ";
-            }
-            ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
-            ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-            // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-            std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
-            if(byte.op == OP_LOAD_CONST){
-                argStr += " (" + PyStr_AS_C(asRepr(co->consts[byte.arg])) + ")";
-            }
-            if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
-                argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
-            }
-            if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){
-                auto& a = co->names[byte.arg & 0xFFFF];
-                auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
-                argStr += " (" + a.first.str() + '[' + x.first.str() + "])";
-            }
-            ss << pad(argStr, 20);      // may overflow
-            ss << co->blocks[byte.block].to_string();
-            if(i != co->codes.size() - 1) ss << '\n';
-        }
-        StrStream consts;
-        consts << "co_consts: ";
-        consts << PyStr_AS_C(asRepr(PyList(co->consts)));
-
-        StrStream names;
-        names << "co_names: ";
-        List list;
-        for(int i=0; i<co->names.size(); i++){
-            list.push_back(PyStr(co->names[i].first.str()));
-        }
-        names << PyStr_AS_C(asRepr(PyList(list)));
-        ss << '\n' << consts.str() << '\n' << names.str() << '\n';
-
-        for(int i=0; i<co->consts.size(); i++){
-            PyVar obj = co->consts[i];
-            if(is_type(obj, tp_function)){
-                const auto& f = PyFunction_AS_C(obj);
-                ss << disassemble(f.code);
-            }
-        }
-        return Str(ss.str());
-    }
-
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
@@ -523,10 +361,6 @@ public:
         return static_cast<BaseIter*>(obj->value());
     }
 
-    DEF_NATIVE(Str, Str, tp_str)
-    DEF_NATIVE(List, List, tp_list)
-    DEF_NATIVE(Tuple, Tuple, tp_tuple)
-    DEF_NATIVE(Function, Function, tp_function)
     DEF_NATIVE(NativeFunc, NativeFunc, tp_native_function)
     DEF_NATIVE(BoundMethod, BoundMethod, tp_bound_method)
     DEF_NATIVE(Range, Range, tp_range)
@@ -541,63 +375,6 @@ public:
     }
     inline bool _PyBool_AS_C(const PyVar& obj){ return obj == True; }
     inline const PyVar& PyBool(bool value){return value ? True : False;}
-
-    void init_builtin_types(){
-        PyVar _tp_object = make_sp<PyObject, Py_<Type>>(1, 0);
-        PyVar _tp_type = make_sp<PyObject, Py_<Type>>(1, 1);
-        _all_types.push_back(_tp_object);
-        _all_types.push_back(_tp_type);
-        tp_object = 0; tp_type = 1;
-
-        _types.set("object", _tp_object);
-        _types.set("type", _tp_type);
-
-        tp_int = _new_type_object("int");
-        tp_float = _new_type_object("float");
-        if(tp_int.index != kTpIntIndex || tp_float.index != kTpFloatIndex) UNREACHABLE();
-
-        tp_bool = _new_type_object("bool");
-        tp_str = _new_type_object("str");
-        tp_list = _new_type_object("list");
-        tp_tuple = _new_type_object("tuple");
-        tp_slice = _new_type_object("slice");
-        tp_range = _new_type_object("range");
-        tp_module = _new_type_object("module");
-        tp_ref = _new_type_object("_ref");
-        tp_star_wrapper = _new_type_object("_star_wrapper");
-        
-        tp_function = _new_type_object("function");
-        tp_native_function = _new_type_object("native_function");
-        tp_native_iterator = _new_type_object("native_iterator");
-        tp_bound_method = _new_type_object("bound_method");
-        tp_super = _new_type_object("super");
-        tp_exception = _new_type_object("Exception");
-
-        this->None = new_object(_new_type_object("NoneType"), DUMMY_VAL);
-        this->Ellipsis = new_object(_new_type_object("ellipsis"), DUMMY_VAL);
-        this->True = new_object(tp_bool, true);
-        this->False = new_object(tp_bool, false);
-        this->builtins = new_module("builtins");
-        this->_main = new_module("__main__");
-        this->_py_op_call = new_object(_new_type_object("_py_op_call"), DUMMY_VAL);
-        this->_py_op_yield = new_object(_new_type_object("_py_op_yield"), DUMMY_VAL);
-
-        setattr(_t(tp_type), __base__, _t(tp_object));
-        setattr(_t(tp_object), __base__, None);
-        
-        for(auto [k, v]: _types.items()){
-            setattr(v, __name__, PyStr(k.str()));
-        }
-
-        std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
-        for (auto& name : pb_types) {
-            setattr(builtins, name, _types[name]);
-        }
-
-        post_init();
-        for(auto [k, v]: _types.items()) v->attr()._try_perfect_rehash();
-        for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
-    }
 
     /***** Error Reporter *****/
     void _error(StrName name, const Str& msg){
@@ -659,25 +436,9 @@ public:
     }
 
     template<typename T>
-    inline T& py_cast(const PyVar& obj){
+    inline T& _cast(const PyVar& obj){
         check_type(obj, T::_type(this));
         return OBJ_GET(T, obj);
-    }
-
-    void unpack_args(Args& args){
-        List unpacked;
-        for(int i=0; i<args.size(); i++){
-            if(is_type(args[i], tp_star_wrapper)){
-                auto& star = PyStarWrapper_AS_C(args[i]);
-                if(!star.rvalue) UNREACHABLE();
-                PyVar list = asList(star.obj);
-                List& list_c = PyList_AS_C(list);
-                unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
-            }else{
-                unpacked.push_back(args[i]);
-            }
-        }
-        args = std::move(unpacked);
     }
 
     ~VM() {
@@ -693,6 +454,13 @@ public:
     f64 num_to_float(const PyVar& obj);
     const PyVar& asBool(const PyVar& obj);
     i64 hash(const PyVar& obj);
+    PyVar asRepr(const PyVar& obj);
+    PyVar new_type_object(PyVar mod, StrName name, PyVar base);
+    PyVar new_module(StrName name);
+    Str disassemble(CodeObject_ co);
+    void init_builtin_types();
+    PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall);
+    void unpack_args(Args& args);
 
     template<typename P>
     PyVarRef PyRef(P&& value);
@@ -740,8 +508,19 @@ void CodeObject::optimize(VM* vm){
     }
 }
 
+DEF_NATIVE_2(Str, tp_str)
+DEF_NATIVE_2(List, tp_list)
+DEF_NATIVE_2(Tuple, tp_tuple)
+DEF_NATIVE_2(Function, tp_function)
+DEF_NATIVE_2(NativeFunc, tp_native_function)
+DEF_NATIVE_2(BoundMethod, tp_bound_method)
+DEF_NATIVE_2(Range, tp_range)
+DEF_NATIVE_2(Slice, tp_slice)
+DEF_NATIVE_2(Exception, tp_exception)
+DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
+
 template<typename T>
-std::enable_if_t<std::is_integral_v<T>, PyVar> py_object(VM* vm, T _val){
+std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>, PyVar> py_object(VM* vm, T _val){
     i64 val = static_cast<i64>(_val);
     if(((val << 2) >> 2) != val){
         vm->_error("OverflowError", std::to_string(val) + " is out of range");
@@ -786,17 +565,9 @@ template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
-DEF_NATIVE_2(Str, tp_str)
-DEF_NATIVE_2(List, tp_list)
-DEF_NATIVE_2(Tuple, tp_tuple)
-DEF_NATIVE_2(Function, tp_function)
-DEF_NATIVE_2(NativeFunc, tp_native_function)
-DEF_NATIVE_2(BoundMethod, tp_bound_method)
-DEF_NATIVE_2(Range, tp_range)
-DEF_NATIVE_2(Slice, tp_slice)
-DEF_NATIVE_2(Exception, tp_exception)
-DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
-
+PyVar py_object(VM* vm, const char* val){
+    return py_object(vm, Str(val));
+}
 
 PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
@@ -832,11 +603,11 @@ const PyVar& VM::asBool(const PyVar& obj){
 }
 
 i64 VM::hash(const PyVar& obj){
-    if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
+    if (is_type(obj, tp_str)) return py_cast<Str>(this, obj).hash();
     if (is_int(obj)) return py_cast_v<i64>(this, obj);
     if (is_type(obj, tp_tuple)) {
         i64 x = 1000003;
-        const Tuple& items = PyTuple_AS_C(obj);
+        const Tuple& items = py_cast<Tuple>(this, obj);
         for (int i=0; i<items.size(); i++) {
             i64 y = hash(items[i]);
             x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
@@ -851,6 +622,249 @@ i64 VM::hash(const PyVar& obj){
     }
     TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
     return 0;
+}
+
+PyVar VM::asRepr(const PyVar& obj){
+    if(is_type(obj, tp_type)) return py_object(this, "<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
+    return call(obj, __repr__);
+}
+
+PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
+    if(!is_type(base, tp_type)) UNREACHABLE();
+    PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
+    setattr(obj, __base__, base);
+    Str fullName = name.str();
+    if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
+    setattr(obj, __name__, py_object(this, fullName));
+    setattr(mod, name, obj);
+    _all_types.push_back(obj);
+    return obj;
+}
+
+PyVar VM::new_module(StrName name) {
+    PyVar obj = new_object(tp_module, DummyModule());
+    setattr(obj, __name__, py_object(this, name.str()));
+    _modules.set(name, obj);
+    return obj;
+}
+
+Str VM::disassemble(CodeObject_ co){
+    std::vector<int> jumpTargets;
+    for(auto byte : co->codes){
+        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+            jumpTargets.push_back(byte.arg);
+        }
+    }
+    StrStream ss;
+    ss << std::string(54, '-') << '\n';
+    ss << co->name << ":\n";
+    int prev_line = -1;
+    for(int i=0; i<co->codes.size(); i++){
+        const Bytecode& byte = co->codes[i];
+        if(byte.op == OP_NO_OP) continue;
+        Str line = std::to_string(byte.line);
+        if(byte.line == prev_line) line = "";
+        else{
+            if(prev_line != -1) ss << "\n";
+            prev_line = byte.line;
+        }
+
+        std::string pointer;
+        if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
+            pointer = "-> ";
+        }else{
+            pointer = "   ";
+        }
+        ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
+        ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+        // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+        if(byte.op == OP_LOAD_CONST){
+            argStr += " (" + py_cast<Str>(this, asRepr(co->consts[byte.arg])) + ")";
+        }
+        if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
+            argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
+        }
+        if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){
+            auto& a = co->names[byte.arg & 0xFFFF];
+            auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
+            argStr += " (" + a.first.str() + '[' + x.first.str() + "])";
+        }
+        ss << pad(argStr, 20);      // may overflow
+        ss << co->blocks[byte.block].to_string();
+        if(i != co->codes.size() - 1) ss << '\n';
+    }
+    StrStream consts;
+    consts << "co_consts: ";
+    consts << py_cast<Str>(this, asRepr(py_object(this, co->consts)));
+
+    StrStream names;
+    names << "co_names: ";
+    List list;
+    for(int i=0; i<co->names.size(); i++){
+        list.push_back(py_object(this, co->names[i].first.str()));
+    }
+    names << py_cast<Str>(this, asRepr(py_object(this, list)));
+    ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+
+    for(int i=0; i<co->consts.size(); i++){
+        PyVar obj = co->consts[i];
+        if(is_type(obj, tp_function)){
+            const auto& f = py_cast<Function>(this, obj);
+            ss << disassemble(f.code);
+        }
+    }
+    return Str(ss.str());
+}
+
+void VM::init_builtin_types(){
+    PyVar _tp_object = make_sp<PyObject, Py_<Type>>(1, 0);
+    PyVar _tp_type = make_sp<PyObject, Py_<Type>>(1, 1);
+    _all_types.push_back(_tp_object);
+    _all_types.push_back(_tp_type);
+    tp_object = 0; tp_type = 1;
+
+    _types.set("object", _tp_object);
+    _types.set("type", _tp_type);
+
+    tp_int = _new_type_object("int");
+    tp_float = _new_type_object("float");
+    if(tp_int.index != kTpIntIndex || tp_float.index != kTpFloatIndex) UNREACHABLE();
+
+    tp_bool = _new_type_object("bool");
+    tp_str = _new_type_object("str");
+    tp_list = _new_type_object("list");
+    tp_tuple = _new_type_object("tuple");
+    tp_slice = _new_type_object("slice");
+    tp_range = _new_type_object("range");
+    tp_module = _new_type_object("module");
+    tp_ref = _new_type_object("_ref");
+    tp_star_wrapper = _new_type_object("_star_wrapper");
+    
+    tp_function = _new_type_object("function");
+    tp_native_function = _new_type_object("native_function");
+    tp_native_iterator = _new_type_object("native_iterator");
+    tp_bound_method = _new_type_object("bound_method");
+    tp_super = _new_type_object("super");
+    tp_exception = _new_type_object("Exception");
+
+    this->None = new_object(_new_type_object("NoneType"), DUMMY_VAL);
+    this->Ellipsis = new_object(_new_type_object("ellipsis"), DUMMY_VAL);
+    this->True = new_object(tp_bool, true);
+    this->False = new_object(tp_bool, false);
+    this->builtins = new_module("builtins");
+    this->_main = new_module("__main__");
+    this->_py_op_call = new_object(_new_type_object("_py_op_call"), DUMMY_VAL);
+    this->_py_op_yield = new_object(_new_type_object("_py_op_yield"), DUMMY_VAL);
+
+    setattr(_t(tp_type), __base__, _t(tp_object));
+    setattr(_t(tp_object), __base__, None);
+    
+    for(auto [k, v]: _types.items()){
+        setattr(v, __name__, py_object(this, k.str()));
+    }
+
+    std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
+    for (auto& name : pb_types) {
+        setattr(builtins, name, _types[name]);
+    }
+
+    post_init();
+    for(auto [k, v]: _types.items()) v->attr()._try_perfect_rehash();
+    for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
+}
+
+PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall){
+    if(is_type(_callable, tp_type)){
+        PyVar* new_f = _callable->attr().try_get(__new__);
+        PyVar obj;
+        if(new_f != nullptr){
+            obj = call(*new_f, std::move(args), kwargs, false);
+        }else{
+            obj = new_object(_callable, DummyInstance());
+            PyVarOrNull init_f = getattr(obj, __init__, false);
+            if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
+        }
+        return obj;
+    }
+
+    const PyVar* callable = &_callable;
+    if(is_type(*callable, tp_bound_method)){
+        auto& bm = PyBoundMethod_AS_C((*callable));
+        callable = &bm.method;      // get unbound method
+        args.extend_self(bm.obj);
+    }
+    
+    if(is_type(*callable, tp_native_function)){
+        const auto& f = OBJ_GET(NativeFunc, *callable);
+        if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
+        return f(this, args);
+    } else if(is_type(*callable, tp_function)){
+        const Function& fn = py_cast<Function>(this, *callable);
+        NameDict_ locals = make_sp<NameDict>(
+            fn.code->perfect_locals_capacity,
+            kLocalsLoadFactor,
+            fn.code->perfect_hash_seed
+        );
+
+        int i = 0;
+        for(StrName name : fn.args){
+            if(i < args.size()){
+                locals->set(name, std::move(args[i++]));
+                continue;
+            }
+            TypeError("missing positional argument " + name.str().escape(true));
+        }
+
+        locals->update(fn.kwargs);
+
+        if(!fn.starred_arg.empty()){
+            List vargs;        // handle *args
+            while(i < args.size()) vargs.push_back(std::move(args[i++]));
+            locals->set(fn.starred_arg, py_object(this, Tuple::from_list(std::move(vargs))));
+        }else{
+            for(StrName key : fn.kwargs_order){
+                if(i < args.size()){
+                    locals->set(key, std::move(args[i++]));
+                }else{
+                    break;
+                }
+            }
+            if(i < args.size()) TypeError("too many arguments");
+        }
+        
+        for(int i=0; i<kwargs.size(); i+=2){
+            const Str& key = py_cast<Str>(this, kwargs[i]);
+            if(!fn.kwargs.contains(key)){
+                TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
+            }
+            locals->set(key, kwargs[i+1]);
+        }
+        const PyVar& _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+        auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
+        if(fn.code->is_generator) return PyIter(Generator(this, std::move(_frame)));
+        callstack.push(std::move(_frame));
+        if(opCall) return _py_op_call;
+        return _exec();
+    }
+    TypeError(OBJ_NAME(_t(*callable)).escape(true) + " object is not callable");
+    return None;
+}
+
+void VM::unpack_args(Args& args){
+    List unpacked;
+    for(int i=0; i<args.size(); i++){
+        if(is_type(args[i], tp_star_wrapper)){
+            auto& star = PyStarWrapper_AS_C(args[i]);
+            if(!star.rvalue) UNREACHABLE();
+            PyVar list = asList(star.obj);
+            List& list_c = py_cast<List>(this, list);
+            unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
+        }else{
+            unpacked.push_back(args[i]);
+        }
+    }
+    args = Args::from_list(std::move(unpacked));
 }
 
 }   // namespace pkpy

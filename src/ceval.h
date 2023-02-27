@@ -18,12 +18,12 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             const PyVar obj = frame->co->consts[byte.arg];
-            Function f = PyFunction_AS_C(obj);  // copy
+            Function f = py_cast_v<Function>(this, obj);  // copy
             f._module = frame->_module;
-            frame->push(PyFunction(f));
+            frame->push(py_object(this, f));
         } continue;
         case OP_SETUP_CLOSURE: {
-            Function& f = PyFunction_AS_C(frame->top());    // reference
+            Function& f = py_cast<Function>(this, frame->top());    // reference
             f._closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
@@ -70,7 +70,7 @@ PyVar VM::run_frame(Frame* frame){
             continue;
         case OP_BUILD_TUPLE: {
             Args items = frame->pop_n_values_reversed(this, byte.arg);
-            frame->push(PyTuple(std::move(items)));
+            frame->push(py_object(this, std::move(items)));
         } continue;
         case OP_BUILD_TUPLE_REF: {
             Args items = frame->pop_n_reversed(byte.arg);
@@ -79,13 +79,13 @@ PyVar VM::run_frame(Frame* frame){
         case OP_BUILD_STRING: {
             Args items = frame->pop_n_values_reversed(this, byte.arg);
             StrStream ss;
-            for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
-            frame->push(PyStr(ss.str()));
+            for(int i=0; i<items.size(); i++) ss << py_cast<Str>(this, asStr(items[i]));
+            frame->push(py_object(this, ss.str()));
         } continue;
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_LIST_APPEND: {
             PyVar obj = frame->pop_value(this);
-            List& list = PyList_AS_C(frame->top_1());
+            List& list = py_cast<List>(this, frame->top_1());
             list.push_back(std::move(obj));
         } continue;
         case OP_BEGIN_CLASS: {
@@ -109,7 +109,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_RETURN_VALUE: return frame->pop_value(this);
         case OP_PRINT_EXPR: {
             const PyVar expr = frame->top_value(this);
-            if(expr != None) *_stdout << PyStr_AS_C(asRepr(expr)) << '\n';
+            if(expr != None) *_stdout << py_cast<Str>(this, asRepr(expr)) << '\n';
         } continue;
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {
@@ -175,7 +175,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
         case OP_ASSERT: {
             PyVar _msg = frame->pop_value(this);
-            Str msg = PyStr_AS_C(asStr(_msg));
+            Str msg = py_cast<Str>(this, asStr(_msg));
             PyVar expr = frame->pop_value(this);
             if(asBool(expr) != True) _error("AssertionError", msg);
         } continue;
@@ -186,13 +186,13 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_RAISE: {
             PyVar obj = frame->pop_value(this);
-            Str msg = obj == None ? "" : PyStr_AS_C(asStr(obj));
+            Str msg = obj == None ? "" : py_cast<Str>(this, asStr(obj));
             StrName type = frame->co->names[byte.arg].first;
             _error(type, msg);
         } continue;
         case OP_RE_RAISE: _raise(); continue;
         case OP_BUILD_LIST:
-            frame->push(PyList(frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
+            frame->push(py_object(this, frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
             continue;
         case OP_BUILD_MAP: {
             Args items = frame->pop_n_values_reversed(this, byte.arg*2);
@@ -203,7 +203,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(obj);
         } continue;
         case OP_BUILD_SET: {
-            PyVar list = PyList(
+            PyVar list = py_object(this, 
                 frame->pop_n_values_reversed(this, byte.arg).move_to_list()
             );
             PyVar obj = call(builtins->attr("set"), one_arg(list));
