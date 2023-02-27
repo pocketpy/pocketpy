@@ -34,6 +34,7 @@ public:
 };
 
 class VM {
+    VM* vm;     // self reference for simplify code
 public:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
@@ -57,6 +58,7 @@ public:
     int recursionlimit = 1000;
 
     VM(bool use_stdio){
+        this->vm = this;
         this->use_stdio = use_stdio;
         if(use_stdio){
             this->_stdout = &std::cout;

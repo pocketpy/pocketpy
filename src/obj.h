@@ -174,4 +174,7 @@ T& py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
 template<typename T>
 T& _py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
 
+#define VAR(x) py_var(vm, x)
+
+
 }   // namespace pkpy
