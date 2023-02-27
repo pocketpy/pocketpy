@@ -955,48 +955,48 @@ void CodeObject::optimize(VM* vm){
     }
 }
 
-    template<> PyVar object<i64>(VM* vm, i64 val){
-        if(((val << 2) >> 2) != val){
-            vm->_error("OverflowError", std::to_string(val) + " is out of range");
-        }
-        val = (val << 2) | 0b01;
-        return PyVar(reinterpret_cast<int*>(val));
+PyVar py_object(VM* vm, i64 val){
+    if(((val << 2) >> 2) != val){
+        vm->_error("OverflowError", std::to_string(val) + " is out of range");
     }
-    template<> i64 cast<i64>(VM* vm, const PyVar& obj){
-        vm->check_type(obj, vm->tp_int);
-        return obj.bits >> 2;
-    }
-    template<> i64 _cast<i64>(VM* vm, const PyVar& obj){
-        return obj.bits >> 2;
-    }
-    
-    template<> PyVar object<f64>(VM* vm, f64 val){
-        i64 bits = __8B(val)._int;
-        bits = (bits >> 2) << 2;
-        bits |= 0b10;
-        return PyVar(reinterpret_cast<int*>(bits));
-    }
-    template<> f64 cast<f64>(VM* vm, const PyVar& obj){
-        vm->check_type(obj, vm->tp_float);
-        i64 bits = obj.bits;
-        bits = (bits >> 2) << 2;
-        return __8B(bits)._float;
-    }
-    template<> f64 _cast<f64>(VM* vm, const PyVar& obj){
-        i64 bits = obj.bits;
-        bits = (bits >> 2) << 2;
-        return __8B(bits)._float;
-    }
+    val = (val << 2) | 0b01;
+    return PyVar(reinterpret_cast<int*>(val));
+}
+template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_int);
+    return obj.bits >> 2;
+}
+template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
+    return obj.bits >> 2;
+}
 
-    template<> PyVar object<bool>(VM* vm, bool val){
-        return val ? vm->True : vm->False;
-    }
-    template<> bool cast<bool>(VM* vm, const PyVar& obj){
-        vm->check_type(obj, vm->tp_bool);
-        return obj == vm->True;
-    }
-    template<> bool _cast<bool>(VM* vm, const PyVar& obj){
-        return obj == vm->True;
-    }
+PyVar py_object(VM* vm, f64 val){
+    i64 bits = __8B(val)._int;
+    bits = (bits >> 2) << 2;
+    bits |= 0b10;
+    return PyVar(reinterpret_cast<int*>(bits));
+}
+template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_float);
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
+template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
+
+PyVar py_object(VM* vm, bool val){
+    return val ? vm->True : vm->False;
+}
+template<> bool py_cast<bool>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_bool);
+    return obj == vm->True;
+}
+template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
+    return obj == vm->True;
+}
 
 }   // namespace pkpy
