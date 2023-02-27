@@ -448,9 +448,9 @@ PyVar py_var(VM* vm, const char* val){
 
 PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
-        return py_var(this, -py_cast_v<i64>(this, obj));
+        return VAR(-CAST_V(i64, obj));
     }else if(is_float(obj)){
-        return py_var(this, -py_cast_v<f64>(this, obj));
+        return VAR(-CAST_V(f64, obj));
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return nullptr;
@@ -458,9 +458,9 @@ PyVar VM::num_negated(const PyVar& obj){
 
 f64 VM::num_to_float(const PyVar& obj){
     if(is_float(obj)){
-        return py_cast_v<f64>(this, obj);
+        return CAST_V(f64, obj);
     } else if (is_int(obj)){
-        return (f64)py_cast_v<i64>(this, obj);
+        return (f64)CAST_V(i64, obj);
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return 0;
@@ -469,22 +469,22 @@ f64 VM::num_to_float(const PyVar& obj){
 const PyVar& VM::asBool(const PyVar& obj){
     if(is_type(obj, tp_bool)) return obj;
     if(obj == None) return False;
-    if(is_type(obj, tp_int)) return py_var(this, py_cast_v<i64>(this, obj) != 0);
-    if(is_type(obj, tp_float)) return py_var(this, py_cast_v<f64>(this, obj) != 0.0);
+    if(is_type(obj, tp_int)) return VAR(CAST_V(i64, obj) != 0);
+    if(is_type(obj, tp_float)) return VAR(CAST_V(f64, obj) != 0.0);
     PyVarOrNull len_fn = getattr(obj, __len__, false);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
-        return py_var(this, py_cast_v<i64>(this, ret) > 0);
+        return VAR(CAST_V(i64, ret) > 0);
     }
     return True;
 }
 
 i64 VM::hash(const PyVar& obj){
-    if (is_type(obj, tp_str)) return py_cast<Str>(this, obj).hash();
-    if (is_int(obj)) return py_cast_v<i64>(this, obj);
+    if (is_type(obj, tp_str)) return CAST(Str, obj).hash();
+    if (is_int(obj)) return CAST_V(i64, obj);
     if (is_type(obj, tp_tuple)) {
         i64 x = 1000003;
-        const Tuple& items = py_cast<Tuple>(this, obj);
+        const Tuple& items = CAST(Tuple, obj);
         for (int i=0; i<items.size(); i++) {
             i64 y = hash(items[i]);
             x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
@@ -492,9 +492,9 @@ i64 VM::hash(const PyVar& obj){
         return x;
     }
     if (is_type(obj, tp_type)) return obj.bits;
-    if (is_type(obj, tp_bool)) return _py_cast_v<bool>(this, obj) ? 1 : 0;
+    if (is_type(obj, tp_bool)) return _CAST_V(bool, obj) ? 1 : 0;
     if (is_float(obj)){
-        f64 val = py_cast_v<f64>(this, obj);
+        f64 val = CAST_V(f64, obj);
         return (i64)std::hash<f64>()(val);
     }
     TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
@@ -502,7 +502,7 @@ i64 VM::hash(const PyVar& obj){
 }
 
 PyVar VM::asRepr(const PyVar& obj){
-    if(is_type(obj, tp_type)) return py_var(this, "<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
+    if(is_type(obj, tp_type)) return VAR("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
     return call(obj, __repr__);
 }
 
@@ -512,7 +512,7 @@ PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
     setattr(obj, __base__, base);
     Str fullName = name.str();
     if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
-    setattr(obj, __name__, py_var(this, fullName));
+    setattr(obj, __name__, VAR(fullName));
     setattr(mod, name, obj);
     _all_types.push_back(obj);
     return obj;
@@ -520,7 +520,7 @@ PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
 
 PyVar VM::new_module(StrName name) {
     PyVar obj = new_object(tp_module, DummyModule());
-    setattr(obj, __name__, py_var(this, name.str()));
+    setattr(obj, __name__, VAR(name.str()));
     _modules.set(name, obj);
     return obj;
 }
@@ -557,7 +557,7 @@ Str VM::disassemble(CodeObject_ co){
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
         std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
         if(byte.op == OP_LOAD_CONST){
-            argStr += " (" + py_cast<Str>(this, asRepr(co->consts[byte.arg])) + ")";
+            argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
         }
         if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
             argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
@@ -573,21 +573,21 @@ Str VM::disassemble(CodeObject_ co){
     }
     StrStream consts;
     consts << "co_consts: ";
-    consts << py_cast<Str>(this, asRepr(py_var(this, co->consts)));
+    consts << CAST(Str, asRepr(VAR(co->consts)));
 
     StrStream names;
     names << "co_names: ";
     List list;
     for(int i=0; i<co->names.size(); i++){
-        list.push_back(py_var(this, co->names[i].first.str()));
+        list.push_back(VAR(co->names[i].first.str()));
     }
-    names << py_cast<Str>(this, asRepr(py_var(this, list)));
+    names << CAST(Str, asRepr(VAR(list)));
     ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
     for(int i=0; i<co->consts.size(); i++){
         PyVar obj = co->consts[i];
         if(is_type(obj, tp_function)){
-            const auto& f = py_cast<Function>(this, obj);
+            const auto& f = CAST(Function, obj);
             ss << disassemble(f.code);
         }
     }
@@ -638,7 +638,7 @@ void VM::init_builtin_types(){
     setattr(_t(tp_object), __base__, None);
     
     for(auto [k, v]: _types.items()){
-        setattr(v, __name__, py_var(this, k.str()));
+        setattr(v, __name__, VAR(k.str()));
     }
 
     std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
@@ -667,7 +667,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
 
     const PyVar* callable = &_callable;
     if(is_type(*callable, tp_bound_method)){
-        auto& bm = py_cast<BoundMethod>(this, *callable);
+        auto& bm = CAST(BoundMethod, *callable);
         callable = &bm.method;      // get unbound method
         args.extend_self(bm.obj);
     }
@@ -677,7 +677,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
         return f(this, args);
     } else if(is_type(*callable, tp_function)){
-        const Function& fn = py_cast<Function>(this, *callable);
+        const Function& fn = CAST(Function, *callable);
         NameDict_ locals = make_sp<NameDict>(
             fn.code->perfect_locals_capacity,
             kLocalsLoadFactor,
@@ -698,7 +698,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         if(!fn.starred_arg.empty()){
             List vargs;        // handle *args
             while(i < args.size()) vargs.push_back(std::move(args[i++]));
-            locals->set(fn.starred_arg, py_var(this, Tuple::from_list(std::move(vargs))));
+            locals->set(fn.starred_arg, VAR(Tuple::from_list(std::move(vargs))));
         }else{
             for(StrName key : fn.kwargs_order){
                 if(i < args.size()){
@@ -711,7 +711,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         }
         
         for(int i=0; i<kwargs.size(); i+=2){
-            const Str& key = py_cast<Str>(this, kwargs[i]);
+            const Str& key = CAST(Str, kwargs[i]);
             if(!fn.kwargs.contains(key)){
                 TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
             }
@@ -732,10 +732,10 @@ void VM::unpack_args(Args& args){
     List unpacked;
     for(int i=0; i<args.size(); i++){
         if(is_type(args[i], tp_star_wrapper)){
-            auto& star = _py_cast<StarWrapper>(this, args[i]);
+            auto& star = _CAST(StarWrapper, args[i]);
             if(!star.rvalue) UNREACHABLE();
             PyVar list = asList(star.obj);
-            List& list_c = py_cast<List>(this, list);
+            List& list_c = CAST(List, list);
             unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
         }else{
             unpacked.push_back(args[i]);
@@ -777,7 +777,7 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
                 return call(descriptor, one_arg(obj));
             }
             if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
-                return py_var(this, BoundMethod(obj, *val));
+                return VAR(BoundMethod(obj, *val));
             }else{
                 return *val;
             }
@@ -800,12 +800,12 @@ void VM::setattr(PyVar& obj, StrName name, T&& value) {
 template<int ARGC>
 void VM::bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
     check_type(obj, tp_type);
-    setattr(obj, funcName, py_var(this, NativeFunc(fn, ARGC, true)));
+    setattr(obj, funcName, VAR(NativeFunc(fn, ARGC, true)));
 }
 
 template<int ARGC>
 void VM::bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
-    setattr(obj, funcName, py_var(this, NativeFunc(fn, ARGC, false)));
+    setattr(obj, funcName, VAR(NativeFunc(fn, ARGC, false)));
 }
 
 void VM::_error(Exception e){
@@ -813,7 +813,7 @@ void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    top_frame()->push(py_var(this, e));
+    top_frame()->push(VAR(e));
     _raise();
 }
 
@@ -845,7 +845,7 @@ PyVar VM::_exec(){
             continue;
         }catch(UnhandledException& e){
             PyVar obj = frame->pop();
-            Exception& _e = py_cast<Exception>(this, obj);
+            Exception& _e = CAST(Exception, obj);
             _e.st_push(frame->snapshot());
             callstack.pop();
             if(callstack.empty()) throw _e;

@@ -18,12 +18,12 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             const PyVar obj = frame->co->consts[byte.arg];
-            Function f = py_cast_v<Function>(this, obj);  // copy
+            Function f = CAST_V(Function, obj);  // copy
             f._module = frame->_module;
-            frame->push(py_var(this, f));
+            frame->push(VAR(f));
         } continue;
         case OP_SETUP_CLOSURE: {
-            Function& f = py_cast<Function>(this, frame->top());    // reference
+            Function& f = CAST(Function, frame->top());    // reference
             f._closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
@@ -70,7 +70,7 @@ PyVar VM::run_frame(Frame* frame){
             continue;
         case OP_BUILD_TUPLE: {
             Args items = frame->pop_n_values_reversed(this, byte.arg);
-            frame->push(py_var(this, std::move(items)));
+            frame->push(VAR(std::move(items)));
         } continue;
         case OP_BUILD_TUPLE_REF: {
             Args items = frame->pop_n_reversed(byte.arg);
@@ -79,13 +79,13 @@ PyVar VM::run_frame(Frame* frame){
         case OP_BUILD_STRING: {
             Args items = frame->pop_n_values_reversed(this, byte.arg);
             StrStream ss;
-            for(int i=0; i<items.size(); i++) ss << py_cast<Str>(this, asStr(items[i]));
-            frame->push(py_var(this, ss.str()));
+            for(int i=0; i<items.size(); i++) ss << CAST(Str, asStr(items[i]));
+            frame->push(VAR(ss.str()));
         } continue;
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_LIST_APPEND: {
             PyVar obj = frame->pop_value(this);
-            List& list = py_cast<List>(this, frame->top_1());
+            List& list = CAST(List, frame->top_1());
             list.push_back(std::move(obj));
         } continue;
         case OP_BEGIN_CLASS: {
@@ -109,7 +109,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_RETURN_VALUE: return frame->pop_value(this);
         case OP_PRINT_EXPR: {
             const PyVar expr = frame->top_value(this);
-            if(expr != None) *_stdout << py_cast<Str>(this, asRepr(expr)) << '\n';
+            if(expr != None) *_stdout << CAST(Str, asRepr(expr)) << '\n';
         } continue;
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {
@@ -150,13 +150,13 @@ PyVar VM::run_frame(Frame* frame){
             PyVar rhs = frame->pop_value(this);
             bool ret_c = rhs == frame->top_value(this);
             if(byte.arg == 1) ret_c = !ret_c;
-            frame->top() = py_var(this, ret_c);
+            frame->top() = VAR(ret_c);
         } continue;
         case OP_CONTAINS_OP: {
             PyVar rhs = frame->pop_value(this);
-            bool ret_c = py_cast_v<bool>(this, call(rhs, __contains__, one_arg(frame->pop_value(this))));
+            bool ret_c = CAST_V(bool, call(rhs, __contains__, one_arg(frame->pop_value(this))));
             if(byte.arg == 1) ret_c = !ret_c;
-            frame->push(py_var(this, ret_c));
+            frame->push(VAR(ret_c));
         } continue;
         case OP_UNARY_NEGATIVE:
             frame->top() = num_negated(frame->top_value(this));
@@ -164,10 +164,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_UNARY_NOT: {
             PyVar obj = frame->pop_value(this);
             const PyVar& obj_bool = asBool(obj);
-            frame->push(py_var(this, !_py_cast_v<bool>(this, obj_bool)));
+            frame->push(VAR(!_CAST_V(bool, obj_bool)));
         } continue;
         case OP_POP_JUMP_IF_FALSE:
-            if(!_py_cast_v<bool>(this, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
+            if(!_CAST_V(bool, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
             continue;
         case OP_LOAD_NONE: frame->push(None); continue;
         case OP_LOAD_TRUE: frame->push(True); continue;
@@ -175,24 +175,24 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
         case OP_ASSERT: {
             PyVar _msg = frame->pop_value(this);
-            Str msg = py_cast<Str>(this, asStr(_msg));
+            Str msg = CAST(Str, asStr(_msg));
             PyVar expr = frame->pop_value(this);
             if(asBool(expr) != True) _error("AssertionError", msg);
         } continue;
         case OP_EXCEPTION_MATCH: {
-            const auto& e = py_cast<Exception>(this, frame->top());
+            const auto& e = CAST(Exception, frame->top());
             StrName name = frame->co->names[byte.arg].first;
-            frame->push(py_var(this, e.match_type(name)));
+            frame->push(VAR(e.match_type(name)));
         } continue;
         case OP_RAISE: {
             PyVar obj = frame->pop_value(this);
-            Str msg = obj == None ? "" : py_cast<Str>(this, asStr(obj));
+            Str msg = obj == None ? "" : CAST(Str, asStr(obj));
             StrName type = frame->co->names[byte.arg].first;
             _error(type, msg);
         } continue;
         case OP_RE_RAISE: _raise(); continue;
         case OP_BUILD_LIST:
-            frame->push(py_var(this, frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
+            frame->push(VAR(frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
             continue;
         case OP_BUILD_MAP: {
             Args items = frame->pop_n_values_reversed(this, byte.arg*2);
@@ -203,7 +203,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(obj);
         } continue;
         case OP_BUILD_SET: {
-            PyVar list = py_var(this, 
+            PyVar list = VAR(
                 frame->pop_n_values_reversed(this, byte.arg).move_to_list()
             );
             PyVar obj = call(builtins->attr("set"), one_arg(list));
@@ -212,10 +212,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
         case OP_UNARY_STAR: {
             if(byte.arg > 0){   // rvalue
-                frame->top() = py_var(this, StarWrapper(frame->top_value(this), true));
+                frame->top() = VAR(StarWrapper(frame->top_value(this), true));
             }else{
                 PyRef_AS_C(frame->top()); // check ref
-                frame->top() = py_var(this, StarWrapper(frame->top(), false));
+                frame->top() = VAR(StarWrapper(frame->top(), false));
             }
         } continue;
         case OP_CALL_KWARGS_UNPACK: case OP_CALL_KWARGS: {
@@ -284,9 +284,9 @@ PyVar VM::run_frame(Frame* frame){
             PyVar stop = frame->pop_value(this);
             PyVar start = frame->pop_value(this);
             Slice s;
-            if(start != None) { s.start = (int)py_cast_v<i64>(this, start);}
-            if(stop != None) { s.stop = (int)py_cast_v<i64>(this, stop);}
-            frame->push(py_var(this, s));
+            if(start != None) { s.start = (int)CAST_V(i64, start);}
+            if(stop != None) { s.stop = (int)CAST_V(i64, stop);}
+            frame->push(VAR(s));
         } continue;
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;

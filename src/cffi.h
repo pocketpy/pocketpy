@@ -78,12 +78,12 @@ struct Pointer{
 
         vm->bind_method<1>(type, "__add__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
-            return vm->new_object<Pointer>(self + py_cast<i64>(vm, args[1]));
+            return vm->new_object<Pointer>(self + CAST(i64, args[1]));
         });
 
         vm->bind_method<1>(type, "__sub__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
-            return vm->new_object<Pointer>(self - py_cast_v<i64>(vm, args[1]));
+            return vm->new_object<Pointer>(self - CAST_V(i64, args[1]));
         });
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, Args& args) {
@@ -101,13 +101,13 @@ struct Pointer{
         // https://docs.python.org/zh-cn/3/library/ctypes.html
         vm->bind_method<1>(type, "__getitem__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
-            i64 index = py_cast_v<i64>(vm, args[1]);
+            i64 index = CAST_V(i64, args[1]);
             return (self+index).get(vm);
         });
 
         vm->bind_method<2>(type, "__setitem__", [](VM* vm, Args& args) {
             Pointer& self = vm->_cast<Pointer>(args[0]);
-            i64 index = py_cast_v<i64>(vm, args[1]);
+            i64 index = CAST_V(i64, args[1]);
             (self+index).set(vm, args[2]);
             return vm->None;
         });
@@ -164,20 +164,20 @@ struct Pointer{
 
     void set(VM* vm, const PyVar& val){
         switch(ctype.index){
-            case C_TYPE("char_"): ref<char>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("int_"): ref<int>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("float_"): ref<float>() = py_cast_v<f64>(vm, val); break;
-            case C_TYPE("double_"): ref<double>() = py_cast_v<f64>(vm, val); break;
-            case C_TYPE("bool_"): ref<bool>() = py_cast_v<bool>(vm, val); break;
+            case C_TYPE("char_"): ref<char>() = CAST_V(i64, val); break;
+            case C_TYPE("int_"): ref<int>() = CAST_V(i64, val); break;
+            case C_TYPE("float_"): ref<float>() = CAST_V(f64, val); break;
+            case C_TYPE("double_"): ref<double>() = CAST_V(f64, val); break;
+            case C_TYPE("bool_"): ref<bool>() = CAST_V(bool, val); break;
             case C_TYPE("void_"): vm->ValueError("cannot set void*"); break;
-            case C_TYPE("int8_"): ref<int8_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("int16_"): ref<int16_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("int32_"): ref<int32_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("int64_"): ref<int64_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("uint8_"): ref<uint8_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("uint16_"): ref<uint16_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("uint32_"): ref<uint32_t>() = py_cast_v<i64>(vm, val); break;
-            case C_TYPE("uint64_"): ref<uint64_t>() = py_cast_v<i64>(vm, val); break;
+            case C_TYPE("int8_"): ref<int8_t>() = CAST_V(i64, val); break;
+            case C_TYPE("int16_"): ref<int16_t>() = CAST_V(i64, val); break;
+            case C_TYPE("int32_"): ref<int32_t>() = CAST_V(i64, val); break;
+            case C_TYPE("int64_"): ref<int64_t>() = CAST_V(i64, val); break;
+            case C_TYPE("uint8_"): ref<uint8_t>() = CAST_V(i64, val); break;
+            case C_TYPE("uint16_"): ref<uint16_t>() = CAST_V(i64, val); break;
+            case C_TYPE("uint32_"): ref<uint32_t>() = CAST_V(i64, val); break;
+            case C_TYPE("uint64_"): ref<uint64_t>() = CAST_V(i64, val); break;
             case C_TYPE("void_p_"): ref<void*>() = vm->_cast<Pointer>(val).ptr; break;
             // use macro here to do extension
             default: UNREACHABLE();
@@ -262,7 +262,7 @@ void add_module_c(VM* vm){
     vm->setattr(mod, "nullptr", vm->new_object<Pointer>(nullptr, C_TYPE_T("void_")));
 
     vm->bind_func<1>(mod, "malloc", [](VM* vm, Args& args) {
-        i64 size = py_cast_v<i64>(vm, args[0]);
+        i64 size = CAST_V(i64, args[0]);
         return vm->new_object<Pointer>(malloc(size), C_TYPE_T("void_"));
     });
 
@@ -280,22 +280,22 @@ void add_module_c(VM* vm){
     vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
         Pointer& dst = vm->_cast<Pointer>(args[0]);
         Pointer& src = vm->_cast<Pointer>(args[1]);
-        i64 size = py_cast_v<i64>(vm, args[2]);
+        i64 size = CAST_V(i64, args[2]);
         memcpy(dst.ptr, src.ptr, size);
         return vm->None;
     });
 
     vm->bind_func<3>(mod, "memset", [](VM* vm, Args& args) {
         Pointer& dst = vm->_cast<Pointer>(args[0]);
-        i64 val = py_cast_v<i64>(vm, args[1]);
-        i64 size = py_cast_v<i64>(vm, args[2]);
+        i64 val = CAST_V(i64, args[1]);
+        i64 size = CAST_V(i64, args[2]);
         memset(dst.ptr, (int)val, size);
         return vm->None;
     });
 
     vm->bind_func<1>(mod, "strdup", [ptr_t](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str)){
-            const Str& s = py_cast<Str>(vm, args[0]);
+            const Str& s = CAST(Str, args[0]);
             return vm->new_object<Pointer>(strdup(s.c_str()), C_TYPE_T("char_"));
         }else if(is_type(args[0], OBJ_GET(Type, ptr_t))){
             Pointer& p = vm->_cast<Pointer>(args[0]);
