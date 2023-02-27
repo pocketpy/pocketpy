@@ -90,19 +90,6 @@ public:
         return call(obj, __repr__);
     }
 
-    const PyVar& asBool(const PyVar& obj){
-        if(is_type(obj, tp_bool)) return obj;
-        if(obj == None) return False;
-        if(is_type(obj, tp_int)) return PyBool(PyInt_AS_C(obj) != 0);
-        if(is_type(obj, tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
-        PyVarOrNull len_fn = getattr(obj, __len__, false);
-        if(len_fn != nullptr){
-            PyVar ret = call(len_fn);
-            return PyBool(PyInt_AS_C(ret) > 0);
-        }
-        return True;
-    }
-
     PyVar asIter(const PyVar& obj){
         if(is_type(obj, tp_native_iterator)) return obj;
         PyVarOrNull iter_f = getattr(obj, __iter__, false);
@@ -441,15 +428,7 @@ public:
         bind_func<ARGC>(builtins, funcName, fn);
     }
 
-    inline f64 num_to_float(const PyVar& obj){
-        if(is_float(obj)){
-            return PyFloat_AS_C(obj);
-        } else if (is_int(obj)){
-            return (f64)PyInt_AS_C(obj);
-        }
-        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
-        return 0;
-    }
+
 
     int normalized_index(int index, int size){
         if(index < 0) index += size;
@@ -536,18 +515,6 @@ public:
     Type tp_super, tp_exception, tp_star_wrapper;
 
     template<typename P>
-    inline PyVarRef PyRef(P&& value) {
-        static_assert(std::is_base_of_v<BaseRef, RAW(P)>);
-        return new_object(tp_ref, std::forward<P>(value));
-    }
-
-    inline const BaseRef* PyRef_AS_C(const PyVar& obj)
-    {
-        if(!is_type(obj, tp_ref)) TypeError("expected an l-value");
-        return static_cast<const BaseRef*>(obj->value());
-    }
-
-    template<typename P>
     inline PyVar PyIter(P&& value) {
         static_assert(std::is_base_of_v<BaseIter, RAW(P)>);
         return new_object(tp_native_iterator, std::forward<P>(value));
@@ -570,11 +537,6 @@ public:
         //     if(c >= 0) return _ascii_str_pool[(int)c];
         // }
         return new_object(tp_str, value);
-    }
-
-    inline i64 PyInt_AS_C(const PyVar& obj){
-        check_type(obj, tp_int);
-        return obj.bits >> 2;
     }
 
     inline i64 _PyInt_AS_C(const PyVar& obj){
@@ -676,28 +638,6 @@ public:
         for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
     }
 
-    i64 hash(const PyVar& obj){
-        if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
-        if (is_int(obj)) return PyInt_AS_C(obj);
-        if (is_type(obj, tp_tuple)) {
-            i64 x = 1000003;
-            const Tuple& items = PyTuple_AS_C(obj);
-            for (int i=0; i<items.size(); i++) {
-                i64 y = hash(items[i]);
-                x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
-            }
-            return x;
-        }
-        if (is_type(obj, tp_type)) return obj.bits;
-        if (is_type(obj, tp_bool)) return _PyBool_AS_C(obj) ? 1 : 0;
-        if (is_float(obj)){
-            f64 val = PyFloat_AS_C(obj);
-            return (i64)std::hash<f64>()(val);
-        }
-        TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
-        return 0;
-    }
-
     /***** Error Reporter *****/
     void _error(StrName name, const Str& msg){
         _error(Exception(name, msg));
@@ -789,127 +729,14 @@ public:
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
     void post_init();
     PyVar num_negated(const PyVar& obj);
+    f64 num_to_float(const PyVar& obj);
+    const PyVar& asBool(const PyVar& obj);
+    i64 hash(const PyVar& obj);
+
+    template<typename P>
+    PyVarRef PyRef(P&& value);
+    const BaseRef* PyRef_AS_C(const PyVar& obj);
 };
-
-/***** Pointers' Impl *****/
-PyVar NameRef::get(VM* vm, Frame* frame) const{
-    PyVar* val;
-    val = frame->f_locals().try_get(name());
-    if(val != nullptr) return *val;
-    val = frame->f_closure_try_get(name());
-    if(val != nullptr) return *val;
-    val = frame->f_globals().try_get(name());
-    if(val != nullptr) return *val;
-    val = vm->builtins->attr().try_get(name());
-    if(val != nullptr) return *val;
-    vm->NameError(name());
-    return nullptr;
-}
-
-void NameRef::set(VM* vm, Frame* frame, PyVar val) const{
-    switch(scope()) {
-        case NAME_LOCAL: frame->f_locals().set(name(), std::move(val)); break;
-        case NAME_GLOBAL:
-            if(frame->f_locals().try_set(name(), std::move(val))) return;
-            frame->f_globals().set(name(), std::move(val));
-            break;
-        default: UNREACHABLE();
-    }
-}
-
-void NameRef::del(VM* vm, Frame* frame) const{
-    switch(scope()) {
-        case NAME_LOCAL: {
-            if(frame->f_locals().contains(name())){
-                frame->f_locals().erase(name());
-            }else{
-                vm->NameError(name());
-            }
-        } break;
-        case NAME_GLOBAL:
-        {
-            if(frame->f_locals().contains(name())){
-                frame->f_locals().erase(name());
-            }else{
-                if(frame->f_globals().contains(name())){
-                    frame->f_globals().erase(name());
-                }else{
-                    vm->NameError(name());
-                }
-            }
-        } break;
-        default: UNREACHABLE();
-    }
-}
-
-PyVar AttrRef::get(VM* vm, Frame* frame) const{
-    return vm->getattr(obj, attr.name());
-}
-
-void AttrRef::set(VM* vm, Frame* frame, PyVar val) const{
-    vm->setattr(obj, attr.name(), std::move(val));
-}
-
-void AttrRef::del(VM* vm, Frame* frame) const{
-    if(!obj->is_attr_valid()) vm->TypeError("cannot delete attribute");
-    if(!obj->attr().contains(attr.name())) vm->AttributeError(obj, attr.name());
-    obj->attr().erase(attr.name());
-}
-
-PyVar IndexRef::get(VM* vm, Frame* frame) const{
-    return vm->fast_call(__getitem__, two_args(obj, index));
-}
-
-void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
-    Args args(3);
-    args[0] = obj; args[1] = index; args[2] = std::move(val);
-    vm->fast_call(__setitem__, std::move(args));
-}
-
-void IndexRef::del(VM* vm, Frame* frame) const{
-    vm->fast_call(__delitem__, two_args(obj, index));
-}
-
-PyVar TupleRef::get(VM* vm, Frame* frame) const{
-    Tuple args(objs.size());
-    for (int i = 0; i < objs.size(); i++) {
-        args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
-    }
-    return vm->PyTuple(std::move(args));
-}
-
-void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
-    val = vm->asIter(val);
-    BaseIter* iter = vm->PyIter_AS_C(val);
-    for(int i=0; i<objs.size(); i++){
-        PyVarOrNull x;
-        if(is_type(objs[i], vm->tp_star_wrapper)){
-            auto& star = vm->PyStarWrapper_AS_C(objs[i]);
-            if(star.rvalue) vm->ValueError("can't use starred expression here");
-            if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
-            auto ref = vm->PyRef_AS_C(star.obj);
-            List list;
-            while((x = iter->next()) != nullptr) list.push_back(x);
-            ref->set(vm, frame, vm->PyList(std::move(list)));
-            return;
-        }else{
-            x = iter->next();
-            if(x == nullptr) vm->ValueError("not enough values to unpack");
-            vm->PyRef_AS_C(objs[i])->set(vm, frame, x);
-        }
-    }
-    PyVarOrNull x = iter->next();
-    if(x != nullptr) vm->ValueError("too many values to unpack");
-}
-
-void TupleRef::del(VM* vm, Frame* frame) const{
-    for(int i=0; i<objs.size(); i++) vm->PyRef_AS_C(objs[i])->del(vm, frame);
-}
-
-/***** Frame's Impl *****/
-inline void Frame::try_deref(VM* vm, PyVar& v){
-    if(is_type(v, vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
-}
 
 PyVar NativeFunc::operator()(VM* vm, Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
@@ -961,11 +788,11 @@ std::enable_if_t<std::is_integral_v<T>, PyVar> py_object(VM* vm, T _val){
     val = (val << 2) | 0b01;
     return PyVar(reinterpret_cast<int*>(val));
 }
-template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
+template<> i64 py_cast_v<i64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_int);
     return obj.bits >> 2;
 }
-template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
+template<> i64 _py_cast_v<i64>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
 
@@ -975,13 +802,13 @@ PyVar py_object(VM* vm, f64 val){
     bits |= 0b10;
     return PyVar(reinterpret_cast<int*>(bits));
 }
-template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
+template<> f64 py_cast_v<f64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);
     i64 bits = obj.bits;
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
 }
-template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
+template<> f64 _py_cast_v<f64>(VM* vm, const PyVar& obj){
     i64 bits = obj.bits;
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
@@ -990,11 +817,11 @@ template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
 PyVar py_object(VM* vm, bool val){
     return val ? vm->True : vm->False;
 }
-template<> bool py_cast<bool>(VM* vm, const PyVar& obj){
+template<> bool py_cast_v<bool>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_bool);
     return obj == vm->True;
 }
-template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
+template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
@@ -1011,12 +838,57 @@ DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
-        return py_object(this, -PyInt_AS_C(obj));
+        return py_object(this, -py_cast_v<i64>(this, obj));
     }else if(is_float(obj)){
         return py_object(this, -PyFloat_AS_C(obj));
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return nullptr;
+}
+
+f64 VM::num_to_float(const PyVar& obj){
+    if(is_float(obj)){
+        return PyFloat_AS_C(obj);
+    } else if (is_int(obj)){
+        return (f64)py_cast_v<i64>(this, obj);
+    }
+    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
+    return 0;
+}
+
+const PyVar& VM::asBool(const PyVar& obj){
+    if(is_type(obj, tp_bool)) return obj;
+    if(obj == None) return False;
+    if(is_type(obj, tp_int)) return PyBool(py_cast_v<i64>(this, obj) != 0);
+    if(is_type(obj, tp_float)) return PyBool(PyFloat_AS_C(obj) != 0.0);
+    PyVarOrNull len_fn = getattr(obj, __len__, false);
+    if(len_fn != nullptr){
+        PyVar ret = call(len_fn);
+        return PyBool(py_cast_v<i64>(this, ret) > 0);
+    }
+    return True;
+}
+
+i64 VM::hash(const PyVar& obj){
+    if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
+    if (is_int(obj)) return py_cast_v<i64>(this, obj);
+    if (is_type(obj, tp_tuple)) {
+        i64 x = 1000003;
+        const Tuple& items = PyTuple_AS_C(obj);
+        for (int i=0; i<items.size(); i++) {
+            i64 y = hash(items[i]);
+            x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
+        }
+        return x;
+    }
+    if (is_type(obj, tp_type)) return obj.bits;
+    if (is_type(obj, tp_bool)) return _PyBool_AS_C(obj) ? 1 : 0;
+    if (is_float(obj)){
+        f64 val = PyFloat_AS_C(obj);
+        return (i64)std::hash<f64>()(val);
+    }
+    TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
+    return 0;
 }
 
 }   // namespace pkpy

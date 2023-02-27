@@ -164,14 +164,13 @@ union __8B {
     __8B(f64 val) : _float(val) {}
 };
 
-// Cast a PyVar to a native type `T` by reference
+template<typename T>
+T py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
+template<typename T>
+T _py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
 template<typename T>
 T& py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
 template<typename T>
-T py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
-template<typename T>
 T& _py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
-template<typename T>
-T _py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
 
 }   // namespace pkpy

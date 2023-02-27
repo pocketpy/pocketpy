@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vm.h"
+#include "ref.h"
 
 namespace pkpy{
 
@@ -283,8 +284,8 @@ PyVar VM::run_frame(Frame* frame){
             PyVar stop = frame->pop_value(this);
             PyVar start = frame->pop_value(this);
             Slice s;
-            if(start != None) { s.start = (int)PyInt_AS_C(start);}
-            if(stop != None) { s.stop = (int)PyInt_AS_C(stop);}
+            if(start != None) { s.start = (int)py_cast_v<i64>(this, start);}
+            if(stop != None) { s.stop = (int)py_cast_v<i64>(this, stop);}
             frame->push(PySlice(s));
         } continue;
         case OP_IMPORT_NAME: {

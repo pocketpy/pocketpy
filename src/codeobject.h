@@ -1,10 +1,16 @@
 #pragma once
 
 #include "obj.h"
-#include "ref.h"
 #include "error.h"
 
 namespace pkpy{
+
+enum NameScope {
+    NAME_LOCAL = 0,
+    NAME_GLOBAL,
+    NAME_ATTR,
+    NAME_SPECIAL,
+};
 
 enum Opcode {
     #define OPCODE(name) OP_##name,

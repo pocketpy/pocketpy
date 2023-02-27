@@ -90,7 +90,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<-1>("exit", [](VM* vm, Args& args) {
         if(args.size() == 0) std::exit(0);
-        else if(args.size() == 1) std::exit((int)vm->PyInt_AS_C(args[0]));
+        else if(args.size() == 1) std::exit((int)py_cast_v<i64>(vm, args[0]));
         else vm->TypeError("exit() takes at most 1 argument");
         return vm->None;
     });
@@ -105,7 +105,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("chr", [](VM* vm, Args& args) {
-        i64 i = vm->PyInt_AS_C(args[0]);
+        i64 i = py_cast_v<i64>(vm, args[0]);
         if (i < 0 || i > 128) vm->ValueError("chr() arg not in range(128)");
         return vm->PyStr(std::string(1, (char)i));
     });
@@ -132,7 +132,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, Args& args) {
         std::stringstream ss;
-        ss << std::hex << vm->PyInt_AS_C(args[0]);
+        ss << std::hex << py_cast_v<i64>(vm, args[0]);
         return vm->PyStr("0x" + ss.str());
     });
 
@@ -167,9 +167,9 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, Args& args) {
         Range r;
         switch (args.size()) {
-            case 1: r.stop = vm->PyInt_AS_C(args[0]); break;
-            case 2: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); break;
-            case 3: r.start = vm->PyInt_AS_C(args[0]); r.stop = vm->PyInt_AS_C(args[1]); r.step = vm->PyInt_AS_C(args[2]); break;
+            case 1: r.stop = py_cast_v<i64>(vm, args[0]); break;
+            case 2: r.start = py_cast_v<i64>(vm, args[0]); r.stop = py_cast_v<i64>(vm, args[1]); break;
+            case 3: r.start = py_cast_v<i64>(vm, args[0]); r.stop = py_cast_v<i64>(vm, args[1]); r.step = py_cast_v<i64>(vm, args[2]); break;
             default: vm->TypeError("expected 1-3 arguments, but got " + std::to_string(args.size()));
         }
         return vm->PyRange(r);
@@ -228,22 +228,22 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("int", "__floordiv__", [](VM* vm, Args& args) {
-        i64 rhs = vm->PyInt_AS_C(args[1]);
+        i64 rhs = py_cast_v<i64>(vm, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return py_object(vm, vm->PyInt_AS_C(args[0]) / rhs);
+        return py_object(vm, py_cast_v<i64>(vm, args[0]) / rhs);
     });
 
     _vm->bind_method<1>("int", "__mod__", [](VM* vm, Args& args) {
-        i64 rhs = vm->PyInt_AS_C(args[1]);
+        i64 rhs = py_cast_v<i64>(vm, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return py_object(vm, vm->PyInt_AS_C(args[0]) % rhs);
+        return py_object(vm, py_cast_v<i64>(vm, args[0]) % rhs);
     });
 
-    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
-    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
+    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(vm->PyStr(std::to_string(py_cast_v<i64>(vm, args[0])))));
+    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(vm->PyStr(std::to_string(py_cast_v<i64>(vm, args[0])))));
 
 #define INT_BITWISE_OP(name,op) \
-    _vm->bind_method<1>("int", #name, CPP_LAMBDA(py_object(vm, vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]))));
+    _vm->bind_method<1>("int", #name, CPP_LAMBDA(py_object(vm, py_cast_v<i64>(vm, args[0]) op py_cast_v<i64>(vm, args[1]))));
 
     INT_BITWISE_OP(__lshift__, <<)
     INT_BITWISE_OP(__rshift__, >>)
@@ -255,7 +255,7 @@ void init_builtins(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, Args& args) {
-        if (is_type(args[0], vm->tp_int)) return vm->PyFloat((f64)vm->PyInt_AS_C(args[0]));
+        if (is_type(args[0], vm->tp_int)) return vm->PyFloat((f64)py_cast_v<i64>(vm, args[0]));
         if (is_type(args[0], vm->tp_float)) return args[0];
         if (is_type(args[0], vm->tp_bool)) return vm->PyFloat(vm->_PyBool_AS_C(args[0]) ? 1.0 : 0.0);
         if (is_type(args[0], vm->tp_str)) {
@@ -343,7 +343,7 @@ void init_builtins(VM* _vm) {
             return vm->PyStr(self.u8_substr(s.start, s.stop));
         }
 
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.u8_length());
         return vm->PyStr(self.u8_getitem(index));
     });
@@ -413,7 +413,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("list", "__mul__", [](VM* vm, Args& args) {
         const List& self = vm->PyList_AS_C(args[0]);
-        int n = (int)vm->PyInt_AS_C(args[1]);
+        int n = (int)py_cast_v<i64>(vm, args[1]);
         List result;
         result.reserve(self.size() * n);
         for(int i = 0; i < n; i++) result.insert(result.end(), self.begin(), self.end());
@@ -422,7 +422,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, Args& args) {
         List& _self = vm->PyList_AS_C(args[0]);
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         if(index < 0) index += _self.size();
         if(index < 0) index = 0;
         if(index > _self.size()) index = _self.size();
@@ -465,14 +465,14 @@ void init_builtins(VM* _vm) {
             return vm->PyList(std::move(new_list));
         }
 
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         return self[index];
     });
 
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, Args& args) {
         List& self = vm->PyList_AS_C(args[0]);
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         self[index] = args[2];
         return vm->None;
@@ -480,7 +480,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, Args& args) {
         List& self = vm->PyList_AS_C(args[0]);
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         self.erase(self.begin() + index);
         return vm->None;
@@ -507,7 +507,7 @@ void init_builtins(VM* _vm) {
             return vm->PyTuple(std::move(new_list));
         }
 
-        int index = (int)vm->PyInt_AS_C(args[1]);
+        int index = (int)py_cast_v<i64>(vm, args[1]);
         index = vm->normalized_index(index, self.size());
         return self[index];
     });
@@ -569,7 +569,7 @@ void add_module_sys(VM* vm){
     vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(py_object(vm, vm->recursionlimit)));
 
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, Args& args) {
-        vm->recursionlimit = (int)vm->PyInt_AS_C(args[0]);
+        vm->recursionlimit = (int)py_cast_v<i64>(vm, args[0]);
         return vm->None;
     });
 }
@@ -698,7 +698,7 @@ struct ReMatch {
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
             auto& self = vm->py_cast<ReMatch>(args[0]);
-            int index = (int)vm->PyInt_AS_C(args[1]);
+            int index = (int)py_cast_v<i64>(vm, args[1]);
             index = vm->normalized_index(index, self.m.size());
             return vm->PyStr(self.m[index].str());
         });
@@ -759,14 +759,14 @@ void add_module_random(VM* vm){
     PyVar mod = vm->new_module("random");
     std::srand(std::time(0));
     vm->bind_func<1>(mod, "seed", [](VM* vm, Args& args) {
-        std::srand((unsigned int)vm->PyInt_AS_C(args[0]));
+        std::srand((unsigned int)py_cast_v<i64>(vm, args[0]));
         return vm->None;
     });
 
     vm->bind_func<0>(mod, "random", CPP_LAMBDA(vm->PyFloat(std::rand() / (f64)RAND_MAX)));
     vm->bind_func<2>(mod, "randint", [](VM* vm, Args& args) {
-        i64 a = vm->PyInt_AS_C(args[0]);
-        i64 b = vm->PyInt_AS_C(args[1]);
+        i64 a = py_cast_v<i64>(vm, args[0]);
+        i64 b = py_cast_v<i64>(vm, args[1]);
         if(a > b) std::swap(a, b);
         return py_object(vm, a + std::rand() % (b - a + 1));
     });
