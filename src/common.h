@@ -26,8 +26,6 @@
 #include <map>
 #include <set>
 #include <algorithm>
-// #include <filesystem>
-// namespace fs = std::filesystem;
 
 #define PK_VERSION "0.9.1"
 
@@ -42,6 +40,8 @@ typedef double f64;
 #define S_TO_INT std::stoll
 #define S_TO_FLOAT std::stod
 #endif
+
+namespace pkpy{
 
 struct Dummy {  };
 struct DummyInstance {  };
@@ -62,8 +62,8 @@ struct Type {
 
 //#define THREAD_LOCAL thread_local
 #define THREAD_LOCAL
-#define CPP_LAMBDA(x) ([](VM* vm, pkpy::Args& args) { return x; })
-#define CPP_NOT_IMPLEMENTED() ([](VM* vm, pkpy::Args& args) { vm->NotImplementedError(); return vm->None; })
+#define CPP_LAMBDA(x) ([](VM* vm, Args& args) { return x; })
+#define CPP_NOT_IMPLEMENTED() ([](VM* vm, Args& args) { vm->NotImplementedError(); return vm->None; })
 
 #ifdef POCKETPY_H
 #define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
@@ -79,3 +79,5 @@ const float kTypeAttrLoadFactor = 0.5;
 
 // do extra check for debug
 #define PK_EXTRA_CHECK
+
+} // namespace pkpy

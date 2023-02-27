@@ -2,12 +2,14 @@
 
 #include "ceval.h"
 
+namespace pkpy{
+
 class RangeIter : public BaseIter {
     i64 current;
-    pkpy::Range r;
+    Range r;
 public:
     RangeIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        this->r = OBJ_GET(pkpy::Range, _ref);
+        this->r = OBJ_GET(Range, _ref);
         this->current = r.start;
     }
 
@@ -62,3 +64,5 @@ PyVar Generator::next(){
         return nullptr;
     }
 }
+
+} // namespace pkpy

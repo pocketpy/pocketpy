@@ -2,6 +2,8 @@
 
 #include "obj.h"
 
+namespace pkpy {
+
 struct BaseRef {
     virtual PyVar get(VM*, Frame*) const = 0;
     virtual void set(VM*, Frame*, PyVar) const = 0;
@@ -48,10 +50,13 @@ struct IndexRef : BaseRef {
 };
 
 struct TupleRef : BaseRef {
-    pkpy::Tuple objs;
-    TupleRef(pkpy::Tuple&& objs) : objs(std::move(objs)) {}
+    Tuple objs;
+    TupleRef(Tuple&& objs) : objs(std::move(objs)) {}
 
     PyVar get(VM* vm, Frame* frame) const;
     void set(VM* vm, Frame* frame, PyVar val) const;
     void del(VM* vm, Frame* frame) const;
 };
+
+
+}   // namespace pkpy

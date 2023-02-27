@@ -3,6 +3,8 @@
 #include "namedict.h"
 #include "tuplelist.h"
 
+namespace pkpy{
+
 struct NeedMoreLines {
     NeedMoreLines(bool is_compiling_class) : is_compiling_class(is_compiling_class) {}
     bool is_compiling_class;
@@ -67,7 +69,6 @@ struct SourceData {
     ~SourceData() { free((void*)source); }
 };
 
-namespace pkpy{
 class Exception {
     StrName type;
     Str msg;
@@ -92,4 +93,5 @@ public:
         return ss.str();
     }
 };
-}
+
+}   // namespace pkpy

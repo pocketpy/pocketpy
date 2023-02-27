@@ -3,6 +3,8 @@
 #include "frame.h"
 #include "error.h"
 
+namespace pkpy{
+    
 #define DEF_NATIVE(type, ctype, ptype)                          \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         check_type(obj, ptype);                                 \
@@ -31,8 +33,8 @@ public:
 
     PyVar run_frame(Frame* frame);
 
-    pkpy::NameDict _types;
-    pkpy::NameDict _modules;                            // loaded modules
+    NameDict _types;
+    NameDict _modules;                            // loaded modules
     std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
@@ -100,10 +102,10 @@ public:
 
     PyVar asList(const PyVar& iterable){
         if(is_type(iterable, tp_list)) return iterable;
-        return call(_t(tp_list), pkpy::one_arg(iterable));
+        return call(_t(tp_list), one_arg(iterable));
     }
 
-    PyVar fast_call(StrName name, pkpy::Args&& args){
+    PyVar fast_call(StrName name, Args&& args){
         PyObject* cls = _t(args[0]).get();
         while(cls != None.get()) {
             PyVar* val = cls->attr().try_get(name);
@@ -115,26 +117,26 @@ public:
     }
 
     inline PyVar call(const PyVar& _callable){
-        return call(_callable, pkpy::no_arg(), pkpy::no_arg(), false);
+        return call(_callable, no_arg(), no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<RAW(ArgT), pkpy::Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<RAW(ArgT), Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
-        return call(_callable, std::forward<ArgT>(args), pkpy::no_arg(), false);
+        return call(_callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<RAW(ArgT), pkpy::Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<RAW(ArgT), Args>, PyVar>
     call(const PyVar& obj, const StrName name, ArgT&& args){
-        return call(getattr(obj, name), std::forward<ArgT>(args), pkpy::no_arg(), false);
+        return call(getattr(obj, name), std::forward<ArgT>(args), no_arg(), false);
     }
 
     inline PyVar call(const PyVar& obj, StrName name){
-        return call(getattr(obj, name), pkpy::no_arg(), pkpy::no_arg(), false);
+        return call(getattr(obj, name), no_arg(), no_arg(), false);
     }
 
-    PyVar call(const PyVar& _callable, pkpy::Args args, const pkpy::Args& kwargs, bool opCall){
+    PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall){
         if(is_type(_callable, tp_type)){
             PyVar* new_f = _callable->attr().try_get(__new__);
             PyVar obj;
@@ -156,12 +158,12 @@ public:
         }
         
         if(is_type(*callable, tp_native_function)){
-            const auto& f = OBJ_GET(pkpy::NativeFunc, *callable);
+            const auto& f = OBJ_GET(NativeFunc, *callable);
             if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
             return f(this, args);
         } else if(is_type(*callable, tp_function)){
-            const pkpy::Function& fn = PyFunction_AS_C(*callable);
-            NameDict_ locals = pkpy::make_shared<pkpy::NameDict>(
+            const Function& fn = PyFunction_AS_C(*callable);
+            NameDict_ locals = make_sp<NameDict>(
                 fn.code->perfect_locals_capacity,
                 kLocalsLoadFactor,
                 fn.code->perfect_hash_seed
@@ -179,7 +181,7 @@ public:
             locals->update(fn.kwargs);
 
             if(!fn.starred_arg.empty()){
-                pkpy::List vargs;        // handle *args
+                List vargs;        // handle *args
                 while(i < args.size()) vargs.push_back(std::move(args[i++]));
                 locals->set(fn.starred_arg, PyTuple(std::move(vargs)));
             }else{
@@ -217,7 +219,7 @@ public:
         try {
             CodeObject_ code = compile(source, filename, mode);
             return _exec(code, _module);
-        }catch (const pkpy::Exception& e){
+        }catch (const Exception& e){
             *_stderr << e.summary() << '\n';
         }catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
@@ -269,7 +271,7 @@ public:
                 continue;
             }catch(UnhandledException& e){
                 PyVar obj = frame->pop();
-                pkpy::Exception& _e = PyException_AS_C(obj);
+                Exception& _e = PyException_AS_C(obj);
                 _e.st_push(frame->snapshot());
                 callstack.pop();
                 if(callstack.empty()) throw _e;
@@ -285,7 +287,7 @@ public:
 
     PyVar new_type_object(PyVar mod, StrName name, PyVar base){
         if(!is_type(base, tp_type)) UNREACHABLE();
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
+        PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, base);
         Str fullName = name.str();
         if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
@@ -296,7 +298,7 @@ public:
     }
 
     Type _new_type_object(StrName name, Type base=0) {
-        PyVar obj = pkpy::make_shared<PyObject, Py_<Type>>(tp_type, _all_types.size());
+        PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, _t(base));
         _types.set(name, obj);
         _all_types.push_back(obj);
@@ -306,21 +308,21 @@ public:
     template<typename T>
     inline PyVar new_object(const PyVar& type, const T& _value) {
         if(!is_type(type, tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
+        return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
     }
     template<typename T>
     inline PyVar new_object(const PyVar& type, T&& _value) {
         if(!is_type(type, tp_type)) UNREACHABLE();
-        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
+        return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
     }
 
     template<typename T>
     inline PyVar new_object(Type type, const T& _value) {
-        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(type, _value);
+        return make_sp<PyObject, Py_<RAW(T)>>(type, _value);
     }
     template<typename T>
     inline PyVar new_object(Type type, T&& _value) {
-        return pkpy::make_shared<PyObject, Py_<RAW(T)>>(type, std::move(_value));
+        return make_sp<PyObject, Py_<RAW(T)>>(type, std::move(_value));
     }
 
     template<typename T, typename... Args>
@@ -365,7 +367,7 @@ public:
             if(val != nullptr){
                 PyVarOrNull descriptor = getattr(*val, __get__, false);
                 if(descriptor != nullptr){
-                    return call(descriptor, pkpy::one_arg(obj));
+                    return call(descriptor, one_arg(obj));
                 }
                 if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
                     return PyBoundMethod({obj, *val});
@@ -391,12 +393,12 @@ public:
     template<int ARGC>
     void bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
         check_type(obj, tp_type);
-        setattr(obj, funcName, PyNativeFunc(pkpy::NativeFunc(fn, ARGC, true)));
+        setattr(obj, funcName, PyNativeFunc(NativeFunc(fn, ARGC, true)));
     }
 
     template<int ARGC>
     void bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
-        setattr(obj, funcName, PyNativeFunc(pkpy::NativeFunc(fn, ARGC, false)));
+        setattr(obj, funcName, PyNativeFunc(NativeFunc(fn, ARGC, false)));
     }
 
     template<int ARGC>
@@ -504,7 +506,7 @@ public:
 
         StrStream names;
         names << "co_names: ";
-        pkpy::List list;
+        List list;
         for(int i=0; i<co->names.size(); i++){
             list.push_back(PyStr(co->names[i].first.str()));
         }
@@ -602,15 +604,15 @@ public:
         return __8B(bits)._float;
     }
 
-    DEF_NATIVE(List, pkpy::List, tp_list)
-    DEF_NATIVE(Tuple, pkpy::Tuple, tp_tuple)
-    DEF_NATIVE(Function, pkpy::Function, tp_function)
-    DEF_NATIVE(NativeFunc, pkpy::NativeFunc, tp_native_function)
-    DEF_NATIVE(BoundMethod, pkpy::BoundMethod, tp_bound_method)
-    DEF_NATIVE(Range, pkpy::Range, tp_range)
-    DEF_NATIVE(Slice, pkpy::Slice, tp_slice)
-    DEF_NATIVE(Exception, pkpy::Exception, tp_exception)
-    DEF_NATIVE(StarWrapper, pkpy::StarWrapper, tp_star_wrapper)
+    DEF_NATIVE(List, List, tp_list)
+    DEF_NATIVE(Tuple, Tuple, tp_tuple)
+    DEF_NATIVE(Function, Function, tp_function)
+    DEF_NATIVE(NativeFunc, NativeFunc, tp_native_function)
+    DEF_NATIVE(BoundMethod, BoundMethod, tp_bound_method)
+    DEF_NATIVE(Range, Range, tp_range)
+    DEF_NATIVE(Slice, Slice, tp_slice)
+    DEF_NATIVE(Exception, Exception, tp_exception)
+    DEF_NATIVE(StarWrapper, StarWrapper, tp_star_wrapper)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){
@@ -621,8 +623,8 @@ public:
     inline const PyVar& PyBool(bool value){return value ? True : False;}
 
     void init_builtin_types(){
-        PyVar _tp_object = pkpy::make_shared<PyObject, Py_<Type>>(1, 0);
-        PyVar _tp_type = pkpy::make_shared<PyObject, Py_<Type>>(1, 1);
+        PyVar _tp_object = make_sp<PyObject, Py_<Type>>(1, 0);
+        PyVar _tp_type = make_sp<PyObject, Py_<Type>>(1, 1);
         _all_types.push_back(_tp_object);
         _all_types.push_back(_tp_type);
         tp_object = 0; tp_type = 1;
@@ -684,7 +686,7 @@ public:
         if (is_int(obj)) return PyInt_AS_C(obj);
         if (is_type(obj, tp_tuple)) {
             i64 x = 1000003;
-            const pkpy::Tuple& items = PyTuple_AS_C(obj);
+            const Tuple& items = PyTuple_AS_C(obj);
             for (int i=0; i<items.size(); i++) {
                 i64 y = hash(items[i]);
                 x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
@@ -702,12 +704,11 @@ public:
     }
 
     /***** Error Reporter *****/
-private:
     void _error(StrName name, const Str& msg){
-        _error(pkpy::Exception(name, msg));
+        _error(Exception(name, msg));
     }
 
-    void _error(pkpy::Exception e){
+    void _error(Exception e){
         if(callstack.empty()){
             e.is_re = false;
             throw e;
@@ -767,14 +768,14 @@ public:
         return OBJ_GET(T, obj);
     }
 
-    void unpack_args(pkpy::Args& args){
-        pkpy::List unpacked;
+    void unpack_args(Args& args){
+        List unpacked;
         for(int i=0; i<args.size(); i++){
             if(is_type(args[i], tp_star_wrapper)){
                 auto& star = PyStarWrapper_AS_C(args[i]);
                 if(!star.rvalue) UNREACHABLE();
                 PyVar list = asList(star.obj);
-                pkpy::List& list_c = PyList_AS_C(list);
+                List& list_c = PyList_AS_C(list);
                 unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
             }else{
                 unpacked.push_back(args[i]);
@@ -859,21 +860,21 @@ void AttrRef::del(VM* vm, Frame* frame) const{
 }
 
 PyVar IndexRef::get(VM* vm, Frame* frame) const{
-    return vm->fast_call(__getitem__, pkpy::two_args(obj, index));
+    return vm->fast_call(__getitem__, two_args(obj, index));
 }
 
 void IndexRef::set(VM* vm, Frame* frame, PyVar val) const{
-    pkpy::Args args(3);
+    Args args(3);
     args[0] = obj; args[1] = index; args[2] = std::move(val);
     vm->fast_call(__setitem__, std::move(args));
 }
 
 void IndexRef::del(VM* vm, Frame* frame) const{
-    vm->fast_call(__delitem__, pkpy::two_args(obj, index));
+    vm->fast_call(__delitem__, two_args(obj, index));
 }
 
 PyVar TupleRef::get(VM* vm, Frame* frame) const{
-    pkpy::Tuple args(objs.size());
+    Tuple args(objs.size());
     for (int i = 0; i < objs.size(); i++) {
         args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
     }
@@ -890,7 +891,7 @@ void TupleRef::set(VM* vm, Frame* frame, PyVar val) const{
             if(star.rvalue) vm->ValueError("can't use starred expression here");
             if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
             auto ref = vm->PyRef_AS_C(star.obj);
-            pkpy::List list;
+            List list;
             while((x = iter->next()) != nullptr) list.push_back(x);
             ref->set(vm, frame, vm->PyList(std::move(list)));
             return;
@@ -913,7 +914,7 @@ inline void Frame::try_deref(VM* vm, PyVar& v){
     if(is_type(v, vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
 }
 
-PyVar pkpy::NativeFunc::operator()(VM* vm, pkpy::Args& args) const{
+PyVar NativeFunc::operator()(VM* vm, Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
@@ -925,8 +926,8 @@ void CodeObject::optimize(VM* vm){
     std::vector<StrName> keys;
     for(auto& p: names) if(p.second == NAME_LOCAL) keys.push_back(p.first);
     uint32_t base_n = (uint32_t)(keys.size() / kLocalsLoadFactor + 0.5);
-    perfect_locals_capacity = pkpy::find_next_capacity(base_n);
-    perfect_hash_seed = pkpy::find_perfect_hash_seed(perfect_locals_capacity, keys);
+    perfect_locals_capacity = find_next_capacity(base_n);
+    perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, keys);
 
     for(int i=1; i<codes.size(); i++){
         if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
@@ -953,3 +954,49 @@ void CodeObject::optimize(VM* vm){
         }
     }
 }
+
+    template<> PyVar object<i64>(VM* vm, i64 val){
+        if(((val << 2) >> 2) != val){
+            vm->_error("OverflowError", std::to_string(val) + " is out of range");
+        }
+        val = (val << 2) | 0b01;
+        return PyVar(reinterpret_cast<int*>(val));
+    }
+    template<> i64 cast<i64>(VM* vm, const PyVar& obj){
+        vm->check_type(obj, vm->tp_int);
+        return obj.bits >> 2;
+    }
+    template<> i64 _cast<i64>(VM* vm, const PyVar& obj){
+        return obj.bits >> 2;
+    }
+    
+    template<> PyVar object<f64>(VM* vm, f64 val){
+        i64 bits = __8B(val)._int;
+        bits = (bits >> 2) << 2;
+        bits |= 0b10;
+        return PyVar(reinterpret_cast<int*>(bits));
+    }
+    template<> f64 cast<f64>(VM* vm, const PyVar& obj){
+        vm->check_type(obj, vm->tp_float);
+        i64 bits = obj.bits;
+        bits = (bits >> 2) << 2;
+        return __8B(bits)._float;
+    }
+    template<> f64 _cast<f64>(VM* vm, const PyVar& obj){
+        i64 bits = obj.bits;
+        bits = (bits >> 2) << 2;
+        return __8B(bits)._float;
+    }
+
+    template<> PyVar object<bool>(VM* vm, bool val){
+        return val ? vm->True : vm->False;
+    }
+    template<> bool cast<bool>(VM* vm, const PyVar& obj){
+        vm->check_type(obj, vm->tp_bool);
+        return obj == vm->True;
+    }
+    template<> bool _cast<bool>(VM* vm, const PyVar& obj){
+        return obj == vm->True;
+    }
+
+}   // namespace pkpy

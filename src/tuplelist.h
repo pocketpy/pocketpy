@@ -39,7 +39,7 @@ namespace pkpy {
             other._size = 0;
         }
 
-        Args(pkpy::List&& other) noexcept {
+        Args(List&& other) noexcept {
             _alloc(other.size());
             memcpy((void*)_args, (void*)other.data(), sizeof(PyVar)*_size);
             memset((void*)other.data(), 0, sizeof(PyVar)*_size);
@@ -60,8 +60,8 @@ namespace pkpy {
 
         inline int size() const { return _size; }
 
-        pkpy::List move_to_list() noexcept {
-            pkpy::List ret(_size);
+        List move_to_list() noexcept {
+            List ret(_size);
             memcpy((void*)ret.data(), (void*)_args, sizeof(PyVar)*_size);
             memset((void*)_args, 0, sizeof(PyVar)*_size);
             return ret;

@@ -3,23 +3,24 @@
 #include "namedict.h"
 #include "tuplelist.h"
 
+namespace pkpy {
+    
 struct CodeObject;
 struct Frame;
 struct BaseRef;
 class VM;
 
-typedef std::function<PyVar(VM*, pkpy::Args&)> NativeFuncRaw;
-typedef pkpy::shared_ptr<CodeObject> CodeObject_;
-typedef pkpy::shared_ptr<pkpy::NameDict> NameDict_;
+typedef std::function<PyVar(VM*, Args&)> NativeFuncRaw;
+typedef shared_ptr<CodeObject> CodeObject_;
+typedef shared_ptr<NameDict> NameDict_;
 
-namespace pkpy{
 struct NativeFunc {
     NativeFuncRaw f;
     int argc;       // DONOT include self
     bool method;
     
     NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyVar operator()(VM* vm, pkpy::Args& args) const;
+    inline PyVar operator()(VM* vm, Args& args) const;
 };
 
 struct Function {
@@ -27,7 +28,7 @@ struct Function {
     CodeObject_ code;
     std::vector<StrName> args;
     StrName starred_arg;                // empty if no *arg
-    pkpy::NameDict kwargs;              // empty if no k=v
+    NameDict kwargs;              // empty if no k=v
     std::vector<StrName> kwargs_order;
 
     // runtime settings
@@ -71,7 +72,6 @@ struct Slice {
         if(stop < start) stop = start;
     }
 };
-}
 
 class BaseIter {
 protected:
@@ -86,10 +86,10 @@ public:
 
 struct PyObject {
     Type type;
-    pkpy::NameDict* _attr;
+    NameDict* _attr;
 
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
-    inline pkpy::NameDict& attr() noexcept { return *_attr; }
+    inline NameDict& attr() noexcept { return *_attr; }
     inline const PyVar& attr(StrName name) const noexcept { return _attr->get(name); }
     virtual void* value() = 0;
 
@@ -106,11 +106,11 @@ struct Py_ : PyObject {
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new pkpy::NameDict(16, kTypeAttrLoadFactor);
+            _attr = new NameDict(16, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
-        }else if constexpr(std::is_same_v<T, pkpy::Function> || std::is_same_v<T, pkpy::NativeFunc>){
-            _attr = new pkpy::NameDict(4, kInstAttrLoadFactor);
+            _attr = new NameDict(4, kInstAttrLoadFactor);
+        }else if constexpr(std::is_same_v<T, Function> || std::is_same_v<T, NativeFunc>){
+            _attr = new NameDict(4, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }
@@ -163,3 +163,23 @@ union __8B {
     __8B(i64 val) : _int(val) {}
     __8B(f64 val) : _float(val) {}
 };
+
+// Create a new object with the native type `T` and return a PyVar
+template<typename T>
+PyVar object(VM* vm, T&) { UNREACHABLE(); }
+template<typename T>
+PyVar object(VM* vm, T&&) { UNREACHABLE(); }
+template<typename T>
+PyVar object(VM* vm, T) { UNREACHABLE(); }
+
+// Cast a PyVar to a native type `T` by reference
+template<typename T>
+T& cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+template<typename T>
+T cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+template<typename T>
+T& _cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+template<typename T>
+T _cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+
+}   // namespace pkpy

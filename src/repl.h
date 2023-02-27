@@ -3,6 +3,8 @@
 #include "compiler.h"
 #include "ceval.h"
 
+namespace pkpy{
+
 class REPL {
 protected:
     int need_more_lines = 0;
@@ -46,3 +48,5 @@ public:
         return false;
     }
 };
+
+} // namespace pkpy

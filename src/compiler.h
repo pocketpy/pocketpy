@@ -4,6 +4,8 @@
 #include "error.h"
 #include "ceval.h"
 
+namespace pkpy{
+
 class Compiler;
 typedef void (Compiler::*GrammarFn)();
 typedef void (Compiler::*CompilerAction)();
@@ -32,7 +34,7 @@ public:
     Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
-            pkpy::make_shared<SourceData>(source, filename, mode)
+            make_sp<SourceData>(source, filename, mode)
         );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
@@ -385,13 +387,13 @@ private:
     }
 
     void exprLambda() {
-        pkpy::Function func;
+        Function func;
         func.name = "<lambda>";
         if(!match(TK(":"))){
             _compile_f_args(func, false);
             consume(TK(":"));
         }
-        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name.str());
+        func.code = make_sp<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         co()->_rvalue += 1; EXPR_TUPLE(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
@@ -1009,7 +1011,7 @@ __LISTCOMP:
         emit(OP_END_CLASS);
     }
 
-    void _compile_f_args(pkpy::Function& func, bool enable_type_hints){
+    void _compile_f_args(Function& func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) SyntaxError("**kwargs should be the last argument");
@@ -1051,7 +1053,7 @@ __LISTCOMP:
 
     void compile_function(){
         bool has_decorator = !co()->codes.empty() && co()->codes.back().op == OP_SETUP_DECORATOR;
-        pkpy::Function func;
+        Function func;
         StrName obj_name;
         consume(TK("@id"));
         func.name = parser->prev.str();
@@ -1066,7 +1068,7 @@ __LISTCOMP:
             consume(TK(")"));
         }
         if(match(TK("->"))) consume(TK("@id")); // eat type hints
-        func.code = pkpy::make_shared<CodeObject>(parser->src, func.name.str());
+        func.code = make_sp<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         compile_block_body();
         func.code->optimize(vm);
@@ -1116,7 +1118,7 @@ __LISTCOMP:
             cursor = parser->curr_char;
         }
         if(parser->peekchar() == '\n') lineno--;
-        auto e = pkpy::Exception("SyntaxError", msg);
+        auto e = Exception("SyntaxError", msg);
         e.st_push(parser->src->snapshot(lineno, cursor));
         throw e;
     }
@@ -1130,7 +1132,7 @@ public:
         if(used) UNREACHABLE();
         used = true;
 
-        CodeObject_ code = pkpy::make_shared<CodeObject>(parser->src, Str("<module>"));
+        CodeObject_ code = make_sp<CodeObject>(parser->src, Str("<module>"));
         codes.push(code);
 
         lex_token(); lex_token();
@@ -1163,3 +1165,5 @@ public:
         return code;
     }
 };
+
+} // namespace pkpy

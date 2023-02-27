@@ -4,6 +4,8 @@
 #include "ref.h"
 #include "error.h"
 
+namespace pkpy{
+
 enum Opcode {
     #define OPCODE(name) OP_##name,
     #include "opcodes.h"
@@ -49,17 +51,17 @@ struct CodeBlock {
 };
 
 struct CodeObject {
-    pkpy::shared_ptr<SourceData> src;
+    shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
 
-    CodeObject(pkpy::shared_ptr<SourceData> src, Str name) {
+    CodeObject(shared_ptr<SourceData> src, Str name) {
         this->src = src;
         this->name = name;
     }
 
     std::vector<Bytecode> codes;
-    pkpy::List consts;
+    List consts;
     std::vector<std::pair<StrName, NameScope>> names;
     std::map<StrName, int> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
@@ -111,3 +113,6 @@ struct CodeObject {
     }
     /************************************************/
 };
+
+
+} // namespace pkpy

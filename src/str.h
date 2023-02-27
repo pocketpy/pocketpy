@@ -2,6 +2,8 @@
 
 #include "common.h"
 
+namespace pkpy {
+
 typedef std::stringstream StrStream;
 
 class Str : public std::string {
@@ -213,3 +215,5 @@ const StrName BITWISE_SPECIAL_METHODS[] = {
     StrName::get("__lshift__"), StrName::get("__rshift__"),
     StrName::get("__and__"), StrName::get("__or__"), StrName::get("__xor__")
 };
+
+} // namespace pkpy

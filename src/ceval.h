@@ -2,6 +2,8 @@
 
 #include "vm.h"
 
+namespace pkpy{
+
 PyVar VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
         const Bytecode& byte = frame->next_bytecode();
@@ -15,12 +17,12 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             const PyVar obj = frame->co->consts[byte.arg];
-            pkpy::Function f = PyFunction_AS_C(obj);  // copy
+            Function f = PyFunction_AS_C(obj);  // copy
             f._module = frame->_module;
             frame->push(PyFunction(f));
         } continue;
         case OP_SETUP_CLOSURE: {
-            pkpy::Function& f = PyFunction_AS_C(frame->top());    // reference
+            Function& f = PyFunction_AS_C(frame->top());    // reference
             f._closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
@@ -66,15 +68,15 @@ PyVar VM::run_frame(Frame* frame){
             frame->_pop();
             continue;
         case OP_BUILD_TUPLE: {
-            pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
+            Args items = frame->pop_n_values_reversed(this, byte.arg);
             frame->push(PyTuple(std::move(items)));
         } continue;
         case OP_BUILD_TUPLE_REF: {
-            pkpy::Args items = frame->pop_n_reversed(byte.arg);
+            Args items = frame->pop_n_reversed(byte.arg);
             frame->push(PyRef(TupleRef(std::move(items))));
         } continue;
         case OP_BUILD_STRING: {
-            pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg);
+            Args items = frame->pop_n_values_reversed(this, byte.arg);
             StrStream ss;
             for(int i=0; i<items.size(); i++) ss << PyStr_AS_C(asStr(items[i]));
             frame->push(PyStr(ss.str()));
@@ -82,7 +84,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_LIST_APPEND: {
             PyVar obj = frame->pop_value(this);
-            pkpy::List& list = PyList_AS_C(frame->top_1());
+            List& list = PyList_AS_C(frame->top_1());
             list.push_back(std::move(obj));
         } continue;
         case OP_BEGIN_CLASS: {
@@ -110,19 +112,19 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {
-            pkpy::Args args(2);
+            Args args(2);
             args[1] = frame->pop_value(this);
             args[0] = frame->top_value(this);
             frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
         } continue;
         case OP_BITWISE_OP: {
-            pkpy::Args args(2);
+            Args args(2);
             args[1] = frame->pop_value(this);
             args[0] = frame->top_value(this);
             frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
         } continue;
         case OP_INPLACE_BINARY_OP: {
-            pkpy::Args args(2);
+            Args args(2);
             args[1] = frame->pop();
             args[0] = frame->top_value(this);
             PyVar ret = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -130,7 +132,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->_pop();
         } continue;
         case OP_INPLACE_BITWISE_OP: {
-            pkpy::Args args(2);
+            Args args(2);
             args[1] = frame->pop_value(this);
             args[0] = frame->top_value(this);
             PyVar ret = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -138,7 +140,7 @@ PyVar VM::run_frame(Frame* frame){
             frame->_pop();
         } continue;
         case OP_COMPARE_OP: {
-            pkpy::Args args(2);
+            Args args(2);
             args[1] = frame->pop_value(this);
             args[0] = frame->top_value(this);
             frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
@@ -151,7 +153,7 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_CONTAINS_OP: {
             PyVar rhs = frame->pop_value(this);
-            bool ret_c = PyBool_AS_C(call(rhs, __contains__, pkpy::one_arg(frame->pop_value(this))));
+            bool ret_c = PyBool_AS_C(call(rhs, __contains__, one_arg(frame->pop_value(this))));
             if(byte.arg == 1) ret_c = !ret_c;
             frame->push(PyBool(ret_c));
         } continue;
@@ -192,10 +194,10 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(PyList(frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
             continue;
         case OP_BUILD_MAP: {
-            pkpy::Args items = frame->pop_n_values_reversed(this, byte.arg*2);
+            Args items = frame->pop_n_values_reversed(this, byte.arg*2);
             PyVar obj = call(builtins->attr("dict"));
             for(int i=0; i<items.size(); i+=2){
-                call(obj, __setitem__, pkpy::two_args(items[i], items[i+1]));
+                call(obj, __setitem__, two_args(items[i], items[i+1]));
             }
             frame->push(obj);
         } continue;
@@ -203,7 +205,7 @@ PyVar VM::run_frame(Frame* frame){
             PyVar list = PyList(
                 frame->pop_n_values_reversed(this, byte.arg).move_to_list()
             );
-            PyVar obj = call(builtins->attr("set"), pkpy::one_arg(list));
+            PyVar obj = call(builtins->attr("set"), one_arg(list));
             frame->push(obj);
         } continue;
         case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
@@ -218,8 +220,8 @@ PyVar VM::run_frame(Frame* frame){
         case OP_CALL_KWARGS_UNPACK: case OP_CALL_KWARGS: {
             int ARGC = byte.arg & 0xFFFF;
             int KWARGC = (byte.arg >> 16) & 0xFFFF;
-            pkpy::Args kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
-            pkpy::Args args = frame->pop_n_values_reversed(this, ARGC);
+            Args kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
+            Args args = frame->pop_n_values_reversed(this, ARGC);
             if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
             PyVar callable = frame->pop_value(this);
             PyVar ret = call(callable, std::move(args), kwargs, true);
@@ -227,10 +229,10 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(std::move(ret));
         } continue;
         case OP_CALL_UNPACK: case OP_CALL: {
-            pkpy::Args args = frame->pop_n_values_reversed(this, byte.arg);
+            Args args = frame->pop_n_values_reversed(this, byte.arg);
             if(byte.op == OP_CALL_UNPACK) unpack_args(args);
             PyVar callable = frame->pop_value(this);
-            PyVar ret = call(callable, std::move(args), pkpy::no_arg(), true);
+            PyVar ret = call(callable, std::move(args), no_arg(), true);
             if(ret == _py_op_call) return ret;
             frame->push(std::move(ret));
         } continue;
@@ -280,7 +282,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_BUILD_SLICE: {
             PyVar stop = frame->pop_value(this);
             PyVar start = frame->pop_value(this);
-            pkpy::Slice s;
+            Slice s;
             if(start != None) { s.start = (int)PyInt_AS_C(start);}
             if(stop != None) { s.stop = (int)PyInt_AS_C(stop);}
             frame->push(PySlice(s));
@@ -332,3 +334,5 @@ PyVar VM::run_frame(Frame* frame){
 #endif
     return None;
 }
+
+} // namespace pkpy

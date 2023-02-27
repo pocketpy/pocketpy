@@ -2,6 +2,8 @@
 
 #include "codeobject.h"
 
+namespace pkpy{
+
 static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
 
 struct Frame {
@@ -16,8 +18,8 @@ struct Frame {
     const uint64_t id;
     std::vector<std::pair<int, std::vector<PyVar>>> s_try_block;
 
-    inline pkpy::NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
-    inline pkpy::NameDict& f_globals() noexcept { return _module->attr(); }
+    inline NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
+    inline NameDict& f_globals() noexcept { return _module->attr(); }
 
     inline PyVar* f_closure_try_get(StrName name) noexcept {
         if(_closure == nullptr) return nullptr;
@@ -143,8 +145,8 @@ struct Frame {
         }
     }
 
-    pkpy::Args pop_n_values_reversed(VM* vm, int n){
-        pkpy::Args v(n);
+    Args pop_n_values_reversed(VM* vm, int n){
+        Args v(n);
         for(int i=n-1; i>=0; i--){
             v[i] = pop();
             try_deref(vm, v[i]);
@@ -152,9 +154,11 @@ struct Frame {
         return v;
     }
 
-    pkpy::Args pop_n_reversed(int n){
-        pkpy::Args v(n);
+    Args pop_n_reversed(int n){
+        Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = pop();
         return v;
     }
 };
+
+}; // namespace pkpy
