@@ -173,7 +173,7 @@ private:
                     if(base == 16) SyntaxError("hex literal should not contain a dot");
                     parser->set_next_token(TK("@num"), vm->PyFloat(S_TO_FLOAT(m[0], &size)));
                 } else {
-                    parser->set_next_token(TK("@num"), vm->PyInt(S_TO_INT(m[0], &size, base)));
+                    parser->set_next_token(TK("@num"), py_object(vm, S_TO_INT(m[0], &size, base)));
                 }
                 if (size != m.length()) UNREACHABLE();
             }

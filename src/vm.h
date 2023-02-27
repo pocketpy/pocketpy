@@ -955,10 +955,10 @@ void CodeObject::optimize(VM* vm){
     }
 }
 
-PyVar py_object(VM* vm, i64 val){
-    if(((val << 2) >> 2) != val){
-        vm->_error("OverflowError", std::to_string(val) + " is out of range");
-    }
+template<typename T>
+std::enable_if_t<std::is_integral_v<T>, PyVar> py_object(VM* vm, T _val){
+    i64 val = static_cast<i64>(_val);
+    if(((val << 2) >> 2) != val) vm->_error("OverflowError", std::to_string(val));
     val = (val << 2) | 0b01;
     return PyVar(reinterpret_cast<int*>(val));
 }
