@@ -22,7 +22,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
         if(is_both_int(args[0], args[1])){                                                              \
-            return vm->PyInt(vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                     \
+            return py_object(vm, vm->_PyInt_AS_C(args[0]) op vm->_PyInt_AS_C(args[1]));                     \
         }else{                                                                                          \
             return vm->PyFloat(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
         }                                                                                               \
@@ -73,8 +73,8 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, Args& args) {
         const PyVar& obj = args[0];
-        if(obj.is_tagged()) return vm->PyInt((i64)0);
-        return vm->PyInt(obj.bits);
+        if(obj.is_tagged()) return py_object(vm, (i64)0);
+        return py_object(vm, obj.bits);
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
@@ -101,7 +101,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("hash", [](VM* vm, Args& args){
         i64 value = vm->hash(args[0]);
         if(((value << 2) >> 2) != value) value >>= 2;
-        return vm->PyInt(value);
+        return py_object(vm, value);
     });
 
     _vm->bind_builtin_func<1>("chr", [](VM* vm, Args& args) {
@@ -113,7 +113,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("ord", [](VM* vm, Args& args) {
         Str s = vm->PyStr_AS_C(args[0]);
         if (s.size() != 1) vm->TypeError("ord() expected an ASCII character");
-        return vm->PyInt((i64)(s.c_str()[0]));
+        return py_object(vm, (i64)(s.c_str()[0]));
     });
 
     _vm->bind_builtin_func<2>("hasattr", [](VM* vm, Args& args) {
@@ -201,7 +201,7 @@ void init_builtins(VM* _vm) {
                 rhs >>= 1;
             }
             if(flag) return vm->PyFloat((f64)(1.0 / ret));
-            return vm->PyInt(ret);
+            return py_object(vm, ret);
         }else{
             return vm->PyFloat((f64)std::pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])));
         }
@@ -210,15 +210,15 @@ void init_builtins(VM* _vm) {
     /************ PyInt ************/
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, Args& args) {
         if (is_type(args[0], vm->tp_int)) return args[0];
-        if (is_type(args[0], vm->tp_float)) return vm->PyInt((i64)vm->PyFloat_AS_C(args[0]));
-        if (is_type(args[0], vm->tp_bool)) return vm->PyInt(vm->_PyBool_AS_C(args[0]) ? 1 : 0);
+        if (is_type(args[0], vm->tp_float)) return py_object(vm, (i64)vm->PyFloat_AS_C(args[0]));
+        if (is_type(args[0], vm->tp_bool)) return py_object(vm, vm->_PyBool_AS_C(args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
             const Str& s = vm->PyStr_AS_C(args[0]);
             try{
                 size_t parsed = 0;
                 i64 val = S_TO_INT(s, &parsed, 10);
                 if(parsed != s.size()) throw std::invalid_argument("<?>");
-                return vm->PyInt(val);
+                return py_object(vm, val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for int(): " + s.escape(true));
             }
@@ -230,20 +230,20 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("int", "__floordiv__", [](VM* vm, Args& args) {
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) / rhs);
+        return py_object(vm, vm->PyInt_AS_C(args[0]) / rhs);
     });
 
     _vm->bind_method<1>("int", "__mod__", [](VM* vm, Args& args) {
         i64 rhs = vm->PyInt_AS_C(args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return vm->PyInt(vm->PyInt_AS_C(args[0]) % rhs);
+        return py_object(vm, vm->PyInt_AS_C(args[0]) % rhs);
     });
 
     _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
     _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(vm->PyStr(std::to_string(vm->PyInt_AS_C(args[0])))));
 
 #define INT_BITWISE_OP(name,op) \
-    _vm->bind_method<1>("int", #name, CPP_LAMBDA(vm->PyInt(vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]))));
+    _vm->bind_method<1>("int", #name, CPP_LAMBDA(py_object(vm, vm->PyInt_AS_C(args[0]) op vm->PyInt_AS_C(args[1]))));
 
     INT_BITWISE_OP(__lshift__, <<)
     INT_BITWISE_OP(__rshift__, >>)
@@ -300,7 +300,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("str", "__len__", [](VM* vm, Args& args) {
         const Str& self = vm->PyStr_AS_C(args[0]);
-        return vm->PyInt(self.u8_length());
+        return py_object(vm, self.u8_length());
     });
 
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, Args& args) {
@@ -447,7 +447,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, Args& args) {
         const List& self = vm->PyList_AS_C(args[0]);
-        return vm->PyInt(self.size());
+        return py_object(vm, self.size());
     });
 
     _vm->bind_method<0>("list", "__iter__", [](VM* vm, Args& args) {
@@ -514,7 +514,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, Args& args) {
         const Tuple& self = vm->PyTuple_AS_C(args[0]);
-        return vm->PyInt(self.size());
+        return py_object(vm, self.size());
     });
 
     /************ PyBool ************/
@@ -565,8 +565,8 @@ void add_module_sys(VM* vm){
     PyVar mod = vm->new_module("sys");
     vm->setattr(mod, "version", vm->PyStr(PK_VERSION));
 
-    vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(vm->PyInt(args[0].use_count())));
-    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(vm->PyInt(vm->recursionlimit)));
+    vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(py_object(vm, args[0].use_count())));
+    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(py_object(vm, vm->recursionlimit)));
 
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, Args& args) {
         vm->recursionlimit = (int)vm->PyInt_AS_C(args[0]);
@@ -599,8 +599,8 @@ void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(vm->PyBool(std::isnan(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(vm->PyBool(std::isinf(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(vm->PyFloat(std::fabs(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "floor", CPP_LAMBDA(vm->PyInt((i64)std::floor(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(vm->PyInt((i64)std::ceil(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "floor", CPP_LAMBDA(py_object(vm, (i64)std::floor(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(py_object(vm, (i64)std::ceil(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(vm->PyFloat(std::sqrt(vm->num_to_float(args[0])))));
 }
 
@@ -688,12 +688,12 @@ struct ReMatch {
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
-        vm->bind_method<0>(type, "start", CPP_LAMBDA(vm->PyInt(vm->py_cast<ReMatch>(args[0]).start)));
-        vm->bind_method<0>(type, "end", CPP_LAMBDA(vm->PyInt(vm->py_cast<ReMatch>(args[0]).end)));
+        vm->bind_method<0>(type, "start", CPP_LAMBDA(py_object(vm, vm->py_cast<ReMatch>(args[0]).start)));
+        vm->bind_method<0>(type, "end", CPP_LAMBDA(py_object(vm, vm->py_cast<ReMatch>(args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
             auto& self = vm->py_cast<ReMatch>(args[0]);
-            return vm->PyTuple({ vm->PyInt(self.start), vm->PyInt(self.end) });
+            return vm->PyTuple({ py_object(vm, self.start), py_object(vm, self.end) });
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
@@ -768,7 +768,7 @@ void add_module_random(VM* vm){
         i64 a = vm->PyInt_AS_C(args[0]);
         i64 b = vm->PyInt_AS_C(args[1]);
         if(a > b) std::swap(a, b);
-        return vm->PyInt(a + std::rand() % (b - a + 1));
+        return py_object(vm, a + std::rand() % (b - a + 1));
     });
 
     vm->bind_func<2>(mod, "uniform", [](VM* vm, Args& args) {
@@ -975,7 +975,7 @@ extern "C" {
             }
             char* packet = strdup(ss.str().c_str());
             switch(ret_code){
-                case 'i': return vm->PyInt(f_int(packet));
+                case 'i': return py_object(vm, f_int(packet));
                 case 'f': return vm->PyFloat(f_float(packet));
                 case 'b': return vm->PyBool(f_bool(packet));
                 case 's': {

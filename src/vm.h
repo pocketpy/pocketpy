@@ -4,7 +4,7 @@
 #include "error.h"
 
 namespace pkpy{
-    
+
 #define DEF_NATIVE(type, ctype, ptype)                          \
     inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
         check_type(obj, ptype);                                 \
@@ -12,6 +12,17 @@ namespace pkpy{
     }                                                           \
     inline PyVar Py##type(const ctype& value) { return new_object(ptype, value);} \
     inline PyVar Py##type(ctype&& value) { return new_object(ptype, std::move(value));}
+
+#define DEF_NATIVE_2(ctype, ptype)                                      \
+    template<> ctype& py_cast<ctype>(VM* vm, const PyVar& obj) {        \
+        vm->check_type(obj, vm->ptype);                                 \
+        return OBJ_GET(ctype, obj);                                     \
+    }                                                                   \
+    template<> ctype& _py_cast<ctype>(VM* vm, const PyVar& obj) {       \
+        return OBJ_GET(ctype, obj);                                     \
+    }                                                                   \
+    PyVar py_object(VM* vm, const ctype& value) { return vm->new_object(vm->ptype, value);}     \
+    PyVar py_object(VM* vm, ctype&& value) { return vm->new_object(vm->ptype, std::move(value));}
 
 class Generator: public BaseIter {
     std::unique_ptr<Frame> frame;
@@ -307,12 +318,16 @@ public:
 
     template<typename T>
     inline PyVar new_object(const PyVar& type, const T& _value) {
+#ifdef PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
+#endif
         return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
     }
     template<typename T>
     inline PyVar new_object(const PyVar& type, T&& _value) {
+#ifdef PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
+#endif
         return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
     }
 
@@ -436,16 +451,6 @@ public:
         return 0;
     }
 
-    PyVar num_negated(const PyVar& obj){
-        if (is_int(obj)){
-            return PyInt(-PyInt_AS_C(obj));
-        }else if(is_float(obj)){
-            return PyFloat(-PyFloat_AS_C(obj));
-        }
-        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
-        return nullptr;
-    }
-
     int normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
@@ -567,14 +572,6 @@ public:
         return new_object(tp_str, value);
     }
 
-    inline PyVar PyInt(i64 value) {
-        if(((value << 2) >> 2) != value){
-            _error("OverflowError", std::to_string(value) + " is out of range");
-        }
-        value = (value << 2) | 0b01;
-        return PyVar(reinterpret_cast<int*>(value));
-    }
-
     inline i64 PyInt_AS_C(const PyVar& obj){
         check_type(obj, tp_int);
         return obj.bits >> 2;
@@ -678,8 +675,6 @@ public:
         for(auto [k, v]: _types.items()) v->attr()._try_perfect_rehash();
         for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
     }
-
-    void post_init();
 
     i64 hash(const PyVar& obj){
         if (is_type(obj, tp_str)) return PyStr_AS_C(obj).hash();
@@ -792,6 +787,8 @@ public:
     }
 
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
+    void post_init();
+    PyVar num_negated(const PyVar& obj);
 };
 
 /***** Pointers' Impl *****/
@@ -958,7 +955,9 @@ void CodeObject::optimize(VM* vm){
 template<typename T>
 std::enable_if_t<std::is_integral_v<T>, PyVar> py_object(VM* vm, T _val){
     i64 val = static_cast<i64>(_val);
-    if(((val << 2) >> 2) != val) vm->_error("OverflowError", std::to_string(val));
+    if(((val << 2) >> 2) != val){
+        vm->_error("OverflowError", std::to_string(val) + " is out of range");
+    }
     val = (val << 2) | 0b01;
     return PyVar(reinterpret_cast<int*>(val));
 }
@@ -997,6 +996,27 @@ template<> bool py_cast<bool>(VM* vm, const PyVar& obj){
 }
 template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
+}
+
+DEF_NATIVE_2(List, tp_list)
+DEF_NATIVE_2(Tuple, tp_tuple)
+DEF_NATIVE_2(Function, tp_function)
+DEF_NATIVE_2(NativeFunc, tp_native_function)
+DEF_NATIVE_2(BoundMethod, tp_bound_method)
+DEF_NATIVE_2(Range, tp_range)
+DEF_NATIVE_2(Slice, tp_slice)
+DEF_NATIVE_2(Exception, tp_exception)
+DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
+
+
+PyVar VM::num_negated(const PyVar& obj){
+    if (is_int(obj)){
+        return py_object(this, -PyInt_AS_C(obj));
+    }else if(is_float(obj)){
+        return py_object(this, -PyFloat_AS_C(obj));
+    }
+    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
+    return nullptr;
 }
 
 }   // namespace pkpy

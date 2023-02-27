@@ -141,20 +141,20 @@ struct Pointer{
 
     PyVar get(VM* vm){
         switch(ctype.index){
-            case C_TYPE("char_"): return vm->PyInt(ref<char>());
-            case C_TYPE("int_"): return vm->PyInt(ref<int>());
+            case C_TYPE("char_"): return py_object(vm, ref<char>());
+            case C_TYPE("int_"): return py_object(vm, ref<int>());
             case C_TYPE("float_"): return vm->PyFloat(ref<float>());
             case C_TYPE("double_"): return vm->PyFloat(ref<double>());
             case C_TYPE("bool_"): return vm->PyBool(ref<bool>());
             case C_TYPE("void_"): vm->ValueError("cannot get void*"); break;
-            case C_TYPE("int8_"): return vm->PyInt(ref<int8_t>());
-            case C_TYPE("int16_"): return vm->PyInt(ref<int16_t>());
-            case C_TYPE("int32_"): return vm->PyInt(ref<int32_t>());
-            case C_TYPE("int64_"): return vm->PyInt(ref<int64_t>());
-            case C_TYPE("uint8_"): return vm->PyInt(ref<uint8_t>());
-            case C_TYPE("uint16_"): return vm->PyInt(ref<uint16_t>());
-            case C_TYPE("uint32_"): return vm->PyInt(ref<uint32_t>());
-            case C_TYPE("uint64_"): return vm->PyInt(ref<uint64_t>());
+            case C_TYPE("int8_"): return py_object(vm, ref<int8_t>());
+            case C_TYPE("int16_"): return py_object(vm, ref<int16_t>());
+            case C_TYPE("int32_"): return py_object(vm, ref<int32_t>());
+            case C_TYPE("int64_"): return py_object(vm, ref<int64_t>());
+            case C_TYPE("uint8_"): return py_object(vm, ref<uint8_t>());
+            case C_TYPE("uint16_"): return py_object(vm, ref<uint16_t>());
+            case C_TYPE("uint32_"): return py_object(vm, ref<uint32_t>());
+            case C_TYPE("uint64_"): return py_object(vm, ref<uint64_t>());
             case C_TYPE("void_p_"): return vm->new_object<Pointer>(ref<void*>(), C_TYPE_T("void_"));
             // use macro here to do extension
             default: UNREACHABLE();
@@ -274,7 +274,7 @@ void add_module_c(VM* vm){
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
         CType& ctype = vm->py_cast<CType>(args[0]);
-        return vm->PyInt(ctype.size);
+        return py_object(vm, ctype.size);
     });
 
     vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
@@ -309,12 +309,12 @@ void add_module_c(VM* vm){
     vm->bind_func<2>(mod, "strcmp", [](VM* vm, Args& args) {
         Pointer& p1 = vm->py_cast<Pointer>(args[0]);
         Pointer& p2 = vm->py_cast<Pointer>(args[1]);
-        return vm->PyInt(strcmp(p1.cast<char*>(), p2.cast<char*>()));
+        return py_object(vm, strcmp(p1.cast<char*>(), p2.cast<char*>()));
     });
 
     vm->bind_func<1>(mod, "strlen", [](VM* vm, Args& args) {
         Pointer& p = vm->py_cast<Pointer>(args[0]);
-        return vm->PyInt(strlen(p.cast<char*>()));
+        return py_object(vm, strlen(p.cast<char*>()));
     });
 }
 

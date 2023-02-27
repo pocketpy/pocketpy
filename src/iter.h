@@ -20,7 +20,7 @@ public:
     PyVar next(){
         if(!_has_next()) return nullptr;
         current += r.step;
-        return vm->PyInt(current-r.step);
+        return py_object(vm, current-r.step);
     }
 };
 
