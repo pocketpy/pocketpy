@@ -26,6 +26,7 @@
 #include <map>
 #include <set>
 #include <algorithm>
+#include <fstream>
 
 #define PK_VERSION "0.9.1"
 
@@ -42,6 +43,8 @@ typedef double f64;
 #endif
 
 namespace pkpy{
+
+namespace std = ::std;
 
 struct Dummy {  };
 struct DummyInstance {  };

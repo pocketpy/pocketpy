@@ -615,7 +615,6 @@ void add_module_dis(VM* vm){
     });
 }
 
-#include <fstream>
 struct FileIO {
     PY_CLASS(io, FileIO)
 

@@ -55,7 +55,7 @@ PyVar VM::run_frame(Frame* frame){
             if(byte.op == OP_FAST_INDEX) frame->push(ref.get(this, frame));
             else frame->push(PyRef(ref));
         } continue;
-        case OP_ROT_TWO: std::swap(frame->top(), frame->top_1()); continue;
+        case OP_ROT_TWO: ::std::swap(frame->top(), frame->top_1()); continue;
         case OP_STORE_REF: {
             // PyVar obj = frame->pop_value(this);
             // PyVarRef r = frame->pop();
