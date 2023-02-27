@@ -26,12 +26,6 @@ namespace pkpy {
             for(int i=0; i<_size; i++) _args[i] = other._args[i];
         }
 
-        Args(std::initializer_list<PyVar> a){
-            _alloc(a.size());
-            int i = 0;
-            for(auto& v: a) _args[i++] = v;
-        }
-
         Args(Args&& other) noexcept {
             this->_args = other._args;
             this->_size = other._size;

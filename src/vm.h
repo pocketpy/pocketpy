@@ -5,14 +5,6 @@
 
 namespace pkpy{
 
-#define DEF_NATIVE(type, ctype, ptype)                          \
-    inline ctype& Py##type##_AS_C(const PyVar& obj) {           \
-        check_type(obj, ptype);                                 \
-        return OBJ_GET(ctype, obj);                             \
-    }                                                           \
-    inline PyVar Py##type(const ctype& value) { return new_object(ptype, value);} \
-    inline PyVar Py##type(ctype&& value) { return new_object(ptype, std::move(value));}
-
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> ctype& py_cast<ctype>(VM* vm, const PyVar& obj) {        \
         vm->check_type(obj, vm->ptype);                                 \
@@ -166,48 +158,6 @@ public:
         return _exec();
     }
 
-    PyVar _exec(){
-        Frame* frame = top_frame();
-        i64 base_id = frame->id;
-        PyVar ret = nullptr;
-        bool need_raise = false;
-
-        while(true){
-            if(frame->id < base_id) UNREACHABLE();
-            try{
-                if(need_raise){ need_raise = false; _raise(); }
-                ret = run_frame(frame);
-                if(ret == _py_op_yield) return _py_op_yield;
-                if(ret != _py_op_call){
-                    if(frame->id == base_id){      // [ frameBase<- ]
-                        callstack.pop();
-                        return ret;
-                    }else{
-                        callstack.pop();
-                        frame = callstack.top().get();
-                        frame->push(ret);
-                    }
-                }else{
-                    frame = callstack.top().get();  // [ frameBase, newFrame<- ]
-                }
-            }catch(HandledException& e){
-                continue;
-            }catch(UnhandledException& e){
-                PyVar obj = frame->pop();
-                Exception& _e = PyException_AS_C(obj);
-                _e.st_push(frame->snapshot());
-                callstack.pop();
-                if(callstack.empty()) throw _e;
-                frame = callstack.top().get();
-                frame->push(obj);
-                if(frame->id < base_id) throw ToBeRaisedException();
-                need_raise = true;
-            }catch(ToBeRaisedException& e){
-                need_raise = true;
-            }
-        }
-    }
-
     Type _new_type_object(StrName name, Type base=0) {
         PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
         setattr(obj, __base__, _t(base));
@@ -243,70 +193,6 @@ public:
     template<typename T, typename... Args>
     inline PyVar new_object(Args&&... args) {
         return new_object(T::_type(this), T(std::forward<Args>(args)...));
-    }
-
-    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true) {
-        PyVar* val;
-        PyObject* cls;
-
-        if(is_type(obj, tp_super)){
-            const PyVar* root = &obj;
-            int depth = 1;
-            while(true){
-                root = &OBJ_GET(PyVar, *root);
-                if(!is_type(*root, tp_super)) break;
-                depth++;
-            }
-            cls = _t(*root).get();
-            for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
-
-            val = (*root)->attr().try_get(name);
-            if(val != nullptr) return *val;    
-        }else{
-            if(!obj.is_tagged() && obj->is_attr_valid()){
-                val = obj->attr().try_get(name);
-                if(val != nullptr) return *val;
-            }
-            cls = _t(obj).get();
-        }
-
-        while(cls != None.get()) {
-            val = cls->attr().try_get(name);
-            if(val != nullptr){
-                PyVarOrNull descriptor = getattr(*val, __get__, false);
-                if(descriptor != nullptr){
-                    return call(descriptor, one_arg(obj));
-                }
-                if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
-                    return PyBoundMethod({obj, *val});
-                }else{
-                    return *val;
-                }
-            }
-            cls = cls->attr(__base__).get();
-        }
-        if(throw_err) AttributeError(obj, name);
-        return nullptr;
-    }
-
-    template<typename T>
-    inline void setattr(PyVar& obj, StrName name, T&& value) {
-        if(obj.is_tagged()) TypeError("cannot set attribute");
-        PyObject* p = obj.get();
-        while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
-        if(!p->is_attr_valid()) TypeError("cannot set attribute");
-        p->attr().set(name, std::forward<T>(value));
-    }
-
-    template<int ARGC>
-    void bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
-        check_type(obj, tp_type);
-        setattr(obj, funcName, PyNativeFunc(NativeFunc(fn, ARGC, true)));
-    }
-
-    template<int ARGC>
-    void bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
-        setattr(obj, funcName, PyNativeFunc(NativeFunc(fn, ARGC, false)));
     }
 
     template<int ARGC>
@@ -360,13 +246,6 @@ public:
         check_type(obj, tp_native_iterator);
         return static_cast<BaseIter*>(obj->value());
     }
-
-    DEF_NATIVE(NativeFunc, NativeFunc, tp_native_function)
-    DEF_NATIVE(BoundMethod, BoundMethod, tp_bound_method)
-    DEF_NATIVE(Range, Range, tp_range)
-    DEF_NATIVE(Slice, Slice, tp_slice)
-    DEF_NATIVE(Exception, Exception, tp_exception)
-    DEF_NATIVE(StarWrapper, StarWrapper, tp_star_wrapper)
     
     // there is only one True/False, so no need to copy them!
     inline bool PyBool_AS_C(const PyVar& obj){
@@ -379,15 +258,6 @@ public:
     /***** Error Reporter *****/
     void _error(StrName name, const Str& msg){
         _error(Exception(name, msg));
-    }
-
-    void _error(Exception e){
-        if(callstack.empty()){
-            e.is_re = false;
-            throw e;
-        }
-        top_frame()->push(PyException(e));
-        _raise();
     }
 
     void _raise(){
@@ -461,6 +331,15 @@ public:
     void init_builtin_types();
     PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
+    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true);
+    template<typename T>
+    void setattr(PyVar& obj, StrName name, T&& value);
+    template<int ARGC>
+    void bind_method(PyVar obj, Str funcName, NativeFuncRaw fn);
+    template<int ARGC>
+    void bind_func(PyVar obj, Str funcName, NativeFuncRaw fn);
+    void _error(Exception e);
+    PyVar _exec();
 
     template<typename P>
     PyVarRef PyRef(P&& value);
@@ -790,7 +669,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
 
     const PyVar* callable = &_callable;
     if(is_type(*callable, tp_bound_method)){
-        auto& bm = PyBoundMethod_AS_C((*callable));
+        auto& bm = py_cast<BoundMethod>(this, *callable);
         callable = &bm.method;      // get unbound method
         args.extend_self(bm.obj);
     }
@@ -855,7 +734,7 @@ void VM::unpack_args(Args& args){
     List unpacked;
     for(int i=0; i<args.size(); i++){
         if(is_type(args[i], tp_star_wrapper)){
-            auto& star = PyStarWrapper_AS_C(args[i]);
+            auto& star = _py_cast<StarWrapper>(this, args[i]);
             if(!star.rvalue) UNREACHABLE();
             PyVar list = asList(star.obj);
             List& list_c = py_cast<List>(this, list);
@@ -865,6 +744,121 @@ void VM::unpack_args(Args& args){
         }
     }
     args = Args::from_list(std::move(unpacked));
+}
+
+PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
+    PyVar* val;
+    PyObject* cls;
+
+    if(is_type(obj, tp_super)){
+        const PyVar* root = &obj;
+        int depth = 1;
+        while(true){
+            root = &OBJ_GET(PyVar, *root);
+            if(!is_type(*root, tp_super)) break;
+            depth++;
+        }
+        cls = _t(*root).get();
+        for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
+
+        val = (*root)->attr().try_get(name);
+        if(val != nullptr) return *val;    
+    }else{
+        if(!obj.is_tagged() && obj->is_attr_valid()){
+            val = obj->attr().try_get(name);
+            if(val != nullptr) return *val;
+        }
+        cls = _t(obj).get();
+    }
+
+    while(cls != None.get()) {
+        val = cls->attr().try_get(name);
+        if(val != nullptr){
+            PyVarOrNull descriptor = getattr(*val, __get__, false);
+            if(descriptor != nullptr){
+                return call(descriptor, one_arg(obj));
+            }
+            if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
+                return py_object(this, BoundMethod(obj, *val));
+            }else{
+                return *val;
+            }
+        }
+        cls = cls->attr(__base__).get();
+    }
+    if(throw_err) AttributeError(obj, name);
+    return nullptr;
+}
+
+template<typename T>
+void VM::setattr(PyVar& obj, StrName name, T&& value) {
+    if(obj.is_tagged()) TypeError("cannot set attribute");
+    PyObject* p = obj.get();
+    while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
+    if(!p->is_attr_valid()) TypeError("cannot set attribute");
+    p->attr().set(name, std::forward<T>(value));
+}
+
+template<int ARGC>
+void VM::bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
+    check_type(obj, tp_type);
+    setattr(obj, funcName, py_object(this, NativeFunc(fn, ARGC, true)));
+}
+
+template<int ARGC>
+void VM::bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
+    setattr(obj, funcName, py_object(this, NativeFunc(fn, ARGC, false)));
+}
+
+void VM::_error(Exception e){
+    if(callstack.empty()){
+        e.is_re = false;
+        throw e;
+    }
+    top_frame()->push(py_object(this, e));
+    _raise();
+}
+
+PyVar VM::_exec(){
+    Frame* frame = top_frame();
+    i64 base_id = frame->id;
+    PyVar ret = nullptr;
+    bool need_raise = false;
+
+    while(true){
+        if(frame->id < base_id) UNREACHABLE();
+        try{
+            if(need_raise){ need_raise = false; _raise(); }
+            ret = run_frame(frame);
+            if(ret == _py_op_yield) return _py_op_yield;
+            if(ret != _py_op_call){
+                if(frame->id == base_id){      // [ frameBase<- ]
+                    callstack.pop();
+                    return ret;
+                }else{
+                    callstack.pop();
+                    frame = callstack.top().get();
+                    frame->push(ret);
+                }
+            }else{
+                frame = callstack.top().get();  // [ frameBase, newFrame<- ]
+            }
+        }catch(HandledException& e){
+            continue;
+        }catch(UnhandledException& e){
+            PyVar obj = frame->pop();
+            Exception& _e = py_cast<Exception>(this, obj);
+            _e.st_push(frame->snapshot());
+            callstack.pop();
+            if(callstack.empty()) throw _e;
+            frame = callstack.top().get();
+            frame->push(obj);
+            if(frame->id < base_id) throw ToBeRaisedException();
+            need_raise = true;
+        }catch(ToBeRaisedException& e){
+            need_raise = true;
+        }
+    }
 }
 
 }   // namespace pkpy

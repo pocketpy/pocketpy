@@ -46,6 +46,7 @@ struct Function {
 struct BoundMethod {
     PyVar obj;
     PyVar method;
+    BoundMethod(const PyVar& obj, const PyVar& method) : obj(obj), method(method) {}
 };
 
 struct Range {

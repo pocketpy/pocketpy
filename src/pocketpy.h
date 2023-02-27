@@ -172,7 +172,7 @@ void init_builtins(VM* _vm) {
             case 3: r.start = py_cast_v<i64>(vm, args[0]); r.stop = py_cast_v<i64>(vm, args[1]); r.step = py_cast_v<i64>(vm, args[2]); break;
             default: vm->TypeError("expected 1-3 arguments, but got " + std::to_string(args.size()));
         }
-        return vm->PyRange(r);
+        return py_object(vm, r);
     });
 
     _vm->bind_method<0>("range", "__iter__", CPP_LAMBDA(
@@ -338,7 +338,7 @@ void init_builtins(VM* _vm) {
         const Str& self (py_cast<Str>(vm, args[0]));
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = vm->PySlice_AS_C(args[1]);
+            Slice s = _py_cast_v<Slice>(vm, args[1]);
             s.normalize(self.u8_length());
             return py_object(vm, self.u8_substr(s.start, s.stop));
         }
@@ -458,7 +458,7 @@ void init_builtins(VM* _vm) {
         const List& self = py_cast<List>(vm, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = vm->PySlice_AS_C(args[1]);
+            Slice s = _py_cast_v<Slice>(vm, args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
@@ -500,7 +500,7 @@ void init_builtins(VM* _vm) {
         const Tuple& self = py_cast<Tuple>(vm, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = vm->PySlice_AS_C(args[1]);
+            Slice s = _py_cast_v<Slice>(vm, args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
@@ -608,7 +608,7 @@ void add_module_dis(VM* vm){
     PyVar mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, Args& args) {
         PyVar f = args[0];
-        if(is_type(f, vm->tp_bound_method)) f = vm->PyBoundMethod_AS_C(args[0]).method;
+        if(is_type(f, vm->tp_bound_method)) f = py_cast<BoundMethod>(vm, args[0]).method;
         CodeObject_ code = py_cast<Function>(vm, f).code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
@@ -693,7 +693,7 @@ struct ReMatch {
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
             auto& self = vm->_cast<ReMatch>(args[0]);
-            return py_object(vm, pkpy::Args({ py_object(vm, self.start), py_object(vm, self.end) }));
+            return py_object(vm, two_args(py_object(vm, self.start), py_object(vm, self.end)));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {

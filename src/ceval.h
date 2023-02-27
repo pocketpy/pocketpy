@@ -180,7 +180,7 @@ PyVar VM::run_frame(Frame* frame){
             if(asBool(expr) != True) _error("AssertionError", msg);
         } continue;
         case OP_EXCEPTION_MATCH: {
-            const auto& e = PyException_AS_C(frame->top());
+            const auto& e = py_cast<Exception>(this, frame->top());
             StrName name = frame->co->names[byte.arg].first;
             frame->push(PyBool(e.match_type(name)));
         } continue;
@@ -212,10 +212,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
         case OP_UNARY_STAR: {
             if(byte.arg > 0){   // rvalue
-                frame->top() = PyStarWrapper({frame->top_value(this), true});
+                frame->top() = py_object(this, StarWrapper(frame->top_value(this), true));
             }else{
                 PyRef_AS_C(frame->top()); // check ref
-                frame->top() = PyStarWrapper({frame->top(), false});
+                frame->top() = py_object(this, StarWrapper(frame->top(), false));
             }
         } continue;
         case OP_CALL_KWARGS_UNPACK: case OP_CALL_KWARGS: {
@@ -286,7 +286,7 @@ PyVar VM::run_frame(Frame* frame){
             Slice s;
             if(start != None) { s.start = (int)py_cast_v<i64>(this, start);}
             if(stop != None) { s.stop = (int)py_cast_v<i64>(this, stop);}
-            frame->push(PySlice(s));
+            frame->push(py_object(this, s));
         } continue;
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;
