@@ -192,11 +192,6 @@ public:
         return make_sp<PyObject, Py_<RAW(T)>>(type, std::move(_value));
     }
 
-    template<typename T, typename... Args>
-    inline PyVar new_object(Args&&... args) {
-        return new_object(T::_type(this), T(std::forward<Args>(args)...));
-    }
-
     template<int ARGC>
     void bind_func(Str typeName, Str funcName, NativeFuncRaw fn) {
         bind_func<ARGC>(_types[typeName], funcName, fn);     
@@ -288,21 +283,6 @@ public:
         if(is_int(obj)) return _t(tp_int);
         if(is_float(obj)) return _t(tp_float);
         return _all_types[OBJ_GET(Type, _t(obj->type)).index];
-    }
-
-    template<typename T>
-    PyVar register_class(PyVar mod){
-        PyVar type = new_type_object(mod, T::_name(), _t(tp_object));
-        if(OBJ_NAME(mod) != T::_mod()) UNREACHABLE();
-        T::_register(this, mod, type);
-        type->attr()._try_perfect_rehash();
-        return type;
-    }
-
-    template<typename T>
-    inline T& _cast(const PyVar& obj){
-        check_type(obj, T::_type(this));
-        return OBJ_GET(T, obj);
     }
 
     ~VM() {
@@ -444,6 +424,11 @@ template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
 
 PyVar py_var(VM* vm, const char* val){
     return VAR(Str(val));
+}
+
+template<typename T>
+void _check_py_class(VM* vm, const PyVar& obj){
+    vm->check_type(obj, T::_type(vm));
 }
 
 PyVar VM::num_negated(const PyVar& obj){

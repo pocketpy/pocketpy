@@ -149,14 +149,19 @@ inline bool is_float(const PyVar& obj) noexcept {
     return obj.is_tag_10();
 }
 
-#define PY_CLASS(mod, name) \
-    inline static Type _type(VM* vm) {  \
+#define PY_CLASS(T, mod, name) \
+    static Type _type(VM* vm) {  \
         static StrName __x0(#mod);      \
         static StrName __x1(#name);     \
-        return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));  \
-    } \
-    inline static const char* _mod() { return #mod; } \
-    inline static const char* _name() { return #name; }
+        return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
+    }                                                                       \
+    static PyVar register_class(VM* vm, PyVar mod) {                        \
+        PyVar type = vm->new_type_object(mod, #name, vm->_t(vm->tp_object));\
+        if(OBJ_NAME(mod) != #mod) UNREACHABLE();                            \
+        T::_register(vm, mod, type);                                        \
+        type->attr()._try_perfect_rehash();                                 \
+        return type;                                                        \
+    }                                                                       
 
 union __8B {
     i64 _int;
@@ -165,16 +170,37 @@ union __8B {
     __8B(f64 val) : _float(val) {}
 };
 
+template <typename, typename = void> struct is_py_class : std::false_type {};
+template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};
+
 template<typename T>
 T py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
 template<typename T>
 T _py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
+
 template<typename T>
-T& py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+void _check_py_class(VM* vm, const PyVar& var);
+
 template<typename T>
-T& _py_cast(VM* vm, const PyVar& var) { UNREACHABLE(); }
+T& py_cast(VM* vm, const PyVar& obj) {
+    if constexpr(is_py_class<T>::value){
+        _check_py_class<T>(vm, obj);
+        return OBJ_GET(T, obj);
+    }else{
+        throw std::runtime_error("bad py_cast() call");
+    }
+}
+template<typename T>
+T& _py_cast(VM* vm, const PyVar& obj) {
+    if constexpr(is_py_class<T>::value){
+        return OBJ_GET(T, obj);
+    }else{
+        throw std::runtime_error("bad py_cast() call");
+    }
+}
 
 #define VAR(x) py_var(vm, x)
+#define VAR_T(T, ...) vm->new_object(T::_type(vm), T(__VA_ARGS__))
 #define CAST(T, x) py_cast<T>(vm, x)
 #define CAST_V(T, x) py_cast_v<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)

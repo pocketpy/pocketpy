@@ -611,7 +611,7 @@ void add_module_dis(VM* vm){
 }
 
 struct FileIO {
-    PY_CLASS(io, FileIO)
+    PY_CLASS(FileIO, io, FileIO)
 
     Str file;
     Str mode;
@@ -630,32 +630,32 @@ struct FileIO {
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<2>(type, "__new__", [](VM* vm, Args& args){
-            return vm->new_object<FileIO>(
+            return VAR_T(FileIO, 
                 vm, CAST(Str, args[0]), CAST(Str, args[1])
             );
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, Args& args){
-            FileIO& io = vm->_cast<FileIO>(args[0]);
+            FileIO& io = CAST(FileIO, args[0]);
             std::string buffer;
             io._fs >> buffer;
             return VAR(buffer);
         });
 
         vm->bind_method<1>(type, "write", [](VM* vm, Args& args){
-            FileIO& io = vm->_cast<FileIO>(args[0]);
+            FileIO& io = CAST(FileIO, args[0]);
             io._fs << CAST(Str, args[1]);
             return vm->None;
         });
 
         vm->bind_method<0>(type, "close", [](VM* vm, Args& args){
-            FileIO& io = vm->_cast<FileIO>(args[0]);
+            FileIO& io = CAST(FileIO, args[0]);
             io._fs.close();
             return vm->None;
         });
 
         vm->bind_method<0>(type, "__exit__", [](VM* vm, Args& args){
-            FileIO& io = vm->_cast<FileIO>(args[0]);
+            FileIO& io = CAST(FileIO, args[0]);
             io._fs.close();
             return vm->None;
         });
@@ -665,7 +665,7 @@ struct FileIO {
 };
 void add_module_io(VM* vm){
     PyVar mod = vm->new_module("io");
-    PyVar type = vm->register_class<FileIO>(mod);
+    PyVar type = FileIO::register_class(vm, mod);
     vm->bind_builtin_func<2>("open", [type](VM* vm, const Args& args){
         return vm->call(type, args);
     });
@@ -674,7 +674,7 @@ void add_module_io(VM* vm){
 void add_module_os(VM* vm){}
 
 struct ReMatch {
-    PY_CLASS(re, Match)
+    PY_CLASS(ReMatch, re, Match)
 
     i64 start;
     i64 end;
@@ -683,16 +683,16 @@ struct ReMatch {
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
-        vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(vm->_cast<ReMatch>(args[0]).start)));
-        vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(vm->_cast<ReMatch>(args[0]).end)));
+        vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(CAST(ReMatch, args[0]).start)));
+        vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(CAST(ReMatch, args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
-            auto& self = vm->_cast<ReMatch>(args[0]);
+            auto& self = CAST(ReMatch, args[0]);
             return VAR(two_args(VAR(self.start), VAR(self.end)));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
-            auto& self = vm->_cast<ReMatch>(args[0]);
+            auto& self = CAST(ReMatch, args[0]);
             int index = (int)CAST_V(i64, args[1]);
             index = vm->normalized_index(index, self.m.size());
             return VAR(self.m[index].str());
@@ -707,14 +707,14 @@ PyVar _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* v
         if(fromStart && m.position() != 0) return vm->None;
         i64 start = string._to_u8_index(m.position());
         i64 end = string._to_u8_index(m.position() + m.length());
-        return vm->new_object<ReMatch>(start, end, m);
+        return VAR_T(ReMatch, start, end, m);
     }
     return vm->None;
 };
 
 void add_module_re(VM* vm){
     PyVar mod = vm->new_module("re");
-    vm->register_class<ReMatch>(mod);
+    ReMatch::register_class(vm, mod);
 
     vm->bind_func<2>(mod, "match", [](VM* vm, Args& args) {
         const Str& pattern = CAST(Str, args[0]);
