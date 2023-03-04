@@ -12,8 +12,13 @@ linux_common = "-Wfatal-errors --std=c++17 -O2 -Wall -Wno-sign-compare -Wno-unus
 linux_cmd = "clang++ -o pocketpy src/main.cpp " + linux_common
 linux_lib_cmd = "clang++ -fPIC -shared -o pocketpy.so src/tmp.cpp " + linux_common
 
-lib_pre_cmd = r'''echo "#include \"pocketpy.h\"" > src/tmp.cpp'''
-lib_post_cmd = r'''rm src/tmp.cpp'''
+
+def lib_pre_build():
+    with open("src/tmp.cpp", "w", encoding='utf-8') as f:
+        f.write('#include "pocketpy.h"')
+
+def lib_post_build():
+    os.remove("src/tmp.cpp")
 
 windows_common = "clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Wno-deprecated-declarations"
 windows_cmd = windows_common + " -Fe:pocketpy src/main.cpp"
@@ -25,18 +30,18 @@ if sys.argv.__len__() == 1:
 
 if "windows" in sys.argv:
     if "-lib" in sys.argv:
-        os.system(lib_pre_cmd)
+        lib_pre_build()
         os.system(windows_lib_cmd)
-        os.system(lib_post_cmd)
+        lib_post_build()
     else:
         os.system(windows_cmd)
     DONE()
 
 if "linux" in sys.argv:
     if "-lib" in sys.argv:
-        os.system(lib_pre_cmd)
+        lib_pre_build()
         os.system(linux_lib_cmd)
-        os.system(lib_post_cmd)
+        lib_post_build()
     else:
         os.system(linux_cmd)
     DONE()
