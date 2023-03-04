@@ -50,6 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+    - name: Set up Clang
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: 15
+        platform: x64
     - name: Compiling
       run: |
         bash build_cpp.sh

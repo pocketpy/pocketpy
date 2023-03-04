@@ -2,6 +2,7 @@ __pycache__/
 .vscode
 .ipynb_checkpoints
 .DS_Store
+.hidden
 
 src/main
 gmon.out
