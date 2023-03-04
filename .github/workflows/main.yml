@@ -14,9 +14,9 @@ jobs:
     - name: Compiling
       shell: bash
       run: |
-        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
+        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Wno-deprecated-declarations -Fe:pocketpy src/main.cpp
         echo '#include "pocketpy.h"' > src/tmp.cpp
-        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -LD -Fe:pocketpy src/tmp.cpp
+        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Wno-deprecated-declarations -LD -Fe:pocketpy src/tmp.cpp
         python3 scripts/run_tests.py
         python3 scripts/run_tests.py benchmark
         mkdir -p output/windows/x86_64
