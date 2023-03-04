@@ -6,12 +6,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up Clang
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: 15
+        platform: x64
     - name: Compiling
       shell: bash
       run: |
-        CL -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
-        mv src/pocketpy.h src/pocketpy.cpp
-        CL -std:c++17 -GR- -EHsc -O2 -LD -Fe:pocketpy src/pocketpy.cpp
+        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Fe:pocketpy src/main.cpp
+        echo '#include "pocketpy.h"' > src/tmp.cpp
+        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -LD -Fe:pocketpy src/tmp.cpp
         python3 scripts/run_tests.py
         python3 scripts/run_tests.py benchmark
         mkdir -p output/windows/x86_64
