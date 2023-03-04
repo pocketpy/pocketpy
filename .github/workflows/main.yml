@@ -13,9 +13,8 @@ jobs:
     - name: Compiling
       shell: bash
       run: |
-        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Wno-deprecated-declarations -Fe:pocketpy src/main.cpp
-        echo '#include "pocketpy.h"' > src/tmp.cpp
-        clang-cl.exe -std:c++17 -GR- -EHsc -O2 -Wno-deprecated-declarations -LD -Fe:pocketpy src/tmp.cpp
+        python3 build.py windows
+        python3 build.py windows -lib
         python3 scripts/run_tests.py
         python3 scripts/run_tests.py benchmark
         mkdir -p output/windows/x86_64
@@ -38,7 +37,7 @@ jobs:
     - name: Compiling
       run: |
         mkdir -p output/web/lib
-        bash build_wasm.sh
+        python3 build.py web
         cp web/lib/* output/web/lib
     - uses: crazy-max/ghaction-github-pages@v3
       with:
@@ -62,8 +61,8 @@ jobs:
     - name: Compiling
       run: |
         sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15
-        bash build_cpp.sh
-        bash build_linux.sh
+        python3 build.py linux
+        python3 build.py linux -lib
         python3 scripts/run_tests.py
         python3 scripts/run_tests.py benchmark
         mkdir -p output/linux/x86_64

@@ -5,6 +5,7 @@
 #include "repl.h"
 #include "iter.h"
 #include "cffi.h"
+#include "_generated.h"
 
 namespace pkpy {
 
@@ -534,8 +535,6 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
 }
 
-#include "builtins.h"
-
 #ifdef _WIN32
 #define __EXPORT __declspec(dllexport)
 #elif __APPLE__
@@ -773,13 +772,13 @@ void add_module_random(VM* vm){
         return VAR(a + (b - a) * std::rand() / (f64)RAND_MAX);
     });
 
-    CodeObject_ code = vm->compile(kRandomCode, "random.py", EXEC_MODE);
+    CodeObject_ code = vm->compile(kPythonLibs["random"], "random.py", EXEC_MODE);
     vm->_exec(code, mod);
 }
 
 void add_module_functools(VM* vm){
     PyVar mod = vm->new_module("functools");
-    CodeObject_ code = vm->compile(kFuncToolsCode, "functools.py", EXEC_MODE);
+    CodeObject_ code = vm->compile(kPythonLibs["functools"], "functools.py", EXEC_MODE);
     vm->_exec(code, mod);
 }
 
@@ -797,7 +796,11 @@ void VM::post_init(){
     add_module_functools(this);
     add_module_c(this);
 
-    CodeObject_ code = compile(kBuiltinsCode, "<builtins>", EXEC_MODE);
+    CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
+    this->_exec(code, this->builtins);
+    code = compile(kPythonLibs["dict"], "<builtins>", EXEC_MODE);
+    this->_exec(code, this->builtins);
+    code = compile(kPythonLibs["set"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);
 }
 

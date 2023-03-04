@@ -1,1 +1,0 @@
-clang++ -o pocketpy src/main.cpp -Wfatal-errors --std=c++17 -O2 -Wall -Wno-sign-compare -Wno-unused-variable -fno-rtti -stdlib=libc++ -v

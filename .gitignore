@@ -20,3 +20,5 @@ plugins/flutter/src/pocketpy.h
 plugins/macos/pocketpy/pocketpy.h
 plugins/godot/godot-cpp/
 123.txt
+src/_generated.h
+profile.sh

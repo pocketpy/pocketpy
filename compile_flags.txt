@@ -2,3 +2,4 @@
 -Wall
 -W*
 -std=c++17
+-stdlib=libc++
