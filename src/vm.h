@@ -388,6 +388,8 @@ template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
 template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
+
+#ifndef PKPY_USE_32_BITS
 template<> int py_cast<int>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_int);
     return obj.bits >> 2;
@@ -395,6 +397,7 @@ template<> int py_cast<int>(VM* vm, const PyVar& obj){
 template<> int _py_cast<int>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
+#endif
 
 template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);

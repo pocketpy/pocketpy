@@ -35,6 +35,7 @@ typedef int32_t i64;
 typedef float f64;
 #define S_TO_INT std::stoi
 #define S_TO_FLOAT std::stof
+#define PKPY_USE_32_BITS
 #else
 typedef int64_t i64;
 typedef double f64;
