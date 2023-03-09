@@ -23,7 +23,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
         if(is_both_int(args[0], args[1])){                                                              \
-            return VAR(_CAST_V(i64, args[0]) op _CAST_V(i64, args[1]));                     \
+            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                     \
         }else{                                                                                          \
             return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
         }                                                                                               \
@@ -36,7 +36,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
         if(is_both_int(args[0], args[1]))                                                               \
-            return VAR(_CAST_V(i64, args[0]) op _CAST_V(i64, args[1]));                    \
+            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                    \
         return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
     });
     
@@ -57,7 +57,7 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     _vm->bind_builtin_func<1>("__sys_stdout_write", [](VM* vm, Args& args) {
-        (*vm->_stdout) << CAST(Str, args[0]);
+        (*vm->_stdout) << CAST(Str&, args[0]);
         return vm->None;
     });
 
@@ -74,19 +74,19 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(CAST(Str, args[0]), "<eval>", EVAL_MODE);
+        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(CAST(Str, args[0]), "<exec>", EXEC_MODE);
+        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE);
         vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
         return vm->None;
     });
 
     _vm->bind_builtin_func<-1>("exit", [](VM* vm, Args& args) {
         if(args.size() == 0) std::exit(0);
-        else if(args.size() == 1) std::exit((int)CAST_V(i64, args[0]));
+        else if(args.size() == 1) std::exit(CAST(int, args[0]));
         else vm->TypeError("exit() takes at most 1 argument");
         return vm->None;
     });
@@ -101,34 +101,34 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("chr", [](VM* vm, Args& args) {
-        i64 i = CAST_V(i64, args[0]);
+        i64 i = CAST(i64, args[0]);
         if (i < 0 || i > 128) vm->ValueError("chr() arg not in range(128)");
         return VAR(std::string(1, (char)i));
     });
 
     _vm->bind_builtin_func<1>("ord", [](VM* vm, Args& args) {
-        Str s = CAST(Str, args[0]);
+        const Str& s = CAST(Str&, args[0]);
         if (s.size() != 1) vm->TypeError("ord() expected an ASCII character");
         return VAR((i64)(s.c_str()[0]));
     });
 
     _vm->bind_builtin_func<2>("hasattr", [](VM* vm, Args& args) {
-        return VAR(vm->getattr(args[0], CAST(Str, args[1]), false) != nullptr);
+        return VAR(vm->getattr(args[0], CAST(Str&, args[1]), false) != nullptr);
     });
 
     _vm->bind_builtin_func<3>("setattr", [](VM* vm, Args& args) {
-        vm->setattr(args[0], CAST(Str, args[1]), args[2]);
+        vm->setattr(args[0], CAST(Str&, args[1]), args[2]);
         return vm->None;
     });
 
     _vm->bind_builtin_func<2>("getattr", [](VM* vm, Args& args) {
-        Str name = CAST(Str, args[1]);
+        const Str& name = CAST(Str&, args[1]);
         return vm->getattr(args[0], name);
     });
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, Args& args) {
         std::stringstream ss;
-        ss << std::hex << CAST_V(i64, args[0]);
+        ss << std::hex << CAST(i64, args[0]);
         return VAR("0x" + ss.str());
     });
 
@@ -163,9 +163,9 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, Args& args) {
         Range r;
         switch (args.size()) {
-            case 1: r.stop = CAST_V(i64, args[0]); break;
-            case 2: r.start = CAST_V(i64, args[0]); r.stop = CAST_V(i64, args[1]); break;
-            case 3: r.start = CAST_V(i64, args[0]); r.stop = CAST_V(i64, args[1]); r.step = CAST_V(i64, args[2]); break;
+            case 1: r.stop = CAST(i64, args[0]); break;
+            case 2: r.start = CAST(i64, args[0]); r.stop = CAST(i64, args[1]); break;
+            case 3: r.start = CAST(i64, args[0]); r.stop = CAST(i64, args[1]); r.step = CAST(i64, args[2]); break;
             default: vm->TypeError("expected 1-3 arguments, but got " + std::to_string(args.size()));
         }
         return VAR(r);
@@ -186,8 +186,8 @@ void init_builtins(VM* _vm) {
 
     _vm->_bind_methods<1>({"int", "float"}, "__pow__", [](VM* vm, Args& args) {
         if(is_both_int(args[0], args[1])){
-            i64 lhs = _CAST_V(i64, args[0]);
-            i64 rhs = _CAST_V(i64, args[1]);
+            i64 lhs = _CAST(i64, args[0]);
+            i64 rhs = _CAST(i64, args[1]);
             bool flag = false;
             if(rhs < 0) {flag = true; rhs = -rhs;}
             i64 ret = 1;
@@ -206,10 +206,10 @@ void init_builtins(VM* _vm) {
     /************ PyInt ************/
     _vm->bind_static_method<1>("int", "__new__", [](VM* vm, Args& args) {
         if (is_type(args[0], vm->tp_int)) return args[0];
-        if (is_type(args[0], vm->tp_float)) return VAR((i64)CAST_V(f64, args[0]));
-        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST_V(bool, args[0]) ? 1 : 0);
+        if (is_type(args[0], vm->tp_float)) return VAR((i64)CAST(f64, args[0]));
+        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST(bool, args[0]) ? 1 : 0);
         if (is_type(args[0], vm->tp_str)) {
-            const Str& s = CAST(Str, args[0]);
+            const Str& s = CAST(Str&, args[0]);
             try{
                 size_t parsed = 0;
                 i64 val = S_TO_INT(s, &parsed, 10);
@@ -224,22 +224,22 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("int", "__floordiv__", [](VM* vm, Args& args) {
-        i64 rhs = CAST_V(i64, args[1]);
+        i64 rhs = CAST(i64, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(CAST_V(i64, args[0]) / rhs);
+        return VAR(CAST(i64, args[0]) / rhs);
     });
 
     _vm->bind_method<1>("int", "__mod__", [](VM* vm, Args& args) {
-        i64 rhs = CAST_V(i64, args[1]);
+        i64 rhs = CAST(i64, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(CAST_V(i64, args[0]) % rhs);
+        return VAR(CAST(i64, args[0]) % rhs);
     });
 
-    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(VAR(std::to_string(CAST_V(i64, args[0])))));
-    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(VAR(std::to_string(CAST_V(i64, args[0])))));
+    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(VAR(std::to_string(CAST(i64, args[0])))));
+    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(VAR(std::to_string(CAST(i64, args[0])))));
 
 #define INT_BITWISE_OP(name,op) \
-    _vm->bind_method<1>("int", #name, CPP_LAMBDA(VAR(CAST_V(i64, args[0]) op CAST_V(i64, args[1]))));
+    _vm->bind_method<1>("int", #name, CPP_LAMBDA(VAR(CAST(i64, args[0]) op CAST(i64, args[1]))));
 
     INT_BITWISE_OP(__lshift__, <<)
     INT_BITWISE_OP(__rshift__, >>)
@@ -251,11 +251,11 @@ void init_builtins(VM* _vm) {
 
     /************ PyFloat ************/
     _vm->bind_static_method<1>("float", "__new__", [](VM* vm, Args& args) {
-        if (is_type(args[0], vm->tp_int)) return VAR((f64)CAST_V(i64, args[0]));
+        if (is_type(args[0], vm->tp_int)) return VAR((f64)CAST(i64, args[0]));
         if (is_type(args[0], vm->tp_float)) return args[0];
-        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST_V(bool, args[0]) ? 1.0 : 0.0);
+        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST(bool, args[0]) ? 1.0 : 0.0);
         if (is_type(args[0], vm->tp_str)) {
-            const Str& s = CAST(Str, args[0]);
+            const Str& s = CAST(Str&, args[0]);
             if(s == "inf") return VAR(INFINITY);
             if(s == "-inf") return VAR(-INFINITY);
             try{
@@ -270,7 +270,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("float", "__repr__", [](VM* vm, Args& args) {
-        f64 val = CAST_V(f64, args[0]);
+        f64 val = CAST(f64, args[0]);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
         StrStream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
@@ -280,7 +280,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("float", "__json__", [](VM* vm, Args& args) {
-        f64 val = CAST_V(f64, args[0]);
+        f64 val = CAST(f64, args[0]);
         if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
         return VAR(std::to_string(val));
     });
@@ -289,19 +289,19 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
 
     _vm->bind_method<1>("str", "__add__", [](VM* vm, Args& args) {
-        const Str& lhs = CAST(Str, args[0]);
-        const Str& rhs = CAST(Str, args[1]);
+        const Str& lhs = CAST(Str&, args[0]);
+        const Str& rhs = CAST(Str&, args[1]);
         return VAR(lhs + rhs);
     });
 
     _vm->bind_method<0>("str", "__len__", [](VM* vm, Args& args) {
-        const Str& self = CAST(Str, args[0]);
+        const Str& self = CAST(Str&, args[0]);
         return VAR(self.u8_length());
     });
 
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, Args& args) {
-        const Str& self = CAST(Str, args[0]);
-        const Str& other = CAST(Str, args[1]);
+        const Str& self = CAST(Str&, args[0]);
+        const Str& other = CAST(Str&, args[1]);
         return VAR(self.find(other) != Str::npos);
     });
 
@@ -309,59 +309,58 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str, args[0]);
+        const Str& _self = CAST(Str&, args[0]);
         return VAR(_self.escape(true));
     });
 
     _vm->bind_method<0>("str", "__json__", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str, args[0]);
-        return VAR(_self.escape(false));
+        const Str& self = CAST(Str&, args[0]);
+        return VAR(self.escape(false));
     });
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return VAR(CAST(Str, args[0]) == CAST(Str, args[1]));
+            return VAR(CAST(Str&, args[0]) == CAST(Str&, args[1]));
         return VAR(args[0] == args[1]);
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, Args& args) {
         if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return VAR(CAST(Str, args[0]) != CAST(Str, args[1]));
+            return VAR(CAST(Str&, args[0]) != CAST(Str&, args[1]));
         return VAR(args[0] != args[1]);
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, Args& args) {
-        const Str& self (CAST(Str, args[0]));
+        const Str& self (CAST(Str&, args[0]));
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST_V(Slice, args[1]);
+            Slice s = _CAST(Slice, args[1]);
             s.normalize(self.u8_length());
             return VAR(self.u8_substr(s.start, s.stop));
         }
 
-        int index = (int)CAST_V(i64, args[1]);
+        int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.u8_length());
         return VAR(self.u8_getitem(index));
     });
 
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, Args& args) {
-        const Str& self (CAST(Str, args[0]));
-        const Str& obj (CAST(Str, args[1]));
+        const Str& self (CAST(Str&, args[0]));
+        const Str& obj (CAST(Str&, args[1]));
         return VAR(self > obj);
     });
 
     _vm->bind_method<1>("str", "__lt__", [](VM* vm, Args& args) {
-        const Str& self (CAST(Str, args[0]));
-        const Str& obj (CAST(Str, args[1]));
+        const Str& self (CAST(Str&, args[0]));
+        const Str& obj (CAST(Str&, args[1]));
         return VAR(self < obj);
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str, args[0]);
-        const Str& _old = CAST(Str, args[1]);
-        const Str& _new = CAST(Str, args[2]);
+        const Str& _self = CAST(Str&, args[0]);
+        const Str& _old = CAST(Str&, args[1]);
+        const Str& _new = CAST(Str&, args[2]);
         Str _copy = _self;
-        // replace all occurences of _old with _new in _copy
         size_t pos = 0;
         while ((pos = _copy.find(_old, pos)) != std::string::npos) {
             _copy.replace(pos, _old.length(), _new);
@@ -371,45 +370,45 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "startswith", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str, args[0]);
-        const Str& _prefix = CAST(Str, args[1]);
-        return VAR(_self.find(_prefix) == 0);
+        const Str& self = CAST(Str&, args[0]);
+        const Str& prefix = CAST(Str&, args[1]);
+        return VAR(self.find(prefix) == 0);
     });
 
     _vm->bind_method<1>("str", "endswith", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str, args[0]);
-        const Str& _suffix = CAST(Str, args[1]);
-        return VAR(_self.rfind(_suffix) == _self.length() - _suffix.length());
+        const Str& self = CAST(Str&, args[0]);
+        const Str& suffix = CAST(Str&, args[1]);
+        return VAR(self.rfind(suffix) == self.length() - suffix.length());
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
-        const Str& self = CAST(Str, args[0]);
+        const Str& self = CAST(Str&, args[0]);
         StrStream ss;
         PyVar obj = vm->asList(args[1]);
-        const List& list = CAST(List, obj);
+        const List& list = CAST(List&, obj);
         for (int i = 0; i < list.size(); ++i) {
             if (i > 0) ss << self;
-            ss << CAST(Str, list[i]);
+            ss << CAST(Str&, list[i]);
         }
         return VAR(ss.str());
     });
 
     /************ PyList ************/
     _vm->bind_method<1>("list", "append", [](VM* vm, Args& args) {
-        List& self = CAST(List, args[0]);
+        List& self = CAST(List&, args[0]);
         self.push_back(args[1]);
         return vm->None;
     });
 
     _vm->bind_method<0>("list", "reverse", [](VM* vm, Args& args) {
-        List& self = CAST(List, args[0]);
+        List& self = CAST(List&, args[0]);
         std::reverse(self.begin(), self.end());
         return vm->None;
     });
 
     _vm->bind_method<1>("list", "__mul__", [](VM* vm, Args& args) {
-        const List& self = CAST(List, args[0]);
-        int n = (int)CAST_V(i64, args[1]);
+        const List& self = CAST(List&, args[0]);
+        int n = CAST(int, args[1]);
         List result;
         result.reserve(self.size() * n);
         for(int i = 0; i < n; i++) result.insert(result.end(), self.begin(), self.end());
@@ -417,8 +416,8 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<2>("list", "insert", [](VM* vm, Args& args) {
-        List& self = CAST(List, args[0]);
-        int index = (int)CAST_V(i64, args[1]);
+        List& self = CAST(List&, args[0]);
+        int index = CAST(int, args[1]);
         if(index < 0) index += self.size();
         if(index < 0) index = 0;
         if(index > self.size()) index = self.size();
@@ -427,22 +426,22 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("list", "clear", [](VM* vm, Args& args) {
-        CAST(List, args[0]).clear();
+        CAST(List&, args[0]).clear();
         return vm->None;
     });
 
     _vm->bind_method<0>("list", "copy", CPP_LAMBDA(VAR(CAST(List, args[0]))));
 
     _vm->bind_method<1>("list", "__add__", [](VM* vm, Args& args) {
-        const List& self = CAST(List, args[0]);
-        const List& obj = CAST(List, args[1]);
+        const List& self = CAST(List&, args[0]);
+        const List& obj = CAST(List&, args[1]);
         List new_list = self;
         new_list.insert(new_list.end(), obj.begin(), obj.end());
         return VAR(new_list);
     });
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, Args& args) {
-        const List& self = CAST(List, args[0]);
+        const List& self = CAST(List&, args[0]);
         return VAR(self.size());
     });
 
@@ -451,32 +450,32 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, Args& args) {
-        const List& self = CAST(List, args[0]);
+        const List& self = CAST(List&, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST_V(Slice, args[1]);
+            Slice s = _CAST(Slice, args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
             return VAR(std::move(new_list));
         }
 
-        int index = (int)CAST_V(i64, args[1]);
+        int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.size());
         return self[index];
     });
 
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, Args& args) {
-        List& self = CAST(List, args[0]);
-        int index = (int)CAST_V(i64, args[1]);
+        List& self = CAST(List&, args[0]);
+        int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.size());
         self[index] = args[2];
         return vm->None;
     });
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, Args& args) {
-        List& self = CAST(List, args[0]);
-        int index = (int)CAST_V(i64, args[1]);
+        List& self = CAST(List&, args[0]);
+        int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.size());
         self.erase(self.begin() + index);
         return vm->None;
@@ -493,23 +492,23 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, Args& args) {
-        const Tuple& self = CAST(Tuple, args[0]);
+        const Tuple& self = CAST(Tuple&, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST_V(Slice, args[1]);
+            Slice s = _CAST(Slice, args[1]);
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
             return VAR(std::move(new_list));
         }
 
-        int index = (int)CAST_V(i64, args[1]);
+        int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.size());
         return self[index];
     });
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, Args& args) {
-        const Tuple& self = CAST(Tuple, args[0]);
+        const Tuple& self = CAST(Tuple&, args[0]);
         return VAR(self.size());
     });
 
@@ -517,18 +516,18 @@ void init_builtins(VM* _vm) {
     _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(vm->asBool(args[0])));
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, Args& args) {
-        bool val = CAST_V(bool, args[0]);
+        bool val = CAST(bool, args[0]);
         return VAR(val ? "True" : "False");
     });
 
     _vm->bind_method<0>("bool", "__json__", [](VM* vm, Args& args) {
-        bool val = CAST_V(bool, args[0]);
+        bool val = CAST(bool, args[0]);
         return VAR(val ? "true" : "false");
     });
 
     _vm->bind_method<1>("bool", "__xor__", [](VM* vm, Args& args) {
-        bool self = CAST_V(bool, args[0]);
-        bool other = CAST_V(bool, args[1]);
+        bool self = CAST(bool, args[0]);
+        bool other = CAST(bool, args[1]);
         return VAR(self ^ other);
     });
 
@@ -563,7 +562,7 @@ void add_module_sys(VM* vm){
     vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(VAR(vm->recursionlimit)));
 
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, Args& args) {
-        vm->recursionlimit = (int)CAST_V(i64, args[0]);
+        vm->recursionlimit = CAST(int, args[0]);
         return vm->None;
     });
 }
@@ -571,7 +570,7 @@ void add_module_sys(VM* vm){
 void add_module_json(VM* vm){
     PyVar mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
-        const Str& expr = CAST(Str, args[0]);
+        const Str& expr = CAST(Str&, args[0]);
         CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
@@ -635,26 +634,26 @@ struct FileIO {
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO, args[0]);
+            FileIO& io = CAST(FileIO&, args[0]);
             std::string buffer;
             io._fs >> buffer;
             return VAR(buffer);
         });
 
         vm->bind_method<1>(type, "write", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO, args[0]);
-            io._fs << CAST(Str, args[1]);
+            FileIO& io = CAST(FileIO&, args[0]);
+            io._fs << CAST(Str&, args[1]);
             return vm->None;
         });
 
         vm->bind_method<0>(type, "close", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO, args[0]);
+            FileIO& io = CAST(FileIO&, args[0]);
             io._fs.close();
             return vm->None;
         });
 
         vm->bind_method<0>(type, "__exit__", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO, args[0]);
+            FileIO& io = CAST(FileIO&, args[0]);
             io._fs.close();
             return vm->None;
         });
@@ -682,17 +681,17 @@ struct ReMatch {
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
-        vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(CAST(ReMatch, args[0]).start)));
-        vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(CAST(ReMatch, args[0]).end)));
+        vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(CAST(ReMatch&, args[0]).start)));
+        vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(CAST(ReMatch&, args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
-            auto& self = CAST(ReMatch, args[0]);
+            auto& self = CAST(ReMatch&, args[0]);
             return VAR(two_args(VAR(self.start), VAR(self.end)));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
-            auto& self = CAST(ReMatch, args[0]);
-            int index = (int)CAST_V(i64, args[1]);
+            auto& self = CAST(ReMatch&, args[0]);
+            int index = CAST(int, args[1]);
             index = vm->normalized_index(index, self.m.size());
             return VAR(self.m[index].str());
         });
@@ -716,28 +715,28 @@ void add_module_re(VM* vm){
     ReMatch::register_class(vm, mod);
 
     vm->bind_func<2>(mod, "match", [](VM* vm, Args& args) {
-        const Str& pattern = CAST(Str, args[0]);
-        const Str& string = CAST(Str, args[1]);
+        const Str& pattern = CAST(Str&, args[0]);
+        const Str& string = CAST(Str&, args[1]);
         return _regex_search(pattern, string, true, vm);
     });
 
     vm->bind_func<2>(mod, "search", [](VM* vm, Args& args) {
-        const Str& pattern = CAST(Str, args[0]);
-        const Str& string = CAST(Str, args[1]);
+        const Str& pattern = CAST(Str&, args[0]);
+        const Str& string = CAST(Str&, args[1]);
         return _regex_search(pattern, string, false, vm);
     });
 
     vm->bind_func<3>(mod, "sub", [](VM* vm, Args& args) {
-        const Str& pattern = CAST(Str, args[0]);
-        const Str& repl = CAST(Str, args[1]);
-        const Str& string = CAST(Str, args[2]);
+        const Str& pattern = CAST(Str&, args[0]);
+        const Str& repl = CAST(Str&, args[1]);
+        const Str& string = CAST(Str&, args[2]);
         std::regex re(pattern);
         return VAR(std::regex_replace(string, re, repl));
     });
 
     vm->bind_func<2>(mod, "split", [](VM* vm, Args& args) {
-        const Str& pattern = CAST(Str, args[0]);
-        const Str& string = CAST(Str, args[1]);
+        const Str& pattern = CAST(Str&, args[0]);
+        const Str& string = CAST(Str&, args[1]);
         std::regex re(pattern);
         std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
         std::sregex_token_iterator end;
@@ -753,21 +752,21 @@ void add_module_random(VM* vm){
     PyVar mod = vm->new_module("random");
     std::srand(std::time(0));
     vm->bind_func<1>(mod, "seed", [](VM* vm, Args& args) {
-        std::srand((unsigned int)CAST_V(i64, args[0]));
+        std::srand((unsigned int)CAST(i64, args[0]));
         return vm->None;
     });
 
     vm->bind_func<0>(mod, "random", CPP_LAMBDA(VAR(std::rand() / (f64)RAND_MAX)));
     vm->bind_func<2>(mod, "randint", [](VM* vm, Args& args) {
-        i64 a = CAST_V(i64, args[0]);
-        i64 b = CAST_V(i64, args[1]);
+        i64 a = CAST(i64, args[0]);
+        i64 b = CAST(i64, args[1]);
         if(a > b) std::swap(a, b);
         return VAR(a + std::rand() % (b - a + 1));
     });
 
     vm->bind_func<2>(mod, "uniform", [](VM* vm, Args& args) {
-        f64 a = CAST_V(f64, args[0]);
-        f64 b = CAST_V(f64, args[1]);
+        f64 a = CAST(f64, args[0]);
+        f64 b = CAST(f64, args[1]);
         if(a > b) std::swap(a, b);
         return VAR(a + (b - a) * std::rand() / (f64)RAND_MAX);
     });
@@ -866,8 +865,8 @@ extern "C" {
         pkpy::PyVar* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            pkpy::Str& _repr = pkpy::CAST(pkpy::Str, vm->asRepr(*val));
-            return strdup(_repr.c_str());
+            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(*val));
+            return strdup(repr.c_str());
         }catch(...){
             return nullptr;
         }
@@ -882,8 +881,8 @@ extern "C" {
         pkpy::PyVarOrNull ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            pkpy::Str& _repr = pkpy::CAST(pkpy::Str, vm->asRepr(ret));
-            return strdup(_repr.c_str());
+            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(ret));
+            return strdup(repr.c_str());
         }catch(...){
             return nullptr;
         }
@@ -969,7 +968,7 @@ extern "C" {
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
                 pkpy::PyVar x = vm->call(args[i], pkpy::__json__);
-                ss << pkpy::CAST(pkpy::Str, x);
+                ss << pkpy::CAST(pkpy::Str&, x);
             }
             char* packet = strdup(ss.str().c_str());
             switch(ret_code){

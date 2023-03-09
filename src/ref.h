@@ -127,7 +127,7 @@ struct TupleRef : BaseRef {
         for(int i=0; i<objs.size(); i++){
             PyVarOrNull x;
             if(is_type(objs[i], vm->tp_star_wrapper)){
-                auto& star = _CAST(StarWrapper, objs[i]);
+                auto& star = _CAST(StarWrapper&, objs[i]);
                 if(star.rvalue) vm->ValueError("can't use starred expression here");
                 if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
                 auto ref = vm->PyRef_AS_C(star.obj);
@@ -153,7 +153,7 @@ struct TupleRef : BaseRef {
 
 template<typename P>
 PyVarRef VM::PyRef(P&& value) {
-    static_assert(std::is_base_of_v<BaseRef, RAW(P)>);
+    static_assert(std::is_base_of_v<BaseRef, std::decay_t<P>>);
     return new_object(tp_ref, std::forward<P>(value));
 }
 

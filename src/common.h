@@ -74,8 +74,6 @@ struct Type {
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-#define RAW(T) std::remove_const_t<std::remove_reference_t<T>>
-
 const float kLocalsLoadFactor = 0.67;
 const float kInstAttrLoadFactor = 0.67;
 const float kTypeAttrLoadFactor = 0.5;

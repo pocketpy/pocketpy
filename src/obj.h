@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "namedict.h"
 #include "tuplelist.h"
 
@@ -174,15 +175,11 @@ template <typename, typename = void> struct is_py_class : std::false_type {};
 template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};
 
 template<typename T>
-T py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
-template<typename T>
-T _py_cast_v(VM* vm, const PyVar& var) { UNREACHABLE(); }
-
-template<typename T>
 void _check_py_class(VM* vm, const PyVar& var);
 
-template<typename T>
-T& py_cast(VM* vm, const PyVar& obj) {
+template<typename __T>
+__T py_cast(VM* vm, const PyVar& obj) {
+    using T = std::decay_t<__T>;
     if constexpr(is_py_class<T>::value){
         _check_py_class<T>(vm, obj);
         return OBJ_GET(T, obj);
@@ -190,8 +187,9 @@ T& py_cast(VM* vm, const PyVar& obj) {
         throw std::runtime_error("bad py_cast() call");
     }
 }
-template<typename T>
-T& _py_cast(VM* vm, const PyVar& obj) {
+template<typename __T>
+__T _py_cast(VM* vm, const PyVar& obj) {
+    using T = std::decay_t<__T>;
     if constexpr(is_py_class<T>::value){
         return OBJ_GET(T, obj);
     }else{
@@ -202,8 +200,6 @@ T& _py_cast(VM* vm, const PyVar& obj) {
 #define VAR(x) py_var(vm, x)
 #define VAR_T(T, ...) vm->new_object(T::_type(vm), T(__VA_ARGS__))
 #define CAST(T, x) py_cast<T>(vm, x)
-#define CAST_V(T, x) py_cast_v<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
-#define _CAST_V(T, x) _py_cast_v<T>(vm, x)
 
 }   // namespace pkpy

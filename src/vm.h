@@ -6,18 +6,18 @@
 namespace pkpy{
 
 #define DEF_NATIVE_2(ctype, ptype)                                      \
-    template<> ctype& py_cast<ctype>(VM* vm, const PyVar& obj) {        \
+    template<> ctype py_cast<ctype>(VM* vm, const PyVar& obj) {         \
         vm->check_type(obj, vm->ptype);                                 \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> ctype& _py_cast<ctype>(VM* vm, const PyVar& obj) {       \
+    template<> ctype _py_cast<ctype>(VM* vm, const PyVar& obj) {        \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> ctype py_cast_v<ctype>(VM* vm, const PyVar& obj) {       \
+    template<> ctype& py_cast<ctype&>(VM* vm, const PyVar& obj) {       \
         vm->check_type(obj, vm->ptype);                                 \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> ctype _py_cast_v<ctype>(VM* vm, const PyVar& obj) {      \
+    template<> ctype& _py_cast<ctype&>(VM* vm, const PyVar& obj) {      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     PyVar py_var(VM* vm, const ctype& value) { return vm->new_object(vm->ptype, value);}     \
@@ -114,13 +114,13 @@ public:
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<RAW(ArgT), Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyVar>
     call(const PyVar& _callable, ArgT&& args){
         return call(_callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<RAW(ArgT), Args>, PyVar>
+    inline std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyVar>
     call(const PyVar& obj, const StrName name, ArgT&& args){
         return call(getattr(obj, name), std::forward<ArgT>(args), no_arg(), false);
     }
@@ -173,23 +173,23 @@ public:
 #ifdef PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
 #endif
-        return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), _value);
+        return make_sp<PyObject, Py_<std::decay_t<T>>>(OBJ_GET(Type, type), _value);
     }
     template<typename T>
     inline PyVar new_object(const PyVar& type, T&& _value) {
 #ifdef PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
 #endif
-        return make_sp<PyObject, Py_<RAW(T)>>(OBJ_GET(Type, type), std::move(_value));
+        return make_sp<PyObject, Py_<std::decay_t<T>>>(OBJ_GET(Type, type), std::move(_value));
     }
 
     template<typename T>
     inline PyVar new_object(Type type, const T& _value) {
-        return make_sp<PyObject, Py_<RAW(T)>>(type, _value);
+        return make_sp<PyObject, Py_<std::decay_t<T>>>(type, _value);
     }
     template<typename T>
     inline PyVar new_object(Type type, T&& _value) {
-        return make_sp<PyObject, Py_<RAW(T)>>(type, std::move(_value));
+        return make_sp<PyObject, Py_<std::decay_t<T>>>(type, std::move(_value));
     }
 
     template<int ARGC>
@@ -234,7 +234,7 @@ public:
 
     template<typename P>
     inline PyVar PyIter(P&& value) {
-        static_assert(std::is_base_of_v<BaseIter, RAW(P)>);
+        static_assert(std::is_base_of_v<BaseIter, std::decay_t<P>>);
         return new_object(tp_native_iterator, std::forward<P>(value));
     }
 
@@ -373,7 +373,7 @@ DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 template<typename T>
-std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<RAW(T), bool>, PyVar> py_var(VM* vm, T _val){
+std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::decay_t<T>, bool>, PyVar> py_var(VM* vm, T _val){
     i64 val = static_cast<i64>(_val);
     if(((val << 2) >> 2) != val){
         vm->_error("OverflowError", std::to_string(val) + " is out of range");
@@ -381,21 +381,28 @@ std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<RAW(T), bool>, PyVar> 
     val = (val << 2) | 0b01;
     return PyVar(reinterpret_cast<int*>(val));
 }
-template<> i64 py_cast_v<i64>(VM* vm, const PyVar& obj){
+template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_int);
     return obj.bits >> 2;
 }
-template<> i64 _py_cast_v<i64>(VM* vm, const PyVar& obj){
+template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
+    return obj.bits >> 2;
+}
+template<> int py_cast<int>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_int);
+    return obj.bits >> 2;
+}
+template<> int _py_cast<int>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
 
-template<> f64 py_cast_v<f64>(VM* vm, const PyVar& obj){
+template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);
     i64 bits = obj.bits;
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
 }
-template<> f64 _py_cast_v<f64>(VM* vm, const PyVar& obj){
+template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
     i64 bits = obj.bits;
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
@@ -414,11 +421,11 @@ const PyVar& py_var(VM* vm, bool val){
     return val ? vm->True : vm->False;
 }
 
-template<> bool py_cast_v<bool>(VM* vm, const PyVar& obj){
+template<> bool py_cast<bool>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_bool);
     return obj == vm->True;
 }
-template<> bool _py_cast_v<bool>(VM* vm, const PyVar& obj){
+template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
@@ -433,9 +440,9 @@ void _check_py_class(VM* vm, const PyVar& obj){
 
 PyVar VM::num_negated(const PyVar& obj){
     if (is_int(obj)){
-        return VAR(-CAST_V(i64, obj));
+        return VAR(-CAST(i64, obj));
     }else if(is_float(obj)){
-        return VAR(-CAST_V(f64, obj));
+        return VAR(-CAST(f64, obj));
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return nullptr;
@@ -443,9 +450,9 @@ PyVar VM::num_negated(const PyVar& obj){
 
 f64 VM::num_to_float(const PyVar& obj){
     if(is_float(obj)){
-        return CAST_V(f64, obj);
+        return CAST(f64, obj);
     } else if (is_int(obj)){
-        return (f64)CAST_V(i64, obj);
+        return (f64)CAST(i64, obj);
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
     return 0;
@@ -454,22 +461,22 @@ f64 VM::num_to_float(const PyVar& obj){
 const PyVar& VM::asBool(const PyVar& obj){
     if(is_type(obj, tp_bool)) return obj;
     if(obj == None) return False;
-    if(is_type(obj, tp_int)) return VAR(CAST_V(i64, obj) != 0);
-    if(is_type(obj, tp_float)) return VAR(CAST_V(f64, obj) != 0.0);
+    if(is_type(obj, tp_int)) return VAR(CAST(i64, obj) != 0);
+    if(is_type(obj, tp_float)) return VAR(CAST(f64, obj) != 0.0);
     PyVarOrNull len_fn = getattr(obj, __len__, false);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
-        return VAR(CAST_V(i64, ret) > 0);
+        return VAR(CAST(i64, ret) > 0);
     }
     return True;
 }
 
 i64 VM::hash(const PyVar& obj){
-    if (is_type(obj, tp_str)) return CAST(Str, obj).hash();
-    if (is_int(obj)) return CAST_V(i64, obj);
+    if (is_type(obj, tp_str)) return CAST(Str&, obj).hash();
+    if (is_int(obj)) return CAST(i64, obj);
     if (is_type(obj, tp_tuple)) {
         i64 x = 1000003;
-        const Tuple& items = CAST(Tuple, obj);
+        const Tuple& items = CAST(Tuple&, obj);
         for (int i=0; i<items.size(); i++) {
             i64 y = hash(items[i]);
             x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2)); // recommended by Github Copilot
@@ -477,9 +484,9 @@ i64 VM::hash(const PyVar& obj){
         return x;
     }
     if (is_type(obj, tp_type)) return obj.bits;
-    if (is_type(obj, tp_bool)) return _CAST_V(bool, obj) ? 1 : 0;
+    if (is_type(obj, tp_bool)) return _CAST(bool, obj) ? 1 : 0;
     if (is_float(obj)){
-        f64 val = CAST_V(f64, obj);
+        f64 val = CAST(f64, obj);
         return (i64)std::hash<f64>()(val);
     }
     TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
@@ -572,7 +579,7 @@ Str VM::disassemble(CodeObject_ co){
     for(int i=0; i<co->consts.size(); i++){
         PyVar obj = co->consts[i];
         if(is_type(obj, tp_function)){
-            const auto& f = CAST(Function, obj);
+            const auto& f = CAST(Function&, obj);
             ss << disassemble(f.code);
         }
     }
@@ -652,7 +659,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
 
     const PyVar* callable = &_callable;
     if(is_type(*callable, tp_bound_method)){
-        auto& bm = CAST(BoundMethod, *callable);
+        auto& bm = CAST(BoundMethod&, *callable);
         callable = &bm.method;      // get unbound method
         args.extend_self(bm.obj);
     }
@@ -662,7 +669,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
         return f(this, args);
     } else if(is_type(*callable, tp_function)){
-        const Function& fn = CAST(Function, *callable);
+        const Function& fn = CAST(Function&, *callable);
         NameDict_ locals = make_sp<NameDict>(
             fn.code->perfect_locals_capacity,
             kLocalsLoadFactor,
@@ -696,7 +703,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         }
         
         for(int i=0; i<kwargs.size(); i+=2){
-            const Str& key = CAST(Str, kwargs[i]);
+            const Str& key = CAST(Str&, kwargs[i]);
             if(!fn.kwargs.contains(key)){
                 TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
             }
@@ -717,10 +724,10 @@ void VM::unpack_args(Args& args){
     List unpacked;
     for(int i=0; i<args.size(); i++){
         if(is_type(args[i], tp_star_wrapper)){
-            auto& star = _CAST(StarWrapper, args[i]);
+            auto& star = _CAST(StarWrapper&, args[i]);
             if(!star.rvalue) UNREACHABLE();
             PyVar list = asList(star.obj);
-            List& list_c = CAST(List, list);
+            List& list_c = CAST(List&, list);
             unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
         }else{
             unpacked.push_back(args[i]);
@@ -830,7 +837,7 @@ PyVar VM::_exec(){
             continue;
         }catch(UnhandledException& e){
             PyVar obj = frame->pop();
-            Exception& _e = CAST(Exception, obj);
+            Exception& _e = CAST(Exception&, obj);
             _e.st_push(frame->snapshot());
             callstack.pop();
             if(callstack.empty()) throw _e;

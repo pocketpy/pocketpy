@@ -18,12 +18,12 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
         case OP_LOAD_FUNCTION: {
             const PyVar obj = frame->co->consts[byte.arg];
-            Function f = CAST_V(Function, obj);  // copy
+            Function f = CAST(Function, obj);  // copy
             f._module = frame->_module;
             frame->push(VAR(f));
         } continue;
         case OP_SETUP_CLOSURE: {
-            Function& f = CAST(Function, frame->top());    // reference
+            Function& f = CAST(Function&, frame->top());    // reference
             f._closure = frame->_locals;
         } continue;
         case OP_LOAD_NAME_REF: {
@@ -85,7 +85,7 @@ PyVar VM::run_frame(Frame* frame){
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_LIST_APPEND: {
             PyVar obj = frame->pop_value(this);
-            List& list = CAST(List, frame->top_1());
+            List& list = CAST(List&, frame->top_1());
             list.push_back(std::move(obj));
         } continue;
         case OP_BEGIN_CLASS: {
@@ -154,7 +154,7 @@ PyVar VM::run_frame(Frame* frame){
         } continue;
         case OP_CONTAINS_OP: {
             PyVar rhs = frame->pop_value(this);
-            bool ret_c = CAST_V(bool, call(rhs, __contains__, one_arg(frame->pop_value(this))));
+            bool ret_c = CAST(bool, call(rhs, __contains__, one_arg(frame->pop_value(this))));
             if(byte.arg == 1) ret_c = !ret_c;
             frame->push(VAR(ret_c));
         } continue;
@@ -164,10 +164,10 @@ PyVar VM::run_frame(Frame* frame){
         case OP_UNARY_NOT: {
             PyVar obj = frame->pop_value(this);
             const PyVar& obj_bool = asBool(obj);
-            frame->push(VAR(!_CAST_V(bool, obj_bool)));
+            frame->push(VAR(!_CAST(bool, obj_bool)));
         } continue;
         case OP_POP_JUMP_IF_FALSE:
-            if(!_CAST_V(bool, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
+            if(!_CAST(bool, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
             continue;
         case OP_LOAD_NONE: frame->push(None); continue;
         case OP_LOAD_TRUE: frame->push(True); continue;
@@ -180,7 +180,7 @@ PyVar VM::run_frame(Frame* frame){
             if(asBool(expr) != True) _error("AssertionError", msg);
         } continue;
         case OP_EXCEPTION_MATCH: {
-            const auto& e = CAST(Exception, frame->top());
+            const auto& e = CAST(Exception&, frame->top());
             StrName name = frame->co->names[byte.arg].first;
             frame->push(VAR(e.match_type(name)));
         } continue;
@@ -284,8 +284,8 @@ PyVar VM::run_frame(Frame* frame){
             PyVar stop = frame->pop_value(this);
             PyVar start = frame->pop_value(this);
             Slice s;
-            if(start != None) { s.start = (int)CAST_V(i64, start);}
-            if(stop != None) { s.stop = (int)CAST_V(i64, stop);}
+            if(start != None) { s.start = CAST(int, start);}
+            if(stop != None) { s.stop = CAST(int, stop);}
             frame->push(VAR(s));
         } continue;
         case OP_IMPORT_NAME: {

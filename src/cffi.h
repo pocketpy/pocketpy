@@ -1,130 +1,179 @@
 #pragma once
 
+#include "common.h"
 #include "vm.h"
+#include <vector>
 
 namespace pkpy {
 
-struct CType{
-    PY_CLASS(CType, c, type_)
+template<typename Ret, typename... Params>
+struct ProxyFunction {
+    using T = Ret(*)(Params...);
+    static constexpr int N = sizeof...(Params);
+    T func;
+    ProxyFunction(T func) : func(func) {}
 
-    const char* name;       // must be a literal
-    const int size;
-    const int index;
-    constexpr CType(const char name[], int size, int index) : name(name), size(size), index(index) {}
+    PyVar operator()(VM* vm, Args& args) {
+        if (args.size() != N) vm->TypeError("invalid number of arguments");
+        return call(vm, args, std::make_index_sequence<N>());
+    }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
-        vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
-
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            CType& self = CAST(CType, args[0]);
-            StrStream ss;
-            ss << "<c._type '" << self.name << "' (" << self.size*8 << " bits)>";
-            return VAR(ss.str());
-        });
+    template<size_t... Is>
+    PyVar call(VM* vm, Args& args, std::index_sequence<Is...>) {
+        Ret ret = func(py_cast<Params>(vm, args[Is])...);
+        return VAR(std::move(ret));
     }
 };
 
-constexpr CType kCTypes[] = {
-    CType("char_", sizeof(char), 0), CType("int_", sizeof(int), 1),
-    CType("float_", sizeof(float), 2), CType("double_", sizeof(double), 3),
-    CType("bool_", sizeof(bool), 4), CType("void_", 1, 5),
-    CType("int8_", sizeof(int8_t), 6), CType("int16_", sizeof(int16_t), 7),
-    CType("int32_", sizeof(int32_t), 8), CType("int64_", sizeof(int64_t), 9), 
-    CType("uint8_", sizeof(uint8_t), 10), CType("uint16_", sizeof(uint16_t), 11),
-    CType("uint32_", sizeof(uint32_t), 12), CType("uint64_", sizeof(uint64_t), 13),
-    CType("void_p_", sizeof(intptr_t), 14),
-    // use macro here to do extension
+
+struct TypeInfo;
+
+struct MemberInfo{
+    TypeInfo* type;
+    int offset;
 };
 
-const int kCTypeCount = sizeof(kCTypes) / sizeof(CType);
+struct TypeInfo{
+    const char* name;
+    int size;
+    int index;      // for basic types only
+    std::map<StrName, MemberInfo> members;
 
-constexpr int C_TYPE(const char name[]){
-    for(int k=0; k<kCTypeCount; k++){
-        const char* i = kCTypes[k].name;
-        const char* j = name;
-        while(*i && *j && *i == *j) { i++; j++;}
-        if(*i == *j) return k;
-    }
-    UNREACHABLE();
-}
+    TypeInfo(const char name[], int size, int index) : name(name), size(size), index(index) {}
+    TypeInfo(const char name[], int size, std::map<StrName, MemberInfo> members)
+        : name(name), size(size), index(-1), members(members) {}
+    TypeInfo() : name(nullptr), size(0), index(-1) {}
+};
 
-#define C_TYPE_T(x) (kCTypes[C_TYPE(x)])
+template<typename T>
+constexpr int type_index() { return -1; }
+template<> constexpr int type_index<void>() { return 0; }
+template<> constexpr int type_index<char>() { return 1; }
+template<> constexpr int type_index<short>() { return 2; }
+template<> constexpr int type_index<int>() { return 3; }
+template<> constexpr int type_index<long>() { return 4; }
+template<> constexpr int type_index<long long>() { return 5; }
+template<> constexpr int type_index<unsigned char>() { return 6; }
+template<> constexpr int type_index<unsigned short>() { return 7; }
+template<> constexpr int type_index<unsigned int>() { return 8; }
+template<> constexpr int type_index<unsigned long>() { return 9; }
+template<> constexpr int type_index<unsigned long long>() { return 10; }
+template<> constexpr int type_index<float>() { return 11; }
+template<> constexpr int type_index<double>() { return 12; }
+template<> constexpr int type_index<bool>() { return 13; }
+
+struct Vec2 {
+    float x, y;
+};
+
+static std::map<std::string_view, TypeInfo> _type_infos;
+
+auto _ = [](){
+    #define REGISTER_BASIC_TYPE(T) _type_infos[#T] = TypeInfo(#T, sizeof(T), type_index<T>())
+    _type_infos["void"] = TypeInfo("void", 1, type_index<void>());
+    REGISTER_BASIC_TYPE(char);
+    REGISTER_BASIC_TYPE(short);
+    REGISTER_BASIC_TYPE(int);
+    REGISTER_BASIC_TYPE(long);
+    REGISTER_BASIC_TYPE(long long);
+    REGISTER_BASIC_TYPE(unsigned char);
+    REGISTER_BASIC_TYPE(unsigned short);
+    REGISTER_BASIC_TYPE(unsigned int);
+    REGISTER_BASIC_TYPE(unsigned long);
+    REGISTER_BASIC_TYPE(unsigned long long);
+    REGISTER_BASIC_TYPE(float);
+    REGISTER_BASIC_TYPE(double);
+    REGISTER_BASIC_TYPE(bool);
+    #undef REGISTER_BASIC_TYPE
+
+    _type_infos["Vec2"] = TypeInfo("Vec2", sizeof(Vec2), {
+        {"x", {&_type_infos["float"], offsetof(Vec2, x)}},
+        {"y", {&_type_infos["float"], offsetof(Vec2, y)}},
+    });
+    return 0;
+}();
+
 
 struct Pointer{
     PY_CLASS(Pointer, c, ptr_)
 
-    void* ptr;
-    CType ctype;       // base type
+    char* ptr;
+    TypeInfo* ctype;
+    int level;         // level of pointer
 
-    Pointer(void* ptr, CType ctype) : ptr(ptr), ctype(ctype) {}
-
-    Pointer operator+(i64 offset) const {
-        return Pointer((int8_t*)ptr + offset * ctype.size, ctype);
+    i64 unit_size() const {
+        return level == 1 ? ctype->size : sizeof(void*);
     }
 
-    Pointer operator-(i64 offset) const {
-        return Pointer((int8_t*)ptr - offset * ctype.size, ctype);
+    bool type_equal(const Pointer& other) const {
+        return level == other.level && ctype == other.ctype;
+    }
+
+    Pointer() : ptr(nullptr), ctype(&_type_infos["void"]), level(1) {}
+    Pointer(char* ptr, TypeInfo* ctype, int level=1) : ptr(ptr), ctype(ctype), level(level) {}
+
+    Pointer operator+(i64 offset) const { 
+        return Pointer(ptr + offset * unit_size(), ctype, level);
+    }
+
+    Pointer operator-(i64 offset) const { 
+        return Pointer(ptr - offset * unit_size(), ctype, level);
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
+            Pointer& self = CAST(Pointer&, args[0]);
             StrStream ss;
-            ss << "<" << self.ctype.name << "* at " << (i64)self.ptr << ">";
+            ss << "<" << self.ctype->name;
+            for(int i=0; i<self.level; i++) ss << "*";
+            ss << " at " << (i64)self.ptr << ">";
             return VAR(ss.str());
         });
 
         vm->bind_method<1>(type, "__add__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
+            Pointer& self = CAST(Pointer&, args[0]);
             return VAR_T(Pointer, self + CAST(i64, args[1]));
         });
 
         vm->bind_method<1>(type, "__sub__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            return VAR_T(Pointer, self - CAST_V(i64, args[1]));
+            Pointer& self = CAST(Pointer&, args[0]);
+            return VAR_T(Pointer, self - CAST(i64, args[1]));
         });
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            Pointer& other = CAST(Pointer, args[1]);
+            Pointer& self = CAST(Pointer&, args[0]);
+            Pointer& other = CAST(Pointer&, args[1]);
             return VAR(self.ptr == other.ptr);
         });
 
         vm->bind_method<1>(type, "__ne__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            Pointer& other = CAST(Pointer, args[1]);
+            Pointer& self = CAST(Pointer&, args[0]);
+            Pointer& other = CAST(Pointer&, args[1]);
             return VAR(self.ptr != other.ptr);
         });
 
-        // https://docs.python.org/zh-cn/3/library/ctypes.html
         vm->bind_method<1>(type, "__getitem__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            i64 index = CAST_V(i64, args[1]);
+            Pointer& self = CAST(Pointer&, args[0]);
+            i64 index = CAST(i64, args[1]);
             return (self+index).get(vm);
         });
 
         vm->bind_method<2>(type, "__setitem__", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            i64 index = CAST_V(i64, args[1]);
+            Pointer& self = CAST(Pointer&, args[0]);
+            i64 index = CAST(i64, args[1]);
             (self+index).set(vm, args[2]);
             return vm->None;
         });
 
-        vm->bind_method<1>(type, "cast", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
-            CType& ctype = CAST(CType, args[1]);
-            return VAR_T(Pointer, self.ptr, ctype);
-        });
-
         vm->bind_method<0>(type, "get", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
+            Pointer& self = CAST(Pointer&, args[0]);
             return self.get(vm);
         });
 
         vm->bind_method<1>(type, "set", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer, args[0]);
+            Pointer& self = CAST(Pointer&, args[0]);
             self.set(vm, args[1]);
             return vm->None;
         });
@@ -133,118 +182,88 @@ struct Pointer{
     template<typename T>
     inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
 
-    template<typename TP>
-    inline TP cast() noexcept {
-        static_assert(std::is_pointer_v<TP>);
-        return reinterpret_cast<TP>(ptr);
-    }
-
     PyVar get(VM* vm){
-        switch(ctype.index){
-            case C_TYPE("char_"): return VAR(ref<char>());
-            case C_TYPE("int_"): return VAR(ref<int>());
-            case C_TYPE("float_"): return VAR(ref<float>());
-            case C_TYPE("double_"): return VAR(ref<double>());
-            case C_TYPE("bool_"): return VAR(ref<bool>());
-            case C_TYPE("void_"): vm->ValueError("cannot get void*"); break;
-            case C_TYPE("int8_"): return VAR(ref<int8_t>());
-            case C_TYPE("int16_"): return VAR(ref<int16_t>());
-            case C_TYPE("int32_"): return VAR(ref<int32_t>());
-            case C_TYPE("int64_"): return VAR(ref<int64_t>());
-            case C_TYPE("uint8_"): return VAR(ref<uint8_t>());
-            case C_TYPE("uint16_"): return VAR(ref<uint16_t>());
-            case C_TYPE("uint32_"): return VAR(ref<uint32_t>());
-            case C_TYPE("uint64_"): return VAR(ref<uint64_t>());
-            case C_TYPE("void_p_"): return VAR_T(Pointer, ref<void*>(), C_TYPE_T("void_"));
-            // use macro here to do extension
-            default: UNREACHABLE();
+        if(level > 1) return VAR_T(Pointer, ptr, ctype, level-1);
+        switch(ctype->index){
+#define CASE(T) case type_index<T>(): return VAR(ref<T>())
+            case type_index<void>(): vm->ValueError("cannot get void*"); break;
+            CASE(char);
+            CASE(short);
+            CASE(int);
+            CASE(long);
+            CASE(long long);
+            CASE(unsigned char);
+            CASE(unsigned short);
+            CASE(unsigned int);
+            CASE(unsigned long);
+            CASE(unsigned long long);
+            CASE(float);
+            CASE(double);
+            CASE(bool);
+#undef CASE
         }
-        return vm->None;
+        return VAR_T(Pointer, *this);
     }
 
     void set(VM* vm, const PyVar& val){
-        switch(ctype.index){
-            case C_TYPE("char_"): ref<char>() = CAST_V(i64, val); break;
-            case C_TYPE("int_"): ref<int>() = CAST_V(i64, val); break;
-            case C_TYPE("float_"): ref<float>() = CAST_V(f64, val); break;
-            case C_TYPE("double_"): ref<double>() = CAST_V(f64, val); break;
-            case C_TYPE("bool_"): ref<bool>() = CAST_V(bool, val); break;
-            case C_TYPE("void_"): vm->ValueError("cannot set void*"); break;
-            case C_TYPE("int8_"): ref<int8_t>() = CAST_V(i64, val); break;
-            case C_TYPE("int16_"): ref<int16_t>() = CAST_V(i64, val); break;
-            case C_TYPE("int32_"): ref<int32_t>() = CAST_V(i64, val); break;
-            case C_TYPE("int64_"): ref<int64_t>() = CAST_V(i64, val); break;
-            case C_TYPE("uint8_"): ref<uint8_t>() = CAST_V(i64, val); break;
-            case C_TYPE("uint16_"): ref<uint16_t>() = CAST_V(i64, val); break;
-            case C_TYPE("uint32_"): ref<uint32_t>() = CAST_V(i64, val); break;
-            case C_TYPE("uint64_"): ref<uint64_t>() = CAST_V(i64, val); break;
-            case C_TYPE("void_p_"): ref<void*>() = CAST(Pointer, val).ptr; break;
-            // use macro here to do extension
-            default: UNREACHABLE();
+        if(level > 1) {
+            Pointer& p = CAST(Pointer&, val);
+            ref<void*>() = p.ptr;   // We don't check the type, just copy the underlying address
+            return;
         }
+        switch(ctype->index){
+#define CASE(T1, T2) case type_index<T1>(): ref<T1>() = CAST(T2, val); break
+            case type_index<void>(): vm->ValueError("cannot set void*"); break;
+            CASE(char, i64);
+            CASE(short, i64);
+            CASE(int, i64);
+            CASE(long, i64);
+            CASE(long long, i64);
+            CASE(unsigned char, i64);
+            CASE(unsigned short, i64);
+            CASE(unsigned int, i64);
+            CASE(unsigned long, i64);
+            CASE(unsigned long long, i64);
+            CASE(float, f64);
+            CASE(double, f64);
+            CASE(bool, bool);
+#undef CASE
+        }
+        UNREACHABLE();
+    }
+
+    Pointer address(VM* vm, StrName name){
+        auto it = ctype->members.find(name);
+        if(it == ctype->members.end()){
+            vm->AttributeError(Str("struct '") + ctype->name + "' has no member " + name.str().escape(true));
+        }
+        MemberInfo& info = it->second;
+        return {ptr+info.offset, info.type, level};
     }
 };
 
-struct StructMemberInfo {
-    int offset;
-    CType type;
-};
-
-struct StructMetaInfo {
-    Str name;
-    std::map<StrName, StructMemberInfo> members;
-};
-
-struct Point2{
-    int x;
-    int y;
-};
-
-static const StructMetaInfo _Point2_info = {
-    "Point2",
-    {
-        {StrName("x"), {offsetof(Point2, x), C_TYPE_T("int_")}},
-        {StrName("y"), {offsetof(Point2, y), C_TYPE_T("int_")}},
-    }
-};
 
 struct Struct {
     PY_CLASS(Struct, c, struct_)
 
-    const StructMetaInfo* info;
-    int8_t* _data;      // store any `struct`
+    char* data;
+    Pointer head;
 
-    Struct(const StructMetaInfo* info, int8_t* data) : info(info), _data(data) {}
-    Struct(){
-        info = &_Point2_info;
-        _data = new int8_t[sizeof(Point2)];
-    }
-    ~Struct(){ delete[] _data; }
+    TypeInfo* ctype() const { return head.ctype; }
 
-    Pointer address(VM* vm, StrName name){
-        auto it = info->members.find(name);
-        if(it == info->members.end()) vm->AttributeError("struct " + info->name + " has no member " + name.str());
-        const StructMemberInfo& info = it->second;
-        return {_data+info.offset, info.type};
-    }
-
-    PyVarOrNull __getattr__(VM* vm, StrName name){
-        return address(vm, name).get(vm);
-    }
-
-    void __setattr__(VM* vm, StrName name, const PyVar& val){
-        address(vm, name).set(vm, val);
+    Struct(const Pointer& head) {
+        data = new char[head.ctype->size];
+        memcpy(data, head.ptr, head.ctype->size);
+        this->head = Pointer(data, head.ctype, head.level);
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
-        vm->bind_static_method<-1>(type, "__new__", [](VM* vm, Args& args) {
-            return VAR_T(Struct);
-        });
+        vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            Struct& self = CAST(Struct, args[0]);
+            Struct& self = CAST(Struct&, args[0]);
             StrStream ss;
-            ss << self.info->name << "(" << ")";
+            ss << self.ctype()->name << "(" << ")";
             return VAR(ss.str());
         });
     }
@@ -253,68 +272,35 @@ struct Struct {
 void add_module_c(VM* vm){
     PyVar mod = vm->new_module("c");
     PyVar ptr_t = Pointer::register_class(vm, mod);
-    CType::register_class(vm, mod);
     Struct::register_class(vm, mod);
 
-    for(int i=0; i<kCTypeCount; i++){
-        vm->setattr(mod, kCTypes[i].name, VAR_T(CType, kCTypes[i]));
-    }
-    vm->setattr(mod, "nullptr", VAR_T(Pointer, nullptr, C_TYPE_T("void_")));
+    vm->setattr(mod, "nullptr", VAR_T(Pointer, nullptr, &_type_infos["void"]));
 
     vm->bind_func<1>(mod, "malloc", [](VM* vm, Args& args) {
-        i64 size = CAST_V(i64, args[0]);
-        return VAR_T(Pointer, malloc(size), C_TYPE_T("void_"));
+        i64 size = CAST(i64, args[0]);
+        return VAR_T(Pointer, (char*)malloc(size), &_type_infos["void"]);
     });
 
     vm->bind_func<1>(mod, "free", [](VM* vm, Args& args) {
-        Pointer& self = CAST(Pointer, args[0]);
+        Pointer& self = CAST(Pointer&, args[0]);
         free(self.ptr);
         return vm->None;
     });
 
-    vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
-        CType& ctype = CAST(CType, args[0]);
-        return VAR(ctype.size);
-    });
-
     vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
-        Pointer& dst = CAST(Pointer, args[0]);
-        Pointer& src = CAST(Pointer, args[1]);
-        i64 size = CAST_V(i64, args[2]);
+        Pointer& dst = CAST(Pointer&, args[0]);
+        Pointer& src = CAST(Pointer&, args[1]);
+        i64 size = CAST(i64, args[2]);
         memcpy(dst.ptr, src.ptr, size);
         return vm->None;
     });
 
     vm->bind_func<3>(mod, "memset", [](VM* vm, Args& args) {
-        Pointer& dst = CAST(Pointer, args[0]);
-        i64 val = CAST_V(i64, args[1]);
-        i64 size = CAST_V(i64, args[2]);
+        Pointer& dst = CAST(Pointer&, args[0]);
+        i64 val = CAST(i64, args[1]);
+        i64 size = CAST(i64, args[2]);
         memset(dst.ptr, (int)val, size);
         return vm->None;
-    });
-
-    vm->bind_func<1>(mod, "strdup", [ptr_t](VM* vm, Args& args) {
-        if(is_type(args[0], vm->tp_str)){
-            const Str& s = CAST(Str, args[0]);
-            return VAR_T(Pointer, strdup(s.c_str()), C_TYPE_T("char_"));
-        }else if(is_type(args[0], OBJ_GET(Type, ptr_t))){
-            Pointer& p = CAST(Pointer, args[0]);
-            return VAR_T(Pointer, strdup(p.cast<char*>()), C_TYPE_T("char_"));
-        }else{
-            vm->TypeError("strdup() argument must be 'str' or 'char*'");
-            return vm->None;
-        }
-    });
-
-    vm->bind_func<2>(mod, "strcmp", [](VM* vm, Args& args) {
-        Pointer& p1 = CAST(Pointer, args[0]);
-        Pointer& p2 = CAST(Pointer, args[1]);
-        return VAR(strcmp(p1.cast<char*>(), p2.cast<char*>()));
-    });
-
-    vm->bind_func<1>(mod, "strlen", [](VM* vm, Args& args) {
-        Pointer& p = CAST(Pointer, args[0]);
-        return VAR(strlen(p.cast<char*>()));
     });
 }
 
