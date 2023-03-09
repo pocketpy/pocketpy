@@ -73,7 +73,7 @@ public:
     }
 
     PyVar asStr(const PyVar& obj){
-        PyVarOrNull f = getattr(obj, __str__, false);
+        PyVarOrNull f = getattr(obj, __str__, false, true);
         if(f != nullptr) return call(f);
         return asRepr(obj);
     }
@@ -87,7 +87,7 @@ public:
 
     PyVar asIter(const PyVar& obj){
         if(is_type(obj, tp_native_iterator)) return obj;
-        PyVarOrNull iter_f = getattr(obj, __iter__, false);
+        PyVarOrNull iter_f = getattr(obj, __iter__, false, true);
         if(iter_f != nullptr) return call(iter_f);
         TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
         return nullptr;
@@ -122,11 +122,11 @@ public:
     template<typename ArgT>
     inline std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyVar>
     call(const PyVar& obj, const StrName name, ArgT&& args){
-        return call(getattr(obj, name), std::forward<ArgT>(args), no_arg(), false);
+        return call(getattr(obj, name, true, true), std::forward<ArgT>(args), no_arg(), false);
     }
 
     inline PyVar call(const PyVar& obj, StrName name){
-        return call(getattr(obj, name), no_arg(), no_arg(), false);
+        return call(getattr(obj, name, true, true), no_arg(), no_arg(), false);
     }
 
 
@@ -305,7 +305,7 @@ public:
     void init_builtin_types();
     PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
-    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true);
+    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true, bool class_only=false);
     template<typename T>
     void setattr(PyVar& obj, StrName name, T&& value);
     template<int ARGC>
@@ -388,17 +388,6 @@ template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
 template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
     return obj.bits >> 2;
 }
-
-#ifndef PKPY_USE_32_BITS
-template<> int py_cast<int>(VM* vm, const PyVar& obj){
-    vm->check_type(obj, vm->tp_int);
-    return obj.bits >> 2;
-}
-template<> int _py_cast<int>(VM* vm, const PyVar& obj){
-    return obj.bits >> 2;
-}
-#endif
-
 template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);
     i64 bits = obj.bits;
@@ -410,6 +399,27 @@ template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
 }
+
+#ifndef PKPY_USE_32_BITS
+template<> int py_cast<int>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_int);
+    return obj.bits >> 2;
+}
+template<> int _py_cast<int>(VM* vm, const PyVar& obj){
+    return obj.bits >> 2;
+}
+template<> float py_cast<float>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_float);
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
+template<> float _py_cast<float>(VM* vm, const PyVar& obj){
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
+#endif
 
 template<typename T>
 std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_var(VM* vm, T _val){
@@ -466,7 +476,7 @@ const PyVar& VM::asBool(const PyVar& obj){
     if(obj == None) return False;
     if(is_type(obj, tp_int)) return VAR(CAST(i64, obj) != 0);
     if(is_type(obj, tp_float)) return VAR(CAST(f64, obj) != 0.0);
-    PyVarOrNull len_fn = getattr(obj, __len__, false);
+    PyVarOrNull len_fn = getattr(obj, __len__, false, true);
     if(len_fn != nullptr){
         PyVar ret = call(len_fn);
         return VAR(CAST(i64, ret) > 0);
@@ -497,7 +507,6 @@ i64 VM::hash(const PyVar& obj){
 }
 
 PyVar VM::asRepr(const PyVar& obj){
-    if(is_type(obj, tp_type)) return VAR("<class '" + OBJ_GET(Str, obj->attr(__name__)) + "'>");
     return call(obj, __repr__);
 }
 
@@ -654,7 +663,7 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
             obj = call(*new_f, std::move(args), kwargs, false);
         }else{
             obj = new_object(_callable, DummyInstance());
-            PyVarOrNull init_f = getattr(obj, __init__, false);
+            PyVarOrNull init_f = getattr(obj, __init__, false, true);
             if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
         }
         return obj;
@@ -739,7 +748,7 @@ void VM::unpack_args(Args& args){
     args = Args::from_list(std::move(unpacked));
 }
 
-PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
+PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err, bool class_only) {
     PyVar* val;
     PyObject* cls;
 
@@ -754,10 +763,12 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
         cls = _t(*root).get();
         for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
 
-        val = (*root)->attr().try_get(name);
-        if(val != nullptr) return *val;    
+        if(!class_only){
+            val = (*root)->attr().try_get(name);
+            if(val != nullptr) return *val; 
+        }
     }else{
-        if(!obj.is_tagged() && obj->is_attr_valid()){
+        if(!class_only && !obj.is_tagged() && obj->is_attr_valid()){
             val = obj->attr().try_get(name);
             if(val != nullptr) return *val;
         }
@@ -767,10 +778,8 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err) {
     while(cls != None.get()) {
         val = cls->attr().try_get(name);
         if(val != nullptr){
-            PyVarOrNull descriptor = getattr(*val, __get__, false);
-            if(descriptor != nullptr){
-                return call(descriptor, one_arg(obj));
-            }
+            PyVarOrNull descriptor = getattr(*val, __get__, false, true);
+            if(descriptor != nullptr) return call(descriptor, one_arg(obj));
             if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
                 return VAR(BoundMethod(obj, *val));
             }else{

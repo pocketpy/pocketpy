@@ -2,29 +2,35 @@
 
 #include "common.h"
 #include "vm.h"
+#include <type_traits>
 #include <vector>
 
 namespace pkpy {
 
 template<typename Ret, typename... Params>
-struct ProxyFunction {
+struct NativeProxyFunc {
     using T = Ret(*)(Params...);
     static constexpr int N = sizeof...(Params);
     T func;
-    ProxyFunction(T func) : func(func) {}
+    NativeProxyFunc(T func) : func(func) {}
 
     PyVar operator()(VM* vm, Args& args) {
         if (args.size() != N) vm->TypeError("invalid number of arguments");
-        return call(vm, args, std::make_index_sequence<N>());
+        return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
-    template<size_t... Is>
-    PyVar call(VM* vm, Args& args, std::index_sequence<Is...>) {
-        Ret ret = func(py_cast<Params>(vm, args[Is])...);
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+        func(py_cast<Params>(vm, args[Is])...);
+        return vm->None;
+    }
+
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+        __Ret ret = func(py_cast<Params>(vm, args[Is])...);
         return VAR(std::move(ret));
     }
 };
-
 
 struct TypeInfo;
 
@@ -302,6 +308,14 @@ void add_module_c(VM* vm){
         memset(dst.ptr, (int)val, size);
         return vm->None;
     });
+}
+
+PyVar py_var(VM* vm, void* p){
+    return VAR_T(Pointer, (char*)p, &_type_infos["void"]);
+}
+
+PyVar py_var(VM* vm, char* p){
+    return VAR_T(Pointer, (char*)p, &_type_infos["char"]);
 }
 
 }   // namespace pkpy

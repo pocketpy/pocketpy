@@ -159,6 +159,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
 
     _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(vm->_t(args[0])));
+    _vm->bind_method<0>("type", "__repr__", CPP_LAMBDA(VAR("<class '" + OBJ_GET(Str, args[0]->attr(__name__)) + "'>")));
 
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, Args& args) {
         Range r;

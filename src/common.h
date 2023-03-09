@@ -75,9 +75,9 @@ struct Type {
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-const float kLocalsLoadFactor = 0.67;
-const float kInstAttrLoadFactor = 0.67;
-const float kTypeAttrLoadFactor = 0.5;
+const float kLocalsLoadFactor = 0.67f;
+const float kInstAttrLoadFactor = 0.67f;
+const float kTypeAttrLoadFactor = 0.5f;
 
 // do extra check for debug
 // #define PK_EXTRA_CHECK
