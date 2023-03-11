@@ -9,13 +9,16 @@ namespace pkpy {
 
 template<typename Ret, typename... Params>
 struct NativeProxyFunc {
-    using T = Ret(*)(Params...);
+    //using T = Ret(*)(Params...);
+    using T = std::function<Ret(Params...)>;
     static constexpr int N = sizeof...(Params);
     T func;
     NativeProxyFunc(T func) : func(func) {}
 
     PyVar operator()(VM* vm, Args& args) {
-        if (args.size() != N) vm->TypeError("invalid number of arguments");
+        if (args.size() != N) {
+            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
+        }
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
@@ -99,31 +102,27 @@ auto _ = [](){
     return 0;
 }();
 
-
 struct Pointer{
     PY_CLASS(Pointer, c, ptr_)
 
+    const TypeInfo* ctype;      // this is immutable
+    int level;                  // level of pointer
     char* ptr;
-    TypeInfo* ctype;
-    int level;         // level of pointer
 
     i64 unit_size() const {
         return level == 1 ? ctype->size : sizeof(void*);
     }
 
-    bool type_equal(const Pointer& other) const {
-        return level == other.level && ctype == other.ctype;
-    }
-
-    Pointer() : ptr(nullptr), ctype(&_type_infos["void"]), level(1) {}
-    Pointer(char* ptr, TypeInfo* ctype, int level=1) : ptr(ptr), ctype(ctype), level(level) {}
+    Pointer() : ctype(&_type_infos["void"]), level(1), ptr(nullptr) {}
+    Pointer(const TypeInfo* ctype, int level, char* ptr): ctype(ctype), level(level), ptr(ptr) {}
+    Pointer(const TypeInfo* ctype, char* ptr): ctype(ctype), level(1), ptr(ptr) {}
 
     Pointer operator+(i64 offset) const { 
-        return Pointer(ptr + offset * unit_size(), ctype, level);
+        return Pointer(ctype, level, ptr+offset*unit_size());
     }
 
     Pointer operator-(i64 offset) const { 
-        return Pointer(ptr - offset * unit_size(), ctype, level);
+        return Pointer(ctype, level, ptr-offset*unit_size());
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
@@ -173,6 +172,12 @@ struct Pointer{
             return vm->None;
         });
 
+        vm->bind_method<1>(type, "__getattr__", [](VM* vm, Args& args) {
+            Pointer& self = CAST(Pointer&, args[0]);
+            const Str& name = CAST(Str&, args[1]);
+            return VAR_T(Pointer, self._to(vm, name));
+        });
+
         vm->bind_method<0>(type, "get", [](VM* vm, Args& args) {
             Pointer& self = CAST(Pointer&, args[0]);
             return self.get(vm);
@@ -183,13 +188,28 @@ struct Pointer{
             self.set(vm, args[1]);
             return vm->None;
         });
+
+        vm->bind_method<1>(type, "cast", [](VM* vm, Args& args) {
+            Pointer& self = CAST(Pointer&, args[0]);
+            const Str& name = CAST(Str&, args[1]);
+            int level = 0;
+            for(int i=name.size()-1; i>=0; i--){
+                if(name[i] == '*') level++;
+                else break;
+            }
+            if(level == 0) vm->TypeError("expect a pointer type, such as 'int*'");
+            Str type = name.substr(0, name.size()-level);
+            auto it = _type_infos.find(type);
+            if(it == _type_infos.end()) vm->TypeError("unknown type: " + type.escape(true));
+            return VAR_T(Pointer, &it->second, level, self.ptr);
+        });
     }
 
     template<typename T>
     inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
 
     PyVar get(VM* vm){
-        if(level > 1) return VAR_T(Pointer, ptr, ctype, level-1);
+        if(level > 1) return VAR_T(Pointer, ctype, level-1, ref<char*>());
         switch(ctype->index){
 #define CASE(T) case type_index<T>(): return VAR(ref<T>())
             case type_index<void>(): vm->ValueError("cannot get void*"); break;
@@ -214,7 +234,7 @@ struct Pointer{
     void set(VM* vm, const PyVar& val){
         if(level > 1) {
             Pointer& p = CAST(Pointer&, val);
-            ref<void*>() = p.ptr;   // We don't check the type, just copy the underlying address
+            ref<char*>() = p.ptr;   // We don't check the type, just copy the underlying address
             return;
         }
         switch(ctype->index){
@@ -234,17 +254,17 @@ struct Pointer{
             CASE(double, f64);
             CASE(bool, bool);
 #undef CASE
+            default: UNREACHABLE();
         }
-        UNREACHABLE();
     }
 
-    Pointer address(VM* vm, StrName name){
+    Pointer _to(VM* vm, StrName name){
         auto it = ctype->members.find(name);
         if(it == ctype->members.end()){
             vm->AttributeError(Str("struct '") + ctype->name + "' has no member " + name.str().escape(true));
         }
-        MemberInfo& info = it->second;
-        return {ptr+info.offset, info.type, level};
+        const MemberInfo& info = it->second;
+        return {info.type, level, ptr+info.offset};
     }
 };
 
@@ -255,12 +275,12 @@ struct Struct {
     char* data;
     Pointer head;
 
-    TypeInfo* ctype() const { return head.ctype; }
+    const TypeInfo* ctype() const { return head.ctype; }
 
     Struct(const Pointer& head) {
         data = new char[head.ctype->size];
         memcpy(data, head.ptr, head.ctype->size);
-        this->head = Pointer(data, head.ctype, head.level);
+        this->head = Pointer(head.ctype, head.level, data);
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
@@ -280,11 +300,11 @@ void add_module_c(VM* vm){
     PyVar ptr_t = Pointer::register_class(vm, mod);
     Struct::register_class(vm, mod);
 
-    vm->setattr(mod, "nullptr", VAR_T(Pointer, nullptr, &_type_infos["void"]));
+    vm->setattr(mod, "nullptr", VAR_T(Pointer));
 
     vm->bind_func<1>(mod, "malloc", [](VM* vm, Args& args) {
         i64 size = CAST(i64, args[0]);
-        return VAR_T(Pointer, (char*)malloc(size), &_type_infos["void"]);
+        return VAR_T(Pointer, &_type_infos["void"], (char*)malloc(size));
     });
 
     vm->bind_func<1>(mod, "free", [](VM* vm, Args& args) {
@@ -301,6 +321,14 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 
+    vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
+        const Str& name = CAST(Str&, args[0]);
+        if(name.find('*') != Str::npos) return VAR(sizeof(void*));
+        auto it = _type_infos.find(name);
+        if(it == _type_infos.end()) vm->TypeError("unknown type: " + name.escape(true));
+        return VAR(it->second.size);
+    });
+
     vm->bind_func<3>(mod, "memset", [](VM* vm, Args& args) {
         Pointer& dst = CAST(Pointer&, args[0]);
         i64 val = CAST(i64, args[1]);
@@ -311,11 +339,11 @@ void add_module_c(VM* vm){
 }
 
 PyVar py_var(VM* vm, void* p){
-    return VAR_T(Pointer, (char*)p, &_type_infos["void"]);
+    return VAR_T(Pointer, &_type_infos["void"], (char*)p);
 }
 
 PyVar py_var(VM* vm, char* p){
-    return VAR_T(Pointer, (char*)p, &_type_infos["char"]);
+    return VAR_T(Pointer, &_type_infos["char"], (char*)p);
 }
 
 }   // namespace pkpy

@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <fstream>
 
-#define PK_VERSION "0.9.1"
+#define PK_VERSION "0.9.2"
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;

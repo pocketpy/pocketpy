@@ -20,6 +20,8 @@ class Str : public std::string {
         }
     }
 public:
+    uint16_t _cached_sn_index = 0;
+
     Str() : std::string() {}
     Str(const char* s) : std::string(s) {}
     Str(const char* s, size_t n) : std::string(s, n) {}
@@ -139,30 +141,36 @@ struct StrName {
     StrName(): index(0) {}
     StrName(uint16_t index): index(index) {}
     StrName(const char* s): index(get(s).index) {}
-    StrName(const Str& s): index(get(s).index) {}
-    inline const Str& str() const { return _r_interned[index-1]; }
-    inline bool empty() const { return index == 0; }
+    StrName(const Str& s){
+        if(s._cached_sn_index != 0){
+            index = s._cached_sn_index;
+        } else {
+            index = get(s).index;
+        }
+    }
+    const Str& str() const { return _r_interned[index-1]; }
+    bool empty() const { return index == 0; }
 
-    inline bool operator==(const StrName& other) const noexcept {
+    bool operator==(const StrName& other) const noexcept {
         return this->index == other.index;
     }
 
-    inline bool operator!=(const StrName& other) const noexcept {
+    bool operator!=(const StrName& other) const noexcept {
         return this->index != other.index;
     }
 
-    inline bool operator<(const StrName& other) const noexcept {
+    bool operator<(const StrName& other) const noexcept {
         return this->index < other.index;
     }
 
-    inline bool operator>(const StrName& other) const noexcept {
+    bool operator>(const StrName& other) const noexcept {
         return this->index > other.index;
     }
 
     static std::map<Str, uint16_t, std::less<>> _interned;
     static std::vector<Str> _r_interned;
 
-    inline static StrName get(const Str& s){
+    static StrName get(const Str& s){
         return get(s.c_str());
     }
 
@@ -194,6 +202,8 @@ const StrName __json__ = StrName::get("__json__");
 const StrName __name__ = StrName::get("__name__");
 const StrName __len__ = StrName::get("__len__");
 const StrName __get__ = StrName::get("__get__");
+const StrName __getattr__ = StrName::get("__getattr__");
+const StrName __setattr__ = StrName::get("__setattr__");
 
 const StrName m_eval = StrName::get("eval");
 const StrName m_self = StrName::get("self");

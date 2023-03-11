@@ -359,6 +359,14 @@ void CodeObject::optimize(VM* vm){
             codes[i-2].op = OP_NO_OP;
         }
     }
+
+    // pre-compute sn in co_consts
+    for(int i=0; i<consts.size(); i++){
+        if(is_type(consts[i], vm->tp_str)){
+            Str& s = OBJ_GET(Str, consts[i]);
+            s._cached_sn_index = StrName::get(s.c_str()).index;
+        }
+    }
 }
 
 DEF_NATIVE_2(Str, tp_str)
@@ -765,7 +773,7 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err, bool cla
 
         if(!class_only){
             val = (*root)->attr().try_get(name);
-            if(val != nullptr) return *val; 
+            if(val != nullptr) return *val;
         }
     }else{
         if(!class_only && !obj.is_tagged() && obj->is_attr_valid()){
@@ -784,6 +792,12 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err, bool cla
                 return VAR(BoundMethod(obj, *val));
             }else{
                 return *val;
+            }
+        }else{
+            // this operation is expensive!!!
+            PyVar* interceptor = cls->attr().try_get(__getattr__);
+            if(interceptor != nullptr){
+                return call(*interceptor, two_args(obj, VAR(name.str())));
             }
         }
         cls = cls->attr(__base__).get();
