@@ -736,6 +736,11 @@ PyVar VM::call(const PyVar& _callable, Args args, const Args& kwargs, bool opCal
         if(opCall) return _py_op_call;
         return _exec();
     }
+
+    PyVarOrNull call_f = getattr(_callable, __call__, false, true);
+    if(call_f != nullptr){
+        return call(call_f, std::move(args), kwargs, false);
+    }
     TypeError(OBJ_NAME(_t(*callable)).escape(true) + " object is not callable");
     return None;
 }
@@ -795,9 +800,12 @@ PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err, bool cla
             }
         }else{
             // this operation is expensive!!!
-            PyVar* interceptor = cls->attr().try_get(__getattr__);
-            if(interceptor != nullptr){
-                return call(*interceptor, two_args(obj, VAR(name.str())));
+            const Str& s = name.str();
+            if(s.empty() || s[0] != '_'){
+                PyVar* interceptor = cls->attr().try_get(__getattr__);
+                if(interceptor != nullptr){
+                    return call(*interceptor, two_args(obj, VAR(s)));
+                }
             }
         }
         cls = cls->attr(__base__).get();

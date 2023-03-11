@@ -269,28 +269,56 @@ struct Pointer{
 };
 
 
-struct Struct {
-    PY_CLASS(Struct, c, struct_)
+struct Value {
+    PY_CLASS(Value, c, value_)
 
     char* data;
     Pointer head;
 
     const TypeInfo* ctype() const { return head.ctype; }
 
-    Struct(const Pointer& head) {
-        data = new char[head.ctype->size];
-        memcpy(data, head.ptr, head.ctype->size);
-        this->head = Pointer(head.ctype, head.level, data);
+    Value(const TypeInfo* type) {
+        data = new char[type->size];
+        memset(data, 0, type->size);
+        this->head = Pointer(type, data);
     }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
-            Struct& self = CAST(Struct&, args[0]);
-            StrStream ss;
-            ss << self.ctype()->name << "(" << ")";
-            return VAR(ss.str());
+        vm->bind_method<0>(type, "ptr", [](VM* vm, Args& args) {
+            Value& self = CAST(Value&, args[0]);
+            return VAR_T(Pointer, self.head);
+        });
+
+        vm->bind_method<1>(type, "__getattr__", [](VM* vm, Args& args) {
+            Value& self = CAST(Value&, args[0]);
+            const Str& name = CAST(Str&, args[1]);
+            return self.head._to(vm, name).get(vm);
+        });
+    }
+};
+
+
+struct CType{
+    PY_CLASS(CType, c, ctype)
+
+    const TypeInfo* type;
+
+    CType() : type(&_type_infos["void"]) {}
+    CType(const TypeInfo* type) : type(type) {}
+
+    static void _register(VM* vm, PyVar mod, PyVar type){
+        vm->bind_static_method<1>(type, "__new__", [](VM* vm, Args& args) {
+            const Str& name = CAST(Str&, args[0]);
+            auto it = _type_infos.find(name);
+            if (it == _type_infos.end()) vm->TypeError("unknown type: " + name.escape(true));
+            return VAR_T(CType, &it->second);
+        });
+
+        vm->bind_method<0>(type, "__call__", [](VM* vm, Args& args) {
+            CType& self = CAST(CType&, args[0]);
+            return VAR_T(Value, self.type);
         });
     }
 };
@@ -298,7 +326,8 @@ struct Struct {
 void add_module_c(VM* vm){
     PyVar mod = vm->new_module("c");
     PyVar ptr_t = Pointer::register_class(vm, mod);
-    Struct::register_class(vm, mod);
+    Value::register_class(vm, mod);
+    CType::register_class(vm, mod);
 
     vm->setattr(mod, "nullptr", VAR_T(Pointer));
 
