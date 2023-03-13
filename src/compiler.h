@@ -395,7 +395,7 @@ private:
         }
         func.code = make_sp<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
-        co()->_rvalue += 1; EXPR_TUPLE(); co()->_rvalue -= 1;
+        co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
         func.code->optimize(vm);
         this->codes.pop();

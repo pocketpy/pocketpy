@@ -450,7 +450,7 @@ template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
     return obj == vm->True;
 }
 
-PyVar py_var(VM* vm, const char* val){
+PyVar py_var(VM* vm, const char val[]){
     return VAR(Str(val));
 }
 
