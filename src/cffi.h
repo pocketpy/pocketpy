@@ -223,21 +223,6 @@ struct Pointer{
             self.set(vm, args[1]);
             return vm->None;
         });
-
-        vm->bind_method<1>(type, "cast", [](VM* vm, Args& args) {
-            Pointer& self = CAST(Pointer&, args[0]);
-            const Str& name = CAST(Str&, args[1]);
-            int level = 0;
-            for(int i=name.size()-1; i>=0; i--){
-                if(name[i] == '*') level++;
-                else break;
-            }
-            if(level == 0) vm->TypeError("expect a pointer type, such as 'int*'");
-            Str type_s = name.substr(0, name.size()-level);
-            const TypeInfo* type = _type_db.get(type_s);
-            if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape(true));
-            return VAR_T(Pointer, type, level, self.ptr);
-        });
     }
 
     template<typename T>
@@ -383,6 +368,21 @@ void add_module_c(VM* vm){
         i64 size = CAST(i64, args[2]);
         memcpy(dst.ptr, src.ptr, size);
         return vm->None;
+    });
+
+    vm->bind_func<2>(mod, "cast", [](VM* vm, Args& args) {
+        Pointer& self = CAST(Pointer&, args[0]);
+        const Str& name = CAST(Str&, args[1]);
+        int level = 0;
+        for(int i=name.size()-1; i>=0; i--){
+            if(name[i] == '*') level++;
+            else break;
+        }
+        if(level == 0) vm->TypeError("expect a pointer type, such as 'int*'");
+        Str type_s = name.substr(0, name.size()-level);
+        const TypeInfo* type = _type_db.get(type_s);
+        if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape(true));
+        return VAR_T(Pointer, type, level, self.ptr);
     });
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {

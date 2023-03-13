@@ -14,7 +14,7 @@ int main(){
 
     pkpy_vm_exec(vm, R"(
 from c import *
-p = malloc(4).cast("int*")
+p = cast(malloc(4), "int*")
 ret = f(p)
 print(p.get())          # 100
 print(ret, ret.get())   # 3.5
