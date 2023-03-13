@@ -57,6 +57,11 @@ def map(f, iterable):
     for i in iterable:
         yield f(i)
 
+def filter(f, iterable):
+    for i in iterable:
+        if f(i):
+            yield i
+
 def zip(a, b):
     for i in range(min(len(a), len(b))):
         yield (a[i], b[i])
