@@ -431,8 +431,8 @@ struct pointer {
 };
 
 template<typename T>
-std::enable_if_t<std::is_pointer_v<T>, T>
-py_cast(VM* vm, const PyVar& var){
+T py_pointer_cast(VM* vm, const PyVar& var){
+    static_assert(std::is_pointer_v<T>);
     Pointer& p = CAST(Pointer&, var);
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     const int level = pointer<T>::level;
