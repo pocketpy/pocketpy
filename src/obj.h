@@ -186,8 +186,8 @@ struct Discarded {};
 template<typename __T>
 __T py_cast(VM* vm, const PyVar& obj) {
     using T = std::decay_t<__T>;
-    if constexpr(std::is_pointer_v<__T>){
-        return py_pointer_cast<__T>(vm, obj);
+    if constexpr(std::is_pointer_v<T>){
+        return py_pointer_cast<T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         _check_py_class<T>(vm, obj);
         return OBJ_GET(T, obj);

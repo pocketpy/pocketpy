@@ -443,7 +443,7 @@ T py_pointer_cast(VM* vm, const PyVar& var){
 }
 
 template<typename T>
-std::enable_if_t<std::is_pointer_v<T>, PyVar>
+std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyVar>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     return VAR_T(Pointer, type, pointer<T>::level, (char*)p);
