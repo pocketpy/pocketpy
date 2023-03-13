@@ -181,28 +181,31 @@ void _check_py_class(VM* vm, const PyVar& var);
 template<typename T>
 T py_pointer_cast(VM* vm, const PyVar& var);
 
+struct Discarded {};
+
 template<typename __T>
 __T py_cast(VM* vm, const PyVar& obj) {
+    using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<__T>){
         return py_pointer_cast<__T>(vm, obj);
-    }
-    using T = std::decay_t<__T>;
-    if constexpr(is_py_class<T>::value){
+    }else if constexpr(is_py_class<T>::value){
         _check_py_class<T>(vm, obj);
         return OBJ_GET(T, obj);
+    }else{
+        return Discarded();
     }
-    throw std::runtime_error("bad py_cast() call");
 }
+
 template<typename __T>
 __T _py_cast(VM* vm, const PyVar& obj) {
+    using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<__T>){
         return py_pointer_cast<__T>(vm, obj);
-    }
-    using T = std::decay_t<__T>;
-    if constexpr(is_py_class<T>::value){
+    }else if constexpr(is_py_class<T>::value){
         return OBJ_GET(T, obj);
+    }else{
+        return Discarded();
     }
-    throw std::runtime_error("bad py_cast() call");
 }
 
 #define VAR(x) py_var(vm, x)
