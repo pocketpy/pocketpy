@@ -3,6 +3,7 @@
 #include "common.h"
 #include "namedict.h"
 #include "tuplelist.h"
+#include <type_traits>
 
 namespace pkpy {
     
@@ -178,7 +179,8 @@ template<typename T>
 void _check_py_class(VM* vm, const PyVar& var);
 
 template<typename __T>
-__T py_cast(VM* vm, const PyVar& obj) {
+std::enable_if_t<!std::is_pointer_v<__T>, __T>
+py_cast(VM* vm, const PyVar& obj) {
     using T = std::decay_t<__T>;
     if constexpr(is_py_class<T>::value){
         _check_py_class<T>(vm, obj);
@@ -188,7 +190,8 @@ __T py_cast(VM* vm, const PyVar& obj) {
     }
 }
 template<typename __T>
-__T _py_cast(VM* vm, const PyVar& obj) {
+std::enable_if_t<!std::is_pointer_v<__T>, __T>
+_py_cast(VM* vm, const PyVar& obj) {
     using T = std::decay_t<__T>;
     if constexpr(is_py_class<T>::value){
         return OBJ_GET(T, obj);
