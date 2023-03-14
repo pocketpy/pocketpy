@@ -105,7 +105,7 @@ struct TypeDB{
 
     template<typename T>
     const TypeInfo* get() const {
-        return get(TypeId<T>::id);
+        return get(TypeId<std::decay_t<T>>::id);
     }
 };
 
@@ -303,6 +303,12 @@ struct Value {
         this->head = Pointer(type, data);
     }
 
+    Value(const TypeInfo* type, void* src) {
+        data = new char[type->size];
+        memcpy(data, src, type->size);
+        this->head = Pointer(type, data);
+    }
+
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
@@ -443,10 +449,24 @@ T py_pointer_cast(VM* vm, const PyVar& var){
 }
 
 template<typename T>
+T py_value_cast(VM* vm, const PyVar& var){
+    static_assert(std::is_pod_v<T>);
+    Value& v = CAST(Value&, var);
+    return *reinterpret_cast<T*>(v.data);
+}
+
+template<typename T>
 std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyVar>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     return VAR_T(Pointer, type, pointer<T>::level, (char*)p);
+}
+
+template<typename T>
+std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyVar>
+py_var(VM* vm, T p){
+    const TypeInfo* type = _type_db.get<T>();
+    return VAR_T(Value, type, &p);
 }
 
 }   // namespace pkpy

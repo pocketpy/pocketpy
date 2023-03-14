@@ -380,15 +380,6 @@ DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
-template<typename T>
-std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<std::decay_t<T>, bool>, PyVar> py_var(VM* vm, T _val){
-    i64 val = static_cast<i64>(_val);
-    if(((val << 2) >> 2) != val){
-        vm->_error("OverflowError", std::to_string(val) + " is out of range");
-    }
-    val = (val << 2) | 0b01;
-    return PyVar(reinterpret_cast<int*>(val));
-}
 template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_int);
     return obj.bits >> 2;
@@ -429,14 +420,39 @@ template<> float _py_cast<float>(VM* vm, const PyVar& obj){
 }
 #endif
 
-template<typename T>
-std::enable_if_t<std::is_floating_point_v<T>, PyVar> py_var(VM* vm, T _val){
-    f64 val = static_cast<f64>(_val);
-    i64 bits = __8B(val)._int;
-    bits = (bits >> 2) << 2;
-    bits |= 0b10;
-    return PyVar(reinterpret_cast<int*>(bits));
-}
+
+#define PY_VAR_INT(T) \
+    PyVar py_var(VM* vm, T _val){           \
+        i64 val = static_cast<i64>(_val);   \
+        if(((val << 2) >> 2) != val){       \
+            vm->_error("OverflowError", std::to_string(val) + " is out of range");  \
+        }                                                                           \
+        val = (val << 2) | 0b01;                                                    \
+        return PyVar(reinterpret_cast<int*>(val));                                  \
+    }
+
+PY_VAR_INT(char)
+PY_VAR_INT(short)
+PY_VAR_INT(int)
+PY_VAR_INT(long)
+PY_VAR_INT(long long)
+PY_VAR_INT(unsigned char)
+PY_VAR_INT(unsigned short)
+PY_VAR_INT(unsigned int)
+PY_VAR_INT(unsigned long)
+PY_VAR_INT(unsigned long long)
+
+#define PY_VAR_FLOAT(T) \
+    PyVar py_var(VM* vm, T _val){           \
+        f64 val = static_cast<f64>(_val);   \
+        i64 bits = __8B(val)._int;          \
+        bits = (bits >> 2) << 2;            \
+        bits |= 0b10;                       \
+        return PyVar(reinterpret_cast<int*>(bits)); \
+    }
+
+PY_VAR_FLOAT(float)
+PY_VAR_FLOAT(double)
 
 const PyVar& py_var(VM* vm, bool val){
     return val ? vm->True : vm->False;
@@ -452,6 +468,10 @@ template<> bool _py_cast<bool>(VM* vm, const PyVar& obj){
 
 PyVar py_var(VM* vm, const char val[]){
     return VAR(Str(val));
+}
+
+PyVar py_var(VM* vm, std::string val){
+    return VAR(Str(std::move(val)));
 }
 
 template<typename T>
