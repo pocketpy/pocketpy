@@ -309,6 +309,16 @@ struct Value {
         this->head = Pointer(type, data);
     }
 
+    Value(Value&& other) noexcept {
+        data = other.data;
+        head = other.head;
+        other.data = nullptr;
+    }
+
+    Value& operator=(Value&& other) noexcept = delete;
+    Value& operator=(const Value& other) = delete;
+    Value(const Value& other) = delete;
+    
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
@@ -322,6 +332,10 @@ struct Value {
             const Str& name = CAST(Str&, args[1]);
             return self.head._to(vm, name).get(vm);
         });
+    }
+
+    ~Value(){
+        delete[] data;
     }
 };
 
@@ -459,6 +473,7 @@ template<typename T>
 std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyVar>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
+    if(type == nullptr) type = _type_db.get<void>();
     return VAR_T(Pointer, type, pointer<T>::level, (char*)p);
 }
 

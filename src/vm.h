@@ -380,33 +380,27 @@ DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
-template<> i64 py_cast<i64>(VM* vm, const PyVar& obj){
-    vm->check_type(obj, vm->tp_int);
-    return obj.bits >> 2;
-}
-template<> i64 _py_cast<i64>(VM* vm, const PyVar& obj){
-    return obj.bits >> 2;
-}
-template<> f64 py_cast<f64>(VM* vm, const PyVar& obj){
-    vm->check_type(obj, vm->tp_float);
-    i64 bits = obj.bits;
-    bits = (bits >> 2) << 2;
-    return __8B(bits)._float;
-}
-template<> f64 _py_cast<f64>(VM* vm, const PyVar& obj){
-    i64 bits = obj.bits;
-    bits = (bits >> 2) << 2;
-    return __8B(bits)._float;
+#define PY_CAST_INT(T) \
+template<> T py_cast<T>(VM* vm, const PyVar& obj){ \
+    vm->check_type(obj, vm->tp_int); \
+    return (T)(obj.bits >> 2); \
+} \
+template<> T _py_cast<T>(VM* vm, const PyVar& obj){ \
+    return (T)(obj.bits >> 2); \
 }
 
-#ifndef PKPY_USE_32_BITS
-template<> int py_cast<int>(VM* vm, const PyVar& obj){
-    vm->check_type(obj, vm->tp_int);
-    return obj.bits >> 2;
-}
-template<> int _py_cast<int>(VM* vm, const PyVar& obj){
-    return obj.bits >> 2;
-}
+PY_CAST_INT(char)
+PY_CAST_INT(short)
+PY_CAST_INT(int)
+PY_CAST_INT(long)
+PY_CAST_INT(long long)
+PY_CAST_INT(unsigned char)
+PY_CAST_INT(unsigned short)
+PY_CAST_INT(unsigned int)
+PY_CAST_INT(unsigned long)
+PY_CAST_INT(unsigned long long)
+
+
 template<> float py_cast<float>(VM* vm, const PyVar& obj){
     vm->check_type(obj, vm->tp_float);
     i64 bits = obj.bits;
@@ -418,7 +412,17 @@ template<> float _py_cast<float>(VM* vm, const PyVar& obj){
     bits = (bits >> 2) << 2;
     return __8B(bits)._float;
 }
-#endif
+template<> double py_cast<double>(VM* vm, const PyVar& obj){
+    vm->check_type(obj, vm->tp_float);
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
+template<> double _py_cast<double>(VM* vm, const PyVar& obj){
+    i64 bits = obj.bits;
+    bits = (bits >> 2) << 2;
+    return __8B(bits)._float;
+}
 
 
 #define PY_VAR_INT(T) \
