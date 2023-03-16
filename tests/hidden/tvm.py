@@ -1,6 +1,0 @@
-print("Welcome to the Python world!")
-a = input()
-print("You entered: " + a)
-b = input()
-print("You entered: " + b)
-print("END")
