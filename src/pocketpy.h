@@ -731,6 +731,7 @@ void VM::post_init(){
     add_module_c(this);
     _lazy_modules["functools"] = kPythonLibs["functools"];
     _lazy_modules["collections"] = kPythonLibs["collections"];
+    _lazy_modules["heapq"] = kPythonLibs["heapq"];
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);

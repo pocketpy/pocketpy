@@ -2,3 +2,6 @@
 
 mp = map(lambda x:  x**2, [1, 2, 3, 4, 5]  )
 assert list(mp) == [1, 4, 9, 16, 25]
+
+
+assert not 3>4

@@ -64,7 +64,7 @@ public:
         rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
         rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
         rules[TK("or")] =       { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
-        rules[TK("not")] =      { METHOD(exprUnaryOp),   nullptr,                    PREC_UNARY };
+        rules[TK("not")] =      { METHOD(exprNot),       nullptr,                    PREC_LOGICAL_NOT };
         rules[TK("True")] =     { METHOD(exprValue),     NO_INFIX };
         rules[TK("False")] =    { METHOD(exprValue),     NO_INFIX };
         rules[TK("lambda")] =   { METHOD(exprLambda),    NO_INFIX };
@@ -506,12 +506,16 @@ private:
         }
     }
 
+    void exprNot() {
+        parse_expression((Precedence)(PREC_LOGICAL_NOT + 1));
+        emit(OP_UNARY_NOT);
+    }
+
     void exprUnaryOp() {
         TokenIndex op = parser->prev.type;
         parse_expression((Precedence)(PREC_UNARY + 1));
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
-            case TK("not"):   emit(OP_UNARY_NOT);      break;
             case TK("*"):     emit(OP_UNARY_STAR, co()->_rvalue);   break;
             default: UNREACHABLE();
         }

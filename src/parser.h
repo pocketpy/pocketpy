@@ -67,6 +67,7 @@ struct Token{
   }
 };
 
+// https://docs.python.org/3/reference/expressions.html
 enum Precedence {
   PREC_NONE,
   PREC_ASSIGNMENT,    // =
@@ -74,8 +75,9 @@ enum Precedence {
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or
   PREC_LOGICAL_AND,   // and
+  PREC_LOGICAL_NOT,   // not
   PREC_EQUALITY,      // == !=
-  PREC_TEST,          // in is
+  PREC_TEST,          // in / is / is not / not in
   PREC_COMPARISION,   // < > <= >=
   PREC_BITWISE_OR,    // |
   PREC_BITWISE_XOR,   // ^
