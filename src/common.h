@@ -29,7 +29,12 @@
 
 #define PK_VERSION				"0.9.3"
 #define PK_EXTRA_CHECK 			0
+
+#if defined(__ANDROID__) && __ANDROID_API__ <= 22
+#define PK_ENABLE_FILEIO 		0
+#else
 #define PK_ENABLE_FILEIO 		1
+#endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
