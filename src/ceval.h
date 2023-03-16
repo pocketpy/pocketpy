@@ -330,7 +330,7 @@ PyVar VM::run_frame(Frame* frame){
         if(frame->_data.size() != 1) throw std::runtime_error("_data.size() != 1 in EVAL/JSON_MODE");
         return frame->pop_value(this);
     }
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
     if(!frame->_data.empty()) throw std::runtime_error("_data.size() != 0 in EXEC_MODE");
 #endif
     return None;

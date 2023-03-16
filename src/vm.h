@@ -79,7 +79,7 @@ public:
     }
 
     inline Frame* top_frame() const {
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
 #endif
         return callstack.top().get();
@@ -170,14 +170,14 @@ public:
 
     template<typename T>
     inline PyVar new_object(const PyVar& type, const T& _value) {
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
 #endif
         return make_sp<PyObject, Py_<std::decay_t<T>>>(OBJ_GET(Type, type), _value);
     }
     template<typename T>
     inline PyVar new_object(const PyVar& type, T&& _value) {
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(!is_type(type, tp_type)) UNREACHABLE();
 #endif
         return make_sp<PyObject, Py_<std::decay_t<T>>>(OBJ_GET(Type, type), std::move(_value));

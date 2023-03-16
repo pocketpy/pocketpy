@@ -58,7 +58,7 @@ struct Frame {
     }
 
     inline PyVar pop(){
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         PyVar v = std::move(_data.back());
@@ -67,7 +67,7 @@ struct Frame {
     }
 
     inline void _pop(){
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         _data.pop_back();
@@ -88,14 +88,14 @@ struct Frame {
     }
 
     inline PyVar& top(){
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         return _data.back();
     }
 
     inline PyVar& top_1(){
-#ifdef PK_EXTRA_CHECK
+#if PK_EXTRA_CHECK
         if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
 #endif
         return _data[_data.size()-2];

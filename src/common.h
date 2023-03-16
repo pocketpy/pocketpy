@@ -26,16 +26,16 @@
 #include <map>
 #include <set>
 #include <algorithm>
-#include <fstream>
 
-#define PK_VERSION "0.9.2"
+#define PK_VERSION				"0.9.3"
+#define PK_EXTRA_CHECK 			0
+#define PK_ENABLE_FILEIO 		1
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
 typedef float f64;
 #define S_TO_INT std::stoi
 #define S_TO_FLOAT std::stof
-#define PKPY_USE_32_BITS
 #else
 typedef int64_t i64;
 typedef double f64;
@@ -78,8 +78,4 @@ struct Type {
 const float kLocalsLoadFactor = 0.67f;
 const float kInstAttrLoadFactor = 0.67f;
 const float kTypeAttrLoadFactor = 0.5f;
-
-// do extra check for debug
-// #define PK_EXTRA_CHECK
-
 } // namespace pkpy

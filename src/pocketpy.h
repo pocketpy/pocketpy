@@ -5,6 +5,7 @@
 #include "repl.h"
 #include "iter.h"
 #include "cffi.h"
+#include "io.h"
 #include "_generated.h"
 
 namespace pkpy {
@@ -546,7 +547,6 @@ void init_builtins(VM* _vm) {
 #define __EXPORT
 #endif
 
-
 void add_module_time(VM* vm){
     PyVar mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, Args& args) {
@@ -608,69 +608,6 @@ void add_module_dis(VM* vm){
         return vm->None;
     });
 }
-
-struct FileIO {
-    PY_CLASS(FileIO, io, FileIO)
-
-    Str file;
-    Str mode;
-    std::fstream _fs;
-
-    FileIO(VM* vm, Str file, Str mode): file(file), mode(mode) {
-        if(mode == "rt" || mode == "r"){
-            _fs.open(file, std::ios::in);
-        }else if(mode == "wt" || mode == "w"){
-            _fs.open(file, std::ios::out);
-        }else if(mode == "at" || mode == "a"){
-            _fs.open(file, std::ios::app);
-        }
-        if(!_fs.is_open()) vm->IOError(strerror(errno));
-    }
-
-    static void _register(VM* vm, PyVar mod, PyVar type){
-        vm->bind_static_method<2>(type, "__new__", [](VM* vm, Args& args){
-            return VAR_T(FileIO, 
-                vm, CAST(Str, args[0]), CAST(Str, args[1])
-            );
-        });
-
-        vm->bind_method<0>(type, "read", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            std::string buffer;
-            io._fs >> buffer;
-            return VAR(buffer);
-        });
-
-        vm->bind_method<1>(type, "write", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            io._fs << CAST(Str&, args[1]);
-            return vm->None;
-        });
-
-        vm->bind_method<0>(type, "close", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            io._fs.close();
-            return vm->None;
-        });
-
-        vm->bind_method<0>(type, "__exit__", [](VM* vm, Args& args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            io._fs.close();
-            return vm->None;
-        });
-
-        vm->bind_method<0>(type, "__enter__", CPP_LAMBDA(vm->None));
-    }
-};
-void add_module_io(VM* vm){
-    PyVar mod = vm->new_module("io");
-    PyVar type = FileIO::register_class(vm, mod);
-    vm->bind_builtin_func<2>("open", [type](VM* vm, const Args& args){
-        return vm->call(type, args);
-    });
-}
-
-void add_module_os(VM* vm){}
 
 struct ReMatch {
     PY_CLASS(ReMatch, re, Match)
