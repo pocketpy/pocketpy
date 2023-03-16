@@ -71,3 +71,8 @@ assert '|'.join(f()) == '0|1|2|3|4'
 
 num = 6
 assert str(num) == '6'
+
+# test Lo group names
+
+测试 = "test"
+assert 测试 == "test"

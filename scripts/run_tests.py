@@ -12,7 +12,7 @@ def test_file(filepath, cpython=False):
 
 def test_dir(path):
     print("Testing directory:", path)
-    for filename in os.listdir(path):
+    for filename in sorted(os.listdir(path)):
         if not filename.endswith('.py'):
             continue
         filepath = os.path.join(path, filename)
