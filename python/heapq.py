@@ -1,8 +1,4 @@
 # Heap queue algorithm (a.k.a. priority queue)
-
-__all__ = ['heappush', 'heappop', 'heapify', 'heapreplace', 'merge',
-           'nlargest', 'nsmallest', 'heappushpop']
-
 def heappush(heap, item):
     """Push item onto heap, maintaining the heap invariant."""
     heap.append(item)
@@ -68,45 +64,6 @@ def _siftdown(heap, startpos, pos):
             continue
         break
     heap[pos] = newitem
-
-# The child indices of heap index pos are already heaps, and we want to make
-# a heap at index pos too.  We do this by bubbling the smaller child of
-# pos up (and so on with that child's children, etc) until hitting a leaf,
-# then using _siftdown to move the oddball originally at index pos into place.
-#
-# We *could* break out of the loop as soon as we find a pos where newitem <=
-# both its children, but turns out that's not a good idea, and despite that
-# many books write the algorithm that way.  During a heap pop, the last array
-# element is sifted in, and that tends to be large, so that comparing it
-# against values starting from the root usually doesn't pay (= usually doesn't
-# get us out of the loop early).  See Knuth, Volume 3, where this is
-# explained and quantified in an exercise.
-#
-# Cutting the # of comparisons is important, since these routines have no
-# way to extract "the priority" from an array element, so that intelligence
-# is likely to be hiding in custom comparison methods, or in array elements
-# storing (priority, record) tuples.  Comparisons are thus potentially
-# expensive.
-#
-# On random arrays of length 1000, making this change cut the number of
-# comparisons made by heapify() a little, and those made by exhaustive
-# heappop() a lot, in accord with theory.  Here are typical results from 3
-# runs (3 just to demonstrate how small the variance is):
-#
-# Compares needed by heapify     Compares needed by 1000 heappops
-# --------------------------     --------------------------------
-# 1837 cut to 1663               14996 cut to 8680
-# 1855 cut to 1659               14966 cut to 8678
-# 1847 cut to 1660               15024 cut to 8703
-#
-# Building the heap by using heappush() 1000 times instead required
-# 2198, 2148, and 2219 compares:  heapify() is more efficient, when
-# you can use it.
-#
-# The total compares needed by list.sort() on the same lists were 8627,
-# 8627, and 8632 (this should be compared to the sum of heapify() and
-# heappop() compares):  list.sort() is (unsurprisingly!) more efficient
-# for sorting.
 
 def _siftup(heap, pos):
     endpos = len(heap)
