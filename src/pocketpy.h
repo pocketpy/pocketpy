@@ -133,6 +133,10 @@ void init_builtins(VM* _vm) {
         return VAR("0x" + ss.str());
     });
 
+    _vm->bind_builtin_func<1>("iter", [](VM* vm, Args& args) {
+        return vm->asIter(args[0]);
+    });
+
     _vm->bind_builtin_func<1>("dir", [](VM* vm, Args& args) {
         std::set<StrName> names;
         if(args[0]->is_attr_valid()){
@@ -713,12 +717,6 @@ void add_module_random(VM* vm){
     vm->_exec(code, mod);
 }
 
-void add_module_functools(VM* vm){
-    PyVar mod = vm->new_module("functools");
-    CodeObject_ code = vm->compile(kPythonLibs["functools"], "functools.py", EXEC_MODE);
-    vm->_exec(code, mod);
-}
-
 void VM::post_init(){
     init_builtins(this);
     add_module_sys(this);
@@ -730,8 +728,9 @@ void VM::post_init(){
     add_module_random(this);
     add_module_io(this);
     add_module_os(this);
-    add_module_functools(this);
     add_module_c(this);
+    _lazy_modules["functools"] = kPythonLibs["functools"];
+    _lazy_modules["collections"] = kPythonLibs["collections"];
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);

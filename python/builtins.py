@@ -113,7 +113,7 @@ def str::strip(self, chars=None):
 
 ##### list #####
 
-list.__new__ = lambda obj: [i for i in obj]
+list.__new__ = lambda iterable: [x for x in iterable]
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'

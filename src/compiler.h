@@ -1067,7 +1067,9 @@ __LISTCOMP:
             _compile_f_args(func, true);
             consume(TK(")"));
         }
-        if(match(TK("->"))) consume(TK("@id")); // eat type hints
+        if(match(TK("->"))){
+            if(!match(TK("None"))) consume(TK("@id"));
+        }
         func.code = make_sp<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         compile_block_body();
