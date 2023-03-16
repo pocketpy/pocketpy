@@ -114,6 +114,14 @@ void add_module_os(VM* vm){
         if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
+
+    vm->bind_func<-1>(mod, "path_join", [](VM* vm, const Args& args){
+        std::filesystem::path path;
+        for(int i=0; i<args.size(); i++){
+            path /= CAST(Str&, args[i]).c_str();
+        }
+        return VAR(path.string());
+    });
 }
 
 } // namespace pkpy
