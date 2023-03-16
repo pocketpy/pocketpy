@@ -1,3 +1,7 @@
+## 0.9.3
+
++ See https://github.com/blueloveTH/pocketpy/releases
+
 ## 0.8.1
 
 + Bug fix
