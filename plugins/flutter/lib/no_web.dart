@@ -28,10 +28,14 @@ class _Bindings {
       ffi.Void Function(ffi.Pointer p),
       void Function(ffi.Pointer p)>("pkpy_delete");
   static final pkpy_setup_callbacks = _lib.lookupFunction<
-      ffi.Void Function(ffi.Pointer f_int, ffi.Pointer f_float,
-          ffi.Pointer f_bool, ffi.Pointer f_str, ffi.Pointer f_None),
-      void Function(ffi.Pointer f_int, ffi.Pointer f_float, ffi.Pointer f_bool,
-          ffi.Pointer f_str, ffi.Pointer f_None)>("pkpy_setup_callbacks");
+      ffi.Void Function(ffi.Pointer _f_int, ffi.Pointer _f_float,
+          ffi.Pointer _f_bool, ffi.Pointer _f_str, ffi.Pointer _f_None),
+      void Function(
+          ffi.Pointer _f_int,
+          ffi.Pointer _f_float,
+          ffi.Pointer _f_bool,
+          ffi.Pointer _f_str,
+          ffi.Pointer _f_None)>("pkpy_setup_callbacks");
   static final pkpy_new_repl = _lib.lookupFunction<
       ffi.Pointer Function(ffi.Pointer vm),
       ffi.Pointer Function(ffi.Pointer vm)>("pkpy_new_repl");

@@ -1,49 +1,3 @@
-# Welcome to PocketPy
-
-PocketPy is a lightweight(~5000 LOC) Python interpreter for game engines.
-
-It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
-
-## What it looks like
-
-```python
-def is_prime(x):
-  if x < 2:
-    return False
-  for i in range(2, x):
-    if x % i == 0:
-      return False
-  return True
-
-primes = [i for i in range(2, 20) if is_prime(i)]
-print(primes)
-# [2, 3, 5, 7, 11, 13, 17, 19]
-```
-# basic
-
-The following table shows the basic features of PocketPy with respect to [CPython](https://github.com/python/cpython).
-The features marked with `YES` are supported, and the features marked with `NO` are not supported.
-
-| Name            | Example                         | Supported |
-| --------------- | ------------------------------- | --------- |
-| If Else         | `if..else..elif`                | YES       |
-| Loop            | `for/while/break/continue`      | YES       |
-| Function        | `def f(x,*args,y=1):`           | YES       |
-| Subclass        | `class A(B):`                   | YES       |
-| List            | `[1, 2, 'a']`                   | YES       |
-| ListComp        | `[i for i in range(5)]`         | YES       |
-| Slice           | `a[1:2], a[:2], a[1:]`          | YES       |
-| Tuple           | `(1, 2, 'a')`                   | YES       |
-| Dict            | `{'a': 1, 'b': 2}`              | YES       |
-| F-String        | `f'value is {x}'`               | YES       |
-| Unpacking       | `a, b = 1, 2`                   | YES       |
-| Star Unpacking  | `a, *b = [1, 2, 3]`             | NO        |
-| Exception       | `raise/try..catch`              | YES       |
-| Dynamic Code    | `eval()/exec()`                 | YES       |
-| Reflection      | `hasattr()/getattr()/setattr()` | YES       |
-| Import          | `import/from..import`           | YES       |
-| Context Block   | `with <expr> as <id>:`          | YES       |
-| Type Annotation | `def  f(a: int, b : float = 1)` | YES       |
 
 ## Introduction
 
@@ -185,8 +139,8 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       buffer.write(needMoreLines ? '... $text' : '>>> $text\n');
     });
-    if (text == "exit()") exit(0);
-    needMoreLines = repl.input(text) == 0;
+
+    needMoreLines = repl.input(text);
     refresh();
   }
 
@@ -249,3 +203,30 @@ class _MyAppState extends State<MyApp> {
 }
 ```
 
+# basic
+
+The following table shows the basic features of PocketPy with respect to [CPython](https://github.com/python/cpython).
+The features marked with `YES` are supported, and the features marked with `NO` are not supported.
+
+| Name            | Example                         | Supported |
+| --------------- | ------------------------------- | --------- |
+| If Else         | `if..else..elif`                | YES       |
+| Loop            | `for/while/break/continue`      | YES       |
+| Function        | `def f(x,*args,y=1):`           | YES       |
+| Subclass        | `class A(B):`                   | YES       |
+| List            | `[1, 2, 'a']`                   | YES       |
+| ListComp        | `[i for i in range(5)]`         | YES       |
+| Slice           | `a[1:2], a[:2], a[1:]`          | YES       |
+| Tuple           | `(1, 2, 'a')`                   | YES       |
+| Dict            | `{'a': 1, 'b': 2}`              | YES       |
+| F-String        | `f'value is {x}'`               | YES       |
+| Unpacking       | `a, b = 1, 2`                   | YES       |
+| Star Unpacking  | `a, *b = [1, 2, 3]`             | YES       |
+| Exception       | `raise/try..catch`              | YES       |
+| Dynamic Code    | `eval()/exec()`                 | YES       |
+| Reflection      | `hasattr()/getattr()/setattr()` | YES       |
+| Import          | `import/from..import`           | YES       |
+| Context Block   | `with <expr> as <id>:`          | YES       |
+| Type Annotation | `def  f(a:int, b:float=1)`      | YES       |
+| Generator       | `yield i`                       | YES       |
+| Decorator       | `@cache`                        | YES       |
