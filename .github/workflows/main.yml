@@ -60,11 +60,9 @@ jobs:
       with:
         version: 15
         platform: x64
-    - name: Install Dependencies
-      run: |
-        sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15 libclang-rt-15-dev
     - name: Coverage Test
       run: |
+        sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15 libclang-rt-15-dev
         python3 preprocess.py
         bash run_tests.sh
     - uses: actions/upload-artifact@v3
@@ -93,6 +91,7 @@ jobs:
         with:
           flutter-version: '3.3.0'
           channel: 'stable'
+          cache: true
       - run: flutter --version
       - name: Compiling
         run: |
