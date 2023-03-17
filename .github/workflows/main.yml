@@ -127,4 +127,6 @@ jobs:
           cp -r build/Release/pocketpy.bundle output/macos
       - uses: actions/upload-artifact@v3
         with:
-          path: plugins/macos/pocketpy/output
+          path: |
+            plugins/macos/pocketpy/output
+            amalgamated/pocketpy.h
