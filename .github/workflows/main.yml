@@ -120,13 +120,10 @@ jobs:
       - uses: actions/checkout@v3
       - run: |
           python3 amalgamate.py
-          cp amalgamated/pocketpy.h pocketpy.h
           cd plugins/macos/pocketpy
           mkdir -p output/macos
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           cp -r build/Release/pocketpy.bundle output/macos
       - uses: actions/upload-artifact@v3
         with:
-          path: |
-            plugins/macos/pocketpy/output
-            pocketpy.h
+          path: plugins/macos/pocketpy/output
