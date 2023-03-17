@@ -15,14 +15,16 @@ jobs:
       run: |
         python3 build.py windows
         python3 build.py windows -lib
-        python3 scripts/run_tests.py
-        python3 scripts/run_tests.py benchmark
         mkdir -p output/windows/x86_64
-        mv pocketpy.exe output/windows/x86_64
-        mv pocketpy.dll output/windows/x86_64
+        cp pocketpy.exe output/windows/x86_64
+        cp pocketpy.dll output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
+    - name: Benchmark
+      run: python3 scripts/run_tests.py benchmark
   build_web:
     runs-on: ubuntu-latest
     steps:
@@ -73,14 +75,16 @@ jobs:
       run: |
         python3 build.py linux
         python3 build.py linux -lib
-        python3 scripts/run_tests.py
-        python3 scripts/run_tests.py benchmark
         mkdir -p output/linux/x86_64
-        mv pocketpy output/linux/x86_64
-        mv pocketpy.so output/linux/x86_64
+        cp pocketpy output/linux/x86_64
+        cp pocketpy.so output/linux/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
+    - name: Benchmark
+      run: python3 scripts/run_tests.py benchmark
   build_android:
       runs-on: ubuntu-latest
       steps:
