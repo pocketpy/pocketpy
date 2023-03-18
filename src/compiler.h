@@ -1,5 +1,6 @@
 #pragma once
 
+#include "codeobject.h"
 #include "parser.h"
 #include "error.h"
 #include "ceval.h"
@@ -528,28 +529,12 @@ private:
         consume(TK(")"));
     }
 
-    void exprList() {
-        int _patch = emit(OP_NO_OP);
-        int _body_start = co()->codes.size();
-        int ARGC = 0;
-        do {
-            match_newlines(mode()==REPL_MODE);
-            if (peek() == TK("]")) break;
-            EXPR(); ARGC++;
-            match_newlines(mode()==REPL_MODE);
-            if(ARGC == 1 && match(TK("for"))) goto __LISTCOMP;
-        } while (match(TK(",")));
-        match_newlines(mode()==REPL_MODE);
-        consume(TK("]"));
-        emit(OP_BUILD_LIST, ARGC);
-        return;
-
-__LISTCOMP:
+    void _consume_comp(Opcode op0, Opcode op1, int _patch, int _body_start){
         int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
         int _body_end = co()->codes.size();
         co()->codes[_patch].op = OP_JUMP_ABSOLUTE;
         co()->codes[_patch].arg = _body_end;
-        emit(OP_BUILD_LIST, 0);
+        emit(op0, 0);
         EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
         match_newlines(mode()==REPL_MODE);
         
@@ -572,23 +557,44 @@ __LISTCOMP:
             int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
             emit(OP_JUMP_ABSOLUTE, _body_start);
             patch_jump(_body_end_return);
-            emit(OP_LIST_APPEND);
+            emit(op1);
             patch_jump(ifpatch);
         }else{
             emit(OP_JUMP_ABSOLUTE, _body_start);
             patch_jump(_body_end_return);
-            emit(OP_LIST_APPEND);
+            emit(op1);
         }
 
         emit(OP_LOOP_CONTINUE, -1, true);
         co()->_exit_block();
         match_newlines(mode()==REPL_MODE);
+    }
+
+    void exprList() {
+        int _patch = emit(OP_NO_OP);
+        int _body_start = co()->codes.size();
+        int ARGC = 0;
+        do {
+            match_newlines(mode()==REPL_MODE);
+            if (peek() == TK("]")) break;
+            EXPR(); ARGC++;
+            match_newlines(mode()==REPL_MODE);
+            if(ARGC == 1 && match(TK("for"))){
+                _consume_comp(OP_BUILD_LIST, OP_LIST_APPEND, _patch, _body_start);
+                consume(TK("]"));
+                return;
+            }
+        } while (match(TK(",")));
+        match_newlines(mode()==REPL_MODE);
         consume(TK("]"));
+        emit(OP_BUILD_LIST, ARGC);
     }
 
     void exprMap() {
+        int _patch = emit(OP_NO_OP);
+        int _body_start = co()->codes.size();
         bool parsing_dict = false;
-        int size = 0;
+        int ARGC = 0;
         do {
             match_newlines(mode()==REPL_MODE);
             if (peek() == TK("}")) break;
@@ -598,13 +604,19 @@ __LISTCOMP:
                 consume(TK(":"));
                 EXPR();
             }
-            size++;
+            ARGC++;
             match_newlines(mode()==REPL_MODE);
+            if(ARGC == 1 && match(TK("for"))){
+                if(parsing_dict) _consume_comp(OP_BUILD_MAP, OP_MAP_ADD, _patch, _body_start);
+                else _consume_comp(OP_BUILD_SET, OP_SET_ADD, _patch, _body_start);
+                consume(TK("}"));
+                return;
+            }
         } while (match(TK(",")));
         consume(TK("}"));
 
-        if(size == 0 || parsing_dict) emit(OP_BUILD_MAP, size);
-        else emit(OP_BUILD_SET, size);
+        if(ARGC == 0 || parsing_dict) emit(OP_BUILD_MAP, ARGC);
+        else emit(OP_BUILD_SET, ARGC);
     }
 
     void exprCall() {

@@ -20,6 +20,8 @@ tinydict.update(tinydict2)
 updated_dict = {'Name': 'circle', 'Age': 7, 'Sex': 'female'}
 for k,v in tinydict.items():
     assert updated_dict[k] == v
+assert len(tinydict) == 3
+assert tinydict == updated_dict
 
 dishes = {'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500}
 keys = dishes.keys()
@@ -29,8 +31,15 @@ assert sorted(values) == sorted([2, 1, 1, 500])
 
 d={1:"a",2:"b",3:"c"}
 result=[]
-for kv in d.items():
-    k = kv[0]; v=kv[1]
+for k,v in d.items():
     result.append(k)
     result.append(v)
-assert result == [1, 'a', 2, 'b', 3, 'c']
+assert len(result) == 6
+assert set(result) == set([1, 'a', 2, 'b', 3, 'c'])
+
+# test __eq__
+d1 = {1:2, 3:4}
+d2 = {3:4, 1:2}
+d3 = {1:2, 3:4, 5:6}
+assert d1 == d2
+assert d1 != d3

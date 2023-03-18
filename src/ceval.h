@@ -80,11 +80,6 @@ PyVar VM::run_frame(Frame* frame){
             frame->push(VAR(ss.str()));
         } continue;
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
-        case OP_LIST_APPEND: {
-            PyVar obj = frame->pop_value(this);
-            List& list = CAST(List&, frame->top_1());
-            list.push_back(std::move(obj));
-        } continue;
         case OP_BEGIN_CLASS: {
             auto& name = frame->co->names[byte.arg];
             PyVar clsBase = frame->pop_value(this);
@@ -205,6 +200,20 @@ PyVar VM::run_frame(Frame* frame){
             );
             PyVar obj = call(builtins->attr("set"), one_arg(list));
             frame->push(obj);
+        } continue;
+        case OP_LIST_APPEND: {
+            PyVar obj = frame->pop_value(this);
+            List& list = CAST(List&, frame->top_1());
+            list.push_back(std::move(obj));
+        } continue;
+        case OP_MAP_ADD: {
+            PyVar value = frame->pop_value(this);
+            PyVar key = frame->pop_value(this);
+            call(frame->top_1(), __setitem__, two_args(key, value));
+        } continue;
+        case OP_SET_ADD: {
+            PyVar obj = frame->pop_value(this);
+            call(frame->top_1(), "add", one_arg(obj));
         } continue;
         case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
         case OP_UNARY_STAR: {

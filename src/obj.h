@@ -136,7 +136,7 @@ inline bool is_type(const PyVar& obj, Type type) noexcept {
 }
 
 inline bool is_both_int_or_float(const PyVar& a, const PyVar& b) noexcept {
-    return ((a.bits | b.bits) & 0b11) != 0b00;
+    return a.is_tagged() && b.is_tagged();
 }
 
 inline bool is_both_int(const PyVar& a, const PyVar& b) noexcept {

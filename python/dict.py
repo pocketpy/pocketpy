@@ -98,3 +98,18 @@ class dict:
                 raise TypeError('json keys must be strings, got ' + repr(k) )
             a.append(k.__json__()+': '+v.__json__())
         return '{'+ ', '.join(a) + '}'
+    
+    def __eq__(self, __o: object) -> bool:
+        if type(__o) is not dict:
+            return False
+        if len(self) != len(__o):
+            return False
+        for k in self.keys():
+            if k not in __o:
+                return False
+            if self[k] != __o[k]:
+                return False
+        return True
+
+    def __ne__(self, __o: object) -> bool:
+        return not self.__eq__(__o)
