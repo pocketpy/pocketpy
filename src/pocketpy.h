@@ -690,29 +690,45 @@ void add_module_re(VM* vm){
     });
 }
 
+struct Random{
+    PY_CLASS(Random, random, Random)
+    std::mt19937 gen;
+
+    Random(){
+        gen.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+    }
+
+    i64 randint(i64 a, i64 b) {
+        std::uniform_int_distribution<i64> dis(a, b);
+        return dis(gen);
+    }
+
+    f64 random() {
+        std::uniform_real_distribution<f64> dis(0.0, 1.0);
+        return dis(gen);
+    }
+
+    f64 uniform(f64 a, f64 b) {
+        std::uniform_real_distribution<f64> dis(a, b);
+        return dis(gen);
+    }
+
+    void seed(i64 seed) {
+        gen.seed(seed);
+    }
+
+    static void _register(VM* vm, PyVar mod, PyVar type){
+        vm->bind_static_method<0>(type, "__new__", CPP_LAMBDA(VAR_T(Random)));
+        vm->bind_method<1>(type, "seed", native_proxy_callable(&Random::seed));
+        vm->bind_method<2>(type, "randint", native_proxy_callable(&Random::randint));
+        vm->bind_method<0>(type, "random", native_proxy_callable(&Random::random));
+        vm->bind_method<2>(type, "uniform", native_proxy_callable(&Random::uniform));
+    }
+};
+
 void add_module_random(VM* vm){
     PyVar mod = vm->new_module("random");
-    std::srand(std::time(0));
-    vm->bind_func<1>(mod, "seed", [](VM* vm, Args& args) {
-        std::srand((unsigned int)CAST(i64, args[0]));
-        return vm->None;
-    });
-
-    vm->bind_func<0>(mod, "random", CPP_LAMBDA(VAR(std::rand() / (f64)RAND_MAX)));
-    vm->bind_func<2>(mod, "randint", [](VM* vm, Args& args) {
-        i64 a = CAST(i64, args[0]);
-        i64 b = CAST(i64, args[1]);
-        if(a > b) std::swap(a, b);
-        return VAR(a + std::rand() % (b - a + 1));
-    });
-
-    vm->bind_func<2>(mod, "uniform", [](VM* vm, Args& args) {
-        f64 a = CAST(f64, args[0]);
-        f64 b = CAST(f64, args[1]);
-        if(a > b) std::swap(a, b);
-        return VAR(a + (b - a) * std::rand() / (f64)RAND_MAX);
-    });
-
+    Random::register_class(vm, mod);
     CodeObject_ code = vm->compile(kPythonLibs["random"], "random.py", EXEC_MODE);
     vm->_exec(code, mod);
 }

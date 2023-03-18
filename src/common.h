@@ -26,8 +26,10 @@
 #include <map>
 #include <set>
 #include <algorithm>
+#include <random>
+#include <chrono>
 
-#define PK_VERSION				"0.9.3"
+#define PK_VERSION				"0.9.4"
 #define PK_EXTRA_CHECK 			0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)

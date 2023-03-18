@@ -9,11 +9,10 @@ namespace pkpy {
 
 template<typename Ret, typename... Params>
 struct NativeProxyFunc {
-    using T = Ret(*)(Params...);
-    // using T = std::function<Ret(Params...)>;
     static constexpr int N = sizeof...(Params);
-    T func;
-    NativeProxyFunc(T func) : func(func) {}
+    using _Fp = Ret(*)(Params...);
+    _Fp func;
+    NativeProxyFunc(_Fp func) : func(func) {}
 
     PyVar operator()(VM* vm, Args& args) {
         if (args.size() != N) {
@@ -34,6 +33,47 @@ struct NativeProxyFunc {
         return VAR(std::move(ret));
     }
 };
+
+template<typename Ret, typename T, typename... Params>
+struct NativeProxyMethod {
+    static constexpr int N = sizeof...(Params);
+    using _Fp = Ret(T::*)(Params...);
+    _Fp func;
+    NativeProxyMethod(_Fp func) : func(func) {}
+
+    PyVar operator()(VM* vm, Args& args) {
+        int actual_size = args.size() - 1;
+        if (actual_size != N) {
+            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
+        }
+        return call<Ret>(vm, args, std::make_index_sequence<N>());
+    }
+
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+        T& self = py_cast<T&>(vm, args[0]);
+        (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+        return vm->None;
+    }
+
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+        T& self = py_cast<T&>(vm, args[0]);
+        __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+        return VAR(std::move(ret));
+    }
+};
+
+template<typename Ret, typename... Params>
+auto native_proxy_callable(Ret(*func)(Params...)) {
+    return NativeProxyFunc<Ret, Params...>(func);
+}
+
+template<typename Ret, typename T, typename... Params>
+auto native_proxy_callable(Ret(T::*func)(Params...)) {
+    return NativeProxyMethod<Ret, T, Params...>(func);
+}
+
 
 template<typename T>
 constexpr int type_index() { return 0; }
@@ -480,6 +520,7 @@ py_var(VM* vm, T p){
 template<typename T>
 std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyVar>
 py_var(VM* vm, T p){
+    if constexpr(std::is_same_v<T, PyVar>) return p;
     const TypeInfo* type = _type_db.get<T>();
     return VAR_T(Value, type, &p);
 }
