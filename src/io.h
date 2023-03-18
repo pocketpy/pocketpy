@@ -122,6 +122,12 @@ void add_module_os(VM* vm){
         }
         return VAR(path.string());
     });
+
+    vm->bind_func<1>(mod, "path_exists", [](VM* vm, const Args& args){
+        std::filesystem::path path(CAST(Str&, args[0]).c_str());
+        bool exists = std::filesystem::exists(path);
+        return VAR(exists);
+    });
 }
 
 } // namespace pkpy
