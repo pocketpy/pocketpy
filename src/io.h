@@ -10,6 +10,20 @@
 
 namespace pkpy{
 
+Str _read_file_cwd(const Str& name, bool* ok){
+    std::filesystem::path path(name.c_str());
+    bool exists = std::filesystem::exists(path);
+    if(!exists){
+        *ok = false;
+        return Str();
+    }
+    std::ifstream ifs(path);
+    std::string buffer((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+    ifs.close();
+    *ok = true;
+    return Str(std::move(buffer));
+}
+
 struct FileIO {
     PY_CLASS(FileIO, io, FileIO)
 
@@ -138,6 +152,12 @@ void add_module_os(VM* vm){
 namespace pkpy{
 void add_module_io(VM* vm){}
 void add_module_os(VM* vm){}
+
+Str _read_file_cwd(const Str& name, bool* ok){
+    *ok = false;
+    return Str();
+}
+
 } // namespace pkpy
 
 #endif

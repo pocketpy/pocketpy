@@ -5,6 +5,8 @@
 
 namespace pkpy{
 
+Str _read_file_cwd(const Str& name, bool* ok);
+
 PyVar VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
         const Bytecode& byte = frame->next_bytecode();
@@ -298,18 +300,21 @@ PyVar VM::run_frame(Frame* frame){
             StrName name = frame->co->names[byte.arg].first;
             PyVar* ext_mod = _modules.try_get(name);
             if(ext_mod == nullptr){
+                Str source;
                 auto it2 = _lazy_modules.find(name);
                 if(it2 == _lazy_modules.end()){
-                    _error("ImportError", "module " + name.str().escape(true) + " not found");
+                    bool ok = false;
+                    source = _read_file_cwd(name.str() + ".py", &ok);
+                    if(!ok) _error("ImportError", "module " + name.str().escape(true) + " not found");
                 }else{
-                    const Str& source = it2->second;
-                    CodeObject_ code = compile(source, name.str(), EXEC_MODE);
-                    PyVar new_mod = new_module(name);
-                    _exec(code, new_mod);
-                    frame->push(new_mod);
+                    source = it2->second;
                     _lazy_modules.erase(it2);
-                    new_mod->attr()._try_perfect_rehash();
                 }
+                CodeObject_ code = compile(source, name.str(), EXEC_MODE);
+                PyVar new_mod = new_module(name);
+                _exec(code, new_mod);
+                frame->push(new_mod);
+                new_mod->attr()._try_perfect_rehash();
             }else{
                 frame->push(*ext_mod);
             }
