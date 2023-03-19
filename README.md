@@ -60,7 +60,7 @@ Check [C-API](https://pocketpy.dev/c-api/vm/) for references. For further custom
 
 int main(){
     // Create a virtual machine
-    VM* vm = pkpy_new_vm(true);
+    auto vm = pkpy_new_vm(true);
     
     // Hello world!
     pkpy_vm_exec(vm, "print('Hello world!')");

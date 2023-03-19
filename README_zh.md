@@ -54,7 +54,7 @@ PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 
 int main(){
     // 创建一个虚拟机
-    VM* vm = pkpy_new_vm(true);
+    auto vm = pkpy_new_vm(true);
     
     // Hello world!
     pkpy_vm_exec(vm, "print('Hello world!')");
