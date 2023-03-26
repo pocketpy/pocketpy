@@ -161,6 +161,8 @@ def list::pop(self, i=-1):
     return res
 
 def list::__eq__(self, other):
+    if type(self) is not type(other):
+        return False
     if len(self) != len(other):
         return False
     for i in range(len(self)):
@@ -188,8 +190,24 @@ tuple.__contains__ = list.__contains__
 
 
 class property:
-    def __init__(self, fget):
+    def __init__(self, fget, fset=None):
         self.fget = fget
+        self.fset = fset
 
     def __get__(self, obj):
         return self.fget(obj)
+    
+    def __set__(self, obj, value):
+        if self.fset is None:
+            raise AttributeError("readonly property")
+        self.fset(obj, value)
+
+class staticmethod:
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, obj):
+        return self.f
+    
+def type::__repr__(self):
+    return "<class '" + self.__name__ + "'>"

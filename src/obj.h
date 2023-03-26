@@ -122,7 +122,7 @@ struct Py_ : PyObject {
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
-#define OBJ_NAME(obj) OBJ_GET(Str, (obj)->attr(__name__))
+#define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
 
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;

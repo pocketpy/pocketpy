@@ -33,18 +33,23 @@ public:
     PyVar next();
 };
 
+struct PyTypeInfo{
+    PyVar obj;
+    Type base;
+    Str name;
+};
+
 class VM {
     VM* vm;     // self reference for simplify code
 public:
     std::stack< std::unique_ptr<Frame> > callstack;
     PyVar _py_op_call;
     PyVar _py_op_yield;
-    std::vector<PyVar> _all_types;
+    std::vector<PyTypeInfo> _all_types;
 
     PyVar run_frame(Frame* frame);
 
-    NameDict _types;
-    NameDict _modules;                            // loaded modules
+    NameDict _modules;                          // loaded modules
     std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
     PyVar None, True, False, Ellipsis;
 
@@ -98,13 +103,22 @@ public:
         return call(_t(tp_list), one_arg(iterable));
     }
 
+    PyVar* find_name_in_mro(PyObject* cls, StrName name){
+        PyVar* val;
+        do{
+            val = cls->attr().try_get(name);
+            if(val != nullptr) return val;
+            Type cls_t = static_cast<Py_<Type>*>(cls)->_value;
+            Type base = _all_types[cls_t.index].base;
+            if(base.index == -1) break;
+            cls = _all_types[base.index].obj.get();
+        }while(true);
+        return nullptr;
+    }
+
     PyVar fast_call(StrName name, Args&& args){
-        PyObject* cls = _t(args[0]).get();
-        while(cls != None.get()) {
-            PyVar* val = cls->attr().try_get(name);
-            if(val != nullptr) return call(*val, std::move(args));
-            cls = cls->attr(__base__).get();
-        }
+        PyVar* val = find_name_in_mro(_t(args[0]).get(), name);
+        if(val != nullptr) return call(*val, std::move(args));
         AttributeError(args[0], name);
         return nullptr;
     }
@@ -160,11 +174,26 @@ public:
         return _exec();
     }
 
-    Type _new_type_object(StrName name, Type base=0) {
+    PyVar property(NativeFuncRaw fget){
+        PyVar p = builtins->attr("property");
+        PyVar method = new_object(tp_native_function, NativeFunc(fget, 1, false));
+        return call(p, one_arg(method));
+    }
+
+    PyVar new_type_object(PyVar mod, StrName name, Type base){
         PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
-        setattr(obj, __base__, _t(base));
-        _types.set(name, obj);
-        _all_types.push_back(obj);
+        PyTypeInfo info{
+            .obj = obj,
+            .base = base,
+            .name = (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.str()): name.str()
+        };
+        if(mod != nullptr) mod->attr().set(name, obj);
+        _all_types.push_back(info);
+        return obj;
+    }
+
+    Type _new_type_object(StrName name, Type base=0) {
+        PyVar obj = new_type_object(nullptr, name, base);
         return OBJ_GET(Type, obj);
     }
 
@@ -192,14 +221,23 @@ public:
         return make_sp<PyObject, Py_<std::decay_t<T>>>(type, std::move(_value));
     }
 
-    template<int ARGC>
-    void bind_func(Str typeName, Str funcName, NativeFuncRaw fn) {
-        bind_func<ARGC>(_types[typeName], funcName, fn);     
+    PyVar _find_type(const Str& type){
+        PyVar* obj = builtins->attr().try_get(type);
+        if(!obj){
+            for(auto& t: _all_types) if(t.name == type) return t.obj;
+            throw std::runtime_error("type not found: " + type);
+        }
+        return *obj;
     }
 
     template<int ARGC>
-    void bind_method(Str typeName, Str funcName, NativeFuncRaw fn) {
-        bind_method<ARGC>(_types[typeName], funcName, fn);
+    void bind_func(Str type, Str name, NativeFuncRaw fn) {
+        bind_func<ARGC>(_find_type(type), name, fn);
+    }
+
+    template<int ARGC>
+    void bind_method(Str type, Str name, NativeFuncRaw fn) {
+        bind_method<ARGC>(_find_type(type), name, fn);
     }
 
     template<int ARGC, typename... Args>
@@ -208,13 +246,13 @@ public:
     }
 
     template<int ARGC>
-    void _bind_methods(std::vector<Str> typeNames, Str funcName, NativeFuncRaw fn) {
-        for(auto& typeName : typeNames) bind_method<ARGC>(typeName, funcName, fn);
+    void _bind_methods(std::vector<Str> types, Str name, NativeFuncRaw fn) {
+        for(auto& type: types) bind_method<ARGC>(type, name, fn);
     }
 
     template<int ARGC>
-    void bind_builtin_func(Str funcName, NativeFuncRaw fn) {
-        bind_func<ARGC>(builtins, funcName, fn);
+    void bind_builtin_func(Str name, NativeFuncRaw fn) {
+        bind_func<ARGC>(builtins, name, fn);
     }
 
     int normalized_index(int index, int size){
@@ -276,13 +314,13 @@ public:
     }
 
     inline PyVar& _t(Type t){
-        return _all_types[t.index];
+        return _all_types[t.index].obj;
     }
 
     inline PyVar& _t(const PyVar& obj){
         if(is_int(obj)) return _t(tp_int);
         if(is_float(obj)) return _t(tp_float);
-        return _all_types[OBJ_GET(Type, _t(obj->type)).index];
+        return _all_types[OBJ_GET(Type, _t(obj->type)).index].obj;
     }
 
     ~VM() {
@@ -292,6 +330,14 @@ public:
         }
     }
 
+    inline PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true, bool class_only=false){
+        return getattr(&obj, name, throw_err, class_only);
+    }
+    template<typename T>
+    inline void setattr(PyVar& obj, StrName name, T&& value){
+        setattr(&obj, name, std::forward<T>(value));
+    }
+
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
     void post_init();
     PyVar num_negated(const PyVar& obj);
@@ -299,15 +345,14 @@ public:
     const PyVar& asBool(const PyVar& obj);
     i64 hash(const PyVar& obj);
     PyVar asRepr(const PyVar& obj);
-    PyVar new_type_object(PyVar mod, StrName name, PyVar base);
     PyVar new_module(StrName name);
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
     PyVar call(const PyVar& _callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
-    PyVarOrNull getattr(const PyVar& obj, StrName name, bool throw_err=true, bool class_only=false);
+    PyVarOrNull getattr(const PyVar* obj, StrName name, bool throw_err=true, bool class_only=false);
     template<typename T>
-    void setattr(PyVar& obj, StrName name, T&& value);
+    void setattr(PyVar* obj, StrName name, T&& value);
     template<int ARGC>
     void bind_method(PyVar obj, Str funcName, NativeFuncRaw fn);
     template<int ARGC>
@@ -542,21 +587,9 @@ PyVar VM::asRepr(const PyVar& obj){
     return call(obj, __repr__);
 }
 
-PyVar VM::new_type_object(PyVar mod, StrName name, PyVar base){
-    if(!is_type(base, tp_type)) UNREACHABLE();
-    PyVar obj = make_sp<PyObject, Py_<Type>>(tp_type, _all_types.size());
-    setattr(obj, __base__, base);
-    Str fullName = name.str();
-    if(mod != builtins) fullName = OBJ_NAME(mod) + "." + name.str();
-    setattr(obj, __name__, VAR(fullName));
-    setattr(mod, name, obj);
-    _all_types.push_back(obj);
-    return obj;
-}
-
 PyVar VM::new_module(StrName name) {
     PyVar obj = new_object(tp_module, DummyModule());
-    setattr(obj, __name__, VAR(name.str()));
+    obj->attr().set(__name__, VAR(name.str()));
     _modules.set(name, obj);
     return obj;
 }
@@ -631,14 +664,12 @@ Str VM::disassemble(CodeObject_ co){
 }
 
 void VM::init_builtin_types(){
-    PyVar _tp_object = make_sp<PyObject, Py_<Type>>(1, 0);
-    PyVar _tp_type = make_sp<PyObject, Py_<Type>>(1, 1);
-    _all_types.push_back(_tp_object);
-    _all_types.push_back(_tp_type);
+    // Py_(Type type, T&& val)
+    PyVar _tp_object = make_sp<PyObject, Py_<Type>>(Type(1), Type(0));
+    PyVar _tp_type = make_sp<PyObject, Py_<Type>>(Type(1), Type(1));
+    _all_types.push_back({.obj = _tp_object, .base = -1, .name = "object"});
+    _all_types.push_back({.obj = _tp_type, .base = 0, .name = "type"});
     tp_object = 0; tp_type = 1;
-
-    _types.set("object", _tp_object);
-    _types.set("type", _tp_type);
 
     tp_int = _new_type_object("int");
     tp_float = _new_type_object("float");
@@ -665,25 +696,27 @@ void VM::init_builtin_types(){
     this->Ellipsis = new_object(_new_type_object("ellipsis"), DUMMY_VAL);
     this->True = new_object(tp_bool, true);
     this->False = new_object(tp_bool, false);
-    this->builtins = new_module("builtins");
-    this->_main = new_module("__main__");
     this->_py_op_call = new_object(_new_type_object("_py_op_call"), DUMMY_VAL);
     this->_py_op_yield = new_object(_new_type_object("_py_op_yield"), DUMMY_VAL);
-
-    setattr(_t(tp_type), __base__, _t(tp_object));
-    setattr(_t(tp_object), __base__, None);
+    this->builtins = new_module("builtins");
+    this->_main = new_module("__main__");
     
-    for(auto [k, v]: _types.items()){
-        setattr(v, __name__, VAR(k.str()));
-    }
-
-    std::vector<Str> pb_types = {"type", "object", "bool", "int", "float", "str", "list", "tuple", "range"};
-    for (auto& name : pb_types) {
-        setattr(builtins, name, _types[name]);
-    }
+    // setup public types
+    builtins->attr().set("type", _t(tp_type));
+    builtins->attr().set("object", _t(tp_object));
+    builtins->attr().set("bool", _t(tp_bool));
+    builtins->attr().set("int", _t(tp_int));
+    builtins->attr().set("float", _t(tp_float));
+    builtins->attr().set("str", _t(tp_str));
+    builtins->attr().set("list", _t(tp_list));
+    builtins->attr().set("tuple", _t(tp_tuple));
+    builtins->attr().set("range", _t(tp_range));
 
     post_init();
-    for(auto [k, v]: _types.items()) v->attr()._try_perfect_rehash();
+    for(int i=0; i<_all_types.size(); i++){
+        auto& t = _all_types[i];
+        t.obj->attr()._try_perfect_rehash();
+    }
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
@@ -785,77 +818,75 @@ void VM::unpack_args(Args& args){
     args = Args::from_list(std::move(unpacked));
 }
 
-PyVarOrNull VM::getattr(const PyVar& obj, StrName name, bool throw_err, bool class_only) {
-    PyVar* val;
-    PyObject* cls;
+using Super = std::pair<PyVar, Type>;
 
-    if(is_type(obj, tp_super)){
-        const PyVar* root = &obj;
-        int depth = 1;
-        while(true){
-            root = &OBJ_GET(PyVar, *root);
-            if(!is_type(*root, tp_super)) break;
-            depth++;
-        }
-        cls = _t(*root).get();
-        for(int i=0; i<depth; i++) cls = cls->attr(__base__).get();
-
-        if(!class_only){
-            val = (*root)->attr().try_get(name);
-            if(val != nullptr) return *val;
-        }
-    }else{
-        if(!class_only && !obj.is_tagged() && obj->is_attr_valid()){
-            val = obj->attr().try_get(name);
-            if(val != nullptr) return *val;
-        }
-        cls = _t(obj).get();
+// https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
+PyVarOrNull VM::getattr(const PyVar* obj, StrName name, bool throw_err, bool class_only){
+    PyObject* objtype = _t(*obj).get();
+    if(is_type(*obj, tp_super)){
+        const Super& super = OBJ_GET(Super, *obj);
+        obj = &super.first;
+        objtype = _t(super.second).get();
     }
-
-    while(cls != None.get()) {
-        val = cls->attr().try_get(name);
-        if(val != nullptr){
-            PyVarOrNull descriptor = getattr(*val, __get__, false, true);
-            if(descriptor != nullptr) return call(descriptor, one_arg(obj));
-            if(is_type(*val, tp_function) || is_type(*val, tp_native_function)){
-                return VAR(BoundMethod(obj, *val));
-            }else{
-                return *val;
-            }
-        }else{
-            // this operation is expensive!!!
-            const Str& s = name.str();
-            if(s.empty() || s[0] != '_'){
-                PyVar* interceptor = cls->attr().try_get(__getattr__);
-                if(interceptor != nullptr){
-                    return call(*interceptor, two_args(obj, VAR(s)));
-                }
-            }
-        }
-        cls = cls->attr(__base__).get();
+    PyVar* cls_var = find_name_in_mro(objtype, name);
+    if(cls_var != nullptr){
+        // handle descriptor
+        PyVar* descr_get = _t(*cls_var)->attr().try_get(__get__);
+        if(descr_get != nullptr) return call(*descr_get, two_args(*cls_var, *obj));
     }
-    if(throw_err) AttributeError(obj, name);
+    // handle instance __dict__
+    if(!class_only && !(*obj).is_tagged() && (*obj)->is_attr_valid()){
+        PyVar* val = (*obj)->attr().try_get(name);
+        if(val != nullptr) return *val;
+    }
+    if(cls_var != nullptr){
+        // bound method is non-data descriptor
+        if(is_type(*cls_var, tp_function) || is_type(*cls_var, tp_native_function)){
+            return VAR(BoundMethod(*obj, *cls_var));
+        }
+        return *cls_var;
+    }
+    if(throw_err) AttributeError(*obj, name);
     return nullptr;
 }
 
 template<typename T>
-void VM::setattr(PyVar& obj, StrName name, T&& value) {
-    if(obj.is_tagged()) TypeError("cannot set attribute");
-    PyObject* p = obj.get();
-    while(p->type == tp_super) p = static_cast<PyVar*>(p->value())->get();
-    if(!p->is_attr_valid()) TypeError("cannot set attribute");
-    p->attr().set(name, std::forward<T>(value));
+void VM::setattr(PyVar* obj, StrName name, T&& value){
+    static_assert(std::is_same_v<std::decay_t<T>, PyVar>);
+    PyObject* objtype = _t(*obj).get();
+    if(is_type(*obj, tp_super)){
+        Super& super = OBJ_GET(Super, *obj);
+        obj = &super.first;
+        objtype = _t(super.second).get();
+    }
+    PyVar* cls_var = find_name_in_mro(objtype, name);
+    if(cls_var != nullptr){
+        // handle descriptor
+        const PyVar& cls_var_t = _t(*cls_var);
+        if(cls_var_t->attr().contains(__get__)){
+            PyVar* descr_set = cls_var_t->attr().try_get(__set__);
+            if(descr_set != nullptr){
+                call(*descr_set, three_args(*cls_var, *obj, std::forward<T>(value)));
+            }else{
+                TypeError("readonly attribute: " + name.str().escape(true));
+            }
+            return;
+        }
+    }
+    // handle instance __dict__
+    if((*obj).is_tagged() || !(*obj)->is_attr_valid()) TypeError("cannot set attribute");
+    (*obj)->attr().set(name, std::forward<T>(value));
 }
 
 template<int ARGC>
-void VM::bind_method(PyVar obj, Str funcName, NativeFuncRaw fn) {
+void VM::bind_method(PyVar obj, Str name, NativeFuncRaw fn) {
     check_type(obj, tp_type);
-    setattr(obj, funcName, VAR(NativeFunc(fn, ARGC, true)));
+    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
 }
 
 template<int ARGC>
-void VM::bind_func(PyVar obj, Str funcName, NativeFuncRaw fn) {
-    setattr(obj, funcName, VAR(NativeFunc(fn, ARGC, false)));
+void VM::bind_func(PyVar obj, Str name, NativeFuncRaw fn) {
+    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
 }
 
 void VM::_error(Exception e){

@@ -13,7 +13,7 @@ a = A(1, 2)
 assert a.add() == 3
 assert a.sub() == -1
 
-assert a.__base__ is object
+assert A.__base__ is object
 
 class B(A):
     def __init__(self, a, b, c):

@@ -69,7 +69,7 @@ public:
     T* get() const { return _t(); }
 
     int use_count() const { 
-        if(is_tagged()) return 1;
+        if(is_tagged()) return 0;
         return counter ? *counter : 0;
     }
 

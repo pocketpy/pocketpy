@@ -65,7 +65,9 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<0>("super", [](VM* vm, Args& args) {
         const PyVar* self = vm->top_frame()->f_locals().try_get(m_self);
         if(self == nullptr) vm->TypeError("super() can only be called in a class");
-        return vm->new_object(vm->tp_super, *self);
+        // base should be CURRENT_CLASS_BASE
+        Type base = vm->_all_types[(*self)->type.index].base;
+        return vm->new_object(vm->tp_super, Super(*self, base));
     });
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, Args& args) {
@@ -164,8 +166,6 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
 
     _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(vm->_t(args[0])));
-    _vm->bind_method<0>("type", "__repr__", CPP_LAMBDA(VAR("<class '" + OBJ_GET(Str, args[0]->attr(__name__)) + "'>")));
-
     _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, Args& args) {
         Range r;
         switch (args.size()) {
@@ -490,7 +490,7 @@ void init_builtins(VM* _vm) {
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, Args& args) {
         List list = CAST(List, vm->asList(args[0]));
-        return VAR(std::move(list));
+        return VAR(Tuple::from_list(std::move(list)));
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, Args& args) {
@@ -505,7 +505,7 @@ void init_builtins(VM* _vm) {
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
-            return VAR(std::move(new_list));
+            return VAR(Tuple::from_list(std::move(new_list)));
         }
 
         int index = CAST(int, args[1]);
@@ -745,11 +745,10 @@ void VM::post_init(){
     add_module_io(this);
     add_module_os(this);
     add_module_c(this);
-    _lazy_modules["functools"] = kPythonLibs["functools"];
-    _lazy_modules["collections"] = kPythonLibs["collections"];
-    _lazy_modules["heapq"] = kPythonLibs["heapq"];
-    _lazy_modules["bisect"] = kPythonLibs["bisect"];
-    _lazy_modules["this"] = kPythonLibs["this"];
+
+    for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
+        _lazy_modules[name] = kPythonLibs[name];
+    }
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);
@@ -757,6 +756,17 @@ void VM::post_init(){
     this->_exec(code, this->builtins);
     code = compile(kPythonLibs["set"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);
+
+    // property is defined in builtins.py so we need to add it after builtins is loaded
+    _t(tp_object)->attr().set(__class__, property(CPP_LAMBDA(vm->_t(args[0]))));
+    _t(tp_type)->attr().set(__base__, property([](VM* vm, Args& args){
+        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0]).index];
+        return info.base.index == -1 ? vm->None : vm->_all_types[info.base.index].obj;
+    }));
+    _t(tp_type)->attr().set(__name__, property([](VM* vm, Args& args){
+        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0]).index];
+        return VAR(info.name);
+    }));
 }
 
 }   // namespace pkpy
