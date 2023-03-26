@@ -87,7 +87,7 @@ PyVar VM::run_frame(Frame* frame){
             PyVar clsBase = frame->pop_value(this);
             if(clsBase == None) clsBase = _t(tp_object);
             check_type(clsBase, tp_type);
-            PyVar cls = new_type_object(frame->_module, name.first, clsBase);
+            PyVar cls = new_type_object(frame->_module, name.first, OBJ_GET(Type, clsBase));
             frame->push(cls);
         } continue;
         case OP_END_CLASS: {

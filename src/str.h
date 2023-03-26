@@ -202,6 +202,7 @@ const StrName __json__ = StrName::get("__json__");
 const StrName __name__ = StrName::get("__name__");
 const StrName __len__ = StrName::get("__len__");
 const StrName __get__ = StrName::get("__get__");
+const StrName __set__ = StrName::get("__set__");
 const StrName __getattr__ = StrName::get("__getattr__");
 const StrName __setattr__ = StrName::get("__setattr__");
 const StrName __call__ = StrName::get("__call__");

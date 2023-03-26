@@ -153,12 +153,12 @@ inline bool is_float(const PyVar& obj) noexcept {
 
 #define PY_CLASS(T, mod, name) \
     static Type _type(VM* vm) {  \
-        static StrName __x0(#mod);      \
-        static StrName __x1(#name);     \
+        static const StrName __x0(#mod);      \
+        static const StrName __x1(#name);     \
         return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
     }                                                                       \
     static PyVar register_class(VM* vm, PyVar mod) {                        \
-        PyVar type = vm->new_type_object(mod, #name, vm->_t(vm->tp_object));\
+        PyVar type = vm->new_type_object(mod, #name, vm->tp_object);        \
         if(OBJ_NAME(mod) != #mod) UNREACHABLE();                            \
         T::_register(vm, mod, type);                                        \
         type->attr()._try_perfect_rehash();                                 \

@@ -96,6 +96,15 @@ namespace pkpy {
         return ret;
     }
 
+    template<typename T1, typename T2, typename T3>
+    Args three_args(T1&& a, T2&& b, T3&& c) {
+        Args ret(3);
+        ret[0] = std::forward<T1>(a);
+        ret[1] = std::forward<T2>(b);
+        ret[2] = std::forward<T3>(c);
+        return ret;
+    }
+
     typedef Args Tuple;
     THREAD_LOCAL SmallArrayPool<PyVar, 10> Args::_pool;
 }   // namespace pkpy
