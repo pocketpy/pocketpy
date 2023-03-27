@@ -63,6 +63,7 @@ int main(int argc, char** argv){
         if(argv_1 == "-h" || argv_1 == "--help") goto __HELP;
 
         std::filesystem::path filepath(argv[1]);
+        filepath = std::filesystem::absolute(filepath);
         if(!std::filesystem::exists(filepath)){
             std::cerr << "File not found: " << argv_1 << std::endl;
             return 1;
