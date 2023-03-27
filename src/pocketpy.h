@@ -84,6 +84,13 @@ void init_builtins(VM* _vm) {
         return VAR(obj.bits);
     });
 
+    _vm->bind_builtin_func<2>("divmod", [](VM* vm, Args& args) {
+        i64 lhs = CAST(i64, args[0]);
+        i64 rhs = CAST(i64, args[1]);
+        if(rhs == 0) vm->ZeroDivisionError();
+        return VAR(two_args(VAR(lhs/rhs), VAR(lhs%rhs)));
+    });
+
     _vm->bind_builtin_func<1>("vars", [](VM* vm, Args& args) {
         const PyVar& obj = args[0];
         List ret;
