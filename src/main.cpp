@@ -1,6 +1,7 @@
 #include <fstream>
-#include "pocketpy.h"
+#include <filesystem>
 
+#include "pocketpy.h"
 
 #ifdef _WIN32
 
@@ -58,17 +59,23 @@ int main(int argc, char** argv){
     }
     
     if(argc == 2){
-        std::string filename = argv[1];
-        if(filename == "-h" || filename == "--help") goto __HELP;
+        std::string argv_1 = argv[1];
+        if(argv_1 == "-h" || argv_1 == "--help") goto __HELP;
 
-        std::ifstream file(filename);
-        if(!file.is_open()){
-            std::cerr << "File not found: " << filename << std::endl;
+        std::filesystem::path filepath(argv[1]);
+        if(!std::filesystem::exists(filepath)){
+            std::cerr << "File not found: " << argv_1 << std::endl;
             return 1;
-        }
+        }        
+        std::ifstream file(filepath);
+        if(!file.is_open()) return 1;
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+        // set parent path as cwd
+        std::filesystem::current_path(filepath.parent_path());
+
         pkpy::PyVarOrNull ret = nullptr;
-        ret = vm->exec(src.c_str(), filename, pkpy::EXEC_MODE);
+        ret = vm->exec(src.c_str(), argv_1, pkpy::EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;
     }

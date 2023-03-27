@@ -18,4 +18,6 @@ with open('123.txt', 'a') as f:
 with open('123.txt', 'r') as f:
     assert f.read() == '123456' + '测试'
 
+assert os.path_exists('123.txt')
 os.remove('123.txt')
+assert not os.path_exists('123.txt')

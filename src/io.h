@@ -88,8 +88,15 @@ void add_module_io(VM* vm){
 
 void add_module_os(VM* vm){
     PyVar mod = vm->new_module("os");
+    // Working directory is shared by all VMs!!
     vm->bind_func<0>(mod, "getcwd", [](VM* vm, const Args& args){
         return VAR(std::filesystem::current_path().string());
+    });
+
+    vm->bind_func<1>(mod, "chdir", [](VM* vm, const Args& args){
+        std::filesystem::path path(CAST(Str&, args[0]).c_str());
+        std::filesystem::current_path(path);
+        return vm->None;
     });
 
     vm->bind_func<1>(mod, "listdir", [](VM* vm, const Args& args){
