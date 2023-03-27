@@ -91,17 +91,6 @@ void init_builtins(VM* _vm) {
         return VAR(two_args(VAR(lhs/rhs), VAR(lhs%rhs)));
     });
 
-    _vm->bind_builtin_func<1>("vars", [](VM* vm, Args& args) {
-        const PyVar& obj = args[0];
-        List ret;
-        if(!obj.is_tagged() && obj->is_attr_valid()){
-            for(StrName name: obj->attr().keys()){
-                ret.push_back(VAR(name.str()));
-            }
-        }
-        return VAR(ret);
-    });
-
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
