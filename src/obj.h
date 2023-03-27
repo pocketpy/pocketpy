@@ -37,7 +37,7 @@ struct Function {
     PyVar _module = nullptr;
     NameDict_ _closure = nullptr;
 
-    bool has_name(const Str& val) const {
+    bool has_name(StrName val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
         bool _1 = starred_arg == val;
         bool _2 = kwargs.contains(val);
@@ -109,11 +109,11 @@ struct Py_ : PyObject {
 
     inline void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new NameDict(16, kTypeAttrLoadFactor);
+            _attr = new NameDict(8, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new NameDict(4, kInstAttrLoadFactor);
+            _attr = new NameDict(8, kInstAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, Function> || std::is_same_v<T, NativeFunc>){
-            _attr = new NameDict(4, kInstAttrLoadFactor);
+            _attr = new NameDict(8, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }

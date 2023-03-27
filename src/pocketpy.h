@@ -62,18 +62,37 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_builtin_func<0>("super", [](VM* vm, Args& args) {
-        const PyVar* self = vm->top_frame()->f_locals().try_get(m_self);
-        if(self == nullptr) vm->TypeError("super() can only be called in a class");
-        // base should be CURRENT_CLASS_BASE
-        Type base = vm->_all_types[(*self)->type.index].base;
-        return vm->new_object(vm->tp_super, Super(*self, base));
+    _vm->bind_builtin_func<2>("super", [](VM* vm, Args& args) {
+        vm->check_type(args[0], vm->tp_type);
+        Type type = OBJ_GET(Type, args[0]);
+        if(!vm->isinstance(args[1], type)){
+            vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
+        }
+        Type base = vm->_all_types[type.index].base;
+        return vm->new_object(vm->tp_super, Super(args[1], base));
+    });
+
+    _vm->bind_builtin_func<2>("isinstance", [](VM* vm, Args& args) {
+        vm->check_type(args[1], vm->tp_type);
+        Type type = OBJ_GET(Type, args[1]);
+        return VAR(vm->isinstance(args[0], type));
     });
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, Args& args) {
         const PyVar& obj = args[0];
         if(obj.is_tagged()) return VAR((i64)0);
         return VAR(obj.bits);
+    });
+
+    _vm->bind_builtin_func<1>("vars", [](VM* vm, Args& args) {
+        const PyVar& obj = args[0];
+        List ret;
+        if(!obj.is_tagged() && obj->is_attr_valid()){
+            for(StrName name: obj->attr().keys()){
+                ret.push_back(VAR(name.str()));
+            }
+        }
+        return VAR(ret);
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
@@ -403,6 +422,14 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("list", "append", [](VM* vm, Args& args) {
         List& self = CAST(List&, args[0]);
         self.push_back(args[1]);
+        return vm->None;
+    });
+
+    _vm->bind_method<1>("list", "extend", [](VM* vm, Args& args) {
+        List& self = CAST(List&, args[0]);
+        PyVar obj = vm->asList(args[1]);
+        const List& list = CAST(List&, obj);
+        self.insert(self.end(), list.begin(), list.end());
         return vm->None;
     });
 

@@ -30,7 +30,7 @@
 #include <chrono>
 
 #define PK_VERSION				"0.9.5"
-#define PK_EXTRA_CHECK 			1
+#define PK_EXTRA_CHECK 			0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

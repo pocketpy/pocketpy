@@ -17,7 +17,7 @@ assert A.__base__ is object
 
 class B(A):
     def __init__(self, a, b, c):
-        super().__init__(a, b)
+        super(B, self).__init__(a, b)
         self.c = c
 
     def add(self):
@@ -34,7 +34,7 @@ assert b.sub() == -4
 
 class C(B):
     def __init__(self, a, b, c, d):
-        super().__init__(a, b, c)
+        super(C, self).__init__(a, b, c)
         self.d = d
 
     def add(self):
@@ -51,14 +51,14 @@ assert c.sub() == -8
 
 class D(C):
     def __init__(self, a, b, c, d, e):
-        super().__init__(a, b, c, d)
+        super(D, self).__init__(a, b, c, d)
         self.e = e
 
     def add(self):
-        return super().add() + self.e
+        return super(D, self).add() + self.e
 
     def sub(self):
-        return super().sub() - self.e
+        return super(D, self).sub() - self.e
     
 assert D.__base__ is C
 

@@ -116,6 +116,17 @@ public:
         return nullptr;
     }
 
+    bool isinstance(const PyVar& obj, Type cls_t){
+        Type obj_t = OBJ_GET(Type, _t(obj));
+        do{
+            if(obj_t == cls_t) return true;
+            Type base = _all_types[obj_t.index].base;
+            if(base.index == -1) break;
+            obj_t = base;
+        }while(true);
+        return false;
+    }
+
     PyVar fast_call(StrName name, Args&& args){
         PyVar* val = find_name_in_mro(_t(args[0]).get(), name);
         if(val != nullptr) return call(*val, std::move(args));
