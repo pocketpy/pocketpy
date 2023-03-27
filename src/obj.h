@@ -88,6 +88,9 @@ public:
 };
 
 struct PyObject {
+    bool need_gc;
+    bool marked;
+    /**********/
     Type type;
     NameDict* _attr;
 
@@ -95,6 +98,12 @@ struct PyObject {
     inline NameDict& attr() noexcept { return *_attr; }
     inline const PyVar& attr(StrName name) const noexcept { return _attr->get(name); }
     virtual void* value() = 0;
+
+    virtual void mark() {
+        if(!need_gc || marked) return;
+        marked = true;
+        if(is_attr_valid()) attr().apply_v([](PyVar v){ v->mark(); });
+    }
 
     PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
@@ -119,9 +128,14 @@ struct Py_ : PyObject {
         }
     }
     void* value() override { return &_value; }
+
+    void mark() override {
+        PyObject::mark();
+        // extra mark for `T`
+    }
 };
 
-#define OBJ_GET(T, obj) (((Py_<T>*)((obj).get()))->_value)
+#define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 #define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
 
 const int kTpIntIndex = 2;

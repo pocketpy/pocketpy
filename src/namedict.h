@@ -230,6 +230,13 @@ while(!_keys[i].empty()) { \
         }
         return v;
     }
+
+    void apply_v(void(*f)(PyVar)) {
+        for(uint16_t i=0; i<_capacity; i++){
+            if(_keys[i].empty()) continue;
+            f(value(i));
+        }
+    }
 #undef HASH_PROBE
 #undef _hash
 };
