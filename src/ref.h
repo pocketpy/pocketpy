@@ -99,9 +99,7 @@ struct IndexRef : BaseRef {
     }
 
     void set(VM* vm, Frame* frame, PyObject* val) const{
-        Args args(3);
-        args[0] = obj; args[1] = index; args[2] = std::move(val);
-        vm->fast_call(__setitem__, std::move(args));
+        vm->fast_call(__setitem__, Args{obj, index, val});
     }
 
     void del(VM* vm, Frame* frame) const{

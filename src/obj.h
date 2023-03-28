@@ -87,6 +87,9 @@ public:
     virtual ~BaseIter() = default;
 };
 
+template <typename, typename=void> struct is_container_gc : std::false_type {};
+template <typename T> struct is_container_gc<T, std::void_t<decltype(T::_mark)>> : std::true_type {};
+
 struct GCHeader {
     bool enabled;   // whether this object is managed by GC
     bool marked;    // whether this object is marked
@@ -135,7 +138,7 @@ struct Py_ : PyObject {
 
     void mark() override {
         PyObject::mark();
-        // extra mark for `T`
+        if constexpr (is_container_gc<T>::value) _value._mark();
     }
 };
 
@@ -174,19 +177,13 @@ union BitsCvt {
     BitsCvt(f64 val) : _float(val) {}
 };
 
-template <typename, typename = void> struct is_py_class : std::false_type {};
+template <typename, typename=void> struct is_py_class : std::false_type {};
 template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};
 
-template<typename T>
-void _check_py_class(VM* vm, PyObject* var);
-
-template<typename T>
-T py_pointer_cast(VM* vm, PyObject* var);
-
-template<typename T>
-T py_value_cast(VM* vm, PyObject* var);
-
-struct Discarded {};
+template<typename T> void _check_py_class(VM*, PyObject*);
+template<typename T> T py_pointer_cast(VM*, PyObject*);
+template<typename T> T py_value_cast(VM*, PyObject*);
+struct Discarded { };
 
 template<typename __T>
 __T py_cast(VM* vm, PyObject* obj) {

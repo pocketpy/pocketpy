@@ -755,6 +755,11 @@ inline void add_module_random(VM* vm){
     vm->_exec(code, mod);
 }
 
+inline void add_module_gc(VM* vm){
+    PyObject* mod = vm->new_module("gc");
+    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->gc_collect())));
+}
+
 inline void VM::post_init(){
     init_builtins(this);
     add_module_sys(this);
@@ -767,6 +772,7 @@ inline void VM::post_init(){
     add_module_io(this);
     add_module_os(this);
     add_module_c(this);
+    add_module_gc(this);
 
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
         _lazy_modules[name] = kPythonLibs[name];

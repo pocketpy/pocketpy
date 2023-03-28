@@ -144,6 +144,11 @@ public:
         return nullptr;
     }
 
+    i64 gc_collect(){
+        heap.collect(this);
+        return 0;
+    }
+
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
         PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
@@ -929,6 +934,12 @@ inline PyObject* VM::_exec(){
             need_raise = true;
         }
     }
+}
+
+inline std::vector<PyObject*> ManagedHeap::get_roots(VM *vm) {
+    std::vector<PyObject*> roots;
+    // ...
+    return roots;
 }
 
 }   // namespace pkpy
