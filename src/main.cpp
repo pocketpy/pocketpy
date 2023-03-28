@@ -75,7 +75,7 @@ int main(int argc, char** argv){
         // set parent path as cwd
         std::filesystem::current_path(filepath.parent_path());
 
-        pkpy::PyVarOrNull ret = nullptr;
+        pkpy::PyObject* ret = nullptr;
         ret = vm->exec(src.c_str(), argv_1, pkpy::EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;

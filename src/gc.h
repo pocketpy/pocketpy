@@ -3,49 +3,38 @@
 #include "obj.h"
 
 namespace pkpy {
-    using PyVar0 = PyObject*;
+    struct ManagedHeap{
+        std::vector<PyObject*> heap;
 
-    // a generational mark and sweep garbage collector
-    struct GC{
-        using Generation = std::vector<PyVar0>;
-        static const int kTotalGen = 3;
-        Generation gen[kTotalGen];
-
-        void add(PyVar0 obj){
-            if(!obj->need_gc) return;
-            gen[0].push_back(obj);
+        template<typename T>
+        PyObject* gcnew(Type type, T&& val){
+            PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
+            obj->gc.enabled = true;
+            heap.push_back(obj);
+            return obj;
         }
 
-        void sweep(int index){
-            Generation& g = gen[index];
-            if(index < kTotalGen-1){
-                for(int i=0; i<g.size(); i++){
-                    if(g[i]->marked){
-                        g[i]->marked = false;
-                        gen[index+1].push_back(g[i]);
-                    }else{
-                        delete g[i];
-                    }
+        void sweep(){
+            std::vector<PyObject*> alive;
+            for(PyObject* obj: heap){
+                if(obj->gc.marked){
+                    obj->gc.marked = false;
+                    alive.push_back(obj);
+                }else{
+                    delete obj;
                 }
-                g.clear();
-            }else{
-                Generation alive;
-                // the oldest generation
-                for(int i=0; i<g.size(); i++){
-                    if(g[i]->marked){
-                        g[i]->marked = false;
-                        alive.push_back(g[i]);
-                    }else{
-                        delete g[i];
-                    }
-                }
-                g = std::move(alive);
             }
+            heap.clear();
+            heap.swap(alive);
         }
 
-        void collect(int index){
-            sweep(index);
+        void collect(VM* vm){
+            std::vector<PyObject*> roots = get_roots(vm);
+            for(PyObject* obj: roots) obj->mark();
+            sweep();
         }
+
+        std::vector<PyObject*> get_roots(VM* vm);
     };
 
 }   // namespace pkpy

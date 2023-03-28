@@ -69,7 +69,7 @@ void init_builtins(VM* _vm) {
             vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
         }
         Type base = vm->_all_types[type.index].base;
-        return vm->new_object(vm->tp_super, Super(args[1], base));
+        return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, Args& args) {
@@ -79,16 +79,16 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, Args& args) {
-        const PyVar& obj = args[0];
-        if(obj.is_tagged()) return VAR((i64)0);
-        return VAR(obj.bits);
+        PyObject* obj = args[0];
+        if(is_tagged(obj)) return VAR((i64)0);
+        return VAR(BITS(obj));
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, Args& args) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(two_args(VAR(lhs/rhs), VAR(lhs%rhs)));
+        return VAR(Tuple{VAR(lhs/rhs), VAR(lhs%rhs)});
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
@@ -169,8 +169,8 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, Args& args) {
-        PyVar self = args[0];
-        std::uintptr_t addr = self.is_tagged() ? 0 : (uintptr_t)self.get();
+        PyObject* self = args[0];
+        std::uintptr_t addr = is_tagged(self) ? 0 : (uintptr_t)self;
         StrStream ss;
         ss << std::hex << addr;
         Str s = "<" + OBJ_NAME(vm->_t(self)) + " object at 0x" + ss.str() + ">";
@@ -405,7 +405,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
         const Str& self = CAST(Str&, args[0]);
         StrStream ss;
-        PyVar obj = vm->asList(args[1]);
+        PyObject* obj = vm->asList(args[1]);
         const List& list = CAST(List&, obj);
         for (int i = 0; i < list.size(); ++i) {
             if (i > 0) ss << self;
@@ -423,7 +423,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("list", "extend", [](VM* vm, Args& args) {
         List& self = CAST(List&, args[0]);
-        PyVar obj = vm->asList(args[1]);
+        PyObject* obj = vm->asList(args[1]);
         const List& list = CAST(List&, obj);
         self.insert(self.end(), list.begin(), list.end());
         return vm->None;
@@ -575,7 +575,7 @@ void init_builtins(VM* _vm) {
 #endif
 
 void add_module_time(VM* vm){
-    PyVar mod = vm->new_module("time");
+    PyObject* mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, Args& args) {
         auto now = std::chrono::high_resolution_clock::now();
         return VAR(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
@@ -583,7 +583,7 @@ void add_module_time(VM* vm){
 }
 
 void add_module_sys(VM* vm){
-    PyVar mod = vm->new_module("sys");
+    PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
 
     vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(VAR(args[0].use_count())));
@@ -596,7 +596,7 @@ void add_module_sys(VM* vm){
 }
 
 void add_module_json(VM* vm){
-    PyVar mod = vm->new_module("json");
+    PyObject* mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
         const Str& expr = CAST(Str&, args[0]);
         CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
@@ -607,7 +607,7 @@ void add_module_json(VM* vm){
 }
 
 void add_module_math(VM* vm){
-    PyVar mod = vm->new_module("math");
+    PyObject* mod = vm->new_module("math");
     vm->setattr(mod, "pi", VAR(3.1415926535897932384));
     vm->setattr(mod, "e" , VAR(2.7182818284590452354));
 
@@ -626,9 +626,9 @@ void add_module_math(VM* vm){
 }
 
 void add_module_dis(VM* vm){
-    PyVar mod = vm->new_module("dis");
+    PyObject* mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, Args& args) {
-        PyVar f = args[0];
+        PyObject* f = args[0];
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).method;
         CodeObject_ code = CAST(Function, f).code;
         (*vm->_stdout) << vm->disassemble(code);
@@ -644,14 +644,14 @@ struct ReMatch {
     std::smatch m;
     ReMatch(i64 start, i64 end, std::smatch m) : start(start), end(end), m(m) {}
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
         vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(CAST(ReMatch&, args[0]).start)));
         vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(CAST(ReMatch&, args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
             auto& self = CAST(ReMatch&, args[0]);
-            return VAR(two_args(VAR(self.start), VAR(self.end)));
+            return VAR(Tuple{VAR(self.start), VAR(self.end)});
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
@@ -663,7 +663,7 @@ struct ReMatch {
     }
 };
 
-PyVar _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
+PyObject* _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
     std::smatch m;
     if(std::regex_search(string, m, re)){
@@ -676,7 +676,7 @@ PyVar _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* v
 };
 
 void add_module_re(VM* vm){
-    PyVar mod = vm->new_module("re");
+    PyObject* mod = vm->new_module("re");
     ReMatch::register_class(vm, mod);
 
     vm->bind_func<2>(mod, "match", [](VM* vm, Args& args) {
@@ -740,7 +740,7 @@ struct Random{
         gen.seed(seed);
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<0>(type, "__new__", CPP_LAMBDA(VAR_T(Random)));
         vm->bind_method<1>(type, "seed", native_proxy_callable(&Random::seed));
         vm->bind_method<2>(type, "randint", native_proxy_callable(&Random::randint));
@@ -750,7 +750,7 @@ struct Random{
 };
 
 void add_module_random(VM* vm){
-    PyVar mod = vm->new_module("random");
+    PyObject* mod = vm->new_module("random");
     Random::register_class(vm, mod);
     CodeObject_ code = vm->compile(kPythonLibs["random"], "random.py", EXEC_MODE);
     vm->_exec(code, mod);
@@ -851,7 +851,7 @@ extern "C" {
     /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
-        pkpy::PyVar* val = vm->_main->attr().try_get(name);
+        pkpy::PyObject** val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
             pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(*val));
@@ -867,7 +867,7 @@ extern "C" {
     /// Return `__repr__` of the result.
     /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(pkpy::VM* vm, const char* source){
-        pkpy::PyVarOrNull ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
+        pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
             pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(ret));
@@ -950,13 +950,13 @@ extern "C" {
         for(int i=0; mod[i]; i++) if(mod[i] == ' ') return nullptr;
         for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
-        pkpy::PyVar obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
+        pkpy::PyObject* obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
         vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, const pkpy::Args& args){
             pkpy::StrStream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
-                pkpy::PyVar x = vm->call(args[i], pkpy::__json__);
+                pkpy::PyObject* x = vm->call(args[i], pkpy::__json__);
                 ss << pkpy::CAST(pkpy::Str&, x);
             }
             char* packet = strdup(ss.str().c_str());

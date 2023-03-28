@@ -54,7 +54,7 @@ struct Token{
   const char* start;
   int length;
   int line;
-  PyVar value;
+  PyObject* value;
 
   Str str() const { return Str(start, length);}
 
@@ -271,7 +271,7 @@ struct Parser {
         return true;
     }
 
-    void set_next_token(TokenIndex type, PyVar value=nullptr) {
+    void set_next_token(TokenIndex type, PyObject* value=nullptr) {
         switch(type){
             case TK("{"): case TK("["): case TK("("): brackets_level++; break;
             case TK(")"): case TK("]"): case TK("}"): brackets_level--; break;

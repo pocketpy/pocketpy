@@ -57,7 +57,6 @@ namespace std = ::std;
 struct Dummy {  };
 struct DummyInstance {  };
 struct DummyModule { };
-#define DUMMY_VAL Dummy()
 
 struct Type {
 	int index;
@@ -85,4 +84,24 @@ struct Type {
 const float kLocalsLoadFactor = 0.67f;
 const float kInstAttrLoadFactor = 0.67f;
 const float kTypeAttrLoadFactor = 0.5f;
+
+static_assert(sizeof(i64) == sizeof(int*));
+static_assert(sizeof(f64) == sizeof(int*));
+static_assert(std::numeric_limits<float>::is_iec559);
+static_assert(std::numeric_limits<double>::is_iec559);
+
+struct PyObject;
+#define BITS(p) (reinterpret_cast<i64>(p))
+inline bool is_tagged(PyObject* p) noexcept { return (BITS(p) & 0b11) != 0b00; }
+inline bool is_int(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b01; }
+inline bool is_float(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b10; }
+
+inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
+    return is_tagged(a) && is_tagged(b);
+}
+
+inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
+    return is_int(a) && is_int(b);
+}
+
 } // namespace pkpy

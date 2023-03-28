@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-const int kNameDictNodeSize = sizeof(StrName) + sizeof(PyVar);
+const int kNameDictNodeSize = sizeof(StrName) + sizeof(PyObject*);
 
 template<int __Bucket, int __BucketSize=32>
 struct DictArrayPool {
@@ -26,9 +26,7 @@ struct DictArrayPool {
     }
 
     void dealloc(StrName* head, uint16_t n){
-        PyVar* _values = (PyVar*)(head + n);
         if(n > __Bucket || buckets[n].size() >= __BucketSize){
-            for(int i=0; i<n; i++) _values[i].~PyVar();
             free(head);
         }else{
             buckets[n].push_back(head);
@@ -75,12 +73,12 @@ struct NameDict {
     uint16_t _mask;
     StrName* _keys;
 
-    inline PyVar& value(uint16_t i){
-        return reinterpret_cast<PyVar*>(_keys + _capacity)[i];
+    inline PyObject*& value(uint16_t i){
+        return reinterpret_cast<PyObject**>(_keys + _capacity)[i];
     }
 
-    inline const PyVar& value(uint16_t i) const {
-        return reinterpret_cast<const PyVar*>(_keys + _capacity)[i];
+    inline PyObject* value(uint16_t i) const {
+        return reinterpret_cast<PyObject**>(_keys + _capacity)[i];
     }
 
     NameDict(uint16_t capacity=2, float load_factor=0.67, uint16_t hash_seed=kHashSeeds[0]):
@@ -123,19 +121,19 @@ while(!_keys[i].empty()) { \
     i = (i + 1) & _mask; \
 }
 
-    const PyVar& operator[](StrName key) const {
+    PyObject* operator[](StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
         return value(i);
     }
 
-    PyVar& get(StrName key){
-        bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
-        if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
-        return value(i);
-    }
+    // PyObject*& get(StrName key){
+    //     bool ok; uint16_t i;
+    //     HASH_PROBE(key, ok, i);
+    //     if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
+    //     return value(i);
+    // }
 
     template<typename T>
     void set(StrName key, T&& val){
@@ -154,7 +152,7 @@ while(!_keys[i].empty()) { \
 
     void _rehash(bool resize){
         StrName* old_keys = _keys;
-        PyVar* old_values = &value(0);
+        PyObject** old_values = &value(0);
         uint16_t old_capacity = _capacity;
         if(resize){
             _capacity = find_next_capacity(_capacity * 2);
@@ -177,18 +175,18 @@ while(!_keys[i].empty()) { \
         _rehash(false); // do not resize
     }
 
-    inline PyVar* try_get(StrName key){
+    inline PyObject** try_get(StrName key){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return nullptr;
         return &value(i);
     }
 
-    inline bool try_set(StrName key, PyVar&& val){
+    inline bool try_set(StrName key, PyObject* val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return false;
-        value(i) = std::move(val);
+        value(i) = val;
         return true;
     }
 
@@ -213,8 +211,8 @@ while(!_keys[i].empty()) { \
         _size--;
     }
 
-    std::vector<std::pair<StrName, PyVar>> items() const {
-        std::vector<std::pair<StrName, PyVar>> v;
+    std::vector<std::pair<StrName, PyObject*>> items() const {
+        std::vector<std::pair<StrName, PyObject*>> v;
         for(uint16_t i=0; i<_capacity; i++){
             if(_keys[i].empty()) continue;
             v.push_back(std::make_pair(_keys[i], value(i)));
@@ -231,7 +229,7 @@ while(!_keys[i].empty()) { \
         return v;
     }
 
-    void apply_v(void(*f)(PyVar)) {
+    void apply_v(void(*f)(PyObject*)) {
         for(uint16_t i=0; i<_capacity; i++){
             if(_keys[i].empty()) continue;
             f(value(i));

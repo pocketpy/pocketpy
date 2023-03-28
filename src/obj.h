@@ -12,7 +12,7 @@ struct Frame;
 struct BaseRef;
 class VM;
 
-typedef std::function<PyVar(VM*, Args&)> NativeFuncRaw;
+typedef std::function<PyObject*(VM*, Args&)> NativeFuncRaw;
 typedef shared_ptr<CodeObject> CodeObject_;
 typedef shared_ptr<NameDict> NameDict_;
 
@@ -22,7 +22,7 @@ struct NativeFunc {
     bool method;
     
     NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyVar operator()(VM* vm, Args& args) const;
+    inline PyObject* operator()(VM* vm, Args& args) const;
 };
 
 struct Function {
@@ -34,7 +34,7 @@ struct Function {
     std::vector<StrName> kwargs_order;
 
     // runtime settings
-    PyVar _module = nullptr;
+    PyObject* _module = nullptr;
     NameDict_ _closure = nullptr;
 
     bool has_name(StrName val) const {
@@ -46,9 +46,9 @@ struct Function {
 };
 
 struct BoundMethod {
-    PyVar obj;
-    PyVar method;
-    BoundMethod(const PyVar& obj, const PyVar& method) : obj(obj), method(method) {}
+    PyObject* obj;
+    PyObject* method;
+    BoundMethod(PyObject* obj, PyObject* method) : obj(obj), method(method) {}
 };
 
 struct Range {
@@ -58,9 +58,9 @@ struct Range {
 };
 
 struct StarWrapper {
-    PyVar obj;
+    PyObject* obj;
     bool rvalue;
-    StarWrapper(const PyVar& obj, bool rvalue): obj(obj), rvalue(rvalue) {}
+    StarWrapper(PyObject* obj, bool rvalue): obj(obj), rvalue(rvalue) {}
 };
 
 struct Slice {
@@ -79,30 +79,34 @@ struct Slice {
 class BaseIter {
 protected:
     VM* vm;
-    PyVar _ref;     // keep a reference to the object so it will not be deleted while iterating
+    PyObject* _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
-    virtual PyVar next() = 0;
-    PyVarRef loop_var;
-    BaseIter(VM* vm, PyVar _ref) : vm(vm), _ref(_ref) {}
+    virtual PyObject* next() = 0;
+    PyObject* loop_var;
+    BaseIter(VM* vm, PyObject* _ref) : vm(vm), _ref(_ref) {}
     virtual ~BaseIter() = default;
 };
 
+struct GCHeader {
+    bool enabled;   // whether this object is managed by GC
+    bool marked;    // whether this object is marked
+    GCHeader() : enabled(false), marked(false) {}
+};
+
 struct PyObject {
-    bool need_gc;
-    bool marked;
-    /**********/
+    GCHeader gc;
     Type type;
     NameDict* _attr;
 
     inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
     inline NameDict& attr() noexcept { return *_attr; }
-    inline const PyVar& attr(StrName name) const noexcept { return _attr->get(name); }
+    inline PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
 
     virtual void mark() {
-        if(!need_gc || marked) return;
-        marked = true;
-        if(is_attr_valid()) attr().apply_v([](PyVar v){ v->mark(); });
+        if(!gc.enabled || gc.marked) return;
+        gc.marked = true;
+        if(is_attr_valid()) attr().apply_v([](PyObject* v){ v->mark(); });
     }
 
     PyObject(Type type) : type(type) {}
@@ -141,28 +145,12 @@ struct Py_ : PyObject {
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
-inline bool is_type(const PyVar& obj, Type type) noexcept {
+inline bool is_type(PyObject* obj, Type type) noexcept {
     switch(type.index){
-        case kTpIntIndex: return obj.is_tag_01();
-        case kTpFloatIndex: return obj.is_tag_10();
-        default: return !obj.is_tagged() && obj->type == type;
+        case kTpIntIndex: return is_tag_01(obj);
+        case kTpFloatIndex: return is_tag_10(obj);
+        default: return !is_tagged(obj) && obj->type == type;
     }
-}
-
-inline bool is_both_int_or_float(const PyVar& a, const PyVar& b) noexcept {
-    return a.is_tagged() && b.is_tagged();
-}
-
-inline bool is_both_int(const PyVar& a, const PyVar& b) noexcept {
-    return (a.bits & b.bits & 0b11) == 0b01;
-}
-
-inline bool is_int(const PyVar& obj) noexcept {
-    return obj.is_tag_01();
-}
-
-inline bool is_float(const PyVar& obj) noexcept {
-    return obj.is_tag_10();
 }
 
 #define PY_CLASS(T, mod, name) \
@@ -171,37 +159,37 @@ inline bool is_float(const PyVar& obj) noexcept {
         static const StrName __x1(#name);     \
         return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
     }                                                                       \
-    static PyVar register_class(VM* vm, PyVar mod) {                        \
-        PyVar type = vm->new_type_object(mod, #name, vm->tp_object);        \
+    static PyObject* register_class(VM* vm, PyObject* mod) {                \
+        PyObject* type = vm->new_type_object(mod, #name, vm->tp_object);    \
         if(OBJ_NAME(mod) != #mod) UNREACHABLE();                            \
         T::_register(vm, mod, type);                                        \
         type->attr()._try_perfect_rehash();                                 \
         return type;                                                        \
     }                                                                       
 
-union __8B {
+union BitsCvt {
     i64 _int;
     f64 _float;
-    __8B(i64 val) : _int(val) {}
-    __8B(f64 val) : _float(val) {}
+    BitsCvt(i64 val) : _int(val) {}
+    BitsCvt(f64 val) : _float(val) {}
 };
 
 template <typename, typename = void> struct is_py_class : std::false_type {};
 template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};
 
 template<typename T>
-void _check_py_class(VM* vm, const PyVar& var);
+void _check_py_class(VM* vm, PyObject* var);
 
 template<typename T>
-T py_pointer_cast(VM* vm, const PyVar& var);
+T py_pointer_cast(VM* vm, PyObject* var);
 
 template<typename T>
-T py_value_cast(VM* vm, const PyVar& var);
+T py_value_cast(VM* vm, PyObject* var);
 
 struct Discarded {};
 
 template<typename __T>
-__T py_cast(VM* vm, const PyVar& obj) {
+__T py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<T>){
         return py_pointer_cast<T>(vm, obj);
@@ -216,7 +204,7 @@ __T py_cast(VM* vm, const PyVar& obj) {
 }
 
 template<typename __T>
-__T _py_cast(VM* vm, const PyVar& obj) {
+__T _py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<__T>){
         return py_pointer_cast<__T>(vm, obj);
@@ -228,7 +216,7 @@ __T _py_cast(VM* vm, const PyVar& obj) {
 }
 
 #define VAR(x) py_var(vm, x)
-#define VAR_T(T, ...) vm->new_object(T::_type(vm), T(__VA_ARGS__))
+#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
 #define CAST(T, x) py_cast<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
 

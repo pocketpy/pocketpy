@@ -7,27 +7,27 @@ namespace pkpy{
 static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
 
 struct Frame {
-    std::vector<PyVar> _data;
+    std::vector<PyObject*> _data;
     int _ip = -1;
     int _next_ip = 0;
 
     const CodeObject* co;
-    PyVar _module;
+    PyObject* _module;
     NameDict_ _locals;
     NameDict_ _closure;
     const uint64_t id;
-    std::vector<std::pair<int, std::vector<PyVar>>> s_try_block;
+    std::vector<std::pair<int, std::vector<PyObject*>>> s_try_block;
 
     inline NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
     inline NameDict& f_globals() noexcept { return _module->attr(); }
 
-    inline PyVar* f_closure_try_get(StrName name) noexcept {
+    inline PyObject** f_closure_try_get(StrName name) noexcept {
         if(_closure == nullptr) return nullptr;
         return _closure->try_get(name);
     }
 
     Frame(const CodeObject_& co,
-        const PyVar& _module,
+        PyObject* _module,
         const NameDict_& _locals=nullptr,
         const NameDict_& _closure=nullptr)
             : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
@@ -57,11 +57,11 @@ struct Frame {
         return _next_ip < co->codes.size();
     }
 
-    inline PyVar pop(){
+    inline PyObject* pop(){
 #if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
-        PyVar v = std::move(_data.back());
+        PyObject* v = _data.back();
         _data.pop_back();
         return v;
     }
@@ -73,28 +73,28 @@ struct Frame {
         _data.pop_back();
     }
 
-    inline void try_deref(VM*, PyVar&);
+    inline void try_deref(VM*, PyObject*&);
 
-    inline PyVar pop_value(VM* vm){
-        PyVar value = pop();
+    inline PyObject* pop_value(VM* vm){
+        PyObject* value = pop();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar top_value(VM* vm){
-        PyVar value = top();
+    inline PyObject* top_value(VM* vm){
+        PyObject* value = top();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyVar& top(){
+    inline PyObject*& top(){
 #if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         return _data.back();
     }
 
-    inline PyVar& top_1(){
+    inline PyObject*& top_1(){
 #if PK_EXTRA_CHECK
         if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
 #endif
@@ -117,7 +117,7 @@ struct Frame {
 
     bool jump_to_exception_handler(){
         if(s_try_block.empty()) return false;
-        PyVar obj = pop();
+        PyObject* obj = pop();
         auto& p = s_try_block.back();
         _data = std::move(p.second);
         _data.push_back(obj);

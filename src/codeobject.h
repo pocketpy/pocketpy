@@ -94,7 +94,7 @@ struct CodeObject {
         return names.size() - 1;
     }
 
-    int add_const(PyVar v){
+    int add_const(PyObject* v){
         consts.push_back(v);
         return consts.size() - 1;
     }

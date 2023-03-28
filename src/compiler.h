@@ -353,14 +353,14 @@ private:
     }
 
     void exprLiteral() {
-        PyVar value = parser->prev.value;
+        PyObject* value = parser->prev.value;
         int index = co()->add_const(value);
         emit(OP_LOAD_CONST, index);
     }
 
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
-        PyVar value = parser->prev.value;
+        PyObject* value = parser->prev.value;
         Str s = CAST(Str, value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
@@ -1059,7 +1059,7 @@ private:
                 case 1: func.starred_arg = name; state+=1; break;
                 case 2: {
                     consume(TK("="));
-                    PyVarOrNull value = read_literal();
+                    PyObject* value = read_literal();
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
                     }
@@ -1115,10 +1115,10 @@ private:
         }
     }
 
-    PyVarOrNull read_literal(){
+    PyObject* read_literal(){
         if(match(TK("-"))){
             consume(TK("@num"));
-            PyVar val = parser->prev.value;
+            PyObject* val = parser->prev.value;
             return vm->num_negated(val);
         }
         if(match(TK("@num"))) return parser->prev.value;
@@ -1166,7 +1166,7 @@ public:
             code->optimize(vm);
             return code;
         }else if(mode()==JSON_MODE){
-            PyVarOrNull value = read_literal();
+            PyObject* value = read_literal();
             if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();

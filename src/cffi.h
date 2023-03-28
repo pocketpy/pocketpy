@@ -14,7 +14,7 @@ struct NativeProxyFunc {
     _Fp func;
     NativeProxyFunc(_Fp func) : func(func) {}
 
-    PyVar operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, Args& args) {
         if (args.size() != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
         }
@@ -22,13 +22,13 @@ struct NativeProxyFunc {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         func(py_cast<Params>(vm, args[Is])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         __Ret ret = func(py_cast<Params>(vm, args[Is])...);
         return VAR(std::move(ret));
     }
@@ -41,7 +41,7 @@ struct NativeProxyMethod {
     _Fp func;
     NativeProxyMethod(_Fp func) : func(func) {}
 
-    PyVar operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, Args& args) {
         int actual_size = args.size() - 1;
         if (actual_size != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
@@ -50,14 +50,14 @@ struct NativeProxyMethod {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return VAR(std::move(ret));
@@ -200,7 +200,7 @@ struct Pointer{
         return Pointer(ctype, level, ptr-offset*unit_size());
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
@@ -268,7 +268,7 @@ struct Pointer{
     template<typename T>
     inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
 
-    PyVar get(VM* vm){
+    PyObject* get(VM* vm){
         if(level > 1) return VAR_T(Pointer, ctype, level-1, ref<char*>());
         switch(ctype->index){
 #define CASE(T) case type_index<T>(): return VAR(ref<T>())
@@ -291,7 +291,7 @@ struct Pointer{
         return VAR_T(Pointer, *this);
     }
 
-    void set(VM* vm, const PyVar& val){
+    void set(VM* vm, PyObject* val){
         if(level > 1) {
             Pointer& p = CAST(Pointer&, val);
             ref<char*>() = p.ptr;   // We don't check the type, just copy the underlying address
@@ -359,7 +359,7 @@ struct Value {
     Value& operator=(const Value& other) = delete;
     Value(const Value& other) = delete;
     
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "ptr", [](VM* vm, Args& args) {
@@ -388,7 +388,7 @@ struct CType{
     CType() : type(_type_db.get<void>()) {}
     CType(const TypeInfo* type) : type(type) {}
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<1>(type, "__new__", [](VM* vm, Args& args) {
             const Str& name = CAST(Str&, args[0]);
             const TypeInfo* type = _type_db.get(name);
@@ -404,8 +404,8 @@ struct CType{
 };
 
 void add_module_c(VM* vm){
-    PyVar mod = vm->new_module("c");
-    PyVar ptr_t = Pointer::register_class(vm, mod);
+    PyObject* mod = vm->new_module("c");
+    PyObject* ptr_t = Pointer::register_class(vm, mod);
     Value::register_class(vm, mod);
     CType::register_class(vm, mod);
 
@@ -462,11 +462,11 @@ void add_module_c(VM* vm){
     });
 }
 
-PyVar py_var(VM* vm, void* p){
+PyObject* py_var(VM* vm, void* p){
     return VAR_T(Pointer, _type_db.get<void>(), (char*)p);
 }
 
-PyVar py_var(VM* vm, char* p){
+PyObject* py_var(VM* vm, char* p){
     return VAR_T(Pointer, _type_db.get<char>(), (char*)p);
 }
 
@@ -491,7 +491,7 @@ struct pointer {
 };
 
 template<typename T>
-T py_pointer_cast(VM* vm, const PyVar& var){
+T py_pointer_cast(VM* vm, PyObject* var){
     static_assert(std::is_pointer_v<T>);
     Pointer& p = CAST(Pointer&, var);
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
@@ -503,14 +503,14 @@ T py_pointer_cast(VM* vm, const PyVar& var){
 }
 
 template<typename T>
-T py_value_cast(VM* vm, const PyVar& var){
+T py_value_cast(VM* vm, PyObject* var){
     static_assert(std::is_pod_v<T>);
     Value& v = CAST(Value&, var);
     return *reinterpret_cast<T*>(v.data);
 }
 
 template<typename T>
-std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyVar>
+std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyObject*>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     if(type == nullptr) type = _type_db.get<void>();
@@ -518,9 +518,9 @@ py_var(VM* vm, T p){
 }
 
 template<typename T>
-std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyVar>
+std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyObject*>
 py_var(VM* vm, T p){
-    if constexpr(std::is_same_v<T, PyVar>) return p;
+    if constexpr(std::is_same_v<T, PyObject*>) return p;
     const TypeInfo* type = _type_db.get<T>();
     return VAR_T(Value, type, &p);
 }

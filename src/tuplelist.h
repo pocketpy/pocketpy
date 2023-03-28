@@ -3,6 +3,7 @@
 #include "common.h"
 #include "memory.h"
 #include "str.h"
+#include <initializer_list>
 
 namespace pkpy {
     using List = std::vector<PyObject*>;
@@ -31,6 +32,11 @@ namespace pkpy {
             this->_size = other._size;
             other._args = nullptr;
             other._size = 0;
+        }
+
+        Args(std::initializer_list<PyObject*> list) : Args(list.size()){
+            int i=0;
+            for(auto& p : list) _args[i++] = p;
         }
 
         static pkpy::Args from_list(List&& other) noexcept {
@@ -80,30 +86,6 @@ namespace pkpy {
     inline const Args& no_arg() {
         static const Args _zero(0);
         return _zero;
-    }
-
-    template<typename T>
-    Args one_arg(T&& a) {
-        Args ret(1);
-        ret[0] = std::forward<T>(a);
-        return ret;
-    }
-
-    template<typename T1, typename T2>
-    Args two_args(T1&& a, T2&& b) {
-        Args ret(2);
-        ret[0] = std::forward<T1>(a);
-        ret[1] = std::forward<T2>(b);
-        return ret;
-    }
-
-    template<typename T1, typename T2, typename T3>
-    Args three_args(T1&& a, T2&& b, T3&& c) {
-        Args ret(3);
-        ret[0] = std::forward<T1>(a);
-        ret[1] = std::forward<T2>(b);
-        ret[2] = std::forward<T3>(c);
-        return ret;
     }
 
     typedef Args Tuple;
