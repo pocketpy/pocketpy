@@ -10,7 +10,7 @@
 
 namespace pkpy {
 
-CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
+inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     Compiler compiler(this, source.c_str(), filename, mode);
     try{
         return compiler.compile();
@@ -42,7 +42,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     });
     
 
-void init_builtins(VM* _vm) {
+inline void init_builtins(VM* _vm) {
     BIND_NUM_ARITH_OPT(__add__, +)
     BIND_NUM_ARITH_OPT(__sub__, -)
     BIND_NUM_ARITH_OPT(__mul__, *)
@@ -69,7 +69,7 @@ void init_builtins(VM* _vm) {
             vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
         }
         Type base = vm->_all_types[type.index].base;
-        return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
+        return vm->gcnew(vm->tp_super, Super(args[1], base));
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, Args& args) {
@@ -88,7 +88,8 @@ void init_builtins(VM* _vm) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(Tuple{VAR(lhs/rhs), VAR(lhs%rhs)});
+        Tuple t = Tuple{VAR(lhs/rhs), VAR(lhs%rhs)};
+        return VAR(std::move(t));
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
@@ -574,7 +575,7 @@ void init_builtins(VM* _vm) {
 #define __EXPORT
 #endif
 
-void add_module_time(VM* vm){
+inline void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, Args& args) {
         auto now = std::chrono::high_resolution_clock::now();
@@ -582,20 +583,17 @@ void add_module_time(VM* vm){
     });
 }
 
-void add_module_sys(VM* vm){
+inline void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
-
-    vm->bind_func<1>(mod, "getrefcount", CPP_LAMBDA(VAR(args[0].use_count())));
     vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(VAR(vm->recursionlimit)));
-
     vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, Args& args) {
         vm->recursionlimit = CAST(int, args[0]);
         return vm->None;
     });
 }
 
-void add_module_json(VM* vm){
+inline void add_module_json(VM* vm){
     PyObject* mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
         const Str& expr = CAST(Str&, args[0]);
@@ -606,7 +604,7 @@ void add_module_json(VM* vm){
     vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__)));
 }
 
-void add_module_math(VM* vm){
+inline void add_module_math(VM* vm){
     PyObject* mod = vm->new_module("math");
     vm->setattr(mod, "pi", VAR(3.1415926535897932384));
     vm->setattr(mod, "e" , VAR(2.7182818284590452354));
@@ -625,7 +623,7 @@ void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(vm->num_to_float(args[0])))));
 }
 
-void add_module_dis(VM* vm){
+inline void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, Args& args) {
         PyObject* f = args[0];
@@ -651,7 +649,8 @@ struct ReMatch {
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
             auto& self = CAST(ReMatch&, args[0]);
-            return VAR(Tuple{VAR(self.start), VAR(self.end)});
+            Tuple t = Tuple{VAR(self.start), VAR(self.end)};
+            return VAR(std::move(t));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {
@@ -663,7 +662,7 @@ struct ReMatch {
     }
 };
 
-PyObject* _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
+inline PyObject* _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
     std::regex re(pattern);
     std::smatch m;
     if(std::regex_search(string, m, re)){
@@ -675,7 +674,7 @@ PyObject* _regex_search(const Str& pattern, const Str& string, bool fromStart, V
     return vm->None;
 };
 
-void add_module_re(VM* vm){
+inline void add_module_re(VM* vm){
     PyObject* mod = vm->new_module("re");
     ReMatch::register_class(vm, mod);
 
@@ -749,14 +748,14 @@ struct Random{
     }
 };
 
-void add_module_random(VM* vm){
+inline void add_module_random(VM* vm){
     PyObject* mod = vm->new_module("random");
     Random::register_class(vm, mod);
     CodeObject_ code = vm->compile(kPythonLibs["random"], "random.py", EXEC_MODE);
     vm->_exec(code, mod);
 }
 
-void VM::post_init(){
+inline void VM::post_init(){
     init_builtins(this);
     add_module_sys(this);
     add_module_time(this);

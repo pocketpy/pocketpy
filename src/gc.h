@@ -6,12 +6,9 @@ namespace pkpy {
     struct ManagedHeap{
         std::vector<PyObject*> heap;
 
-        template<typename T>
-        PyObject* gcnew(Type type, T&& val){
-            PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
+        void _add(PyObject* obj){
             obj->gc.enabled = true;
             heap.push_back(obj);
-            return obj;
         }
 
         void sweep(){

@@ -147,8 +147,8 @@ const int kTpFloatIndex = 3;
 
 inline bool is_type(PyObject* obj, Type type) noexcept {
     switch(type.index){
-        case kTpIntIndex: return is_tag_01(obj);
-        case kTpFloatIndex: return is_tag_10(obj);
+        case kTpIntIndex: return is_int(obj);
+        case kTpFloatIndex: return is_float(obj);
         default: return !is_tagged(obj) && obj->type == type;
     }
 }
@@ -216,7 +216,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
 }
 
 #define VAR(x) py_var(vm, x)
-#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
+#define VAR_T(T, ...) vm->gcnew<T>(T::_type(vm), T(__VA_ARGS__))
 #define CAST(T, x) py_cast<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
 

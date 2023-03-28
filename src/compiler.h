@@ -766,7 +766,7 @@ private:
 
     // from a import b as c, d as e
     void compile_from_import() {
-        Token tkmodule = _compile_import();
+        _compile_import();
         consume(TK("import"));
         if (match(TK("*"))) {
             if(name_scope() != NAME_GLOBAL) SyntaxError("import * can only be used in global scope");

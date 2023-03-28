@@ -73,7 +73,7 @@ struct Frame {
         _data.pop_back();
     }
 
-    inline void try_deref(VM*, PyObject*&);
+    void try_deref(VM*, PyObject*&);
 
     inline PyObject* pop_value(VM* vm){
         PyObject* value = pop();

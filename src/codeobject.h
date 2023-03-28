@@ -18,7 +18,7 @@ enum Opcode {
     #undef OPCODE
 };
 
-static const char* OP_NAMES[] = {
+inline const char* OP_NAMES[] = {
     #define OPCODE(name) #name,
     #include "opcodes.h"
     #undef OPCODE
@@ -31,7 +31,7 @@ struct Bytecode{
     uint16_t block;
 };
 
-Str pad(const Str& s, const int n){
+inline Str pad(const Str& s, const int n){
     if(s.size() >= n) return s.substr(0, n);
     return s + std::string(n - s.size(), ' ');
 }

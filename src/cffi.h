@@ -152,7 +152,7 @@ struct TypeDB{
 static TypeDB _type_db;
 
 
-auto _ = [](){
+inline static auto ___x = [](){
     #define REGISTER_BASIC_TYPE(T) _type_db.register_type<T>(#T, {});
     _type_db.register_type<void>("void", {});
     REGISTER_BASIC_TYPE(char);
@@ -403,9 +403,9 @@ struct CType{
     }
 };
 
-void add_module_c(VM* vm){
+inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
-    PyObject* ptr_t = Pointer::register_class(vm, mod);
+    Pointer::register_class(vm, mod);
     Value::register_class(vm, mod);
     CType::register_class(vm, mod);
 
@@ -462,11 +462,11 @@ void add_module_c(VM* vm){
     });
 }
 
-PyObject* py_var(VM* vm, void* p){
+inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(Pointer, _type_db.get<void>(), (char*)p);
 }
 
-PyObject* py_var(VM* vm, char* p){
+inline PyObject* py_var(VM* vm, char* p){
     return VAR_T(Pointer, _type_db.get<char>(), (char*)p);
 }
 

@@ -50,7 +50,7 @@ public:
     }
 };
 
-PyObject* Generator::next(){
+inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
     vm->callstack.push(std::move(frame));
     PyObject* ret = vm->_exec();

@@ -7,7 +7,7 @@ namespace pkpy{
 
 Str _read_file_cwd(const Str& name, bool* ok);
 
-PyObject* VM::run_frame(Frame* frame){
+inline PyObject* VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)

@@ -10,7 +10,7 @@
 
 namespace pkpy{
 
-Str _read_file_cwd(const Str& name, bool* ok){
+inline Str _read_file_cwd(const Str& name, bool* ok){
     std::filesystem::path path(name.c_str());
     bool exists = std::filesystem::exists(path);
     if(!exists){
@@ -78,7 +78,7 @@ struct FileIO {
     }
 };
 
-void add_module_io(VM* vm){
+inline void add_module_io(VM* vm){
     PyObject* mod = vm->new_module("io");
     PyObject* type = FileIO::register_class(vm, mod);
     vm->bind_builtin_func<2>("open", [type](VM* vm, const Args& args){
@@ -86,7 +86,7 @@ void add_module_io(VM* vm){
     });
 }
 
-void add_module_os(VM* vm){
+inline void add_module_os(VM* vm){
     PyObject* mod = vm->new_module("os");
     // Working directory is shared by all VMs!!
     vm->bind_func<0>(mod, "getcwd", [](VM* vm, const Args& args){

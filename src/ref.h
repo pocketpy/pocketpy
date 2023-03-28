@@ -154,10 +154,10 @@ struct TupleRef : BaseRef {
 template<typename P>
 PyObject* VM::PyRef(P&& value) {
     static_assert(std::is_base_of_v<BaseRef, std::decay_t<P>>);
-    return heap.gcnew<P>(tp_ref, std::forward<P>(value));
+    return gcnew<P>(tp_ref, std::forward<P>(value));
 }
 
-const BaseRef* VM::PyRef_AS_C(PyObject* obj)
+inline const BaseRef* VM::PyRef_AS_C(PyObject* obj)
 {
     if(!is_type(obj, tp_ref)) TypeError("expected an l-value");
     return static_cast<const BaseRef*>(obj->value());

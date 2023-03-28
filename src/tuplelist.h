@@ -41,8 +41,8 @@ namespace pkpy {
 
         static pkpy::Args from_list(List&& other) noexcept {
             Args ret(other.size());
-            memcpy((void*)ret._args, (void*)other.data(), sizeof(PyObject*)*ret.size());
-            memset((void*)other.data(), 0, sizeof(PyObject*)*ret.size());
+            memcpy((void*)ret._args, (void*)other.data(), sizeof(void*)*ret.size());
+            memset((void*)other.data(), 0, sizeof(void*)*ret.size());
             other.clear();
             return ret;
         }
@@ -63,8 +63,8 @@ namespace pkpy {
 
         List move_to_list() noexcept {
             List ret(_size);
-            memcpy((void*)ret.data(), (void*)_args, sizeof(PyObject*)*_size);
-            memset((void*)_args, 0, sizeof(PyObject*)*_size);
+            memcpy((void*)ret.data(), (void*)_args, sizeof(void*)*_size);
+            memset((void*)_args, 0, sizeof(void*)*_size);
             return ret;
         }
 
@@ -75,8 +75,8 @@ namespace pkpy {
             _args[0] = self;
             if(old_size == 0) return;
 
-            memcpy((void*)(_args+1), (void*)old_args, sizeof(PyObject*)*old_size);
-            memset((void*)old_args, 0, sizeof(PyObject*)*old_size);
+            memcpy((void*)(_args+1), (void*)old_args, sizeof(void*)*old_size);
+            memset((void*)old_args, 0, sizeof(void*)*old_size);
             _pool.dealloc(old_args, old_size);
         }
 
@@ -89,5 +89,5 @@ namespace pkpy {
     }
 
     typedef Args Tuple;
-    THREAD_LOCAL SmallArrayPool<PyObject*, 10> Args::_pool;
+    inline THREAD_LOCAL SmallArrayPool<PyObject*, 10> Args::_pool;
 }   // namespace pkpy

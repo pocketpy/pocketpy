@@ -20,7 +20,7 @@ def generate_python_sources():
 #include <string>
 
 namespace pkpy{
-    std::map<std::string, const char*> kPythonLibs = {
+    inline static std::map<std::string, const char*> kPythonLibs = {
 '''
     for key, value in sources.items():
         header += ' '*8 + '{"' + key + '", "' + value + '"},'

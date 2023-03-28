@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-const int kNameDictNodeSize = sizeof(StrName) + sizeof(PyObject*);
+const int kNameDictNodeSize = sizeof(StrName) + sizeof(void*);
 
 template<int __Bucket, int __BucketSize=32>
 struct DictArrayPool {
@@ -41,7 +41,7 @@ struct DictArrayPool {
 const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143, 3467, 28019, 1051, 39419, 1361, 28547, 48197, 2609, 24317, 22861, 41467, 17623, 52837, 59053, 33589, 32117};
 static DictArrayPool<32> _dict_pool;
 
-uint16_t find_next_capacity(uint16_t n){
+inline uint16_t find_next_capacity(uint16_t n){
     uint16_t x = 2;
     while(x < n) x <<= 1;
     return x;
@@ -49,7 +49,7 @@ uint16_t find_next_capacity(uint16_t n){
 
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
-uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
+inline uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
     if(keys.empty()) return kHashSeeds[0];
     std::set<uint16_t> indices;
     std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0.0f};
@@ -207,7 +207,7 @@ while(!_keys[i].empty()) { \
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
-        _keys[i] = StrName(); value(i).reset();
+        _keys[i] = StrName(); value(i) = nullptr;
         _size--;
     }
 
