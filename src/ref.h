@@ -19,15 +19,15 @@ struct NameRef : BaseRef {
     NameRef(const std::pair<StrName, NameScope>& pair) : pair(pair) {}
 
     PyObject* get(VM* vm, Frame* frame) const{
-        PyObject** val;
+        PyObject* val;
         val = frame->f_locals().try_get(name());
-        if(val != nullptr) return *val;
+        if(val != nullptr) return val;
         val = frame->f_closure_try_get(name());
-        if(val != nullptr) return *val;
+        if(val != nullptr) return val;
         val = frame->f_globals().try_get(name());
-        if(val != nullptr) return *val;
+        if(val != nullptr) return val;
         val = vm->builtins->attr().try_get(name());
-        if(val != nullptr) return *val;
+        if(val != nullptr) return val;
         vm->NameError(name());
         return nullptr;
     }

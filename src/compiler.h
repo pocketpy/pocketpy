@@ -35,7 +35,7 @@ public:
     Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
         this->vm = vm;
         this->parser = std::make_unique<Parser>(
-            make_sp<SourceData>(source, filename, mode)
+            std::make_shared<SourceData>(source, filename, mode)
         );
 
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
@@ -394,7 +394,7 @@ private:
             _compile_f_args(func, false);
             consume(TK(":"));
         }
-        func.code = make_sp<CodeObject>(parser->src, func.name.str());
+        func.code = std::make_shared<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
@@ -711,7 +711,7 @@ private:
     int emit(Opcode opcode, int arg=-1, bool keepline=false) {
         int line = parser->prev.line;
         co()->codes.push_back(
-            Bytecode{(uint8_t)opcode, arg, line, (uint16_t)co()->_curr_block_i}
+            Bytecode{(uint8_t)opcode, (uint16_t)co()->_curr_block_i, arg, line}
         );
         int i = co()->codes.size() - 1;
         if(keepline && i>=1) co()->codes[i].line = co()->codes[i-1].line;
@@ -1090,7 +1090,7 @@ private:
         if(match(TK("->"))){
             if(!match(TK("None"))) consume(TK("@id"));
         }
-        func.code = make_sp<CodeObject>(parser->src, func.name.str());
+        func.code = std::make_shared<CodeObject>(parser->src, func.name.str());
         this->codes.push(func.code);
         compile_block_body();
         func.code->optimize(vm);
@@ -1154,7 +1154,7 @@ public:
         if(used) UNREACHABLE();
         used = true;
 
-        CodeObject_ code = make_sp<CodeObject>(parser->src, Str("<module>"));
+        CodeObject_ code = std::make_shared<CodeObject>(parser->src, Str("<module>"));
         codes.push(code);
 
         lex_token(); lex_token();

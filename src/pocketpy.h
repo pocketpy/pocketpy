@@ -514,7 +514,7 @@ inline void init_builtins(VM* _vm) {
     /************ PyTuple ************/
     _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, Args& args) {
         List list = CAST(List, vm->asList(args[0]));
-        return VAR(Tuple::from_list(std::move(list)));
+        return VAR(Tuple(std::move(list)));
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, Args& args) {
@@ -529,7 +529,7 @@ inline void init_builtins(VM* _vm) {
             s.normalize(self.size());
             List new_list;
             for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
-            return VAR(Tuple::from_list(std::move(new_list)));
+            return VAR(Tuple(std::move(new_list)));
         }
 
         int index = CAST(int, args[1]);
@@ -601,7 +601,7 @@ inline void add_module_json(VM* vm){
         return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
     });
 
-    vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__)));
+    vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__, no_arg())));
 }
 
 inline void add_module_math(VM* vm){
@@ -850,10 +850,10 @@ extern "C" {
     /// Return `__repr__` of the result.
     /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
-        pkpy::PyObject** val = vm->_main->attr().try_get(name);
+        pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(*val));
+            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(val));
             return strdup(repr.c_str());
         }catch(...){
             return nullptr;
@@ -955,7 +955,7 @@ extern "C" {
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
-                pkpy::PyObject* x = vm->call(args[i], pkpy::__json__);
+                pkpy::PyObject* x = vm->call(args[i], pkpy::__json__, pkpy::no_arg());
                 ss << pkpy::CAST(pkpy::Str&, x);
             }
             char* packet = strdup(ss.str().c_str());

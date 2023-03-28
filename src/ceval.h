@@ -5,8 +5,6 @@
 
 namespace pkpy{
 
-Str _read_file_cwd(const Str& name, bool* ok);
-
 inline PyObject* VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
         const Bytecode& byte = frame->next_bytecode();
@@ -183,11 +181,11 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_RE_RAISE: _raise(); continue;
         case OP_BUILD_LIST:
-            frame->push(VAR(frame->pop_n_values_reversed(this, byte.arg).move_to_list()));
+            frame->push(VAR(frame->pop_n_values_reversed(this, byte.arg).to_list()));
             continue;
         case OP_BUILD_MAP: {
             Args items = frame->pop_n_values_reversed(this, byte.arg*2);
-            PyObject* obj = call(builtins->attr("dict"));
+            PyObject* obj = call(builtins->attr("dict"), no_arg());
             for(int i=0; i<items.size(); i+=2){
                 call(obj, __setitem__, Args{items[i], items[i+1]});
             }
@@ -195,7 +193,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_BUILD_SET: {
             PyObject* list = VAR(
-                frame->pop_n_values_reversed(this, byte.arg).move_to_list()
+                frame->pop_n_values_reversed(this, byte.arg).to_list()
             );
             PyObject* obj = call(builtins->attr("set"), Args{list});
             frame->push(obj);
@@ -295,7 +293,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;
-            PyObject** ext_mod = _modules.try_get(name);
+            PyObject* ext_mod = _modules.try_get(name);
             if(ext_mod == nullptr){
                 Str source;
                 auto it2 = _lazy_modules.find(name);
@@ -313,7 +311,7 @@ inline PyObject* VM::run_frame(Frame* frame){
                 frame->push(new_mod);
                 new_mod->attr()._try_perfect_rehash();
             }else{
-                frame->push(*ext_mod);
+                frame->push(ext_mod);
             }
         } continue;
         case OP_STORE_ALL_NAMES: {
@@ -326,8 +324,8 @@ inline PyObject* VM::run_frame(Frame* frame){
         }; continue;
         case OP_YIELD_VALUE: return _py_op_yield;
         // TODO: using "goto" inside with block may cause __exit__ not called
-        case OP_WITH_ENTER: call(frame->pop_value(this), __enter__); continue;
-        case OP_WITH_EXIT: call(frame->pop_value(this), __exit__); continue;
+        case OP_WITH_ENTER: call(frame->pop_value(this), __enter__, no_arg()); continue;
+        case OP_WITH_EXIT: call(frame->pop_value(this), __exit__, no_arg()); continue;
         case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); continue;
         case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); continue;
         default: throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");

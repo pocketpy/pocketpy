@@ -21,7 +21,7 @@ struct Frame {
     NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
     NameDict& f_globals() noexcept { return _module->attr(); }
 
-    PyObject** f_closure_try_get(StrName name) noexcept {
+    PyObject* f_closure_try_get(StrName name) noexcept {
         if(_closure == nullptr) return nullptr;
         return _closure->try_get(name);
     }

@@ -27,7 +27,7 @@
 #include <set>
 #include <algorithm>
 #include <random>
-#include <chrono>
+#include <initializer_list>
 
 #define PK_VERSION				"0.9.5"
 #define PK_EXTRA_CHECK 			0
@@ -54,20 +54,17 @@ namespace pkpy{
 
 namespace std = ::std;
 
-struct Dummy {  };
-struct DummyInstance {  };
+struct Dummy { };
+struct DummyInstance { };
 struct DummyModule { };
 
 struct Type {
 	int index;
 	Type(): index(-1) {}
 	Type(int index): index(index) {}
-	bool operator==(Type other) const noexcept {
-		return this->index == other.index;
-	}
-	bool operator!=(Type other) const noexcept {
-		return this->index != other.index;
-	}
+	bool operator==(Type other) const noexcept { return this->index == other.index; }
+	bool operator!=(Type other) const noexcept { return this->index != other.index; }
+	operator int() const noexcept { return this->index; }
 };
 
 //#define THREAD_LOCAL thread_local

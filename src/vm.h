@@ -7,23 +7,26 @@
 
 namespace pkpy{
 
+Str _read_file_cwd(const Str& name, bool* ok);
+
 #define DEF_NATIVE_2(ctype, ptype)                                      \
-    template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {            \
+    template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
         vm->check_type(obj, vm->ptype);                                 \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {           \
+    template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {          \
+    template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
         vm->check_type(obj, vm->ptype);                                 \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {         \
+    template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     inline PyObject* py_var(VM* vm, const ctype& value) { return vm->gcnew(vm->ptype, value);}     \
     inline PyObject* py_var(VM* vm, ctype&& value) { return vm->gcnew(vm->ptype, std::move(value));}
+
 
 class Generator: public BaseIter {
     std::unique_ptr<Frame> frame;
@@ -61,6 +64,7 @@ public:
     PyObject* False;
     PyObject* Ellipsis;
 
+    // managed by _modules, need_gc=false
     PyObject* builtins;         // builtins module
     PyObject* _main;            // __main__ module
 
@@ -83,12 +87,6 @@ public:
         init_builtin_types();
     }
 
-    PyObject* asStr(PyObject* obj){
-        PyObject* f = getattr(obj, __str__, false, true);
-        if(f != nullptr) return call(f);
-        return asRepr(obj);
-    }
-
     Frame* top_frame() const {
 #if PK_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
@@ -96,10 +94,16 @@ public:
         return callstack.top().get();
     }
 
+    PyObject* asStr(PyObject* obj){
+        PyObject* f = getattr(obj, __str__, false, true);
+        if(f != nullptr) return call(f, no_arg());
+        return asRepr(obj);
+    }
+
     PyObject* asIter(PyObject* obj){
         if(is_type(obj, tp_iterator)) return obj;
         PyObject* iter_f = getattr(obj, __iter__, false, true);
-        if(iter_f != nullptr) return call(iter_f);
+        if(iter_f != nullptr) return call(iter_f, no_arg());
         TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
         return nullptr;
     }
@@ -109,15 +113,15 @@ public:
         return call(_t(tp_list), Args{iterable});
     }
 
-    PyObject** find_name_in_mro(PyObject* cls, StrName name){
-        PyObject** val;
+    PyObject* find_name_in_mro(PyObject* cls, StrName name){
+        PyObject* val;
         do{
             val = cls->attr().try_get(name);
             if(val != nullptr) return val;
             Type cls_t = static_cast<Py_<Type>*>(cls)->_value;
-            Type base = _all_types[cls_t.index].base;
+            Type base = _all_types[cls_t].base;
             if(base.index == -1) break;
-            cls = _all_types[base.index].obj;
+            cls = _all_types[base].obj;
         }while(true);
         return nullptr;
     }
@@ -126,7 +130,7 @@ public:
         Type obj_t = OBJ_GET(Type, _t(obj));
         do{
             if(obj_t == cls_t) return true;
-            Type base = _all_types[obj_t.index].base;
+            Type base = _all_types[obj_t].base;
             if(base.index == -1) break;
             obj_t = base;
         }while(true);
@@ -134,8 +138,8 @@ public:
     }
 
     PyObject* fast_call(StrName name, Args&& args){
-        PyObject** val = find_name_in_mro(_t(args[0]), name);
-        if(val != nullptr) return call(*val, std::move(args));
+        PyObject* val = find_name_in_mro(_t(args[0]), name);
+        if(val != nullptr) return call(val, std::move(args));
         AttributeError(args[0], name);
         return nullptr;
     }
@@ -147,28 +151,19 @@ public:
         return obj;
     }
 
-    PyObject* call(PyObject* callable){
-        return call(callable, no_arg(), no_arg(), false);
-    }
-
     template<typename ArgT>
     std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
-    call(PyObject* _callable, ArgT&& args){
-        return call(_callable, std::forward<ArgT>(args), no_arg(), false);
+    call(PyObject* callable, ArgT&& args){
+        return call(callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
     template<typename ArgT>
     std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
     call(PyObject* obj, const StrName name, ArgT&& args){
-        return call(getattr(obj, name, true, true), std::forward<ArgT>(args), no_arg(), false);
+        PyObject* callable = getattr(obj, name, true, true);
+        return call(callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
-    PyObject* call(PyObject* obj, StrName name){
-        return call(getattr(obj, name, true, true), no_arg(), no_arg(), false);
-    }
-
-
-    // repl mode is only for setting `frame->id` to 0
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr){
         if(_module == nullptr) _module = _main;
         try {
@@ -205,7 +200,6 @@ public:
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base){
-        // use gcnew
         PyObject* obj = new Py_<Type>(tp_type, _all_types.size());
         PyTypeInfo info{
             .obj = obj,
@@ -223,12 +217,12 @@ public:
     }
 
     PyObject* _find_type(const Str& type){
-        PyObject** obj = builtins->attr().try_get(type);
-        if(!obj){
+        PyObject* obj = builtins->attr().try_get(type);
+        if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
             throw std::runtime_error("type not found: " + type);
         }
-        return *obj;
+        return obj;
     }
 
     template<int ARGC>
@@ -294,7 +288,6 @@ public:
         else throw UnhandledException();
     }
 
-public:
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
@@ -332,7 +325,6 @@ public:
     }
 
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
-    void post_init();
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
     PyObject* asBool(PyObject* obj);
@@ -341,21 +333,20 @@ public:
     PyObject* new_module(StrName name);
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
-    PyObject* call(PyObject* _callable, Args args, const Args& kwargs, bool opCall);
+    PyObject* call(PyObject* callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true, bool class_only=false);
     template<typename T>
     void setattr(PyObject* obj, StrName name, T&& value);
     template<int ARGC>
-    void bind_method(PyObject* obj, Str funcName, NativeFuncRaw fn);
+    void bind_method(PyObject*, Str, NativeFuncRaw);
     template<int ARGC>
-    void bind_func(PyObject* obj, Str funcName, NativeFuncRaw fn);
-    void _error(Exception e);
+    void bind_func(PyObject*, Str, NativeFuncRaw);
+    void _error(Exception);
     PyObject* _exec();
-
-    template<typename P>
-    PyObject* PyRef(P&& value);
+    template<typename P> PyObject* PyRef(P&&);
     const BaseRef* PyRef_AS_C(PyObject* obj);
+    void post_init();
 };
 
 inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
@@ -418,13 +409,13 @@ DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
-#define PY_CAST_INT(T)                          \
-template<> inline T py_cast<T>(VM* vm, PyObject* obj){ \
-    vm->check_type(obj, vm->tp_int);            \
-    return (T)(BITS(obj) >> 2);                 \
-}                                               \
-template<> inline T _py_cast<T>(VM* vm, PyObject* obj){    \
-    return (T)(BITS(obj) >> 2);                     \
+#define PY_CAST_INT(T)                                  \
+template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
+    vm->check_type(obj, vm->tp_int);                    \
+    return (T)(BITS(obj) >> 2);                         \
+}                                                       \
+template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
+    return (T)(BITS(obj) >> 2);                         \
 }
 
 PY_CAST_INT(char)
@@ -463,10 +454,10 @@ template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
 }
 
 
-#define PY_VAR_INT(T)                           \
-    inline PyObject* py_var(VM* vm, T _val){           \
-        i64 val = static_cast<i64>(_val);       \
-        if(((val << 2) >> 2) != val){           \
+#define PY_VAR_INT(T)                                       \
+    inline PyObject* py_var(VM* vm, T _val){                \
+        i64 val = static_cast<i64>(_val);                   \
+        if(((val << 2) >> 2) != val){                       \
             vm->_error("OverflowError", std::to_string(val) + " is out of range");  \
         }                                                                           \
         val = (val << 2) | 0b01;                                                    \
@@ -485,9 +476,9 @@ PY_VAR_INT(unsigned long)
 PY_VAR_INT(unsigned long long)
 
 #define PY_VAR_FLOAT(T)                             \
-    inline PyObject* py_var(VM* vm, T _val){               \
+    inline PyObject* py_var(VM* vm, T _val){        \
         f64 val = static_cast<f64>(_val);           \
-        i64 bits = BitsCvt(val)._int;                  \
+        i64 bits = BitsCvt(val)._int;               \
         bits = (bits >> 2) << 2;                    \
         bits |= 0b10;                               \
         return reinterpret_cast<PyObject*>(bits);   \
@@ -546,9 +537,9 @@ inline PyObject* VM::asBool(PyObject* obj){
     if(obj == None) return False;
     if(is_type(obj, tp_int)) return VAR(CAST(i64, obj) != 0);
     if(is_type(obj, tp_float)) return VAR(CAST(f64, obj) != 0.0);
-    PyObject* len_fn = getattr(obj, __len__, false, true);
-    if(len_fn != nullptr){
-        PyObject* ret = call(len_fn);
+    PyObject* len_f = getattr(obj, __len__, false, true);
+    if(len_f != nullptr){
+        PyObject* ret = call(len_f, no_arg());
         return VAR(CAST(i64, ret) > 0);
     }
     return True;
@@ -578,7 +569,7 @@ inline i64 VM::hash(PyObject* obj){
 }
 
 inline PyObject* VM::asRepr(PyObject* obj){
-    return call(obj, __repr__);
+    return call(obj, __repr__, no_arg());
 }
 
 inline PyObject* VM::new_module(StrName name) {
@@ -592,6 +583,11 @@ inline PyObject* VM::new_module(StrName name) {
 }
 
 inline Str VM::disassemble(CodeObject_ co){
+    auto pad = [](const Str& s, const int n){
+        if(s.size() >= n) return s.substr(0, n);
+        return s + std::string(n - s.size(), ' ');
+    };
+
     std::vector<int> jumpTargets;
     for(auto byte : co->codes){
         if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
@@ -633,8 +629,9 @@ inline Str VM::disassemble(CodeObject_ co){
             auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
             argStr += " (" + a.first.str() + '[' + x.first.str() + "])";
         }
-        ss << pad(argStr, 20);      // may overflow
-        ss << co->blocks[byte.block].to_string();
+        ss << argStr;
+        // ss << pad(argStr, 20);      // may overflow
+        // ss << co->blocks[byte.block].to_string();
         if(i != co->codes.size() - 1) ss << '\n';
     }
     StrStream consts;
@@ -661,13 +658,11 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::init_builtin_types(){
-    PyObject* _tp_object = new Py_<Type>(Type(1), Type(0));
-    PyObject* _tp_type = new Py_<Type>(Type(1), Type(1));
     // PyTypeObject is managed by _all_types
     // PyModuleObject is managed by _modules
     // They are not managed by GC, so we use a simple "new"
-    _all_types.push_back({.obj = _tp_object, .base = -1, .name = "object"});
-    _all_types.push_back({.obj = _tp_type, .base = 0, .name = "type"});
+    _all_types.push_back({.obj = new Py_<Type>(Type(1), Type(0)), .base = -1, .name = "object"});
+    _all_types.push_back({.obj = new Py_<Type>(Type(1), Type(1)), .base = 0, .name = "type"});
     tp_object = 0; tp_type = 1;
 
     tp_int = _new_type_object("int");
@@ -683,7 +678,6 @@ inline void VM::init_builtin_types(){
     tp_module = _new_type_object("module");
     tp_ref = _new_type_object("_ref");
     tp_star_wrapper = _new_type_object("_star_wrapper");
-    
     tp_function = _new_type_object("function");
     tp_native_function = _new_type_object("native_function");
     tp_iterator = _new_type_object("iterator");
@@ -697,6 +691,7 @@ inline void VM::init_builtin_types(){
     this->False = new Py_<Dummy>(tp_bool, {});
     this->_py_op_call = new Py_<Dummy>(_new_type_object("_py_op_call"), {});
     this->_py_op_yield = new Py_<Dummy>(_new_type_object("_py_op_yield"), {});
+
     this->builtins = new_module("builtins");
     this->_main = new_module("__main__");
     
@@ -712,19 +707,16 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("range", _t(tp_range));
 
     post_init();
-    for(int i=0; i<_all_types.size(); i++){
-        auto& t = _all_types[i];
-        t.obj->attr()._try_perfect_rehash();
-    }
+    for(auto& t: _all_types) t.obj->attr()._try_perfect_rehash();
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
 inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
     if(is_type(callable, tp_type)){
-        PyObject** new_f = callable->attr().try_get(__new__);
+        PyObject* new_f = callable->attr().try_get(__new__);
         PyObject* obj;
         if(new_f != nullptr){
-            obj = call(*new_f, std::move(args), kwargs, false);
+            obj = call(new_f, std::move(args), kwargs, false);
         }else{
             obj = gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
             PyObject* init_f = getattr(obj, __init__, false, true);
@@ -745,7 +737,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         return f(this, args);
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
-        NameDict_ locals = make_sp<NameDict>(
+        NameDict_ locals = std::make_shared<NameDict>(
             fn.code->perfect_locals_capacity,
             kLocalsLoadFactor,
             fn.code->perfect_hash_seed
@@ -754,7 +746,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         int i = 0;
         for(StrName name : fn.args){
             if(i < args.size()){
-                locals->set(name, std::move(args[i++]));
+                locals->set(name, args[i++]);
                 continue;
             }
             TypeError("missing positional argument " + name.str().escape(true));
@@ -764,12 +756,12 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
 
         if(!fn.starred_arg.empty()){
             List vargs;        // handle *args
-            while(i < args.size()) vargs.push_back(std::move(args[i++]));
-            locals->set(fn.starred_arg, VAR(Tuple::from_list(std::move(vargs))));
+            while(i < args.size()) vargs.push_back(args[i++]);
+            locals->set(fn.starred_arg, VAR(Tuple(std::move(vargs))));
         }else{
             for(StrName key : fn.kwargs_order){
                 if(i < args.size()){
-                    locals->set(key, std::move(args[i++]));
+                    locals->set(key, args[i++]);
                 }else{
                     break;
                 }
@@ -806,14 +798,13 @@ inline void VM::unpack_args(Args& args){
         if(is_type(args[i], tp_star_wrapper)){
             auto& star = _CAST(StarWrapper&, args[i]);
             if(!star.rvalue) UNREACHABLE();
-            PyObject* list = asList(star.obj);
-            List& list_c = CAST(List&, list);
-            unpacked.insert(unpacked.end(), list_c.begin(), list_c.end());
+            List& list = CAST(List&, asList(star.obj));
+            unpacked.insert(unpacked.end(), list.begin(), list.end());
         }else{
             unpacked.push_back(args[i]);
         }
     }
-    args = Args::from_list(std::move(unpacked));
+    args = Args(std::move(unpacked));
 }
 
 using Super = std::pair<PyObject*, Type>;
@@ -827,23 +818,23 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err, bool c
         obj = super.first;
         objtype = _t(super.second);
     }
-    PyObject** cls_var = find_name_in_mro(objtype, name);
+    PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        PyObject** descr_get = _t(*cls_var)->attr().try_get(__get__);
-        if(descr_get != nullptr) return call(*descr_get, Args{*cls_var, obj});
+        PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
+        if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
     }
     // handle instance __dict__
     if(!class_only && !is_tagged(obj) && obj->is_attr_valid()){
-        PyObject** val = obj->attr().try_get(name);
-        if(val != nullptr) return *val;
+        PyObject* val = obj->attr().try_get(name);
+        if(val != nullptr) return val;
     }
     if(cls_var != nullptr){
         // bound method is non-data descriptor
-        if(is_type(*cls_var, tp_function) || is_type(*cls_var, tp_native_function)){
-            return VAR(BoundMethod(obj, *cls_var));
+        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
+            return VAR(BoundMethod(obj, cls_var));
         }
-        return *cls_var;
+        return cls_var;
     }
     if(throw_err) AttributeError(obj, name);
     return nullptr;
@@ -859,14 +850,14 @@ inline void VM::setattr(PyObject* obj, StrName name, T&& value){
         obj = super.first;
         objtype = _t(super.second);
     }
-    PyObject** cls_var = find_name_in_mro(objtype, name);
+    PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        PyObject* cls_var_t = _t(*cls_var);
+        PyObject* cls_var_t = _t(cls_var);
         if(cls_var_t->attr().contains(__get__)){
-            PyObject** descr_set = cls_var_t->attr().try_get(__set__);
+            PyObject* descr_set = cls_var_t->attr().try_get(__set__);
             if(descr_set != nullptr){
-                call(*descr_set, Args{*cls_var, obj, std::forward<T>(value)});
+                call(descr_set, Args{cls_var, obj, std::forward<T>(value)});
             }else{
                 TypeError("readonly attribute: " + name.str().escape(true));
             }

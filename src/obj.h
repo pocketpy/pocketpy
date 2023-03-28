@@ -13,8 +13,8 @@ struct BaseRef;
 class VM;
 
 typedef std::function<PyObject*(VM*, Args&)> NativeFuncRaw;
-typedef shared_ptr<CodeObject> CodeObject_;
-typedef shared_ptr<NameDict> NameDict_;
+typedef std::shared_ptr<CodeObject> CodeObject_;
+typedef std::shared_ptr<NameDict> NameDict_;
 
 struct NativeFunc {
     NativeFuncRaw f;

@@ -157,10 +157,10 @@ inline void add_module_os(VM* vm){
 #else
 
 namespace pkpy{
-void add_module_io(VM* vm){}
-void add_module_os(VM* vm){}
+inline void add_module_io(VM* vm){}
+inline void add_module_os(VM* vm){}
 
-Str _read_file_cwd(const Str& name, bool* ok){
+inline Str _read_file_cwd(const Str& name, bool* ok){
     *ok = false;
     return Str();
 }

@@ -95,7 +95,7 @@ enum Precedence {
 
 // The context of the parsing phase for the compiler.
 struct Parser {
-    shared_ptr<SourceData> src;
+    std::shared_ptr<SourceData> src;
 
     const char* token_start;
     const char* curr_char;
@@ -290,7 +290,7 @@ struct Parser {
         else set_next_token(one);
     }
 
-    Parser(shared_ptr<SourceData> src) {
+    Parser(std::shared_ptr<SourceData> src) {
         this->src = src;
         this->token_start = src->source;
         this->curr_char = src->source;

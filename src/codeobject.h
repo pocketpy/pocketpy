@@ -26,15 +26,10 @@ inline const char* OP_NAMES[] = {
 
 struct Bytecode{
     uint8_t op;
+    uint16_t block;
     int arg;
     int line;
-    uint16_t block;
 };
-
-inline Str pad(const Str& s, const int n){
-    if(s.size() >= n) return s.substr(0, n);
-    return s + std::string(n - s.size(), ' ');
-}
 
 enum CodeBlockType {
     NO_BLOCK,
@@ -49,19 +44,14 @@ struct CodeBlock {
     int parent;         // parent index in blocks
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
-
-    std::string to_string() const {
-        if(parent == -1) return "";
-        return "[B:" + std::to_string(type) + "]";
-    }
 };
 
 struct CodeObject {
-    shared_ptr<SourceData> src;
+    std::shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
 
-    CodeObject(shared_ptr<SourceData> src, Str name) {
+    CodeObject(std::shared_ptr<SourceData> src, Str name) {
         this->src = src;
         this->name = name;
     }
