@@ -47,11 +47,11 @@ struct CodeBlock {
 };
 
 struct CodeObject {
-    std::shared_ptr<SourceData> src;
+    shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
 
-    CodeObject(std::shared_ptr<SourceData> src, Str name) {
+    CodeObject(shared_ptr<SourceData> src, Str name) {
         this->src = src;
         this->name = name;
     }

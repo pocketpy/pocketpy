@@ -737,7 +737,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         return f(this, args);
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
-        NameDict_ locals = std::make_shared<NameDict>(
+        NameDict_ locals = make_sp<NameDict>(
             fn.code->perfect_locals_capacity,
             kLocalsLoadFactor,
             fn.code->perfect_hash_seed
