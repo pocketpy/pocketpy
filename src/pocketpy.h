@@ -565,14 +565,14 @@ inline void init_builtins(VM* _vm) {
 }
 
 #ifdef _WIN32
-#define __EXPORT __declspec(dllexport)
+#define __EXPORT __declspec(dllexport) inline
 #elif __APPLE__
-#define __EXPORT __attribute__((visibility("default"))) __attribute__((used))
+#define __EXPORT __attribute__((visibility("default"))) __attribute__((used)) inline
 #elif __EMSCRIPTEN__
 #include <emscripten.h>
-#define __EXPORT EMSCRIPTEN_KEEPALIVE
+#define __EXPORT EMSCRIPTEN_KEEPALIVE inline
 #else
-#define __EXPORT
+#define __EXPORT inline
 #endif
 
 inline void add_module_time(VM* vm){
