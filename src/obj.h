@@ -22,7 +22,7 @@ struct NativeFunc {
     bool method;
     
     NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    inline PyObject* operator()(VM* vm, Args& args) const;
+    PyObject* operator()(VM* vm, Args& args) const;
 };
 
 struct Function {
@@ -98,9 +98,9 @@ struct PyObject {
     Type type;
     NameDict* _attr;
 
-    inline bool is_attr_valid() const noexcept { return _attr != nullptr; }
-    inline NameDict& attr() noexcept { return *_attr; }
-    inline PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
+    bool is_attr_valid() const noexcept { return _attr != nullptr; }
+    NameDict& attr() noexcept { return *_attr; }
+    PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
 
     virtual void mark() {
@@ -120,7 +120,7 @@ struct Py_ : PyObject {
     Py_(Type type, const T& val): PyObject(type), _value(val) { _init(); }
     Py_(Type type, T&& val): PyObject(type), _value(std::move(val)) { _init(); }
 
-    inline void _init() noexcept {
+    void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
             _attr = new NameDict(8, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){

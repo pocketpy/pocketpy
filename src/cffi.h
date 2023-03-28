@@ -266,7 +266,7 @@ struct Pointer{
     }
 
     template<typename T>
-    inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
+    T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
 
     PyObject* get(VM* vm){
         if(level > 1) return VAR_T(Pointer, ctype, level-1, ref<char*>());

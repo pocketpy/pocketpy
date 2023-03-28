@@ -62,10 +62,10 @@ struct Type {
 	int index;
 	Type(): index(-1) {}
 	Type(int index): index(index) {}
-	inline bool operator==(Type other) const noexcept {
+	bool operator==(Type other) const noexcept {
 		return this->index == other.index;
 	}
-	inline bool operator!=(Type other) const noexcept {
+	bool operator!=(Type other) const noexcept {
 		return this->index != other.index;
 	}
 };

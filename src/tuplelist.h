@@ -14,7 +14,7 @@ namespace pkpy {
         PyObject** _args;
         int _size;
 
-        inline void _alloc(int n){
+        void _alloc(int n){
             this->_args = _pool.alloc(n);
             this->_size = n;
         }
@@ -59,7 +59,7 @@ namespace pkpy {
             return *this;
         }
 
-        inline int size() const { return _size; }
+        int size() const { return _size; }
 
         List move_to_list() noexcept {
             List ret(_size);

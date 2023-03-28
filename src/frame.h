@@ -18,10 +18,10 @@ struct Frame {
     const uint64_t id;
     std::vector<std::pair<int, std::vector<PyObject*>>> s_try_block;
 
-    inline NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
-    inline NameDict& f_globals() noexcept { return _module->attr(); }
+    NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
+    NameDict& f_globals() noexcept { return _module->attr(); }
 
-    inline PyObject** f_closure_try_get(StrName name) noexcept {
+    PyObject** f_closure_try_get(StrName name) noexcept {
         if(_closure == nullptr) return nullptr;
         return _closure->try_get(name);
     }
@@ -32,7 +32,7 @@ struct Frame {
         const NameDict_& _closure=nullptr)
             : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
 
-    inline const Bytecode& next_bytecode() {
+    const Bytecode& next_bytecode() {
         _ip = _next_ip++;
         return co->codes[_ip];
     }
@@ -53,11 +53,11 @@ struct Frame {
     //     return ss.str();
     // }
 
-    inline bool has_next_bytecode() const {
+    bool has_next_bytecode() const {
         return _next_ip < co->codes.size();
     }
 
-    inline PyObject* pop(){
+    PyObject* pop(){
 #if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
@@ -66,7 +66,7 @@ struct Frame {
         return v;
     }
 
-    inline void _pop(){
+    void _pop(){
 #if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
@@ -75,26 +75,26 @@ struct Frame {
 
     void try_deref(VM*, PyObject*&);
 
-    inline PyObject* pop_value(VM* vm){
+    PyObject* pop_value(VM* vm){
         PyObject* value = pop();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyObject* top_value(VM* vm){
+    PyObject* top_value(VM* vm){
         PyObject* value = top();
         try_deref(vm, value);
         return value;
     }
 
-    inline PyObject*& top(){
+    PyObject*& top(){
 #if PK_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         return _data.back();
     }
 
-    inline PyObject*& top_1(){
+    PyObject*& top_1(){
 #if PK_EXTRA_CHECK
         if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
 #endif
@@ -102,16 +102,16 @@ struct Frame {
     }
 
     template<typename T>
-    inline void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
+    void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
 
-    inline void jump_abs(int i){ _next_ip = i; }
-    inline void jump_rel(int i){ _next_ip += i; }
+    void jump_abs(int i){ _next_ip = i; }
+    void jump_rel(int i){ _next_ip += i; }
 
-    inline void on_try_block_enter(){
+    void on_try_block_enter(){
         s_try_block.emplace_back(co->codes[_ip].block, _data);
     }
 
-    inline void on_try_block_exit(){
+    void on_try_block_exit(){
         s_try_block.pop_back();
     }
 

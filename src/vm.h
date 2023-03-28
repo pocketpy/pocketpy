@@ -89,7 +89,7 @@ public:
         return asRepr(obj);
     }
 
-    inline Frame* top_frame() const {
+    Frame* top_frame() const {
 #if PK_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
 #endif
@@ -147,23 +147,23 @@ public:
         return obj;
     }
 
-    inline PyObject* call(PyObject* callable){
+    PyObject* call(PyObject* callable){
         return call(callable, no_arg(), no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
+    std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
     call(PyObject* _callable, ArgT&& args){
         return call(_callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
     template<typename ArgT>
-    inline std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
+    std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
     call(PyObject* obj, const StrName name, ArgT&& args){
         return call(getattr(obj, name, true, true), std::forward<ArgT>(args), no_arg(), false);
     }
 
-    inline PyObject* call(PyObject* obj, StrName name){
+    PyObject* call(PyObject* obj, StrName name){
         return call(getattr(obj, name, true, true), no_arg(), no_arg(), false);
     }
 
@@ -185,7 +185,7 @@ public:
     }
 
     template<typename ...Args>
-    inline std::unique_ptr<Frame> _new_frame(Args&&... args){
+    std::unique_ptr<Frame> _new_frame(Args&&... args){
         if(callstack.size() > recursionlimit){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
@@ -193,7 +193,7 @@ public:
     }
 
     template<typename ...Args>
-    inline PyObject* _exec(Args&&... args){
+    PyObject* _exec(Args&&... args){
         callstack.push(_new_frame(std::forward<Args>(args)...));
         return _exec();
     }
@@ -272,12 +272,12 @@ public:
     Type tp_super, tp_exception, tp_star_wrapper;
 
     template<typename P>
-    inline PyObject* PyIter(P&& value) {
+    PyObject* PyIter(P&& value) {
         static_assert(std::is_base_of_v<BaseIter, std::decay_t<P>>);
         return gcnew<P>(tp_iterator, std::forward<P>(value));
     }
 
-    inline BaseIter* PyIter_AS_C(PyObject* obj)
+    BaseIter* PyIter_AS_C(PyObject* obj)
     {
         check_type(obj, tp_iterator);
         return static_cast<BaseIter*>(obj->value());
@@ -309,16 +309,16 @@ public:
 
     void AttributeError(Str msg){ _error("AttributeError", msg); }
 
-    inline void check_type(PyObject* obj, Type type){
+    void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
         TypeError("expected " + OBJ_NAME(_t(type)).escape(true) + ", but got " + OBJ_NAME(_t(obj)).escape(true));
     }
 
-    inline PyObject* _t(Type t){
+    PyObject* _t(Type t){
         return _all_types[t.index].obj;
     }
 
-    inline PyObject* _t(PyObject* obj){
+    PyObject* _t(PyObject* obj){
         if(is_int(obj)) return _t(tp_int);
         if(is_float(obj)) return _t(tp_float);
         return _all_types[OBJ_GET(Type, _t(obj->type)).index].obj;
@@ -358,7 +358,7 @@ public:
     const BaseRef* PyRef_AS_C(PyObject* obj);
 };
 
-PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
+inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));

@@ -120,7 +120,7 @@ struct Parser {
         return t;
     }
 
-    inline char peekchar() const{ return *curr_char; }
+    char peekchar() const{ return *curr_char; }
 
     bool match_n_chars(int n, char c0){
         const char* c = curr_char;

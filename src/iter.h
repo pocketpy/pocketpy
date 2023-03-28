@@ -13,7 +13,7 @@ public:
         this->current = r.start;
     }
 
-    inline bool _has_next(){
+    bool _has_next(){
         return r.step > 0 ? current < r.stop : current > r.stop;
     }
 

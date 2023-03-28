@@ -305,7 +305,7 @@ private:
         parser->set_next_token(TK("@eof"));
     }
 
-    inline TokenIndex peek() {
+    TokenIndex peek() {
         return parser->curr.type;
     }
 

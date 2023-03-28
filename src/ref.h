@@ -14,8 +14,8 @@ struct BaseRef {
 
 struct NameRef : BaseRef {
     const std::pair<StrName, NameScope> pair;
-    inline StrName name() const { return pair.first; }
-    inline NameScope scope() const { return pair.second; }
+    StrName name() const { return pair.first; }
+    NameScope scope() const { return pair.second; }
     NameRef(const std::pair<StrName, NameScope>& pair) : pair(pair) {}
 
     PyObject* get(VM* vm, Frame* frame) const{

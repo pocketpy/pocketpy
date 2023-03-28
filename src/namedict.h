@@ -41,7 +41,7 @@ struct DictArrayPool {
 const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143, 3467, 28019, 1051, 39419, 1361, 28547, 48197, 2609, 24317, 22861, 41467, 17623, 52837, 59053, 33589, 32117};
 static DictArrayPool<32> _dict_pool;
 
-inline uint16_t find_next_capacity(uint16_t n){
+inline static uint16_t find_next_capacity(uint16_t n){
     uint16_t x = 2;
     while(x < n) x <<= 1;
     return x;
@@ -49,7 +49,7 @@ inline uint16_t find_next_capacity(uint16_t n){
 
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
-inline uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
+inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
     if(keys.empty()) return kHashSeeds[0];
     std::set<uint16_t> indices;
     std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0.0f};
@@ -73,11 +73,11 @@ struct NameDict {
     uint16_t _mask;
     StrName* _keys;
 
-    inline PyObject*& value(uint16_t i){
+    PyObject*& value(uint16_t i){
         return reinterpret_cast<PyObject**>(_keys + _capacity)[i];
     }
 
-    inline PyObject* value(uint16_t i) const {
+    PyObject* value(uint16_t i) const {
         return reinterpret_cast<PyObject**>(_keys + _capacity)[i];
     }
 
@@ -175,14 +175,14 @@ while(!_keys[i].empty()) { \
         _rehash(false); // do not resize
     }
 
-    inline PyObject** try_get(StrName key){
+    PyObject** try_get(StrName key){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return nullptr;
         return &value(i);
     }
 
-    inline bool try_set(StrName key, PyObject* val){
+    bool try_set(StrName key, PyObject* val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return false;
@@ -190,7 +190,7 @@ while(!_keys[i].empty()) { \
         return true;
     }
 
-    inline bool contains(StrName key) const {
+    bool contains(StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         return ok;
