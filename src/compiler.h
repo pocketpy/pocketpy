@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codeobject.h"
+#include "common.h"
 #include "parser.h"
 #include "error.h"
 #include "ceval.h"
@@ -405,39 +406,50 @@ private:
     }
 
     void exprAssign() {
-        int lhs = co()->codes.empty() ? -1 : co()->codes.size() - 1;
+        if(co()->codes.empty()) UNREACHABLE();
+        bool is_load_name_ref = co()->codes.back().op == OP_LOAD_NAME_REF;
+        int _name_arg = co()->codes.back().arg;
+        // if the last op is OP_LOAD_NAME_REF, remove it
+        // because we will emit OP_STORE_NAME or OP_STORE_CLASS_ATTR
+        if(is_load_name_ref) co()->codes.pop_back();
+
         co()->_rvalue += 1;
         TokenIndex op = parser->prev.type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
-            if(lhs!=-1 && co()->codes[lhs].op == OP_LOAD_NAME_REF){
-                if(co()->_is_compiling_class){
-                    emit(OP_STORE_CLASS_ATTR, co()->codes[lhs].arg);
-                }else{
-                    emit(OP_STORE_NAME, co()->codes[lhs].arg);
-                }
-                co()->codes[lhs].op = OP_NO_OP;
-                co()->codes[lhs].arg = -1;
+            if(is_load_name_ref){
+                auto op = co()->_is_compiling_class ? OP_STORE_CLASS_ATTR : OP_STORE_NAME;
+                emit(op, _name_arg);
             }else{
                 if(co()->_is_compiling_class) SyntaxError();
                 emit(OP_STORE_REF);
             }
         }else{                  // a += (expr) -> a = a + (expr)
             if(co()->_is_compiling_class) SyntaxError();
+            if(is_load_name_ref){
+                emit(OP_LOAD_NAME, _name_arg);
+            }else{
+                emit(OP_DUP_TOP_VALUE);
+            }
             EXPR();
             switch (op) {
-                case TK("+="):      emit(OP_INPLACE_BINARY_OP, 0);  break;
-                case TK("-="):      emit(OP_INPLACE_BINARY_OP, 1);  break;
-                case TK("*="):      emit(OP_INPLACE_BINARY_OP, 2);  break;
-                case TK("/="):      emit(OP_INPLACE_BINARY_OP, 3);  break;
-                case TK("//="):     emit(OP_INPLACE_BINARY_OP, 4);  break;
-                case TK("%="):      emit(OP_INPLACE_BINARY_OP, 5);  break;
-                case TK("<<="):     emit(OP_INPLACE_BITWISE_OP, 0);  break;
-                case TK(">>="):     emit(OP_INPLACE_BITWISE_OP, 1);  break;
-                case TK("&="):      emit(OP_INPLACE_BITWISE_OP, 2);  break;
-                case TK("|="):      emit(OP_INPLACE_BITWISE_OP, 3);  break;
-                case TK("^="):      emit(OP_INPLACE_BITWISE_OP, 4);  break;
+                case TK("+="):      emit(OP_BINARY_OP, 0);  break;
+                case TK("-="):      emit(OP_BINARY_OP, 1);  break;
+                case TK("*="):      emit(OP_BINARY_OP, 2);  break;
+                case TK("/="):      emit(OP_BINARY_OP, 3);  break;
+                case TK("//="):     emit(OP_BINARY_OP, 4);  break;
+                case TK("%="):      emit(OP_BINARY_OP, 5);  break;
+                case TK("<<="):     emit(OP_BITWISE_OP, 0);  break;
+                case TK(">>="):     emit(OP_BITWISE_OP, 1);  break;
+                case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
+                case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
+                case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
                 default: UNREACHABLE();
+            }
+            if(is_load_name_ref){
+                emit(OP_STORE_NAME, _name_arg);
+            }else{
+                emit(OP_STORE_REF);
             }
         }
         co()->_rvalue -= 1;
@@ -791,6 +803,9 @@ private:
         consume_end_stmt();
     }
 
+    // a = 1 + 2
+    // ['a', '1', '2', '+', '=']
+    // 
     void parse_expression(Precedence precedence) {
         lex_token();
         GrammarFn prefix = rules[parser->prev.type].prefix;
@@ -1003,7 +1018,6 @@ private:
             // If last op is not an assignment, pop the result.
             uint8_t last_op = co()->codes.back().op;
             if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF &&
-            last_op!=OP_INPLACE_BINARY_OP && last_op!=OP_INPLACE_BITWISE_OP &&
             last_op!=OP_STORE_ALL_NAMES && last_op!=OP_STORE_CLASS_ATTR){
                 for(int i=begin; i<end; i++){
                     if(co()->codes[i].op==OP_BUILD_TUPLE_REF) co()->codes[i].op = OP_BUILD_TUPLE;

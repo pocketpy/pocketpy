@@ -7,7 +7,7 @@ namespace pkpy{
 
 inline PyObject* VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
-        heap._auto_collect(this);
+        // heap._auto_collect(this);
 
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)
@@ -114,22 +114,6 @@ inline PyObject* VM::run_frame(Frame* frame){
             args[1] = frame->pop_value(this);
             args[0] = frame->top_value(this);
             frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
-        } continue;
-        case OP_INPLACE_BINARY_OP: {
-            Args args(2);
-            args[1] = frame->pop();
-            args[0] = frame->top_value(this);
-            PyObject* ret = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
-            PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
-            frame->_pop();
-        } continue;
-        case OP_INPLACE_BITWISE_OP: {
-            Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
-            PyObject* ret = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
-            PyRef_AS_C(frame->top())->set(this, frame, std::move(ret));
-            frame->_pop();
         } continue;
         case OP_COMPARE_OP: {
             Args args(2);

@@ -5,12 +5,46 @@
 #include "codeobject.h"
 #include "namedict.h"
 
+/*
+0: object
+1: type
+2: int
+3: float
+4: bool
+5: str
+6: list
+7: tuple
+8: slice
+9: range
+10: module
+11: _ref
+12: _star_wrapper
+13: function
+14: native_function
+15: iterator
+16: bound_method
+17: super
+18: Exception
+19: NoneType
+20: ellipsis
+21: _py_op_call
+22: _py_op_yield
+23: re.Match
+24: random.Random
+25: io.FileIO
+26: property
+27: staticmethod
+28: dict
+29: set
+*/
+
 namespace pkpy {
 struct ManagedHeap{
     std::vector<PyObject*> _no_gc;
     std::vector<PyObject*> gen;
     
-    int gc_threshold = 700;
+    static const int kMinGCThreshold = 700;
+    int gc_threshold = kMinGCThreshold;
     int gc_counter = 0;
 
     template<typename T>
@@ -29,8 +63,13 @@ struct ManagedHeap{
         return obj;
     }
 
+    inline static std::map<Type, int> deleted;
+
     ~ManagedHeap(){
         for(PyObject* obj: _no_gc) delete obj;
+        for(auto& [type, count]: deleted){
+            std::cout << "GC: " << type << "=" << count << std::endl;
+        }
     }
 
     int sweep(VM* vm){
@@ -41,6 +80,7 @@ struct ManagedHeap{
                 alive.push_back(obj);
             }else{
                 // _delete_hook(vm, obj);
+                deleted[obj->type] += 1;
                 delete obj;
             }
         }
@@ -49,6 +89,7 @@ struct ManagedHeap{
         for(PyObject* obj: _no_gc) obj->gc.marked = false;
 
         int freed = gen.size() - alive.size();
+        // std::cout << "GC: " << alive.size() << "/" << gen.size() << " (" << freed << " freed)" << std::endl;
         gen.clear();
         gen.swap(alive);
         return freed;
@@ -61,12 +102,12 @@ struct ManagedHeap{
         gc_counter = 0;
         collect(vm);
         gc_threshold = gen.size() * 2;
+        if(gc_threshold < kMinGCThreshold) gc_threshold = kMinGCThreshold;
     }
 
     int collect(VM* vm){
         mark(vm);
         int freed = sweep(vm);
-        // std::cout << "GC: " << freed << " objects freed" << std::endl;
         return freed;
     }
 
