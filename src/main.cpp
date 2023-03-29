@@ -69,7 +69,10 @@ int main(int argc, char** argv){
             return 1;
         }        
         std::ifstream file(filepath);
-        if(!file.is_open()) return 1;
+        if(!file.is_open()){
+            std::cerr << "Failed to open file: " << argv_1 << std::endl;
+            return 1;
+        }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         // set parent path as cwd
