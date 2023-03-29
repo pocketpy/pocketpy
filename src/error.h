@@ -1,6 +1,7 @@
 #pragma once
 
 #include "namedict.h"
+#include "str.h"
 #include "tuplelist.h"
 
 namespace pkpy{
@@ -22,7 +23,7 @@ enum CompileMode {
 };
 
 struct SourceData {
-    const char* source;
+    std::string source;
     Str filename;
     std::vector<const char*> line_starts;
     CompileMode mode;
@@ -38,11 +39,17 @@ struct SourceData {
     }
 
     SourceData(const char* source, Str filename, CompileMode mode) {
-        source = strdup(source);
         // Skip utf8 BOM if there is any.
         if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
+        // Remove all '\r'
+        StrStream ss;
+        while(*source != '\0'){
+            if(*source != '\r') ss << *source;
+            source++;
+        }
+
         this->filename = filename;
-        this->source = source;
+        this->source = ss.str();
         line_starts.push_back(source);
         this->mode = mode;
     }
@@ -65,8 +72,6 @@ struct SourceData {
         }
         return ss.str();
     }
-
-    ~SourceData() { free((void*)source); }
 };
 
 class Exception {

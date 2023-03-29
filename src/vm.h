@@ -357,30 +357,30 @@ inline void CodeObject::optimize(VM* vm){
     perfect_locals_capacity = find_next_capacity(base_n);
     perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, keys);
 
-    for(int i=1; i<codes.size(); i++){
-        if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
-            codes[i].op = OP_NO_OP;
-            int pos = codes[i-1].arg;
-            consts[pos] = vm->num_negated(consts[pos]);
-        }
+    // for(int i=1; i<codes.size(); i++){
+    //     if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
+    //         codes[i].op = OP_NO_OP;
+    //         int pos = codes[i-1].arg;
+    //         consts[pos] = vm->num_negated(consts[pos]);
+    //     }
 
-        if(i>=2 && codes[i].op == OP_BUILD_INDEX){
-            const Bytecode& a = codes[i-1];
-            const Bytecode& x = codes[i-2];
-            if(codes[i].arg == 1){
-                if(a.op == OP_LOAD_NAME && x.op == OP_LOAD_NAME){
-                    codes[i].op = OP_FAST_INDEX;
-                }else continue;
-            }else{
-                if(a.op == OP_LOAD_NAME_REF && x.op == OP_LOAD_NAME_REF){
-                    codes[i].op = OP_FAST_INDEX_REF;
-                }else continue;
-            }
-            codes[i].arg = (a.arg << 16) | x.arg;
-            codes[i-1].op = OP_NO_OP;
-            codes[i-2].op = OP_NO_OP;
-        }
-    }
+    //     if(i>=2 && codes[i].op == OP_BUILD_INDEX){
+    //         const Bytecode& a = codes[i-1];
+    //         const Bytecode& x = codes[i-2];
+    //         if(codes[i].arg == 1){
+    //             if(a.op == OP_LOAD_NAME && x.op == OP_LOAD_NAME){
+    //                 codes[i].op = OP_FAST_INDEX;
+    //             }else continue;
+    //         }else{
+    //             if(a.op == OP_LOAD_NAME_REF && x.op == OP_LOAD_NAME_REF){
+    //                 codes[i].op = OP_FAST_INDEX_REF;
+    //             }else continue;
+    //         }
+    //         codes[i].arg = (a.arg << 16) | x.arg;
+    //         codes[i-1].op = OP_NO_OP;
+    //         codes[i-2].op = OP_NO_OP;
+    //     }
+    // }
 
     // pre-compute sn in co_consts
     for(int i=0; i<consts.size(); i++){

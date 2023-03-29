@@ -68,11 +68,12 @@ struct Token{
   }
 };
 
-// https://docs.python.org/3/reference/expressions.html
+// https://docs.python.org/3/reference/expressions.html#operator-precedence
 enum Precedence {
   PREC_NONE,
   PREC_ASSIGNMENT,    // =
   PREC_COMMA,         // ,
+  PREC_SLICE,         // :   (only available inside a subscript expression)
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or
   PREC_LOGICAL_AND,   // and
@@ -135,7 +136,7 @@ struct Lexer {
         if(brackets_level > 0) return true;
         int spaces = eat_spaces();
         if(peekchar() == '#') skip_line_comment();
-        if(peekchar() == '\0' || peekchar() == '\n' || peekchar() == '\r') return true;
+        if(peekchar() == '\0' || peekchar() == '\n') return true;
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
@@ -428,7 +429,6 @@ struct Lexer {
                         add_token_2('=', TK("/"), TK("/="));
                     }
                     return true;
-                case '\r': break;       // just ignore '\r'
                 case ' ': case '\t': eat_spaces(); break;
                 case '\n': {
                     add_token(TK("@eol"));
@@ -493,8 +493,8 @@ struct Lexer {
 
     Lexer(shared_ptr<SourceData> src) {
         this->src = src;
-        this->token_start = src->source;
-        this->curr_char = src->source;
+        this->token_start = src->source.c_str();
+        this->curr_char = src->source.c_str();
         this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line});
         this->indents.push(0);
     }

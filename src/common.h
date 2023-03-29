@@ -68,8 +68,7 @@ struct Type {
 	operator int() const noexcept { return this->index; }
 };
 
-//#define THREAD_LOCAL thread_local
-#define THREAD_LOCAL
+#define THREAD_LOCAL	// thread_local
 #define CPP_LAMBDA(x) ([](VM* vm, Args& args) { return x; })
 #define CPP_NOT_IMPLEMENTED() ([](VM* vm, Args& args) { vm->NotImplementedError(); return vm->None; })
 
@@ -79,9 +78,9 @@ struct Type {
 #define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
 #endif
 
-const float kLocalsLoadFactor = 0.67f;
-const float kInstAttrLoadFactor = 0.67f;
-const float kTypeAttrLoadFactor = 0.5f;
+inline const float kLocalsLoadFactor = 0.67f;
+inline const float kInstAttrLoadFactor = 0.67f;
+inline const float kTypeAttrLoadFactor = 0.5f;
 
 static_assert(sizeof(i64) == sizeof(int*));
 static_assert(sizeof(f64) == sizeof(int*));
@@ -114,7 +113,11 @@ public:
 	size_t size() const { return vec.size(); }
 	T& top(){ return vec.back(); }
 	const T& top() const { return vec.back(); }
+	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
 	const std::vector<T>& data() const { return vec; }
 };
+
+struct Expression;
+typedef std::unique_ptr<Expression> Expression_;
 
 } // namespace pkpy

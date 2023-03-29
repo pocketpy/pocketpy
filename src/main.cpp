@@ -21,7 +21,6 @@ std::string getline(bool* eof=nullptr) {
     std::string output;
     output.resize(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    if(!output.empty() && output.back() == '\r') output.pop_back();
     return output;
 }
 

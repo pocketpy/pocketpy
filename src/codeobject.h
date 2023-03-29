@@ -92,26 +92,6 @@ struct CodeObject {
     void _mark() const {
         for(PyObject* v : consts) OBJ_MARK(v);
     }
-
-    /************************************************/
-    int _curr_block_i = 0;
-    int _rvalue = 0;
-    bool _is_compiling_class = false;
-    bool _is_curr_block_loop() const {
-        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
-    }
-
-    void _enter_block(CodeBlockType type){
-        blocks.push_back(CodeBlock{type, _curr_block_i, (int)codes.size()});
-        _curr_block_i = blocks.size()-1;
-    }
-
-    void _exit_block(){
-        blocks[_curr_block_i].end = codes.size();
-        _curr_block_i = blocks[_curr_block_i].parent;
-        if(_curr_block_i < 0) UNREACHABLE();
-    }
-    /************************************************/
 };
 
 
