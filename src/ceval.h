@@ -7,6 +7,8 @@ namespace pkpy{
 
 inline PyObject* VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
+        heap._auto_collect(this);
+
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)
         {

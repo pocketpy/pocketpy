@@ -135,8 +135,9 @@ struct Py_ : PyObject {
 
     void _mark() override {
         if(gc.marked) return;
+        // std::cout << "marking " << type << std::endl;
         gc.marked = true;
-        if(is_attr_valid()) attr()._mark();
+        if(_attr != nullptr) _attr->_mark();
         pkpy::_mark<T>(_value);   // handle PyObject* inside _value `T`
     }
 };

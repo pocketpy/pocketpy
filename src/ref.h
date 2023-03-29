@@ -168,12 +168,12 @@ inline void Frame::try_deref(VM* vm, PyObject*& v){
 
 /***** GC's Impl *****/
 template<> inline void _mark<AttrRef>(AttrRef& t){
-    OBJ_MARK(obj);
+    OBJ_MARK(t.obj);
 }
 
 template<> inline void _mark<IndexRef>(IndexRef& t){
-    OBJ_MARK(obj);
-    OBJ_MARK(index);
+    OBJ_MARK(t.obj);
+    OBJ_MARK(t.index);
 }
 
 template<> inline void _mark<TupleRef>(TupleRef& t){

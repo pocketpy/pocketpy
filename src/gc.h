@@ -7,11 +7,13 @@
 namespace pkpy {
 struct ManagedHeap{
     std::vector<PyObject*> gen;
+    int counter = 0;
 
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
         PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
         gen.push_back(obj);
+        counter++;
         return obj;
     }
 
@@ -34,6 +36,13 @@ struct ManagedHeap{
         gen.clear();
         gen.swap(alive);
         return freed;
+    }
+
+    void _auto_collect(VM* vm){
+        if(counter > 1000){
+            counter = 0;
+            collect(vm);
+        }
     }
 
     int collect(VM* vm){

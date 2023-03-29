@@ -650,9 +650,6 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::init_builtin_types(){
-    // PyTypeObject is managed by _all_types
-    // PyModuleObject is managed by _modules
-    // They are not managed by GC, so we use a simple "new"
     _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(0)), .base = -1, .name = "object"});
     _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(1)), .base = 0, .name = "type"});
     tp_object = 0; tp_type = 1;
@@ -699,7 +696,10 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("range", _t(tp_range));
 
     post_init();
-    for(auto& t: _all_types) t.obj->attr()._try_perfect_rehash();
+    for(int i=0; i<_all_types.size(); i++){
+        // std::cout << i << ": " << _all_types[i].name << std::endl;
+        _all_types[i].obj->attr()._try_perfect_rehash();
+    }
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
@@ -922,7 +922,8 @@ inline PyObject* VM::_exec(){
 }
 
 inline void ManagedHeap::mark(VM *vm) {
-    // iterate callstack frames
+    vm->_modules._mark();
+    for(auto& t: vm->_all_types) t.obj->_mark();
     for(auto& frame : vm->callstack.data()){
         frame->_mark();
     }
