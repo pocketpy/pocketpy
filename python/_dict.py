@@ -1,8 +1,12 @@
 class dict:
-    def __init__(self, capacity=13):
-        self._capacity = capacity
+    def __init__(self, mapping=None):
+        self._capacity = 16
         self._a = [None] * self._capacity
         self._len = 0
+
+        if mapping is not None:
+            for k,v in mapping:
+                self[k] = v
         
     def __len__(self):
         return self._len

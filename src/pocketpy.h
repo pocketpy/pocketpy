@@ -88,8 +88,7 @@ inline void init_builtins(VM* _vm) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);
         if(rhs == 0) vm->ZeroDivisionError();
-        Tuple t = Tuple{VAR(lhs/rhs), VAR(lhs%rhs)};
-        return VAR(std::move(t));
+        return VAR(Tuple({VAR(lhs/rhs), VAR(lhs%rhs)}));
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
@@ -146,7 +145,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, Args& args) {
-        std::stringstream ss;
+        StrStream ss;
         ss << std::hex << CAST(i64, args[0]);
         return VAR("0x" + ss.str());
     });
@@ -649,8 +648,7 @@ struct ReMatch {
 
         vm->bind_method<0>(type, "span", [](VM* vm, Args& args) {
             auto& self = CAST(ReMatch&, args[0]);
-            Tuple t = Tuple{VAR(self.start), VAR(self.end)};
-            return VAR(std::move(t));
+            return VAR(Tuple({VAR(self.start), VAR(self.end)}));
         });
 
         vm->bind_method<1>(type, "group", [](VM* vm, Args& args) {

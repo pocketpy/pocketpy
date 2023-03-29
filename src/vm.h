@@ -881,15 +881,14 @@ inline void VM::_error(Exception e){
 
 inline PyObject* VM::_exec(){
     Frame* frame = top_frame();
-    i64 base_id = frame->id;
-    PyObject* ret = nullptr;
+    const i64 base_id = frame->id;
     bool need_raise = false;
 
     while(true){
         if(frame->id < base_id) UNREACHABLE();
         try{
             if(need_raise){ need_raise = false; _raise(); }
-            ret = run_frame(frame);
+            PyObject* ret = run_frame(frame);
             if(ret == _py_op_yield) return _py_op_yield;
             if(ret != _py_op_call){
                 if(frame->id == base_id){      // [ frameBase<- ]
@@ -922,11 +921,15 @@ inline PyObject* VM::_exec(){
 }
 
 inline void ManagedHeap::mark(VM *vm) {
-    vm->_modules._mark();
-    for(auto& t: vm->_all_types) t.obj->_mark();
+    for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()){
         frame->_mark();
     }
+}
+
+inline void ManagedHeap::_delete_hook(VM *vm, PyObject *obj){
+    Type t = OBJ_GET(Type, vm->_t(obj));
+    std::cout << "delete " << vm->_all_types[t].name << " at " << obj << std::endl;
 }
 
 }   // namespace pkpy

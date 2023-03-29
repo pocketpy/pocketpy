@@ -186,11 +186,14 @@ inline PyObject* VM::run_frame(Frame* frame){
             frame->push(VAR(frame->pop_n_values_reversed(this, byte.arg).to_list()));
             continue;
         case OP_BUILD_MAP: {
-            Args items = frame->pop_n_values_reversed(this, byte.arg*2);
-            PyObject* obj = call(builtins->attr("dict"), no_arg());
-            for(int i=0; i<items.size(); i+=2){
-                call(obj, __setitem__, Args{items[i], items[i+1]});
+            List list(byte.arg);
+            for(int i=0; i<byte.arg; i++){
+                PyObject* value = frame->pop_value(this);
+                PyObject* key = frame->pop_value(this);
+                list[i] = VAR(Tuple({key, value}));
             }
+            PyObject* d_arg = VAR(std::move(list));
+            PyObject* obj = call(builtins->attr("dict"), Args{d_arg});
             frame->push(obj);
         } continue;
         case OP_BUILD_SET: {

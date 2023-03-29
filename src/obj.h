@@ -91,8 +91,9 @@ public:
 };
 
 struct GCHeader {
+    bool enabled;   // whether this object is managed by GC
     bool marked;    // whether this object is marked
-    GCHeader() : marked(false) {}
+    GCHeader() : enabled(true), marked(false) {}
 };
 
 struct PyObject {
@@ -135,7 +136,6 @@ struct Py_ : PyObject {
 
     void _mark() override {
         if(gc.marked) return;
-        // std::cout << "marking " << type << std::endl;
         gc.marked = true;
         if(_attr != nullptr) _attr->_mark();
         pkpy::_mark<T>(_value);   // handle PyObject* inside _value `T`

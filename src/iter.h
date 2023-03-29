@@ -72,7 +72,7 @@ inline void BaseIter::_mark() {
 
 inline void Generator::_mark(){
     BaseIter::_mark();
-    frame->_mark();
+    if(frame!=nullptr) frame->_mark();
 }
 
 template<typename T>

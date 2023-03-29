@@ -1,58 +1,77 @@
 #pragma once
 
+#include "common.h"
 #include "obj.h"
 #include "codeobject.h"
 #include "namedict.h"
 
 namespace pkpy {
 struct ManagedHeap{
+    std::vector<PyObject*> _no_gc;
     std::vector<PyObject*> gen;
-    int counter = 0;
+    
+    int gc_threshold = 700;
+    int gc_counter = 0;
 
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
         PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
         gen.push_back(obj);
-        counter++;
+        gc_counter++;
         return obj;
     }
 
     template<typename T>
     PyObject* _new(Type type, T&& val){
-        return gcnew<T>(type, std::forward<T>(val));
+        PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
+        obj->gc.enabled = false;
+        _no_gc.push_back(obj);
+        return obj;
     }
 
-    int sweep(){
+    ~ManagedHeap(){
+        for(PyObject* obj: _no_gc) delete obj;
+    }
+
+    int sweep(VM* vm){
         std::vector<PyObject*> alive;
         for(PyObject* obj: gen){
             if(obj->gc.marked){
                 obj->gc.marked = false;
                 alive.push_back(obj);
             }else{
+                // _delete_hook(vm, obj);
                 delete obj;
             }
         }
+
+        // clear _no_gc marked flag
+        for(PyObject* obj: _no_gc) obj->gc.marked = false;
+
         int freed = gen.size() - alive.size();
         gen.clear();
         gen.swap(alive);
         return freed;
     }
 
+    void _delete_hook(VM* vm, PyObject* obj);
+
     void _auto_collect(VM* vm){
-        if(counter > 1000){
-            counter = 0;
-            collect(vm);
-        }
+        if(gc_counter < gc_threshold) return;
+        gc_counter = 0;
+        collect(vm);
+        gc_threshold = gen.size() * 2;
     }
 
     int collect(VM* vm){
         mark(vm);
-        return sweep();
+        int freed = sweep(vm);
+        // std::cout << "GC: " << freed << " objects freed" << std::endl;
+        return freed;
     }
 
     void mark(VM* vm);
 };
-
 
 inline void NameDict::_mark(){
     for(uint16_t i=0; i<_capacity; i++){
