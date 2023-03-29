@@ -7,7 +7,7 @@ namespace pkpy{
 
 inline PyObject* VM::run_frame(Frame* frame){
     while(frame->has_next_bytecode()){
-        // heap._auto_collect(this);
+        heap._auto_collect(this);
 
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)
@@ -325,7 +325,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         if(frame->_data.size() != 1) throw std::runtime_error("_data.size() != 1 in EVAL/JSON_MODE");
         return frame->pop_value(this);
     }
-#if PK_EXTRA_CHECK
+#if DEBUG_EXTRA_CHECK
     if(!frame->_data.empty()) throw std::runtime_error("_data.size() != 0 in EXEC_MODE");
 #endif
     return None;

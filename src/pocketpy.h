@@ -760,6 +760,7 @@ inline void add_module_gc(VM* vm){
 
 inline void VM::post_init(){
     init_builtins(this);
+#if !DEBUG_NO_BUILTIN_MODULES
     add_module_sys(this);
     add_module_time(this);
     add_module_json(this);
@@ -793,6 +794,7 @@ inline void VM::post_init(){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return VAR(info.name);
     }));
+#endif
 }
 
 }   // namespace pkpy

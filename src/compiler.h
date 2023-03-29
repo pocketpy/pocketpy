@@ -2,7 +2,7 @@
 
 #include "codeobject.h"
 #include "common.h"
-#include "parser.h"
+#include "lexer.h"
 #include "error.h"
 #include "ceval.h"
 
@@ -18,24 +18,21 @@ struct GrammarRule{
     Precedence precedence;
 };
 
-enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
-
 class Compiler {
-    std::unique_ptr<Parser> parser;
+    std::unique_ptr<Lexer> lexer;
     stack<CodeObject_> codes;
-    int lexing_count = 0;
     bool used = false;
     VM* vm;
     std::map<TokenIndex, GrammarRule> rules;
 
     CodeObject_ co() const{ return codes.top(); }
-    CompileMode mode() const{ return parser->src->mode; }
+    CompileMode mode() const{ return lexer->src->mode; }
     NameScope name_scope() const { return codes.size()>1 ? NAME_LOCAL : NAME_GLOBAL; }
 
 public:
     Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
         this->vm = vm;
-        this->parser = std::make_unique<Parser>(
+        this->lexer = std::make_unique<Lexer>(
             make_sp<SourceData>(source, filename, mode)
         );
 
@@ -104,239 +101,36 @@ public:
     }
 
 private:
-    Str eat_string_until(char quote, bool raw) {
-        bool quote3 = parser->match_n_chars(2, quote);
-        std::vector<char> buff;
-        while (true) {
-            char c = parser->eatchar_include_newline();
-            if (c == quote){
-                if(quote3 && !parser->match_n_chars(2, quote)){
-                    buff.push_back(c);
-                    continue;
-                }
-                break;
-            }
-            if (c == '\0'){
-                if(quote3 && parser->src->mode == REPL_MODE){
-                    throw NeedMoreLines(false);
-                }
-                SyntaxError("EOL while scanning string literal");
-            }
-            if (c == '\n'){
-                if(!quote3) SyntaxError("EOL while scanning string literal");
-                else{
-                    buff.push_back(c);
-                    continue;
-                }
-            }
-            if (!raw && c == '\\') {
-                switch (parser->eatchar_include_newline()) {
-                    case '"':  buff.push_back('"');  break;
-                    case '\'': buff.push_back('\''); break;
-                    case '\\': buff.push_back('\\'); break;
-                    case 'n':  buff.push_back('\n'); break;
-                    case 'r':  buff.push_back('\r'); break;
-                    case 't':  buff.push_back('\t'); break;
-                    default: SyntaxError("invalid escape char");
-                }
-            } else {
-                buff.push_back(c);
-            }
-        }
-        return Str(buff.data(), buff.size());
-    }
+    int i = 0;
+    std::vector<Token> tokens;
 
-    void eat_string(char quote, StringType type) {
-        Str s = eat_string_until(quote, type == RAW_STRING);
-        if(type == F_STRING){
-            parser->set_next_token(TK("@fstr"), VAR(s));
-        }else{
-            parser->set_next_token(TK("@str"), VAR(s));
-        }
-    }
-
-    void eat_number() {
-        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?");
-        std::smatch m;
-
-        const char* i = parser->token_start;
-        while(*i != '\n' && *i != '\0') i++;
-        std::string s = std::string(parser->token_start, i);
-
-        try{
-            if (std::regex_search(s, m, pattern)) {
-                // here is m.length()-1, since the first char was eaten by lex_token()
-                for(int j=0; j<m.length()-1; j++) parser->eatchar();
-
-                int base = 10;
-                size_t size;
-                if (m[1].matched) base = 16;
-                if (m[2].matched) {
-                    if(base == 16) SyntaxError("hex literal should not contain a dot");
-                    parser->set_next_token(TK("@num"), VAR(S_TO_FLOAT(m[0], &size)));
-                } else {
-                    parser->set_next_token(TK("@num"), VAR(S_TO_INT(m[0], &size, base)));
-                }
-                if (size != m.length()) UNREACHABLE();
-            }
-        }catch(std::exception& _){
-            SyntaxError("invalid number literal");
-        } 
-    }
-
-    void lex_token(){
-        lexing_count++;
-        _lex_token();
-        lexing_count--;
-    }
-
-    // Lex the next token and set it as the next token.
-    void _lex_token() {
-        parser->prev = parser->curr;
-        parser->curr = parser->next_token();
-        //std::cout << parser->curr.info() << std::endl;
-
-        while (parser->peekchar() != '\0') {
-            parser->token_start = parser->curr_char;
-            char c = parser->eatchar_include_newline();
-            switch (c) {
-                case '\'': case '"': eat_string(c, NORMAL_STRING); return;
-                case '#': parser->skip_line_comment(); break;
-                case '{': parser->set_next_token(TK("{")); return;
-                case '}': parser->set_next_token(TK("}")); return;
-                case ',': parser->set_next_token(TK(",")); return;
-                case ':': parser->set_next_token_2(':', TK(":"), TK("::")); return;
-                case ';': parser->set_next_token(TK(";")); return;
-                case '(': parser->set_next_token(TK("(")); return;
-                case ')': parser->set_next_token(TK(")")); return;
-                case '[': parser->set_next_token(TK("[")); return;
-                case ']': parser->set_next_token(TK("]")); return;
-                case '@': parser->set_next_token(TK("@")); return;
-                case '%': parser->set_next_token_2('=', TK("%"), TK("%=")); return;
-                case '&': parser->set_next_token_2('=', TK("&"), TK("&=")); return;
-                case '|': parser->set_next_token_2('=', TK("|"), TK("|=")); return;
-                case '^': parser->set_next_token_2('=', TK("^"), TK("^=")); return;
-                case '?': parser->set_next_token(TK("?")); return;
-                case '.': {
-                    if(parser->matchchar('.')) {
-                        if(parser->matchchar('.')) {
-                            parser->set_next_token(TK("..."));
-                        } else {
-                            SyntaxError("invalid token '..'");
-                        }
-                    } else {
-                        parser->set_next_token(TK("."));
-                    }
-                    return;
-                }
-                case '=': parser->set_next_token_2('=', TK("="), TK("==")); return;
-                case '+': parser->set_next_token_2('=', TK("+"), TK("+=")); return;
-                case '>': {
-                    if(parser->matchchar('=')) parser->set_next_token(TK(">="));
-                    else if(parser->matchchar('>')) parser->set_next_token_2('=', TK(">>"), TK(">>="));
-                    else parser->set_next_token(TK(">"));
-                    return;
-                }
-                case '<': {
-                    if(parser->matchchar('=')) parser->set_next_token(TK("<="));
-                    else if(parser->matchchar('<')) parser->set_next_token_2('=', TK("<<"), TK("<<="));
-                    else parser->set_next_token(TK("<"));
-                    return;
-                }
-                case '-': {
-                    if(parser->matchchar('=')) parser->set_next_token(TK("-="));
-                    else if(parser->matchchar('>')) parser->set_next_token(TK("->"));
-                    else parser->set_next_token(TK("-"));
-                    return;
-                }
-                case '!':
-                    if(parser->matchchar('=')) parser->set_next_token(TK("!="));
-                    else SyntaxError("expected '=' after '!'");
-                    break;
-                case '*':
-                    if (parser->matchchar('*')) {
-                        parser->set_next_token(TK("**"));  // '**'
-                    } else {
-                        parser->set_next_token_2('=', TK("*"), TK("*="));
-                    }
-                    return;
-                case '/':
-                    if(parser->matchchar('/')) {
-                        parser->set_next_token_2('=', TK("//"), TK("//="));
-                    } else {
-                        parser->set_next_token_2('=', TK("/"), TK("/="));
-                    }
-                    return;
-                case '\r': break;       // just ignore '\r'
-                case ' ': case '\t': parser->eat_spaces(); break;
-                case '\n': {
-                    parser->set_next_token(TK("@eol"));
-                    if(!parser->eat_indentation()) IndentationError("unindent does not match any outer indentation level");
-                    return;
-                }
-                default: {
-                    if(c == 'f'){
-                        if(parser->matchchar('\'')) {eat_string('\'', F_STRING); return;}
-                        if(parser->matchchar('"')) {eat_string('"', F_STRING); return;}
-                    }else if(c == 'r'){
-                        if(parser->matchchar('\'')) {eat_string('\'', RAW_STRING); return;}
-                        if(parser->matchchar('"')) {eat_string('"', RAW_STRING); return;}
-                    }
-
-                    if (c >= '0' && c <= '9') {
-                        eat_number();
-                        return;
-                    }
-                    
-                    switch (parser->eat_name())
-                    {
-                        case 0: break;
-                        case 1: SyntaxError("invalid char: " + std::string(1, c));
-                        case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c));
-                        case 3: SyntaxError("@id contains invalid char"); break;
-                        case 4: SyntaxError("invalid JSON token"); break;
-                        default: UNREACHABLE();
-                    }
-                    return;
-                }
-            }
-        }
-
-        parser->token_start = parser->curr_char;
-        parser->set_next_token(TK("@eof"));
-    }
-
-    TokenIndex peek() {
-        return parser->curr.type;
-    }
-
-    // not sure this will work
-    TokenIndex peek_next() {
-        if(parser->nexts.empty()) return TK("@eof");
-        return parser->nexts.front().type;
-    }
+    const Token& prev() { return tokens.at(i-1); }
+    const Token& curr() { return tokens.at(i); }
+    const Token& next() { return tokens.at(i+1); }
+    const Token& peek(int offset=0) { return tokens.at(i+offset); }
+    void advance() { i++; }
 
     bool match(TokenIndex expected) {
-        if (peek() != expected) return false;
-        lex_token();
+        if (curr().type != expected) return false;
+        advance();
         return true;
     }
 
     void consume(TokenIndex expected) {
         if (!match(expected)){
             StrStream ss;
-            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(peek()) << "'";
+            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(curr().type) << "'";
             SyntaxError(ss.str());
         }
     }
 
     bool match_newlines(bool repl_throw=false) {
         bool consumed = false;
-        if (peek() == TK("@eol")) {
-            while (peek() == TK("@eol")) lex_token();
+        if (curr().type == TK("@eol")) {
+            while (curr().type == TK("@eol")) advance();
             consumed = true;
         }
-        if (repl_throw && peek() == TK("@eof")){
+        if (repl_throw && curr().type == TK("@eof")){
             throw NeedMoreLines(co()->_is_compiling_class);
         }
         return consumed;
@@ -344,8 +138,8 @@ private:
 
     bool match_end_stmt() {
         if (match(TK(";"))) { match_newlines(); return true; }
-        if (match_newlines() || peek()==TK("@eof")) return true;
-        if (peek() == TK("@dedent")) return true;
+        if (match_newlines() || curr().type == TK("@eof")) return true;
+        if (curr().type == TK("@dedent")) return true;
         return false;
     }
 
@@ -353,15 +147,27 @@ private:
         if (!match_end_stmt()) SyntaxError("expected statement end");
     }
 
+    PyObject* get_value(const Token& token) {
+        switch (token.type) {
+            case TK("@num"):
+                if(std::holds_alternative<i64>(token.value)) return VAR(std::get<i64>(token.value));
+                if(std::holds_alternative<f64>(token.value)) return VAR(std::get<f64>(token.value));
+                UNREACHABLE();
+            case TK("@str"): case TK("@fstr"):
+                return VAR(std::get<Str>(token.value));
+            default: throw std::runtime_error(Str("invalid token type: ") + TK_STR(token.type));
+        }
+    }
+
     void exprLiteral() {
-        PyObject* value = parser->prev.value;
+        PyObject* value = get_value(prev());
         int index = co()->add_const(value);
         emit(OP_LOAD_CONST, index);
     }
 
     void exprFString() {
         static const std::regex pattern(R"(\{(.*?)\})");
-        PyObject* value = parser->prev.value;
+        PyObject* value = get_value(prev());
         Str s = CAST(Str, value);
         std::sregex_iterator begin(s.begin(), s.end(), pattern);
         std::sregex_iterator end;
@@ -395,7 +201,7 @@ private:
             _compile_f_args(func, false);
             consume(TK(":"));
         }
-        func.code = make_sp<CodeObject>(parser->src, func.name.str());
+        func.code = make_sp<CodeObject>(lexer->src, func.name.str());
         this->codes.push(func.code);
         co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
         emit(OP_RETURN_VALUE);
@@ -414,7 +220,7 @@ private:
         if(is_load_name_ref) co()->codes.pop_back();
 
         co()->_rvalue += 1;
-        TokenIndex op = parser->prev.type;
+        TokenIndex op = prev().type;
         if(op == TK("=")) {     // a = (expr)
             EXPR_TUPLE();
             if(is_load_name_ref){
@@ -487,7 +293,7 @@ private:
     }
 
     void exprBinaryOp() {
-        TokenIndex op = parser->prev.type;
+        TokenIndex op = prev().type;
         parse_expression((Precedence)(rules[op].precedence + 1));
 
         switch (op) {
@@ -525,7 +331,7 @@ private:
     }
 
     void exprUnaryOp() {
-        TokenIndex op = parser->prev.type;
+        TokenIndex op = prev().type;
         parse_expression((Precedence)(PREC_UNARY + 1));
         switch (op) {
             case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
@@ -588,7 +394,7 @@ private:
         int ARGC = 0;
         do {
             match_newlines(mode()==REPL_MODE);
-            if (peek() == TK("]")) break;
+            if (curr().type == TK("]")) break;
             EXPR(); ARGC++;
             match_newlines(mode()==REPL_MODE);
             if(ARGC == 1 && match(TK("for"))){
@@ -609,9 +415,9 @@ private:
         int ARGC = 0;
         do {
             match_newlines(mode()==REPL_MODE);
-            if (peek() == TK("}")) break;
+            if (curr().type == TK("}")) break;
             EXPR();
-            if(peek() == TK(":")) parsing_dict = true;
+            if(curr().type == TK(":")) parsing_dict = true;
             if(parsing_dict){
                 consume(TK(":"));
                 EXPR();
@@ -637,10 +443,10 @@ private:
         bool need_unpack = false;
         do {
             match_newlines(mode()==REPL_MODE);
-            if (peek() == TK(")")) break;
-            if(peek() == TK("@id") && peek_next() == TK("=")) {
+            if (curr().type == TK(")")) break;
+            if(curr().type == TK("@id") && next().type == TK("=")) {
                 consume(TK("@id"));
-                const Str& key = parser->prev.str();
+                const Str& key = prev().str();
                 emit(OP_LOAD_CONST, co()->add_const(VAR(key)));
                 consume(TK("="));
                 co()->_rvalue += 1; EXPR(); co()->_rvalue -= 1;
@@ -666,7 +472,7 @@ private:
     void exprName(){ _exprName(false); }
 
     void _exprName(bool force_lvalue) {
-        Token tkname = parser->prev;
+        const Token& tkname = prev();
         int index = co()->add_name(tkname.str(), name_scope());
         bool fast_load = !force_lvalue && co()->_rvalue>0;
         emit(fast_load ? OP_LOAD_NAME : OP_LOAD_NAME_REF, index);
@@ -674,7 +480,7 @@ private:
 
     void exprAttrib() {
         consume(TK("@id"));
-        const Str& name = parser->prev.str();
+        const Str& name = prev().str();
         int index = co()->add_name(name, NAME_ATTR);
         emit(co()->_rvalue ? OP_BUILD_ATTR : OP_BUILD_ATTR_REF, index);
     }
@@ -710,7 +516,7 @@ private:
     }
 
     void exprValue() {
-        TokenIndex op = parser->prev.type;
+        TokenIndex op = prev().type;
         switch (op) {
             case TK("None"):    emit(OP_LOAD_NONE);  break;
             case TK("True"):    emit(OP_LOAD_TRUE);  break;
@@ -721,7 +527,7 @@ private:
     }
 
     int emit(Opcode opcode, int arg=-1, bool keepline=false) {
-        int line = parser->prev.line;
+        int line = prev().line;
         co()->codes.push_back(
             Bytecode{(uint8_t)opcode, (uint16_t)co()->_curr_block_i, arg, line}
         );
@@ -738,7 +544,7 @@ private:
     void compile_block_body(CompilerAction action=nullptr) {
         if(action == nullptr) action = &Compiler::compile_stmt;
         consume(TK(":"));
-        if(peek()!=TK("@eol") && peek()!=TK("@eof")){
+        if(curr().type!=TK("@eol") && curr().type!=TK("@eof")){
             (this->*action)();  // inline block
             return;
         }
@@ -746,7 +552,7 @@ private:
             SyntaxError("expected a new line after ':'");
         }
         consume(TK("@indent"));
-        while (peek() != TK("@dedent")) {
+        while (curr().type != TK("@dedent")) {
             match_newlines();
             (this->*action)();
             match_newlines();
@@ -756,7 +562,7 @@ private:
 
     Token _compile_import() {
         consume(TK("@id"));
-        Token tkmodule = parser->prev;
+        Token tkmodule = prev();
         int index = co()->add_name(tkmodule.str(), NAME_SPECIAL);
         emit(OP_IMPORT_NAME, index);
         return tkmodule;
@@ -768,7 +574,7 @@ private:
             Token tkmodule = _compile_import();
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkmodule = parser->prev;
+                tkmodule = prev();
             }
             int index = co()->add_name(tkmodule.str(), name_scope());
             emit(OP_STORE_NAME, index);
@@ -789,12 +595,12 @@ private:
         do {
             emit(OP_DUP_TOP_VALUE);
             consume(TK("@id"));
-            Token tkname = parser->prev;
+            Token tkname = prev();
             int index = co()->add_name(tkname.str(), NAME_ATTR);
             emit(OP_BUILD_ATTR, index);
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkname = parser->prev;
+                tkname = prev();
             }
             index = co()->add_name(tkname.str(), name_scope());
             emit(OP_STORE_NAME, index);
@@ -807,14 +613,14 @@ private:
     // ['a', '1', '2', '+', '=']
     // 
     void parse_expression(Precedence precedence) {
-        lex_token();
-        GrammarFn prefix = rules[parser->prev.type].prefix;
-        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(parser->prev.type));
+        advance();
+        GrammarFn prefix = rules[prev().type].prefix;
+        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(prev().type));
         (this->*prefix)();
         bool meet_assign_token = false;
-        while (rules[peek()].precedence >= precedence) {
-            lex_token();
-            TokenIndex op = parser->prev.type;
+        while (rules[curr().type].precedence >= precedence) {
+            advance();
+            TokenIndex op = prev().type;
             if (op == TK("=")){
                 if(meet_assign_token) SyntaxError();
                 meet_assign_token = true;
@@ -891,7 +697,7 @@ private:
         do {
             consume(TK("except"));
             if(match(TK("@id"))){
-                int name_idx = co()->add_name(parser->prev.str(), NAME_SPECIAL);
+                int name_idx = co()->add_name(prev().str(), NAME_SPECIAL);
                 emit(OP_EXCEPTION_MATCH, name_idx);
             }else{
                 emit(OP_LOAD_TRUE);
@@ -901,7 +707,7 @@ private:
             compile_block_body();
             patches.push_back(emit(OP_JUMP_ABSOLUTE));
             patch_jump(patch);
-        }while(peek() == TK("except"));
+        }while(curr().type == TK("except"));
         emit(OP_RE_RAISE);      // no match, re-raise
         for (int patch : patches) patch_jump(patch);
     }
@@ -968,7 +774,7 @@ private:
             EXPR();
             consume(TK("as"));
             consume(TK("@id"));
-            Token tkname = parser->prev;
+            Token tkname = prev();
             int index = co()->add_name(tkname.str(), name_scope());
             emit(OP_STORE_NAME, index);
             emit(OP_LOAD_NAME_REF, index);
@@ -979,18 +785,18 @@ private:
         } else if(match(TK("label"))){
             if(mode() != EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            Str label = parser->prev.str();
+            Str label = prev().str();
             bool ok = co()->add_label(label);
             if(!ok) SyntaxError("label '" + label + "' already exists");
             consume_end_stmt();
         } else if(match(TK("goto"))){ // https://entrian.com/goto/
             if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
             consume(TK(".")); consume(TK("@id"));
-            emit(OP_GOTO, co()->add_name(parser->prev.str(), NAME_SPECIAL));
+            emit(OP_GOTO, co()->add_name(prev().str(), NAME_SPECIAL));
             consume_end_stmt();
         } else if(match(TK("raise"))){
             consume(TK("@id"));
-            int dummy_t = co()->add_name(parser->prev.str(), NAME_SPECIAL);
+            int dummy_t = co()->add_name(prev().str(), NAME_SPECIAL);
             if(match(TK("(")) && !match(TK(")"))){
                 EXPR(); consume(TK(")"));
             }else{
@@ -1005,7 +811,7 @@ private:
         } else if(match(TK("global"))){
             do {
                 consume(TK("@id"));
-                co()->global_names[parser->prev.str()] = 1;
+                co()->global_names[prev().str()] = 1;
             } while (match(TK(",")));
             consume_end_stmt();
         } else if(match(TK("pass"))){
@@ -1030,10 +836,10 @@ private:
 
     void compile_class(){
         consume(TK("@id"));
-        int cls_name_idx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
+        int cls_name_idx = co()->add_name(prev().str(), NAME_GLOBAL);
         int super_cls_name_idx = -1;
         if(match(TK("(")) && match(TK("@id"))){
-            super_cls_name_idx = co()->add_name(parser->prev.str(), NAME_GLOBAL);
+            super_cls_name_idx = co()->add_name(prev().str(), NAME_GLOBAL);
             consume(TK(")"));
         }
         if(super_cls_name_idx == -1) emit(OP_LOAD_NONE);
@@ -1059,13 +865,13 @@ private:
             }
 
             consume(TK("@id"));
-            const Str& name = parser->prev.str();
+            const Str& name = prev().str();
             if(func.has_name(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
 
-            if(state == 0 && peek() == TK("=")) state = 2;
+            if(state == 0 && curr().type == TK("=")) state = 2;
 
             switch (state)
             {
@@ -1075,7 +881,7 @@ private:
                     consume(TK("="));
                     PyObject* value = read_literal();
                     if(value == nullptr){
-                        SyntaxError(Str("expect a literal, not ") + TK_STR(parser->curr.type));
+                        SyntaxError(Str("expect a literal, not ") + TK_STR(curr().type));
                     }
                     func.kwargs.set(name, value);
                     func.kwargs_order.push_back(name);
@@ -1090,11 +896,11 @@ private:
         Function func;
         StrName obj_name;
         consume(TK("@id"));
-        func.name = parser->prev.str();
+        func.name = prev().str();
         if(!co()->_is_compiling_class && match(TK("::"))){
             consume(TK("@id"));
             obj_name = func.name;
-            func.name = parser->prev.str();
+            func.name = prev().str();
         }
         consume(TK("("));
         if (!match(TK(")"))) {
@@ -1104,7 +910,7 @@ private:
         if(match(TK("->"))){
             if(!match(TK("None"))) consume(TK("@id"));
         }
-        func.code = make_sp<CodeObject>(parser->src, func.name.str());
+        func.code = make_sp<CodeObject>(lexer->src, func.name.str());
         this->codes.push(func.code);
         compile_block_body();
         func.code->optimize(vm);
@@ -1132,11 +938,11 @@ private:
     PyObject* read_literal(){
         if(match(TK("-"))){
             consume(TK("@num"));
-            PyObject* val = parser->prev.value;
+            PyObject* val = get_value(prev());
             return vm->num_negated(val);
         }
-        if(match(TK("@num"))) return parser->prev.value;
-        if(match(TK("@str"))) return parser->prev.value;
+        if(match(TK("@num"))) return get_value(prev());
+        if(match(TK("@str"))) return get_value(prev());
         if(match(TK("True"))) return VAR(true);
         if(match(TK("False"))) return VAR(false);
         if(match(TK("None"))) return vm->None;
@@ -1144,23 +950,8 @@ private:
         return nullptr;
     }
 
-    /***** Error Reporter *****/
-    void throw_err(Str type, Str msg){
-        int lineno = parser->curr.line;
-        const char* cursor = parser->curr.start;
-        // if error occurs in lexing, lineno should be `parser->current_line`
-        if(lexing_count > 0){
-            lineno = parser->current_line;
-            cursor = parser->curr_char;
-        }
-        if(parser->peekchar() == '\n') lineno--;
-        auto e = Exception("SyntaxError", msg);
-        e.st_push(parser->src->snapshot(lineno, cursor));
-        throw e;
-    }
-    void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
-    void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
-    void IndentationError(Str msg){ throw_err("IndentationError", msg); }
+    void SyntaxError(Str msg){ lexer->throw_err("SyntaxError", msg, curr().line, curr().start); }
+    void SyntaxError(){ lexer->throw_err("SyntaxError", "invalid syntax", curr().line, curr().start); }
 
 public:
     CodeObject_ compile(){
@@ -1168,11 +959,16 @@ public:
         if(used) UNREACHABLE();
         used = true;
 
-        CodeObject_ code = make_sp<CodeObject>(parser->src, Str("<module>"));
+        tokens = lexer->run();
+        // if(lexer->src->filename == "tests/01_int.py"){
+        //     for(auto& t: tokens) std::cout << t.info() << std::endl;
+        // }
+
+        CodeObject_ code = make_sp<CodeObject>(lexer->src, lexer->src->filename);
         codes.push(code);
 
-        lex_token(); lex_token();
-        match_newlines();
+        advance();          // skip @sof, so prev() is always valid
+        match_newlines();   // skip leading '\n'
 
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();

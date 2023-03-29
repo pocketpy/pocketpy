@@ -67,9 +67,9 @@ struct ManagedHeap{
 
     ~ManagedHeap(){
         for(PyObject* obj: _no_gc) delete obj;
-        for(auto& [type, count]: deleted){
-            std::cout << "GC: " << type << "=" << count << std::endl;
-        }
+        // for(auto& [type, count]: deleted){
+        //     std::cout << "GC: " << type << "=" << count << std::endl;
+        // }
     }
 
     int sweep(VM* vm){

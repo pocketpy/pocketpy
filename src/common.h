@@ -10,7 +10,6 @@
 #include <sstream>
 #include <regex>
 #include <cmath>
-#include <cstdlib>
 #include <stdexcept>
 #include <vector>
 #include <string>
@@ -26,10 +25,13 @@
 #include <algorithm>
 #include <random>
 #include <initializer_list>
-#include <list>
+#include <variant>
 
-#define PK_VERSION				"0.9.5"
-#define PK_EXTRA_CHECK 			0
+#define PK_VERSION				"0.9.6"
+
+// debug macros
+#define DEBUG_NO_BUILTIN_MODULES	0
+#define DEBUG_EXTRA_CHECK			1
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0
@@ -40,13 +42,13 @@
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
 typedef int32_t i64;
 typedef float f64;
-#define S_TO_INT std::stoi
-#define S_TO_FLOAT std::stof
+#define S_TO_INT(...) static_cast<i64>(std::stoi(__VA_ARGS__))
+#define S_TO_FLOAT(...) static_cast<f64>(std::stof(__VA_ARGS__))
 #else
 typedef int64_t i64;
 typedef double f64;
-#define S_TO_INT std::stoll
-#define S_TO_FLOAT std::stod
+#define S_TO_INT(...) static_cast<i64>(std::stoll(__VA_ARGS__))
+#define S_TO_FLOAT(...) static_cast<f64>(std::stod(__VA_ARGS__))
 #endif
 
 namespace pkpy{
@@ -99,22 +101,6 @@ inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
 inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
-
-
-template <typename T>
-class queue{
-	std::list<T> list;
-public:
-	void push(const T& t){ list.push_back(t); }
-	void push(T&& t){ list.push_back(std::move(t)); }
-	void pop(){ list.pop_front(); }
-	void clear(){ list.clear(); }
-	bool empty() const { return list.empty(); }
-	size_t size() const { return list.size(); }
-	T& front(){ return list.front(); }
-	const T& front() const { return list.front(); }
-	const std::list<T>& data() const { return list; }
-};
 
 template <typename T>
 class stack{

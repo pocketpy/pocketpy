@@ -93,7 +93,7 @@ public:
     }
 
     Frame* top_frame() const {
-#if PK_EXTRA_CHECK
+#if DEBUG_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
 #endif
         return callstack.top().get();
@@ -166,7 +166,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-            if(_module == _main) std::cout << disassemble(code) << '\n';
+            // if(_module == _main) std::cout << disassemble(code) << '\n';
             return _exec(code, _module);
         }catch (const Exception& e){
             *_stderr << e.summary() << '\n';
