@@ -68,7 +68,7 @@ inline void init_builtins(VM* _vm) {
         if(!vm->isinstance(args[1], type)){
             vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
         }
-        Type base = vm->_all_types[type.index].base;
+        Type base = vm->_all_types[type].base;
         return vm->gcnew(vm->tp_super, Super(args[1], base));
     });
 
@@ -788,11 +788,11 @@ inline void VM::post_init(){
     // property is defined in builtins.py so we need to add it after builtins is loaded
     _t(tp_object)->attr().set(__class__, property(CPP_LAMBDA(vm->_t(args[0]))));
     _t(tp_type)->attr().set(__base__, property([](VM* vm, Args& args){
-        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0]).index];
-        return info.base.index == -1 ? vm->None : vm->_all_types[info.base.index].obj;
+        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
+        return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
     }));
     _t(tp_type)->attr().set(__name__, property([](VM* vm, Args& args){
-        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0]).index];
+        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return VAR(info.name);
     }));
 }

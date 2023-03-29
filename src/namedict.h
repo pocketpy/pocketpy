@@ -34,7 +34,7 @@ inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vect
 
 struct NameDict {
     using Item = std::pair<StrName, PyObject*>;
-    inline static FreeListA<Item, 32, 32, false> _pool;
+    inline static THREAD_LOCAL FreeListA<Item, 32, true> _pool;
 
     uint16_t _capacity;
     uint16_t _size;
@@ -88,8 +88,7 @@ while(!_items[i].first.empty()) {       \
         return _items[i].second;
     }
 
-    template<typename T>
-    void set(StrName key, T&& val){
+    void set(StrName key, PyObject* val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) {
@@ -100,7 +99,7 @@ while(!_items[i].first.empty()) {       \
             }
             _items[i].first = key;
         }
-        _items[i].second = std::forward<T>(val);
+        _items[i].second = val;
     }
 
     void _rehash(bool resize){

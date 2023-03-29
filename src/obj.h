@@ -105,12 +105,7 @@ struct PyObject {
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
-
-    virtual void mark() {
-        if(!gc.enabled || gc.marked) return;
-        gc.marked = true;
-        if(is_attr_valid()) attr().apply_v([](PyObject* v){ v->mark(); });
-    }
+    virtual void mark() = 0;
 
     PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
@@ -137,7 +132,9 @@ struct Py_ : PyObject {
     void* value() override { return &_value; }
 
     void mark() override {
-        PyObject::mark();
+        if(!gc.enabled || gc.marked) return;
+        gc.marked = true;
+        if(is_attr_valid()) attr().apply_v([](PyObject* v){ v->mark(); });
         if constexpr (is_container_gc<T>::value) _value._mark();
     }
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <type_traits>
 
 namespace pkpy{
 
@@ -68,25 +69,30 @@ shared_ptr<T> make_sp(Args&&... args) {
     return shared_ptr<T>(p);
 }
 
-template<typename T, int __Bucket, int __BucketSize=32, bool __ZeroCheck=true>
+template<typename T, int __Bucket, bool __ZeroInit>
 struct FreeListA {
     std::vector<T*> buckets[__Bucket+1];
 
     T* alloc(int n){
-        if constexpr(__ZeroCheck) if(n == 0) return nullptr;
+        static_assert(std::is_standard_layout_v<T>);
+        T* p;
         if(n > __Bucket || buckets[n].empty()){
-            return new T[n];
+            p = (T*)malloc(sizeof(T) * n);
         }else{
-            T* p = buckets[n].back();
+            p = buckets[n].back();
             buckets[n].pop_back();
-            return p;
         }
+        if constexpr(__ZeroInit){
+            // the constructor of T should be equivalent to zero initialization
+            memset((void*)p, 0, sizeof(T) * n);
+        }
+        return p;
     }
 
     void dealloc(T* p, int n){
-        if constexpr(__ZeroCheck) if(n == 0) return;
-        if(n > __Bucket || buckets[n].size() >= __BucketSize){
-            delete[] p;
+        if(p == nullptr) return;
+        if(n > __Bucket || buckets[n].size() >= 80){
+            free(p);
         }else{
             buckets[n].push_back(p);
         }
@@ -94,7 +100,7 @@ struct FreeListA {
 
     ~FreeListA(){
         for(int i=0; i<=__Bucket; i++){
-            for(T* p : buckets[i]) delete[] p;
+            for(T* p : buckets[i]) free(p);
         }
     }
 };

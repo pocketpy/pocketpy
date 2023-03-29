@@ -9,13 +9,13 @@ namespace pkpy {
 using List = std::vector<PyObject*>;
 
 class Args {
-    inline static THREAD_LOCAL FreeListA<PyObject*, 10> _pool;
+    inline static THREAD_LOCAL FreeListA<PyObject*, 10, false> _pool;
 
     PyObject** _args;
     int _size;
 
     void _alloc(int n){
-        this->_args = _pool.alloc(n);
+        this->_args = (n==0) ? nullptr : _pool.alloc(n);
         this->_size = n;
     }
 
