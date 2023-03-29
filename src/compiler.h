@@ -21,7 +21,7 @@ enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
 
 class Compiler {
     std::unique_ptr<Parser> parser;
-    std::stack<CodeObject_> codes;
+    stack<CodeObject_> codes;
     int lexing_count = 0;
     bool used = false;
     VM* vm;

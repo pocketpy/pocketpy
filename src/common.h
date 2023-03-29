@@ -9,7 +9,6 @@
 
 #include <sstream>
 #include <regex>
-#include <stack>
 #include <cmath>
 #include <cstdlib>
 #include <stdexcept>
@@ -18,7 +17,6 @@
 #include <cstring>
 #include <chrono>
 #include <string_view>
-#include <queue>
 #include <iomanip>
 #include <memory>
 #include <functional>
@@ -28,6 +26,7 @@
 #include <algorithm>
 #include <random>
 #include <initializer_list>
+#include <list>
 
 #define PK_VERSION				"0.9.5"
 #define PK_EXTRA_CHECK 			0
@@ -100,5 +99,36 @@ inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
 inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
+
+
+template <typename T>
+class queue{
+	std::list<T> list;
+public:
+	void push(const T& t){ list.push_back(t); }
+	void push(T&& t){ list.push_back(std::move(t)); }
+	void pop(){ list.pop_front(); }
+	void clear(){ list.clear(); }
+	bool empty() const { return list.empty(); }
+	size_t size() const { return list.size(); }
+	T& front(){ return list.front(); }
+	const T& front() const { return list.front(); }
+	const std::list<T>& data() const { return list; }
+};
+
+template <typename T>
+class stack{
+	std::vector<T> vec;
+public:
+	void push(const T& t){ vec.push_back(t); }
+	void push(T&& t){ vec.push_back(std::move(t)); }
+	void pop(){ vec.pop_back(); }
+	void clear(){ vec.clear(); }
+	bool empty() const { return vec.empty(); }
+	size_t size() const { return vec.size(); }
+	T& top(){ return vec.back(); }
+	const T& top() const { return vec.back(); }
+	const std::vector<T>& data() const { return vec; }
+};
 
 } // namespace pkpy

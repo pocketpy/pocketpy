@@ -101,8 +101,8 @@ struct Parser {
     const char* curr_char;
     int current_line = 1;
     Token prev, curr;
-    std::queue<Token> nexts;
-    std::stack<int> indents;
+    queue<Token> nexts;
+    stack<int> indents;
 
     int brackets_level = 0;
 

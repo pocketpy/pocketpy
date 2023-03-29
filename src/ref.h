@@ -152,7 +152,7 @@ struct TupleRef : BaseRef {
 template<typename P>
 PyObject* VM::PyRef(P&& value) {
     static_assert(std::is_base_of_v<BaseRef, std::decay_t<P>>);
-    return gcnew<P>(tp_ref, std::forward<P>(value));
+    return heap.gcnew<P>(tp_ref, std::forward<P>(value));
 }
 
 inline const BaseRef* VM::PyRef_AS_C(PyObject* obj)
@@ -164,6 +164,20 @@ inline const BaseRef* VM::PyRef_AS_C(PyObject* obj)
 /***** Frame's Impl *****/
 inline void Frame::try_deref(VM* vm, PyObject*& v){
     if(is_type(v, vm->tp_ref)) v = vm->PyRef_AS_C(v)->get(vm, this);
+}
+
+/***** GC's Impl *****/
+template<> inline void _mark<AttrRef>(AttrRef& t){
+    OBJ_MARK(obj);
+}
+
+template<> inline void _mark<IndexRef>(IndexRef& t){
+    OBJ_MARK(obj);
+    OBJ_MARK(index);
+}
+
+template<> inline void _mark<TupleRef>(TupleRef& t){
+    _mark<Tuple>(t.objs);
 }
 
 }   // namespace pkpy

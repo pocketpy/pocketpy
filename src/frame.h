@@ -159,6 +159,17 @@ struct Frame {
         for(int i=n-1; i>=0; i--) v[i] = pop();
         return v;
     }
+
+    void _mark() const {
+        for(PyObject* obj : _data) OBJ_MARK(obj);
+        if(_locals != nullptr) _locals->_mark();
+        if(_closure != nullptr) _closure->_mark();
+        OBJ_MARK(_module);
+        for(auto& p : s_try_block){
+            for(PyObject* obj : p.second) OBJ_MARK(obj);
+        }
+        co->_mark();
+    }
 };
 
 }; // namespace pkpy

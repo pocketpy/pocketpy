@@ -69,7 +69,7 @@ inline void init_builtins(VM* _vm) {
             vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
         }
         Type base = vm->_all_types[type].base;
-        return vm->gcnew(vm->tp_super, Super(args[1], base));
+        return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, Args& args) {
@@ -757,7 +757,7 @@ inline void add_module_random(VM* vm){
 
 inline void add_module_gc(VM* vm){
     PyObject* mod = vm->new_module("gc");
-    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->gc_collect())));
+    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->heap.collect(vm))));
 }
 
 inline void VM::post_init(){

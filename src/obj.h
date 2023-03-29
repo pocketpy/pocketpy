@@ -63,6 +63,8 @@ struct StarWrapper {
     StarWrapper(PyObject* obj, bool rvalue): obj(obj), rvalue(rvalue) {}
 };
 
+using Super = std::pair<PyObject*, Type>;
+
 struct Slice {
     int start = 0;
     int stop = 0x7fffffff; 
@@ -84,16 +86,13 @@ public:
     virtual PyObject* next() = 0;
     PyObject* loop_var;
     BaseIter(VM* vm, PyObject* _ref) : vm(vm), _ref(_ref) {}
+    virtual void _mark();
     virtual ~BaseIter() = default;
 };
 
-template <typename, typename=void> struct is_container_gc : std::false_type {};
-template <typename T> struct is_container_gc<T, std::void_t<decltype(T::_mark)>> : std::true_type {};
-
 struct GCHeader {
-    bool enabled;   // whether this object is managed by GC
     bool marked;    // whether this object is marked
-    GCHeader() : enabled(false), marked(false) {}
+    GCHeader() : marked(false) {}
 };
 
 struct PyObject {
@@ -105,11 +104,14 @@ struct PyObject {
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
-    virtual void mark() = 0;
+    virtual void _mark() = 0;
 
     PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
 };
+
+template<typename T>
+void _mark(T& t);
 
 template <typename T>
 struct Py_ : PyObject {
@@ -131,16 +133,17 @@ struct Py_ : PyObject {
     }
     void* value() override { return &_value; }
 
-    void mark() override {
-        if(!gc.enabled || gc.marked) return;
+    void _mark() override {
+        if(gc.marked) return;
         gc.marked = true;
-        if(is_attr_valid()) attr().apply_v([](PyObject* v){ v->mark(); });
-        if constexpr (is_container_gc<T>::value) _value._mark();
+        if(is_attr_valid()) attr()._mark();
+        pkpy::_mark<T>(_value);   // handle PyObject* inside _value `T`
     }
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 #define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
+#define OBJ_MARK(obj) if(!is_tagged(obj)) obj->_mark()
 
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
@@ -210,7 +213,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
 }
 
 #define VAR(x) py_var(vm, x)
-#define VAR_T(T, ...) vm->gcnew<T>(T::_type(vm), T(__VA_ARGS__))
+#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
 #define CAST(T, x) py_cast<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
 

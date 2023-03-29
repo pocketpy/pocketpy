@@ -65,4 +65,21 @@ inline PyObject* Generator::next(){
     }
 }
 
+inline void BaseIter::_mark() {
+    if(_ref != nullptr) OBJ_MARK(_ref);
+    if(loop_var != nullptr) OBJ_MARK(loop_var);
+}
+
+inline void Generator::_mark(){
+    BaseIter::_mark();
+    frame->_mark();
+}
+
+template<typename T>
+void _mark(T& t){
+    if constexpr(std::is_base_of_v<BaseIter, T>){
+        t._mark();
+    }
+}
+
 } // namespace pkpy

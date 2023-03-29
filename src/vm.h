@@ -24,8 +24,8 @@ Str _read_file_cwd(const Str& name, bool* ok);
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    inline PyObject* py_var(VM* vm, const ctype& value) { return vm->gcnew(vm->ptype, value);}     \
-    inline PyObject* py_var(VM* vm, ctype&& value) { return vm->gcnew(vm->ptype, std::move(value));}
+    inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew(vm->ptype, value);}     \
+    inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew(vm->ptype, std::move(value));}
 
 
 class Generator: public BaseIter {
@@ -35,7 +35,8 @@ public:
     Generator(VM* vm, std::unique_ptr<Frame>&& frame)
         : BaseIter(vm, nullptr), frame(std::move(frame)), state(0) {}
 
-    PyObject* next();
+    PyObject* next() override;
+    void _mark() override;
 };
 
 struct PyTypeInfo{
@@ -46,9 +47,9 @@ struct PyTypeInfo{
 
 class VM {
     VM* vm;     // self reference for simplify code
-    ManagedHeap heap;
 public:
-    std::stack< std::unique_ptr<Frame> > callstack;
+    ManagedHeap heap;
+    stack< std::unique_ptr<Frame> > callstack;
     std::vector<PyTypeInfo> _all_types;
 
     PyObject* run_frame(Frame* frame);
@@ -56,15 +57,12 @@ public:
     NameDict _modules;                          // loaded modules
     std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
 
-    // singleton objects, need_gc=false
     PyObject* _py_op_call;
     PyObject* _py_op_yield;
     PyObject* None;
     PyObject* True;
     PyObject* False;
     PyObject* Ellipsis;
-
-    // managed by _modules, need_gc=false
     PyObject* builtins;         // builtins module
     PyObject* _main;            // __main__ module
 
@@ -72,6 +70,13 @@ public:
     std::ostream* _stdout;
     std::ostream* _stderr;
     int recursionlimit = 1000;
+
+    // for quick access
+    Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
+    Type tp_list, tp_tuple;
+    Type tp_function, tp_native_function, tp_iterator, tp_bound_method;
+    Type tp_slice, tp_range, tp_module, tp_ref;
+    Type tp_super, tp_exception, tp_star_wrapper;
 
     VM(bool use_stdio){
         this->vm = this;
@@ -118,7 +123,7 @@ public:
         do{
             val = cls->attr().try_get(name);
             if(val != nullptr) return val;
-            Type cls_t = static_cast<Py_<Type>*>(cls)->_value;
+            Type cls_t = OBJ_GET(Type, cls);
             Type base = _all_types[cls_t].base;
             if(base.index == -1) break;
             cls = _all_types[base].obj;
@@ -142,18 +147,6 @@ public:
         if(val != nullptr) return call(val, std::move(args));
         AttributeError(args[0], name);
         return nullptr;
-    }
-
-    i64 gc_collect(){
-        heap.collect(this);
-        return 0;
-    }
-
-    template<typename T>
-    PyObject* gcnew(Type type, T&& val){
-        PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
-        heap._add(obj);
-        return obj;
     }
 
     template<typename ArgT>
@@ -200,12 +193,12 @@ public:
 
     PyObject* property(NativeFuncRaw fget){
         PyObject* p = builtins->attr("property");
-        PyObject* method = gcnew(tp_native_function, NativeFunc(fget, 1, false));
+        PyObject* method = heap.gcnew(tp_native_function, NativeFunc(fget, 1, false));
         return call(p, Args{method});
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base){
-        PyObject* obj = new Py_<Type>(tp_type, _all_types.size());
+        PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         PyTypeInfo info{
             .obj = obj,
             .base = base,
@@ -263,17 +256,10 @@ public:
         return index;
     }
 
-    // for quick access
-    Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
-    Type tp_list, tp_tuple;
-    Type tp_function, tp_native_function, tp_iterator, tp_bound_method;
-    Type tp_slice, tp_range, tp_module, tp_ref;
-    Type tp_super, tp_exception, tp_star_wrapper;
-
     template<typename P>
     PyObject* PyIter(P&& value) {
         static_assert(std::is_base_of_v<BaseIter, std::decay_t<P>>);
-        return gcnew<P>(tp_iterator, std::forward<P>(value));
+        return heap.gcnew<P>(tp_iterator, std::forward<P>(value));
     }
 
     BaseIter* PyIter_AS_C(PyObject* obj)
@@ -323,6 +309,7 @@ public:
     }
 
     ~VM() {
+        heap.collect(this);
         if(!use_stdio){
             delete _stdout;
             delete _stderr;
@@ -578,7 +565,7 @@ inline PyObject* VM::asRepr(PyObject* obj){
 }
 
 inline PyObject* VM::new_module(StrName name) {
-    PyObject* obj = new Py_<DummyModule>(tp_module, DummyModule());
+    PyObject* obj = heap._new<DummyModule>(tp_module, DummyModule());
     obj->attr().set(__name__, VAR(name.str()));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
@@ -666,8 +653,8 @@ inline void VM::init_builtin_types(){
     // PyTypeObject is managed by _all_types
     // PyModuleObject is managed by _modules
     // They are not managed by GC, so we use a simple "new"
-    _all_types.push_back({.obj = new Py_<Type>(Type(1), Type(0)), .base = -1, .name = "object"});
-    _all_types.push_back({.obj = new Py_<Type>(Type(1), Type(1)), .base = 0, .name = "type"});
+    _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(0)), .base = -1, .name = "object"});
+    _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(1)), .base = 0, .name = "type"});
     tp_object = 0; tp_type = 1;
 
     tp_int = _new_type_object("int");
@@ -690,12 +677,12 @@ inline void VM::init_builtin_types(){
     tp_super = _new_type_object("super");
     tp_exception = _new_type_object("Exception");
 
-    this->None = new Py_<Dummy>(_new_type_object("NoneType"), {});
-    this->Ellipsis = new Py_<Dummy>(_new_type_object("ellipsis"), {});
-    this->True = new Py_<Dummy>(tp_bool, {});
-    this->False = new Py_<Dummy>(tp_bool, {});
-    this->_py_op_call = new Py_<Dummy>(_new_type_object("_py_op_call"), {});
-    this->_py_op_yield = new Py_<Dummy>(_new_type_object("_py_op_yield"), {});
+    this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
+    this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
+    this->True = heap._new<Dummy>(tp_bool, {});
+    this->False = heap._new<Dummy>(tp_bool, {});
+    this->_py_op_call = heap._new<Dummy>(_new_type_object("_py_op_call"), {});
+    this->_py_op_yield = heap._new<Dummy>(_new_type_object("_py_op_yield"), {});
 
     this->builtins = new_module("builtins");
     this->_main = new_module("__main__");
@@ -723,7 +710,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         if(new_f != nullptr){
             obj = call(new_f, std::move(args), kwargs, false);
         }else{
-            obj = gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
+            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
             PyObject* init_f = getattr(obj, __init__, false, true);
             if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
         }
@@ -811,8 +798,6 @@ inline void VM::unpack_args(Args& args){
     }
     args = Args(std::move(unpacked));
 }
-
-using Super = std::pair<PyObject*, Type>;
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err, bool class_only){
@@ -936,10 +921,11 @@ inline PyObject* VM::_exec(){
     }
 }
 
-inline std::vector<PyObject*> ManagedHeap::get_roots(VM *vm) {
-    std::vector<PyObject*> roots;
-    // ...
-    return roots;
+inline void ManagedHeap::mark(VM *vm) {
+    // iterate callstack frames
+    for(auto& frame : vm->callstack.data()){
+        frame->_mark();
+    }
 }
 
 }   // namespace pkpy

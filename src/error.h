@@ -72,7 +72,7 @@ struct SourceData {
 class Exception {
     StrName type;
     Str msg;
-    std::stack<Str> stacktrace;
+    stack<Str> stacktrace;
 public:
     Exception(StrName type, Str msg): type(type), msg(msg) {}
     bool match_type(StrName type) const { return this->type == type;}
@@ -84,7 +84,7 @@ public:
     }
 
     Str summary() const {
-        std::stack<Str> st(stacktrace);
+        stack<Str> st(stacktrace);
         StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }

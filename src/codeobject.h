@@ -89,6 +89,10 @@ struct CodeObject {
         return consts.size() - 1;
     }
 
+    void _mark() const {
+        for(PyObject* v : consts) OBJ_MARK(v);
+    }
+
     /************************************************/
     int _curr_block_i = 0;
     int _rvalue = 0;
