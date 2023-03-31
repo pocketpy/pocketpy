@@ -39,6 +39,9 @@ enum CodeBlockType {
     TRY_EXCEPT,
 };
 
+#define BC_NOARG       -1
+#define BC_KEEPLINE     -1
+
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
@@ -67,27 +70,6 @@ struct CodeObject {
     uint32_t perfect_hash_seed = 0;
 
     void optimize(VM* vm);
-
-    bool add_label(StrName label){
-        if(labels.count(label)) return false;
-        labels[label] = codes.size();
-        return true;
-    }
-
-    int add_name(StrName name, NameScope scope){
-        if(scope == NAME_LOCAL && global_names.count(name)) scope = NAME_GLOBAL;
-        auto p = std::make_pair(name, scope);
-        for(int i=0; i<names.size(); i++){
-            if(names[i] == p) return i;
-        }
-        names.push_back(p);
-        return names.size() - 1;
-    }
-
-    int add_const(PyObject* v){
-        consts.push_back(v);
-        return consts.size() - 1;
-    }
 
     void _mark() const {
         for(PyObject* v : consts) OBJ_MARK(v);

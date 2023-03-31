@@ -117,7 +117,7 @@ public:
 	const std::vector<T>& data() const { return vec; }
 };
 
-struct Expression;
-typedef std::unique_ptr<Expression> Expression_;
+struct Expr;
+typedef std::unique_ptr<Expr> Expr_;
 
 } // namespace pkpy

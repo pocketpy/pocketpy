@@ -72,8 +72,7 @@ struct Token{
 enum Precedence {
   PREC_NONE,
   PREC_ASSIGNMENT,    // =
-  PREC_COMMA,         // ,
-  PREC_SLICE,         // :   (only available inside a subscript expression)
+  PREC_TUPLE,         // ,
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or
   PREC_LOGICAL_AND,   // and

@@ -20,41 +20,6 @@ struct PrattRule{
     Precedence precedence;
 };
 
-struct CodeEmitContext{
-    CodeObject_ co;
-    stack<Expression_> s_expr;
-
-    CodeEmitContext(CodeObject_ co): co(co) {}
-
-    int curr_block_i = 0;
-    bool is_compiling_class = false;
-
-    bool is_curr_block_loop() const {
-        return co->blocks[curr_block_i].type == FOR_LOOP || co->blocks[curr_block_i].type == WHILE_LOOP;
-    }
-
-    void enter_block(CodeBlockType type){
-        co->blocks.push_back(CodeBlock{
-            type, curr_block_i, (int)co->codes.size()
-        });
-        curr_block_i = co->blocks.size()-1;
-    }
-
-    void exit_block(){
-        co->blocks[curr_block_i].end = co->codes.size();
-        curr_block_i = co->blocks[curr_block_i].parent;
-        if(curr_block_i < 0) UNREACHABLE();
-    }
-
-    // clear the expression stack and generate bytecode
-    void emit_expr(){
-        if(s_expr.size() != 1) UNREACHABLE();
-        Expression_ expr = s_expr.popx();
-        // emit
-        // ...
-    }
-};
-
 class Compiler {
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
@@ -70,7 +35,7 @@ class Compiler {
     template<typename... Args>
     CodeObject_ push_context(Args&&... args){
         CodeObject_ co = make_sp<CodeObject>(std::forward<Args>(args)...);
-        contexts.push(CodeEmitContext(co));
+        contexts.push(CodeEmitContext(vm, co));
         return co;
     }
 
@@ -117,30 +82,29 @@ public:
         rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
         rules[TK("or")] =       { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
         rules[TK("not")] =      { METHOD(exprNot),       nullptr,                    PREC_LOGICAL_NOT };
-        rules[TK("True")] =     { METHOD(exprValue),     NO_INFIX };
-        rules[TK("False")] =    { METHOD(exprValue),     NO_INFIX };
+        rules[TK("True")] =     { METHOD(exprLiteral0),     NO_INFIX };
+        rules[TK("False")] =    { METHOD(exprLiteral0),     NO_INFIX };
+        rules[TK("None")] =     { METHOD(exprLiteral0),     NO_INFIX };
+        rules[TK("...")] =      { METHOD(exprLiteral0),     NO_INFIX };
         rules[TK("lambda")] =   { METHOD(exprLambda),    NO_INFIX };
-        rules[TK("None")] =     { METHOD(exprValue),     NO_INFIX };
-        rules[TK("...")] =      { METHOD(exprValue),     NO_INFIX };
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("+=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("-=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("*=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("/=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("//=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("%=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("&=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("|=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("^=")] =       { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK(">>=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("<<=")] =      { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK(",")] =        { nullptr,               METHOD(exprComma),          PREC_COMMA };
-        rules[TK(":")] =        { nullptr,               METHOD(exprSlice),          PREC_SLICE };
+        rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
+        rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
@@ -150,7 +114,7 @@ public:
 #undef NO_INFIX
 
 #define EXPR() parse_expression(PREC_TERNARY)             // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parse_expression(PREC_COMMA)         // no '=', but ',' is allowed
+#define EXPR_TUPLE() parse_expression(PREC_TUPLE)         // no '=', but ',' is allowed
 #define EXPR_ANY() parse_expression(PREC_ASSIGNMENT)
     }
 
@@ -201,96 +165,55 @@ private:
         if (!match_end_stmt()) SyntaxError("expected statement end");
     }
 
-    PyObject* get_value(const Token& token) {
-        switch (token.type) {
-            case TK("@num"):
-                if(std::holds_alternative<i64>(token.value)) return VAR(std::get<i64>(token.value));
-                if(std::holds_alternative<f64>(token.value)) return VAR(std::get<f64>(token.value));
-                UNREACHABLE();
-            case TK("@str"): case TK("@fstr"):
-                return VAR(std::get<Str>(token.value));
-            default: throw std::runtime_error(Str("invalid token type: ") + TK_STR(token.type));
-        }
-    }
-
     void exprLiteral(){
         ctx()->s_expr.push(
-            std::make_unique<LiteralExpr>(prev().value)
+            expr_prev_line<LiteralExpr>(prev().value)
         );
-        // PyObject* value = get_value(prev());
-        // int index = co()->add_const(value);
-        // emit(OP_LOAD_CONST, index);
     }
 
     void exprFString(){
         ctx()->s_expr.push(
-            std::make_unique<FStringExpr>(std::get<Str>(prev().value))
+            expr_prev_line<FStringExpr>(std::get<Str>(prev().value))
         );
-        // static const std::regex pattern(R"(\{(.*?)\})");
-        // PyObject* value = get_value(prev());
-        // Str s = CAST(Str, value);
-        // std::sregex_iterator begin(s.begin(), s.end(), pattern);
-        // std::sregex_iterator end;
-        // int size = 0;
-        // int i = 0;
-        // for(auto it = begin; it != end; it++) {
-        //     std::smatch m = *it;
-        //     if (i < m.position()) {
-        //         std::string literal = s.substr(i, m.position() - i);
-        //         emit(OP_LOAD_CONST, co()->add_const(VAR(literal)));
-        //         size++;
-        //     }
-        //     emit(OP_LOAD_EVAL_FN);
-        //     emit(OP_LOAD_CONST, co()->add_const(VAR(m[1].str())));
-        //     emit(OP_CALL, 1);
-        //     size++;
-        //     i = (int)(m.position() + m.length());
-        // }
-        // if (i < s.size()) {
-        //     std::string literal = s.substr(i, s.size() - i);
-        //     emit(OP_LOAD_CONST, co()->add_const(VAR(literal)));
-        //     size++;
-        // }
-        // emit(OP_BUILD_STRING, size);
     }
 
-    void emit_expr(){}
+    template <typename T, typename... Args>
+    std::unique_ptr<T> expr_prev_line(Args&&... args) {
+        std::unique_ptr<T> expr = std::make_unique<T>(std::forward<Args>(args)...);
+        expr->line = prev().line;
+        return expr;
+    }
 
     void exprLambda(){
-        Function func;
-        func.name = "<lambda>";
+        auto e = expr_prev_line<LambdaExpr>();
+        e->func.name = "<lambda>";
+        e->scope = name_scope();
         if(!match(TK(":"))){
-            _compile_f_args(func, false);
+            _compile_f_args(e->func, false);
             consume(TK(":"));
         }
-        func.code = push_context(lexer->src, func.name.str());
+        e->func.code = push_context(lexer->src, "<lambda>");
         EXPR();
-        emit_expr();
-        emit(OP_RETURN_VALUE);
+        ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
+        ctx()->s_expr.push(std::move(e));
+    }
 
-        ctx()->s_expr.push(
-            std::make_unique<LambdaExpr>(std::move(func), name_scope())
-        );
-
-        // emit(OP_LOAD_FUNCTION, co()->add_const(VAR(func)));
-        // if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
+    void exprInplaceAssign(){
+        auto e = expr_prev_line<InplaceAssignExpr>();
+        e->op = prev().type;
+        e->lhs = ctx()->s_expr.popx();
+        EXPR_TUPLE();
+        e->rhs = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprAssign(){
-        Expression_ lhs = ctx()->s_expr.popx();
-        TokenIndex op = prev().type;
+        auto e = expr_prev_line<AssignExpr>();
+        e->lhs = ctx()->s_expr.popx();
         EXPR_TUPLE();
-        if(op == TK("=")){
-            ctx()->s_expr.push(
-                std::make_unique<AssignExpr>(std::move(lhs), ctx()->s_expr.popx())
-            );
-        }else{
-            // += -= ...
-            ctx()->s_expr.push(
-                std::make_unique<InplaceAssignExpr>(op, std::move(lhs), ctx()->s_expr.popx())
-            );
-        }
+        e->rhs = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
 
         // if(co()->codes.empty()) UNREACHABLE();
         // bool is_load_name_ref = co()->codes.back().op == OP_LOAD_NAME_REF;
@@ -341,123 +264,73 @@ private:
         // co()->_rvalue -= 1;
     }
 
-    void exprSlice(){
-    }
-
-    void exprComma(){
-        int size = 1;       // an expr is in the stack now
+    void exprTuple(){
+        auto e = expr_prev_line<TupleExpr>();
         do {
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
-            size++;
+            e->items.push_back(ctx()->s_expr.popx());
         } while(match(TK(",")));
-        std::vector<Expression_> items(size);
-        for(int i=size-1; i>=0; i--) items[i] = ctx()->s_expr.popx();
-        ctx()->s_expr.push(
-            std::make_unique<TupleExpr>(std::move(items))
-        );
-        // emit(co()->_rvalue ? OP_BUILD_TUPLE : OP_BUILD_TUPLE_REF, size);
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprOr(){
-        Expression_ lhs = ctx()->s_expr.popx();
-        parse_expression(PREC_LOGICAL_OR);
-        ctx()->s_expr.push(
-            std::make_unique<OrExpr>(std::move(lhs), ctx()->s_expr.popx())
-        );
-
-        // int patch = emit(OP_JUMP_IF_TRUE_OR_POP);
-        // parse_expression(PREC_LOGICAL_OR);
-        // patch_jump(patch);
+        auto e = expr_prev_line<OrExpr>();
+        e->lhs = ctx()->s_expr.popx();
+        parse_expression(PREC_LOGICAL_OR + 1);
+        e->rhs = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprAnd(){
-        Expression_ lhs = ctx()->s_expr.popx();
-        parse_expression(PREC_LOGICAL_AND);
-        ctx()->s_expr.push(
-            std::make_unique<AndExpr>(std::move(lhs), ctx()->s_expr.popx())
-        );
-        // int patch = emit(OP_JUMP_IF_FALSE_OR_POP);
-        // parse_expression(PREC_LOGICAL_AND);
-        // patch_jump(patch);
+        auto e = expr_prev_line<OrExpr>();
+        e->lhs = ctx()->s_expr.popx();
+        parse_expression(PREC_LOGICAL_AND + 1);
+        e->rhs = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprTernary(){
-        Expression_ cond = ctx()->s_expr.popx();
+        auto e = expr_prev_line<TernaryExpr>();
+        e->cond = ctx()->s_expr.popx();
         EXPR();         // if true
-        Expression_ true_expr = ctx()->s_expr.popx();
+        e->true_expr = ctx()->s_expr.popx();
         consume(TK(":"));
         EXPR();         // if false
-        Expression_ false_expr = ctx()->s_expr.popx();
-        ctx()->s_expr.push(
-            std::make_unique<TernaryExpr>(std::move(cond), std::move(true_expr), std::move(false_expr))
-        );
-        // int patch = emit(OP_POP_JUMP_IF_FALSE);
-        // EXPR();         // if true
-        // int patch2 = emit(OP_JUMP_ABSOLUTE);
-        // consume(TK(":"));
-        // patch_jump(patch);
-        // EXPR();         // if false
-        // patch_jump(patch2);
+        e->false_expr = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprBinaryOp(){
-        TokenIndex op = prev().type;
-        Expression_ lhs = ctx()->s_expr.popx();
-        parse_expression((Precedence)(rules[op].precedence + 1));
-        ctx()->s_expr.push(
-            std::make_unique<BinaryExpr>(op, std::move(lhs), ctx()->s_expr.popx())
-        );
-        // switch (op) {
-        //     case TK("+"):   emit(OP_BINARY_OP, 0);  break;
-        //     case TK("-"):   emit(OP_BINARY_OP, 1);  break;
-        //     case TK("*"):   emit(OP_BINARY_OP, 2);  break;
-        //     case TK("/"):   emit(OP_BINARY_OP, 3);  break;
-        //     case TK("//"):  emit(OP_BINARY_OP, 4);  break;
-        //     case TK("%"):   emit(OP_BINARY_OP, 5);  break;
-        //     case TK("**"):  emit(OP_BINARY_OP, 6);  break;
-
-        //     case TK("<"):   emit(OP_COMPARE_OP, 0);    break;
-        //     case TK("<="):  emit(OP_COMPARE_OP, 1);    break;
-        //     case TK("=="):  emit(OP_COMPARE_OP, 2);    break;
-        //     case TK("!="):  emit(OP_COMPARE_OP, 3);    break;
-        //     case TK(">"):   emit(OP_COMPARE_OP, 4);    break;
-        //     case TK(">="):  emit(OP_COMPARE_OP, 5);    break;
-        //     case TK("in"):      emit(OP_CONTAINS_OP, 0);   break;
-        //     case TK("not in"):  emit(OP_CONTAINS_OP, 1);   break;
-        //     case TK("is"):      emit(OP_IS_OP, 0);         break;
-        //     case TK("is not"):  emit(OP_IS_OP, 1);         break;
-
-        //     case TK("<<"):  emit(OP_BITWISE_OP, 0);    break;
-        //     case TK(">>"):  emit(OP_BITWISE_OP, 1);    break;
-        //     case TK("&"):   emit(OP_BITWISE_OP, 2);    break;
-        //     case TK("|"):   emit(OP_BITWISE_OP, 3);    break;
-        //     case TK("^"):   emit(OP_BITWISE_OP, 4);    break;
-        //     default: UNREACHABLE();
-        // }
+        auto e = expr_prev_line<BinaryExpr>();
+        e->op = prev().type;
+        e->lhs = ctx()->s_expr.popx();
+        parse_expression(rules[e->op].precedence + 1);
+        e->rhs = ctx()->s_expr.popx();
+        ctx()->s_expr.push(std::move(e));
     }
 
     void exprNot() {
-        parse_expression((Precedence)(PREC_LOGICAL_NOT + 1));
+        parse_expression(PREC_LOGICAL_NOT + 1);
         ctx()->s_expr.push(
-            std::make_unique<NotExpr>(ctx()->s_expr.popx())
+            expr_prev_line<NotExpr>(ctx()->s_expr.popx())
         );
-        // emit(OP_UNARY_NOT);
     }
 
     void exprUnaryOp(){
         TokenIndex type = prev().type;
-        parse_expression((Precedence)(PREC_UNARY + 1));
-        ctx()->s_expr.push(
-            std::make_unique<UnaryExpr>(type, ctx()->s_expr.popx())
-        );
-        // switch (type) {
-        //     case TK("-"):     emit(OP_UNARY_NEGATIVE); break;
-        //     case TK("*"):     emit(OP_UNARY_STAR, co()->_rvalue);   break;
-        //     default: UNREACHABLE();
-        // }
+        parse_expression(PREC_UNARY + 1);
+        Expr_ e;
+        switch(type){
+            case TK("-"):
+                e = expr_prev_line<NegatedExpr>(ctx()->s_expr.popx());
+            case TK("*"):
+                e = expr_prev_line<StarredExpr>(ctx()->s_expr.popx());
+            default: UNREACHABLE();
+        }
+        ctx()->s_expr.push(std::move(e));
     }
 
-    // () is just for change precedence, so we don't need to push it into stack
+    // () is just for change precedence
     void exprGroup(){
         match_newlines(mode()==REPL_MODE);
         EXPR_TUPLE();
@@ -507,52 +380,37 @@ private:
     // }
 
     template<typename T>
-    void _consume_comp(){
-
+    void _consume_comp(Expr_ expr){
+        static_assert(std::is_base_of<CompExpr, T>::value);
+        std::unique_ptr<CompExpr> ce = std::make_unique<T>();
+        ce->expr = std::move(expr);
+        // ...
+        ctx()->s_expr.push(std::move(ce));
     }
 
     void exprList() {
-        int ARGC = 0;
+        auto e = expr_prev_line<ListExpr>();
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type == TK("]")) break;
-            EXPR(); ARGC++;
+            EXPR();
+            e->items.push_back(ctx()->s_expr.popx());
             match_newlines(mode()==REPL_MODE);
-            if(ARGC == 1 && match(TK("for"))){
-                _consume_comp<ListCompExpr>();
+            if(e->items.size()==1 && match(TK("for"))){
+                _consume_comp<ListCompExpr>(std::move(e->items[0]));
                 consume(TK("]"));
                 return;
             }
         } while (match(TK(",")));
         match_newlines(mode()==REPL_MODE);
         consume(TK("]"));
-        auto list_expr = std::make_unique<ListExpr>();
-        list_expr->items.resize(ARGC);
-        for(int i=ARGC-1; i>=0; i--) list_expr->items[i] = ctx()->s_expr.popx();
-        ctx()->s_expr.push(std::move(list_expr));
-
-        // int _patch = emit(OP_NO_OP);
-        // int _body_start = co()->codes.size();
-        // int ARGC = 0;
-        // do {
-        //     match_newlines(mode()==REPL_MODE);
-        //     if (curr().type == TK("]")) break;
-        //     EXPR(); ARGC++;
-        //     match_newlines(mode()==REPL_MODE);
-        //     if(ARGC == 1 && match(TK("for"))){
-        //         _consume_comp(OP_BUILD_LIST, OP_LIST_APPEND, _patch, _body_start);
-        //         consume(TK("]"));
-        //         return;
-        //     }
-        // } while (match(TK(",")));
-        // match_newlines(mode()==REPL_MODE);
-        // consume(TK("]"));
-        // emit(OP_BUILD_LIST, ARGC);
+        ctx()->s_expr.push(std::move(e));
     }
 
+    // {...} may be dict or set
     void exprMap() {
         bool parsing_dict = false;
-        int ARGC = 0;
+        std::vector<Expr_> items;
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type == TK("}")) break;
@@ -561,62 +419,33 @@ private:
             if(parsing_dict){
                 consume(TK(":"));
                 EXPR();
-                Expression_ value = ctx()->s_expr.popx();
-                ctx()->s_expr.push(
-                    std::make_unique<DictItemExpr>(ctx()->s_expr.popx(), std::move(value))
-                );
+                auto dict_item = expr_prev_line<DictItemExpr>();
+                dict_item->key = ctx()->s_expr.popx();
+                dict_item->value = ctx()->s_expr.popx();
+                items.push_back(std::move(dict_item));
+            }else{
+                items.push_back(ctx()->s_expr.popx());
             }
-            ARGC++;
             match_newlines(mode()==REPL_MODE);
-            if(ARGC == 1 && match(TK("for"))){
-                if(parsing_dict) _consume_comp<DictCompExpr>();
-                else _consume_comp<SetCompExpr>();
+            if(items.size()==1 && match(TK("for"))){
+                if(parsing_dict) _consume_comp<DictCompExpr>(std::move(items[0]));
+                else _consume_comp<SetCompExpr>(std::move(items[0]));
                 consume(TK("}"));
                 return;
             }
         } while (match(TK(",")));
         consume(TK("}"));
-        if(ARGC == 0 || parsing_dict){
-            auto e = std::make_unique<DictExpr>();
-            e->items.resize(ARGC);
-            for(int i=ARGC-1; i>=0; i--) e->items[i] = ctx()->s_expr.popx();
+        if(items.size()==0 || parsing_dict){
+            auto e = expr_prev_line<DictExpr>(std::move(items));
             ctx()->s_expr.push(std::move(e));
         }else{
-            auto e = std::make_unique<SetExpr>();
-            e->items.resize(ARGC);
-            for(int i=ARGC-1; i>=0; i--) e->items[i] = ctx()->s_expr.popx();
+            auto e = expr_prev_line<SetExpr>(std::move(items));
             ctx()->s_expr.push(std::move(e));
         }
-        // int _patch = emit(OP_NO_OP);
-        // int _body_start = co()->codes.size();
-        // bool parsing_dict = false;
-        // int ARGC = 0;
-        // do {
-        //     match_newlines(mode()==REPL_MODE);
-        //     if (curr().type == TK("}")) break;
-        //     EXPR();
-        //     if(curr().type == TK(":")) parsing_dict = true;
-        //     if(parsing_dict){
-        //         consume(TK(":"));
-        //         EXPR();
-        //     }
-        //     ARGC++;
-        //     match_newlines(mode()==REPL_MODE);
-        //     if(ARGC == 1 && match(TK("for"))){
-        //         if(parsing_dict) _consume_comp(OP_BUILD_MAP, OP_MAP_ADD, _patch, _body_start);
-        //         else _consume_comp(OP_BUILD_SET, OP_SET_ADD, _patch, _body_start);
-        //         consume(TK("}"));
-        //         return;
-        //     }
-        // } while (match(TK(",")));
-        // consume(TK("}"));
-
-        // if(ARGC == 0 || parsing_dict) emit(OP_BUILD_MAP, ARGC);
-        // else emit(OP_BUILD_SET, ARGC);
     }
 
     void exprCall() {
-        auto e = std::make_unique<CallExpr>();
+        auto e = _expr<CallExpr>();
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type==TK(")")) break;
@@ -648,67 +477,47 @@ private:
 
     void exprName(){
         ctx()->s_expr.push(
-            std::make_unique<NameExpr>(prev().str(), name_scope())
+            expr_prev_line<NameExpr>(prev().str(), name_scope())
         );
     }
 
     void exprAttrib() {
         consume(TK("@id"));
         ctx()->s_expr.push(
-            std::make_unique<AttribExpr>(ctx()->s_expr.popx(), prev().str())
+            expr_prev_line<AttribExpr>(ctx()->s_expr.popx(), prev().str())
         );
     }
 
-    // [:], [:b]
-    // [a], [a:], [a:b]
     void exprSubscr() {
-        Expression_ a = nullptr;
-        Expression_ b = nullptr;
-        if(match(TK(":"))){
-            if(match(TK("]"))){         // [:]
-                
-            }else{                      // [:b]
-                EXPR_TUPLE();
-                consume(TK("]"));
-            }
-            emit(OP_BUILD_SLICE);
-        }else{
+        auto e = expr_prev_line<SubscrExpr>();
+        std::vector<Expr_> items;
+        do {
             EXPR_TUPLE();
-            if(match(TK(":"))){
-                if(match(TK("]"))){     // [a:]
-                    emit(OP_LOAD_NONE);
-                }else{                  // [a:b]
-                    EXPR_TUPLE();
-                    consume(TK("]"));
+            items.push_back(ctx()->s_expr.popx());
+        } while(match(TK(":")));
+        consume(TK("]"));
+        switch(items.size()){
+            case 1:
+                e->b = std::move(items[0]);
+                break;
+            case 2: case 3: {
+                auto slice = expr_prev_line<SliceExpr>();
+                slice->start = std::move(items[0]);
+                slice->stop = std::move(items[1]);
+                if(items.size()==3){
+                    slice->step = std::move(items[2]);
                 }
-                emit(OP_BUILD_SLICE);
-            }else{                      // [a]
-                consume(TK("]"));
-            }
+                e->b = std::move(slice);
+            } break;
+            default: SyntaxError(); break;
         }
-
-        // emit(OP_BUILD_INDEX, (int)(co()->_rvalue>0));
+        ctx()->s_expr.push(std::move(e));
     }
 
-    void exprValue() {
+    void exprLiteral0() {
         ctx()->s_expr.push(
-            std::make_unique<SpecialLiteralExpr>(prev().type)
+            expr_prev_line<Literal0Expr>(prev().type)
         );
-    }
-
-    int emit(Opcode opcode, int arg=-1, bool keepline=false) {
-        int line = prev().line;
-        co()->codes.push_back(
-            Bytecode{(uint8_t)opcode, (uint16_t)ctx()->curr_block_i, arg, line}
-        );
-        int i = co()->codes.size() - 1;
-        if(keepline && i>=1) co()->codes[i].line = co()->codes[i-1].line;
-        return i;
-    }
-
-    inline void patch_jump(int addr_index) {
-        int target = co()->codes.size();
-        co()->codes[addr_index].arg = target;
     }
 
     void compile_block_body() {
@@ -778,10 +587,11 @@ private:
         consume_end_stmt();
     }
 
-    // a = 1 + 2
-    // ['a', '1', '2', '+', '=']
-    // 
-    void parse_expression(Precedence precedence, bool allowslice=false) {
+    void parse_expression(int precedence){
+        parse_expression((Precedence)precedence);
+    }
+
+    void parse_expression(Precedence precedence) {
         advance();
         PrattCallback prefix = rules[prev().type].prefix;
         if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(prev().type));
