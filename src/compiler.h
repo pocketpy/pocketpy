@@ -445,14 +445,13 @@ private:
     }
 
     void exprCall() {
-        auto e = _expr<CallExpr>();
+        auto e = expr_prev_line<CallExpr>();
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type==TK(")")) break;
             if(curr().type==TK("@id") && next().type==TK("=")) {
                 consume(TK("@id"));
                 Str key = prev().str();
-                // emit(OP_LOAD_CONST, co()->add_const(VAR(key)));
                 consume(TK("="));
                 EXPR();
                 e->kwargs.push_back({key, ctx()->s_expr.popx()});
@@ -538,24 +537,24 @@ private:
         consume(TK("@dedent"));
     }
 
-    Token _compile_import() {
+    Str _compile_import() {
         consume(TK("@id"));
-        Token tkmodule = prev();
-        int index = co()->add_name(tkmodule.str(), NAME_SPECIAL);
-        emit(OP_IMPORT_NAME, index);
-        return tkmodule;
+        Str name = prev().str();
+        int index = ctx()->add_name(name, NAME_SPECIAL);
+        ctx()->emit(OP_IMPORT_NAME, index, peek(-2).line);
+        return name;
     }
 
     // import a as b
     void compile_normal_import() {
         do {
-            Token tkmodule = _compile_import();
+            Str name = _compile_import();
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkmodule = prev();
+                name = prev().str();
             }
-            int index = co()->add_name(tkmodule.str(), name_scope());
-            emit(OP_STORE_NAME, index);
+            int index = ctx()->add_name(name, name_scope());
+            ctx()->emit(OP_STORE_NAME, index, prev().line);
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -566,12 +565,12 @@ private:
         consume(TK("import"));
         if (match(TK("*"))) {
             if(name_scope() != NAME_GLOBAL) SyntaxError("import * can only be used in global scope");
-            emit(OP_STORE_ALL_NAMES);
+            ctx()->emit(OP_STORE_ALL_NAMES, BC_NOARG, prev().line);
             consume_end_stmt();
             return;
         }
         do {
-            emit(OP_DUP_TOP_VALUE);
+            ctx()->emit(OP_DUP_TOP_VALUE, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
             Token tkname = prev();
             int index = co()->add_name(tkname.str(), NAME_ATTR);
