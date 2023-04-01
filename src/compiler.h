@@ -676,13 +676,13 @@ private:
             case TK("yield"):
                 if (contexts.size() <= 1) SyntaxError("'yield' outside function");
                 EXPR_TUPLE(true);
-                // if yield present, the function is a generator
+                // if yield present, mark the function as generator
                 ctx()->co->is_generator = true;
                 ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
             case TK("return"):
-                if (contexts.size() <= 1) SyntaxError("'return' outside function");
+                if (contexts.size() <= 1) SyntaxError("'ret                                              urn' outside function");
                 if(match_end_stmt()){
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }else{
@@ -710,7 +710,10 @@ private:
                 break;
             case TK("del"):
                 EXPR_TUPLE();
-                ctx()->emit_lvalue();
+                Expr_ e = ctx()->s_expr.popx();
+                switch(e->ref_type()){
+                    case EXPR_NAME_REF:
+                }
                 ctx()->emit(OP_DELETE_REF, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;

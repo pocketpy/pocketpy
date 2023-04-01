@@ -10,14 +10,25 @@
 namespace pkpy{
 
 struct CodeEmitContext;
+
+enum ExprRefType{
+    EXPR_NO_REF,
+    EXPR_NAME_REF,
+    EXPR_ATTR_REF,
+    EXPR_INDEX_REF,
+    EXPR_STARRED_REF,
+    EXPR_TUPLE_REF
+};
+
 struct Expr{
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit(CodeEmitContext* ctx) = 0;
     virtual Str str() const = 0;
+    virtual std::vector<const Expr*> children() = 0;
 
-    virtual void emit_ref(CodeEmitContext* ctx){
-        throw std::runtime_error("emit_ref() is not supported");
+    virtual ExprRefType ref_type() const {
+        return EXPR_NO_REF;
     }
 };
 
@@ -96,6 +107,7 @@ struct CodeEmitContext{
     }
 };
 
+
 struct NameExpr: Expr{
     Str name;
     NameScope scope;
@@ -109,9 +121,8 @@ struct NameExpr: Expr{
         ctx->emit(OP_LOAD_NAME, index, line);
     }
 
-    void emit_ref(CodeEmitContext* ctx) override {
-        int index = ctx->add_name(name, scope);
-        ctx->emit(OP_LOAD_NAME_REF, index, line);
+    ExprRefType ref_type() const override {
+        return EXPR_NAME_REF;
     }
 };
 
@@ -126,11 +137,11 @@ struct StarredExpr: Expr{
         ctx->emit(OP_UNARY_STAR, (int)false, line);
     }
 
-    void emit_ref(CodeEmitContext* ctx) override {
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_STAR, (int)true, line);
+    ExprRefType ref_type() const override {
+        return EXPR_STARRED_REF;
     }
 };
+
 
 struct NegatedExpr: Expr{
     Expr_ child;
@@ -296,6 +307,10 @@ struct SetExpr: SequenceExpr{
 struct TupleExpr: SequenceExpr{
     Str str() const override { return "tuple()"; }
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
+
+    ExprRefType ref_type() const override {
+        return EXPR_TUPLE_REF;
+    }
 };
 
 struct CompExpr: Expr{
@@ -330,7 +345,7 @@ struct LambdaExpr: Expr{
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         ctx->emit(OP_LOAD_FUNCTION, ctx->add_const(VAR(func)), line);
-        if(scope == NAME_LOCAL) ctx->emit(OP_SETUP_CLOSURE, BC_NOARG, line);
+        if(scope == NAME_LOCAL) ctx->emit(OP_SETUP_CLOSURE, BC_NOARG, BC_KEEPLINE);
     }
 };
 
@@ -374,6 +389,16 @@ struct SubscrExpr: Expr{
     Expr_ a;
     Expr_ b;
     Str str() const override { return "a[b]"; }
+
+    void emit(CodeEmitContext* ctx) override{
+        a->emit(ctx);
+        b->emit(ctx);
+        ctx->emit(OP_BUILD_INDEX, BC_NOARG, line);
+    }
+
+    ExprRefType ref_type() const override {
+        return EXPR_INDEX_REF;
+    }
 };
 
 struct AttribExpr: Expr{
@@ -382,6 +407,10 @@ struct AttribExpr: Expr{
     AttribExpr(Expr_ a, const Str& b): a(std::move(a)), b(b) {}
     AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
     Str str() const override { return "a.b"; }
+
+    ExprRefType ref_type() const override {
+        return EXPR_ATTR_REF;
+    }
 };
 
 struct CallExpr: Expr{

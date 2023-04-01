@@ -69,6 +69,7 @@ struct NameRef : BaseRef {
     }
 };
 
+
 struct AttrRef : BaseRef {
     mutable PyObject* obj;
     NameRef attr;
