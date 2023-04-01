@@ -572,17 +572,17 @@ private:
         do {
             ctx()->emit(OP_DUP_TOP_VALUE, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
-            Token tkname = prev();
-            int index = co()->add_name(tkname.str(), NAME_ATTR);
-            emit(OP_BUILD_ATTR, index);
+            Str name = prev().str();
+            int index = ctx()->add_name(name, NAME_ATTR);
+            ctx()->emit(OP_BUILD_ATTR, index, prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
-                tkname = prev();
+                name = prev().str();
             }
-            index = co()->add_name(tkname.str(), name_scope());
-            emit(OP_STORE_NAME, index);
+            index = ctx()->add_name(name, name_scope());
+            ctx()->emit(OP_STORE_NAME, index, prev().line);
         } while (match(TK(",")));
-        emit(OP_POP_TOP);
+        ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
     }
 
@@ -599,7 +599,6 @@ private:
         while (rules[curr().type].precedence >= precedence) {
             TokenIndex op = curr().type;
             advance();
-            if (op == TK(":") && !allowslice) SyntaxError();
             PrattCallback infix = rules[op].infix;
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
@@ -609,33 +608,33 @@ private:
     void compile_if_stmt() {
         match_newlines();
         EXPR();   // condition
-        emit_expr();
-        int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
+        ctx()->emit_expr();
+        int ifpatch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
 
         if (match(TK("elif"))) {
-            int exit_jump = emit(OP_JUMP_ABSOLUTE);
-            patch_jump(ifpatch);
+            int exit_jump = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            ctx()->patch_jump(ifpatch);
             compile_if_stmt();
-            patch_jump(exit_jump);
+            ctx()->patch_jump(exit_jump);
         } else if (match(TK("else"))) {
-            int exit_jump = emit(OP_JUMP_ABSOLUTE);
-            patch_jump(ifpatch);
+            int exit_jump = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            ctx()->patch_jump(ifpatch);
             compile_block_body();
-            patch_jump(exit_jump);
+            ctx()->patch_jump(exit_jump);
         } else {
-            patch_jump(ifpatch);
+            ctx()->patch_jump(ifpatch);
         }
     }
 
     void compile_while_loop() {
         ctx()->enter_block(WHILE_LOOP);
         EXPR();   // condition
-        emit_expr();
-        int patch = emit(OP_POP_JUMP_IF_FALSE);
+        ctx()->emit_expr();
+        int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
-        emit(OP_LOOP_CONTINUE, -1, true);
-        patch_jump(patch);
+        ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->patch_jump(patch);
         ctx()->exit_block();
     }
 
@@ -643,7 +642,7 @@ private:
         int size = 0;
         do {
             consume(TK("@id"));
-            int index = co()->add_name(prev().str(), name_scope());
+            int index = ctx()->add_name(prev().str(), name_scope());
             emit(OP_LOAD_NAME_REF, index);
             size++;
         } while (match(TK(",")));
@@ -663,16 +662,18 @@ private:
 
     void compile_try_except() {
         ctx()->enter_block(TRY_EXCEPT);
-        emit(OP_TRY_BLOCK_ENTER);
+        ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
         compile_block_body();
-        emit(OP_TRY_BLOCK_EXIT);
-        std::vector<int> patches = { emit(OP_JUMP_ABSOLUTE) };
+        ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
+        std::vector<int> patches = {
+            ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
+        };
         ctx()->exit_block();
 
         do {
             consume(TK("except"));
             if(match(TK("@id"))){
-                int name_idx = co()->add_name(prev().str(), NAME_SPECIAL);
+                int name_idx = ctx()->add_name(prev().str(), NAME_SPECIAL);
                 emit(OP_EXCEPTION_MATCH, name_idx);
             }else{
                 emit(OP_LOAD_TRUE);
@@ -691,26 +692,28 @@ private:
         if (match(TK("break"))) {
             if (!ctx()->is_curr_block_loop()) SyntaxError("'break' outside loop");
             consume_end_stmt();
-            emit(OP_LOOP_BREAK);
+            ctx()->emit(OP_LOOP_BREAK, BC_NOARG, prev().line);
         } else if (match(TK("continue"))) {
             if (!ctx()->is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
             consume_end_stmt();
-            emit(OP_LOOP_CONTINUE);
+            ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, prev().line);
         } else if (match(TK("yield"))) {
             if (contexts.size() <= 1) SyntaxError("'yield' outside function");
-            EXPR_TUPLE(); emit_expr();
+            EXPR_TUPLE();
+            ctx()->emit_expr();
             consume_end_stmt();
             co()->is_generator = true;
-            emit(OP_YIELD_VALUE, -1, true);
+            ctx()->emit(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
         } else if (match(TK("return"))) {
             if (contexts.size() <= 1) SyntaxError("'return' outside function");
             if(match_end_stmt()){
-                emit(OP_LOAD_NONE);
+                ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
             }else{
-                EXPR_TUPLE(); emit_expr();
+                EXPR_TUPLE();
+                ctx()->emit_expr();
                 consume_end_stmt();
             }
-            emit(OP_RETURN_VALUE, -1, true);
+            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         } else if (match(TK("if"))) {
             compile_if_stmt();
         } else if (match(TK("while"))) {
@@ -734,12 +737,10 @@ private:
         } else if (match(TK("try"))) {
             compile_try_except();
         } else if(match(TK("assert"))) {
-            EXPR_TUPLE(); emit_expr();
+            EXPR_TUPLE();
+            ctx()->emit_expr();
             // OP_CODE needs to change
-
-            // if (match(TK(","))) EXPR();
-            // else emit(OP_LOAD_CONST, co()->add_const(VAR("")));
-            emit(OP_ASSERT);
+            ctx()->emit(OP_ASSERT, BC_NOARG, BC_KEEPLINE);
             consume_end_stmt();
         } else if(match(TK("with"))){
             EXPR();

@@ -242,7 +242,7 @@ struct DictExpr: Expr{
 
 struct SetExpr: Expr{
     std::vector<Expr_> items;
-    Set(std::vector<Expr_>&& items): items(std::move(items)) {}
+    SetExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
     Str str() const override { return "{}"; }
 };
 
