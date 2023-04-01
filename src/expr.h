@@ -343,6 +343,7 @@ struct AttribExpr: Expr{
 };
 
 struct CallExpr: Expr{
+    Expr_ callable;
     std::vector<Expr_> args;
     std::vector<std::pair<Str, Expr_>> kwargs;
     Str str() const override { return "()"; }

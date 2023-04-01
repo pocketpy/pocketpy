@@ -1,13 +1,14 @@
 #pragma once
 
+#include "common.h"
 #include "vm.h"
 #include "ref.h"
 
 namespace pkpy{
 
 inline PyObject* VM::run_frame(Frame* frame){
-    while(frame->has_next_bytecode()){
-        heap._auto_collect(this);
+    while(true){
+        heap._auto_collect(this);   // gc
 
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)
@@ -320,15 +321,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         default: throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
         }
     }
-
-    if(frame->co->src->mode == EVAL_MODE || frame->co->src->mode == JSON_MODE){
-        if(frame->_data.size() != 1) throw std::runtime_error("_data.size() != 1 in EVAL/JSON_MODE");
-        return frame->pop_value(this);
-    }
-#if DEBUG_EXTRA_CHECK
-    if(!frame->_data.empty()) throw std::runtime_error("_data.size() != 0 in EXEC_MODE");
-#endif
-    return None;
+    UNREACHABLE();
 }
 
 } // namespace pkpy

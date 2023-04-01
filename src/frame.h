@@ -53,10 +53,6 @@ struct Frame {
     //     return ss.str();
     // }
 
-    bool has_next_bytecode() const {
-        return _next_ip < co->codes.size();
-    }
-
     PyObject* pop(){
 #if DEBUG_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");

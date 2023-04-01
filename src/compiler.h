@@ -20,8 +20,6 @@ struct PrattRule{
     Precedence precedence;
 };
 
-enum ExprAction { EXPR_PUSH_STACK, EXPR_RVALUE, EXPR_LVALUE };
-
 class Compiler {
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
@@ -42,8 +40,10 @@ class Compiler {
     }
 
     void pop_context(){
-        if(!ctx()->s_expr.empty()){
-            ctx()->emit_expr();
+        if(!ctx()->s_expr.empty()) UNREACHABLE();
+        if(ctx()->co->codes.back().op != OP_RETURN_VALUE){
+            ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         }
         ctx()->co->optimize(vm);
         contexts.pop();
@@ -164,16 +164,12 @@ private:
         if (!match_end_stmt()) SyntaxError("expected statement end");
     }
 
-    void exprLiteral(){
-        ctx()->s_expr.push(
-            expr_prev_line<LiteralExpr>(prev().value)
-        );
+    void EXPR(ExprAction action=EXPR_PUSH_STACK) {
+        parse_expression(PREC_TUPLE + 1, action);
     }
 
-    void exprFString(){
-        ctx()->s_expr.push(
-            expr_prev_line<FStringExpr>(std::get<Str>(prev().value))
-        );
+    void EXPR_TUPLE(ExprAction action=EXPR_PUSH_STACK) {
+        parse_expression(PREC_TUPLE, action);
     }
 
     template <typename T, typename... Args>
@@ -183,6 +179,19 @@ private:
         return expr;
     }
 
+    /********************************************/
+
+    // PASS
+    void exprLiteral(){
+        ctx()->s_expr.push(expr_prev_line<LiteralExpr>(prev().value));
+    }
+
+    // PASS
+    void exprFString(){
+        ctx()->s_expr.push(expr_prev_line<FStringExpr>(std::get<Str>(prev().value)));
+    }
+
+    // PASS
     void exprLambda(){
         auto e = expr_prev_line<LambdaExpr>();
         e->func.name = "<lambda>";
@@ -192,42 +201,14 @@ private:
             consume(TK(":"));
         }
         e->func.code = push_context(lexer->src, "<lambda>");
-        EXPR();
+        // https://github.com/blueloveTH/pocketpy/issues/37
+        EXPR(true);
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
     }
 
-    // assignment是一种特殊的无返回值表达式，他不应该位于PREC中
-    void exprInplaceAssign(){
-        auto e = expr_prev_line<InplaceAssignExpr>();
-        e->op = prev().type;
-        e->lhs = ctx()->s_expr.popx();
-        // lhs cannot be a assignment expression, i.e. a = b += c is not allowed
-        if(e->lhs->is_assignment()) SyntaxError();
-        EXPR_TUPLE();
-        e->rhs = ctx()->s_expr.popx();
-        ctx()->s_expr.push(std::move(e));
-    }
-
-    void EXPR(ExprAction action=EXPR_PUSH_STACK) {
-        parse_expression(PREC_TUPLE + 1, action);
-    }
-
-    void EXPR_TUPLE(ExprAction action=EXPR_PUSH_STACK) {
-        parse_expression(PREC_TUPLE, action);
-    }
-
     void exprAssign(){
-        auto e = expr_prev_line<AssignExpr>();
-        e->lhs = ctx()->s_expr.popx();
-        // lhs cannot be a assignment expression, i.e. a = b = c is not allowed
-        // however in cpython, it is allowed, we'll fix it later
-        if(e->lhs->is_assignment()) SyntaxError();
-        EXPR_TUPLE();
-        e->rhs = ctx()->s_expr.popx();
-        ctx()->s_expr.push(std::move(e));
-
         // if(co()->codes.empty()) UNREACHABLE();
         // bool is_load_name_ref = co()->codes.back().op == OP_LOAD_NAME_REF;
         // int _name_arg = co()->codes.back().arg;
@@ -277,6 +258,7 @@ private:
         // co()->_rvalue -= 1;
     }
 
+    // PASS
     void exprTuple(){
         auto e = expr_prev_line<TupleExpr>();
         do {
@@ -286,6 +268,7 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprOr(){
         auto e = expr_prev_line<OrExpr>();
         e->lhs = ctx()->s_expr.popx();
@@ -294,14 +277,16 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprAnd(){
-        auto e = expr_prev_line<OrExpr>();
+        auto e = expr_prev_line<AndExpr>();
         e->lhs = ctx()->s_expr.popx();
         parse_expression(PREC_LOGICAL_AND + 1);
         e->rhs = ctx()->s_expr.popx();
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprTernary(){
         auto e = expr_prev_line<TernaryExpr>();
         e->cond = ctx()->s_expr.popx();
@@ -313,6 +298,7 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprBinaryOp(){
         auto e = expr_prev_line<BinaryExpr>();
         e->op = prev().type;
@@ -322,85 +308,56 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprNot() {
         parse_expression(PREC_LOGICAL_NOT + 1);
-        ctx()->s_expr.push(
-            expr_prev_line<NotExpr>(ctx()->s_expr.popx())
-        );
+        ctx()->s_expr.push(expr_prev_line<NotExpr>(ctx()->s_expr.popx()));
     }
 
+    // PASS
     void exprUnaryOp(){
-        TokenIndex type = prev().type;
+        TokenIndex op = prev().type;
         parse_expression(PREC_UNARY + 1);
-        Expr_ e;
-        switch(type){
+        switch(op){
             case TK("-"):
-                e = expr_prev_line<NegatedExpr>(ctx()->s_expr.popx());
+                ctx()->s_expr.push(expr_prev_line<NegatedExpr>(ctx()->s_expr.popx()));
+                break;
             case TK("*"):
-                e = expr_prev_line<StarredExpr>(ctx()->s_expr.popx());
+                ctx()->s_expr.push(expr_prev_line<StarredExpr>(ctx()->s_expr.popx()));
+                break;
             default: UNREACHABLE();
         }
-        ctx()->s_expr.push(std::move(e));
     }
 
-    // () is just for change precedence
+    // PASS
     void exprGroup(){
         match_newlines(mode()==REPL_MODE);
-        EXPR_TUPLE();
+        EXPR_TUPLE();   // () is just for change precedence
         match_newlines(mode()==REPL_MODE);
         consume(TK(")"));
     }
 
-    // void _consume_comp(Opcode op0, Opcode op1, int _patch, int _body_start){
-    //     int _body_end_return = emit(OP_JUMP_ABSOLUTE, -1);
-    //     int _body_end = co()->codes.size();
-    //     co()->codes[_patch].op = OP_JUMP_ABSOLUTE;
-    //     co()->codes[_patch].arg = _body_end;
-    //     emit(op0, 0);
-    //     EXPR_FOR_VARS();consume(TK("in"));EXPR_TUPLE();
-    //     match_newlines(mode()==REPL_MODE);
-        
-    //     int _skipPatch = emit(OP_JUMP_ABSOLUTE);
-    //     int _cond_start = co()->codes.size();
-    //     int _cond_end_return = -1;
-    //     if(match(TK("if"))) {
-    //         EXPR_TUPLE();
-    //         _cond_end_return = emit(OP_JUMP_ABSOLUTE, -1);
-    //     }
-    //     patch_jump(_skipPatch);
-
-    //     emit(OP_GET_ITER);
-    //     co()->_enter_block(FOR_LOOP);
-    //     emit(OP_FOR_ITER);
-
-    //     if(_cond_end_return != -1) {      // there is an if condition
-    //         emit(OP_JUMP_ABSOLUTE, _cond_start);
-    //         patch_jump(_cond_end_return);
-    //         int ifpatch = emit(OP_POP_JUMP_IF_FALSE);
-    //         emit(OP_JUMP_ABSOLUTE, _body_start);
-    //         patch_jump(_body_end_return);
-    //         emit(op1);
-    //         patch_jump(ifpatch);
-    //     }else{
-    //         emit(OP_JUMP_ABSOLUTE, _body_start);
-    //         patch_jump(_body_end_return);
-    //         emit(op1);
-    //     }
-
-    //     emit(OP_LOOP_CONTINUE, -1, true);
-    //     co()->_exit_block();
-    //     match_newlines(mode()==REPL_MODE);
-    // }
-
+    // PASS
     template<typename T>
     void _consume_comp(Expr_ expr){
         static_assert(std::is_base_of<CompExpr, T>::value);
         std::unique_ptr<CompExpr> ce = std::make_unique<T>();
         ce->expr = std::move(expr);
-        // ...
+        EXPR_TUPLE();   // must be a lvalue
+        ce->vars = ctx()->s_expr.popx();
+        consume(TK("in"));
+        EXPR();
+        ce->iter = ctx()->s_expr.popx();
+        match_newlines(mode()==REPL_MODE);
+        if(match(TK("if"))){
+            EXPR();
+            ce->cond = ctx()->s_expr.popx();
+        }
         ctx()->s_expr.push(std::move(ce));
+        match_newlines(mode()==REPL_MODE);
     }
 
+    // PASS
     void exprList() {
         auto e = expr_prev_line<ListExpr>();
         do {
@@ -414,15 +371,15 @@ private:
                 consume(TK("]"));
                 return;
             }
+            match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
-        match_newlines(mode()==REPL_MODE);
         consume(TK("]"));
         ctx()->s_expr.push(std::move(e));
     }
 
-    // {...} may be dict or set
+    // PASS
     void exprMap() {
-        bool parsing_dict = false;
+        bool parsing_dict = false;  // {...} may be dict or set
         std::vector<Expr_> items;
         do {
             match_newlines(mode()==REPL_MODE);
@@ -446,6 +403,7 @@ private:
                 consume(TK("}"));
                 return;
             }
+            match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK("}"));
         if(items.size()==0 || parsing_dict){
@@ -457,8 +415,10 @@ private:
         }
     }
 
+    // PASS
     void exprCall() {
         auto e = expr_prev_line<CallExpr>();
+        e->callable = ctx()->s_expr.popx();
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type==TK(")")) break;
@@ -487,12 +447,12 @@ private:
         // }
     }
 
+    // PASS
     void exprName(){
-        ctx()->s_expr.push(
-            expr_prev_line<NameExpr>(prev().str(), name_scope())
-        );
+        ctx()->s_expr.push(expr_prev_line<NameExpr>(prev().str(), name_scope()));
     }
 
+    // PASS
     void exprAttrib() {
         consume(TK("@id"));
         ctx()->s_expr.push(
@@ -500,6 +460,7 @@ private:
         );
     }
 
+    // PASS
     void exprSubscr() {
         auto e = expr_prev_line<SubscrExpr>();
         std::vector<Expr_> items;
@@ -526,10 +487,9 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // PASS
     void exprLiteral0() {
-        ctx()->s_expr.push(
-            expr_prev_line<Literal0Expr>(prev().type)
-        );
+        ctx()->s_expr.push(expr_prev_line<Literal0Expr>(prev().type));
     }
 
     void compile_block_body() {
@@ -599,7 +559,7 @@ private:
         consume_end_stmt();
     }
 
-    void parse_expression(int precedence, ExprAction action=EXPR_PUSH_STACK) {
+    void parse_expression(int precedence, bool push_stack=true) {
         advance();
         PrattCallback prefix = rules[prev().type].prefix;
         if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(prev().type));
@@ -611,16 +571,11 @@ private:
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
         }
-        switch(action){
-            case EXPR_PUSH_STACK: break;
-            case EXPR_RVALUE: ctx()->emit_rvalue(); break;
-            case EXPR_LVALUE: ctx()->emit_lvalue(); break;
-            default: UNREACHABLE();
-        }
+        if(!push_stack) ctx()->emit_expr();
     }
 
     void compile_if_stmt() {
-        EXPR(EXPR_RVALUE);   // condition
+        EXPR(true);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         if (match(TK("elif"))) {
@@ -640,7 +595,7 @@ private:
 
     void compile_while_loop() {
         ctx()->enter_block(WHILE_LOOP);
-        EXPR(EXPR_RVALUE);   // condition
+        EXPR(true);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
@@ -649,9 +604,10 @@ private:
     }
 
     void compile_for_loop() {
-        EXPR_TUPLE(EXPR_LVALUE);
+        EXPR_TUPLE();
+        ctx()->emit_lvalue();
         consume(TK("in"));
-        EXPR_TUPLE(EXPR_RVALUE);
+        EXPR(true);
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx()->enter_block(FOR_LOOP);
         ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
@@ -689,10 +645,8 @@ private:
     }
 
     void compile_decorated(){
-        EXPR(EXPR_RVALUE);
-        if(!match_newlines(mode()==REPL_MODE)){
-            SyntaxError("expected a new line after '@'");
-        }
+        EXPR(true);
+        if(!match_newlines(mode()==REPL_MODE)) SyntaxError();
         ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
         consume(TK("def"));
         compile_function();
@@ -718,7 +672,7 @@ private:
                 break;
             case TK("yield"):
                 if (contexts.size() <= 1) SyntaxError("'yield' outside function");
-                EXPR_TUPLE(EXPR_RVALUE);
+                EXPR_TUPLE(true);
                 // if yield present, the function is a generator
                 ctx()->co->is_generator = true;
                 ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
@@ -729,7 +683,7 @@ private:
                 if(match_end_stmt()){
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }else{
-                    EXPR_TUPLE(EXPR_RVALUE);
+                    EXPR_TUPLE(true);
                     consume_end_stmt();
                 }
                 ctx()->emit(OP_RETURN_VALUE, BC_NOARG, kw_line);
@@ -746,13 +700,14 @@ private:
             case TK("pass"): consume_end_stmt(); break;
             /*************************************************/
             case TK("assert"):
-                EXPR_TUPLE(EXPR_RVALUE);
+                EXPR_TUPLE(true);
                 // TODO: change OP_ASSERT impl in ceval.h
                 ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
             case TK("del"):
-                EXPR_TUPLE(EXPR_LVALUE);
+                EXPR_TUPLE();
+                ctx()->emit_lvalue();
                 ctx()->emit(OP_DELETE_REF, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
@@ -767,7 +722,7 @@ private:
                 consume(TK("@id"));
                 int dummy_t = ctx()->add_name(prev().str(), NAME_SPECIAL);
                 if(match(TK("(")) && !match(TK(")"))){
-                    EXPR(EXPR_RVALUE); consume(TK(")"));
+                    EXPR(true); consume(TK(")"));
                 }else{
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
                 }
@@ -775,7 +730,7 @@ private:
                 consume_end_stmt();
             } break;
             case TK("with"): {
-                EXPR(EXPR_RVALUE);
+                EXPR(true);
                 consume(TK("as"));
                 consume(TK("@id"));
                 int index = ctx()->add_name(prev().str(), name_scope());
@@ -953,6 +908,7 @@ public:
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE();
             consume(TK("@eof"));
+            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
             return code;
         }else if(mode()==JSON_MODE){
@@ -962,6 +918,7 @@ public:
             else if(match(TK("["))) exprList();
             else SyntaxError("expect a JSON object or array");
             consume(TK("@eof"));
+            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
             return code;
         }
