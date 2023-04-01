@@ -20,6 +20,8 @@ struct PrattRule{
     Precedence precedence;
 };
 
+enum ExprAction { EXPR_PUSH_STACK, EXPR_RVALUE, EXPR_LVALUE };
+
 class Compiler {
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
@@ -82,28 +84,16 @@ public:
         rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
         rules[TK("or")] =       { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
         rules[TK("not")] =      { METHOD(exprNot),       nullptr,                    PREC_LOGICAL_NOT };
-        rules[TK("True")] =     { METHOD(exprLiteral0),     NO_INFIX };
-        rules[TK("False")] =    { METHOD(exprLiteral0),     NO_INFIX };
-        rules[TK("None")] =     { METHOD(exprLiteral0),     NO_INFIX };
-        rules[TK("...")] =      { METHOD(exprLiteral0),     NO_INFIX };
+        rules[TK("True")] =     { METHOD(exprLiteral0),  NO_INFIX };
+        rules[TK("False")] =    { METHOD(exprLiteral0),  NO_INFIX };
+        rules[TK("None")] =     { METHOD(exprLiteral0),  NO_INFIX };
+        rules[TK("...")] =      { METHOD(exprLiteral0),  NO_INFIX };
         rules[TK("lambda")] =   { METHOD(exprLambda),    NO_INFIX };
         rules[TK("@id")] =      { METHOD(exprName),      NO_INFIX };
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
-        rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
-        rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),         PREC_ASSIGNMENT };
         rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
@@ -113,9 +103,18 @@ public:
 #undef METHOD
 #undef NO_INFIX
 
-#define EXPR() parse_expression(PREC_TERNARY)             // no '=' and ',' just a simple expression
-#define EXPR_TUPLE() parse_expression(PREC_TUPLE)         // no '=', but ',' is allowed
-#define EXPR_ANY() parse_expression(PREC_ASSIGNMENT)
+        // rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        // rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
     }
 
 private:
@@ -199,18 +198,32 @@ private:
         ctx()->s_expr.push(std::move(e));
     }
 
+    // assignment是一种特殊的无返回值表达式，他不应该位于PREC中
     void exprInplaceAssign(){
         auto e = expr_prev_line<InplaceAssignExpr>();
         e->op = prev().type;
         e->lhs = ctx()->s_expr.popx();
+        // lhs cannot be a assignment expression, i.e. a = b += c is not allowed
+        if(e->lhs->is_assignment()) SyntaxError();
         EXPR_TUPLE();
         e->rhs = ctx()->s_expr.popx();
         ctx()->s_expr.push(std::move(e));
     }
 
+    void EXPR(ExprAction action=EXPR_PUSH_STACK) {
+        parse_expression(PREC_TUPLE + 1, action);
+    }
+
+    void EXPR_TUPLE(ExprAction action=EXPR_PUSH_STACK) {
+        parse_expression(PREC_TUPLE, action);
+    }
+
     void exprAssign(){
         auto e = expr_prev_line<AssignExpr>();
         e->lhs = ctx()->s_expr.popx();
+        // lhs cannot be a assignment expression, i.e. a = b = c is not allowed
+        // however in cpython, it is allowed, we'll fix it later
+        if(e->lhs->is_assignment()) SyntaxError();
         EXPR_TUPLE();
         e->rhs = ctx()->s_expr.popx();
         ctx()->s_expr.push(std::move(e));
@@ -586,16 +599,11 @@ private:
         consume_end_stmt();
     }
 
-    void parse_expression(int precedence){
-        parse_expression((Precedence)precedence);
-    }
-
-    void parse_expression(Precedence precedence) {
+    void parse_expression(int precedence, ExprAction action=EXPR_PUSH_STACK) {
         advance();
         PrattCallback prefix = rules[prev().type].prefix;
         if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(prev().type));
         (this->*prefix)();
-        // rhs of = cannot be a AssignExpr or InplaceAssignExpr
         while (rules[curr().type].precedence >= precedence) {
             TokenIndex op = curr().type;
             advance();
@@ -603,34 +611,36 @@ private:
             if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
             (this->*infix)();
         }
+        switch(action){
+            case EXPR_PUSH_STACK: break;
+            case EXPR_RVALUE: ctx()->emit_rvalue(); break;
+            case EXPR_LVALUE: ctx()->emit_lvalue(); break;
+            default: UNREACHABLE();
+        }
     }
 
     void compile_if_stmt() {
-        match_newlines();
-        EXPR();   // condition
-        ctx()->emit_expr();
-        int ifpatch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
+        EXPR(EXPR_RVALUE);   // condition
+        int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
-
         if (match(TK("elif"))) {
-            int exit_jump = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
-            ctx()->patch_jump(ifpatch);
+            int exit_patch = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            ctx()->patch_jump(patch);
             compile_if_stmt();
-            ctx()->patch_jump(exit_jump);
+            ctx()->patch_jump(exit_patch);
         } else if (match(TK("else"))) {
-            int exit_jump = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
-            ctx()->patch_jump(ifpatch);
+            int exit_patch = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            ctx()->patch_jump(patch);
             compile_block_body();
-            ctx()->patch_jump(exit_jump);
+            ctx()->patch_jump(exit_patch);
         } else {
-            ctx()->patch_jump(ifpatch);
+            ctx()->patch_jump(patch);
         }
     }
 
     void compile_while_loop() {
         ctx()->enter_block(WHILE_LOOP);
-        EXPR();   // condition
-        ctx()->emit_expr();
+        EXPR(EXPR_RVALUE);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
@@ -638,25 +648,15 @@ private:
         ctx()->exit_block();
     }
 
-    void EXPR_FOR_VARS(){
-        int size = 0;
-        do {
-            consume(TK("@id"));
-            int index = ctx()->add_name(prev().str(), name_scope());
-            emit(OP_LOAD_NAME_REF, index);
-            size++;
-        } while (match(TK(",")));
-        if(size > 1) emit(OP_BUILD_TUPLE_REF, size);
-    }
-
     void compile_for_loop() {
-        EXPR_FOR_VARS();consume(TK("in"));
-        EXPR_TUPLE(); emit_expr();
-        emit(OP_GET_ITER);
+        EXPR_TUPLE(EXPR_LVALUE);
+        consume(TK("in"));
+        EXPR_TUPLE(EXPR_RVALUE);
+        ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx()->enter_block(FOR_LOOP);
-        emit(OP_FOR_ITER);
+        ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         compile_block_body();
-        emit(OP_LOOP_CONTINUE, -1, true);
+        ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
         ctx()->exit_block();
     }
 
@@ -688,120 +688,131 @@ private:
         for (int patch : patches) patch_jump(patch);
     }
 
+    void compile_decorated(){
+        EXPR(EXPR_RVALUE);
+        if(!match_newlines(mode()==REPL_MODE)){
+            SyntaxError("expected a new line after '@'");
+        }
+        ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
+        consume(TK("def"));
+        compile_function();
+    }
+
+    bool try_compile_assignment(){
+
+    }
+
     void compile_stmt() {
-        if (match(TK("break"))) {
-            if (!ctx()->is_curr_block_loop()) SyntaxError("'break' outside loop");
-            consume_end_stmt();
-            ctx()->emit(OP_LOOP_BREAK, BC_NOARG, prev().line);
-        } else if (match(TK("continue"))) {
-            if (!ctx()->is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
-            consume_end_stmt();
-            ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, prev().line);
-        } else if (match(TK("yield"))) {
-            if (contexts.size() <= 1) SyntaxError("'yield' outside function");
-            EXPR_TUPLE();
-            ctx()->emit_expr();
-            consume_end_stmt();
-            co()->is_generator = true;
-            ctx()->emit(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
-        } else if (match(TK("return"))) {
-            if (contexts.size() <= 1) SyntaxError("'return' outside function");
-            if(match_end_stmt()){
-                ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
-            }else{
-                EXPR_TUPLE();
-                ctx()->emit_expr();
+        advance();
+        int kw_line = prev().line;  // backup line number
+        switch(prev().type){
+            case TK("break"):
+                if (!ctx()->is_curr_block_loop()) SyntaxError("'break' outside loop");
+                ctx()->emit(OP_LOOP_BREAK, BC_NOARG, kw_line);
                 consume_end_stmt();
-            }
-            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        } else if (match(TK("if"))) {
-            compile_if_stmt();
-        } else if (match(TK("while"))) {
-            compile_while_loop();
-        } else if (match(TK("for"))) {
-            compile_for_loop();
-        } else if (match(TK("import"))){
-            compile_normal_import();
-        } else if (match(TK("from"))){
-            compile_from_import();
-        } else if (match(TK("def"))){
-            compile_function();
-        } else if (match(TK("@"))){
-            EXPR();
-            if(!match_newlines(mode()==REPL_MODE)){
-                SyntaxError("expected a new line after '@'");
-            }
-            emit(OP_SETUP_DECORATOR);
-            consume(TK("def"));
-            compile_function();
-        } else if (match(TK("try"))) {
-            compile_try_except();
-        } else if(match(TK("assert"))) {
-            EXPR_TUPLE();
-            ctx()->emit_expr();
-            // OP_CODE needs to change
-            ctx()->emit(OP_ASSERT, BC_NOARG, BC_KEEPLINE);
-            consume_end_stmt();
-        } else if(match(TK("with"))){
-            EXPR();
-            consume(TK("as"));
-            consume(TK("@id"));
-            Token tkname = prev();
-            int index = co()->add_name(tkname.str(), name_scope());
-            emit(OP_STORE_NAME, index);
-            emit(OP_LOAD_NAME_REF, index);
-            emit(OP_WITH_ENTER);
-            compile_block_body();
-            emit(OP_LOAD_NAME_REF, index);
-            emit(OP_WITH_EXIT);
-        } else if(match(TK("label"))){
-            if(mode() != EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
-            consume(TK(".")); consume(TK("@id"));
-            Str label = prev().str();
-            bool ok = co()->add_label(label);
-            if(!ok) SyntaxError("label '" + label + "' already exists");
-            consume_end_stmt();
-        } else if(match(TK("goto"))){ // https://entrian.com/goto/
-            if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
-            consume(TK(".")); consume(TK("@id"));
-            emit(OP_GOTO, co()->add_name(prev().str(), NAME_SPECIAL));
-            consume_end_stmt();
-        } else if(match(TK("raise"))){
-            consume(TK("@id"));
-            int dummy_t = co()->add_name(prev().str(), NAME_SPECIAL);
-            if(match(TK("(")) && !match(TK(")"))){
-                EXPR(); consume(TK(")"));
-            }else{
-                emit(OP_LOAD_NONE);
-            }
-            emit(OP_RAISE, dummy_t);
-            consume_end_stmt();
-        } else if(match(TK("del"))){
-            EXPR_TUPLE();
-            emit(OP_DELETE_REF);
-            consume_end_stmt();
-        } else if(match(TK("global"))){
-            do {
-                consume(TK("@id"));
-                co()->global_names[prev().str()] = 1;
-            } while (match(TK(",")));
-            consume_end_stmt();
-        } else if(match(TK("pass"))){
-            consume_end_stmt();
-        } else {
-            int begin = co()->codes.size();
-            EXPR_ANY();
-            int end = co()->codes.size();
-            consume_end_stmt();
-            // If last op is not an assignment, pop the result.
-            uint8_t last_op = co()->codes.back().op;
-            if( last_op!=OP_STORE_NAME && last_op!=OP_STORE_REF &&
-            last_op!=OP_STORE_ALL_NAMES && last_op!=OP_STORE_CLASS_ATTR){
-                for(int i=begin; i<end; i++){
-                    if(co()->codes[i].op==OP_BUILD_TUPLE_REF) co()->codes[i].op = OP_BUILD_TUPLE;
+                break;
+            case TK("continue"):
+                if (!ctx()->is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
+                ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, kw_line);
+                consume_end_stmt();
+                break;
+            case TK("yield"):
+                if (contexts.size() <= 1) SyntaxError("'yield' outside function");
+                EXPR_TUPLE(EXPR_RVALUE);
+                // if yield present, the function is a generator
+                ctx()->co->is_generator = true;
+                ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
+                consume_end_stmt();
+                break;
+            case TK("return"):
+                if (contexts.size() <= 1) SyntaxError("'return' outside function");
+                if(match_end_stmt()){
+                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
+                }else{
+                    EXPR_TUPLE(EXPR_RVALUE);
+                    consume_end_stmt();
                 }
-                if(mode()==REPL_MODE && name_scope() == NAME_GLOBAL) emit(OP_PRINT_EXPR, -1, true);
-                emit(OP_POP_TOP, -1, true);
+                ctx()->emit(OP_RETURN_VALUE, BC_NOARG, kw_line);
+                break;
+            /*************************************************/
+            case TK("if"): compile_if_stmt(); break;
+            case TK("while"): compile_while_loop(); break;
+            case TK("for"): compile_for_loop(); break;
+            case TK("import"): compile_normal_import(); break;
+            case TK("from"): compile_from_import(); break;
+            case TK("def"): compile_function(); break;
+            case TK("@"): compile_decorated(); break;
+            case TK("try"): compile_try_except(); break;
+            case TK("pass"): consume_end_stmt(); break;
+            /*************************************************/
+            case TK("assert"):
+                EXPR_TUPLE(EXPR_RVALUE);
+                // TODO: change OP_ASSERT impl in ceval.h
+                ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
+                consume_end_stmt();
+                break;
+            case TK("del"):
+                EXPR_TUPLE(EXPR_LVALUE);
+                ctx()->emit(OP_DELETE_REF, BC_NOARG, kw_line);
+                consume_end_stmt();
+                break;
+            case TK("global"):
+                do {
+                    consume(TK("@id"));
+                    co()->global_names.insert(prev().str());
+                } while (match(TK(",")));
+                consume_end_stmt();
+                break;
+            case TK("raise"): {
+                consume(TK("@id"));
+                int dummy_t = ctx()->add_name(prev().str(), NAME_SPECIAL);
+                if(match(TK("(")) && !match(TK(")"))){
+                    EXPR(EXPR_RVALUE); consume(TK(")"));
+                }else{
+                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
+                }
+                ctx()->emit(OP_RAISE, dummy_t, kw_line);
+                consume_end_stmt();
+            } break;
+            case TK("with"): {
+                EXPR(EXPR_RVALUE);
+                consume(TK("as"));
+                consume(TK("@id"));
+                int index = ctx()->add_name(prev().str(), name_scope());
+                emit(OP_STORE_NAME, index);
+                emit(OP_LOAD_NAME_REF, index);
+                emit(OP_WITH_ENTER);
+                compile_block_body();
+                emit(OP_LOAD_NAME_REF, index);
+                emit(OP_WITH_EXIT);
+            } break;
+            /*************************************************/
+            // TODO: refactor goto/label use special $ syntax
+            case TK("label"):
+                if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
+                consume(TK(".")); consume(TK("@id"));
+                bool ok = co()->add_label(prev().str());
+                if(!ok) SyntaxError("label " + prev().str().escape(true) + " already exists");
+                consume_end_stmt();
+                break;
+            case TK("goto"):
+                if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
+                consume(TK(".")); consume(TK("@id"));
+                emit(OP_GOTO, co()->add_name(prev().str(), NAME_SPECIAL));
+                consume_end_stmt();
+                break;
+            /*************************************************/
+            // dangling expression or assignment
+            default: {
+                EXPR_TUPLE(true);
+                bool assigment = try_compile_assignment();
+                if(!assigment){
+                    if(mode()==REPL_MODE && name_scope()==NAME_GLOBAL){
+                        emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                    }
+                    emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                }
+                consume_end_stmt();
             }
         }
     }

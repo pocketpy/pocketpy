@@ -6,14 +6,19 @@
 #include "error.h"
 #include "ceval.h"
 
+
 namespace pkpy{
 
 struct CodeEmitContext;
 struct Expr{
     int line = 0;
-    virtual Str str() const = 0;
-    ~Expr() = default;
+    virtual ~Expr() = default;
     virtual void emit(CodeEmitContext* ctx) = 0;
+    virtual Str str() const = 0;
+
+    virtual void emit_lvalue(CodeEmitContext* ctx){
+        throw std::runtime_error("emit_lvalue() is not supported");
+    }
 };
 
 struct CodeEmitContext{
@@ -335,19 +340,6 @@ struct AttribExpr: Expr{
     AttribExpr(Expr_ a, const Str& b): a(std::move(a)), b(b) {}
     AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
     Str str() const override { return "a.b"; }
-};
-
-struct AssignExpr: Expr{
-    Expr_ lhs;
-    Expr_ rhs;
-    Str str() const override { return "="; }
-};
-
-struct InplaceAssignExpr: Expr{
-    TokenIndex op;
-    Expr_ lhs;
-    Expr_ rhs;
-    Str str() const override { return TK_STR(op); }
 };
 
 struct CallExpr: Expr{

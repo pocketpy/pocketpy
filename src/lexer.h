@@ -71,7 +71,6 @@ struct Token{
 // https://docs.python.org/3/reference/expressions.html#operator-precedence
 enum Precedence {
   PREC_NONE,
-  PREC_ASSIGNMENT,    // =
   PREC_TUPLE,         // ,
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or

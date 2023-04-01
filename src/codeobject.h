@@ -62,7 +62,7 @@ struct CodeObject {
     std::vector<Bytecode> codes;
     List consts;
     std::vector<std::pair<StrName, NameScope>> names;
-    std::map<StrName, int> global_names;
+    std::set<StrName> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
 
