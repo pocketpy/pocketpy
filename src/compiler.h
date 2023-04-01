@@ -830,6 +830,7 @@ private:
     }
 
     void compile_function(){
+        // TODO: bug, if there are multiple decorators, will cause error
         bool has_decorator = !co()->codes.empty() && co()->codes.back().op == OP_SETUP_DECORATOR;
         Function func;
         StrName obj_name;

@@ -16,8 +16,8 @@ struct Expr{
     virtual void emit(CodeEmitContext* ctx) = 0;
     virtual Str str() const = 0;
 
-    virtual void emit_lvalue(CodeEmitContext* ctx){
-        throw std::runtime_error("emit_lvalue() is not supported");
+    virtual void emit_ref(CodeEmitContext* ctx){
+        throw std::runtime_error("emit_ref() is not supported");
     }
 };
 
@@ -108,7 +108,13 @@ struct NameExpr: Expr{
         int index = ctx->add_name(name, scope);
         ctx->emit(OP_LOAD_NAME, index, line);
     }
+
+    void emit_ref(CodeEmitContext* ctx) override {
+        int index = ctx->add_name(name, scope);
+        ctx->emit(OP_LOAD_NAME_REF, index, line);
+    }
 };
+
 
 struct StarredExpr: Expr{
     Expr_ child;
@@ -118,6 +124,11 @@ struct StarredExpr: Expr{
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
         ctx->emit(OP_UNARY_STAR, (int)false, line);
+    }
+
+    void emit_ref(CodeEmitContext* ctx) override {
+        child->emit(ctx);
+        ctx->emit(OP_UNARY_STAR, (int)true, line);
     }
 };
 
@@ -232,28 +243,58 @@ struct SliceExpr: Expr{
     Expr_ stop;
     Expr_ step;
     Str str() const override { return "slice()"; }
+
+    void emit(CodeEmitContext* ctx) override {
+        if(start){
+            start->emit(ctx);
+        }else{
+            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+        }
+
+        if(stop){
+            stop->emit(ctx);
+        }else{
+            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+        }
+
+        if(step){
+            step->emit(ctx);
+        }else{
+            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+        }
+
+        ctx->emit(OP_BUILD_SLICE, BC_NOARG, line);
+    }
 };
 
-struct ListExpr: Expr{
+struct SequenceExpr: Expr{
     std::vector<Expr_> items;
-    Str str() const override { return "[]"; }
+    virtual Opcode opcode() const = 0;
+
+    void emit(CodeEmitContext* ctx) override {
+        for(auto& item: items) item->emit(ctx);
+        ctx->emit(opcode(), items.size(), line);
+    }
 };
 
-struct DictExpr: Expr{
-    std::vector<Expr_> items;     // each item is a DictItemExpr
-    DictExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
-    Str str() const override { return "{}"; }
+struct ListExpr: SequenceExpr{
+    Str str() const override { return "list()"; }
+    Opcode opcode() const override { return OP_BUILD_LIST; }
 };
 
-struct SetExpr: Expr{
-    std::vector<Expr_> items;
-    SetExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
-    Str str() const override { return "{}"; }
+struct DictExpr: SequenceExpr{
+    Str str() const override { return "dict()"; }
+    Opcode opcode() const override { return OP_BUILD_MAP; }
 };
 
-struct TupleExpr: Expr{
-    std::vector<Expr_> items;
+struct SetExpr: SequenceExpr{
+    Str str() const override { return "set()"; }
+    Opcode opcode() const override { return OP_BUILD_SET; }
+};
+
+struct TupleExpr: SequenceExpr{
     Str str() const override { return "tuple()"; }
+    Opcode opcode() const override { return OP_BUILD_TUPLE; }
 };
 
 struct CompExpr: Expr{
