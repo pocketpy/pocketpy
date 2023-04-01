@@ -269,6 +269,7 @@ struct SliceExpr: Expr{
 
 struct SequenceExpr: Expr{
     std::vector<Expr_> items;
+    SequenceExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
     virtual Opcode opcode() const = 0;
 
     void emit(CodeEmitContext* ctx) override {

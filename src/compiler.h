@@ -359,21 +359,24 @@ private:
 
     // PASS
     void exprList() {
-        auto e = expr_prev_line<ListExpr>();
+        int line = prev().line;
+        std::vector<Expr_> items;
         do {
             match_newlines(mode()==REPL_MODE);
             if (curr().type == TK("]")) break;
             EXPR();
-            e->items.push_back(ctx()->s_expr.popx());
+            items.push_back(ctx()->s_expr.popx());
             match_newlines(mode()==REPL_MODE);
-            if(e->items.size()==1 && match(TK("for"))){
-                _consume_comp<ListCompExpr>(std::move(e->items[0]));
+            if(items.size()==1 && match(TK("for"))){
+                _consume_comp<ListCompExpr>(std::move(items[0]));
                 consume(TK("]"));
                 return;
             }
             match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK("]"));
+        auto e = expr_prev_line<ListExpr>(std::move(items));
+        e->line = line;     // override line
         ctx()->s_expr.push(std::move(e));
     }
 
