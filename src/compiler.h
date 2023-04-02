@@ -867,18 +867,6 @@ public:
             make_sp<SourceData>(source, filename, mode)
         );
         if(rules.empty()) init_pratt_rules();
-        // rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        // rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
     }
 
     CodeObject_ compile(){
