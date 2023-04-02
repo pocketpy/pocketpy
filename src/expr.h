@@ -425,7 +425,7 @@ struct FStringExpr: Expr{
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
                 size++;
             }
-            ctx->emit(OP_LOAD_EVAL_FN, BC_NOARG, line);
+            ctx->emit(OP_LOAD_BUILTINS_EVAL, BC_NOARG, line);
             ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(m[1].str())), line);
             ctx->emit(OP_CALL, 1, line);
             size++;
@@ -514,7 +514,16 @@ struct CallExpr: Expr{
     }
 
     void emit(CodeEmitContext* ctx) override {
+        VM* vm = ctx->vm;
         callable->emit(ctx);
+        // emit args
+        for(auto& item: args) item->emit(ctx);
+        // emit kwargs
+        for(auto& item: kwargs){
+            // TODO: optimize this
+            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(item.first)), line);
+            item.second->emit(ctx);
+        }
         int KWARGC = (int)kwargs.size();
         int ARGC = (int)args.size();
         if(KWARGC > 0){

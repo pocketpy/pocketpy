@@ -214,7 +214,7 @@ const StrName m_set = StrName::get("set");
 const StrName __enter__ = StrName::get("__enter__");
 const StrName __exit__ = StrName::get("__exit__");
 
-const StrName CMP_SPECIAL_METHODS[] = {
+const StrName COMPARE_SPECIAL_METHODS[] = {
     StrName::get("__lt__"), StrName::get("__le__"), StrName::get("__eq__"),
     StrName::get("__ne__"), StrName::get("__gt__"), StrName::get("__ge__")
 };

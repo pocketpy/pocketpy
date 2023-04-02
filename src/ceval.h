@@ -13,19 +13,28 @@ inline PyObject* VM::run_frame(Frame* frame){
         switch (byte.op)
         {
         case OP_NO_OP: continue;
-        case OP_SETUP_DECORATOR: continue;
+        /*****************************************/
+        case OP_POP_TOP: frame->pop(); continue;
+        case OP_DUP_TOP: frame->push(frame->top()); continue;
+        case OP_ROT_TWO: std::swap(frame->top(), frame->top_1()); continue;
+        case OP_PRINT_EXPR: {
+            PyObject* obj = frame->top();  // use top() here to avoid accidental gc
+            if(obj != None) *_stdout << CAST(Str, asRepr(obj)) << '\n';
+            frame->pop();
+        } continue;
+        /*****************************************/
         case OP_LOAD_CONST: frame->push(frame->co->consts[byte.arg]); continue;
+        case OP_LOAD_NONE: frame->push(None); continue;
+        case OP_LOAD_TRUE: frame->push(True); continue;
+        case OP_LOAD_FALSE: frame->push(False); continue;
+        case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
+        case OP_LOAD_BUILTINS_EVAL: frame->push(builtins->attr(m_eval)); continue;
         case OP_LOAD_FUNCTION: {
             PyObject* obj = frame->co->consts[byte.arg];
-            Function f = CAST(Function, obj);  // copy
-            f._module = frame->_module;
-            frame->push(VAR(f));
+            Function f = CAST(Function, obj);   // copy it!
+            f._module = frame->_module;         // setup module
+            frame->push(VAR(std::move(f)));
         } continue;
-        case OP_SETUP_CLOSURE: {
-            Function& f = CAST(Function&, frame->top());    // reference
-            f._closure = frame->_locals;
-        } continue;
-        case OP_ROT_TWO: ::std::swap(frame->top(), frame->top_1()); continue;
         /*****************************************/
         case OP_LOAD_NAME: {
             StrName name = frame->co->names[byte.arg];
@@ -116,9 +125,9 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* stop = frame->popx();
             PyObject* start = frame->popx();
             Slice s;
-            if(start != None) { s.start = CAST(int, start);}
-            if(stop != None) { s.stop = CAST(int, stop);}
-            if(step != None) { s.step = CAST(int, step);}
+            if(start != None) s.start = CAST(int, start);
+            if(stop != None) s.stop = CAST(int, stop);
+            if(step != None) s.step = CAST(int, step);
             frame->push(VAR(s));
         } continue;
         case OP_BUILD_TUPLE: {
@@ -132,7 +141,99 @@ inline PyObject* VM::run_frame(Frame* frame){
             frame->push(VAR(ss.str()));
         } continue;
         /*****************************************/
-        case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
+        case OP_BINARY_OP: {
+            Args args(2);
+            args[1] = frame->popx();    // lhs
+            args[0] = frame->top();     // rhs
+            frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
+        } continue;
+        case OP_COMPARE_OP: {
+            Args args(2);
+            args[1] = frame->popx();    // lhs
+            args[0] = frame->top();     // rhs
+            frame->top() = fast_call(COMPARE_SPECIAL_METHODS[byte.arg], std::move(args));
+        } continue;
+        case OP_BITWISE_OP: {
+            Args args(2);
+            args[1] = frame->popx();    // lhs
+            args[0] = frame->top();     // rhs
+            frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
+        } continue;
+        case OP_IS_OP: {
+            PyObject* rhs = frame->popx();
+            PyObject* lhs = frame->top();
+            bool ret_c = lhs == rhs;
+            if(byte.arg == 1) ret_c = !ret_c;
+            frame->top() = VAR(ret_c);
+        } continue;
+        case OP_CONTAINS_OP: {
+            Args args(2);
+            args[0] = frame->popx();
+            args[1] = frame->top();
+            PyObject* ret = fast_call(__contains__, std::move(args));
+            bool ret_c = CAST(bool, ret);
+            if(byte.arg == 1) ret_c = !ret_c;
+            frame->top() = VAR(ret_c);
+        } continue;
+        /*****************************************/
+        case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); continue;
+        case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
+        case OP_POP_JUMP_IF_FALSE:
+            if(!asBool(frame->popx())) frame->jump_abs(byte.arg);
+            continue;
+        case OP_JUMP_IF_TRUE_OR_POP:
+            if(asBool(frame->top()) == true) frame->jump_abs(byte.arg);
+            else frame->pop();
+            continue;
+        case OP_JUMP_IF_FALSE_OR_POP:
+            if(asBool(frame->top()) == false) frame->jump_abs(byte.arg);
+            else frame->pop();
+            continue;
+        case OP_LOOP_CONTINUE: {
+            int target = frame->co->blocks[byte.block].start;
+            frame->jump_abs(target);
+        } continue;
+        case OP_LOOP_BREAK: {
+            int target = frame->co->blocks[byte.block].end;
+            frame->jump_abs_safe(target);
+        } continue;
+        case OP_GOTO: {
+            StrName label = frame->co->names[byte.arg];
+            auto it = frame->co->labels.find(label);
+            if(it == frame->co->labels.end()) _error("KeyError", "label " + label.str().escape(true) + " not found");
+            frame->jump_abs_safe(it->second);
+        } continue;
+        /*****************************************/
+        // TODO: examine this later
+        case OP_CALL: case OP_CALL_UNPACK: {
+            Args args = frame->popx_n_reversed(byte.arg);
+            if(byte.op == OP_CALL_UNPACK) unpack_args(args);
+            PyObject* callable = frame->popx();
+            PyObject* ret = call(callable, std::move(args), no_arg(), true);
+            if(ret == _py_op_call) return ret;
+            frame->push(std::move(ret));
+        } continue;
+        case OP_CALL_KWARGS: case OP_CALL_KWARGS_UNPACK: {
+            int ARGC = byte.arg & 0xFFFF;
+            int KWARGC = (byte.arg >> 16) & 0xFFFF;
+            Args kwargs = frame->popx_n_reversed(KWARGC*2);
+            Args args = frame->popx_n_reversed(ARGC);
+            if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
+            PyObject* callable = frame->popx();
+            PyObject* ret = call(callable, std::move(args), kwargs, true);
+            if(ret == _py_op_call) return ret;
+            frame->push(std::move(ret));
+        } continue;
+        case OP_RETURN_VALUE: return frame->popx();
+        /*****************************************/
+
+        /*****************************************/
+        case OP_SETUP_DECORATOR: continue;
+
+        case OP_SETUP_CLOSURE: {
+            Function& f = CAST(Function&, frame->top());    // reference
+            f._closure = frame->_locals;
+        } continue;
         case OP_BEGIN_CLASS: {
             StrName name = frame->co->names[byte.arg];
             PyObject* clsBase = frame->popx();
@@ -151,43 +252,7 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* cls = frame->top();
             cls->attr().set(name, obj);
         } continue;
-        case OP_RETURN_VALUE: return frame->popx();
-        case OP_PRINT_EXPR: {
-            PyObject* expr = frame->top();  // use top() here to avoid accidental gc
-            if(expr != None) *_stdout << CAST(Str, asRepr(expr)) << '\n';
-            frame->pop();
-        } continue;
-        case OP_POP_TOP: frame->_pop(); continue;
-        case OP_BINARY_OP: {
-            Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
-            frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
-        } continue;
-        case OP_BITWISE_OP: {
-            Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
-            frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
-        } continue;
-        case OP_COMPARE_OP: {
-            Args args(2);
-            args[1] = frame->pop_value(this);
-            args[0] = frame->top_value(this);
-            frame->top() = fast_call(CMP_SPECIAL_METHODS[byte.arg], std::move(args));
-        } continue;
-        case OP_IS_OP: {
-            PyObject* rhs = frame->pop_value(this);
-            bool ret_c = rhs == frame->top_value(this);
-            if(byte.arg == 1) ret_c = !ret_c;
-            frame->top() = VAR(ret_c);
-        } continue;
-        case OP_CONTAINS_OP: {
-            PyObject* rhs = frame->pop_value(this);
-            bool ret_c = CAST(bool, call(rhs, __contains__, Args{frame->pop_value(this)}));
-            if(byte.arg == 1) ret_c = !ret_c;
-            frame->push(VAR(ret_c));
-        } continue;
+        
         case OP_UNARY_NEGATIVE:
             frame->top() = num_negated(frame->top_value(this));
             continue;
@@ -196,13 +261,7 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* obj_bool = asBool(obj);
             frame->push(VAR(!_CAST(bool, obj_bool)));
         } continue;
-        case OP_POP_JUMP_IF_FALSE:
-            if(!_CAST(bool, asBool(frame->pop_value(this)))) frame->jump_abs(byte.arg);
-            continue;
-        case OP_LOAD_NONE: frame->push(None); continue;
-        case OP_LOAD_TRUE: frame->push(True); continue;
-        case OP_LOAD_FALSE: frame->push(False); continue;
-        case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
+
         case OP_ASSERT: {
             PyObject* _msg = frame->pop_value(this);
             Str msg = CAST(Str, asStr(_msg));
@@ -236,7 +295,6 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* obj = frame->pop_value(this);
             call(frame->top_1(), "add", Args{obj});
         } continue;
-        case OP_DUP_TOP: frame->push(frame->top()); continue;
         case OP_UNARY_STAR: {
             if(byte.arg > 0){   // rvalue
                 frame->top() = VAR(StarWrapper(frame->top_value(this), true));
@@ -244,33 +302,6 @@ inline PyObject* VM::run_frame(Frame* frame){
                 PyRef_AS_C(frame->top()); // check ref
                 frame->top() = VAR(StarWrapper(frame->top(), false));
             }
-        } continue;
-        case OP_CALL_KWARGS_UNPACK: case OP_CALL_KWARGS: {
-            int ARGC = byte.arg & 0xFFFF;
-            int KWARGC = (byte.arg >> 16) & 0xFFFF;
-            Args kwargs = frame->pop_n_values_reversed(this, KWARGC*2);
-            Args args = frame->pop_n_values_reversed(this, ARGC);
-            if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
-            PyObject* callable = frame->pop_value(this);
-            PyObject* ret = call(callable, std::move(args), kwargs, true);
-            if(ret == _py_op_call) return ret;
-            frame->push(std::move(ret));
-        } continue;
-        case OP_CALL_UNPACK: case OP_CALL: {
-            Args args = frame->pop_n_values_reversed(this, byte.arg);
-            if(byte.op == OP_CALL_UNPACK) unpack_args(args);
-            PyObject* callable = frame->pop_value(this);
-            PyObject* ret = call(callable, std::move(args), no_arg(), true);
-            if(ret == _py_op_call) return ret;
-            frame->push(std::move(ret));
-        } continue;
-        case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); continue;
-        case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
-        case OP_GOTO: {
-            StrName label = frame->co->names[byte.arg].first;
-            auto it = frame->co->labels.find(label);
-            if(it == frame->co->labels.end()) _error("KeyError", "label " + label.str().escape(true) + " not found");
-            frame->jump_abs_safe(it->second);
         } continue;
         case OP_GET_ITER: {
             PyObject* obj = frame->pop_value(this);
@@ -289,24 +320,7 @@ inline PyObject* VM::run_frame(Frame* frame){
                 frame->jump_abs_safe(blockEnd);
             }
         } continue;
-        case OP_LOOP_CONTINUE: {
-            int blockStart = frame->co->blocks[byte.block].start;
-            frame->jump_abs(blockStart);
-        } continue;
-        case OP_LOOP_BREAK: {
-            int blockEnd = frame->co->blocks[byte.block].end;
-            frame->jump_abs_safe(blockEnd);
-        } continue;
-        case OP_JUMP_IF_FALSE_OR_POP: {
-            PyObject* expr = frame->top_value(this);
-            if(asBool(expr)==False) frame->jump_abs(byte.arg);
-            else frame->pop_value(this);
-        } continue;
-        case OP_JUMP_IF_TRUE_OR_POP: {
-            PyObject* expr = frame->top_value(this);
-            if(asBool(expr)==True) frame->jump_abs(byte.arg);
-            else frame->pop_value(this);
-        } continue;
+
 
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;

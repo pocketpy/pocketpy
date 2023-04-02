@@ -320,7 +320,7 @@ public:
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
-    PyObject* asBool(PyObject* obj);
+    bool asBool(PyObject* obj);
     i64 hash(PyObject* obj);
     PyObject* asRepr(PyObject* obj);
     PyObject* new_module(StrName name);
@@ -357,30 +357,13 @@ inline void CodeObject::optimize(VM* vm){
     perfect_locals_capacity = find_next_capacity(base_n);
     perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, keys);
 
-    // for(int i=1; i<codes.size(); i++){
-    //     if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
-    //         codes[i].op = OP_NO_OP;
-    //         int pos = codes[i-1].arg;
-    //         consts[pos] = vm->num_negated(consts[pos]);
-    //     }
-
-    //     if(i>=2 && codes[i].op == OP_BUILD_INDEX){
-    //         const Bytecode& a = codes[i-1];
-    //         const Bytecode& x = codes[i-2];
-    //         if(codes[i].arg == 1){
-    //             if(a.op == OP_LOAD_NAME && x.op == OP_LOAD_NAME){
-    //                 codes[i].op = OP_FAST_INDEX;
-    //             }else continue;
-    //         }else{
-    //             if(a.op == OP_LOAD_NAME_REF && x.op == OP_LOAD_NAME_REF){
-    //                 codes[i].op = OP_FAST_INDEX_REF;
-    //             }else continue;
-    //         }
-    //         codes[i].arg = (a.arg << 16) | x.arg;
-    //         codes[i-1].op = OP_NO_OP;
-    //         codes[i-2].op = OP_NO_OP;
-    //     }
-    // }
+    for(int i=1; i<codes.size(); i++){
+        if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
+            codes[i].op = OP_NO_OP;
+            int pos = codes[i-1].arg;
+            consts[pos] = vm->num_negated(consts[pos]);
+        }
+    }
 
     // pre-compute sn in co_consts
     for(int i=0; i<consts.size(); i++){
@@ -525,17 +508,17 @@ inline f64 VM::num_to_float(PyObject* obj){
     return 0;
 }
 
-inline PyObject* VM::asBool(PyObject* obj){
-    if(is_type(obj, tp_bool)) return obj;
-    if(obj == None) return False;
-    if(is_type(obj, tp_int)) return VAR(CAST(i64, obj) != 0);
-    if(is_type(obj, tp_float)) return VAR(CAST(f64, obj) != 0.0);
+inline bool VM::asBool(PyObject* obj){
+    if(is_type(obj, tp_bool)) return obj == True;
+    if(obj == None) return false;
+    if(is_type(obj, tp_int)) return CAST(i64, obj) != 0;
+    if(is_type(obj, tp_float)) return CAST(f64, obj) != 0.0;
     PyObject* len_f = getattr(obj, __len__, false, true);
     if(len_f != nullptr){
         PyObject* ret = call(len_f, no_arg());
-        return VAR(CAST(i64, ret) > 0);
+        return CAST(i64, ret) > 0;
     }
-    return True;
+    return true;
 }
 
 inline i64 VM::hash(PyObject* obj){
@@ -616,11 +599,6 @@ inline Str VM::disassemble(CodeObject_ co){
         }
         if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
             argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
-        }
-        if(byte.op == OP_FAST_INDEX || byte.op == OP_FAST_INDEX_REF){
-            auto& a = co->names[byte.arg & 0xFFFF];
-            auto& x = co->names[(byte.arg >> 16) & 0xFFFF];
-            argStr += " (" + a.first.str() + '[' + x.first.str() + "])";
         }
         ss << argStr;
         // ss << pad(argStr, 20);      // may overflow
