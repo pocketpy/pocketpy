@@ -7,7 +7,13 @@ namespace pkpy{
 
 inline PyObject* VM::run_frame(Frame* frame){
     while(true){
-        heap._auto_collect(this);   // gc
+        /* NOTE: 
+        * Be aware of accidental gc!
+        * DO NOT leave any strong reference of PyObject* in the C stack
+        * For example, frame->popx() returns a strong reference which may be dangerous
+        * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
+        */
+        heap._auto_collect(this);
 
         const Bytecode& byte = frame->next_bytecode();
         switch (byte.op)
@@ -18,7 +24,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         case OP_DUP_TOP: frame->push(frame->top()); continue;
         case OP_ROT_TWO: std::swap(frame->top(), frame->top_1()); continue;
         case OP_PRINT_EXPR: {
-            PyObject* obj = frame->top();  // use top() here to avoid accidental gc
+            PyObject* obj = frame->top();  // use top() to avoid accidental gc
             if(obj != None) *_stdout << CAST(Str, asRepr(obj)) << '\n';
             frame->pop();
         } continue;
@@ -28,7 +34,7 @@ inline PyObject* VM::run_frame(Frame* frame){
         case OP_LOAD_TRUE: frame->push(True); continue;
         case OP_LOAD_FALSE: frame->push(False); continue;
         case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); continue;
-        case OP_LOAD_BUILTINS_EVAL: frame->push(builtins->attr(m_eval)); continue;
+        case OP_LOAD_BUILTIN_EVAL: frame->push(builtins->attr(m_eval)); continue;
         case OP_LOAD_FUNCTION: {
             PyObject* obj = frame->co->consts[byte.arg];
             Function f = CAST(Function, obj);   // copy it!
@@ -67,9 +73,10 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_STORE_ATTR: {
             StrName name = frame->co->names[byte.arg];
-            PyObject* a = frame->popx();
-            PyObject* val = frame->popx();
+            PyObject* a = frame->top();
+            PyObject* val = frame->top_1();
             setattr(a, name, val);
+            frame->pop_n(2);
         } continue;
         case OP_STORE_SUBSCR: {
             Args args(3);
@@ -135,9 +142,12 @@ inline PyObject* VM::run_frame(Frame* frame){
             frame->push(VAR(std::move(items)));
         } continue;
         case OP_BUILD_STRING: {
-            Args items = frame->popx_n_reversed(byte.arg);
+            // asStr() may run extra bytecode
+            // so we use top_n_reversed() in order to avoid accidental gc
+            Args items = frame->top_n_reversed(byte.arg);
             StrStream ss;
             for(int i=0; i<items.size(); i++) ss << CAST(Str, asStr(items[i]));
+            frame->pop_n(byte.arg);
             frame->push(VAR(ss.str()));
         } continue;
         /*****************************************/
@@ -177,7 +187,6 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         /*****************************************/
         case OP_JUMP_ABSOLUTE: frame->jump_abs(byte.arg); continue;
-        case OP_SAFE_JUMP_ABSOLUTE: frame->jump_abs_safe(byte.arg); continue;
         case OP_POP_JUMP_IF_FALSE:
             if(!asBool(frame->popx())) frame->jump_abs(byte.arg);
             continue;
@@ -195,13 +204,13 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_LOOP_BREAK: {
             int target = frame->co->blocks[byte.block].end;
-            frame->jump_abs_safe(target);
+            frame->jump_abs_break(target);
         } continue;
         case OP_GOTO: {
             StrName label = frame->co->names[byte.arg];
             auto it = frame->co->labels.find(label);
             if(it == frame->co->labels.end()) _error("KeyError", "label " + label.str().escape(true) + " not found");
-            frame->jump_abs_safe(it->second);
+            frame->jump_abs_break(it->second);
         } continue;
         /*****************************************/
         // TODO: examine this later
@@ -226,139 +235,124 @@ inline PyObject* VM::run_frame(Frame* frame){
         } continue;
         case OP_RETURN_VALUE: return frame->popx();
         /*****************************************/
-
-        /*****************************************/
-        case OP_SETUP_DECORATOR: continue;
-
-        case OP_SETUP_CLOSURE: {
-            Function& f = CAST(Function&, frame->top());    // reference
-            f._closure = frame->_locals;
-        } continue;
-        case OP_BEGIN_CLASS: {
-            StrName name = frame->co->names[byte.arg];
-            PyObject* clsBase = frame->popx();
-            if(clsBase == None) clsBase = _t(tp_object);
-            check_type(clsBase, tp_type);
-            PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, clsBase));
-            frame->push(cls);
-        } continue;
-        case OP_END_CLASS: {
-            PyObject* cls = frame->popx();
-            cls->attr()._try_perfect_rehash();
-        }; continue;
-        case OP_STORE_CLASS_ATTR: {
-            StrName name = frame->co->names[byte.arg];
-            PyObject* obj = frame->popx();
-            PyObject* cls = frame->top();
-            cls->attr().set(name, obj);
-        } continue;
-        
-        case OP_UNARY_NEGATIVE:
-            frame->top() = num_negated(frame->top_value(this));
-            continue;
-        case OP_UNARY_NOT: {
-            PyObject* obj = frame->pop_value(this);
-            PyObject* obj_bool = asBool(obj);
-            frame->push(VAR(!_CAST(bool, obj_bool)));
-        } continue;
-
-        case OP_ASSERT: {
-            PyObject* _msg = frame->pop_value(this);
-            Str msg = CAST(Str, asStr(_msg));
-            PyObject* expr = frame->pop_value(this);
-            if(asBool(expr) != True) _error("AssertionError", msg);
-        } continue;
-        case OP_EXCEPTION_MATCH: {
-            const auto& e = CAST(Exception&, frame->top());
-            StrName name = frame->co->names[byte.arg].first;
-            frame->push(VAR(e.match_type(name)));
-        } continue;
-        case OP_RAISE: {
-            PyObject* obj = frame->pop_value(this);
-            Str msg = obj == None ? "" : CAST(Str, asStr(obj));
-            StrName type = frame->co->names[byte.arg].first;
-            _error(type, msg);
-        } continue;
-        case OP_RE_RAISE: _raise(); continue;
-
         case OP_LIST_APPEND: {
-            PyObject* obj = frame->pop_value(this);
+            PyObject* obj = frame->popx();
             List& list = CAST(List&, frame->top_1());
-            list.push_back(std::move(obj));
+            list.push_back(obj);
         } continue;
-        case OP_MAP_ADD: {
-            PyObject* value = frame->pop_value(this);
-            PyObject* key = frame->pop_value(this);
-            call(frame->top_1(), __setitem__, Args{key, value});
+        case OP_DICT_ADD: {
+            PyObject* kv = frame->popx();
+            // we do copy here to avoid accidental gc in `kv`
+            // TODO: optimize to avoid copy
+            call(frame->top_1(), __setitem__, CAST(Tuple, kv));
         } continue;
         case OP_SET_ADD: {
-            PyObject* obj = frame->pop_value(this);
-            call(frame->top_1(), "add", Args{obj});
+            PyObject* obj = frame->popx();
+            call(frame->top_1(), m_add, Args{obj});
         } continue;
-        case OP_UNARY_STAR: {
-            if(byte.arg > 0){   // rvalue
-                frame->top() = VAR(StarWrapper(frame->top_value(this), true));
-            }else{
-                PyRef_AS_C(frame->top()); // check ref
-                frame->top() = VAR(StarWrapper(frame->top(), false));
-            }
-        } continue;
-        case OP_GET_ITER: {
-            PyObject* obj = frame->pop_value(this);
-            PyObject* iter = asIter(obj);
-            check_type(frame->top(), tp_ref);
-            PyIter_AS_C(iter)->loop_var = frame->pop();
-            frame->push(std::move(iter));
-        } continue;
+        /*****************************************/
+        case OP_UNARY_NEGATIVE:
+            frame->top() = num_negated(frame->top());
+            continue;
+        case OP_UNARY_NOT:
+            frame->top() = VAR(!asBool(frame->top()));
+            continue;
+        case OP_UNARY_STAR:
+            frame->top() = VAR(StarWrapper(frame->top()));
+            continue;
+        /*****************************************/
+        case OP_GET_ITER:
+            frame->top() = asIter(frame->top());
+            continue;
         case OP_FOR_ITER: {
             BaseIter* it = PyIter_AS_C(frame->top());
             PyObject* obj = it->next();
             if(obj != nullptr){
-                PyRef_AS_C(it->loop_var)->set(this, frame, std::move(obj));
+                frame->push(obj);
             }else{
-                int blockEnd = frame->co->blocks[byte.block].end;
-                frame->jump_abs_safe(blockEnd);
+                int target = frame->co->blocks[byte.block].end;
+                frame->jump_abs_break(target);
             }
         } continue;
-
-
+        /*****************************************/
         case OP_IMPORT_NAME: {
-            StrName name = frame->co->names[byte.arg].first;
+            StrName name = frame->co->names[byte.arg];
             PyObject* ext_mod = _modules.try_get(name);
             if(ext_mod == nullptr){
                 Str source;
-                auto it2 = _lazy_modules.find(name);
-                if(it2 == _lazy_modules.end()){
+                auto it = _lazy_modules.find(name);
+                if(it == _lazy_modules.end()){
                     bool ok = false;
                     source = _read_file_cwd(name.str() + ".py", &ok);
                     if(!ok) _error("ImportError", "module " + name.str().escape(true) + " not found");
                 }else{
-                    source = it2->second;
-                    _lazy_modules.erase(it2);
+                    source = it->second;
+                    _lazy_modules.erase(it);
                 }
                 CodeObject_ code = compile(source, name.str(), EXEC_MODE);
                 PyObject* new_mod = new_module(name);
                 _exec(code, new_mod);
-                frame->push(new_mod);
                 new_mod->attr()._try_perfect_rehash();
-            }else{
-                frame->push(ext_mod);
             }
+            frame->push(ext_mod);
         } continue;
-        case OP_STORE_ALL_NAMES: {
-            PyObject* obj = frame->pop_value(this);
+        case OP_IMPORT_STAR: {
+            PyObject* obj = frame->popx();
             for(auto& [name, value]: obj->attr().items()){
                 Str s = name.str();
                 if(s.empty() || s[0] == '_') continue;
                 frame->f_globals().set(name, value);
             }
         }; continue;
-        case OP_YIELD_VALUE: return _py_op_yield;
-        // TODO: using "goto" inside with block may cause __exit__ not called
-        case OP_WITH_ENTER: call(frame->pop_value(this), __enter__, no_arg()); continue;
-        case OP_WITH_EXIT: call(frame->pop_value(this), __exit__, no_arg()); continue;
-        case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); continue;
-        case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); continue;
+        /*****************************************/
+        /*****************************************/
+        // case OP_SETUP_DECORATOR: continue;
+        // case OP_SETUP_CLOSURE: {
+        //     Function& f = CAST(Function&, frame->top());    // reference
+        //     f._closure = frame->_locals;
+        // } continue;
+        // case OP_BEGIN_CLASS: {
+        //     StrName name = frame->co->names[byte.arg];
+        //     PyObject* clsBase = frame->popx();
+        //     if(clsBase == None) clsBase = _t(tp_object);
+        //     check_type(clsBase, tp_type);
+        //     PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, clsBase));
+        //     frame->push(cls);
+        // } continue;
+        // case OP_END_CLASS: {
+        //     PyObject* cls = frame->popx();
+        //     cls->attr()._try_perfect_rehash();
+        // }; continue;
+        // case OP_STORE_CLASS_ATTR: {
+        //     StrName name = frame->co->names[byte.arg];
+        //     PyObject* obj = frame->popx();
+        //     PyObject* cls = frame->top();
+        //     cls->attr().set(name, obj);
+        // } continue;
+        // case OP_ASSERT: {
+        //     PyObject* _msg = frame->pop_value(this);
+        //     Str msg = CAST(Str, asStr(_msg));
+        //     PyObject* expr = frame->pop_value(this);
+        //     if(asBool(expr) != True) _error("AssertionError", msg);
+        // } continue;
+        // case OP_EXCEPTION_MATCH: {
+        //     const auto& e = CAST(Exception&, frame->top());
+        //     StrName name = frame->co->names[byte.arg].first;
+        //     frame->push(VAR(e.match_type(name)));
+        // } continue;
+        // case OP_RAISE: {
+        //     PyObject* obj = frame->pop_value(this);
+        //     Str msg = obj == None ? "" : CAST(Str, asStr(obj));
+        //     StrName type = frame->co->names[byte.arg].first;
+        //     _error(type, msg);
+        // } continue;
+        // case OP_RE_RAISE: _raise(); continue;
+        // case OP_YIELD_VALUE: return _py_op_yield;
+        // // TODO: using "goto" inside with block may cause __exit__ not called
+        // case OP_WITH_ENTER: call(frame->pop_value(this), __enter__, no_arg()); continue;
+        // case OP_WITH_EXIT: call(frame->pop_value(this), __exit__, no_arg()); continue;
+        // case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); continue;
+        // case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); continue;
         default: throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
         }
     }

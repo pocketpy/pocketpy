@@ -59,8 +59,7 @@ struct Range {
 
 struct StarWrapper {
     PyObject* obj;
-    bool rvalue;
-    StarWrapper(PyObject* obj, bool rvalue): obj(obj), rvalue(rvalue) {}
+    StarWrapper(PyObject* obj): obj(obj) {}
 };
 
 using Super = std::pair<PyObject*, Type>;

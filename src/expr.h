@@ -425,7 +425,7 @@ struct FStringExpr: Expr{
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
                 size++;
             }
-            ctx->emit(OP_LOAD_BUILTINS_EVAL, BC_NOARG, line);
+            ctx->emit(OP_LOAD_BUILTIN_EVAL, BC_NOARG, line);
             ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(m[1].str())), line);
             ctx->emit(OP_CALL, 1, line);
             size++;

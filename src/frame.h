@@ -82,6 +82,13 @@ struct Frame {
         return _data[_data.size()-2];
     }
 
+    PyObject*& top_2(){
+#if DEBUG_EXTRA_CHECK
+        if(_data.size() < 3) throw std::runtime_error("_data.size() < 3");
+#endif
+        return _data[_data.size()-3];
+    }
+
     template<typename T>
     void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
 
@@ -98,7 +105,7 @@ struct Frame {
 
     bool jump_to_exception_handler(){
         if(s_try_block.empty()) return false;
-        PyObject* obj = pop();
+        PyObject* obj = popx();
         auto& p = s_try_block.back();
         _data = std::move(p.second);
         _data.push_back(obj);
@@ -113,7 +120,7 @@ struct Frame {
         return co->blocks[i].parent;
     }
 
-    void jump_abs_safe(int target){
+    void jump_abs_break(int target){
         const Bytecode& prev = co->codes[_ip];
         int i = prev.block;
         _next_ip = target;
@@ -130,6 +137,16 @@ struct Frame {
         Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = popx();
         return v;
+    }
+
+    Args top_n_reversed(int n){
+        Args v(n);
+        for(int i=0; i<n; i++) v[i] = _data[_data.size()-1-i];
+        return v;
+    }
+
+    void pop_n(int n){
+        _data.resize(_data.size()-n);
     }
 
     void _mark() const {

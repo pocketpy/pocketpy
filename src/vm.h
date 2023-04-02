@@ -566,7 +566,7 @@ inline Str VM::disassemble(CodeObject_ co){
 
     std::vector<int> jumpTargets;
     for(auto byte : co->codes){
-        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_SAFE_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
             jumpTargets.push_back(byte.arg);
         }
     }
@@ -682,6 +682,7 @@ inline void VM::init_builtin_types(){
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
+// TODO: args here may be garbage collected accidentally
 inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
     if(is_type(callable, tp_type)){
         PyObject* new_f = callable->attr().try_get(__new__);
