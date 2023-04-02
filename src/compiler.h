@@ -448,8 +448,9 @@ class Compiler {
                 consume(TK("@id"));
                 name = prev().str();
             }
-            int index = ctx()->add_name(name, name_scope());
-            ctx()->emit(OP_STORE_NAME, index, prev().line);
+            int index = ctx()->add_name(name);
+            auto op = name_scope()==NAME_LOCAL ? OP_STORE_LOCAL : OP_STORE_GLOBAL;
+            ctx()->emit(op, index, prev().line);
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -459,8 +460,8 @@ class Compiler {
         _compile_import();
         consume(TK("import"));
         if (match(TK("*"))) {
-            if(name_scope() != NAME_GLOBAL) SyntaxError("import * can only be used in global scope");
-            ctx()->emit(OP_STORE_ALL_NAMES, BC_NOARG, prev().line);
+            if(name_scope() != NAME_GLOBAL) SyntaxError("import * should be used in global scope");
+            ctx()->emit(OP_IMPORT_STAR, BC_NOARG, prev().line);
             consume_end_stmt();
             return;
         }
@@ -475,7 +476,8 @@ class Compiler {
                 name = prev().str();
             }
             index = ctx()->add_name(name);
-            ctx()->emit(OP_STORE_GLOBAL, index, prev().line);
+            auto op = name_scope()==NAME_LOCAL ? OP_STORE_LOCAL : OP_STORE_GLOBAL;
+            ctx()->emit(op, index, prev().line);
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
@@ -527,6 +529,7 @@ class Compiler {
         ctx()->exit_block();
     }
 
+    // PASS
     void compile_for_loop() {
         EXPR_TUPLE();
         Expr_ vars = ctx()->s_expr.popx();
@@ -535,42 +538,39 @@ class Compiler {
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx()->enter_block(FOR_LOOP);
         ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
-        // set variables and handle implicit unpack
         bool ok = vars->emit_store(ctx());
-        // this error occurs in `vars` instead of this line
-        // but...nevermind
-        if(!ok) SyntaxError();
+        if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
         compile_block_body();
         ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
         ctx()->exit_block();
     }
 
     void compile_try_except() {
-        ctx()->enter_block(TRY_EXCEPT);
-        ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
-        compile_block_body();
-        ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
-        std::vector<int> patches = {
-            ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
-        };
-        ctx()->exit_block();
+        // ctx()->enter_block(TRY_EXCEPT);
+        // ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
+        // compile_block_body();
+        // ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
+        // std::vector<int> patches = {
+        //     ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
+        // };
+        // ctx()->exit_block();
 
-        do {
-            consume(TK("except"));
-            if(match(TK("@id"))){
-                int name_idx = ctx()->add_name(prev().str(), NAME_SPECIAL);
-                emit(OP_EXCEPTION_MATCH, name_idx);
-            }else{
-                emit(OP_LOAD_TRUE);
-            }
-            int patch = emit(OP_POP_JUMP_IF_FALSE);
-            emit(OP_POP_TOP);       // pop the exception on match
-            compile_block_body();
-            patches.push_back(emit(OP_JUMP_ABSOLUTE));
-            patch_jump(patch);
-        }while(curr().type == TK("except"));
-        emit(OP_RE_RAISE);      // no match, re-raise
-        for (int patch : patches) patch_jump(patch);
+        // do {
+        //     consume(TK("except"));
+        //     if(match(TK("@id"))){
+        //         int name_idx = ctx()->add_name(prev().str(), NAME_SPECIAL);
+        //         emit(OP_EXCEPTION_MATCH, name_idx);
+        //     }else{
+        //         emit(OP_LOAD_TRUE);
+        //     }
+        //     int patch = emit(OP_POP_JUMP_IF_FALSE);
+        //     emit(OP_POP_TOP);       // pop the exception on match
+        //     compile_block_body();
+        //     patches.push_back(emit(OP_JUMP_ABSOLUTE));
+        //     patch_jump(patch);
+        // }while(curr().type == TK("except"));
+        // emit(OP_RE_RAISE);      // no match, re-raise
+        // for (int patch : patches) patch_jump(patch);
     }
 
     void compile_decorated(){
@@ -650,13 +650,13 @@ class Compiler {
             case TK("global"):
                 do {
                     consume(TK("@id"));
-                    co()->global_names.insert(prev().str());
+                    ctx()->co->global_names.insert(prev().str());
                 } while (match(TK(",")));
                 consume_end_stmt();
                 break;
             case TK("raise"): {
                 consume(TK("@id"));
-                int dummy_t = ctx()->add_name(prev().str(), NAME_SPECIAL);
+                int dummy_t = ctx()->add_name(prev().str());
                 if(match(TK("(")) && !match(TK(")"))){
                     EXPR(false); consume(TK(")"));
                 }else{
@@ -688,17 +688,17 @@ class Compiler {
             } break;
             /*************************************************/
             // TODO: refactor goto/label use special $ syntax
-            case TK("label"):
+            case TK("label"): {
                 if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
                 bool ok = ctx()->add_label(prev().str());
                 if(!ok) SyntaxError("label " + prev().str().escape(true) + " already exists");
                 consume_end_stmt();
-                break;
+            } break;
             case TK("goto"):
                 if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
-                emit(OP_GOTO, co()->add_name(prev().str(), NAME_SPECIAL));
+                ctx()->emit(OP_GOTO, ctx()->add_name(prev().str()), prev().line);
                 consume_end_stmt();
                 break;
             /*************************************************/
@@ -707,9 +707,9 @@ class Compiler {
                 EXPR_TUPLE(true);
                 if(!try_compile_assignment()){
                     if(mode()==REPL_MODE && name_scope()==NAME_GLOBAL){
-                        emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                        ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                     }else{
-                        emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                        ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
                     }
                 }
                 consume_end_stmt();
@@ -717,21 +717,22 @@ class Compiler {
         }
     }
 
+    // PASS
     void compile_class(){
         consume(TK("@id"));
-        int cls_name_idx = co()->add_name(prev().str(), NAME_GLOBAL);
-        int super_cls_name_idx = -1;
+        int namei = ctx()->add_name(prev().str());
+        int super_namei = -1;
         if(match(TK("(")) && match(TK("@id"))){
-            super_cls_name_idx = co()->add_name(prev().str(), NAME_GLOBAL);
+            super_namei = ctx()->add_name(prev().str());
             consume(TK(")"));
         }
-        if(super_cls_name_idx == -1) emit(OP_LOAD_NONE);
-        else emit(OP_LOAD_NAME, super_cls_name_idx);
-        emit(OP_BEGIN_CLASS, cls_name_idx);
+        if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
+        else ctx()->emit(OP_LOAD_NAME, super_namei, prev().line);
+        ctx()->emit(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
         ctx()->is_compiling_class = true;
         compile_block_body();
         ctx()->is_compiling_class = false;
-        emit(OP_END_CLASS);
+        ctx()->emit(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
     }
 
     void _compile_f_args(Function& func, bool enable_type_hints){

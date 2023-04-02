@@ -23,7 +23,7 @@ struct Expr{
     virtual bool emit_del(CodeEmitContext* ctx) { return false; }
 
     // for OP_STORE_XXX
-    virtual bool emit_store(CodeEmitContext* ctx) { return false; }
+    [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) { return false; }
 };
 
 struct CodeEmitContext{
@@ -153,15 +153,12 @@ struct StarredExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
-        // as a rvalue, we should do unpack here
-        //ctx->emit(OP_UNARY_STAR, (int)false, line);
+        ctx->emit(OP_UNARY_STAR, BC_NOARG, line);
     }
 
     bool emit_store(CodeEmitContext* ctx) override {
-        child->emit(ctx);
-        // as a lvalue, we should do pack here
-        //ctx->emit(OP_UNARY_STAR, (int)true, line);
-        return true;
+        // simply proxy to child
+        return child->emit_store(ctx);
     }
 };
 
@@ -368,10 +365,29 @@ struct TupleExpr: SequenceExpr{
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
 
     bool emit_store(CodeEmitContext* ctx) override {
-        // assume TOS is an iterable
-        // unpack it and emit several OP_STORE
-        // https://docs.python.org/3/library/dis.html#opcode-UNPACK_SEQUENCE
-        // https://docs.python.org/3/library/dis.html#opcode-UNPACK_EX
+        // TOS is an iterable
+        // items may contain StarredExpr, we should check it
+        int starred_i = -1;
+        for(int i=0; i<items.size(); i++){
+            if(!items[i]->is_starred()) continue;
+            if(starred_i == -1) starred_i = i;
+            else return false;  // multiple StarredExpr not allowed
+        }
+
+        if(starred_i == -1){
+            // Unpacks TOS into count individual values, which are put onto the stack right-to-left.
+            ctx->emit(OP_UNPACK_SEQUENCE, items.size(), line);
+        }else{
+            // starred assignment target must be in a tuple
+            if(items.size() == 1) return false;
+            // starred assignment target must be the last one (differ from CPython)
+            if(starred_i != items.size()-1) return false;
+            ctx->emit(OP_UNPACK_EX, items.size()-1, line);
+        }
+        for(auto& e: items){
+            bool ok = e->emit_store(ctx);
+            if(!ok) return false;
+        }
         return true;
     }
 

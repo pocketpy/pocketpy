@@ -94,5 +94,7 @@ OPCODE(FOR_ITER)
 OPCODE(IMPORT_NAME)
 OPCODE(IMPORT_STAR)
 /**************************/
+OPCODE(UNPACK_SEQUENCE)
+OPCODE(UNPACK_EX)
 /**************************/
 #endif
