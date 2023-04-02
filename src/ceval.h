@@ -26,23 +26,15 @@ inline PyObject* VM::run_frame(Frame* frame){
             f._closure = frame->_locals;
         } continue;
         case OP_ROT_TWO: ::std::swap(frame->top(), frame->top_1()); continue;
-        case OP_BUILD_TUPLE: {
-            Args items = frame->pop_n_values_reversed(this, byte.arg);
-            frame->push(VAR(std::move(items)));
-        } continue;
         /*****************************************/
         case OP_LOAD_NAME: {
-            // TODO: use name resolution linked list to optimize this
             StrName name = frame->co->names[byte.arg];
             PyObject* val;
-            val = frame->f_locals().try_get(name);
-            if(val != nullptr) { frame->push(val); continue; }
-            val = frame->f_closure_try_get(name);
-            if(val != nullptr) { frame->push(val); continue; }
-            val = frame->f_globals().try_get(name);
-            if(val != nullptr) { frame->push(val); continue; }
-            val = vm->builtins->attr().try_get(name);
-            if(val != nullptr) { frame->push(val); continue; }
+            int i = 0;  // names[0] is ensured to be non-null
+            do{
+                val = frame->names[i++]->try_get(name);
+                if(val != nullptr){ frame->push(val); break; }
+            }while(frame->names[i] != nullptr);
             vm->NameError(name);
         } continue;
         case OP_LOAD_ATTR: {
@@ -51,9 +43,10 @@ inline PyObject* VM::run_frame(Frame* frame){
             frame->top() = getattr(a, name);
         } continue;
         case OP_LOAD_SUBSCR: {
-            PyObject* b = frame->popx();
-            PyObject* a = frame->top();
-            frame->top() = fast_call(__getitem__, Args{a, b});
+            Args args(2);
+            args[1] = frame->popx();    // b
+            args[0] = frame->top();     // a
+            frame->top() = fast_call(__getitem__, std::move(args));
         } continue;
         case OP_STORE_LOCAL: {
             StrName name = frame->co->names[byte.arg];
@@ -105,34 +98,58 @@ inline PyObject* VM::run_frame(Frame* frame){
             fast_call(__delitem__, Args{a, b});
         } continue;
         /*****************************************/
-        case OP_BUILD_TUPLE_REF: {
-            Args items = frame->pop_n_reversed(byte.arg);
-            frame->push(PyRef(TupleRef(std::move(items))));
+        case OP_BUILD_LIST:
+            frame->push(VAR(frame->popx_n_reversed(byte.arg).to_list()));
+            continue;
+        case OP_BUILD_DICT: {
+            PyObject* t = VAR(frame->popx_n_reversed(byte.arg));
+            PyObject* obj = call(builtins->attr(m_dict), Args{t});
+            frame->push(obj);
+        } continue;
+        case OP_BUILD_SET: {
+            PyObject* t = VAR(frame->popx_n_reversed(byte.arg));
+            PyObject* obj = call(builtins->attr(m_set), Args{t});
+            frame->push(obj);
+        } continue;
+        case OP_BUILD_SLICE: {
+            PyObject* step = frame->popx();
+            PyObject* stop = frame->popx();
+            PyObject* start = frame->popx();
+            Slice s;
+            if(start != None) { s.start = CAST(int, start);}
+            if(stop != None) { s.stop = CAST(int, stop);}
+            if(step != None) { s.step = CAST(int, step);}
+            frame->push(VAR(s));
+        } continue;
+        case OP_BUILD_TUPLE: {
+            Tuple items = frame->popx_n_reversed(byte.arg);
+            frame->push(VAR(std::move(items)));
         } continue;
         case OP_BUILD_STRING: {
-            Args items = frame->pop_n_values_reversed(this, byte.arg);
+            Args items = frame->popx_n_reversed(byte.arg);
             StrStream ss;
             for(int i=0; i<items.size(); i++) ss << CAST(Str, asStr(items[i]));
             frame->push(VAR(ss.str()));
         } continue;
+        /*****************************************/
         case OP_LOAD_EVAL_FN: frame->push(builtins->attr(m_eval)); continue;
         case OP_BEGIN_CLASS: {
-            auto& name = frame->co->names[byte.arg];
-            PyObject* clsBase = frame->pop_value(this);
+            StrName name = frame->co->names[byte.arg];
+            PyObject* clsBase = frame->popx();
             if(clsBase == None) clsBase = _t(tp_object);
             check_type(clsBase, tp_type);
-            PyObject* cls = new_type_object(frame->_module, name.first, OBJ_GET(Type, clsBase));
+            PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, clsBase));
             frame->push(cls);
         } continue;
         case OP_END_CLASS: {
-            PyObject* cls = frame->pop();
+            PyObject* cls = frame->popx();
             cls->attr()._try_perfect_rehash();
         }; continue;
         case OP_STORE_CLASS_ATTR: {
-            auto& name = frame->co->names[byte.arg];
-            PyObject* obj = frame->pop_value(this);
+            StrName name = frame->co->names[byte.arg];
+            PyObject* obj = frame->popx();
             PyObject* cls = frame->top();
-            cls->attr().set(name.first, std::move(obj));
+            cls->attr().set(name, obj);
         } continue;
         case OP_RETURN_VALUE: return frame->popx();
         case OP_PRINT_EXPR: {
@@ -204,27 +221,7 @@ inline PyObject* VM::run_frame(Frame* frame){
             _error(type, msg);
         } continue;
         case OP_RE_RAISE: _raise(); continue;
-        case OP_BUILD_LIST:
-            frame->push(VAR(frame->pop_n_values_reversed(this, byte.arg).to_list()));
-            continue;
-        case OP_BUILD_MAP: {
-            List list(byte.arg);
-            for(int i=0; i<byte.arg; i++){
-                PyObject* value = frame->pop_value(this);
-                PyObject* key = frame->pop_value(this);
-                list[i] = VAR(Tuple({key, value}));
-            }
-            PyObject* d_arg = VAR(std::move(list));
-            PyObject* obj = call(builtins->attr("dict"), Args{d_arg});
-            frame->push(obj);
-        } continue;
-        case OP_BUILD_SET: {
-            PyObject* list = VAR(
-                frame->pop_n_values_reversed(this, byte.arg).to_list()
-            );
-            PyObject* obj = call(builtins->attr("set"), Args{list});
-            frame->push(obj);
-        } continue;
+
         case OP_LIST_APPEND: {
             PyObject* obj = frame->pop_value(this);
             List& list = CAST(List&, frame->top_1());
@@ -310,14 +307,7 @@ inline PyObject* VM::run_frame(Frame* frame){
             if(asBool(expr)==True) frame->jump_abs(byte.arg);
             else frame->pop_value(this);
         } continue;
-        case OP_BUILD_SLICE: {
-            PyObject* stop = frame->pop_value(this);
-            PyObject* start = frame->pop_value(this);
-            Slice s;
-            if(start != None) { s.start = CAST(int, start);}
-            if(stop != None) { s.stop = CAST(int, stop);}
-            frame->push(VAR(s));
-        } continue;
+
         case OP_IMPORT_NAME: {
             StrName name = frame->co->names[byte.arg].first;
             PyObject* ext_mod = _modules.try_get(name);

@@ -125,7 +125,7 @@ while(!_items[i].first.empty()) {       \
         _rehash(false); // do not resize
     }
 
-    PyObject* try_get(StrName key){
+    PyObject* try_get(StrName key) const{
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return nullptr;
@@ -180,7 +180,7 @@ while(!_items[i].first.empty()) {       \
         return v;
     }
 
-    void _mark();
+    void _mark() const;
 #undef HASH_PROBE
 #undef _hash
 };

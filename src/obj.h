@@ -65,9 +65,11 @@ struct StarWrapper {
 
 using Super = std::pair<PyObject*, Type>;
 
+// TODO: re-examine the design of Slice
 struct Slice {
     int start = 0;
-    int stop = 0x7fffffff; 
+    int stop = 0x7fffffff;
+    int step = 1;
 
     void normalize(int len){
         if(start < 0) start += len;

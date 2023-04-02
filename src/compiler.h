@@ -142,6 +142,10 @@ private:
         }
     }
 
+    bool match_newlines_repl(){
+        return match_newlines(mode()==REPL_MODE);
+    }
+
     bool match_newlines(bool repl_throw=false) {
         bool consumed = false;
         if (curr().type == TK("@eol")) {
@@ -281,9 +285,9 @@ private:
 
     // PASS
     void exprGroup(){
-        match_newlines(mode()==REPL_MODE);
+        match_newlines_repl();
         EXPR_TUPLE();   // () is just for change precedence
-        match_newlines(mode()==REPL_MODE);
+        match_newlines_repl();
         consume(TK(")"));
     }
 
@@ -298,13 +302,13 @@ private:
         consume(TK("in"));
         EXPR();
         ce->iter = ctx()->s_expr.popx();
-        match_newlines(mode()==REPL_MODE);
+        match_newlines_repl();
         if(match(TK("if"))){
             EXPR();
             ce->cond = ctx()->s_expr.popx();
         }
         ctx()->s_expr.push(std::move(ce));
-        match_newlines(mode()==REPL_MODE);
+        match_newlines_repl();
     }
 
     // PASS
@@ -312,17 +316,17 @@ private:
         int line = prev().line;
         std::vector<Expr_> items;
         do {
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
             if (curr().type == TK("]")) break;
             EXPR();
             items.push_back(ctx()->s_expr.popx());
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
                 _consume_comp<ListCompExpr>(std::move(items[0]));
                 consume(TK("]"));
                 return;
             }
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
         } while (match(TK(",")));
         consume(TK("]"));
         auto e = make_expr<ListExpr>(std::move(items));
@@ -335,7 +339,7 @@ private:
         bool parsing_dict = false;  // {...} may be dict or set
         std::vector<Expr_> items;
         do {
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
             if (curr().type == TK("}")) break;
             EXPR();
             if(curr().type == TK(":")) parsing_dict = true;
@@ -349,14 +353,14 @@ private:
             }else{
                 items.push_back(ctx()->s_expr.popx());
             }
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
                 if(parsing_dict) _consume_comp<DictCompExpr>(std::move(items[0]));
                 else _consume_comp<SetCompExpr>(std::move(items[0]));
                 consume(TK("}"));
                 return;
             }
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
         } while (match(TK(",")));
         consume(TK("}"));
         if(items.size()==0 || parsing_dict){
@@ -373,7 +377,7 @@ private:
         auto e = make_expr<CallExpr>();
         e->callable = ctx()->s_expr.popx();
         do {
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
             if (curr().type==TK(")")) break;
             if(curr().type==TK("@id") && next().type==TK("=")) {
                 consume(TK("@id"));
@@ -386,7 +390,7 @@ private:
                 EXPR();
                 e->args.push_back(ctx()->s_expr.popx());
             }
-            match_newlines(mode()==REPL_MODE);
+            match_newlines_repl();
         } while (match(TK(",")));
         consume(TK(")"));
         if(e->args.size() > 32767) SyntaxError("too many positional arguments");
@@ -709,7 +713,7 @@ private:
             case TK("label"):
                 if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
-                bool ok = co()->add_label(prev().str());
+                bool ok = ctx()->add_label(prev().str());
                 if(!ok) SyntaxError("label " + prev().str().escape(true) + " already exists");
                 consume_end_stmt();
                 break;

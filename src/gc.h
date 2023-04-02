@@ -114,7 +114,7 @@ struct ManagedHeap{
     void mark(VM* vm);
 };
 
-inline void NameDict::_mark(){
+inline void NameDict::_mark() const{
     for(uint16_t i=0; i<_capacity; i++){
         if(_items[i].first.empty()) continue;
         OBJ_MARK(_items[i].second);

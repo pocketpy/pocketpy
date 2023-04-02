@@ -14,23 +14,22 @@ struct Frame {
     const CodeObject* co;
     PyObject* _module;
     NameDict_ _locals;
-    NameDict_ _closure;
     const uint64_t id;
     std::vector<std::pair<int, std::vector<PyObject*>>> s_try_block;
+    const NameDict* names[5];     // name resolution array, zero terminated
 
-    NameDict& f_locals() noexcept { return _locals != nullptr ? *_locals : _module->attr(); }
+    NameDict& f_locals() noexcept { return *_locals; }
     NameDict& f_globals() noexcept { return _module->attr(); }
 
-    PyObject* f_closure_try_get(StrName name) noexcept {
-        if(_closure == nullptr) return nullptr;
-        return _closure->try_get(name);
+    Frame(const CodeObject_& co, PyObject* _module, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
+            : co(co.get()), _module(_module), _locals(_locals), id(kFrameGlobalId++) {
+        memset(names, 0, sizeof(names));
+        int i = 0;
+        if(_locals != nullptr) names[i++] = _locals.get();
+        if(_closure != nullptr) names[i++] = _closure.get();
+        names[i++] = &_module->attr();
+        // names[i++] = builtins
     }
-
-    Frame(const CodeObject_& co,
-        PyObject* _module,
-        const NameDict_& _locals=nullptr,
-        const NameDict_& _closure=nullptr)
-            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) { }
 
     const Bytecode& next_bytecode() {
         _ip = _next_ip++;
@@ -127,7 +126,7 @@ struct Frame {
         }
     }
 
-    Args pop_n_reversed(int n){
+    Args popx_n_reversed(int n){
         Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = popx();
         return v;
@@ -135,9 +134,13 @@ struct Frame {
 
     void _mark() const {
         for(PyObject* obj : _data) OBJ_MARK(obj);
-        if(_locals != nullptr) _locals->_mark();
-        if(_closure != nullptr) _closure->_mark();
         OBJ_MARK(_module);
+
+        int i = 0;  // names[0] is ensured to be non-null
+        do{
+            names[i++]->_mark();
+        }while(names[i] != nullptr);
+
         for(auto& p : s_try_block){
             for(PyObject* obj : p.second) OBJ_MARK(obj);
         }

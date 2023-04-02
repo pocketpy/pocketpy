@@ -209,6 +209,8 @@ const StrName __call__ = StrName::get("__call__");
 
 const StrName m_eval = StrName::get("eval");
 const StrName m_self = StrName::get("self");
+const StrName m_dict = StrName::get("dict");
+const StrName m_set = StrName::get("set");
 const StrName __enter__ = StrName::get("__enter__");
 const StrName __exit__ = StrName::get("__exit__");
 
