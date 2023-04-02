@@ -11,25 +11,20 @@ namespace pkpy{
 
 struct CodeEmitContext;
 
-enum ExprRefType{
-    EXPR_NO_REF,
-    EXPR_NAME_REF,
-    EXPR_ATTR_REF,
-    EXPR_INDEX_REF,
-    EXPR_STARRED_REF,
-    EXPR_TUPLE_REF
-};
-
 struct Expr{
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit(CodeEmitContext* ctx) = 0;
     virtual Str str() const = 0;
-    virtual std::vector<const Expr*> children() = 0;
 
-    virtual ExprRefType ref_type() const {
-        return EXPR_NO_REF;
-    }
+    virtual std::vector<const Expr*> children() const { return {}; }
+    virtual bool is_starred() const { return false; }
+
+    // for OP_DELETE_XXX
+    virtual bool emit_del(CodeEmitContext* ctx) { return false; }
+
+    // for OP_STORE_XXX
+    virtual bool emit_store(CodeEmitContext* ctx) { return false; }
 };
 
 struct CodeEmitContext{
@@ -67,13 +62,12 @@ struct CodeEmitContext{
     void emit_expr(){
         if(s_expr.size() != 1) UNREACHABLE();
         Expr_ expr = s_expr.popx();
-        // emit
-        // ...
+        expr->emit(this);
     }
 
     int emit(Opcode opcode, int arg, int line) {
         co->codes.push_back(
-            Bytecode{(uint8_t)opcode, (uint16_t)curr_block_i, arg, line}
+            Bytecode{(uint16_t)opcode, (uint16_t)curr_block_i, arg, line}
         );
         int i = co->codes.size() - 1;
         if(line==BC_KEEPLINE && i>=1) co->codes[i].line = co->codes[i-1].line;
@@ -91,13 +85,11 @@ struct CodeEmitContext{
         return true;
     }
 
-    int add_name(StrName name, NameScope scope){
-        if(scope == NAME_LOCAL && co->global_names.count(name)) scope = NAME_GLOBAL;
-        auto p = std::make_pair(name, scope);
+    int add_name(StrName name){
         for(int i=0; i<co->names.size(); i++){
-            if(co->names[i] == p) return i;
+            if(co->names[i] == name) return i;
         }
-        co->names.push_back(p);
+        co->names.push_back(name);
         return co->names.size() - 1;
     }
 
@@ -107,7 +99,7 @@ struct CodeEmitContext{
     }
 };
 
-
+// PASS
 struct NameExpr: Expr{
     Str name;
     NameScope scope;
@@ -117,36 +109,70 @@ struct NameExpr: Expr{
     Str str() const override { return "$" + name; }
 
     void emit(CodeEmitContext* ctx) override {
-        int index = ctx->add_name(name, scope);
+        int index = ctx->add_name(name);
         ctx->emit(OP_LOAD_NAME, index, line);
     }
 
-    ExprRefType ref_type() const override {
-        return EXPR_NAME_REF;
+    bool emit_del(CodeEmitContext* ctx) override {
+        int index = ctx->add_name(name);
+        switch(scope){
+            case NAME_LOCAL:
+                ctx->emit(OP_DELETE_LOCAL, index, line);
+                break;
+            case NAME_GLOBAL:
+                ctx->emit(OP_DELETE_GLOBAL, index, line);
+                break;
+            default: UNREACHABLE(); break;
+        }
+        return true;
+    }
+
+    bool emit_store(CodeEmitContext* ctx) override {
+        int index = ctx->add_name(name);
+        switch(scope){
+            case NAME_LOCAL:
+                ctx->emit(OP_STORE_LOCAL, index, line);
+                break;
+            case NAME_GLOBAL:
+                ctx->emit(OP_STORE_GLOBAL, index, line);
+                break;
+            default: UNREACHABLE(); break;
+        }
+        return true;
     }
 };
 
-
+// *号运算符，作为左值和右值效果不同
 struct StarredExpr: Expr{
     Expr_ child;
     StarredExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "*"; }
 
+    std::vector<const Expr*> children() const override { return {child.get()}; }
+
+    bool is_starred() const override { return true; }
+
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
-        ctx->emit(OP_UNARY_STAR, (int)false, line);
+        // as a rvalue, we should do unpack here
+        //ctx->emit(OP_UNARY_STAR, (int)false, line);
     }
 
-    ExprRefType ref_type() const override {
-        return EXPR_STARRED_REF;
+    bool emit_store(CodeEmitContext* ctx) override {
+        child->emit(ctx);
+        // as a lvalue, we should do pack here
+        //ctx->emit(OP_UNARY_STAR, (int)true, line);
+        return true;
     }
 };
 
-
+// PASS
 struct NegatedExpr: Expr{
     Expr_ child;
     NegatedExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "-"; }
+
+    std::vector<const Expr*> children() const override { return {child.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
@@ -154,10 +180,13 @@ struct NegatedExpr: Expr{
     }
 };
 
+// PASS
 struct NotExpr: Expr{
     Expr_ child;
     NotExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "not"; }
+
+    std::vector<const Expr*> children() const override { return {child.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
@@ -165,10 +194,13 @@ struct NotExpr: Expr{
     }
 };
 
+// PASS
 struct AndExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return "and"; }
+
+    std::vector<const Expr*> children() const override { return {lhs.get(), rhs.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -178,10 +210,13 @@ struct AndExpr: Expr{
     }
 };
 
+// PASS
 struct OrExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return "or"; }
+
+    std::vector<const Expr*> children() const override { return {lhs.get(), rhs.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -249,11 +284,17 @@ struct LiteralExpr: Expr{
     }
 };
 
+// PASS
 struct SliceExpr: Expr{
     Expr_ start;
     Expr_ stop;
     Expr_ step;
     Str str() const override { return "slice()"; }
+
+    std::vector<const Expr*> children() const override {
+        // may contain nullptr
+        return {start.get(), stop.get(), step.get()};
+    }
 
     void emit(CodeEmitContext* ctx) override {
         if(start){
@@ -278,10 +319,29 @@ struct SliceExpr: Expr{
     }
 };
 
+struct DictItemExpr: Expr{
+    Expr_ key;
+    Expr_ value;
+    Str str() const override { return "k:v"; }
+    std::vector<const Expr*> children() const override { return {key.get(), value.get()}; }
+
+    void emit(CodeEmitContext* ctx) override {
+        key->emit(ctx);
+        value->emit(ctx);
+        ctx->emit(OP_BUILD_TUPLE, 2, line);
+    }
+};
+
 struct SequenceExpr: Expr{
     std::vector<Expr_> items;
     SequenceExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
     virtual Opcode opcode() const = 0;
+
+    std::vector<const Expr*> children() const override {
+        std::vector<const Expr*> ret;
+        for(auto& item: items) ret.push_back(item.get());
+        return ret;
+    }
 
     void emit(CodeEmitContext* ctx) override {
         for(auto& item: items) item->emit(ctx);
@@ -308,8 +368,9 @@ struct TupleExpr: SequenceExpr{
     Str str() const override { return "tuple()"; }
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
 
-    ExprRefType ref_type() const override {
-        return EXPR_TUPLE_REF;
+    bool emit_store(CodeEmitContext* ctx) override {
+        // ...
+        return true;
     }
 };
 
@@ -318,14 +379,6 @@ struct CompExpr: Expr{
     Expr_ vars;       // loop vars
     Expr_ iter;       // loop iter
     Expr_ cond;       // optional if condition
-    virtual void emit_expr() = 0;
-};
-
-// a:b
-struct DictItemExpr: Expr{
-    Expr_ key;
-    Expr_ value;
-    Str str() const override { return "k:v"; }
 };
 
 struct ListCompExpr: CompExpr{
@@ -345,7 +398,9 @@ struct LambdaExpr: Expr{
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         ctx->emit(OP_LOAD_FUNCTION, ctx->add_const(VAR(func)), line);
-        if(scope == NAME_LOCAL) ctx->emit(OP_SETUP_CLOSURE, BC_NOARG, BC_KEEPLINE);
+        if(scope == NAME_LOCAL){
+            ctx->emit(OP_SETUP_CLOSURE, BC_NOARG, BC_KEEPLINE);
+        }
     }
 };
 
@@ -393,11 +448,21 @@ struct SubscrExpr: Expr{
     void emit(CodeEmitContext* ctx) override{
         a->emit(ctx);
         b->emit(ctx);
-        ctx->emit(OP_BUILD_INDEX, BC_NOARG, line);
+        ctx->emit(OP_LOAD_SUBSCR, BC_NOARG, line);
     }
 
-    ExprRefType ref_type() const override {
-        return EXPR_INDEX_REF;
+    bool emit_del(CodeEmitContext* ctx) override {
+        a->emit(ctx);
+        b->emit(ctx);
+        ctx->emit(OP_DELETE_SUBSCR, BC_NOARG, line);
+        return true;
+    }
+
+    bool emit_store(CodeEmitContext* ctx) override {
+        a->emit(ctx);
+        b->emit(ctx);
+        ctx->emit(OP_STORE_SUBSCR, BC_NOARG, line);
+        return true;
     }
 };
 
@@ -408,16 +473,56 @@ struct AttribExpr: Expr{
     AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
     Str str() const override { return "a.b"; }
 
-    ExprRefType ref_type() const override {
-        return EXPR_ATTR_REF;
+    void emit(CodeEmitContext* ctx) override{
+        a->emit(ctx);
+        int index = ctx->add_name(b);
+        ctx->emit(OP_LOAD_ATTR, index, line);
+    }
+
+    bool emit_del(CodeEmitContext* ctx) override {
+        a->emit(ctx);
+        int index = ctx->add_name(b);
+        ctx->emit(OP_DELETE_ATTR, index, line);
+        return true;
+    }
+
+    bool emit_store(CodeEmitContext* ctx) override {
+        a->emit(ctx);
+        int index = ctx->add_name(b);
+        ctx->emit(OP_STORE_ATTR, index, line);
+        return true;
     }
 };
 
+// PASS
 struct CallExpr: Expr{
     Expr_ callable;
     std::vector<Expr_> args;
     std::vector<std::pair<Str, Expr_>> kwargs;
-    Str str() const override { return "()"; }
+    Str str() const override { return "call(...)"; }
+
+    std::vector<const Expr*> children() const override {
+        std::vector<const Expr*> ret;
+        for(auto& item: args) ret.push_back(item.get());
+        // ...ignore kwargs for simplicity
+        return ret;
+    }
+
+    bool need_unpack() const {
+        for(auto& item: args) if(item->is_starred()) return true;
+        return false;
+    }
+
+    void emit(CodeEmitContext* ctx) override {
+        callable->emit(ctx);
+        int KWARGC = (int)kwargs.size();
+        int ARGC = (int)args.size();
+        if(KWARGC > 0){
+            ctx->emit(need_unpack() ? OP_CALL_KWARGS_UNPACK : OP_CALL_KWARGS, (KWARGC<<16)|ARGC, line);
+        }else{
+            ctx->emit(need_unpack() ? OP_CALL_UNPACK : OP_CALL, ARGC, line);
+        }
+    }
 };
 
 struct BinaryExpr: Expr{
@@ -425,6 +530,10 @@ struct BinaryExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return TK_STR(op); }
+
+    std::vector<const Expr*> children() const override {
+        return {lhs.get(), rhs.get()};
+    }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -459,13 +568,18 @@ struct BinaryExpr: Expr{
     }
 };
 
+// PASS
 struct TernaryExpr: Expr{
     Expr_ cond;
     Expr_ true_expr;
     Expr_ false_expr;
 
     Str str() const override {
-        return "cond ? true_expr : false_expr";
+        return "cond ? t : f";
+    }
+
+    std::vector<const Expr*> children() const override {
+        return {cond.get(), true_expr.get(), false_expr.get()};
     }
 
     void emit(CodeEmitContext* ctx) override {

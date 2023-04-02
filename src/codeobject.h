@@ -25,7 +25,7 @@ inline const char* OP_NAMES[] = {
 };
 
 struct Bytecode{
-    uint8_t op;
+    uint16_t op;
     uint16_t block;
     int arg;
     int line;
@@ -61,7 +61,7 @@ struct CodeObject {
 
     std::vector<Bytecode> codes;
     List consts;
-    std::vector<std::pair<StrName, NameScope>> names;
+    std::vector<StrName> names;
     std::set<StrName> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;

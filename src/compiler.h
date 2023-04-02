@@ -173,7 +173,7 @@ private:
     }
 
     template <typename T, typename... Args>
-    std::unique_ptr<T> expr_prev_line(Args&&... args) {
+    std::unique_ptr<T> make_expr(Args&&... args) {
         std::unique_ptr<T> expr = std::make_unique<T>(std::forward<Args>(args)...);
         expr->line = prev().line;
         return expr;
@@ -183,17 +183,17 @@ private:
 
     // PASS
     void exprLiteral(){
-        ctx()->s_expr.push(expr_prev_line<LiteralExpr>(prev().value));
+        ctx()->s_expr.push(make_expr<LiteralExpr>(prev().value));
     }
 
     // PASS
     void exprFString(){
-        ctx()->s_expr.push(expr_prev_line<FStringExpr>(std::get<Str>(prev().value)));
+        ctx()->s_expr.push(make_expr<FStringExpr>(std::get<Str>(prev().value)));
     }
 
     // PASS
     void exprLambda(){
-        auto e = expr_prev_line<LambdaExpr>();
+        auto e = make_expr<LambdaExpr>();
         e->func.name = "<lambda>";
         e->scope = name_scope();
         if(!match(TK(":"))){
@@ -260,7 +260,7 @@ private:
 
     // PASS
     void exprTuple(){
-        auto e = expr_prev_line<TupleExpr>();
+        auto e = make_expr<TupleExpr>();
         do {
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
             e->items.push_back(ctx()->s_expr.popx());
@@ -270,7 +270,7 @@ private:
 
     // PASS
     void exprOr(){
-        auto e = expr_prev_line<OrExpr>();
+        auto e = make_expr<OrExpr>();
         e->lhs = ctx()->s_expr.popx();
         parse_expression(PREC_LOGICAL_OR + 1);
         e->rhs = ctx()->s_expr.popx();
@@ -279,7 +279,7 @@ private:
 
     // PASS
     void exprAnd(){
-        auto e = expr_prev_line<AndExpr>();
+        auto e = make_expr<AndExpr>();
         e->lhs = ctx()->s_expr.popx();
         parse_expression(PREC_LOGICAL_AND + 1);
         e->rhs = ctx()->s_expr.popx();
@@ -288,7 +288,7 @@ private:
 
     // PASS
     void exprTernary(){
-        auto e = expr_prev_line<TernaryExpr>();
+        auto e = make_expr<TernaryExpr>();
         e->cond = ctx()->s_expr.popx();
         EXPR();         // if true
         e->true_expr = ctx()->s_expr.popx();
@@ -300,7 +300,7 @@ private:
 
     // PASS
     void exprBinaryOp(){
-        auto e = expr_prev_line<BinaryExpr>();
+        auto e = make_expr<BinaryExpr>();
         e->op = prev().type;
         e->lhs = ctx()->s_expr.popx();
         parse_expression(rules[e->op].precedence + 1);
@@ -311,7 +311,7 @@ private:
     // PASS
     void exprNot() {
         parse_expression(PREC_LOGICAL_NOT + 1);
-        ctx()->s_expr.push(expr_prev_line<NotExpr>(ctx()->s_expr.popx()));
+        ctx()->s_expr.push(make_expr<NotExpr>(ctx()->s_expr.popx()));
     }
 
     // PASS
@@ -320,10 +320,10 @@ private:
         parse_expression(PREC_UNARY + 1);
         switch(op){
             case TK("-"):
-                ctx()->s_expr.push(expr_prev_line<NegatedExpr>(ctx()->s_expr.popx()));
+                ctx()->s_expr.push(make_expr<NegatedExpr>(ctx()->s_expr.popx()));
                 break;
             case TK("*"):
-                ctx()->s_expr.push(expr_prev_line<StarredExpr>(ctx()->s_expr.popx()));
+                ctx()->s_expr.push(make_expr<StarredExpr>(ctx()->s_expr.popx()));
                 break;
             default: UNREACHABLE();
         }
@@ -375,7 +375,7 @@ private:
             match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK("]"));
-        auto e = expr_prev_line<ListExpr>(std::move(items));
+        auto e = make_expr<ListExpr>(std::move(items));
         e->line = line;     // override line
         ctx()->s_expr.push(std::move(e));
     }
@@ -392,7 +392,7 @@ private:
             if(parsing_dict){
                 consume(TK(":"));
                 EXPR();
-                auto dict_item = expr_prev_line<DictItemExpr>();
+                auto dict_item = make_expr<DictItemExpr>();
                 dict_item->key = ctx()->s_expr.popx();
                 dict_item->value = ctx()->s_expr.popx();
                 items.push_back(std::move(dict_item));
@@ -410,17 +410,17 @@ private:
         } while (match(TK(",")));
         consume(TK("}"));
         if(items.size()==0 || parsing_dict){
-            auto e = expr_prev_line<DictExpr>(std::move(items));
+            auto e = make_expr<DictExpr>(std::move(items));
             ctx()->s_expr.push(std::move(e));
         }else{
-            auto e = expr_prev_line<SetExpr>(std::move(items));
+            auto e = make_expr<SetExpr>(std::move(items));
             ctx()->s_expr.push(std::move(e));
         }
     }
 
     // PASS
     void exprCall() {
-        auto e = expr_prev_line<CallExpr>();
+        auto e = make_expr<CallExpr>();
         e->callable = ctx()->s_expr.popx();
         do {
             match_newlines(mode()==REPL_MODE);
@@ -434,38 +434,32 @@ private:
             } else{
                 if(!e->kwargs.empty()) SyntaxError("positional argument follows keyword argument");
                 EXPR();
-                // if(co()->codes.back().op == OP_UNARY_STAR) need_unpack = true;
                 e->args.push_back(ctx()->s_expr.popx());
             }
             match_newlines(mode()==REPL_MODE);
         } while (match(TK(",")));
         consume(TK(")"));
+        if(e->args.size() > 32767) SyntaxError("too many positional arguments");
+        if(e->kwargs.size() > 32767) SyntaxError("too many keyword arguments");
         ctx()->s_expr.push(std::move(e));
-        // if(ARGC > 32767) SyntaxError("too many positional arguments");
-        // if(KWARGC > 32767) SyntaxError("too many keyword arguments");
-        // if(KWARGC > 0){
-        //     emit(need_unpack ? OP_CALL_KWARGS_UNPACK : OP_CALL_KWARGS, (KWARGC << 16) | ARGC);
-        // }else{
-        //     emit(need_unpack ? OP_CALL_UNPACK : OP_CALL, ARGC);
-        // }
     }
 
     // PASS
     void exprName(){
-        ctx()->s_expr.push(expr_prev_line<NameExpr>(prev().str(), name_scope()));
+        ctx()->s_expr.push(make_expr<NameExpr>(prev().str(), name_scope()));
     }
 
     // PASS
     void exprAttrib() {
         consume(TK("@id"));
         ctx()->s_expr.push(
-            expr_prev_line<AttribExpr>(ctx()->s_expr.popx(), prev().str())
+            make_expr<AttribExpr>(ctx()->s_expr.popx(), prev().str())
         );
     }
 
     // PASS
     void exprSubscr() {
-        auto e = expr_prev_line<SubscrExpr>();
+        auto e = make_expr<SubscrExpr>();
         std::vector<Expr_> items;
         do {
             EXPR_TUPLE();
@@ -477,7 +471,7 @@ private:
                 e->b = std::move(items[0]);
                 break;
             case 2: case 3: {
-                auto slice = expr_prev_line<SliceExpr>();
+                auto slice = make_expr<SliceExpr>();
                 slice->start = std::move(items[0]);
                 slice->stop = std::move(items[1]);
                 if(items.size()==3){
@@ -492,7 +486,7 @@ private:
 
     // PASS
     void exprLiteral0() {
-        ctx()->s_expr.push(expr_prev_line<Literal0Expr>(prev().type));
+        ctx()->s_expr.push(make_expr<Literal0Expr>(prev().type));
     }
 
     void compile_block_body() {
@@ -708,15 +702,6 @@ private:
                 ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
-            case TK("del"):
-                EXPR_TUPLE();
-                Expr_ e = ctx()->s_expr.popx();
-                switch(e->ref_type()){
-                    case EXPR_NAME_REF:
-                }
-                ctx()->emit(OP_DELETE_REF, BC_NOARG, kw_line);
-                consume_end_stmt();
-                break;
             case TK("global"):
                 do {
                     consume(TK("@id"));
@@ -733,6 +718,13 @@ private:
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
                 }
                 ctx()->emit(OP_RAISE, dummy_t, kw_line);
+                consume_end_stmt();
+            } break;
+            case TK("del"): {
+                EXPR_TUPLE();
+                Expr_ e = ctx()->s_expr.popx();
+                bool ok = e->emit_del(ctx());
+                if(!ok) SyntaxError();
                 consume_end_stmt();
             } break;
             case TK("with"): {

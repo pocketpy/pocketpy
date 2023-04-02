@@ -83,11 +83,6 @@ struct AttrRef : BaseRef {
         vm->setattr(obj, attr.name(), std::move(val));
     }
 
-    void del(VM* vm, Frame* frame) const{
-        if(!obj->is_attr_valid()) vm->TypeError("cannot delete attribute");
-        if(!obj->attr().contains(attr.name())) vm->AttributeError(obj, attr.name());
-        obj->attr().erase(attr.name());
-    }
 };
 
 struct IndexRef : BaseRef {

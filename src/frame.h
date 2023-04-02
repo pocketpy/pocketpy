@@ -53,34 +53,20 @@ struct Frame {
     //     return ss.str();
     // }
 
-    PyObject* pop(){
-#if DEBUG_EXTRA_CHECK
-        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
-#endif
-        PyObject* v = _data.back();
-        _data.pop_back();
-        return v;
-    }
-
-    void _pop(){
+    void pop(){
 #if DEBUG_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         _data.pop_back();
     }
 
-    void try_deref(VM*, PyObject*&);
-
-    PyObject* pop_value(VM* vm){
-        PyObject* value = pop();
-        try_deref(vm, value);
-        return value;
-    }
-
-    PyObject* top_value(VM* vm){
-        PyObject* value = top();
-        try_deref(vm, value);
-        return value;
+    PyObject* popx(){
+#if DEBUG_EXTRA_CHECK
+        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
+#endif
+        PyObject* ret = _data.back();
+        _data.pop_back();
+        return ret;
     }
 
     PyObject*& top(){
@@ -141,18 +127,9 @@ struct Frame {
         }
     }
 
-    Args pop_n_values_reversed(VM* vm, int n){
-        Args v(n);
-        for(int i=n-1; i>=0; i--){
-            v[i] = pop();
-            try_deref(vm, v[i]);
-        }
-        return v;
-    }
-
     Args pop_n_reversed(int n){
         Args v(n);
-        for(int i=n-1; i>=0; i--) v[i] = pop();
+        for(int i=n-1; i>=0; i--) v[i] = popx();
         return v;
     }
 

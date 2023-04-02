@@ -26,49 +26,86 @@ inline PyObject* VM::run_frame(Frame* frame){
             Function& f = CAST(Function&, frame->top());    // reference
             f._closure = frame->_locals;
         } continue;
-        case OP_LOAD_NAME_REF: {
-            frame->push(PyRef(NameRef(frame->co->names[byte.arg])));
-        } continue;
-        case OP_LOAD_NAME: {
-            frame->push(NameRef(frame->co->names[byte.arg]).get(this, frame));
-        } continue;
-        case OP_STORE_NAME: {
-            auto& p = frame->co->names[byte.arg];
-            NameRef(p).set(this, frame, frame->pop());
-        } continue;
-        case OP_BUILD_ATTR_REF: case OP_BUILD_ATTR: {
-            auto& attr = frame->co->names[byte.arg];
-            PyObject* obj = frame->pop_value(this);
-            AttrRef ref = AttrRef(obj, NameRef(attr));
-            if(byte.op == OP_BUILD_ATTR) frame->push(ref.get(this, frame));
-            else frame->push(PyRef(ref));
-        } continue;
-        case OP_BUILD_INDEX: {
-            PyObject* index = frame->pop_value(this);
-            auto ref = IndexRef(frame->pop_value(this), index);
-            if(byte.arg > 0) frame->push(ref.get(this, frame));
-            else frame->push(PyRef(ref));
-        } continue;
-        case OP_FAST_INDEX: case OP_FAST_INDEX_REF: {
-            auto& a = frame->co->names[byte.arg & 0xFFFF];
-            auto& x = frame->co->names[(byte.arg >> 16) & 0xFFFF];
-            auto ref = IndexRef(NameRef(a).get(this, frame), NameRef(x).get(this, frame));
-            if(byte.op == OP_FAST_INDEX) frame->push(ref.get(this, frame));
-            else frame->push(PyRef(ref));
-        } continue;
         case OP_ROT_TWO: ::std::swap(frame->top(), frame->top_1()); continue;
-        case OP_STORE_REF: {
-            PyRef_AS_C(frame->top_1())->set(this, frame, frame->top_value(this));
-            frame->_pop(); frame->_pop();
-        } continue;
-        case OP_DELETE_REF: 
-            PyRef_AS_C(frame->top())->del(this, frame);
-            frame->_pop();
-            continue;
         case OP_BUILD_TUPLE: {
             Args items = frame->pop_n_values_reversed(this, byte.arg);
             frame->push(VAR(std::move(items)));
         } continue;
+        /*****************************************/
+        case OP_LOAD_NAME: {
+            // TODO: use name resolution linked list to optimize this
+            StrName name = frame->co->names[byte.arg];
+            PyObject* val;
+            val = frame->f_locals().try_get(name);
+            if(val != nullptr) { frame->push(val); continue; }
+            val = frame->f_closure_try_get(name);
+            if(val != nullptr) { frame->push(val); continue; }
+            val = frame->f_globals().try_get(name);
+            if(val != nullptr) { frame->push(val); continue; }
+            val = vm->builtins->attr().try_get(name);
+            if(val != nullptr) { frame->push(val); continue; }
+            vm->NameError(name);
+        } continue;
+        case OP_LOAD_ATTR: {
+            PyObject* a = frame->top();
+            StrName name = frame->co->names[byte.arg];
+            frame->top() = getattr(a, name);
+        } continue;
+        case OP_LOAD_SUBSCR: {
+            PyObject* b = frame->popx();
+            PyObject* a = frame->top();
+            frame->top() = fast_call(__getitem__, Args{a, b});
+        } continue;
+        case OP_STORE_LOCAL: {
+            StrName name = frame->co->names[byte.arg];
+            frame->f_locals().set(name, frame->popx());
+        } continue;
+        case OP_STORE_GLOBAL: {
+            StrName name = frame->co->names[byte.arg];
+            frame->f_globals().set(name, frame->popx());
+        } continue;
+        case OP_STORE_ATTR: {
+            StrName name = frame->co->names[byte.arg];
+            PyObject* a = frame->popx();
+            PyObject* val = frame->popx();
+            setattr(a, name, val);
+        } continue;
+        case OP_STORE_SUBSCR: {
+            Args args(3);
+            args[1] = frame->popx();    // b
+            args[0] = frame->popx();    // a
+            args[2] = frame->popx();    // val
+            fast_call(__setitem__, std::move(args));
+        } continue;
+        case OP_DELETE_LOCAL: {
+            StrName name = frame->co->names[byte.arg];
+            if(frame->f_locals().contains(name)){
+                frame->f_locals().erase(name);
+            }else{
+                NameError(name);
+            }
+        } continue;
+        case OP_DELETE_GLOBAL: {
+            StrName name = frame->co->names[byte.arg];
+            if(frame->f_globals().contains(name)){
+                frame->f_globals().erase(name);
+            }else{
+                NameError(name);
+            }
+        } continue;
+        case OP_DELETE_ATTR: {
+            PyObject* a = frame->popx();
+            StrName name = frame->co->names[byte.arg];
+            if(!a->is_attr_valid()) TypeError("cannot delete attribute");
+            if(!a->attr().contains(name)) AttributeError(a, name);
+            a->attr().erase(name);
+        } continue;
+        case OP_DELETE_SUBSCR: {
+            PyObject* b = frame->popx();
+            PyObject* a = frame->popx();
+            fast_call(__delitem__, Args{a, b});
+        } continue;
+        /*****************************************/
         case OP_BUILD_TUPLE_REF: {
             Args items = frame->pop_n_reversed(byte.arg);
             frame->push(PyRef(TupleRef(std::move(items))));
