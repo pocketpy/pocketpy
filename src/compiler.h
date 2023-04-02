@@ -582,20 +582,41 @@ class Compiler {
     }
 
     bool try_compile_assignment(){
-        //     switch (op) {
-        //         case TK("+="):      emit(OP_BINARY_OP, 0);  break;
-        //         case TK("-="):      emit(OP_BINARY_OP, 1);  break;
-        //         case TK("*="):      emit(OP_BINARY_OP, 2);  break;
-        //         case TK("/="):      emit(OP_BINARY_OP, 3);  break;
-        //         case TK("//="):     emit(OP_BINARY_OP, 4);  break;
-        //         case TK("%="):      emit(OP_BINARY_OP, 5);  break;
-        //         case TK("<<="):     emit(OP_BITWISE_OP, 0);  break;
-        //         case TK(">>="):     emit(OP_BITWISE_OP, 1);  break;
-        //         case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
-        //         case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
-        //         case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
-        //         default: UNREACHABLE();
-        //     }
+        Expr_ lhs = ctx()->s_expr.popx();
+        switch (curr().type) {
+            // case TK("+="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 0);  break;
+            // case TK("-="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 1);  break;
+            // case TK("*="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 2);  break;
+            // case TK("/="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 3);  break;
+            // case TK("//="):     lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 4);  break;
+            // case TK("%="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 5);  break;
+            // case TK("<<="):     lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 0);  break;
+            // case TK(">>="):     lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 1);  break;
+            // case TK("&="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 2);  break;
+            // case TK("|="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 3);  break;
+            // case TK("^="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 4);  break;
+            // case TK("="):       advance(); break;
+            case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
+            case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
+                advance();
+                auto e = make_expr<BinaryExpr>();
+                e->op = prev().type;
+                e->lhs = lhs;       // here should be a copy
+                EXPR_TUPLE();
+                e->rhs = ctx()->s_expr.popx();
+                // ...
+            } break;
+            case TK("="): advance(); break;
+            default: return false;
+        }
+        if(prev().type == TK("=")){
+            EXPR_TUPLE();
+            Expr_ rhs = ctx()->s_expr.popx();
+            // do assign here
+            // lhs = rhs
+            return true;
+        }
+        return true;
     }
 
     void compile_stmt() {
@@ -704,8 +725,9 @@ class Compiler {
             /*************************************************/
             // handle dangling expression or assignment
             default: {
-                EXPR_TUPLE(true);
+                EXPR_TUPLE();
                 if(!try_compile_assignment()){
+                    ctx()->emit_expr();
                     if(mode()==REPL_MODE && name_scope()==NAME_GLOBAL){
                         ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                     }else{

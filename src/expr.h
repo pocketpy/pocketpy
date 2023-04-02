@@ -18,6 +18,7 @@ struct Expr{
 
     virtual std::vector<const Expr*> children() const { return {}; }
     virtual bool is_starred() const { return false; }
+    virtual bool is_literal() const { return false; }
 
     // for OP_DELETE_XXX
     virtual bool emit_del(CodeEmitContext* ctx) { return false; }
@@ -163,20 +164,6 @@ struct StarredExpr: Expr{
 };
 
 // PASS
-struct NegatedExpr: Expr{
-    Expr_ child;
-    NegatedExpr(Expr_&& child): child(std::move(child)) {}
-    Str str() const override { return "-"; }
-
-    std::vector<const Expr*> children() const override { return {child.get()}; }
-
-    void emit(CodeEmitContext* ctx) override {
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_NEGATIVE, BC_NOARG, line);
-    }
-};
-
-// PASS
 struct NotExpr: Expr{
     Expr_ child;
     NotExpr(Expr_&& child): child(std::move(child)) {}
@@ -265,18 +252,47 @@ struct LiteralExpr: Expr{
         if(std::holds_alternative<i64>(value)){
             obj = VAR(std::get<i64>(value));
         }
-
         if(std::holds_alternative<f64>(value)){
             obj = VAR(std::get<f64>(value));
         }
-
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
         }
-
-        if(!obj) UNREACHABLE();
+        if(obj == nullptr) UNREACHABLE();
         int index = ctx->add_const(obj);
         ctx->emit(OP_LOAD_CONST, index, line);
+    }
+
+    bool is_literal() const override { return true; }
+};
+
+// PASS
+struct NegatedExpr: Expr{
+    Expr_ child;
+    NegatedExpr(Expr_&& child): child(std::move(child)) {}
+    Str str() const override { return "-"; }
+
+    std::vector<const Expr*> children() const override { return {child.get()}; }
+
+    void emit(CodeEmitContext* ctx) override {
+        VM* vm = ctx->vm;
+        // if child is a int of float, do constant folding
+        if(child->is_literal()){
+            LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
+            PyObject* obj = nullptr;
+            if(std::holds_alternative<i64>(lit->value)){
+                obj = VAR(std::get<i64>(lit->value));
+            }
+            if(std::holds_alternative<f64>(lit->value)){
+                obj = VAR(std::get<f64>(lit->value));
+            }
+            if(obj != nullptr){
+                ctx->emit(OP_LOAD_CONST, ctx()->add_const(obj), line);
+                return;
+            }
+        }
+        child->emit(ctx);
+        ctx->emit(OP_UNARY_NEGATIVE, BC_NOARG, line);
     }
 };
 
@@ -630,45 +646,3 @@ struct TernaryExpr: Expr{
 
 
 } // namespace pkpy
-
-
-// struct TupleRef : BaseRef {
-//     Tuple objs;
-//     TupleRef(Tuple&& objs) : objs(std::move(objs)) {}
-
-//     PyObject* get(VM* vm, Frame* frame) const{
-//         Tuple args(objs.size());
-//         for (int i = 0; i < objs.size(); i++) {
-//             args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
-//         }
-//         return VAR(std::move(args));
-//     }
-
-//     void set(VM* vm, Frame* frame, PyObject* val) const{
-//         val = vm->asIter(val);
-//         BaseIter* iter = vm->PyIter_AS_C(val);
-//         for(int i=0; i<objs.size(); i++){
-//             PyObject* x;
-//             if(is_type(objs[i], vm->tp_star_wrapper)){
-//                 auto& star = _CAST(StarWrapper&, objs[i]);
-//                 if(star.rvalue) vm->ValueError("can't use starred expression here");
-//                 if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
-//                 auto ref = vm->PyRef_AS_C(star.obj);
-//                 List list;
-//                 while((x = iter->next()) != nullptr) list.push_back(x);
-//                 ref->set(vm, frame, VAR(std::move(list)));
-//                 return;
-//             }else{
-//                 x = iter->next();
-//                 if(x == nullptr) vm->ValueError("not enough values to unpack");
-//                 vm->PyRef_AS_C(objs[i])->set(vm, frame, x);
-//             }
-//         }
-//         PyObject* x = iter->next();
-//         if(x != nullptr) vm->ValueError("too many values to unpack");
-//     }
-
-//     void del(VM* vm, Frame* frame) const{
-//         for(int i=0; i<objs.size(); i++) vm->PyRef_AS_C(objs[i])->del(vm, frame);
-//     }
-// };

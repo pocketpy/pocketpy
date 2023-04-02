@@ -6,10 +6,10 @@ namespace pkpy{
 
 class RangeIter : public BaseIter {
     i64 current;
-    Range r;
+    Range r;    // copy by value, so we don't need to keep ref
 public:
-    RangeIter(VM* vm, PyObject* _ref) : BaseIter(vm, _ref) {
-        this->r = OBJ_GET(Range, _ref);
+    RangeIter(VM* vm, PyObject* ref) : BaseIter(vm) {
+        this->r = OBJ_GET(Range, ref);
         this->current = r.start;
     }
 
@@ -26,27 +26,36 @@ public:
 
 template <typename T>
 class ArrayIter : public BaseIter {
-    size_t index = 0;
-    const T* p;
+    int index;
+    PyObject* ref;
 public:
-    ArrayIter(VM* vm, PyObject* _ref) : BaseIter(vm, _ref) { p = &OBJ_GET(T, _ref);}
-    PyObject* next(){
+    ArrayIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
+
+    PyObject* next() override{
+        const T* p = &OBJ_GET(T, ref);
         if(index == p->size()) return nullptr;
         return p->operator[](index++); 
+    }
+
+    void _mark() override {
+        OBJ_MARK(ref);
     }
 };
 
 class StringIter : public BaseIter {
     int index = 0;
-    Str* str;
+    PyObject* ref;
 public:
-    StringIter(VM* vm, PyObject* _ref) : BaseIter(vm, _ref) {
-        str = &OBJ_GET(Str, _ref);
-    }
+    StringIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref) {}
 
-    PyObject* next() {
+    PyObject* next() override{
+        Str* str = &OBJ_GET(Str, ref);
         if(index == str->u8_length()) return nullptr;
         return VAR(str->u8_getitem(index++));
+    }
+
+    void _mark() override {
+        OBJ_MARK(ref);
     }
 };
 
@@ -58,20 +67,14 @@ inline PyObject* Generator::next(){
         frame = std::move(vm->callstack.top());
         vm->callstack.pop();
         state = 1;
-        return frame->pop_value(vm);
+        return frame->popx();
     }else{
         state = 2;
         return nullptr;
     }
 }
 
-inline void BaseIter::_mark() {
-    if(_ref != nullptr) OBJ_MARK(_ref);
-    if(loop_var != nullptr) OBJ_MARK(loop_var);
-}
-
 inline void Generator::_mark(){
-    BaseIter::_mark();
     if(frame!=nullptr) frame->_mark();
 }
 

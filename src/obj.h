@@ -82,12 +82,10 @@ struct Slice {
 class BaseIter {
 protected:
     VM* vm;
-    PyObject* _ref;     // keep a reference to the object so it will not be deleted while iterating
 public:
+    BaseIter(VM* vm) : vm(vm) {}
+    virtual void _mark() {}
     virtual PyObject* next() = 0;
-    PyObject* loop_var;
-    BaseIter(VM* vm, PyObject* _ref) : vm(vm), _ref(_ref) {}
-    virtual void _mark();
     virtual ~BaseIter() = default;
 };
 

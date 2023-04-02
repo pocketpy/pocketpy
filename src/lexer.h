@@ -9,21 +9,23 @@ namespace pkpy{
 typedef uint8_t TokenIndex;
 
 constexpr const char* kTokens[] = {
+    "is not", "not in",
     "@eof", "@eol", "@sof",
-    ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}", "%", "::",
-    "+", "-", "*", "/", "//", "**", "=", ">", "<", "...", "->",
-    "<<", ">>", "&", "|", "^", "?", "@",
-    "==", "!=", ">=", "<=",
-    "+=", "-=", "*=", "/=", "//=", "%=", "&=", "|=", "^=", ">>=", "<<=",
+    "@id", "@num", "@str", "@fstr",
+    "@indent", "@dedent",
+    /*****************************************/
+    "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
+    "*", "*=", "/", "/=", "//", "//=", "%", "%=",
+    "&", "&=", "|", "|=", "^", "^=", 
+    "<<", "<<=", ">>", ">>=",
+    /*****************************************/
+    ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}", "::",
+    "**", "=", ">", "<", "...", "->", "?", "@", "==", "!=", ">=", "<=",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
     "goto", "label",      // extended keywords, not available in cpython
-    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise",
-    /** KW_END **/
-    "is not", "not in",
-    "@id", "@num", "@str", "@fstr",
-    "@indent", "@dedent"
+    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
 
 using TokenValue = std::variant<std::monostate, i64, f64, Str>;
@@ -40,12 +42,9 @@ constexpr TokenIndex TK(const char token[]) {
 }
 
 #define TK_STR(t) kTokens[t]
-const TokenIndex kTokenKwBegin = TK("class");
-const TokenIndex kTokenKwEnd = TK("raise");
-
 const std::map<std::string_view, TokenIndex> kTokenKwMap = [](){
     std::map<std::string_view, TokenIndex> map;
-    for(int k=kTokenKwBegin; k<=kTokenKwEnd; k++) map[kTokens[k]] = k;
+    for(int k=TK("class"); k<kTokenCount; k++) map[kTokens[k]] = k;
     return map;
 }();
 

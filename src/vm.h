@@ -33,7 +33,7 @@ class Generator: public BaseIter {
     int state; // 0,1,2
 public:
     Generator(VM* vm, std::unique_ptr<Frame>&& frame)
-        : BaseIter(vm, nullptr), frame(std::move(frame)), state(0) {}
+        : BaseIter(vm), frame(std::move(frame)), state(0) {}
 
     PyObject* next() override;
     void _mark() override;
@@ -351,19 +351,11 @@ inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
 }
 
 inline void CodeObject::optimize(VM* vm){
-    std::vector<StrName> keys;
-    for(auto& p: names) if(p.second == NAME_LOCAL) keys.push_back(p.first);
-    uint32_t base_n = (uint32_t)(keys.size() / kLocalsLoadFactor + 0.5);
+    // here we simple pass all names, but only some of them are NAME_LOCAL
+    // TODO: ...
+    uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
     perfect_locals_capacity = find_next_capacity(base_n);
-    perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, keys);
-
-    for(int i=1; i<codes.size(); i++){
-        if(codes[i].op == OP_UNARY_NEGATIVE && codes[i-1].op == OP_LOAD_CONST){
-            codes[i].op = OP_NO_OP;
-            int pos = codes[i-1].arg;
-            consts[pos] = vm->num_negated(consts[pos]);
-        }
-    }
+    perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
 
     // pre-compute sn in co_consts
     for(int i=0; i<consts.size(); i++){
@@ -559,73 +551,74 @@ inline PyObject* VM::new_module(StrName name) {
 }
 
 inline Str VM::disassemble(CodeObject_ co){
-    auto pad = [](const Str& s, const int n){
-        if(s.size() >= n) return s.substr(0, n);
-        return s + std::string(n - s.size(), ' ');
-    };
+    return "";
+    // auto pad = [](const Str& s, const int n){
+    //     if(s.size() >= n) return s.substr(0, n);
+    //     return s + std::string(n - s.size(), ' ');
+    // };
 
-    std::vector<int> jumpTargets;
-    for(auto byte : co->codes){
-        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
-            jumpTargets.push_back(byte.arg);
-        }
-    }
-    StrStream ss;
-    ss << std::string(54, '-') << '\n';
-    ss << co->name << ":\n";
-    int prev_line = -1;
-    for(int i=0; i<co->codes.size(); i++){
-        const Bytecode& byte = co->codes[i];
-        if(byte.op == OP_NO_OP) continue;
-        Str line = std::to_string(byte.line);
-        if(byte.line == prev_line) line = "";
-        else{
-            if(prev_line != -1) ss << "\n";
-            prev_line = byte.line;
-        }
+    // std::vector<int> jumpTargets;
+    // for(auto byte : co->codes){
+    //     if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+    //         jumpTargets.push_back(byte.arg);
+    //     }
+    // }
+    // StrStream ss;
+    // ss << std::string(54, '-') << '\n';
+    // ss << co->name << ":\n";
+    // int prev_line = -1;
+    // for(int i=0; i<co->codes.size(); i++){
+    //     const Bytecode& byte = co->codes[i];
+    //     if(byte.op == OP_NO_OP) continue;
+    //     Str line = std::to_string(byte.line);
+    //     if(byte.line == prev_line) line = "";
+    //     else{
+    //         if(prev_line != -1) ss << "\n";
+    //         prev_line = byte.line;
+    //     }
 
-        std::string pointer;
-        if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
-            pointer = "-> ";
-        }else{
-            pointer = "   ";
-        }
-        ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
-        ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-        // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
-        if(byte.op == OP_LOAD_CONST){
-            argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
-        }
-        if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
-            argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
-        }
-        ss << argStr;
-        // ss << pad(argStr, 20);      // may overflow
-        // ss << co->blocks[byte.block].to_string();
-        if(i != co->codes.size() - 1) ss << '\n';
-    }
-    StrStream consts;
-    consts << "co_consts: ";
-    consts << CAST(Str, asRepr(VAR(co->consts)));
+    //     std::string pointer;
+    //     if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
+    //         pointer = "-> ";
+    //     }else{
+    //         pointer = "   ";
+    //     }
+    //     ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
+    //     ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+    //     // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+    //     std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+    //     if(byte.op == OP_LOAD_CONST){
+    //         argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
+    //     }
+    //     if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
+    //         argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
+    //     }
+    //     ss << argStr;
+    //     // ss << pad(argStr, 20);      // may overflow
+    //     // ss << co->blocks[byte.block].to_string();
+    //     if(i != co->codes.size() - 1) ss << '\n';
+    // }
+    // StrStream consts;
+    // consts << "co_consts: ";
+    // consts << CAST(Str, asRepr(VAR(co->consts)));
 
-    StrStream names;
-    names << "co_names: ";
-    List list;
-    for(int i=0; i<co->names.size(); i++){
-        list.push_back(VAR(co->names[i].first.str()));
-    }
-    names << CAST(Str, asRepr(VAR(list)));
-    ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+    // StrStream names;
+    // names << "co_names: ";
+    // List list;
+    // for(int i=0; i<co->names.size(); i++){
+    //     list.push_back(VAR(co->names[i].first.str()));
+    // }
+    // names << CAST(Str, asRepr(VAR(list)));
+    // ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
-    for(int i=0; i<co->consts.size(); i++){
-        PyObject* obj = co->consts[i];
-        if(is_type(obj, tp_function)){
-            const auto& f = CAST(Function&, obj);
-            ss << disassemble(f.code);
-        }
-    }
-    return Str(ss.str());
+    // for(int i=0; i<co->consts.size(); i++){
+    //     PyObject* obj = co->consts[i];
+    //     if(is_type(obj, tp_function)){
+    //         const auto& f = CAST(Function&, obj);
+    //         ss << disassemble(f.code);
+    //     }
+    // }
+    // return Str(ss.str());
 }
 
 inline void VM::init_builtin_types(){
@@ -769,7 +762,6 @@ inline void VM::unpack_args(Args& args){
     for(int i=0; i<args.size(); i++){
         if(is_type(args[i], tp_star_wrapper)){
             auto& star = _CAST(StarWrapper&, args[i]);
-            if(!star.rvalue) UNREACHABLE();
             List& list = CAST(List&, asList(star.obj));
             unpacked.insert(unpacked.end(), list.begin(), list.end());
         }else{
