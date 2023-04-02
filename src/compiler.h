@@ -1,13 +1,6 @@
 #pragma once
 
-#include "codeobject.h"
-#include "common.h"
-#include "lexer.h"
-#include "error.h"
-#include "ceval.h"
 #include "expr.h"
-#include "obj.h"
-#include "str.h"
 
 namespace pkpy{
 
@@ -21,9 +14,9 @@ struct PrattRule{
 };
 
 class Compiler {
+    inline static PrattRule rules[kTokenCount];
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
-    std::map<TokenIndex, PrattRule> rules;
     VM* vm;
     bool used;
     // for parsing token stream
@@ -33,7 +26,6 @@ class Compiler {
     const Token& prev() { return tokens.at(i-1); }
     const Token& curr() { return tokens.at(i); }
     const Token& next() { return tokens.at(i+1); }
-    const Token& peek(int offset) { return tokens.at(i+offset); }
     void advance() { i++; }
 
     CodeEmitContext* ctx() { return &contexts.top(); }
@@ -49,7 +41,7 @@ class Compiler {
 
     void pop_context(){
         if(!ctx()->s_expr.empty()) UNREACHABLE();
-        // if last instruction is not return, add a default return None
+        // if the last op does not return, add a default return None
         if(ctx()->co->codes.back().op != OP_RETURN_VALUE){
             ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
@@ -58,14 +50,7 @@ class Compiler {
         contexts.pop();
     }
 
-public:
-    Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
-        this->vm = vm;
-        this->used = false;
-        this->lexer = std::make_unique<Lexer>(
-            make_sp<SourceData>(source, filename, mode)
-        );
-
+    static void init_pratt_rules(){
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
 #define NO_INFIX nullptr, PREC_NONE
@@ -112,22 +97,8 @@ public:
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
 #undef METHOD
 #undef NO_INFIX
-
-        // rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
-        // rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
-        // rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
     }
 
-private:
     bool match(TokenIndex expected) {
         if (curr().type != expected) return false;
         advance();
@@ -206,7 +177,7 @@ private:
             consume(TK(":"));
         }
         e->func.code = push_context(lexer->src, "<lambda>");
-        EXPR(true); // https://github.com/blueloveTH/pocketpy/issues/37
+        EXPR(false); // https://github.com/blueloveTH/pocketpy/issues/37
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
@@ -464,8 +435,8 @@ private:
     Str _compile_import() {
         consume(TK("@id"));
         Str name = prev().str();
-        int index = ctx()->add_name(name, NAME_SPECIAL);
-        ctx()->emit(OP_IMPORT_NAME, index, peek(-2).line);
+        int index = ctx()->add_name(name);
+        ctx()->emit(OP_IMPORT_NAME, index, prev().line);
         return name;
     }
 
@@ -525,8 +496,9 @@ private:
         if(!push_stack) ctx()->emit_expr();
     }
 
+    // PASS
     void compile_if_stmt() {
-        EXPR(true);   // condition
+        EXPR(false);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         if (match(TK("elif"))) {
@@ -544,9 +516,10 @@ private:
         }
     }
 
+    // PASS
     void compile_while_loop() {
         ctx()->enter_block(WHILE_LOOP);
-        EXPR(true);   // condition
+        EXPR(false);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
@@ -556,12 +529,17 @@ private:
 
     void compile_for_loop() {
         EXPR_TUPLE();
-        ctx()->emit_lvalue();
+        Expr_ vars = ctx()->s_expr.popx();
         consume(TK("in"));
-        EXPR(true);
+        EXPR(false);
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx()->enter_block(FOR_LOOP);
         ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        // set variables and handle implicit unpack
+        bool ok = vars->emit_store(ctx());
+        // this error occurs in `vars` instead of this line
+        // but...nevermind
+        if(!ok) SyntaxError();
         compile_block_body();
         ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
         ctx()->exit_block();
@@ -596,7 +574,7 @@ private:
     }
 
     void compile_decorated(){
-        EXPR(true);
+        EXPR(false);
         if(!match_newlines(mode()==REPL_MODE)) SyntaxError();
         ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
         consume(TK("def"));
@@ -680,7 +658,7 @@ private:
                 consume(TK("@id"));
                 int dummy_t = ctx()->add_name(prev().str(), NAME_SPECIAL);
                 if(match(TK("(")) && !match(TK(")"))){
-                    EXPR(true); consume(TK(")"));
+                    EXPR(false); consume(TK(")"));
                 }else{
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
                 }
@@ -697,7 +675,7 @@ private:
             case TK("with"): {
                 // TODO: reimpl this
                 UNREACHABLE();
-                // EXPR(true);
+                // EXPR(false);
                 // consume(TK("as"));
                 // consume(TK("@id"));
                 // int index = ctx()->add_name(prev().str(), name_scope());
@@ -859,6 +837,27 @@ private:
     void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, curr().line, curr().start); }
 
 public:
+    Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
+        this->vm = vm;
+        this->used = false;
+        this->lexer = std::make_unique<Lexer>(
+            make_sp<SourceData>(source, filename, mode)
+        );
+        if(rules.empty()) init_pratt_rules();
+        // rules[TK("=")] =        { nullptr,               METHOD(exprAssign),         PREC_ASSIGNMENT };
+        // rules[TK("+=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("-=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("*=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("/=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("//=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("%=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("&=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("|=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("^=")] =       { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK(">>=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+        // rules[TK("<<=")] =      { nullptr,               METHOD(exprInplaceAssign),  PREC_ASSIGNMENT };
+    }
+
     CodeObject_ compile(){
         if(used) UNREACHABLE();
         used = true;

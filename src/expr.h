@@ -6,7 +6,6 @@
 #include "error.h"
 #include "ceval.h"
 
-
 namespace pkpy{
 
 struct CodeEmitContext;
@@ -369,7 +368,18 @@ struct TupleExpr: SequenceExpr{
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
 
     bool emit_store(CodeEmitContext* ctx) override {
-        // ...
+        // assume TOS is an iterable
+        // unpack it and emit several OP_STORE
+        // https://docs.python.org/3/library/dis.html#opcode-UNPACK_SEQUENCE
+        // https://docs.python.org/3/library/dis.html#opcode-UNPACK_EX
+        return true;
+    }
+
+    bool emit_del(CodeEmitContext* ctx) override{
+        for(auto& e: items){
+            bool ok = e->emit_del(ctx);
+            if(!ok) return false;
+        }
         return true;
     }
 };

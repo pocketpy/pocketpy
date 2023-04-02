@@ -61,6 +61,7 @@ struct CodeObject {
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
 
+    // may be.. just use a large NameDict?
     uint32_t perfect_locals_capacity = 2;
     uint32_t perfect_hash_seed = 0;
 
