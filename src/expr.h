@@ -595,3 +595,45 @@ struct TernaryExpr: Expr{
 
 
 } // namespace pkpy
+
+
+// struct TupleRef : BaseRef {
+//     Tuple objs;
+//     TupleRef(Tuple&& objs) : objs(std::move(objs)) {}
+
+//     PyObject* get(VM* vm, Frame* frame) const{
+//         Tuple args(objs.size());
+//         for (int i = 0; i < objs.size(); i++) {
+//             args[i] = vm->PyRef_AS_C(objs[i])->get(vm, frame);
+//         }
+//         return VAR(std::move(args));
+//     }
+
+//     void set(VM* vm, Frame* frame, PyObject* val) const{
+//         val = vm->asIter(val);
+//         BaseIter* iter = vm->PyIter_AS_C(val);
+//         for(int i=0; i<objs.size(); i++){
+//             PyObject* x;
+//             if(is_type(objs[i], vm->tp_star_wrapper)){
+//                 auto& star = _CAST(StarWrapper&, objs[i]);
+//                 if(star.rvalue) vm->ValueError("can't use starred expression here");
+//                 if(i != objs.size()-1) vm->ValueError("* can only be used at the end");
+//                 auto ref = vm->PyRef_AS_C(star.obj);
+//                 List list;
+//                 while((x = iter->next()) != nullptr) list.push_back(x);
+//                 ref->set(vm, frame, VAR(std::move(list)));
+//                 return;
+//             }else{
+//                 x = iter->next();
+//                 if(x == nullptr) vm->ValueError("not enough values to unpack");
+//                 vm->PyRef_AS_C(objs[i])->set(vm, frame, x);
+//             }
+//         }
+//         PyObject* x = iter->next();
+//         if(x != nullptr) vm->ValueError("too many values to unpack");
+//     }
+
+//     void del(VM* vm, Frame* frame) const{
+//         for(int i=0; i<objs.size(); i++) vm->PyRef_AS_C(objs[i])->del(vm, frame);
+//     }
+// };

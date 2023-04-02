@@ -5,12 +5,7 @@
 
 namespace pkpy{
 
-enum NameScope {
-    NAME_LOCAL = 0,
-    NAME_GLOBAL,
-    NAME_ATTR,
-    NAME_SPECIAL,
-};
+enum NameScope { NAME_LOCAL, NAME_GLOBAL };
 
 enum Opcode {
     #define OPCODE(name) OP_##name,

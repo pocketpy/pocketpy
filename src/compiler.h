@@ -24,10 +24,18 @@ class Compiler {
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
     std::map<TokenIndex, PrattRule> rules;
-    bool used = false;
     VM* vm;
+    bool used;
+    // for parsing token stream
+    int i = 0;
+    std::vector<Token> tokens;
 
-    CodeObject* co() const{ return contexts.top().co.get(); }
+    const Token& prev() { return tokens.at(i-1); }
+    const Token& curr() { return tokens.at(i); }
+    const Token& next() { return tokens.at(i+1); }
+    const Token& peek(int offset) { return tokens.at(i+offset); }
+    void advance() { i++; }
+
     CodeEmitContext* ctx() { return &contexts.top(); }
     CompileMode mode() const{ return lexer->src->mode; }
     NameScope name_scope() const { return contexts.size()>1 ? NAME_LOCAL : NAME_GLOBAL; }
@@ -41,6 +49,7 @@ class Compiler {
 
     void pop_context(){
         if(!ctx()->s_expr.empty()) UNREACHABLE();
+        // if last instruction is not return, add a default return None
         if(ctx()->co->codes.back().op != OP_RETURN_VALUE){
             ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
@@ -52,6 +61,7 @@ class Compiler {
 public:
     Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
         this->vm = vm;
+        this->used = false;
         this->lexer = std::make_unique<Lexer>(
             make_sp<SourceData>(source, filename, mode)
         );
@@ -60,25 +70,32 @@ public:
 #define METHOD(name) &Compiler::name
 #define NO_INFIX nullptr, PREC_NONE
         for(TokenIndex i=0; i<kTokenCount; i++) rules[i] = { nullptr, NO_INFIX };
-        rules[TK(".")] =    { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
-        rules[TK("(")] =    { METHOD(exprGroup),     METHOD(exprCall),           PREC_CALL };
-        rules[TK("[")] =    { METHOD(exprList),      METHOD(exprSubscr),         PREC_SUBSCRIPT };
-        rules[TK("{")] =    { METHOD(exprMap),       NO_INFIX };
-        rules[TK("%")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("+")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK("-")] =    { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
-        rules[TK("*")] =    { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("/")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("//")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("**")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
-        rules[TK(">")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("<")] =    { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("==")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
-        rules[TK("!=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
-        rules[TK(">=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("<=")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("is")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK(".")] =        { nullptr,               METHOD(exprAttrib),         PREC_ATTRIB };
+        rules[TK("(")] =        { METHOD(exprGroup),     METHOD(exprCall),           PREC_CALL };
+        rules[TK("[")] =        { METHOD(exprList),      METHOD(exprSubscr),         PREC_SUBSCRIPT };
+        rules[TK("{")] =        { METHOD(exprMap),       NO_INFIX };
+        rules[TK("%")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("+")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
+        rules[TK("-")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
+        rules[TK("*")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("/")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("//")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("**")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
+        rules[TK(">")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("<")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("==")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
+        rules[TK("!=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
+        rules[TK(">=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("<=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("in")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("is")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
+        rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
+        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
+        rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
+        rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
+        rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
+        rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
         rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
         rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
@@ -93,13 +110,6 @@ public:
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
-        rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
-        rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
-        rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
-        rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
-        rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
-        rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
 #undef METHOD
 #undef NO_INFIX
 
@@ -118,15 +128,6 @@ public:
     }
 
 private:
-    int i = 0;
-    std::vector<Token> tokens;
-
-    const Token& prev() { return tokens.at(i-1); }
-    const Token& curr() { return tokens.at(i); }
-    const Token& next() { return tokens.at(i+1); }
-    const Token& peek(int offset) { return tokens.at(i+offset); }
-    void advance() { i++; }
-
     bool match(TokenIndex expected) {
         if (curr().type != expected) return false;
         advance();
@@ -164,12 +165,14 @@ private:
         if (!match_end_stmt()) SyntaxError("expected statement end");
     }
 
-    void EXPR(ExprAction action=EXPR_PUSH_STACK) {
-        parse_expression(PREC_TUPLE + 1, action);
+    /*************************************************/
+
+    void EXPR(bool push_stack=true) {
+        parse_expression(PREC_TUPLE+1, push_stack);
     }
 
-    void EXPR_TUPLE(ExprAction action=EXPR_PUSH_STACK) {
-        parse_expression(PREC_TUPLE, action);
+    void EXPR_TUPLE(bool push_stack=true) {
+        parse_expression(PREC_TUPLE, push_stack);
     }
 
     template <typename T, typename... Args>
@@ -178,8 +181,6 @@ private:
         expr->line = prev().line;
         return expr;
     }
-
-    /********************************************/
 
     // PASS
     void exprLiteral(){
@@ -201,61 +202,10 @@ private:
             consume(TK(":"));
         }
         e->func.code = push_context(lexer->src, "<lambda>");
-        // https://github.com/blueloveTH/pocketpy/issues/37
-        EXPR(true);
+        EXPR(true); // https://github.com/blueloveTH/pocketpy/issues/37
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
-    }
-
-    void exprAssign(){
-        // if(co()->codes.empty()) UNREACHABLE();
-        // bool is_load_name_ref = co()->codes.back().op == OP_LOAD_NAME_REF;
-        // int _name_arg = co()->codes.back().arg;
-        // // if the last op is OP_LOAD_NAME_REF, remove it
-        // // because we will emit OP_STORE_NAME or OP_STORE_CLASS_ATTR
-        // if(is_load_name_ref) co()->codes.pop_back();
-
-        // co()->_rvalue += 1;
-        // TokenIndex op = prev().type;
-        // if(op == TK("=")) {     // a = (expr)
-        //     EXPR_TUPLE();
-        //     if(is_load_name_ref){
-        //         auto op = ctx()->is_compiling_class ? OP_STORE_CLASS_ATTR : OP_STORE_NAME;
-        //         emit(op, _name_arg);
-        //     }else{
-        //         if(ctx()->is_compiling_class) SyntaxError();
-        //         emit(OP_STORE_REF);
-        //     }
-        // }else{                  // a += (expr) -> a = a + (expr)
-        //     if(ctx()->is_compiling_class) SyntaxError();
-        //     if(is_load_name_ref){
-        //         emit(OP_LOAD_NAME, _name_arg);
-        //     }else{
-        //         emit(OP_DUP_TOP_VALUE);
-        //     }
-        //     EXPR();
-        //     switch (op) {
-        //         case TK("+="):      emit(OP_BINARY_OP, 0);  break;
-        //         case TK("-="):      emit(OP_BINARY_OP, 1);  break;
-        //         case TK("*="):      emit(OP_BINARY_OP, 2);  break;
-        //         case TK("/="):      emit(OP_BINARY_OP, 3);  break;
-        //         case TK("//="):     emit(OP_BINARY_OP, 4);  break;
-        //         case TK("%="):      emit(OP_BINARY_OP, 5);  break;
-        //         case TK("<<="):     emit(OP_BITWISE_OP, 0);  break;
-        //         case TK(">>="):     emit(OP_BITWISE_OP, 1);  break;
-        //         case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
-        //         case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
-        //         case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
-        //         default: UNREACHABLE();
-        //     }
-        //     if(is_load_name_ref){
-        //         emit(OP_STORE_NAME, _name_arg);
-        //     }else{
-        //         emit(OP_STORE_REF);
-        //     }
-        // }
-        // co()->_rvalue -= 1;
     }
 
     // PASS
@@ -540,17 +490,17 @@ private:
             return;
         }
         do {
-            ctx()->emit(OP_DUP_TOP_VALUE, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
             Str name = prev().str();
-            int index = ctx()->add_name(name, NAME_ATTR);
-            ctx()->emit(OP_BUILD_ATTR, index, prev().line);
+            int index = ctx()->add_name(name);
+            ctx()->emit(OP_LOAD_ATTR, index, prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
             }
-            index = ctx()->add_name(name, name_scope());
-            ctx()->emit(OP_STORE_NAME, index, prev().line);
+            index = ctx()->add_name(name);
+            ctx()->emit(OP_STORE_GLOBAL, index, prev().line);
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
@@ -650,7 +600,20 @@ private:
     }
 
     bool try_compile_assignment(){
-
+        //     switch (op) {
+        //         case TK("+="):      emit(OP_BINARY_OP, 0);  break;
+        //         case TK("-="):      emit(OP_BINARY_OP, 1);  break;
+        //         case TK("*="):      emit(OP_BINARY_OP, 2);  break;
+        //         case TK("/="):      emit(OP_BINARY_OP, 3);  break;
+        //         case TK("//="):     emit(OP_BINARY_OP, 4);  break;
+        //         case TK("%="):      emit(OP_BINARY_OP, 5);  break;
+        //         case TK("<<="):     emit(OP_BITWISE_OP, 0);  break;
+        //         case TK(">>="):     emit(OP_BITWISE_OP, 1);  break;
+        //         case TK("&="):      emit(OP_BITWISE_OP, 2);  break;
+        //         case TK("|="):      emit(OP_BITWISE_OP, 3);  break;
+        //         case TK("^="):      emit(OP_BITWISE_OP, 4);  break;
+        //         default: UNREACHABLE();
+        //     }
     }
 
     void compile_stmt() {
@@ -728,16 +691,18 @@ private:
                 consume_end_stmt();
             } break;
             case TK("with"): {
-                EXPR(true);
-                consume(TK("as"));
-                consume(TK("@id"));
-                int index = ctx()->add_name(prev().str(), name_scope());
-                emit(OP_STORE_NAME, index);
-                emit(OP_LOAD_NAME_REF, index);
-                emit(OP_WITH_ENTER);
-                compile_block_body();
-                emit(OP_LOAD_NAME_REF, index);
-                emit(OP_WITH_EXIT);
+                // TODO: reimpl this
+                UNREACHABLE();
+                // EXPR(true);
+                // consume(TK("as"));
+                // consume(TK("@id"));
+                // int index = ctx()->add_name(prev().str(), name_scope());
+                // emit(OP_STORE_NAME, index);
+                // emit(OP_LOAD_NAME_REF, index);
+                // emit(OP_WITH_ENTER);
+                // compile_block_body();
+                // emit(OP_LOAD_NAME_REF, index);
+                // emit(OP_WITH_EXIT);
             } break;
             /*************************************************/
             // TODO: refactor goto/label use special $ syntax
@@ -749,21 +714,21 @@ private:
                 consume_end_stmt();
                 break;
             case TK("goto"):
-                if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
+                if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
                 emit(OP_GOTO, co()->add_name(prev().str(), NAME_SPECIAL));
                 consume_end_stmt();
                 break;
             /*************************************************/
-            // dangling expression or assignment
+            // handle dangling expression or assignment
             default: {
                 EXPR_TUPLE(true);
-                bool assigment = try_compile_assignment();
-                if(!assigment){
+                if(!try_compile_assignment()){
                     if(mode()==REPL_MODE && name_scope()==NAME_GLOBAL){
                         emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                    }else{
+                        emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
                     }
-                    emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
                 }
                 consume_end_stmt();
             }

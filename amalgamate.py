@@ -8,7 +8,7 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 pipeline = [
 	["common.h", "memory.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
 	["obj.h", "codeobject.h", "frame.h"],
-	["gc.h", "vm.h", "ref.h", "ceval.h", "compiler.h", "repl.h"],
+	["gc.h", "vm.h", "ceval.h", "expr.h", "compiler.h", "repl.h"],
 	["iter.h", "cffi.h", "io.h", "_generated.h", "pocketpy.h"]
 ]
 

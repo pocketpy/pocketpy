@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "vm.h"
-#include "ref.h"
 
 namespace pkpy{
 
@@ -135,10 +134,11 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* cls = frame->top();
             cls->attr().set(name.first, std::move(obj));
         } continue;
-        case OP_RETURN_VALUE: return frame->pop_value(this);
+        case OP_RETURN_VALUE: return frame->popx();
         case OP_PRINT_EXPR: {
-            PyObject* expr = frame->top_value(this);
+            PyObject* expr = frame->top();  // use top() here to avoid accidental gc
             if(expr != None) *_stdout << CAST(Str, asRepr(expr)) << '\n';
+            frame->pop();
         } continue;
         case OP_POP_TOP: frame->_pop(); continue;
         case OP_BINARY_OP: {
@@ -239,7 +239,7 @@ inline PyObject* VM::run_frame(Frame* frame){
             PyObject* obj = frame->pop_value(this);
             call(frame->top_1(), "add", Args{obj});
         } continue;
-        case OP_DUP_TOP_VALUE: frame->push(frame->top_value(this)); continue;
+        case OP_DUP_TOP: frame->push(frame->top()); continue;
         case OP_UNARY_STAR: {
             if(byte.arg > 0){   // rvalue
                 frame->top() = VAR(StarWrapper(frame->top_value(this), true));
