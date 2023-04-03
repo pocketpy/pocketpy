@@ -542,7 +542,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ PyBool ************/
-    _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(vm->asBool(args[0])));
+    _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(VAR(vm->asBool(args[0]))));
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, Args& args) {
         bool val = CAST(bool, args[0]);

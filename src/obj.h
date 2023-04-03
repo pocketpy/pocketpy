@@ -3,7 +3,6 @@
 #include "common.h"
 #include "namedict.h"
 #include "tuplelist.h"
-#include <type_traits>
 
 namespace pkpy {
     
@@ -142,8 +141,13 @@ struct Py_ : PyObject {
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
-#define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
 #define OBJ_MARK(obj) if(!is_tagged(obj)) obj->_mark()
+
+#if DEBUG_NO_BUILTIN_MODULES
+#define OBJ_NAME(obj) Str("<?>")
+#else
+#define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
+#endif
 
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;

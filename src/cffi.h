@@ -2,8 +2,6 @@
 
 #include "common.h"
 #include "vm.h"
-#include <type_traits>
-#include <vector>
 
 namespace pkpy {
 

@@ -26,12 +26,13 @@
 #include <random>
 #include <initializer_list>
 #include <variant>
+#include <type_traits>
 
 #define PK_VERSION				"0.9.6"
 
 // debug macros
-#define DEBUG_NO_BUILTIN_MODULES	0
-#define DEBUG_EXTRA_CHECK			1
+#define DEBUG_NO_BUILTIN_MODULES	1
+#define DEBUG_MODE					1
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

@@ -26,7 +26,7 @@ class Compiler {
     const Token& prev() { return tokens.at(i-1); }
     const Token& curr() { return tokens.at(i); }
     const Token& next() { return tokens.at(i+1); }
-    void advance() { i++; }
+    void advance(int delta=1) { i += delta; }
 
     CodeEmitContext* ctx() { return &contexts.top(); }
     CompileMode mode() const{ return lexer->src->mode; }
@@ -42,7 +42,7 @@ class Compiler {
     void pop_context(){
         if(!ctx()->s_expr.empty()) UNREACHABLE();
         // if the last op does not return, add a default return None
-        if(ctx()->co->codes.back().op != OP_RETURN_VALUE){
+        if(ctx()->co->codes.empty() || ctx()->co->codes.back().op != OP_RETURN_VALUE){
             ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         }
@@ -185,12 +185,14 @@ class Compiler {
 
     // PASS
     void exprTuple(){
-        auto e = make_expr<TupleExpr>();
+        std::vector<Expr_> items;
         do {
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
-            e->items.push_back(ctx()->s_expr.popx());
+            items.push_back(ctx()->s_expr.popx());
         } while(match(TK(",")));
-        ctx()->s_expr.push(std::move(e));
+        ctx()->s_expr.push(make_expr<TupleExpr>(
+            std::move(items)
+        ));
     }
 
     // PASS
@@ -577,7 +579,7 @@ class Compiler {
         EXPR(false);
         // TODO: support multiple decorator
         // use a while loop to consume '@'
-        if(!match_newlines(mode()==REPL_MODE)) SyntaxError();
+        if(!match_newlines_repl()) SyntaxError();
         ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
         consume(TK("def"));
         compile_function();
@@ -585,11 +587,9 @@ class Compiler {
 
     bool try_compile_assignment(){
         Expr* lhs_p = ctx()->s_expr.top().get();
-        bool inplace;
         switch (curr().type) {
             case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
-                inplace = true;
                 advance();
                 auto e = make_expr<BinaryExpr>();
                 e->op = prev().type - 1; // -1 to remove =
@@ -599,7 +599,6 @@ class Compiler {
                 ctx()->s_expr.push(std::move(e));
             } break;
             case TK("="):
-                inplace = false;
                 advance();
                 EXPR_TUPLE();
                 break;
@@ -625,7 +624,7 @@ class Compiler {
                 ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
-            case TK("yield"):
+            case TK("yield"): 
                 if (contexts.size() <= 1) SyntaxError("'yield' outside function");
                 EXPR_TUPLE(true);
                 // if yield present, mark the function as generator
@@ -634,7 +633,7 @@ class Compiler {
                 consume_end_stmt();
                 break;
             case TK("return"):
-                if (contexts.size() <= 1) SyntaxError("'ret                                              urn' outside function");
+                if (contexts.size() <= 1) SyntaxError("'return' outside function");
                 if(match_end_stmt()){
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }else{
@@ -717,6 +716,7 @@ class Compiler {
             /*************************************************/
             // handle dangling expression or assignment
             default: {
+                advance(-1);    // do revert since we have pre-called advance() at the beginning
                 EXPR_TUPLE();
                 if(!try_compile_assignment()){
                     ctx()->emit_expr();
@@ -791,7 +791,6 @@ class Compiler {
 
     void compile_function(){
         // TODO: bug, if there are multiple decorators, will cause error
-        bool has_decorator = !co()->codes.empty() && co()->codes.back().op == OP_SETUP_DECORATOR;
         Function func;
         StrName obj_name;
         consume(TK("@id"));
@@ -812,38 +811,38 @@ class Compiler {
         func.code = push_context(lexer->src, func.name.str());
         compile_block_body();
         pop_context();
-        emit(OP_LOAD_FUNCTION, co()->add_const(VAR(func)));
-        if(name_scope() == NAME_LOCAL) emit(OP_SETUP_CLOSURE);
+        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_const(VAR(func)), prev().line);
+        if(name_scope() == NAME_LOCAL) ctx()->emit(OP_SETUP_CLOSURE, BC_NOARG, prev().line);
         if(!ctx()->is_compiling_class){
             if(obj_name.empty()){
-                if(has_decorator) emit(OP_CALL, 1);
-                emit(OP_STORE_NAME, co()->add_name(func.name, name_scope()));
+                auto e = make_expr<NameExpr>(func.name, name_scope());
+                e->emit_store(ctx());
             } else {
-                if(has_decorator) SyntaxError("decorator is not supported here");
-                emit(OP_LOAD_NAME, co()->add_name(obj_name, name_scope()));
-                int index = co()->add_name(func.name, NAME_ATTR);
-                emit(OP_BUILD_ATTR_REF, index);
-                emit(OP_ROT_TWO);
-                emit(OP_STORE_REF);
+                ctx()->emit(OP_LOAD_NAME, ctx()->add_name(obj_name), prev().line);
+                int index = ctx()->add_name(func.name);
+                ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }
         }else{
-            if(has_decorator) emit(OP_CALL, 1);
-            emit(OP_STORE_CLASS_ATTR, co()->add_name(func.name, name_scope()));
+            ctx()->emit(OP_STORE_CLASS_ATTR, ctx()->add_name(func.name), BC_KEEPLINE);
         }
     }
 
     PyObject* read_literal(){
-        if(match(TK("-"))){
-            consume(TK("@num"));
-            PyObject* val = get_value(prev());
-            return vm->num_negated(val);
+        advance();
+        switch(prev().type){
+            case TK("-"): {
+                consume(TK("@num"));
+                PyObject* val = LiteralExpr(prev().value).to_object(ctx());
+                return vm->num_negated(val);
+            }
+            case TK("@num"): return LiteralExpr(prev().value).to_object(ctx());
+            case TK("@str"): return LiteralExpr(prev().value).to_object(ctx());
+            case TK("True"): return VAR(true);
+            case TK("False"): return VAR(false);
+            case TK("None"): return vm->None;
+            case TK("..."): return vm->Ellipsis;
+            default: break;
         }
-        if(match(TK("@num"))) return get_value(prev());
-        if(match(TK("@str"))) return get_value(prev());
-        if(match(TK("True"))) return VAR(true);
-        if(match(TK("False"))) return VAR(false);
-        if(match(TK("None"))) return vm->None;
-        if(match(TK("..."))) return vm->Ellipsis;
         return nullptr;
     }
 
@@ -858,7 +857,8 @@ public:
         this->lexer = std::make_unique<Lexer>(
             make_sp<SourceData>(source, filename, mode)
         );
-        if(rules.empty()) init_pratt_rules();
+        // TODO: check if already initialized
+        init_pratt_rules();
     }
 
     CodeObject_ compile(){
@@ -883,7 +883,7 @@ public:
             return code;
         }else if(mode()==JSON_MODE){
             PyObject* value = read_literal();
-            if(value != nullptr) emit(OP_LOAD_CONST, code->add_const(value));
+            if(value != nullptr) ctx()->emit(OP_LOAD_CONST, ctx()->add_const(value), prev().line);
             else if(match(TK("{"))) exprMap();
             else if(match(TK("["))) exprList();
             else SyntaxError("expect a JSON object or array");

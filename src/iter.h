@@ -26,8 +26,8 @@ public:
 
 template <typename T>
 class ArrayIter : public BaseIter {
-    int index;
     PyObject* ref;
+    int index;
 public:
     ArrayIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
 
@@ -43,10 +43,10 @@ public:
 };
 
 class StringIter : public BaseIter {
-    int index = 0;
     PyObject* ref;
+    int index;
 public:
-    StringIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref) {}
+    StringIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
 
     PyObject* next() override{
         Str* str = &OBJ_GET(Str, ref);

@@ -93,7 +93,7 @@ public:
     }
 
     Frame* top_frame() const {
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(callstack.empty()) UNREACHABLE();
 #endif
         return callstack.top().get();
@@ -166,14 +166,18 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-            // if(_module == _main) std::cout << disassemble(code) << '\n';
+            if(_module == _main) std::cout << disassemble(code) << '\n';
             return _exec(code, _module);
         }catch (const Exception& e){
             *_stderr << e.summary() << '\n';
-        }catch (const std::exception& e) {
+
+        }
+#if !DEBUG_MODE
+        catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
         }
+#endif
         callstack = {};
         return nullptr;
     }
@@ -289,6 +293,7 @@ public:
     void NameError(StrName name){ _error("NameError", "name " + name.str().escape(true) + " is not defined"); }
 
     void AttributeError(PyObject* obj, StrName name){
+        // OBJ_NAME calls getattr, which may lead to a infinite recursion
         _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.str().escape(true));
     }
 
@@ -551,74 +556,73 @@ inline PyObject* VM::new_module(StrName name) {
 }
 
 inline Str VM::disassemble(CodeObject_ co){
-    return "";
-    // auto pad = [](const Str& s, const int n){
-    //     if(s.size() >= n) return s.substr(0, n);
-    //     return s + std::string(n - s.size(), ' ');
-    // };
+    auto pad = [](const Str& s, const int n){
+        if(s.size() >= n) return s.substr(0, n);
+        return s + std::string(n - s.size(), ' ');
+    };
 
-    // std::vector<int> jumpTargets;
-    // for(auto byte : co->codes){
-    //     if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
-    //         jumpTargets.push_back(byte.arg);
-    //     }
-    // }
-    // StrStream ss;
-    // ss << std::string(54, '-') << '\n';
-    // ss << co->name << ":\n";
-    // int prev_line = -1;
-    // for(int i=0; i<co->codes.size(); i++){
-    //     const Bytecode& byte = co->codes[i];
-    //     if(byte.op == OP_NO_OP) continue;
-    //     Str line = std::to_string(byte.line);
-    //     if(byte.line == prev_line) line = "";
-    //     else{
-    //         if(prev_line != -1) ss << "\n";
-    //         prev_line = byte.line;
-    //     }
+    std::vector<int> jumpTargets;
+    for(auto byte : co->codes){
+        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+            jumpTargets.push_back(byte.arg);
+        }
+    }
+    StrStream ss;
+    ss << std::string(54, '-') << '\n';
+    ss << co->name << ":\n";
+    int prev_line = -1;
+    for(int i=0; i<co->codes.size(); i++){
+        const Bytecode& byte = co->codes[i];
+        if(byte.op == OP_NO_OP) continue;
+        Str line = std::to_string(byte.line);
+        if(byte.line == prev_line) line = "";
+        else{
+            if(prev_line != -1) ss << "\n";
+            prev_line = byte.line;
+        }
 
-    //     std::string pointer;
-    //     if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
-    //         pointer = "-> ";
-    //     }else{
-    //         pointer = "   ";
-    //     }
-    //     ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
-    //     ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
-    //     // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-    //     std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
-    //     if(byte.op == OP_LOAD_CONST){
-    //         argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
-    //     }
-    //     if(byte.op == OP_LOAD_NAME_REF || byte.op == OP_LOAD_NAME || byte.op == OP_RAISE || byte.op == OP_STORE_NAME){
-    //         argStr += " (" + co->names[byte.arg].first.str().escape(true) + ")";
-    //     }
-    //     ss << argStr;
-    //     // ss << pad(argStr, 20);      // may overflow
-    //     // ss << co->blocks[byte.block].to_string();
-    //     if(i != co->codes.size() - 1) ss << '\n';
-    // }
-    // StrStream consts;
-    // consts << "co_consts: ";
-    // consts << CAST(Str, asRepr(VAR(co->consts)));
+        std::string pointer;
+        if(std::find(jumpTargets.begin(), jumpTargets.end(), i) != jumpTargets.end()){
+            pointer = "-> ";
+        }else{
+            pointer = "   ";
+        }
+        ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
+        ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+        // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
+        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+        if(byte.op == OP_LOAD_CONST){
+            argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
+        }
+        if(byte.op == OP_LOAD_NAME || byte.op == OP_STORE_LOCAL || byte.op == OP_STORE_GLOBAL){
+            argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
+        }
+        ss << argStr;
+        // ss << pad(argStr, 20);      // may overflow
+        // ss << co->blocks[byte.block].to_string();
+        if(i != co->codes.size() - 1) ss << '\n';
+    }
+    StrStream consts;
+    consts << "co_consts: ";
+    consts << CAST(Str, asRepr(VAR(co->consts)));
 
-    // StrStream names;
-    // names << "co_names: ";
-    // List list;
-    // for(int i=0; i<co->names.size(); i++){
-    //     list.push_back(VAR(co->names[i].first.str()));
-    // }
-    // names << CAST(Str, asRepr(VAR(list)));
-    // ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+    StrStream names;
+    names << "co_names: ";
+    List list;
+    for(int i=0; i<co->names.size(); i++){
+        list.push_back(VAR(co->names[i].str()));
+    }
+    names << CAST(Str, asRepr(VAR(list)));
+    ss << '\n' << consts.str() << '\n' << names.str() << '\n';
 
-    // for(int i=0; i<co->consts.size(); i++){
-    //     PyObject* obj = co->consts[i];
-    //     if(is_type(obj, tp_function)){
-    //         const auto& f = CAST(Function&, obj);
-    //         ss << disassemble(f.code);
-    //     }
-    // }
-    // return Str(ss.str());
+    for(int i=0; i<co->consts.size(); i++){
+        PyObject* obj = co->consts[i];
+        if(is_type(obj, tp_function)){
+            const auto& f = CAST(Function&, obj);
+            ss << disassemble(f.code);
+        }
+    }
+    return Str(ss.str());
 }
 
 inline void VM::init_builtin_types(){
@@ -877,7 +881,7 @@ inline PyObject* VM::_exec(){
         }catch(HandledException& e){
             continue;
         }catch(UnhandledException& e){
-            PyObject* obj = frame->pop();
+            PyObject* obj = frame->popx();
             Exception& _e = CAST(Exception&, obj);
             _e.st_push(frame->snapshot());
             callstack.pop();

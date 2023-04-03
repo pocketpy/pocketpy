@@ -53,14 +53,14 @@ struct Frame {
     // }
 
     void pop(){
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         _data.pop_back();
     }
 
     PyObject* popx(){
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         PyObject* ret = _data.back();
@@ -69,21 +69,21 @@ struct Frame {
     }
 
     PyObject*& top(){
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         return _data.back();
     }
 
     PyObject*& top_1(){
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
 #endif
         return _data[_data.size()-2];
     }
 
     PyObject*& top_2(){
-#if DEBUG_EXTRA_CHECK
+#if DEBUG_MODE
         if(_data.size() < 3) throw std::runtime_error("_data.size() < 3");
 #endif
         return _data[_data.size()-3];
@@ -115,7 +115,7 @@ struct Frame {
     }
 
     int _exit_block(int i){
-        if(co->blocks[i].type == FOR_LOOP) _pop();
+        if(co->blocks[i].type == FOR_LOOP) pop();
         else if(co->blocks[i].type == TRY_EXCEPT) on_try_block_exit();
         return co->blocks[i].parent;
     }

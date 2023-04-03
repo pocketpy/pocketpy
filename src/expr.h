@@ -31,12 +31,7 @@ struct CodeEmitContext{
     CodeObject_ co;
     VM* vm;
     stack<Expr_> s_expr;
-
     CodeEmitContext(VM* vm, CodeObject_ co): co(co) {}
-    CodeEmitContext(const CodeEmitContext&) = delete;
-    CodeEmitContext& operator=(const CodeEmitContext&) = delete;
-    CodeEmitContext(CodeEmitContext&&) = delete;
-    CodeEmitContext& operator=(CodeEmitContext&&) = delete;
 
     int curr_block_i = 0;
     bool is_compiling_class = false;
@@ -101,12 +96,11 @@ struct CodeEmitContext{
 
 // PASS
 struct NameExpr: Expr{
-    Str name;
+    StrName name;
     NameScope scope;
-    NameExpr(const Str& name, NameScope scope): name(name), scope(scope) {}
-    NameExpr(Str&& name, NameScope scope): name(std::move(name)), scope(scope) {}
+    NameExpr(StrName name, NameScope scope): name(name), scope(scope) {}
 
-    Str str() const override { return "$" + name; }
+    Str str() const override { return "$" + name.str(); }
 
     void emit(CodeEmitContext* ctx) override {
         int index = ctx->add_name(name);
@@ -246,7 +240,7 @@ struct LiteralExpr: Expr{
         UNREACHABLE();
     }
 
-    void emit(CodeEmitContext* ctx) override {
+    PyObject* to_object(CodeEmitContext* ctx){
         VM* vm = ctx->vm;
         PyObject* obj = nullptr;
         if(std::holds_alternative<i64>(value)){
@@ -258,6 +252,11 @@ struct LiteralExpr: Expr{
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
         }
+        return obj;
+    }
+
+    void emit(CodeEmitContext* ctx) override {
+        PyObject* obj = to_object(ctx);
         if(obj == nullptr) UNREACHABLE();
         int index = ctx->add_const(obj);
         ctx->emit(OP_LOAD_CONST, index, line);
@@ -287,7 +286,7 @@ struct NegatedExpr: Expr{
                 obj = VAR(std::get<f64>(lit->value));
             }
             if(obj != nullptr){
-                ctx->emit(OP_LOAD_CONST, ctx()->add_const(obj), line);
+                ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
                 return;
             }
         }
@@ -362,21 +361,25 @@ struct SequenceExpr: Expr{
 };
 
 struct ListExpr: SequenceExpr{
+    using SequenceExpr::SequenceExpr;
     Str str() const override { return "list()"; }
     Opcode opcode() const override { return OP_BUILD_LIST; }
 };
 
 struct DictExpr: SequenceExpr{
+    using SequenceExpr::SequenceExpr;
     Str str() const override { return "dict()"; }
-    Opcode opcode() const override { return OP_BUILD_MAP; }
+    Opcode opcode() const override { return OP_BUILD_DICT; }
 };
 
 struct SetExpr: SequenceExpr{
+    using SequenceExpr::SequenceExpr;
     Str str() const override { return "set()"; }
     Opcode opcode() const override { return OP_BUILD_SET; }
 };
 
 struct TupleExpr: SequenceExpr{
+    using SequenceExpr::SequenceExpr;
     Str str() const override { return "tuple()"; }
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
 
@@ -432,7 +435,8 @@ struct CompExpr: Expr{
         ctx->enter_block(FOR_LOOP);
         ctx->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
-        if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+        // this error occurs in `vars` instead of this line, but...nevermind
+        if(!ok) UNREACHABLE();  // TODO: raise a SyntaxError instead
         if(cond){
             cond->emit(ctx);
             int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
@@ -449,16 +453,19 @@ struct CompExpr: Expr{
 struct ListCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_LIST; }
     Opcode op1() override { return OP_LIST_APPEND; }
+    Str str() const override { return "listcomp()"; }
 };
 
 struct DictCompExpr: CompExpr{
-    Opcode op0() override { return OP_BUILD_DI                                                         CT; }
+    Opcode op0() override { return OP_BUILD_DICT; }
     Opcode op1() override { return OP_DICT_ADD; }
+    Str str() const override { return "dictcomp()"; }
 };
 
 struct SetCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_SET; }
     Opcode op1() override { return OP_SET_ADD; }
+    Str str() const override { return "setcomp()"; }
 };
 
 struct LambdaExpr: Expr{
