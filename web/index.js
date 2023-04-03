@@ -145,7 +145,12 @@ function term_init() {
         case '\u007F': // Backspace (DEL)
           // Do not delete the prompt
           if (term._core.buffer.x > 4) {    // '>>> ' or '... '
-            term.write('\b \b');
+            var re=/[^\u4E00-\u9FA5]/;
+            if (re.test(command.charAt(command.length-1))){//判断前一个字符是否为中文
+              term.write('\b \b');//false
+            }else{
+              term.write('\b\b \b');//中文占两个字节，ascii字符占一个字节
+            }
             if (command.length > 0) {
               command = command.substr(0, command.length - 1);
             }
