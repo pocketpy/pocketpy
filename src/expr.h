@@ -421,15 +421,44 @@ struct CompExpr: Expr{
     Expr_ vars;       // loop vars
     Expr_ iter;       // loop iter
     Expr_ cond;       // optional if condition
+
+    virtual Opcode op0() = 0;
+    virtual Opcode op1() = 0;
+
+    void emit(CodeEmitContext* ctx){
+        ctx->emit(op0(), 0, line);
+        iter->emit(ctx);
+        ctx->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+        ctx->enter_block(FOR_LOOP);
+        ctx->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        bool ok = vars->emit_store(ctx);
+        if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+        if(cond){
+            cond->emit(ctx);
+            int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+            ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
+            ctx->patch_jump(patch);
+        }else{
+            ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
+        }
+        ctx->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+        ctx->exit_block();
+    }
 };
 
 struct ListCompExpr: CompExpr{
+    Opcode op0() override { return OP_BUILD_LIST; }
+    Opcode op1() override { return OP_LIST_APPEND; }
 };
 
 struct DictCompExpr: CompExpr{
+    Opcode op0() override { return OP_BUILD_DI                                                         CT; }
+    Opcode op1() override { return OP_DICT_ADD; }
 };
 
 struct SetCompExpr: CompExpr{
+    Opcode op0() override { return OP_BUILD_SET; }
+    Opcode op1() override { return OP_SET_ADD; }
 };
 
 struct LambdaExpr: Expr{

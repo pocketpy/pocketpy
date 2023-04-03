@@ -575,6 +575,8 @@ class Compiler {
 
     void compile_decorated(){
         EXPR(false);
+        // TODO: support multiple decorator
+        // use a while loop to consume '@'
         if(!match_newlines(mode()==REPL_MODE)) SyntaxError();
         ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
         consume(TK("def"));
@@ -582,40 +584,30 @@ class Compiler {
     }
 
     bool try_compile_assignment(){
-        Expr_ lhs = ctx()->s_expr.popx();
+        Expr* lhs_p = ctx()->s_expr.top().get();
+        bool inplace;
         switch (curr().type) {
-            // case TK("+="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 0);  break;
-            // case TK("-="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 1);  break;
-            // case TK("*="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 2);  break;
-            // case TK("/="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 3);  break;
-            // case TK("//="):     lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 4);  break;
-            // case TK("%="):      lhs->emit(ctx()); advance(); emit(OP_BINARY_OP, 5);  break;
-            // case TK("<<="):     lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 0);  break;
-            // case TK(">>="):     lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 1);  break;
-            // case TK("&="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 2);  break;
-            // case TK("|="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 3);  break;
-            // case TK("^="):      lhs->emit(ctx()); advance(); emit(OP_BITWISE_OP, 4);  break;
-            // case TK("="):       advance(); break;
             case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
+                inplace = true;
                 advance();
                 auto e = make_expr<BinaryExpr>();
-                e->op = prev().type;
-                e->lhs = lhs;       // here should be a copy
+                e->op = prev().type - 1; // -1 to remove =
+                e->lhs = ctx()->s_expr.popx();
                 EXPR_TUPLE();
                 e->rhs = ctx()->s_expr.popx();
-                // ...
+                ctx()->s_expr.push(std::move(e));
             } break;
-            case TK("="): advance(); break;
+            case TK("="):
+                inplace = false;
+                advance();
+                EXPR_TUPLE();
+                break;
             default: return false;
         }
-        if(prev().type == TK("=")){
-            EXPR_TUPLE();
-            Expr_ rhs = ctx()->s_expr.popx();
-            // do assign here
-            // lhs = rhs
-            return true;
-        }
+        ctx()->emit_expr();
+        bool ok = lhs_p->emit_store(ctx());
+        if(!ok) SyntaxError();
         return true;
     }
 
