@@ -590,12 +590,25 @@ inline Str VM::disassemble(CodeObject_ co){
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
         ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
-        if(byte.op == OP_LOAD_CONST){
-            argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
-        }
-        if(byte.op == OP_LOAD_NAME || byte.op == OP_STORE_LOCAL || byte.op == OP_STORE_GLOBAL){
-            argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
+        Str argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+        switch(byte.op){
+            case OP_LOAD_CONST:
+                argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
+                break;
+            case OP_LOAD_NAME: case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
+            case OP_LOAD_ATTR: case OP_STORE_ATTR: case OP_DELETE_ATTR:
+            case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
+                argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
+                break;
+            case OP_BINARY_OP:
+                argStr += " (" + BINARY_SPECIAL_METHODS[byte.arg].str() + ")";
+                break;
+            case OP_COMPARE_OP:
+                argStr += " (" + COMPARE_SPECIAL_METHODS[byte.arg].str() + ")";
+                break;
+            case OP_BITWISE_OP:
+                argStr += " (" + BITWISE_SPECIAL_METHODS[byte.arg].str() + ")";
+                break;
         }
         ss << argStr;
         // ss << pad(argStr, 20);      // may overflow

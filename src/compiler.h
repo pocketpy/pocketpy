@@ -604,7 +604,8 @@ class Compiler {
                 break;
             default: return false;
         }
-        ctx()->emit_expr();
+        Expr_ rhs = ctx()->s_expr.popx();
+        rhs->emit(ctx());
         bool ok = lhs_p->emit_store(ctx());
         if(!ok) SyntaxError();
         return true;
