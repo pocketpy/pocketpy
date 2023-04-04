@@ -587,9 +587,11 @@ class Compiler {
 
     bool try_compile_assignment(){
         Expr* lhs_p = ctx()->s_expr.top().get();
+        bool inplace;
         switch (curr().type) {
             case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
+                inplace = true;
                 advance();
                 auto e = make_expr<BinaryExpr>();
                 e->op = prev().type - 1; // -1 to remove =
@@ -599,6 +601,7 @@ class Compiler {
                 ctx()->s_expr.push(std::move(e));
             } break;
             case TK("="):
+                inplace = false;
                 advance();
                 EXPR_TUPLE();
                 break;
@@ -608,6 +611,7 @@ class Compiler {
         rhs->emit(ctx());
         bool ok = lhs_p->emit_store(ctx());
         if(!ok) SyntaxError();
+        if(!inplace) ctx()->s_expr.pop();
         return true;
     }
 
