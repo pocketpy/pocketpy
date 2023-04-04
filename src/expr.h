@@ -280,10 +280,10 @@ struct NegatedExpr: Expr{
             LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
             PyObject* obj = nullptr;
             if(std::holds_alternative<i64>(lit->value)){
-                obj = VAR(std::get<i64>(lit->value));
+                obj = VAR(-std::get<i64>(lit->value));
             }
             if(std::holds_alternative<f64>(lit->value)){
-                obj = VAR(std::get<f64>(lit->value));
+                obj = VAR(-std::get<f64>(lit->value));
             }
             if(obj != nullptr){
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);

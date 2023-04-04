@@ -50,7 +50,7 @@ struct SourceData {
 
         this->filename = filename;
         this->source = ss.str();
-        line_starts.push_back(source);
+        line_starts.push_back(this->source.c_str());
         this->mode = mode;
     }
 
