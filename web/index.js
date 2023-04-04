@@ -143,18 +143,14 @@ function term_init() {
           term.write(need_more_lines ? "... " : ">>> ");
           break;
         case '\u007F': // Backspace (DEL)
-          // Do not delete the prompt
-          if (term._core.buffer.x > 4) {    // '>>> ' or '... '
-            var re=/[^\u4E00-\u9FA5]/;
-            if (re.test(command.charAt(command.length-1))){//判断前一个字符是否为中文
-              term.write('\b \b');//false
-            }else{
-              term.write('\b\b \b');//中文占两个字节，ascii字符占一个字节
-            }
-            if (command.length > 0) {
-              command = command.substr(0, command.length - 1);
-            }
-          }
+          var cnt = term._core.buffer.x-4;
+          if(cnt<=0 || command.length==0) break;
+          // delete the last unicode char
+          command = command.replace(/.$/u, "");
+          // clear the whole line
+          term.write('\b \b'.repeat(cnt));
+          // re-write the command
+          term.write(command);
           break;
         default: // Print all other characters for demo
           if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7E) || e >= '\u00a0') {
