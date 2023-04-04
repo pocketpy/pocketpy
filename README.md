@@ -9,7 +9,7 @@
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
 
-PocketPy is a lightweight(~6000 LOC) Python interpreter for game engines.
+PocketPy is a lightweight(~6000 LOC) Python interpreter for game engines/apps.
 
 
 **English |** [**简体中文**](README_zh.md)
