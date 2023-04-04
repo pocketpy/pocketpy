@@ -568,12 +568,9 @@ inline Str VM::disassemble(CodeObject_ co){
         }
     }
     StrStream ss;
-    ss << std::string(54, '-') << '\n';
-    ss << co->name << ":\n";
     int prev_line = -1;
     for(int i=0; i<co->codes.size(); i++){
         const Bytecode& byte = co->codes[i];
-        if(byte.op == OP_NO_OP) continue;
         Str line = std::to_string(byte.line);
         if(byte.line == prev_line) line = "";
         else{
@@ -626,12 +623,13 @@ inline Str VM::disassemble(CodeObject_ co){
         list.push_back(VAR(co->names[i].str()));
     }
     names << CAST(Str, asRepr(VAR(list)));
-    ss << '\n' << consts.str() << '\n' << names.str() << '\n';
+    ss << '\n' << consts.str() << '\n' << names.str();
 
     for(int i=0; i<co->consts.size(); i++){
         PyObject* obj = co->consts[i];
         if(is_type(obj, tp_function)){
             const auto& f = CAST(Function&, obj);
+            ss << "\n\n" << "Disassembly of " << f.name.str() << ":\n";
             ss << disassemble(f.code);
         }
     }

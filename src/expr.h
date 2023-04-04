@@ -28,10 +28,10 @@ struct Expr{
 };
 
 struct CodeEmitContext{
-    CodeObject_ co;
     VM* vm;
+    CodeObject_ co;
     stack<Expr_> s_expr;
-    CodeEmitContext(VM* vm, CodeObject_ co): co(co) {}
+    CodeEmitContext(VM* vm, CodeObject_ co): vm(vm), co(co) {}
 
     int curr_block_i = 0;
     bool is_compiling_class = false;
@@ -65,7 +65,10 @@ struct CodeEmitContext{
             Bytecode{(uint16_t)opcode, (uint16_t)curr_block_i, arg, line}
         );
         int i = co->codes.size() - 1;
-        if(line==BC_KEEPLINE && i>=1) co->codes[i].line = co->codes[i-1].line;
+        if(line==BC_KEEPLINE){
+            if(i>=1) co->codes[i].line = co->codes[i-1].line;
+            else co->codes[i].line = 1;
+        }
         return i;
     }
 
