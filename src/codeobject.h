@@ -60,6 +60,7 @@ struct CodeObject {
     std::set<StrName> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
+    std::vector<FunctionDecl> functions;
 
     // may be.. just use a large NameDict?
     uint32_t perfect_locals_capacity = 2;

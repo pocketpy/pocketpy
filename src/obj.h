@@ -24,7 +24,7 @@ struct NativeFunc {
     PyObject* operator()(VM* vm, Args& args) const;
 };
 
-struct Function {
+struct FunctionDecl {
     StrName name;
     CodeObject_ code;
     std::vector<StrName> args;
@@ -32,16 +32,18 @@ struct Function {
     NameDict kwargs;              // empty if no k=v
     std::vector<StrName> kwargs_order;
 
-    // runtime settings
-    PyObject* _module = nullptr;
-    NameDict_ _closure = nullptr;
-
     bool has_name(StrName val) const {
         bool _0 = std::find(args.begin(), args.end(), val) != args.end();
         bool _1 = starred_arg == val;
         bool _2 = kwargs.contains(val);
         return _0 || _1 || _2;
     }
+};
+
+struct Function{
+    const FunctionDecl* decl;
+    PyObject* _module = nullptr;
+    NameDict_ _closure = nullptr;
 };
 
 struct BoundMethod {
