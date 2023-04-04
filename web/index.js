@@ -143,13 +143,14 @@ function term_init() {
           term.write(need_more_lines ? "... " : ">>> ");
           break;
         case '\u007F': // Backspace (DEL)
-          // Do not delete the prompt
-          if (term._core.buffer.x > 4) {    // '>>> ' or '... '
-            term.write('\b \b');
-            if (command.length > 0) {
-              command = command.substr(0, command.length - 1);
-            }
-          }
+          var cnt = term._core.buffer.x-4;
+          if(cnt<=0 || command.length==0) break;
+          // delete the last unicode char
+          command = command.replace(/.$/u, "");
+          // clear the whole line
+          term.write('\b \b'.repeat(cnt));
+          // re-write the command
+          term.write(command);
           break;
         default: // Print all other characters for demo
           if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7E) || e >= '\u00a0') {
