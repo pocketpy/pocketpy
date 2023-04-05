@@ -626,8 +626,8 @@ inline Str VM::disassemble(CodeObject_ co){
     ss << '\n' << consts.str() << '\n' << names.str();
 
     for(auto& decl: co->func_decls){
-        ss << "\n\n" << "Disassembly of " << decl.name.str() << ":\n";
-        ss << disassemble(decl.code);
+        ss << "\n\n" << "Disassembly of " << decl->name.str() << ":\n";
+        ss << disassemble(decl->code);
     }
     return Str(ss.str());
 }

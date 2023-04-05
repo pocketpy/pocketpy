@@ -15,7 +15,7 @@ __NEXT_STEP:;
     * For example, frame->popx() returns a strong reference which may be dangerous
     * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
     */
-    heap._auto_collect(this);
+    //heap._auto_collect(this);
 
     const Bytecode& byte = frame->next_bytecode();
     switch (byte.op)
@@ -38,7 +38,7 @@ __NEXT_STEP:;
     case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); DISPATCH();
     case OP_LOAD_BUILTIN_EVAL: frame->push(builtins->attr(m_eval)); DISPATCH();
     case OP_LOAD_FUNCTION: {
-        const FunctionDecl* decl = &frame->co->func_decls[byte.arg];
+        FuncDecl_ decl = frame->co->func_decls[byte.arg];
         PyObject* obj = VAR(Function({decl, frame->_module, frame->_locals}));
         frame->push(obj);
     } DISPATCH();

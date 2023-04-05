@@ -169,14 +169,12 @@ class Compiler {
 
     // PASS
     void exprLambda(){
-        auto e = make_expr<LambdaExpr>();
-        e->decl.name = "<lambda>";
-        e->scope = name_scope();
+        auto e = make_expr<LambdaExpr>(name_scope());
         if(!match(TK(":"))){
             _compile_f_args(e->decl, false);
             consume(TK(":"));
         }
-        e->decl.code = push_context(lexer->src, "<lambda>");
+        e->decl->code = push_context(lexer->src, e->decl->name.str());
         EXPR(false); // https://github.com/blueloveTH/pocketpy/issues/37
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
@@ -754,7 +752,7 @@ class Compiler {
         ctx()->emit(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
     }
 
-    void _compile_f_args(FunctionDecl& func, bool enable_type_hints){
+    void _compile_f_args(FuncDecl_ decl, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) SyntaxError("**kwargs should be the last argument");
@@ -769,7 +767,7 @@ class Compiler {
 
             consume(TK("@id"));
             const Str& name = prev().str();
-            if(func.has_name(name)) SyntaxError("duplicate argument name");
+            if(decl->has_name(name)) SyntaxError("duplicate argument name");
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
@@ -778,16 +776,16 @@ class Compiler {
 
             switch (state)
             {
-                case 0: func.args.push_back(name); break;
-                case 1: func.starred_arg = name; state+=1; break;
+                case 0: decl->args.push_back(name); break;
+                case 1: decl->starred_arg = name; state+=1; break;
                 case 2: {
                     consume(TK("="));
                     PyObject* value = read_literal();
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(curr().type));
                     }
-                    func.kwargs.set(name, value);
-                    func.kwargs_order.push_back(name);
+                    decl->kwargs.set(name, value);
+                    decl->kwargs_order.push_back(name);
                 } break;
                 case 3: SyntaxError("**kwargs is not supported yet"); break;
             }
@@ -796,38 +794,38 @@ class Compiler {
 
     void compile_function(){
         // TODO: bug, if there are multiple decorators, will cause error
-        FunctionDecl func;
+        FuncDecl_ decl = make_sp<FuncDecl>();
         StrName obj_name;
         consume(TK("@id"));
-        func.name = prev().str();
+        decl->name = prev().str();
         if(!ctx()->is_compiling_class && match(TK("::"))){
             consume(TK("@id"));
-            obj_name = func.name;
-            func.name = prev().str();
+            obj_name = decl->name;
+            decl->name = prev().str();
         }
         consume(TK("("));
         if (!match(TK(")"))) {
-            _compile_f_args(func, true);
+            _compile_f_args(decl, true);
             consume(TK(")"));
         }
         if(match(TK("->"))){
             if(!match(TK("None"))) consume(TK("@id"));
         }
-        func.code = push_context(lexer->src, func.name.str());
+        decl->code = push_context(lexer->src, decl->name.str());
         compile_block_body();
         pop_context();
-        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(func), prev().line);
+        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
         if(!ctx()->is_compiling_class){
             if(obj_name.empty()){
-                auto e = make_expr<NameExpr>(func.name, name_scope());
+                auto e = make_expr<NameExpr>(decl->name, name_scope());
                 e->emit_store(ctx());
             } else {
                 ctx()->emit(OP_LOAD_NAME, ctx()->add_name(obj_name), prev().line);
-                int index = ctx()->add_name(func.name);
+                int index = ctx()->add_name(decl->name);
                 ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }
         }else{
-            ctx()->emit(OP_STORE_CLASS_ATTR, ctx()->add_name(func.name), BC_KEEPLINE);
+            ctx()->emit(OP_STORE_CLASS_ATTR, ctx()->add_name(decl->name), BC_KEEPLINE);
         }
     }
 

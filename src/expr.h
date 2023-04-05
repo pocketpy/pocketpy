@@ -96,7 +96,7 @@ struct CodeEmitContext{
         return co->consts.size() - 1;
     }
 
-    int add_func_decl(FunctionDecl decl){
+    int add_func_decl(FuncDecl_ decl){
         co->func_decls.push_back(decl);
         return co->func_decls.size() - 1;
     }
@@ -477,9 +477,15 @@ struct SetCompExpr: CompExpr{
 };
 
 struct LambdaExpr: Expr{
-    FunctionDecl decl;
+    FuncDecl_ decl;
     NameScope scope;
     Str str() const override { return "<lambda>"; }
+    
+    LambdaExpr(NameScope scope){
+        this->decl = make_sp<FuncDecl>();
+        this->decl->name = "<lambda>";
+        this->scope = scope;
+    }
 
     void emit(CodeEmitContext* ctx) override {
         int index = ctx->add_func_decl(decl);

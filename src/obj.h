@@ -24,7 +24,7 @@ struct NativeFunc {
     PyObject* operator()(VM* vm, Args& args) const;
 };
 
-struct FunctionDecl {
+struct FuncDecl {
     StrName name;
     CodeObject_ code;
     std::vector<StrName> args;
@@ -40,8 +40,10 @@ struct FunctionDecl {
     }
 };
 
+using FuncDecl_ = shared_ptr<FuncDecl>;
+
 struct Function{
-    const FunctionDecl* decl;
+    FuncDecl_ decl;
     PyObject* _module;
     NameDict_ _closure;
 };

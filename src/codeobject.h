@@ -60,7 +60,7 @@ struct CodeObject {
     std::set<StrName> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
-    std::vector<FunctionDecl> func_decls;
+    std::vector<FuncDecl_> func_decls;
 
     // may be.. just use a large NameDict?
     uint32_t perfect_locals_capacity = 2;
@@ -71,8 +71,8 @@ struct CodeObject {
     void _mark() const {
         for(PyObject* v : consts) OBJ_MARK(v);
         for(auto& decl: func_decls){
-            decl.kwargs._mark();
-            decl.code->_mark();
+            decl->kwargs._mark();
+            decl->code->_mark();
         }
     }
 };
