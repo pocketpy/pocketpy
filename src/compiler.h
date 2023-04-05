@@ -641,7 +641,7 @@ class Compiler {
                 break;
             case TK("yield"): 
                 if (contexts.size() <= 1) SyntaxError("'yield' outside function");
-                EXPR_TUPLE(true);
+                EXPR_TUPLE(false);
                 // if yield present, mark the function as generator
                 ctx()->co->is_generator = true;
                 ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
@@ -652,7 +652,7 @@ class Compiler {
                 if(match_end_stmt()){
                     ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }else{
-                    EXPR_TUPLE(true);
+                    EXPR_TUPLE(false);
                     consume_end_stmt();
                 }
                 ctx()->emit(OP_RETURN_VALUE, BC_NOARG, kw_line);
@@ -669,7 +669,7 @@ class Compiler {
             case TK("pass"): consume_end_stmt(); break;
             /*************************************************/
             case TK("assert"):
-                EXPR_TUPLE(true);
+                EXPR_TUPLE(false);
                 // TODO: change OP_ASSERT impl in ceval.h
                 ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
                 consume_end_stmt();
