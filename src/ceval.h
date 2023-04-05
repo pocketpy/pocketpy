@@ -238,6 +238,7 @@ __NEXT_STEP:;
         frame->push(std::move(ret));
     } DISPATCH();
     case OP_RETURN_VALUE: return frame->popx();
+    case OP_YIELD_VALUE: return _py_op_yield;
     /*****************************************/
     case OP_LIST_APPEND: {
         PyObject* obj = frame->popx();
@@ -352,35 +353,39 @@ __NEXT_STEP:;
         cls->attr().set(name, obj);
     } DISPATCH();
     /*****************************************/
-    /*****************************************/
-    /*****************************************/
-    // case OP_SETUP_DECORATOR: DISPATCH();
-
-    // case OP_ASSERT: {
-    //     PyObject* _msg = frame->pop_value(this);
-    //     Str msg = CAST(Str, asStr(_msg));
-    //     PyObject* expr = frame->pop_value(this);
-    //     if(asBool(expr) != True) _error("AssertionError", msg);
-    // } DISPATCH();
-    // case OP_EXCEPTION_MATCH: {
-    //     const auto& e = CAST(Exception&, frame->top());
-    //     StrName name = frame->co->names[byte.arg].first;
-    //     frame->push(VAR(e.match_type(name)));
-    // } DISPATCH();
-    // case OP_RAISE: {
-    //     PyObject* obj = frame->pop_value(this);
-    //     Str msg = obj == None ? "" : CAST(Str, asStr(obj));
-    //     StrName type = frame->co->names[byte.arg].first;
-    //     _error(type, msg);
-    // } DISPATCH();
-    // case OP_RE_RAISE: _raise(); DISPATCH();
-    // case OP_YIELD_VALUE: return _py_op_yield;
     // // TODO: using "goto" inside with block may cause __exit__ not called
     // case OP_WITH_ENTER: call(frame->pop_value(this), __enter__, no_arg()); DISPATCH();
     // case OP_WITH_EXIT: call(frame->pop_value(this), __exit__, no_arg()); DISPATCH();
-    // case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); DISPATCH();
-    // case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); DISPATCH();
-    default: throw std::runtime_error(Str("opcode ") + OP_NAMES[byte.op] + " is not implemented");
+    /*****************************************/
+    case OP_TRY_BLOCK_ENTER: frame->on_try_block_enter(); DISPATCH();
+    case OP_TRY_BLOCK_EXIT: frame->on_try_block_exit(); DISPATCH();
+    /*****************************************/
+    case OP_ASSERT: {
+        PyObject* obj = frame->top();
+        Str msg;
+        if(is_type(obj, tp_tuple)){
+            auto& t = CAST(Tuple&, obj);
+            if(t.size() != 2) ValueError("assert tuple must have 2 elements");
+            obj = t[0];
+            msg = CAST(Str&, asStr(t[1]));
+        }
+        bool ok = asBool(obj);
+        frame->pop();
+        if(!ok) _error("AssertionError", msg);
+    } DISPATCH();
+    case OP_EXCEPTION_MATCH: {
+        const auto& e = CAST(Exception&, frame->top());
+        StrName name = frame->co->names[byte.arg];
+        frame->push(VAR(e.match_type(name)));
+    } DISPATCH();
+    case OP_RAISE: {
+        PyObject* obj = frame->popx();
+        Str msg = obj == None ? "" : CAST(Str, asStr(obj));
+        StrName type = frame->co->names[byte.arg];
+        _error(type, msg);
+    } DISPATCH();
+    case OP_RE_RAISE: _raise(); DISPATCH();
+    default: throw std::runtime_error(OP_NAMES[byte.op] + std::string(" is not implemented"));
     }
     UNREACHABLE();
 }

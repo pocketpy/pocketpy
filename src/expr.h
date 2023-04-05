@@ -140,6 +140,10 @@ struct NameExpr: Expr{
 
     bool emit_store(CodeEmitContext* ctx) override {
         int index = ctx->add_name(name);
+        if(ctx->is_compiling_class){
+            ctx->emit(OP_STORE_CLASS_ATTR, index, line);
+            return true;
+        }
         switch(scope){
             case NAME_LOCAL:
                 ctx->emit(OP_STORE_LOCAL, index, line);

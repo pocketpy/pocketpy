@@ -578,13 +578,14 @@ class Compiler {
     }
 
     void compile_decorated(){
-        EXPR(false);
-        // TODO: support multiple decorator
-        // use a while loop to consume '@'
-        if(!match_newlines_repl()) SyntaxError();
-        ctx()->emit(OP_SETUP_DECORATOR, BC_NOARG, prev().line);
+        std::vector<Expr_> decorators;
+        do{
+            EXPR();
+            decorators.push_back(ctx()->s_expr.popx());
+            if(!match_newlines_repl()) SyntaxError();
+        }while(match(TK("@")));
         consume(TK("def"));
-        compile_function();
+        compile_function(decorators);
     }
 
     bool try_compile_assignment(){
@@ -593,6 +594,7 @@ class Compiler {
         switch (curr().type) {
             case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
+                if(ctx()->is_compiling_class) SyntaxError();
                 inplace = true;
                 advance();
                 auto e = make_expr<BinaryExpr>();
@@ -802,7 +804,7 @@ class Compiler {
         } while (match(TK(",")));
     }
 
-    void compile_function(){
+    void compile_function(const std::vector<Expr_>& decorators={}){
         // TODO: bug, if there are multiple decorators, will cause error
         FuncDecl_ decl = make_sp<FuncDecl>();
         StrName obj_name;
@@ -825,6 +827,12 @@ class Compiler {
         compile_block_body();
         pop_context();
         ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
+        // add decorators
+        for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
+            (*it)->emit(ctx());
+            ctx()->emit(OP_ROT_TWO, BC_NOARG, (*it)->line);
+            ctx()->emit(OP_CALL, 1, (*it)->line);
+        }
         if(!ctx()->is_compiling_class){
             if(obj_name.empty()){
                 auto e = make_expr<NameExpr>(decl->name, name_scope());
