@@ -85,11 +85,12 @@ struct Frame {
         return _data[_data.size()-2];
     }
 
-    PyObject*& top_2(){
+    PyObject*& top_n(int n){
+        n += 1;
 #if DEBUG_EXTRA_CHECK
-        if(_data.size() < 3) throw std::runtime_error("_data.size() < 3");
+        if(_data.size() < n) throw std::runtime_error("_data.size() < n");
 #endif
-        return _data[_data.size()-3];
+        return _data[_data.size()-n];
     }
 
     template<typename T>
@@ -139,12 +140,6 @@ struct Frame {
     Args popx_n_reversed(int n){
         Args v(n);
         for(int i=n-1; i>=0; i--) v[i] = popx();
-        return v;
-    }
-
-    Args top_n_reversed(int n){
-        Args v(n);
-        for(int i=0; i<n; i++) v[i] = _data[_data.size()-1-i];
         return v;
     }
 

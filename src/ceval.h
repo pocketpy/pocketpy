@@ -149,11 +149,8 @@ __NEXT_STEP:;
         frame->push(VAR(std::move(items)));
     } DISPATCH();
     case OP_BUILD_STRING: {
-        // asStr() may run extra bytecode
-        // so we use top_n_reversed() in order to avoid accidental gc
-        Args items = frame->top_n_reversed(byte.arg);
-        StrStream ss;
-        for(int i=0; i<items.size(); i++) ss << CAST(Str, asStr(items[i]));
+        StrStream ss;   // asStr() may run extra bytecode
+        for(int i=byte.arg-1; i>=0; i--) ss << CAST(Str&, asStr(frame->top_n(i)));
         frame->pop_n(byte.arg);
         frame->push(VAR(ss.str()));
     } DISPATCH();

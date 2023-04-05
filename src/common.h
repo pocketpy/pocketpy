@@ -35,7 +35,7 @@
 #define DEBUG_EXTRA_CHECK			1
 #define DEBUG_DIS_REPL				0
 #define DEBUG_DIS_REPL_MIN			1
-#define DEBUG_FULL_EXCEPTION		1
+#define DEBUG_FULL_EXCEPTION		0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

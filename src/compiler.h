@@ -952,7 +952,7 @@ public:
         match_newlines();   // skip possible leading '\n'
 
         if(mode()==EVAL_MODE) {
-            EXPR_TUPLE();
+            EXPR_TUPLE(false);
             consume(TK("@eof"));
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
