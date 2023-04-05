@@ -309,11 +309,9 @@ __NEXT_STEP:;
         }
     }; DISPATCH();
     /*****************************************/
-    case OP_UNPACK_SEQUENCE: {
-        // asIter or iter->next may run bytecode
-        // accidential gc may happen
-        // lock the gc via RAII
-        auto _lock = heap.gc_scope_lock();
+    case OP_UNPACK_SEQUENCE: case OP_UNPACK_EX: {
+        // asIter or iter->next may run bytecode, accidential gc may happen
+        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         PyObject* obj = asIter(frame->popx());
         BaseIter* iter = PyIter_AS_C(obj);
         for(int i=0; i<byte.arg; i++){
@@ -321,7 +319,17 @@ __NEXT_STEP:;
             if(item == nullptr) ValueError("not enough values to unpack");
             frame->push(item);
         }
-        if(iter->next() != nullptr) ValueError("too many values to unpack");
+        if(byte.op == OP_UNPACK_EX){
+            List extras;
+            while(true){
+                PyObject* item = iter->next();
+                if(item == nullptr) break;
+                extras.push_back(item);
+            }
+            frame->push(VAR(extras));
+        }else{
+            if(iter->next() != nullptr) ValueError("too many values to unpack");
+        }
     }; DISPATCH();
     /*****************************************/
     // case OP_SETUP_DECORATOR: DISPATCH();

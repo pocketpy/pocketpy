@@ -153,7 +153,6 @@ struct NameExpr: Expr{
     }
 };
 
-// *号运算符，作为左值和右值效果不同
 struct StarredExpr: Expr{
     Expr_ child;
     StarredExpr(Expr_&& child): child(std::move(child)) {}
@@ -411,13 +410,14 @@ struct TupleExpr: SequenceExpr{
         }
 
         if(starred_i == -1){
-            // Unpacks TOS into count individual values, which are put onto the stack right-to-left.
             ctx->emit(OP_UNPACK_SEQUENCE, items.size(), line);
         }else{
             // starred assignment target must be in a tuple
             if(items.size() == 1) return false;
             // starred assignment target must be the last one (differ from CPython)
             if(starred_i != items.size()-1) return false;
+            // a,*b = [1,2,3]
+            // stack is [1,2,3] -> [1,[2,3]]
             ctx->emit(OP_UNPACK_EX, items.size()-1, line);
         }
         // do reverse emit

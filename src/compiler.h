@@ -611,6 +611,11 @@ class Compiler {
         }
         std::cout << ctx()->_log_s_expr() << std::endl;
         Expr_ rhs = ctx()->s_expr.popx();
+
+        if(lhs_p->is_starred() || rhs->is_starred()){
+            SyntaxError("can't use starred expression here");
+        }
+
         rhs->emit(ctx());
         bool ok = lhs_p->emit_store(ctx());
         if(!ok) SyntaxError();
