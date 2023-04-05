@@ -14,6 +14,7 @@ struct Frame {
     const CodeObject* co;
     PyObject* _module;
     NameDict_ _locals;
+    NameDict_ _closure;
     const uint64_t id;
     std::vector<std::pair<int, std::vector<PyObject*>>> s_try_block;
     const NameDict* names[5];     // name resolution array, zero terminated
@@ -21,14 +22,16 @@ struct Frame {
     NameDict& f_locals() noexcept { return *_locals; }
     NameDict& f_globals() noexcept { return _module->attr(); }
 
-    Frame(const CodeObject_& co, PyObject* _module, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
-            : co(co.get()), _module(_module), _locals(_locals), id(kFrameGlobalId++) {
+    Frame(const CodeObject_& co, PyObject* _module, PyObject* builtins, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
+            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) {
         memset(names, 0, sizeof(names));
         int i = 0;
         if(_locals != nullptr) names[i++] = _locals.get();
         if(_closure != nullptr) names[i++] = _closure.get();
-        names[i++] = &_module->attr();
-        // names[i++] = builtins
+        names[i++] = &_module->attr();  // borrowed reference
+        if(builtins != nullptr){
+            names[i++] = &builtins->attr(); // borrowed reference
+        }
     }
 
     const Bytecode& next_bytecode() {
@@ -41,26 +44,26 @@ struct Frame {
         return co->src->snapshot(line);
     }
 
-    // Str stack_info(){
-    //     StrStream ss;
-    //     ss << "[";
-    //     for(int i=0; i<_data.size(); i++){
-    //         ss << OBJ_TP_NAME(_data[i]);
-    //         if(i != _data.size()-1) ss << ", ";
-    //     }
-    //     ss << "]";
-    //     return ss.str();
-    // }
+    Str stack_info(){
+        StrStream ss;
+        ss << "[";
+        for(int i=0; i<_data.size(); i++){
+            ss << (i64)_data[i];
+            if(i != _data.size()-1) ss << ", ";
+        }
+        ss << "]";
+        return ss.str();
+    }
 
     void pop(){
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         _data.pop_back();
     }
 
     PyObject* popx(){
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         PyObject* ret = _data.back();
@@ -69,21 +72,21 @@ struct Frame {
     }
 
     PyObject*& top(){
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(_data.empty()) throw std::runtime_error("_data.empty() is true");
 #endif
         return _data.back();
     }
 
     PyObject*& top_1(){
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
 #endif
         return _data[_data.size()-2];
     }
 
     PyObject*& top_2(){
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(_data.size() < 3) throw std::runtime_error("_data.size() < 3");
 #endif
         return _data[_data.size()-3];
@@ -152,12 +155,8 @@ struct Frame {
     void _mark() const {
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
-
-        int i = 0;  // names[0] is ensured to be non-null
-        do{
-            names[i++]->_mark();
-        }while(names[i] != nullptr);
-
+        _locals->_mark();
+        _closure->_mark();
         for(auto& p : s_try_block){
             for(PyObject* obj : p.second) OBJ_MARK(obj);
         }

@@ -15,7 +15,9 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
     try{
         return compiler.compile();
     }catch(Exception& e){
-        // std::cout << e.summary() << std::endl;
+#if DEBUG_FULL_EXCEPTION
+        std::cerr << e.summary() << std::endl;
+#endif
         _error(e);
         return nullptr;
     }
@@ -93,12 +95,12 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        return vm->_exec(code, vm->top_frame()->_module, vm->builtins, vm->top_frame()->_locals);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE);
-        vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        vm->_exec(code, vm->top_frame()->_module, vm->builtins, vm->top_frame()->_locals);
         return vm->None;
     });
 
@@ -597,7 +599,7 @@ inline void add_module_json(VM* vm){
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
         const Str& expr = CAST(Str&, args[0]);
         CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        return vm->_exec(code, vm->top_frame()->_module, vm->builtins, vm->top_frame()->_locals);
     });
 
     vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__, no_arg())));
@@ -750,7 +752,7 @@ inline void add_module_random(VM* vm){
     PyObject* mod = vm->new_module("random");
     Random::register_class(vm, mod);
     CodeObject_ code = vm->compile(kPythonLibs["random"], "random.py", EXEC_MODE);
-    vm->_exec(code, mod);
+    vm->_exec(code, mod, vm->builtins);
 }
 
 inline void add_module_gc(VM* vm){
@@ -778,11 +780,11 @@ inline void VM::post_init(){
     }
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
-    this->_exec(code, this->builtins);
+    this->_exec(code, this->builtins, nullptr);
     code = compile(kPythonLibs["_dict"], "<builtins>", EXEC_MODE);
-    this->_exec(code, this->builtins);
+    this->_exec(code, this->builtins, nullptr);
     code = compile(kPythonLibs["_set"], "<builtins>", EXEC_MODE);
-    this->_exec(code, this->builtins);
+    this->_exec(code, this->builtins, nullptr);
 
     // property is defined in builtins.py so we need to add it after builtins is loaded
     _t(tp_object)->attr().set(__class__, property(CPP_LAMBDA(vm->_t(args[0]))));

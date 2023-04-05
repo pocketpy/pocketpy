@@ -357,8 +357,8 @@ struct DictItemExpr: Expr{
     std::vector<const Expr*> children() const override { return {key.get(), value.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
-        key->emit(ctx);
         value->emit(ctx);
+        key->emit(ctx);     // reverse order
         ctx->emit(OP_BUILD_TUPLE, 2, line);
     }
 };
@@ -462,9 +462,11 @@ struct CompExpr: Expr{
         if(cond){
             cond->emit(ctx);
             int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+            expr->emit(ctx);
             ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
             ctx->patch_jump(patch);
         }else{
+            expr->emit(ctx);
             ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
         }
         ctx->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "codeobject.h"
+#include "common.h"
 #include "expr.h"
 
 namespace pkpy{
@@ -152,6 +154,17 @@ class Compiler {
         parse_expression(PREC_TUPLE, push_stack);
     }
 
+    // special case for `for loop` and `comp`
+    Expr_ EXPR_VARS(){
+        std::vector<Expr_> items;
+        do {
+            consume(TK("@id"));
+            items.push_back(make_expr<NameExpr>(prev().str(), name_scope()));
+        } while(match(TK(",")));
+        if(items.size()==1) return std::move(items[0]);
+        return make_expr<TupleExpr>(std::move(items));
+    }
+
     template <typename T, typename... Args>
     std::unique_ptr<T> make_expr(Args&&... args) {
         std::unique_ptr<T> expr = std::make_unique<T>(std::forward<Args>(args)...);
@@ -269,10 +282,9 @@ class Compiler {
     template<typename T>
     void _consume_comp(Expr_ expr){
         static_assert(std::is_base_of<CompExpr, T>::value);
-        std::unique_ptr<CompExpr> ce = std::make_unique<T>();
+        std::unique_ptr<CompExpr> ce = make_expr<T>();
         ce->expr = std::move(expr);
-        EXPR_TUPLE();   // must be a lvalue
-        ce->vars = ctx()->s_expr.popx();
+        ce->vars = EXPR_VARS();
         consume(TK("in"));
         EXPR();
         ce->iter = ctx()->s_expr.popx();
@@ -374,7 +386,12 @@ class Compiler {
 
     // PASS
     void exprName(){
-        ctx()->s_expr.push(make_expr<NameExpr>(prev().str(), name_scope()));
+        Str name = prev().str();
+        NameScope scope = name_scope();
+        if(ctx()->co->global_names.count(name)){
+            scope = NAME_GLOBAL;
+        }
+        ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
     }
 
     // PASS
@@ -389,26 +406,65 @@ class Compiler {
     void exprSubscr() {
         auto e = make_expr<SubscrExpr>();
         e->a = ctx()->s_expr.popx();
-        std::vector<Expr_> items;
-        do {
-            EXPR_TUPLE();
-            items.push_back(ctx()->s_expr.popx());
-        } while(match(TK(":")));
-        consume(TK("]"));
-        switch(items.size()){
-            case 1:
-                e->b = std::move(items[0]);
-                break;
-            case 2: case 3: {
-                auto slice = make_expr<SliceExpr>();
-                slice->start = std::move(items[0]);
-                slice->stop = std::move(items[1]);
-                if(items.size()==3){
-                    slice->step = std::move(items[2]);
-                }
-                e->b = std::move(slice);
-            } break;
-            default: SyntaxError(); break;
+        auto slice = make_expr<SliceExpr>();
+        bool is_slice = false;
+        // a[<0> <state:1> : state<3> : state<5>]
+        int state = 0;
+        do{
+            switch(state){
+                case 0:
+                    if(match(TK(":"))){
+                        is_slice=true;
+                        state=2;
+                        break;
+                    }
+                    if(match(TK("]"))) SyntaxError();
+                    EXPR_TUPLE();
+                    slice->start = ctx()->s_expr.popx();
+                    state=1;
+                    break;
+                case 1:
+                    if(match(TK(":"))){
+                        is_slice=true;
+                        state=2;
+                        break;
+                    }
+                    if(match(TK("]"))) goto __SUBSCR_END;
+                    SyntaxError("expected ':' or ']'");
+                    break;
+                case 2:
+                    if(match(TK(":"))){
+                        state=4;
+                        break;
+                    }
+                    if(match(TK("]"))) goto __SUBSCR_END;
+                    EXPR_TUPLE();
+                    slice->stop = ctx()->s_expr.popx();
+                    state=3;
+                    break;
+                case 3:
+                    if(match(TK(":"))){
+                        state=4;
+                        break;
+                    }
+                    if(match(TK("]"))) goto __SUBSCR_END;
+                    SyntaxError("expected ':' or ']'");
+                    break;
+                case 4:
+                    if(match(TK("]"))) goto __SUBSCR_END;
+                    EXPR_TUPLE();
+                    slice->step = ctx()->s_expr.popx();
+                    state=5;
+                    break;
+                case 5: consume(TK("]")); goto __SUBSCR_END;
+            }
+        }while(true);
+__SUBSCR_END:
+        if(is_slice){
+            e->b = std::move(slice);
+        }else{
+            if(state != 1) UNREACHABLE();
+            e->b = std::move(slice->start);
         }
         ctx()->s_expr.push(std::move(e));
     }
@@ -535,8 +591,7 @@ class Compiler {
 
     // PASS
     void compile_for_loop() {
-        EXPR_TUPLE();
-        Expr_ vars = ctx()->s_expr.popx();
+        Expr_ vars = EXPR_VARS();
         consume(TK("in"));
         EXPR(false);
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
@@ -550,31 +605,32 @@ class Compiler {
     }
 
     void compile_try_except() {
-        // ctx()->enter_block(TRY_EXCEPT);
-        // ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
-        // compile_block_body();
-        // ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
-        // std::vector<int> patches = {
-        //     ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
-        // };
-        // ctx()->exit_block();
-
-        // do {
-        //     consume(TK("except"));
-        //     if(match(TK("@id"))){
-        //         int name_idx = ctx()->add_name(prev().str(), NAME_SPECIAL);
-        //         emit(OP_EXCEPTION_MATCH, name_idx);
-        //     }else{
-        //         emit(OP_LOAD_TRUE);
-        //     }
-        //     int patch = emit(OP_POP_JUMP_IF_FALSE);
-        //     emit(OP_POP_TOP);       // pop the exception on match
-        //     compile_block_body();
-        //     patches.push_back(emit(OP_JUMP_ABSOLUTE));
-        //     patch_jump(patch);
-        // }while(curr().type == TK("except"));
-        // emit(OP_RE_RAISE);      // no match, re-raise
-        // for (int patch : patches) patch_jump(patch);
+        ctx()->enter_block(TRY_EXCEPT);
+        ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
+        compile_block_body();
+        ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
+        std::vector<int> patches = {
+            ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
+        };
+        ctx()->exit_block();
+        do {
+            consume(TK("except"));
+            if(match(TK("@id"))){
+                int namei = ctx()->add_name(prev().str());
+                ctx()->emit(OP_EXCEPTION_MATCH, namei, prev().line);
+            }else{
+                ctx()->emit(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
+            }
+            int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+            // pop the exception on match
+            ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+            compile_block_body();
+            patches.push_back(ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));
+            ctx()->patch_jump(patch);
+        }while(curr().type == TK("except"));
+        // no match, re-raise
+        ctx()->emit(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+        for (int patch : patches) ctx()->patch_jump(patch);
     }
 
     void compile_decorated(){
@@ -611,7 +667,7 @@ class Compiler {
                 break;
             default: return false;
         }
-        std::cout << ctx()->_log_s_expr() << std::endl;
+        // std::cout << ctx()->_log_s_expr() << std::endl;
         Expr_ rhs = ctx()->s_expr.popx();
 
         if(lhs_p->is_starred() || rhs->is_starred()){
@@ -785,7 +841,6 @@ class Compiler {
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
 
             if(state == 0 && curr().type == TK("=")) state = 2;
-
             switch (state)
             {
                 case 0: decl->args.push_back(name); break;

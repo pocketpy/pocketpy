@@ -18,6 +18,9 @@ __NEXT_STEP:;
     //heap._auto_collect(this);
 
     const Bytecode& byte = frame->next_bytecode();
+
+    // std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
+
     switch (byte.op)
     {
     case OP_NO_OP: DISPATCH();
@@ -296,7 +299,7 @@ __NEXT_STEP:;
             }
             CodeObject_ code = compile(source, name.str(), EXEC_MODE);
             PyObject* new_mod = new_module(name);
-            _exec(code, new_mod);
+            _exec(code, new_mod, builtins);
             new_mod->attr()._try_perfect_rehash();
         }
         frame->push(ext_mod);

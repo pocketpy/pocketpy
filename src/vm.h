@@ -93,7 +93,7 @@ public:
     }
 
     Frame* top_frame() const {
-#if DEBUG_MODE
+#if DEBUG_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
 #endif
         return callstack.top().get();
@@ -166,13 +166,15 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
+#if DEBUG_DIS_REPL
             if(_module == _main) std::cout << disassemble(code) << '\n';
-            return _exec(code, _module);
+#endif
+            return _exec(code, _module, builtins);
         }catch (const Exception& e){
             *_stderr << e.summary() << '\n';
 
         }
-#if !DEBUG_MODE
+#if !DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
             *_stderr << "An std::exception occurred! It could be a bug.\n";
             *_stderr << e.what() << '\n';
@@ -607,11 +609,12 @@ inline Str VM::disassemble(CodeObject_ co){
                 argStr += " (" + BITWISE_SPECIAL_METHODS[byte.arg].str() + ")";
                 break;
         }
-        ss << argStr;
-        // ss << pad(argStr, 20);      // may overflow
-        // ss << co->blocks[byte.block].to_string();
+        ss << pad(argStr, 40);      // may overflow
+        ss << co->blocks[byte.block].type;
         if(i != co->codes.size() - 1) ss << '\n';
     }
+
+#if !DEBUG_DIS_REPL_MIN
     StrStream consts;
     consts << "co_consts: ";
     consts << CAST(Str, asRepr(VAR(co->consts)));
@@ -624,7 +627,7 @@ inline Str VM::disassemble(CodeObject_ co){
     }
     names << CAST(Str, asRepr(VAR(list)));
     ss << '\n' << consts.str() << '\n' << names.str();
-
+#endif
     for(auto& decl: co->func_decls){
         ss << "\n\n" << "Disassembly of " << decl->name.str() << ":\n";
         ss << disassemble(decl->code);
@@ -753,7 +756,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             locals->set(key, kwargs[i+1]);
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        auto _frame = _new_frame(fn.decl->code, _module, locals, fn._closure);
+        auto _frame = _new_frame(fn.decl->code, _module, builtins, locals, fn._closure);
         if(fn.decl->code->is_generator) return PyIter(Generator(this, std::move(_frame)));
         callstack.push(std::move(_frame));
         if(opCall) return _py_op_call;

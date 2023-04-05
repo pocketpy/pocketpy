@@ -57,7 +57,7 @@ struct CodeObject {
     std::vector<Bytecode> codes;
     List consts;
     std::vector<StrName> names;
-    std::set<StrName> global_names;
+    std::set<Str> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
     std::vector<FuncDecl_> func_decls;

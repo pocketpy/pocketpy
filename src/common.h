@@ -28,16 +28,19 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"0.9.6"
+#define PK_VERSION				"0.9.7"
 
 // debug macros
-#define DEBUG_NO_BUILTIN_MODULES	1
-#define DEBUG_MODE					1
+#define DEBUG_NO_BUILTIN_MODULES	0
+#define DEBUG_EXTRA_CHECK			1
+#define DEBUG_DIS_REPL				0
+#define DEBUG_DIS_REPL_MIN			1
+#define DEBUG_FULL_EXCEPTION		1
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0
 #else
-#define PK_ENABLE_FILEIO 		1
+#define PK_ENABLE_FILEIO 		(1-DEBUG_NO_BUILTIN_MODULES)
 #endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
