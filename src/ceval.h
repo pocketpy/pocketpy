@@ -319,6 +319,7 @@ __NEXT_STEP:;
             if(item == nullptr) ValueError("not enough values to unpack");
             frame->push(item);
         }
+        // handle extra items
         if(byte.op == OP_UNPACK_EX){
             List extras;
             while(true){
@@ -332,25 +333,29 @@ __NEXT_STEP:;
         }
     }; DISPATCH();
     /*****************************************/
+    case OP_BEGIN_CLASS: {
+        StrName name = frame->co->names[byte.arg];
+        PyObject* super_cls = frame->popx();
+        if(super_cls == None) super_cls = _t(tp_object);
+        check_type(super_cls, tp_type);
+        PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, super_cls));
+        frame->push(cls);
+    } DISPATCH();
+    case OP_END_CLASS: {
+        PyObject* cls = frame->popx();
+        cls->attr()._try_perfect_rehash();
+    }; DISPATCH();
+    case OP_STORE_CLASS_ATTR: {
+        StrName name = frame->co->names[byte.arg];
+        PyObject* obj = frame->popx();
+        PyObject* cls = frame->top();
+        cls->attr().set(name, obj);
+    } DISPATCH();
+    /*****************************************/
+    /*****************************************/
+    /*****************************************/
     // case OP_SETUP_DECORATOR: DISPATCH();
-    // case OP_BEGIN_CLASS: {
-    //     StrName name = frame->co->names[byte.arg];
-    //     PyObject* clsBase = frame->popx();
-    //     if(clsBase == None) clsBase = _t(tp_object);
-    //     check_type(clsBase, tp_type);
-    //     PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, clsBase));
-    //     frame->push(cls);
-    // } DISPATCH();
-    // case OP_END_CLASS: {
-    //     PyObject* cls = frame->popx();
-    //     cls->attr()._try_perfect_rehash();
-    // }; DISPATCH();
-    // case OP_STORE_CLASS_ATTR: {
-    //     StrName name = frame->co->names[byte.arg];
-    //     PyObject* obj = frame->popx();
-    //     PyObject* cls = frame->top();
-    //     cls->attr().set(name, obj);
-    // } DISPATCH();
+
     // case OP_ASSERT: {
     //     PyObject* _msg = frame->pop_value(this);
     //     Str msg = CAST(Str, asStr(_msg));

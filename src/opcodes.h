@@ -18,10 +18,6 @@ OPCODE(YIELD_VALUE)
 
 OPCODE(SETUP_DECORATOR)
 
-OPCODE(BEGIN_CLASS)
-OPCODE(END_CLASS)
-OPCODE(STORE_CLASS_ATTR)
-
 /**************************/
 OPCODE(NO_OP)
 /**************************/
@@ -95,5 +91,10 @@ OPCODE(IMPORT_STAR)
 /**************************/
 OPCODE(UNPACK_SEQUENCE)
 OPCODE(UNPACK_EX)
+/**************************/
+// TODO: examine this
+OPCODE(BEGIN_CLASS)
+OPCODE(END_CLASS)
+OPCODE(STORE_CLASS_ATTR)
 /**************************/
 #endif

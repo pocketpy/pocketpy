@@ -835,7 +835,8 @@ class Compiler {
                 ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }
         }else{
-            ctx()->emit(OP_STORE_CLASS_ATTR, ctx()->add_name(decl->name), BC_KEEPLINE);
+            int index = ctx()->add_name(decl->name);
+            ctx()->emit(OP_STORE_CLASS_ATTR, index, prev().line);
         }
     }
 
