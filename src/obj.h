@@ -42,8 +42,8 @@ struct FunctionDecl {
 
 struct Function{
     const FunctionDecl* decl;
-    PyObject* _module = nullptr;
-    NameDict_ _closure = nullptr;
+    PyObject* _module;
+    NameDict_ _closure;
 };
 
 struct BoundMethod {

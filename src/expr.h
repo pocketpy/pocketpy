@@ -95,6 +95,11 @@ struct CodeEmitContext{
         co->consts.push_back(v);
         return co->consts.size() - 1;
     }
+
+    int add_func_decl(FunctionDecl decl){
+        co->func_decls.push_back(decl);
+        return co->func_decls.size() - 1;
+    }
 };
 
 // PASS
@@ -472,16 +477,13 @@ struct SetCompExpr: CompExpr{
 };
 
 struct LambdaExpr: Expr{
-    Function func;
+    FunctionDecl decl;
     NameScope scope;
     Str str() const override { return "<lambda>"; }
 
     void emit(CodeEmitContext* ctx) override {
-        VM* vm = ctx->vm;
-        ctx->emit(OP_LOAD_FUNCTION, ctx->add_const(VAR(func)), line);
-        if(scope == NAME_LOCAL){
-            ctx->emit(OP_SETUP_CLOSURE, BC_NOARG, BC_KEEPLINE);
-        }
+        int index = ctx->add_func_decl(decl);
+        ctx->emit(OP_LOAD_FUNCTION, index, line);
     }
 };
 

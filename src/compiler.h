@@ -170,13 +170,13 @@ class Compiler {
     // PASS
     void exprLambda(){
         auto e = make_expr<LambdaExpr>();
-        e->func.name = "<lambda>";
+        e->decl.name = "<lambda>";
         e->scope = name_scope();
         if(!match(TK(":"))){
-            _compile_f_args(e->func, false);
+            _compile_f_args(e->decl, false);
             consume(TK(":"));
         }
-        e->func.code = push_context(lexer->src, "<lambda>");
+        e->decl.code = push_context(lexer->src, "<lambda>");
         EXPR(false); // https://github.com/blueloveTH/pocketpy/issues/37
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
@@ -754,7 +754,7 @@ class Compiler {
         ctx()->emit(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
     }
 
-    void _compile_f_args(Function& func, bool enable_type_hints){
+    void _compile_f_args(FunctionDecl& func, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
             if(state == 3) SyntaxError("**kwargs should be the last argument");
@@ -796,7 +796,7 @@ class Compiler {
 
     void compile_function(){
         // TODO: bug, if there are multiple decorators, will cause error
-        Function func;
+        FunctionDecl func;
         StrName obj_name;
         consume(TK("@id"));
         func.name = prev().str();
@@ -816,8 +816,7 @@ class Compiler {
         func.code = push_context(lexer->src, func.name.str());
         compile_block_body();
         pop_context();
-        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_const(VAR(func)), prev().line);
-        if(name_scope() == NAME_LOCAL) ctx()->emit(OP_SETUP_CLOSURE, BC_NOARG, prev().line);
+        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(func), prev().line);
         if(!ctx()->is_compiling_class){
             if(obj_name.empty()){
                 auto e = make_expr<NameExpr>(func.name, name_scope());

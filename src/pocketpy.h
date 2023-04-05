@@ -627,7 +627,7 @@ inline void add_module_dis(VM* vm){
     vm->bind_func<1>(mod, "dis", [](VM* vm, Args& args) {
         PyObject* f = args[0];
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).method;
-        CodeObject_ code = CAST(Function, f).code;
+        CodeObject_ code = CAST(Function&, f).decl->code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
     });

@@ -130,8 +130,6 @@ template<> inline void _mark<Tuple>(Tuple& t){
 }
 
 template<> inline void _mark<Function>(Function& t){
-    t.code->_mark();
-    t.kwargs._mark();
     if(t._module != nullptr) OBJ_MARK(t._module);
     if(t._closure != nullptr) t._closure->_mark();
 }

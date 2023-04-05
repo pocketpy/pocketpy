@@ -38,10 +38,9 @@ __NEXT_STEP:;
     case OP_LOAD_ELLIPSIS: frame->push(Ellipsis); DISPATCH();
     case OP_LOAD_BUILTIN_EVAL: frame->push(builtins->attr(m_eval)); DISPATCH();
     case OP_LOAD_FUNCTION: {
-        PyObject* obj = frame->co->consts[byte.arg];
-        Function f = CAST(Function, obj);   // copy it!
-        f._module = frame->_module;         // setup module
-        frame->push(VAR(std::move(f)));
+        const FunctionDecl* decl = &frame->co->func_decls[byte.arg];
+        PyObject* obj = VAR(Function({decl, frame->_module, frame->_locals}));
+        frame->push(obj);
     } DISPATCH();
     /*****************************************/
     case OP_LOAD_NAME: {
@@ -312,10 +311,6 @@ __NEXT_STEP:;
     /*****************************************/
     /*****************************************/
     // case OP_SETUP_DECORATOR: DISPATCH();
-    // case OP_SETUP_CLOSURE: {
-    //     Function& f = CAST(Function&, frame->top());    // reference
-    //     f._closure = frame->_locals;
-    // } DISPATCH();
     // case OP_BEGIN_CLASS: {
     //     StrName name = frame->co->names[byte.arg];
     //     PyObject* clsBase = frame->popx();

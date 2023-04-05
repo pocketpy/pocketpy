@@ -625,13 +625,9 @@ inline Str VM::disassemble(CodeObject_ co){
     names << CAST(Str, asRepr(VAR(list)));
     ss << '\n' << consts.str() << '\n' << names.str();
 
-    for(int i=0; i<co->consts.size(); i++){
-        PyObject* obj = co->consts[i];
-        if(is_type(obj, tp_function)){
-            const auto& f = CAST(Function&, obj);
-            ss << "\n\n" << "Disassembly of " << f.name.str() << ":\n";
-            ss << disassemble(f.code);
-        }
+    for(auto& decl: co->func_decls){
+        ss << "\n\n" << "Disassembly of " << decl.name.str() << ":\n";
+        ss << disassemble(decl.code);
     }
     return Str(ss.str());
 }
@@ -718,13 +714,13 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
         NameDict_ locals = make_sp<NameDict>(
-            fn.code->perfect_locals_capacity,
+            fn.decl->code->perfect_locals_capacity,
             kLocalsLoadFactor,
-            fn.code->perfect_hash_seed
+            fn.decl->code->perfect_hash_seed
         );
 
         int i = 0;
-        for(StrName name : fn.args){
+        for(StrName name : fn.decl->args){
             if(i < args.size()){
                 locals->set(name, args[i++]);
                 continue;
@@ -732,14 +728,14 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             TypeError("missing positional argument " + name.str().escape(true));
         }
 
-        locals->update(fn.kwargs);
+        locals->update(fn.decl->kwargs);
 
-        if(!fn.starred_arg.empty()){
+        if(!fn.decl->starred_arg.empty()){
             List vargs;        // handle *args
             while(i < args.size()) vargs.push_back(args[i++]);
-            locals->set(fn.starred_arg, VAR(Tuple(std::move(vargs))));
+            locals->set(fn.decl->starred_arg, VAR(Tuple(std::move(vargs))));
         }else{
-            for(StrName key : fn.kwargs_order){
+            for(StrName key : fn.decl->kwargs_order){
                 if(i < args.size()){
                     locals->set(key, args[i++]);
                 }else{
@@ -751,14 +747,14 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         
         for(int i=0; i<kwargs.size(); i+=2){
             const Str& key = CAST(Str&, kwargs[i]);
-            if(!fn.kwargs.contains(key)){
-                TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.name.str() + "()");
+            if(!fn.decl->kwargs.contains(key)){
+                TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.decl->name.str() + "()");
             }
             locals->set(key, kwargs[i+1]);
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        auto _frame = _new_frame(fn.code, _module, locals, fn._closure);
-        if(fn.code->is_generator) return PyIter(Generator(this, std::move(_frame)));
+        auto _frame = _new_frame(fn.decl->code, _module, locals, fn._closure);
+        if(fn.decl->code->is_generator) return PyIter(Generator(this, std::move(_frame)));
         callstack.push(std::move(_frame));
         if(opCall) return _py_op_call;
         return _exec();
