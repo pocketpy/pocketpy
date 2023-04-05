@@ -40,7 +40,9 @@ class Compiler {
     }
 
     void pop_context(){
-        if(!ctx()->s_expr.empty()) UNREACHABLE();
+        if(!ctx()->s_expr.empty()){
+            throw std::runtime_error("!ctx()->s_expr.empty()\n" + ctx()->_log_s_expr());
+        }
         // if the last op does not return, add a default return None
         if(ctx()->co->codes.empty() || ctx()->co->codes.back().op != OP_RETURN_VALUE){
             ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
@@ -184,6 +186,7 @@ class Compiler {
     // PASS
     void exprTuple(){
         std::vector<Expr_> items;
+        items.push_back(ctx()->s_expr.popx());
         do {
             EXPR();         // NOTE: "1," will fail, "1,2" will be ok
             items.push_back(ctx()->s_expr.popx());
@@ -385,6 +388,7 @@ class Compiler {
     // PASS
     void exprSubscr() {
         auto e = make_expr<SubscrExpr>();
+        e->a = ctx()->s_expr.popx();
         std::vector<Expr_> items;
         do {
             EXPR_TUPLE();
@@ -605,6 +609,7 @@ class Compiler {
                 break;
             default: return false;
         }
+        std::cout << ctx()->_log_s_expr() << std::endl;
         Expr_ rhs = ctx()->s_expr.popx();
         rhs->emit(ctx());
         bool ok = lhs_p->emit_store(ctx());

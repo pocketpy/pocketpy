@@ -5,6 +5,7 @@
 #include "lexer.h"
 #include "error.h"
 #include "ceval.h"
+#include "str.h"
 
 namespace pkpy{
 
@@ -55,9 +56,17 @@ struct CodeEmitContext{
 
     // clear the expression stack and generate bytecode
     void emit_expr(){
-        if(s_expr.size() != 1) UNREACHABLE();
+        if(s_expr.size() != 1){
+            throw std::runtime_error("s_expr.size() != 1\n" + _log_s_expr());
+        }
         Expr_ expr = s_expr.popx();
         expr->emit(this);
+    }
+
+    Str _log_s_expr(){
+        StrStream ss;
+        for(auto& e: s_expr.data()) ss << e->str() << " ";
+        return ss.str();
     }
 
     int emit(Opcode opcode, int arg, int line) {
@@ -411,8 +420,9 @@ struct TupleExpr: SequenceExpr{
             if(starred_i != items.size()-1) return false;
             ctx->emit(OP_UNPACK_EX, items.size()-1, line);
         }
-        for(auto& e: items){
-            bool ok = e->emit_store(ctx);
+        // do reverse emit
+        for(int i=items.size()-1; i>=0; i--){
+            bool ok = items[i]->emit_store(ctx);
             if(!ok) return false;
         }
         return true;
@@ -480,7 +490,7 @@ struct LambdaExpr: Expr{
     FuncDecl_ decl;
     NameScope scope;
     Str str() const override { return "<lambda>"; }
-    
+
     LambdaExpr(NameScope scope){
         this->decl = make_sp<FuncDecl>();
         this->decl->name = "<lambda>";

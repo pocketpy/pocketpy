@@ -309,6 +309,20 @@ __NEXT_STEP:;
         }
     }; DISPATCH();
     /*****************************************/
+    case OP_UNPACK_SEQUENCE: {
+        // asIter or iter->next may run bytecode
+        // accidential gc may happen
+        // lock the gc via RAII
+        auto _lock = heap.gc_scope_lock();
+        PyObject* obj = asIter(frame->popx());
+        BaseIter* iter = PyIter_AS_C(obj);
+        for(int i=0; i<byte.arg; i++){
+            PyObject* item = iter->next();
+            if(item == nullptr) ValueError("not enough values to unpack");
+            frame->push(item);
+        }
+        if(iter->next() != nullptr) ValueError("too many values to unpack");
+    }; DISPATCH();
     /*****************************************/
     // case OP_SETUP_DECORATOR: DISPATCH();
     // case OP_BEGIN_CLASS: {

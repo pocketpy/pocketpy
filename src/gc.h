@@ -47,6 +47,23 @@ struct ManagedHeap{
     int gc_threshold = kMinGCThreshold;
     int gc_counter = 0;
 
+    /********************/
+    int _gc_lock_counter = 0;
+    struct ScopeLock{
+        ManagedHeap* heap;
+        ScopeLock(ManagedHeap* heap): heap(heap){
+            heap->_gc_lock_counter++;
+        }
+        ~ScopeLock(){
+            heap->_gc_lock_counter--;
+        }
+    };
+
+    ScopeLock gc_scope_lock(){
+        return ScopeLock(this);
+    }
+    /********************/
+
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
         PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
@@ -98,6 +115,7 @@ struct ManagedHeap{
     void _delete_hook(VM* vm, PyObject* obj);
 
     void _auto_collect(VM* vm){
+        if(_gc_lock_counter > 0) return;
         if(gc_counter < gc_threshold) return;
         gc_counter = 0;
         collect(vm);
@@ -106,6 +124,7 @@ struct ManagedHeap{
     }
 
     int collect(VM* vm){
+        if(_gc_lock_counter > 0) UNREACHABLE();
         mark(vm);
         int freed = sweep(vm);
         return freed;
