@@ -5,6 +5,7 @@
 #include "error.h"
 #include "gc.h"
 #include "obj.h"
+#include "str.h"
 
 namespace pkpy{
 
@@ -102,15 +103,17 @@ public:
     }
 
     PyObject* asStr(PyObject* obj){
-        PyObject* f = getattr(obj, __str__, false, true);
-        if(f != nullptr) return call(f, no_arg());
+        PyObject* self;
+        PyObject* f = get_unbound_method(obj, __str__, &self, false);
+        if(self != _py_null) return call(f, Args{self});
         return asRepr(obj);
     }
 
     PyObject* asIter(PyObject* obj){
         if(is_type(obj, tp_iterator)) return obj;
-        PyObject* iter_f = getattr(obj, __iter__, false, true);
-        if(iter_f != nullptr) return call(iter_f, no_arg());
+        PyObject* self;
+        PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
+        if(self != _py_null) return call(iter_f, Args{self});
         TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
         return nullptr;
     }
@@ -154,13 +157,6 @@ public:
     template<typename ArgT>
     std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
     call(PyObject* callable, ArgT&& args){
-        return call(callable, std::forward<ArgT>(args), no_arg(), false);
-    }
-
-    template<typename ArgT>
-    std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
-    call(PyObject* obj, const StrName name, ArgT&& args){
-        PyObject* callable = getattr(obj, name, true, true);
         return call(callable, std::forward<ArgT>(args), no_arg(), false);
     }
 
@@ -337,8 +333,8 @@ public:
     void init_builtin_types();
     PyObject* call(PyObject* callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
-    PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true, bool class_only=false);
-    PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self);
+    PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
+    PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     template<typename T>
     void setattr(PyObject* obj, StrName name, T&& value);
     template<int ARGC>
@@ -513,9 +509,10 @@ inline bool VM::asBool(PyObject* obj){
     if(obj == None) return false;
     if(is_type(obj, tp_int)) return CAST(i64, obj) != 0;
     if(is_type(obj, tp_float)) return CAST(f64, obj) != 0.0;
-    PyObject* len_f = getattr(obj, __len__, false, true);
-    if(len_f != nullptr){
-        PyObject* ret = call(len_f, no_arg());
+    PyObject* self;
+    PyObject* len_f = get_unbound_method(obj, __len__, &self, false);
+    if(self != _py_null){
+        PyObject* ret = call(len_f, Args{self});
         return CAST(i64, ret) > 0;
     }
     return true;
@@ -545,7 +542,8 @@ inline i64 VM::hash(PyObject* obj){
 }
 
 inline PyObject* VM::asRepr(PyObject* obj){
-    return call(obj, __repr__, no_arg());
+    // TODO: fastcall does not take care of super() proxy!
+    return fast_call(__repr__, Args{obj});
 }
 
 inline PyObject* VM::new_module(StrName name) {
@@ -699,8 +697,10 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             obj = call(new_f, std::move(args), kwargs, false);
         }else{
             obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
-            PyObject* init_f = getattr(obj, __init__, false, true);
-            if (init_f != nullptr) call(init_f, std::move(args), kwargs, false);
+            PyObject* self;
+            PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
+            args.extend_self(self);
+            if (self != _py_null) call(init_f, std::move(args), kwargs, false);
         }
         return obj;
     }
@@ -764,8 +764,10 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         return _exec();
     }
 
-    PyObject* call_f = getattr(callable, __call__, false, true);
-    if(call_f != nullptr){
+    PyObject* self;
+    PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
+    if(self != _py_null){
+        args.extend_self(self);
         return call(call_f, std::move(args), kwargs, false);
     }
     TypeError(OBJ_NAME(_t(callable)).escape(true) + " object is not callable");
@@ -787,41 +789,7 @@ inline void VM::unpack_args(Args& args){
 }
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
-inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err, bool class_only){
-    // TODO: class_only impl may not be correct
-    PyObject* objtype = _t(obj);
-    // handle super() proxy
-    if(is_type(obj, tp_super)){
-        const Super& super = OBJ_GET(Super, obj);
-        obj = super.first;
-        objtype = _t(super.second);
-    }
-    PyObject* cls_var = find_name_in_mro(objtype, name);
-    if(cls_var != nullptr){
-        // handle descriptor
-        PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
-        if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
-    }
-    // handle instance __dict__
-    if(!class_only && !is_tagged(obj) && obj->is_attr_valid()){
-        PyObject* val = obj->attr().try_get(name);
-        if(val != nullptr) return val;
-    }
-    if(cls_var != nullptr){
-        // bound method is non-data descriptor
-        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
-            return VAR(BoundMethod(obj, cls_var));
-        }
-        return cls_var;
-    }
-    if(throw_err) AttributeError(obj, name);
-    return nullptr;
-}
-
-// used by OP_LOAD_METHOD
-// try to load a unbound method (fallback to `getattr` if not found)
-inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self){
-    *self = _py_null;
+inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     // TODO: class_only impl may not be correct
     PyObject* objtype = _t(obj);
     // handle super() proxy
@@ -842,12 +810,50 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
         if(val != nullptr) return val;
     }
     if(cls_var != nullptr){
+        // bound method is non-data descriptor
+        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
+            return VAR(BoundMethod(obj, cls_var));
+        }
+        return cls_var;
+    }
+    if(throw_err) AttributeError(obj, name);
+    return nullptr;
+}
+
+// used by OP_LOAD_METHOD
+// try to load a unbound method (fallback to `getattr` if not found)
+inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err, bool fallback){
+    *self = _py_null;
+    // TODO: class_only impl may not be correct
+    PyObject* objtype = _t(obj);
+    // handle super() proxy
+    if(is_type(obj, tp_super)){
+        const Super& super = OBJ_GET(Super, obj);
+        obj = super.first;
+        objtype = _t(super.second);
+    }
+    PyObject* cls_var = find_name_in_mro(objtype, name);
+
+    if(fallback){
+        if(cls_var != nullptr){
+            // handle descriptor
+            PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
+            if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
+        }
+        // handle instance __dict__
+        if(!is_tagged(obj) && obj->is_attr_valid()){
+            PyObject* val = obj->attr().try_get(name);
+            if(val != nullptr) return val;
+        }
+    }
+
+    if(cls_var != nullptr){
         if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
             *self = obj;
         }
         return cls_var;
     }
-    AttributeError(obj, name);
+    if(throw_err) AttributeError(obj, name);
     return nullptr;
 }
 

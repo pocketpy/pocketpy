@@ -115,7 +115,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
-    _vm->bind_builtin_func<1>("len", CPP_LAMBDA(vm->call(args[0], __len__, no_arg())));
+    _vm->bind_builtin_func<1>("len", CPP_LAMBDA(vm->fast_call(__len__, Args{args[0]})));
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, Args& args){
         i64 value = vm->hash(args[0]);
@@ -604,7 +604,7 @@ inline void add_module_json(VM* vm){
         return vm->_exec(code, vm->top_frame()->_module, vm->builtins, vm->top_frame()->_locals);
     });
 
-    vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call(args[0], __json__, no_arg())));
+    vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->fast_call(__json__, Args{args[0]})));
 }
 
 inline void add_module_math(VM* vm){
@@ -965,7 +965,7 @@ extern "C" {
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';
-                pkpy::PyObject* x = vm->call(args[i], pkpy::__json__, pkpy::no_arg());
+                pkpy::PyObject* x = vm->fast_call(pkpy::__json__, pkpy::Args{args[i]});
                 ss << pkpy::CAST(pkpy::Str&, x);
             }
             char* packet = strdup(ss.str().c_str());

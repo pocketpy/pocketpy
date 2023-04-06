@@ -72,7 +72,7 @@ __NEXT_STEP:;
         PyObject* a = frame->top();
         StrName name = frame->co->names[byte.arg];
         PyObject* self;
-        frame->top() = get_unbound_method(a, name, &self);
+        frame->top() = get_unbound_method(a, name, &self, true, true);
         frame->push(self);
     } DISPATCH();
     case OP_LOAD_SUBSCR: {
@@ -271,11 +271,12 @@ __NEXT_STEP:;
         PyObject* kv = frame->popx();
         // we do copy here to avoid accidental gc in `kv`
         // TODO: optimize to avoid copy
-        call(frame->top_1(), __setitem__, CAST(Tuple, kv));
+        Tuple& t = CAST(Tuple& ,kv);
+        fast_call(__setitem__, Args{frame->top_1(), t[0], t[1]});
     } DISPATCH();
     case OP_SET_ADD: {
         PyObject* obj = frame->popx();
-        call(frame->top_1(), m_add, Args{obj});
+        fast_call(m_add, Args{frame->top_1(), obj});
     } DISPATCH();
     /*****************************************/
     case OP_UNARY_NEGATIVE:
