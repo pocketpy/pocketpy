@@ -48,6 +48,7 @@ __NEXT_STEP:;
         PyObject* obj = VAR(Function({decl, frame->_module, frame->_locals}));
         frame->push(obj);
     } DISPATCH();
+    case OP_LOAD_NULL: frame->push(_py_null); DISPATCH();
     /*****************************************/
     case OP_LOAD_NAME: {
         StrName name = frame->co->names[byte.arg];
@@ -66,6 +67,13 @@ __NEXT_STEP:;
         PyObject* a = frame->top();
         StrName name = frame->co->names[byte.arg];
         frame->top() = getattr(a, name);
+    } DISPATCH();
+    case OP_LOAD_METHOD: {
+        PyObject* a = frame->top();
+        StrName name = frame->co->names[byte.arg];
+        PyObject* self;
+        frame->top() = get_unbound_method(a, name, &self);
+        frame->push(self);
     } DISPATCH();
     case OP_LOAD_SUBSCR: {
         Args args(2);
@@ -222,7 +230,13 @@ __NEXT_STEP:;
     /*****************************************/
     // TODO: examine this later
     case OP_CALL: case OP_CALL_UNPACK: {
-        Args args = frame->popx_n_reversed(byte.arg);
+        int ARGC = byte.arg;
+
+        bool method_call = frame->top_n(ARGC) != _py_null;
+        if(method_call) ARGC++;         // add self into args
+        Args args = frame->popx_n_reversed(ARGC);
+        if(!method_call) frame->pop();
+
         if(byte.op == OP_CALL_UNPACK) unpack_args(args);
         PyObject* callable = frame->popx();
         PyObject* ret = call(callable, std::move(args), no_arg(), true);
@@ -233,7 +247,12 @@ __NEXT_STEP:;
         int ARGC = byte.arg & 0xFFFF;
         int KWARGC = (byte.arg >> 16) & 0xFFFF;
         Args kwargs = frame->popx_n_reversed(KWARGC*2);
+
+        bool method_call = frame->top_n(ARGC) != _py_null;
+        if(method_call) ARGC++;         // add self into args
         Args args = frame->popx_n_reversed(ARGC);
+        if(!method_call) frame->pop();
+
         if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
         PyObject* callable = frame->popx();
         PyObject* ret = call(callable, std::move(args), kwargs, true);

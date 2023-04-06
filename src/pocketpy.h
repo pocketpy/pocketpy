@@ -2,6 +2,7 @@
 
 #include "ceval.h"
 #include "compiler.h"
+#include "obj.h"
 #include "repl.h"
 #include "iter.h"
 #include "cffi.h"
@@ -68,7 +69,9 @@ inline void init_builtins(VM* _vm) {
         vm->check_type(args[0], vm->tp_type);
         Type type = OBJ_GET(Type, args[0]);
         if(!vm->isinstance(args[1], type)){
-            vm->TypeError("super(type, obj): obj must be an instance or subtype of type");
+            Str _0 = obj_type_name(vm, OBJ_GET(Type, vm->_t(args[1])));
+            Str _1 = obj_type_name(vm, type);
+            vm->TypeError("super(): " + _0.escape(true) + " is not an instance of " + _1.escape(true));
         }
         Type base = vm->_all_types[type].base;
         return vm->heap.gcnew(vm->tp_super, Super(args[1], base));

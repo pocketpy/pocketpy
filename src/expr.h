@@ -17,10 +17,10 @@ struct Expr{
     virtual void emit(CodeEmitContext* ctx) = 0;
     virtual Str str() const = 0;
 
-    virtual std::vector<const Expr*> children() const { return {}; }
     virtual bool is_starred() const { return false; }
     virtual bool is_literal() const { return false; }
     virtual bool is_json_object() const { return false; }
+    virtual bool is_attrib() const { return false; }
 
     // for OP_DELETE_XXX
     virtual bool emit_del(CodeEmitContext* ctx) { return false; }
@@ -163,8 +163,6 @@ struct StarredExpr: Expr{
     StarredExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "*"; }
 
-    std::vector<const Expr*> children() const override { return {child.get()}; }
-
     bool is_starred() const override { return true; }
 
     void emit(CodeEmitContext* ctx) override {
@@ -184,8 +182,6 @@ struct NotExpr: Expr{
     NotExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "not"; }
 
-    std::vector<const Expr*> children() const override { return {child.get()}; }
-
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
         ctx->emit(OP_UNARY_NOT, BC_NOARG, line);
@@ -197,8 +193,6 @@ struct AndExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return "and"; }
-
-    std::vector<const Expr*> children() const override { return {lhs.get(), rhs.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -213,8 +207,6 @@ struct OrExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return "or"; }
-
-    std::vector<const Expr*> children() const override { return {lhs.get(), rhs.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -295,8 +287,6 @@ struct NegatedExpr: Expr{
     NegatedExpr(Expr_&& child): child(std::move(child)) {}
     Str str() const override { return "-"; }
 
-    std::vector<const Expr*> children() const override { return {child.get()}; }
-
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         // if child is a int of float, do constant folding
@@ -330,11 +320,6 @@ struct SliceExpr: Expr{
     Expr_ step;
     Str str() const override { return "slice()"; }
 
-    std::vector<const Expr*> children() const override {
-        // may contain nullptr
-        return {start.get(), stop.get(), step.get()};
-    }
-
     void emit(CodeEmitContext* ctx) override {
         if(start){
             start->emit(ctx);
@@ -362,7 +347,6 @@ struct DictItemExpr: Expr{
     Expr_ key;
     Expr_ value;
     Str str() const override { return "k:v"; }
-    std::vector<const Expr*> children() const override { return {key.get(), value.get()}; }
 
     void emit(CodeEmitContext* ctx) override {
         value->emit(ctx);
@@ -375,12 +359,6 @@ struct SequenceExpr: Expr{
     std::vector<Expr_> items;
     SequenceExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
     virtual Opcode opcode() const = 0;
-
-    std::vector<const Expr*> children() const override {
-        std::vector<const Expr*> ret;
-        for(auto& item: items) ret.push_back(item.get());
-        return ret;
-    }
 
     void emit(CodeEmitContext* ctx) override {
         for(auto& item: items) item->emit(ctx);
@@ -543,6 +521,7 @@ struct FStringExpr: Expr{
                 size++;
             }
             ctx->emit(OP_LOAD_BUILTIN_EVAL, BC_NOARG, line);
+            ctx->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
             ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(m[1].str())), line);
             ctx->emit(OP_CALL, 1, line);
             size++;
@@ -609,6 +588,14 @@ struct AttribExpr: Expr{
         ctx->emit(OP_STORE_ATTR, index, line);
         return true;
     }
+
+    void emit_method(CodeEmitContext* ctx) {
+        a->emit(ctx);
+        int index = ctx->add_name(b);
+        ctx->emit(OP_LOAD_METHOD, index, line);
+    }
+
+    bool is_attrib() const override { return true; }
 };
 
 // PASS
@@ -617,13 +604,6 @@ struct CallExpr: Expr{
     std::vector<Expr_> args;
     std::vector<std::pair<Str, Expr_>> kwargs;
     Str str() const override { return "call(...)"; }
-
-    std::vector<const Expr*> children() const override {
-        std::vector<const Expr*> ret;
-        for(auto& item: args) ret.push_back(item.get());
-        // ...ignore kwargs for simplicity
-        return ret;
-    }
 
     bool need_unpack() const {
         for(auto& item: args) if(item->is_starred()) return true;
@@ -634,7 +614,13 @@ struct CallExpr: Expr{
         VM* vm = ctx->vm;
         // TODO: if callable is a AttrExpr, we should try to use `fast_call`
         // instead of use `boundmethod` proxy
-        callable->emit(ctx);
+        if(callable->is_attrib()){
+            auto p = static_cast<AttribExpr*>(callable.get());
+            p->emit_method(ctx);
+        }else{
+            callable->emit(ctx);
+            ctx->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
+        }
         // emit args
         for(auto& item: args) item->emit(ctx);
         // emit kwargs
@@ -658,10 +644,6 @@ struct BinaryExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     Str str() const override { return TK_STR(op); }
-
-    std::vector<const Expr*> children() const override {
-        return {lhs.get(), rhs.get()};
-    }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -704,10 +686,6 @@ struct TernaryExpr: Expr{
 
     Str str() const override {
         return "cond ? t : f";
-    }
-
-    std::vector<const Expr*> children() const override {
-        return {cond.get(), true_expr.get(), false_expr.get()};
     }
 
     void emit(CodeEmitContext* ctx) override {

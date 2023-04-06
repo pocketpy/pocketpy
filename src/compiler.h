@@ -884,6 +884,8 @@ __SUBSCR_END:
         for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
             (*it)->emit(ctx());
             ctx()->emit(OP_ROT_TWO, BC_NOARG, (*it)->line);
+            ctx()->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);
             ctx()->emit(OP_CALL, 1, (*it)->line);
         }
         if(!ctx()->is_compiling_class){

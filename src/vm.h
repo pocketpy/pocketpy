@@ -60,6 +60,7 @@ public:
 
     PyObject* _py_op_call;
     PyObject* _py_op_yield;
+    PyObject* _py_null;
     PyObject* None;
     PyObject* True;
     PyObject* False;
@@ -337,6 +338,7 @@ public:
     PyObject* call(PyObject* callable, Args args, const Args& kwargs, bool opCall);
     void unpack_args(Args& args);
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true, bool class_only=false);
+    PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self);
     template<typename T>
     void setattr(PyObject* obj, StrName name, T&& value);
     template<int ARGC>
@@ -594,7 +596,7 @@ inline Str VM::disassemble(CodeObject_ co){
                 argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
                 break;
             case OP_LOAD_NAME: case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
-            case OP_LOAD_ATTR: case OP_STORE_ATTR: case OP_DELETE_ATTR:
+            case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
                 argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
@@ -663,6 +665,7 @@ inline void VM::init_builtin_types(){
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
     this->True = heap._new<Dummy>(tp_bool, {});
     this->False = heap._new<Dummy>(tp_bool, {});
+    this->_py_null = heap._new<Dummy>(_new_type_object("_py_null"), {});
     this->_py_op_call = heap._new<Dummy>(_new_type_object("_py_op_call"), {});
     this->_py_op_yield = heap._new<Dummy>(_new_type_object("_py_op_yield"), {});
 
@@ -682,7 +685,6 @@ inline void VM::init_builtin_types(){
 
     post_init();
     for(int i=0; i<_all_types.size(); i++){
-        // std::cout << i << ": " << _all_types[i].name << std::endl;
         _all_types[i].obj->attr()._try_perfect_rehash();
     }
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
@@ -786,6 +788,7 @@ inline void VM::unpack_args(Args& args){
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err, bool class_only){
+    // TODO: class_only impl may not be correct
     PyObject* objtype = _t(obj);
     // handle super() proxy
     if(is_type(obj, tp_super)){
@@ -812,6 +815,39 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err, bool c
         return cls_var;
     }
     if(throw_err) AttributeError(obj, name);
+    return nullptr;
+}
+
+// used by OP_LOAD_METHOD
+// try to load a unbound method (fallback to `getattr` if not found)
+inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self){
+    *self = _py_null;
+    // TODO: class_only impl may not be correct
+    PyObject* objtype = _t(obj);
+    // handle super() proxy
+    if(is_type(obj, tp_super)){
+        const Super& super = OBJ_GET(Super, obj);
+        obj = super.first;
+        objtype = _t(super.second);
+    }
+    PyObject* cls_var = find_name_in_mro(objtype, name);
+    if(cls_var != nullptr){
+        // handle descriptor
+        PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
+        if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
+    }
+    // handle instance __dict__
+    if(!is_tagged(obj) && obj->is_attr_valid()){
+        PyObject* val = obj->attr().try_get(name);
+        if(val != nullptr) return val;
+    }
+    if(cls_var != nullptr){
+        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
+            *self = obj;
+        }
+        return cls_var;
+    }
+    AttributeError(obj, name);
     return nullptr;
 }
 
@@ -894,7 +930,12 @@ inline PyObject* VM::_exec(){
             Exception& _e = CAST(Exception&, obj);
             _e.st_push(frame->snapshot());
             callstack.pop();
-            if(callstack.empty()) throw _e;
+            if(callstack.empty()){
+#if DEBUG_FULL_EXCEPTION
+                std::cerr << _e.summary() << std::endl;
+#endif
+                throw _e;
+            }
             frame = callstack.top().get();
             frame->push(obj);
             if(frame->id < base_id) throw ToBeRaisedException();
