@@ -15,11 +15,14 @@ __NEXT_STEP:;
     * For example, frame->popx() returns a strong reference which may be dangerous
     * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
     */
-    //heap._auto_collect(this);
+#if !DEBUG_NO_GC
+    heap._auto_collect(this);
+#endif
 
     const Bytecode& byte = frame->next_bytecode();
-
-    // std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
+#if DEBUG_CEVAL_STEP
+    std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
+#endif
 
     switch (byte.op)
     {
@@ -298,8 +301,10 @@ __NEXT_STEP:;
             PyObject* new_mod = new_module(name);
             _exec(code, new_mod, builtins);
             new_mod->attr()._try_perfect_rehash();
+            frame->push(new_mod);
+        }else{
+            frame->push(ext_mod);
         }
-        frame->push(ext_mod);
     } DISPATCH();
     case OP_IMPORT_STAR: {
         PyObject* obj = frame->popx();

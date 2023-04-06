@@ -172,11 +172,10 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, Args& args) {
         PyObject* self = args[0];
-        std::uintptr_t addr = is_tagged(self) ? 0 : (uintptr_t)self;
+        if(is_tagged(self)) self = nullptr;
         StrStream ss;
-        ss << std::hex << addr;
-        Str s = "<" + OBJ_NAME(vm->_t(self)) + " object at 0x" + ss.str() + ">";
-        return VAR(s);
+        ss << "<" << OBJ_NAME(vm->_t(self)) << " object at " << std::hex << self << ">";
+        return VAR(ss.str());
     });
 
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(VAR(args[0] == args[1])));

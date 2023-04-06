@@ -32,15 +32,17 @@
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
-#define DEBUG_EXTRA_CHECK			1
-#define DEBUG_DIS_REPL				0
-#define DEBUG_DIS_REPL_MIN			1
+#define DEBUG_EXTRA_CHECK			0
+#define DEBUG_DIS_EXEC_REPL			0
+#define DEBUG_DIS_EXEC_REPL_MIN		1
+#define DEBUG_CEVAL_STEP			0
 #define DEBUG_FULL_EXCEPTION		0
+#define DEBUG_NO_GC					1
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0
 #else
-#define PK_ENABLE_FILEIO 		(1-DEBUG_NO_BUILTIN_MODULES)
+#define PK_ENABLE_FILEIO 		0	// TODO: refactor this
 #endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)

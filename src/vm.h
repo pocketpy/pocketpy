@@ -166,7 +166,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-#if DEBUG_DIS_REPL
+#if DEBUG_DIS_EXEC_REPL
             if(_module == _main) std::cout << disassemble(code) << '\n';
 #endif
             return _exec(code, _module, builtins);
@@ -596,6 +596,7 @@ inline Str VM::disassemble(CodeObject_ co){
                 break;
             case OP_LOAD_NAME: case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
             case OP_LOAD_ATTR: case OP_STORE_ATTR: case OP_DELETE_ATTR:
+            case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
                 argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
                 break;
@@ -614,7 +615,7 @@ inline Str VM::disassemble(CodeObject_ co){
         if(i != co->codes.size() - 1) ss << '\n';
     }
 
-#if !DEBUG_DIS_REPL_MIN
+#if !DEBUG_DIS_EXEC_REPL_MIN
     StrStream consts;
     consts << "co_consts: ";
     consts << CAST(Str, asRepr(VAR(co->consts)));

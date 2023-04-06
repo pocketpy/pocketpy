@@ -46,7 +46,7 @@ struct Frame {
 
     Str stack_info(){
         StrStream ss;
-        ss << "[";
+        ss << id << " [";
         for(int i=0; i<_data.size(); i++){
             ss << (i64)_data[i];
             if(i != _data.size()-1) ss << ", ";
@@ -93,8 +93,12 @@ struct Frame {
         return _data[_data.size()-n];
     }
 
-    template<typename T>
-    void push(T&& obj){ _data.push_back(std::forward<T>(obj)); }
+    void push(PyObject* obj){
+#if DEBUG_EXTRA_CHECK
+        if(obj == nullptr) throw std::runtime_error("obj == nullptr");
+#endif
+        _data.push_back(obj);
+    }
 
     void jump_abs(int i){ _next_ip = i; }
     void jump_rel(int i){ _next_ip += i; }

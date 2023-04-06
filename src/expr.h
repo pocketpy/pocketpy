@@ -20,6 +20,7 @@ struct Expr{
     virtual std::vector<const Expr*> children() const { return {}; }
     virtual bool is_starred() const { return false; }
     virtual bool is_literal() const { return false; }
+    virtual bool is_json_object() const { return false; }
 
     // for OP_DELETE_XXX
     virtual bool emit_del(CodeEmitContext* ctx) { return false; }
@@ -238,6 +239,8 @@ struct Literal0Expr: Expr{
             default: UNREACHABLE();
         }
     }
+
+    bool is_json_object() const override { return true; }
 };
 
 // @num, @str which needs to invoke OP_LOAD_CONST
@@ -283,6 +286,7 @@ struct LiteralExpr: Expr{
     }
 
     bool is_literal() const override { return true; }
+    bool is_json_object() const override { return true; }
 };
 
 // PASS
@@ -312,6 +316,10 @@ struct NegatedExpr: Expr{
         }
         child->emit(ctx);
         ctx->emit(OP_UNARY_NEGATIVE, BC_NOARG, line);
+    }
+
+    bool is_json_object() const override {
+        return child->is_literal();
     }
 };
 
@@ -384,12 +392,16 @@ struct ListExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     Str str() const override { return "list()"; }
     Opcode opcode() const override { return OP_BUILD_LIST; }
+
+    bool is_json_object() const override { return true; }
 };
 
 struct DictExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     Str str() const override { return "dict()"; }
     Opcode opcode() const override { return OP_BUILD_DICT; }
+
+    bool is_json_object() const override { return true; }
 };
 
 struct SetExpr: SequenceExpr{

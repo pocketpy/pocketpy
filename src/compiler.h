@@ -757,15 +757,15 @@ __SUBSCR_END:
             } break;
             case TK("with"): {
                 // TODO: reimpl this
-                UNREACHABLE();
-                // EXPR(false);
-                // consume(TK("as"));
-                // consume(TK("@id"));
-                // int index = ctx()->add_name(prev().str(), name_scope());
+                EXPR(false);
+                ctx()->emit(OP_POP_TOP, BC_NOARG, prev().line);
+                consume(TK("as"));
+                consume(TK("@id"));
+                // int index = ctx()->add_name(prev().str());
                 // emit(OP_STORE_NAME, index);
                 // emit(OP_LOAD_NAME_REF, index);
                 // emit(OP_WITH_ENTER);
-                // compile_block_body();
+                compile_block_body();
                 // emit(OP_LOAD_NAME_REF, index);
                 // emit(OP_WITH_EXIT);
             } break;
@@ -958,12 +958,11 @@ public:
             pop_context();
             return code;
         }else if(mode()==JSON_MODE){
-            PyObject* value = read_literal();
-            if(value != nullptr) ctx()->emit(OP_LOAD_CONST, ctx()->add_const(value), prev().line);
-            else if(match(TK("{"))) exprMap();
-            else if(match(TK("["))) exprList();
-            else SyntaxError("expect a JSON object or array");
+            EXPR();
+            Expr_ e = ctx()->s_expr.popx();
+            if(!e->is_json_object()) SyntaxError("expect a JSON object, literal or array");
             consume(TK("@eof"));
+            e->emit(ctx());
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
             return code;
