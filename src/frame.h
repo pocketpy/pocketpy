@@ -1,13 +1,16 @@
 #pragma once
 
 #include "codeobject.h"
+#include "vector.h"
 
 namespace pkpy{
 
 static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
 
+using ValueStack = small_vector<PyObject*, 6>;
+
 struct Frame {
-    std::vector<PyObject*> _data;
+    ValueStack _data;
     int _ip = -1;
     int _next_ip = 0;
 
@@ -16,7 +19,7 @@ struct Frame {
     NameDict_ _locals;
     NameDict_ _closure;
     const uint64_t id;
-    std::vector<std::pair<int, std::vector<PyObject*>>> s_try_block;
+    std::vector<std::pair<int, ValueStack>> s_try_block;
     const NameDict* names[5];     // name resolution array, zero terminated
 
     NameDict& f_locals() noexcept { return *_locals; }
@@ -148,7 +151,7 @@ struct Frame {
     }
 
     void pop_n(int n){
-        _data.resize(_data.size()-n);
+        _data.pop_back_n(n);
     }
 
     void _mark() const {

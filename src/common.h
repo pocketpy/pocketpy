@@ -107,22 +107,6 @@ inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
 
-template <typename T>
-class stack{
-	std::vector<T> vec;
-public:
-	void push(const T& t){ vec.push_back(t); }
-	void push(T&& t){ vec.push_back(std::move(t)); }
-	void pop(){ vec.pop_back(); }
-	void clear(){ vec.clear(); }
-	bool empty() const { return vec.empty(); }
-	size_t size() const { return vec.size(); }
-	T& top(){ return vec.back(); }
-	const T& top() const { return vec.back(); }
-	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
-	const std::vector<T>& data() const { return vec; }
-};
-
 struct Expr;
 typedef std::unique_ptr<Expr> Expr_;
 
