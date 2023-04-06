@@ -52,6 +52,9 @@ struct small_vector{
         return *this;
     }
 
+    // remove copy assignment
+    small_vector& operator=(const small_vector& other) = delete;
+
     template<typename __ValueT>
     void push_back(__ValueT&& t) {
         if (_size == _capacity) {
@@ -107,6 +110,6 @@ public:
 	const Container& data() const { return vec; }
 };
 
-template <typename T, int N=8>
+template <typename T, int N>
 using small_stack = stack<T, small_vector<T, N>>;
 } // namespace pkpy

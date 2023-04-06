@@ -75,9 +75,10 @@ struct SourceData {
 };
 
 class Exception {
+    using StackTrace = stack<Str>;
     StrName type;
     Str msg;
-    stack<Str> stacktrace;
+    StackTrace stacktrace;
 public:
     Exception(StrName type, Str msg): type(type), msg(msg) {}
     bool match_type(StrName type) const { return this->type == type;}
@@ -89,7 +90,7 @@ public:
     }
 
     Str summary() const {
-        stack<Str> st(stacktrace);
+        StackTrace st(stacktrace);
         StrStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
