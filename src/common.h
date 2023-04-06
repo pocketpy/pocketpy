@@ -38,7 +38,7 @@
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_NO_AUTO_GC			1
-#define DEBUG_GC_STATS				1
+#define DEBUG_GC_STATS				0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

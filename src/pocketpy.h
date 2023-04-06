@@ -429,7 +429,7 @@ inline void init_builtins(VM* _vm) {
         List& self = CAST(List&, args[0]);
         PyObject* obj = vm->asList(args[1]);
         const List& list = CAST(List&, obj);
-        self.insert(self.end(), list.begin(), list.end());
+        self.extend(list);
         return vm->None;
     });
 
@@ -444,7 +444,7 @@ inline void init_builtins(VM* _vm) {
         int n = CAST(int, args[1]);
         List result;
         result.reserve(self.size() * n);
-        for(int i = 0; i < n; i++) result.insert(result.end(), self.begin(), self.end());
+        for(int i = 0; i < n; i++) result.extend(self);
         return VAR(std::move(result));
     });
 
@@ -454,7 +454,7 @@ inline void init_builtins(VM* _vm) {
         if(index < 0) index += self.size();
         if(index < 0) index = 0;
         if(index > self.size()) index = self.size();
-        self.insert(self.begin() + index, args[2]);
+        self.insert(index, args[2]);
         return vm->None;
     });
 
@@ -467,10 +467,10 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("list", "__add__", [](VM* vm, Args& args) {
         const List& self = CAST(List&, args[0]);
-        const List& obj = CAST(List&, args[1]);
-        List new_list = self;
-        new_list.insert(new_list.end(), obj.begin(), obj.end());
-        return VAR(new_list);
+        const List& other = CAST(List&, args[1]);
+        List new_list(self);    // copy construct
+        new_list.extend(other);
+        return VAR(std::move(new_list));
     });
 
     _vm->bind_method<0>("list", "__len__", [](VM* vm, Args& args) {
@@ -510,7 +510,7 @@ inline void init_builtins(VM* _vm) {
         List& self = CAST(List&, args[0]);
         int index = CAST(int, args[1]);
         index = vm->normalized_index(index, self.size());
-        self.erase(self.begin() + index);
+        self.erase(index);
         return vm->None;
     });
 

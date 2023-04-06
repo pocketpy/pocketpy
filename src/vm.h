@@ -780,7 +780,7 @@ inline void VM::unpack_args(Args& args){
         if(is_type(args[i], tp_star_wrapper)){
             auto& star = _CAST(StarWrapper&, args[i]);
             List& list = CAST(List&, asList(star.obj));
-            unpacked.insert(unpacked.end(), list.begin(), list.end());
+            unpacked.extend(list);
         }else{
             unpacked.push_back(args[i]);
         }

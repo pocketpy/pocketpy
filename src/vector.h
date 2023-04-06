@@ -16,6 +16,11 @@ struct small_vector{
         _data = _buffer;
     }
 
+    small_vector(int size): _size(size), _capacity(N){
+        _data = _buffer;
+        reserve(size);
+    }
+
     small_vector(const small_vector& other): _size(other._size), _capacity(other._capacity) {
         if(other.is_small()){
             _data = _buffer;
@@ -57,19 +62,25 @@ struct small_vector{
 
     template<typename __ValueT>
     void push_back(__ValueT&& t) {
-        if (_size == _capacity) {
-            _capacity *= 2;
-            if (is_small()) {
-                _data = (T*)malloc(sizeof(T) * _capacity);
-                memcpy(_data, _buffer, sizeof(T) * _size);
-            } else {
-                _data = (T*)realloc(_data, sizeof(T) * _capacity);
-            }
-        }
+        if (_size == _capacity) reserve(_capacity*2);
         _data[_size++] = std::forward<__ValueT>(t);
     }
 
+    void reserve(int cap){
+        if(cap < _capacity) return;
+        _capacity = cap;
+        if (is_small()) {
+            _data = (T*)malloc(sizeof(T) * _capacity);
+            memcpy(_data, _buffer, sizeof(T) * _size);
+        } else {
+            _data = (T*)realloc(_data, sizeof(T) * _capacity);
+        }
+    }
+
     void pop_back() { _size--; }
+    void extend(const small_vector& other){
+        for(int i=0; i<other.size(); i++) push_back(other[i]);
+    }
 
     T& operator[](int index) { return _data[index]; }
     const T& operator[](int index) const { return _data[index]; }
@@ -87,6 +98,20 @@ struct small_vector{
     const T* data() const { return _data; }
     bool is_small() const { return _data == _buffer; }
     void pop_back_n(int n) { _size -= n; }
+    void clear() { _size=0; }
+
+    template<typename __ValueT>
+    void insert(int i, __ValueT&& val){
+        if (_size == _capacity) reserve(_capacity*2);
+        for(int j=_size; j>i; j--) _data[j] = _data[j-1];
+        _data[i] = std::forward<__ValueT>(val);
+        _size++;
+    }
+
+    void erase(int i){
+        for(int j=i; j<_size-1; j++) _data[j] = _data[j+1];
+        _size--;
+    }
 
     ~small_vector() {
         if (!is_small()) free(_data);

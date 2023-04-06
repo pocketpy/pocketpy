@@ -6,7 +6,7 @@
 
 namespace pkpy {
 
-using List = std::vector<PyObject*>;
+using List = small_vector<PyObject*, 4>;
 
 class Args {
     inline static THREAD_LOCAL FreeListA<PyObject*, 10, false> _pool;
@@ -60,6 +60,7 @@ public:
 
     List to_list() noexcept {
         List ret(_size);
+        // TODO: use move/memcpy
         for(int i=0; i<_size; i++) ret[i] = _args[i];
         return ret;
     }
