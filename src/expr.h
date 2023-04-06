@@ -632,6 +632,8 @@ struct CallExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
+        // TODO: if callable is a AttrExpr, we should try to use `fast_call`
+        // instead of use `boundmethod` proxy
         callable->emit(ctx);
         // emit args
         for(auto& item: args) item->emit(ctx);

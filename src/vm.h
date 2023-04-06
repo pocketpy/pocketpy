@@ -4,6 +4,7 @@
 #include "frame.h"
 #include "error.h"
 #include "gc.h"
+#include "obj.h"
 
 namespace pkpy{
 
@@ -75,10 +76,10 @@ public:
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
     Type tp_function, tp_native_function, tp_iterator, tp_bound_method;
-    Type tp_slice, tp_range, tp_module, tp_ref;
+    Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_star_wrapper;
 
-    VM(bool use_stdio){
+    VM(bool use_stdio) : heap(this){
         this->vm = this;
         this->use_stdio = use_stdio;
         if(use_stdio){
@@ -317,7 +318,7 @@ public:
     }
 
     ~VM() {
-        heap.collect(this);
+        heap.collect();
         if(!use_stdio){
             delete _stdout;
             delete _stderr;
@@ -344,8 +345,6 @@ public:
     void bind_func(PyObject*, Str, NativeFuncRaw);
     void _error(Exception);
     PyObject* _exec();
-    template<typename P> PyObject* PyRef(P&&);
-    const BaseRef* PyRef_AS_C(PyObject* obj);
     void post_init();
 };
 
@@ -652,7 +651,6 @@ inline void VM::init_builtin_types(){
     tp_slice = _new_type_object("slice");
     tp_range = _new_type_object("range");
     tp_module = _new_type_object("module");
-    tp_ref = _new_type_object("_ref");
     tp_star_wrapper = _new_type_object("_star_wrapper");
     tp_function = _new_type_object("function");
     tp_native_function = _new_type_object("native_function");
@@ -690,7 +688,7 @@ inline void VM::init_builtin_types(){
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
-// TODO: args here may be garbage collected accidentally
+// TODO: callable/args here may be garbage collected accidentally
 inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
     if(is_type(callable, tp_type)){
         PyObject* new_f = callable->attr().try_get(__new__);
@@ -907,14 +905,13 @@ inline PyObject* VM::_exec(){
     }
 }
 
-inline void ManagedHeap::mark(VM *vm) {
+inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame->_gc_mark();
 }
 
-inline void ManagedHeap::_delete_hook(VM *vm, PyObject *obj){
-    Type t = OBJ_GET(Type, vm->_t(obj));
-    std::cout << "delete " << vm->_all_types[t].name << " at " << obj << std::endl;
+inline Str obj_type_name(VM *vm, Type type){
+    return vm->_all_types[type].name;
 }
 
 }   // namespace pkpy

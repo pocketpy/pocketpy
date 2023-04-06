@@ -15,7 +15,7 @@ __NEXT_STEP:;
     * For example, frame->popx() returns a strong reference which may be dangerous
     * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
     */
-#if !DEBUG_NO_GC
+#if !DEBUG_NO_AUTO_GC
     heap._auto_collect(this);
 #endif
 

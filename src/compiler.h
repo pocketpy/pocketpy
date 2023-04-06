@@ -726,7 +726,6 @@ __SUBSCR_END:
             /*************************************************/
             case TK("assert"):
                 EXPR_TUPLE(false);
-                // TODO: change OP_ASSERT impl in ceval.h
                 ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
@@ -860,7 +859,6 @@ __SUBSCR_END:
     }
 
     void compile_function(const std::vector<Expr_>& decorators={}){
-        // TODO: bug, if there are multiple decorators, will cause error
         FuncDecl_ decl = make_sp<FuncDecl>();
         StrName obj_name;
         consume(TK("@id"));

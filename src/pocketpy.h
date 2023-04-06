@@ -756,7 +756,7 @@ inline void add_module_random(VM* vm){
 
 inline void add_module_gc(VM* vm){
     PyObject* mod = vm->new_module("gc");
-    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->heap.collect(vm))));
+    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->heap.collect())));
 }
 
 inline void VM::post_init(){

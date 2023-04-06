@@ -5,45 +5,15 @@
 #include "codeobject.h"
 #include "namedict.h"
 
-/*
-0: object
-1: type
-2: int
-3: float
-4: bool
-5: str
-6: list
-7: tuple
-8: slice
-9: range
-10: module
-11: _ref
-12: _star_wrapper
-13: function
-14: native_function
-15: iterator
-16: bound_method
-17: super
-18: Exception
-19: NoneType
-20: ellipsis
-21: _py_op_call
-22: _py_op_yield
-23: re.Match
-24: random.Random
-25: io.FileIO
-26: property
-27: staticmethod
-28: dict
-29: set
-*/
-
 namespace pkpy {
 struct ManagedHeap{
     std::vector<PyObject*> _no_gc;
     std::vector<PyObject*> gen;
+    VM* vm;
+
+    ManagedHeap(VM* vm): vm(vm) {}
     
-    static const int kMinGCThreshold = 700;
+    static const int kMinGCThreshold = 4096;
     int gc_threshold = kMinGCThreshold;
     int gc_counter = 0;
 
@@ -84,19 +54,20 @@ struct ManagedHeap{
 
     ~ManagedHeap(){
         for(PyObject* obj: _no_gc) delete obj;
-        // for(auto& [type, count]: deleted){
-        //     std::cout << "GC: " << type << "=" << count << std::endl;
-        // }
+#if DEBUG_GC_STATS
+        for(auto& [type, count]: deleted){
+            std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
+        }
+#endif
     }
 
-    int sweep(VM* vm){
+    int sweep(){
         std::vector<PyObject*> alive;
         for(PyObject* obj: gen){
             if(obj->gc.marked){
                 obj->gc.marked = false;
                 alive.push_back(obj);
             }else{
-                // _delete_hook(vm, obj);
                 deleted[obj->type] += 1;
                 delete obj;
             }
@@ -112,25 +83,23 @@ struct ManagedHeap{
         return freed;
     }
 
-    void _delete_hook(VM* vm, PyObject* obj);
-
-    void _auto_collect(VM* vm){
+    void _auto_collect(){
         if(_gc_lock_counter > 0) return;
         if(gc_counter < gc_threshold) return;
         gc_counter = 0;
-        collect(vm);
+        collect();
         gc_threshold = gen.size() * 2;
         if(gc_threshold < kMinGCThreshold) gc_threshold = kMinGCThreshold;
     }
 
-    int collect(VM* vm){
+    int collect(){
         if(_gc_lock_counter > 0) UNREACHABLE();
-        mark(vm);
-        int freed = sweep(vm);
+        mark();
+        int freed = sweep();
         return freed;
     }
 
-    void mark(VM* vm);
+    void mark();
 };
 
 inline void NameDict::_gc_mark() const{
