@@ -133,36 +133,42 @@ struct ManagedHeap{
     void mark(VM* vm);
 };
 
-inline void NameDict::_mark() const{
+inline void NameDict::_gc_mark() const{
     for(uint16_t i=0; i<_capacity; i++){
         if(_items[i].first.empty()) continue;
         OBJ_MARK(_items[i].second);
     }
 }
 
-template<> inline void _mark<List>(List& t){
+inline void FuncDecl::_gc_mark() const{
+    code->_gc_mark();
+    kwargs._gc_mark();
+}
+
+template<> inline void _gc_mark<List>(List& t){
     for(PyObject* obj: t) OBJ_MARK(obj);
 }
 
-template<> inline void _mark<Tuple>(Tuple& t){
+template<> inline void _gc_mark<Tuple>(Tuple& t){
     for(int i=0; i<t.size(); i++) OBJ_MARK(t[i]);
 }
 
-template<> inline void _mark<Function>(Function& t){
+template<> inline void _gc_mark<Function>(Function& t){
+    t.decl->_gc_mark();
     if(t._module != nullptr) OBJ_MARK(t._module);
-    if(t._closure != nullptr) t._closure->_mark();
+    if(t._closure != nullptr) t._closure->_gc_mark();
 }
 
-template<> inline void _mark<BoundMethod>(BoundMethod& t){
+template<> inline void _gc_mark<BoundMethod>(BoundMethod& t){
     OBJ_MARK(t.obj);
     OBJ_MARK(t.method);
 }
 
-template<> inline void _mark<StarWrapper>(StarWrapper& t){
+template<> inline void _gc_mark<StarWrapper>(StarWrapper& t){
     OBJ_MARK(t.obj);
 }
 
-template<> inline void _mark<Super>(Super& t){
+template<> inline void _gc_mark<Super>(Super& t){
     OBJ_MARK(t.first);
 }
 // NOTE: std::function may capture some PyObject*, they can not be marked

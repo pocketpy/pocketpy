@@ -36,7 +36,7 @@ public:
         : BaseIter(vm), frame(std::move(frame)), state(0) {}
 
     PyObject* next() override;
-    void _mark() override;
+    void _gc_mark() const override;
 };
 
 struct PyTypeInfo{
@@ -166,7 +166,7 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-#if DEBUG_DIS_EXEC_REPL
+#if DEBUG_DIS_EXEC
             if(_module == _main) std::cout << disassemble(code) << '\n';
 #endif
             return _exec(code, _module, builtins);
@@ -615,7 +615,7 @@ inline Str VM::disassemble(CodeObject_ co){
         if(i != co->codes.size() - 1) ss << '\n';
     }
 
-#if !DEBUG_DIS_EXEC_REPL_MIN
+#if !DEBUG_DIS_EXEC_MIN
     StrStream consts;
     consts << "co_consts: ";
     consts << CAST(Str, asRepr(VAR(co->consts)));
@@ -909,9 +909,7 @@ inline PyObject* VM::_exec(){
 
 inline void ManagedHeap::mark(VM *vm) {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
-    for(auto& frame : vm->callstack.data()){
-        frame->_mark();
-    }
+    for(auto& frame : vm->callstack.data()) frame->_gc_mark();
 }
 
 inline void ManagedHeap::_delete_hook(VM *vm, PyObject *obj){

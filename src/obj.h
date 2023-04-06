@@ -38,6 +38,8 @@ struct FuncDecl {
         bool _2 = kwargs.contains(val);
         return _0 || _1 || _2;
     }
+
+    void _gc_mark() const;
 };
 
 using FuncDecl_ = shared_ptr<FuncDecl>;
@@ -87,7 +89,7 @@ protected:
     VM* vm;
 public:
     BaseIter(VM* vm) : vm(vm) {}
-    virtual void _mark() {}
+    virtual void _gc_mark() const {}
     virtual PyObject* next() = 0;
     virtual ~BaseIter() = default;
 };
@@ -107,14 +109,14 @@ struct PyObject {
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
     virtual void* value() = 0;
-    virtual void _mark() = 0;
+    virtual void _obj_gc_mark() = 0;
 
     PyObject(Type type) : type(type) {}
     virtual ~PyObject() { delete _attr; }
 };
 
 template<typename T>
-void _mark(T& t);
+void _gc_mark(T& t);
 
 template <typename T>
 struct Py_ : PyObject {
@@ -136,16 +138,16 @@ struct Py_ : PyObject {
     }
     void* value() override { return &_value; }
 
-    void _mark() override {
+    void _obj_gc_mark() override {
         if(gc.marked) return;
         gc.marked = true;
-        if(_attr != nullptr) _attr->_mark();
-        pkpy::_mark<T>(_value);   // handle PyObject* inside _value `T`
+        if(_attr != nullptr) _attr->_gc_mark();
+        pkpy::_gc_mark<T>(_value);   // handle PyObject* inside _value `T`
     }
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
-#define OBJ_MARK(obj) if(!is_tagged(obj)) obj->_mark()
+#define OBJ_MARK(obj) if(!is_tagged(obj)) obj->_obj_gc_mark()
 
 #if DEBUG_NO_BUILTIN_MODULES
 #define OBJ_NAME(obj) Str("<?>")

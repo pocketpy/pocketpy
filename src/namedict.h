@@ -180,7 +180,7 @@ while(!_items[i].first.empty()) {       \
         return v;
     }
 
-    void _mark() const;
+    void _gc_mark() const;
 #undef HASH_PROBE
 #undef _hash
 };

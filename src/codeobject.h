@@ -68,14 +68,10 @@ struct CodeObject {
 
     void optimize(VM* vm);
 
-    void _mark() const {
+    void _gc_mark() const {
         for(PyObject* v : consts) OBJ_MARK(v);
-        for(auto& decl: func_decls){
-            decl->kwargs._mark();
-            decl->code->_mark();
-        }
+        for(auto& decl: func_decls) decl->_gc_mark();
     }
 };
-
 
 } // namespace pkpy

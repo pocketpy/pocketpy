@@ -154,15 +154,15 @@ struct Frame {
         _data.pop_back_n(n);
     }
 
-    void _mark() const {
+    void _gc_mark() const {
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
-        _locals->_mark();
-        _closure->_mark();
+        if(_locals != nullptr) _locals->_gc_mark();
+        if(_closure != nullptr) _closure->_gc_mark();
         for(auto& p : s_try_block){
             for(PyObject* obj : p.second) OBJ_MARK(obj);
         }
-        co->_mark();
+        co->_gc_mark();
     }
 };
 

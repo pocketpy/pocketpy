@@ -33,11 +33,11 @@
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
 #define DEBUG_EXTRA_CHECK			0
-#define DEBUG_DIS_EXEC_REPL			0
-#define DEBUG_DIS_EXEC_REPL_MIN		1
+#define DEBUG_DIS_EXEC				0
+#define DEBUG_DIS_EXEC_MIN			1
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_FULL_EXCEPTION		0
-#define DEBUG_NO_GC					1
+#define DEBUG_NO_GC					0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0
