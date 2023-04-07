@@ -160,7 +160,10 @@ Str obj_type_name(VM* vm, Type type);
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
-inline bool is_type(PyObject* obj, Type type) noexcept {
+inline bool is_type(PyObject* obj, Type type) {
+#if DEBUG_EXTRA_CHECK
+    if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
+#endif
     switch(type.index){
         case kTpIntIndex: return is_int(obj);
         case kTpFloatIndex: return is_float(obj);

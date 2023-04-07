@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codeobject.h"
+#include "memory.h"
 #include "vector.h"
 
 namespace pkpy{
@@ -165,5 +166,13 @@ struct Frame {
         co->_gc_mark();
     }
 };
+
+
+#if DEBUG_FRAME_USE_POOL
+inline void frame_deleter (Frame* p) { pool256.dealloc(p); }
+using Frame_ = std::unique_ptr<Frame, decltype(&frame_deleter)>;
+#else
+using Frame_ = std::unique_ptr<Frame>;
+#endif
 
 }; // namespace pkpy

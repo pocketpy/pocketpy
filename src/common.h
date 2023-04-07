@@ -36,10 +36,12 @@
 #define DEBUG_DIS_EXEC				0
 #define DEBUG_DIS_EXEC_MIN			1
 #define DEBUG_CEVAL_STEP			0
-#define DEBUG_FULL_EXCEPTION		1
+#define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_MEMORY_POOL			0
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
+
+#define DEBUG_FRAME_USE_POOL		1
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

@@ -231,6 +231,8 @@ struct MemoryPool{
     DoubleLinkedList<Arena> _empty_arenas;
     DoubleLinkedList<Arena> _full_arenas;
 
+    static constexpr int FULL_ARENA_SIZE = 4;
+
     template<typename __T>
     void* alloc() { return alloc(sizeof(__T)); }
 
@@ -272,9 +274,9 @@ struct MemoryPool{
                 arena->dealloc(block);
             }else{
                 arena->dealloc(block);
-                if(arena->full()){      // && _arenas.size() > 2
+                if(arena->full() && _arenas.size()>2){
                     _arenas.erase(arena);
-                    if(_full_arenas.size() < 8){
+                    if(_full_arenas.size() < FULL_ARENA_SIZE){
                         _full_arenas.push_back(arena);
                     }else{
                         delete arena;

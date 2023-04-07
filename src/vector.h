@@ -56,8 +56,12 @@ struct pod_vector{
     void reserve(int cap){
         if(cap < _capacity) return;
         _capacity = cap;
-        if(_data!=nullptr) pool128.dealloc(_data);
+        T* old_data = _data;
         _data = (T*)pool128.alloc(_capacity * sizeof(T));
+        if(old_data!=nullptr){
+            memcpy(_data, old_data, sizeof(T) * _size);
+            pool128.dealloc(old_data);
+        }
     }
 
     void pop_back() { _size--; }

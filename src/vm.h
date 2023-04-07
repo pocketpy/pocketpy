@@ -4,8 +4,10 @@
 #include "frame.h"
 #include "error.h"
 #include "gc.h"
+#include "memory.h"
 #include "obj.h"
 #include "str.h"
+#include <memory>
 
 namespace pkpy{
 
@@ -31,10 +33,10 @@ Str _read_file_cwd(const Str& name, bool* ok);
 
 
 class Generator: public BaseIter {
-    std::unique_ptr<Frame> frame;
+    Frame_ frame;
     int state; // 0,1,2
 public:
-    Generator(VM* vm, std::unique_ptr<Frame>&& frame)
+    Generator(VM* vm, Frame_&& frame)
         : BaseIter(vm), frame(std::move(frame)), state(0) {}
 
     PyObject* next() override;
@@ -51,7 +53,7 @@ class VM {
     VM* vm;     // self reference for simplify code
 public:
     ManagedHeap heap;
-    stack< std::unique_ptr<Frame> > callstack;
+    stack< Frame_ > callstack;
     std::vector<PyTypeInfo> _all_types;
 
     PyObject* run_frame(Frame* frame);
@@ -183,11 +185,16 @@ public:
     }
 
     template<typename ...Args>
-    std::unique_ptr<Frame> _new_frame(Args&&... args){
+    Frame_ _new_frame(Args&&... args){
         if(callstack.size() > recursionlimit){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
+#if DEBUG_FRAME_USE_POOL
+        Frame* frame = new(pool256.alloc(sizeof(Frame))) Frame(std::forward<Args>(args)...);
+        return Frame_(frame, &frame_deleter);
+#else
         return std::make_unique<Frame>(std::forward<Args>(args)...);
+#endif
     }
 
     template<typename ...Args>
