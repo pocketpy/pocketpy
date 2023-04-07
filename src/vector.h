@@ -1,65 +1,51 @@
 #pragma once
 
 #include "common.h"
+#include "memory.h"
 
 namespace pkpy{
 
-template<typename T, int N>
-struct small_vector{
+template<typename T>
+struct pod_vector{
+    static_assert(128 % sizeof(T) == 0);
+    static_assert(std::is_pod_v<T>);
+    static constexpr int N = 128 / sizeof(T);
+    static_assert(N > 4);
     int _size;
     int _capacity;
     T* _data;
-    T _buffer[N];
 
-    small_vector(): _size(0), _capacity(N) {
-        static_assert(std::is_pod_v<T>);
-        _data = _buffer;
+    pod_vector(): _size(0), _capacity(N) {
+        _data = (T*)pool128.alloc(_capacity * sizeof(T));
     }
 
-    small_vector(int size): _size(0), _capacity(N){
-        _data = _buffer;
-        reserve(size);
-        _size = size;
+    pod_vector(int size): _size(size), _capacity(std::max(N, size)) {
+        _data = (T*)pool128.alloc(_capacity * sizeof(T));
     }
 
-    small_vector(const small_vector& other): _size(other._size), _capacity(other._capacity) {
-        if(other.is_small()){
-            _data = _buffer;
-            memcpy(_buffer, other._buffer, sizeof(T) * _size);
-        } else {
-            _data = (T*)malloc(sizeof(T) * _capacity);
-            memcpy(_data, other._data, sizeof(T) * _size);
-        }
+    pod_vector(const pod_vector& other): _size(other._size), _capacity(other._capacity) {
+        _data = (T*)pool128.alloc(_capacity * sizeof(T));
+        memcpy(_data, other._data, sizeof(T) * _size);
     }
 
-    small_vector(small_vector&& other) noexcept {
+    pod_vector(pod_vector&& other) noexcept {
         _size = other._size;
         _capacity = other._capacity;
-        if(other.is_small()){
-            _data = _buffer;
-            memcpy(_buffer, other._buffer, sizeof(T) * _size);
-        } else {
-            _data = other._data;
-            other._data = other._buffer;
-        }
+        _data = other._data;
+        other._data = nullptr;
     }
 
-    small_vector& operator=(small_vector&& other) noexcept {
-        if (!is_small()) free(_data);
+    pod_vector& operator=(pod_vector&& other) noexcept {
+        if(_data!=nullptr) pool128.dealloc(_data);
         _size = other._size;
         _capacity = other._capacity;
-        if(other.is_small()){
-            _data = _buffer;
-            memcpy(_buffer, other._buffer, sizeof(T) * _size);
-        } else {
-            _data = other._data;
-            other._data = other._buffer;
-        }
+        _data = other._data;
+        other._data = nullptr;
         return *this;
     }
 
     // remove copy assignment
-    small_vector& operator=(const small_vector& other) = delete;
+    pod_vector& operator=(const pod_vector& other) = delete;
 
     template<typename __ValueT>
     void push_back(__ValueT&& t) {
@@ -70,16 +56,12 @@ struct small_vector{
     void reserve(int cap){
         if(cap < _capacity) return;
         _capacity = cap;
-        if (is_small()) {
-            _data = (T*)malloc(sizeof(T) * _capacity);
-            memcpy(_data, _buffer, sizeof(T) * _size);
-        } else {
-            _data = (T*)realloc(_data, sizeof(T) * _capacity);
-        }
+        if(_data!=nullptr) pool128.dealloc(_data);
+        _data = (T*)pool128.alloc(_capacity * sizeof(T));
     }
 
     void pop_back() { _size--; }
-    void extend(const small_vector& other){
+    void extend(const pod_vector& other){
         for(int i=0; i<other.size(); i++) push_back(other[i]);
     }
 
@@ -97,7 +79,6 @@ struct small_vector{
     int size() const { return _size; }
     T* data() { return _data; }
     const T* data() const { return _data; }
-    bool is_small() const { return _data == _buffer; }
     void pop_back_n(int n) { _size -= n; }
     void clear() { _size=0; }
 
@@ -114,8 +95,8 @@ struct small_vector{
         _size--;
     }
 
-    ~small_vector() {
-        if (!is_small()) free(_data);
+    ~pod_vector() {
+        if(_data!=nullptr) pool128.dealloc(_data);
     }
 };
 
@@ -136,6 +117,6 @@ public:
 	const Container& data() const { return vec; }
 };
 
-template <typename T, int N>
-using small_stack = stack<T, small_vector<T, N>>;
+template <typename T>
+using pod_stack = stack<T, pod_vector<T>>;
 } // namespace pkpy

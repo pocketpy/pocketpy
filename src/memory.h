@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include "vector.h"
 
 namespace pkpy{
 
@@ -69,47 +68,11 @@ shared_ptr<T> make_sp(Args&&... args) {
     return shared_ptr<T>(p);
 }
 
-template<typename T, int __Bucket, bool __ZeroInit>
-struct FreeListA {
-    std::vector<T*> buckets[__Bucket+1];
-
-    T* alloc(int n){
-        static_assert(std::is_standard_layout_v<T>);
-        T* p;
-        if(n > __Bucket || buckets[n].empty()){
-            p = (T*)malloc(sizeof(T) * n);
-        }else{
-            p = buckets[n].back();
-            buckets[n].pop_back();
-        }
-        if constexpr(__ZeroInit){
-            // the constructor of T should be equivalent to zero initialization
-            memset((void*)p, 0, sizeof(T) * n);
-        }
-        return p;
-    }
-
-    void dealloc(T* p, int n){
-        if(p == nullptr) return;
-        if(n > __Bucket || buckets[n].size() >= 80){
-            free(p);
-        }else{
-            buckets[n].push_back(p);
-        }
-    }
-
-    ~FreeListA(){
-        for(int i=0; i<=__Bucket; i++){
-            for(T* p : buckets[i]) free(p);
-        }
-    }
-};
-
-
 struct LinkedListNode{
     LinkedListNode* prev;
     LinkedListNode* next;
 };
+
 
 template<typename T>
 struct DoubleLinkedList{
@@ -295,6 +258,9 @@ struct MemoryPool{
     }
 
     void dealloc(void* p){
+#if DEBUG_MEMORY_POOL
+        if(p == nullptr) throw std::runtime_error("MemoryPool::dealloc() called on nullptr");
+#endif
         Block* block = (Block*)((char*)p - sizeof(void*));
         if(block->arena == nullptr){
             free(block);
@@ -327,5 +293,9 @@ struct MemoryPool{
         _full_arenas.apply([](Arena* arena){ delete arena; });
     }
 };
+
+inline MemoryPool<64> pool64;
+inline MemoryPool<128> pool128;
+inline MemoryPool<256> pool256;
 
 };  // namespace pkpy

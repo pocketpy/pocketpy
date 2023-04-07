@@ -34,8 +34,6 @@ inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vect
 
 struct NameDict {
     using Item = std::pair<StrName, PyObject*>;
-    inline static THREAD_LOCAL FreeListA<Item, 32, true> _pool;
-
     uint16_t _capacity;
     uint16_t _size;
     float _load_factor;
@@ -43,31 +41,36 @@ struct NameDict {
     uint16_t _mask;
     Item* _items;
 
+    void _alloc(int cap){
+        _items = (Item*)pool128.alloc(cap * sizeof(Item));
+        memset(_items, 0, cap * sizeof(Item));
+    }
+
     NameDict(uint16_t capacity=2, float load_factor=0.67, uint16_t hash_seed=kHashSeeds[0]):
         _capacity(capacity), _size(0), _load_factor(load_factor),
         _hash_seed(hash_seed), _mask(capacity-1) {
-        _items = _pool.alloc(_capacity);
+        _alloc(capacity);
     }
 
     NameDict(const NameDict& other) {
         memcpy(this, &other, sizeof(NameDict));
-        _items = _pool.alloc(_capacity);
+        _alloc(_capacity);
         for(int i=0; i<_capacity; i++){
             _items[i] = other._items[i];
         }
     }
 
     NameDict& operator=(const NameDict& other) {
-        _pool.dealloc(_items, _capacity);
+        pool128.dealloc(_items);
         memcpy(this, &other, sizeof(NameDict));
-        _items = _pool.alloc(_capacity);
+        _alloc(_capacity);
         for(int i=0; i<_capacity; i++){
             _items[i] = other._items[i];
         }
         return *this;
     }
     
-    ~NameDict(){ _pool.dealloc(_items, _capacity); }
+    ~NameDict(){ pool128.dealloc(_items); }
 
     NameDict(NameDict&&) = delete;
     NameDict& operator=(NameDict&&) = delete;
@@ -109,7 +112,7 @@ while(!_items[i].first.empty()) {       \
             _capacity = find_next_capacity(_capacity * 2);
             _mask = _capacity - 1;
         }
-        _items = _pool.alloc(_capacity);
+        _alloc(_capacity);
         for(uint16_t i=0; i<old_capacity; i++){
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
@@ -117,7 +120,7 @@ while(!_items[i].first.empty()) {       \
             if(ok) UNREACHABLE();
             _items[j] = old_items[i];
         }
-        _pool.dealloc(old_items, old_capacity);
+        pool128.dealloc(old_items);
     }
 
     void _try_perfect_rehash(){

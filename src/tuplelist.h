@@ -3,19 +3,18 @@
 #include "common.h"
 #include "memory.h"
 #include "str.h"
+#include "vector.h"
 
 namespace pkpy {
 
-using List = small_vector<PyObject*, 4>;
+using List = pod_vector<PyObject*>;
 
 class Args {
-    inline static THREAD_LOCAL FreeListA<PyObject*, 10, false> _pool;
-
     PyObject** _args;
     int _size;
 
     void _alloc(int n){
-        this->_args = (n==0) ? nullptr : _pool.alloc(n);
+        this->_args = (n==0) ? nullptr : (PyObject**)pool64.alloc(n * sizeof(void*));
         this->_size = n;
     }
 
@@ -48,7 +47,7 @@ public:
     PyObject* operator[](int i) const { return _args[i]; }
 
     Args& operator=(Args&& other) noexcept {
-        _pool.dealloc(_args, _size);
+        if(_args!=nullptr) pool64.dealloc(_args);
         this->_args = other._args;
         this->_size = other._size;
         other._args = nullptr;
@@ -71,10 +70,10 @@ public:
         _alloc(old_size+1);
         _args[0] = self;
         for(int i=0; i<old_size; i++) _args[i+1] = old_args[i];
-        _pool.dealloc(old_args, old_size);
+        if(old_args!=nullptr) pool64.dealloc(old_args);
     }
 
-    ~Args(){ _pool.dealloc(_args, _size); }
+    ~Args(){ if(_args!=nullptr) pool64.dealloc(_args); }
 };
 
 inline const Args& no_arg() {

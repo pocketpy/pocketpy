@@ -7,7 +7,7 @@ namespace pkpy{
 
 static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
 
-using ValueStack = small_vector<PyObject*, 6>;
+using ValueStack = pod_vector<PyObject*>;
 
 struct Frame {
     ValueStack _data;

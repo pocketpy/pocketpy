@@ -55,6 +55,7 @@ class Compiler {
     }
 
     static void init_pratt_rules(){
+        if(rules[TK(".")].precedence != PREC_NONE) return;
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
 #define NO_INFIX nullptr, PREC_NONE

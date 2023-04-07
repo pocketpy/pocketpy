@@ -100,7 +100,7 @@ struct Lexer {
     const char* curr_char;
     int current_line = 1;
     std::vector<Token> nexts;
-    small_stack<int, 4> indents;
+    stack<int> indents;
     int brackets_level = 0;
     bool used = false;
 
