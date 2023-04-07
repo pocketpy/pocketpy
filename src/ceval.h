@@ -16,7 +16,7 @@ __NEXT_STEP:;
     * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
     */
 #if !DEBUG_NO_AUTO_GC
-    heap._auto_collect(this);
+    heap._auto_collect();
 #endif
 
     const Bytecode& byte = frame->next_bytecode();

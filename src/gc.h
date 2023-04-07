@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "memory.h"
 #include "obj.h"
 #include "codeobject.h"
 #include "namedict.h"
@@ -10,6 +11,7 @@ struct ManagedHeap{
     std::vector<PyObject*> _no_gc;
     std::vector<PyObject*> gen;
     VM* vm;
+    MemoryPool<> pool;
 
     ManagedHeap(VM* vm): vm(vm) {}
     
@@ -36,7 +38,8 @@ struct ManagedHeap{
 
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
-        PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
+        using __T = Py_<std::decay_t<T>>;
+        PyObject* obj = new(pool.alloc<__T>()) __T(type, std::forward<T>(val));
         gen.push_back(obj);
         gc_counter++;
         return obj;
@@ -44,16 +47,19 @@ struct ManagedHeap{
 
     template<typename T>
     PyObject* _new(Type type, T&& val){
-        PyObject* obj = new Py_<std::decay_t<T>>(type, std::forward<T>(val));
+        using __T = Py_<std::decay_t<T>>;
+        PyObject* obj = new(pool.alloc<__T>()) __T(type, std::forward<T>(val));
         obj->gc.enabled = false;
         _no_gc.push_back(obj);
         return obj;
     }
 
+#if DEBUG_GC_STATS
     inline static std::map<Type, int> deleted;
+#endif
 
     ~ManagedHeap(){
-        for(PyObject* obj: _no_gc) delete obj;
+        for(PyObject* obj: _no_gc) obj->~PyObject(), pool.dealloc(obj);
 #if DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
             std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
@@ -68,8 +74,10 @@ struct ManagedHeap{
                 obj->gc.marked = false;
                 alive.push_back(obj);
             }else{
+#if DEBUG_GC_STATS
                 deleted[obj->type] += 1;
-                delete obj;
+#endif
+                obj->~PyObject(), pool.dealloc(obj);
             }
         }
 
