@@ -16,9 +16,10 @@ struct small_vector{
         _data = _buffer;
     }
 
-    small_vector(int size): _size(size), _capacity(N){
+    small_vector(int size): _size(0), _capacity(N){
         _data = _buffer;
         reserve(size);
+        _size = size;
     }
 
     small_vector(const small_vector& other): _size(other._size), _capacity(other._capacity) {
