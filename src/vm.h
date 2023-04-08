@@ -189,12 +189,8 @@ public:
         if(callstack.size() > recursionlimit){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
-#if DEBUG_FRAME_USE_POOL
-        Frame* frame = new(pool256.alloc(sizeof(Frame))) Frame(std::forward<Args>(args)...);
-        return Frame_(frame, &frame_deleter);
-#else
-        return std::make_unique<Frame>(std::forward<Args>(args)...);
-#endif
+        Frame* frame = new(pool128.alloc<Frame>()) Frame(std::forward<Args>(args)...);
+        return Frame_(frame);
     }
 
     template<typename ...Args>

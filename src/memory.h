@@ -210,6 +210,13 @@ struct MemoryPool{
         bool empty() const { return _free_list_size == 0; }
         bool full() const { return _free_list_size == __MaxBlocks; }
 
+        void tidy(){
+#if DEBUG_MEMORY_POOL
+            if(!full()) throw std::runtime_error("Arena::tidy() called on non-full arena");
+#endif
+            std::sort(_free_list, _free_list+__MaxBlocks);
+        }
+
         Block* alloc(){
 #if DEBUG_MEMORY_POOL
             if(empty()) throw std::runtime_error("Arena::alloc() called on empty arena");
@@ -244,6 +251,7 @@ struct MemoryPool{
         }
 
         if(_arenas.empty()){
+            // std::cout << _arenas.size() << ',' << _empty_arenas.size() << ',' << _full_arenas.size() << std::endl;
             if(_full_arenas.empty()){
                 _arenas.push_back(new Arena());
             }else{
@@ -277,6 +285,7 @@ struct MemoryPool{
                 if(arena->full() && _arenas.size()>2){
                     _arenas.erase(arena);
                     if(_full_arenas.size() < FULL_ARENA_SIZE){
+                        // arena->tidy();
                         _full_arenas.push_back(arena);
                     }else{
                         delete arena;
@@ -287,9 +296,6 @@ struct MemoryPool{
     }
 
     ~MemoryPool(){
-        // std::cout << _arenas.size() << std::endl;
-        // std::cout << _empty_arenas.size() << std::endl;
-        // std::cout << _full_arenas.size() << std::endl;
         _arenas.apply([](Arena* arena){ delete arena; });
         _empty_arenas.apply([](Arena* arena){ delete arena; });
         _full_arenas.apply([](Arena* arena){ delete arena; });
@@ -298,6 +304,6 @@ struct MemoryPool{
 
 inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
-inline MemoryPool<256> pool256;
+// inline MemoryPool<256> pool256;
 
 };  // namespace pkpy
