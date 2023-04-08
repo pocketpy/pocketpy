@@ -561,8 +561,8 @@ inline PyObject* VM::new_module(StrName name) {
 
 inline Str VM::disassemble(CodeObject_ co){
     auto pad = [](const Str& s, const int n){
-        if(s.size() >= n) return s.substr(0, n);
-        return s + std::string(n - s.size(), ' ');
+        if(s.length() >= n) return s.substr(0, n);
+        return s + std::string(n - s.length(), ' ');
     };
 
     std::vector<int> jumpTargets;
@@ -591,7 +591,7 @@ inline Str VM::disassemble(CodeObject_ co){
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
         ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-        Str argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
         switch(byte.op){
             case OP_LOAD_CONST:
                 argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";

@@ -49,6 +49,8 @@ public:
     StringIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
 
     PyObject* next() override{
+        // TODO: optimize this to use iterator
+        // operator[] is O(n) complexity
         Str* str = &OBJ_GET(Str, ref);
         if(index == str->u8_length()) return nullptr;
         return VAR(str->u8_getitem(index++));

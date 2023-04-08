@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "error.h"
-#include "new_str.h"
 #include "str.h"
 
 namespace pkpy{

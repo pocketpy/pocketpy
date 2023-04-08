@@ -1,76 +1,187 @@
 #pragma once
 
 #include "common.h"
+#include "memory.h"
 
 namespace pkpy {
 
 typedef std::stringstream StrStream;
 
-class Str : public std::string {
-    mutable std::vector<uint16_t>* _u8_index = nullptr;
+inline int utf8len(unsigned char c){
+    if((c & 0b10000000) == 0) return 1;
+    if((c & 0b11100000) == 0b11000000) return 2;
+    if((c & 0b11110000) == 0b11100000) return 3;
+    if((c & 0b11111000) == 0b11110000) return 4;
+    if((c & 0b11111100) == 0b11111000) return 5;
+    if((c & 0b11111110) == 0b11111100) return 6;
+    return 0;
+}
 
-    void utf8_lazy_init() const{
-        if(_u8_index != nullptr) return;
-        _u8_index = new std::vector<uint16_t>();
-        _u8_index->reserve(size());
-        if(size() > 65535) throw std::runtime_error("str has more than 65535 bytes.");
-        for(uint16_t i = 0; i < size(); i++){
-            // https://stackoverflow.com/questions/3911536/utf-8-unicode-whats-with-0xc0-and-0x80
-            if((at(i) & 0xC0) != 0x80) _u8_index->push_back(i);
-        }
-    }
-public:
+struct Str{
+    int size;
+    bool is_ascii;
+    char* data;
     uint16_t _cached_sn_index = 0;
 
-    Str() : std::string() {}
-    Str(const char* s) : std::string(s) {}
-    Str(const char* s, size_t n) : std::string(s, n) {}
-    Str(const std::string& s) : std::string(s) {}
-    Str(const Str& s) : std::string(s) {
-        if(s._u8_index != nullptr){
-            _u8_index = new std::vector<uint16_t>(*s._u8_index);
+    Str(): size(0), is_ascii(true), data((char*)pool64.alloc(0)) {}
+
+    Str(int size, bool is_ascii): size(size), is_ascii(is_ascii) {
+        data = (char*)pool64.alloc(size);
+    }
+
+#define STR_INIT()                                  \
+        data = (char*)pool64.alloc(size);           \
+        for(int i=0; i<size; i++){                  \
+            data[i] = s[i];                         \
+            if(!isascii(s[i])) is_ascii = false;    \
         }
-    }
-    Str(Str&& s) : std::string(std::move(s)) {
-        delete _u8_index;
-        _u8_index = s._u8_index;
-        s._u8_index = nullptr;
+
+    Str(const std::string& s): size(s.size()), is_ascii(true) {
+        STR_INIT()
     }
 
-    i64 _to_u8_index(i64 index) const{
-        utf8_lazy_init();
-        auto p = std::lower_bound(_u8_index->begin(), _u8_index->end(), index);
-        if(p != _u8_index->end() && *p != index) UNREACHABLE();
-        return p - _u8_index->begin();
+    Str(std::string_view s): size(s.size()), is_ascii(true) {
+        STR_INIT()
     }
 
-    int u8_length() const {
-        utf8_lazy_init();
-        return _u8_index->size();
+    Str(const char* s): size(strlen(s)), is_ascii(true) {
+        STR_INIT()
     }
 
-    Str u8_getitem(int i) const{
-        return u8_substr(i, i+1);
+    Str(const char* s, int len): size(len), is_ascii(true) {
+        STR_INIT()
     }
 
-    Str u8_substr(int start, int end) const{
-        utf8_lazy_init();
-        if(start >= end) return Str();
-        int c_end = end >= _u8_index->size() ? size() : _u8_index->at(end);
-        return substr(_u8_index->at(start), c_end - _u8_index->at(start));
+#undef STR_INIT
+
+    Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
+        data = (char*)pool64.alloc(size);
+        memcpy(data, other.data, size);
+    }
+
+    Str(Str&& other): size(other.size), is_ascii(other.is_ascii), data(other.data) {
+        other.data = nullptr;
+        other.size = 0;
+    }
+
+    Str& operator=(const Str& other){
+        if(data!=nullptr) pool64.dealloc(data);
+        size = other.size;
+        is_ascii = other.is_ascii;
+        data = (char*)pool64.alloc(size);
+        memcpy(data, other.data, size);
+        return *this;
+    }
+
+    Str& operator=(Str&& other) noexcept{
+        if(data!=nullptr) pool64.dealloc(data);
+        size = other.size;
+        is_ascii = other.is_ascii;
+        data = other.data;
+        other.data = nullptr;
+        return *this;
+    }
+
+    ~Str(){
+        if(data!=nullptr) pool64.dealloc(data);
+    }
+
+    char operator[](int idx) const {
+        return data[idx];
+    }
+
+    int length() const {
+        return size;
+    }
+
+    size_t hash() const{
+        return std::hash<std::string_view>()(sv());
+    }
+
+    Str operator+(const Str& other) const {
+        Str ret(size + other.size, is_ascii && other.is_ascii);
+        memcpy(ret.data, data, size);
+        memcpy(ret.data + size, other.data, other.size);
+        return ret;
+    }
+
+    Str operator+(const char* p) const {
+        Str other(p);
+        return *this + other;
+    }
+
+    friend Str operator+(const char* p, const Str& str){
+        Str other(p);
+        return other + str;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Str& str){
+        os.write(str.data, str.size);
+        return os;
+    }
+
+    bool operator==(const Str& other) const {
+        if(size != other.size) return false;
+        return memcmp(data, other.data, size) == 0;
+    }
+
+    bool operator!=(const Str& other) const {
+        if(size != other.size) return true;
+        return memcmp(data, other.data, size) != 0;
+    }
+
+    bool operator<(const Str& other) const {
+        int ret = strncmp(data, other.data, std::min(size, other.size));
+        if(ret != 0) return ret < 0;
+        return size < other.size;
+    }
+
+    bool operator>(const Str& other) const {
+        int ret = strncmp(data, other.data, std::min(size, other.size));
+        if(ret != 0) return ret > 0;
+        return size > other.size;
+    }
+
+    bool operator<=(const Str& other) const {
+        int ret = strncmp(data, other.data, std::min(size, other.size));
+        if(ret != 0) return ret < 0;
+        return size <= other.size;
+    }
+
+    bool operator>=(const Str& other) const {
+        int ret = strncmp(data, other.data, std::min(size, other.size));
+        if(ret != 0) return ret > 0;
+        return size >= other.size;
+    }
+
+    Str substr(int start, int len) const {
+        Str ret(len, is_ascii);
+        memcpy(ret.data, data + start, len);
+        return ret;
+    }
+
+    char* c_str_dup() const {
+        char* p = (char*)malloc(size + 1);
+        memcpy(p, data, size);
+        p[size] = 0;
+        return p;
+    }
+
+    std::string_view sv() const {
+        return std::string_view(data, size);
+    }
+
+    std::string str() const {
+        return std::string(data, size);
     }
 
     Str lstrip() const {
-        Str copy(*this);
+        std::string copy = str();
         copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
             // std::isspace(c) does not working on windows (Debug)
             return c != ' ' && c != '\t' && c != '\r' && c != '\n';
         }));
         return Str(copy);
-    }
-
-    size_t hash() const {
-        return std::hash<std::string>()(*this);
     }
 
     Str escape(bool single_quote) const {
@@ -104,24 +215,60 @@ public:
         return ss.str();
     }
 
-    Str& operator=(const Str& s){
-        this->std::string::operator=(s);
-        delete _u8_index;
-        if(s._u8_index != nullptr){
-            _u8_index = new std::vector<uint16_t>(*s._u8_index);
+    int index(const Str& sub) const {
+        auto p = std::search(data, data + size, sub.data, sub.data + sub.size);
+        if(p == data + size) return -1;
+        return p - data;
+    }
+
+    Str replace(const Str& old, const Str& new_) const {
+        StrStream ss;
+        int i = 0;
+        while(i < size){
+            int j = index(old);
+            if(j == -1){
+                ss << substr(i, size - i);
+                break;
+            }
+            ss << substr(i, j - i);
+            ss << new_;
+            i = j + old.size;
         }
-        return *this;
+        return ss.str();
     }
 
-    Str& operator=(Str&& s){
-        this->std::string::operator=(std::move(s));
-        delete _u8_index;
-        this->_u8_index = s._u8_index;
-        s._u8_index = nullptr;
-        return *this;
+    /*************unicode*************/
+
+    int _u8_index(int i) const{
+        if(is_ascii) return i;
+        int j = 0;
+        while(i > 0){
+            j += utf8len(data[j]);
+            i--;
+        }
+        return j;
     }
 
-    ~Str(){ delete _u8_index;}
+    Str u8_getitem(int i) const{
+        i = _u8_index(i);
+        return substr(i, utf8len(data[i]));
+    }
+
+    Str u8_slice(int start, int end) const{
+        // TODO: optimize this
+        start = _u8_index(start);
+        end = _u8_index(end);
+        return substr(start, end - start);
+    }
+
+    int u8_length() const {
+        if(is_ascii) return size;
+        int ret = 0;
+        for(int i=0; i<size; i++){
+            if((data[i] & 0xC0) != 0x80) ret++;
+        }
+        return ret;
+    }
 };
 
 const uint32_t kLoRangeA[] = {170,186,443,448,660,1488,1519,1568,1601,1646,1649,1749,1774,1786,1791,1808,1810,1869,1969,1994,2048,2112,2144,2208,2230,2308,2365,2384,2392,2418,2437,2447,2451,2474,2482,2486,2493,2510,2524,2527,2544,2556,2565,2575,2579,2602,2610,2613,2616,2649,2654,2674,2693,2703,2707,2730,2738,2741,2749,2768,2784,2809,2821,2831,2835,2858,2866,2869,2877,2908,2911,2929,2947,2949,2958,2962,2969,2972,2974,2979,2984,2990,3024,3077,3086,3090,3114,3133,3160,3168,3200,3205,3214,3218,3242,3253,3261,3294,3296,3313,3333,3342,3346,3389,3406,3412,3423,3450,3461,3482,3507,3517,3520,3585,3634,3648,3713,3716,3718,3724,3749,3751,3762,3773,3776,3804,3840,3904,3913,3976,4096,4159,4176,4186,4193,4197,4206,4213,4238,4352,4682,4688,4696,4698,4704,4746,4752,4786,4792,4800,4802,4808,4824,4882,4888,4992,5121,5743,5761,5792,5873,5888,5902,5920,5952,5984,5998,6016,6108,6176,6212,6272,6279,6314,6320,6400,6480,6512,6528,6576,6656,6688,6917,6981,7043,7086,7098,7168,7245,7258,7401,7406,7413,7418,8501,11568,11648,11680,11688,11696,11704,11712,11720,11728,11736,12294,12348,12353,12447,12449,12543,12549,12593,12704,12784,13312,19968,40960,40982,42192,42240,42512,42538,42606,42656,42895,42999,43003,43011,43015,43020,43072,43138,43250,43259,43261,43274,43312,43360,43396,43488,43495,43514,43520,43584,43588,43616,43633,43642,43646,43697,43701,43705,43712,43714,43739,43744,43762,43777,43785,43793,43808,43816,43968,44032,55216,55243,63744,64112,64285,64287,64298,64312,64318,64320,64323,64326,64467,64848,64914,65008,65136,65142,65382,65393,65440,65474,65482,65490,65498,65536,65549,65576,65596,65599,65616,65664,66176,66208,66304,66349,66370,66384,66432,66464,66504,66640,66816,66864,67072,67392,67424,67584,67592,67594,67639,67644,67647,67680,67712,67808,67828,67840,67872,67968,68030,68096,68112,68117,68121,68192,68224,68288,68297,68352,68416,68448,68480,68608,68864,69376,69415,69424,69600,69635,69763,69840,69891,69956,69968,70006,70019,70081,70106,70108,70144,70163,70272,70280,70282,70287,70303,70320,70405,70415,70419,70442,70450,70453,70461,70480,70493,70656,70727,70751,70784,70852,70855,71040,71128,71168,71236,71296,71352,71424,71680,71935,72096,72106,72161,72163,72192,72203,72250,72272,72284,72349,72384,72704,72714,72768,72818,72960,72968,72971,73030,73056,73063,73066,73112,73440,73728,74880,77824,82944,92160,92736,92880,92928,93027,93053,93952,94032,94208,100352,110592,110928,110948,110960,113664,113776,113792,113808,123136,123214,123584,124928,126464,126469,126497,126500,126503,126505,126516,126521,126523,126530,126535,126537,126539,126541,126545,126548,126551,126553,126555,126557,126559,126561,126564,126567,126572,126580,126585,126590,126592,126603,126625,126629,126635,131072,173824,177984,178208,183984,194560};
@@ -145,7 +292,7 @@ struct StrName {
         if(s._cached_sn_index != 0){
             index = s._cached_sn_index;
         } else {
-            index = get(s).index;
+            index = get(s.sv()).index;
         }
     }
     const Str& str() const { return _r_interned[index-1]; }
@@ -170,11 +317,7 @@ struct StrName {
     static std::map<Str, uint16_t, std::less<>> _interned;
     static std::vector<Str> _r_interned;
 
-    static StrName get(const Str& s){
-        return get(s.c_str());
-    }
-
-    static StrName get(const char* s){
+    static StrName get(std::string_view s){
         auto it = _interned.find(s);
         if(it != _interned.end()) return StrName(it->second);
         uint16_t index = (uint16_t)(_r_interned.size() + 1);

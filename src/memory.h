@@ -73,7 +73,6 @@ struct LinkedListNode{
     LinkedListNode* next;
 };
 
-
 template<typename T>
 struct DoubleLinkedList{
     static_assert(std::is_base_of_v<LinkedListNode, T>);

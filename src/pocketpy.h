@@ -131,8 +131,8 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("ord", [](VM* vm, Args& args) {
         const Str& s = CAST(Str&, args[0]);
-        if (s.size() != 1) vm->TypeError("ord() expected an ASCII character");
-        return VAR((i64)(s.c_str()[0]));
+        if (s.length()!=1) vm->TypeError("ord() expected an ASCII character");
+        return VAR((i64)(s[0]));
     });
 
     _vm->bind_builtin_func<2>("hasattr", [](VM* vm, Args& args) {
@@ -237,8 +237,8 @@ inline void init_builtins(VM* _vm) {
             const Str& s = CAST(Str&, args[0]);
             try{
                 size_t parsed = 0;
-                i64 val = S_TO_INT(s, &parsed, 10);
-                if(parsed != s.size()) throw std::invalid_argument("<?>");
+                i64 val = S_TO_INT(s.str(), &parsed, 10);
+                if(parsed != s.length()) throw std::invalid_argument("<?>");
                 return VAR(val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for int(): " + s.escape(true));
@@ -284,7 +284,7 @@ inline void init_builtins(VM* _vm) {
             if(s == "inf") return VAR(INFINITY);
             if(s == "-inf") return VAR(-INFINITY);
             try{
-                f64 val = S_TO_FLOAT(s);
+                f64 val = S_TO_FLOAT(s.str());
                 return VAR(val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for float(): '" + s + "'");
@@ -327,7 +327,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "__contains__", [](VM* vm, Args& args) {
         const Str& self = CAST(Str&, args[0]);
         const Str& other = CAST(Str&, args[1]);
-        return VAR(self.find(other) != Str::npos);
+        return VAR(self.index(other) != -1);
     });
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
@@ -361,7 +361,7 @@ inline void init_builtins(VM* _vm) {
         if(is_type(args[1], vm->tp_slice)){
             Slice s = _CAST(Slice, args[1]);
             s.normalize(self.u8_length());
-            return VAR(self.u8_substr(s.start, s.stop));
+            return VAR(self.u8_slice(s.start, s.stop));
         }
 
         int index = CAST(int, args[1]);
@@ -382,28 +382,25 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<2>("str", "replace", [](VM* vm, Args& args) {
-        const Str& _self = CAST(Str&, args[0]);
-        const Str& _old = CAST(Str&, args[1]);
-        const Str& _new = CAST(Str&, args[2]);
-        Str _copy = _self;
-        size_t pos = 0;
-        while ((pos = _copy.find(_old, pos)) != std::string::npos) {
-            _copy.replace(pos, _old.length(), _new);
-            pos += _new.length();
-        }
-        return VAR(_copy);
+        const Str& self = CAST(Str&, args[0]);
+        const Str& old = CAST(Str&, args[1]);
+        const Str& new_ = CAST(Str&, args[2]);
+        return VAR(self.replace(old, new_));
     });
 
     _vm->bind_method<1>("str", "startswith", [](VM* vm, Args& args) {
         const Str& self = CAST(Str&, args[0]);
         const Str& prefix = CAST(Str&, args[1]);
-        return VAR(self.find(prefix) == 0);
+        return VAR(self.index(prefix) == 0);
     });
 
     _vm->bind_method<1>("str", "endswith", [](VM* vm, Args& args) {
         const Str& self = CAST(Str&, args[0]);
         const Str& suffix = CAST(Str&, args[1]);
-        return VAR(self.rfind(suffix) == self.length() - suffix.length());
+        int offset = self.length() - suffix.length();
+        if(offset < 0) return vm->False;
+        bool ok = memcmp(self.data+offset, suffix.data, suffix.length()) == 0;
+        return VAR(ok);
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
@@ -664,13 +661,15 @@ struct ReMatch {
     }
 };
 
-inline PyObject* _regex_search(const Str& pattern, const Str& string, bool fromStart, VM* vm){
+inline PyObject* _regex_search(const Str& _pattern, const Str& _string, bool fromStart, VM* vm){
+    std::string pattern = _pattern.str();
+    std::string string = _string.str();
     std::regex re(pattern);
     std::smatch m;
     if(std::regex_search(string, m, re)){
         if(fromStart && m.position() != 0) return vm->None;
-        i64 start = string._to_u8_index(m.position());
-        i64 end = string._to_u8_index(m.position() + m.length());
+        i64 start = _string._u8_index(m.position());
+        i64 end = _string._u8_index(m.position() + m.length());
         return VAR_T(ReMatch, start, end, m);
     }
     return vm->None;
@@ -695,14 +694,15 @@ inline void add_module_re(VM* vm){
     vm->bind_func<3>(mod, "sub", [](VM* vm, Args& args) {
         const Str& pattern = CAST(Str&, args[0]);
         const Str& repl = CAST(Str&, args[1]);
-        const Str& string = CAST(Str&, args[2]);
-        std::regex re(pattern);
+        const Str& _string = CAST(Str&, args[2]);
+        std::regex re(pattern.str());
+        std::string string = _string.str();
         return VAR(std::regex_replace(string, re, repl));
     });
 
     vm->bind_func<2>(mod, "split", [](VM* vm, Args& args) {
-        const Str& pattern = CAST(Str&, args[0]);
-        const Str& string = CAST(Str&, args[1]);
+        std::string pattern = CAST(Str&, args[0]).str();
+        std::string string = CAST(Str&, args[1]).str();
         std::regex re(pattern);
         std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
         std::sregex_token_iterator end;
