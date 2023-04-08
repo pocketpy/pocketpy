@@ -41,7 +41,7 @@
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 
-#define DEBUG_FRAME_USE_POOL		1
+#define DEBUG_FRAME_USE_POOL		0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 		0

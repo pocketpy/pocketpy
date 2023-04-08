@@ -812,7 +812,7 @@ __SUBSCR_END:
             consume(TK(")"));
         }
         if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
-        else ctx()->emit(OP_LOAD_NAME, super_namei, prev().line);
+        else ctx()->emit(OP_LOAD_GLOBAL, super_namei, prev().line);
         ctx()->emit(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
         ctx()->is_compiling_class = true;
         compile_block_body();
@@ -894,7 +894,7 @@ __SUBSCR_END:
                 auto e = make_expr<NameExpr>(decl->name, name_scope());
                 e->emit_store(ctx());
             } else {
-                ctx()->emit(OP_LOAD_NAME, ctx()->add_name(obj_name), prev().line);
+                ctx()->emit(OP_LOAD_GLOBAL, ctx()->add_name(obj_name), prev().line);
                 int index = ctx()->add_name(decl->name);
                 ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }

@@ -21,21 +21,16 @@ struct Frame {
     NameDict_ _closure;
     const uint64_t id;
     std::vector<std::pair<int, ValueStack>> s_try_block;
-    const NameDict* names[5];     // name resolution array, zero terminated
 
-    NameDict& f_locals() noexcept { return *_locals; }
+    NameDict& f_locals() noexcept { return _locals!=nullptr ? *_locals : _module->attr(); }
     NameDict& f_globals() noexcept { return _module->attr(); }
+    PyObject* f_closure_try_get(StrName name){
+        if(_closure == nullptr) return nullptr;
+        return _closure->try_get(name);
+    }
 
-    Frame(const CodeObject_& co, PyObject* _module, PyObject* builtins, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
+    Frame(const CodeObject_& co, PyObject* _module, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
             : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) {
-        memset(names, 0, sizeof(names));
-        int i = 0;
-        if(_locals != nullptr) names[i++] = _locals.get();
-        if(_closure != nullptr) names[i++] = _closure.get();
-        names[i++] = &_module->attr();  // borrowed reference
-        if(builtins != nullptr){
-            names[i++] = &builtins->attr(); // borrowed reference
-        }
     }
 
     const Bytecode& next_bytecode() {

@@ -53,14 +53,22 @@ __NEXT_STEP:;
     case OP_LOAD_NAME: {
         StrName name = frame->co->names[byte.arg];
         PyObject* val;
-        int i = 0;  // names[0] is ensured to be non-null
-        do{
-            val = frame->names[i++]->try_get(name);
-            if(val != nullptr){
-                frame->push(val);
-                DISPATCH();
-            }
-        }while(frame->names[i] != nullptr);
+        val = frame->f_locals().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = frame->f_closure_try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = frame->f_globals().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = vm->builtins->attr().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        vm->NameError(name);
+    } DISPATCH();
+    case OP_LOAD_GLOBAL: {
+        StrName name = frame->co->names[byte.arg];
+        PyObject* val = frame->f_globals().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = vm->builtins->attr().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
         vm->NameError(name);
     } DISPATCH();
     case OP_LOAD_ATTR: {
@@ -319,7 +327,7 @@ __NEXT_STEP:;
             }
             CodeObject_ code = compile(source, name.str(), EXEC_MODE);
             PyObject* new_mod = new_module(name);
-            _exec(code, new_mod, builtins);
+            _exec(code, new_mod);
             new_mod->attr()._try_perfect_rehash();
             frame->push(new_mod);
         }else{

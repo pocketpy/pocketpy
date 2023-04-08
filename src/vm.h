@@ -169,7 +169,7 @@ public:
 #if DEBUG_DIS_EXEC
             if(_module == _main) std::cout << disassemble(code) << '\n';
 #endif
-            return _exec(code, _module, builtins);
+            return _exec(code, _module);
         }catch (const Exception& e){
             *_stderr << e.summary() << '\n';
 
@@ -600,7 +600,8 @@ inline Str VM::disassemble(CodeObject_ co){
             case OP_LOAD_CONST:
                 argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
                 break;
-            case OP_LOAD_NAME: case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
+            case OP_LOAD_NAME: case OP_LOAD_GLOBAL:
+            case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
             case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
@@ -764,7 +765,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             locals->set(key, kwargs[i+1]);
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        auto _frame = _new_frame(fn.decl->code, _module, builtins, locals, fn._closure);
+        auto _frame = _new_frame(fn.decl->code, _module, locals, fn._closure);
         if(fn.decl->code->is_generator) return PyIter(Generator(this, std::move(_frame)));
         callstack.push(std::move(_frame));
         if(opCall) return _py_op_call;
