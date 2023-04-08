@@ -277,8 +277,6 @@ __NEXT_STEP:;
     } DISPATCH();
     case OP_DICT_ADD: {
         PyObject* kv = frame->popx();
-        // we do copy here to avoid accidental gc in `kv`
-        // TODO: optimize to avoid copy
         Tuple& t = CAST(Tuple& ,kv);
         fast_call(__setitem__, Args{frame->top_1(), t[0], t[1]});
     } DISPATCH();

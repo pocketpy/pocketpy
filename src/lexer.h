@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "error.h"
+#include "new_str.h"
 #include "str.h"
 
 namespace pkpy{
@@ -170,13 +171,9 @@ struct Lexer {
     int eat_name() {
         curr_char--;
         while(true){
-            uint8_t c = peekchar();
-            int u8bytes = 0;
-            if((c & 0b10000000) == 0b00000000) u8bytes = 1;
-            else if((c & 0b11100000) == 0b11000000) u8bytes = 2;
-            else if((c & 0b11110000) == 0b11100000) u8bytes = 3;
-            else if((c & 0b11111000) == 0b11110000) u8bytes = 4;
-            else return 1;
+            unsigned char c = peekchar();
+            int u8bytes = utf8len(c);
+            if(u8bytes == 0) return 1;
             if(u8bytes == 1){
                 if(isalpha(c) || c=='_' || isdigit(c)) {
                     curr_char++;

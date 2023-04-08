@@ -2,33 +2,52 @@
 
 #include "common.h"
 #include "memory.h"
-#include <string_view>
 
 namespace pkpy{
 
-struct String{
-    char* data;
-    int size;
+inline int utf8len(unsigned char c){
+    if((c & 0b10000000) == 0) return 1;
+    if((c & 0b11100000) == 0b11000000) return 2;
+    if((c & 0b11110000) == 0b11100000) return 3;
+    if((c & 0b11111000) == 0b11110000) return 4;
+    if((c & 0b11111100) == 0b11111000) return 5;
+    if((c & 0b11111110) == 0b11111100) return 6;
+    return 0;
+}
 
-    String(): data((char*)pool64.alloc(0)), size(0) {}
-    String(int size): data((char*)pool64.alloc(size)), size(size) {}
-    String(const char* str) {
-        size = strlen(str);
+struct String{
+    int size;
+    bool is_ascii;
+    char* data;
+
+    String(): size(0), is_ascii(true), data((char*)pool64.alloc(0)) {}
+
+    String(int size, bool is_ascii): size(size), is_ascii(is_ascii) {
         data = (char*)pool64.alloc(size);
-        memcpy(data, str, size);
     }
 
-    String(const String& other): data((char*)pool64.alloc(other.size)), size(other.size) {
+    String(const char* str): size(strlen(str)), is_ascii(true) {
+        data = (char*)pool64.alloc(size);
+        for(int i=0; i<size; i++){
+            data[i] = str[i];
+            if(!isascii(str[i])) is_ascii = false;
+        }
+    }
+
+    String(const String& other): size(other.size), is_ascii(other.is_ascii) {
+        data = (char*)pool64.alloc(size);
         memcpy(data, other.data, size);
     }
 
-    String(String&& other): data(other.data), size(other.size) {
+    String(String&& other): size(other.size), is_ascii(other.is_ascii), data(other.data) {
         other.data = nullptr;
+        other.size = 0;
     }
 
     String& operator=(const String& other){
         if(data!=nullptr) pool64.dealloc(data);
         size = other.size;
+        is_ascii = other.is_ascii;
         data = (char*)pool64.alloc(size);
         memcpy(data, other.data, size);
         return *this;
@@ -37,6 +56,7 @@ struct String{
     String& operator=(String&& other){
         if(data!=nullptr) pool64.dealloc(data);
         size = other.size;
+        is_ascii = other.is_ascii;
         data = other.data;
         other.data = nullptr;
         return *this;
@@ -55,7 +75,7 @@ struct String{
     }
 
     String operator+(const String& other) const {
-        String ret(size + other.size);
+        String ret(size + other.size, is_ascii && other.is_ascii);
         memcpy(ret.data, data, size);
         memcpy(ret.data + size, other.data, other.size);
         return ret;
@@ -101,13 +121,9 @@ struct String{
     }
 
     String substr(int start, int len) const {
-        String ret(len);
+        String ret(len, is_ascii);
         memcpy(ret.data, data + start, len);
         return ret;
-    }
-
-    String substr(int start) const {
-        return substr(start, size - start);
     }
 
     char* dup_c_str() const {
@@ -133,11 +149,29 @@ struct String{
         }));
         return String(copy.c_str());
     }
+
+    /*************unicode*************/
+
+    int _u8_index(int i) const{
+        if(is_ascii) return i;
+        int j = 0;
+        while(i > 0){
+            j += utf8len(data[j]);
+            i--;
+        }
+        return j;
+    }
+
+    String u8_getitem(int i) const {
+        i = _u8_index(i);
+        return substr(i, utf8len(data[i]));
+    }
+
+    String u8_slice(int start, int end) const{
+        start = _u8_index(start);
+        end = _u8_index(end);
+        return substr(start, end - start);
+    }
 };
-
-struct UnicodeString: String{
-
-};
-
 
 }   // namespace pkpy
