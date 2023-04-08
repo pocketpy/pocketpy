@@ -38,6 +38,7 @@
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_MEMORY_POOL			0
+#define DEBUG_NO_MEMORY_POOL		0
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 

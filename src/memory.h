@@ -199,8 +199,9 @@ struct MemoryPool{
         Block _blocks[__MaxBlocks];
         Block* _free_list[__MaxBlocks];
         int _free_list_size;
+        bool dirty;
         
-        Arena(): _free_list_size(__MaxBlocks) {
+        Arena(): _free_list_size(__MaxBlocks), dirty(false){
             for(int i=0; i<__MaxBlocks; i++){
                 _blocks[i].arena = this;
                 _free_list[i] = &_blocks[i];
@@ -222,6 +223,7 @@ struct MemoryPool{
             if(empty()) throw std::runtime_error("Arena::alloc() called on empty arena");
 #endif
             _free_list_size--;
+            if(_free_list_size == 0) dirty = true;
             return _free_list[_free_list_size];
         }
 
@@ -236,14 +238,14 @@ struct MemoryPool{
 
     DoubleLinkedList<Arena> _arenas;
     DoubleLinkedList<Arena> _empty_arenas;
-    DoubleLinkedList<Arena> _full_arenas;
-
-    static constexpr int FULL_ARENA_SIZE = 4;
 
     template<typename __T>
     void* alloc() { return alloc(sizeof(__T)); }
 
     void* alloc(size_t size){
+#if DEBUG_NO_MEMORY_POOL
+        return malloc(size);
+#endif
         if(size > __BlockSize){
             void* p = malloc(sizeof(void*) + size);
             memset(p, 0, sizeof(void*));
@@ -252,11 +254,7 @@ struct MemoryPool{
 
         if(_arenas.empty()){
             // std::cout << _arenas.size() << ',' << _empty_arenas.size() << ',' << _full_arenas.size() << std::endl;
-            if(_full_arenas.empty()){
-                _arenas.push_back(new Arena());
-            }else{
-                _arenas.move_all_back(_full_arenas);
-            }
+            _arenas.push_back(new Arena());
         }
         Arena* arena = _arenas.back();
         void* p = arena->alloc()->data;
@@ -268,6 +266,10 @@ struct MemoryPool{
     }
 
     void dealloc(void* p){
+#if DEBUG_NO_MEMORY_POOL
+        free(p);
+        return;
+#endif
 #if DEBUG_MEMORY_POOL
         if(p == nullptr) throw std::runtime_error("MemoryPool::dealloc() called on nullptr");
 #endif
@@ -282,14 +284,9 @@ struct MemoryPool{
                 arena->dealloc(block);
             }else{
                 arena->dealloc(block);
-                if(arena->full() && _arenas.size()>2){
+                if(arena->full() && arena->dirty){
                     _arenas.erase(arena);
-                    if(_full_arenas.size() < FULL_ARENA_SIZE){
-                        // arena->tidy();
-                        _full_arenas.push_back(arena);
-                    }else{
-                        delete arena;
-                    }
+                    delete arena;
                 }
             }
         }
@@ -298,7 +295,6 @@ struct MemoryPool{
     ~MemoryPool(){
         _arenas.apply([](Arena* arena){ delete arena; });
         _empty_arenas.apply([](Arena* arena){ delete arena; });
-        _full_arenas.apply([](Arena* arena){ delete arena; });
     }
 };
 
