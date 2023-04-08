@@ -601,7 +601,7 @@ inline Str VM::disassemble(CodeObject_ co){
             case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
-                argStr += " (" + co->names[byte.arg].str().escape(true) + ")";
+                argStr += " (" + co->names[byte.arg].str() + ")";
                 break;
             case OP_BINARY_OP:
                 argStr += " (" + BINARY_SPECIAL_METHODS[byte.arg].str() + ")";
