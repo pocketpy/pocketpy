@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-static THREAD_LOCAL uint64_t kFrameGlobalId = 0;
+static THREAD_LOCAL i64 kFrameGlobalId = 0;
 
 using ValueStack = pod_vector<PyObject*>;
 
@@ -19,7 +19,7 @@ struct Frame {
     PyObject* _module;
     NameDict_ _locals;
     NameDict_ _closure;
-    const uint64_t id;
+    const i64 id;
     std::vector<std::pair<int, ValueStack>> s_try_block;
 
     NameDict& f_locals() noexcept { return _locals!=nullptr ? *_locals : _module->attr(); }

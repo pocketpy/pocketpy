@@ -223,7 +223,6 @@ struct MemoryPool{
             if(empty()) throw std::runtime_error("Arena::alloc() called on empty arena");
 #endif
             _free_list_size--;
-            if(_free_list_size == 0) dirty = true;
             return _free_list[_free_list_size];
         }
 
@@ -260,6 +259,7 @@ struct MemoryPool{
         void* p = arena->alloc()->data;
         if(arena->empty()){
             _arenas.pop_back();
+            arena->dirty = true;
             _empty_arenas.push_back(arena);
         }
         return p;
