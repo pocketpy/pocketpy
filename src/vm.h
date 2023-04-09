@@ -574,11 +574,11 @@ inline Str VM::disassemble(CodeObject_ co){
     int prev_line = -1;
     for(int i=0; i<co->codes.size(); i++){
         const Bytecode& byte = co->codes[i];
-        Str line = std::to_string(byte.line);
-        if(byte.line == prev_line) line = "";
+        Str line = std::to_string(co->lines[i]);
+        if(co->lines[i] == prev_line) line = "";
         else{
             if(prev_line != -1) ss << "\n";
-            prev_line = byte.line;
+            prev_line = co->lines[i];
         }
 
         std::string pointer;

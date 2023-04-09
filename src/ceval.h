@@ -31,7 +31,7 @@ __NEXT_STEP:;
     heap._auto_collect();
 #endif
 
-    const Bytecode& byte = frame->next_bytecode();
+    Bytecode byte = frame->next_bytecode();
 #if DEBUG_CEVAL_STEP
     std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
 #endif

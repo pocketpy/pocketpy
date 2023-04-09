@@ -35,6 +35,7 @@ inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vect
 struct NameDict {
     using Item = std::pair<StrName, PyObject*>;
     static constexpr uint16_t __Capacity = 128/sizeof(Item);
+    static_assert( (__Capacity & (__Capacity-1)) == 0, "__Capacity must be power of 2" );
     float _load_factor;
     uint16_t _capacity;
     uint16_t _size;

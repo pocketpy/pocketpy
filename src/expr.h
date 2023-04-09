@@ -72,12 +72,13 @@ struct CodeEmitContext{
 
     int emit(Opcode opcode, int arg, int line) {
         co->codes.push_back(
-            Bytecode{(uint16_t)opcode, (uint16_t)curr_block_i, arg, line}
+            Bytecode{(uint16_t)opcode, (uint16_t)curr_block_i, arg}
         );
+        co->lines.push_back(line);
         int i = co->codes.size() - 1;
         if(line==BC_KEEPLINE){
-            if(i>=1) co->codes[i].line = co->codes[i-1].line;
-            else co->codes[i].line = 1;
+            if(i>=1) co->lines[i] = co->lines[i-1];
+            else co->lines[i] = 1;
         }
         return i;
     }
@@ -112,7 +113,6 @@ struct CodeEmitContext{
     }
 };
 
-// PASS
 struct NameExpr: Expr{
     StrName name;
     NameScope scope;
@@ -176,7 +176,7 @@ struct StarredExpr: Expr{
     }
 };
 
-// PASS
+
 struct NotExpr: Expr{
     Expr_ child;
     NotExpr(Expr_&& child): child(std::move(child)) {}
@@ -188,7 +188,6 @@ struct NotExpr: Expr{
     }
 };
 
-// PASS
 struct AndExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
@@ -202,7 +201,6 @@ struct AndExpr: Expr{
     }
 };
 
-// PASS
 struct OrExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
@@ -282,7 +280,6 @@ struct LiteralExpr: Expr{
     bool is_json_object() const override { return true; }
 };
 
-// PASS
 struct NegatedExpr: Expr{
     Expr_ child;
     NegatedExpr(Expr_&& child): child(std::move(child)) {}
@@ -314,7 +311,6 @@ struct NegatedExpr: Expr{
     }
 };
 
-// PASS
 struct SliceExpr: Expr{
     Expr_ start;
     Expr_ stop;
@@ -599,7 +595,6 @@ struct AttribExpr: Expr{
     bool is_attrib() const override { return true; }
 };
 
-// PASS
 struct CallExpr: Expr{
     Expr_ callable;
     std::vector<Expr_> args;
@@ -679,7 +674,7 @@ struct BinaryExpr: Expr{
     }
 };
 
-// PASS
+
 struct TernaryExpr: Expr{
     Expr_ cond;
     Expr_ true_expr;

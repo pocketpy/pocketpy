@@ -35,13 +35,13 @@ struct Frame {
     Frame(Frame&& other) noexcept = default;
     Frame& operator=(Frame&& other) noexcept = default;
 
-    const Bytecode& next_bytecode() {
+    Bytecode next_bytecode() {
         _ip = _next_ip++;
         return co->codes[_ip];
     }
 
     Str snapshot(){
-        int line = co->codes[_ip].line;
+        int line = co->lines[_ip];
         return co->src->snapshot(line);
     }
 

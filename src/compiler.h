@@ -173,17 +173,17 @@ class Compiler {
         return expr;
     }
 
-    // PASS
+    
     void exprLiteral(){
         ctx()->s_expr.push(make_expr<LiteralExpr>(prev().value));
     }
 
-    // PASS
+    
     void exprFString(){
         ctx()->s_expr.push(make_expr<FStringExpr>(std::get<Str>(prev().value)));
     }
 
-    // PASS
+    
     void exprLambda(){
         auto e = make_expr<LambdaExpr>(name_scope());
         if(!match(TK(":"))){
@@ -197,7 +197,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprTuple(){
         std::vector<Expr_> items;
         items.push_back(ctx()->s_expr.popx());
@@ -210,7 +210,7 @@ class Compiler {
         ));
     }
 
-    // PASS
+    
     void exprOr(){
         auto e = make_expr<OrExpr>();
         e->lhs = ctx()->s_expr.popx();
@@ -219,7 +219,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprAnd(){
         auto e = make_expr<AndExpr>();
         e->lhs = ctx()->s_expr.popx();
@@ -228,7 +228,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprTernary(){
         auto e = make_expr<TernaryExpr>();
         e->cond = ctx()->s_expr.popx();
@@ -240,7 +240,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprBinaryOp(){
         auto e = make_expr<BinaryExpr>();
         e->op = prev().type;
@@ -250,13 +250,13 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprNot() {
         parse_expression(PREC_LOGICAL_NOT + 1);
         ctx()->s_expr.push(make_expr<NotExpr>(ctx()->s_expr.popx()));
     }
 
-    // PASS
+    
     void exprUnaryOp(){
         TokenIndex op = prev().type;
         parse_expression(PREC_UNARY + 1);
@@ -271,7 +271,7 @@ class Compiler {
         }
     }
 
-    // PASS
+    
     void exprGroup(){
         match_newlines_repl();
         EXPR_TUPLE();   // () is just for change precedence
@@ -279,7 +279,7 @@ class Compiler {
         consume(TK(")"));
     }
 
-    // PASS
+    
     template<typename T>
     void _consume_comp(Expr_ expr){
         static_assert(std::is_base_of<CompExpr, T>::value);
@@ -298,7 +298,7 @@ class Compiler {
         match_newlines_repl();
     }
 
-    // PASS
+    
     void exprList() {
         int line = prev().line;
         std::vector<Expr_> items;
@@ -321,7 +321,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprMap() {
         bool parsing_dict = false;  // {...} may be dict or set
         std::vector<Expr_> items;
@@ -359,7 +359,7 @@ class Compiler {
         }
     }
 
-    // PASS
+    
     void exprCall() {
         auto e = make_expr<CallExpr>();
         e->callable = ctx()->s_expr.popx();
@@ -385,7 +385,7 @@ class Compiler {
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprName(){
         Str name = prev().str();
         NameScope scope = name_scope();
@@ -395,7 +395,7 @@ class Compiler {
         ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
     }
 
-    // PASS
+    
     void exprAttrib() {
         consume(TK("@id"));
         ctx()->s_expr.push(
@@ -403,7 +403,7 @@ class Compiler {
         );
     }
 
-    // PASS
+    
     void exprSubscr() {
         auto e = make_expr<SubscrExpr>();
         e->a = ctx()->s_expr.popx();
@@ -470,7 +470,7 @@ __SUBSCR_END:
         ctx()->s_expr.push(std::move(e));
     }
 
-    // PASS
+    
     void exprLiteral0() {
         ctx()->s_expr.push(make_expr<Literal0Expr>(prev().type));
     }
@@ -559,7 +559,7 @@ __SUBSCR_END:
         if(!push_stack) ctx()->emit_expr();
     }
 
-    // PASS
+    
     void compile_if_stmt() {
         EXPR(false);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
@@ -579,7 +579,7 @@ __SUBSCR_END:
         }
     }
 
-    // PASS
+    
     void compile_while_loop() {
         ctx()->enter_block(WHILE_LOOP);
         EXPR(false);   // condition
@@ -590,7 +590,7 @@ __SUBSCR_END:
         ctx()->exit_block();
     }
 
-    // PASS
+    
     void compile_for_loop() {
         Expr_ vars = EXPR_VARS();
         consume(TK("in"));
@@ -802,7 +802,7 @@ __SUBSCR_END:
         }
     }
 
-    // PASS
+    
     void compile_class(){
         consume(TK("@id"));
         int namei = ctx()->add_name(prev().str());

@@ -23,7 +23,6 @@ struct Bytecode{
     uint16_t op;
     uint16_t block;
     int arg;
-    int line;
 };
 
 enum CodeBlockType {
@@ -55,6 +54,7 @@ struct CodeObject {
     }
 
     std::vector<Bytecode> codes;
+    std::vector<int> lines; // line number for each bytecode
     List consts;
     std::vector<StrName> names;
     std::set<Str> global_names;
