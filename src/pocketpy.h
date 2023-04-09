@@ -25,23 +25,23 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
 }
 
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
+    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                               \
         if(is_both_int(args[0], args[1])){                                                              \
-            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                     \
+            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                                     \
         }else{                                                                                          \
-            return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                 \
+            return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                         \
         }                                                                                               \
     });
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
-    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                         \
+    _vm->_bind_methods<1>({"int","float"}, #name, [](VM* vm, Args& args){                               \
+        if(is_both_int(args[0], args[1]))                                                               \
+            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                                     \
         if(!is_both_int_or_float(args[0], args[1])){                                                    \
-            if constexpr(is_eq) return VAR(args[0] op args[1]);                                  \
+            if constexpr(is_eq) return VAR(args[0] op args[1]);                                         \
             vm->TypeError("unsupported operand type(s) for " #op );                                     \
         }                                                                                               \
-        if(is_both_int(args[0], args[1]))                                                               \
-            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                    \
-        return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                      \
+        return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                             \
     });
     
 

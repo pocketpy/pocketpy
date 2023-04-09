@@ -650,30 +650,30 @@ struct BinaryExpr: Expr{
         lhs->emit(ctx);
         rhs->emit(ctx);
         switch (op) {
-            case TK("+"):   ctx->emit(OP_BINARY_OP, 0, line);  break;
-            case TK("-"):   ctx->emit(OP_BINARY_OP, 1, line);  break;
-            case TK("*"):   ctx->emit(OP_BINARY_OP, 2, line);  break;
+            case TK("+"):   ctx->emit(OP_BINARY_ADD, BC_NOARG, line);  break;
+            case TK("-"):   ctx->emit(OP_BINARY_SUB, BC_NOARG, line);  break;
+            case TK("*"):   ctx->emit(OP_BINARY_MUL, BC_NOARG, line);  break;
             case TK("/"):   ctx->emit(OP_BINARY_OP, 3, line);  break;
-            case TK("//"):  ctx->emit(OP_BINARY_OP, 4, line);  break;
-            case TK("%"):   ctx->emit(OP_BINARY_OP, 5, line);  break;
+            case TK("//"):  ctx->emit(OP_BINARY_FLOORDIV, BC_NOARG, line);  break;
+            case TK("%"):   ctx->emit(OP_BINARY_MOD, BC_NOARG, line);  break;
             case TK("**"):  ctx->emit(OP_BINARY_OP, 6, line);  break;
 
-            case TK("<"):   ctx->emit(OP_COMPARE_OP, 0, line);    break;
-            case TK("<="):  ctx->emit(OP_COMPARE_OP, 1, line);    break;
-            case TK("=="):  ctx->emit(OP_COMPARE_OP, 2, line);    break;
-            case TK("!="):  ctx->emit(OP_COMPARE_OP, 3, line);    break;
-            case TK(">"):   ctx->emit(OP_COMPARE_OP, 4, line);    break;
-            case TK(">="):  ctx->emit(OP_COMPARE_OP, 5, line);    break;
+            case TK("<"):   ctx->emit(OP_COMPARE_LT, BC_NOARG, line);  break;
+            case TK("<="):  ctx->emit(OP_COMPARE_LE, BC_NOARG, line);  break;
+            case TK("=="):  ctx->emit(OP_COMPARE_EQ, BC_NOARG, line);  break;
+            case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
+            case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
+            case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
             case TK("in"):      ctx->emit(OP_CONTAINS_OP, 0, line);   break;
             case TK("not in"):  ctx->emit(OP_CONTAINS_OP, 1, line);   break;
             case TK("is"):      ctx->emit(OP_IS_OP, 0, line);         break;
             case TK("is not"):  ctx->emit(OP_IS_OP, 1, line);         break;
 
-            case TK("<<"):  ctx->emit(OP_BITWISE_OP, 0, line);    break;
-            case TK(">>"):  ctx->emit(OP_BITWISE_OP, 1, line);    break;
-            case TK("&"):   ctx->emit(OP_BITWISE_OP, 2, line);    break;
-            case TK("|"):   ctx->emit(OP_BITWISE_OP, 3, line);    break;
-            case TK("^"):   ctx->emit(OP_BITWISE_OP, 4, line);    break;
+            case TK("<<"):  ctx->emit(OP_BITWISE_LSHIFT, BC_NOARG, line);  break;
+            case TK(">>"):  ctx->emit(OP_BITWISE_RSHIFT, BC_NOARG, line);  break;
+            case TK("&"):   ctx->emit(OP_BITWISE_AND, BC_NOARG, line);  break;
+            case TK("|"):   ctx->emit(OP_BITWISE_OR, BC_NOARG, line);  break;
+            case TK("^"):   ctx->emit(OP_BITWISE_XOR, BC_NOARG, line);  break;
             default: UNREACHABLE();
         }
     }

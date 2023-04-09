@@ -404,10 +404,13 @@ const StrName m_add = StrName::get("add");
 const StrName __enter__ = StrName::get("__enter__");
 const StrName __exit__ = StrName::get("__exit__");
 
-const StrName COMPARE_SPECIAL_METHODS[] = {
-    StrName::get("__lt__"), StrName::get("__le__"), StrName::get("__eq__"),
-    StrName::get("__ne__"), StrName::get("__gt__"), StrName::get("__ge__")
-};
+const StrName __add__ = StrName::get("__add__");
+const StrName __sub__ = StrName::get("__sub__");
+const StrName __mul__ = StrName::get("__mul__");
+// const StrName __truediv__ = StrName::get("__truediv__");
+const StrName __floordiv__ = StrName::get("__floordiv__");
+const StrName __mod__ = StrName::get("__mod__");
+// const StrName __pow__ = StrName::get("__pow__");
 
 const StrName BINARY_SPECIAL_METHODS[] = {
     StrName::get("__add__"), StrName::get("__sub__"), StrName::get("__mul__"),
@@ -415,9 +418,17 @@ const StrName BINARY_SPECIAL_METHODS[] = {
     StrName::get("__mod__"), StrName::get("__pow__")
 };
 
-const StrName BITWISE_SPECIAL_METHODS[] = {
-    StrName::get("__lshift__"), StrName::get("__rshift__"),
-    StrName::get("__and__"), StrName::get("__or__"), StrName::get("__xor__")
-};
+const StrName __lt__ = StrName::get("__lt__");
+const StrName __le__ = StrName::get("__le__");
+const StrName __eq__ = StrName::get("__eq__");
+const StrName __ne__ = StrName::get("__ne__");
+const StrName __gt__ = StrName::get("__gt__");
+const StrName __ge__ = StrName::get("__ge__");
+
+const StrName __lshift__ = StrName::get("__lshift__");
+const StrName __rshift__ = StrName::get("__rshift__");
+const StrName __and__ = StrName::get("__and__");
+const StrName __or__ = StrName::get("__or__");
+const StrName __xor__ = StrName::get("__xor__");
 
 } // namespace pkpy

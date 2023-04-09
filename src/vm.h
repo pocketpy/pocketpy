@@ -592,12 +592,6 @@ inline Str VM::disassemble(CodeObject_ co){
             case OP_BINARY_OP:
                 argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
                 break;
-            case OP_COMPARE_OP:
-                argStr += fmt(" (", COMPARE_SPECIAL_METHODS[byte.arg], ")");
-                break;
-            case OP_BITWISE_OP:
-                argStr += fmt(" (", BITWISE_SPECIAL_METHODS[byte.arg], ")");
-                break;
         }
         ss << pad(argStr, 40);      // may overflow
         ss << co->blocks[byte.block].type;

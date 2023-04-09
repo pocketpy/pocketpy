@@ -180,18 +180,54 @@ __NEXT_STEP:;
         args[0] = frame->top();     // rhs
         frame->top() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
     } DISPATCH();
-    case OP_COMPARE_OP: {
-        Args args(2);
-        args[1] = frame->popx();    // lhs
-        args[0] = frame->top();     // rhs
-        frame->top() = fast_call(COMPARE_SPECIAL_METHODS[byte.arg], std::move(args));
-    } DISPATCH();
-    case OP_BITWISE_OP: {
-        Args args(2);
-        args[1] = frame->popx();    // lhs
-        args[0] = frame->top();     // rhs
-        frame->top() = fast_call(BITWISE_SPECIAL_METHODS[byte.arg], std::move(args));
-    } DISPATCH();
+
+#define INT_BINARY_OP(op, func) \
+        if(is_both_int(frame->top(), frame->top_1())){      \
+            i64 b = _CAST(i64, frame->top());               \
+            i64 a = _CAST(i64, frame->top_1());             \
+            frame->pop();                                   \
+            frame->top() = VAR(a op b);                     \
+        }else{                                              \
+            Args args(2);                                   \
+            args[1] = frame->popx();                        \
+            args[0] = frame->top();                         \
+            frame->top() = fast_call(func, std::move(args));\
+        }                                                   \
+        DISPATCH();
+
+    case OP_BINARY_ADD:
+        INT_BINARY_OP(+, __add__)
+    case OP_BINARY_SUB:
+        INT_BINARY_OP(-, __sub__)
+    case OP_BINARY_MUL:
+        INT_BINARY_OP(*, __mul__)
+    case OP_BINARY_FLOORDIV:
+        INT_BINARY_OP(/, __floordiv__)
+    case OP_BINARY_MOD:
+        INT_BINARY_OP(%, __mod__)
+    case OP_COMPARE_LT:
+        INT_BINARY_OP(<, __lt__)
+    case OP_COMPARE_LE:
+        INT_BINARY_OP(<=, __le__)
+    case OP_COMPARE_EQ:
+        INT_BINARY_OP(==, __eq__)
+    case OP_COMPARE_NE:
+        INT_BINARY_OP(!=, __ne__)
+    case OP_COMPARE_GT:
+        INT_BINARY_OP(>, __gt__)
+    case OP_COMPARE_GE:
+        INT_BINARY_OP(>=, __ge__)
+    case OP_BITWISE_LSHIFT:
+        INT_BINARY_OP(<<, __lshift__)
+    case OP_BITWISE_RSHIFT:
+        INT_BINARY_OP(>>, __rshift__)
+    case OP_BITWISE_AND:
+        INT_BINARY_OP(&, __and__)
+    case OP_BITWISE_OR:
+        INT_BINARY_OP(|, __or__)
+    case OP_BITWISE_XOR:
+        INT_BINARY_OP(^, __xor__)
+#undef INT_BINARY_OP
     case OP_IS_OP: {
         PyObject* rhs = frame->popx();
         PyObject* lhs = frame->top();
