@@ -674,21 +674,6 @@ inline void VM::init_builtin_types(){
 
 // TODO: callable/args here may be garbage collected accidentally
 inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
-    if(is_type(callable, tp_type)){
-        PyObject* new_f = callable->attr().try_get(__new__);
-        PyObject* obj;
-        if(new_f != nullptr){
-            obj = call(new_f, std::move(args), kwargs, false);
-        }else{
-            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
-            PyObject* self;
-            PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
-            args.extend_self(self);
-            if (self != _py_null) call(init_f, std::move(args), kwargs, false);
-        }
-        return obj;
-    }
-
     if(is_type(callable, tp_bound_method)){
         auto& bm = CAST(BoundMethod&, callable);
         callable = bm.method;      // get unbound method
@@ -716,7 +701,9 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             TypeError(fmt("missing positional argument ", name.escape()));
         }
 
-        locals->update(fn.decl->kwargs);
+        // NameDict.update is of O(capacity) complexity
+        // so we try not to call it if possible
+        if(fn.decl->kwargs.size()!=0) locals->update(fn.decl->kwargs);
 
         if(!fn.decl->starred_arg.empty()){
             List vargs;        // handle *args
@@ -746,6 +733,21 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         callstack.push(std::move(_frame));
         if(opCall) return _py_op_call;
         return _exec();
+    }
+
+    if(is_type(callable, tp_type)){
+        PyObject* new_f = callable->attr().try_get(__new__);
+        PyObject* obj;
+        if(new_f != nullptr){
+            obj = call(new_f, std::move(args), kwargs, false);
+        }else{
+            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
+            PyObject* self;
+            PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
+            args.extend_self(self);
+            if (self != _py_null) call(init_f, std::move(args), kwargs, false);
+        }
+        return obj;
     }
 
     PyObject* self;
