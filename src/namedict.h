@@ -34,9 +34,10 @@ inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vect
 
 struct NameDict {
     using Item = std::pair<StrName, PyObject*>;
+    static constexpr uint16_t __Capacity = 128/sizeof(Item);
+    float _load_factor;
     uint16_t _capacity;
     uint16_t _size;
-    float _load_factor;
     uint16_t _hash_seed;
     uint16_t _mask;
     Item* _items;
@@ -46,8 +47,8 @@ struct NameDict {
         memset(_items, 0, cap * sizeof(Item));
     }
 
-    NameDict(uint16_t capacity=2, float load_factor=0.67, uint16_t hash_seed=kHashSeeds[0]):
-        _capacity(capacity), _size(0), _load_factor(load_factor),
+    NameDict(float load_factor=0.67, uint16_t capacity=__Capacity, uint16_t hash_seed=kHashSeeds[0]):
+        _load_factor(load_factor), _capacity(capacity), _size(0), 
         _hash_seed(hash_seed), _mask(capacity-1) {
         _alloc(capacity);
     }

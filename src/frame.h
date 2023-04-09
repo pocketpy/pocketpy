@@ -26,7 +26,7 @@ struct Frame {
         return _closure->try_get(name);
     }
 
-    Frame(const CodeObject_& co, PyObject* _module, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
+    Frame(const CodeObject_& co, PyObject* _module, const NameDict_& _locals=nullptr, const NameDict_& _closure=nullptr)
             : co(co.get()), _module(_module), _locals(_locals), _closure(_closure) {
     }
 
@@ -153,6 +153,8 @@ struct Frame {
     }
 
     void _gc_mark() const {
+        // this frame has been moved
+        if(_data._data == nullptr) return;
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
         if(_locals != nullptr) _locals->_gc_mark();

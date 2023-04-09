@@ -62,9 +62,8 @@ struct CodeObject {
     std::map<StrName, int> labels;
     std::vector<FuncDecl_> func_decls;
 
-    // may be.. just use a large NameDict?
-    uint32_t perfect_locals_capacity = 2;
-    uint32_t perfect_hash_seed = 0;
+    uint32_t perfect_locals_capacity = NameDict::__Capacity;
+    uint32_t perfect_hash_seed = kHashSeeds[0];
 
     void optimize(VM* vm);
 

@@ -131,11 +131,11 @@ struct Py_ : PyObject {
 
     void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kTypeAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kInstAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(kInstAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, Function> || std::is_same_v<T, NativeFunc>){
-            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kInstAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }

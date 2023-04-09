@@ -365,7 +365,7 @@ inline void CodeObject::optimize(VM* vm){
     // here we simple pass all names, but only some of them are NAME_LOCAL
     // TODO: ...
     uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
-    perfect_locals_capacity = find_next_capacity(base_n);
+    perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
     perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
 }
 
@@ -701,8 +701,8 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
         NameDict_ locals = make_sp<NameDict>(
-            fn.decl->code->perfect_locals_capacity,
             kLocalsLoadFactor,
+            fn.decl->code->perfect_locals_capacity,
             fn.decl->code->perfect_hash_seed
         );
 
@@ -910,6 +910,7 @@ inline PyObject* VM::_exec(){
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
+    PyObject* ret;
 
     while(true){
 #if DEBUG_EXTRA_CHECK
@@ -917,7 +918,7 @@ inline PyObject* VM::_exec(){
 #endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
-            PyObject* ret = run_frame(frame);
+            ret = run_frame(frame);
             if(ret == _py_op_yield) return _py_op_yield;
             if(ret != _py_op_call){
                 if(frame.index == base_id){       // [ frameBase<- ]
