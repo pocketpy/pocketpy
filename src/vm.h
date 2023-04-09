@@ -94,6 +94,7 @@ public:
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
         this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
+        callstack.data().reserve(8);
         init_builtin_types();
     }
 
