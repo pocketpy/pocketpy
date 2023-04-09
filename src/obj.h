@@ -112,7 +112,11 @@ struct PyObject {
     virtual void _obj_gc_mark() = 0;
 
     PyObject(Type type) : type(type) {}
-    virtual ~PyObject() { delete _attr; }
+    virtual ~PyObject() {
+        if(_attr == nullptr) return;
+        _attr->~NameDict();
+        pool64.dealloc(_attr);
+    }
 };
 
 template<typename T>
@@ -127,11 +131,11 @@ struct Py_ : PyObject {
 
     void _init() noexcept {
         if constexpr (std::is_same_v<T, Type> || std::is_same_v<T, DummyModule>) {
-            _attr = new NameDict(8, kTypeAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kTypeAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, DummyInstance>){
-            _attr = new NameDict(8, kInstAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kInstAttrLoadFactor);
         }else if constexpr(std::is_same_v<T, Function> || std::is_same_v<T, NativeFunc>){
-            _attr = new NameDict(8, kInstAttrLoadFactor);
+            _attr = new(pool64.alloc<NameDict>()) NameDict(8, kInstAttrLoadFactor);
         }else{
             _attr = nullptr;
         }
