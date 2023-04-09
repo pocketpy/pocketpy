@@ -2,8 +2,6 @@
 
 #include "common.h"
 #include "vm.h"
-#include <type_traits>
-#include <vector>
 
 namespace pkpy {
 
@@ -14,7 +12,7 @@ struct NativeProxyFunc {
     _Fp func;
     NativeProxyFunc(_Fp func) : func(func) {}
 
-    PyVar operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, Args& args) {
         if (args.size() != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
         }
@@ -22,13 +20,13 @@ struct NativeProxyFunc {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         func(py_cast<Params>(vm, args[Is])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         __Ret ret = func(py_cast<Params>(vm, args[Is])...);
         return VAR(std::move(ret));
     }
@@ -41,7 +39,7 @@ struct NativeProxyMethod {
     _Fp func;
     NativeProxyMethod(_Fp func) : func(func) {}
 
-    PyVar operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, Args& args) {
         int actual_size = args.size() - 1;
         if (actual_size != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
@@ -50,14 +48,14 @@ struct NativeProxyMethod {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyVar> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return VAR(std::move(ret));
@@ -133,14 +131,14 @@ struct TypeDB{
         return index == 0 ? nullptr : &_by_index[index-1];
     }
 
-    const TypeInfo* get(const char name[]) const {
+    const TypeInfo* get(std::string_view name) const {
         auto it = _by_name.find(name);
         if(it == _by_name.end()) return nullptr;
         return get(it->second);
     }
 
     const TypeInfo* get(const Str& s) const {
-        return get(s.c_str());
+        return get(s.sv());
     }
 
     template<typename T>
@@ -152,7 +150,7 @@ struct TypeDB{
 static TypeDB _type_db;
 
 
-auto _ = [](){
+inline static auto ___x = [](){
     #define REGISTER_BASIC_TYPE(T) _type_db.register_type<T>(#T, {});
     _type_db.register_type<void>("void", {});
     REGISTER_BASIC_TYPE(char);
@@ -200,12 +198,12 @@ struct Pointer{
         return Pointer(ctype, level, ptr-offset*unit_size());
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
             Pointer& self = CAST(Pointer&, args[0]);
-            StrStream ss;
+            std::stringstream ss;
             ss << "<" << self.ctype->name;
             for(int i=0; i<self.level; i++) ss << "*";
             ss << " at " << (i64)self.ptr << ">";
@@ -266,9 +264,9 @@ struct Pointer{
     }
 
     template<typename T>
-    inline T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
+    T& ref() noexcept { return *reinterpret_cast<T*>(ptr); }
 
-    PyVar get(VM* vm){
+    PyObject* get(VM* vm){
         if(level > 1) return VAR_T(Pointer, ctype, level-1, ref<char*>());
         switch(ctype->index){
 #define CASE(T) case type_index<T>(): return VAR(ref<T>())
@@ -291,7 +289,7 @@ struct Pointer{
         return VAR_T(Pointer, *this);
     }
 
-    void set(VM* vm, const PyVar& val){
+    void set(VM* vm, PyObject* val){
         if(level > 1) {
             Pointer& p = CAST(Pointer&, val);
             ref<char*>() = p.ptr;   // We don't check the type, just copy the underlying address
@@ -321,7 +319,7 @@ struct Pointer{
     Pointer _to(VM* vm, StrName name){
         auto it = ctype->members.find(name);
         if(it == ctype->members.end()){
-            vm->AttributeError(Str("struct '") + ctype->name + "' has no member " + name.str().escape(true));
+            vm->AttributeError(fmt("struct '", ctype->name, "' has no member ", name.escape()));
         }
         const MemberInfo& info = it->second;
         return {info.type, level, ptr+info.offset};
@@ -359,7 +357,7 @@ struct Value {
     Value& operator=(const Value& other) = delete;
     Value(const Value& other) = delete;
     
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "ptr", [](VM* vm, Args& args) {
@@ -388,11 +386,11 @@ struct CType{
     CType() : type(_type_db.get<void>()) {}
     CType(const TypeInfo* type) : type(type) {}
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<1>(type, "__new__", [](VM* vm, Args& args) {
             const Str& name = CAST(Str&, args[0]);
             const TypeInfo* type = _type_db.get(name);
-            if(type == nullptr) vm->TypeError("unknown type: " + name.escape(true));
+            if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
             return VAR_T(CType, type);
         });
 
@@ -403,9 +401,9 @@ struct CType{
     }
 };
 
-void add_module_c(VM* vm){
-    PyVar mod = vm->new_module("c");
-    PyVar ptr_t = Pointer::register_class(vm, mod);
+inline void add_module_c(VM* vm){
+    PyObject* mod = vm->new_module("c");
+    Pointer::register_class(vm, mod);
     Value::register_class(vm, mod);
     CType::register_class(vm, mod);
 
@@ -434,22 +432,22 @@ void add_module_c(VM* vm){
         Pointer& self = CAST(Pointer&, args[0]);
         const Str& name = CAST(Str&, args[1]);
         int level = 0;
-        for(int i=name.size()-1; i>=0; i--){
+        for(int i=name.length()-1; i>=0; i--){
             if(name[i] == '*') level++;
             else break;
         }
         if(level == 0) vm->TypeError("expect a pointer type, such as 'int*'");
-        Str type_s = name.substr(0, name.size()-level);
+        Str type_s = name.substr(0, name.length()-level);
         const TypeInfo* type = _type_db.get(type_s);
-        if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape(true));
+        if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape());
         return VAR_T(Pointer, type, level, self.ptr);
     });
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
         const Str& name = CAST(Str&, args[0]);
-        if(name.find('*') != Str::npos) return VAR(sizeof(void*));
+        if(name.index("*") != -1) return VAR(sizeof(void*));
         const TypeInfo* type = _type_db.get(name);
-        if(type == nullptr) vm->TypeError("unknown type: " + name.escape(true));
+        if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
         return VAR(type->size);
     });
 
@@ -462,11 +460,11 @@ void add_module_c(VM* vm){
     });
 }
 
-PyVar py_var(VM* vm, void* p){
+inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(Pointer, _type_db.get<void>(), (char*)p);
 }
 
-PyVar py_var(VM* vm, char* p){
+inline PyObject* py_var(VM* vm, char* p){
     return VAR_T(Pointer, _type_db.get<char>(), (char*)p);
 }
 
@@ -491,7 +489,7 @@ struct pointer {
 };
 
 template<typename T>
-T py_pointer_cast(VM* vm, const PyVar& var){
+T py_pointer_cast(VM* vm, PyObject* var){
     static_assert(std::is_pointer_v<T>);
     Pointer& p = CAST(Pointer&, var);
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
@@ -503,14 +501,14 @@ T py_pointer_cast(VM* vm, const PyVar& var){
 }
 
 template<typename T>
-T py_value_cast(VM* vm, const PyVar& var){
+T py_value_cast(VM* vm, PyObject* var){
     static_assert(std::is_pod_v<T>);
     Value& v = CAST(Value&, var);
     return *reinterpret_cast<T*>(v.data);
 }
 
 template<typename T>
-std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyVar>
+std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyObject*>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     if(type == nullptr) type = _type_db.get<void>();
@@ -518,9 +516,9 @@ py_var(VM* vm, T p){
 }
 
 template<typename T>
-std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyVar>
+std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyObject*>
 py_var(VM* vm, T p){
-    if constexpr(std::is_same_v<T, PyVar>) return p;
+    if constexpr(std::is_same_v<T, PyObject*>) return p;
     const TypeInfo* type = _type_db.get<T>();
     return VAR_T(Value, type, &p);
 }

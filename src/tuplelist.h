@@ -3,108 +3,84 @@
 #include "common.h"
 #include "memory.h"
 #include "str.h"
+#include "vector.h"
 
 namespace pkpy {
-    using List = std::vector<PyVar>;
 
-    class Args {
-        static THREAD_LOCAL SmallArrayPool<PyVar, 10> _pool;
+using List = pod_vector<PyObject*>;
 
-        PyVar* _args;
-        int _size;
+class Args {
+    PyObject** _args;
+    int _size;
 
-        inline void _alloc(int n){
-            this->_args = _pool.alloc(n);
-            this->_size = n;
-        }
+    void _alloc(int n){
+        this->_args = (n==0) ? nullptr : (PyObject**)pool64.alloc(n * sizeof(void*));
+        this->_size = n;
+    }
 
-    public:
-        Args(int n){ _alloc(n); }
+public:
+    Args(int n){ _alloc(n); }
 
-        Args(const Args& other){
-            _alloc(other._size);
-            for(int i=0; i<_size; i++) _args[i] = other._args[i];
-        }
+    Args(const Args& other){
+        _alloc(other._size);
+        for(int i=0; i<_size; i++) _args[i] = other._args[i];
+    }
 
-        Args(Args&& other) noexcept {
-            this->_args = other._args;
-            this->_size = other._size;
-            other._args = nullptr;
-            other._size = 0;
-        }
+    Args(Args&& other) noexcept {
+        this->_args = other._args;
+        this->_size = other._size;
+        other._args = nullptr;
+        other._size = 0;
+    }
 
-        static pkpy::Args from_list(List&& other) noexcept {
-            Args ret(other.size());
-            memcpy((void*)ret._args, (void*)other.data(), sizeof(PyVar)*ret.size());
-            memset((void*)other.data(), 0, sizeof(PyVar)*ret.size());
-            other.clear();
-            return ret;
-        }
+    Args(std::initializer_list<PyObject*> list) : Args(list.size()){
+        int i = 0;
+        for(PyObject* p : list) _args[i++] = p;
+    }
 
-        PyVar& operator[](int i){ return _args[i]; }
-        const PyVar& operator[](int i) const { return _args[i]; }
+    Args(List&& other) noexcept : Args(other.size()){
+        for(int i=0; i<_size; i++) _args[i] = other[i];
+        other.clear();
+    }
 
-        Args& operator=(Args&& other) noexcept {
-            _pool.dealloc(_args, _size);
-            this->_args = other._args;
-            this->_size = other._size;
-            other._args = nullptr;
-            other._size = 0;
-            return *this;
-        }
+    PyObject*& operator[](int i){ return _args[i]; }
+    PyObject* operator[](int i) const { return _args[i]; }
 
-        inline int size() const { return _size; }
+    Args& operator=(Args&& other) noexcept {
+        if(_args!=nullptr) pool64.dealloc(_args);
+        this->_args = other._args;
+        this->_size = other._size;
+        other._args = nullptr;
+        other._size = 0;
+        return *this;
+    }
 
-        List move_to_list() noexcept {
-            List ret(_size);
-            memcpy((void*)ret.data(), (void*)_args, sizeof(PyVar)*_size);
-            memset((void*)_args, 0, sizeof(PyVar)*_size);
-            return ret;
-        }
+    int size() const { return _size; }
 
-        void extend_self(const PyVar& self){
-            static_assert(std::is_standard_layout_v<PyVar>);
-            PyVar* old_args = _args;
-            int old_size = _size;
-            _alloc(old_size+1);
-            _args[0] = self;
-            if(old_size == 0) return;
+    List to_list() noexcept {
+        List ret(_size);
+        // TODO: use move/memcpy
+        for(int i=0; i<_size; i++) ret[i] = _args[i];
+        return ret;
+    }
 
-            memcpy((void*)(_args+1), (void*)old_args, sizeof(PyVar)*old_size);
-            memset((void*)old_args, 0, sizeof(PyVar)*old_size);
-            _pool.dealloc(old_args, old_size);
-        }
+    void extend_self(PyObject* self){
+        PyObject** old_args = _args;
+        int old_size = _size;
+        _alloc(old_size+1);
+        _args[0] = self;
+        for(int i=0; i<old_size; i++) _args[i+1] = old_args[i];
+        if(old_args!=nullptr) pool64.dealloc(old_args);
+    }
 
-        ~Args(){ _pool.dealloc(_args, _size); }
-    };
+    ~Args(){ if(_args!=nullptr) pool64.dealloc(_args); }
+};
 
+inline const Args& no_arg() {
     static const Args _zero(0);
-    inline const Args& no_arg() { return _zero; }
+    return _zero;
+}
 
-    template<typename T>
-    Args one_arg(T&& a) {
-        Args ret(1);
-        ret[0] = std::forward<T>(a);
-        return ret;
-    }
+typedef Args Tuple;
 
-    template<typename T1, typename T2>
-    Args two_args(T1&& a, T2&& b) {
-        Args ret(2);
-        ret[0] = std::forward<T1>(a);
-        ret[1] = std::forward<T2>(b);
-        return ret;
-    }
-
-    template<typename T1, typename T2, typename T3>
-    Args three_args(T1&& a, T2&& b, T3&& c) {
-        Args ret(3);
-        ret[0] = std::forward<T1>(a);
-        ret[1] = std::forward<T2>(b);
-        ret[2] = std::forward<T3>(c);
-        return ret;
-    }
-
-    typedef Args Tuple;
-    THREAD_LOCAL SmallArrayPool<PyVar, 10> Args::_pool;
 }   // namespace pkpy

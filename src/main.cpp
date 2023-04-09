@@ -21,7 +21,6 @@ std::string getline(bool* eof=nullptr) {
     std::string output;
     output.resize(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    if(!output.empty() && output.back() == '\r') output.pop_back();
     return output;
 }
 
@@ -66,16 +65,20 @@ int main(int argc, char** argv){
         filepath = std::filesystem::absolute(filepath);
         if(!std::filesystem::exists(filepath)){
             std::cerr << "File not found: " << argv_1 << std::endl;
-            return 1;
+            return 2;
         }        
         std::ifstream file(filepath);
-        if(!file.is_open()) return 1;
+        if(!file.is_open()){
+            std::cerr << "Failed to open file: " << argv_1 << std::endl;
+            return 3;
+        }
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        file.close();
 
         // set parent path as cwd
         std::filesystem::current_path(filepath.parent_path());
 
-        pkpy::PyVarOrNull ret = nullptr;
+        pkpy::PyObject* ret = nullptr;
         ret = vm->exec(src.c_str(), argv_1, pkpy::EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;

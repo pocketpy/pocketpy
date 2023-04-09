@@ -27,7 +27,11 @@ def test_dir(path):
             print(f'  cpython:  {_1 - _0:.6f}s (100%)')
             print(f'  pocketpy: {_2 - _1:.6f}s ({(_2 - _1) / (_1 - _0) * 100:.2f}%)')
         else:
-            if not test_file(filepath): exit(1)
+            if not test_file(filepath):
+                print('-' * 50)
+                print("TEST FAILED! Press any key to continue...")
+                input()
+
 
 if len(sys.argv) == 2:
     assert 'benchmark' in sys.argv[1]

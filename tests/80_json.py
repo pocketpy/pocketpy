@@ -3,12 +3,12 @@ a = {
     'b': 2,
     'c': None,
     'd': [1, 2, 3],
-    # 'e': {
-    #     'a': 1,
-    #     'b': 2,
-    #     'c': None,
-    #     'd': [1, 2, 3],
-    # },
+    'e': {
+        'a': 1,
+        'b': 2,
+        'c': None,
+        'd': [1, 2, 3],
+    },
     "f": 'This is a string',
     'g': [True, False, None],
     'h': False

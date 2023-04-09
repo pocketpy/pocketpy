@@ -5,12 +5,7 @@
 
 namespace pkpy{
 
-enum NameScope {
-    NAME_LOCAL = 0,
-    NAME_GLOBAL,
-    NAME_ATTR,
-    NAME_SPECIAL,
-};
+enum NameScope { NAME_LOCAL, NAME_GLOBAL };
 
 enum Opcode {
     #define OPCODE(name) OP_##name,
@@ -18,23 +13,18 @@ enum Opcode {
     #undef OPCODE
 };
 
-static const char* OP_NAMES[] = {
+inline const char* OP_NAMES[] = {
     #define OPCODE(name) #name,
     #include "opcodes.h"
     #undef OPCODE
 };
 
 struct Bytecode{
-    uint8_t op;
+    uint16_t op;
+    uint16_t block;
     int arg;
     int line;
-    uint16_t block;
 };
-
-Str pad(const Str& s, const int n){
-    if(s.size() >= n) return s.substr(0, n);
-    return s + std::string(n - s.size(), ' ');
-}
 
 enum CodeBlockType {
     NO_BLOCK,
@@ -44,16 +34,14 @@ enum CodeBlockType {
     TRY_EXCEPT,
 };
 
+#define BC_NOARG       -1
+#define BC_KEEPLINE     -1
+
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
-
-    std::string to_string() const {
-        if(parent == -1) return "";
-        return "[B:" + std::to_string(type) + "]";
-    }
 };
 
 struct CodeObject {
@@ -68,57 +56,22 @@ struct CodeObject {
 
     std::vector<Bytecode> codes;
     List consts;
-    std::vector<std::pair<StrName, NameScope>> names;
-    std::map<StrName, int> global_names;
+    std::vector<StrName> names;
+    std::set<Str> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
     std::map<StrName, int> labels;
+    std::vector<FuncDecl_> func_decls;
 
+    // may be.. just use a large NameDict?
     uint32_t perfect_locals_capacity = 2;
     uint32_t perfect_hash_seed = 0;
 
     void optimize(VM* vm);
 
-    bool add_label(StrName label){
-        if(labels.count(label)) return false;
-        labels[label] = codes.size();
-        return true;
+    void _gc_mark() const {
+        for(PyObject* v : consts) OBJ_MARK(v);
+        for(auto& decl: func_decls) decl->_gc_mark();
     }
-
-    int add_name(StrName name, NameScope scope){
-        if(scope == NAME_LOCAL && global_names.count(name)) scope = NAME_GLOBAL;
-        auto p = std::make_pair(name, scope);
-        for(int i=0; i<names.size(); i++){
-            if(names[i] == p) return i;
-        }
-        names.push_back(p);
-        return names.size() - 1;
-    }
-
-    int add_const(PyVar v){
-        consts.push_back(v);
-        return consts.size() - 1;
-    }
-
-    /************************************************/
-    int _curr_block_i = 0;
-    int _rvalue = 0;
-    bool _is_compiling_class = false;
-    bool _is_curr_block_loop() const {
-        return blocks[_curr_block_i].type == FOR_LOOP || blocks[_curr_block_i].type == WHILE_LOOP;
-    }
-
-    void _enter_block(CodeBlockType type){
-        blocks.push_back(CodeBlock{type, _curr_block_i, (int)codes.size()});
-        _curr_block_i = blocks.size()-1;
-    }
-
-    void _exit_block(){
-        blocks[_curr_block_i].end = codes.size();
-        _curr_block_i = blocks[_curr_block_i].parent;
-        if(_curr_block_i < 0) UNREACHABLE();
-    }
-    /************************************************/
 };
-
 
 } // namespace pkpy

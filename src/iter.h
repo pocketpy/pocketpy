@@ -6,18 +6,18 @@ namespace pkpy{
 
 class RangeIter : public BaseIter {
     i64 current;
-    Range r;
+    Range r;    // copy by value, so we don't need to keep ref
 public:
-    RangeIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        this->r = OBJ_GET(Range, _ref);
+    RangeIter(VM* vm, PyObject* ref) : BaseIter(vm) {
+        this->r = OBJ_GET(Range, ref);
         this->current = r.start;
     }
 
-    inline bool _has_next(){
+    bool _has_next(){
         return r.step > 0 ? current < r.stop : current > r.stop;
     }
 
-    PyVar next(){
+    PyObject* next(){
         if(!_has_next()) return nullptr;
         current += r.step;
         return VAR(current-r.step);
@@ -26,42 +26,64 @@ public:
 
 template <typename T>
 class ArrayIter : public BaseIter {
-    size_t index = 0;
-    const T* p;
+    PyObject* ref;
+    int index;
 public:
-    ArrayIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) { p = &OBJ_GET(T, _ref);}
-    PyVar next(){
+    ArrayIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
+
+    PyObject* next() override{
+        const T* p = &OBJ_GET(T, ref);
         if(index == p->size()) return nullptr;
         return p->operator[](index++); 
+    }
+
+    void _gc_mark() const override {
+        OBJ_MARK(ref);
     }
 };
 
 class StringIter : public BaseIter {
-    int index = 0;
-    Str* str;
+    PyObject* ref;
+    int index;
 public:
-    StringIter(VM* vm, PyVar _ref) : BaseIter(vm, _ref) {
-        str = &OBJ_GET(Str, _ref);
-    }
+    StringIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
 
-    PyVar next() {
+    PyObject* next() override{
+        // TODO: optimize this to use iterator
+        // operator[] is O(n) complexity
+        Str* str = &OBJ_GET(Str, ref);
         if(index == str->u8_length()) return nullptr;
         return VAR(str->u8_getitem(index++));
     }
+
+    void _gc_mark() const override {
+        OBJ_MARK(ref);
+    }
 };
 
-PyVar Generator::next(){
+inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
     vm->callstack.push(std::move(frame));
-    PyVar ret = vm->_exec();
+    PyObject* ret = vm->_exec();
     if(ret == vm->_py_op_yield){
         frame = std::move(vm->callstack.top());
         vm->callstack.pop();
         state = 1;
-        return frame->pop_value(vm);
+        return frame->popx();
     }else{
         state = 2;
         return nullptr;
+    }
+}
+
+inline void Generator::_gc_mark() const{
+    if(frame != nullptr) frame->_gc_mark();
+}
+
+template<typename T>
+void _gc_mark(T& t) {
+    if constexpr(std::is_base_of_v<BaseIter, T>){
+        t._gc_mark();
     }
 }
 

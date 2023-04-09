@@ -10,7 +10,7 @@
 
 namespace pkpy{
 
-Str _read_file_cwd(const Str& name, bool* ok){
+inline Str _read_file_cwd(const Str& name, bool* ok){
     std::filesystem::path path(name.c_str());
     bool exists = std::filesystem::exists(path);
     if(!exists){
@@ -42,7 +42,7 @@ struct FileIO {
         if(!_fs.is_open()) vm->IOError(strerror(errno));
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<2>(type, "__new__", [](VM* vm, Args& args){
             return VAR_T(FileIO, 
                 vm, CAST(Str, args[0]), CAST(Str, args[1])
@@ -78,16 +78,16 @@ struct FileIO {
     }
 };
 
-void add_module_io(VM* vm){
-    PyVar mod = vm->new_module("io");
-    PyVar type = FileIO::register_class(vm, mod);
+inline void add_module_io(VM* vm){
+    PyObject* mod = vm->new_module("io");
+    PyObject* type = FileIO::register_class(vm, mod);
     vm->bind_builtin_func<2>("open", [type](VM* vm, const Args& args){
         return vm->call(type, args);
     });
 }
 
-void add_module_os(VM* vm){
-    PyVar mod = vm->new_module("os");
+inline void add_module_os(VM* vm){
+    PyObject* mod = vm->new_module("os");
     // Working directory is shared by all VMs!!
     vm->bind_func<0>(mod, "getcwd", [](VM* vm, const Args& args){
         return VAR(std::filesystem::current_path().string());
@@ -157,10 +157,10 @@ void add_module_os(VM* vm){
 #else
 
 namespace pkpy{
-void add_module_io(VM* vm){}
-void add_module_os(VM* vm){}
+inline void add_module_io(VM* vm){}
+inline void add_module_os(VM* vm){}
 
-Str _read_file_cwd(const Str& name, bool* ok){
+inline Str _read_file_cwd(const Str& name, bool* ok){
     *ok = false;
     return Str();
 }

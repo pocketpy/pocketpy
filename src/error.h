@@ -1,6 +1,7 @@
 #pragma once
 
 #include "namedict.h"
+#include "str.h"
 #include "tuplelist.h"
 
 namespace pkpy{
@@ -22,7 +23,7 @@ enum CompileMode {
 };
 
 struct SourceData {
-    const char* source;
+    std::string source;
     Str filename;
     std::vector<const char*> line_starts;
     CompileMode mode;
@@ -37,25 +38,32 @@ struct SourceData {
         return {_start, i};
     }
 
-    SourceData(const char* source, Str filename, CompileMode mode) {
-        source = strdup(source);
+    SourceData(const Str& source, const Str& filename, CompileMode mode) {
+        int index = 0;
         // Skip utf8 BOM if there is any.
-        if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
+        if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
+        // Remove all '\r'
+        std::stringstream ss;
+        while(index < source.length()){
+            if(source[index] != '\r') ss << source[index];
+            index++;
+        }
+
         this->filename = filename;
-        this->source = source;
-        line_starts.push_back(source);
+        this->source = ss.str();
+        line_starts.push_back(this->source.c_str());
         this->mode = mode;
     }
 
     Str snapshot(int lineno, const char* cursor=nullptr){
-        StrStream ss;
+        std::stringstream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
         Str line = "<?>";
         int removed_spaces = 0;
         if(pair.first && pair.second){
             line = Str(pair.first, pair.second-pair.first).lstrip();
-            removed_spaces = pair.second - pair.first - line.size();
+            removed_spaces = pair.second - pair.first - line.length();
             if(line.empty()) line = "<?>";
         }
         ss << "    " << line;
@@ -65,14 +73,13 @@ struct SourceData {
         }
         return ss.str();
     }
-
-    ~SourceData() { free((void*)source); }
 };
 
 class Exception {
+    using StackTrace = stack<Str>;
     StrName type;
     Str msg;
-    std::stack<Str> stacktrace;
+    StackTrace stacktrace;
 public:
     Exception(StrName type, Str msg): type(type), msg(msg) {}
     bool match_type(StrName type) const { return this->type == type;}
@@ -84,12 +91,12 @@ public:
     }
 
     Str summary() const {
-        std::stack<Str> st(stacktrace);
-        StrStream ss;
+        StackTrace st(stacktrace);
+        std::stringstream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
-        if (!msg.empty()) ss << type.str() << ": " << msg;
-        else ss << type.str();
+        if (!msg.empty()) ss << type.sv() << ": " << msg;
+        else ss << type.sv();
         return ss.str();
     }
 };
