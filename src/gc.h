@@ -90,12 +90,14 @@ struct ManagedHeap{
     }
 
     void _auto_collect(){
+#if !DEBUG_NO_AUTO_GC
         if(_gc_lock_counter > 0) return;
         if(gc_counter < gc_threshold) return;
         gc_counter = 0;
         collect();
         gc_threshold = gen.size() * 2;
         if(gc_threshold < kMinGCThreshold) gc_threshold = kMinGCThreshold;
+#endif
     }
 
     int collect(){

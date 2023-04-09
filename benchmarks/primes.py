@@ -1,5 +1,3 @@
-# BUG!! There is a memory leak in this code
-
 UPPER_BOUND = 5000000
 PREFIX = 32338
 
