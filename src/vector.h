@@ -53,8 +53,14 @@ struct pod_vector{
         _data[_size++] = std::forward<__ValueT>(t);
     }
 
+    template<typename... Args>
+    void emplace_back(Args&&... args) {
+        if (_size == _capacity) reserve(_capacity*2);
+        new (&_data[_size++]) T(std::forward<Args>(args)...);
+    }
+
     void reserve(int cap){
-        if(cap < _capacity) return;
+        if(cap <= _capacity) return;
         _capacity = cap;
         T* old_data = _data;
         _data = (T*)pool128.alloc(_capacity * sizeof(T));
@@ -111,6 +117,10 @@ class stack{
 public:
 	void push(const T& t){ vec.push_back(t); }
 	void push(T&& t){ vec.push_back(std::move(t)); }
+    template<typename... Args>
+    void emplace(Args&&... args){
+        vec.emplace_back(std::forward<Args>(args)...);
+    }
 	void pop(){ vec.pop_back(); }
 	void clear(){ vec.clear(); }
 	bool empty() const { return vec.empty(); }
@@ -118,7 +128,7 @@ public:
 	T& top(){ return vec.back(); }
 	const T& top() const { return vec.back(); }
 	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
-	const Container& data() const { return vec; }
+	Container& data() { return vec; }
 };
 
 template <typename T>

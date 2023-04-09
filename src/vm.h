@@ -33,10 +33,11 @@ Str _read_file_cwd(const Str& name, bool* ok);
 
 
 class Generator: public BaseIter {
-    Frame_ frame;
+    Frame frame;
     int state; // 0,1,2
 public:
-    Generator(VM* vm, Frame_&& frame)
+    template<typename... Args>
+    Generator(VM* vm, Frame&& frame)
         : BaseIter(vm), frame(std::move(frame)), state(0) {}
 
     PyObject* next() override;
@@ -49,14 +50,21 @@ struct PyTypeInfo{
     Str name;
 };
 
+struct FrameId{
+    std::vector<pkpy::Frame>* data;
+    int index;
+    FrameId(std::vector<pkpy::Frame>* data, int index) : data(data), index(index) {}
+    Frame* operator->() const { return &data->operator[](index); }
+};
+
 class VM {
     VM* vm;     // self reference for simplify code
 public:
     ManagedHeap heap;
-    stack< Frame_ > callstack;
+    stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
 
-    PyObject* run_frame(Frame* frame);
+    PyObject* run_frame(FrameId frame);
 
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
@@ -93,11 +101,11 @@ public:
 
     bool is_stdio_used() const { return _stdout == &std::cout; }
 
-    Frame* top_frame() const {
+    FrameId top_frame() {
 #if DEBUG_EXTRA_CHECK
         if(callstack.empty()) UNREACHABLE();
 #endif
-        return callstack.top().get();
+        return FrameId(&callstack.data(), callstack.size()-1);
     }
 
     PyObject* asStr(PyObject* obj){
@@ -176,22 +184,28 @@ public:
             *_stderr << e.what() << '\n';
         }
 #endif
-        callstack = {};
+        callstack.clear();
         return nullptr;
     }
 
     template<typename ...Args>
-    Frame_ _new_frame(Args&&... args){
+    void _push_new_frame(Args&&... args){
         if(callstack.size() > recursionlimit){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
-        Frame* frame = new(pool128.alloc<Frame>()) Frame(std::forward<Args>(args)...);
-        return Frame_(frame);
+        callstack.emplace(std::forward<Args>(args)...);
+    }
+
+    void _push_new_frame(Frame&& frame){
+        if(callstack.size() > recursionlimit){
+            _error("RecursionError", "maximum recursion depth exceeded");
+        }
+        callstack.emplace(std::move(frame));
     }
 
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
-        callstack.push(_new_frame(std::forward<Args>(args)...));
+        _push_new_frame(std::forward<Args>(args)...);
         return _exec();
     }
 
@@ -728,9 +742,10 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
             locals->set(key, kwargs[i+1]);
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        auto _frame = _new_frame(fn.decl->code, _module, locals, fn._closure);
-        if(fn.decl->code->is_generator) return PyIter(Generator(this, std::move(_frame)));
-        callstack.push(std::move(_frame));
+        if(fn.decl->code->is_generator){
+            return PyIter(Generator(this, Frame(fn.decl->code, _module, locals, fn._closure)));
+        }
+        _push_new_frame(fn.decl->code, _module, locals, fn._closure);
         if(opCall) return _py_op_call;
         return _exec();
     }
@@ -892,8 +907,8 @@ inline void VM::_error(Exception e){
 }
 
 inline PyObject* VM::_exec(){
-    Frame* frame = top_frame();
-    const i64 base_id = frame->id;
+    FrameId frame = top_frame();
+    const int base_id = frame.index;
     bool need_raise = false;
 
     while(true){
@@ -905,16 +920,16 @@ inline PyObject* VM::_exec(){
             PyObject* ret = run_frame(frame);
             if(ret == _py_op_yield) return _py_op_yield;
             if(ret != _py_op_call){
-                if(frame->id == base_id){      // [ frameBase<- ]
+                if(frame.index == base_id){       // [ frameBase<- ]
                     callstack.pop();
                     return ret;
                 }else{
                     callstack.pop();
-                    frame = callstack.top().get();
+                    frame = top_frame();
                     frame->push(ret);
                 }
             }else{
-                frame = callstack.top().get();  // [ frameBase, newFrame<- ]
+                frame = top_frame();            // [ frameBase, newFrame<- ]
             }
         }catch(HandledException& e){
             continue;
@@ -929,9 +944,9 @@ inline PyObject* VM::_exec(){
 #endif
                 throw _e;
             }
-            frame = callstack.top().get();
+            frame = top_frame();
             frame->push(obj);
-            if(frame->id < base_id) throw ToBeRaisedException();
+            if(frame.index < base_id) throw ToBeRaisedException();
             need_raise = true;
         }catch(ToBeRaisedException& e){
             need_raise = true;
@@ -941,7 +956,7 @@ inline PyObject* VM::_exec(){
 
 inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
-    for(auto& frame : vm->callstack.data()) frame->_gc_mark();
+    for(auto& frame : vm->callstack.data()) frame._gc_mark();
 }
 
 inline Str obj_type_name(VM *vm, Type type){

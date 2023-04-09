@@ -109,6 +109,7 @@ struct ManagedHeap{
 };
 
 inline void NameDict::_gc_mark() const{
+    if(size() == 0) return;
     for(uint16_t i=0; i<_capacity; i++){
         if(_items[i].first.empty()) continue;
         OBJ_MARK(_items[i].second);

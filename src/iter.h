@@ -63,13 +63,13 @@ public:
 
 inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
-    vm->callstack.push(std::move(frame));
+    vm->_push_new_frame(std::move(frame));
     PyObject* ret = vm->_exec();
     if(ret == vm->_py_op_yield){
         frame = std::move(vm->callstack.top());
         vm->callstack.pop();
         state = 1;
-        return frame->popx();
+        return frame.popx();
     }else{
         state = 2;
         return nullptr;
@@ -77,7 +77,7 @@ inline PyObject* Generator::next(){
 }
 
 inline void Generator::_gc_mark() const{
-    if(frame != nullptr) frame->_gc_mark();
+    frame._gc_mark();
 }
 
 template<typename T>

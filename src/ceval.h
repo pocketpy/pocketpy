@@ -7,7 +7,7 @@ namespace pkpy{
 
 #define DISPATCH() goto __NEXT_STEP
 
-inline PyObject* VM::run_frame(Frame* frame){
+inline PyObject* VM::run_frame(FrameId frame){
 __NEXT_STEP:;
     /* NOTE: 
     * Be aware of accidental gc!

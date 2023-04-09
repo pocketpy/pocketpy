@@ -6,8 +6,6 @@
 
 namespace pkpy{
 
-static THREAD_LOCAL i64 kFrameGlobalId = 0;
-
 using ValueStack = pod_vector<PyObject*>;
 
 struct Frame {
@@ -19,7 +17,6 @@ struct Frame {
     PyObject* _module;
     NameDict_ _locals;
     NameDict_ _closure;
-    const i64 id;
     std::vector<std::pair<int, ValueStack>> s_try_block;
 
     NameDict& f_locals() noexcept { return _locals!=nullptr ? *_locals : _module->attr(); }
@@ -30,8 +27,13 @@ struct Frame {
     }
 
     Frame(const CodeObject_& co, PyObject* _module, NameDict_ _locals=nullptr, NameDict_ _closure=nullptr)
-            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure), id(kFrameGlobalId++) {
+            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure) {
     }
+
+    Frame(const Frame& other) = delete;
+    Frame& operator=(const Frame& other) = delete;
+    Frame(Frame&& other) noexcept = default;
+    Frame& operator=(Frame&& other) noexcept = default;
 
     const Bytecode& next_bytecode() {
         _ip = _next_ip++;
@@ -45,7 +47,7 @@ struct Frame {
 
     std::string stack_info(){
         std::stringstream ss;
-        ss << id << " [";
+        ss << " [";
         for(int i=0; i<_data.size(); i++){
             ss << (i64)_data[i];
             if(i != _data.size()-1) ss << ", ";
@@ -161,14 +163,5 @@ struct Frame {
         co->_gc_mark();
     }
 };
-
-
-struct FrameDeleter{
-    void operator()(Frame* frame) const {
-        frame->~Frame();
-        pool128.dealloc(frame);
-    }
-};
-using Frame_ = std::unique_ptr<Frame, FrameDeleter>;
 
 }; // namespace pkpy
