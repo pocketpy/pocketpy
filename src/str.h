@@ -6,7 +6,6 @@
 
 namespace pkpy {
 
-// TODO: check error if return 0
 inline int utf8len(unsigned char c, bool suppress=false){
     if((c & 0b10000000) == 0) return 1;
     if((c & 0b11100000) == 0b11000000) return 2;
@@ -244,7 +243,6 @@ struct Str{
 
     /*************unicode*************/
 
-    // TODO: check error
     int _unicode_index_to_byte(int i) const{
         if(is_ascii) return i;
         int j = 0;

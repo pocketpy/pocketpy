@@ -934,7 +934,6 @@ public:
         this->lexer = std::make_unique<Lexer>(
             make_sp<SourceData>(source, filename, mode)
         );
-        // TODO: check if already initialized
         init_pratt_rules();
     }
 

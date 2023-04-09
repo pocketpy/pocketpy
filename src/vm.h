@@ -736,6 +736,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
     }
 
     if(is_type(callable, tp_type)){
+        // TODO: use get_unbound_method here
         PyObject* new_f = callable->attr().try_get(__new__);
         PyObject* obj;
         if(new_f != nullptr){
@@ -776,7 +777,6 @@ inline void VM::unpack_args(Args& args){
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
-    // TODO: class_only impl may not be correct
     PyObject* objtype = _t(obj);
     // handle super() proxy
     if(is_type(obj, tp_super)){
@@ -810,7 +810,6 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
 // try to load a unbound method (fallback to `getattr` if not found)
 inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err, bool fallback){
     *self = _py_null;
-    // TODO: class_only impl may not be correct
     PyObject* objtype = _t(obj);
     // handle super() proxy
     if(is_type(obj, tp_super)){
