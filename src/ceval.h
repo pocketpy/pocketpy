@@ -5,9 +5,21 @@
 
 namespace pkpy{
 
-#define DISPATCH() goto __NEXT_STEP
+inline PyObject* VM::_run_top_frame(){
+    FrameId frame = top_frame();
+    const int base_id = frame.index;
+    bool need_raise = false;
+    PyObject* __ret;
 
-inline PyObject* VM::run_frame(FrameId frame){
+    while(true){
+#if DEBUG_EXTRA_CHECK
+        if(frame->id < base_id) UNREACHABLE();
+#endif
+        try{
+            if(need_raise){ need_raise = false; _raise(); }
+/**********************************************************************/
+#define DISPATCH() goto __NEXT_STEP
+{
 __NEXT_STEP:;
     /* NOTE: 
     * Be aware of accidental gc!
@@ -284,7 +296,7 @@ __NEXT_STEP:;
         if(byte.op == OP_CALL_UNPACK) unpack_args(args);
         PyObject* callable = frame->popx();
         PyObject* ret = call(callable, std::move(args), no_arg(), true);
-        if(ret == _py_op_call) return ret;
+        if(ret == _py_op_call) { __ret=ret; goto __PY_OP_CALL; }
         frame->push(std::move(ret));
     } DISPATCH();
     case OP_CALL_KWARGS: case OP_CALL_KWARGS_UNPACK: {
@@ -300,10 +312,10 @@ __NEXT_STEP:;
         if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
         PyObject* callable = frame->popx();
         PyObject* ret = call(callable, std::move(args), kwargs, true);
-        if(ret == _py_op_call) return ret;
+        if(ret == _py_op_call) { __ret=ret; goto __PY_OP_CALL; }
         frame->push(std::move(ret));
     } DISPATCH();
-    case OP_RETURN_VALUE: return frame->popx();
+    case OP_RETURN_VALUE: { __ret=frame->popx(); goto __PY_SIMPLE_RETURN; }
     case OP_YIELD_VALUE: return _py_op_yield;
     /*****************************************/
     case OP_LIST_APPEND: {
@@ -456,7 +468,42 @@ __NEXT_STEP:;
     }
     UNREACHABLE();
 }
-
 #undef DISPATCH
+/**********************************************************************/
+__PY_SIMPLE_RETURN:
+            if(frame.index == base_id){       // [ frameBase<- ]
+                callstack.pop();
+                return __ret;
+            }else{
+                callstack.pop();
+                frame = top_frame();
+                frame->push(__ret);
+            }
+            continue;
+__PY_OP_CALL:
+            frame = top_frame();            // [ frameBase, newFrame<- ]
+            continue;
+        }catch(HandledException& e){
+            continue;
+        }catch(UnhandledException& e){
+            PyObject* obj = frame->popx();
+            Exception& _e = CAST(Exception&, obj);
+            _e.st_push(frame->snapshot());
+            callstack.pop();
+            if(callstack.empty()){
+#if DEBUG_FULL_EXCEPTION
+                std::cerr << _e.summary() << std::endl;
+#endif
+                throw _e;
+            }
+            frame = top_frame();
+            frame->push(obj);
+            if(frame.index < base_id) throw ToBeRaisedException();
+            need_raise = true;
+        }catch(ToBeRaisedException& e){
+            need_raise = true;
+        }
+    }
+}
 
 } // namespace pkpy

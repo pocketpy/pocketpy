@@ -64,8 +64,6 @@ public:
     stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
 
-    PyObject* run_frame(FrameId frame);
-
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
 
@@ -206,7 +204,7 @@ public:
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
         _push_new_frame(std::forward<Args>(args)...);
-        return _exec();
+        return _run_top_frame();
     }
 
     PyObject* property(NativeFuncRaw fget){
@@ -349,7 +347,7 @@ public:
     template<int ARGC>
     void bind_func(PyObject*, Str, NativeFuncRaw);
     void _error(Exception);
-    PyObject* _exec();
+    PyObject* _run_top_frame();
     void post_init();
 };
 
@@ -747,7 +745,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         }
         _push_new_frame(fn.decl->code, _module, locals, fn._closure);
         if(opCall) return _py_op_call;
-        return _exec();
+        return _run_top_frame();
     }
 
     if(is_type(callable, tp_type)){
@@ -904,55 +902,6 @@ inline void VM::_error(Exception e){
     }
     top_frame()->push(VAR(e));
     _raise();
-}
-
-inline PyObject* VM::_exec(){
-    FrameId frame = top_frame();
-    const int base_id = frame.index;
-    bool need_raise = false;
-    PyObject* ret;
-
-    while(true){
-#if DEBUG_EXTRA_CHECK
-        if(frame->id < base_id) UNREACHABLE();
-#endif
-        try{
-            if(need_raise){ need_raise = false; _raise(); }
-            ret = run_frame(frame);
-            if(ret == _py_op_yield) return _py_op_yield;
-            if(ret != _py_op_call){
-                if(frame.index == base_id){       // [ frameBase<- ]
-                    callstack.pop();
-                    return ret;
-                }else{
-                    callstack.pop();
-                    frame = top_frame();
-                    frame->push(ret);
-                }
-            }else{
-                frame = top_frame();            // [ frameBase, newFrame<- ]
-            }
-        }catch(HandledException& e){
-            continue;
-        }catch(UnhandledException& e){
-            PyObject* obj = frame->popx();
-            Exception& _e = CAST(Exception&, obj);
-            _e.st_push(frame->snapshot());
-            callstack.pop();
-            if(callstack.empty()){
-#if DEBUG_FULL_EXCEPTION
-                std::cerr << _e.summary() << std::endl;
-#endif
-                throw _e;
-            }
-            frame = top_frame();
-            frame->push(obj);
-            if(frame.index < base_id) throw ToBeRaisedException();
-            need_raise = true;
-        }catch(ToBeRaisedException& e){
-            need_raise = true;
-        }
-    }
 }
 
 inline void ManagedHeap::mark() {

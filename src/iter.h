@@ -64,7 +64,7 @@ public:
 inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
     vm->_push_new_frame(std::move(frame));
-    PyObject* ret = vm->_exec();
+    PyObject* ret = vm->_run_top_frame();
     if(ret == vm->_py_op_yield){
         frame = std::move(vm->callstack.top());
         vm->callstack.pop();
