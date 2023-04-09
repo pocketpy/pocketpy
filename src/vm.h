@@ -897,7 +897,9 @@ inline PyObject* VM::_exec(){
     bool need_raise = false;
 
     while(true){
+#if DEBUG_EXTRA_CHECK
         if(frame->id < base_id) UNREACHABLE();
+#endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
             PyObject* ret = run_frame(frame);
