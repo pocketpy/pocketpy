@@ -112,9 +112,9 @@ class Compiler {
 
     void consume(TokenIndex expected) {
         if (!match(expected)){
-            StrStream ss;
-            ss << "expected '" << TK_STR(expected) << "', but got '" << TK_STR(curr().type) << "'";
-            SyntaxError(ss.str());
+            SyntaxError(
+                fmt("expected '", TK_STR(expected), "', but got '", TK_STR(curr().type), "'")
+            );
         }
     }
 
@@ -190,7 +190,7 @@ class Compiler {
             _compile_f_args(e->decl, false);
             consume(TK(":"));
         }
-        e->decl->code = push_context(lexer->src, e->decl->name.str());
+        e->decl->code = push_context(lexer->src, e->decl->name.sv());
         EXPR(false); // https://github.com/blueloveTH/pocketpy/issues/37
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
@@ -775,7 +775,7 @@ __SUBSCR_END:
                 if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
                 bool ok = ctx()->add_label(prev().str());
-                if(!ok) SyntaxError("label " + prev().str().escape(true) + " already exists");
+                if(!ok) SyntaxError("label " + prev().str().escape() + " already exists");
                 consume_end_stmt();
             } break;
             case TK("goto"):
@@ -877,7 +877,7 @@ __SUBSCR_END:
         if(match(TK("->"))){
             if(!match(TK("None"))) consume(TK("@id"));
         }
-        decl->code = push_context(lexer->src, decl->name.str());
+        decl->code = push_context(lexer->src, decl->name.sv());
         compile_block_body();
         pop_context();
         ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
@@ -928,7 +928,7 @@ __SUBSCR_END:
     void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, curr().line, curr().start); }
 
 public:
-    Compiler(VM* vm, const char* source, Str filename, CompileMode mode){
+    Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode){
         this->vm = vm;
         this->used = false;
         this->lexer = std::make_unique<Lexer>(

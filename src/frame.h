@@ -43,8 +43,8 @@ struct Frame {
         return co->src->snapshot(line);
     }
 
-    Str stack_info(){
-        StrStream ss;
+    std::string stack_info(){
+        std::stringstream ss;
         ss << id << " [";
         for(int i=0; i<_data.size(); i++){
             ss << (i64)_data[i];

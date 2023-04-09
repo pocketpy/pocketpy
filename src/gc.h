@@ -37,7 +37,7 @@ struct ManagedHeap{
     template<typename T>
     PyObject* gcnew(Type type, T&& val){
         using __T = Py_<std::decay_t<T>>;
-        PyObject* obj = new(pool128.alloc<__T>()) __T(type, std::forward<T>(val));
+        PyObject* obj = new(pool64.alloc<__T>()) __T(type, std::forward<T>(val));
         gen.push_back(obj);
         gc_counter++;
         return obj;
@@ -46,7 +46,7 @@ struct ManagedHeap{
     template<typename T>
     PyObject* _new(Type type, T&& val){
         using __T = Py_<std::decay_t<T>>;
-        PyObject* obj = new(pool128.alloc<__T>()) __T(type, std::forward<T>(val));
+        PyObject* obj = new(pool64.alloc<__T>()) __T(type, std::forward<T>(val));
         obj->gc.enabled = false;
         _no_gc.push_back(obj);
         return obj;
@@ -57,7 +57,7 @@ struct ManagedHeap{
 #endif
 
     ~ManagedHeap(){
-        for(PyObject* obj: _no_gc) obj->~PyObject(), pool128.dealloc(obj);
+        for(PyObject* obj: _no_gc) obj->~PyObject(), pool64.dealloc(obj);
 #if DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
             std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
@@ -75,7 +75,7 @@ struct ManagedHeap{
 #if DEBUG_GC_STATS
                 deleted[obj->type] += 1;
 #endif
-                obj->~PyObject(), pool128.dealloc(obj);
+                obj->~PyObject(), pool64.dealloc(obj);
             }
         }
 

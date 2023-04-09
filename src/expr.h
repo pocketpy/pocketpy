@@ -15,7 +15,7 @@ struct Expr{
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit(CodeEmitContext* ctx) = 0;
-    virtual Str str() const = 0;
+    virtual std::string str() const = 0;
 
     virtual bool is_starred() const { return false; }
     virtual bool is_literal() const { return false; }
@@ -23,7 +23,7 @@ struct Expr{
     virtual bool is_attrib() const { return false; }
 
     // for OP_DELETE_XXX
-    virtual bool emit_del(CodeEmitContext* ctx) { return false; }
+    [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) { return false; }
 
     // for OP_STORE_XXX
     [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) { return false; }
@@ -64,8 +64,8 @@ struct CodeEmitContext{
         expr->emit(this);
     }
 
-    Str _log_s_expr(){
-        StrStream ss;
+    std::string _log_s_expr(){
+        std::stringstream ss;
         for(auto& e: s_expr.data()) ss << e->str() << " ";
         return ss.str();
     }
@@ -118,7 +118,7 @@ struct NameExpr: Expr{
     NameScope scope;
     NameExpr(StrName name, NameScope scope): name(name), scope(scope) {}
 
-    Str str() const override { return "$" + name.str(); }
+    std::string str() const override { return fmt("Name(", name.escape(), ")"); }
 
     void emit(CodeEmitContext* ctx) override {
         int index = ctx->add_name(name);
@@ -161,7 +161,7 @@ struct NameExpr: Expr{
 struct StarredExpr: Expr{
     Expr_ child;
     StarredExpr(Expr_&& child): child(std::move(child)) {}
-    Str str() const override { return "*"; }
+    std::string str() const override { return "Starred()"; }
 
     bool is_starred() const override { return true; }
 
@@ -180,7 +180,7 @@ struct StarredExpr: Expr{
 struct NotExpr: Expr{
     Expr_ child;
     NotExpr(Expr_&& child): child(std::move(child)) {}
-    Str str() const override { return "not"; }
+    std::string str() const override { return "Not()"; }
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
@@ -192,7 +192,7 @@ struct NotExpr: Expr{
 struct AndExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
-    Str str() const override { return "and"; }
+    std::string str() const override { return "And()"; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -206,7 +206,7 @@ struct AndExpr: Expr{
 struct OrExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
-    Str str() const override { return "or"; }
+    std::string str() const override { return "Or()"; }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -220,7 +220,7 @@ struct OrExpr: Expr{
 struct Literal0Expr: Expr{
     TokenIndex token;
     Literal0Expr(TokenIndex token): token(token) {}
-    Str str() const override { return TK_STR(token); }
+    std::string str() const override { return TK_STR(token); }
 
     void emit(CodeEmitContext* ctx) override {
         switch (token) {
@@ -239,7 +239,7 @@ struct Literal0Expr: Expr{
 struct LiteralExpr: Expr{
     TokenValue value;
     LiteralExpr(TokenValue value): value(value) {}
-    Str str() const override {
+    std::string str() const override {
         if(std::holds_alternative<i64>(value)){
             return std::to_string(std::get<i64>(value));
         }
@@ -249,7 +249,8 @@ struct LiteralExpr: Expr{
         }
 
         if(std::holds_alternative<Str>(value)){
-            return std::get<Str>(value).escape(true);
+            Str s = std::get<Str>(value).escape();
+            return s.str();
         }
 
         UNREACHABLE();
@@ -285,7 +286,7 @@ struct LiteralExpr: Expr{
 struct NegatedExpr: Expr{
     Expr_ child;
     NegatedExpr(Expr_&& child): child(std::move(child)) {}
-    Str str() const override { return "-"; }
+    std::string str() const override { return "Negated()"; }
 
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
@@ -318,7 +319,7 @@ struct SliceExpr: Expr{
     Expr_ start;
     Expr_ stop;
     Expr_ step;
-    Str str() const override { return "slice()"; }
+    std::string str() const override { return "Slice()"; }
 
     void emit(CodeEmitContext* ctx) override {
         if(start){
@@ -346,7 +347,7 @@ struct SliceExpr: Expr{
 struct DictItemExpr: Expr{
     Expr_ key;
     Expr_ value;
-    Str str() const override { return "k:v"; }
+    std::string str() const override { return "DictItem()"; }
 
     void emit(CodeEmitContext* ctx) override {
         value->emit(ctx);
@@ -368,7 +369,7 @@ struct SequenceExpr: Expr{
 
 struct ListExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    Str str() const override { return "list()"; }
+    std::string str() const override { return "List()"; }
     Opcode opcode() const override { return OP_BUILD_LIST; }
 
     bool is_json_object() const override { return true; }
@@ -376,7 +377,7 @@ struct ListExpr: SequenceExpr{
 
 struct DictExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    Str str() const override { return "dict()"; }
+    std::string str() const override { return "Dict()"; }
     Opcode opcode() const override { return OP_BUILD_DICT; }
 
     bool is_json_object() const override { return true; }
@@ -384,13 +385,13 @@ struct DictExpr: SequenceExpr{
 
 struct SetExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    Str str() const override { return "set()"; }
+    std::string str() const override { return "Set()"; }
     Opcode opcode() const override { return OP_BUILD_SET; }
 };
 
 struct TupleExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    Str str() const override { return "tuple()"; }
+    std::string str() const override { return "Tuple()"; }
     Opcode opcode() const override { return OP_BUILD_TUPLE; }
 
     bool emit_store(CodeEmitContext* ctx) override {
@@ -467,25 +468,25 @@ struct CompExpr: Expr{
 struct ListCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_LIST; }
     Opcode op1() override { return OP_LIST_APPEND; }
-    Str str() const override { return "listcomp()"; }
+    std::string str() const override { return "ListComp()"; }
 };
 
 struct DictCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_DICT; }
     Opcode op1() override { return OP_DICT_ADD; }
-    Str str() const override { return "dictcomp()"; }
+    std::string str() const override { return "DictComp()"; }
 };
 
 struct SetCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_SET; }
     Opcode op1() override { return OP_SET_ADD; }
-    Str str() const override { return "setcomp()"; }
+    std::string str() const override { return "SetComp()"; }
 };
 
 struct LambdaExpr: Expr{
     FuncDecl_ decl;
     NameScope scope;
-    Str str() const override { return "<lambda>"; }
+    std::string str() const override { return "Lambda()"; }
 
     LambdaExpr(NameScope scope){
         this->decl = make_sp<FuncDecl>();
@@ -502,21 +503,21 @@ struct LambdaExpr: Expr{
 struct FStringExpr: Expr{
     Str src;
     FStringExpr(const Str& src): src(src) {}
-    Str str() const override {
-        return "f" + src.escape(true);
+    std::string str() const override {
+        return fmt("f", src.escape());
     }
 
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         static const std::regex pattern(R"(\{(.*?)\})");
-        std::sregex_iterator begin(src.begin(), src.end(), pattern);
-        std::sregex_iterator end;
+        std::cregex_iterator begin(src.begin(), src.end(), pattern);
+        std::cregex_iterator end;
         int size = 0;
         int i = 0;
         for(auto it = begin; it != end; it++) {
-            std::smatch m = *it;
+            std::cmatch m = *it;
             if (i < m.position()) {
-                std::string literal = src.substr(i, m.position() - i);
+                Str literal = src.substr(i, m.position() - i);
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
                 size++;
             }
@@ -527,8 +528,8 @@ struct FStringExpr: Expr{
             size++;
             i = (int)(m.position() + m.length());
         }
-        if (i < src.size()) {
-            std::string literal = src.substr(i, src.size() - i);
+        if (i < src.length()) {
+            Str literal = src.substr(i, src.length() - i);
             ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
             size++;
         }
@@ -539,7 +540,7 @@ struct FStringExpr: Expr{
 struct SubscrExpr: Expr{
     Expr_ a;
     Expr_ b;
-    Str str() const override { return "a[b]"; }
+    std::string str() const override { return "Subscr()"; }
 
     void emit(CodeEmitContext* ctx) override{
         a->emit(ctx);
@@ -567,7 +568,7 @@ struct AttribExpr: Expr{
     Str b;
     AttribExpr(Expr_ a, const Str& b): a(std::move(a)), b(b) {}
     AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
-    Str str() const override { return "a.b"; }
+    std::string str() const override { return "Attrib()"; }
 
     void emit(CodeEmitContext* ctx) override{
         a->emit(ctx);
@@ -603,7 +604,7 @@ struct CallExpr: Expr{
     Expr_ callable;
     std::vector<Expr_> args;
     std::vector<std::pair<Str, Expr_>> kwargs;
-    Str str() const override { return "call(...)"; }
+    std::string str() const override { return "Call()"; }
 
     bool need_unpack() const {
         for(auto& item: args) if(item->is_starred()) return true;
@@ -643,7 +644,7 @@ struct BinaryExpr: Expr{
     TokenIndex op;
     Expr_ lhs;
     Expr_ rhs;
-    Str str() const override { return TK_STR(op); }
+    std::string str() const override { return TK_STR(op); }
 
     void emit(CodeEmitContext* ctx) override {
         lhs->emit(ctx);
@@ -683,10 +684,7 @@ struct TernaryExpr: Expr{
     Expr_ cond;
     Expr_ true_expr;
     Expr_ false_expr;
-
-    Str str() const override {
-        return "cond ? t : f";
-    }
+    std::string str() const override { return "Ternary()"; }
 
     void emit(CodeEmitContext* ctx) override {
         cond->emit(ctx);

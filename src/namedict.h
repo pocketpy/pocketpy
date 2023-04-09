@@ -87,7 +87,7 @@ while(!_items[i].first.empty()) {       \
     PyObject* operator[](StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
-        if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
+        if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         return _items[i].second;
     }
 
@@ -159,7 +159,7 @@ while(!_items[i].first.empty()) {       \
     void erase(StrName key){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
-        if(!ok) throw std::out_of_range("NameDict key not found: " + key.str());
+        if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         _items[i].first = StrName();
         _items[i].second = nullptr;
         _size--;

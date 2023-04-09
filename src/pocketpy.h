@@ -12,7 +12,7 @@
 namespace pkpy {
 
 inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
-    Compiler compiler(this, source.c_str(), filename, mode);
+    Compiler compiler(this, source, filename, mode);
     try{
         return compiler.compile();
     }catch(Exception& e){
@@ -71,7 +71,7 @@ inline void init_builtins(VM* _vm) {
         if(!vm->isinstance(args[1], type)){
             Str _0 = obj_type_name(vm, OBJ_GET(Type, vm->_t(args[1])));
             Str _1 = obj_type_name(vm, type);
-            vm->TypeError("super(): " + _0.escape(true) + " is not an instance of " + _1.escape(true));
+            vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
         Type base = vm->_all_types[type].base;
         return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
@@ -150,7 +150,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, Args& args) {
-        StrStream ss;
+        std::stringstream ss;
         ss << std::hex << CAST(i64, args[0]);
         return VAR("0x" + ss.str());
     });
@@ -169,14 +169,14 @@ inline void init_builtins(VM* _vm) {
         std::vector<StrName> keys = t_attr.keys();
         names.insert(keys.begin(), keys.end());
         List ret;
-        for (StrName name : names) ret.push_back(VAR(name.str()));
+        for (StrName name : names) ret.push_back(VAR(name.sv()));
         return VAR(std::move(ret));
     });
 
     _vm->bind_method<0>("object", "__repr__", [](VM* vm, Args& args) {
         PyObject* self = args[0];
         if(is_tagged(self)) self = nullptr;
-        StrStream ss;
+        std::stringstream ss;
         ss << "<" << OBJ_NAME(vm->_t(self)) << " object at " << std::hex << self << ">";
         return VAR(ss.str());
     });
@@ -241,7 +241,7 @@ inline void init_builtins(VM* _vm) {
                 if(parsed != s.length()) throw std::invalid_argument("<?>");
                 return VAR(val);
             }catch(std::invalid_argument&){
-                vm->ValueError("invalid literal for int(): " + s.escape(true));
+                vm->ValueError("invalid literal for int(): " + s.escape());
             }
         }
         vm->TypeError("int() argument must be a int, float, bool or str");
@@ -297,7 +297,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("float", "__repr__", [](VM* vm, Args& args) {
         f64 val = CAST(f64, args[0]);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
-        StrStream ss;
+        std::stringstream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
@@ -335,7 +335,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, Args& args) {
         const Str& _self = CAST(Str&, args[0]);
-        return VAR(_self.escape(true));
+        return VAR(_self.escape());
     });
 
     _vm->bind_method<0>("str", "__json__", [](VM* vm, Args& args) {
@@ -405,7 +405,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("str", "join", [](VM* vm, Args& args) {
         const Str& self = CAST(Str&, args[0]);
-        StrStream ss;
+        FastStrStream ss;
         PyObject* obj = vm->asList(args[1]);
         const List& list = CAST(List&, obj);
         for (int i = 0; i < list.size(); ++i) {
@@ -639,8 +639,8 @@ struct ReMatch {
 
     i64 start;
     i64 end;
-    std::smatch m;
-    ReMatch(i64 start, i64 end, std::smatch m) : start(start), end(end), m(m) {}
+    std::cmatch m;
+    ReMatch(i64 start, i64 end, std::cmatch m) : start(start), end(end), m(m) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
@@ -661,15 +661,13 @@ struct ReMatch {
     }
 };
 
-inline PyObject* _regex_search(const Str& _pattern, const Str& _string, bool fromStart, VM* vm){
-    std::string pattern = _pattern.str();
-    std::string string = _string.str();
-    std::regex re(pattern);
-    std::smatch m;
-    if(std::regex_search(string, m, re)){
-        if(fromStart && m.position() != 0) return vm->None;
-        i64 start = _string._u8_index(m.position());
-        i64 end = _string._u8_index(m.position() + m.length());
+inline PyObject* _regex_search(const Str& pattern, const Str& string, bool from_start, VM* vm){
+    std::regex re(pattern.begin(), pattern.end());
+    std::cmatch m;
+    if(std::regex_search(string.begin(), string.end(), m, re)){
+        if(from_start && m.position() != 0) return vm->None;
+        i64 start = string._byte_index_to_unicode(m.position());
+        i64 end = string._byte_index_to_unicode(m.position() + m.length());
         return VAR_T(ReMatch, start, end, m);
     }
     return vm->None;
@@ -694,18 +692,17 @@ inline void add_module_re(VM* vm){
     vm->bind_func<3>(mod, "sub", [](VM* vm, Args& args) {
         const Str& pattern = CAST(Str&, args[0]);
         const Str& repl = CAST(Str&, args[1]);
-        const Str& _string = CAST(Str&, args[2]);
-        std::regex re(pattern.str());
-        std::string string = _string.str();
-        return VAR(std::regex_replace(string, re, repl));
+        const Str& string = CAST(Str&, args[2]);
+        std::regex re(pattern.begin(), pattern.end());
+        return VAR(std::regex_replace(string.str(), re, repl.str()));
     });
 
     vm->bind_func<2>(mod, "split", [](VM* vm, Args& args) {
-        std::string pattern = CAST(Str&, args[0]).str();
-        std::string string = CAST(Str&, args[1]).str();
-        std::regex re(pattern);
-        std::sregex_token_iterator it(string.begin(), string.end(), re, -1);
-        std::sregex_token_iterator end;
+        const Str& pattern = CAST(Str&, args[0]);
+        const Str& string = CAST(Str&, args[1]);
+        std::regex re(pattern.begin(), pattern.end());
+        std::cregex_token_iterator it(string.begin(), string.end(), re, -1);
+        std::cregex_token_iterator end;
         List vec;
         for(; it != end; ++it){
             vec.push_back(VAR(it->str()));
@@ -863,8 +860,8 @@ extern "C" {
         pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(val));
-            return strdup(repr.c_str());
+            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->asRepr(val));
+            return repr.c_str_dup();
         }catch(...){
             return nullptr;
         }
@@ -879,8 +876,8 @@ extern "C" {
         pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str, vm->asRepr(ret));
-            return strdup(repr.c_str());
+            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->asRepr(ret));
+            return repr.c_str_dup();
         }catch(...){
             return nullptr;
         }
@@ -917,12 +914,12 @@ extern "C" {
     ///
     /// Return a json representing the result.
     char* pkpy_vm_read_output(pkpy::VM* vm){
-        if(vm->use_stdio) return nullptr;
-        pkpy::StrStream* s_out = (pkpy::StrStream*)(vm->_stdout);
-        pkpy::StrStream* s_err = (pkpy::StrStream*)(vm->_stderr);
+        if(vm->is_stdio_used()) return nullptr;
+        std::stringstream* s_out = (std::stringstream*)(vm->_stdout);
+        std::stringstream* s_err = (std::stringstream*)(vm->_stderr);
         pkpy::Str _stdout = s_out->str();
         pkpy::Str _stderr = s_err->str();
-        pkpy::StrStream ss;
+        std::stringstream ss;
         ss << '{' << "\"stdout\": " << _stdout.escape(false);
         ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
         s_out->str(""); s_err->str("");
@@ -961,7 +958,7 @@ extern "C" {
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
         pkpy::PyObject* obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
         vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, const pkpy::Args& args){
-            pkpy::StrStream ss;
+            std::stringstream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){
                 ss << ' ';

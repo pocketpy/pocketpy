@@ -38,14 +38,15 @@ struct SourceData {
         return {_start, i};
     }
 
-    SourceData(const char* source, Str filename, CompileMode mode) {
+    SourceData(const Str& source, const Str& filename, CompileMode mode) {
+        int index = 0;
         // Skip utf8 BOM if there is any.
-        if (strncmp(source, "\xEF\xBB\xBF", 3) == 0) source += 3;
+        if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
         // Remove all '\r'
-        StrStream ss;
-        while(*source != '\0'){
-            if(*source != '\r') ss << *source;
-            source++;
+        std::stringstream ss;
+        while(index < source.length()){
+            if(source[index] != '\r') ss << source[index];
+            index++;
         }
 
         this->filename = filename;
@@ -55,14 +56,14 @@ struct SourceData {
     }
 
     Str snapshot(int lineno, const char* cursor=nullptr){
-        StrStream ss;
+        std::stringstream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
         Str line = "<?>";
         int removed_spaces = 0;
         if(pair.first && pair.second){
             line = Str(pair.first, pair.second-pair.first).lstrip();
-            removed_spaces = pair.second - pair.first - line.size();
+            removed_spaces = pair.second - pair.first - line.length();
             if(line.empty()) line = "<?>";
         }
         ss << "    " << line;
@@ -91,11 +92,11 @@ public:
 
     Str summary() const {
         StackTrace st(stacktrace);
-        StrStream ss;
+        std::stringstream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
-        if (!msg.empty()) ss << type.str() << ": " << msg;
-        else ss << type.str();
+        if (!msg.empty()) ss << type.sv() << ": " << msg;
+        else ss << type.sv();
         return ss.str();
     }
 };

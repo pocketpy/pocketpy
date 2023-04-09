@@ -131,14 +131,14 @@ struct TypeDB{
         return index == 0 ? nullptr : &_by_index[index-1];
     }
 
-    const TypeInfo* get(const char name[]) const {
+    const TypeInfo* get(std::string_view name) const {
         auto it = _by_name.find(name);
         if(it == _by_name.end()) return nullptr;
         return get(it->second);
     }
 
     const TypeInfo* get(const Str& s) const {
-        return get(s.c_str());
+        return get(s.sv());
     }
 
     template<typename T>
@@ -203,7 +203,7 @@ struct Pointer{
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
             Pointer& self = CAST(Pointer&, args[0]);
-            StrStream ss;
+            std::stringstream ss;
             ss << "<" << self.ctype->name;
             for(int i=0; i<self.level; i++) ss << "*";
             ss << " at " << (i64)self.ptr << ">";
@@ -319,7 +319,7 @@ struct Pointer{
     Pointer _to(VM* vm, StrName name){
         auto it = ctype->members.find(name);
         if(it == ctype->members.end()){
-            vm->AttributeError(Str("struct '") + ctype->name + "' has no member " + name.str().escape(true));
+            vm->AttributeError(fmt("struct '", ctype->name, "' has no member ", name.escape()));
         }
         const MemberInfo& info = it->second;
         return {info.type, level, ptr+info.offset};
@@ -390,7 +390,7 @@ struct CType{
         vm->bind_static_method<1>(type, "__new__", [](VM* vm, Args& args) {
             const Str& name = CAST(Str&, args[0]);
             const TypeInfo* type = _type_db.get(name);
-            if(type == nullptr) vm->TypeError("unknown type: " + name.escape(true));
+            if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
             return VAR_T(CType, type);
         });
 
@@ -432,22 +432,22 @@ inline void add_module_c(VM* vm){
         Pointer& self = CAST(Pointer&, args[0]);
         const Str& name = CAST(Str&, args[1]);
         int level = 0;
-        for(int i=name.size()-1; i>=0; i--){
+        for(int i=name.length()-1; i>=0; i--){
             if(name[i] == '*') level++;
             else break;
         }
         if(level == 0) vm->TypeError("expect a pointer type, such as 'int*'");
-        Str type_s = name.substr(0, name.size()-level);
+        Str type_s = name.substr(0, name.length()-level);
         const TypeInfo* type = _type_db.get(type_s);
-        if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape(true));
+        if(type == nullptr) vm->TypeError("unknown type: " + type_s.escape());
         return VAR_T(Pointer, type, level, self.ptr);
     });
 
     vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
         const Str& name = CAST(Str&, args[0]);
-        if(name.find('*') != Str::npos) return VAR(sizeof(void*));
+        if(name.index("*") != -1) return VAR(sizeof(void*));
         const TypeInfo* type = _type_db.get(name);
-        if(type == nullptr) vm->TypeError("unknown type: " + name.escape(true));
+        if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
         return VAR(type->size);
     });
 

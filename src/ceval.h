@@ -33,7 +33,7 @@ __NEXT_STEP:;
     case OP_ROT_TWO: std::swap(frame->top(), frame->top_1()); DISPATCH();
     case OP_PRINT_EXPR: {
         PyObject* obj = frame->top();  // use top() to avoid accidental gc
-        if(obj != None) *_stdout << CAST(Str, asRepr(obj)) << '\n';
+        if(obj != None) *_stdout << CAST(Str&, asRepr(obj)) << '\n';
         frame->pop();
     } DISPATCH();
     /*****************************************/
@@ -168,7 +168,7 @@ __NEXT_STEP:;
         frame->push(VAR(std::move(items)));
     } DISPATCH();
     case OP_BUILD_STRING: {
-        StrStream ss;   // asStr() may run extra bytecode
+        std::stringstream ss;   // asStr() may run extra bytecode
         for(int i=byte.arg-1; i>=0; i--) ss << CAST(Str&, asStr(frame->top_n(i)));
         frame->pop_n(byte.arg);
         frame->push(VAR(ss.str()));
@@ -232,7 +232,7 @@ __NEXT_STEP:;
     case OP_GOTO: {
         StrName label = frame->co->names[byte.arg];
         auto it = frame->co->labels.find(label);
-        if(it == frame->co->labels.end()) _error("KeyError", "label " + label.str().escape(true) + " not found");
+        if(it == frame->co->labels.end()) _error("KeyError", fmt("label ", label.escape(), " not found"));
         frame->jump_abs_break(it->second);
     } DISPATCH();
     /*****************************************/
@@ -317,13 +317,13 @@ __NEXT_STEP:;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
                 bool ok = false;
-                source = _read_file_cwd(name.str() + ".py", &ok);
-                if(!ok) _error("ImportError", "module " + name.str().escape(true) + " not found");
+                source = _read_file_cwd(fmt(name, ".py"), &ok);
+                if(!ok) _error("ImportError", fmt("module ", name.escape(), " not found"));
             }else{
                 source = it->second;
                 _lazy_modules.erase(it);
             }
-            CodeObject_ code = compile(source, name.str(), EXEC_MODE);
+            CodeObject_ code = compile(source, name.sv(), EXEC_MODE);
             PyObject* new_mod = new_module(name);
             _exec(code, new_mod);
             new_mod->attr()._try_perfect_rehash();
@@ -335,7 +335,7 @@ __NEXT_STEP:;
     case OP_IMPORT_STAR: {
         PyObject* obj = frame->popx();
         for(auto& [name, value]: obj->attr().items()){
-            Str s = name.str();
+            std::string_view s = name.sv();
             if(s.empty() || s[0] == '_') continue;
             frame->f_globals().set(name, value);
         }
@@ -416,7 +416,7 @@ __NEXT_STEP:;
         _error(type, msg);
     } DISPATCH();
     case OP_RE_RAISE: _raise(); DISPATCH();
-    default: throw std::runtime_error(OP_NAMES[byte.op] + std::string(" is not implemented"));
+    default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));
     }
     UNREACHABLE();
 }

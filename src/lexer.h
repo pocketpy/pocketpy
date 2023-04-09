@@ -57,12 +57,13 @@ struct Token{
   TokenValue value;
 
   Str str() const { return Str(start, length);}
+  std::string_view sv() const { return std::string_view(start, length);}
 
-  Str info() const {
-    StrStream ss;
-    Str raw = str();
-    if (raw == Str("\n")) raw = "\\n";
-    ss << line << ": " << TK_STR(type) << " '" << raw << "'";
+  std::string info() const {
+    std::stringstream ss;
+    ss << line << ": " << TK_STR(type) << " '" << (
+        sv()=="\n" ? "\\n" : sv()
+    ) << "'";
     return ss.str();
   }
 };
@@ -171,7 +172,7 @@ struct Lexer {
         curr_char--;
         while(true){
             unsigned char c = peekchar();
-            int u8bytes = utf8len(c);
+            int u8bytes = utf8len(c, true);
             if(u8bytes == 0) return 1;
             if(u8bytes == 1){
                 if(isalpha(c) || c=='_' || isdigit(c)) {

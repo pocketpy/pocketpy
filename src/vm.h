@@ -58,8 +58,8 @@ public:
 
     PyObject* run_frame(Frame* frame);
 
-    NameDict _modules;                          // loaded modules
-    std::map<StrName, Str> _lazy_modules;       // lazy loaded modules
+    NameDict _modules;                                  // loaded modules
+    std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
 
     PyObject* _py_op_call;
     PyObject* _py_op_yield;
@@ -71,7 +71,8 @@ public:
     PyObject* builtins;         // builtins module
     PyObject* _main;            // __main__ module
 
-    bool use_stdio;
+    std::stringstream _stdout_buffer;
+    std::stringstream _stderr_buffer;
     std::ostream* _stdout;
     std::ostream* _stderr;
     int recursionlimit = 1000;
@@ -85,17 +86,12 @@ public:
 
     VM(bool use_stdio) : heap(this){
         this->vm = this;
-        this->use_stdio = use_stdio;
-        if(use_stdio){
-            this->_stdout = &std::cout;
-            this->_stderr = &std::cerr;
-        }else{
-            this->_stdout = new StrStream();
-            this->_stderr = new StrStream();
-        }
-
+        this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
+        this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
         init_builtin_types();
     }
+
+    bool is_stdio_used() const { return _stdout == &std::cout; }
 
     Frame* top_frame() const {
 #if DEBUG_EXTRA_CHECK
@@ -116,7 +112,7 @@ public:
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
         if(self != _py_null) return call(iter_f, Args{self});
-        TypeError(OBJ_NAME(_t(obj)).escape(true) + " object is not iterable");
+        TypeError(OBJ_NAME(_t(obj)).escape() + " object is not iterable");
         return nullptr;
     }
 
@@ -210,7 +206,7 @@ public:
         PyTypeInfo info{
             .obj = obj,
             .base = base,
-            .name = (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.str()): name.str()
+            .name = (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv()
         };
         if(mod != nullptr) mod->attr().set(name, obj);
         _all_types.push_back(info);
@@ -226,7 +222,7 @@ public:
         PyObject* obj = builtins->attr().try_get(type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
-            throw std::runtime_error("type not found: " + type);
+            throw std::runtime_error(fmt("type not found: ", type));
         }
         return obj;
     }
@@ -293,18 +289,18 @@ public:
     void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
-    void NameError(StrName name){ _error("NameError", "name " + name.str().escape(true) + " is not defined"); }
+    void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
-        _error("AttributeError", "type " +  OBJ_NAME(_t(obj)).escape(true) + " has no attribute " + name.str().escape(true));
+        _error("AttributeError", fmt("type ", OBJ_NAME(_t(obj)).escape(), " has no attribute ", name.escape()));
     }
 
     void AttributeError(Str msg){ _error("AttributeError", msg); }
 
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
-        TypeError("expected " + OBJ_NAME(_t(type)).escape(true) + ", but got " + OBJ_NAME(_t(obj)).escape(true));
+        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
     }
 
     PyObject* _t(Type t){
@@ -317,13 +313,7 @@ public:
         return _all_types[OBJ_GET(Type, _t(obj->type)).index].obj;
     }
 
-    ~VM() {
-        heap.collect();
-        if(!use_stdio){
-            delete _stdout;
-            delete _stderr;
-        }
-    }
+    ~VM() { heap.collect(); }
 
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
     PyObject* num_negated(PyObject* obj);
@@ -363,14 +353,6 @@ inline void CodeObject::optimize(VM* vm){
     uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
     perfect_locals_capacity = find_next_capacity(base_n);
     perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
-
-    // pre-compute sn in co_consts
-    for(int i=0; i<consts.size(); i++){
-        if(is_type(consts[i], vm->tp_str)){
-            Str& s = OBJ_GET(Str, consts[i]);
-            s._cached_sn_index = StrName::get(s.c_str()).index;
-        }
-    }
 }
 
 DEF_NATIVE_2(Str, tp_str)
@@ -482,6 +464,10 @@ inline PyObject* py_var(VM* vm, std::string val){
     return VAR(Str(std::move(val)));
 }
 
+inline PyObject* py_var(VM* vm, std::string_view val){
+    return VAR(Str(val));
+}
+
 template<typename T>
 void _check_py_class(VM* vm, PyObject* obj){
     vm->check_type(obj, T::_type(vm));
@@ -493,7 +479,7 @@ inline PyObject* VM::num_negated(PyObject* obj){
     }else if(is_float(obj)){
         return VAR(-CAST(f64, obj));
     }
-    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
+    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
     return nullptr;
 }
 
@@ -503,7 +489,7 @@ inline f64 VM::num_to_float(PyObject* obj){
     } else if (is_int(obj)){
         return (f64)CAST(i64, obj);
     }
-    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape(true));
+    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
     return 0;
 }
 
@@ -540,7 +526,7 @@ inline i64 VM::hash(PyObject* obj){
         f64 val = CAST(f64, obj);
         return (i64)std::hash<f64>()(val);
     }
-    TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape(true));
+    TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape());
     return 0;
 }
 
@@ -551,7 +537,7 @@ inline PyObject* VM::asRepr(PyObject* obj){
 
 inline PyObject* VM::new_module(StrName name) {
     PyObject* obj = heap._new<DummyModule>(tp_module, DummyModule());
-    obj->attr().set(__name__, VAR(name.str()));
+    obj->attr().set(__name__, VAR(name.sv()));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     if(_modules.contains(name)) UNREACHABLE();
@@ -571,7 +557,7 @@ inline Str VM::disassemble(CodeObject_ co){
             jumpTargets.push_back(byte.arg);
         }
     }
-    StrStream ss;
+    std::stringstream ss;
     int prev_line = -1;
     for(int i=0; i<co->codes.size(); i++){
         const Bytecode& byte = co->codes[i];
@@ -594,23 +580,23 @@ inline Str VM::disassemble(CodeObject_ co){
         std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
         switch(byte.op){
             case OP_LOAD_CONST:
-                argStr += " (" + CAST(Str, asRepr(co->consts[byte.arg])) + ")";
+                argStr += fmt(" (", CAST(Str, asRepr(co->consts[byte.arg])), ")");
                 break;
             case OP_LOAD_NAME: case OP_LOAD_GLOBAL:
             case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
             case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
-                argStr += " (" + co->names[byte.arg].str() + ")";
+                argStr += fmt(" (", co->names[byte.arg].sv(), ")");
                 break;
             case OP_BINARY_OP:
-                argStr += " (" + BINARY_SPECIAL_METHODS[byte.arg].str() + ")";
+                argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
                 break;
             case OP_COMPARE_OP:
-                argStr += " (" + COMPARE_SPECIAL_METHODS[byte.arg].str() + ")";
+                argStr += fmt(" (", COMPARE_SPECIAL_METHODS[byte.arg], ")");
                 break;
             case OP_BITWISE_OP:
-                argStr += " (" + BITWISE_SPECIAL_METHODS[byte.arg].str() + ")";
+                argStr += fmt(" (", BITWISE_SPECIAL_METHODS[byte.arg], ")");
                 break;
         }
         ss << pad(argStr, 40);      // may overflow
@@ -619,21 +605,21 @@ inline Str VM::disassemble(CodeObject_ co){
     }
 
 #if !DEBUG_DIS_EXEC_MIN
-    StrStream consts;
+    std::stringstream consts;
     consts << "co_consts: ";
-    consts << CAST(Str, asRepr(VAR(co->consts)));
+    consts << CAST(Str&, asRepr(VAR(co->consts)));
 
-    StrStream names;
+    std::stringstream names;
     names << "co_names: ";
     List list;
     for(int i=0; i<co->names.size(); i++){
-        list.push_back(VAR(co->names[i].str()));
+        list.push_back(VAR(co->names[i].sv()));
     }
     names << CAST(Str, asRepr(VAR(list)));
     ss << '\n' << consts.str() << '\n' << names.str();
 #endif
     for(auto& decl: co->func_decls){
-        ss << "\n\n" << "Disassembly of " << decl->name.str() << ":\n";
+        ss << "\n\n" << "Disassembly of " << decl->name << ":\n";
         ss << disassemble(decl->code);
     }
     return Str(ss.str());
@@ -733,7 +719,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
                 locals->set(name, args[i++]);
                 continue;
             }
-            TypeError("missing positional argument " + name.str().escape(true));
+            TypeError(fmt("missing positional argument ", name.escape()));
         }
 
         locals->update(fn.decl->kwargs);
@@ -756,7 +742,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         for(int i=0; i<kwargs.size(); i+=2){
             const Str& key = CAST(Str&, kwargs[i]);
             if(!fn.decl->kwargs.contains(key)){
-                TypeError(key.escape(true) + " is an invalid keyword argument for " + fn.decl->name.str() + "()");
+                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", fn.decl->name, "()"));
             }
             locals->set(key, kwargs[i+1]);
         }
@@ -774,7 +760,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         args.extend_self(self);
         return call(call_f, std::move(args), kwargs, false);
     }
-    TypeError(OBJ_NAME(_t(callable)).escape(true) + " object is not callable");
+    TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
     return None;
 }
 
@@ -880,7 +866,7 @@ inline void VM::setattr(PyObject* obj, StrName name, T&& value){
             if(descr_set != nullptr){
                 call(descr_set, Args{cls_var, obj, std::forward<T>(value)});
             }else{
-                TypeError("readonly attribute: " + name.str().escape(true));
+                TypeError(fmt("readonly attribute: ", name.escape()));
             }
             return;
         }
