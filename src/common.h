@@ -3,6 +3,7 @@
 #ifdef _MSC_VER
 #pragma warning (disable:4267)
 #pragma warning (disable:4101)
+#pragma warning (disable:4244)
 #define _CRT_NONSTDC_NO_DEPRECATE
 #define strdup _strdup
 #endif

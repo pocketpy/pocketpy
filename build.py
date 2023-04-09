@@ -20,7 +20,7 @@ def lib_pre_build():
 def lib_post_build():
     os.remove("src/tmp.cpp")
 
-windows_common = "clang-cl.exe -std:c++17 /utf-8 -GR- -EHsc -O2 -Wno-deprecated-declarations"
+windows_common = "CL -std:c++17 /utf-8 -GR- -EHsc -O2"
 windows_cmd = windows_common + " -Fe:pocketpy src/main.cpp"
 windows_lib_cmd = windows_common + " -LD -Fe:pocketpy src/tmp.cpp"
 

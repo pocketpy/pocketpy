@@ -204,9 +204,9 @@ public:
     PyObject* new_type_object(PyObject* mod, StrName name, Type base){
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         PyTypeInfo info{
-            .obj = obj,
-            .base = base,
-            .name = (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv()
+            obj,
+            base,
+            (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv()
         };
         if(mod != nullptr) mod->attr().set(name, obj);
         _all_types.push_back(info);
@@ -626,8 +626,8 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::init_builtin_types(){
-    _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(0)), .base = -1, .name = "object"});
-    _all_types.push_back({.obj = heap._new<Type>(Type(1), Type(1)), .base = 0, .name = "type"});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, "object"});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, "type"});
     tp_object = 0; tp_type = 1;
 
     tp_int = _new_type_object("int");
