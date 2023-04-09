@@ -18,18 +18,20 @@ inline PyObject* VM::_run_top_frame(){
         try{
             if(need_raise){ need_raise = false; _raise(); }
 /**********************************************************************/
+#define USE_COMPUTED_GOTO 0
+
+#if USE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
     #define OPCODE(name) &&CASE_OP_##name,
     #include "opcodes.h"
     #undef OPCODE
 };
 
-#define USE_COMPUTED_GOTO 1
-
-#if USE_COMPUTED_GOTO
 #define DISPATCH() {heap._auto_collect(); byte = frame->next_bytecode(); goto *OP_LABELS[byte.op];}
+#define PREDICTED_DISPATCH(x) {heap._auto_collect(); byte = frame->next_bytecode(); if(byte.op == OP_##x) goto CASE_OP_##x; goto *OP_LABELS[byte.op];}
 #else
 #define DISPATCH() {heap._auto_collect(); byte = frame->next_bytecode(); goto __NEXT_STEP;}
+#define PREDICTED_DISPATCH(x) {heap._auto_collect(); byte = frame->next_bytecode(); if(byte.op == OP_##x) goto CASE_OP_##x; goto __NEXT_STEP;}
 #endif
 
 #define TARGET(op) case OP_##op:    \
@@ -218,41 +220,56 @@ __NEXT_STEP:;
             args[1] = frame->popx();                        \
             args[0] = frame->top();                         \
             frame->top() = fast_call(func, std::move(args));\
-        }                                                   \
-        DISPATCH();
+        }
 
     TARGET(BINARY_ADD)
         INT_BINARY_OP(+, __add__)
+        DISPATCH()
     TARGET(BINARY_SUB)
         INT_BINARY_OP(-, __sub__)
+        DISPATCH()
     TARGET(BINARY_MUL)
         INT_BINARY_OP(*, __mul__)
+        DISPATCH()
     TARGET(BINARY_FLOORDIV)
         INT_BINARY_OP(/, __floordiv__)
+        DISPATCH()
     TARGET(BINARY_MOD)
         INT_BINARY_OP(%, __mod__)
+        DISPATCH()
     TARGET(COMPARE_LT)
         INT_BINARY_OP(<, __lt__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(COMPARE_LE)
         INT_BINARY_OP(<=, __le__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(COMPARE_EQ)
         INT_BINARY_OP(==, __eq__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(COMPARE_NE)
         INT_BINARY_OP(!=, __ne__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(COMPARE_GT)
         INT_BINARY_OP(>, __gt__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(COMPARE_GE)
         INT_BINARY_OP(>=, __ge__)
+        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
     TARGET(BITWISE_LSHIFT)
         INT_BINARY_OP(<<, __lshift__)
+        DISPATCH()
     TARGET(BITWISE_RSHIFT)
         INT_BINARY_OP(>>, __rshift__)
+        DISPATCH()
     TARGET(BITWISE_AND)
         INT_BINARY_OP(&, __and__)
+        DISPATCH()
     TARGET(BITWISE_OR)
         INT_BINARY_OP(|, __or__)
+        DISPATCH()
     TARGET(BITWISE_XOR)
         INT_BINARY_OP(^, __xor__)
+        DISPATCH()
 #undef INT_BINARY_OP
     TARGET(IS_OP) {
         PyObject* rhs = frame->popx();
