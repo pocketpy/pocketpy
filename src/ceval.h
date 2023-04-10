@@ -498,7 +498,7 @@ __NEXT_STEP:;
 #if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));
 #else
-    default: __builtin_unreachable();
+    default: std::unreachable();
 #endif
     }
 #endif
