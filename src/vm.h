@@ -102,7 +102,7 @@ public:
 
     FrameId top_frame() {
 #if DEBUG_EXTRA_CHECK
-        if(callstack.empty()) UNREACHABLE();
+        if(callstack.empty()) FATAL_ERROR();
 #endif
         return FrameId(&callstack.data(), callstack.size()-1);
     }
@@ -553,7 +553,7 @@ inline PyObject* VM::new_module(StrName name) {
     obj->attr().set(__name__, VAR(name.sv()));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    if(_modules.contains(name)) UNREACHABLE();
+    if(_modules.contains(name)) FATAL_ERROR();
     _modules.set(name, obj);
     return obj;
 }
@@ -639,7 +639,7 @@ inline void VM::init_builtin_types(){
 
     tp_int = _new_type_object("int");
     tp_float = _new_type_object("float");
-    if(tp_int.index != kTpIntIndex || tp_float.index != kTpFloatIndex) UNREACHABLE();
+    if(tp_int.index != kTpIntIndex || tp_float.index != kTpFloatIndex) FATAL_ERROR();
 
     tp_bool = _new_type_object("bool");
     tp_str = _new_type_object("str");

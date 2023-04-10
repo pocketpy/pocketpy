@@ -183,7 +183,7 @@ inline bool is_type(PyObject* obj, Type type) {
     }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod) {                \
         PyObject* type = vm->new_type_object(mod, #name, vm->tp_object);    \
-        if(OBJ_NAME(mod) != #mod) UNREACHABLE();                            \
+        if(OBJ_NAME(mod) != #mod) FATAL_ERROR();                            \
         T::_register(vm, mod, type);                                        \
         type->attr()._try_perfect_rehash();                                 \
         return type;                                                        \

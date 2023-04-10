@@ -312,7 +312,7 @@ struct Pointer{
             CASE(double, f64);
             CASE(bool, bool);
 #undef CASE
-            default: UNREACHABLE();
+            default: FATAL_ERROR();
         }
     }
 

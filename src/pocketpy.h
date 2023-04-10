@@ -978,7 +978,7 @@ extern "C" {
                 case 'N': f_None(packet); return vm->None;
             }
             free(packet);
-            UNREACHABLE();
+            FATAL_ERROR();
             return vm->None;
         });
         return strdup(f_header.c_str());

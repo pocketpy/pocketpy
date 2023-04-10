@@ -38,7 +38,7 @@ constexpr TokenIndex TK(const char token[]) {
         while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
-    UNREACHABLE();
+    FATAL_ERROR();
 }
 
 #define TK_STR(t) kTokens[t]
@@ -344,7 +344,7 @@ struct Lexer {
                 } else {
                     add_token(TK("@num"), S_TO_INT(m[0], &size, base));
                 }
-                if (size != m.length()) UNREACHABLE();
+                if (size != m.length()) FATAL_ERROR();
             }
         }catch(std::exception& _){
             SyntaxError("invalid number literal");
@@ -448,7 +448,7 @@ struct Lexer {
                         case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c));
                         case 3: SyntaxError("@id contains invalid char"); break;
                         case 4: SyntaxError("invalid JSON token"); break;
-                        default: UNREACHABLE();
+                        default: FATAL_ERROR();
                     }
                     return true;
                 }
@@ -494,7 +494,7 @@ struct Lexer {
     }
 
     std::vector<Token> run() {
-        if(used) UNREACHABLE();
+        if(used) FATAL_ERROR();
         used = true;
         while (lex_one_token());
         return std::move(nexts);

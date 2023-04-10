@@ -51,8 +51,10 @@
 
 #if _MSC_VER
 #define PK_ENABLE_COMPUTED_GOTO		0
+#define UNREACHABLE()				__assume(0)
 #else
 #define PK_ENABLE_COMPUTED_GOTO		1
+#define UNREACHABLE()				__builtin_unreachable()
 #endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)
@@ -89,9 +91,9 @@ struct Type {
 #define CPP_NOT_IMPLEMENTED() ([](VM* vm, Args& args) { vm->NotImplementedError(); return vm->None; })
 
 #ifdef POCKETPY_H
-#define UNREACHABLE() throw std::runtime_error( "L" + std::to_string(__LINE__) + " UNREACHABLE()!");
+#define FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #else
-#define UNREACHABLE() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " UNREACHABLE()!");
+#define FATAL_ERROR() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #endif
 
 inline const float kLocalsLoadFactor = 0.67f;

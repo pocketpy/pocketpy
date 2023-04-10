@@ -55,7 +55,7 @@ struct CodeEmitContext{
         if(co->blocks[curr_block_i].type == FOR_LOOP) for_loop_depth--;
         co->blocks[curr_block_i].end = co->codes.size();
         curr_block_i = co->blocks[curr_block_i].parent;
-        if(curr_block_i < 0) UNREACHABLE();
+        if(curr_block_i < 0) FATAL_ERROR();
     }
 
     // clear the expression stack and generate bytecode
@@ -137,7 +137,7 @@ struct NameExpr: Expr{
             case NAME_GLOBAL:
                 ctx->emit(OP_DELETE_GLOBAL, index, line);
                 break;
-            default: UNREACHABLE(); break;
+            default: FATAL_ERROR(); break;
         }
         return true;
     }
@@ -155,7 +155,7 @@ struct NameExpr: Expr{
             case NAME_GLOBAL:
                 ctx->emit(OP_STORE_GLOBAL, index, line);
                 break;
-            default: UNREACHABLE(); break;
+            default: FATAL_ERROR(); break;
         }
         return true;
     }
@@ -229,7 +229,7 @@ struct Literal0Expr: Expr{
             case TK("True"):    ctx->emit(OP_LOAD_TRUE, BC_NOARG, line); break;
             case TK("False"):   ctx->emit(OP_LOAD_FALSE, BC_NOARG, line); break;
             case TK("..."):     ctx->emit(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
-            default: UNREACHABLE();
+            default: FATAL_ERROR();
         }
     }
 
@@ -254,7 +254,7 @@ struct LiteralExpr: Expr{
             return s.str();
         }
 
-        UNREACHABLE();
+        FATAL_ERROR();
     }
 
     PyObject* to_object(CodeEmitContext* ctx){
@@ -274,7 +274,7 @@ struct LiteralExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         PyObject* obj = to_object(ctx);
-        if(obj == nullptr) UNREACHABLE();
+        if(obj == nullptr) FATAL_ERROR();
         int index = ctx->add_const(obj);
         ctx->emit(OP_LOAD_CONST, index, line);
     }
@@ -448,7 +448,7 @@ struct CompExpr: Expr{
         ctx->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
-        if(!ok) UNREACHABLE();  // TODO: raise a SyntaxError instead
+        if(!ok) FATAL_ERROR();  // TODO: raise a SyntaxError instead
         if(cond){
             cond->emit(ctx);
             int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
@@ -672,7 +672,7 @@ struct BinaryExpr: Expr{
             case TK("&"):   ctx->emit(OP_BITWISE_AND, BC_NOARG, line);  break;
             case TK("|"):   ctx->emit(OP_BITWISE_OR, BC_NOARG, line);  break;
             case TK("^"):   ctx->emit(OP_BITWISE_XOR, BC_NOARG, line);  break;
-            default: UNREACHABLE();
+            default: FATAL_ERROR();
         }
     }
 };

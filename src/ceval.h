@@ -13,7 +13,7 @@ inline PyObject* VM::_run_top_frame(){
 
     while(true){
 #if DEBUG_EXTRA_CHECK
-        if(frame->id < base_id) UNREACHABLE();
+        if(frame->id < base_id) FATAL_ERROR();
 #endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
@@ -498,7 +498,7 @@ __NEXT_STEP:;
 #if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));
 #else
-    default: std::unreachable();
+    default: UNREACHABLE();
 #endif
     }
 #endif

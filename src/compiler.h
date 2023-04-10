@@ -267,7 +267,7 @@ class Compiler {
             case TK("*"):
                 ctx()->s_expr.push(make_expr<StarredExpr>(ctx()->s_expr.popx()));
                 break;
-            default: UNREACHABLE();
+            default: FATAL_ERROR();
         }
     }
 
@@ -464,7 +464,7 @@ __SUBSCR_END:
         if(is_slice){
             e->b = std::move(slice);
         }else{
-            if(state != 1) UNREACHABLE();
+            if(state != 1) FATAL_ERROR();
             e->b = std::move(slice->start);
         }
         ctx()->s_expr.push(std::move(e));
@@ -936,7 +936,7 @@ public:
     }
 
     CodeObject_ compile(){
-        if(used) UNREACHABLE();
+        if(used) FATAL_ERROR();
         used = true;
 
         tokens = lexer->run();

@@ -101,7 +101,7 @@ struct ManagedHeap{
     }
 
     int collect(){
-        if(_gc_lock_counter > 0) UNREACHABLE();
+        if(_gc_lock_counter > 0) FATAL_ERROR();
         mark();
         int freed = sweep();
         return freed;

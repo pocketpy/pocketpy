@@ -119,7 +119,7 @@ while(!_items[i].first.empty()) {       \
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
             HASH_PROBE(old_items[i].first, ok, j);
-            if(ok) UNREACHABLE();
+            if(ok) FATAL_ERROR();
             _items[j] = old_items[i];
         }
         pool128.dealloc(old_items);
