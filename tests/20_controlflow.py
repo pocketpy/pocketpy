@@ -65,3 +65,9 @@ while (count < 1000):
    count = count + 1
 assert count == 1000
 
+# ternary operator
+d = 1 if 2 > 1 else 2
+assert d == 1
+d = 1 if 2 < 1 else 2
+assert d == 2
+

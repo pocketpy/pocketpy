@@ -72,6 +72,7 @@ struct Token{
 enum Precedence {
   PREC_NONE,
   PREC_TUPLE,         // ,
+  PREC_LAMBDA,        // lambda
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or
   PREC_LOGICAL_AND,   // and

@@ -25,10 +25,10 @@ class Compiler {
     int i = 0;
     std::vector<Token> tokens;
 
-    const Token& prev() { return tokens.at(i-1); }
-    const Token& curr() { return tokens.at(i); }
-    const Token& next() { return tokens.at(i+1); }
-    const Token& err() {
+    const Token& prev() const{ return tokens.at(i-1); }
+    const Token& curr() const{ return tokens.at(i); }
+    const Token& next() const{ return tokens.at(i+1); }
+    const Token& err() const{
         if(i >= tokens.size()) return prev();
         return curr();
     }
@@ -89,6 +89,7 @@ class Compiler {
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
         rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
+        rules[TK("if")] =       { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
         rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
@@ -195,7 +196,8 @@ class Compiler {
             consume(TK(":"));
         }
         e->decl->code = push_context(lexer->src, e->decl->name.sv());
-        EXPR(false); // https://github.com/blueloveTH/pocketpy/issues/37
+        // https://github.com/blueloveTH/pocketpy/issues/37
+        parse_expression(PREC_LAMBDA + 1, false);
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
@@ -235,12 +237,25 @@ class Compiler {
     
     void exprTernary(){
         auto e = make_expr<TernaryExpr>();
-        e->cond = ctx()->s_expr.popx();
-        EXPR();         // if true
-        e->true_expr = ctx()->s_expr.popx();
-        consume(TK(":"));
-        EXPR();         // if false
-        e->false_expr = ctx()->s_expr.popx();
+        if(prev().type == TK("if")){
+            e->true_expr = ctx()->s_expr.popx();
+            // cond
+            parse_expression(PREC_TERNARY + 1);
+            e->cond = ctx()->s_expr.popx();
+            consume(TK("else"));
+            // if false
+            parse_expression(PREC_TERNARY + 1);
+            e->false_expr = ctx()->s_expr.popx();
+        }else{  // ?:
+            e->cond = ctx()->s_expr.popx();
+            // if true
+            parse_expression(PREC_TERNARY + 1);
+            e->true_expr = ctx()->s_expr.popx();
+            consume(TK(":"));
+            // if false
+            parse_expression(PREC_TERNARY + 1);
+            e->false_expr = ctx()->s_expr.popx();
+        }
         ctx()->s_expr.push(std::move(e));
     }
 
@@ -291,11 +306,11 @@ class Compiler {
         ce->expr = std::move(expr);
         ce->vars = EXPR_VARS();
         consume(TK("in"));
-        EXPR();
+        parse_expression(PREC_TERNARY + 1);
         ce->iter = ctx()->s_expr.popx();
         match_newlines_repl();
         if(match(TK("if"))){
-            EXPR();
+            parse_expression(PREC_TERNARY + 1);
             ce->cond = ctx()->s_expr.popx();
         }
         ctx()->s_expr.push(std::move(ce));
