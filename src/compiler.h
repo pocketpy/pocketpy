@@ -28,6 +28,10 @@ class Compiler {
     const Token& prev() { return tokens.at(i-1); }
     const Token& curr() { return tokens.at(i); }
     const Token& next() { return tokens.at(i+1); }
+    const Token& err() {
+        if(i >= tokens.size()) return prev();
+        return curr();
+    }
     void advance(int delta=1) { i += delta; }
 
     CodeEmitContext* ctx() { return &contexts.top(); }
@@ -921,9 +925,9 @@ __SUBSCR_END:
         return nullptr;
     }
 
-    void SyntaxError(Str msg){ lexer->throw_err("SyntaxError", msg, curr().line, curr().start); }
-    void SyntaxError(){ lexer->throw_err("SyntaxError", "invalid syntax", curr().line, curr().start); }
-    void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, curr().line, curr().start); }
+    void SyntaxError(Str msg){ lexer->throw_err("SyntaxError", msg, err().line, err().start); }
+    void SyntaxError(){ lexer->throw_err("SyntaxError", "invalid syntax", err().line, err().start); }
+    void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, err().line, err().start); }
 
 public:
     Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode){
