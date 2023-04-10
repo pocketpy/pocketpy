@@ -37,19 +37,22 @@ struct CodeEmitContext{
 
     int curr_block_i = 0;
     bool is_compiling_class = false;
+    int for_loop_depth = 0;
 
     bool is_curr_block_loop() const {
         return co->blocks[curr_block_i].type == FOR_LOOP || co->blocks[curr_block_i].type == WHILE_LOOP;
     }
 
     void enter_block(CodeBlockType type){
-        co->blocks.push_back(CodeBlock{
-            type, curr_block_i, (int)co->codes.size()
-        });
+        if(type == FOR_LOOP) for_loop_depth++;
+        co->blocks.push_back(CodeBlock(
+            type, curr_block_i, for_loop_depth, (int)co->codes.size()
+        ));
         curr_block_i = co->blocks.size()-1;
     }
 
     void exit_block(){
+        if(co->blocks[curr_block_i].type == FOR_LOOP) for_loop_depth--;
         co->blocks[curr_block_i].end = co->codes.size();
         curr_block_i = co->blocks[curr_block_i].parent;
         if(curr_block_i < 0) UNREACHABLE();

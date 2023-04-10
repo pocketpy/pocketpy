@@ -18,42 +18,37 @@ inline PyObject* VM::_run_top_frame(){
         try{
             if(need_raise){ need_raise = false; _raise(); }
 /**********************************************************************/
-#define USE_COMPUTED_GOTO 0
+/* NOTE: 
+ * Be aware of accidental gc!
+ * DO NOT leave any strong reference of PyObject* in the C stack
+ * For example, frame->popx() returns a strong reference which may be dangerous
+ * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
+ */
+{
+    Bytecode byte = frame->next_bytecode();
 
-#if USE_COMPUTED_GOTO
+#if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
     #define OPCODE(name) &&CASE_OP_##name,
     #include "opcodes.h"
     #undef OPCODE
 };
 
-#define DISPATCH() {heap._auto_collect(); byte = frame->next_bytecode(); goto *OP_LABELS[byte.op];}
-#define PREDICTED_DISPATCH(x) {heap._auto_collect(); byte = frame->next_bytecode(); if(byte.op == OP_##x) goto CASE_OP_##x; goto *OP_LABELS[byte.op];}
+#define DISPATCH() { byte = frame->next_bytecode(); goto *OP_LABELS[byte.op];}
+#define TARGET(op) CASE_OP_##op:
+goto *OP_LABELS[byte.op];
+
 #else
-#define DISPATCH() {heap._auto_collect(); byte = frame->next_bytecode(); goto __NEXT_STEP;}
-#define PREDICTED_DISPATCH(x) {heap._auto_collect(); byte = frame->next_bytecode(); if(byte.op == OP_##x) goto CASE_OP_##x; goto __NEXT_STEP;}
-#endif
+#define TARGET(op) case OP_##op:
+#define DISPATCH() { byte = frame->next_bytecode(); goto __NEXT_STEP;}
 
-#define TARGET(op) case OP_##op:    \
-    CASE_OP_##op:
-
-{
-    Bytecode byte = frame->next_bytecode();
-#if !USE_COMPUTED_GOTO
 __NEXT_STEP:;
-#endif
-    /* NOTE: 
-    * Be aware of accidental gc!
-    * DO NOT leave any strong reference of PyObject* in the C stack
-    * For example, frame->popx() returns a strong reference which may be dangerous
-    * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
-    */
 #if DEBUG_CEVAL_STEP
     std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
 #endif
-
     switch (byte.op)
     {
+#endif
     TARGET(NO_OP) DISPATCH();
     /*****************************************/
     TARGET(POP_TOP) frame->pop(); DISPATCH();
@@ -65,7 +60,10 @@ __NEXT_STEP:;
         frame->pop();
     } DISPATCH();
     /*****************************************/
-    TARGET(LOAD_CONST) frame->push(frame->co->consts[byte.arg]); DISPATCH();
+    TARGET(LOAD_CONST)
+        heap._auto_collect();
+        frame->push(frame->co->consts[byte.arg]);
+        DISPATCH();
     TARGET(LOAD_NONE) frame->push(None); DISPATCH();
     TARGET(LOAD_TRUE) frame->push(True); DISPATCH();
     TARGET(LOAD_FALSE) frame->push(False); DISPATCH();
@@ -79,6 +77,7 @@ __NEXT_STEP:;
     TARGET(LOAD_NULL) frame->push(_py_null); DISPATCH();
     /*****************************************/
     TARGET(LOAD_NAME) {
+        heap._auto_collect();
         StrName name = frame->co->names[byte.arg];
         PyObject* val;
         val = frame->f_locals().try_get(name);
@@ -92,6 +91,7 @@ __NEXT_STEP:;
         vm->NameError(name);
     } DISPATCH();
     TARGET(LOAD_GLOBAL) {
+        heap._auto_collect();
         StrName name = frame->co->names[byte.arg];
         PyObject* val = frame->f_globals().try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
@@ -239,22 +239,22 @@ __NEXT_STEP:;
         DISPATCH()
     TARGET(COMPARE_LT)
         INT_BINARY_OP(<, __lt__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(COMPARE_LE)
         INT_BINARY_OP(<=, __le__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(COMPARE_EQ)
         INT_BINARY_OP(==, __eq__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(COMPARE_NE)
         INT_BINARY_OP(!=, __ne__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(COMPARE_GT)
         INT_BINARY_OP(>, __gt__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(COMPARE_GE)
         INT_BINARY_OP(>=, __ge__)
-        PREDICTED_DISPATCH(POP_JUMP_IF_FALSE)
+        DISPATCH()
     TARGET(BITWISE_LSHIFT)
         INT_BINARY_OP(<<, __lshift__)
         DISPATCH()
@@ -469,9 +469,6 @@ __NEXT_STEP:;
     // TARGET(WITH_ENTER) call(frame->pop_value(this), __enter__, no_arg()); DISPATCH();
     // TARGET(WITH_EXIT) call(frame->pop_value(this), __exit__, no_arg()); DISPATCH();
     /*****************************************/
-    TARGET(TRY_BLOCK_ENTER) frame->on_try_block_enter(); DISPATCH();
-    TARGET(TRY_BLOCK_EXIT) frame->on_try_block_exit(); DISPATCH();
-    /*****************************************/
     TARGET(ASSERT) {
         PyObject* obj = frame->top();
         Str msg;
@@ -497,10 +494,17 @@ __NEXT_STEP:;
         _error(type, msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
+#if !PK_ENABLE_COMPUTED_GOTO
+#if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));
+#else
+    default: __builtin_unreachable();
+#endif
     }
-    UNREACHABLE();
+#endif
 }
+
+
 #undef DISPATCH
 #undef TARGET
 /**********************************************************************/

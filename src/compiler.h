@@ -607,9 +607,7 @@ __SUBSCR_END:
 
     void compile_try_except() {
         ctx()->enter_block(TRY_EXCEPT);
-        ctx()->emit(OP_TRY_BLOCK_ENTER, BC_NOARG, prev().line);
         compile_block_body();
-        ctx()->emit(OP_TRY_BLOCK_EXIT, BC_NOARG, BC_KEEPLINE);
         std::vector<int> patches = {
             ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
         };

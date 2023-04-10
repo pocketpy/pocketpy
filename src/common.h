@@ -44,9 +44,15 @@
 #define DEBUG_GC_STATS				0
 
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
-#define PK_ENABLE_FILEIO 		0
+#define PK_ENABLE_FILEIO 			0
 #else
-#define PK_ENABLE_FILEIO 		0	// TODO: refactor this
+#define PK_ENABLE_FILEIO 			0	// TODO: refactor this
+#endif
+
+#if _MSC_VER
+#define PK_ENABLE_COMPUTED_GOTO		0
+#else
+#define PK_ENABLE_COMPUTED_GOTO		1
 #endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)

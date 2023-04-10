@@ -17,7 +17,6 @@ struct Frame {
     PyObject* _module;
     NameDict_ _locals;
     NameDict_ _closure;
-    std::vector<std::pair<int, ValueStack>> s_try_block;
 
     NameDict& f_locals() noexcept { return _locals!=nullptr ? *_locals : _module->attr(); }
     NameDict& f_globals() noexcept { return _module->attr(); }
@@ -104,28 +103,27 @@ struct Frame {
     void jump_abs(int i){ _next_ip = i; }
     void jump_rel(int i){ _next_ip += i; }
 
-    void on_try_block_enter(){
-        s_try_block.emplace_back(co->codes[_ip].block, _data);
-    }
-
-    void on_try_block_exit(){
-        s_try_block.pop_back();
-    }
-
     bool jump_to_exception_handler(){
-        if(s_try_block.empty()) return false;
-        PyObject* obj = popx();
-        auto& p = s_try_block.back();
-        _data = std::move(p.second);
-        _data.push_back(obj);
-        _next_ip = co->blocks[p.first].end;
-        on_try_block_exit();
+        // try to find a parent try block
+        int block = co->codes[_ip].block;
+        while(block >= 0){
+            if(co->blocks[block].type == TRY_EXCEPT) break;
+            block = co->blocks[block].parent;
+        }
+        if(block < 0) return false;
+        PyObject* obj = popx();         // pop exception object
+        // get the stack size of the try block (depth of for loops)
+        int stack_size = co->blocks[block].for_loop_depth;
+        // std::cout << "stack_size: " << stack_size << std::endl;
+        if(_data.size() < stack_size) throw std::runtime_error("invalid stack size");
+        _data.resize(stack_size);       // rollback the stack
+        _data.push_back(obj);           // push exception object
+        _next_ip = co->blocks[block].end;
         return true;
     }
 
     int _exit_block(int i){
         if(co->blocks[i].type == FOR_LOOP) pop();
-        else if(co->blocks[i].type == TRY_EXCEPT) on_try_block_exit();
         return co->blocks[i].parent;
     }
 
@@ -153,15 +151,12 @@ struct Frame {
     }
 
     void _gc_mark() const {
-        // this frame has been moved
+        // do return if this frame has been moved
         if(_data._data == nullptr) return;
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
         if(_locals != nullptr) _locals->_gc_mark();
         if(_closure != nullptr) _closure->_gc_mark();
-        for(auto& p : s_try_block){
-            for(PyObject* obj : p.second) OBJ_MARK(obj);
-        }
         co->_gc_mark();
     }
 };

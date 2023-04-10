@@ -39,8 +39,12 @@ enum CodeBlockType {
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
+    int for_loop_depth; // this is used for exception handling
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
+
+    CodeBlock(CodeBlockType type, int parent, int for_loop_depth, int start):
+        type(type), parent(parent), for_loop_depth(for_loop_depth), start(start), end(-1) {}
 };
 
 struct CodeObject {
@@ -58,7 +62,7 @@ struct CodeObject {
     List consts;
     std::vector<StrName> names;
     std::set<Str> global_names;
-    std::vector<CodeBlock> blocks = { CodeBlock{NO_BLOCK, -1} };
+    std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
     std::map<StrName, int> labels;
     std::vector<FuncDecl_> func_decls;
 

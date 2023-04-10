@@ -1,3 +1,21 @@
+try:
+    for i in range(5):
+        raise KeyError(i)
+    exit(1)
+except KeyError:
+    pass
+
+x = 0
+for i in range(5):
+    try:
+        for j in range(5):
+            while True:
+                raise KeyError(i)
+                x += 3
+    except KeyError:
+        x += i
+assert x == 10
+
 class A:
     def __getitem__(self, i):
         raise KeyError(i)

@@ -105,6 +105,11 @@ struct pod_vector{
         _size--;
     }
 
+    void resize(int size){
+        if(size > _capacity) reserve(size);
+        _size = size;
+    }
+
     ~pod_vector() {
         if(_data!=nullptr) pool128.dealloc(_data);
     }
