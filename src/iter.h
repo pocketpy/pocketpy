@@ -81,7 +81,7 @@ inline void Generator::_gc_mark() const{
 }
 
 template<typename T>
-void _gc_mark(T& t) {
+void gc_mark(T& t) {
     if constexpr(std::is_base_of_v<BaseIter, T>){
         t._gc_mark();
     }

@@ -8,7 +8,7 @@ namespace pkpy{
 
 const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143, 3467, 28019, 1051, 39419, 1361, 28547, 48197, 2609, 24317, 22861, 41467, 17623, 52837, 59053, 33589, 32117};
 
-inline static uint16_t find_next_capacity(uint16_t n){
+inline uint16_t find_next_power_of_2(uint16_t n){
     uint16_t x = 2;
     while(x < n) x <<= 1;
     return x;
@@ -16,7 +16,7 @@ inline static uint16_t find_next_capacity(uint16_t n){
 
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
-inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
+inline uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
     if(keys.empty()) return kHashSeeds[0];
     std::set<uint16_t> indices;
     std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0.0f};
@@ -32,10 +32,14 @@ inline static uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vect
     return best_score.first;
 }
 
-struct NameDict {
-    using Item = std::pair<StrName, PyObject*>;
-    static constexpr uint16_t __Capacity = 128/sizeof(Item);
-    static_assert( (__Capacity & (__Capacity-1)) == 0, "__Capacity must be power of 2" );
+template<typename T>
+struct NameDictImpl {
+    using Item = std::pair<StrName, T>;
+    static constexpr uint16_t __Capacity = 8;
+    // ensure the initial capacity is ok for memory pool
+    static_assert(std::is_pod_v<T>);
+    static_assert(sizeof(Item) * __Capacity <= 128);
+
     float _load_factor;
     uint16_t _capacity;
     uint16_t _size;
@@ -48,23 +52,23 @@ struct NameDict {
         memset(_items, 0, cap * sizeof(Item));
     }
 
-    NameDict(float load_factor=0.67, uint16_t capacity=__Capacity, uint16_t hash_seed=kHashSeeds[0]):
+    NameDictImpl(float load_factor=0.67, uint16_t capacity=__Capacity, uint16_t hash_seed=kHashSeeds[0]):
         _load_factor(load_factor), _capacity(capacity), _size(0), 
         _hash_seed(hash_seed), _mask(capacity-1) {
         _alloc(capacity);
     }
 
-    NameDict(const NameDict& other) {
-        memcpy(this, &other, sizeof(NameDict));
+    NameDictImpl(const NameDictImpl& other) {
+        memcpy(this, &other, sizeof(NameDictImpl));
         _alloc(_capacity);
         for(int i=0; i<_capacity; i++){
             _items[i] = other._items[i];
         }
     }
 
-    NameDict& operator=(const NameDict& other) {
+    NameDictImpl& operator=(const NameDictImpl& other) {
         pool128.dealloc(_items);
-        memcpy(this, &other, sizeof(NameDict));
+        memcpy(this, &other, sizeof(NameDictImpl));
         _alloc(_capacity);
         for(int i=0; i<_capacity; i++){
             _items[i] = other._items[i];
@@ -72,10 +76,10 @@ struct NameDict {
         return *this;
     }
     
-    ~NameDict(){ pool128.dealloc(_items); }
+    ~NameDictImpl(){ pool128.dealloc(_items); }
 
-    NameDict(NameDict&&) = delete;
-    NameDict& operator=(NameDict&&) = delete;
+    NameDictImpl(NameDictImpl&&) = delete;
+    NameDictImpl& operator=(NameDictImpl&&) = delete;
     uint16_t size() const { return _size; }
 
 #define HASH_PROBE(key, ok, i)          \
@@ -86,14 +90,14 @@ while(!_items[i].first.empty()) {       \
     i = (i + 1) & _mask;                                \
 }
 
-    PyObject* operator[](StrName key) const {
+    T operator[](StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         return _items[i].second;
     }
 
-    void set(StrName key, PyObject* val){
+    void set(StrName key, T val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) {
@@ -111,7 +115,7 @@ while(!_items[i].first.empty()) {       \
         Item* old_items = _items;
         uint16_t old_capacity = _capacity;
         if(resize){
-            _capacity = find_next_capacity(_capacity * 2);
+            _capacity = find_next_power_of_2(_capacity * 2);
             _mask = _capacity - 1;
         }
         _alloc(_capacity);
@@ -130,14 +134,18 @@ while(!_items[i].first.empty()) {       \
         _rehash(false); // do not resize
     }
 
-    PyObject* try_get(StrName key) const{
+    T try_get(StrName key) const{
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
-        if(!ok) return nullptr;
+        if(!ok){
+            if constexpr(std::is_pointer_v<T>) return nullptr;
+            else if constexpr(std::is_same_v<int, T>) return -1;
+            else return Discarded();
+        }
         return _items[i].second;
     }
 
-    bool try_set(StrName key, PyObject* val){
+    bool try_set(StrName key, T val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);
         if(!ok) return false;
@@ -151,7 +159,7 @@ while(!_items[i].first.empty()) {       \
         return ok;
     }
 
-    void update(const NameDict& other){
+    void update(const NameDictImpl& other){
         for(uint16_t i=0; i<other._capacity; i++){
             auto& item = other._items[i];
             if(!item.first.empty()) set(item.first, item.second);
@@ -184,10 +192,13 @@ while(!_items[i].first.empty()) {       \
         }
         return v;
     }
-
-    void _gc_mark() const;
 #undef HASH_PROBE
 #undef _hash
 };
+
+using NameDict = NameDictImpl<PyObject*>;
+using NameDict_ = shared_ptr<NameDict>;
+using NameDictInt = NameDictImpl<int>;
+using NameDictInt_ = shared_ptr<NameDictInt>;
 
 } // namespace pkpy

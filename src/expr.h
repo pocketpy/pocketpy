@@ -91,10 +91,8 @@ struct CodeEmitContext{
         co->codes[index].arg = target;
     }
 
-    bool add_label(StrName label){
-        if(co->labels.count(label)) return false;
-        co->labels[label] = co->codes.size();
-        return true;
+    bool add_label(StrName name){
+        return co->labels->try_set(name, co->codes.size());
     }
 
     int add_name(StrName name){
@@ -106,11 +104,11 @@ struct CodeEmitContext{
     }
 
     int add_varname(StrName name){
-        auto it = co->varnames_inv.find(name);
-        if(it != co->varnames_inv.end()) return it->second;
+        int index = co->varnames_inv->try_get(name);
+        if(index >= 0) return index;
         co->varnames.push_back(name);
-        int index = co->varnames.size() - 1;
-        co->varnames_inv[name] = index;
+        index = co->varnames.size() - 1;
+        co->varnames_inv->set(name, index);
         return index;
     }
 

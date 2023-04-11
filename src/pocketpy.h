@@ -114,6 +114,7 @@ inline void init_builtins(VM* _vm) {
         // moving _locals is dangerous since OP_LOAD_FAST's arg is index of _locals
         // the new opcode may not generate the same index, or even not a OP_LOAD_FAST call
         // we should do some special handling here
+        // seems LOAD_NAME / STORE_NAME / DELETE_NAME are designed for this?
         vm->_push_new_frame(code.get(), frame->_module, std::move(frame->_locals), nullptr);
         vm->_run_top_frame(true);
         frame->_locals = std::move(vm->top_frame()->_locals);

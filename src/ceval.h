@@ -79,9 +79,9 @@ __NEXT_STEP:;
         FuncDecl_ decl = co->func_decls[byte.arg];
         PyObject* obj;
         if(decl->nested){
-            obj = VAR(Function({decl, frame->_module, frame->locals_to_namedict()}));
+            obj = VAR(Function({decl, frame->_module, frame->_locals}));
         }else{
-            obj = VAR(Function({decl, frame->_module, nullptr}));
+            obj = VAR(Function({decl, frame->_module}));
         }
         frame->push(obj);
     } DISPATCH();
@@ -97,9 +97,9 @@ __NEXT_STEP:;
         heap._auto_collect();
         StrName name = co_names[byte.arg];
         PyObject* val;
-        val = frame->f_locals_try_get(name);
+        val = frame->_locals.try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
-        val = frame->f_closure_try_get(name);
+        val = frame->_closure.try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
         val = frame->f_globals().try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
@@ -322,10 +322,10 @@ __NEXT_STEP:;
         frame->jump_abs_break(target);
     } DISPATCH();
     TARGET(GOTO) {
-        StrName label = co_names[byte.arg];
-        auto it = co->labels.find(label);
-        if(it == co->labels.end()) _error("KeyError", fmt("label ", label.escape(), " not found"));
-        frame->jump_abs_break(it->second);
+        StrName name = co_names[byte.arg];
+        int index = co->labels->try_get(name);
+        if(index < 0) _error("KeyError", fmt("label ", name.escape(), " not found"));
+        frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
     TARGET(CALL)

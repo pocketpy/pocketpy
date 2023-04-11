@@ -327,57 +327,6 @@ struct Pointer{
 };
 
 
-struct Value {
-    PY_CLASS(Value, c, _value)
-
-    char* data;
-    Pointer head;
-
-    const TypeInfo* ctype() const { return head.ctype; }
-
-    Value(const TypeInfo* type) {
-        data = new char[type->size];
-        memset(data, 0, type->size);
-        this->head = Pointer(type, data);
-    }
-
-    Value(const TypeInfo* type, void* src) {
-        data = new char[type->size];
-        memcpy(data, src, type->size);
-        this->head = Pointer(type, data);
-    }
-
-    Value(Value&& other) noexcept {
-        data = other.data;
-        head = other.head;
-        other.data = nullptr;
-    }
-
-    Value& operator=(Value&& other) noexcept = delete;
-    Value& operator=(const Value& other) = delete;
-    Value(const Value& other) = delete;
-    
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
-
-        vm->bind_method<0>(type, "ptr", [](VM* vm, Args& args) {
-            Value& self = CAST(Value&, args[0]);
-            return VAR_T(Pointer, self.head);
-        });
-
-        vm->bind_method<1>(type, "__getattr__", [](VM* vm, Args& args) {
-            Value& self = CAST(Value&, args[0]);
-            const Str& name = CAST(Str&, args[1]);
-            return self.head._to(vm, name).get(vm);
-        });
-    }
-
-    ~Value(){
-        delete[] data;
-    }
-};
-
-
 struct CType{
     PY_CLASS(CType, c, ctype)
 
@@ -393,18 +342,12 @@ struct CType{
             if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
             return VAR_T(CType, type);
         });
-
-        vm->bind_method<0>(type, "__call__", [](VM* vm, Args& args) {
-            CType& self = CAST(CType&, args[0]);
-            return VAR_T(Value, self.type);
-        });
     }
 };
 
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
     Pointer::register_class(vm, mod);
-    Value::register_class(vm, mod);
     CType::register_class(vm, mod);
 
     vm->setattr(mod, "nullptr", VAR_T(Pointer));
@@ -501,26 +444,10 @@ T py_pointer_cast(VM* vm, PyObject* var){
 }
 
 template<typename T>
-T py_value_cast(VM* vm, PyObject* var){
-    static_assert(std::is_pod_v<T>);
-    Value& v = CAST(Value&, var);
-    return *reinterpret_cast<T*>(v.data);
-}
-
-template<typename T>
 std::enable_if_t<std::is_pointer_v<std::decay_t<T>>, PyObject*>
 py_var(VM* vm, T p){
     const TypeInfo* type = _type_db.get<typename pointer<T>::baseT>();
     if(type == nullptr) type = _type_db.get<void>();
     return VAR_T(Pointer, type, pointer<T>::level, (char*)p);
 }
-
-template<typename T>
-std::enable_if_t<!std::is_pointer_v<std::decay_t<T>>, PyObject*>
-py_var(VM* vm, T p){
-    if constexpr(std::is_same_v<T, PyObject*>) return p;
-    const TypeInfo* type = _type_db.get<T>();
-    return VAR_T(Value, type, &p);
-}
-
 }   // namespace pkpy

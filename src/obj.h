@@ -8,11 +8,11 @@ namespace pkpy {
     
 struct CodeObject;
 struct Frame;
+struct Function;
 class VM;
 
 typedef std::function<PyObject*(VM*, Args&)> NativeFuncRaw;
 typedef shared_ptr<CodeObject> CodeObject_;
-typedef shared_ptr<NameDict> NameDict_;
 
 struct NativeFunc {
     NativeFuncRaw f;
@@ -37,12 +37,6 @@ struct FuncDecl {
 };
 
 using FuncDecl_ = shared_ptr<FuncDecl>;
-
-struct Function{
-    FuncDecl_ decl;
-    PyObject* _module;
-    NameDict_ _closure;
-};
 
 struct BoundMethod {
     PyObject* obj;
@@ -114,7 +108,7 @@ struct PyObject {
 };
 
 template<typename T>
-void _gc_mark(T& t);
+void gc_mark(T& t);
 
 template <typename T>
 struct Py_ : PyObject {
@@ -139,8 +133,8 @@ struct Py_ : PyObject {
     void _obj_gc_mark() override {
         if(gc.marked) return;
         gc.marked = true;
-        if(_attr != nullptr) _attr->_gc_mark();
-        pkpy::_gc_mark<T>(_value);   // handle PyObject* inside _value `T`
+        if(_attr != nullptr) pkpy::gc_mark<NameDict>(*_attr);
+        pkpy::gc_mark<T>(_value);   // handle PyObject* inside _value `T`
     }
 };
 
@@ -196,7 +190,6 @@ template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : s
 template<typename T> void _check_py_class(VM*, PyObject*);
 template<typename T> T py_pointer_cast(VM*, PyObject*);
 template<typename T> T py_value_cast(VM*, PyObject*);
-struct Discarded { };
 
 template<typename __T>
 __T py_cast(VM* vm, PyObject* obj) {

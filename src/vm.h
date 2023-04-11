@@ -700,10 +700,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
         const CodeObject* co = fn.decl->code.get();
-        // create a FastLocals with the same size as co->varnames
-        FastLocals locals(co->varnames.size());
-        // zero init
-        for(auto& v: locals) v = nullptr;
+        FastLocals locals(co);
 
         int i = 0;
         for(int index: fn.decl->args){
@@ -737,11 +734,12 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         
         for(int i=0; i<kwargs.size(); i+=2){
             StrName key = CAST(int, kwargs[i]);
-            auto it = co->varnames_inv.find(key);
-            if(it == co->varnames_inv.end()){
+            // try_set has nullptr check
+            // TODO: optimize this
+            bool ok = locals.try_set(key, kwargs[i+1]);
+            if(!ok){
                 TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             }
-            locals[it->second] = kwargs[i+1];
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
         if(co->is_generator){

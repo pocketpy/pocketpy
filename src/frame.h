@@ -7,49 +7,123 @@
 namespace pkpy{
 
 using ValueStack = pod_vector<PyObject*>;
-using FastLocals = pod_vector<PyObject*>;
+
+struct FastLocals{
+    NameDictInt_ varnames_inv;
+    PyObject** a;
+
+    int size() const{ return varnames_inv->size(); }
+
+    PyObject*& operator[](int i){ return a[i]; }
+    PyObject* operator[](int i) const { return a[i]; }
+
+    FastLocals(const CodeObject* co): varnames_inv(co->varnames_inv){
+        size_t size = co->varnames.size() * sizeof(void*);
+        int* counter = (int*)pool128.alloc(sizeof(int) + size);
+        *counter = 1;
+        a = (PyObject**)(counter + 1);
+        memset(a, 0, size);
+    }
+
+    PyObject* try_get(StrName name){
+        if(!is_valid()) return nullptr;
+        int index = varnames_inv->try_get(name);
+        if(index == -1) return nullptr;
+        return a[index];
+    }
+
+    bool try_set(StrName name, PyObject* value){
+        if(!is_valid()) return false;
+        int index = varnames_inv->try_get(name);
+        if(index == -1) return false;
+        a[index] = value;
+        return true;
+    }
+
+    FastLocals(): varnames_inv(nullptr), a(nullptr) {}
+
+    FastLocals(const FastLocals& other){
+        a = other.a;
+        inc_counter();
+    }
+
+    FastLocals(FastLocals&& other){
+        a = other.a;
+        other.a = nullptr;
+    }
+
+    FastLocals& operator=(const FastLocals& other){
+        dec_counter();
+        a = other.a;
+        inc_counter();
+        return *this;
+    }
+
+    FastLocals& operator=(FastLocals&& other) noexcept{
+        dec_counter();
+        a = other.a;
+        other.a = nullptr;
+        return *this;
+    }
+
+    bool is_valid() const{ return a != nullptr; }
+
+    void inc_counter(){
+        if(a == nullptr) return;
+        int* counter = (int*)a - 1;
+        (*counter)++;
+    }
+
+    void dec_counter(){
+        if(a == nullptr) return;
+        int* counter = (int*)a - 1;
+        (*counter)--;
+        if(*counter == 0){
+            pool128.dealloc(counter);
+        }
+    }
+
+    ~FastLocals(){
+        dec_counter();
+    }
+
+    void _gc_mark() const{
+        if(a == nullptr) return;
+        for(int i=0; i<size(); i++){
+            if(a[i] != nullptr) OBJ_MARK(a[i]);
+        }
+    }
+};
+
+struct Function{
+    FuncDecl_ decl;
+    PyObject* _module;
+    FastLocals _closure;
+};
+
+template<> inline void gc_mark<Function>(Function& t){
+    t.decl->_gc_mark();
+    if(t._module != nullptr) OBJ_MARK(t._module);
+    t._closure._gc_mark();
+}
 
 struct Frame {
     ValueStack _data;
     int _ip = -1;
     int _next_ip = 0;
-
     const CodeObject* co;
     PyObject* _module;
-    FastLocals _locals;
-    NameDict_ _closure;
 
-    PyObject* f_locals_try_get(StrName name){
-        auto it = co->varnames_inv.find(name);
-        if(it == co->varnames_inv.end()) return nullptr;
-        return _locals[it->second];
-    }
+    FastLocals _locals;
+    FastLocals _closure;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
-    PyObject* f_closure_try_get(StrName name){
-        if(_closure == nullptr) return nullptr;
-        return _closure->try_get(name);
-    }
 
-    NameDict_ locals_to_namedict() const{
-        NameDict_ dict = make_sp<NameDict>();
-        for(int i=0; i<co->varnames.size(); i++){
-            if(_locals[i] != nullptr) dict->set(co->varnames[i], _locals[i]);
-        }
-        return dict;
-    }
-
-    Frame(const CodeObject* co, PyObject* _module, FastLocals&& _locals, const NameDict_& _closure)
-            : co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) {
-    }
-
-    Frame(const CodeObject* co, PyObject* _module)
-            : co(co), _module(_module), _locals(), _closure(nullptr) {
-    }
+    Frame(const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
+            : co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
 
     Frame(const CodeObject_& co, PyObject* _module)
-            : co(co.get()), _module(_module), _locals(), _closure(nullptr) {
-    }
+            : co(co.get()), _module(_module), _locals(), _closure() { }
 
     Frame(const Frame& other) = delete;
     Frame& operator=(const Frame& other) = delete;
@@ -177,11 +251,8 @@ struct Frame {
         if(_data._data == nullptr) return;
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
-        // _locals may be move for `eval/exec`
-        if(_locals._data != nullptr){
-            for(PyObject* obj: _locals) OBJ_MARK(obj);
-        }
-        if(_closure != nullptr) _closure->_gc_mark();
+        _locals._gc_mark();
+        _closure._gc_mark();
         co->_gc_mark();
     }
 };

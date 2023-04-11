@@ -75,6 +75,7 @@ namespace std = ::std;
 struct Dummy { };
 struct DummyInstance { };
 struct DummyModule { };
+struct Discarded { };
 
 struct Type {
 	int index;
