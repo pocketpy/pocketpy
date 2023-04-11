@@ -30,6 +30,7 @@ inline PyObject* VM::_run_top_frame(){
     const CodeObject* co = frame->co;
     const std::vector<StrName>& co_names = co->names;
     const List& co_consts = co->consts;
+    const std::vector<CodeBlock>& co_blocks = co->blocks;
 
 #if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
@@ -305,11 +306,11 @@ __NEXT_STEP:;
         else frame->pop();
         DISPATCH();
     TARGET(LOOP_CONTINUE) {
-        int target = co->blocks[byte.block].start;
+        int target = co_blocks[byte.block].start;
         frame->jump_abs(target);
     } DISPATCH();
     TARGET(LOOP_BREAK) {
-        int target = co->blocks[byte.block].end;
+        int target = co_blocks[byte.block].end;
         frame->jump_abs_break(target);
     } DISPATCH();
     TARGET(GOTO) {
@@ -388,7 +389,7 @@ __NEXT_STEP:;
         if(obj != nullptr){
             frame->push(obj);
         }else{
-            int target = co->blocks[byte.block].end;
+            int target = co_blocks[byte.block].end;
             frame->jump_abs_break(target);
         }
     } DISPATCH();
