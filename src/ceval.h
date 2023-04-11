@@ -1,11 +1,12 @@
 #pragma once
 
 #include "common.h"
+#include "namedict.h"
 #include "vm.h"
 
 namespace pkpy{
 
-inline PyObject* VM::_run_top_frame(){
+inline PyObject* VM::_run_top_frame(bool force_no_pop){
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
@@ -28,9 +29,9 @@ inline PyObject* VM::_run_top_frame(){
     Bytecode byte = frame->next_bytecode();
     // cache
     const CodeObject* co = frame->co;
-    const std::vector<StrName>& co_names = co->names;
-    const List& co_consts = co->consts;
-    const std::vector<CodeBlock>& co_blocks = co->blocks;
+    const auto& co_names = co->names;
+    const auto& co_consts = co->consts;
+    const auto& co_blocks = co->blocks;
 
 #if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
@@ -76,16 +77,27 @@ __NEXT_STEP:;
     TARGET(LOAD_BUILTIN_EVAL) frame->push(builtins->attr(m_eval)); DISPATCH();
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
-        PyObject* obj = VAR(Function({decl, frame->_module, frame->_locals}));
+        PyObject* obj;
+        if(decl->nested){
+            obj = VAR(Function({decl, frame->_module, frame->locals_to_namedict()}));
+        }else{
+            obj = VAR(Function({decl, frame->_module, nullptr}));
+        }
         frame->push(obj);
     } DISPATCH();
     TARGET(LOAD_NULL) frame->push(_py_null); DISPATCH();
     /*****************************************/
+    TARGET(LOAD_FAST) {
+        heap._auto_collect();
+        PyObject* val = frame->_locals[byte.arg];
+        if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
+        frame->push(val);
+    } DISPATCH();
     TARGET(LOAD_NAME) {
         heap._auto_collect();
         StrName name = co_names[byte.arg];
         PyObject* val;
-        val = frame->f_locals().try_get(name);
+        val = frame->f_locals_try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
         val = frame->f_closure_try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
@@ -122,10 +134,9 @@ __NEXT_STEP:;
         args[0] = frame->top();     // a
         frame->top() = fast_call(__getitem__, std::move(args));
     } DISPATCH();
-    TARGET(STORE_LOCAL) {
-        StrName name = co_names[byte.arg];
-        frame->f_locals().set(name, frame->popx());
-    } DISPATCH();
+    TARGET(STORE_FAST)
+        frame->_locals[byte.arg] = frame->popx();
+        DISPATCH();
     TARGET(STORE_GLOBAL) {
         StrName name = co_names[byte.arg];
         frame->f_globals().set(name, frame->popx());
@@ -144,13 +155,10 @@ __NEXT_STEP:;
         args[2] = frame->popx();    // val
         fast_call(__setitem__, std::move(args));
     } DISPATCH();
-    TARGET(DELETE_LOCAL) {
-        StrName name = co_names[byte.arg];
-        if(frame->f_locals().contains(name)){
-            frame->f_locals().erase(name);
-        }else{
-            NameError(name);
-        }
+    TARGET(DELETE_FAST) {
+        PyObject* val = frame->_locals[byte.arg];
+        if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
+        frame->_locals[byte.arg] = nullptr;
     } DISPATCH();
     TARGET(DELETE_GLOBAL) {
         StrName name = co_names[byte.arg];
@@ -515,7 +523,7 @@ __NEXT_STEP:;
 /**********************************************************************/
 __PY_SIMPLE_RETURN:
             if(frame.index == base_id){       // [ frameBase<- ]
-                callstack.pop();
+                if(!force_no_pop) callstack.pop();
                 return __ret;
             }else{
                 callstack.pop();

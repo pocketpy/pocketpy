@@ -98,12 +98,26 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        FrameId frame = vm->top_frame();
+        vm->_push_new_frame(code.get(), frame->_module, std::move(frame->_locals), nullptr);
+        PyObject* ret = vm->_run_top_frame(true);
+        frame->_locals = std::move(vm->top_frame()->_locals);
+        vm->callstack.pop();
+        return ret;
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE);
-        vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        FrameId frame = vm->top_frame();
+        // TODO: implementation is not correct
+        // ...
+        // moving _locals is dangerous since OP_LOAD_FAST's arg is index of _locals
+        // the new opcode may not generate the same index, or even not a OP_LOAD_FAST call
+        // we should do some special handling here
+        vm->_push_new_frame(code.get(), frame->_module, std::move(frame->_locals), nullptr);
+        vm->_run_top_frame(true);
+        frame->_locals = std::move(vm->top_frame()->_locals);
+        vm->callstack.pop();
         return vm->None;
     });
 
@@ -598,7 +612,7 @@ inline void add_module_json(VM* vm){
     vm->bind_func<1>(mod, "loads", [](VM* vm, Args& args) {
         const Str& expr = CAST(Str&, args[0]);
         CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->top_frame()->_module, vm->top_frame()->_locals);
+        return vm->_exec(code, vm->top_frame()->_module);
     });
 
     vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->fast_call(__json__, Args{args[0]})));

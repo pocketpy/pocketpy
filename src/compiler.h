@@ -3,6 +3,7 @@
 #include "codeobject.h"
 #include "common.h"
 #include "expr.h"
+#include "obj.h"
 
 namespace pkpy{
 
@@ -38,11 +39,18 @@ class Compiler {
     CompileMode mode() const{ return lexer->src->mode; }
     NameScope name_scope() const { return contexts.size()>1 ? NAME_LOCAL : NAME_GLOBAL; }
 
-    template<typename... Args>
-    CodeObject_ push_context(Args&&... args){
-        CodeObject_ co = make_sp<CodeObject>(std::forward<Args>(args)...);
+    CodeObject_ push_global_context(){
+        CodeObject_ co = make_sp<CodeObject>(lexer->src, lexer->src->filename);
         contexts.push(CodeEmitContext(vm, co));
         return co;
+    }
+
+    FuncDecl_ push_f_context(Str name){
+        FuncDecl_ decl = make_sp<FuncDecl>();
+        decl->code = make_sp<CodeObject>(lexer->src, name);
+        decl->nested = name_scope() == NAME_LOCAL;
+        contexts.push(CodeEmitContext(vm, decl->code));
+        return decl;
     }
 
     void pop_context(){
@@ -190,12 +198,12 @@ class Compiler {
 
     
     void exprLambda(){
-        auto e = make_expr<LambdaExpr>(name_scope());
+        FuncDecl_ decl = push_f_context("<lambda>");
+        auto e = make_expr<LambdaExpr>(decl);
         if(!match(TK(":"))){
             _compile_f_args(e->decl, false);
             consume(TK(":"));
         }
-        e->decl->code = push_context(lexer->src, e->decl->name.sv());
         // https://github.com/blueloveTH/pocketpy/issues/37
         parse_expression(PREC_LAMBDA + 1, false);
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
@@ -528,9 +536,11 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            int index = ctx()->add_name(name);
-            auto op = name_scope()==NAME_LOCAL ? OP_STORE_LOCAL : OP_STORE_GLOBAL;
-            ctx()->emit(op, index, prev().line);
+            if(name_scope() == NAME_LOCAL){
+                ctx()->emit(OP_STORE_FAST, ctx()->add_varname(name), prev().line);
+            }else{
+                ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
+            }
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -555,9 +565,11 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            index = ctx()->add_name(name);
-            auto op = name_scope()==NAME_LOCAL ? OP_STORE_LOCAL : OP_STORE_GLOBAL;
-            ctx()->emit(op, index, prev().line);
+            if(name_scope() == NAME_LOCAL){
+                ctx()->emit(OP_STORE_FAST, ctx()->add_varname(name), prev().line);
+            }else{
+                ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
+            }
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
@@ -849,27 +861,44 @@ __SUBSCR_END:
             else if(match(TK("**"))){
                 state = 3;
             }
-
             consume(TK("@id"));
-            const Str& name = prev().str();
-            if(decl->has_name(name)) SyntaxError("duplicate argument name");
+            StrName name = prev().str();
+
+            // check duplicate argument name
+            for(int i: decl->args){
+                if(decl->code->varnames[i] == name) {
+                    SyntaxError("duplicate argument name");
+                }
+            }
+            if(decl->starred_arg!=-1 && decl->code->varnames[decl->starred_arg] == name){
+                SyntaxError("duplicate argument name");
+            }
+            for(auto& kv: decl->kwargs){
+                if(decl->code->varnames[kv.key] == name){
+                    SyntaxError("duplicate argument name");
+                }
+            }
 
             // eat type hints
             if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
-
             if(state == 0 && curr().type == TK("=")) state = 2;
+            int index = ctx()->add_varname(name);
             switch (state)
             {
-                case 0: decl->args.push_back(name); break;
-                case 1: decl->starred_arg = name; state+=1; break;
+                case 0:
+                    decl->args.push_back(index);
+                    break;
+                case 1:
+                    decl->starred_arg = index;
+                    state+=1;
+                    break;
                 case 2: {
                     consume(TK("="));
                     PyObject* value = read_literal();
                     if(value == nullptr){
                         SyntaxError(Str("expect a literal, not ") + TK_STR(curr().type));
                     }
-                    decl->kwargs.set(name, value);
-                    decl->kwargs_order.push_back(name);
+                    decl->kwargs.push_back(FuncDecl::KwArg{index, value});
                 } break;
                 case 3: SyntaxError("**kwargs is not supported yet"); break;
             }
@@ -877,15 +906,16 @@ __SUBSCR_END:
     }
 
     void compile_function(const std::vector<Expr_>& decorators={}){
-        FuncDecl_ decl = make_sp<FuncDecl>();
-        StrName obj_name;
+        Str obj_name;
+        Str decl_name;
         consume(TK("@id"));
-        decl->name = prev().str();
+        decl_name = prev().str();
         if(!ctx()->is_compiling_class && match(TK("::"))){
             consume(TK("@id"));
-            obj_name = decl->name;
-            decl->name = prev().str();
+            obj_name = decl_name;
+            decl_name = prev().str();
         }
+        FuncDecl_ decl = push_f_context(decl_name);
         consume(TK("("));
         if (!match(TK(")"))) {
             _compile_f_args(decl, true);
@@ -894,7 +924,6 @@ __SUBSCR_END:
         if(match(TK("->"))){
             if(!match(TK("None"))) consume(TK("@id"));
         }
-        decl->code = push_context(lexer->src, decl->name.sv());
         compile_block_body();
         pop_context();
         ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
@@ -908,15 +937,15 @@ __SUBSCR_END:
         }
         if(!ctx()->is_compiling_class){
             if(obj_name.empty()){
-                auto e = make_expr<NameExpr>(decl->name, name_scope());
+                auto e = make_expr<NameExpr>(decl_name, name_scope());
                 e->emit_store(ctx());
             } else {
                 ctx()->emit(OP_LOAD_GLOBAL, ctx()->add_name(obj_name), prev().line);
-                int index = ctx()->add_name(decl->name);
+                int index = ctx()->add_name(decl_name);
                 ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }
         }else{
-            int index = ctx()->add_name(decl->name);
+            int index = ctx()->add_name(decl_name);
             ctx()->emit(OP_STORE_CLASS_ATTR, index, prev().line);
         }
     }
@@ -963,7 +992,7 @@ public:
         //     for(auto& t: tokens) std::cout << t.info() << std::endl;
         // }
 
-        CodeObject_ code = push_context(lexer->src, lexer->src->filename);
+        CodeObject_ code = push_global_context();
 
         advance();          // skip @sof, so prev() is always valid
         match_newlines();   // skip possible leading '\n'

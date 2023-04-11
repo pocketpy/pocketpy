@@ -120,7 +120,7 @@ inline void NameDict::_gc_mark() const{
 
 inline void FuncDecl::_gc_mark() const{
     code->_gc_mark();
-    kwargs._gc_mark();
+    for(int i=0; i<kwargs.size(); i++) OBJ_MARK(kwargs[i].value);
 }
 
 template<> inline void _gc_mark<List>(List& t){

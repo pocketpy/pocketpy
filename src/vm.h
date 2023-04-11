@@ -348,7 +348,7 @@ public:
     template<int ARGC>
     void bind_func(PyObject*, Str, NativeFuncRaw);
     void _error(Exception);
-    PyObject* _run_top_frame();
+    PyObject* _run_top_frame(bool force_no_pop=false);
     void post_init();
 };
 
@@ -361,11 +361,9 @@ inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
 }
 
 inline void CodeObject::optimize(VM* vm){
-    // here we simple pass all names, but only some of them are NAME_LOCAL
-    // TODO: ...
-    uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
-    perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
-    perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
+    // uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
+    // perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
+    // perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
 }
 
 DEF_NATIVE_2(Str, tp_str)
@@ -596,11 +594,14 @@ inline Str VM::disassemble(CodeObject_ co){
                 argStr += fmt(" (", CAST(Str, asRepr(co->consts[byte.arg])), ")");
                 break;
             case OP_LOAD_NAME: case OP_LOAD_GLOBAL:
-            case OP_STORE_LOCAL: case OP_STORE_GLOBAL:
+            case OP_STORE_GLOBAL:
             case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
-            case OP_DELETE_LOCAL: case OP_DELETE_GLOBAL:
+            case OP_DELETE_GLOBAL:
                 argStr += fmt(" (", co->names[byte.arg].sv(), ")");
+                break;
+            case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST:
+                argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
                 break;
             case OP_BINARY_OP:
                 argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
@@ -611,22 +612,21 @@ inline Str VM::disassemble(CodeObject_ co){
         if(i != co->codes.size() - 1) ss << '\n';
     }
 
-#if !DEBUG_DIS_EXEC_MIN
-    std::stringstream consts;
-    consts << "co_consts: ";
-    consts << CAST(Str&, asRepr(VAR(co->consts)));
+    // std::stringstream consts;
+    // consts << "co_consts: ";
+    // consts << CAST(Str&, asRepr(VAR(co->consts)));
 
-    std::stringstream names;
-    names << "co_names: ";
-    List list;
-    for(int i=0; i<co->names.size(); i++){
-        list.push_back(VAR(co->names[i].sv()));
-    }
-    names << CAST(Str, asRepr(VAR(list)));
-    ss << '\n' << consts.str() << '\n' << names.str();
-#endif
+    // std::stringstream names;
+    // names << "co_names: ";
+    // List list;
+    // for(int i=0; i<co->names.size(); i++){
+    //     list.push_back(VAR(co->names[i].sv()));
+    // }
+    // names << CAST(Str, asRepr(VAR(list)));
+    // ss << '\n' << consts.str() << '\n' << names.str();
+
     for(auto& decl: co->func_decls){
-        ss << "\n\n" << "Disassembly of " << decl->name << ":\n";
+        ss << "\n\n" << "Disassembly of " << decl->code->name << ":\n";
         ss << disassemble(decl->code);
     }
     return Str(ss.str());
@@ -699,33 +699,35 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         return f(this, args);
     } else if(is_type(callable, tp_function)){
         const Function& fn = CAST(Function&, callable);
-        NameDict_ locals = make_sp<NameDict>(
-            kLocalsLoadFactor,
-            fn.decl->code->perfect_locals_capacity,
-            fn.decl->code->perfect_hash_seed
-        );
+        const CodeObject* co = fn.decl->code.get();
+        // create a FastLocals with the same size as co->varnames
+        FastLocals locals(co->varnames.size());
+        // zero init
+        for(auto& v: locals) v = nullptr;
 
         int i = 0;
-        for(StrName name : fn.decl->args){
+        for(int index: fn.decl->args){
             if(i < args.size()){
-                locals->set(name, args[i++]);
-                continue;
+                locals[index] = args[i++];
+            }else{
+                StrName name = co->varnames[index];
+                TypeError(fmt("missing positional argument ", name.escape()));
             }
-            TypeError(fmt("missing positional argument ", name.escape()));
         }
 
-        // NameDict.update is of O(capacity) complexity
-        // so we try not to call it if possible
-        if(fn.decl->kwargs.size()!=0) locals->update(fn.decl->kwargs);
-
-        if(!fn.decl->starred_arg.empty()){
+        // prepare kwdefaults
+        for(auto& kv: fn.decl->kwargs) locals[kv.key] = kv.value;
+        
+        // handle *args
+        if(fn.decl->starred_arg != -1){
             List vargs;        // handle *args
             while(i < args.size()) vargs.push_back(args[i++]);
-            locals->set(fn.decl->starred_arg, VAR(Tuple(std::move(vargs))));
+            locals[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
         }else{
-            for(StrName key : fn.decl->kwargs_order){
+            // kwdefaults override
+            for(auto& kv: fn.decl->kwargs){
                 if(i < args.size()){
-                    locals->set(key, args[i++]);
+                    locals[kv.key] = args[i++];
                 }else{
                     break;
                 }
@@ -734,17 +736,18 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         }
         
         for(int i=0; i<kwargs.size(); i+=2){
-            const Str& key = CAST(Str&, kwargs[i]);
-            if(!fn.decl->kwargs.contains(key)){
-                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", fn.decl->name, "()"));
+            StrName key = CAST(int, kwargs[i]);
+            auto it = co->varnames_inv.find(key);
+            if(it == co->varnames_inv.end()){
+                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             }
-            locals->set(key, kwargs[i+1]);
+            locals[it->second] = kwargs[i+1];
         }
         PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        if(fn.decl->code->is_generator){
-            return PyIter(Generator(this, Frame(fn.decl->code, _module, locals, fn._closure)));
+        if(co->is_generator){
+            return PyIter(Generator(this, Frame(co, _module, std::move(locals), fn._closure)));
         }
-        _push_new_frame(fn.decl->code, _module, locals, fn._closure);
+        _push_new_frame(co, _module, std::move(locals), fn._closure);
         if(opCall) return _py_op_call;
         return _run_top_frame();
     }

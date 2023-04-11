@@ -52,22 +52,19 @@ struct CodeObject {
     Str name;
     bool is_generator = false;
 
-    CodeObject(shared_ptr<SourceData> src, Str name) {
-        this->src = src;
-        this->name = name;
-    }
+    CodeObject(shared_ptr<SourceData> src, const Str& name):
+        src(src), name(name) {}
 
     std::vector<Bytecode> codes;
     std::vector<int> lines; // line number for each bytecode
     List consts;
-    std::vector<StrName> names;
+    std::vector<StrName> names;         // other names
+    std::vector<StrName> varnames;      // local variables
+    std::map<StrName, int> varnames_inv;
     std::set<Str> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
     std::map<StrName, int> labels;
     std::vector<FuncDecl_> func_decls;
-
-    uint32_t perfect_locals_capacity = NameDict::__Capacity;
-    uint32_t perfect_hash_seed = kHashSeeds[0];
 
     void optimize(VM* vm);
 

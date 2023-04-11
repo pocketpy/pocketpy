@@ -29,13 +29,12 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"0.9.7"
+#define PK_VERSION				"0.9.8"
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
 #define DEBUG_EXTRA_CHECK			0
 #define DEBUG_DIS_EXEC				0
-#define DEBUG_DIS_EXEC_MIN			1
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_MEMORY_POOL			0
@@ -96,7 +95,6 @@ struct Type {
 #define FATAL_ERROR() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #endif
 
-inline const float kLocalsLoadFactor = 0.67f;
 inline const float kInstAttrLoadFactor = 0.67f;
 inline const float kTypeAttrLoadFactor = 0.5f;
 

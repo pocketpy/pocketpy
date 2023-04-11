@@ -105,6 +105,15 @@ struct CodeEmitContext{
         return co->names.size() - 1;
     }
 
+    int add_varname(StrName name){
+        auto it = co->varnames_inv.find(name);
+        if(it != co->varnames_inv.end()) return it->second;
+        co->varnames.push_back(name);
+        int index = co->varnames.size() - 1;
+        co->varnames_inv[name] = index;
+        return index;
+    }
+
     int add_const(PyObject* v){
         co->consts.push_back(v);
         return co->consts.size() - 1;
@@ -124,18 +133,24 @@ struct NameExpr: Expr{
     std::string str() const override { return fmt("Name(", name.escape(), ")"); }
 
     void emit(CodeEmitContext* ctx) override {
-        int index = ctx->add_name(name);
-        ctx->emit(OP_LOAD_NAME, index, line);
+        switch(scope){
+            case NAME_LOCAL:
+                ctx->emit(OP_LOAD_FAST, ctx->add_varname(name), line);
+                break;
+            case NAME_GLOBAL:
+                ctx->emit(OP_LOAD_GLOBAL, ctx->add_name(name), line);
+                break;
+            default: FATAL_ERROR(); break;
+        }
     }
 
     bool emit_del(CodeEmitContext* ctx) override {
-        int index = ctx->add_name(name);
         switch(scope){
             case NAME_LOCAL:
-                ctx->emit(OP_DELETE_LOCAL, index, line);
+                ctx->emit(OP_DELETE_FAST, ctx->add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                ctx->emit(OP_DELETE_GLOBAL, index, line);
+                ctx->emit(OP_DELETE_GLOBAL, ctx->add_name(name), line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -143,17 +158,17 @@ struct NameExpr: Expr{
     }
 
     bool emit_store(CodeEmitContext* ctx) override {
-        int index = ctx->add_name(name);
         if(ctx->is_compiling_class){
+            int index = ctx->add_name(name);
             ctx->emit(OP_STORE_CLASS_ATTR, index, line);
             return true;
         }
         switch(scope){
             case NAME_LOCAL:
-                ctx->emit(OP_STORE_LOCAL, index, line);
+                ctx->emit(OP_STORE_FAST, ctx->add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                ctx->emit(OP_STORE_GLOBAL, index, line);
+                ctx->emit(OP_STORE_GLOBAL, ctx->add_name(name), line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -484,14 +499,9 @@ struct SetCompExpr: CompExpr{
 
 struct LambdaExpr: Expr{
     FuncDecl_ decl;
-    NameScope scope;
     std::string str() const override { return "Lambda()"; }
 
-    LambdaExpr(NameScope scope){
-        this->decl = make_sp<FuncDecl>();
-        this->decl->name = "<lambda>";
-        this->scope = scope;
-    }
+    LambdaExpr(FuncDecl_ decl): decl(decl) {}
 
     void emit(CodeEmitContext* ctx) override {
         int index = ctx->add_func_decl(decl);
@@ -624,8 +634,8 @@ struct CallExpr: Expr{
         for(auto& item: args) item->emit(ctx);
         // emit kwargs
         for(auto& item: kwargs){
-            // TODO: optimize this
-            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(item.first)), line);
+            int index = ctx->add_varname(item.first);
+            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(index)), line);
             item.second->emit(ctx);
         }
         int KWARGC = (int)kwargs.size();

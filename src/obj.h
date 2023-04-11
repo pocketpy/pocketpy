@@ -8,7 +8,6 @@ namespace pkpy {
     
 struct CodeObject;
 struct Frame;
-struct BaseRef;
 class VM;
 
 typedef std::function<PyObject*(VM*, Args&)> NativeFuncRaw;
@@ -25,20 +24,15 @@ struct NativeFunc {
 };
 
 struct FuncDecl {
-    StrName name;
-    CodeObject_ code;
-    std::vector<StrName> args;
-    StrName starred_arg;                // empty if no *arg
-    NameDict kwargs;              // empty if no k=v
-    std::vector<StrName> kwargs_order;
-
-    bool has_name(StrName val) const {
-        bool _0 = std::find(args.begin(), args.end(), val) != args.end();
-        bool _1 = starred_arg == val;
-        bool _2 = kwargs.contains(val);
-        return _0 || _1 || _2;
-    }
-
+    struct KwArg {
+        int key;                // index in co->varnames
+        PyObject* value;        // default value
+    };
+    CodeObject_ code;           // code object of this function
+    pod_vector<int> args;       // indices in co->varnames
+    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
+    pod_vector<KwArg> kwargs;   // indices in co->varnames
+    bool nested = false;        // whether this function is nested
     void _gc_mark() const;
 };
 

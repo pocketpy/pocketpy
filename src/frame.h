@@ -7,6 +7,7 @@
 namespace pkpy{
 
 using ValueStack = pod_vector<PyObject*>;
+using FastLocals = pod_vector<PyObject*>;
 
 struct Frame {
     ValueStack _data;
@@ -15,18 +16,39 @@ struct Frame {
 
     const CodeObject* co;
     PyObject* _module;
-    NameDict_ _locals;
+    FastLocals _locals;
     NameDict_ _closure;
 
-    NameDict& f_locals() noexcept { return _locals!=nullptr ? *_locals : _module->attr(); }
+    PyObject* f_locals_try_get(StrName name){
+        auto it = co->varnames_inv.find(name);
+        if(it == co->varnames_inv.end()) return nullptr;
+        return _locals[it->second];
+    }
+
     NameDict& f_globals() noexcept { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name){
         if(_closure == nullptr) return nullptr;
         return _closure->try_get(name);
     }
 
-    Frame(const CodeObject_& co, PyObject* _module, const NameDict_& _locals=nullptr, const NameDict_& _closure=nullptr)
-            : co(co.get()), _module(_module), _locals(_locals), _closure(_closure) {
+    NameDict_ locals_to_namedict() const{
+        NameDict_ dict = make_sp<NameDict>();
+        for(int i=0; i<co->varnames.size(); i++){
+            if(_locals[i] != nullptr) dict->set(co->varnames[i], _locals[i]);
+        }
+        return dict;
+    }
+
+    Frame(const CodeObject* co, PyObject* _module, FastLocals&& _locals, const NameDict_& _closure)
+            : co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) {
+    }
+
+    Frame(const CodeObject* co, PyObject* _module)
+            : co(co), _module(_module), _locals(), _closure(nullptr) {
+    }
+
+    Frame(const CodeObject_& co, PyObject* _module)
+            : co(co.get()), _module(_module), _locals(), _closure(nullptr) {
     }
 
     Frame(const Frame& other) = delete;
@@ -155,7 +177,10 @@ struct Frame {
         if(_data._data == nullptr) return;
         for(PyObject* obj : _data) OBJ_MARK(obj);
         OBJ_MARK(_module);
-        if(_locals != nullptr) _locals->_gc_mark();
+        // _locals may be move for `eval/exec`
+        if(_locals._data != nullptr){
+            for(PyObject* obj: _locals) OBJ_MARK(obj);
+        }
         if(_closure != nullptr) _closure->_gc_mark();
         co->_gc_mark();
     }
