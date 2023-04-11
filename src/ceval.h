@@ -26,6 +26,10 @@ inline PyObject* VM::_run_top_frame(){
  */
 {
     Bytecode byte = frame->next_bytecode();
+    // cache
+    const CodeObject* co = frame->co;
+    const std::vector<StrName>& co_names = co->names;
+    const List& co_consts = co->consts;
 
 #if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
@@ -62,7 +66,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_CONST)
         heap._auto_collect();
-        frame->push(frame->co->consts[byte.arg]);
+        frame->push(co_consts[byte.arg]);
         DISPATCH();
     TARGET(LOAD_NONE) frame->push(None); DISPATCH();
     TARGET(LOAD_TRUE) frame->push(True); DISPATCH();
@@ -70,7 +74,7 @@ __NEXT_STEP:;
     TARGET(LOAD_ELLIPSIS) frame->push(Ellipsis); DISPATCH();
     TARGET(LOAD_BUILTIN_EVAL) frame->push(builtins->attr(m_eval)); DISPATCH();
     TARGET(LOAD_FUNCTION) {
-        FuncDecl_ decl = frame->co->func_decls[byte.arg];
+        FuncDecl_ decl = co->func_decls[byte.arg];
         PyObject* obj = VAR(Function({decl, frame->_module, frame->_locals}));
         frame->push(obj);
     } DISPATCH();
@@ -78,7 +82,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_NAME) {
         heap._auto_collect();
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* val;
         val = frame->f_locals().try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
@@ -92,7 +96,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(LOAD_GLOBAL) {
         heap._auto_collect();
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* val = frame->f_globals().try_get(name);
         if(val != nullptr) { frame->push(val); DISPATCH(); }
         val = vm->builtins->attr().try_get(name);
@@ -101,12 +105,12 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(LOAD_ATTR) {
         PyObject* a = frame->top();
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         frame->top() = getattr(a, name);
     } DISPATCH();
     TARGET(LOAD_METHOD) {
         PyObject* a = frame->top();
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* self;
         frame->top() = get_unbound_method(a, name, &self, true, true);
         frame->push(self);
@@ -118,15 +122,15 @@ __NEXT_STEP:;
         frame->top() = fast_call(__getitem__, std::move(args));
     } DISPATCH();
     TARGET(STORE_LOCAL) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         frame->f_locals().set(name, frame->popx());
     } DISPATCH();
     TARGET(STORE_GLOBAL) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         frame->f_globals().set(name, frame->popx());
     } DISPATCH();
     TARGET(STORE_ATTR) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* a = frame->top();
         PyObject* val = frame->top_1();
         setattr(a, name, val);
@@ -140,7 +144,7 @@ __NEXT_STEP:;
         fast_call(__setitem__, std::move(args));
     } DISPATCH();
     TARGET(DELETE_LOCAL) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         if(frame->f_locals().contains(name)){
             frame->f_locals().erase(name);
         }else{
@@ -148,7 +152,7 @@ __NEXT_STEP:;
         }
     } DISPATCH();
     TARGET(DELETE_GLOBAL) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         if(frame->f_globals().contains(name)){
             frame->f_globals().erase(name);
         }else{
@@ -157,7 +161,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(DELETE_ATTR) {
         PyObject* a = frame->popx();
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         if(!a->is_attr_valid()) TypeError("cannot delete attribute");
         if(!a->attr().contains(name)) AttributeError(a, name);
         a->attr().erase(name);
@@ -301,17 +305,17 @@ __NEXT_STEP:;
         else frame->pop();
         DISPATCH();
     TARGET(LOOP_CONTINUE) {
-        int target = frame->co->blocks[byte.block].start;
+        int target = co->blocks[byte.block].start;
         frame->jump_abs(target);
     } DISPATCH();
     TARGET(LOOP_BREAK) {
-        int target = frame->co->blocks[byte.block].end;
+        int target = co->blocks[byte.block].end;
         frame->jump_abs_break(target);
     } DISPATCH();
     TARGET(GOTO) {
-        StrName label = frame->co->names[byte.arg];
-        auto it = frame->co->labels.find(label);
-        if(it == frame->co->labels.end()) _error("KeyError", fmt("label ", label.escape(), " not found"));
+        StrName label = co_names[byte.arg];
+        auto it = co->labels.find(label);
+        if(it == co->labels.end()) _error("KeyError", fmt("label ", label.escape(), " not found"));
         frame->jump_abs_break(it->second);
     } DISPATCH();
     /*****************************************/
@@ -384,13 +388,13 @@ __NEXT_STEP:;
         if(obj != nullptr){
             frame->push(obj);
         }else{
-            int target = frame->co->blocks[byte.block].end;
+            int target = co->blocks[byte.block].end;
             frame->jump_abs_break(target);
         }
     } DISPATCH();
     /*****************************************/
     TARGET(IMPORT_NAME) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod == nullptr){
             Str source;
@@ -447,7 +451,7 @@ __NEXT_STEP:;
     }; DISPATCH();
     /*****************************************/
     TARGET(BEGIN_CLASS) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* super_cls = frame->popx();
         if(super_cls == None) super_cls = _t(tp_object);
         check_type(super_cls, tp_type);
@@ -459,7 +463,7 @@ __NEXT_STEP:;
         cls->attr()._try_perfect_rehash();
     }; DISPATCH();
     TARGET(STORE_CLASS_ATTR) {
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         PyObject* obj = frame->popx();
         PyObject* cls = frame->top();
         cls->attr().set(name, obj);
@@ -484,13 +488,13 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(EXCEPTION_MATCH) {
         const auto& e = CAST(Exception&, frame->top());
-        StrName name = frame->co->names[byte.arg];
+        StrName name = co_names[byte.arg];
         frame->push(VAR(e.match_type(name)));
     } DISPATCH();
     TARGET(RAISE) {
         PyObject* obj = frame->popx();
         Str msg = obj == None ? "" : CAST(Str, asStr(obj));
-        StrName type = frame->co->names[byte.arg];
+        StrName type = co_names[byte.arg];
         _error(type, msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
