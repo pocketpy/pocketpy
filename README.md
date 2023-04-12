@@ -10,8 +10,11 @@
 </p>
 PocketPy is a lightweight(~6000 LOC) Python interpreter for game engines/apps.
 
-> We are about to reach `v1.0.0`, the first production-ready version.
 
+---
+#### The first production-ready version is `v1.0.0`, which will be available soon.
+
+---
 
 **English |** [**简体中文**](README_zh.md)
 
