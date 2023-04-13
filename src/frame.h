@@ -41,26 +41,31 @@ struct FastLocals{
     }
 
     FastLocals(): varnames_inv(nullptr), a(nullptr) {}
+    FastLocals(std::nullptr_t): varnames_inv(nullptr), a(nullptr) {}
 
     FastLocals(const FastLocals& other){
+        varnames_inv = other.varnames_inv;
         a = other.a;
-        inc_counter();
+        _inc_counter();
     }
 
     FastLocals(FastLocals&& other){
+        varnames_inv = std::move(other.varnames_inv);
         a = other.a;
         other.a = nullptr;
     }
 
     FastLocals& operator=(const FastLocals& other){
-        dec_counter();
+        _dec_counter();
+        varnames_inv = other.varnames_inv;
         a = other.a;
-        inc_counter();
+        _inc_counter();
         return *this;
     }
 
     FastLocals& operator=(FastLocals&& other) noexcept{
-        dec_counter();
+        _dec_counter();
+        varnames_inv = std::move(other.varnames_inv);
         a = other.a;
         other.a = nullptr;
         return *this;
@@ -68,13 +73,13 @@ struct FastLocals{
 
     bool is_valid() const{ return a != nullptr; }
 
-    void inc_counter(){
+    void _inc_counter(){
         if(a == nullptr) return;
         int* counter = (int*)a - 1;
         (*counter)++;
     }
 
-    void dec_counter(){
+    void _dec_counter(){
         if(a == nullptr) return;
         int* counter = (int*)a - 1;
         (*counter)--;
@@ -84,7 +89,7 @@ struct FastLocals{
     }
 
     ~FastLocals(){
-        dec_counter();
+        _dec_counter();
     }
 
     void _gc_mark() const{
@@ -121,6 +126,9 @@ struct Frame {
 
     Frame(const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
             : co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
+
+    Frame(const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
+            : co(co), _module(_module), _locals(_locals), _closure(_closure) { }
 
     Frame(const CodeObject_& co, PyObject* _module)
             : co(co.get()), _module(_module), _locals(), _closure() { }

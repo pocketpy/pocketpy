@@ -41,7 +41,7 @@ class Compiler {
 
     CodeObject_ push_global_context(){
         CodeObject_ co = make_sp<CodeObject>(lexer->src, lexer->src->filename);
-        contexts.push(CodeEmitContext(vm, co));
+        contexts.push(CodeEmitContext(vm, co, contexts.size()));
         return co;
     }
 
@@ -49,7 +49,7 @@ class Compiler {
         FuncDecl_ decl = make_sp<FuncDecl>();
         decl->code = make_sp<CodeObject>(lexer->src, name);
         decl->nested = name_scope() == NAME_LOCAL;
-        contexts.push(CodeEmitContext(vm, decl->code));
+        contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
         return decl;
     }
 
@@ -521,6 +521,7 @@ __SUBSCR_END:
     }
 
     Str _compile_import() {
+        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
         consume(TK("@id"));
         Str name = prev().str();
         int index = ctx()->add_name(name);
@@ -536,11 +537,7 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            if(name_scope() == NAME_LOCAL){
-                ctx()->emit(OP_STORE_FAST, ctx()->add_varname(name), prev().line);
-            }else{
-                ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
-            }
+            ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -550,7 +547,6 @@ __SUBSCR_END:
         _compile_import();
         consume(TK("import"));
         if (match(TK("*"))) {
-            if(name_scope() != NAME_GLOBAL) SyntaxError("import * should be used in global scope");
             ctx()->emit(OP_IMPORT_STAR, BC_NOARG, prev().line);
             consume_end_stmt();
             return;
@@ -565,11 +561,7 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            if(name_scope() == NAME_LOCAL){
-                ctx()->emit(OP_STORE_FAST, ctx()->add_varname(name), prev().line);
-            }else{
-                ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
-            }
+            ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();

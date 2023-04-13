@@ -107,6 +107,18 @@ __NEXT_STEP:;
         if(val != nullptr) { frame->push(val); DISPATCH(); }
         vm->NameError(name);
     } DISPATCH();
+    TARGET(LOAD_NONLOCAL) {
+        heap._auto_collect();
+        StrName name = co_names[byte.arg];
+        PyObject* val;
+        val = frame->_closure.try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = frame->f_globals().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        val = vm->builtins->attr().try_get(name);
+        if(val != nullptr) { frame->push(val); DISPATCH(); }
+        vm->NameError(name);
+    } DISPATCH();
     TARGET(LOAD_GLOBAL) {
         heap._auto_collect();
         StrName name = co_names[byte.arg];

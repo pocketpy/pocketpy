@@ -6,6 +6,7 @@
 #include "error.h"
 #include "ceval.h"
 #include "str.h"
+#include <algorithm>
 
 namespace pkpy{
 
@@ -33,7 +34,8 @@ struct CodeEmitContext{
     VM* vm;
     CodeObject_ co;
     stack<Expr_> s_expr;
-    CodeEmitContext(VM* vm, CodeObject_ co): vm(vm), co(co) {}
+    int level;
+    CodeEmitContext(VM* vm, CodeObject_ co, int level): vm(vm), co(co), level(level) {}
 
     int curr_block_i = 0;
     bool is_compiling_class = false;
@@ -92,7 +94,9 @@ struct CodeEmitContext{
     }
 
     bool add_label(StrName name){
-        return co->labels->try_set(name, co->codes.size());
+        if(co->labels->contains(name)) return false;
+        co->labels->set(name, co->codes.size());
+        return true;
     }
 
     int add_name(StrName name){
@@ -113,6 +117,10 @@ struct CodeEmitContext{
     }
 
     int add_const(PyObject* v){
+        // simple deduplication, only works for int/float
+        for(int i=0; i<co->consts.size(); i++){
+            if(co->consts[i] == v) return i;
+        }
         co->consts.push_back(v);
         return co->consts.size() - 1;
     }
@@ -131,14 +139,12 @@ struct NameExpr: Expr{
     std::string str() const override { return fmt("Name(", name.escape(), ")"); }
 
     void emit(CodeEmitContext* ctx) override {
-        switch(scope){
-            case NAME_LOCAL:
-                ctx->emit(OP_LOAD_FAST, ctx->add_varname(name), line);
-                break;
-            case NAME_GLOBAL:
-                ctx->emit(OP_LOAD_GLOBAL, ctx->add_name(name), line);
-                break;
-            default: FATAL_ERROR(); break;
+        int index = ctx->co->varnames_inv->try_get(name);
+        if(scope == NAME_LOCAL && index >= 0){
+            ctx->emit(OP_LOAD_FAST, index, line);
+        }else{
+            Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
+            ctx->emit(op, ctx->add_name(name), line);
         }
     }
 
@@ -632,7 +638,7 @@ struct CallExpr: Expr{
         for(auto& item: args) item->emit(ctx);
         // emit kwargs
         for(auto& item: kwargs){
-            int index = ctx->add_varname(item.first);
+            int index = StrName::get(item.first.sv()).index;
             ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(index)), line);
             item.second->emit(ctx);
         }

@@ -99,26 +99,13 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
         FrameId frame = vm->top_frame();
-        vm->_push_new_frame(code.get(), frame->_module, std::move(frame->_locals), nullptr);
-        PyObject* ret = vm->_run_top_frame(true);
-        frame->_locals = std::move(vm->top_frame()->_locals);
-        vm->callstack.pop();
-        return ret;
+        return vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE);
         FrameId frame = vm->top_frame();
-        // TODO: implementation is not correct
-        // ...
-        // moving _locals is dangerous since OP_LOAD_FAST's arg is index of _locals
-        // the new opcode may not generate the same index, or even not a OP_LOAD_FAST call
-        // we should do some special handling here
-        // seems LOAD_NAME / STORE_NAME / DELETE_NAME are designed for this?
-        vm->_push_new_frame(code.get(), frame->_module, std::move(frame->_locals), nullptr);
-        vm->_run_top_frame(true);
-        frame->_locals = std::move(vm->top_frame()->_locals);
-        vm->callstack.pop();
+        vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
         return vm->None;
     });
 

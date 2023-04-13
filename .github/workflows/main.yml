@@ -1,0 +1,118 @@
+name: build
+on: [push, pull_request]
+jobs:
+  build_win:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Compile
+      shell: bash
+      run: |
+        python3 build.py windows
+        python3 build.py windows -lib
+        mkdir -p output/windows/x86_64
+        cp pocketpy.exe output/windows/x86_64
+        cp pocketpy.dll output/windows/x86_64
+    - uses: actions/upload-artifact@v3
+      with:
+        path: output
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
+    - name: Benchmark
+      run: python3 scripts/run_tests.py benchmark
+  build_linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Clang
+      uses: egor-tensin/setup-clang@v1
+      with:
+        version: 15
+        platform: x64
+    - name: Install libc++
+      run: sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15
+    - name: Compile
+      run: |
+        python3 build.py linux
+        python3 build.py linux -lib
+        mkdir -p output/linux/x86_64
+        cp pocketpy output/linux/x86_64
+        cp pocketpy.so output/linux/x86_64
+    - uses: actions/upload-artifact@v3
+      with:
+        path: output
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
+    - name: Benchmark
+      run: python3 scripts/run_tests.py benchmark
+  build_macos:
+      runs-on: macos-latest
+      steps:
+      - uses: actions/checkout@v3
+      - run: |
+          python3 amalgamate.py
+          cd plugins/macos/pocketpy
+          mkdir -p output/macos
+          xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          cp -r build/Release/pocketpy.bundle output/macos
+      - uses: actions/upload-artifact@v3
+        with:
+          path: plugins/macos/pocketpy/output
+  build_android:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.3.0'
+          channel: 'stable'
+          cache: true
+      - run: flutter --version
+      - name: Compile
+        run: |
+          python3 amalgamate.py
+          cd plugins/flutter/example
+          flutter build apk --split-debug-info=.debug-info --split-per-abi
+          cd build/app/outputs/flutter-apk
+          mkdir -p output/android/arm64-v8a
+          mkdir -p output/android/armeabi-v7a
+          mkdir -p output/android/x86_64
+          unzip -q app-arm64-v8a-release.apk -d tmp
+          mv tmp/lib/arm64-v8a/libpocketpy.so output/android/arm64-v8a/libpocketpy.so
+          rm -rf tmp
+          unzip -q app-armeabi-v7a-release.apk -d tmp
+          mv tmp/lib/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a/libpocketpy.so
+          rm -rf tmp
+          unzip -q app-x86_64-release.apk -d tmp
+          mv tmp/lib/x86_64/libpocketpy.so output/android/x86_64/libpocketpy.so
+          rm -rf tmp
+      - uses: actions/upload-artifact@v3
+        with:
+          path: plugins/flutter/example/build/app/outputs/flutter-apk/output
+  build_web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v12
+      with:
+        version: 3.1.25
+        actions-cache-folder: 'emsdk-cache'
+    - name: Verify emsdk
+      run: emcc -v
+    - name: Compile
+      run: |
+        mkdir -p output/web/lib
+        python3 build.py web
+        cp web/lib/* output/web/lib
+    - uses: crazy-max/ghaction-github-pages@v3
+      with:
+        target_branch: gh-pages
+        build_dir: web
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    - uses: actions/upload-artifact@v3
+      with:
+        path: output
