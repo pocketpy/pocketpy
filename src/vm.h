@@ -7,7 +7,6 @@
 #include "memory.h"
 #include "obj.h"
 #include "str.h"
-#include <memory>
 
 namespace pkpy{
 
