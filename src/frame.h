@@ -49,7 +49,7 @@ struct FastLocals{
         _inc_counter();
     }
 
-    FastLocals(FastLocals&& other){
+    FastLocals(FastLocals&& other) noexcept{
         varnames_inv = std::move(other.varnames_inv);
         a = other.a;
         other.a = nullptr;
