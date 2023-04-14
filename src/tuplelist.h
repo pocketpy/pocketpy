@@ -9,7 +9,7 @@ namespace pkpy {
 
 using List = pod_vector<PyObject*>;
 
-class Args {
+class Tuple {
     PyObject** _args;
     int _size;
 
@@ -19,26 +19,26 @@ class Args {
     }
 
 public:
-    Args(int n){ _alloc(n); }
+    Tuple(int n){ _alloc(n); }
 
-    Args(const Args& other){
+    Tuple(const Tuple& other){
         _alloc(other._size);
         for(int i=0; i<_size; i++) _args[i] = other._args[i];
     }
 
-    Args(Args&& other) noexcept {
+    Tuple(Tuple&& other) noexcept {
         this->_args = other._args;
         this->_size = other._size;
         other._args = nullptr;
         other._size = 0;
     }
 
-    Args(std::initializer_list<PyObject*> list) : Args(list.size()){
+    Tuple(std::initializer_list<PyObject*> list) : Tuple(list.size()){
         int i = 0;
         for(PyObject* p : list) _args[i++] = p;
     }
 
-    Args(List&& other) noexcept : Args(other.size()){
+    Tuple(List&& other) noexcept : Tuple(other.size()){
         for(int i=0; i<_size; i++) _args[i] = other[i];
         other.clear();
     }
@@ -46,7 +46,7 @@ public:
     PyObject*& operator[](int i){ return _args[i]; }
     PyObject* operator[](int i) const { return _args[i]; }
 
-    Args& operator=(Args&& other) noexcept {
+    Tuple& operator=(Tuple&& other) noexcept {
         if(_args!=nullptr) pool64.dealloc(_args);
         this->_args = other._args;
         this->_size = other._size;
@@ -56,6 +56,9 @@ public:
     }
 
     int size() const { return _size; }
+
+    PyObject** begin() const { return _args; }
+    PyObject** end() const { return _args + _size; }
 
     List to_list() noexcept {
         List ret(_size);
@@ -73,14 +76,29 @@ public:
         if(old_args!=nullptr) pool64.dealloc(old_args);
     }
 
-    ~Args(){ if(_args!=nullptr) pool64.dealloc(_args); }
+    ~Tuple(){ if(_args!=nullptr) pool64.dealloc(_args); }
 };
 
+using Args = Tuple;
 inline const Args& no_arg() {
     static const Args _zero(0);
     return _zero;
 }
 
-typedef Args Tuple;
+// a lightweight view for function args, it does not own the memory
+struct ArgsView{
+    PyObject** _begin;
+    PyObject** _end;
+
+    ArgsView(PyObject** begin, PyObject** end) : _begin(begin), _end(end) {}
+    ArgsView(const Tuple& t) : _begin(t.begin()), _end(t.end()) {}
+    ArgsView(): _begin(nullptr), _end(nullptr) {}
+
+    PyObject** begin() const { return _begin; }
+    PyObject** end() const { return _end; }
+    int size() const { return _end - _begin; }
+    bool empty() const { return _begin == _end; }
+    PyObject* operator[](int i) const { return _begin[i]; }
+};
 
 }   // namespace pkpy

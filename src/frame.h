@@ -254,6 +254,10 @@ struct Frame {
         _data.pop_back_n(n);
     }
 
+    ArgsView top_n_view(int n){
+        return ArgsView(_data.end()-n, _data.end());
+    }
+
     void _gc_mark() const {
         // do return if this frame has been moved
         if(_data._data == nullptr) return;

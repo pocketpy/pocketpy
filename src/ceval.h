@@ -343,14 +343,24 @@ __NEXT_STEP:;
     TARGET(CALL)
     TARGET(CALL_UNPACK) {
         int ARGC = byte.arg;
-
+        PyObject* callable = frame->top_n(ARGC+1);
         bool method_call = frame->top_n(ARGC) != _py_null;
-        if(method_call) ARGC++;         // add self into args
-        Args args = frame->popx_n_reversed(ARGC);
+
+        // fast path
+        if(byte.op==OP_CALL && is_type(callable, tp_function)){
+            ArgsView args = frame->top_n_view(ARGC + int(method_call));
+            PyObject* ret = _py_call(callable, args, {});
+            frame->pop_n(ARGC + 2);
+            if(ret == nullptr) goto __PY_OP_CALL;
+            else frame->push(ret);      // a generator
+            DISPATCH();
+        }
+
+        Args args = frame->popx_n_reversed(ARGC + int(method_call));
         if(!method_call) frame->pop();
 
         if(byte.op == OP_CALL_UNPACK) unpack_args(args);
-        PyObject* callable = frame->popx();
+        frame->pop();
         PyObject* ret = call(callable, std::move(args), no_arg(), true);
         if(ret == _py_op_call) { __ret=ret; goto __PY_OP_CALL; }
         frame->push(ret);

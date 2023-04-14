@@ -338,6 +338,7 @@ public:
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
     PyObject* call(PyObject* callable, Args args, const Args& kwargs, bool opCall);
+    PyObject* _py_call(PyObject* callable, ArgsView args, ArgsView kwargs);
     void unpack_args(Args& args);
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
@@ -687,6 +688,59 @@ inline void VM::init_builtin_types(){
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
+inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs){
+    // callable is a `function` object
+    const Function& fn = CAST(Function&, callable);
+    const CodeObject* co = fn.decl->code.get();
+    FastLocals locals(co);
+
+    int i = 0;
+    for(int index: fn.decl->args){
+        if(i < args.size()){
+            locals[index] = args[i++];
+        }else{
+            StrName name = co->varnames[index];
+            TypeError(fmt("missing positional argument ", name.escape()));
+        }
+    }
+
+    // prepare kwdefaults
+    for(auto& kv: fn.decl->kwargs) locals[kv.key] = kv.value;
+    
+    // handle *args
+    if(fn.decl->starred_arg != -1){
+        List vargs;        // handle *args
+        while(i < args.size()) vargs.push_back(args[i++]);
+        locals[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
+    }else{
+        // kwdefaults override
+        for(auto& kv: fn.decl->kwargs){
+            if(i < args.size()){
+                locals[kv.key] = args[i++];
+            }else{
+                break;
+            }
+        }
+        if(i < args.size()) TypeError("too many arguments");
+    }
+    
+    for(int i=0; i<kwargs.size(); i+=2){
+        StrName key = CAST(int, kwargs[i]);
+        // try_set has nullptr check
+        // TODO: optimize this
+        bool ok = locals.try_set(key, kwargs[i+1]);
+        if(!ok){
+            TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+        }
+    }
+    PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+    if(co->is_generator){
+        return PyIter(Generator(this, Frame(co, _module, std::move(locals), fn._closure)));
+    }
+    _push_new_frame(co, _module, std::move(locals), fn._closure);
+    return nullptr;
+}
+
 // TODO: callable/args here may be garbage collected accidentally
 inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
     if(is_type(callable, tp_bound_method)){
@@ -700,54 +754,9 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
         return f(this, args);
     } else if(is_type(callable, tp_function)){
-        const Function& fn = CAST(Function&, callable);
-        const CodeObject* co = fn.decl->code.get();
-        FastLocals locals(co);
-
-        int i = 0;
-        for(int index: fn.decl->args){
-            if(i < args.size()){
-                locals[index] = args[i++];
-            }else{
-                StrName name = co->varnames[index];
-                TypeError(fmt("missing positional argument ", name.escape()));
-            }
-        }
-
-        // prepare kwdefaults
-        for(auto& kv: fn.decl->kwargs) locals[kv.key] = kv.value;
-        
-        // handle *args
-        if(fn.decl->starred_arg != -1){
-            List vargs;        // handle *args
-            while(i < args.size()) vargs.push_back(args[i++]);
-            locals[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
-        }else{
-            // kwdefaults override
-            for(auto& kv: fn.decl->kwargs){
-                if(i < args.size()){
-                    locals[kv.key] = args[i++];
-                }else{
-                    break;
-                }
-            }
-            if(i < args.size()) TypeError("too many arguments");
-        }
-        
-        for(int i=0; i<kwargs.size(); i+=2){
-            StrName key = CAST(int, kwargs[i]);
-            // try_set has nullptr check
-            // TODO: optimize this
-            bool ok = locals.try_set(key, kwargs[i+1]);
-            if(!ok){
-                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
-            }
-        }
-        PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-        if(co->is_generator){
-            return PyIter(Generator(this, Frame(co, _module, std::move(locals), fn._closure)));
-        }
-        _push_new_frame(co, _module, std::move(locals), fn._closure);
+        // ret is nullptr or a generator
+        PyObject* ret = _py_call(callable, args, kwargs);
+        if(ret != nullptr) return ret;
         if(opCall) return _py_op_call;
         return _run_top_frame();
     }
