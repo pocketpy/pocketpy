@@ -349,7 +349,7 @@ public:
     template<int ARGC>
     void bind_func(PyObject*, Str, NativeFuncRaw);
     void _error(Exception);
-    PyObject* _run_top_frame(bool force_no_pop=false);
+    PyObject* _run_top_frame();
     void post_init();
 };
 

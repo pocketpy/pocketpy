@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-inline PyObject* VM::_run_top_frame(bool force_no_pop){
+inline PyObject* VM::_run_top_frame(){
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
@@ -545,7 +545,7 @@ __NEXT_STEP:;
 /**********************************************************************/
 __PY_SIMPLE_RETURN:
             if(frame.index == base_id){       // [ frameBase<- ]
-                if(!force_no_pop) callstack.pop();
+                callstack.pop();
                 return __ret;
             }else{
                 callstack.pop();
