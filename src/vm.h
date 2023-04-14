@@ -356,7 +356,7 @@ public:
 inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
-        vm->TypeError("expected " + std::to_string(argc) + " arguments, but got " + std::to_string(args_size));
+        vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
     }
     return f(vm, args);
 }
@@ -695,15 +695,12 @@ inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs
     FastLocals locals(co);
 
     int i = 0;
-    for(int index: fn.decl->args){
-        if(i < args.size()){
-            locals[index] = args[i++];
-        }else{
-            StrName name = co->varnames[index];
-            TypeError(fmt("missing positional argument ", name.escape()));
-        }
+    if(args.size() < fn.decl->args.size()){
+        vm->TypeError(fmt("expected ", fn.decl->args.size(), " positional arguments, but got ", args.size()));
     }
 
+    // prepare args
+    for(int index: fn.decl->args) locals[index] = args[i++];
     // prepare kwdefaults
     for(auto& kv: fn.decl->kwargs) locals[kv.key] = kv.value;
     
