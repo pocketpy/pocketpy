@@ -32,7 +32,7 @@ Str _read_file_cwd(const Str& name, bool* ok);
     inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew(vm->ptype, std::move(value));}
 
 
-class Generator: public BaseIter {
+class Generator final: public BaseIter {
     Frame frame;
     int state; // 0,1,2
 public:

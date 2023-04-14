@@ -4,7 +4,7 @@
 
 namespace pkpy{
 
-class RangeIter : public BaseIter {
+class RangeIter final: public BaseIter {
     i64 current;
     Range r;    // copy by value, so we don't need to keep ref
 public:
@@ -25,7 +25,7 @@ public:
 };
 
 template <typename T>
-class ArrayIter : public BaseIter {
+class ArrayIter final: public BaseIter {
     PyObject* ref;
     int index;
 public:
@@ -42,7 +42,7 @@ public:
     }
 };
 
-class StringIter : public BaseIter {
+class StringIter final: public BaseIter {
     PyObject* ref;
     int index;
 public:

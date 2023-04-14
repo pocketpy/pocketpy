@@ -88,7 +88,7 @@ struct GCHeader {
     GCHeader() : enabled(true), marked(false) {}
 };
 
-struct PyObject {
+struct PyObject{
     GCHeader gc;
     Type type;
     NameDict* _attr;
@@ -111,7 +111,7 @@ template<typename T>
 void gc_mark(T& t);
 
 template <typename T>
-struct Py_ : PyObject {
+struct Py_ final: PyObject {
     T _value;
 
     Py_(Type type, const T& val): PyObject(type), _value(val) { _init(); }
