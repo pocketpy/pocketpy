@@ -17,8 +17,8 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         path: output
-    # - name: Unit Test
-    #   run: python3 scripts/run_tests.py
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
   build_linux:
@@ -42,8 +42,8 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         path: output
-    # - name: Unit Test
-    #   run: python3 scripts/run_tests.py
+    - name: Unit Test
+      run: python3 scripts/run_tests.py
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
   build_macos:
