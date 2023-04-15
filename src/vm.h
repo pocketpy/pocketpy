@@ -597,7 +597,7 @@ inline Str VM::disassemble(CodeObject_ co){
             case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
             case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
             case OP_DELETE_GLOBAL:
-                argStr += fmt(" (", co->names[byte.arg].sv(), ")");
+                argStr += fmt(" (", StrName(byte.arg).sv(), ")");
                 break;
             case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST:
                 argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
@@ -614,23 +614,11 @@ inline Str VM::disassemble(CodeObject_ co){
         if(i != co->codes.size() - 1) ss << '\n';
     }
 
-    // std::stringstream consts;
-    // consts << "co_consts: ";
-    // consts << CAST(Str&, asRepr(VAR(co->consts)));
-
-    // std::stringstream names;
-    // names << "co_names: ";
-    // List list;
-    // for(int i=0; i<co->names.size(); i++){
-    //     list.push_back(VAR(co->names[i].sv()));
-    // }
-    // names << CAST(Str, asRepr(VAR(list)));
-    // ss << '\n' << consts.str() << '\n' << names.str();
-
     for(auto& decl: co->func_decls){
         ss << "\n\n" << "Disassembly of " << decl->code->name << ":\n";
         ss << disassemble(decl->code);
     }
+    ss << "\n";
     return Str(ss.str());
 }
 

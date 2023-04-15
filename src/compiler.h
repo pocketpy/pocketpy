@@ -524,8 +524,7 @@ __SUBSCR_END:
         if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
         consume(TK("@id"));
         Str name = prev().str();
-        int index = ctx()->add_name(name);
-        ctx()->emit(OP_IMPORT_NAME, index, prev().line);
+        ctx()->emit(OP_IMPORT_NAME, StrName(name).index, prev().line);
         return name;
     }
 
@@ -537,7 +536,7 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
+            ctx()->emit(OP_STORE_GLOBAL, StrName(name).index, prev().line);
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -555,13 +554,12 @@ __SUBSCR_END:
             ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
             Str name = prev().str();
-            int index = ctx()->add_name(name);
-            ctx()->emit(OP_LOAD_ATTR, index, prev().line);
+            ctx()->emit(OP_LOAD_ATTR, StrName(name).index, prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
             }
-            ctx()->emit(OP_STORE_GLOBAL, ctx()->add_name(name), prev().line);
+            ctx()->emit(OP_STORE_GLOBAL, StrName(name).index, prev().line);
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
@@ -638,8 +636,7 @@ __SUBSCR_END:
         do {
             consume(TK("except"));
             if(match(TK("@id"))){
-                int namei = ctx()->add_name(prev().str());
-                ctx()->emit(OP_EXCEPTION_MATCH, namei, prev().line);
+                ctx()->emit(OP_EXCEPTION_MATCH, StrName(prev().str()).index, prev().line);
             }else{
                 ctx()->emit(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
             }
@@ -760,7 +757,7 @@ __SUBSCR_END:
                 break;
             case TK("raise"): {
                 consume(TK("@id"));
-                int dummy_t = ctx()->add_name(prev().str());
+                int dummy_t = StrName(prev().str()).index;
                 if(match(TK("(")) && !match(TK(")"))){
                     EXPR(false); consume(TK(")"));
                 }else{
@@ -782,7 +779,6 @@ __SUBSCR_END:
                 ctx()->emit(OP_POP_TOP, BC_NOARG, prev().line);
                 consume(TK("as"));
                 consume(TK("@id"));
-                // int index = ctx()->add_name(prev().str());
                 // emit(OP_STORE_NAME, index);
                 // emit(OP_LOAD_NAME_REF, index);
                 // emit(OP_WITH_ENTER);
@@ -802,7 +798,7 @@ __SUBSCR_END:
             case TK("goto"):
                 if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
                 consume(TK(".")); consume(TK("@id"));
-                ctx()->emit(OP_GOTO, ctx()->add_name(prev().str()), prev().line);
+                ctx()->emit(OP_GOTO, StrName(prev().str()).index, prev().line);
                 consume_end_stmt();
                 break;
             /*************************************************/
@@ -826,10 +822,10 @@ __SUBSCR_END:
     
     void compile_class(){
         consume(TK("@id"));
-        int namei = ctx()->add_name(prev().str());
+        int namei = StrName(prev().str()).index;
         int super_namei = -1;
         if(match(TK("(")) && match(TK("@id"))){
-            super_namei = ctx()->add_name(prev().str());
+            super_namei = StrName(prev().str()).index;
             consume(TK(")"));
         }
         if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
@@ -932,14 +928,29 @@ __SUBSCR_END:
                 auto e = make_expr<NameExpr>(decl_name, name_scope());
                 e->emit_store(ctx());
             } else {
-                ctx()->emit(OP_LOAD_GLOBAL, ctx()->add_name(obj_name), prev().line);
-                int index = ctx()->add_name(decl_name);
+                ctx()->emit(OP_LOAD_GLOBAL, StrName(obj_name).index, prev().line);
+                int index = StrName(decl_name).index;
                 ctx()->emit(OP_STORE_ATTR, index, prev().line);
             }
         }else{
-            int index = ctx()->add_name(decl_name);
+            int index = StrName(decl_name).index;
             ctx()->emit(OP_STORE_CLASS_ATTR, index, prev().line);
         }
+    }
+
+    PyObject* to_object(const TokenValue& value){
+        PyObject* obj = nullptr;
+        if(std::holds_alternative<i64>(value)){
+            obj = VAR(std::get<i64>(value));
+        }
+        if(std::holds_alternative<f64>(value)){
+            obj = VAR(std::get<f64>(value));
+        }
+        if(std::holds_alternative<Str>(value)){
+            obj = VAR(std::get<Str>(value));
+        }
+        if(obj == nullptr) FATAL_ERROR();
+        return obj;
     }
 
     PyObject* read_literal(){
@@ -947,11 +958,11 @@ __SUBSCR_END:
         switch(prev().type){
             case TK("-"): {
                 consume(TK("@num"));
-                PyObject* val = LiteralExpr(prev().value).to_object(ctx());
+                PyObject* val = to_object(prev().value);
                 return vm->num_negated(val);
             }
-            case TK("@num"): return LiteralExpr(prev().value).to_object(ctx());
-            case TK("@str"): return LiteralExpr(prev().value).to_object(ctx());
+            case TK("@num"): return to_object(prev().value);
+            case TK("@str"): return to_object(prev().value);
             case TK("True"): return VAR(true);
             case TK("False"): return VAR(false);
             case TK("None"): return vm->None;

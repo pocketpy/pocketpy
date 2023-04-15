@@ -99,14 +99,6 @@ struct CodeEmitContext{
         return true;
     }
 
-    int add_name(StrName name){
-        for(int i=0; i<co->names.size(); i++){
-            if(co->names[i] == name) return i;
-        }
-        co->names.push_back(name);
-        return co->names.size() - 1;
-    }
-
     int add_varname(StrName name){
         int index = co->varnames_inv->try_get(name);
         if(index >= 0) return index;
@@ -144,7 +136,7 @@ struct NameExpr: Expr{
             ctx->emit(OP_LOAD_FAST, index, line);
         }else{
             Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
-            ctx->emit(op, ctx->add_name(name), line);
+            ctx->emit(op, StrName(name).index, line);
         }
     }
 
@@ -154,7 +146,7 @@ struct NameExpr: Expr{
                 ctx->emit(OP_DELETE_FAST, ctx->add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                ctx->emit(OP_DELETE_GLOBAL, ctx->add_name(name), line);
+                ctx->emit(OP_DELETE_GLOBAL, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -163,7 +155,7 @@ struct NameExpr: Expr{
 
     bool emit_store(CodeEmitContext* ctx) override {
         if(ctx->is_compiling_class){
-            int index = ctx->add_name(name);
+            int index = StrName(name).index;
             ctx->emit(OP_STORE_CLASS_ATTR, index, line);
             return true;
         }
@@ -172,7 +164,7 @@ struct NameExpr: Expr{
                 ctx->emit(OP_STORE_FAST, ctx->add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                ctx->emit(OP_STORE_GLOBAL, ctx->add_name(name), line);
+                ctx->emit(OP_STORE_GLOBAL, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -276,11 +268,16 @@ struct LiteralExpr: Expr{
         FATAL_ERROR();
     }
 
-    PyObject* to_object(CodeEmitContext* ctx){
+    void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         PyObject* obj = nullptr;
         if(std::holds_alternative<i64>(value)){
-            obj = VAR(std::get<i64>(value));
+            i64 _val = std::get<i64>(value);
+            if(_val >= INT16_MIN && _val <= INT16_MAX){
+                ctx->emit(OP_LOAD_INTEGER, (int)_val, line);
+                return;
+            }
+            obj = VAR(_val);
         }
         if(std::holds_alternative<f64>(value)){
             obj = VAR(std::get<f64>(value));
@@ -288,14 +285,8 @@ struct LiteralExpr: Expr{
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
         }
-        return obj;
-    }
-
-    void emit(CodeEmitContext* ctx) override {
-        PyObject* obj = to_object(ctx);
         if(obj == nullptr) FATAL_ERROR();
-        int index = ctx->add_const(obj);
-        ctx->emit(OP_LOAD_CONST, index, line);
+        ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
     }
 
     bool is_literal() const override { return true; }
@@ -312,14 +303,17 @@ struct NegatedExpr: Expr{
         // if child is a int of float, do constant folding
         if(child->is_literal()){
             LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
-            PyObject* obj = nullptr;
             if(std::holds_alternative<i64>(lit->value)){
-                obj = VAR(-std::get<i64>(lit->value));
+                i64 _val = -std::get<i64>(lit->value);
+                if(_val >= INT16_MIN && _val <= INT16_MAX){
+                    ctx->emit(OP_LOAD_INTEGER, (int)_val, line);
+                }else{
+                    ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
+                }
+                return;
             }
             if(std::holds_alternative<f64>(lit->value)){
-                obj = VAR(-std::get<f64>(lit->value));
-            }
-            if(obj != nullptr){
+                PyObject* obj = VAR(-std::get<f64>(lit->value));
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
                 return;
             }
@@ -585,27 +579,27 @@ struct AttribExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override{
         a->emit(ctx);
-        int index = ctx->add_name(b);
+        int index = StrName(b).index;
         ctx->emit(OP_LOAD_ATTR, index, line);
     }
 
     bool emit_del(CodeEmitContext* ctx) override {
         a->emit(ctx);
-        int index = ctx->add_name(b);
+        int index = StrName(b).index;
         ctx->emit(OP_DELETE_ATTR, index, line);
         return true;
     }
 
     bool emit_store(CodeEmitContext* ctx) override {
         a->emit(ctx);
-        int index = ctx->add_name(b);
+        int index = StrName(b).index;
         ctx->emit(OP_STORE_ATTR, index, line);
         return true;
     }
 
     void emit_method(CodeEmitContext* ctx) {
         a->emit(ctx);
-        int index = ctx->add_name(b);
+        int index = StrName(b).index;
         ctx->emit(OP_LOAD_METHOD, index, line);
     }
 

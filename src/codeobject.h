@@ -61,7 +61,6 @@ struct CodeObject {
     std::vector<Bytecode> codes;
     std::vector<int> lines; // line number for each bytecode
     List consts;
-    std::vector<StrName> names;         // other names
     std::vector<StrName> varnames;      // local variables
     NameDictInt_ varnames_inv;
     std::set<Str> global_names;

@@ -5,4 +5,6 @@ def fib(n):
 
 assert fib(32) == 2178309
 
+# from dis import dis
+# dis(fib)
 # 7049155 calls
