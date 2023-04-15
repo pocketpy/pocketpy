@@ -10,7 +10,6 @@ inline PyObject* VM::_run_top_frame(){
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
-    PyObject* __ret;
 
     while(true){
 #if DEBUG_EXTRA_CHECK
@@ -26,6 +25,8 @@ inline PyObject* VM::_run_top_frame(){
  * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
  */
 {
+    #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
+__NEXT_FRAME:
     Bytecode byte = frame->next_bytecode();
     // cache
     const CodeObject* co = frame->co;
@@ -351,7 +352,7 @@ __NEXT_STEP:;
             ArgsView args = frame->top_n_view(ARGC + int(method_call));
             PyObject* ret = _py_call(callable, args, {});
             frame->pop_n(ARGC + 2);
-            if(ret == nullptr) goto __PY_OP_CALL;
+            if(ret == nullptr) { DISPATCH_OP_CALL(); }
             else frame->push(ret);      // a generator
             DISPATCH();
         }
@@ -362,7 +363,7 @@ __NEXT_STEP:;
         if(byte.op == OP_CALL_UNPACK) unpack_args(args);
         frame->pop();
         PyObject* ret = call(callable, std::move(args), no_arg(), true);
-        if(ret == _py_op_call) { __ret=ret; goto __PY_OP_CALL; }
+        if(ret == _py_op_call) { DISPATCH_OP_CALL(); }
         frame->push(ret);
     } DISPATCH();
     TARGET(CALL_KWARGS)
@@ -379,10 +380,21 @@ __NEXT_STEP:;
         if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
         PyObject* callable = frame->popx();
         PyObject* ret = call(callable, std::move(args), kwargs, true);
-        if(ret == _py_op_call) { __ret=ret; goto __PY_OP_CALL; }
+        if(ret == _py_op_call) { DISPATCH_OP_CALL(); }
         frame->push(ret);
     } DISPATCH();
-    TARGET(RETURN_VALUE) { __ret=frame->popx(); goto __PY_SIMPLE_RETURN; }
+    TARGET(RETURN_VALUE) {
+        PyObject* __ret = frame->popx();
+        if(frame.index == base_id){       // [ frameBase<- ]
+            callstack.pop();
+            return __ret;
+        }else{
+            callstack.pop();
+            frame = top_frame();
+            frame->push(__ret);
+            goto __NEXT_FRAME;
+        }
+    }
     TARGET(YIELD_VALUE) return _py_op_yield;
     /*****************************************/
     TARGET(LIST_APPEND) {
@@ -543,19 +555,7 @@ __NEXT_STEP:;
 #undef DISPATCH
 #undef TARGET
 /**********************************************************************/
-__PY_SIMPLE_RETURN:
-            if(frame.index == base_id){       // [ frameBase<- ]
-                callstack.pop();
-                return __ret;
-            }else{
-                callstack.pop();
-                frame = top_frame();
-                frame->push(__ret);
-            }
-            continue;
-__PY_OP_CALL:
-            frame = top_frame();            // [ frameBase, newFrame<- ]
-            continue;
+            UNREACHABLE();
         }catch(HandledException& e){
             continue;
         }catch(UnhandledException& e){
