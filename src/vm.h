@@ -897,7 +897,8 @@ inline void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    top_frame()->push(VAR(e));
+    PyObject** _sp = top_frame()->_sp;
+    PUSH(VAR(e));
     _raise();
 }
 

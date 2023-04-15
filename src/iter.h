@@ -69,7 +69,8 @@ inline PyObject* Generator::next(){
         frame = std::move(vm->callstack.top());
         vm->callstack.pop();
         state = 1;
-        return frame.popx();
+        PyObject** _sp = frame._sp;
+        return POPX();
     }else{
         state = 2;
         return nullptr;

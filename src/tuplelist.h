@@ -60,13 +60,6 @@ public:
     PyObject** begin() const { return _args; }
     PyObject** end() const { return _args + _size; }
 
-    List to_list() noexcept {
-        List ret(_size);
-        // TODO: use move/memcpy
-        for(int i=0; i<_size; i++) ret[i] = _args[i];
-        return ret;
-    }
-
     void extend_self(PyObject* self){
         PyObject** old_args = _args;
         int old_size = _size;
@@ -99,6 +92,18 @@ struct ArgsView{
     int size() const { return _end - _begin; }
     bool empty() const { return _begin == _end; }
     PyObject* operator[](int i) const { return _begin[i]; }
+
+    List to_list() const{
+        List ret(size());
+        for(int i=0; i<size(); i++) ret[i] = _begin[i];
+        return ret;
+    }
+
+    Tuple to_tuple() const{
+        Tuple ret(size());
+        for(int i=0; i<size(); i++) ret[i] = _begin[i];
+        return ret;
+    }
 };
 
 }   // namespace pkpy

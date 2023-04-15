@@ -139,11 +139,11 @@ struct Py_ final: PyObject {
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
-#define OBJ_MARK(obj) if(!is_tagged(obj)) obj->_obj_gc_mark()
+#define OBJ_MARK(obj) if(!is_tagged(obj)) (obj)->_obj_gc_mark()
 
 Str obj_type_name(VM* vm, Type type);
 
-#if DEBUG_NO_BUILTIN_MODULES
+#if DEBUG_NO_BUILTIN_MODULES || DEBUG_NO_NAME_GETTER
 #define OBJ_NAME(obj) Str("<?>")
 #else
 #define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
