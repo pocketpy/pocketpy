@@ -6,23 +6,26 @@
 
 namespace pkpy{
 
-using ValueStack = pod_vector<PyObject*>;
-
 struct FastLocals{
     NameDictInt_ varnames_inv;
     PyObject** a;
 
-    int size() const{ return varnames_inv->size(); }
+    int size() const{
+        return varnames_inv->size();
+    }
 
     PyObject*& operator[](int i){ return a[i]; }
     PyObject* operator[](int i) const { return a[i]; }
 
+    FastLocals(): varnames_inv(nullptr), a(nullptr) {}
+    FastLocals(std::nullptr_t): varnames_inv(nullptr), a(nullptr) {}
+
     FastLocals(const CodeObject* co): varnames_inv(co->varnames_inv){
-        size_t size = co->varnames.size() * sizeof(void*);
+        size_t size = this->size() * sizeof(void*);
         int* counter = (int*)pool128.alloc(sizeof(int) + size);
         *counter = 1;
         a = (PyObject**)(counter + 1);
-        memset(a, 0, size);
+        memset(a, 0, this->size() * sizeof(void*));
     }
 
     PyObject* try_get(StrName name){
@@ -39,9 +42,6 @@ struct FastLocals{
         a[index] = value;
         return true;
     }
-
-    FastLocals(): varnames_inv(nullptr), a(nullptr) {}
-    FastLocals(std::nullptr_t): varnames_inv(nullptr), a(nullptr) {}
 
     FastLocals(const FastLocals& other){
         varnames_inv = other.varnames_inv;
@@ -112,8 +112,47 @@ template<> inline void gc_mark<Function>(Function& t){
     t._closure._gc_mark();
 }
 
+struct ValueStack {
+    PyObject** _begin;
+    PyObject** _sp;
+
+    ValueStack(int n=16): _begin((PyObject**)pool128.alloc(n * sizeof(void*))), _sp(_begin) { }
+
+    PyObject*& top(){ return _sp[-1]; }
+    PyObject* top() const { return _sp[-1]; }
+    PyObject*& second(){ return _sp[-2]; }
+    PyObject* second() const { return _sp[-2]; }
+    PyObject*& peek(int n){ return _sp[-n]; }
+    PyObject* peek(int n) const { return _sp[-n]; }
+    void push(PyObject* v){ *_sp++ = v; }
+    void pop(){ --_sp; }
+    PyObject* popx(){ return *--_sp; }
+    ArgsView view(int n){ return ArgsView(_sp-n, _sp); }
+    void shrink(int n){ _sp -= n; }
+    int size() const { return _sp - _begin; }
+    bool empty() const { return _sp == _begin; }
+    PyObject** begin() const { return _begin; }
+    PyObject** end() const { return _sp; }
+    void resize(int n) { _sp = _begin + n; }
+
+    ValueStack(ValueStack&& other) noexcept{
+        _begin = other._begin;
+        _sp = other._sp;
+        other._begin = nullptr;
+    }
+
+    ValueStack& operator=(ValueStack&& other) noexcept{
+        if(_begin != nullptr) pool128.dealloc(_begin);
+        _begin = other._begin;
+        _sp = other._sp;
+        other._begin = nullptr;
+        return *this;
+    }
+
+    ~ValueStack(){ if(_begin!=nullptr) pool128.dealloc(_begin); }
+};
+
 struct Frame {
-    ValueStack _data;
     int _ip = -1;
     int _next_ip = 0;
     const CodeObject* co;
@@ -121,6 +160,7 @@ struct Frame {
 
     FastLocals _locals;
     FastLocals _closure;
+    ValueStack _s;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
 
@@ -150,58 +190,13 @@ struct Frame {
 
     std::string stack_info(){
         std::stringstream ss;
-        ss << " [";
-        for(int i=0; i<_data.size(); i++){
-            ss << (i64)_data[i];
-            if(i != _data.size()-1) ss << ", ";
+        ss << this << ": [";
+        for(PyObject** t=_s.begin(); t<_s.end(); t++){
+            ss << *t;
+            if(t != _s.end()-1) ss << ", ";
         }
         ss << "]";
         return ss.str();
-    }
-
-    void pop(){
-#if DEBUG_EXTRA_CHECK
-        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
-#endif
-        _data.pop_back();
-    }
-
-    PyObject* popx(){
-#if DEBUG_EXTRA_CHECK
-        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
-#endif
-        PyObject* ret = _data.back();
-        _data.pop_back();
-        return ret;
-    }
-
-    PyObject*& top(){
-#if DEBUG_EXTRA_CHECK
-        if(_data.empty()) throw std::runtime_error("_data.empty() is true");
-#endif
-        return _data.back();
-    }
-
-    PyObject*& top_1(){
-#if DEBUG_EXTRA_CHECK
-        if(_data.size() < 2) throw std::runtime_error("_data.size() < 2");
-#endif
-        return _data[_data.size()-2];
-    }
-
-    PyObject*& top_n(int n){
-        n += 1;
-#if DEBUG_EXTRA_CHECK
-        if(_data.size() < n) throw std::runtime_error("_data.size() < n");
-#endif
-        return _data[_data.size()-n];
-    }
-
-    void push(PyObject* obj){
-#if DEBUG_EXTRA_CHECK
-        if(obj == nullptr) throw std::runtime_error("obj == nullptr");
-#endif
-        _data.push_back(obj);
     }
 
     void jump_abs(int i){ _next_ip = i; }
@@ -215,19 +210,18 @@ struct Frame {
             block = co->blocks[block].parent;
         }
         if(block < 0) return false;
-        PyObject* obj = popx();         // pop exception object
+        PyObject* obj = _s.popx();         // pop exception object
         // get the stack size of the try block (depth of for loops)
         int stack_size = co->blocks[block].for_loop_depth;
-        // std::cout << "stack_size: " << stack_size << std::endl;
-        if(_data.size() < stack_size) throw std::runtime_error("invalid stack size");
-        _data.resize(stack_size);       // rollback the stack
-        _data.push_back(obj);           // push exception object
+        if(_s.size() < stack_size) throw std::runtime_error("invalid stack size");
+        _s.resize(stack_size);             // rollback the stack   
+        _s.push(obj);                      // push exception object
         _next_ip = co->blocks[block].end;
         return true;
     }
 
     int _exit_block(int i){
-        if(co->blocks[i].type == FOR_LOOP) pop();
+        if(co->blocks[i].type == FOR_LOOP) _s.pop();
         return co->blocks[i].parent;
     }
 
@@ -244,24 +238,10 @@ struct Frame {
         }
     }
 
-    Args popx_n_reversed(int n){
-        Args v(n);
-        for(int i=n-1; i>=0; i--) v[i] = popx();
-        return v;
-    }
-
-    void pop_n(int n){
-        _data.pop_back_n(n);
-    }
-
-    ArgsView top_n_view(int n){
-        return ArgsView(_data.end()-n, _data.end());
-    }
-
     void _gc_mark() const {
         // do return if this frame has been moved
-        if(_data._data == nullptr) return;
-        for(PyObject* obj : _data) OBJ_MARK(obj);
+        if(!_locals.is_valid()) return;
+        for(PyObject* obj: _s) OBJ_MARK(obj);
         OBJ_MARK(_module);
         _locals._gc_mark();
         _closure._gc_mark();

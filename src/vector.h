@@ -133,6 +133,7 @@ public:
 	T& top(){ return vec.back(); }
 	const T& top() const { return vec.back(); }
 	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
+    void reserve(int n){ vec.reserve(n); }
 	Container& data() { return vec; }
 };
 

@@ -1,9 +1,9 @@
 import sys
 
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(5000)
 
 def f(n):
-    if n == 8000:
+    if n == 4000:
         return -1
     return f(n + 1)
 

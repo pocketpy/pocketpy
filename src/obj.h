@@ -143,7 +143,7 @@ struct Py_ final: PyObject {
 
 Str obj_type_name(VM* vm, Type type);
 
-#if DEBUG_NO_BUILTIN_MODULES || DEBUG_NO_NAME_GETTER
+#if DEBUG_NO_BUILTIN_MODULES
 #define OBJ_NAME(obj) Str("<?>")
 #else
 #define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
@@ -171,7 +171,10 @@ inline bool is_type(PyObject* obj, Type type) {
     }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod) {                \
         PyObject* type = vm->new_type_object(mod, #name, vm->tp_object);    \
-        if(OBJ_NAME(mod) != #mod) FATAL_ERROR();                            \
+        if(OBJ_NAME(mod) != #mod) {                                         \
+            auto msg = fmt("register_class() failed: ", OBJ_NAME(mod), " != ", #mod); \
+            throw std::runtime_error(msg);                                  \
+        }                                                                   \
         T::_register(vm, mod, type);                                        \
         type->attr()._try_perfect_rehash();                                 \
         return type;                                                        \

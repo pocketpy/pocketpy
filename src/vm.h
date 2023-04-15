@@ -1,5 +1,6 @@
 #pragma once
 
+#include "codeobject.h"
 #include "common.h"
 #include "frame.h"
 #include "error.h"
@@ -897,8 +898,8 @@ inline void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    PyObject** _sp = top_frame()->_sp;
-    PUSH(VAR(e));
+    Frame* frame = &callstack.top();
+    frame->_s.push(VAR(e));
     _raise();
 }
 
