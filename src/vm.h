@@ -752,7 +752,7 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
     }
 
     if(is_type(callable, tp_type)){
-        // TODO: use get_unbound_method here
+        // TODO: derived __new__ ?
         PyObject* new_f = callable->attr().try_get(__new__);
         PyObject* obj;
         if(new_f != nullptr){

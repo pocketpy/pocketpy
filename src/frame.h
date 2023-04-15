@@ -254,7 +254,7 @@ struct Frame {
 
     void _gc_mark() const {
         // do return if this frame has been moved
-        if(!_locals.is_valid()) return;
+        if(_s.data() == nullptr) return;
         for(PyObject* obj: _s) OBJ_MARK(obj);
         OBJ_MARK(_module);
         _locals._gc_mark();

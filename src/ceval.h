@@ -64,6 +64,9 @@ __NEXT_STEP:;
 #if DEBUG_CEVAL_STEP
     std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
 #endif
+#if DEBUG_CEVAL_STEP_MIN
+    std::cout << OP_NAMES[byte.op] << std::endl;
+#endif
     switch (byte.op)
     {
 #endif
@@ -213,14 +216,14 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(BUILD_DICT) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        STACK_SHRINK(byte.arg);
         PyObject* obj = call(builtins->attr(m_dict), Args{t});
+        STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
     TARGET(BUILD_SET) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        STACK_SHRINK(byte.arg);
         PyObject* obj = call(builtins->attr(m_set), Args{t});
+        STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
     TARGET(BUILD_SLICE) {
