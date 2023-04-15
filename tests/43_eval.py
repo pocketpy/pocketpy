@@ -1,33 +1,32 @@
 assert eval('1+1') == 2
 assert eval('[1,2,3]') == [1,2,3]
 
-# some bugs here
-# def f(x):
-#     return eval('x')
+def f(x):
+    return eval('x')
 
-# assert f(1) == 1
+assert f(1) == 1
 
 
-# a = 0
-# assert eval('a') == 0
+a = 0
+assert eval('a') == 0
 
-# exec('a = 1')
-# assert a == 1
+exec('a = 1')
+assert a == 1
 
-# def f(x):
-#     exec('a = x')
-#     return a
+def f(a):
+    exec('a = 3')
+    return a
 
-# assert f(2) == 2
+assert f(2) == 3
 
-# exec(
-#     "exec('a = eval(\"3 + 5\")')"
-# )
-# assert a == 8
+exec(
+    "exec('a = eval(\"3 + 5\")')"
+)
+assert a == 8
 
-# def f():
-#     b = 1
-#     exec(
-#         "exec('b = eval(\"3 + 5\")')"
-#     )
-#     assert b == 8
+def f():
+    b = 1
+    exec(
+        "exec('b = eval(\"3 + 5\")')"
+    )
+    assert b == 8

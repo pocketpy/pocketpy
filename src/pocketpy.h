@@ -11,8 +11,8 @@
 
 namespace pkpy {
 
-inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode) {
-    Compiler compiler(this, source, filename, mode);
+inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope) {
+    Compiler compiler(this, source, filename, mode, unknown_global_scope);
     try{
         return compiler.compile();
     }catch(Exception& e){
@@ -97,13 +97,13 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE);
+        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
         FrameId frame = vm->top_frame();
         return vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, Args& args) {
-        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE);
+        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
         FrameId frame = vm->top_frame();
         vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
         return vm->None;

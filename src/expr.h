@@ -136,6 +136,8 @@ struct NameExpr: Expr{
             ctx->emit(OP_LOAD_FAST, index, line);
         }else{
             Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
+            // we cannot determine the scope when calling exec()/eval()
+            if(scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
             ctx->emit(op, StrName(name).index, line);
         }
     }
@@ -147,6 +149,9 @@ struct NameExpr: Expr{
                 break;
             case NAME_GLOBAL:
                 ctx->emit(OP_DELETE_GLOBAL, StrName(name).index, line);
+                break;
+            case NAME_GLOBAL_UNKNOWN:
+                ctx->emit(OP_DELETE_NAME, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -165,6 +170,9 @@ struct NameExpr: Expr{
                 break;
             case NAME_GLOBAL:
                 ctx->emit(OP_STORE_GLOBAL, StrName(name).index, line);
+                break;
+            case NAME_GLOBAL_UNKNOWN:
+                ctx->emit(OP_STORE_NAME, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }

@@ -333,7 +333,7 @@ public:
         _lazy_modules.clear();
     }
 
-    CodeObject_ compile(Str source, Str filename, CompileMode mode);
+    CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
     bool asBool(PyObject* obj);

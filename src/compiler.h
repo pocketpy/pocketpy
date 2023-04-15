@@ -21,6 +21,7 @@ class Compiler {
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
     VM* vm;
+    bool unknown_global_scope;     // for eval/exec() call
     bool used;
     // for parsing token stream
     int i = 0;
@@ -37,7 +38,11 @@ class Compiler {
 
     CodeEmitContext* ctx() { return &contexts.top(); }
     CompileMode mode() const{ return lexer->src->mode; }
-    NameScope name_scope() const { return contexts.size()>1 ? NAME_LOCAL : NAME_GLOBAL; }
+    NameScope name_scope() const {
+        auto s = contexts.size()>1 ? NAME_LOCAL : NAME_GLOBAL;
+        if(unknown_global_scope && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
+        return s;
+    }
 
     CodeObject_ push_global_context(){
         CodeObject_ co = make_sp<CodeObject>(lexer->src, lexer->src->filename);
@@ -977,9 +982,10 @@ __SUBSCR_END:
     void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, err().line, err().start); }
 
 public:
-    Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode){
+    Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false){
         this->vm = vm;
         this->used = false;
+        this->unknown_global_scope = unknown_global_scope;
         this->lexer = std::make_unique<Lexer>(
             make_sp<SourceData>(source, filename, mode)
         );

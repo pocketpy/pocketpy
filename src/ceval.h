@@ -165,6 +165,16 @@ __NEXT_STEP:;
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
+    TARGET(STORE_NAME) {
+        StrName name(byte.arg);
+        PyObject* val = POPX();
+        if(frame->_locals.is_valid()){
+            bool ok = frame->_locals.try_set(name, val);
+            if(!ok) vm->NameError(name);
+        }else{
+            frame->f_globals().set(name, val);
+        }
+    } DISPATCH();
     TARGET(STORE_GLOBAL) {
         StrName name(byte.arg);
         frame->f_globals().set(name, POPX());
@@ -187,6 +197,16 @@ __NEXT_STEP:;
         PyObject* val = frame->_locals[byte.arg];
         if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
         frame->_locals[byte.arg] = nullptr;
+    } DISPATCH();
+    TARGET(DELETE_NAME) {
+        StrName name(byte.arg);
+        if(frame->_locals.is_valid()){
+            if(!frame->_locals.contains(name)) vm->NameError(name);
+            frame->_locals.erase(name);
+        }else{
+            if(!frame->f_globals().contains(name)) vm->NameError(name);
+            frame->f_globals().erase(name);
+        }
     } DISPATCH();
     TARGET(DELETE_GLOBAL) {
         StrName name(byte.arg);

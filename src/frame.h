@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codeobject.h"
+#include "common.h"
 #include "memory.h"
 #include "vector.h"
 
@@ -33,6 +34,17 @@ struct FastLocals{
         int index = varnames_inv->try_get(name);
         if(index == -1) return nullptr;
         return a[index];
+    }
+
+    bool contains(StrName name){
+        return varnames_inv->contains(name);
+    }
+
+    void erase(StrName name){
+        if(!is_valid()) return;
+        int index = varnames_inv->try_get(name);
+        if(index == -1) FATAL_ERROR();
+        a[index] = nullptr;
     }
 
     bool try_set(StrName name, PyObject* value){
