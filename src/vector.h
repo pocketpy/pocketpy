@@ -71,6 +71,7 @@ struct pod_vector{
     }
 
     void pop_back() { _size--; }
+    T popx_back() { T t = std::move(_data[_size-1]); _size--; return t; }
     void extend(const pod_vector& other){
         for(int i=0; i<other.size(); i++) push_back(other[i]);
     }
@@ -89,7 +90,6 @@ struct pod_vector{
     int size() const { return _size; }
     T* data() { return _data; }
     const T* data() const { return _data; }
-    void pop_back_n(int n) { _size -= n; }
     void clear() { _size=0; }
 
     template<typename __ValueT>

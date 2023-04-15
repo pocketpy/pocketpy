@@ -192,6 +192,14 @@ while(!_items[i].first.empty()) {       \
         }
         return v;
     }
+
+    void clear(){
+        for(uint16_t i=0; i<_capacity; i++){
+            _items[i].first = StrName();
+            _items[i].second = nullptr;
+        }
+        _size = 0;
+    }
 #undef HASH_PROBE
 #undef _hash
 };

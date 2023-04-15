@@ -56,15 +56,6 @@ struct ManagedHeap{
     inline static std::map<Type, int> deleted;
 #endif
 
-    ~ManagedHeap(){
-        for(PyObject* obj: _no_gc) obj->~PyObject(), pool64.dealloc(obj);
-#if DEBUG_GC_STATS
-        for(auto& [type, count]: deleted){
-            std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
-        }
-#endif
-    }
-
     int sweep(){
         std::vector<PyObject*> alive;
         for(PyObject* obj: gen){
@@ -108,6 +99,16 @@ struct ManagedHeap{
     }
 
     void mark();
+
+    ~ManagedHeap(){
+        for(PyObject* obj: _no_gc) obj->~PyObject(), pool64.dealloc(obj);
+        for(PyObject* obj: gen) obj->~PyObject(), pool64.dealloc(obj);
+#if DEBUG_GC_STATS
+        for(auto& [type, count]: deleted){
+            std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
+        }
+#endif
+    }
 };
 
 inline void FuncDecl::_gc_mark() const{
@@ -116,11 +117,15 @@ inline void FuncDecl::_gc_mark() const{
 }
 
 template<> inline void gc_mark<List>(List& t){
-    for(PyObject* obj: t) OBJ_MARK(obj);
+    for(PyObject* obj: t){
+        OBJ_MARK(obj);
+    }
 }
 
 template<> inline void gc_mark<Tuple>(Tuple& t){
-    for(int i=0; i<t.size(); i++) OBJ_MARK(t[i]);
+    for(PyObject* obj: t){
+        OBJ_MARK(obj);
+    }
 }
 
 template<> inline void gc_mark<NameDict>(NameDict& t){

@@ -326,7 +326,12 @@ public:
         return _all_types[OBJ_GET(Type, _t(obj->type)).index].obj;
     }
 
-    ~VM() { heap.collect(); }
+    ~VM() {
+        callstack.clear();
+        _all_types.clear();
+        _modules.clear();
+        _lazy_modules.clear();
+    }
 
     CodeObject_ compile(Str source, Str filename, CompileMode mode);
     PyObject* num_negated(PyObject* obj);
