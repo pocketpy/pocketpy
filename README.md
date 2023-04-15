@@ -8,7 +8,7 @@
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
-PocketPy is a lightweight(~6000 LOC) Python interpreter for game engines/apps.
+PocketPy is a lightweight(~8000 LOC) Python interpreter for game engines/apps.
 
 
 ---

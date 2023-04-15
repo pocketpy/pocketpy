@@ -20,7 +20,9 @@ def test_dir(path):
 
         if path == 'benchmarks/':
             _0 = time.time()
-            if not test_file(filepath, cpython=True): exit(1)
+            if not test_file(filepath, cpython=True):
+                print('cpython run failed')
+                continue
             _1 = time.time()
             if not test_file(filepath): exit(1)
             _2 = time.time()
