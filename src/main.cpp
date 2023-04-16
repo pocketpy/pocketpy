@@ -3,45 +3,12 @@
 
 #include "pocketpy.h"
 
-#ifdef _WIN32
-
-#include <Windows.h>
-
-std::string getline(bool* eof=nullptr) {
-    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    std::wstringstream wss;
-    WCHAR buf;
-    DWORD read;
-    while (ReadConsoleW(hStdin, &buf, 1, &read, NULL) && buf != L'\n') {
-        if(eof && buf == L'\x1A') *eof = true;  // Ctrl+Z
-        wss << buf;
-    }
-    std::wstring wideInput = wss.str();
-    int length = WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), NULL, 0, NULL, NULL);
-    std::string output;
-    output.resize(length);
-    WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    return output;
-}
-
-#else
-
-std::string getline(bool* eof=nullptr){
-    std::string line;
-    if(!std::getline(std::cin, line)){
-        if(eof) *eof = true;
-    }
-    return line;
-}
-
-#endif
-
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char** argv){
     pkpy::VM* vm = pkpy_new_vm(true);
     vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::Args& args){
-        return VAR(getline());
+        return VAR(pkpy::getline());
     });
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);
@@ -49,7 +16,7 @@ int main(int argc, char** argv){
         while(true){
             (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
             bool eof = false;
-            std::string line = getline(&eof);
+            std::string line = pkpy::getline(&eof);
             if(eof) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
