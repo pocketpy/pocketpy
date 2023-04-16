@@ -28,14 +28,14 @@ inline PyObject* VM::_run_top_frame(){
 
 /* Stack manipulation macros */
 // https://github.com/python/cpython/blob/3.9/Python/ceval.c#L1123
-#define TOP()             (frame->_s.top())
-#define SECOND()          (frame->_s.second())
-#define PEEK(n)           (frame->_s.peek(n))
-#define STACK_SHRINK(n)   (frame->_s.shrink(n))
-#define PUSH(v)           (frame->_s.push(v))
-#define POP()             (frame->_s.pop())
-#define POPX()            (frame->_s.popx())
-#define STACK_VIEW(n)     (frame->_s.view(n))
+#define TOP()             (s_data.top())
+#define SECOND()          (s_data.second())
+#define PEEK(n)           (s_data.peek(n))
+#define STACK_SHRINK(n)   (s_data.shrink(n))
+#define PUSH(v)           (s_data.push(v))
+#define POP()             (s_data.pop())
+#define POPX()            (s_data.popx())
+#define STACK_VIEW(n)     (s_data.view(n))
 
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
@@ -392,6 +392,8 @@ __NEXT_STEP:;
         if(byte.op==OP_CALL && is_type(callable, tp_function)){
             PyObject* ret = _py_call(callable, STACK_VIEW(ARGC + int(method_call)), {});
             STACK_SHRINK(ARGC + 2);
+            // TODO: _sp_base is incorrect
+            top_frame()->_sp_base = s_data._sp;
             if(ret == nullptr) { DISPATCH_OP_CALL(); }
             else PUSH(ret);      // a generator
             DISPATCH();
@@ -424,18 +426,23 @@ __NEXT_STEP:;
         PUSH(ret);
     } DISPATCH();
     TARGET(RETURN_VALUE) {
-        PyObject* __ret = POPX();
+#if DEBUG_EXTRA_CHECK
+        if(frame->stack_size() != 1) FATAL_ERROR();
+#endif
         if(frame.index == base_id){       // [ frameBase<- ]
             callstack.pop();
-            return __ret;
+            return POPX();
         }else{
             callstack.pop();
             frame = top_frame();
-            PUSH(__ret);
             goto __NEXT_FRAME;
         }
     }
-    TARGET(YIELD_VALUE) return _py_op_yield;
+    TARGET(YIELD_VALUE)
+#if DEBUG_EXTRA_CHECK
+        if(frame->stack_size() != 1) FATAL_ERROR();
+#endif
+        return _py_op_yield;
     /*****************************************/
     TARGET(LIST_APPEND) {
         PyObject* obj = POPX();

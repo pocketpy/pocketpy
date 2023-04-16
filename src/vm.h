@@ -61,6 +61,7 @@ class VM {
     VM* vm;     // self reference for simplify code
 public:
     ManagedHeap heap;
+    ValueStack s_data;
     stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
 
@@ -192,7 +193,7 @@ public:
         if(callstack.size() > recursionlimit){
             _error("RecursionError", "maximum recursion depth exceeded");
         }
-        callstack.emplace(std::forward<Args>(args)...);
+        callstack.emplace(&s_data, std::forward<Args>(args)...);
     }
 
     void _push_new_frame(Frame&& frame){
@@ -731,7 +732,7 @@ inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     if(co->is_generator){
-        return PyIter(Generator(this, Frame(co, _module, std::move(locals), fn._closure)));
+        return PyIter(Generator(this, Frame(&s_data, co, _module, std::move(locals), fn._closure)));
     }
     _push_new_frame(co, _module, std::move(locals), fn._closure);
     return nullptr;
@@ -913,14 +914,14 @@ inline void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    Frame* frame = &callstack.top();
-    frame->_s.push(VAR(e));
+    s_data.push(VAR(e));
     _raise();
 }
 
 inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
+    for(PyObject* obj: vm->s_data) OBJ_MARK(obj);
 }
 
 inline Str obj_type_name(VM *vm, Type type){

@@ -3,6 +3,7 @@
 #include "codeobject.h"
 #include "common.h"
 #include "memory.h"
+#include "obj.h"
 #include "vector.h"
 
 namespace pkpy{
@@ -124,80 +125,59 @@ template<> inline void gc_mark<Function>(Function& t){
     t._closure._gc_mark();
 }
 
-struct ValueStack: pod_vector<PyObject*> {
-    PyObject*& top(){ return back(); }
-    PyObject* top() const { return back(); }
-    PyObject*& second(){ return (*this)[size()-2]; }
-    PyObject* second() const { return (*this)[size()-2]; }
-    PyObject*& peek(int n){ return (*this)[size()-n]; }
-    PyObject* peek(int n) const { return (*this)[size()-n]; }
-    void push(PyObject* v){ push_back(v); }
-    void pop(){ pop_back(); }
-    PyObject* popx(){ return popx_back(); }
-    ArgsView view(int n){ return ArgsView(end()-n, end()); }
-    void shrink(int n){ resize(size() - n); }
+struct ValueStack {
+    static const int MAX_SIZE = 32768;
+    PyObject* _begin[MAX_SIZE];
+    PyObject** _sp;
+
+    ValueStack(): _sp(_begin) {}
+
+    PyObject*& top(){ return _sp[-1]; }
+    PyObject* top() const { return _sp[-1]; }
+    PyObject*& second(){ return _sp[-2]; }
+    PyObject* second() const { return _sp[-2]; }
+    PyObject*& peek(int n){ return _sp[-n]; }
+    PyObject* peek(int n) const { return _sp[-n]; }
+    void push(PyObject* v){ *_sp++ = v; }
+    void pop(){ --_sp; }
+    PyObject* popx(){ return *--_sp; }
+    ArgsView view(int n){ return ArgsView(_sp-n, _sp); }
+    void shrink(int n){ _sp -= n; }
+    // int size() const { return _sp - _begin; }
+    // bool empty() const { return _sp == _begin; }
+    PyObject** begin() { return _begin; }
+    PyObject** end() { return _sp; }
+    void reset(PyObject** sp) { _sp = sp; }
+    // void resize(int n) { _sp = _begin + n; }
+    bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
+
+    ValueStack(const ValueStack&) = delete;
+    ValueStack(ValueStack&&) = delete;
+    ValueStack& operator=(const ValueStack&) = delete;
+    ValueStack& operator=(ValueStack&&) = delete;
 };
-
-// struct ValueStack {
-//     PyObject** _begin;
-//     PyObject** _sp;
-
-//     ValueStack(int n=16): _begin((PyObject**)pool128.alloc(n * sizeof(void*))), _sp(_begin) { }
-
-//     PyObject*& top(){ return _sp[-1]; }
-//     PyObject* top() const { return _sp[-1]; }
-//     PyObject*& second(){ return _sp[-2]; }
-//     PyObject* second() const { return _sp[-2]; }
-//     PyObject*& peek(int n){ return _sp[-n]; }
-//     PyObject* peek(int n) const { return _sp[-n]; }
-//     void push(PyObject* v){ *_sp++ = v; }
-//     void pop(){ --_sp; }
-//     PyObject* popx(){ return *--_sp; }
-//     ArgsView view(int n){ return ArgsView(_sp-n, _sp); }
-//     void shrink(int n){ _sp -= n; }
-//     int size() const { return _sp - _begin; }
-//     bool empty() const { return _sp == _begin; }
-//     PyObject** begin() const { return _begin; }
-//     PyObject** end() const { return _sp; }
-//     void resize(int n) { _sp = _begin + n; }
-
-//     ValueStack(ValueStack&& other) noexcept{
-//         _begin = other._begin;
-//         _sp = other._sp;
-//         other._begin = nullptr;
-//     }
-
-//     ValueStack& operator=(ValueStack&& other) noexcept{
-//         if(_begin != nullptr) pool128.dealloc(_begin);
-//         _begin = other._begin;
-//         _sp = other._sp;
-//         other._begin = nullptr;
-//         return *this;
-//     }
-
-//     ~ValueStack(){ if(_begin!=nullptr) pool128.dealloc(_begin); }
-// };
 
 struct Frame {
     int _ip = -1;
     int _next_ip = 0;
+    ValueStack* _s;
+    PyObject** _sp_base;
     const CodeObject* co;
-    PyObject* _module;
 
+    PyObject* _module;
     FastLocals _locals;
     FastLocals _closure;
-    ValueStack _s;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
 
-    Frame(const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
-            : co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
+    Frame(ValueStack* _s, const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
+            : _s(_s), _sp_base(_s->_sp), co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
 
-    Frame(const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
-            : co(co), _module(_module), _locals(_locals), _closure(_closure) { }
+    Frame(ValueStack* _s, const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
+            : _s(_s), _sp_base(_s->_sp), co(co), _module(_module), _locals(_locals), _closure(_closure) { }
 
-    Frame(const CodeObject_& co, PyObject* _module)
-            : co(co.get()), _module(_module), _locals(), _closure() { }
+    Frame(ValueStack* _s, const CodeObject_& co, PyObject* _module)
+            : _s(_s), _sp_base(_s->_sp), co(co.get()), _module(_module), _locals(), _closure() { }
 
     Frame(const Frame& other) = delete;
     Frame& operator=(const Frame& other) = delete;
@@ -214,12 +194,14 @@ struct Frame {
         return co->src->snapshot(line);
     }
 
+    int stack_size() const { return _s->_sp - _sp_base; }
+
     std::string stack_info(){
         std::stringstream ss;
         ss << this << ": [";
-        for(PyObject** t=_s.begin(); t<_s.end(); t++){
+        for(PyObject** t=_sp_base; t<_s->end(); t++){
             ss << *t;
-            if(t != _s.end()-1) ss << ", ";
+            if(t != _s->end()-1) ss << ", ";
         }
         ss << "]";
         return ss.str();
@@ -236,18 +218,18 @@ struct Frame {
             block = co->blocks[block].parent;
         }
         if(block < 0) return false;
-        PyObject* obj = _s.popx();         // pop exception object
+        PyObject* obj = _s->popx();         // pop exception object
         // get the stack size of the try block (depth of for loops)
-        int stack_size = co->blocks[block].for_loop_depth;
-        if(_s.size() < stack_size) throw std::runtime_error("invalid stack size");
-        _s.resize(stack_size);             // rollback the stack   
-        _s.push(obj);                      // push exception object
+        int _stack_size = co->blocks[block].for_loop_depth;
+        if(stack_size() < _stack_size) throw std::runtime_error("invalid stack size");
+        _s->reset(_sp_base + _stack_size);             // rollback the stack   
+        _s->push(obj);                      // push exception object
         _next_ip = co->blocks[block].end;
         return true;
     }
 
     int _exit_block(int i){
-        if(co->blocks[i].type == FOR_LOOP) _s.pop();
+        if(co->blocks[i].type == FOR_LOOP) _s->pop();
         return co->blocks[i].parent;
     }
 
@@ -266,8 +248,7 @@ struct Frame {
 
     void _gc_mark() const {
         // do return if this frame has been moved
-        if(_s.data() == nullptr) return;
-        for(PyObject* obj: _s) OBJ_MARK(obj);
+        // TODO: fix here
         OBJ_MARK(_module);
         _locals._gc_mark();
         _closure._gc_mark();
