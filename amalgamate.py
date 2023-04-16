@@ -74,4 +74,7 @@ if os.path.exists("plugins/unity/PocketPyUnityPlugin"):
 if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
 	shutil.copy("amalgamated/pocketpy.h", "plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
 
+if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
+	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
+
 print("amalgamated/pocketpy.h")

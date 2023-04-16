@@ -689,7 +689,13 @@ inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs
 
     int i = 0;
     if(args.size() < fn.decl->args.size()){
-        vm->TypeError(fmt("expected ", fn.decl->args.size(), " positional arguments, but got ", args.size()));
+        vm->TypeError(fmt(
+            "expected ",
+            fn.decl->args.size(),
+            " positional arguments, but got ",
+            args.size(),
+            " (", fn.decl->code->name, ')'
+        ));
     }
 
     // prepare args
@@ -711,7 +717,7 @@ inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs
                 break;
             }
         }
-        if(i < args.size()) TypeError("too many arguments");
+        if(i < args.size()) TypeError(fmt("too many arguments", " (", fn.decl->code->name, ')'));
     }
     
     for(int i=0; i<kwargs.size(); i+=2){
@@ -756,13 +762,17 @@ inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, boo
         PyObject* new_f = callable->attr().try_get(__new__);
         PyObject* obj;
         if(new_f != nullptr){
-            obj = call(new_f, std::move(args), kwargs, false);
+            // should not use std::move here, since we will reuse args in possible __init__
+            obj = call(new_f, args, kwargs, false);
+            if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
         }else{
             obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
-            PyObject* self;
-            PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
+        }
+        PyObject* self;
+        PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
+        if (self != _py_null) {
             args.extend_self(self);
-            if (self != _py_null) call(init_f, std::move(args), kwargs, false);
+            call(init_f, std::move(args), kwargs, false);
         }
         return obj;
     }

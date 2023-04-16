@@ -105,6 +105,10 @@ struct PyObject{
         _attr->~NameDict();
         pool64.dealloc(_attr);
     }
+
+    void enable_instance_dict(float lf=kInstAttrLoadFactor) noexcept {
+        _attr = new(pool64.alloc<NameDict>()) NameDict(lf);
+    }
 };
 
 template<typename T>
