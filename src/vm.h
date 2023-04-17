@@ -219,7 +219,7 @@ public:
         PUSH(_py_null);
         int ARGC = sizeof...(args);
         _push_varargs(ARGC, args...);
-        return _vectorcall(ARGC);
+        return vectorcall(ARGC);
     }
 
     template<typename... Args>
@@ -228,7 +228,7 @@ public:
         PUSH(self);
         int ARGC = sizeof...(args);
         _push_varargs(ARGC, args...);
-        return _vectorcall(ARGC);
+        return vectorcall(ARGC);
     }
 
     template<typename... Args>
@@ -371,7 +371,7 @@ public:
     }
 
     void _log_s_data(const char* title = nullptr);
-    PyObject* _vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
+    PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
@@ -766,7 +766,7 @@ inline void VM::init_builtin_types(){
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
-inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
+inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     bool is_varargs = ARGC == 0xFFFF;
     PyObject** p0;
     PyObject** p1 = s_data._sp - KWARGC*2;
@@ -829,7 +829,7 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
             PUSH(_py_null);
             for(PyObject* obj: args) PUSH(obj);
             for(PyObject* obj: kwargs) PUSH(obj);
-            obj = _vectorcall(ARGC, KWARGC);
+            obj = vectorcall(ARGC, KWARGC);
             if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
         }else{
             obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
@@ -841,7 +841,7 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
             p1[-(ARGC + 2)] = callable;
             p1[-(ARGC + 1)] = self;
             // [init_f, self, args..., kwargs...]
-            _vectorcall(ARGC, KWARGC);
+            vectorcall(ARGC, KWARGC);
             // We just discard the return value of `__init__`
             // in cpython it raises a TypeError if the return value is not None
         }else{
@@ -858,7 +858,7 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
         p1[-(ARGC + 2)] = call_f;
         p1[-(ARGC + 1)] = self;
         // [call_f, self, args..., kwargs...]
-        return _vectorcall(ARGC, KWARGC, false);
+        return vectorcall(ARGC, KWARGC, false);
     }
     TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
     return nullptr;

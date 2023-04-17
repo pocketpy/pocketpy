@@ -373,7 +373,7 @@ __NEXT_STEP:;
         PUSH(_py_begin_call);
         DISPATCH();
     TARGET(CALL)
-        _0 = _vectorcall(
+        _0 = vectorcall(
             byte.arg & 0xFFFF,          // ARGC
             (byte.arg>>16) & 0xFFFF,    // KWARGC
             true
