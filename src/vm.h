@@ -8,8 +8,22 @@
 #include "memory.h"
 #include "obj.h"
 #include "str.h"
+#include "tuplelist.h"
+#include <tuple>
 
 namespace pkpy{
+
+/* Stack manipulation macros */
+// https://github.com/python/cpython/blob/3.9/Python/ceval.c#L1123
+#define TOP()             (s_data.top())
+#define SECOND()          (s_data.second())
+#define THIRD()           (s_data.third())
+#define PEEK(n)           (s_data.peek(n))
+#define STACK_SHRINK(n)   (s_data.shrink(n))
+#define PUSH(v)           (s_data.push(v))
+#define POP()             (s_data.pop())
+#define POPX()            (s_data.popx())
+#define STACK_VIEW(n)     (s_data.view(n))
 
 Str _read_file_cwd(const Str& name, bool* ok);
 
@@ -68,9 +82,10 @@ public:
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
 
+    PyObject* _py_null;
+    PyObject* _py_begin_call;
     PyObject* _py_op_call;
     PyObject* _py_op_yield;
-    PyObject* _py_null;
     PyObject* None;
     PyObject* True;
     PyObject* False;
@@ -82,7 +97,6 @@ public:
     std::stringstream _stderr_buffer;
     std::ostream* _stdout;
     std::ostream* _stderr;
-    int recursionlimit = 1000;
 
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
@@ -111,7 +125,7 @@ public:
     PyObject* asStr(PyObject* obj){
         PyObject* self;
         PyObject* f = get_unbound_method(obj, __str__, &self, false);
-        if(self != _py_null) return call(f, Args{self});
+        if(self != _py_null) return call_method(self, f);
         return asRepr(obj);
     }
 
@@ -119,14 +133,14 @@ public:
         if(is_type(obj, tp_iterator)) return obj;
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
-        if(self != _py_null) return call(iter_f, Args{self});
+        if(self != _py_null) return call_method(self, iter_f);
         TypeError(OBJ_NAME(_t(obj)).escape() + " object is not iterable");
         return nullptr;
     }
 
-    PyObject* asList(PyObject* iterable){
-        if(is_type(iterable, tp_list)) return iterable;
-        return call(_t(tp_list), Args{iterable});
+    PyObject* asList(PyObject* it){
+        if(is_non_tagged_type(it, tp_list)) return it;
+        return call_(_t(tp_list), it);
     }
 
     PyObject* find_name_in_mro(PyObject* cls, StrName name){
@@ -153,17 +167,18 @@ public:
         return false;
     }
 
-    PyObject* fast_call(StrName name, Args&& args){
-        PyObject* val = find_name_in_mro(_t(args[0]), name);
-        if(val != nullptr) return call(val, std::move(args));
-        AttributeError(args[0], name);
-        return nullptr;
-    }
-
-    template<typename ArgT>
-    std::enable_if_t<std::is_same_v<std::decay_t<ArgT>, Args>, PyObject*>
-    call(PyObject* callable, ArgT&& args){
-        return call(callable, std::forward<ArgT>(args), no_arg(), false);
+    PyObject* fast_call_method(PyObject* obj, StrName name, int ARGC){
+        PyObject* callable = find_name_in_mro(_t(obj), name);
+        if(callable == nullptr) AttributeError(obj, name);
+        // [a, b]
+        // [......., a, b]
+        // [unbound, a, b]
+        //  ^^^^^^^
+        s_data._sp++;
+        PyObject** t = s_data._sp;
+        for(; t>s_data._sp-ARGC; t--) *t = t[-1];
+        *t = obj;
+        return _vectorcall(ARGC-1);
     }
 
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr){
@@ -185,34 +200,54 @@ public:
         }
 #endif
         callstack.clear();
+        s_data.clear();
         return nullptr;
     }
 
     template<typename ...Args>
-    void _push_new_frame(Args&&... args){
-        if(callstack.size() > recursionlimit){
-            _error("RecursionError", "maximum recursion depth exceeded");
-        }
-        callstack.emplace(&s_data, std::forward<Args>(args)...);
-    }
-
-    void _push_new_frame(Frame&& frame){
-        if(callstack.size() > recursionlimit){
-            _error("RecursionError", "maximum recursion depth exceeded");
-        }
-        callstack.emplace(std::move(frame));
-    }
-
-    template<typename ...Args>
     PyObject* _exec(Args&&... args){
-        _push_new_frame(std::forward<Args>(args)...);
+        callstack.emplace(&s_data, s_data._sp, std::forward<Args>(args)...);
         return _run_top_frame();
+    }
+
+    void _push_varargs(int n, ...){
+        va_list args;
+        va_start(args, n);
+        for(int i=0; i<n; i++){
+            PyObject* obj = va_arg(args, PyObject*);
+            PUSH(obj);
+        }
+        va_end(args);
+    }
+
+    template<typename... Args>
+    PyObject* call_(PyObject* callable, Args&&... args){
+        PUSH(callable);
+        PUSH(_py_null);
+        int ARGC = sizeof...(args);
+        _push_varargs(ARGC, args...);
+        return _vectorcall(ARGC);
+    }
+
+    template<typename... Args>
+    PyObject* call_method(PyObject* self, PyObject* callable, Args&&... args){
+        PUSH(callable);
+        PUSH(self);
+        int ARGC = sizeof...(args);
+        _push_varargs(ARGC, args...);
+        return _vectorcall(ARGC);
+    }
+
+    template<typename... Args>
+    PyObject* call_method(PyObject* self, StrName name, Args&&... args){
+        PyObject* callable = get_unbound_method(self, name, &self);
+        return call_method(self, callable, args...);
     }
 
     PyObject* property(NativeFuncRaw fget){
         PyObject* p = builtins->attr("property");
         PyObject* method = heap.gcnew(tp_native_function, NativeFunc(fget, 1, false));
-        return call(p, Args{method});
+        return call_(p, method);
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base){
@@ -297,6 +332,7 @@ public:
         else throw UnhandledException();
     }
 
+    void RecursionError() { _error("RecursionError", "maximum recursion depth exceeded"); }
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
@@ -334,6 +370,8 @@ public:
         _lazy_modules.clear();
     }
 
+    PyObject* _vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
+
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
@@ -343,13 +381,10 @@ public:
     PyObject* new_module(StrName name);
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
-    PyObject* call(PyObject* callable, Args args, const Args& kwargs, bool opCall);
-    PyObject* _py_call(PyObject* callable, ArgsView args, ArgsView kwargs);
-    void unpack_args(Args& args);
+    PyObject* _py_call(PyObject** sp_base, PyObject* callable, ArgsView args, ArgsView kwargs);
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
-    template<typename T>
-    void setattr(PyObject* obj, StrName name, T&& value);
+    void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
     void bind_method(PyObject*, Str, NativeFuncRaw);
     template<int ARGC>
@@ -359,7 +394,7 @@ public:
     void post_init();
 };
 
-inline PyObject* NativeFunc::operator()(VM* vm, Args& args) const{
+inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     int args_size = args.size() - (int)method;  // remove self
     if(argc != -1 && args_size != argc) {
         vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
@@ -512,23 +547,25 @@ inline f64 VM::num_to_float(PyObject* obj){
 }
 
 inline bool VM::asBool(PyObject* obj){
-    if(is_type(obj, tp_bool)) return obj == True;
+    if(is_non_tagged_type(obj, tp_bool)) return obj == True;
     if(obj == None) return false;
-    if(is_type(obj, tp_int)) return CAST(i64, obj) != 0;
-    if(is_type(obj, tp_float)) return CAST(f64, obj) != 0.0;
+    if(is_int(obj)) return CAST(i64, obj) != 0;
+    if(is_float(obj)) return CAST(f64, obj) != 0.0;
     PyObject* self;
     PyObject* len_f = get_unbound_method(obj, __len__, &self, false);
     if(self != _py_null){
-        PyObject* ret = call(len_f, Args{self});
+        PUSH(len_f);
+        PUSH(self);
+        PyObject* ret = _vectorcall(0);
         return CAST(i64, ret) > 0;
     }
     return true;
 }
 
 inline i64 VM::hash(PyObject* obj){
-    if (is_type(obj, tp_str)) return CAST(Str&, obj).hash();
+    if (is_non_tagged_type(obj, tp_str)) return CAST(Str&, obj).hash();
     if (is_int(obj)) return CAST(i64, obj);
-    if (is_type(obj, tp_tuple)) {
+    if (is_non_tagged_type(obj, tp_tuple)) {
         i64 x = 1000003;
         const Tuple& items = CAST(Tuple&, obj);
         for (int i=0; i<items.size(); i++) {
@@ -538,8 +575,8 @@ inline i64 VM::hash(PyObject* obj){
         }
         return x;
     }
-    if (is_type(obj, tp_type)) return BITS(obj);
-    if (is_type(obj, tp_bool)) return _CAST(bool, obj) ? 1 : 0;
+    if (is_non_tagged_type(obj, tp_type)) return BITS(obj);
+    if (is_non_tagged_type(obj, tp_bool)) return _CAST(bool, obj) ? 1 : 0;
     if (is_float(obj)){
         f64 val = CAST(f64, obj);
         return (i64)std::hash<f64>()(val);
@@ -550,7 +587,7 @@ inline i64 VM::hash(PyObject* obj){
 
 inline PyObject* VM::asRepr(PyObject* obj){
     // TODO: fastcall does not take care of super() proxy!
-    return fast_call(__repr__, Args{obj});
+    return fast_call_method(obj, __repr__, 0);
 }
 
 inline PyObject* VM::new_module(StrName name) {
@@ -657,9 +694,12 @@ inline void VM::init_builtin_types(){
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
     this->True = heap._new<Dummy>(tp_bool, {});
     this->False = heap._new<Dummy>(tp_bool, {});
-    this->_py_null = heap._new<Dummy>(_new_type_object("_py_null"), {});
-    this->_py_op_call = heap._new<Dummy>(_new_type_object("_py_op_call"), {});
-    this->_py_op_yield = heap._new<Dummy>(_new_type_object("_py_op_yield"), {});
+
+    Type _internal_type = _new_type_object("_internal");
+    this->_py_null = heap._new<Dummy>(_internal_type, {});
+    this->_py_begin_call = heap._new<Dummy>(_internal_type, {});
+    this->_py_op_call = heap._new<Dummy>(_internal_type, {});
+    this->_py_op_yield = heap._new<Dummy>(_internal_type, {});
 
     this->builtins = new_module("builtins");
     this->_main = new_module("__main__");
@@ -682,8 +722,102 @@ inline void VM::init_builtin_types(){
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
 }
 
-inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs){
-    // callable is a `function` object
+inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
+    bool is_varargs = ARGC == 0xFFFF;
+    PyObject** p0;
+    PyObject** p1 = s_data._sp - KWARGC*2;
+    if(is_varargs){
+        p0 = p1 - 1;
+        while(*p0 != _py_begin_call) p0--;
+        // [BEGIN_CALL, callable, <self>, args..., kwargs...]
+        //      ^p0                                ^p1      ^_sp
+        ARGC = p1 - (p0 + 3);
+    }else{
+        p0 = p1 - ARGC - 2 - (int)is_varargs;
+        // [callable, <self>, args..., kwargs...]
+        //      ^p0                    ^p1      ^_sp
+    }
+    PyObject* callable = p1[-(ARGC + 2)];
+    bool method_call = p1[-(ARGC + 1)] != _py_null;
+
+    ArgsView args(p1 - ARGC - int(method_call), p1);
+
+    // handle boundmethod, do a patch
+    if(is_non_tagged_type(callable, tp_bound_method)){
+        if(method_call) FATAL_ERROR();
+        auto& bm = CAST(BoundMethod&, callable);
+        callable = bm.method;      // get unbound method
+        p1[-(ARGC + 2)] = bm.method;
+        p1[-(ARGC + 1)] = bm.obj;
+        // [unbound, self, args..., kwargs...]
+    }
+
+    if(is_non_tagged_type(callable, tp_native_function)){
+        const auto& f = OBJ_GET(NativeFunc, callable);
+        if(KWARGC != 0) TypeError("native_function does not accept keyword arguments");
+        PyObject* ret = f(this, args);
+        s_data.reset(p0);
+        return ret;
+    }
+
+    ArgsView kwargs(p1, s_data._sp);
+
+    if(is_non_tagged_type(callable, tp_function)){
+        // ret is nullptr or a generator
+        PyObject* ret = _py_call(p0, callable, args, kwargs);
+        // stack resetting is handled by _py_call
+        if(ret != nullptr) return ret;
+        if(op_call) return _py_op_call;
+        return _run_top_frame();
+    }
+
+    if(is_non_tagged_type(callable, tp_type)){
+        if(method_call) FATAL_ERROR();
+        // [type, NULL, args..., kwargs...]
+
+        // TODO: derived __new__ ?
+        PyObject* new_f = callable->attr().try_get(__new__);
+        PyObject* obj;
+        if(new_f != nullptr){
+            PUSH(new_f);
+            s_data.dup_top_n(1 + ARGC + KWARGC*2);
+            obj = _vectorcall(ARGC, KWARGC, false);
+            if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
+        }else{
+            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
+        }
+        PyObject* self;
+        callable = get_unbound_method(obj, __init__, &self, false);
+        if (self != _py_null) {
+            // replace `NULL` with `self`
+            p1[-(ARGC + 2)] = callable;
+            p1[-(ARGC + 1)] = self;
+            // [init_f, self, args..., kwargs...]
+            _vectorcall(ARGC, KWARGC, false);
+            // We just discard the return value of `__init__`
+            // in cpython it raises a TypeError if the return value is not None
+        }else{
+            // manually reset the stack
+            s_data.reset(p0);
+        }
+        return obj;
+    }
+
+    // handle `__call__` overload
+    PyObject* self;
+    PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
+    if(self != _py_null){
+        p1[-(ARGC + 2)] = call_f;
+        p1[-(ARGC + 1)] = self;
+        // [call_f, self, args..., kwargs...]
+        return _vectorcall(ARGC, KWARGC, false);
+    }
+    TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
+    return nullptr;
+}
+
+inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView args, ArgsView kwargs){
+    // callable must be a `function` object
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
     FastLocals locals(co);
@@ -723,83 +857,15 @@ inline PyObject* VM::_py_call(PyObject* callable, ArgsView args, ArgsView kwargs
     
     for(int i=0; i<kwargs.size(); i+=2){
         StrName key = CAST(int, kwargs[i]);
-        // try_set has nullptr check
-        // TODO: optimize this
-        bool ok = locals.try_set(key, kwargs[i+1]);
-        if(!ok){
-            TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
-        }
+        bool ok = locals._try_set(key, kwargs[i+1]);
+        if(!ok) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-    if(co->is_generator){
-        return PyIter(Generator(this, Frame(&s_data, co, _module, std::move(locals), fn._closure)));
-    }
-    _push_new_frame(co, _module, std::move(locals), fn._closure);
+    if(co->is_generator) return PyIter(Generator(this, Frame(
+        &s_data, sp_base, co, _module, std::move(locals), fn._closure
+    )));
+    callstack.emplace(&s_data, sp_base, co, _module, std::move(locals), fn._closure);
     return nullptr;
-}
-
-// TODO: callable/args here may be garbage collected accidentally
-inline PyObject* VM::call(PyObject* callable, Args args, const Args& kwargs, bool opCall){
-    if(is_type(callable, tp_bound_method)){
-        auto& bm = CAST(BoundMethod&, callable);
-        callable = bm.method;      // get unbound method
-        args.extend_self(bm.obj);
-    }
-    
-    if(is_type(callable, tp_native_function)){
-        const auto& f = OBJ_GET(NativeFunc, callable);
-        if(kwargs.size() != 0) TypeError("native_function does not accept keyword arguments");
-        return f(this, args);
-    } else if(is_type(callable, tp_function)){
-        // ret is nullptr or a generator
-        PyObject* ret = _py_call(callable, args, kwargs);
-        if(ret != nullptr) return ret;
-        if(opCall) return _py_op_call;
-        return _run_top_frame();
-    }
-
-    if(is_type(callable, tp_type)){
-        // TODO: derived __new__ ?
-        PyObject* new_f = callable->attr().try_get(__new__);
-        PyObject* obj;
-        if(new_f != nullptr){
-            // should not use std::move here, since we will reuse args in possible __init__
-            obj = call(new_f, args, kwargs, false);
-            if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
-        }else{
-            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
-        }
-        PyObject* self;
-        PyObject* init_f = get_unbound_method(obj, __init__, &self, false);
-        if (self != _py_null) {
-            args.extend_self(self);
-            call(init_f, std::move(args), kwargs, false);
-        }
-        return obj;
-    }
-
-    PyObject* self;
-    PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
-    if(self != _py_null){
-        args.extend_self(self);
-        return call(call_f, std::move(args), kwargs, false);
-    }
-    TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
-    return None;
-}
-
-inline void VM::unpack_args(Args& args){
-    List unpacked;
-    for(int i=0; i<args.size(); i++){
-        if(is_type(args[i], tp_star_wrapper)){
-            auto& star = _CAST(StarWrapper&, args[i]);
-            List& list = CAST(List&, asList(star.obj));
-            unpacked.extend(list);
-        }else{
-            unpacked.push_back(args[i]);
-        }
-    }
-    args = Args(std::move(unpacked));
 }
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
@@ -815,7 +881,7 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     if(cls_var != nullptr){
         // handle descriptor
         PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
-        if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
+        if(descr_get != nullptr) return call_method(cls_var, descr_get, obj);
     }
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
@@ -850,7 +916,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
         if(cls_var != nullptr){
             // handle descriptor
             PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
-            if(descr_get != nullptr) return call(descr_get, Args{cls_var, obj});
+            if(descr_get != nullptr) return call_method(cls_var, descr_get, obj);
         }
         // handle instance __dict__
         if(!is_tagged(obj) && obj->is_attr_valid()){
@@ -869,9 +935,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     return nullptr;
 }
 
-template<typename T>
-inline void VM::setattr(PyObject* obj, StrName name, T&& value){
-    static_assert(std::is_same_v<std::decay_t<T>, PyObject*>);
+inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     PyObject* objtype = _t(obj);
     // handle super() proxy
     if(is_type(obj, tp_super)){
@@ -886,7 +950,7 @@ inline void VM::setattr(PyObject* obj, StrName name, T&& value){
         if(cls_var_t->attr().contains(__get__)){
             PyObject* descr_set = cls_var_t->attr().try_get(__set__);
             if(descr_set != nullptr){
-                call(descr_set, Args{cls_var, obj, std::forward<T>(value)});
+                call_method(cls_var, descr_set, obj, value);
             }else{
                 TypeError(fmt("readonly attribute: ", name.escape()));
             }
@@ -895,7 +959,7 @@ inline void VM::setattr(PyObject* obj, StrName name, T&& value){
     }
     // handle instance __dict__
     if(is_tagged(obj) || !obj->is_attr_valid()) TypeError("cannot set attribute");
-    obj->attr().set(name, std::forward<T>(value));
+    obj->attr().set(name, value);
 }
 
 template<int ARGC>

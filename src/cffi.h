@@ -12,7 +12,7 @@ struct NativeProxyFunc {
     _Fp func;
     NativeProxyFunc(_Fp func) : func(func) {}
 
-    PyObject* operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, ArgsView args) {
         if (args.size() != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
         }
@@ -20,13 +20,13 @@ struct NativeProxyFunc {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
         func(py_cast<Params>(vm, args[Is])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
         __Ret ret = func(py_cast<Params>(vm, args[Is])...);
         return VAR(std::move(ret));
     }
@@ -39,7 +39,7 @@ struct NativeProxyMethod {
     _Fp func;
     NativeProxyMethod(_Fp func) : func(func) {}
 
-    PyObject* operator()(VM* vm, Args& args) {
+    PyObject* operator()(VM* vm, ArgsView args) {
         int actual_size = args.size() - 1;
         if (actual_size != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
@@ -48,14 +48,14 @@ struct NativeProxyMethod {
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return vm->None;
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, Args& args, std::index_sequence<Is...>) {
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
         T& self = py_cast<T&>(vm, args[0]);
         __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
         return VAR(std::move(ret));
@@ -201,7 +201,7 @@ struct Pointer{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<-1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, Args& args) {
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             std::stringstream ss;
             ss << "<" << self.ctype->name;
@@ -210,53 +210,53 @@ struct Pointer{
             return VAR(ss.str());
         });
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             return VAR_T(Pointer, self + CAST(i64, args[1]));
         });
 
-        vm->bind_method<1>(type, "__sub__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             return VAR_T(Pointer, self - CAST(i64, args[1]));
         });
 
-        vm->bind_method<1>(type, "__eq__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             Pointer& other = CAST(Pointer&, args[1]);
             return VAR(self.ptr == other.ptr);
         });
 
-        vm->bind_method<1>(type, "__ne__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             Pointer& other = CAST(Pointer&, args[1]);
             return VAR(self.ptr != other.ptr);
         });
 
-        vm->bind_method<1>(type, "__getitem__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             i64 index = CAST(i64, args[1]);
             return (self+index).get(vm);
         });
 
-        vm->bind_method<2>(type, "__setitem__", [](VM* vm, Args& args) {
+        vm->bind_method<2>(type, "__setitem__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             i64 index = CAST(i64, args[1]);
             (self+index).set(vm, args[2]);
             return vm->None;
         });
 
-        vm->bind_method<1>(type, "__getattr__", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "__getattr__", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             const Str& name = CAST(Str&, args[1]);
             return VAR_T(Pointer, self._to(vm, name));
         });
 
-        vm->bind_method<0>(type, "get", [](VM* vm, Args& args) {
+        vm->bind_method<0>(type, "get", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             return self.get(vm);
         });
 
-        vm->bind_method<1>(type, "set", [](VM* vm, Args& args) {
+        vm->bind_method<1>(type, "set", [](VM* vm, ArgsView args) {
             Pointer& self = CAST(Pointer&, args[0]);
             self.set(vm, args[1]);
             return vm->None;
@@ -336,7 +336,7 @@ struct CType{
     CType(const TypeInfo* type) : type(type) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_static_method<1>(type, "__new__", [](VM* vm, Args& args) {
+        vm->bind_static_method<1>(type, "__new__", [](VM* vm, ArgsView args) {
             const Str& name = CAST(Str&, args[0]);
             const TypeInfo* type = _type_db.get(name);
             if(type == nullptr) vm->TypeError("unknown type: " + name.escape());
@@ -352,18 +352,18 @@ inline void add_module_c(VM* vm){
 
     vm->setattr(mod, "nullptr", VAR_T(Pointer));
 
-    vm->bind_func<1>(mod, "malloc", [](VM* vm, Args& args) {
+    vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args) {
         i64 size = CAST(i64, args[0]);
         return VAR_T(Pointer, _type_db.get<void>(), (char*)malloc(size));
     });
 
-    vm->bind_func<1>(mod, "free", [](VM* vm, Args& args) {
+    vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args) {
         Pointer& self = CAST(Pointer&, args[0]);
         free(self.ptr);
         return vm->None;
     });
 
-    vm->bind_func<3>(mod, "memcpy", [](VM* vm, Args& args) {
+    vm->bind_func<3>(mod, "memcpy", [](VM* vm, ArgsView args) {
         Pointer& dst = CAST(Pointer&, args[0]);
         Pointer& src = CAST(Pointer&, args[1]);
         i64 size = CAST(i64, args[2]);
@@ -371,7 +371,7 @@ inline void add_module_c(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<2>(mod, "cast", [](VM* vm, Args& args) {
+    vm->bind_func<2>(mod, "cast", [](VM* vm, ArgsView args) {
         Pointer& self = CAST(Pointer&, args[0]);
         const Str& name = CAST(Str&, args[1]);
         int level = 0;
@@ -386,7 +386,7 @@ inline void add_module_c(VM* vm){
         return VAR_T(Pointer, type, level, self.ptr);
     });
 
-    vm->bind_func<1>(mod, "sizeof", [](VM* vm, Args& args) {
+    vm->bind_func<1>(mod, "sizeof", [](VM* vm, ArgsView args) {
         const Str& name = CAST(Str&, args[0]);
         if(name.index("*") != -1) return VAR(sizeof(void*));
         const TypeInfo* type = _type_db.get(name);
@@ -394,7 +394,7 @@ inline void add_module_c(VM* vm){
         return VAR(type->size);
     });
 
-    vm->bind_func<3>(mod, "memset", [](VM* vm, Args& args) {
+    vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args) {
         Pointer& dst = CAST(Pointer&, args[0]);
         i64 val = CAST(i64, args[1]);
         i64 size = CAST(i64, args[2]);

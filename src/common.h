@@ -88,8 +88,8 @@ struct Type {
 };
 
 #define THREAD_LOCAL	// thread_local
-#define CPP_LAMBDA(x) ([](VM* vm, Args& args) { return x; })
-#define CPP_NOT_IMPLEMENTED() ([](VM* vm, Args& args) { vm->NotImplementedError(); return vm->None; })
+#define CPP_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
+#define CPP_NOT_IMPLEMENTED() ([](VM* vm, ArgsView args) { vm->NotImplementedError(); return vm->None; })
 
 #ifdef POCKETPY_H
 #define FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");

@@ -11,7 +11,7 @@ struct Frame;
 struct Function;
 class VM;
 
-typedef std::function<PyObject*(VM*, Args&)> NativeFuncRaw;
+typedef std::function<PyObject*(VM*, ArgsView)> NativeFuncRaw;
 typedef shared_ptr<CodeObject> CodeObject_;
 
 struct NativeFunc {
@@ -20,7 +20,7 @@ struct NativeFunc {
     bool method;
     
     NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
-    PyObject* operator()(VM* vm, Args& args) const;
+    PyObject* operator()(VM* vm, ArgsView args) const;
 };
 
 struct FuncDecl {
@@ -165,6 +165,13 @@ inline bool is_type(PyObject* obj, Type type) {
         case kTpFloatIndex: return is_float(obj);
         default: return !is_tagged(obj) && obj->type == type;
     }
+}
+
+inline bool is_non_tagged_type(PyObject* obj, Type type) {
+#if DEBUG_EXTRA_CHECK
+    if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
+#endif
+    return !is_tagged(obj) && obj->type == type;
 }
 
 #define PY_CLASS(T, mod, name) \

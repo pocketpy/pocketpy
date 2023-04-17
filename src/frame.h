@@ -48,12 +48,16 @@ struct FastLocals{
         a[index] = nullptr;
     }
 
-    bool try_set(StrName name, PyObject* value){
-        if(!is_valid()) return false;
+    bool _try_set(StrName name, PyObject* value){
         int index = varnames_inv->try_get(name);
         if(index == -1) return false;
         a[index] = value;
         return true;
+    }
+
+    bool try_set(StrName name, PyObject* value){
+        if(!is_valid()) return false;
+        return _try_set(name, value);
     }
 
     FastLocals(const FastLocals& other){
@@ -126,8 +130,9 @@ template<> inline void gc_mark<Function>(Function& t){
 }
 
 struct ValueStack {
-    static const int MAX_SIZE = 32768;
-    PyObject* _begin[MAX_SIZE];
+    static const size_t MAX_SIZE = 32768;
+    // We allocate 512 more bytes to keep `_sp` valid when `is_overflow() == true`.
+    PyObject* _begin[MAX_SIZE + 512];
     PyObject** _sp;
 
     ValueStack(): _sp(_begin) {}
@@ -136,6 +141,8 @@ struct ValueStack {
     PyObject* top() const { return _sp[-1]; }
     PyObject*& second(){ return _sp[-2]; }
     PyObject* second() const { return _sp[-2]; }
+    PyObject*& third(){ return _sp[-3]; }
+    PyObject* third() const { return _sp[-3]; }
     PyObject*& peek(int n){ return _sp[-n]; }
     PyObject* peek(int n) const { return _sp[-n]; }
     void push(PyObject* v){ *_sp++ = v; }
@@ -143,13 +150,22 @@ struct ValueStack {
     PyObject* popx(){ return *--_sp; }
     ArgsView view(int n){ return ArgsView(_sp-n, _sp); }
     void shrink(int n){ _sp -= n; }
-    // int size() const { return _sp - _begin; }
-    // bool empty() const { return _sp == _begin; }
+    int size() const { return _sp - _begin; }
+    bool empty() const { return _sp == _begin; }
     PyObject** begin() { return _begin; }
     PyObject** end() { return _sp; }
     void reset(PyObject** sp) { _sp = sp; }
-    // void resize(int n) { _sp = _begin + n; }
+    void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
+    
+    void dup_top_n(int n) {
+        // [a, b, c]
+        // ^p0     ^p1
+        PyObject** p0 = _sp - n;
+        PyObject** p1 = _sp;
+        memcpy(p1, p0, n * sizeof(void*));
+        _sp += n;
+    }
 
     ValueStack(const ValueStack&) = delete;
     ValueStack(ValueStack&&) = delete;
@@ -170,14 +186,14 @@ struct Frame {
 
     NameDict& f_globals() noexcept { return _module->attr(); }
 
-    Frame(ValueStack* _s, const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
-            : _s(_s), _sp_base(_s->_sp), co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
+    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
+            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
 
-    Frame(ValueStack* _s, const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
-            : _s(_s), _sp_base(_s->_sp), co(co), _module(_module), _locals(_locals), _closure(_closure) { }
+    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
+            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(_locals), _closure(_closure) { }
 
-    Frame(ValueStack* _s, const CodeObject_& co, PyObject* _module)
-            : _s(_s), _sp_base(_s->_sp), co(co.get()), _module(_module), _locals(), _closure() { }
+    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject_& co, PyObject* _module)
+            : _s(_s), _sp_base(_sp_base), co(co.get()), _module(_module), _locals(), _closure() { }
 
     Frame(const Frame& other) = delete;
     Frame& operator=(const Frame& other) = delete;

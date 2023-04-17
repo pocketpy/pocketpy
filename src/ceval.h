@@ -25,18 +25,6 @@ inline PyObject* VM::_run_top_frame(){
  * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
  */
 {
-
-/* Stack manipulation macros */
-// https://github.com/python/cpython/blob/3.9/Python/ceval.c#L1123
-#define TOP()             (s_data.top())
-#define SECOND()          (s_data.second())
-#define PEEK(n)           (s_data.peek(n))
-#define STACK_SHRINK(n)   (s_data.shrink(n))
-#define PUSH(v)           (s_data.push(v))
-#define POP()             (s_data.pop())
-#define POPX()            (s_data.popx())
-#define STACK_VIEW(n)     (s_data.view(n))
-
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
     Bytecode byte = frame->next_bytecode();
@@ -157,10 +145,7 @@ __NEXT_STEP:;
         PUSH(self);
     } DISPATCH();
     TARGET(LOAD_SUBSCR) {
-        Args args(2);
-        args[1] = POPX();    // b
-        args[0] = TOP();     // a
-        TOP() = fast_call(__getitem__, std::move(args));
+        TOP() = fast_call_method(SECOND(), __getitem__, 2);
     } DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
@@ -186,13 +171,12 @@ __NEXT_STEP:;
         setattr(a, name, val);
         STACK_SHRINK(2);
     } DISPATCH();
-    TARGET(STORE_SUBSCR) {
-        Args args(3);
-        args[1] = POPX();    // b
-        args[0] = POPX();    // a
-        args[2] = POPX();    // val
-        fast_call(__setitem__, std::move(args));
-    } DISPATCH();
+    TARGET(STORE_SUBSCR)
+        // val a b -> a b val
+        std::swap(SECOND(), THIRD());
+        std::swap(TOP(), SECOND());
+        fast_call_method(THIRD(), __setitem__, 3);
+        DISPATCH();
     TARGET(DELETE_FAST) {
         PyObject* val = frame->_locals[byte.arg];
         if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
@@ -223,11 +207,9 @@ __NEXT_STEP:;
         if(!a->attr().contains(name)) AttributeError(a, name);
         a->attr().erase(name);
     } DISPATCH();
-    TARGET(DELETE_SUBSCR) {
-        PyObject* b = POPX();
-        PyObject* a = POPX();
-        fast_call(__delitem__, Args{a, b});
-    } DISPATCH();
+    TARGET(DELETE_SUBSCR)
+        fast_call_method(SECOND(), __delitem__, 2);
+        DISPATCH();
     /*****************************************/
     TARGET(BUILD_LIST) {
         PyObject* obj = VAR(STACK_VIEW(byte.arg).to_list());
@@ -236,13 +218,13 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(BUILD_DICT) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call(builtins->attr(m_dict), Args{t});
+        PyObject* obj = call_(builtins->attr(m_dict), t);
         STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
     TARGET(BUILD_SET) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call(builtins->attr(m_set), Args{t});
+        PyObject* obj = call_(builtins->attr(m_set), t);
         STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
@@ -269,24 +251,18 @@ __NEXT_STEP:;
         PUSH(VAR(ss.str()));
     } DISPATCH();
     /*****************************************/
-    TARGET(BINARY_OP) {
-        Args args(2);
-        args[1] = POPX();    // lhs
-        args[0] = TOP();     // rhs
-        TOP() = fast_call(BINARY_SPECIAL_METHODS[byte.arg], std::move(args));
-    } DISPATCH();
+    TARGET(BINARY_OP)
+        TOP() = fast_call_method(SECOND(), BINARY_SPECIAL_METHODS[byte.arg], 2);
+        DISPATCH();
 
-#define INT_BINARY_OP(op, func) \
-        if(is_both_int(TOP(), SECOND())){               \
-            i64 b = _CAST(i64, TOP());                  \
-            i64 a = _CAST(i64, SECOND());               \
-            POP();                                      \
-            TOP() = VAR(a op b);                        \
-        }else{                                          \
-            Args args(2);                               \
-            args[1] = POPX();                    \
-            args[0] = TOP();                            \
-            TOP() = fast_call(func, std::move(args));   \
+#define INT_BINARY_OP(op, func)                             \
+        if(is_both_int(TOP(), SECOND())){                   \
+            i64 b = _CAST(i64, TOP());                      \
+            i64 a = _CAST(i64, SECOND());                   \
+            POP();                                          \
+            TOP() = VAR(a op b);                            \
+        }else{                                              \
+            TOP() = fast_call_method(SECOND(), func, 2);    \
         }
 
     TARGET(BINARY_ADD)
@@ -346,10 +322,9 @@ __NEXT_STEP:;
         TOP() = VAR(ret_c);
     } DISPATCH();
     TARGET(CONTAINS_OP) {
-        Args args(2);
-        args[0] = POPX();
-        args[1] = TOP();
-        PyObject* ret = fast_call(__contains__, std::move(args));
+        // a in b -> b __contains__ a
+        std::swap(TOP(), SECOND());
+        PyObject* ret = fast_call_method(SECOND(), __contains__, 2);
         bool ret_c = CAST(bool, ret);
         if(byte.arg == 1) ret_c = !ret_c;
         TOP() = VAR(ret_c);
@@ -382,66 +357,28 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(CALL)
-    TARGET(CALL_UNPACK) {
-        int ARGC = byte.arg;
-        PyObject* callable = PEEK(ARGC+2);
-        bool method_call = PEEK(ARGC+1) != _py_null;
-
-        // fast path
-        if(byte.op==OP_CALL && is_type(callable, tp_function)){
-            PyObject* ret = _py_call(callable, STACK_VIEW(ARGC + int(method_call)), {});
-            STACK_SHRINK(ARGC + 2);
-            // TODO: _sp_base is incorrect
-            top_frame()->_sp_base = s_data._sp;
-            if(ret == nullptr) { DISPATCH_OP_CALL(); }
-            else PUSH(ret);      // a generator
-            DISPATCH();
-        }
-        Args args = STACK_VIEW(ARGC + int(method_call)).to_tuple();
-        if(byte.op == OP_CALL_UNPACK) unpack_args(args);
-        PyObject* ret = call(callable, std::move(args), no_arg(), true);
-        STACK_SHRINK(ARGC + 2);
-        if(ret == _py_op_call) { DISPATCH_OP_CALL(); }
-        PUSH(ret);
-    } DISPATCH();
-    TARGET(CALL_KWARGS)
-    TARGET(CALL_KWARGS_UNPACK) {
-        // TODO: poor performance, refactor needed
+    TARGET(CALL) {
         int ARGC = byte.arg & 0xFFFF;
         int KWARGC = (byte.arg >> 16) & 0xFFFF;
-        Args kwargs = STACK_VIEW(KWARGC*2).to_tuple();
-        STACK_SHRINK(KWARGC*2);
-
-        bool method_call = PEEK(ARGC+1) != _py_null;
-        if(method_call) ARGC++;         // add self into args
-        Args args = STACK_VIEW(ARGC).to_tuple();
-        STACK_SHRINK(ARGC);
-        if(!method_call) POP();
-
-        if(byte.op == OP_CALL_KWARGS_UNPACK) unpack_args(args);
-        PyObject* callable = POPX();
-        PyObject* ret = call(callable, std::move(args), kwargs, true);
+        PyObject* ret = _vectorcall(ARGC, KWARGC, true);
         if(ret == _py_op_call) { DISPATCH_OP_CALL(); }
         PUSH(ret);
-    } DISPATCH();
+        DISPATCH();
+    }
     TARGET(RETURN_VALUE) {
-#if DEBUG_EXTRA_CHECK
-        if(frame->stack_size() != 1) FATAL_ERROR();
-#endif
+        PyObject* __ret = POPX();
+        // cleanup the stack on return
+        callstack.pop();
+        s_data.reset(frame->_sp_base);
         if(frame.index == base_id){       // [ frameBase<- ]
-            callstack.pop();
-            return POPX();
+            return __ret;
         }else{
-            callstack.pop();
             frame = top_frame();
+            PUSH(__ret);
             goto __NEXT_FRAME;
         }
     }
     TARGET(YIELD_VALUE)
-#if DEBUG_EXTRA_CHECK
-        if(frame->stack_size() != 1) FATAL_ERROR();
-#endif
         return _py_op_yield;
     /*****************************************/
     TARGET(LIST_APPEND) {
@@ -451,12 +388,16 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(DICT_ADD) {
         PyObject* kv = POPX();
-        Tuple& t = CAST(Tuple& ,kv);
-        fast_call(__setitem__, Args{SECOND(), t[0], t[1]});
+        Tuple& t = CAST(Tuple&, kv);
+        PyObject* self;
+        PyObject* callable = get_unbound_method(SECOND(), __setitem__, &self);
+        call_method(self, callable, t[0], t[1]);
     } DISPATCH();
     TARGET(SET_ADD) {
-        PyObject* obj = POPX();
-        fast_call(m_add, Args{SECOND(), obj});
+        PyObject* val = POPX();
+        PyObject* self;
+        PyObject* callable = get_unbound_method(SECOND(), m_add, &self);
+        call_method(self, callable, val);
     } DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)

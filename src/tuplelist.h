@@ -63,23 +63,8 @@ public:
     PyObject** begin() const { return _args; }
     PyObject** end() const { return _args + _size; }
 
-    void extend_self(PyObject* self){
-        PyObject** old_args = _args;
-        int old_size = _size;
-        _alloc(old_size+1);
-        _args[0] = self;
-        for(int i=0; i<old_size; i++) _args[i+1] = old_args[i];
-        if(old_args!=nullptr) pool64.dealloc(old_args);
-    }
-
     ~Tuple(){ if(_args!=nullptr) pool64.dealloc(_args); }
 };
-
-using Args = Tuple;
-inline const Args& no_arg() {
-    static const Args _zero(0);
-    return _zero;
-}
 
 // a lightweight view for function args, it does not own the memory
 struct ArgsView{
@@ -108,5 +93,7 @@ struct ArgsView{
         return ret;
     }
 };
+
+using Args = ArgsView;
 
 }   // namespace pkpy
