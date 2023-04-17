@@ -29,13 +29,13 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"0.9.8"
+#define PK_VERSION				"0.9.9"
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
 #define DEBUG_EXTRA_CHECK			1
 #define DEBUG_DIS_EXEC				0
-#define DEBUG_CEVAL_STEP			0
+#define DEBUG_CEVAL_STEP			1
 #define DEBUG_CEVAL_STEP_MIN		0
 #define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_MEMORY_POOL			0

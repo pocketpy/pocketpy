@@ -781,9 +781,9 @@ inline void VM::post_init(){
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
     this->_exec(code, this->builtins);
-    code = compile(kPythonLibs["_dict"], "<builtins>", EXEC_MODE);
+    code = compile(kPythonLibs["_dict"], "<dict>", EXEC_MODE);
     this->_exec(code, this->builtins);
-    code = compile(kPythonLibs["_set"], "<builtins>", EXEC_MODE);
+    code = compile(kPythonLibs["_set"], "<set>", EXEC_MODE);
     this->_exec(code, this->builtins);
 
     // property is defined in builtins.py so we need to add it after builtins is loaded
