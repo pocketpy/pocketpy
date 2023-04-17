@@ -212,6 +212,8 @@ struct Frame {
 
     int stack_size() const { return _s->_sp - _sp_base; }
 
+    ArgsView stack_view() const { return ArgsView(_sp_base, _s->_sp); }
+
     std::string stack_info(){
         std::stringstream ss;
         ss << this << ": [";

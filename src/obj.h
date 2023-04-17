@@ -50,11 +50,6 @@ struct Range {
     i64 step = 1;
 };
 
-struct StarWrapper {
-    PyObject* obj;
-    StarWrapper(PyObject* obj): obj(obj) {}
-};
-
 using Super = std::pair<PyObject*, Type>;
 
 // TODO: re-examine the design of Slice

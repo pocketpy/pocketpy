@@ -48,11 +48,10 @@ Str _read_file_cwd(const Str& name, bool* ok);
 
 class Generator final: public BaseIter {
     Frame frame;
-    int state; // 0,1,2
+    int state;      // 0,1,2
+    List s_data;    // backup
 public:
-    template<typename... Args>
-    Generator(VM* vm, Frame&& frame)
-        : BaseIter(vm), frame(std::move(frame)), state(0) {}
+    Generator(VM* vm, Frame&& frame): BaseIter(vm), frame(std::move(frame)), state(0) {}
 
     PyObject* next() override;
     void _gc_mark() const override;
@@ -103,7 +102,7 @@ public:
     Type tp_list, tp_tuple;
     Type tp_function, tp_native_function, tp_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
-    Type tp_super, tp_exception, tp_star_wrapper;
+    Type tp_super, tp_exception;
 
     VM(bool use_stdio) : heap(this){
         this->vm = this;
@@ -165,20 +164,6 @@ public:
             obj_t = base;
         }while(true);
         return false;
-    }
-
-    PyObject* fast_call_method(PyObject* obj, StrName name, int ARGC){
-        PyObject* callable = find_name_in_mro(_t(obj), name);
-        if(callable == nullptr) AttributeError(obj, name);
-        // [a, b]
-        // [......., a, b]
-        // [unbound, a, b]
-        //  ^^^^^^^
-        s_data._sp++;
-        PyObject** t = s_data._sp;
-        for(; t>s_data._sp-ARGC; t--) *t = t[-1];
-        *t = obj;
-        return _vectorcall(ARGC-1);
     }
 
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr){
@@ -333,6 +318,7 @@ public:
     }
 
     void RecursionError() { _error("RecursionError", "maximum recursion depth exceeded"); }
+    void StackOverflowError() { _error("StackOverflowError", ""); }
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
@@ -417,7 +403,6 @@ DEF_NATIVE_2(BoundMethod, tp_bound_method)
 DEF_NATIVE_2(Range, tp_range)
 DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
-DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
@@ -586,8 +571,7 @@ inline i64 VM::hash(PyObject* obj){
 }
 
 inline PyObject* VM::asRepr(PyObject* obj){
-    // TODO: fastcall does not take care of super() proxy!
-    return fast_call_method(obj, __repr__, 0);
+    return call_method(obj, __repr__);
 }
 
 inline PyObject* VM::new_module(StrName name) {
@@ -682,7 +666,6 @@ inline void VM::init_builtin_types(){
     tp_slice = _new_type_object("slice");
     tp_range = _new_type_object("range");
     tp_module = _new_type_object("module");
-    tp_star_wrapper = _new_type_object("_star_wrapper");
     tp_function = _new_type_object("function");
     tp_native_function = _new_type_object("native_function");
     tp_iterator = _new_type_object("iterator");

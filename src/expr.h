@@ -189,7 +189,7 @@ struct StarredExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
-        ctx->emit(OP_UNARY_STAR, BC_NOARG, line);
+        ctx->emit(OP_UNPACK_UNLIMITED, BC_NOARG, line);
     }
 
     bool emit_store(CodeEmitContext* ctx) override {
@@ -627,6 +627,7 @@ struct CallExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
+        if(need_unpack()) ctx->emit(OP_BEGIN_CALL, BC_NOARG, line);
         // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod` proxy
         if(callable->is_attrib()){
             auto p = static_cast<AttribExpr*>(callable.get());
@@ -645,11 +646,8 @@ struct CallExpr: Expr{
         }
         int KWARGC = (int)kwargs.size();
         int ARGC = (int)args.size();
-        if(KWARGC > 0){
-            ctx->emit(need_unpack() ? OP_CALL_KWARGS_UNPACK : OP_CALL_KWARGS, (KWARGC<<16)|ARGC, line);
-        }else{
-            ctx->emit(need_unpack() ? OP_CALL_UNPACK : OP_CALL, ARGC, line);
-        }
+        if(need_unpack()) ARGC = 0xFFFF;
+        ctx->emit(OP_CALL, (KWARGC<<16)|ARGC, line);
     }
 };
 

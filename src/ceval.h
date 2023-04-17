@@ -145,7 +145,9 @@ __NEXT_STEP:;
         PUSH(self);
     } DISPATCH();
     TARGET(LOAD_SUBSCR) {
-        TOP() = fast_call_method(SECOND(), __getitem__, 2);
+        PyObject* b = POPX();
+        PyObject* a = TOP();
+        TOP() = call_method(a, __getitem__, b);
     } DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
@@ -171,12 +173,13 @@ __NEXT_STEP:;
         setattr(a, name, val);
         STACK_SHRINK(2);
     } DISPATCH();
-    TARGET(STORE_SUBSCR)
-        // val a b -> a b val
-        std::swap(SECOND(), THIRD());
-        std::swap(TOP(), SECOND());
-        fast_call_method(THIRD(), __setitem__, 3);
-        DISPATCH();
+    TARGET(STORE_SUBSCR) {
+        // val a b
+        PyObject* b = POPX();
+        PyObject* a = POPX();
+        PyObject* val = POPX();
+        call_method(a, __setitem__, b, val);
+    } DISPATCH();
     TARGET(DELETE_FAST) {
         PyObject* val = frame->_locals[byte.arg];
         if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
@@ -207,9 +210,11 @@ __NEXT_STEP:;
         if(!a->attr().contains(name)) AttributeError(a, name);
         a->attr().erase(name);
     } DISPATCH();
-    TARGET(DELETE_SUBSCR)
-        fast_call_method(SECOND(), __delitem__, 2);
-        DISPATCH();
+    TARGET(DELETE_SUBSCR) {
+        PyObject* b = POPX();
+        PyObject* a = POPX();
+        call_method(a, __delitem__, b);
+    } DISPATCH();
     /*****************************************/
     TARGET(BUILD_LIST) {
         PyObject* obj = VAR(STACK_VIEW(byte.arg).to_list());
@@ -251,9 +256,11 @@ __NEXT_STEP:;
         PUSH(VAR(ss.str()));
     } DISPATCH();
     /*****************************************/
-    TARGET(BINARY_OP)
-        TOP() = fast_call_method(SECOND(), BINARY_SPECIAL_METHODS[byte.arg], 2);
-        DISPATCH();
+    TARGET(BINARY_OP) {
+        PyObject* b = POPX();
+        PyObject* a = TOP();
+        TOP() = call_method(a, BINARY_SPECIAL_METHODS[byte.arg], b);
+    } DISPATCH();
 
 #define INT_BINARY_OP(op, func)                             \
         if(is_both_int(TOP(), SECOND())){                   \
@@ -262,7 +269,9 @@ __NEXT_STEP:;
             POP();                                          \
             TOP() = VAR(a op b);                            \
         }else{                                              \
-            TOP() = fast_call_method(SECOND(), func, 2);    \
+            PyObject* b = POPX();                           \
+            PyObject* a = TOP();                            \
+            TOP() = call_method(a, func, b);                \
         }
 
     TARGET(BINARY_ADD)
@@ -323,8 +332,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(CONTAINS_OP) {
         // a in b -> b __contains__ a
-        std::swap(TOP(), SECOND());
-        PyObject* ret = fast_call_method(SECOND(), __contains__, 2);
+        PyObject* ret = call_method(TOP(), __contains__, SECOND());
         bool ret_c = CAST(bool, ret);
         if(byte.arg == 1) ret_c = !ret_c;
         TOP() = VAR(ret_c);
@@ -357,6 +365,9 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
+    TARGET(BEGIN_CALL)
+        PUSH(_py_begin_call);
+        DISPATCH();
     TARGET(CALL) {
         int ARGC = byte.arg & 0xFFFF;
         int KWARGC = (byte.arg >> 16) & 0xFFFF;
@@ -405,9 +416,6 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(UNARY_NOT)
         TOP() = VAR(!asBool(TOP()));
-        DISPATCH();
-    TARGET(UNARY_STAR)
-        TOP() = VAR(StarWrapper(TOP()));
         DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
@@ -479,7 +487,18 @@ __NEXT_STEP:;
         }else{
             if(iter->next() != nullptr) ValueError("too many values to unpack");
         }
-    }; DISPATCH();
+    } DISPATCH();
+    TARGET(UNPACK_UNLIMITED) {
+        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+        PyObject* obj = asIter(POPX());
+        BaseIter* iter = PyIter_AS_C(obj);
+        obj = iter->next();
+        while(obj != nullptr){
+            PUSH(obj);
+            // if(s_data.is_overflow()) StackOverflowError();
+            obj = iter->next();
+        }
+    } DISPATCH();
     /*****************************************/
     TARGET(BEGIN_CLASS) {
         StrName name(byte.arg);

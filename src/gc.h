@@ -141,10 +141,6 @@ template<> inline void gc_mark<BoundMethod>(BoundMethod& t){
     OBJ_MARK(t.method);
 }
 
-template<> inline void gc_mark<StarWrapper>(StarWrapper& t){
-    OBJ_MARK(t.obj);
-}
-
 template<> inline void gc_mark<Super>(Super& t){
     OBJ_MARK(t.first);
 }
