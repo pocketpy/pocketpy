@@ -49,7 +49,7 @@ Str _read_file_cwd(const Str& name, bool* ok);
 class Generator final: public BaseIter {
     Frame frame;
     int state;      // 0,1,2
-    List s_data;    // backup
+    List s_backup;
 public:
     Generator(VM* vm, Frame&& frame): BaseIter(vm), frame(std::move(frame)), state(0) {}
 
@@ -309,6 +309,11 @@ public:
     BaseIter* PyIter_AS_C(PyObject* obj)
     {
         check_type(obj, tp_iterator);
+        return static_cast<BaseIter*>(obj->value());
+    }
+
+    BaseIter* _PyIter_AS_C(PyObject* obj)
+    {
         return static_cast<BaseIter*>(obj->value());
     }
     
@@ -658,19 +663,18 @@ inline void VM::_log_s_data(const char* title) {
     if(callstack.empty()) return;
     std::stringstream ss;
     if(title) ss << title << " | ";
-    std::vector<PyObject**> sp_bases;
+    std::map<PyObject**, int> sp_bases;
     for(Frame& f: callstack.data()){
-        sp_bases.push_back(f._sp_base);
+        if(f._sp_base == nullptr) FATAL_ERROR();
+        sp_bases[f._sp_base] += 1;
     }
-    std::reverse(sp_bases.begin(), sp_bases.end());
     FrameId frame = top_frame();
     int line = frame->co->lines[frame->_ip];
     ss << frame->co->name << ":" << line << " [";
-    for(PyObject*& obj: s_data){
-        if(&obj == sp_bases.back()){
-            ss << "| ";
-            sp_bases.pop_back();
-        }
+    for(PyObject** p=s_data.begin(); p!=s_data.end(); p++){
+        ss << std::string(sp_bases[p], '|');
+        if(sp_bases[p] > 0) ss << " ";
+        PyObject* obj = *p;
         if(obj == nullptr) ss << "(nil)";
         else if(obj == _py_begin_call) ss << "BEGIN_CALL";
         else if(obj == _py_null) ss << "NULL";
@@ -680,8 +684,19 @@ inline void VM::_log_s_data(const char* title) {
         else if(obj == None) ss << "None";
         else if(obj == True) ss << "True";
         else if(obj == False) ss << "False";
-        // else ss << obj << "(" << obj_type_name(this, obj->type) << ")";
-        else ss << "(" << obj_type_name(this, obj->type) << ")";
+        else if(is_type(obj, tp_function)){
+            auto& f = CAST(Function&, obj);
+            ss << f.decl->code->name << "(...)";
+        } else if(is_type(obj, tp_type)){
+            Type t = OBJ_GET(Type, obj);
+            ss << "<class " + _all_types[t].name.escape() + ">";
+        } else if(is_type(obj, tp_list)){
+            auto& t = CAST(List&, obj);
+            ss << "list(size=" << t.size() << ")";
+        } else if(is_type(obj, tp_tuple)){
+            auto& t = CAST(Tuple&, obj);
+            ss << "tuple(size=" << t.size() << ")";
+        } else ss << "(" << obj_type_name(this, obj->type) << ")";
         ss << ", ";
     }
     std::string output = ss.str();
@@ -891,12 +906,15 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
         if(!ok) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+    
+    // TODO: callable may be garbage collected
+    s_data.reset(sp_base);
+    PyObject** curr_sp = s_data._sp;
     if(co->is_generator){
-        PyObject* ret = PyIter(Generator(this, Frame(&s_data, sp_base, co, _module, std::move(locals), fn._closure)));
-        s_data.reset(sp_base);
+        PyObject* ret = PyIter(Generator(this, Frame(&s_data, curr_sp, co, _module, std::move(locals), fn._closure)));
         return ret;
     }
-    callstack.emplace(&s_data, sp_base, co, _module, std::move(locals), fn._closure);
+    callstack.emplace(&s_data, curr_sp, co, _module, std::move(locals), fn._closure);
     return nullptr;
 }
 

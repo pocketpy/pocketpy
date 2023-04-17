@@ -45,7 +45,8 @@ protected:
     VM* vm;
 public:
     REPL(VM* vm) : vm(vm){
-        (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ")\n");
+        (*vm->_stdout) << ("pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
+        (*vm->_stdout) << "[" << std::to_string(sizeof(void*) * 8) << " bit]" "\n";
         (*vm->_stdout) << ("https://github.com/blueloveTH/pocketpy" "\n");
         (*vm->_stdout) << ("Type \"exit()\" to exit." "\n");
     }

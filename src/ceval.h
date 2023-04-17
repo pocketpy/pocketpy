@@ -399,18 +399,14 @@ __NEXT_STEP:;
         list.push_back(obj);
     } DISPATCH();
     TARGET(DICT_ADD) {
-        PyObject* kv = POPX();
-        Tuple& t = CAST(Tuple&, kv);
-        PyObject* self;
-        PyObject* callable = get_unbound_method(SECOND(), __setitem__, &self);
-        call_method(self, callable, t[0], t[1]);
+        _0 = POPX();
+        Tuple& t = CAST(Tuple&, _0);
+        call_method(SECOND(), __setitem__, t[0], t[1]);
     } DISPATCH();
-    TARGET(SET_ADD) {
-        PyObject* val = POPX();
-        PyObject* self;
-        PyObject* callable = get_unbound_method(SECOND(), m_add, &self);
-        call_method(self, callable, val);
-    } DISPATCH();
+    TARGET(SET_ADD)
+        _0 = POPX();
+        call_method(SECOND(), m_add, _0);
+        DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)
         TOP() = num_negated(TOP());
@@ -421,12 +417,17 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(GET_ITER)
         TOP() = asIter(TOP());
+        check_type(TOP(), tp_iterator);
         DISPATCH();
     TARGET(FOR_ITER) {
+#if DEBUG_EXTRA_CHECK
         BaseIter* it = PyIter_AS_C(TOP());
-        _0 = it->next();
-        if(_0 != nullptr){
-            PUSH(_0);
+#else
+        BaseIter* it = _PyIter_AS_C(TOP());
+#endif
+        PyObject* obj = it->next();
+        if(obj != nullptr){
+            PUSH(obj);
         }else{
             int target = co_blocks[byte.block].end;
             frame->jump_abs_break(target);

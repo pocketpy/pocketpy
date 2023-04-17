@@ -154,7 +154,12 @@ struct ValueStack {
     bool empty() const { return _sp == _begin; }
     PyObject** begin() { return _begin; }
     PyObject** end() { return _sp; }
-    void reset(PyObject** sp) { _sp = sp; }
+    void reset(PyObject** sp) {
+#if DEBUG_EXTRA_CHECK
+        if(sp < _begin || sp > _begin + MAX_SIZE) FATAL_ERROR();
+#endif
+        _sp = sp;
+    }
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
     

@@ -118,9 +118,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
     _vm->bind_builtin_func<1>("len", [](VM* vm, ArgsView args){
-        PyObject* self;
-        PyObject* len_f = vm->get_unbound_method(args[0], __len__, &self);
-        return vm->call_method(self, len_f);
+        return vm->call_method(args[0], __len__);
     });
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
@@ -524,7 +522,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, ArgsView args) {
-        return vm->PyIter(ArrayIter<Args>(vm, args[0]));
+        return vm->PyIter(ArrayIter<Tuple>(vm, args[0]));
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, ArgsView args) {
@@ -958,7 +956,7 @@ extern "C" {
         for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
         pkpy::PyObject* obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
-        vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, const pkpy::Args& args){
+        vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, pkpy::ArgsView args){
             std::stringstream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){

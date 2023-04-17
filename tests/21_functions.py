@@ -1,6 +1,5 @@
 ## Function Tests.
 
-
 def f1():
     return 'f1'
 assert f1() == 'f1'
@@ -10,6 +9,11 @@ assert f2('a', 'b', 'c', 'd') == 'c'
 def f3(a,b):
     return a - b
 assert f3(1,2) == -1
+
+def f4(a,b):
+    return a + f3(a, b)
+
+assert f4(1,2) == 0
 
 def fact(n):
     if n == 1:
@@ -27,9 +31,23 @@ assert f(b=5) == 6
 assert f(a=5) == 4
 assert f(b=5, a=5) == 10
 
+def f(*args):
+    return 10 * sum(args)
+
+assert f(1, 2, 3) == 60
+
+def f(x, *args, y=3):
+    i = 0
+    for j in args:
+        i += j
+    return i * y
+
+assert f(10, 1, 2, 3) == 18
+
 def f(a, b, *c, d=2, e=5):
     return a + b + d + e + sum(c)
 
+assert f(1, 2, 3, 4) == 17
 assert f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) == 62
 assert f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, d=1, e=2) == 58
 assert f(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, e=1, d=2) == 58

@@ -81,7 +81,7 @@ struct VoidP{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<1>(type, "__new__", CPP_NOT_IMPLEMENTED());
 
-        vm->bind_static_method<1>(type, "__repr__", [](VM* vm, const Args& args){
+        vm->bind_static_method<1>(type, "__repr__", [](VM* vm, ArgsView args){
             VoidP& self = CAST(VoidP&, args[0]);
             std::stringstream ss;
             ss << "<void* at " << self.ptr << ">";

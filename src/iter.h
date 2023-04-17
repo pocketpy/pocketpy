@@ -27,14 +27,17 @@ public:
 template <typename T>
 class ArrayIter final: public BaseIter {
     PyObject* ref;
+    T* array;
     int index;
 public:
-    ArrayIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref), index(0) {}
+    ArrayIter(VM* vm, PyObject* ref) : BaseIter(vm), ref(ref) {
+        array = &OBJ_GET(T, ref);
+        index = 0;
+    }
 
     PyObject* next() override{
-        const T* p = &OBJ_GET(T, ref);
-        if(index == p->size()) return nullptr;
-        return p->operator[](index++); 
+        if(index >= array->size()) return nullptr;
+        return array->operator[](index++);
     }
 
     void _gc_mark() const override {
@@ -66,15 +69,15 @@ inline PyObject* Generator::next(){
     // reset frame._sp_base
     frame._sp_base = frame._s->_sp;
     // restore the context
-    for(PyObject* obj: s_data) frame._s->push(obj);
-    s_data.clear();
+    for(PyObject* obj: s_backup) frame._s->push(obj);
+    s_backup.clear();
     vm->callstack.push(std::move(frame));
     PyObject* ret = vm->_run_top_frame();
     if(ret == vm->_py_op_yield){
         // backup the context
         frame = std::move(vm->callstack.top());
         PyObject* ret = frame._s->popx();
-        for(PyObject* obj: frame.stack_view()) s_data.push_back(obj);
+        for(PyObject* obj: frame.stack_view()) s_backup.push_back(obj);
         vm->_pop_frame();
         state = 1;
         return ret;
@@ -86,6 +89,7 @@ inline PyObject* Generator::next(){
 
 inline void Generator::_gc_mark() const{
     frame._gc_mark();
+    for(PyObject* obj: s_backup) OBJ_MARK(obj);
 }
 
 template<typename T>
