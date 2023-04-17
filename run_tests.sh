@@ -5,6 +5,3 @@ mkdir -p .coverage
 llvm-cov-15 gcov main.gc -r -s src/ >> .coverage/coverage.txt
 mv *.gcov .coverage
 rm main.gc*
-
-# -fprofile-instr-generate -fcoverage-mapping 
-# llvm-cov-15 show main.gc -instr-profile=default.profraw -format=html -output-dir .coverage

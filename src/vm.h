@@ -108,7 +108,7 @@ public:
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
         this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
-        callstack.data().reserve(8);
+        callstack.reserve(8);
         init_builtin_types();
     }
 
@@ -357,6 +357,7 @@ public:
 
     ~VM() {
         callstack.clear();
+        s_data.clear();
         _all_types.clear();
         _modules.clear();
         _lazy_modules.clear();
@@ -967,7 +968,7 @@ inline void VM::_error(Exception e){
         e.is_re = false;
         throw e;
     }
-    s_data.push(VAR(e));
+    PUSH(VAR(e));
     _raise();
 }
 
