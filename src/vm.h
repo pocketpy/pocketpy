@@ -141,7 +141,7 @@ public:
 
     PyObject* asList(PyObject* it){
         if(is_non_tagged_type(it, tp_list)) return it;
-        return call_(_t(tp_list), it);
+        return call(_t(tp_list), it);
     }
 
     PyObject* find_name_in_mro(PyObject* cls, StrName name){
@@ -214,7 +214,7 @@ public:
     }
 
     template<typename... Args>
-    PyObject* call_(PyObject* callable, Args&&... args){
+    PyObject* call(PyObject* callable, Args&&... args){
         PUSH(callable);
         PUSH(_py_null);
         int ARGC = sizeof...(args);
@@ -240,7 +240,7 @@ public:
     PyObject* property(NativeFuncRaw fget){
         PyObject* p = builtins->attr("property");
         PyObject* method = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
-        return call_(p, method);
+        return call(p, method);
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base){

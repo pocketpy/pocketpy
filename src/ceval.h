@@ -218,13 +218,13 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(BUILD_DICT) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call_(builtins->attr(m_dict), t);
+        PyObject* obj = call(builtins->attr(m_dict), t);
         STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
     TARGET(BUILD_SET) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call_(builtins->attr(m_set), t);
+        PyObject* obj = call(builtins->attr(m_set), t);
         STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
