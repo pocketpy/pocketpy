@@ -21,7 +21,7 @@ inline PyObject* VM::_run_top_frame(){
 #endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
-            if(s_data.is_overflow()) StackOverflowError();
+            // if(s_data.is_overflow()) StackOverflowError();
 /**********************************************************************/
 /* NOTE: 
  * Be aware of accidental gc!

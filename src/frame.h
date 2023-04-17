@@ -130,7 +130,7 @@ template<> inline void gc_mark<Function>(Function& t){
 }
 
 struct ValueStack {
-    static const size_t MAX_SIZE = 16384;
+    static const size_t MAX_SIZE = 8192;
     // We allocate 512 more bytes to keep `_sp` valid when `is_overflow() == true`.
     PyObject* _begin[MAX_SIZE + 512];
     PyObject** _sp;
