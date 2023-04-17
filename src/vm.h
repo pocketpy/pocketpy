@@ -655,12 +655,22 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::_log_s_data(const char* title) {
+    if(callstack.empty()) return;
     std::stringstream ss;
     if(title) ss << title << " | ";
+    std::vector<PyObject**> sp_bases;
+    for(Frame& f: callstack.data()){
+        sp_bases.push_back(f._sp_base);
+    }
+    std::reverse(sp_bases.begin(), sp_bases.end());
     FrameId frame = top_frame();
     int line = frame->co->lines[frame->_ip];
     ss << frame->co->name << ":" << line << " [";
-    for(PyObject* obj: s_data){
+    for(PyObject*& obj: s_data){
+        if(&obj == sp_bases.back()){
+            ss << "| ";
+            sp_bases.pop_back();
+        }
         if(obj == nullptr) ss << "(nil)";
         else if(obj == _py_begin_call) ss << "BEGIN_CALL";
         else if(obj == _py_null) ss << "NULL";
@@ -756,7 +766,6 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject* callable = p1[-(ARGC + 2)];
     bool method_call = p1[-(ARGC + 1)] != _py_null;
 
-    ArgsView args(p1 - ARGC - int(method_call), p1);
 
     // handle boundmethod, do a patch
     if(is_non_tagged_type(callable, tp_bound_method)){
@@ -765,8 +774,11 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
         callable = bm.method;      // get unbound method
         p1[-(ARGC + 2)] = bm.method;
         p1[-(ARGC + 1)] = bm.obj;
+        method_call = true;
         // [unbound, self, args..., kwargs...]
     }
+
+    ArgsView args(p1 - ARGC - int(method_call), p1);
 
     if(is_non_tagged_type(callable, tp_native_func)){
         const auto& f = OBJ_GET(NativeFunc, callable);
