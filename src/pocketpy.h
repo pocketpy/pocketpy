@@ -590,6 +590,11 @@ inline void add_module_time(VM* vm){
 inline void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
+    vm->bind_func<0>(mod, "getrecursionlimit", CPP_LAMBDA(VAR(vm->recursionlimit)));
+    vm->bind_func<1>(mod, "setrecursionlimit", [](VM* vm, ArgsView args) {
+        vm->recursionlimit = CAST(int, args[0]);
+        return vm->None;
+    });
 }
 
 inline void add_module_json(VM* vm){

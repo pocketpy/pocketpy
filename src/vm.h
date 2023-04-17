@@ -104,6 +104,8 @@ public:
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception;
 
+    i64 recursionlimit = 1000;
+
     VM(bool use_stdio) : heap(this){
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
@@ -329,6 +331,7 @@ public:
     }
 
     void StackOverflowError() { _error("StackOverflowError", ""); }
+    void RecursionError() { _error("RecursionError", "maximum recursion depth exceeded"); }
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
@@ -863,6 +866,8 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
 
 inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView args, ArgsView kwargs){
     // callable must be a `function` object
+    if(callstack.size() >= recursionlimit) RecursionError();
+
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
     FastLocals locals(co);
@@ -907,7 +912,8 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     
-    // TODO: callable may be garbage collected
+    // TODO: callable may be garbage collected if it is a temporary object
+    // very unlikely to happen, but still possible
     s_data.reset(sp_base);
     PyObject** curr_sp = s_data._sp;
     if(co->is_generator){
