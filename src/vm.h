@@ -100,7 +100,7 @@ public:
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
-    Type tp_function, tp_native_function, tp_iterator, tp_bound_method;
+    Type tp_function, tp_native_func, tp_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception;
 
@@ -237,7 +237,7 @@ public:
 
     PyObject* property(NativeFuncRaw fget){
         PyObject* p = builtins->attr("property");
-        PyObject* method = heap.gcnew(tp_native_function, NativeFunc(fget, 1, false));
+        PyObject* method = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
         return call_(p, method);
     }
 
@@ -404,7 +404,7 @@ DEF_NATIVE_2(Str, tp_str)
 DEF_NATIVE_2(List, tp_list)
 DEF_NATIVE_2(Tuple, tp_tuple)
 DEF_NATIVE_2(Function, tp_function)
-DEF_NATIVE_2(NativeFunc, tp_native_function)
+DEF_NATIVE_2(NativeFunc, tp_native_func)
 DEF_NATIVE_2(BoundMethod, tp_bound_method)
 DEF_NATIVE_2(Range, tp_range)
 DEF_NATIVE_2(Slice, tp_slice)
@@ -658,13 +658,20 @@ inline void VM::_log_s_data(const char* title) {
     std::stringstream ss;
     if(title) ss << title << " | ";
     FrameId frame = top_frame();
-    ss << frame->co->name << ": [";
+    int line = frame->co->lines[frame->_ip];
+    ss << frame->co->name << ":" << line << " [";
     for(PyObject* obj: s_data){
-        if(obj == _py_begin_call) ss << "BEGIN_CALL";
+        if(obj == nullptr) ss << "(nil)";
+        else if(obj == _py_begin_call) ss << "BEGIN_CALL";
         else if(obj == _py_null) ss << "NULL";
         else if(is_int(obj)) ss << CAST(i64, obj);
         else if(is_float(obj)) ss << CAST(f64, obj);
-        else ss << obj << "(" << obj_type_name(this, obj->type) << ")";
+        else if(is_type(obj, tp_str)) ss << CAST(Str, obj).escape();
+        else if(obj == None) ss << "None";
+        else if(obj == True) ss << "True";
+        else if(obj == False) ss << "False";
+        // else ss << obj << "(" << obj_type_name(this, obj->type) << ")";
+        else ss << "(" << obj_type_name(this, obj->type) << ")";
         ss << ", ";
     }
     std::string output = ss.str();
@@ -693,7 +700,7 @@ inline void VM::init_builtin_types(){
     tp_range = _new_type_object("range");
     tp_module = _new_type_object("module");
     tp_function = _new_type_object("function");
-    tp_native_function = _new_type_object("native_function");
+    tp_native_func = _new_type_object("native_func");
     tp_iterator = _new_type_object("iterator");
     tp_bound_method = _new_type_object("bound_method");
     tp_super = _new_type_object("super");
@@ -761,9 +768,9 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
         // [unbound, self, args..., kwargs...]
     }
 
-    if(is_non_tagged_type(callable, tp_native_function)){
+    if(is_non_tagged_type(callable, tp_native_func)){
         const auto& f = OBJ_GET(NativeFunc, callable);
-        if(KWARGC != 0) TypeError("native_function does not accept keyword arguments");
+        if(KWARGC != 0) TypeError("native_func does not accept keyword arguments");
         PyObject* ret = f(this, args);
         s_data.reset(p0);
         return ret;
@@ -792,7 +799,6 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
             PUSH(_py_null);
             for(PyObject* obj: args) PUSH(obj);
             for(PyObject* obj: kwargs) PUSH(obj);
-            // _log_s_data("L790");
             obj = _vectorcall(ARGC, KWARGC);
             if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
         }else{
@@ -873,9 +879,11 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
         if(!ok) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
-    if(co->is_generator) return PyIter(Generator(this, Frame(
-        &s_data, sp_base, co, _module, std::move(locals), fn._closure
-    )));
+    if(co->is_generator){
+        PyObject* ret = PyIter(Generator(this, Frame(&s_data, sp_base, co, _module, std::move(locals), fn._closure)));
+        s_data.reset(sp_base);
+        return ret;
+    }
     callstack.emplace(&s_data, sp_base, co, _module, std::move(locals), fn._closure);
     return nullptr;
 }
@@ -902,7 +910,7 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     }
     if(cls_var != nullptr){
         // bound method is non-data descriptor
-        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
+        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_func)){
             return VAR(BoundMethod(obj, cls_var));
         }
         return cls_var;
@@ -938,7 +946,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     }
 
     if(cls_var != nullptr){
-        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_function)){
+        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_func)){
             *self = obj;
         }
         return cls_var;

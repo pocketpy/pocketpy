@@ -63,6 +63,8 @@ public:
 
 inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
+    // reset frame._sp_base
+    frame._sp_base = frame._s->_sp;
     // restore the context
     for(PyObject* obj: s_data) frame._s->push(obj);
     s_data.clear();
@@ -71,10 +73,11 @@ inline PyObject* Generator::next(){
     if(ret == vm->_py_op_yield){
         // backup the context
         frame = std::move(vm->callstack.top());
+        PyObject* ret = frame._s->popx();
         for(PyObject* obj: frame.stack_view()) s_data.push_back(obj);
         vm->_pop_frame();
         state = 1;
-        return frame._s->popx();
+        return ret;
     }else{
         state = 2;
         return nullptr;
