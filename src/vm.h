@@ -195,6 +195,12 @@ public:
         return _run_top_frame();
     }
 
+    void _pop_frame(){
+        Frame* frame = &callstack.top();
+        s_data.reset(frame->_sp_base);
+        callstack.pop();
+    }
+
     void _push_varargs(int n, ...){
         va_list args;
         va_start(args, n);

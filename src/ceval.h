@@ -381,9 +381,7 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(RETURN_VALUE)
         _0 = POPX();
-        // cleanup the stack on return
-        callstack.pop();
-        s_data.reset(frame->_sp_base);
+        _pop_frame();
         if(frame.index == base_id){       // [ frameBase<- ]
             return _0;
         }else{
@@ -570,7 +568,7 @@ __NEXT_STEP:;
             PyObject* obj = POPX();
             Exception& _e = CAST(Exception&, obj);
             _e.st_push(frame->snapshot());
-            callstack.pop();
+            _pop_frame();
             if(callstack.empty()){
 #if DEBUG_FULL_EXCEPTION
                 std::cerr << _e.summary() << std::endl;

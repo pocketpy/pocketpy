@@ -72,7 +72,7 @@ inline PyObject* Generator::next(){
         // backup the context
         frame = std::move(vm->callstack.top());
         for(PyObject* obj: frame.stack_view()) s_data.push_back(obj);
-        vm->callstack.pop();
+        vm->_pop_frame();
         state = 1;
         return frame._s->popx();
     }else{
