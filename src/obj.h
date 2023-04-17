@@ -198,7 +198,6 @@ template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : s
 
 template<typename T> void _check_py_class(VM*, PyObject*);
 template<typename T> T py_pointer_cast(VM*, PyObject*);
-template<typename T> T py_value_cast(VM*, PyObject*);
 
 template<typename __T>
 __T py_cast(VM* vm, PyObject* obj) {
@@ -208,9 +207,7 @@ __T py_cast(VM* vm, PyObject* obj) {
     }else if constexpr(is_py_class<T>::value){
         _check_py_class<T>(vm, obj);
         return OBJ_GET(T, obj);
-    }else if constexpr(std::is_pod_v<T>){
-        return py_value_cast<T>(vm, obj);
-    }else{
+    }else {
         return Discarded();
     }
 }

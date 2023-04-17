@@ -772,7 +772,7 @@ inline void VM::post_init(){
     add_module_random(this);
     add_module_io(this);
     add_module_os(this);
-    // add_module_c(this);
+    add_module_c(this);
     add_module_gc(this);
 
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
