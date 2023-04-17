@@ -620,7 +620,7 @@ __SUBSCR_END:
     void compile_for_loop() {
         Expr_ vars = EXPR_VARS();
         consume(TK("in"));
-        EXPR(false);
+        EXPR_TUPLE(false);
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx()->enter_block(FOR_LOOP);
         ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);

@@ -33,7 +33,7 @@
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
-#define DEBUG_EXTRA_CHECK			1
+#define DEBUG_EXTRA_CHECK			0
 #define DEBUG_DIS_EXEC				0
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_CEVAL_STEP_MIN		0

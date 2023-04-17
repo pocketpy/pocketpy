@@ -331,6 +331,7 @@ __NEXT_STEP:;
     TARGET(CONTAINS_OP)
         // a in b -> b __contains__ a
         _0 = call_method(TOP(), __contains__, SECOND());
+        POP();
         if(byte.arg == 1){
             TOP() = VAR(!CAST(bool, _0));
         }else{
