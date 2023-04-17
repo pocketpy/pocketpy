@@ -34,7 +34,7 @@
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0
 #define DEBUG_EXTRA_CHECK			1
-#define DEBUG_DIS_EXEC				1
+#define DEBUG_DIS_EXEC				0
 #define DEBUG_CEVAL_STEP			0
 #define DEBUG_CEVAL_STEP_MIN		0
 #define DEBUG_FULL_EXCEPTION		1
@@ -53,8 +53,13 @@
 #define PK_ENABLE_COMPUTED_GOTO		0
 #define UNREACHABLE()				__assume(0)
 #else
-#define PK_ENABLE_COMPUTED_GOTO		0
+#define PK_ENABLE_COMPUTED_GOTO		1
 #define UNREACHABLE()				__builtin_unreachable()
+
+#if DEBUG_CEVAL_STEP || DEBUG_CEVAL_STEP_MIN
+#undef PK_ENABLE_COMPUTED_GOTO
+#endif
+
 #endif
 
 #if defined(__EMSCRIPTEN__) || defined(__arm__) || defined(__i386__)

@@ -158,15 +158,6 @@ struct ValueStack {
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
     
-    void dup_top_n(int n) {
-        // [a, b, c]
-        // ^p0     ^p1
-        PyObject** p0 = _sp - n;
-        PyObject** p1 = _sp;
-        memcpy(p1, p0, n * sizeof(void*));
-        _sp += n;
-    }
-
     ValueStack(const ValueStack&) = delete;
     ValueStack(ValueStack&&) = delete;
     ValueStack& operator=(const ValueStack&) = delete;
@@ -211,22 +202,10 @@ struct Frame {
     }
 
     int stack_size() const { return _s->_sp - _sp_base; }
-
     ArgsView stack_view() const { return ArgsView(_sp_base, _s->_sp); }
 
-    std::string stack_info(){
-        std::stringstream ss;
-        ss << this << ": [";
-        for(PyObject** t=_sp_base; t<_s->end(); t++){
-            ss << *t;
-            if(t != _s->end()-1) ss << ", ";
-        }
-        ss << "]";
-        return ss.str();
-    }
-
     void jump_abs(int i){ _next_ip = i; }
-    void jump_rel(int i){ _next_ip += i; }
+    // void jump_rel(int i){ _next_ip += i; }
 
     bool jump_to_exception_handler(){
         // try to find a parent try block

@@ -21,6 +21,7 @@ inline PyObject* VM::_run_top_frame(){
 #endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
+            if(s_data.is_overflow()) StackOverflowError();
 /**********************************************************************/
 /* NOTE: 
  * Be aware of accidental gc!
@@ -52,7 +53,7 @@ goto *OP_LABELS[byte.op];
 
 __NEXT_STEP:;
 #if DEBUG_CEVAL_STEP
-    std::cout << frame->stack_info() << " " << OP_NAMES[byte.op] << std::endl;
+    _log_s_data();
 #endif
 #if DEBUG_CEVAL_STEP_MIN
     std::cout << OP_NAMES[byte.op] << std::endl;
@@ -495,7 +496,6 @@ __NEXT_STEP:;
         obj = iter->next();
         while(obj != nullptr){
             PUSH(obj);
-            // if(s_data.is_overflow()) StackOverflowError();
             obj = iter->next();
         }
     } DISPATCH();

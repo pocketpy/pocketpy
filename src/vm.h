@@ -323,7 +323,6 @@ public:
         else throw UnhandledException();
     }
 
-    void RecursionError() { _error("RecursionError", "maximum recursion depth exceeded"); }
     void StackOverflowError() { _error("StackOverflowError", ""); }
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
@@ -363,8 +362,8 @@ public:
         _lazy_modules.clear();
     }
 
+    void _log_s_data(const char* title = nullptr);
     PyObject* _vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
-
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
@@ -546,9 +545,7 @@ inline bool VM::asBool(PyObject* obj){
     PyObject* self;
     PyObject* len_f = get_unbound_method(obj, __len__, &self, false);
     if(self != _py_null){
-        PUSH(len_f);
-        PUSH(self);
-        PyObject* ret = _vectorcall(0);
+        PyObject* ret = call_method(self, len_f);
         return CAST(i64, ret) > 0;
     }
     return true;
@@ -655,6 +652,28 @@ inline Str VM::disassemble(CodeObject_ co){
     }
     ss << "\n";
     return Str(ss.str());
+}
+
+inline void VM::_log_s_data(const char* title) {
+    std::stringstream ss;
+    if(title) ss << title << " | ";
+    FrameId frame = top_frame();
+    ss << frame->co->name << ": [";
+    for(PyObject* obj: s_data){
+        if(obj == _py_begin_call) ss << "BEGIN_CALL";
+        else if(obj == _py_null) ss << "NULL";
+        else if(is_int(obj)) ss << CAST(i64, obj);
+        else if(is_float(obj)) ss << CAST(f64, obj);
+        else ss << obj << "(" << obj_type_name(this, obj->type) << ")";
+        ss << ", ";
+    }
+    std::string output = ss.str();
+    if(!s_data.empty()) {
+        output.pop_back(); output.pop_back();
+    }
+    output.push_back(']');
+    Bytecode byte = frame->co->codes[frame->_ip];
+    std::cout << output << " " << OP_NAMES[byte.op] << std::endl;
 }
 
 inline void VM::init_builtin_types(){
@@ -770,8 +789,11 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
         PyObject* obj;
         if(new_f != nullptr){
             PUSH(new_f);
-            s_data.dup_top_n(1 + ARGC + KWARGC*2);
-            obj = _vectorcall(ARGC, KWARGC, false);
+            PUSH(_py_null);
+            for(PyObject* obj: args) PUSH(obj);
+            for(PyObject* obj: kwargs) PUSH(obj);
+            // _log_s_data("L790");
+            obj = _vectorcall(ARGC, KWARGC);
             if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
         }else{
             obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
@@ -783,7 +805,7 @@ inline PyObject* VM::_vectorcall(int ARGC, int KWARGC, bool op_call){
             p1[-(ARGC + 2)] = callable;
             p1[-(ARGC + 1)] = self;
             // [init_f, self, args..., kwargs...]
-            _vectorcall(ARGC, KWARGC, false);
+            _vectorcall(ARGC, KWARGC);
             // We just discard the return value of `__init__`
             // in cpython it raises a TypeError if the return value is not None
         }else{
