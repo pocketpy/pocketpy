@@ -178,18 +178,24 @@ struct Frame {
 
     PyObject* _module;
     FastLocals _locals;
-    FastLocals _closure;
+    PyObject* _callable;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
+    
+    PyObject* f_closure_try_get(StrName name){
+        if(_callable == nullptr) return nullptr;
+        Function& fn = OBJ_GET(Function, _callable);
+        return fn._closure.try_get(name);
+    }
 
-    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, FastLocals&& _locals, const FastLocals& _closure)
-            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(std::move(_locals)), _closure(_closure) { }
+    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, FastLocals&& _locals, PyObject* _callable)
+            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(std::move(_locals)), _callable(_callable) { }
 
-    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, const FastLocals& _locals, const FastLocals& _closure)
-            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(_locals), _closure(_closure) { }
+    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, const FastLocals& _locals, PyObject* _callable)
+            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(_locals), _callable(_callable) { }
 
     Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject_& co, PyObject* _module)
-            : _s(_s), _sp_base(_sp_base), co(co.get()), _module(_module), _locals(), _closure() { }
+            : _s(_s), _sp_base(_sp_base), co(co.get()), _module(_module), _locals(), _callable(nullptr) { }
 
     Frame(const Frame& other) = delete;
     Frame& operator=(const Frame& other) = delete;
@@ -253,7 +259,7 @@ struct Frame {
         // TODO: fix here
         OBJ_MARK(_module);
         _locals._gc_mark();
-        _closure._gc_mark();
+        if(_callable != nullptr) OBJ_MARK(_callable);
         co->_gc_mark();
     }
 };

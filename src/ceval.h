@@ -104,7 +104,7 @@ __NEXT_STEP:;
         _name = StrName(byte.arg);
         _0 = frame->_locals.try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = frame->_closure.try_get(_name);
+        _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -115,9 +115,7 @@ __NEXT_STEP:;
     TARGET(LOAD_NONLOCAL) {
         heap._auto_collect();
         _name = StrName(byte.arg);
-        // _0 = frame->_locals.try_get(_name);
-        // if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = frame->_closure.try_get(_name);
+        _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }

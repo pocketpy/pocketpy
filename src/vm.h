@@ -912,15 +912,12 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     
-    // TODO: callable may be garbage collected if it is a temporary object
-    // very unlikely to happen, but still possible
     s_data.reset(sp_base);
-    PyObject** curr_sp = s_data._sp;
     if(co->is_generator){
-        PyObject* ret = PyIter(Generator(this, Frame(&s_data, curr_sp, co, _module, std::move(locals), fn._closure)));
+        PyObject* ret = PyIter(Generator(this, Frame(&s_data, s_data._sp, co, _module, std::move(locals), callable)));
         return ret;
     }
-    callstack.emplace(&s_data, curr_sp, co, _module, std::move(locals), fn._closure);
+    callstack.emplace(&s_data, s_data._sp, co, _module, std::move(locals), callable);
     return nullptr;
 }
 
