@@ -11,6 +11,10 @@ inline PyObject* VM::_run_top_frame(){
     const int base_id = frame.index;
     bool need_raise = false;
 
+    // shared registers
+    PyObject *_0, *_1, *_2;
+    StrName _name;
+
     while(true){
 #if DEBUG_EXTRA_CHECK
         if(frame.index < base_id) FATAL_ERROR();
@@ -21,8 +25,6 @@ inline PyObject* VM::_run_top_frame(){
 /* NOTE: 
  * Be aware of accidental gc!
  * DO NOT leave any strong reference of PyObject* in the C stack
- * For example, POPX() returns a strong reference which may be dangerous
- * `Args` containing strong references is safe if it is passed to `call` or `fast_call`
  */
 {
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
@@ -63,11 +65,10 @@ __NEXT_STEP:;
     TARGET(POP_TOP) POP(); DISPATCH();
     TARGET(DUP_TOP) PUSH(TOP()); DISPATCH();
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
-    TARGET(PRINT_EXPR) {
-        PyObject* obj = TOP();  // use top() to avoid accidental gc
-        if(obj != None) *_stdout << CAST(Str&, asRepr(obj)) << '\n';
+    TARGET(PRINT_EXPR)
+        if(TOP() != None) *_stdout << CAST(Str&, asRepr(TOP())) << '\n';
         POP();
-    } DISPATCH();
+        DISPATCH();
     /*****************************************/
     TARGET(LOAD_CONST)
         heap._auto_collect();
@@ -93,134 +94,127 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_FAST) {
         heap._auto_collect();
-        PyObject* val = frame->_locals[byte.arg];
-        if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
-        PUSH(val);
+        _0 = frame->_locals[byte.arg];
+        if(_0 == nullptr) vm->NameError(co->varnames[byte.arg]);
+        PUSH(_0);
     } DISPATCH();
-    TARGET(LOAD_NAME) {
+    TARGET(LOAD_NAME)
         heap._auto_collect();
-        StrName name(byte.arg);
-        PyObject* val;
-        val = frame->_locals.try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = frame->_closure.try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = frame->f_globals().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = vm->builtins->attr().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        vm->NameError(name);
-    } DISPATCH();
+        _name = StrName(byte.arg);
+        _0 = frame->_locals.try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = frame->_closure.try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = frame->f_globals().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = vm->builtins->attr().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        vm->NameError(_name);
+        DISPATCH();
     TARGET(LOAD_NONLOCAL) {
         heap._auto_collect();
-        StrName name(byte.arg);
-        PyObject* val;
-        val = frame->_closure.try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = frame->f_globals().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = vm->builtins->attr().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        vm->NameError(name);
+        _name = StrName(byte.arg);
+        // _0 = frame->_locals.try_get(_name);
+        // if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = frame->_closure.try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = frame->f_globals().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = vm->builtins->attr().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        vm->NameError(_name);
+        DISPATCH();
     } DISPATCH();
-    TARGET(LOAD_GLOBAL) {
+    TARGET(LOAD_GLOBAL)
         heap._auto_collect();
-        StrName name(byte.arg);
-        PyObject* val = frame->f_globals().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        val = vm->builtins->attr().try_get(name);
-        if(val != nullptr) { PUSH(val); DISPATCH(); }
-        vm->NameError(name);
-    } DISPATCH();
-    TARGET(LOAD_ATTR) {
-        PyObject* a = TOP();
-        StrName name(byte.arg);
-        TOP() = getattr(a, name);
-    } DISPATCH();
-    TARGET(LOAD_METHOD) {
-        PyObject* a = TOP();
-        StrName name(byte.arg);
-        PyObject* self;
-        TOP() = get_unbound_method(a, name, &self, true, true);
-        PUSH(self);
-    } DISPATCH();
-    TARGET(LOAD_SUBSCR) {
-        PyObject* b = POPX();
-        PyObject* a = TOP();
-        TOP() = call_method(a, __getitem__, b);
-    } DISPATCH();
+        _name = StrName(byte.arg);
+        _0 = frame->f_globals().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        _0 = vm->builtins->attr().try_get(_name);
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        vm->NameError(_name);
+        DISPATCH();
+    TARGET(LOAD_ATTR)
+        TOP() = getattr(TOP(), StrName(byte.arg));
+        DISPATCH();
+    TARGET(LOAD_METHOD)
+        TOP() = get_unbound_method(TOP(), StrName(byte.arg), &_0, true, true);
+        PUSH(_0);
+        DISPATCH();
+    TARGET(LOAD_SUBSCR)
+        _1 = POPX();
+        _0 = TOP();
+        TOP() = call_method(_0, __getitem__, _1);
+        DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
-    TARGET(STORE_NAME) {
-        StrName name(byte.arg);
-        PyObject* val = POPX();
+    TARGET(STORE_NAME)
+        _name = StrName(byte.arg);
+        _0 = POPX();
         if(frame->_locals.is_valid()){
-            bool ok = frame->_locals.try_set(name, val);
-            if(!ok) vm->NameError(name);
+            bool ok = frame->_locals.try_set(_name, _0);
+            if(!ok) vm->NameError(_name);
         }else{
-            frame->f_globals().set(name, val);
+            frame->f_globals().set(_name, _0);
         }
-    } DISPATCH();
-    TARGET(STORE_GLOBAL) {
-        StrName name(byte.arg);
-        frame->f_globals().set(name, POPX());
-    } DISPATCH();
+        DISPATCH();
+    TARGET(STORE_GLOBAL)
+        frame->f_globals().set(StrName(byte.arg), POPX());
+        DISPATCH();
     TARGET(STORE_ATTR) {
-        StrName name(byte.arg);
-        PyObject* a = TOP();
-        PyObject* val = SECOND();
-        setattr(a, name, val);
+        _0 = TOP();         // a
+        _1 = SECOND();      // val
+        setattr(_0, StrName(byte.arg), _1);
         STACK_SHRINK(2);
     } DISPATCH();
-    TARGET(STORE_SUBSCR) {
-        // val a b
-        PyObject* b = POPX();
-        PyObject* a = POPX();
-        PyObject* val = POPX();
-        call_method(a, __setitem__, b, val);
-    } DISPATCH();
-    TARGET(DELETE_FAST) {
-        PyObject* val = frame->_locals[byte.arg];
-        if(val == nullptr) vm->NameError(co->varnames[byte.arg]);
+    TARGET(STORE_SUBSCR)
+        _2 = POPX();        // b
+        _1 = POPX();        // a
+        _0 = POPX();        // val
+        call_method(_1, __setitem__, _2, _0);
+        DISPATCH();
+    TARGET(DELETE_FAST)
+        _0 = frame->_locals[byte.arg];
+        if(_0 == nullptr) vm->NameError(co->varnames[byte.arg]);
         frame->_locals[byte.arg] = nullptr;
-    } DISPATCH();
-    TARGET(DELETE_NAME) {
-        StrName name(byte.arg);
+        DISPATCH();
+    TARGET(DELETE_NAME)
+        _name = StrName(byte.arg);
         if(frame->_locals.is_valid()){
-            if(!frame->_locals.contains(name)) vm->NameError(name);
-            frame->_locals.erase(name);
+            if(!frame->_locals.contains(_name)) vm->NameError(_name);
+            frame->_locals.erase(_name);
         }else{
-            if(!frame->f_globals().contains(name)) vm->NameError(name);
-            frame->f_globals().erase(name);
+            if(!frame->f_globals().contains(_name)) vm->NameError(_name);
+            frame->f_globals().erase(_name);
         }
-    } DISPATCH();
-    TARGET(DELETE_GLOBAL) {
-        StrName name(byte.arg);
-        if(frame->f_globals().contains(name)){
-            frame->f_globals().erase(name);
+        DISPATCH();
+    TARGET(DELETE_GLOBAL)
+        _name = StrName(byte.arg);
+        if(frame->f_globals().contains(_name)){
+            frame->f_globals().erase(_name);
         }else{
-            NameError(name);
+            NameError(_name);
         }
-    } DISPATCH();
-    TARGET(DELETE_ATTR) {
-        PyObject* a = POPX();
-        StrName name(byte.arg);
-        if(!a->is_attr_valid()) TypeError("cannot delete attribute");
-        if(!a->attr().contains(name)) AttributeError(a, name);
-        a->attr().erase(name);
-    } DISPATCH();
-    TARGET(DELETE_SUBSCR) {
-        PyObject* b = POPX();
-        PyObject* a = POPX();
-        call_method(a, __delitem__, b);
-    } DISPATCH();
+        DISPATCH();
+    TARGET(DELETE_ATTR)
+        _0 = POPX();
+        _name = StrName(byte.arg);
+        if(!_0->is_attr_valid()) TypeError("cannot delete attribute");
+        if(!_0->attr().contains(_name)) AttributeError(_0, _name);
+        _0->attr().erase(_name);
+        DISPATCH();
+    TARGET(DELETE_SUBSCR)
+        _1 = POPX();
+        _0 = POPX();
+        call_method(_0, __delitem__, _1);
+        DISPATCH();
     /*****************************************/
-    TARGET(BUILD_LIST) {
-        PyObject* obj = VAR(STACK_VIEW(byte.arg).to_list());
+    TARGET(BUILD_LIST)
+        _0 = VAR(STACK_VIEW(byte.arg).to_list());
         STACK_SHRINK(byte.arg);
-        PUSH(obj);
-    } DISPATCH();
+        PUSH(_0);
+        DISPATCH();
     TARGET(BUILD_DICT) {
         PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
         PyObject* obj = call_(builtins->attr(m_dict), t);
@@ -234,20 +228,20 @@ __NEXT_STEP:;
         PUSH(obj);
     } DISPATCH();
     TARGET(BUILD_SLICE) {
-        PyObject* step = POPX();
-        PyObject* stop = POPX();
-        PyObject* start = POPX();
+        _2 = POPX();
+        _1 = POPX();
+        _0 = POPX();
         Slice s;
-        if(start != None) s.start = CAST(int, start);
-        if(stop != None) s.stop = CAST(int, stop);
-        if(step != None) s.step = CAST(int, step);
+        if(_0 != None) s.start = CAST(int, _0);
+        if(_1 != None) s.stop = CAST(int, _1);
+        if(_2 != None) s.step = CAST(int, _2);
         PUSH(VAR(s));
     } DISPATCH();
-    TARGET(BUILD_TUPLE) {
-        PyObject* obj = VAR(STACK_VIEW(byte.arg).to_tuple());
+    TARGET(BUILD_TUPLE)
+        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         STACK_SHRINK(byte.arg);
-        PUSH(obj);
-    } DISPATCH();
+        PUSH(_0);
+        DISPATCH();
     TARGET(BUILD_STRING) {
         std::stringstream ss;
         auto view = STACK_VIEW(byte.arg);
@@ -256,11 +250,11 @@ __NEXT_STEP:;
         PUSH(VAR(ss.str()));
     } DISPATCH();
     /*****************************************/
-    TARGET(BINARY_OP) {
-        PyObject* b = POPX();
-        PyObject* a = TOP();
-        TOP() = call_method(a, BINARY_SPECIAL_METHODS[byte.arg], b);
-    } DISPATCH();
+    TARGET(BINARY_OP)
+        _1 = POPX();  // b
+        _0 = TOP();   // a
+        TOP() = call_method(_0, BINARY_SPECIAL_METHODS[byte.arg], _1);
+        DISPATCH();
 
 #define INT_BINARY_OP(op, func)                             \
         if(is_both_int(TOP(), SECOND())){                   \
@@ -269,9 +263,9 @@ __NEXT_STEP:;
             POP();                                          \
             TOP() = VAR(a op b);                            \
         }else{                                              \
-            PyObject* b = POPX();                           \
-            PyObject* a = TOP();                            \
-            TOP() = call_method(a, func, b);                \
+            _1 = POPX();                                    \
+            _0 = TOP();                                     \
+            TOP() = call_method(_0, func, _1);              \
         }
 
     TARGET(BINARY_ADD)
@@ -323,22 +317,29 @@ __NEXT_STEP:;
         INT_BINARY_OP(^, __xor__)
         DISPATCH()
 #undef INT_BINARY_OP
-    TARGET(IS_OP) {
-        PyObject* rhs = POPX();
-        PyObject* lhs = TOP();
-        bool ret_c = lhs == rhs;
-        if(byte.arg == 1) ret_c = !ret_c;
-        TOP() = VAR(ret_c);
-    } DISPATCH();
-    TARGET(CONTAINS_OP) {
+
+    TARGET(IS_OP)
+        _1 = POPX();    // rhs
+        _0 = TOP();     // lhs
+        if(byte.arg == 1){
+            TOP() = VAR(_0 != _1);
+        }else{
+            TOP() = VAR(_0 == _1);
+        }
+        DISPATCH();
+    TARGET(CONTAINS_OP)
         // a in b -> b __contains__ a
-        PyObject* ret = call_method(TOP(), __contains__, SECOND());
-        bool ret_c = CAST(bool, ret);
-        if(byte.arg == 1) ret_c = !ret_c;
-        TOP() = VAR(ret_c);
-    } DISPATCH();
+        _0 = call_method(TOP(), __contains__, SECOND());
+        if(byte.arg == 1){
+            TOP() = VAR(!CAST(bool, _0));
+        }else{
+            TOP() = VAR(CAST(bool, _0));
+        }
+        DISPATCH();
     /*****************************************/
-    TARGET(JUMP_ABSOLUTE) frame->jump_abs(byte.arg); DISPATCH();
+    TARGET(JUMP_ABSOLUTE)
+        frame->jump_abs(byte.arg);
+        DISPATCH();
     TARGET(POP_JUMP_IF_FALSE)
         if(!asBool(POPX())) frame->jump_abs(byte.arg);
         DISPATCH();
@@ -354,10 +355,11 @@ __NEXT_STEP:;
         int target = co_blocks[byte.block].start;
         frame->jump_abs(target);
     } DISPATCH();
-    TARGET(LOOP_BREAK) {
-        int target = co_blocks[byte.block].end;
-        frame->jump_abs_break(target);
-    } DISPATCH();
+    TARGET(LOOP_BREAK)
+        frame->jump_abs_break(
+            co_blocks[byte.block].end
+        );
+        DISPATCH();
     TARGET(GOTO) {
         StrName name(byte.arg);
         int index = co->labels->try_get(name);
@@ -368,27 +370,27 @@ __NEXT_STEP:;
     TARGET(BEGIN_CALL)
         PUSH(_py_begin_call);
         DISPATCH();
-    TARGET(CALL) {
-        int ARGC = byte.arg & 0xFFFF;
-        int KWARGC = (byte.arg >> 16) & 0xFFFF;
-        PyObject* ret = _vectorcall(ARGC, KWARGC, true);
-        if(ret == _py_op_call) { DISPATCH_OP_CALL(); }
-        PUSH(ret);
+    TARGET(CALL)
+        _0 = _vectorcall(
+            byte.arg & 0xFFFF,          // ARGC
+            (byte.arg>>16) & 0xFFFF,    // KWARGC
+            true
+        );
+        if(_0 == _py_op_call) DISPATCH_OP_CALL();
+        PUSH(_0);
         DISPATCH();
-    }
-    TARGET(RETURN_VALUE) {
-        PyObject* __ret = POPX();
+    TARGET(RETURN_VALUE)
+        _0 = POPX();
         // cleanup the stack on return
         callstack.pop();
         s_data.reset(frame->_sp_base);
         if(frame.index == base_id){       // [ frameBase<- ]
-            return __ret;
+            return _0;
         }else{
             frame = top_frame();
-            PUSH(__ret);
+            PUSH(_0);
             goto __NEXT_FRAME;
         }
-    }
     TARGET(YIELD_VALUE)
         return _py_op_yield;
     /*****************************************/
@@ -423,9 +425,9 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(FOR_ITER) {
         BaseIter* it = PyIter_AS_C(TOP());
-        PyObject* obj = it->next();
-        if(obj != nullptr){
-            PUSH(obj);
+        _0 = it->next();
+        if(_0 != nullptr){
+            PUSH(_0);
         }else{
             int target = co_blocks[byte.block].end;
             frame->jump_abs_break(target);
