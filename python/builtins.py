@@ -195,6 +195,9 @@ class staticmethod:
 
     def __get__(self, obj):
         return self.f
+
+    def __call__(self, *args):
+        return self.f(*args)
     
 def type::__repr__(self):
     return "<class '" + self.__name__ + "'>"
