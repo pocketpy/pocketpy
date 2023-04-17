@@ -559,9 +559,9 @@ __NEXT_STEP:;
 #endif
 }
 
-
 #undef DISPATCH
 #undef TARGET
+#undef DISPATCH_OP_CALL
 /**********************************************************************/
             UNREACHABLE();
         }catch(HandledException& e){
@@ -586,5 +586,15 @@ __NEXT_STEP:;
         }
     }
 }
+
+#undef TOP
+#undef SECOND
+#undef THIRD
+#undef PEEK
+#undef STACK_SHRINK
+#undef PUSH
+#undef POP
+#undef POPX
+#undef STACK_VIEW
 
 } // namespace pkpy

@@ -1048,4 +1048,7 @@ inline Str obj_type_name(VM *vm, Type type){
     return vm->_all_types[type].name;
 }
 
+#undef PY_VAR_INT
+#undef PY_VAR_FLOAT
+
 }   // namespace pkpy
