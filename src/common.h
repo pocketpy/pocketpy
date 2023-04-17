@@ -8,13 +8,15 @@
 #define strdup _strdup
 #endif
 
+#include <cmath>
+#include <cstring>
+#include <cstdarg>
+
 #include <sstream>
 #include <regex>
-#include <cmath>
 #include <stdexcept>
 #include <vector>
 #include <string>
-#include <cstring>
 #include <chrono>
 #include <string_view>
 #include <iomanip>
