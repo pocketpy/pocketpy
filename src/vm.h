@@ -83,10 +83,6 @@ public:
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
 
-    PyObject* _py_null;
-    PyObject* _py_begin_call;
-    PyObject* _py_op_call;
-    PyObject* _py_op_yield;
     PyObject* None;
     PyObject* True;
     PyObject* False;
@@ -130,7 +126,7 @@ public:
     PyObject* asStr(PyObject* obj){
         PyObject* self;
         PyObject* f = get_unbound_method(obj, __str__, &self, false);
-        if(self != _py_null) return call_method(self, f);
+        if(self != PY_NULL) return call_method(self, f);
         return asRepr(obj);
     }
 
@@ -138,7 +134,7 @@ public:
         if(is_type(obj, tp_iterator)) return obj;
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
-        if(self != _py_null) return call_method(self, iter_f);
+        if(self != PY_NULL) return call_method(self, iter_f);
         TypeError(OBJ_NAME(_t(obj)).escape() + " object is not iterable");
         return nullptr;
     }
@@ -216,7 +212,7 @@ public:
     template<typename... Args>
     PyObject* call(PyObject* callable, Args&&... args){
         PUSH(callable);
-        PUSH(_py_null);
+        PUSH(PY_NULL);
         _push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
@@ -549,7 +545,7 @@ inline bool VM::asBool(PyObject* obj){
     if(is_float(obj)) return CAST(f64, obj) != 0.0;
     PyObject* self;
     PyObject* len_f = get_unbound_method(obj, __len__, &self, false);
-    if(self != _py_null){
+    if(self != PY_NULL){
         PyObject* ret = call_method(self, len_f);
         return CAST(i64, ret) > 0;
     }
@@ -684,8 +680,8 @@ inline void VM::_log_s_data(const char* title) {
         if(sp_bases[p] > 0) ss << " ";
         PyObject* obj = *p;
         if(obj == nullptr) ss << "(nil)";
-        else if(obj == _py_begin_call) ss << "BEGIN_CALL";
-        else if(obj == _py_null) ss << "NULL";
+        else if(obj == PY_BEGIN_CALL) ss << "BEGIN_CALL";
+        else if(obj == PY_NULL) ss << "NULL";
         else if(is_int(obj)) ss << CAST(i64, obj);
         else if(is_float(obj)) ss << CAST(f64, obj);
         else if(is_type(obj, tp_str)) ss << CAST(Str, obj).escape();
@@ -744,12 +740,6 @@ inline void VM::init_builtin_types(){
     this->True = heap._new<Dummy>(tp_bool, {});
     this->False = heap._new<Dummy>(tp_bool, {});
 
-    Type _internal_type = _new_type_object("_internal");
-    this->_py_null = heap._new<Dummy>(_internal_type, {});
-    this->_py_begin_call = heap._new<Dummy>(_internal_type, {});
-    this->_py_op_call = heap._new<Dummy>(_internal_type, {});
-    this->_py_op_yield = heap._new<Dummy>(_internal_type, {});
-
     this->builtins = new_module("builtins");
     this->_main = new_module("__main__");
     
@@ -777,7 +767,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject** p1 = s_data._sp - KWARGC*2;
     if(is_varargs){
         p0 = p1 - 1;
-        while(*p0 != _py_begin_call) p0--;
+        while(*p0 != PY_BEGIN_CALL) p0--;
         // [BEGIN_CALL, callable, <self>, args..., kwargs...]
         //      ^p0                                ^p1      ^_sp
         ARGC = p1 - (p0 + 3);
@@ -787,7 +777,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         //      ^p0                    ^p1      ^_sp
     }
     PyObject* callable = p1[-(ARGC + 2)];
-    bool method_call = p1[-(ARGC + 1)] != _py_null;
+    bool method_call = p1[-(ARGC + 1)] != PY_NULL;
 
 
     // handle boundmethod, do a patch
@@ -818,7 +808,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PyObject* ret = _py_call(p0, callable, args, kwargs);
         // stack resetting is handled by _py_call
         if(ret != nullptr) return ret;
-        if(op_call) return _py_op_call;
+        if(op_call) return PY_OP_CALL;
         return _run_top_frame();
     }
 
@@ -831,7 +821,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PyObject* obj;
         if(new_f != nullptr){
             PUSH(new_f);
-            PUSH(_py_null);
+            PUSH(PY_NULL);
             for(PyObject* obj: args) PUSH(obj);
             for(PyObject* obj: kwargs) PUSH(obj);
             obj = vectorcall(ARGC, KWARGC);
@@ -841,7 +831,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         }
         PyObject* self;
         callable = get_unbound_method(obj, __init__, &self, false);
-        if (self != _py_null) {
+        if (self != PY_NULL) {
             // replace `NULL` with `self`
             p1[-(ARGC + 2)] = callable;
             p1[-(ARGC + 1)] = self;
@@ -859,7 +849,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     // handle `__call__` overload
     PyObject* self;
     PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
-    if(self != _py_null){
+    if(self != PY_NULL){
         p1[-(ARGC + 2)] = call_f;
         p1[-(ARGC + 1)] = self;
         // [call_f, self, args..., kwargs...]
@@ -984,7 +974,7 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
 // used by OP_LOAD_METHOD
 // try to load a unbound method (fallback to `getattr` if not found)
 inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err, bool fallback){
-    *self = _py_null;
+    *self = PY_NULL;
     PyObject* objtype = _t(obj);
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
@@ -1067,8 +1057,7 @@ inline void VM::_error(Exception e){
 inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
-    // TODO: avoid use nullptr?
-    for(PyObject* obj: vm->s_data) if(obj != nullptr) OBJ_MARK(obj);
+    for(PyObject* obj: vm->s_data) if(obj!=nullptr) OBJ_MARK(obj);
 }
 
 inline Str obj_type_name(VM *vm, Type type){

@@ -75,7 +75,7 @@ inline PyObject* Generator::next(){
     s_backup.clear();
     vm->callstack.push(std::move(frame));
     PyObject* ret = vm->_run_top_frame();
-    if(ret == vm->_py_op_yield){
+    if(ret == PY_OP_YIELD){
         // backup the context
         frame = std::move(vm->callstack.top());
         PyObject* ret = frame._s->popx();

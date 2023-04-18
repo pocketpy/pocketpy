@@ -92,7 +92,7 @@ __NEXT_STEP:;
         }
         PUSH(obj);
     } DISPATCH();
-    TARGET(LOAD_NULL) PUSH(_py_null); DISPATCH();
+    TARGET(LOAD_NULL) PUSH(PY_NULL); DISPATCH();
     /*****************************************/
     TARGET(LOAD_FAST) {
         heap._auto_collect();
@@ -369,7 +369,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(BEGIN_CALL)
-        PUSH(_py_begin_call);
+        PUSH(PY_BEGIN_CALL);
         DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
@@ -377,7 +377,7 @@ __NEXT_STEP:;
             (byte.arg>>16) & 0xFFFF,    // KWARGC
             true
         );
-        if(_0 == _py_op_call) DISPATCH_OP_CALL();
+        if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
         PUSH(_0);
         DISPATCH();
     TARGET(RETURN_VALUE)
@@ -391,7 +391,7 @@ __NEXT_STEP:;
             goto __NEXT_FRAME;
         }
     TARGET(YIELD_VALUE)
-        return _py_op_yield;
+        return PY_OP_YIELD;
     /*****************************************/
     TARGET(LIST_APPEND) {
         PyObject* obj = POPX();

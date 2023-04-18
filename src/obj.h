@@ -161,6 +161,7 @@ const int kTpFloatIndex = 3;
 inline bool is_type(PyObject* obj, Type type) {
 #if DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
+    if(is_special(obj)) throw std::runtime_error("is_type() called with special object");
 #endif
     switch(type.index){
         case kTpIntIndex: return is_int(obj);
@@ -172,6 +173,7 @@ inline bool is_type(PyObject* obj, Type type) {
 inline bool is_non_tagged_type(PyObject* obj, Type type) {
 #if DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
+    if(is_special(obj)) throw std::runtime_error("is_non_tagged_type() called with special object");
 #endif
     return !is_tagged(obj) && obj->type == type;
 }

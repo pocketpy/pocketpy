@@ -120,6 +120,7 @@ struct PyObject;
 inline bool is_tagged(PyObject* p) noexcept { return (BITS(p) & 0b11) != 0b00; }
 inline bool is_int(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b01; }
 inline bool is_float(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b10; }
+inline bool is_special(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b11; }
 
 inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
     return is_tagged(a) && is_tagged(b);
@@ -128,6 +129,12 @@ inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
 inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
+
+// special singals, is_tagged() for them is true
+inline PyObject* const PY_NULL = (PyObject*)0b000011;
+inline PyObject* const PY_BEGIN_CALL = (PyObject*)0b010011;
+inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
+inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 
 struct Expr;
 typedef std::unique_ptr<Expr> Expr_;
