@@ -34,13 +34,13 @@ struct FuncDecl {
     pod_vector<KwArg> kwargs;   // indices in co->varnames
     bool nested = false;        // whether this function is nested
     void _gc_mark() const;
-    bool is_simple() const { return kwargs.empty() && starred_arg == -1; }
 };
 
 using FuncDecl_ = shared_ptr<FuncDecl>;
 
 struct Function{
     FuncDecl_ decl;
+    bool is_simple;
     PyObject* _module;
     NameDict_ _closure;
 };

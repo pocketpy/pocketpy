@@ -875,7 +875,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
-    PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
+    PyObject* _module = fn._module != nullptr ? fn._module : callstack.top()._module;
 
     if(args.size() < fn.decl->args.size()){
         vm->TypeError(fmt(
@@ -887,9 +887,9 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
         ));
     }
 
-    // if this function is simple, a.k.a, no kwargs or *args
-    // we can avoid using buffer copy
-    if(fn.decl->is_simple() && !co->is_generator){
+    // if this function is simple, a.k.a, no kwargs and no *args and not a generator
+    // we can use a fast path to avoid using buffer copy
+    if(fn.is_simple){
 #if DEBUG_EXTRA_CHECK
         for(PyObject** p=p0; p<args.begin(); p++) *p = nullptr;
 #endif
