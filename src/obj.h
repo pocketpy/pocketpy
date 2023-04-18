@@ -13,16 +13,17 @@ class VM;
 
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 typedef std::function<PyObject*(VM*, ArgsView)> NativeFuncCpp;
-using NativeFuncRaw = std::variant<NativeFuncC, NativeFuncCpp>;
 
 typedef shared_ptr<CodeObject> CodeObject_;
 
 struct NativeFunc {
-    NativeFuncRaw f;
+    NativeFuncC f;
+    NativeFuncCpp f_cpp;
     int argc;       // DONOT include self
     bool method;
     
-    NativeFunc(NativeFuncRaw f, int argc, bool method) : f(f), argc(argc), method(method) {}
+    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method) {}
+    NativeFunc(NativeFuncCpp f, int argc, bool method) : f(nullptr), f_cpp(f), argc(argc), method(method) {}
     PyObject* operator()(VM* vm, ArgsView args) const;
 };
 

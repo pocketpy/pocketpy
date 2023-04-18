@@ -395,11 +395,8 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     if(argc != -1 && args_size != argc) {
         vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
     }
-    if(std::holds_alternative<NativeFuncC>(f)){
-        return std::get<NativeFuncC>(f)(vm, args);
-    }else{
-        return std::get<NativeFuncCpp>(f)(vm, args);
-    }
+    if(f != nullptr) return f(vm, args);
+    return f_cpp(vm, args);
 }
 
 inline void CodeObject::optimize(VM* vm){
