@@ -901,10 +901,12 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     int i = 0;
     static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
-    memset(buffer, 0, sizeof(void*) * co->varnames.size());
 
     // prepare args
     for(int index: fn.decl->args) buffer[index] = args[i++];
+    // set extra varnames to nullptr
+    for(int j=i; j<co->varnames.size(); j++) buffer[j] = nullptr;
+
     // prepare kwdefaults
     for(auto& kv: fn.decl->kwargs) buffer[kv.key] = kv.value;
     
