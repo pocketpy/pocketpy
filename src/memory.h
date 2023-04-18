@@ -237,8 +237,8 @@ inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
 // inline MemoryPool<256> pool256;
 
-#define SP_MALLOC(size) pool64.alloc(size)
-#define SP_FREE(p) pool64.dealloc(p)
+#define SP_MALLOC(size) pool128.alloc(size)
+#define SP_FREE(p) pool128.dealloc(p)
 
 template <typename T>
 struct shared_ptr {
