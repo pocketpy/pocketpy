@@ -102,6 +102,7 @@ struct Frame {
     int _ip = -1;
     int _next_ip = 0;
     ValueStack* _s;
+    // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyObject** _sp_base;
 
     const CodeObject* co;
@@ -137,8 +138,9 @@ struct Frame {
         return co->src->snapshot(line);
     }
 
-    int stack_size() const { return _s->_sp - _sp_base; }
-    ArgsView stack_view() const { return ArgsView(_sp_base, _s->_sp); }
+    PyObject** actual_sp_base() const { return _locals.a; }
+    int stack_size() const { return _s->_sp - actual_sp_base(); }
+    ArgsView stack_view() const { return ArgsView(actual_sp_base(), _s->_sp); }
 
     void jump_abs(int i){ _next_ip = i; }
     // void jump_rel(int i){ _next_ip += i; }
@@ -155,8 +157,8 @@ struct Frame {
         // get the stack size of the try block (depth of for loops)
         int _stack_size = co->blocks[block].for_loop_depth;
         if(stack_size() < _stack_size) throw std::runtime_error("invalid stack size");
-        _s->reset(_sp_base + _stack_size);             // rollback the stack   
-        _s->push(obj);                      // push exception object
+        _s->reset(actual_sp_base() + _stack_size);          // rollback the stack   
+        _s->push(obj);                                      // push exception object
         _next_ip = co->blocks[block].end;
         return true;
     }

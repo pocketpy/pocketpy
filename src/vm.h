@@ -593,6 +593,33 @@ inline PyObject* VM::new_module(StrName name) {
     return obj;
 }
 
+inline std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
+    std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+    switch(byte.op){
+        case OP_LOAD_CONST:
+            if(vm != nullptr){
+                argStr += fmt(" (", CAST(Str, vm->asRepr(co->consts[byte.arg])), ")");
+            }
+            break;
+        case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
+        case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
+        case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
+        case OP_DELETE_GLOBAL:
+            argStr += fmt(" (", StrName(byte.arg).sv(), ")");
+            break;
+        case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST:
+            argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
+            break;
+        case OP_BINARY_OP:
+            argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
+            break;
+        case OP_LOAD_FUNCTION:
+            argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")");
+            break;
+    }
+    return argStr;
+}
+
 inline Str VM::disassemble(CodeObject_ co){
     auto pad = [](const Str& s, const int n){
         if(s.length() >= n) return s.substr(0, n);
@@ -625,27 +652,7 @@ inline Str VM::disassemble(CodeObject_ co){
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
         ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-        std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
-        switch(byte.op){
-            case OP_LOAD_CONST:
-                argStr += fmt(" (", CAST(Str, asRepr(co->consts[byte.arg])), ")");
-                break;
-            case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
-            case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
-            case OP_IMPORT_NAME: case OP_BEGIN_CLASS:
-            case OP_DELETE_GLOBAL:
-                argStr += fmt(" (", StrName(byte.arg).sv(), ")");
-                break;
-            case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST:
-                argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
-                break;
-            case OP_BINARY_OP:
-                argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
-                break;
-            case OP_LOAD_FUNCTION:
-                argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")");
-                break;
-        }
+        std::string argStr = _opcode_argstr(this, byte, co.get());
         ss << pad(argStr, 40);      // may overflow
         ss << co->blocks[byte.block].type;
         if(i != co->codes.size() - 1) ss << '\n';
@@ -706,7 +713,7 @@ inline void VM::_log_s_data(const char* title) {
     }
     output.push_back(']');
     Bytecode byte = frame->co->codes[frame->_ip];
-    std::cout << output << " " << OP_NAMES[byte.op] << std::endl;
+    std::cout << output << " " << OP_NAMES[byte.op] << " " << _opcode_argstr(nullptr, byte, frame->co) << std::endl;
 }
 
 inline void VM::init_builtin_types(){
@@ -868,11 +875,8 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
+    PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
 
-    static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
-    for(int i=0; i<co->varnames.size(); i++) buffer[i] = nullptr;
-
-    int i = 0;
     if(args.size() < fn.decl->args.size()){
         vm->TypeError(fmt(
             "expected ",
@@ -882,6 +886,22 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
             " (", fn.decl->code->name, ')'
         ));
     }
+
+    // if this function is simple, a.k.a, no kwargs or *args
+    // we can avoid using buffer copy
+    if(fn.decl->is_simple() && !co->is_generator){
+#if DEBUG_EXTRA_CHECK
+        for(PyObject** p=p0; p<args.begin(); p++) *p = nullptr;
+#endif
+        int spaces = co->varnames.size() - fn.decl->args.size();
+        for(int j=0; j<spaces; j++) PUSH(nullptr);
+        callstack.emplace(&s_data, p0, co, _module, callable, FastLocals(co, args.begin()));
+        return nullptr;
+    }
+
+    int i = 0;
+    static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
+    memset(buffer, 0, sizeof(void*) * co->varnames.size());
 
     // prepare args
     for(int index: fn.decl->args) buffer[index] = args[i++];
@@ -911,7 +931,6 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
         if(index<0) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
         buffer[index] = kwargs[i+1];
     }
-    PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     
     s_data.reset(p0);
     if(co->is_generator){
