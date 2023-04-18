@@ -208,6 +208,5 @@ while(!_items[i].first.empty()) {       \
 using NameDict = NameDictImpl<PyObject*>;
 using NameDict_ = shared_ptr<NameDict>;
 using NameDictInt = NameDictImpl<int>;
-using NameDictInt_ = shared_ptr<NameDictInt>;
 
 } // namespace pkpy

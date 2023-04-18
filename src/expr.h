@@ -94,17 +94,17 @@ struct CodeEmitContext{
     }
 
     bool add_label(StrName name){
-        if(co->labels->contains(name)) return false;
-        co->labels->set(name, co->codes.size());
+        if(co->labels.contains(name)) return false;
+        co->labels.set(name, co->codes.size());
         return true;
     }
 
     int add_varname(StrName name){
-        int index = co->varnames_inv->try_get(name);
+        int index = co->varnames_inv.try_get(name);
         if(index >= 0) return index;
         co->varnames.push_back(name);
         index = co->varnames.size() - 1;
-        co->varnames_inv->set(name, index);
+        co->varnames_inv.set(name, index);
         return index;
     }
 
@@ -131,7 +131,7 @@ struct NameExpr: Expr{
     std::string str() const override { return fmt("Name(", name.escape(), ")"); }
 
     void emit(CodeEmitContext* ctx) override {
-        int index = ctx->co->varnames_inv->try_get(name);
+        int index = ctx->co->varnames_inv.try_get(name);
         if(scope == NAME_LOCAL && index >= 0){
             ctx->emit(OP_LOAD_FAST, index, line);
         }else{

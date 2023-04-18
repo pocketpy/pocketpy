@@ -53,19 +53,16 @@ struct CodeObject {
     bool is_generator = false;
 
     CodeObject(shared_ptr<SourceData> src, const Str& name):
-        src(src), name(name) {
-            varnames_inv = make_sp<NameDictInt>();
-            labels = make_sp<NameDictInt>();
-        }
+        src(src), name(name) {}
 
     std::vector<Bytecode> codes;
     std::vector<int> lines; // line number for each bytecode
     List consts;
     std::vector<StrName> varnames;      // local variables
-    NameDictInt_ varnames_inv;
+    NameDictInt varnames_inv;
     std::set<Str> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
-    NameDictInt_ labels;
+    NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
     void optimize(VM* vm);

@@ -8,8 +8,10 @@
 
 namespace pkpy{
 
+// weak reference fast locals
 struct FastLocals{
-    NameDictInt_ varnames_inv;
+    // this is a weak reference
+    const NameDictInt* varnames_inv;
     PyObject** a;
 
     int size() const{
@@ -19,19 +21,10 @@ struct FastLocals{
     PyObject*& operator[](int i){ return a[i]; }
     PyObject* operator[](int i) const { return a[i]; }
 
-    FastLocals(): varnames_inv(nullptr), a(nullptr) {}
-    FastLocals(std::nullptr_t): varnames_inv(nullptr), a(nullptr) {}
-
-    FastLocals(const CodeObject* co): varnames_inv(co->varnames_inv){
-        size_t size = this->size() * sizeof(void*);
-        int* counter = (int*)pool128.alloc(sizeof(int) + size);
-        *counter = 1;
-        a = (PyObject**)(counter + 1);
-        memset(a, 0, this->size() * sizeof(void*));
-    }
+    FastLocals(const CodeObject* co, PyObject** a): varnames_inv(&co->varnames_inv), a(a) {}
+    FastLocals(const FastLocals& other): varnames_inv(other.varnames_inv), a(other.a) {}
 
     PyObject* try_get(StrName name){
-        if(!is_valid()) return nullptr;
         int index = varnames_inv->try_get(name);
         if(index == -1) return nullptr;
         return a[index];
@@ -42,95 +35,31 @@ struct FastLocals{
     }
 
     void erase(StrName name){
-        if(!is_valid()) return;
         int index = varnames_inv->try_get(name);
         if(index == -1) FATAL_ERROR();
         a[index] = nullptr;
     }
 
-    bool _try_set(StrName name, PyObject* value){
+    bool try_set(StrName name, PyObject* value){
         int index = varnames_inv->try_get(name);
         if(index == -1) return false;
         a[index] = value;
         return true;
     }
 
-    bool try_set(StrName name, PyObject* value){
-        if(!is_valid()) return false;
-        return _try_set(name, value);
-    }
-
-    FastLocals(const FastLocals& other){
-        varnames_inv = other.varnames_inv;
-        a = other.a;
-        _inc_counter();
-    }
-
-    FastLocals(FastLocals&& other) noexcept{
-        varnames_inv = std::move(other.varnames_inv);
-        a = other.a;
-        other.a = nullptr;
-    }
-
-    FastLocals& operator=(const FastLocals& other){
-        _dec_counter();
-        varnames_inv = other.varnames_inv;
-        a = other.a;
-        _inc_counter();
-        return *this;
-    }
-
-    FastLocals& operator=(FastLocals&& other) noexcept{
-        _dec_counter();
-        varnames_inv = std::move(other.varnames_inv);
-        a = other.a;
-        other.a = nullptr;
-        return *this;
-    }
-
-    bool is_valid() const{ return a != nullptr; }
-
-    void _inc_counter(){
-        if(a == nullptr) return;
-        int* counter = (int*)a - 1;
-        (*counter)++;
-    }
-
-    void _dec_counter(){
-        if(a == nullptr) return;
-        int* counter = (int*)a - 1;
-        (*counter)--;
-        if(*counter == 0){
-            pool128.dealloc(counter);
+    NameDict_ to_namedict(){
+        NameDict_ dict = make_sp<NameDict>();
+        // TODO: optimize this
+        // NameDict.items() is expensive
+        for(auto& kv: varnames_inv->items()){
+            dict->set(kv.first, a[kv.second]);
         }
-    }
-
-    ~FastLocals(){
-        _dec_counter();
-    }
-
-    void _gc_mark() const{
-        if(a == nullptr) return;
-        for(int i=0; i<size(); i++){
-            if(a[i] != nullptr) OBJ_MARK(a[i]);
-        }
+        return dict;
     }
 };
-
-struct Function{
-    FuncDecl_ decl;
-    PyObject* _module;
-    FastLocals _closure;
-};
-
-template<> inline void gc_mark<Function>(Function& t){
-    t.decl->_gc_mark();
-    if(t._module != nullptr) OBJ_MARK(t._module);
-    t._closure._gc_mark();
-}
 
 struct ValueStack {
-    static const size_t MAX_SIZE = 8192;
+    static const size_t MAX_SIZE = 32768;
     // We allocate 512 more bytes to keep `_sp` valid when `is_overflow() == true`.
     PyObject* _begin[MAX_SIZE + 512];
     PyObject** _sp;
@@ -174,33 +103,29 @@ struct Frame {
     int _next_ip = 0;
     ValueStack* _s;
     PyObject** _sp_base;
-    const CodeObject* co;
 
+    const CodeObject* co;
     PyObject* _module;
-    FastLocals _locals;
     PyObject* _callable;
+    FastLocals _locals;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
     
     PyObject* f_closure_try_get(StrName name){
         if(_callable == nullptr) return nullptr;
         Function& fn = OBJ_GET(Function, _callable);
-        return fn._closure.try_get(name);
+        if(fn._closure == nullptr) return nullptr;
+        return fn._closure->try_get(name);
     }
 
-    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, FastLocals&& _locals, PyObject* _callable)
-            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(std::move(_locals)), _callable(_callable) { }
+    Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
+            : _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
 
-    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject* co, PyObject* _module, const FastLocals& _locals, PyObject* _callable)
-            : _s(_s), _sp_base(_sp_base), co(co), _module(_module), _locals(_locals), _callable(_callable) { }
+    Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
+            : _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
-    Frame(ValueStack* _s, PyObject** _sp_base, const CodeObject_& co, PyObject* _module)
-            : _s(_s), _sp_base(_sp_base), co(co.get()), _module(_module), _locals(), _callable(nullptr) { }
-
-    Frame(const Frame& other) = delete;
-    Frame& operator=(const Frame& other) = delete;
-    Frame(Frame&& other) noexcept = default;
-    Frame& operator=(Frame&& other) noexcept = default;
+    Frame(ValueStack* _s, PyObject** p0, const CodeObject_& co, PyObject* _module)
+            : _s(_s), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     Bytecode next_bytecode() {
         _ip = _next_ip++;
@@ -255,10 +180,7 @@ struct Frame {
     }
 
     void _gc_mark() const {
-        // do return if this frame has been moved
-        // TODO: fix here
         OBJ_MARK(_module);
-        _locals._gc_mark();
         if(_callable != nullptr) OBJ_MARK(_callable);
         co->_gc_mark();
     }

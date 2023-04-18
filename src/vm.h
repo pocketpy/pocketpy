@@ -864,13 +864,15 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     return nullptr;
 }
 
-inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView args, ArgsView kwargs){
+inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, ArgsView kwargs){
     // callable must be a `function` object
     if(callstack.size() >= recursionlimit) RecursionError();
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
-    FastLocals locals(co);
+
+    static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
+    for(int i=0; i<co->varnames.size(); i++) buffer[i] = nullptr;
 
     int i = 0;
     if(args.size() < fn.decl->args.size()){
@@ -884,20 +886,20 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
     }
 
     // prepare args
-    for(int index: fn.decl->args) locals[index] = args[i++];
+    for(int index: fn.decl->args) buffer[index] = args[i++];
     // prepare kwdefaults
-    for(auto& kv: fn.decl->kwargs) locals[kv.key] = kv.value;
+    for(auto& kv: fn.decl->kwargs) buffer[kv.key] = kv.value;
     
     // handle *args
     if(fn.decl->starred_arg != -1){
         List vargs;        // handle *args
         while(i < args.size()) vargs.push_back(args[i++]);
-        locals[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
+        buffer[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
     }else{
         // kwdefaults override
         for(auto& kv: fn.decl->kwargs){
             if(i < args.size()){
-                locals[kv.key] = args[i++];
+                buffer[kv.key] = args[i++];
             }else{
                 break;
             }
@@ -907,17 +909,21 @@ inline PyObject* VM::_py_call(PyObject** sp_base, PyObject* callable, ArgsView a
     
     for(int i=0; i<kwargs.size(); i+=2){
         StrName key = CAST(int, kwargs[i]);
-        bool ok = locals._try_set(key, kwargs[i+1]);
-        if(!ok) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+        int index = co->varnames_inv.try_get(key);
+        if(index<0) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+        buffer[index] = kwargs[i+1];
     }
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     
-    s_data.reset(sp_base);
+    s_data.reset(p0);
+    // copy buffer to stack
+    for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
+
     if(co->is_generator){
-        PyObject* ret = PyIter(Generator(this, Frame(&s_data, s_data._sp, co, _module, std::move(locals), callable)));
+        PyObject* ret = PyIter(Generator(this, Frame(&s_data, p0, co, _module, callable)));
         return ret;
     }
-    callstack.emplace(&s_data, s_data._sp, co, _module, std::move(locals), callable);
+    callstack.emplace(&s_data, p0, co, _module, callable);
     return nullptr;
 }
 

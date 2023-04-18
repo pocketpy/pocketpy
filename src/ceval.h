@@ -85,7 +85,7 @@ __NEXT_STEP:;
         FuncDecl_ decl = co->func_decls[byte.arg];
         PyObject* obj;
         if(decl->nested){
-            obj = VAR(Function({decl, frame->_module, frame->_locals}));
+            obj = VAR(Function({decl, frame->_module, frame->_locals.to_namedict()}));
         }else{
             obj = VAR(Function({decl, frame->_module}));
         }
@@ -151,7 +151,7 @@ __NEXT_STEP:;
     TARGET(STORE_NAME)
         _name = StrName(byte.arg);
         _0 = POPX();
-        if(frame->_locals.is_valid()){
+        if(frame->_callable != nullptr){
             bool ok = frame->_locals.try_set(_name, _0);
             if(!ok) vm->NameError(_name);
         }else{
@@ -180,7 +180,7 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(DELETE_NAME)
         _name = StrName(byte.arg);
-        if(frame->_locals.is_valid()){
+        if(frame->_callable != nullptr){
             if(!frame->_locals.contains(_name)) vm->NameError(_name);
             frame->_locals.erase(_name);
         }else{
@@ -362,7 +362,7 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(GOTO) {
         StrName name(byte.arg);
-        int index = co->labels->try_get(name);
+        int index = co->labels.try_get(name);
         if(index < 0) _error("KeyError", fmt("label ", name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();

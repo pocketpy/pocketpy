@@ -51,6 +51,10 @@
 #define PK_ENABLE_FILEIO 			0	// TODO: refactor this
 #endif
 
+// This is the maximum number of arguments in a function declaration
+// including positional arguments, keyword-only arguments, and varargs
+#define PK_MAX_CO_VARNAMES			255
+
 #if _MSC_VER
 #define PK_ENABLE_COMPUTED_GOTO		0
 #define UNREACHABLE()				__assume(0)

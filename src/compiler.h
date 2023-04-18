@@ -68,6 +68,9 @@ class Compiler {
             ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         }
         ctx()->co->optimize(vm);
+        if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
+            SyntaxError("maximum number of local variables exceeded");
+        }
         contexts.pop();
     }
 

@@ -38,6 +38,12 @@ struct FuncDecl {
 
 using FuncDecl_ = shared_ptr<FuncDecl>;
 
+struct Function{
+    FuncDecl_ decl;
+    PyObject* _module;
+    NameDict_ _closure;
+};
+
 struct BoundMethod {
     PyObject* obj;
     PyObject* method;

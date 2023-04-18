@@ -99,13 +99,13 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("eval", [](VM* vm, ArgsView args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
         FrameId frame = vm->top_frame();
-        return vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
+        return vm->_exec(code.get(), frame->_module, nullptr, frame->_locals);
     });
 
     _vm->bind_builtin_func<1>("exec", [](VM* vm, ArgsView args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
         FrameId frame = vm->top_frame();
-        vm->_exec(code.get(), frame->_module, frame->_locals, nullptr);
+        vm->_exec(code.get(), frame->_module, nullptr, frame->_locals);
         return vm->None;
     });
 

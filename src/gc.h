@@ -141,6 +141,12 @@ template<> inline void gc_mark<BoundMethod>(BoundMethod& t){
     OBJ_MARK(t.method);
 }
 
+template<> inline void gc_mark<Function>(Function& t){
+    t.decl->_gc_mark();
+    if(t._module != nullptr) OBJ_MARK(t._module);
+    if(t._closure != nullptr) gc_mark<NameDict>(*t._closure);
+}
+
 template<> inline void gc_mark<Super>(Super& t){
     OBJ_MARK(t.first);
 }
