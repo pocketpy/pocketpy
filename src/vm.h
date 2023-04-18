@@ -104,8 +104,6 @@ public:
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception;
 
-    i64 recursionlimit = 1000;
-
     VM(bool use_stdio) : heap(this){
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
@@ -331,7 +329,6 @@ public:
     }
 
     void StackOverflowError() { _error("StackOverflowError", ""); }
-    void RecursionError() { _error("RecursionError", "maximum recursion depth exceeded"); }
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
@@ -866,7 +863,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
 inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, ArgsView kwargs){
     // callable must be a `function` object
-    if(callstack.size() >= recursionlimit) RecursionError();
+    if(s_data.is_overflow()) StackOverflowError();
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
