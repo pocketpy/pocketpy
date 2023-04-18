@@ -207,32 +207,26 @@ public:
         callstack.pop();
     }
 
-    void _push_varargs(int n, ...){
-        va_list args;
-        va_start(args, n);
-        for(int i=0; i<n; i++){
-            PyObject* obj = va_arg(args, PyObject*);
-            PUSH(obj);
-        }
-        va_end(args);
-    }
+    void _push_varargs(){ }
+    void _push_varargs(PyObject* _0){ PUSH(_0); }
+    void _push_varargs(PyObject* _0, PyObject* _1){ PUSH(_0); PUSH(_1); }
+    void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
+    void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
 
     template<typename... Args>
     PyObject* call(PyObject* callable, Args&&... args){
         PUSH(callable);
         PUSH(_py_null);
-        int ARGC = sizeof...(args);
-        _push_varargs(ARGC, args...);
-        return vectorcall(ARGC);
+        _push_varargs(args...);
+        return vectorcall(sizeof...(args));
     }
 
     template<typename... Args>
     PyObject* call_method(PyObject* self, PyObject* callable, Args&&... args){
         PUSH(callable);
         PUSH(self);
-        int ARGC = sizeof...(args);
-        _push_varargs(ARGC, args...);
-        return vectorcall(ARGC);
+        _push_varargs(args...);
+        return vectorcall(sizeof...(args));
     }
 
     template<typename... Args>
