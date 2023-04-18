@@ -939,7 +939,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* objtype = _t(obj);
     // handle super() proxy
-    if(is_type(obj, tp_super)){
+    if(is_non_tagged_type(obj, tp_super)){
         const Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
@@ -957,7 +957,7 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     }
     if(cls_var != nullptr){
         // bound method is non-data descriptor
-        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_func)){
+        if(is_non_tagged_type(cls_var, tp_function) || is_non_tagged_type(cls_var, tp_native_func)){
             return VAR(BoundMethod(obj, cls_var));
         }
         return cls_var;
@@ -972,7 +972,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     *self = _py_null;
     PyObject* objtype = _t(obj);
     // handle super() proxy
-    if(is_type(obj, tp_super)){
+    if(is_non_tagged_type(obj, tp_super)){
         const Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
@@ -993,7 +993,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     }
 
     if(cls_var != nullptr){
-        if(is_type(cls_var, tp_function) || is_type(cls_var, tp_native_func)){
+        if(is_non_tagged_type(cls_var, tp_function) || is_non_tagged_type(cls_var, tp_native_func)){
             *self = obj;
         }
         return cls_var;
@@ -1005,7 +1005,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
 inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     PyObject* objtype = _t(obj);
     // handle super() proxy
-    if(is_type(obj, tp_super)){
+    if(is_non_tagged_type(obj, tp_super)){
         Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
