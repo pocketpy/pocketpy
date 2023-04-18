@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ceval.h"
+#include "frame.h"
 
 namespace pkpy{
 
@@ -68,6 +69,7 @@ inline PyObject* Generator::next(){
     if(state == 2) return nullptr;
     // reset frame._sp_base
     frame._sp_base = frame._s->_sp;
+    frame._locals.a = frame._s->_sp;
     // restore the context
     for(PyObject* obj: s_backup) frame._s->push(obj);
     s_backup.clear();

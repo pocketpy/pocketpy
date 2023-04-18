@@ -51,7 +51,9 @@ class Generator final: public BaseIter {
     int state;      // 0,1,2
     List s_backup;
 public:
-    Generator(VM* vm, Frame&& frame): BaseIter(vm), frame(std::move(frame)), state(0) {}
+    Generator(VM* vm, Frame&& frame, ArgsView buffer): BaseIter(vm), frame(std::move(frame)), state(0) {
+        for(PyObject* obj: buffer) s_backup.push_back(obj);
+    }
 
     PyObject* next() override;
     void _gc_mark() const override;
@@ -97,6 +99,8 @@ public:
     std::ostream* _stdout;
     std::ostream* _stderr;
 
+    bool _initialized;
+
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
@@ -109,7 +113,9 @@ public:
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
         this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
         callstack.reserve(8);
+        _initialized = false;
         init_builtin_types();
+        _initialized = true;
     }
 
     bool is_stdio_used() const { return _stdout == &std::cout; }
@@ -660,6 +666,7 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::_log_s_data(const char* title) {
+    if(!_initialized) return;
     if(callstack.empty()) return;
     std::stringstream ss;
     if(title) ss << title << " | ";
@@ -913,13 +920,17 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     PyObject* _module = fn._module != nullptr ? fn._module : top_frame()->_module;
     
     s_data.reset(p0);
-    // copy buffer to stack
-    for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
-
     if(co->is_generator){
-        PyObject* ret = PyIter(Generator(this, Frame(&s_data, p0, co, _module, callable)));
+        PyObject* ret = PyIter(Generator(
+            this,
+            Frame(&s_data, nullptr, co, _module, callable),
+            ArgsView(buffer, buffer + co->varnames.size())
+        ));
         return ret;
     }
+
+    // copy buffer to stack
+    for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
     callstack.emplace(&s_data, p0, co, _module, callable);
     return nullptr;
 }
@@ -1041,7 +1052,8 @@ inline void VM::_error(Exception e){
 inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
-    for(PyObject* obj: vm->s_data) OBJ_MARK(obj);
+    // TODO: avoid use nullptr?
+    for(PyObject* obj: vm->s_data) if(obj != nullptr) OBJ_MARK(obj);
 }
 
 inline Str obj_type_name(VM *vm, Type type){
