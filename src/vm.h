@@ -9,7 +9,6 @@
 #include "obj.h"
 #include "str.h"
 #include "tuplelist.h"
-#include <tuple>
 
 namespace pkpy{
 
@@ -231,7 +230,7 @@ public:
         return call_method(self, callable, args...);
     }
 
-    PyObject* property(NativeFuncRaw fget){
+    PyObject* property(NativeFuncC fget){
         PyObject* p = builtins->attr("property");
         PyObject* method = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
         return call(p, method);
@@ -264,12 +263,12 @@ public:
     }
 
     template<int ARGC>
-    void bind_func(Str type, Str name, NativeFuncRaw fn) {
+    void bind_func(Str type, Str name, NativeFuncC fn) {
         bind_func<ARGC>(_find_type(type), name, fn);
     }
 
     template<int ARGC>
-    void bind_method(Str type, Str name, NativeFuncRaw fn) {
+    void bind_method(Str type, Str name, NativeFuncC fn) {
         bind_method<ARGC>(_find_type(type), name, fn);
     }
 
@@ -279,12 +278,12 @@ public:
     }
 
     template<int ARGC>
-    void _bind_methods(std::vector<Str> types, Str name, NativeFuncRaw fn) {
+    void _bind_methods(std::vector<Str> types, Str name, NativeFuncC fn) {
         for(auto& type: types) bind_method<ARGC>(type, name, fn);
     }
 
     template<int ARGC>
-    void bind_builtin_func(Str name, NativeFuncRaw fn) {
+    void bind_builtin_func(Str name, NativeFuncC fn) {
         bind_func<ARGC>(builtins, name, fn);
     }
 
@@ -379,9 +378,13 @@ public:
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
-    void bind_method(PyObject*, Str, NativeFuncRaw);
+    void bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
-    void bind_func(PyObject*, Str, NativeFuncRaw);
+    void bind_func(PyObject*, Str, NativeFuncC);
+    template<int ARGC>
+    void bind_cpp_method(PyObject*, Str, NativeFuncCpp);
+    template<int ARGC>
+    void bind_cpp_func(PyObject*, Str, NativeFuncCpp);
     void _error(Exception);
     PyObject* _run_top_frame();
     void post_init();
@@ -392,7 +395,11 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     if(argc != -1 && args_size != argc) {
         vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
     }
-    return f(vm, args);
+    if(std::holds_alternative<NativeFuncC>(f)){
+        return std::get<NativeFuncC>(f)(vm, args);
+    }else{
+        return std::get<NativeFuncCpp>(f)(vm, args);
+    }
 }
 
 inline void CodeObject::optimize(VM* vm){
@@ -1035,13 +1042,24 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 }
 
 template<int ARGC>
-void VM::bind_method(PyObject* obj, Str name, NativeFuncRaw fn) {
+void VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_type(obj, tp_type);
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
 }
 
 template<int ARGC>
-void VM::bind_func(PyObject* obj, Str name, NativeFuncRaw fn) {
+void VM::bind_cpp_method(PyObject* obj, Str name, NativeFuncCpp fn) {
+    check_type(obj, tp_type);
+    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
+}
+
+template<int ARGC>
+void VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
+    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
+}
+
+template<int ARGC>
+void VM::bind_cpp_func(PyObject* obj, Str name, NativeFuncCpp fn) {
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
 }
 

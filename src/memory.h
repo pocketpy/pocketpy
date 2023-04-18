@@ -112,7 +112,7 @@ struct DoubleLinkedList{
 
     int size() const { return _size; }
 
-    void apply(std::function<void(T*)> func){
+    void apply(void (*func)(T*)){
         LinkedListNode* p = head.next;
         while(p != &tail){
             LinkedListNode* next = p->next;

@@ -739,10 +739,10 @@ struct Random{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<0>(type, "__new__", CPP_LAMBDA(VAR_T(Random)));
-        vm->bind_method<1>(type, "seed", native_proxy_callable(&Random::seed));
-        vm->bind_method<2>(type, "randint", native_proxy_callable(&Random::randint));
-        vm->bind_method<0>(type, "random", native_proxy_callable(&Random::random));
-        vm->bind_method<2>(type, "uniform", native_proxy_callable(&Random::uniform));
+        vm->bind_cpp_method<1>(type, "seed", native_proxy_callable(&Random::seed));
+        vm->bind_cpp_method<2>(type, "randint", native_proxy_callable(&Random::randint));
+        vm->bind_cpp_method<0>(type, "random", native_proxy_callable(&Random::random));
+        vm->bind_cpp_method<2>(type, "uniform", native_proxy_callable(&Random::uniform));
     }
 };
 
@@ -956,7 +956,7 @@ extern "C" {
         for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
         std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
         pkpy::PyObject* obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
-        vm->bind_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, pkpy::ArgsView args){
+        vm->bind_cpp_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, pkpy::ArgsView args){
             std::stringstream ss;
             ss << f_header;
             for(int i=0; i<args.size(); i++){

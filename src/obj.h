@@ -11,7 +11,10 @@ struct Frame;
 struct Function;
 class VM;
 
-typedef std::function<PyObject*(VM*, ArgsView)> NativeFuncRaw;
+typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
+typedef std::function<PyObject*(VM*, ArgsView)> NativeFuncCpp;
+using NativeFuncRaw = std::variant<NativeFuncC, NativeFuncCpp>;
+
 typedef shared_ptr<CodeObject> CodeObject_;
 
 struct NativeFunc {
