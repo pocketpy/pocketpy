@@ -82,6 +82,7 @@ inline PyObject* Generator::next(){
         for(PyObject* obj: frame.stack_view()) s_backup.push_back(obj);
         vm->_pop_frame();
         state = 1;
+        if(ret == vm->StopIteration) state = 2;
         return ret;
     }else{
         state = 2;
