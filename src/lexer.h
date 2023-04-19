@@ -9,7 +9,7 @@ namespace pkpy{
 typedef uint8_t TokenIndex;
 
 constexpr const char* kTokens[] = {
-    "is not", "not in",
+    "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
     "@id", "@num", "@str", "@fstr",
     "@indent", "@dedent",
@@ -229,6 +229,12 @@ struct Lexer {
                 if(strncmp(curr_char, " not", 4) == 0){
                     curr_char += 4;
                     add_token(TK("is not"));
+                    return 0;
+                }
+            }else if(name == "yield"){
+                if(strncmp(curr_char, " from", 5) == 0){
+                    curr_char += 5;
+                    add_token(TK("yield from"));
                     return 0;
                 }
             }

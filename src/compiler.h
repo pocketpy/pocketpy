@@ -730,6 +730,19 @@ __SUBSCR_END:
                 ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
+            case TK("yield from"):
+                if (contexts.size() <= 1) SyntaxError("'yield from' outside function");
+                EXPR_TUPLE(false);
+                // if yield from present, mark the function as generator
+                ctx()->co->is_generator = true;
+                ctx()->emit(OP_GET_ITER, BC_NOARG, kw_line);
+                ctx()->enter_block(FOR_LOOP);
+                ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+                ctx()->exit_block();
+                consume_end_stmt();
+                break;
             case TK("return"):
                 if (contexts.size() <= 1) SyntaxError("'return' outside function");
                 if(match_end_stmt()){
