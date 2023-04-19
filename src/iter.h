@@ -19,7 +19,7 @@ public:
     }
 
     PyObject* next(){
-        if(!_has_next()) return nullptr;
+        if(!_has_next()) return vm->StopIteration;
         current += r.step;
         return VAR(current-r.step);
     }
@@ -37,7 +37,7 @@ public:
     }
 
     PyObject* next() override{
-        if(index >= array->size()) return nullptr;
+        if(index >= array->size()) return vm->StopIteration;
         return array->operator[](index++);
     }
 
@@ -56,7 +56,7 @@ public:
         // TODO: optimize this to use iterator
         // operator[] is O(n) complexity
         Str* str = &OBJ_GET(Str, ref);
-        if(index == str->u8_length()) return nullptr;
+        if(index == str->u8_length()) return vm->StopIteration;
         return VAR(str->u8_getitem(index++));
     }
 
@@ -66,7 +66,7 @@ public:
 };
 
 inline PyObject* Generator::next(){
-    if(state == 2) return nullptr;
+    if(state == 2) return vm->StopIteration;
     // reset frame._sp_base
     frame._sp_base = frame._s->_sp;
     frame._locals.a = frame._s->_sp;
@@ -85,7 +85,7 @@ inline PyObject* Generator::next(){
         return ret;
     }else{
         state = 2;
-        return nullptr;
+        return vm->StopIteration;
     }
 }
 

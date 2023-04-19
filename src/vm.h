@@ -87,6 +87,7 @@ public:
     PyObject* False;
     PyObject* Ellipsis;
     PyObject* builtins;         // builtins module
+    PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
     std::stringstream _stdout_buffer;
@@ -745,6 +746,7 @@ inline void VM::init_builtin_types(){
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
     this->True = heap._new<Dummy>(tp_bool, {});
     this->False = heap._new<Dummy>(tp_bool, {});
+    this->StopIteration = heap._new<Dummy>(_new_type_object("StopIterationType"), {});
 
     this->builtins = new_module("builtins");
     this->_main = new_module("__main__");
@@ -759,6 +761,7 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("list", _t(tp_list));
     builtins->attr().set("tuple", _t(tp_tuple));
     builtins->attr().set("range", _t(tp_range));
+    builtins->attr().set("StopIteration", StopIteration);
 
     post_init();
     for(int i=0; i<_all_types.size(); i++){

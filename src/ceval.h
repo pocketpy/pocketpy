@@ -426,7 +426,7 @@ __NEXT_STEP:;
         BaseIter* it = _PyIter_AS_C(TOP());
 #endif
         PyObject* obj = it->next();
-        if(obj != nullptr){
+        if(obj != StopIteration){
             PUSH(obj);
         }else{
             int target = co_blocks[byte.block].end;
@@ -474,7 +474,7 @@ __NEXT_STEP:;
         BaseIter* iter = PyIter_AS_C(obj);
         for(int i=0; i<byte.arg; i++){
             PyObject* item = iter->next();
-            if(item == nullptr) ValueError("not enough values to unpack");
+            if(item == StopIteration) ValueError("not enough values to unpack");
             PUSH(item);
         }
         // handle extra items
@@ -482,12 +482,12 @@ __NEXT_STEP:;
             List extras;
             while(true){
                 PyObject* item = iter->next();
-                if(item == nullptr) break;
+                if(item == StopIteration) break;
                 extras.push_back(item);
             }
             PUSH(VAR(extras));
         }else{
-            if(iter->next() != nullptr) ValueError("too many values to unpack");
+            if(iter->next() != StopIteration) ValueError("too many values to unpack");
         }
     } DISPATCH();
     TARGET(UNPACK_UNLIMITED) {
@@ -495,7 +495,7 @@ __NEXT_STEP:;
         PyObject* obj = asIter(POPX());
         BaseIter* iter = PyIter_AS_C(obj);
         obj = iter->next();
-        while(obj != nullptr){
+        while(obj != StopIteration){
             PUSH(obj);
             obj = iter->next();
         }
