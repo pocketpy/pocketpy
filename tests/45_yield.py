@@ -37,3 +37,12 @@ def f():
 
 a = [i for i in f()]
 assert a == [1, 2, 3]
+
+def f(n):
+    for i in range(n):
+        yield i
+        for j in range(i):
+            yield j
+
+t = f(3)
+assert list(t) == [0, 1, 0, 2, 0, 1]
