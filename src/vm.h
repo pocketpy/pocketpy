@@ -384,10 +384,6 @@ public:
     void bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
     void bind_func(PyObject*, Str, NativeFuncC);
-    template<int ARGC>
-    void bind_cpp_method(PyObject*, Str, NativeFuncCpp);
-    template<int ARGC>
-    void bind_cpp_func(PyObject*, Str, NativeFuncCpp);
     void _error(Exception);
     PyObject* _run_top_frame();
     void post_init();
@@ -398,8 +394,7 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     if(argc != -1 && args_size != argc) {
         vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
     }
-    if(f != nullptr) return f(vm, args);
-    return f_cpp(vm, args);
+    return f(vm, args);
 }
 
 inline void CodeObject::optimize(VM* vm){
@@ -1051,18 +1046,7 @@ void VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
 }
 
 template<int ARGC>
-void VM::bind_cpp_method(PyObject* obj, Str name, NativeFuncCpp fn) {
-    check_type(obj, tp_type);
-    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
-}
-
-template<int ARGC>
 void VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
-    obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
-}
-
-template<int ARGC>
-void VM::bind_cpp_func(PyObject* obj, Str name, NativeFuncCpp fn) {
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
 }
 

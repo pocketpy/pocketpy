@@ -5,72 +5,72 @@
 
 namespace pkpy {
 
-template<typename Ret, typename... Params>
-struct NativeProxyFunc {
-    static constexpr int N = sizeof...(Params);
-    using _Fp = Ret(*)(Params...);
-    _Fp func;
-    NativeProxyFunc(_Fp func) : func(func) {}
+// template<typename Ret, typename... Params>
+// struct NativeProxyFunc {
+//     static constexpr int N = sizeof...(Params);
+//     using _Fp = Ret(*)(Params...);
+//     _Fp func;
+//     NativeProxyFunc(_Fp func) : func(func) {}
 
-    PyObject* operator()(VM* vm, ArgsView args) {
-        if (args.size() != N) {
-            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
-        }
-        return call<Ret>(vm, args, std::make_index_sequence<N>());
-    }
+//     PyObject* operator()(VM* vm, ArgsView args) {
+//         if (args.size() != N) {
+//             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
+//         }
+//         return call<Ret>(vm, args, std::make_index_sequence<N>());
+//     }
 
-    template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        func(py_cast<Params>(vm, args[Is])...);
-        return vm->None;
-    }
+//     template<typename __Ret, size_t... Is>
+//     std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+//         func(py_cast<Params>(vm, args[Is])...);
+//         return vm->None;
+//     }
 
-    template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        __Ret ret = func(py_cast<Params>(vm, args[Is])...);
-        return VAR(std::move(ret));
-    }
-};
+//     template<typename __Ret, size_t... Is>
+//     std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+//         __Ret ret = func(py_cast<Params>(vm, args[Is])...);
+//         return VAR(std::move(ret));
+//     }
+// };
 
-template<typename Ret, typename T, typename... Params>
-struct NativeProxyMethod {
-    static constexpr int N = sizeof...(Params);
-    using _Fp = Ret(T::*)(Params...);
-    _Fp func;
-    NativeProxyMethod(_Fp func) : func(func) {}
+// template<typename Ret, typename T, typename... Params>
+// struct NativeProxyMethod {
+//     static constexpr int N = sizeof...(Params);
+//     using _Fp = Ret(T::*)(Params...);
+//     _Fp func;
+//     NativeProxyMethod(_Fp func) : func(func) {}
 
-    PyObject* operator()(VM* vm, ArgsView args) {
-        int actual_size = args.size() - 1;
-        if (actual_size != N) {
-            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
-        }
-        return call<Ret>(vm, args, std::make_index_sequence<N>());
-    }
+//     PyObject* operator()(VM* vm, ArgsView args) {
+//         int actual_size = args.size() - 1;
+//         if (actual_size != N) {
+//             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(actual_size));
+//         }
+//         return call<Ret>(vm, args, std::make_index_sequence<N>());
+//     }
 
-    template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        T& self = py_cast<T&>(vm, args[0]);
-        (self.*func)(py_cast<Params>(vm, args[Is+1])...);
-        return vm->None;
-    }
+//     template<typename __Ret, size_t... Is>
+//     std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+//         T& self = py_cast<T&>(vm, args[0]);
+//         (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+//         return vm->None;
+//     }
 
-    template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        T& self = py_cast<T&>(vm, args[0]);
-        __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
-        return VAR(std::move(ret));
-    }
-};
+//     template<typename __Ret, size_t... Is>
+//     std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+//         T& self = py_cast<T&>(vm, args[0]);
+//         __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+//         return VAR(std::move(ret));
+//     }
+// };
 
-template<typename Ret, typename... Params>
-auto native_proxy_callable(Ret(*func)(Params...)) {
-    return NativeProxyFunc<Ret, Params...>(func);
-}
+// template<typename Ret, typename... Params>
+// auto native_proxy_callable(Ret(*func)(Params...)) {
+//     return NativeProxyFunc<Ret, Params...>(func);
+// }
 
-template<typename Ret, typename T, typename... Params>
-auto native_proxy_callable(Ret(T::*func)(Params...)) {
-    return NativeProxyMethod<Ret, T, Params...>(func);
-}
+// template<typename Ret, typename T, typename... Params>
+// auto native_proxy_callable(Ret(T::*func)(Params...)) {
+//     return NativeProxyMethod<Ret, T, Params...>(func);
+// }
 
 struct VoidP{
     PY_CLASS(VoidP, c, void_p)

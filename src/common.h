@@ -20,7 +20,6 @@
 #include <string_view>
 #include <iomanip>
 #include <memory>
-#include <functional>
 #include <iostream>
 #include <map>
 #include <set>

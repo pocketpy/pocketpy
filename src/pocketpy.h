@@ -723,31 +723,36 @@ struct Random{
         gen.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     }
 
-    i64 randint(i64 a, i64 b) {
-        std::uniform_int_distribution<i64> dis(a, b);
-        return dis(gen);
-    }
-
-    f64 random() {
-        std::uniform_real_distribution<f64> dis(0.0, 1.0);
-        return dis(gen);
-    }
-
-    f64 uniform(f64 a, f64 b) {
-        std::uniform_real_distribution<f64> dis(a, b);
-        return dis(gen);
-    }
-
-    void seed(i64 seed) {
-        gen.seed(seed);
-    }
-
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<0>(type, "__new__", CPP_LAMBDA(VAR_T(Random)));
-        vm->bind_cpp_method<1>(type, "seed", native_proxy_callable(&Random::seed));
-        vm->bind_cpp_method<2>(type, "randint", native_proxy_callable(&Random::randint));
-        vm->bind_cpp_method<0>(type, "random", native_proxy_callable(&Random::random));
-        vm->bind_cpp_method<2>(type, "uniform", native_proxy_callable(&Random::uniform));
+
+        vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {
+            Random& self = CAST(Random&, args[0]);
+            self.gen.seed(CAST(i64, args[1]));
+            return vm->None;
+        });
+
+        vm->bind_method<2>(type, "randint", [](VM* vm, ArgsView args) {
+            Random& self = CAST(Random&, args[0]);
+            i64 a = CAST(i64, args[1]);
+            i64 b = CAST(i64, args[2]);
+            std::uniform_int_distribution<i64> dis(a, b);
+            return VAR(dis(self.gen));
+        });
+
+        vm->bind_method<0>(type, "random", [](VM* vm, ArgsView args) {
+            Random& self = CAST(Random&, args[0]);
+            std::uniform_real_distribution<f64> dis(0.0, 1.0);
+            return VAR(dis(self.gen));
+        });
+
+        vm->bind_method<2>(type, "uniform", [](VM* vm, ArgsView args) {
+            Random& self = CAST(Random&, args[0]);
+            f64 a = CAST(f64, args[1]);
+            f64 b = CAST(f64, args[2]);
+            std::uniform_real_distribution<f64> dis(a, b);
+            return VAR(dis(self.gen));
+        });
     }
 };
 
@@ -928,63 +933,5 @@ extern "C" {
         ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
         s_out->str(""); s_err->str("");
         return strdup(ss.str().c_str());
-    }
-
-    typedef pkpy::i64 (*f_int_t)(char*);
-    typedef pkpy::f64 (*f_float_t)(char*);
-    typedef bool (*f_bool_t)(char*);
-    typedef char* (*f_str_t)(char*);
-    typedef void (*f_None_t)(char*);
-
-    static f_int_t f_int = nullptr;
-    static f_float_t f_float = nullptr;
-    static f_bool_t f_bool = nullptr;
-    static f_str_t f_str = nullptr;
-    static f_None_t f_None = nullptr;
-
-    __EXPORT
-    /// Setup the callback functions.
-    void pkpy_setup_callbacks(f_int_t _f_int, f_float_t _f_float, f_bool_t _f_bool, f_str_t _f_str, f_None_t _f_None){
-        f_int = _f_int;
-        f_float = _f_float;
-        f_bool = _f_bool;
-        f_str = _f_str;
-        f_None = _f_None;
-    }
-
-    __EXPORT
-    /// Bind a function to a virtual machine.
-    char* pkpy_vm_bind(pkpy::VM* vm, const char* mod, const char* name, int ret_code){
-        if(!f_int || !f_float || !f_bool || !f_str || !f_None) return nullptr;
-        static int kGlobalBindId = 0;
-        for(int i=0; mod[i]; i++) if(mod[i] == ' ') return nullptr;
-        for(int i=0; name[i]; i++) if(name[i] == ' ') return nullptr;
-        std::string f_header = std::string(mod) + '.' + name + '#' + std::to_string(kGlobalBindId++);
-        pkpy::PyObject* obj = vm->_modules.contains(mod) ? vm->_modules[mod] : vm->new_module(mod);
-        vm->bind_cpp_func<-1>(obj, name, [ret_code, f_header](pkpy::VM* vm, pkpy::ArgsView args){
-            std::stringstream ss;
-            ss << f_header;
-            for(int i=0; i<args.size(); i++){
-                ss << ' ';
-                pkpy::PyObject* x = vm->call_method(args[i], pkpy::__json__);
-                ss << pkpy::CAST(pkpy::Str&, x);
-            }
-            char* packet = strdup(ss.str().c_str());
-            switch(ret_code){
-                case 'i': return VAR(f_int(packet));
-                case 'f': return VAR(f_float(packet));
-                case 'b': return VAR(f_bool(packet));
-                case 's': {
-                    char* p = f_str(packet);
-                    if(p == nullptr) return vm->None;
-                    return VAR(p); // no need to free(p)
-                }
-                case 'N': f_None(packet); return vm->None;
-            }
-            free(packet);
-            FATAL_ERROR();
-            return vm->None;
-        });
-        return strdup(f_header.c_str());
     }
 }
