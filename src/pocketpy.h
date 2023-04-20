@@ -246,7 +246,7 @@ inline void init_builtins(VM* _vm) {
             const Str& s = CAST(Str&, args[0]);
             try{
                 size_t parsed = 0;
-                i64 val = S_TO_INT(s.str(), &parsed, 10);
+                i64 val = Number::stoi(s.str(), &parsed, 10);
                 if(parsed != s.length()) throw std::invalid_argument("<?>");
                 return VAR(val);
             }catch(std::invalid_argument&){
@@ -293,7 +293,7 @@ inline void init_builtins(VM* _vm) {
             if(s == "inf") return VAR(INFINITY);
             if(s == "-inf") return VAR(-INFINITY);
             try{
-                f64 val = S_TO_FLOAT(s.str());
+                f64 val = Number::stof(s.str());
                 return VAR(val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for float(): '" + s + "'");
@@ -930,8 +930,8 @@ extern "C" {
         return strdup(ss.str().c_str());
     }
 
-    typedef i64 (*f_int_t)(char*);
-    typedef f64 (*f_float_t)(char*);
+    typedef pkpy::i64 (*f_int_t)(char*);
+    typedef pkpy::f64 (*f_float_t)(char*);
     typedef bool (*f_bool_t)(char*);
     typedef char* (*f_str_t)(char*);
     typedef void (*f_None_t)(char*);

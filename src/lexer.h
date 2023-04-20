@@ -347,9 +347,9 @@ struct Lexer {
                 if (m[1].matched) base = 16;
                 if (m[2].matched) {
                     if(base == 16) SyntaxError("hex literal should not contain a dot");
-                    add_token(TK("@num"), S_TO_FLOAT(m[0], &size));
+                    add_token(TK("@num"), Number::stof(m[0], &size));
                 } else {
-                    add_token(TK("@num"), S_TO_INT(m[0], &size, base));
+                    add_token(TK("@num"), Number::stoi(m[0], &size, base));
                 }
                 if (size != m.length()) FATAL_ERROR();
             }
