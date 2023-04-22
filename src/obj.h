@@ -57,6 +57,13 @@ struct Range {
     i64 step = 1;
 };
 
+struct Bytes{
+    std::string _data;
+
+    int size() const noexcept { return _data.size(); }
+    int operator[](int i) const noexcept { return (int)(uint8_t)_data[i]; }
+};
+
 using Super = std::pair<PyObject*, Type>;
 
 // TODO: re-examine the design of Slice

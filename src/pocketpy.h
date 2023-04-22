@@ -412,6 +412,11 @@ inline void init_builtins(VM* _vm) {
         return VAR(ok);
     });
 
+    _vm->bind_method<0>("str", "encode", [](VM* vm, ArgsView args) {
+        const Str& self = CAST(Str&, args[0]);
+        return VAR(Bytes{self.str()});
+    });
+
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
         const Str& self = CAST(Str&, args[0]);
         FastStrStream ss;
@@ -551,7 +556,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(self.size());
     });
 
-    /************ PyBool ************/
+    /************ bool ************/
     _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(VAR(vm->asBool(args[0]))));
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, ArgsView args) {
@@ -571,6 +576,39 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
+
+    /************ bytes ************/
+    _vm->bind_static_method<1>("bytes", "__new__", CPP_NOT_IMPLEMENTED());
+
+    _vm->bind_method<1>("bytes", "__getitem__", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        int index = CAST(int, args[1]);
+        index = vm->normalized_index(index, self.size());
+        return VAR(self[index]);
+    });
+
+    _vm->bind_method<0>("bytes", "__repr__", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        std::stringstream ss;
+        ss << "b'";
+        for(int i=0; i<self.size(); i++){
+            ss << "\\x" << std::hex << std::setw(2) << std::setfill('0') << self[i];
+        }
+        ss << "'";
+        return VAR(ss.str());
+    });
+
+    _vm->bind_method<0>("bytes", "__len__", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        return VAR(self.size());
+    });
+
+    _vm->bind_method<0>("bytes", "decode", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        // TODO: check encoding is utf-8
+        return VAR(Str(self._data));
+    });
+
 }
 
 #ifdef _WIN32

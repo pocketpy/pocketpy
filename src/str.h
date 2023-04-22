@@ -207,11 +207,10 @@ struct Str{
                 case '\r': ss << "\\r"; break;
                 case '\t': ss << "\\t"; break;
                 default:
-                    if ('\x00' <= c && c <= '\x1f') {
-                        ss << "\\u"
-                        << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c);
-                    } else {
+                    if (c >= 32 && c <= 126) {
                         ss << c;
+                    } else {
+                        ss << "\\x" << std::hex << std::setw(2) << std::setfill('0') << (int)(uint8_t)c;
                     }
             }
         }
