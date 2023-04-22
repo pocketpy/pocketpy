@@ -24,7 +24,7 @@ namespace pkpy{
 #define POPX()            (s_data.popx())
 #define STACK_VIEW(n)     (s_data.view(n))
 
-Str _read_file_cwd(const Str& name, bool* ok);
+Bytes _read_file_cwd(const Str& name, bool* ok);
 
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \

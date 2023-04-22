@@ -442,7 +442,8 @@ __NEXT_STEP:;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
                 bool ok = false;
-                source = _read_file_cwd(fmt(name, ".py"), &ok);
+                Bytes b = _read_file_cwd(fmt(name, ".py"), &ok);
+                source = Str(b._data);
                 if(!ok) _error("ImportError", fmt("module ", name.escape(), " not found"));
             }else{
                 source = it->second;

@@ -11,18 +11,18 @@
 
 namespace pkpy{
 
-inline Str _read_file_cwd(const Str& name, bool* ok){
+inline Bytes _read_file_cwd(const Str& name, bool* ok){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists){
         *ok = false;
-        return Str();
+        return Bytes();
     }
     std::ifstream ifs(path);
     std::string buffer((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
     ifs.close();
     *ok = true;
-    return Str(std::move(buffer));
+    return Bytes({std::move(buffer)});
 }
 
 struct FileIO {
@@ -175,9 +175,9 @@ namespace pkpy{
 inline void add_module_io(VM* vm){}
 inline void add_module_os(VM* vm){}
 
-inline Str _read_file_cwd(const Str& name, bool* ok){
+inline Bytes _read_file_cwd(const Str& name, bool* ok){
     *ok = false;
-    return Str();
+    return Bytes();
 }
 
 } // namespace pkpy
