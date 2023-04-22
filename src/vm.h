@@ -789,9 +789,9 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     if(is_non_tagged_type(callable, tp_bound_method)){
         if(method_call) FATAL_ERROR();
         auto& bm = CAST(BoundMethod&, callable);
-        callable = bm.method;      // get unbound method
-        p1[-(ARGC + 2)] = bm.method;
-        p1[-(ARGC + 1)] = bm.obj;
+        callable = bm.func;      // get unbound method
+        p1[-(ARGC + 2)] = bm.func;
+        p1[-(ARGC + 1)] = bm.self;
         method_call = true;
         // [unbound, self, args..., kwargs...]
     }

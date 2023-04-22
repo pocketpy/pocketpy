@@ -137,8 +137,8 @@ template<> inline void gc_mark<NameDict>(NameDict& t){
 }
 
 template<> inline void gc_mark<BoundMethod>(BoundMethod& t){
-    OBJ_MARK(t.obj);
-    OBJ_MARK(t.method);
+    OBJ_MARK(t.self);
+    OBJ_MARK(t.func);
 }
 
 template<> inline void gc_mark<Function>(Function& t){

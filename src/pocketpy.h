@@ -631,7 +631,7 @@ inline void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
         PyObject* f = args[0];
-        if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).method;
+        if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).func;
         CodeObject_ code = CAST(Function&, f).decl->code;
         (*vm->_stdout) << vm->disassemble(code);
         return vm->None;
@@ -803,6 +803,13 @@ inline void VM::post_init(){
     _t(tp_type)->attr().set(__name__, property([](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return VAR(info.name);
+    }));
+
+    _t(tp_bound_method)->attr().set("__self__", property([](VM* vm, ArgsView args){
+        return CAST(BoundMethod&, args[0]).self;
+    }));
+    _t(tp_bound_method)->attr().set("__func__", property([](VM* vm, ArgsView args){
+        return CAST(BoundMethod&, args[0]).func;
     }));
 #endif
 }

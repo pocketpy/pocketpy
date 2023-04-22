@@ -46,9 +46,9 @@ struct Function{
 };
 
 struct BoundMethod {
-    PyObject* obj;
-    PyObject* method;
-    BoundMethod(PyObject* obj, PyObject* method) : obj(obj), method(method) {}
+    PyObject* self;
+    PyObject* func;
+    BoundMethod(PyObject* self, PyObject* func) : self(self), func(func) {}
 };
 
 struct Range {
