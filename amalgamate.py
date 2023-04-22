@@ -58,7 +58,7 @@ r'''/*
 shutil.copy("src/main.cpp", "amalgamated/main.cpp")
 
 if sys.platform == 'linux':
-	ok = os.system("g++ -o pocketpy amalgamated/main.cpp --std=c++17")
+	ok = os.system("clang++ -o pocketpy amalgamated/main.cpp --std=c++17 -stdlib=libc++")
 	if ok == 0:
 		print("Test build success!")
 		os.remove("pocketpy")
