@@ -46,7 +46,7 @@
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
 #define PK_ENABLE_FILEIO 			0
 #else
-#define PK_ENABLE_FILEIO 			0	// TODO: refactor this
+#define PK_ENABLE_FILEIO 			1
 #endif
 
 // This is the maximum number of arguments in a function declaration

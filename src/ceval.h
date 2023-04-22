@@ -521,8 +521,12 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     // // TODO: using "goto" inside with block may cause __exit__ not called
-    // TARGET(WITH_ENTER) call(frame->pop_value(this), __enter__, no_arg()); DISPATCH();
-    // TARGET(WITH_EXIT) call(frame->pop_value(this), __exit__, no_arg()); DISPATCH();
+    TARGET(WITH_ENTER)
+        call_method(POPX(), __enter__);
+        DISPATCH();
+    TARGET(WITH_EXIT)
+        call_method(POPX(), __exit__);
+        DISPATCH();
     /*****************************************/
     TARGET(ASSERT) {
         PyObject* obj = TOP();

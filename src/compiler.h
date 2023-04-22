@@ -795,17 +795,16 @@ __SUBSCR_END:
                 consume_end_stmt();
             } break;
             case TK("with"): {
-                // TODO: reimpl this
                 EXPR(false);
-                ctx()->emit(OP_POP_TOP, BC_NOARG, prev().line);
                 consume(TK("as"));
                 consume(TK("@id"));
-                // emit(OP_STORE_NAME, index);
-                // emit(OP_LOAD_NAME_REF, index);
-                // emit(OP_WITH_ENTER);
+                StrName name(prev().str());
+                ctx()->emit(OP_STORE_NAME, name.index, prev().line);
+                ctx()->emit(OP_LOAD_NAME, name.index, prev().line);
+                ctx()->emit(OP_WITH_ENTER, BC_NOARG, prev().line);
                 compile_block_body();
-                // emit(OP_LOAD_NAME_REF, index);
-                // emit(OP_WITH_EXIT);
+                ctx()->emit(OP_LOAD_NAME, name.index, prev().line);
+                ctx()->emit(OP_WITH_EXIT, BC_NOARG, prev().line);
             } break;
             /*************************************************/
             // TODO: refactor goto/label use special $ syntax

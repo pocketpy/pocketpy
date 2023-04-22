@@ -353,15 +353,15 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "__eq__", [](VM* vm, ArgsView args) {
-        if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return VAR(CAST(Str&, args[0]) == CAST(Str&, args[1]));
-        return VAR(args[0] == args[1]);
+        const Str& self = CAST(Str&, args[0]);
+        if(!is_type(args[1], vm->tp_str)) return VAR(false);
+        return VAR(self == CAST(Str&, args[1]));
     });
 
     _vm->bind_method<1>("str", "__ne__", [](VM* vm, ArgsView args) {
-        if(is_type(args[0], vm->tp_str) && is_type(args[1], vm->tp_str))
-            return VAR(CAST(Str&, args[0]) != CAST(Str&, args[1]));
-        return VAR(args[0] != args[1]);
+        const Str& self = CAST(Str&, args[0]);
+        if(!is_type(args[1], vm->tp_str)) return VAR(true);
+        return VAR(self != CAST(Str&, args[1]));
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, ArgsView args) {
@@ -609,6 +609,19 @@ inline void init_builtins(VM* _vm) {
         return VAR(Str(self._data));
     });
 
+    _vm->bind_method<1>("bytes", "__eq__", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        if(!is_type(args[1], vm->tp_bytes)) return VAR(false);
+        const Bytes& other = CAST(Bytes&, args[1]);
+        return VAR(self == other);
+    });
+
+    _vm->bind_method<1>("bytes", "__ne__", [](VM* vm, ArgsView args) {
+        const Bytes& self = CAST(Bytes&, args[0]);
+        if(!is_type(args[1], vm->tp_bytes)) return VAR(true);
+        const Bytes& other = CAST(Bytes&, args[1]);
+        return VAR(self != other);
+    });
 }
 
 #ifdef _WIN32

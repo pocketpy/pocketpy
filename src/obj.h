@@ -62,6 +62,9 @@ struct Bytes{
 
     int size() const noexcept { return _data.size(); }
     int operator[](int i) const noexcept { return (int)(uint8_t)_data[i]; }
+
+    bool operator==(const Bytes& rhs) const noexcept { return _data == rhs._data; }
+    bool operator!=(const Bytes& rhs) const noexcept { return _data != rhs._data; }
 };
 
 using Super = std::pair<PyObject*, Type>;
