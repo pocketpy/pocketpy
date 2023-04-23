@@ -15,6 +15,7 @@ jobs:
     - uses: actions/setup-node@v3.1.1
     - name: Retype build
       run: |
+        cd docs
         npm install retypeapp --global
         retype build
     ###################################################
@@ -26,11 +27,11 @@ jobs:
     - name: Compile
       run: |
         python3 build.py web
-        mv web .retype/static
+        mv web docs/.retype/static
     ###################################################
     - uses: crazy-max/ghaction-github-pages@v3
       with:
         target_branch: gh-pages
-        build_dir: .retype
+        build_dir: docs/.retype
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
