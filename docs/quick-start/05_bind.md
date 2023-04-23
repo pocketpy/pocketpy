@@ -43,7 +43,7 @@ vm->bind_builtin_func<0>("input", [](VM* vm, ArgsView args){
 
 //                        vvv function name
 vm->bind_builtin_func<2>("add", [](VM* vm, ArgsView args){
-    //                ^ argument count
+//                    ^ argument count
 	i64 lhs = CAST(i64, args[0]);
     i64 rhs = CAST(i64, args[1]);
     return VAR(lhs + rhs);
