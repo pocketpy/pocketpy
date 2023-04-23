@@ -1,0 +1,32 @@
+input: .
+output: .retype
+url: https://pocketpy.dev
+branding:
+  title: PocketPy
+  label: v1.0
+  logo: "./static/logo.png"
+favicon: "./static/logo.png"
+meta:
+  title: " | A lightweight Python interpreter for game engines"
+links:
+  - text: "Home"
+    icon: home
+    link: ""
+  - text: "Live Demo"
+    icon: play
+    link: "./static/web/index.html"
+    target: blank
+  - text: "Github"
+    icon: mark-github
+    link: https://github.com/blueloveth/pocketpy
+    target: blank
+  - text: Issues
+    link: https://github.com/blueloveth/pocketpy/issues
+    icon: issue-opened
+    target: blank
+  - text: Discord
+    link: https://discord.gg/WWaq72GzXv
+    icon: comment-discussion
+    target: blank
+footer:
+  copyright: "&copy; Copyright {{ year }} - [blueloveTH](https://github.com/blueloveTH) - All rights reserved."
