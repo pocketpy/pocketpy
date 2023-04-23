@@ -112,7 +112,8 @@ struct DoubleLinkedList{
 
     int size() const { return _size; }
 
-    void apply(void (*func)(T*)){
+    template<typename Func>
+    void apply(Func func){
         LinkedListNode* p = head.next;
         while(p != &tail){
             LinkedListNode* next = p->next;
@@ -146,11 +147,8 @@ struct MemoryPool{
         bool empty() const { return _free_list_size == 0; }
         bool full() const { return _free_list_size == __MaxBlocks; }
 
-        void tidy(){
-#if DEBUG_MEMORY_POOL
-            if(!full()) throw std::runtime_error("Arena::tidy() called on non-full arena");
-#endif
-            std::sort(_free_list, _free_list+__MaxBlocks);
+        size_t allocated_size() const{
+            return __BlockSize * (__MaxBlocks - _free_list_size);
         }
 
         Block* alloc(){
@@ -227,6 +225,13 @@ struct MemoryPool{
         }
     }
 
+    size_t allocated_size() {
+        size_t n = 0;
+        _arenas.apply([&n](Arena* arena){ n += arena->allocated_size(); });
+        _empty_arenas.apply([&n](Arena* arena){ n += arena->allocated_size(); });
+        return n;
+    }
+
     ~MemoryPool(){
         _arenas.apply([](Arena* arena){ delete arena; });
         _empty_arenas.apply([](Arena* arena){ delete arena; });
@@ -235,7 +240,11 @@ struct MemoryPool{
 
 inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
-// inline MemoryPool<256> pool256;
+
+// get the total memory usage of pkpy (across all VMs)
+inline size_t memory_usage(){
+    return pool64.allocated_size() + pool128.allocated_size();
+}
 
 #define SP_MALLOC(size) pool128.alloc(size)
 #define SP_FREE(p) pool128.dealloc(p)
