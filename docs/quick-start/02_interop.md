@@ -4,7 +4,8 @@ label: 'Interop with PyObject'
 order: 90
 ---
 
-Any python object is represented by a `PyObject*`.
+In pkpy, any python object is represented by a `PyObject*`.
+There are 3 macros for you to do convert.
 
 +  `VAR(...)`,
 create a `PyObject*` from a C type
@@ -23,9 +24,9 @@ std::cout << CAST(Str, i);	// abc
 
 #### Types
 
-| `PyObject` type | C type           | note                   |
+| python type  | C type           | note                   |
 | ------------ | ---------------- | ---------------------- |
-| `int`        | `i64`            | 62 bits integer |
+| `int`        | `i64`            | 62 bits integer        |
 | `float`      | `f64`            | 62 bits floating point |
 | `str`        | `pkpy::Str`      |                        |
 | `bool`       | `bool`           |                        |

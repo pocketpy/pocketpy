@@ -4,7 +4,7 @@ icon: dot
 
 # goto/label
 
-PocketPy supports `goto` and `label` just like C. You are allowed to change the control flow unconditionally.
+pkpy supports `goto` and `label` just like C. You are allowed to change the control flow unconditionally.
 
 ## Syntax
 

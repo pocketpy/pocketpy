@@ -6,7 +6,7 @@ label: License
 
 # License
 
-PocketPy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
+pkpy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
 
 ```
 MIT License

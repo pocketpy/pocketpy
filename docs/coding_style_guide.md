@@ -30,7 +30,7 @@ int TestFunc(int x) { return x+1; }
 int testFunc(int x) { return x+1; }
 ```
 
-For special Python objects, use the same name as in Python.
+For special python objects, use the same name as in python.
 
 ```cpp
 auto x = vm->None;
@@ -55,7 +55,7 @@ For macros, use **SNAKE_CASE**
 
 ## Access control
 
-Please use Python style access control.
+Please use python style access control.
 
 We do not recommend to use C++ keywords such as `private` or `public` to achieve access control. Also do not write any trivial setter/getter.
 

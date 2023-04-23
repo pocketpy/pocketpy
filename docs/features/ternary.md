@@ -5,7 +5,7 @@ icon: dot
 # ternary op
 
 Ternary operator is a short hand `if...else`.
-PocketPy supports both C and Python style ternary.
+pkpy supports both c and python style ternary.
 
 
 ## Syntax

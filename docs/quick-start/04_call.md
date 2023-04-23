@@ -4,7 +4,9 @@ label: 'Call a Python function'
 order: 70
 ---
 
-Use these to call a python function.
+pkpy uses a variant of the [Vectorcall](https://peps.python.org/pep-0590/) protocol (PEP 590).
+
+There are 2 methods for calling a python function.
 
 + `PyObject* VM::call(PyObject* obj, ...)`
 + `PyObject* VM::call_method(PyObject* obj, StrName name, ...)`

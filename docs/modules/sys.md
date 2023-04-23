@@ -5,5 +5,5 @@ label: sys
 
 ### `sys.version`
 
-The version of PocketPy.
+The version of pkpy.
 

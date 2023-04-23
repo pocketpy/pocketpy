@@ -429,7 +429,7 @@ struct TupleExpr: SequenceExpr{
         }else{
             // starred assignment target must be in a tuple
             if(items.size() == 1) return false;
-            // starred assignment target must be the last one (differ from CPython)
+            // starred assignment target must be the last one (differ from cpython)
             if(starred_i != items.size()-1) return false;
             // a,*b = [1,2,3]
             // stack is [1,2,3] -> [1,[2,3]]

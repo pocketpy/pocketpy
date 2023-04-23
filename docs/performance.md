@@ -6,7 +6,7 @@ label: Performance
 
 # Performance
 
-Currently, PocketPy is almost~ fast as CPython 3.8. Here is a benchmark result of a special commit.
+Currently, pkpy is almost~ fast as cpython 3.8. Here is a benchmark result of a special commit.
 
 Benchmark files are located in `benchmarks/`.
 
