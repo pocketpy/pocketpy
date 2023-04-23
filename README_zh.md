@@ -13,7 +13,7 @@ PocketPy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 
 它包含一个编译器和基于字节码的虚拟机，以及交互式命令窗的实现。所有功能均集成在单个头文件`pocketpy.h`中，不包含外部依赖项，能很方便地嵌入至你的应用。
 
-你可以 [在浏览器中体验](https://blueloveth.github.io/pocketpy) PocketPy的交互式界面（REPL）。
+你可以 [在浏览器中体验](https://pocketpy.dev/static/web/) PocketPy的交互式界面（REPL）。
 
 ![sample_img](docs/sample.png)
 
