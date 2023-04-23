@@ -1,7 +1,7 @@
 ---
 icon: book
 order: 2
-label: Coding Style Guide
+label: Coding style guide
 ---
 
 # Coding Style Guide
