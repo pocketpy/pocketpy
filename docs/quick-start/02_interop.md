@@ -34,3 +34,9 @@ std::cout << CAST(Str, i);	// abc
 | `tuple`      | `pkpy::Tuple`    |                        |
 | `function`   | `pkpy::Function` |                        |
 | ...          | ...              | ...                    |
+
+### Type check
+
++ `is_type(PyObject* obj, Type type)`
++ `is_non_tagged_type(PyObject* obj, Type type)`
++ `VM::check_type(PyObject* obj, Type type)`

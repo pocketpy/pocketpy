@@ -1,6 +1,6 @@
 ---
 icon: code
-label: 'Call a Python function'
+label: 'Call Python function'
 order: 70
 ---
 

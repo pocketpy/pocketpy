@@ -1,6 +1,6 @@
 ---
 icon: code
-label: 'Wrap a native struct'
+label: 'Wrap native struct'
 order: 50
 ---
 
