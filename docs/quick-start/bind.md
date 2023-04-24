@@ -1,5 +1,5 @@
 ---
-icon: code
+icon: dot
 label: 'Bind native function'
 order: 60
 ---

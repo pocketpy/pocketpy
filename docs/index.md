@@ -3,7 +3,7 @@ icon: home
 label: Welcome
 ---
 
-# Welcome to PocketPy
+# Welcome to pocketpy
 
 pkpy is a lightweight(~8000 LOC) Python interpreter for game engine/apps.
 

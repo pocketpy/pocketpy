@@ -1,5 +1,5 @@
 ---
-icon: code
+icon: dot
 label: 'Interop with PyObject'
 order: 90
 ---
@@ -22,7 +22,7 @@ PyObject* i = VAR("abc");
 std::cout << CAST(Str, i);	// abc
 ```
 
-#### Types
+### Types
 
 | python type  | C type           | note                   |
 | ------------ | ---------------- | ---------------------- |

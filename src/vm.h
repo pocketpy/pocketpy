@@ -890,9 +890,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     // if this function is simple, a.k.a, no kwargs and no *args and not a generator
     // we can use a fast path to avoid using buffer copy
     if(fn.is_simple){
-#if DEBUG_EXTRA_CHECK
-        for(PyObject** p=p0; p<args.begin(); p++) *p = nullptr;
-#endif
+        if(args.size() > fn.decl->args.size()) TypeError("too many positional arguments");
         int spaces = co->varnames.size() - fn.decl->args.size();
         for(int j=0; j<spaces; j++) PUSH(nullptr);
         callstack.emplace(&s_data, p0, co, _module, callable, FastLocals(co, args.begin()));

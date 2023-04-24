@@ -1,4 +1,4 @@
-# PocketPy
+# pocketpy: python interpreter in 1 file
 
 <p>
 <a title="Build" href="https://github.com/blueloveTH/pocketpy/actions/workflows" ><img src="https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
@@ -8,21 +8,57 @@
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 <a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
-PocketPy is a lightweight(~8000 LOC) Python interpreter for game engines/apps.
-
-
----
-#### The first production-ready version is `v1.0.0`, which will be available soon.
-
----
 
 **English |** [**简体中文**](README_zh.md)
+
+pkpy is a lightweight(~8000 LOC) Python interpreter for game engine/apps, built on C++17 with STL.
 
 It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
 Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.dev/static/web/).
 
-![sample_img](docs/sample.png)
+## Quick start
+
+Download the `pocketpy.h` on our GitHub release page.
+And `#include` it in your project.
+
+https://github.com/blueloveTH/pocketpy/releases/latest
+
+### Compile flags
+
+To compile it with your project, these flags must be set:
+
++ `--std=c++17` flag must be set
++ Exception must be enabled
++ RTTI is not required
+
+!!!
+For maximum performance, we recommend to use `clang++` with `-O2` flag.
+!!!
+
+### Example
+
+```cpp
+#include "pocketpy.h"
+
+using namespace pkpy;
+
+int main(){
+    // Create a virtual machine
+    VM* vm = new VM();
+    
+    // Hello world!
+    vm->exec("print('Hello world!')", "main.py", EXEC_MODE);
+
+    // Create a list
+    vm->exec("a = [1, 2, 3]", "main.py", EXEC_MODE);
+
+    // Eval the sum of the list
+    PyObject* result = vm->exec("sum(a)", "<eval>", EVAL_MODE);
+    std::cout << CAST(int, result);   // 6
+    return 0;
+}
+```
 
 ## Features
 
@@ -48,114 +84,6 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.
 | Type Annotation | `def  f(a:int, b:float=1)`      | YES       |
 | Generator       | `yield i`                       | YES       |
 | Decorator       | `@cache`                        | YES       |
-
-## Getting Started
-
-#### C/C++
-
-For C/C++ developers, you can download the `pocketpy.h` on our GitHub release page.
-
-https://github.com/blueloveTH/pocketpy/releases/latest
-
-Check [C-API](https://pocketpy.dev/c-api/vm/) for references. For further customization, you can use [C++ API](https://pocketpy.dev/getting-started/cpp/).
-
-```cpp
-#include "pocketpy.h"
-
-int main(){
-    // Create a virtual machine
-    auto vm = pkpy_new_vm();
-    
-    // Hello world!
-    pkpy_vm_exec(vm, "print('Hello world!')");
-
-    // Create a list
-    pkpy_vm_exec(vm, "a = [1, 2, 3]");
-
-    // Eval the sum of the list
-    char* result = pkpy_vm_eval(vm, "sum(a)");
-    printf("%s", result);   // 6
-
-    // Free the resources
-    pkpy_delete(result);
-    pkpy_delete(vm);
-    return 0;
-}
-```
-
-#### Unity Engine
-
-PocketPy for Unity can be installed via Unity Asset Store.
-
-https://assetstore.unity.com/packages/slug/241120
-
-```csharp
-using UnityEngine;
-
-public class Test01 : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
-    {
-        // Create a virtual machine
-        pkpy.VM vm = new pkpy.VM();
-
-        // Create a list
-        vm.exec("a = [1, 2, 3]");
-
-        // Eval the sum of the list
-        string result = vm.eval("sum(a)");
-        Debug.Log(result);   // 6
-
-        // Print to the standard output
-        vm.exec("print(a)");
-        pkpy.PyOutput o = vm.read_output();
-        Debug.Log(o.stdout); // [1, 2, 3]
-
-        // Create a binding
-        vm.bind("builtins", "test", (double x) => x+1);  
-        Debug.Log(vm.eval("test(3.14)")); // '4.14'
-    }
-}
-```
-
-#### Flutter
-
-Run the following script to install this plugin.
-
-```
-flutter pub add pocketpy
-```
-
-See https://pocketpy.dev/getting-started/flutter/
-
-#### Pre-compiled Libs
-
-You can download `artifact.zip` from [Github Release](https://github.com/blueloveTH/pocketpy/releases/latest) page. In this archive, there are pre-compiled libraries for many platforms. The file structure is as follows.
-
-```
-- android/
-  - arm64-v8a/
-    - libpocketpy.so
-  - armeabi-v7a/
-    - libpocketpy.so
-  - x86_64/
-    - libpocketpy.so
-- linux/
-  - x86_64/
-    - pocketpy
-    - pocketpy.so
-- macos/
-  - pocketpy.bundle/
-- web/
-  - lib/
-    - pocketpy.js
-    - pocketpy.wasm
-- windows/
-  - x86_64/
-    - pocketpy.dll
-    - pocketpy.exe
-```
 
 ## Contribution
 
@@ -183,5 +111,5 @@ Check our [Coding Style Guide](https://pocketpy.dev/coding_style_guide/) if you 
 
 ## License
 
-PocketPy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
+pkpy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
 

@@ -1,5 +1,5 @@
 ---
-icon: code
+icon: dot
 label: 'Access attributes'
 order: 80
 ---

@@ -1,5 +1,5 @@
 ---
-icon: code
+icon: dot
 label: 'Wrap native struct'
 order: 50
 ---
@@ -77,7 +77,7 @@ struct Vector2 {
 };
 
 int main(){
-    VM* vm = new VM(true);
+    VM* vm = new VM();
     // create a new module `test`
     PyObject* mod = vm->new_module("test");
     // register `Vector2` to `test` module

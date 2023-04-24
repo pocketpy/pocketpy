@@ -1,5 +1,5 @@
 ---
-icon: code
+icon: dot
 label: 'Execute Python code'
 order: 93
 ---
@@ -17,7 +17,7 @@ Once you have a `VM` instance, you can execute python code by calling `exec` met
 If the execution is not successful, e.g. a syntax error or a runtime exception,
 the return value will be `nullptr`.
 
-#### Compile mode
+### Compile mode
 
 The `mode` parameter controls how the source code is compiled. There are 4 possible values:
 + `EXEC_MODE`, this is the default mode. Just do normal execution.

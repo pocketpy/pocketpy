@@ -33,3 +33,23 @@ assert b == [2, 3, 4]
 a, *b = [1]
 assert a == 1
 assert b == []
+
+# test perfect forwarding
+def f0(a, b, *args):
+    return a + b + sum(args)
+
+x = f0(1, 2, 3, 4)
+assert x == 10
+
+a = [1, 2, 3, 4]
+x = f0(*a)
+assert x == 10
+
+def f1(a):
+    return a
+
+try:
+    x = f1(*[1, 2, 3, 4])
+    exit(1)
+except TypeError:
+    pass
