@@ -22,3 +22,9 @@ The constructor can take 2 extra parameters.
 + `use_stdio`, if `true`, the `print()` function outputs string to `stdout`. Error messages will be send to `stderr`; If `false`, they will be sent to an internal buffer. In the latter case, you need to read them via `read_output` manually.
 + `enable_os`, whether to enable OS-related features or not. This setting controls the availability of some priviledged modules such os `io` and `os` as well as builtin function `open`.
 
+
+When you are done with the `VM` instance, you need to use the C++ `delete` operator to free the memory.
+
+```cpp
+delete vm;
+```
