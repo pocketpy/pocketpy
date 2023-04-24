@@ -5,7 +5,7 @@ label: Welcome
 
 # Welcome to PocketPy
 
-PocketPy is a lightweight(~8000 LOC) Python interpreter for game engines.
+pkpy is a lightweight(~8000 LOC) Python interpreter for game engine/apps.
 
 It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
@@ -24,18 +24,3 @@ primes = [i for i in range(2, 20) if is_prime(i)]
 print(primes)
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
-
-## Source Integration
-
-We recommend to use our pre-built `pocketpy.h` in [Github Release](https://github.com/blueloveTH/pocketpy/releases/latest) page.
-To compile it with your project, these flags must be set:
-
-+ `--std=c++17` flag must be set
-+ Exception must be enabled
-+ RTTI is not required
-
-!!!
-You can use `g++`, `cl.exe` or `clang++` to compile your project.
-For maximum performance, we recommend to `clang++` with `-O2` flag.
-`clang++` can produce faster binary than `g++` or `cl.exe`.
-!!!

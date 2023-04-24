@@ -16,6 +16,18 @@ Alternatively, you can install it via vcpkg.io.
 vcpkg install pocketpy
 ```
 
+## Compile flags
+
+To compile it with your project, these flags must be set:
+
++ `--std=c++17` flag must be set
++ Exception must be enabled
++ RTTI is not required
+
+!!!
+For maximum performance, we recommend to use `clang++` with `-O2` flag.
+!!!
+
 ## Example
 
 ```cpp
