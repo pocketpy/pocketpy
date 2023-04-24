@@ -19,10 +19,8 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.
 
 ## Quick start
 
-Download the `pocketpy.h` on our GitHub release page.
+Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
-
-https://github.com/blueloveTH/pocketpy/releases/latest
 
 ### Compile flags
 

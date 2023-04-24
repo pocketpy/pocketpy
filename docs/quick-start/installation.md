@@ -4,10 +4,8 @@ label: 'Installation'
 order: 100
 ---
 
-Download the `pocketpy.h` on our GitHub release page.
+Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
-
-https://github.com/blueloveTH/pocketpy/releases/latest
 
 ### Compile flags
 
