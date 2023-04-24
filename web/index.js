@@ -113,7 +113,7 @@ var Module = {
       term.write(text + "\r\n");
     },
     'onRuntimeInitialized': function(text) {
-      var vm = Module.ccall('pkpy_new_vm', 'number', [], []);
+      var vm = Module.ccall('pkpy_new_vm', 'number', ['boolean', 'boolean'], [true, true]);
       repl = Module.ccall('pkpy_new_repl', 'number', ['number'], [vm]);
       term.write(need_more_lines ? "... " : ">>> ");
     },

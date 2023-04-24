@@ -14,7 +14,7 @@ links:
     link: ""
   - text: "Live Demo"
     icon: play
-    link: "./static/web/index.html"
+    link: "https://pocketpy.dev/static/web/"
     target: blank
   - text: "Github"
     icon: mark-github
