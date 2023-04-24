@@ -15,7 +15,7 @@ https://github.com/blueloveTH/pocketpy/releases/latest
 
 int main(){
     // Create a virtual machine
-    auto vm = pkpy_new_vm(true);
+    auto vm = pkpy_new_vm();
     
     // Hello world!
     pkpy_vm_exec(vm, "print('Hello world!')");

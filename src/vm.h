@@ -106,7 +106,7 @@ public:
 
     const bool enable_os;
 
-    VM(bool use_stdio, bool enable_os) : heap(this), enable_os(enable_os) {
+    VM(bool use_stdio=true, bool enable_os=true) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
         this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;

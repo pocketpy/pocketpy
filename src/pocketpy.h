@@ -973,7 +973,7 @@ extern "C" {
 
     __EXPORT
     /// Create a virtual machine.
-    pkpy::VM* pkpy_new_vm(bool use_stdio, bool enable_os){
+    pkpy::VM* pkpy_new_vm(bool use_stdio=true, bool enable_os=true){
         return PKPY_ALLOCATE(pkpy::VM, use_stdio, enable_os);
     }
 

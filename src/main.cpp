@@ -6,7 +6,7 @@
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char** argv){
-    pkpy::VM* vm = pkpy_new_vm(true, true);
+    pkpy::VM* vm = pkpy_new_vm();
     vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
         return VAR(pkpy::getline());
     });

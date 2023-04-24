@@ -19,7 +19,7 @@ Native functions do not support keyword arguments.
 
 !!!
 
-PkPy uses a universal C function pointer for native functions:
+pkpy uses a universal C function pointer for native functions:
 
 ```cpp
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
@@ -34,7 +34,7 @@ The return value is a `PyObject*`, which should not be `nullptr`. If there is no
 This is an example of binding the `input()` function to the `builtins` module.
 
 ```cpp
-VM* vm = pkpy_new_vm(true);
+VM* vm = pkpy_new_vm();
 vm->bind_builtin_func<0>("input", [](VM* vm, ArgsView args){
     static std::string line;
     std::getline(std::cin, line);
