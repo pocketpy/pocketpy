@@ -18,8 +18,3 @@ assert bool([]) == False
 assert bool("abc") == True
 assert bool([1,2]) == True
 assert bool('') == False
-
-# test ?:
-a = 5
-assert ((a > 3) ? 1 : 0) == 1
-assert ((a < 3) ? 1 : 0) == 0

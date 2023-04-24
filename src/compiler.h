@@ -104,7 +104,6 @@ class Compiler {
         rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
-        rules[TK("?")] =        { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK("if")] =       { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
@@ -253,25 +252,14 @@ class Compiler {
     
     void exprTernary(){
         auto e = make_expr<TernaryExpr>();
-        if(prev().type == TK("if")){
-            e->true_expr = ctx()->s_expr.popx();
-            // cond
-            parse_expression(PREC_TERNARY + 1);
-            e->cond = ctx()->s_expr.popx();
-            consume(TK("else"));
-            // if false
-            parse_expression(PREC_TERNARY + 1);
-            e->false_expr = ctx()->s_expr.popx();
-        }else{  // ?:
-            e->cond = ctx()->s_expr.popx();
-            // if true
-            parse_expression(PREC_TERNARY + 1);
-            e->true_expr = ctx()->s_expr.popx();
-            consume(TK(":"));
-            // if false
-            parse_expression(PREC_TERNARY + 1);
-            e->false_expr = ctx()->s_expr.popx();
-        }
+        e->true_expr = ctx()->s_expr.popx();
+        // cond
+        parse_expression(PREC_TERNARY + 1);
+        e->cond = ctx()->s_expr.popx();
+        consume(TK("else"));
+        // if false
+        parse_expression(PREC_TERNARY + 1);
+        e->false_expr = ctx()->s_expr.popx();
         ctx()->s_expr.push(std::move(e));
     }
 

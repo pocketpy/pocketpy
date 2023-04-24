@@ -5,20 +5,20 @@ def print(*args, sep=' ', end='\n'):
 def round(x, ndigits=0):
     assert ndigits >= 0
     if ndigits == 0:
-        return x >= 0 ? int(x + 0.5) : int(x - 0.5)
+        return int(x + 0.5) if x >= 0 else int(x - 0.5)
     if x >= 0:
         return int(x * 10**ndigits + 0.5) / 10**ndigits
     else:
         return int(x * 10**ndigits - 0.5) / 10**ndigits
 
 def abs(x):
-    return x < 0 ? -x : x
+    return -x if x < 0 else x
 
 def max(a, b):
-    return a > b ? a : b
+    return a if a > b else b
 
 def min(a, b):
-    return a < b ? a : b
+    return a if a < b else b
 
 def all(iterable):
     for i in iterable:
