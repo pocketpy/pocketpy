@@ -7,7 +7,7 @@ label: Welcome
 
 pkpy is a lightweight(~8000 LOC) Python interpreter for game engine/apps.
 
-It is extremely easy to embed. Including a compiler, optimizer and bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
+It is extremely easy to embed. Including a compiler and a bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
 ## What it looks like
 
