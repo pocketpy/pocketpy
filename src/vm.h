@@ -104,7 +104,9 @@ public:
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes;
 
-    VM(bool use_stdio) : heap(this){
+    const bool enable_os;
+
+    VM(bool use_stdio, bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
         this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;

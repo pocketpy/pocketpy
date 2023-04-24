@@ -828,11 +828,14 @@ inline void VM::post_init(){
     add_module_math(this);
     add_module_re(this);
     add_module_dis(this);
-    add_module_io(this);
-    add_module_os(this);
     add_module_c(this);
     add_module_gc(this);
     add_module_random(this);
+
+    if(enable_os){
+        add_module_io(this);
+        add_module_os(this);
+    }
 
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
         _lazy_modules[name] = kPythonLibs[name];
@@ -970,8 +973,8 @@ extern "C" {
 
     __EXPORT
     /// Create a virtual machine.
-    pkpy::VM* pkpy_new_vm(bool use_stdio){
-        return PKPY_ALLOCATE(pkpy::VM, use_stdio);
+    pkpy::VM* pkpy_new_vm(bool use_stdio, bool enable_os){
+        return PKPY_ALLOCATE(pkpy::VM, use_stdio, enable_os);
     }
 
     __EXPORT

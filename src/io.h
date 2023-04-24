@@ -4,7 +4,7 @@
 #include "cffi.h"
 #include "common.h"
 
-#if PK_ENABLE_FILEIO
+#if PK_ENABLE_OS
 
 #include <fstream>
 #include <filesystem>

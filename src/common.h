@@ -43,10 +43,10 @@
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 
-#if (defined(__ANDROID__) && __ANDROID_API__ <= 22) || defined(__EMSCRIPTEN__)
-#define PK_ENABLE_FILEIO 			0
+#if (defined(__ANDROID__) && __ANDROID_API__ <= 22)
+#define PK_ENABLE_OS 			0
 #else
-#define PK_ENABLE_FILEIO 			1
+#define PK_ENABLE_OS 			1
 #endif
 
 // This is the maximum number of arguments in a function declaration
