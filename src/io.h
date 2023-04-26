@@ -31,12 +31,16 @@ struct FileIO {
     bool is_text() const { return mode != "rb" && mode != "wb" && mode != "ab"; }
 
     FileIO(VM* vm, Str file, Str mode): file(file), mode(mode) {
+        std::ios_base::openmode extra = 0;
+        if(mode == "rb" || mode == "wb" || mode == "ab"){
+            extra |= std::ios::binary;
+        }
         if(mode == "rt" || mode == "r" || mode == "rb"){
-            _fs.open(file.sv(), std::ios::in);
+            _fs.open(file.sv(), std::ios::in | extra);
         }else if(mode == "wt" || mode == "w" || mode == "wb"){
-            _fs.open(file.sv(), std::ios::out);
+            _fs.open(file.sv(), std::ios::out | extra);
         }else if(mode == "at" || mode == "a" || mode == "ab"){
-            _fs.open(file.sv(), std::ios::app);
+            _fs.open(file.sv(), std::ios::app | extra);
         }else{
             vm->ValueError("invalid mode");
         }

@@ -23,7 +23,7 @@ inline std::string getline(bool* eof=nullptr) {
     std::string output;
     output.resize(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    if(output.size() && output[output.size()-1] == '\r') output.pop_back();
+    if(!output.empty() && output.back() == '\r') output.pop_back();
     return output;
 }
 
