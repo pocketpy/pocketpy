@@ -11,18 +11,14 @@
 
 namespace pkpy{
 
-inline Bytes _read_file_cwd(const Str& name, bool* ok){
+inline Bytes _read_file_cwd(const Str& name){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
-    if(!exists){
-        *ok = false;
-        return Bytes();
-    }
+    if(!exists) return Bytes();
     std::ifstream ifs(path);
-    std::string buffer((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+    std::vector<char> buffer(std::istreambuf_iterator<char>(ifs), {});
     ifs.close();
-    *ok = true;
-    return Bytes({std::move(buffer)});
+    return Bytes(std::move(buffer));
 }
 
 struct FileIO {
@@ -56,10 +52,15 @@ struct FileIO {
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            Bytes buffer;
-            io._fs >> buffer._data;
-            if(io.is_text()) return VAR(Str(buffer._data));
-            return VAR(buffer);
+            std::vector<char> buffer;
+            while(true){
+                char c = io._fs.get();
+                if(io._fs.eof()) break;
+                buffer.push_back(c);
+            }
+            Bytes b(std::move(buffer));
+            if(io.is_text()) return VAR(Str(b.str()));
+            return VAR(std::move(b));
         });
 
         vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
@@ -67,7 +68,7 @@ struct FileIO {
             if(io.is_text()) io._fs << CAST(Str&, args[1]);
             else{
                 Bytes& buffer = CAST(Bytes&, args[1]);
-                io._fs << buffer._data;
+                io._fs.write(buffer.data(), buffer.size());
             }
             return vm->None;
         });
@@ -175,8 +176,7 @@ namespace pkpy{
 inline void add_module_io(VM* vm){}
 inline void add_module_os(VM* vm){}
 
-inline Bytes _read_file_cwd(const Str& name, bool* ok){
-    *ok = false;
+inline Bytes _read_file_cwd(const Str& name){
     return Bytes();
 }
 

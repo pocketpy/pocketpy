@@ -58,13 +58,25 @@ struct Range {
 };
 
 struct Bytes{
-    std::string _data;
+    std::vector<char> _data;
+    bool _ok;
 
     int size() const noexcept { return _data.size(); }
     int operator[](int i) const noexcept { return (int)(uint8_t)_data[i]; }
+    const char* data() const noexcept { return _data.data(); }
 
-    bool operator==(const Bytes& rhs) const noexcept { return _data == rhs._data; }
-    bool operator!=(const Bytes& rhs) const noexcept { return _data != rhs._data; }
+    bool operator==(const Bytes& rhs) const noexcept {
+        return _data == rhs._data;
+    }
+    bool operator!=(const Bytes& rhs) const noexcept {
+        return _data != rhs._data;
+    }
+
+    std::string str() const noexcept { return std::string(_data.begin(), _data.end()); }
+
+    Bytes() : _data(), _ok(false) {}
+    Bytes(std::vector<char>&& data) : _data(std::move(data)), _ok(true) {}
+    operator bool() const noexcept { return _ok; }
 };
 
 using Super = std::pair<PyObject*, Type>;

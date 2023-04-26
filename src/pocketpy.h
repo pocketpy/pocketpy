@@ -343,8 +343,8 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, ArgsView args) {
-        const Str& _self = CAST(Str&, args[0]);
-        return VAR(_self.escape());
+        const Str& self = CAST(Str&, args[0]);
+        return VAR(self.escape());
     });
 
     _vm->bind_method<0>("str", "__json__", [](VM* vm, ArgsView args) {
@@ -414,7 +414,9 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("str", "encode", [](VM* vm, ArgsView args) {
         const Str& self = CAST(Str&, args[0]);
-        return VAR(Bytes{self.str()});
+        std::vector<char> buffer(self.length());
+        memcpy(buffer.data(), self.data, self.length());
+        return VAR(Bytes(std::move(buffer)));
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
@@ -606,7 +608,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("bytes", "decode", [](VM* vm, ArgsView args) {
         const Bytes& self = CAST(Bytes&, args[0]);
         // TODO: check encoding is utf-8
-        return VAR(Str(self._data));
+        return VAR(Str(self.str()));
     });
 
     _vm->bind_method<1>("bytes", "__eq__", [](VM* vm, ArgsView args) {
