@@ -224,19 +224,18 @@ struct Str{
         return p - data;
     }
 
-    Str replace(const Str& old, const Str& new_) const {
+    Str replace(const Str& old, const Str& new_, int count=-1) const {
         std::stringstream ss;
         int start = 0;
         while(true){
             int i = index(old, start);
-            if(i == -1){
-                ss << substr(start, size - start);
-                break;
-            }
+            if(i == -1) break;
             ss << substr(start, i - start);
             ss << new_;
             start = i + old.size;
+            if(count != -1 && --count == 0) break;
         }
+        ss << substr(start, size - start);
         return ss.str();
     }
 

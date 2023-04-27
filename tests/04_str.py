@@ -76,3 +76,9 @@ assert str(num) == '6'
 
 测试 = "test"
 assert 测试 == "test"
+
+assert "Hello, {}!".format("World") == "Hello, World!"
+assert "{} {} {}".format("I", "love", "Python") == "I love Python"
+assert "{0} {1} {2}".format("I", "love", "Python") == "I love Python"
+assert "{2} {1} {0}".format("I", "love", "Python") == "Python love I"
+assert "{0}{1}{0}".format("abra", "cad") == "abracadabra"

@@ -390,11 +390,21 @@ inline void init_builtins(VM* _vm) {
         return VAR(self < obj);
     });
 
-    _vm->bind_method<2>("str", "replace", [](VM* vm, ArgsView args) {
+    _vm->bind_method<-1>("str", "replace", [](VM* vm, ArgsView args) {
+        if(args.size() != 1+2 && args.size() != 1+3) vm->TypeError("replace() takes 2 or 3 arguments");
         const Str& self = CAST(Str&, args[0]);
         const Str& old = CAST(Str&, args[1]);
         const Str& new_ = CAST(Str&, args[2]);
-        return VAR(self.replace(old, new_));
+        int count = args.size()==1+3 ? CAST(int, args[3]) : -1;
+        return VAR(self.replace(old, new_, count));
+    });
+
+    _vm->bind_method<1>("str", "index", [](VM* vm, ArgsView args) {
+        const Str& self = CAST(Str&, args[0]);
+        const Str& sub = CAST(Str&, args[1]);
+        int index = self.index(sub);
+        if(index == -1) vm->ValueError("substring not found");
+        return VAR(index);
     });
 
     _vm->bind_method<1>("str", "startswith", [](VM* vm, ArgsView args) {

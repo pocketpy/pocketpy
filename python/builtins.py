@@ -86,11 +86,14 @@ def str::split(self, sep):
     res.append(self)
     return res
 
-def str::index(self, sub):
-    for i in range(len(self)):
-        if self[i:i+len(sub)] == sub:
-            return i
-    return -1
+def str::format(self, *args):
+    if '{}' in self:
+        for i in range(len(args)):
+            self = self.replace('{}', str(args[i]), 1)
+    else:
+        for i in range(len(args)):
+            self = self.replace('{'+str(i)+'}', str(args[i]))
+    return self
 
 def str::strip(self, chars=None):
     chars = chars or ' \t\n\r'
