@@ -637,6 +637,21 @@ inline void init_builtins(VM* _vm) {
         const Bytes& other = CAST(Bytes&, args[1]);
         return VAR(self != other);
     });
+
+    /************ slice ************/
+    _vm->bind_static_method<3>("slice", "__new__", [](VM* vm, ArgsView args) {
+        return VAR(Slice(args[0], args[1], args[2]));
+    });
+
+    _vm->bind_method<0>("slice", "__repr__", [](VM* vm, ArgsView args) {
+        const Slice& self = CAST(Slice&, args[0]);
+        std::stringstream ss;
+        ss << "slice(";
+        ss << CAST(Str, vm->asRepr(self.start)) << ", ";
+        ss << CAST(Str, vm->asRepr(self.stop)) << ", ";
+        ss << CAST(Str, vm->asRepr(self.step)) << ")";
+        return VAR(ss.str());
+    });
 }
 
 #ifdef _WIN32

@@ -806,6 +806,7 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("range", _t(tp_range));
     builtins->attr().set("bytes", _t(tp_bytes));
     builtins->attr().set("StopIteration", StopIteration);
+    builtins->attr().set("slice", _t(tp_slice));
 
     post_init();
     for(int i=0; i<_all_types.size(); i++){
