@@ -549,7 +549,7 @@ __NEXT_STEP:;
     TARGET(FORMAT_STRING) {
         _0 = POPX();
         const Str& spec = CAST(Str&, co_consts[byte.arg]);
-        PUSH(VAR(format(spec, _0)));
+        PUSH(format(spec, _0));
     } DISPATCH();
 #if !PK_ENABLE_COMPUTED_GOTO
 #if DEBUG_EXTRA_CHECK

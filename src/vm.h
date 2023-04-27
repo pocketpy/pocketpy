@@ -395,7 +395,7 @@ public:
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
-    Str format(Str, PyObject*);
+    PyObject* format(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
     void bind_method(PyObject*, Str, NativeFuncC);
@@ -642,24 +642,36 @@ inline PyObject* VM::asRepr(PyObject* obj){
     return call_method(obj, __repr__);
 }
 
-inline Str VM::format(Str spec, PyObject* obj){
-    char type = spec.end()[-1];
-    int dot = -1;
-    int width, precision;
+inline PyObject* VM::format(Str spec, PyObject* obj){
+    if(spec.empty()) return asStr(obj);
+    char type;
+    switch(spec.end()[-1]){
+        case 'f': case 'd': case 's':
+            type = spec.end()[-1];
+            spec = spec.substr(0, spec.length() - 1);
+            break;
+        default: type = ' '; break;
+    }
+
+    char pad_c = ' ';
+    if(spec[0] == '0'){
+        pad_c = '0';
+        spec = spec.substr(1);
+    }
     char align;
     if(spec[0] == '>'){
         align = '>';
         spec = spec.substr(1);
-        dot = spec.index(".");
     }else if(spec[0] == '<'){
         align = '<';
         spec = spec.substr(1);
-        dot = spec.index(".");
     }else{
         if(is_int(obj) || is_float(obj)) align = '>';
         else align = '<';
     }
 
+    int dot = spec.index(".");
+    int width, precision;
     try{
         if(dot >= 0){
             width = Number::stoi(spec.substr(0, dot).str());
@@ -689,11 +701,11 @@ inline Str VM::format(Str spec, PyObject* obj){
     }
     if(width > ret.length()){
         int pad = width - ret.length();
-        std::string padding(pad, ' ');
+        std::string padding(pad, pad_c);
         if(align == '>') ret = padding.c_str() + ret;
         else ret = ret + padding.c_str();
     }
-    return ret;
+    return VAR(ret);
 }
 
 inline PyObject* VM::new_module(StrName name) {
