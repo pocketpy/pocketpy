@@ -704,6 +704,12 @@ inline void init_builtins(VM* _vm) {
         ss << "})";
         return VAR(ss.str());
     });
+
+    _vm->bind_method<1>("mappingproxy", "__contains__", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        StrName key = CAST(Str&, args[1]);
+        return VAR(self.attr().contains(key));
+    });
 }
 
 #ifdef _WIN32
