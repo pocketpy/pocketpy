@@ -17,12 +17,29 @@ asds1321321321测试\测试'''
 
 assert s == 'asdasd\nasds1321321321测试\\测试'
 
-assert f'123{2*2}56789' == '123456789'
+t = 4
+assert f'123{t}56789' == '123456789'
 
+b = 123
 s = f'''->->{s}<-<-
-{123}
+{b}
 '''
 
 assert s == '->->asdasd\nasds1321321321测试\\测试<-<-\n123\n'
 
 assert r''' ' ''' == " ' "
+
+a = 10
+assert f'{a}' == '10'
+assert f'{a:>10}' == '        10'
+assert f'{a:<10}' == '10        '
+assert f'{a:<10.2f}' == '10.00     '
+assert f'{a:>10.2f}' == '     10.00'
+assert f'{a:3d}' == ' 10'
+assert f'{a:10d}' == '        10'
+assert f'{a:1d}' == '10'
+b = '123'
+assert f'{b:10}' == '123       '
+assert f'{b:>10}' == '       123'
+assert f'{b:1}' == '123'
+assert f'{b:10s}' == '123       '

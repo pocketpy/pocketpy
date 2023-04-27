@@ -164,6 +164,10 @@ struct Str{
         return ret;
     }
 
+    Str substr(int start) const {
+        return substr(start, size - start);
+    }
+
     char* c_str_dup() const {
         char* p = (char*)malloc(size + 1);
         memcpy(p, data, size);
@@ -396,7 +400,6 @@ const StrName __setattr__ = StrName::get("__setattr__");
 const StrName __call__ = StrName::get("__call__");
 const StrName __doc__ = StrName::get("__doc__");
 
-const StrName m_eval = StrName::get("eval");
 const StrName m_self = StrName::get("self");
 const StrName m_dict = StrName::get("dict");
 const StrName m_set = StrName::get("set");

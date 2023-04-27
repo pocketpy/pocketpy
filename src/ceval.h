@@ -80,7 +80,6 @@ __NEXT_STEP:;
     TARGET(LOAD_FALSE) PUSH(False); DISPATCH();
     TARGET(LOAD_INTEGER) PUSH(VAR(byte.arg)); DISPATCH();
     TARGET(LOAD_ELLIPSIS) PUSH(Ellipsis); DISPATCH();
-    TARGET(LOAD_BUILTIN_EVAL) PUSH(builtins->attr(m_eval)); DISPATCH();
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
         bool is_simple = decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
@@ -547,6 +546,11 @@ __NEXT_STEP:;
     TARGET(SETUP_DOCSTRING)
         TOP()->attr().set(__doc__, co_consts[byte.arg]);
         DISPATCH();
+    TARGET(FORMAT_STRING) {
+        _0 = POPX();
+        const Str& spec = CAST(Str&, co_consts[byte.arg]);
+        PUSH(VAR(format(spec, _0)));
+    } DISPATCH();
 #if !PK_ENABLE_COMPUTED_GOTO
 #if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));

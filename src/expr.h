@@ -536,10 +536,19 @@ struct FStringExpr: Expr{
                 ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
                 size++;
             }
-            ctx->emit(OP_LOAD_BUILTIN_EVAL, BC_NOARG, line);
-            ctx->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
-            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(m[1].str())), line);
-            ctx->emit(OP_CALL, 1, line);
+            Str expr = m[1].str();
+            int conon = expr.index(":");
+            if(conon >= 0){
+                ctx->emit(
+                    OP_LOAD_NAME,
+                    StrName(expr.substr(0, conon)).index,
+                    line
+                );
+                Str spec = expr.substr(conon+1);
+                ctx->emit(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+            }else{
+                ctx->emit(OP_LOAD_NAME, StrName(expr).index, line);
+            }
             size++;
             i = (int)(m.position() + m.length());
         }

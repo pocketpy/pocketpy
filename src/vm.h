@@ -395,6 +395,7 @@ public:
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
+    Str format(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
     void bind_method(PyObject*, Str, NativeFuncC);
@@ -639,6 +640,60 @@ inline i64 VM::hash(PyObject* obj){
 
 inline PyObject* VM::asRepr(PyObject* obj){
     return call_method(obj, __repr__);
+}
+
+inline Str VM::format(Str spec, PyObject* obj){
+    char type = spec.end()[-1];
+    int dot = -1;
+    int width, precision;
+    char align;
+    if(spec[0] == '>'){
+        align = '>';
+        spec = spec.substr(1);
+        dot = spec.index(".");
+    }else if(spec[0] == '<'){
+        align = '<';
+        spec = spec.substr(1);
+        dot = spec.index(".");
+    }else{
+        if(is_int(obj) || is_float(obj)) align = '>';
+        else align = '<';
+    }
+
+    try{
+        if(dot >= 0){
+            width = Number::stoi(spec.substr(0, dot).str());
+            precision = Number::stoi(spec.substr(dot+1).str());
+        }else{
+            width = Number::stoi(spec.str());
+            precision = -1;
+        }
+    }catch(...){
+        ValueError("invalid format specifer");
+    }
+
+    if(type != 'f' && dot >= 0) ValueError("precision not allowed in the format specifier");
+    Str ret;
+    if(type == 'f'){
+        f64 val = num_to_float(obj);
+        if(precision < 0) precision = 6;
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(precision) << val;
+        ret = ss.str();
+    }else if(type == 'd'){
+        ret = std::to_string(CAST(i64, obj));
+    }else if(type == 's'){
+        ret = CAST(Str&, obj);
+    }else{
+        ret = CAST(Str&, asStr(obj));
+    }
+    if(width > ret.length()){
+        int pad = width - ret.length();
+        std::string padding(pad, ' ');
+        if(align == '>') ret = padding.c_str() + ret;
+        else ret = ret + padding.c_str();
+    }
+    return ret;
 }
 
 inline PyObject* VM::new_module(StrName name) {
