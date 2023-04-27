@@ -911,42 +911,17 @@ inline void VM::post_init(){
 }   // namespace pkpy
 
 /*************************GLOBAL NAMESPACE*************************/
-
-class PkExportedBase{
-public:
-    virtual ~PkExportedBase() = default;
-    virtual void* get() = 0;
-};
-
-static std::vector<PkExportedBase*> _pk_lookup_table;
-template<typename T>
-class PkExported : public PkExportedBase{
-    T* _ptr;
-public:
-    template<typename... Args>
-    PkExported(Args&&... args) {
-        _ptr = new T(std::forward<Args>(args)...);
-        _pk_lookup_table.push_back(this);
-    }
-    
-    ~PkExported() override { delete _ptr; }
-    void* get() override { return _ptr; }
-    operator T*() { return _ptr; }
-};
-
-#define PKPY_ALLOCATE(T, ...) *(new PkExported<T>(__VA_ARGS__))
+static std::map<void*, void(*)(void*)> _pk_deleter_map;
 
 extern "C" {
     __EXPORT
     void pkpy_delete(void* p){
-        for(int i = 0; i < _pk_lookup_table.size(); i++){
-            if(_pk_lookup_table[i]->get() == p){
-                delete _pk_lookup_table[i];
-                _pk_lookup_table.erase(_pk_lookup_table.begin() + i);
-                return;
-            }
+        auto it = _pk_deleter_map.find(p);
+        if(it != _pk_deleter_map.end()){
+            it->second(p);
+        }else{
+            free(p);
         }
-        free(p);
     }
 
     __EXPORT
@@ -980,7 +955,9 @@ extern "C" {
 
     __EXPORT
     pkpy::REPL* pkpy_new_repl(pkpy::VM* vm){
-        return PKPY_ALLOCATE(pkpy::REPL, vm);
+        pkpy::REPL* p = new pkpy::REPL(vm);
+        _pk_deleter_map[p] = [](void* p){ delete (pkpy::REPL*)p; };
+        return p;
     }
 
     __EXPORT
@@ -995,7 +972,9 @@ extern "C" {
 
     __EXPORT
     pkpy::VM* pkpy_new_vm(bool use_stdio=true, bool enable_os=true){
-        return PKPY_ALLOCATE(pkpy::VM, use_stdio, enable_os);
+        pkpy::VM* p = new pkpy::VM(use_stdio, enable_os);
+        _pk_deleter_map[p] = [](void* p){ delete (pkpy::VM*)p; };
+        return p;
     }
 
     __EXPORT
