@@ -204,3 +204,11 @@ class staticmethod:
     
 def type@__repr__(self):
     return "<class '" + self.__name__ + "'>"
+
+def help(obj):
+    if hasattr(obj, '__func__'):
+        obj = obj.__func__
+    if hasattr(obj, '__doc__'):
+        print(obj.__doc__)
+    else:
+        print("No docstring found")

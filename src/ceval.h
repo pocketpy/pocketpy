@@ -543,6 +543,10 @@ __NEXT_STEP:;
         _error(StrName(byte.arg), msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
+    /*****************************************/
+    TARGET(SETUP_DOCSTRING)
+        TOP()->attr().set(__doc__, co_consts[byte.arg]);
+        DISPATCH();
 #if !PK_ENABLE_COMPUTED_GOTO
 #if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));

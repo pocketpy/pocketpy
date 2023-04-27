@@ -922,7 +922,20 @@ __SUBSCR_END:
         }
         compile_block_body();
         pop_context();
+
+        PyObject* docstring = nullptr;
+        if(decl->code->codes.size()>=2 && decl->code->codes[0].op == OP_LOAD_CONST && decl->code->codes[1].op == OP_POP_TOP){
+            PyObject* c = decl->code->consts[decl->code->codes[0].arg];
+            if(is_type(c, vm->tp_str)){
+                decl->code->codes[0].op = OP_NO_OP;
+                decl->code->codes[1].op = OP_NO_OP;
+                docstring = c;
+            }
+        }
         ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
+        if(docstring != nullptr){
+            ctx()->emit(OP_SETUP_DOCSTRING, ctx()->add_const(docstring), prev().line);
+        }
         // add decorators
         for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
             (*it)->emit(ctx());
