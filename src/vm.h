@@ -118,6 +118,19 @@ public:
 
     bool is_stdio_used() const { return _stdout == &std::cout; }
 
+    std::string read_output(){
+        if(is_stdio_used()) UNREACHABLE();
+        std::stringstream* s_out = (std::stringstream*)(vm->_stdout);
+        std::stringstream* s_err = (std::stringstream*)(vm->_stderr);
+        pkpy::Str _stdout = s_out->str();
+        pkpy::Str _stderr = s_err->str();
+        std::stringstream ss;
+        ss << '{' << "\"stdout\": " << _stdout.escape(false);
+        ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
+        s_out->str(""); s_err->str("");
+        return ss.str();
+    }
+
     FrameId top_frame() {
 #if DEBUG_EXTRA_CHECK
         if(callstack.empty()) FATAL_ERROR();

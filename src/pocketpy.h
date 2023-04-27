@@ -938,12 +938,6 @@ public:
 
 extern "C" {
     __EXPORT
-    /// Delete a pointer allocated by `pkpy_xxx_xxx`.
-    /// It can be `VM*`, `REPL*`, `char*`, etc.
-    /// 
-    /// !!!
-    /// If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
-    /// !!!
     void pkpy_delete(void* p){
         for(int i = 0; i < _pk_lookup_table.size(); i++){
             if(_pk_lookup_table[i]->get() == p){
@@ -956,16 +950,11 @@ extern "C" {
     }
 
     __EXPORT
-    /// Run a given source on a virtual machine.
     void pkpy_vm_exec(pkpy::VM* vm, const char* source){
         vm->exec(source, "main.py", pkpy::EXEC_MODE);
     }
 
     __EXPORT
-    /// Get a global variable of a virtual machine.
-    /// 
-    /// Return `__repr__` of the result.
-    /// If the variable is not found, return `nullptr`.
     char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
         pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
@@ -978,10 +967,6 @@ extern "C" {
     }
 
     __EXPORT
-    /// Evaluate an expression.
-    /// 
-    /// Return `__repr__` of the result.
-    /// If there is any error, return `nullptr`.
     char* pkpy_vm_eval(pkpy::VM* vm, const char* source){
         pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
@@ -994,45 +979,28 @@ extern "C" {
     }
 
     __EXPORT
-    /// Create a REPL, using the given virtual machine as the backend.
     pkpy::REPL* pkpy_new_repl(pkpy::VM* vm){
         return PKPY_ALLOCATE(pkpy::REPL, vm);
     }
 
     __EXPORT
-    /// Input a source line to an interactive console. Return true if need more lines.
     bool pkpy_repl_input(pkpy::REPL* r, const char* line){
         return r->input(line);
     }
 
     __EXPORT
-    /// Add a source module into a virtual machine.
     void pkpy_vm_add_module(pkpy::VM* vm, const char* name, const char* source){
         vm->_lazy_modules[name] = source;
     }
 
     __EXPORT
-    /// Create a virtual machine.
     pkpy::VM* pkpy_new_vm(bool use_stdio=true, bool enable_os=true){
         return PKPY_ALLOCATE(pkpy::VM, use_stdio, enable_os);
     }
 
     __EXPORT
-    /// Read the standard output and standard error as string of a virtual machine.
-    /// The `vm->use_stdio` should be `false`.
-    /// After this operation, both stream will be cleared.
-    ///
-    /// Return a json representing the result.
     char* pkpy_vm_read_output(pkpy::VM* vm){
-        if(vm->is_stdio_used()) return nullptr;
-        std::stringstream* s_out = (std::stringstream*)(vm->_stdout);
-        std::stringstream* s_err = (std::stringstream*)(vm->_stderr);
-        pkpy::Str _stdout = s_out->str();
-        pkpy::Str _stderr = s_err->str();
-        std::stringstream ss;
-        ss << '{' << "\"stdout\": " << _stdout.escape(false);
-        ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
-        s_out->str(""); s_err->str("");
-        return strdup(ss.str().c_str());
+        std::string json = vm->read_output();
+        return strdup(json.c_str());
     }
 }
