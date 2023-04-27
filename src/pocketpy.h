@@ -190,15 +190,6 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind_method<1>("object", "__getattribute__", [](VM* vm, ArgsView args) {
-        PyObject* self = args[0];
-        if(is_tagged(self) || !self->is_attr_valid()) vm->TypeError("object has no attribute");
-        StrName name = CAST(Str&, args[1]);
-        PyObject* ret = self->attr().try_get(name);
-        if(ret == nullptr) vm->AttributeError(name.sv());
-        return ret;
-    });
-
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(VAR(args[0] == args[1])));
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
 
@@ -661,6 +652,58 @@ inline void init_builtins(VM* _vm) {
         ss << CAST(Str, vm->asRepr(self.step)) << ")";
         return VAR(ss.str());
     });
+
+    /************ MappingProxy ************/
+    _vm->bind_method<0>("mappingproxy", "keys", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        List keys;
+        for(StrName name : self.attr().keys()) keys.push_back(VAR(name.sv()));
+        return VAR(std::move(keys));
+    });
+
+    _vm->bind_method<0>("mappingproxy", "values", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        List values;
+        for(auto& item : self.attr().items()) values.push_back(item.second);
+        return VAR(std::move(values));
+    });
+
+    _vm->bind_method<0>("mappingproxy", "items", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        List items;
+        for(auto& item : self.attr().items()){
+            PyObject* t = VAR(Tuple({VAR(item.first.sv()), item.second}));
+            items.push_back(std::move(t));
+        }
+        return VAR(std::move(items));
+    });
+
+    _vm->bind_method<0>("mappingproxy", "__len__", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        return VAR(self.attr().size());
+    });
+
+    _vm->bind_method<1>("mappingproxy", "__getitem__", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        StrName key = CAST(Str&, args[1]);
+        PyObject* ret = self.attr().try_get(key);
+        if(ret == nullptr) vm->AttributeError(key.sv());
+        return ret;
+    });
+
+    _vm->bind_method<0>("mappingproxy", "__repr__", [](VM* vm, ArgsView args) {
+        MappingProxy& self = CAST(MappingProxy&, args[0]);
+        std::stringstream ss;
+        ss << "mappingproxy({";
+        bool first = true;
+        for(auto& item : self.attr().items()){
+            if(!first) ss << ", ";
+            first = false;
+            ss << item.first.escape() << ": " << CAST(Str, vm->asRepr(item.second));
+        }
+        ss << "})";
+        return VAR(ss.str());
+    });
 }
 
 #ifdef _WIN32
@@ -913,6 +956,12 @@ inline void VM::post_init(){
     }));
     _t(tp_slice)->attr().set("step", property([](VM* vm, ArgsView args){
         return CAST(Slice&, args[0]).step;
+    }));
+    _t(tp_object)->attr().set("__dict__", property([](VM* vm, ArgsView args){
+        if(is_tagged(args[0]) || !args[0]->is_attr_valid()){
+            vm->AttributeError("__dict__");
+        }
+        return VAR(MappingProxy(args[0]));
     }));
 #endif
 }

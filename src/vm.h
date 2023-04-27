@@ -102,7 +102,7 @@ public:
     Type tp_list, tp_tuple;
     Type tp_function, tp_native_func, tp_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
-    Type tp_super, tp_exception, tp_bytes;
+    Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
 
     const bool enable_os;
 
@@ -430,6 +430,7 @@ DEF_NATIVE_2(Range, tp_range)
 DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(Bytes, tp_bytes)
+DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
@@ -864,6 +865,7 @@ inline void VM::init_builtin_types(){
     tp_super = _new_type_object("super");
     tp_exception = _new_type_object("Exception");
     tp_bytes = _new_type_object("bytes");
+    tp_mappingproxy = _new_type_object("mappingproxy");
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});

@@ -158,6 +158,13 @@ struct Py_ final: PyObject {
     }
 };
 
+struct MappingProxy{
+    PyObject* obj;
+    MappingProxy(PyObject* obj) : obj(obj) {}
+
+    NameDict& attr() noexcept { return obj->attr(); }
+};
+
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 #define OBJ_MARK(obj) if(!is_tagged(obj)) (obj)->_obj_gc_mark()
 

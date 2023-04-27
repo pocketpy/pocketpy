@@ -136,6 +136,10 @@ template<> inline void gc_mark<NameDict>(NameDict& t){
     }
 }
 
+template<> inline void gc_mark<MappingProxy>(MappingProxy& t){
+    OBJ_MARK(t.obj);
+}
+
 template<> inline void gc_mark<BoundMethod>(BoundMethod& t){
     OBJ_MARK(t.self);
     OBJ_MARK(t.func);
