@@ -183,6 +183,8 @@ class property:
     def __init__(self, fget, fset=None):
         self.fget = fget
         self.fset = fset
+        if '__doc__' in fget.__dict__:
+            self.__doc__ = fget.__dict__['__doc__']
 
     def __get__(self, obj):
         return self.fget(obj)
