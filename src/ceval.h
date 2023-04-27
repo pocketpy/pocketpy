@@ -439,7 +439,7 @@ __NEXT_STEP:;
                 source = it->second;
                 _lazy_modules.erase(it);
             }
-            CodeObject_ code = compile(source, name.sv(), EXEC_MODE);
+            CodeObject_ code = compile(source, Str(name.sv())+".py", EXEC_MODE);
             PyObject* new_mod = new_module(name);
             _exec(code, new_mod);
             new_mod->attr()._try_perfect_rehash();

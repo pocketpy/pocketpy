@@ -190,6 +190,15 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
+    _vm->bind_method<1>("object", "__getattribute__", [](VM* vm, ArgsView args) {
+        PyObject* self = args[0];
+        if(is_tagged(self) || !self->is_attr_valid()) vm->TypeError("object has no attribute");
+        StrName name = CAST(Str&, args[1]);
+        PyObject* ret = self->attr().try_get(name);
+        if(ret == nullptr) vm->AttributeError(name.sv());
+        return ret;
+    });
+
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(VAR(args[0] == args[1])));
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
 
