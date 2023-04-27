@@ -82,3 +82,19 @@ assert "{} {} {}".format("I", "love", "Python") == "I love Python"
 assert "{0} {1} {2}".format("I", "love", "Python") == "I love Python"
 assert "{2} {1} {0}".format("I", "love", "Python") == "Python love I"
 assert "{0}{1}{0}".format("abra", "cad") == "abracadabra"
+
+# 3rd slice
+a = "Hello, World!"
+assert a[::-1] == "!dlroW ,olleH"
+assert a[::2] == "Hlo ol!"
+assert a[2:5:2] == "lo"
+assert a[5:2:-1] == ",ol"
+assert a[5:2:-2] == ",l"
+
+b = list(a)
+assert b == ['H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!']
+assert b[::-1] == ['!', 'd', 'l', 'r', 'o', 'W', ' ', ',', 'o', 'l', 'l', 'e', 'H']
+assert b[::2] == ['H', 'l', 'o', ' ', 'o', 'l', '!']
+assert b[2:5:2] == ['l', 'o']
+assert b[5:2:-1] == [',', 'o', 'l']
+assert b[5:2:-2] == [',', 'l']

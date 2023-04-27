@@ -368,9 +368,10 @@ inline void init_builtins(VM* _vm) {
         const Str& self (CAST(Str&, args[0]));
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST(Slice, args[1]);
-            s.normalize(self.u8_length());
-            return VAR(self.u8_slice(s.start, s.stop));
+            const Slice& s = _CAST(Slice&, args[1]);
+            int start, stop, step;
+            vm->parse_int_slice(s, self.u8_length(), start, stop, step);
+            return VAR(self.u8_slice(start, stop, step));
         }
 
         int index = CAST(int, args[1]);
@@ -509,10 +510,11 @@ inline void init_builtins(VM* _vm) {
         const List& self = CAST(List&, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST(Slice, args[1]);
-            s.normalize(self.size());
+            const Slice& s = _CAST(Slice&, args[1]);
+            int start, stop, step;
+            vm->parse_int_slice(s, self.size(), start, stop, step);
             List new_list;
-            for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
+            for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
             return VAR(std::move(new_list));
         }
 
@@ -551,10 +553,11 @@ inline void init_builtins(VM* _vm) {
         const Tuple& self = CAST(Tuple&, args[0]);
 
         if(is_type(args[1], vm->tp_slice)){
-            Slice s = _CAST(Slice, args[1]);
-            s.normalize(self.size());
+            const Slice& s = _CAST(Slice&, args[1]);
+            int start, stop, step;
+            vm->parse_int_slice(s, self.size(), start, stop, step);
             List new_list;
-            for(size_t i = s.start; i < s.stop; i++) new_list.push_back(self[i]);
+            for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
             return VAR(Tuple(std::move(new_list)));
         }
 
@@ -876,6 +879,16 @@ inline void VM::post_init(){
     }));
     _t(tp_bound_method)->attr().set("__func__", property([](VM* vm, ArgsView args){
         return CAST(BoundMethod&, args[0]).func;
+    }));
+
+    _t(tp_slice)->attr().set("start", property([](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).start;
+    }));
+    _t(tp_slice)->attr().set("stop", property([](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).stop;
+    }));
+    _t(tp_slice)->attr().set("step", property([](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).step;
     }));
 #endif
 }

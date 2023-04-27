@@ -381,6 +381,7 @@ public:
     PyObject* _py_call(PyObject** sp_base, PyObject* callable, ArgsView args, ArgsView kwargs);
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
+    void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
     void bind_method(PyObject*, Str, NativeFuncC);
@@ -555,6 +556,48 @@ inline bool VM::asBool(PyObject* obj){
         return CAST(i64, ret) > 0;
     }
     return true;
+}
+
+inline void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step){
+    auto clip = [](int value, int min, int max){
+        if(value < min) return min;
+        if(value > max) return max;
+        return value;
+    };
+    if(s.step == None) step = 1;
+    else step = CAST(int, s.step);
+    if(step == 0) ValueError("slice step cannot be zero");
+    if(step > 0){
+        if(s.start == None){
+            start = 0;
+        }else{
+            start = CAST(int, s.start);
+            if(start < 0) start += length;
+            start = clip(start, 0, length);
+        }
+        if(s.stop == None){
+            stop = length;
+        }else{
+            stop = CAST(int, s.stop);
+            if(stop < 0) stop += length;
+            stop = clip(stop, 0, length);
+        }
+    }else{
+        if(s.start == None){
+            start = length - 1;
+        }else{
+            start = CAST(int, s.start);
+            if(start < 0) start += length;
+            start = clip(start, -1, length - 1);
+        }
+        if(s.stop == None){
+            stop = -1;
+        }else{
+            stop = CAST(int, s.stop);
+            if(stop < 0) stop += length;
+            stop = clip(stop, -1, length - 1);
+        }
+    }
 }
 
 inline i64 VM::hash(PyObject* obj){

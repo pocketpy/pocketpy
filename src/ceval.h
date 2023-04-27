@@ -227,16 +227,12 @@ __NEXT_STEP:;
         STACK_SHRINK(byte.arg);
         PUSH(obj);
     } DISPATCH();
-    TARGET(BUILD_SLICE) {
-        _2 = POPX();
-        _1 = POPX();
-        _0 = POPX();
-        Slice s;
-        if(_0 != None) s.start = CAST(int, _0);
-        if(_1 != None) s.stop = CAST(int, _1);
-        if(_2 != None) s.step = CAST(int, _2);
-        PUSH(VAR(s));
-    } DISPATCH();
+    TARGET(BUILD_SLICE)
+        _2 = POPX();    // step
+        _1 = POPX();    // stop
+        _0 = POPX();    // start
+        PUSH(VAR(Slice(_0, _1, _2)));
+        DISPATCH();
     TARGET(BUILD_TUPLE)
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         STACK_SHRINK(byte.arg);
@@ -352,14 +348,11 @@ __NEXT_STEP:;
         if(asBool(TOP()) == false) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
-    TARGET(LOOP_CONTINUE) {
-        int target = co_blocks[byte.block].start;
-        frame->jump_abs(target);
-    } DISPATCH();
+    TARGET(LOOP_CONTINUE)
+        frame->jump_abs(co_blocks[byte.block].start);
+        DISPATCH();
     TARGET(LOOP_BREAK)
-        frame->jump_abs_break(
-            co_blocks[byte.block].end
-        );
+        frame->jump_abs_break(co_blocks[byte.block].end);
         DISPATCH();
     TARGET(GOTO) {
         StrName name(byte.arg);
@@ -393,11 +386,10 @@ __NEXT_STEP:;
     TARGET(YIELD_VALUE)
         return PY_OP_YIELD;
     /*****************************************/
-    TARGET(LIST_APPEND) {
-        PyObject* obj = POPX();
-        List& list = CAST(List&, SECOND());
-        list.push_back(obj);
-    } DISPATCH();
+    TARGET(LIST_APPEND)
+        _0 = POPX();
+        CAST(List&, SECOND()).push_back(_0);
+        DISPATCH();
     TARGET(DICT_ADD) {
         _0 = POPX();
         Tuple& t = CAST(Tuple&, _0);
@@ -509,16 +501,15 @@ __NEXT_STEP:;
         PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, super_cls));
         PUSH(cls);
     } DISPATCH();
-    TARGET(END_CLASS) {
-        PyObject* cls = POPX();
-        cls->attr()._try_perfect_rehash();
-    }; DISPATCH();
-    TARGET(STORE_CLASS_ATTR) {
-        StrName name(byte.arg);
-        PyObject* obj = POPX();
-        PyObject* cls = TOP();
-        cls->attr().set(name, obj);
-    } DISPATCH();
+    TARGET(END_CLASS)
+        _0 = POPX();
+        _0->attr()._try_perfect_rehash();
+        DISPATCH();
+    TARGET(STORE_CLASS_ATTR)
+        _name = StrName(byte.arg);
+        _0 = POPX();
+        TOP()->attr().set(_name, _0);
+        DISPATCH();
     /*****************************************/
     // // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
@@ -543,8 +534,8 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(EXCEPTION_MATCH) {
         const auto& e = CAST(Exception&, TOP());
-        StrName name(byte.arg);
-        PUSH(VAR(e.match_type(name)));
+        _name = StrName(byte.arg);
+        PUSH(VAR(e.match_type(_name)));
     } DISPATCH();
     TARGET(RAISE) {
         PyObject* obj = POPX();

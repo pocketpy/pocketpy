@@ -81,19 +81,11 @@ struct Bytes{
 
 using Super = std::pair<PyObject*, Type>;
 
-// TODO: re-examine the design of Slice
 struct Slice {
-    int start = 0;
-    int stop = 0x7fffffff;
-    int step = 1;
-
-    void normalize(int len){
-        if(start < 0) start += len;
-        if(stop < 0) stop += len;
-        if(start < 0) start = 0;
-        if(stop > len) stop = len;
-        if(stop < start) stop = start;
-    }
+    PyObject* start;
+    PyObject* stop;
+    PyObject* step;
+    Slice(PyObject* start, PyObject* stop, PyObject* step) : start(start), stop(stop), step(step) {}
 };
 
 class BaseIter {

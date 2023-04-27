@@ -141,6 +141,12 @@ template<> inline void gc_mark<BoundMethod>(BoundMethod& t){
     OBJ_MARK(t.func);
 }
 
+template<> inline void gc_mark<Slice>(Slice& t){
+    OBJ_MARK(t.start);
+    OBJ_MARK(t.stop);
+    OBJ_MARK(t.step);
+}
+
 template<> inline void gc_mark<Function>(Function& t){
     t.decl->_gc_mark();
     if(t._module != nullptr) OBJ_MARK(t._module);

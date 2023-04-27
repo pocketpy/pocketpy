@@ -265,11 +265,14 @@ struct Str{
         return substr(i, utf8len(data[i]));
     }
 
-    Str u8_slice(int start, int end) const{
-        // TODO: optimize this
-        start = _unicode_index_to_byte(start);
-        end = _unicode_index_to_byte(end);
-        return substr(start, end - start);
+    Str u8_slice(int start, int stop, int step) const{
+        std::stringstream ss;
+        if(is_ascii){
+            for(int i=start; step>0?i<stop:i>stop; i+=step) ss << data[i];
+        }else{
+            for(int i=start; step>0?i<stop:i>stop; i+=step) ss << u8_getitem(i);
+        }
+        return ss.str();
     }
 
     int u8_length() const {

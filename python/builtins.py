@@ -71,7 +71,7 @@ def sorted(iterable, reverse=False):
 
 str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
 
-def str::split(self, sep):
+def str@split(self, sep):
     if sep == "":
         return list(self)
     res = []
@@ -86,7 +86,7 @@ def str::split(self, sep):
     res.append(self)
     return res
 
-def str::format(self, *args):
+def str@format(self, *args):
     if '{}' in self:
         for i in range(len(args)):
             self = self.replace('{}', str(args[i]), 1)
@@ -95,7 +95,7 @@ def str::format(self, *args):
             self = self.replace('{'+str(i)+'}', str(args[i]))
     return self
 
-def str::strip(self, chars=None):
+def str@strip(self, chars=None):
     chars = chars or ' \t\n\r'
     i = 0
     while i < len(self) and self[i] in chars:
@@ -127,30 +127,30 @@ def __qsort(a: list, L: int, R: int):
     __qsort(a, L, j)
     __qsort(a, i, R)
 
-def list::sort(self, reverse=False):
+def list@sort(self, reverse=False):
     __qsort(self, 0, len(self)-1)
     if reverse:
         self.reverse()
 
-def list::remove(self, value):
+def list@remove(self, value):
     for i in range(len(self)):
         if self[i] == value:
             del self[i]
             return True
     return False
 
-def list::index(self, value):
+def list@index(self, value):
     for i in range(len(self)):
         if self[i] == value:
             return i
     return -1
 
-def list::pop(self, i=-1):
+def list@pop(self, i=-1):
     res = self[i]
     del self[i]
     return res
 
-def list::__eq__(self, other):
+def list@__eq__(self, other):
     if type(self) is not type(other):
         return False
     if len(self) != len(other):
@@ -163,7 +163,7 @@ tuple.__eq__ = list.__eq__
 list.__ne__ = lambda self, other: not self.__eq__(other)
 tuple.__ne__ = lambda self, other: not self.__eq__(other)
 
-def list::count(self, x):
+def list@count(self, x):
     res = 0
     for i in self:
         if i == x:
@@ -171,7 +171,7 @@ def list::count(self, x):
     return res
 tuple.count = list.count
 
-def list::__contains__(self, item):
+def list@__contains__(self, item):
     for i in self:
         if i == item:
             return True
@@ -202,5 +202,5 @@ class staticmethod:
     def __call__(self, *args):
         return self.f(*args)
     
-def type::__repr__(self):
+def type@__repr__(self):
     return "<class '" + self.__name__ + "'>"

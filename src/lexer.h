@@ -19,7 +19,7 @@ constexpr const char* kTokens[] = {
     "&", "&=", "|", "|=", "^", "^=", 
     "<<", "<<=", ">>", ">>=",
     /*****************************************/
-    ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}", "::",
+    ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
     "**", "=", ">", "<", "...", "->", "?", "@", "==", "!=", ">=", "<=",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
@@ -368,7 +368,7 @@ struct Lexer {
                 case '{': add_token(TK("{")); return true;
                 case '}': add_token(TK("}")); return true;
                 case ',': add_token(TK(",")); return true;
-                case ':': add_token_2(':', TK(":"), TK("::")); return true;
+                case ':': add_token(TK(":")); return true;
                 case ';': add_token(TK(";")); return true;
                 case '(': add_token(TK("(")); return true;
                 case ')': add_token(TK(")")); return true;

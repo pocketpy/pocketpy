@@ -906,7 +906,7 @@ __SUBSCR_END:
         Str decl_name;
         consume(TK("@id"));
         decl_name = prev().str();
-        if(!ctx()->is_compiling_class && match(TK("::"))){
+        if(!ctx()->is_compiling_class && match(TK("@"))){
             consume(TK("@id"));
             obj_name = decl_name;
             decl_name = prev().str();
