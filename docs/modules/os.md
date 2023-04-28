@@ -38,3 +38,7 @@ Joins the given paths together.
 ### `os.path.exists(path: str)`
 
 Check if the given path exists.
+
+### `os.path.basename(path: str)`
+
+Returns the basename of the given path.

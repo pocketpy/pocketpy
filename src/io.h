@@ -169,6 +169,11 @@ inline void add_module_os(VM* vm){
         bool exists = std::filesystem::exists(path);
         return VAR(exists);
     });
+
+    vm->bind_func<1>(path_obj, "basename", [](VM* vm, ArgsView args){
+        std::filesystem::path path(CAST(Str&, args[0]).sv());
+        return VAR(path.filename().string());
+    });
 }
 
 } // namespace pkpy
