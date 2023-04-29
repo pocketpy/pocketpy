@@ -100,7 +100,7 @@ public:
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
-    Type tp_function, tp_native_func, tp_iterator, tp_bound_method;
+    Type tp_function, tp_stack_func, tp_native_func, tp_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
 
@@ -414,6 +414,11 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     return f(vm, args);
 }
 
+inline void StackFunc::operator()(VM* vm) const{
+    return f(vm);
+}
+
+
 inline void CodeObject::optimize(VM* vm){
     // uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
     // perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
@@ -425,6 +430,7 @@ DEF_NATIVE_2(List, tp_list)
 DEF_NATIVE_2(Tuple, tp_tuple)
 DEF_NATIVE_2(Function, tp_function)
 DEF_NATIVE_2(NativeFunc, tp_native_func)
+DEF_NATIVE_2(StackFunc, tp_stack_func)
 DEF_NATIVE_2(BoundMethod, tp_bound_method)
 DEF_NATIVE_2(Range, tp_range)
 DEF_NATIVE_2(Slice, tp_slice)
@@ -926,6 +932,17 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         method_call = true;
         // [unbound, self, args..., kwargs...]
     }
+
+    if(is_non_tagged_type(callable, tp_stack_func)) {
+        const auto& f = OBJ_GET(StackFunc, callable);
+        if(ARGC != 0) TypeError("stack_func does not track argument counts ");
+        if(KWARGC != 0) TypeError("stack_func does not accept keyword arguments");
+        f(this);
+        PyObject* ret = s_data.top();
+        s_data.reset(p0);
+        return ret;
+    }
+
 
     ArgsView args(p1 - ARGC - int(method_call), p1);
 

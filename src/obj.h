@@ -23,6 +23,16 @@ struct NativeFunc {
     PyObject* operator()(VM* vm, ArgsView args) const;
 };
 
+
+typedef void (*StackFuncC)(VM*);
+struct StackFunc {
+    StackFuncC f;
+
+    StackFunc(StackFuncC f) : f(f) {}
+    void operator()(VM* vm) const;
+};
+
+
 struct FuncDecl {
     struct KwArg {
         int key;                // index in co->varnames
