@@ -41,7 +41,7 @@ public:
         return array->operator[](index++);
     }
 
-    void _gc_mark() const override {
+    void _gc_mark() const{
         OBJ_MARK(ref);
     }
 };
@@ -60,7 +60,7 @@ public:
         return VAR(str->u8_getitem(index++));
     }
 
-    void _gc_mark() const override {
+    void _gc_mark() const{
         OBJ_MARK(ref);
     }
 };
@@ -93,13 +93,6 @@ inline PyObject* Generator::next(){
 inline void Generator::_gc_mark() const{
     frame._gc_mark();
     for(PyObject* obj: s_backup) OBJ_MARK(obj);
-}
-
-template<typename T>
-void gc_mark(T& t) {
-    if constexpr(std::is_base_of_v<BaseIter, T>){
-        t._gc_mark();
-    }
 }
 
 } // namespace pkpy

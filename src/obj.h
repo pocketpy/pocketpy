@@ -93,7 +93,6 @@ protected:
     VM* vm;
 public:
     BaseIter(VM* vm) : vm(vm) {}
-    virtual void _gc_mark() const {}
     virtual PyObject* next() = 0;
     virtual ~BaseIter() = default;
 };
@@ -128,11 +127,18 @@ struct PyObject{
     }
 };
 
+template <typename, typename=void> struct has_gc_marker : std::false_type {};
+template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {};
+
 template <typename T>
 struct Py_ final: PyObject {
     T _value;
     void* value() override { return &_value; }
-    void _obj_gc_mark() override {}
+    void _obj_gc_mark() override {
+        if constexpr (has_gc_marker<T>::value) {
+            _value._gc_mark();
+        }
+    }
     Py_(Type type, const T& value) : PyObject(type), _value(value) {}
     Py_(Type type, T&& value) : PyObject(type), _value(std::move(value)) {}
 };
@@ -140,7 +146,6 @@ struct Py_ final: PyObject {
 struct MappingProxy{
     PyObject* obj;
     MappingProxy(PyObject* obj) : obj(obj) {}
-
     NameDict& attr() noexcept { return obj->attr(); }
 };
 

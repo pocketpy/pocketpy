@@ -55,7 +55,7 @@ public:
     }
 
     PyObject* next() override;
-    void _gc_mark() const override;
+    void _gc_mark() const;
 };
 
 struct PyTypeInfo{
