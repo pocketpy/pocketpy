@@ -20,9 +20,13 @@ typedef void (*pkpy_cfunction)(pkpy_vm);
 void pkpy_push_cfunction(pkpy_vm, pkpy_cfunction);
 void pkpy_push_int(pkpy_vm, int64_t);
 void pkpy_push_float(pkpy_vm, double);
+void pkpy_push_null(pkpy_vm);
 
 void pkpy_set_global(pkpy_vm, const char* name);
+void pkpy_get_global(pkpy_vm vm_handle, const char* name);
 
+void pkpy_call(pkpy_vm vm_handle, int argc);
+int pkpy_toint(pkpy_vm vm_handle, int index);
 
 
 

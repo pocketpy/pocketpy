@@ -24,14 +24,7 @@ struct NativeFunc {
 };
 
 
-typedef void (*StackFuncC)(VM*);
-struct StackFunc {
-    StackFuncC f;
-
-    StackFunc(StackFuncC f) : f(f) {}
-    void operator()(VM* vm) const;
-};
-
+typedef void (*StackFunc)(VM*);
 
 struct FuncDecl {
     struct KwArg {

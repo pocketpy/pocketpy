@@ -414,11 +414,6 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     return f(vm, args);
 }
 
-inline void StackFunc::operator()(VM* vm) const{
-    return f(vm);
-}
-
-
 inline void CodeObject::optimize(VM* vm){
     // uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
     // perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
@@ -866,6 +861,7 @@ inline void VM::init_builtin_types(){
     tp_module = _new_type_object("module");
     tp_function = _new_type_object("function");
     tp_native_func = _new_type_object("native_func");
+    tp_stack_func = _new_type_object("stack_func");
     tp_iterator = _new_type_object("iterator");
     tp_bound_method = _new_type_object("bound_method");
     tp_super = _new_type_object("super");
