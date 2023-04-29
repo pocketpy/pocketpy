@@ -38,7 +38,13 @@ constexpr TokenIndex TK(const char token[]) {
         while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
+#ifdef __GNUC__
+    // for old version of gcc, it is not smart enough to ignore FATAL_ERROR()
+    // so we must do a normal return
+    return 255;
+#else
     FATAL_ERROR();
+#endif
 }
 
 #define TK_STR(t) kTokens[t]
