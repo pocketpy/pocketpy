@@ -69,8 +69,42 @@ void pkpy_vm_destroy(pkpy_vm vm_handle) {
     delete vm;
 }
 
+PyObject* c_function_wrapper(VM* vm, ArgsView args) {
+    LuaStyleFuncC f = CAST(NativeFunc&, args[-2])._lua_f;
+
+    //setup c stack
+    int stored = vm->c_data.store();
+
+    for (int i = 0; i < args.size(); i++)
+        vm->c_data.push(args[i]);
+    
+    int retc = f(vm);
+
+    PyObject* ret = vm->None;
+
+    //TODO handle tuple packing for multiple returns
+    if (retc > 0) 
+        ret = vm->c_data.top();
+
+    vm->c_data.clear();
+    vm->c_data.restore(stored);
+
+    return ret;
+}
+
 bool pkpy_push_function(pkpy_vm vm_handle, pkpy_function f) {
+    VM* vm = (VM*) vm_handle;
+    ERRHANDLER_OPEN
+
+    //TODO right now we just treat all c bound functions a varargs functions
+    //do we want to change that?
+    NativeFunc nf = NativeFunc(c_function_wrapper, -1, 0);
+    nf._lua_f = (LuaStyleFuncC) f;
+
+    vm->c_data.push(VAR(nf));
+
     return true;
+    ERRHANDLER_CLOSE
 }
 
 bool pkpy_push_int(pkpy_vm vm_handle, int value) {

@@ -103,20 +103,24 @@ struct CVirtualStack {
     static const size_t MAX_SIZE = 256;
     PyObject* _begin[MAX_SIZE];
     PyObject** _sp;
+    size_t offset;
 
-    CVirtualStack(): _sp(_begin) {}
+    CVirtualStack(): _sp(_begin), offset(0) {}
 
     PyObject* top() const { return _sp[-1]; }
-    PyObject* get(int index) const { return _begin[index]; }
+    PyObject* get(int index) const { return _begin[offset + index]; }
     void push(PyObject* v){ *_sp++ = v; }
     void pop(){ --_sp; }
     void shrink(int n){ _sp -= n; }
-    int size() const { return _sp - _begin; }
-    bool empty() const { return _sp == _begin; }
-    PyObject** begin() { return _begin; }
+    int size() const { return (_sp - _begin) - offset; }
+    bool empty() const { return size() == 0; }
+    PyObject** begin() { return _begin + offset; }
     PyObject** end() { return _sp; }
-    void clear() { _sp = _begin; }
+    void clear() { _sp = _begin + offset;}
     
+    size_t store() { size_t ret = offset; offset = _sp - _begin; return ret; }
+    void restore(size_t stored) { offset = stored; }
+
     CVirtualStack(const CVirtualStack&) = delete;
     CVirtualStack(CVirtualStack&&) = delete;
     CVirtualStack& operator=(const CVirtualStack&) = delete;
