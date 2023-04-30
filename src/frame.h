@@ -98,6 +98,38 @@ struct ValueStack {
     ValueStack& operator=(ValueStack&&) = delete;
 };
 
+//stack for working with c bindings
+struct CVirtualStack {
+    static const size_t MAX_SIZE = 256;
+    // We allocate 512 more bytes to keep `_sp` valid when `is_overflow() == true`.
+    PyObject* _begin[MAX_SIZE];
+    PyObject** _sp;
+
+    CVirtualStack(): _sp(_begin) {}
+
+    PyObject* top() const { return _sp[-1]; }
+    PyObject* peek(int n) const { return _sp[-n]; }
+    void push(PyObject* v){ *_sp++ = v; }
+    void pop(){ --_sp; }
+    void shrink(int n){ _sp -= n; }
+    int size() const { return _sp - _begin; }
+    bool empty() const { return _sp == _begin; }
+    PyObject** begin() { return _begin; }
+    PyObject** end() { return _sp; }
+    void reset(PyObject** sp) {
+#if DEBUG_EXTRA_CHECK
+        if(sp < _begin || sp > _begin + MAX_SIZE) FATAL_ERROR();
+#endif
+        _sp = sp;
+    }
+    void clear() { _sp = _begin; }
+    
+    ValueStack(const ValueStack&) = delete;
+    ValueStack(ValueStack&&) = delete;
+    ValueStack& operator=(const ValueStack&) = delete;
+    ValueStack& operator=(ValueStack&&) = delete;
+};
+
 struct Frame {
     int _ip = -1;
     int _next_ip = 0;

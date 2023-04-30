@@ -15,7 +15,7 @@ void pkpy_vm_exec(pkpy_vm vm_handle, const char* source);
 void pkpy_vm_destroy(pkpy_vm vm);
 
 ////////binding a c function to pocketpy
-typedef void (*pkpy_cfunction)(pkpy_vm); 
+typedef int (*pkpy_cfunction)(pkpy_vm); 
 
 void pkpy_push_cfunction(pkpy_vm, pkpy_cfunction);
 void pkpy_push_int(pkpy_vm, int64_t);
