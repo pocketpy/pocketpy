@@ -24,3 +24,4 @@ src/_generated.h
 profile.sh
 test
 tmp.rar
+src/httplib.h

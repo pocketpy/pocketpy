@@ -12,19 +12,22 @@ struct Function;
 class VM;
 
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
-typedef shared_ptr<CodeObject> CodeObject_;
+typedef int (*LuaStyleFuncC)(VM*);
 
 struct NativeFunc {
     NativeFuncC f;
     int argc;       // DONOT include self
     bool method;
+
+    // this is designed for lua style C bindings
+    // access it via `CAST(NativeFunc&, args[-2])._lua_f`
+    LuaStyleFuncC _lua_f;
     
-    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method) {}
+    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method), _lua_f(nullptr) {}
     PyObject* operator()(VM* vm, ArgsView args) const;
 };
 
-
-typedef void (*StackFunc)(VM*);
+typedef shared_ptr<CodeObject> CodeObject_;
 
 struct FuncDecl {
     struct KwArg {
@@ -79,6 +82,7 @@ struct Bytes{
 
     Bytes() : _data(), _ok(false) {}
     Bytes(std::vector<char>&& data) : _data(std::move(data)), _ok(true) {}
+    Bytes(const std::string& data) : _data(data.begin(), data.end()), _ok(true) {}
     operator bool() const noexcept { return _ok; }
 };
 

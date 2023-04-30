@@ -11,7 +11,7 @@
 
 namespace pkpy{
 
-inline Bytes _read_file_cwd(const Str& name){
+inline int _ = set_read_file_cwd([](const Str& name){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists) return Bytes();
@@ -19,7 +19,7 @@ inline Bytes _read_file_cwd(const Str& name){
     std::vector<char> buffer(std::istreambuf_iterator<char>(ifs), {});
     ifs.close();
     return Bytes(std::move(buffer));
-}
+});
 
 struct FileIO {
     PY_CLASS(FileIO, io, FileIO)
@@ -182,13 +182,8 @@ inline void add_module_os(VM* vm){
 #else
 
 namespace pkpy{
-inline void add_module_io(VM* vm){}
-inline void add_module_os(VM* vm){}
-
-inline Bytes _read_file_cwd(const Str& name){
-    return Bytes();
-}
-
+inline void add_module_io(void* vm){}
+inline void add_module_os(void* vm){}
 } // namespace pkpy
 
 #endif

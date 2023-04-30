@@ -6,6 +6,7 @@
 #include "repl.h"
 #include "iter.h"
 #include "cffi.h"
+#include "requests.h"
 #include "io.h"
 #include "_generated.h"
 
@@ -920,11 +921,6 @@ inline void VM::post_init(){
     add_module_gc(this);
     add_module_random(this);
 
-    if(enable_os){
-        add_module_io(this);
-        add_module_os(this);
-    }
-
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
@@ -969,6 +965,12 @@ inline void VM::post_init(){
         }
         return VAR(MappingProxy(args[0]));
     }));
+
+    if(enable_os){
+        add_module_io(this);
+        add_module_os(this);
+        add_module_requests(this);
+    }
 #endif
 }
 
