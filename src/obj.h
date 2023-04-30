@@ -82,6 +82,7 @@ struct Bytes{
 
     Bytes() : _data(), _ok(false) {}
     Bytes(std::vector<char>&& data) : _data(std::move(data)), _ok(true) {}
+    Bytes(const std::string& data) : _data(data.begin(), data.end()), _ok(true) {}
     operator bool() const noexcept { return _ok; }
 };
 

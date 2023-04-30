@@ -65,13 +65,11 @@ inline void add_module_requests(VM* vm){
         }
 
         auto _to_resp = [=](const httplib::Result& res){
-            std::vector<char> buf(res->body.size());
-            for(int i=0; i<res->body.size(); i++) buf[i] = res->body[i];
             return vm->call(
                 vm->_modules[m_requests]->attr(m_Response),
                 VAR(res->status),
                 VAR(res->reason),
-                VAR(Bytes(std::move(buf)))
+                VAR(Bytes(res->body))
             );
         };
 
