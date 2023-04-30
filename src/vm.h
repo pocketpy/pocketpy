@@ -26,6 +26,7 @@ namespace pkpy{
 
 typedef Bytes (*ReadFileCwdFunc)(const Str& name);
 inline ReadFileCwdFunc _read_file_cwd = [](const Str& name) { return Bytes(); };
+inline int set_read_file_cwd(ReadFileCwdFunc func) { _read_file_cwd = func; return 0; }
 
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
