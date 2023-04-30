@@ -74,7 +74,7 @@ class dict:
     def items(self):
         for kv in self._a:
             if kv is not None:
-                yield kv
+                yield kv[0], kv[1]
 
     def clear(self):
         self._a = [None] * self._capacity
