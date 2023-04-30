@@ -10,23 +10,52 @@ extern "C" {
 
 typedef struct pkpy_vm_handle* pkpy_vm;
 
+//we mostly follow the lua api for these bindings
+//the key difference being each method returns a bool, true if it succeeded
+//false if it did not
+
+//if a method returns false call this next method to check the error and clear it
+//if this method returns false it means that no error was set, and no action is taken
+//if it returns true it means there was an error and it was cleared, it will provide a string summary of the error in the message parameter (if it is not NULL)
+//NOTE : you need to free the message that is passed back after you are done using it
+//or else pass in null
+bool pkpy_clear_error(pkpy_vm, const char** message);
+
+
+
 pkpy_vm pkpy_vm_create(bool use_stdio, bool enable_os);
-void pkpy_vm_exec(pkpy_vm vm_handle, const char* source);
+bool pkpy_vm_exec(pkpy_vm vm_handle, const char* source);
 void pkpy_vm_destroy(pkpy_vm vm);
 
-////////binding a c function to pocketpy
-typedef int (*pkpy_cfunction)(pkpy_vm); 
 
-void pkpy_push_cfunction(pkpy_vm, pkpy_cfunction);
-void pkpy_push_int(pkpy_vm, int64_t);
-void pkpy_push_float(pkpy_vm, double);
-void pkpy_push_null(pkpy_vm);
+typedef int (*pkpy_function)(pkpy_vm); 
 
-void pkpy_set_global(pkpy_vm, const char* name);
-void pkpy_get_global(pkpy_vm vm_handle, const char* name);
+bool pkpy_push_function(pkpy_vm, pkpy_function);
+bool pkpy_push_int(pkpy_vm, int);
+bool pkpy_push_float(pkpy_vm, double);
 
-void pkpy_call(pkpy_vm vm_handle, int argc);
-int pkpy_toint(pkpy_vm vm_handle, int index);
+bool pkpy_set_global(pkpy_vm, const char* name);
+bool pkpy_get_global(pkpy_vm vm_handle, const char* name);
+
+//first push callable you want to call
+//then push the arguments to send
+//argc is the number of arguments
+bool pkpy_call(pkpy_vm vm_handle, int argc);
+
+//first push the object the method belongs to (self)
+//then push the callable you want to call
+//then push the the argments
+//argc is the number of arguments that was pushed
+bool pkpy_call_method(pkpy_vm vm_handle, int argc);
+
+
+
+//we will break with the lua api here
+//lua uses 1 as the index to the first pushed element for all of these functions
+//but we will start counting at zero to match python
+//we will allow negative numbers to count backwards from the top
+
+bool pkpy_to_int(pkpy_vm vm_handle, int index, int* ret);
 
 
 

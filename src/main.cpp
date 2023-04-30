@@ -6,21 +6,21 @@
 #ifndef __EMSCRIPTEN__
 
 int main(int argc, char** argv){
-    pkpy::VM* vm = pkpy_new_vm();
+    pkpy::VM* vm = new pkpy::VM();
     vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
         return VAR(pkpy::getline());
     });
     if(argc == 1){
-        pkpy::REPL* repl = pkpy_new_repl(vm);
+        pkpy::REPL* repl = new pkpy::REPL(vm);
         bool need_more_lines = false;
         while(true){
             (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
             bool eof = false;
             std::string line = pkpy::getline(&eof);
             if(eof) break;
-            need_more_lines = pkpy_repl_input(repl, line.c_str());
+            need_more_lines = repl->input(line.c_str());
         }
-        pkpy_delete(vm);
+        delete vm;
         return 0;
     }
     
@@ -47,7 +47,7 @@ int main(int argc, char** argv){
 
         pkpy::PyObject* ret = nullptr;
         ret = vm->exec(src.c_str(), argv_1, pkpy::EXEC_MODE);
-        pkpy_delete(vm);
+        delete vm;
         return ret != nullptr ? 0 : 1;
     }
 
