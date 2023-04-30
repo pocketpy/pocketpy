@@ -5,6 +5,7 @@
 #include "obj.h"
 #include "repl.h"
 #include "iter.h"
+#include "base64.h"
 #include "cffi.h"
 #include "requests.h"
 #include "io.h"
@@ -920,6 +921,7 @@ inline void VM::post_init(){
     add_module_c(this);
     add_module_gc(this);
     add_module_random(this);
+    add_module_base64(this);
 
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
         _lazy_modules[name] = kPythonLibs[name];
