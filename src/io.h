@@ -10,17 +10,6 @@
 #include <filesystem>
 
 namespace pkpy{
-
-inline Bytes _read_file_cwd(const Str& name){
-    std::filesystem::path path(name.sv());
-    bool exists = std::filesystem::exists(path);
-    if(!exists) return Bytes();
-    std::ifstream ifs(path, std::ios::binary);
-    std::vector<char> buffer(std::istreambuf_iterator<char>(ifs), {});
-    ifs.close();
-    return Bytes(std::move(buffer));
-}
-
 struct FileIO {
     PY_CLASS(FileIO, io, FileIO)
 
@@ -94,6 +83,16 @@ struct FileIO {
 };
 
 inline void add_module_io(VM* vm){
+    _read_file_cwd = [](const Str& name){
+        std::filesystem::path path(name.sv());
+        bool exists = std::filesystem::exists(path);
+        if(!exists) return Bytes();
+        std::ifstream ifs(path, std::ios::binary);
+        std::vector<char> buffer(std::istreambuf_iterator<char>(ifs), {});
+        ifs.close();
+        return Bytes(std::move(buffer));
+    };
+
     PyObject* mod = vm->new_module("io");
     FileIO::register_class(vm, mod);
     vm->bind_builtin_func<2>("open", [](VM* vm, ArgsView args){
@@ -182,13 +181,8 @@ inline void add_module_os(VM* vm){
 #else
 
 namespace pkpy{
-inline void add_module_io(VM* vm){}
-inline void add_module_os(VM* vm){}
-
-inline Bytes _read_file_cwd(const Str& name){
-    return Bytes();
-}
-
+inline void add_module_io(void* vm){}
+inline void add_module_os(void* vm){}
 } // namespace pkpy
 
 #endif

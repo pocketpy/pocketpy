@@ -100,6 +100,6 @@ inline void add_module_requests(VM* vm){
 
 #else
 
-inline void add_module_requests(VM* vm){ }
+inline void add_module_requests(void* vm){ }
 
 #endif
