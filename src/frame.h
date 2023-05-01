@@ -117,6 +117,7 @@ struct CVirtualStack {
     PyObject** begin() { return _begin + offset; }
     PyObject** end() { return _sp; }
     void clear() { _sp = _begin + offset;}
+    int remaining() { return MAX_SIZE - (_sp - _begin); }
     
     size_t store() { size_t ret = offset; offset = _sp - _begin; return ret; }
     void restore(size_t stored) { offset = stored; }
