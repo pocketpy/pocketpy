@@ -58,3 +58,7 @@ Return the smallest integer value greater than or equal to `x`.
 ### `math.sqrt(x)`
 
 Return the square root of `x`.
+
+### `math.gcd(a, b)`
+
+Return the greatest common divisor of `a` and `b`.

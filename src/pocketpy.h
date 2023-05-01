@@ -775,6 +775,12 @@ inline void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(vm->num_to_float(args[0])))));
+    vm->bind_func<2>(mod, "gcd", [](VM* vm, ArgsView args) {
+        i64 a = CAST(i64, args[0]);
+        i64 b = CAST(i64, args[1]);
+        a = std::gcd(a, b);
+        return VAR(a);
+    });
 }
 
 inline void add_module_dis(VM* vm){

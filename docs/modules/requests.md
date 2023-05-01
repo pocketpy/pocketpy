@@ -4,7 +4,7 @@ label: requests
 ---
 
 !!!
-This module is experimental. To enable it, download `httplib.h` from https://github.com/yhirose/cpp-httplib and place it in the same directory as `pocketpy.h`.
+This module is experimental. To enable it, download `httplib.h` from [here](https://github.com/yhirose/cpp-httplib) and place it in the same directory as `pocketpy.h`.
 
 SSL is not supported.
 !!!
