@@ -435,4 +435,3 @@ const StrName __or__ = StrName::get("__or__");
 const StrName __xor__ = StrName::get("__xor__");
 
 } // namespace pkpy
-
