@@ -778,7 +778,13 @@ inline void add_module_math(VM* vm){
     vm->bind_func<2>(mod, "gcd", [](VM* vm, ArgsView args) {
         i64 a = CAST(i64, args[0]);
         i64 b = CAST(i64, args[1]);
-        a = std::gcd(a, b);
+        if(a < 0) a = -a;
+        if(b < 0) b = -b;
+        while(b != 0){
+            i64 t = b;
+            b = a % b;
+            a = t;
+        }
         return VAR(a);
     });
 }
