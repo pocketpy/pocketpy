@@ -15,7 +15,7 @@ clang++ -o c_binding_test test.o pocketpy_c.o -stdlib=libc++ -fsanitize=address 
 echo "running, no weird output should show up"
 ./c_binding_test > binding_test_scratch
 echo "checking results (they should be identical)"
-diff -s binding_test_scratch c_bindings/test_answers.txt
+diff -q -s  binding_test_scratch c_bindings/test_answers.txt
 
 echo "cleaning up"
 rm pocketpy_c.o

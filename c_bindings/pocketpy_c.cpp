@@ -78,13 +78,13 @@ bool pkpy_clear_error(pkpy_vm vm_handle, char** message) {
     SAFEGUARD_CLOSE
 }
 
-pkpy_vm pkpy_new_vm(bool use_stdio, bool enable_os) {
+pkpy_vm pkpy_vm_create(bool use_stdio, bool enable_os) {
     VM* vm = new VM(use_stdio, enable_os);
 
     return (pkpy_vm) vm;
 }
 
-bool pkpy_vm_exec(pkpy_vm vm_handle, const char* source) {
+bool pkpy_vm_run(pkpy_vm vm_handle, const char* source) {
     VM* vm = (VM*) vm_handle;
     ERRHANDLER_OPEN
 
@@ -96,25 +96,9 @@ bool pkpy_vm_exec(pkpy_vm vm_handle, const char* source) {
     ERRHANDLER_CLOSE
 }
 
-void pkpy_delete_vm(pkpy_vm vm_handle) {
+void pkpy_vm_destroy(pkpy_vm vm_handle) {
     VM* vm = (VM*) vm_handle;
     delete vm;
-}
-
-pkpy_repl pkpy_new_repl(pkpy_vm vm_handle) {
-    VM* vm = (VM*) vm_handle;
-    REPL* repl = new REPL(vm);
-    return (pkpy_repl) repl;
-}
-
-bool pkpy_repl_input(pkpy_repl repl_handle, const char* line) {
-    REPL* repl = (REPL*) repl_handle;
-    return repl->input(line);
-}
-
-void pkpy_delete_repl(pkpy_repl repl_handle) {
-    REPL* repl = (REPL*) repl_handle;
-    delete repl;
 }
 
 static void propagate_if_errored(VM* vm) {

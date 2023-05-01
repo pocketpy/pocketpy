@@ -977,7 +977,6 @@ inline void VM::post_init(){
 }   // namespace pkpy
 
 /*************************GLOBAL NAMESPACE*************************/
-/*
 static std::map<void*, void(*)(void*)> _pk_deleter_map;
 
 extern "C" {
@@ -1050,4 +1049,5 @@ extern "C" {
         return strdup(json.c_str());
     }
 
-}*/
+}
+

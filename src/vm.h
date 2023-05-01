@@ -1205,3 +1205,4 @@ inline Str obj_type_name(VM *vm, Type type){
 #undef PY_VAR_FLOAT
 
 }   // namespace pkpy
+

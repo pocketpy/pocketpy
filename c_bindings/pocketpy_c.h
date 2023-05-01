@@ -23,17 +23,9 @@ typedef struct pkpy_repl_hande* pkpy_repl;
 //or else pass in null as message, and it will just print the message to stderr
 bool pkpy_clear_error(pkpy_vm, char** message);
 
-
-pkpy_vm pkpy_new_vm(bool use_stdio, bool enable_os);
-bool pkpy_vm_exec(pkpy_vm, const char* source);
-void pkpy_delete_vm(pkpy_vm);
-
-pkpy_repl pkpy_new_repl(pkpy_vm);
-//the repl does its own error management, so this method doesn't follow the ame
-//error semantics, it is just a thin wrapper around the REPL classes input method
-bool pkpy_repl_input(pkpy_repl, const char* line);
-void pkpy_delete_repl(pkpy_repl);
-
+pkpy_vm pkpy_vm_create(bool use_stdio, bool enable_os);
+bool pkpy_vm_run(pkpy_vm, const char* source);
+void pkpy_vm_destroy(pkpy_vm);
 
 typedef int (*pkpy_function)(pkpy_vm); 
 
