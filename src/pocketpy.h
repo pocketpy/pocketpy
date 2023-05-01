@@ -595,7 +595,16 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
 
     /************ bytes ************/
-    _vm->bind_static_method<1>("bytes", "__new__", CPP_NOT_IMPLEMENTED());
+    _vm->bind_static_method<1>("bytes", "__new__", [](VM* vm, ArgsView args){
+        List& list = CAST(List&, args[0]);
+        std::vector<char> buffer(list.size());
+        for(int i=0; i<list.size(); i++){
+            i64 b = CAST(i64, list[i]);
+            if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
+            buffer[i] = (char)b;
+        }
+        return VAR(Bytes(std::move(buffer)));
+    });
 
     _vm->bind_method<1>("bytes", "__getitem__", [](VM* vm, ArgsView args) {
         const Bytes& self = CAST(Bytes&, args[0]);
