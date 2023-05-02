@@ -80,6 +80,7 @@ public:
     ValueStack s_data;
     stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
+    void (*_gc_marker_ex)(VM*) = nullptr;
 
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
@@ -1191,6 +1192,7 @@ inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
     for(PyObject* obj: vm->s_data) if(obj!=nullptr) OBJ_MARK(obj);
+    if(vm->_gc_marker_ex != nullptr) vm->_gc_marker_ex(vm);
 }
 
 inline Str obj_type_name(VM *vm, Type type){
