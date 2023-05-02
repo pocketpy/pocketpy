@@ -18,9 +18,9 @@ typedef struct pkpy_vm_wrapper pkpy_vm;
 //if pkpy_clear_error returns false it means that no error was set, and it takes no action
 //if pkpy_clear_error returns true it means there was an error and it was cleared, 
 //it will provide a string summary of the error in the message parameter (if it is not NULL)
-//NOTE : you need to free the message that is passed back after you are done using it
-//or else pass in null as message, and it will just print the message to stderr
+//if null is passed in as message, and it will just print the message to stderr
 bool pkpy_clear_error(pkpy_vm*, char** message);
+//the message pointer is only valid until the next api call, so copy it if you want it
 
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
 bool pkpy_vm_run(pkpy_vm*, const char* source);
@@ -60,9 +60,8 @@ bool pkpy_call_method(pkpy_vm*, const char* name, int argc);
 bool pkpy_to_int(pkpy_vm*, int index, int* ret);
 bool pkpy_to_float(pkpy_vm*, int index, double* ret);
 bool pkpy_to_bool(pkpy_vm*, int index, bool* ret);
-//you have to free ret after you are done using it
 bool pkpy_to_string(pkpy_vm*, int index, char** ret);
-
+//the ret string pointer is only valid until the next api call, so copy it if you want it
 
 //these do not follow the same error semantics as above, their return values
 //just say whether the check succeeded or not, or else return the value asked for

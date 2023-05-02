@@ -36,6 +36,7 @@ using namespace pkpy;
 struct pkpy_vm_wrapper {
     VM* vm;
     ValueStackImpl<PKPY_STACK_SIZE>* c_data;
+    char* string_ret;
 };
 
 
@@ -62,6 +63,13 @@ static void unpack_return(struct pkpy_vm_wrapper* w, PyObject* ret) {
 
 }
 
+static char* manage_string(struct pkpy_vm_wrapper* w, char* s) {
+    if (w->string_ret != NULL)
+        free(w->string_ret);
+    w->string_ret = s;
+    return w->string_ret;
+}
+
 
 bool pkpy_clear_error(struct pkpy_vm_wrapper* w, char** message) {
     SAFEGUARD_OPEN
@@ -72,7 +80,7 @@ bool pkpy_clear_error(struct pkpy_vm_wrapper* w, char** message) {
         w->c_data->pop();
         Exception& e = py_cast<Exception&>(w->vm, w->c_data->top());
         if (message != nullptr) 
-            *message = e.summary().c_str_dup();
+            *message = manage_string(w, e.summary().c_str_dup());
         else
             std::cerr << "ERROR: " << e.summary() << "\n";
 
@@ -88,6 +96,7 @@ struct pkpy_vm_wrapper* pkpy_vm_create(bool use_stdio, bool enable_os) {
     struct pkpy_vm_wrapper* w = (struct pkpy_vm_wrapper*) malloc(sizeof(*w));
     w->vm = new VM(use_stdio, enable_os);
     w->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
+    w->string_ret = NULL;
 
     return w;
 }
@@ -110,6 +119,8 @@ bool pkpy_vm_run(struct pkpy_vm_wrapper* w, const char* source) {
 void pkpy_vm_destroy(struct pkpy_vm_wrapper* w) {
     delete w->vm;
     delete w->c_data;
+    if (w->string_ret != NULL)
+        free(w->string_ret);
     free(w);
 }
 
@@ -366,7 +377,7 @@ bool pkpy_to_string(struct pkpy_vm_wrapper* w, int index, char** ret) {
     PyObject* o = w->c_data->begin()[index];
     if (ret != nullptr) {
         Str& s = py_cast<Str&>(w->vm, o);
-        *ret = s.c_str_dup();
+        *ret = manage_string(w, s.c_str_dup());
     }
 
     return true;

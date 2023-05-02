@@ -14,7 +14,6 @@ void check_impl(pkpy_vm* vm, bool result, int lineno) {
         }
 
         printf("%s\n", message);
-        free(message);
         exit(1);
     }
 }
@@ -27,7 +26,6 @@ void fail_impl(pkpy_vm* vm, bool result, int lineno) {
         char* message;
         if (pkpy_clear_error(vm, &message)) {
             printf("actually errored!\n");
-            free(message);
             exit(1);
         }
     }
@@ -44,7 +42,6 @@ void error_impl(pkpy_vm* vm, bool result, int lineno) {
         else {
             printf("successfully errored with this message: \n");
             printf("%s\n", message);
-            free(message);
         }
     }
 }
@@ -146,7 +143,6 @@ int main(int argc, char** argv) {
     fail(pkpy_is_float(vm, -1));
     fail(pkpy_is_bool(vm, -1));
     fail(pkpy_is_none(vm, -1));
-    free(r_string);
 
     printf("\ntesting None methods\n");
     check(pkpy_push_none(vm));
