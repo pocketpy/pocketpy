@@ -78,7 +78,6 @@ class VM {
 public:
     ManagedHeap heap;
     ValueStack s_data;
-    CVirtualStack c_data;
     stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
 

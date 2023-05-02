@@ -3,6 +3,8 @@
 
 using namespace pkpy;
 
+#define PKPY_STACK_SIZE 32
+
 #define SAFEGUARD_OPEN try { \
 
 #define SAFEGUARD_CLOSE \
@@ -20,27 +22,32 @@ using namespace pkpy;
 
 #define ERRHANDLER_OPEN SAFEGUARD_OPEN \
     try { \
-    if (vm->c_data.top() == nullptr) \
+    if (w->c_data->size() > 0 && w->c_data->top() == nullptr) \
         return false; \
 
 #define ERRHANDLER_CLOSE \
     } catch( Exception e ) { \
-        vm->c_data.push(VAR(e)); \
-        vm->c_data.push(NULL); \
+        w->c_data->push(py_var(w->vm, e)); \
+        w->c_data->push(NULL); \
         return false; \
     } \
     SAFEGUARD_CLOSE \
+
+struct pkpy_vm_wrapper {
+    VM* vm;
+    ValueStackImpl<PKPY_STACK_SIZE>* c_data;
+};
 
 
 //for now I will unpack a tuple automatically, we may not want to handle
 //it this way, not sure
 //it is more lua like, but maybe not python like
-static void unpack_return(VM* vm, PyObject* ret) {
-    if (is_type(ret, vm->tp_tuple)) {
-        Tuple& t = CAST(Tuple&, ret);
+static void unpack_return(struct pkpy_vm_wrapper* w, PyObject* ret) {
+    if (is_type(ret, w->vm->tp_tuple)) {
+        Tuple& t = py_cast<Tuple&>(w->vm, ret);
         for (int i = 0; i < t.size(); i++) 
-            vm->c_data.push(t[i]);
-    } else if (ret == vm->None) {
+            w->c_data->push(t[i]);
+    } else if (ret == w->vm->None) {
         //do nothing here
         //having to pop the stack after every call that returns none is annoying
         //lua does not do this
@@ -49,66 +56,67 @@ static void unpack_return(VM* vm, PyObject* ret) {
         //if this becomes a problem we can change it
         //
         //you can still check if it returned none by comparing stack size before
-        //and after if you have too
+        //and after if you have to
     } else 
-        vm->c_data.push(ret);
+        w->c_data->push(ret);
 
 }
 
 
-bool pkpy_clear_error(pkpy_vm vm_handle, char** message) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_clear_error(struct pkpy_vm_wrapper* w, char** message) {
     SAFEGUARD_OPEN
 
-        if (vm->c_data.top() != nullptr) 
+        if (w->c_data->size() == 0 || w->c_data->top() != nullptr) 
             return false;
 
-        vm->c_data.pop();
-        Exception& e = CAST(Exception&, vm->c_data.top());
+        w->c_data->pop();
+        Exception& e = py_cast<Exception&>(w->vm, w->c_data->top());
         if (message != nullptr) 
             *message = e.summary().c_str_dup();
         else
             std::cerr << "ERROR: " << e.summary() << "\n";
 
-        vm->c_data.clear();
-        vm->callstack.clear();
-        vm->s_data.clear(); 
+        w->c_data->clear();
+        w->vm->callstack.clear();
+        w->vm->s_data.clear(); 
         return true;
 
     SAFEGUARD_CLOSE
 }
 
-pkpy_vm pkpy_vm_create(bool use_stdio, bool enable_os) {
-    VM* vm = new VM(use_stdio, enable_os);
+struct pkpy_vm_wrapper* pkpy_vm_create(bool use_stdio, bool enable_os) {
+    struct pkpy_vm_wrapper* w = (struct pkpy_vm_wrapper*) malloc(sizeof(*w));
+    w->vm = new VM(use_stdio, enable_os);
+    w->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
 
-    return (pkpy_vm) vm;
+    return w;
 }
 
-bool pkpy_vm_run(pkpy_vm vm_handle, const char* source) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_vm_run(struct pkpy_vm_wrapper* w, const char* source) {
     ERRHANDLER_OPEN
 
-    CodeObject_ code = vm->compile(source, "<c-bound>", EXEC_MODE);
-    PyObject* result = vm->_exec(code, vm->_main);
-    unpack_return(vm, result);
+    CodeObject_ code = w->vm->compile(source, "<c-bound>", EXEC_MODE);
+    PyObject* result = w->vm->_exec(code, w->vm->_main);
+    unpack_return(w, result);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-void pkpy_vm_destroy(pkpy_vm vm_handle) {
-    VM* vm = (VM*) vm_handle;
-    delete vm;
+void pkpy_vm_destroy(struct pkpy_vm_wrapper* w) {
+    delete w->vm;
+    delete w->c_data;
+    free(w);
 }
 
-static void propagate_if_errored(VM* vm) {
+static void propagate_if_errored(struct pkpy_vm_wrapper* w) {
     try {
-        if (vm->c_data.top() != nullptr) 
+        if (w->c_data->size() == 0 || w->c_data->top() != nullptr) 
             return;
 
-        vm->c_data.pop();
-        Exception& e = CAST(Exception&, vm->c_data.top());
-        vm->c_data.pop();
+        w->c_data->pop();
+        Exception& e = py_cast<Exception&>(w->vm, w->c_data->top());
+        w->c_data->pop();
 
         throw e;
     } catch(Exception& e) {
@@ -122,40 +130,41 @@ static void propagate_if_errored(VM* vm) {
 
 
 PyObject* c_function_wrapper(VM* vm, ArgsView args) {
-    LuaStyleFuncC f = CAST(NativeFunc&, args[-2])._lua_f;
+    LuaStyleFuncC f = py_cast<NativeFunc&>(vm, args[-2])._lua_f;
 
     //setup c stack
-    int stored = vm->c_data.store();
+
+    struct pkpy_vm_wrapper w;
+
+    ValueStackImpl c_stack = ValueStackImpl<PKPY_STACK_SIZE>();
+    w.vm = vm;
+    w.c_data = &c_stack;
 
     for (int i = 0; i < args.size(); i++)
-        vm->c_data.push(args[i]);
+        w.c_data->push(args[i]);
     
-    int retc = f(vm);
+    int retc = f(&w);
 
-    PyObject* ret = vm->None;
-    propagate_if_errored(vm);
+    PyObject* ret = w.vm->None;
+    propagate_if_errored(&w);
 
     if (retc == 1) 
-        ret = vm->c_data.top();
+        ret = w.c_data->top();
     else if (retc > 1) {
         Tuple t = Tuple(retc);
 
         for (int i = 0; i < retc; i++)  {
-            int stack_index = (vm->c_data.size() - retc) + i;
-            t[i] = vm->c_data.get(stack_index);
+            int stack_index = (w.c_data->size() - retc) + i;
+            t[i] = w.c_data->begin()[stack_index];
         }
 
-        ret = VAR(t);
+        ret = py_var(w.vm, t);
     }
-
-    vm->c_data.clear();
-    vm->c_data.restore(stored);
 
     return ret;
 }
 
-bool pkpy_push_function(pkpy_vm vm_handle, pkpy_function f) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_push_function(struct pkpy_vm_wrapper* w, pkpy_function f) {
     ERRHANDLER_OPEN
 
     //TODO right now we just treat all c bound functions a varargs functions
@@ -163,69 +172,58 @@ bool pkpy_push_function(pkpy_vm vm_handle, pkpy_function f) {
     NativeFunc nf = NativeFunc(c_function_wrapper, -1, 0);
     nf._lua_f = (LuaStyleFuncC) f;
 
-    vm->c_data.push(VAR(nf));
+    w->c_data->push(py_var(w->vm, nf));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_int(pkpy_vm vm_handle, int value) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_push_int(struct pkpy_vm_wrapper* w, int value) {
     ERRHANDLER_OPEN
 
-    vm->c_data.push(VAR(value));
+    w->c_data->push(py_var(w->vm, value));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_float(pkpy_vm vm_handle, double value) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_push_float(struct pkpy_vm_wrapper* w, double value) {
     ERRHANDLER_OPEN
-    vm->c_data.push(VAR(value));
+    w->c_data->push(py_var(w->vm, value));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_bool(pkpy_vm vm_handle, bool value) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_push_bool(struct pkpy_vm_wrapper* w, bool value) {
     ERRHANDLER_OPEN
-    vm->c_data.push(VAR(value));
+    w->c_data->push(py_var(w->vm, value));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_string(pkpy_vm vm_handle, const char* value) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_push_string(struct pkpy_vm_wrapper* w, const char* value) {
     ERRHANDLER_OPEN
-    vm->c_data.push(VAR(value));
+    w->c_data->push(py_var(w->vm, value));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_stringn(pkpy_vm vm_handle, const char* value, int length) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_push_stringn(struct pkpy_vm_wrapper* w, const char* value, int length) {
     ERRHANDLER_OPEN
 
     Str s = Str(value, length);
-    vm->c_data.push(VAR(s));
+    w->c_data->push(py_var(w->vm, s));
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_push_none(pkpy_vm vm_handle) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_push_none(struct pkpy_vm_wrapper* w) {
     ERRHANDLER_OPEN
-    vm->c_data.push(vm->None);
+    w->c_data->push(w->vm->None);
 
     return true;
     ERRHANDLER_CLOSE
@@ -233,83 +231,77 @@ bool pkpy_push_none(pkpy_vm vm_handle) {
 
 
 
-bool pkpy_set_global(pkpy_vm vm_handle, const char* name) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_set_global(struct pkpy_vm_wrapper* w, const char* name) {
     ERRHANDLER_OPEN
 
-    vm->_main->attr().set(name, vm->c_data.top());
+    w->vm->_main->attr().set(name, w->c_data->top());
 
-    vm->c_data.pop();
+    w->c_data->pop();
 
     return true;
     ERRHANDLER_CLOSE
 }
 
 //get global will also get bulitins
-bool pkpy_get_global(pkpy_vm vm_handle, const char* name) {
-    VM* vm = (VM*) vm_handle;
-
+bool pkpy_get_global(struct pkpy_vm_wrapper* w, const char* name) {
     ERRHANDLER_OPEN
 
-    PyObject* o = vm->_main->attr().try_get(name);
+    PyObject* o = w->vm->_main->attr().try_get(name);
     if (o == nullptr) {
-        o = vm->builtins->attr().try_get(name);
+        o = w->vm->builtins->attr().try_get(name);
         if (o == nullptr)
             throw Exception("AttributeError", "could not find requested global");
     }
 
-    vm->c_data.push(o);
+    w->c_data->push(o);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
 
-bool pkpy_call(pkpy_vm vm_handle, int argc) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_call(struct pkpy_vm_wrapper* w, int argc) {
     ERRHANDLER_OPEN
 
-    int callable_index = vm->c_data.size() - argc  - 1;
+    int callable_index = w->c_data->size() - argc  - 1;
 
-    PyObject* callable = vm->c_data.get(callable_index);
+    PyObject* callable = w->c_data->begin()[callable_index];
 
-    vm->s_data.push(callable);
-    vm->s_data.push(PY_NULL);
+    w->vm->s_data.push(callable);
+    w->vm->s_data.push(PY_NULL);
 
     for (int i = 0; i < argc; i++) 
-        vm->s_data.push(vm->c_data.get(callable_index + i + 1));
+        w->vm->s_data.push(w->c_data->begin()[callable_index + i + 1]);
 
-    PyObject* o = vm->vectorcall(argc);
+    PyObject* o = w->vm->vectorcall(argc);
 
-    vm->c_data.shrink(argc + 1);
+    w->c_data->shrink(argc + 1);
 
-    unpack_return(vm, o);
+    unpack_return(w, o);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_call_method(pkpy_vm vm_handle, const char* name, int argc) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_call_method(struct pkpy_vm_wrapper* w, const char* name, int argc) {
     ERRHANDLER_OPEN
 
-    int self_index = vm->c_data.size() - argc  - 1;
-    PyObject* self = vm->c_data.get(self_index);
+    int self_index = w->c_data->size() - argc  - 1;
+    PyObject* self = w->c_data->begin()[self_index];
 
-    PyObject* callable = vm->get_unbound_method(self, name, &self);
+    PyObject* callable = w->vm->get_unbound_method(self, name, &self);
 
-    vm->s_data.push(callable);
-    vm->s_data.push(self);
+    w->vm->s_data.push(callable);
+    w->vm->s_data.push(self);
 
     for (int i = 0; i < argc; i++) 
-        vm->s_data.push(vm->c_data.get(self_index + i + 1));
+        w->vm->s_data.push(w->c_data->begin()[self_index + i + 1]);
 
-    PyObject* o = vm->vectorcall(argc);
+    PyObject* o = w->vm->vectorcall(argc);
 
-    vm->c_data.shrink(argc + 1);
+    w->c_data->shrink(argc + 1);
 
-    unpack_return(vm, o);
+    unpack_return(w, o);
 
     return true;
     ERRHANDLER_CLOSE
@@ -323,57 +315,53 @@ static int lua_to_cstack_index(int index, int size) {
     return index;
 }
 
-bool pkpy_to_int(pkpy_vm vm_handle, int index, int* ret) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_to_int(struct pkpy_vm_wrapper* w, int index, int* ret) {
     ERRHANDLER_OPEN
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
+    index = lua_to_cstack_index(index, w->c_data->size());
 
-    PyObject* o = vm->c_data.get(index);
+    PyObject* o = w->c_data->begin()[index];
     if (ret != nullptr)
-        *ret = py_cast<int>(vm, o);
+        *ret = py_cast<int>(w->vm, o);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_to_float(pkpy_vm vm_handle, int index, double* ret) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_to_float(struct pkpy_vm_wrapper* w, int index, double* ret) {
     ERRHANDLER_OPEN
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
+    index = lua_to_cstack_index(index, w->c_data->size());
 
-    PyObject* o = vm->c_data.get(index);
+    PyObject* o = w->c_data->begin()[index];
     if (ret != nullptr)
-        *ret = py_cast<double>(vm, o);
+        *ret = py_cast<double>(w->vm, o);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_to_bool(pkpy_vm vm_handle, int index, bool* ret) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_to_bool(struct pkpy_vm_wrapper* w, int index, bool* ret) {
     ERRHANDLER_OPEN
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
+    index = lua_to_cstack_index(index, w->c_data->size());
 
-    PyObject* o = vm->c_data.get(index);
+    PyObject* o = w->c_data->begin()[index];
     if (ret != nullptr)
-        *ret = py_cast<bool>(vm, o);
+        *ret = py_cast<bool>(w->vm, o);
 
     return true;
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_to_string(pkpy_vm vm_handle, int index, char** ret) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_to_string(struct pkpy_vm_wrapper* w, int index, char** ret) {
     ERRHANDLER_OPEN
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
+    index = lua_to_cstack_index(index, w->c_data->size());
 
-    PyObject* o = vm->c_data.get(index);
+    PyObject* o = w->c_data->begin()[index];
     if (ret != nullptr) {
-        Str& s = CAST(Str&, o);
+        Str& s = py_cast<Str&>(w->vm, o);
         *ret = s.c_str_dup();
     }
 
@@ -381,54 +369,46 @@ bool pkpy_to_string(pkpy_vm vm_handle, int index, char** ret) {
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_is_int(pkpy_vm vm_handle, int index) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_is_int(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
-    PyObject* o = vm->c_data.get(index);
-
-    return is_type(o, vm->tp_int);
+    return is_type(o, w->vm->tp_int);
 }
-bool pkpy_is_float(pkpy_vm vm_handle, int index) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_is_float(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
-    PyObject* o = vm->c_data.get(index);
-
-    return is_type(o, vm->tp_float);
+    return is_type(o, w->vm->tp_float);
 }
-bool pkpy_is_bool(pkpy_vm vm_handle, int index) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_is_bool(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
-    PyObject* o = vm->c_data.get(index);
-
-    return is_type(o, vm->tp_bool);
+    return is_type(o, w->vm->tp_bool);
 }
-bool pkpy_is_string(pkpy_vm vm_handle, int index) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_is_string(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
-    PyObject* o = vm->c_data.get(index);
-
-    return is_type(o, vm->tp_str);
+    return is_type(o, w->vm->tp_str);
 }
-bool pkpy_is_none(pkpy_vm vm_handle, int index) {
-    VM* vm = (VM*) vm_handle;
+bool pkpy_is_none(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
 
-    index = lua_to_cstack_index(index, vm->c_data.size());
-    PyObject* o = vm->c_data.get(index);
-
-    return o == vm->None;
+    return o == w->vm->None;
 }
 
-bool pkpy_check_stack(pkpy_vm vm_handle, int free) {
-    VM* vm = (VM*) vm_handle;
-    return free <= vm->c_data.remaining();
+bool pkpy_check_stack(struct pkpy_vm_wrapper* w, int free) {
+    return free + w->c_data->size() <= PKPY_STACK_SIZE;
 }
 
-int pkpy_stack_size(pkpy_vm vm_handle) {
-    VM* vm = (VM*) vm_handle;
-    return vm->c_data.size();
+int pkpy_stack_size(struct pkpy_vm_wrapper* w) {
+    return w->c_data->size();
 }
 
+bool pkpy_pop(struct pkpy_vm_wrapper* w, int n) {
+    w->c_data->shrink(n);
+    return true;
+}

@@ -12,7 +12,7 @@ struct Function;
 class VM;
 
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
-typedef int (*LuaStyleFuncC)(VM*);
+typedef int (*LuaStyleFuncC)(void*);
 
 struct NativeFunc {
     NativeFuncC f;

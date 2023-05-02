@@ -4,7 +4,7 @@
 
 //tests the c bindings for pocketpy
 
-void check_impl(pkpy_vm vm, bool result, int lineno) {
+void check_impl(pkpy_vm* vm, bool result, int lineno) {
     if (!result) {
         printf("ERROR: failed where it should have succeed at line %i\n", lineno);
         char* message;
@@ -19,7 +19,7 @@ void check_impl(pkpy_vm vm, bool result, int lineno) {
     }
 }
 
-void fail_impl(pkpy_vm vm, bool result, int lineno) {
+void fail_impl(pkpy_vm* vm, bool result, int lineno) {
     if (result) {
         printf("ERROR: succeeded where it should have failed line %i\n", lineno);
         exit(1);
@@ -33,7 +33,7 @@ void fail_impl(pkpy_vm vm, bool result, int lineno) {
     }
 }
 
-void error_impl(pkpy_vm vm, bool result, int lineno) {
+void error_impl(pkpy_vm* vm, bool result, int lineno) {
     if (result) {
         printf("ERROR: succeeded where it should have failed line %i\n", lineno);
         exit(1);
@@ -54,28 +54,28 @@ void error_impl(pkpy_vm vm, bool result, int lineno) {
 #define fail(r) fail_impl(vm, (r), __LINE__)
 #define error(r) error_impl(vm, (r), __LINE__)
 
-int test_binding(pkpy_vm vm) {
+int test_binding(pkpy_vm* vm) {
     pkpy_push_int(vm, 12);
     return 1;
 }
 
-int test_multiple_return(pkpy_vm vm) {
+int test_multiple_return(pkpy_vm* vm) {
     pkpy_push_int(vm, 12);
     pkpy_push_int(vm, 13);
     return 2;
 }
 
-int test_return_none(pkpy_vm vm) {
+int test_return_none(pkpy_vm* vm) {
     return 0;
 }
 
-int test_error_propagate(pkpy_vm vm) {
+int test_error_propagate(pkpy_vm* vm) {
     pkpy_get_global(vm, "does not exist");
     return 1;
 }
 
 
-pkpy_vm vm;
+pkpy_vm* vm;
 
 void cleanup(void) {
     pkpy_vm_destroy(vm);
@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
     int stack_size = pkpy_stack_size(vm);
     printf("stack size %i\n", stack_size);
     check(pkpy_check_stack(vm, 10));
-    check(pkpy_check_stack(vm, 251));
-    fail(pkpy_check_stack(vm, 252));
+    check(pkpy_check_stack(vm, 27));
+    fail(pkpy_check_stack(vm, 28));
     check(pkpy_is_int(vm, 0));
     check(pkpy_is_float(vm, 1));
     check(pkpy_is_bool(vm, 2));
@@ -257,6 +257,9 @@ int main(int argc, char** argv) {
     check(pkpy_get_global(vm, "test_multiple_return"));
     check(pkpy_call(vm, 0));
     check(pkpy_stack_size(vm) == 2);
+
+    check(pkpy_pop(vm, 2));
+    check(pkpy_stack_size(vm) == 0);
 
     return 0;
 }
