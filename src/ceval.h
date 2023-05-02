@@ -408,22 +408,15 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(GET_ITER)
         TOP() = asIter(TOP());
-        check_type(TOP(), tp_iterator);
         DISPATCH();
-    TARGET(FOR_ITER) {
-#if DEBUG_EXTRA_CHECK
-        BaseIter* it = PyIter_AS_C(TOP());
-#else
-        BaseIter* it = _PyIter_AS_C(TOP());
-#endif
-        PyObject* obj = it->next();
-        if(obj != StopIteration){
-            PUSH(obj);
+    TARGET(FOR_ITER)
+        _0 = PyIterNext(TOP());
+        if(_0 != StopIteration){
+            PUSH(_0);
         }else{
-            int target = co_blocks[byte.block].end;
-            frame->jump_abs_break(target);
+            frame->jump_abs_break(co_blocks[byte.block].end);
         }
-    } DISPATCH();
+        DISPATCH();
     /*****************************************/
     TARGET(IMPORT_NAME) {
         StrName name(byte.arg);
@@ -459,12 +452,10 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(UNPACK_SEQUENCE)
     TARGET(UNPACK_EX) {
-        // asIter or iter->next may run bytecode, accidential gc may happen
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        PyObject* obj = asIter(POPX());
-        BaseIter* iter = PyIter_AS_C(obj);
+        PyObject* iter = asIter(POPX());
         for(int i=0; i<byte.arg; i++){
-            PyObject* item = iter->next();
+            PyObject* item = PyIterNext(iter);
             if(item == StopIteration) ValueError("not enough values to unpack");
             PUSH(item);
         }
@@ -472,23 +463,22 @@ __NEXT_STEP:;
         if(byte.op == OP_UNPACK_EX){
             List extras;
             while(true){
-                PyObject* item = iter->next();
+                PyObject* item = PyIterNext(iter);
                 if(item == StopIteration) break;
                 extras.push_back(item);
             }
             PUSH(VAR(extras));
         }else{
-            if(iter->next() != StopIteration) ValueError("too many values to unpack");
+            if(PyIterNext(iter) != StopIteration) ValueError("too many values to unpack");
         }
     } DISPATCH();
     TARGET(UNPACK_UNLIMITED) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        PyObject* obj = asIter(POPX());
-        BaseIter* iter = PyIter_AS_C(obj);
-        obj = iter->next();
-        while(obj != StopIteration){
-            PUSH(obj);
-            obj = iter->next();
+        PyObject* iter = asIter(POPX());
+        _0 = PyIterNext(iter);
+        while(_0 != StopIteration){
+            PUSH(_0);
+            _0 = PyIterNext(iter);
         }
     } DISPATCH();
     /*****************************************/

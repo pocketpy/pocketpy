@@ -321,15 +321,12 @@ public:
         return heap.gcnew<P>(tp_iterator, std::forward<P>(value));
     }
 
-    BaseIter* PyIter_AS_C(PyObject* obj)
-    {
-        check_type(obj, tp_iterator);
-        return static_cast<BaseIter*>(obj->value());
-    }
-
-    BaseIter* _PyIter_AS_C(PyObject* obj)
-    {
-        return static_cast<BaseIter*>(obj->value());
+    PyObject* PyIterNext(PyObject* obj){
+        if(is_non_tagged_type(obj, tp_iterator)){
+            BaseIter* iter = static_cast<BaseIter*>(obj->value());
+            return iter->next();
+        }
+        return call_method(obj, __next__);
     }
     
     /***** Error Reporter *****/
