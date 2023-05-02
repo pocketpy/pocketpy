@@ -236,6 +236,14 @@ bool pkpy_push_stringn(struct pkpy_vm_wrapper* w, const char* value, int length)
     ERRHANDLER_CLOSE
 }
 
+bool pkpy_push_voidp(struct pkpy_vm_wrapper* w, void* value) {
+    ERRHANDLER_OPEN
+    w->c_data->push(py_var(w->vm, value));
+
+    return true;
+    ERRHANDLER_CLOSE
+}
+
 bool pkpy_push_none(struct pkpy_vm_wrapper* w) {
     ERRHANDLER_OPEN
     w->c_data->push(w->vm->None);
@@ -369,6 +377,19 @@ bool pkpy_to_bool(struct pkpy_vm_wrapper* w, int index, bool* ret) {
     ERRHANDLER_CLOSE
 }
 
+bool pkpy_to_voidp(pkpy_vm_wrapper* w, int index, void** ret) {
+    ERRHANDLER_OPEN
+
+    index = lua_to_cstack_index(index, w->c_data->size());
+
+    PyObject* o = w->c_data->begin()[index];
+    if (ret != nullptr) 
+        *ret = py_cast<void*>(w->vm, o);
+
+    return true;
+    ERRHANDLER_CLOSE
+}
+
 bool pkpy_to_string(struct pkpy_vm_wrapper* w, int index, char** ret) {
     ERRHANDLER_OPEN
 
@@ -408,12 +429,33 @@ bool pkpy_is_string(struct pkpy_vm_wrapper* w, int index) {
 
     return is_type(o, w->vm->tp_str);
 }
+bool pkpy_is_voidp(struct pkpy_vm_wrapper* w, int index) {
+    index = lua_to_cstack_index(index, w->c_data->size());
+    PyObject* o = w->c_data->begin()[index];
+
+    return is_type(o, VoidP::_type(w->vm));
+}
+
 bool pkpy_is_none(struct pkpy_vm_wrapper* w, int index) {
     index = lua_to_cstack_index(index, w->c_data->size());
     PyObject* o = w->c_data->begin()[index];
 
     return o == w->vm->None;
 }
+
+bool pkpy_check_global(pkpy_vm_wrapper* w, const char* name) {
+    SAFEGUARD_OPEN
+    PyObject* o = w->vm->_main->attr().try_get(name);
+    if (o == nullptr) {
+        o = w->vm->builtins->attr().try_get(name);
+        if (o == nullptr)
+            return false;
+    }
+    return true;
+
+    SAFEGUARD_CLOSE
+}
+
 
 bool pkpy_check_stack(struct pkpy_vm_wrapper* w, int free) {
     return free + w->c_data->size() <= PKPY_STACK_SIZE;

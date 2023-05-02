@@ -22,8 +22,12 @@ hello
 testing None methods
 None
 
+testing voidp methods
+<void* at 0x7b>
+123
+
 testing sizing and indexing
-stack size 5
+stack size 6
 
 testing error catching
 successfully errored with this message: 

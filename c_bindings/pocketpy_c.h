@@ -36,6 +36,7 @@ bool pkpy_push_float(pkpy_vm*, double);
 bool pkpy_push_bool(pkpy_vm*, bool);
 bool pkpy_push_string(pkpy_vm*, const char*);
 bool pkpy_push_stringn(pkpy_vm*, const char*, int length);
+bool pkpy_push_voidp(pkpy_vm*, void*);
 bool pkpy_push_none(pkpy_vm*);
 
 bool pkpy_set_global(pkpy_vm*, const char* name);
@@ -60,6 +61,7 @@ bool pkpy_call_method(pkpy_vm*, const char* name, int argc);
 bool pkpy_to_int(pkpy_vm*, int index, int* ret);
 bool pkpy_to_float(pkpy_vm*, int index, double* ret);
 bool pkpy_to_bool(pkpy_vm*, int index, bool* ret);
+bool pkpy_to_voidp(pkpy_vm*, int index, void** ret);
 bool pkpy_to_string(pkpy_vm*, int index, char** ret);
 //the ret string pointer is only valid until the next api call, so copy it if you want it
 
@@ -70,7 +72,12 @@ bool pkpy_is_int(pkpy_vm*, int index);
 bool pkpy_is_float(pkpy_vm*, int index);
 bool pkpy_is_bool(pkpy_vm*, int index);
 bool pkpy_is_string(pkpy_vm*, int index);
+bool pkpy_is_voidp(pkpy_vm*, int index);
 bool pkpy_is_none(pkpy_vm*, int index);
+
+
+//will return true if global exists
+bool pkpy_check_global(pkpy_vm*, const char* name);
 
 //will return true if at least free empty slots remain on the stack
 bool pkpy_check_stack(pkpy_vm*, int free);

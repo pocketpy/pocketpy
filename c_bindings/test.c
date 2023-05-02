@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
     fail(pkpy_is_bool(vm, -1));
     fail(pkpy_is_string(vm, -1));
     fail(pkpy_is_none(vm, -1));
+    fail(pkpy_is_voidp(vm, -1));
 
     printf("\ntesting float methods\n");
     double r_float;
@@ -115,6 +116,7 @@ int main(int argc, char** argv) {
     fail(pkpy_is_bool(vm, -1));
     fail(pkpy_is_string(vm, -1));
     fail(pkpy_is_none(vm, -1));
+    fail(pkpy_is_voidp(vm, -1));
 
     printf("\ntesting bool methods\n");
     bool r_bool;
@@ -129,6 +131,7 @@ int main(int argc, char** argv) {
     fail(pkpy_is_float(vm, -1));
     fail(pkpy_is_string(vm, -1));
     fail(pkpy_is_none(vm, -1));
+    fail(pkpy_is_voidp(vm, -1));
 
     printf("\ntesting string methods\n");
     char* r_string;
@@ -143,6 +146,7 @@ int main(int argc, char** argv) {
     fail(pkpy_is_float(vm, -1));
     fail(pkpy_is_bool(vm, -1));
     fail(pkpy_is_none(vm, -1));
+    fail(pkpy_is_voidp(vm, -1));
 
     printf("\ntesting None methods\n");
     check(pkpy_push_none(vm));
@@ -154,23 +158,43 @@ int main(int argc, char** argv) {
     fail(pkpy_is_float(vm, -1));
     fail(pkpy_is_bool(vm, -1));
     fail(pkpy_is_string(vm, -1));
+    fail(pkpy_is_voidp(vm, -1));
+
+    printf("\ntesting voidp methods\n");
+    void* vp = (void*) 123;
+    check(pkpy_push_voidp(vm, vp));
+    check(pkpy_set_global(vm, "vp"));
+    check(pkpy_vm_run(vm, "print(vp)"));
+    check(pkpy_get_global(vm, "vp"));
+    check(pkpy_is_voidp(vm, -1));
+    vp = NULL;
+    check(pkpy_to_voidp(vm, -1, &vp));
+    printf("%i\n", (int) (intptr_t) vp);
+    fail(pkpy_is_int(vm, -1));
+    fail(pkpy_is_float(vm, -1));
+    fail(pkpy_is_bool(vm, -1));
+    fail(pkpy_is_string(vm, -1));
+    fail(pkpy_is_none(vm, -1));
+
 
     printf("\ntesting sizing and indexing\n");
     int stack_size = pkpy_stack_size(vm);
     printf("stack size %i\n", stack_size);
     check(pkpy_check_stack(vm, 10));
-    check(pkpy_check_stack(vm, 27));
-    fail(pkpy_check_stack(vm, 28));
+    check(pkpy_check_stack(vm, 26));
+    fail(pkpy_check_stack(vm, 27));
     check(pkpy_is_int(vm, 0));
     check(pkpy_is_float(vm, 1));
     check(pkpy_is_bool(vm, 2));
     check(pkpy_is_string(vm, 3));
     check(pkpy_is_none(vm, 4));
-    check(pkpy_is_int(vm, -5));
-    check(pkpy_is_float(vm, -4));
-    check(pkpy_is_bool(vm, -3));
-    check(pkpy_is_string(vm, -2));
-    check(pkpy_is_none(vm, -1));
+    check(pkpy_is_voidp(vm, 5));
+    check(pkpy_is_int(vm, -6));
+    check(pkpy_is_float(vm, -5));
+    check(pkpy_is_bool(vm, -4));
+    check(pkpy_is_string(vm, -3));
+    check(pkpy_is_none(vm, -2));
+    check(pkpy_is_voidp(vm, -1));
     
     printf("\ntesting error catching\n");
     error(pkpy_vm_run(vm, "let's make sure syntax errors get caught"));
@@ -258,6 +282,9 @@ int main(int argc, char** argv) {
 
     check(pkpy_pop(vm, 2));
     check(pkpy_stack_size(vm) == 0);
+
+    check(pkpy_check_global(vm, "test_error_propagate"));
+    fail(pkpy_check_global(vm, "nonexistant"));
 
     return 0;
 }
