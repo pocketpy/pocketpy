@@ -58,13 +58,13 @@ struct FastLocals{
     }
 };
 
-struct ValueStack {
-    static const size_t MAX_SIZE = 32768;
-    // We allocate 512 more bytes to keep `_sp` valid when `is_overflow() == true`.
-    PyObject* _begin[MAX_SIZE + 512];
+template<size_t MAX_SIZE>
+struct ValueStackImpl {
+    // We allocate extra MAX_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
+    PyObject* _begin[MAX_SIZE + MAX_SIZE/128];
     PyObject** _sp;
 
-    ValueStack(): _sp(_begin) {}
+    ValueStackImpl(): _sp(_begin) {}
 
     PyObject*& top(){ return _sp[-1]; }
     PyObject* top() const { return _sp[-1]; }
@@ -92,41 +92,13 @@ struct ValueStack {
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
     
-    ValueStack(const ValueStack&) = delete;
-    ValueStack(ValueStack&&) = delete;
-    ValueStack& operator=(const ValueStack&) = delete;
-    ValueStack& operator=(ValueStack&&) = delete;
+    ValueStackImpl(const ValueStackImpl&) = delete;
+    ValueStackImpl(ValueStackImpl&&) = delete;
+    ValueStackImpl& operator=(const ValueStackImpl&) = delete;
+    ValueStackImpl& operator=(ValueStackImpl&&) = delete;
 };
 
-//stack for working with c bindings
-struct CVirtualStack {
-    static const size_t MAX_SIZE = 256;
-    PyObject* _begin[MAX_SIZE];
-    PyObject** _sp;
-    size_t offset;
-
-    CVirtualStack(): _sp(_begin), offset(0) {}
-
-    PyObject* top() const { return _sp[-1]; }
-    PyObject* get(int index) const { return _begin[offset + index]; }
-    void push(PyObject* v){ *_sp++ = v; }
-    void pop(){ --_sp; }
-    void shrink(int n){ _sp -= n; }
-    int size() const { return (_sp - _begin) - offset; }
-    bool empty() const { return size() == 0; }
-    PyObject** begin() { return _begin + offset; }
-    PyObject** end() { return _sp; }
-    void clear() { _sp = _begin + offset;}
-    int remaining() { return MAX_SIZE - (_sp - _begin); }
-    
-    size_t store() { size_t ret = offset; offset = _sp - _begin; return ret; }
-    void restore(size_t stored) { offset = stored; }
-
-    CVirtualStack(const CVirtualStack&) = delete;
-    CVirtualStack(CVirtualStack&&) = delete;
-    CVirtualStack& operator=(const CVirtualStack&) = delete;
-    CVirtualStack& operator=(CVirtualStack&&) = delete;
-};
+using ValueStack = ValueStackImpl<32768>;
 
 struct Frame {
     int _ip = -1;

@@ -595,7 +595,16 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
 
     /************ bytes ************/
-    _vm->bind_static_method<1>("bytes", "__new__", CPP_NOT_IMPLEMENTED());
+    _vm->bind_static_method<1>("bytes", "__new__", [](VM* vm, ArgsView args){
+        List& list = CAST(List&, args[0]);
+        std::vector<char> buffer(list.size());
+        for(int i=0; i<list.size(); i++){
+            i64 b = CAST(i64, list[i]);
+            if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
+            buffer[i] = (char)b;
+        }
+        return VAR(Bytes(std::move(buffer)));
+    });
 
     _vm->bind_method<1>("bytes", "__getitem__", [](VM* vm, ArgsView args) {
         const Bytes& self = CAST(Bytes&, args[0]);
@@ -766,6 +775,18 @@ inline void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(vm->num_to_float(args[0])))));
+    vm->bind_func<2>(mod, "gcd", [](VM* vm, ArgsView args) {
+        i64 a = CAST(i64, args[0]);
+        i64 b = CAST(i64, args[1]);
+        if(a < 0) a = -a;
+        if(b < 0) b = -b;
+        while(b != 0){
+            i64 t = b;
+            b = a % b;
+            a = t;
+        }
+        return VAR(a);
+    });
 }
 
 inline void add_module_dis(VM* vm){
