@@ -97,7 +97,11 @@ bool pkpy_vm_run(struct pkpy_vm_wrapper* w, const char* source) {
 
     CodeObject_ code = w->vm->compile(source, "<c-bound>", EXEC_MODE);
     PyObject* result = w->vm->_exec(code, w->vm->_main);
-    unpack_return(w, result);
+
+    //unpack_return(w, result);
+    //NOTE: it seems like w->vm->_exec should return whatever the last command it
+    //ran returned but instead it seems to pretty much always return None
+    //so I guess uncomment this line if that every changes
 
     return true;
     ERRHANDLER_CLOSE
