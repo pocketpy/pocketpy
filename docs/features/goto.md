@@ -1,5 +1,6 @@
 ---
 icon: dot
+title: Goto Statement
 ---
 
 # goto/label
@@ -25,7 +26,3 @@ for i in range(10):
 
 label .exit
 ```
-
-!!!
-If we detect an illegal divert, you will get an `UnexpectedError` or the behaviour is undefined.
-!!!

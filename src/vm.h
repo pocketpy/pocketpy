@@ -1001,12 +1001,11 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
-    PyObject* _module = fn._module != nullptr ? fn._module : callstack.top()._module;
 
-    if(args.size() < fn.decl->args.size()){
+    if(args.size() < fn.argc){
         vm->TypeError(fmt(
             "expected ",
-            fn.decl->args.size(),
+            fn.argc,
             " positional arguments, but got ",
             args.size(),
             " (", fn.decl->code->name, ')'
@@ -1015,11 +1014,11 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     // if this function is simple, a.k.a, no kwargs and no *args and not a generator
     // we can use a fast path to avoid using buffer copy
-    if(fn.is_simple && kwargs.size()==0){
-        if(args.size() > fn.decl->args.size()) TypeError("too many positional arguments");
-        int spaces = co->varnames.size() - fn.decl->args.size();
+    if(fn.is_simple){
+        if(args.size() > fn.argc) TypeError("too many positional arguments");
+        int spaces = co->varnames.size() - fn.argc;
         for(int j=0; j<spaces; j++) PUSH(nullptr);
-        callstack.emplace(&s_data, p0, co, _module, callable, FastLocals(co, args.begin()));
+        callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         return nullptr;
     }
 
@@ -1062,7 +1061,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     if(co->is_generator){
         PyObject* ret = PyIter(Generator(
             this,
-            Frame(&s_data, nullptr, co, _module, callable),
+            Frame(&s_data, nullptr, co, fn._module, callable),
             ArgsView(buffer, buffer + co->varnames.size())
         ));
         return ret;
@@ -1070,7 +1069,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     // copy buffer to stack
     for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
-    callstack.emplace(&s_data, p0, co, _module, callable);
+    callstack.emplace(&s_data, p0, co, fn._module, callable);
     return nullptr;
 }
 

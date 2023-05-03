@@ -83,11 +83,12 @@ __NEXT_STEP:;
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
         bool is_simple = decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
+        int argc = decl->args.size();
         PyObject* obj;
         if(decl->nested){
-            obj = VAR(Function({decl, is_simple, frame->_module, frame->_locals.to_namedict()}));
+            obj = VAR(Function({decl, is_simple, argc, frame->_module, frame->_locals.to_namedict()}));
         }else{
-            obj = VAR(Function({decl, is_simple, frame->_module}));
+            obj = VAR(Function({decl, is_simple, argc, frame->_module}));
         }
         PUSH(obj);
     } DISPATCH();

@@ -1,6 +1,7 @@
 ---
 icon: dot
 order: 100
+title: Basic Features
 ---
 
 # basic

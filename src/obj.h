@@ -47,6 +47,7 @@ using FuncDecl_ = shared_ptr<FuncDecl>;
 struct Function{
     FuncDecl_ decl;
     bool is_simple;
+    int argc;   // cached argc
     PyObject* _module;
     NameDict_ _closure;
 };
