@@ -166,8 +166,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("next", [](VM* vm, ArgsView args) {
-        BaseIter* iter = vm->PyIter_AS_C(args[0]);
-        return iter->next();
+        return vm->PyIterNext(args[0]);
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, ArgsView args) {

@@ -80,6 +80,7 @@ public:
     ValueStack s_data;
     stack< Frame > callstack;
     std::vector<PyTypeInfo> _all_types;
+    void (*_gc_marker_ex)(VM*) = nullptr;
 
     NameDict _modules;                                  // loaded modules
     std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
@@ -321,15 +322,12 @@ public:
         return heap.gcnew<P>(tp_iterator, std::forward<P>(value));
     }
 
-    BaseIter* PyIter_AS_C(PyObject* obj)
-    {
-        check_type(obj, tp_iterator);
-        return static_cast<BaseIter*>(obj->value());
-    }
-
-    BaseIter* _PyIter_AS_C(PyObject* obj)
-    {
-        return static_cast<BaseIter*>(obj->value());
+    PyObject* PyIterNext(PyObject* obj){
+        if(is_non_tagged_type(obj, tp_iterator)){
+            BaseIter* iter = static_cast<BaseIter*>(obj->value());
+            return iter->next();
+        }
+        return call_method(obj, __next__);
     }
     
     /***** Error Reporter *****/
@@ -1017,7 +1015,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     // if this function is simple, a.k.a, no kwargs and no *args and not a generator
     // we can use a fast path to avoid using buffer copy
-    if(fn.is_simple){
+    if(fn.is_simple && kwargs.size()==0){
         if(args.size() > fn.decl->args.size()) TypeError("too many positional arguments");
         int spaces = co->varnames.size() - fn.decl->args.size();
         for(int j=0; j<spaces; j++) PUSH(nullptr);
@@ -1194,6 +1192,7 @@ inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
     for(PyObject* obj: vm->s_data) if(obj!=nullptr) OBJ_MARK(obj);
+    if(vm->_gc_marker_ex != nullptr) vm->_gc_marker_ex(vm);
 }
 
 inline Str obj_type_name(VM *vm, Type type){
