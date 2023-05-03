@@ -795,17 +795,16 @@ __SUBSCR_END:
                 ctx()->emit(OP_WITH_EXIT, BC_NOARG, prev().line);
             } break;
             /*************************************************/
-            // TODO: refactor goto/label use special $ syntax
-            case TK("label"): {
+            case TK("$label"): {
                 if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
-                consume(TK(".")); consume(TK("@id"));
+                consume(TK("@id"));
                 bool ok = ctx()->add_label(prev().str());
                 if(!ok) SyntaxError("label " + prev().str().escape() + " already exists");
                 consume_end_stmt();
             } break;
-            case TK("goto"):
+            case TK("$goto"):
                 if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
-                consume(TK(".")); consume(TK("@id"));
+                consume(TK("@id"));
                 ctx()->emit(OP_GOTO, StrName(prev().str()).index, prev().line);
                 consume_end_stmt();
                 break;

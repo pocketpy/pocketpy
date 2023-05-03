@@ -21,10 +21,11 @@ constexpr const char* kTokens[] = {
     /*****************************************/
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
     "**", "=", ">", "<", "...", "->", "?", "@", "==", "!=", ">=", "<=",
+    /** SPEC_BEGIN **/
+    "$goto", "$label",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
-    "goto", "label",      // extended keywords, not available in cpython
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
 
@@ -38,13 +39,7 @@ constexpr TokenIndex TK(const char token[]) {
         while(*i && *j && *i == *j) { i++; j++;}
         if(*i == *j) return k;
     }
-#ifdef __GNUC__
-    // for old version of gcc, it is not smart enough to ignore FATAL_ERROR()
-    // so we must do a normal return
     return 255;
-#else
-    FATAL_ERROR();
-#endif
 }
 
 #define TK_STR(t) kTokens[t]
@@ -123,6 +118,13 @@ struct Lexer {
         }
         for(int i=0; i<n; i++) eatchar_include_newline();
         return true;
+    }
+
+    bool match_string(const char* s){
+        int s_len = strlen(s);
+        bool ok = strncmp(curr_char, s, s_len) == 0;
+        if(ok) for(int i=0; i<s_len; i++) eatchar_include_newline();
+        return ok;
     }
 
     int eat_spaces(){
@@ -381,6 +383,16 @@ struct Lexer {
                 case '[': add_token(TK("[")); return true;
                 case ']': add_token(TK("]")); return true;
                 case '@': add_token(TK("@")); return true;
+                case '$': {
+                    for(int i=TK("$goto"); i<=TK("$label"); i++){
+                        // +1 to skip the '$'
+                        if(match_string(TK_STR(i) + 1)){
+                            add_token((TokenIndex)i);
+                            return true;
+                        }
+                    }
+                    SyntaxError("invalid special token");
+                }
                 case '%': add_token_2('=', TK("%"), TK("%=")); return true;
                 case '&': add_token_2('=', TK("&"), TK("&=")); return true;
                 case '|': add_token_2('=', TK("|"), TK("|=")); return true;

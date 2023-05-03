@@ -72,11 +72,6 @@ inline void init_builtins(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
 
-    _vm->bind_builtin_func<1>("__sys_stdout_write", [](VM* vm, ArgsView args) {
-        (*vm->_stdout) << CAST(Str&, args[0]);
-        return vm->None;
-    });
-
     _vm->bind_builtin_func<2>("super", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
         Type type = OBJ_GET(Type, args[0]);
@@ -768,6 +763,21 @@ inline void add_module_time(VM* vm){
 inline void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
+
+    PyObject* stdout = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    PyObject* stderr = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    vm->setattr(mod, "stdout", stdout);
+    vm->setattr(mod, "stderr", stderr);
+
+    vm->bind_func<1>(stdout, "write", [](VM* vm, ArgsView args) {
+        (*vm->_stdout) << CAST(Str&, args[0]).sv();
+        return vm->None;
+    });
+
+    vm->bind_func<1>(stderr, "write", [](VM* vm, ArgsView args) {
+        (*vm->_stderr) << CAST(Str&, args[0]).sv();
+        return vm->None;
+    });
 }
 
 inline void add_module_json(VM* vm){

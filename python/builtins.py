@@ -1,6 +1,8 @@
+import sys as _sys
+
 def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
-    __sys_stdout_write(s + end)
+    _sys.stdout.write(s + end)
 
 def round(x, ndigits=0):
     assert ndigits >= 0
