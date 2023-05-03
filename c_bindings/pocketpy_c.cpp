@@ -504,6 +504,15 @@ bool pkpy_check_global(pkpy_vm* vm_handle, const char* name) {
     SAFEGUARD_CLOSE
 }
 
+bool pkpy_check_error(pkpy_vm* vm_handle) {
+    CVM* vm = (CVM*) vm_handle;
+    SAFEGUARD_OPEN
+    if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) 
+        return true; 
+    return false;
+    SAFEGUARD_CLOSE
+}
+
 
 bool pkpy_check_stack(pkpy_vm* vm_handle, int free) {
     CVM* vm = (CVM*) vm_handle;

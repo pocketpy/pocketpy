@@ -293,6 +293,8 @@ int main(int argc, char** argv) {
 
     check(pkpy_check_global(vm, "test_error_propagate"));
     fail(pkpy_check_global(vm, "nonexistant"));
+    pkpy_vm_run(vm, "test_error_propagate()");
+    check(pkpy_check_error(vm));
 
     return 0;
 }

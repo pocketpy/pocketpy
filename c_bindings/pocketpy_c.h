@@ -87,6 +87,9 @@ bool pkpy_is_none(pkpy_vm*, int index);
 //will return true if global exists
 bool pkpy_check_global(pkpy_vm*, const char* name);
 
+//will return true if the vm is currently in an error state
+bool pkpy_check_error(pkpy_vm*);
+
 //will return true if at least free empty slots remain on the stack
 bool pkpy_check_stack(pkpy_vm*, int free);
 
