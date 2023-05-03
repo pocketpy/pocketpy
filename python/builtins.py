@@ -136,14 +136,16 @@ def list@remove(self, value):
     for i in range(len(self)):
         if self[i] == value:
             del self[i]
-            return True
-    return False
+            return
+    value = repr(value)
+    raise ValueError(f'{value} is not in list')
 
 def list@index(self, value):
     for i in range(len(self)):
         if self[i] == value:
             return i
-    return -1
+    value = repr(value)
+    raise ValueError(f'{value} is not in list')
 
 def list@pop(self, i=-1):
     res = self[i]
