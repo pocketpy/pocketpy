@@ -299,11 +299,6 @@ public:
     }
 
     template<int ARGC>
-    void _bind_methods(std::vector<Str> types, Str name, NativeFuncC fn) {
-        for(auto& type: types) bind_method<ARGC>(type, name, fn);
-    }
-
-    template<int ARGC>
     void bind_builtin_func(Str name, NativeFuncC fn) {
         bind_func<ARGC>(builtins, name, fn);
     }

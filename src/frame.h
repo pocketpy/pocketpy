@@ -133,6 +133,9 @@ struct Frame {
 
     Bytecode next_bytecode() {
         _ip = _next_ip++;
+#if DEBUG_EXTRA_CHECK
+        if(_ip >= co->codes.size()) FATAL_ERROR();
+#endif
         return co->codes[_ip];
     }
 
