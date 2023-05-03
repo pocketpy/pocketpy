@@ -487,7 +487,7 @@ __NEXT_STEP:;
         StrName name(byte.arg);
         PyObject* super_cls = POPX();
         if(super_cls == None) super_cls = _t(tp_object);
-        check_type(super_cls, tp_type);
+        check_non_tagged_type(super_cls, tp_type);
         PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, super_cls));
         PUSH(cls);
     } DISPATCH();

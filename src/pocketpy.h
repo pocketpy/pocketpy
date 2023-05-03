@@ -68,7 +68,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("super", [](VM* vm, ArgsView args) {
-        vm->check_type(args[0], vm->tp_type);
+        vm->check_non_tagged_type(args[0], vm->tp_type);
         Type type = OBJ_GET(Type, args[0]);
         if(!vm->isinstance(args[1], type)){
             Str _0 = obj_type_name(vm, OBJ_GET(Type, vm->_t(args[1])));
@@ -80,7 +80,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
-        vm->check_type(args[1], vm->tp_type);
+        vm->check_non_tagged_type(args[1], vm->tp_type);
         Type type = OBJ_GET(Type, args[1]);
         return VAR(vm->isinstance(args[0], type));
     });

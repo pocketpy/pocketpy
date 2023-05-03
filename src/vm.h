@@ -30,14 +30,14 @@ inline int set_read_file_cwd(ReadFileCwdFunc func) { _read_file_cwd = func; retu
 
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
-        vm->check_type(obj, vm->ptype);                                 \
+        vm->check_non_tagged_type(obj, vm->ptype);                      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
-        vm->check_type(obj, vm->ptype);                                 \
+        vm->check_non_tagged_type(obj, vm->ptype);                      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
@@ -362,6 +362,21 @@ public:
         TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
     }
 
+    void check_non_tagged_type(PyObject* obj, Type type){
+        if(is_non_tagged_type(obj, type)) return;
+        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
+    }
+
+    void check_int(PyObject* obj){
+        if(is_int(obj)) return;
+        check_type(obj, tp_int);
+    }
+
+    void check_float(PyObject* obj){
+        if(is_float(obj)) return;
+        check_type(obj, tp_float);
+    }
+
     PyObject* _t(Type t){
         return _all_types[t.index].obj;
     }
@@ -434,7 +449,7 @@ DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
-    vm->check_type(obj, vm->tp_int);                    \
+    vm->check_int(obj);                                 \
     return (T)(BITS(obj) >> 2);                         \
 }                                                       \
 template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
@@ -454,7 +469,7 @@ PY_CAST_INT(unsigned long long)
 
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_float);
+    vm->check_float(obj);
     i64 bits = BITS(obj);
     bits = (bits >> 2) << 2;
     return BitsCvt(bits)._float;
@@ -465,7 +480,7 @@ template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
     return BitsCvt(bits)._float;
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_float);
+    vm->check_float(obj);
     i64 bits = BITS(obj);
     bits = (bits >> 2) << 2;
     return BitsCvt(bits)._float;
@@ -515,7 +530,7 @@ inline PyObject* py_var(VM* vm, bool val){
 }
 
 template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_bool);
+    vm->check_non_tagged_type(obj, vm->tp_bool);
     return obj == vm->True;
 }
 template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
@@ -536,7 +551,7 @@ inline PyObject* py_var(VM* vm, std::string_view val){
 
 template<typename T>
 void _check_py_class(VM* vm, PyObject* obj){
-    vm->check_type(obj, T::_type(vm));
+    vm->check_non_tagged_type(obj, T::_type(vm));
 }
 
 inline PyObject* VM::num_negated(PyObject* obj){
@@ -1169,7 +1184,7 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 
 template<int ARGC>
 void VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
-    check_type(obj, tp_type);
+    check_non_tagged_type(obj, tp_type);
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
 }
 
