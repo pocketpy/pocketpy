@@ -18,6 +18,7 @@ False
 testing string methods
 hello!
 hello
+hello
 
 testing None methods
 None

@@ -8,7 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct pkpy_vm_wrapper pkpy_vm;
+typedef struct pkpy_vm_handle pkpy_vm;
 
 //we we take a lot of inspiration from the lua api for these bindings
 //the key difference being most methods return a bool, 
@@ -20,7 +20,7 @@ typedef struct pkpy_vm_wrapper pkpy_vm;
 //it will provide a string summary of the error in the message parameter (if it is not NULL)
 //if null is passed in as message, and it will just print the message to stderr
 bool pkpy_clear_error(pkpy_vm*, char** message);
-//the message pointer is only valid until the next api call, so copy it if you want it
+//NOTE you are responsible for freeing message 
 
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
 bool pkpy_vm_run(pkpy_vm*, const char* source);
@@ -62,8 +62,16 @@ bool pkpy_to_int(pkpy_vm*, int index, int* ret);
 bool pkpy_to_float(pkpy_vm*, int index, double* ret);
 bool pkpy_to_bool(pkpy_vm*, int index, bool* ret);
 bool pkpy_to_voidp(pkpy_vm*, int index, void** ret);
+
+//this method provides a strong reference, you are responsible for freeing the
+//string when you are done with it
 bool pkpy_to_string(pkpy_vm*, int index, char** ret);
-//the ret string pointer is only valid until the next api call, so copy it if you want it
+
+//this method provides a weak reference, it is only valid until the
+//next api call
+//it is not null terminated
+bool pkpy_to_stringn(pkpy_vm*, int index, const char** ret, int* size);
+
 
 //these do not follow the same error semantics as above, their return values
 //just say whether the check succeeded or not, or else return the value asked for
