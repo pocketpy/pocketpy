@@ -764,17 +764,17 @@ inline void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
 
-    PyObject* stdout = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
-    PyObject* stderr = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
-    vm->setattr(mod, "stdout", stdout);
-    vm->setattr(mod, "stderr", stderr);
+    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    vm->setattr(mod, "stdout", stdout_);
+    vm->setattr(mod, "stderr", stderr_);
 
-    vm->bind_func<1>(stdout, "write", [](VM* vm, ArgsView args) {
+    vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
         (*vm->_stdout) << CAST(Str&, args[0]).sv();
         return vm->None;
     });
 
-    vm->bind_func<1>(stderr, "write", [](VM* vm, ArgsView args) {
+    vm->bind_func<1>(stderr_, "write", [](VM* vm, ArgsView args) {
         (*vm->_stderr) << CAST(Str&, args[0]).sv();
         return vm->None;
     });
