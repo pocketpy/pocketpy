@@ -12,3 +12,10 @@ def f(x):
 
 assert f(2) == 1
 assert f(0) == None
+
+a = [1, 2]
+b = [3, 4]
+assert a.append == a.append
+assert a.append is not a.append
+assert a.append is not b.append
+assert a.append != b.append

@@ -56,6 +56,13 @@ struct BoundMethod {
     PyObject* self;
     PyObject* func;
     BoundMethod(PyObject* self, PyObject* func) : self(self), func(func) {}
+    
+    bool operator==(const BoundMethod& rhs) const noexcept {
+        return self == rhs.self && func == rhs.func;
+    }
+    bool operator!=(const BoundMethod& rhs) const noexcept {
+        return self != rhs.self || func != rhs.func;
+    }
 };
 
 struct Range {

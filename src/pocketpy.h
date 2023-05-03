@@ -972,6 +972,18 @@ inline void VM::post_init(){
         return CAST(BoundMethod&, args[0]).func;
     }));
 
+    vm->bind_method<1>(_t(tp_bound_method), "__eq__", [](VM* vm, ArgsView args){
+        if(!is_non_tagged_type(args[1], vm->tp_bound_method)) return vm->False;
+        bool ok = _CAST(BoundMethod&, args[0]) == _CAST(BoundMethod&, args[1]);
+        return VAR(ok);
+    });
+
+    vm->bind_method<1>(_t(tp_bound_method), "__ne__", [](VM* vm, ArgsView args){
+        if(!is_non_tagged_type(args[1], vm->tp_bound_method)) return vm->True;
+        bool ok = _CAST(BoundMethod&, args[0]) != _CAST(BoundMethod&, args[1]);
+        return VAR(ok);
+    });
+
     _t(tp_slice)->attr().set("start", property([](VM* vm, ArgsView args){
         return CAST(Slice&, args[0]).start;
     }));
