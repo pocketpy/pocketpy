@@ -62,11 +62,11 @@ class Compiler {
         if(!ctx()->s_expr.empty()){
             throw std::runtime_error("!ctx()->s_expr.empty()\n" + ctx()->_log_s_expr());
         }
-        // if the last op does not return, add a default return None
-        if(ctx()->co->codes.empty() || ctx()->co->codes.back().op != OP_RETURN_VALUE){
-            ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
-            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        }
+        // add a `return None` in the end as a guard
+        // previously, we only do this if the last opcode is not a return
+        // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
+        ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         ctx()->co->optimize(vm);
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
