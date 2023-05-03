@@ -12,7 +12,8 @@ echo "compiling c executable"
 clang -c -o test.o c_bindings/test.c -Wfatal-errors -O2 -Wall -Wno-sign-compare -Wno-unused-variable -I src/ -fsanitize=address -g
 echo "linking"
 clang++ -o c_binding_test test.o pocketpy_c.o -stdlib=libc++ -fsanitize=address -g
-echo "running, no weird output should show up"
+echo "running, leaksanitizer is finding a false postive leak in the CVM constructor"
+echo "ignore that but pay attention to anything else"
 ./c_binding_test > binding_test_scratch
 echo "checking results (they should be identical)"
 diff -q -s  binding_test_scratch c_bindings/test_answers.txt

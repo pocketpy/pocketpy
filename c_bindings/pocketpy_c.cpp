@@ -44,6 +44,7 @@ class CVM : public VM {
     }
 
     ~CVM() {
+        c_data->clear();
         delete c_data;
     }
 };
@@ -95,9 +96,14 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     SAFEGUARD_CLOSE
 }
 
+void gc_marker_ex(CVM* vm) {
+    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
+}
+
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
     CVM* vm = new CVM(use_stdio, enable_os);
     vm->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
+    vm->_gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
     return (pkpy_vm*) vm;
 }
 
