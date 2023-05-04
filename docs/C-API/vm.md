@@ -3,7 +3,7 @@ title: VM
 icon: dot
 order: 10
 ---
-#### `VM* pkpy_new_vm(bool use_stdio)`
+#### `VM* pkpy_new_vm()`
 
 Create a virtual machine.
 
@@ -28,11 +28,3 @@ Get a global variable of a virtual machine.
 
 Return `__repr__` of the result.
 If the variable is not found, return `nullptr`.
-
-#### `char* pkpy_vm_read_output(VM* vm)`
-
-Read the standard output and standard error as string of a virtual machine.
-The `vm->use_stdio` should be `false`.
-After this operation, both stream will be cleared.
-
-Return a json representing the result.
