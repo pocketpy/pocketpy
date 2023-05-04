@@ -6,8 +6,8 @@
 
 #if PK_ENABLE_OS
 
-#include <fstream>
 #include <filesystem>
+#include <cstdio>
 
 namespace pkpy{
 
@@ -15,9 +15,14 @@ inline int _ = set_read_file_cwd([](const Str& name){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists) return Bytes();
-    std::ifstream ifs(path, std::ios::binary);
-    std::vector<char> buffer(std::istreambuf_iterator<char>(ifs), {});
-    ifs.close();
+    std::string cname = name.str();
+    FILE* fp = fopen(cname.c_str(), "rb");
+    if(!fp) return Bytes();
+    fseek(fp, 0, SEEK_END);
+    std::vector<char> buffer(ftell(fp));
+    fseek(fp, 0, SEEK_SET);
+    fread(buffer.data(), 1, buffer.size(), fp);
+    fclose(fp);
     return Bytes(std::move(buffer));
 });
 
@@ -26,42 +31,34 @@ struct FileIO {
 
     Str file;
     Str mode;
-    std::fstream _fs;
+    FILE* fp;
 
     bool is_text() const { return mode != "rb" && mode != "wb" && mode != "ab"; }
 
-    FileIO(VM* vm, Str file, Str mode): file(file), mode(mode) {
-        std::ios_base::openmode extra = static_cast<std::ios_base::openmode>(0);
-        if(mode == "rb" || mode == "wb" || mode == "ab"){
-            extra |= std::ios::binary;
-        }
-        if(mode == "rt" || mode == "r" || mode == "rb"){
-            _fs.open(file.str(), std::ios::in | extra);
-        }else if(mode == "wt" || mode == "w" || mode == "wb"){
-            _fs.open(file.str(), std::ios::out | extra);
-        }else if(mode == "at" || mode == "a" || mode == "ab"){
-            _fs.open(file.str(), std::ios::app | extra);
-        }else{
-            vm->ValueError("invalid mode");
-        }
-        if(!_fs.is_open()) vm->IOError(strerror(errno));
+    FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
+        fp = fopen(file.c_str(), mode.c_str());
+        if(!fp) vm->IOError(strerror(errno));
+    }
+
+    void close(){
+        if(fp == nullptr) return;
+        fclose(fp);
+        fp = nullptr;
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_static_method<2>(type, "__new__", [](VM* vm, ArgsView args){
             return VAR_T(FileIO, 
-                vm, CAST(Str, args[0]), CAST(Str, args[1])
+                vm, CAST(Str&, args[0]).str(), CAST(Str&, args[1]).str()
             );
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            std::vector<char> buffer;
-            while(true){
-                char c = io._fs.get();
-                if(io._fs.eof()) break;
-                buffer.push_back(c);
-            }
+            fseek(io.fp, 0, SEEK_END);
+            std::vector<char> buffer(ftell(io.fp));
+            fseek(io.fp, 0, SEEK_SET);
+            fread(buffer.data(), 1, buffer.size(), io.fp);
             Bytes b(std::move(buffer));
             if(io.is_text()) return VAR(Str(b.str()));
             return VAR(std::move(b));
@@ -69,23 +66,25 @@ struct FileIO {
 
         vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            if(io.is_text()) io._fs << CAST(Str&, args[1]);
-            else{
+            if(io.is_text()){
+                Str& s = CAST(Str&, args[1]);
+                fwrite(s.data, 1, s.length(), io.fp);
+            }else{
                 Bytes& buffer = CAST(Bytes&, args[1]);
-                io._fs.write(buffer.data(), buffer.size());
+                fwrite(buffer.data(), 1, buffer.size(), io.fp);
             }
             return vm->None;
         });
 
         vm->bind_method<0>(type, "close", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            io._fs.close();
+            io.close();
             return vm->None;
         });
 
         vm->bind_method<0>(type, "__exit__", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            io._fs.close();
+            io.close();
             return vm->None;
         });
 
