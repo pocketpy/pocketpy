@@ -14,7 +14,7 @@ int main(int argc, char** argv){
         pkpy::REPL* repl = pkpy_new_repl(vm);
         bool need_more_lines = false;
         while(true){
-            (*vm->_stdout) << (need_more_lines ? "... " : ">>> ");
+            vm->_stdout(vm, need_more_lines ? "... " : ">>> ");
             bool eof = false;
             std::string line = pkpy::getline(&eof);
             if(eof) break;

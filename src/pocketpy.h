@@ -770,12 +770,12 @@ inline void add_module_sys(VM* vm){
     vm->setattr(mod, "stderr", stderr_);
 
     vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
-        (*vm->_stdout) << CAST(Str&, args[0]).sv();
+        vm->_stdout(vm, CAST(Str&, args[0]));
         return vm->None;
     });
 
     vm->bind_func<1>(stderr_, "write", [](VM* vm, ArgsView args) {
-        (*vm->_stderr) << CAST(Str&, args[0]).sv();
+        vm->_stderr(vm, CAST(Str&, args[0]));
         return vm->None;
     });
 }
@@ -828,7 +828,7 @@ inline void add_module_dis(VM* vm){
         PyObject* f = args[0];
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).func;
         CodeObject_ code = CAST(Function&, f).decl->code;
-        (*vm->_stdout) << vm->disassemble(code);
+        vm->_stdout(vm, vm->disassemble(code));
         return vm->None;
     });
 }
@@ -1105,15 +1105,9 @@ extern "C" {
     }
 
     __EXPORT
-    pkpy::VM* pkpy_new_vm(bool use_stdio=true, bool enable_os=true){
-        pkpy::VM* p = new pkpy::VM(use_stdio, enable_os);
+    pkpy::VM* pkpy_new_vm(bool enable_os=true){
+        pkpy::VM* p = new pkpy::VM(enable_os);
         _pk_deleter_map[p] = [](void* p){ delete (pkpy::VM*)p; };
         return p;
-    }
-
-    __EXPORT
-    char* pkpy_vm_read_output(pkpy::VM* vm){
-        std::string json = vm->read_output();
-        return strdup(json.c_str());
     }
 }

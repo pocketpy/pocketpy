@@ -73,6 +73,8 @@ struct FrameId{
     Frame* operator->() const { return &data->operator[](index); }
 };
 
+typedef void(*PrintFunc)(VM*, const Str&);
+
 class VM {
     VM* vm;     // self reference for simplify code
 public:
@@ -93,10 +95,8 @@ public:
     PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
-    std::stringstream _stdout_buffer;
-    std::stringstream _stderr_buffer;
-    std::ostream* _stdout;
-    std::ostream* _stderr;
+    PrintFunc _stdout;
+    PrintFunc _stderr;
 
     bool _initialized;
 
@@ -109,29 +109,14 @@ public:
 
     const bool enable_os;
 
-    VM(bool use_stdio=true, bool enable_os=true) : heap(this), enable_os(enable_os) {
+    VM(bool enable_os=true) : heap(this), enable_os(enable_os) {
         this->vm = this;
-        this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
-        this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
+        _stdout = [](VM* vm, const Str& s) { std::cout << s; };
+        _stderr = [](VM* vm, const Str& s) { std::cerr << s; };
         callstack.reserve(8);
         _initialized = false;
         init_builtin_types();
         _initialized = true;
-    }
-
-    bool is_stdio_used() const { return _stdout == &std::cout; }
-
-    std::string read_output(){
-        if(is_stdio_used()) UNREACHABLE();
-        std::stringstream* s_out = (std::stringstream*)(vm->_stdout);
-        std::stringstream* s_err = (std::stringstream*)(vm->_stderr);
-        pkpy::Str _stdout = s_out->str();
-        pkpy::Str _stderr = s_err->str();
-        std::stringstream ss;
-        ss << '{' << "\"stdout\": " << _stdout.escape(false);
-        ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
-        s_out->str(""); s_err->str("");
-        return ss.str();
     }
 
     FrameId top_frame() {
@@ -195,13 +180,13 @@ public:
 #endif
             return _exec(code, _module);
         }catch (const Exception& e){
-            *_stderr << e.summary() << '\n';
-
+            _stderr(this, e.summary() + "\n");
         }
 #if !DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
-            *_stderr << "An std::exception occurred! It could be a bug.\n";
-            *_stderr << e.what() << '\n';
+            _stderr(this, "An std::exception occurred! It could be a bug.\n");
+            _stderr(this, e.what());
+            _stderr(this, "\n");
         }
 #endif
         callstack.clear();
