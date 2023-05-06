@@ -39,7 +39,7 @@ class CVM : public VM {
     public :
 
     ValueStackImpl<PKPY_STACK_SIZE>* c_data;
-    CVM(bool use_stdio = true, bool enable_os=true) : VM(use_stdio, enable_os) {
+    CVM(bool enable_os=true) : VM(enable_os) {
         c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
     }
 
@@ -100,10 +100,23 @@ void gc_marker_ex(CVM* vm) {
     for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
 }
 
+
+static void noop_output_handler(VM* vm, const Str& str) {
+    (void) vm;
+    (void) str;
+}
+
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
-    CVM* vm = new CVM(use_stdio, enable_os);
+
+    CVM* vm = new CVM(enable_os);
     vm->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
     vm->_gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
+
+    if (!use_stdio) {
+        vm->_stdout = noop_output_handler;
+        vm->_stderr = noop_output_handler;
+    }
+
     return (pkpy_vm*) vm;
 }
 
