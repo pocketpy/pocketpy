@@ -67,7 +67,10 @@ __NEXT_STEP:;
     TARGET(DUP_TOP) PUSH(TOP()); DISPATCH();
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
     TARGET(PRINT_EXPR)
-        if(TOP() != None) *_stdout << CAST(Str&, asRepr(TOP())) << '\n';
+        if(TOP() != None){
+            _stdout(this, CAST(Str&, asRepr(TOP())));
+            _stdout(this, "\n");
+        }
         POP();
         DISPATCH();
     /*****************************************/
@@ -83,11 +86,12 @@ __NEXT_STEP:;
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
         bool is_simple = decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
+        int argc = decl->args.size();
         PyObject* obj;
         if(decl->nested){
-            obj = VAR(Function({decl, is_simple, frame->_module, frame->_locals.to_namedict()}));
+            obj = VAR(Function({decl, is_simple, argc, frame->_module, frame->_locals.to_namedict()}));
         }else{
-            obj = VAR(Function({decl, is_simple, frame->_module}));
+            obj = VAR(Function({decl, is_simple, argc, frame->_module}));
         }
         PUSH(obj);
     } DISPATCH();
@@ -486,7 +490,7 @@ __NEXT_STEP:;
         StrName name(byte.arg);
         PyObject* super_cls = POPX();
         if(super_cls == None) super_cls = _t(tp_object);
-        check_type(super_cls, tp_type);
+        check_non_tagged_type(super_cls, tp_type);
         PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, super_cls));
         PUSH(cls);
     } DISPATCH();
@@ -500,7 +504,7 @@ __NEXT_STEP:;
         TOP()->attr().set(_name, _0);
         DISPATCH();
     /*****************************************/
-    // // TODO: using "goto" inside with block may cause __exit__ not called
+    // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
         call_method(POPX(), __enter__);
         DISPATCH();

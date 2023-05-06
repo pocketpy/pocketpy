@@ -30,14 +30,14 @@ inline int set_read_file_cwd(ReadFileCwdFunc func) { _read_file_cwd = func; retu
 
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
-        vm->check_type(obj, vm->ptype);                                 \
+        vm->check_non_tagged_type(obj, vm->ptype);                      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
-        vm->check_type(obj, vm->ptype);                                 \
+        vm->check_non_tagged_type(obj, vm->ptype);                      \
         return OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
@@ -73,6 +73,8 @@ struct FrameId{
     Frame* operator->() const { return &data->operator[](index); }
 };
 
+typedef void(*PrintFunc)(VM*, const Str&);
+
 class VM {
     VM* vm;     // self reference for simplify code
 public:
@@ -93,10 +95,8 @@ public:
     PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
-    std::stringstream _stdout_buffer;
-    std::stringstream _stderr_buffer;
-    std::ostream* _stdout;
-    std::ostream* _stderr;
+    PrintFunc _stdout;
+    PrintFunc _stderr;
 
     bool _initialized;
 
@@ -109,29 +109,14 @@ public:
 
     const bool enable_os;
 
-    VM(bool use_stdio=true, bool enable_os=true) : heap(this), enable_os(enable_os) {
+    VM(bool enable_os=true) : heap(this), enable_os(enable_os) {
         this->vm = this;
-        this->_stdout = use_stdio ? &std::cout : &_stdout_buffer;
-        this->_stderr = use_stdio ? &std::cerr : &_stderr_buffer;
+        _stdout = [](VM* vm, const Str& s) { std::cout << s; };
+        _stderr = [](VM* vm, const Str& s) { std::cerr << s; };
         callstack.reserve(8);
         _initialized = false;
         init_builtin_types();
         _initialized = true;
-    }
-
-    bool is_stdio_used() const { return _stdout == &std::cout; }
-
-    std::string read_output(){
-        if(is_stdio_used()) UNREACHABLE();
-        std::stringstream* s_out = (std::stringstream*)(vm->_stdout);
-        std::stringstream* s_err = (std::stringstream*)(vm->_stderr);
-        pkpy::Str _stdout = s_out->str();
-        pkpy::Str _stderr = s_err->str();
-        std::stringstream ss;
-        ss << '{' << "\"stdout\": " << _stdout.escape(false);
-        ss << ", " << "\"stderr\": " << _stderr.escape(false) << '}';
-        s_out->str(""); s_err->str("");
-        return ss.str();
     }
 
     FrameId top_frame() {
@@ -195,13 +180,13 @@ public:
 #endif
             return _exec(code, _module);
         }catch (const Exception& e){
-            *_stderr << e.summary() << '\n';
-
+            _stderr(this, e.summary() + "\n");
         }
 #if !DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
-            *_stderr << "An std::exception occurred! It could be a bug.\n";
-            *_stderr << e.what() << '\n';
+            _stderr(this, "An std::exception occurred! It could be a bug.\n");
+            _stderr(this, e.what());
+            _stderr(this, "\n");
         }
 #endif
         callstack.clear();
@@ -299,11 +284,6 @@ public:
     }
 
     template<int ARGC>
-    void _bind_methods(std::vector<Str> types, Str name, NativeFuncC fn) {
-        for(auto& type: types) bind_method<ARGC>(type, name, fn);
-    }
-
-    template<int ARGC>
     void bind_builtin_func(Str name, NativeFuncC fn) {
         bind_func<ARGC>(builtins, name, fn);
     }
@@ -360,6 +340,21 @@ public:
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
         TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
+    }
+
+    void check_non_tagged_type(PyObject* obj, Type type){
+        if(is_non_tagged_type(obj, type)) return;
+        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
+    }
+
+    void check_int(PyObject* obj){
+        if(is_int(obj)) return;
+        check_type(obj, tp_int);
+    }
+
+    void check_float(PyObject* obj){
+        if(is_float(obj)) return;
+        check_type(obj, tp_float);
     }
 
     PyObject* _t(Type t){
@@ -434,7 +429,7 @@ DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
-    vm->check_type(obj, vm->tp_int);                    \
+    vm->check_int(obj);                                 \
     return (T)(BITS(obj) >> 2);                         \
 }                                                       \
 template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
@@ -454,7 +449,7 @@ PY_CAST_INT(unsigned long long)
 
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_float);
+    vm->check_float(obj);
     i64 bits = BITS(obj);
     bits = (bits >> 2) << 2;
     return BitsCvt(bits)._float;
@@ -465,7 +460,7 @@ template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
     return BitsCvt(bits)._float;
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_float);
+    vm->check_float(obj);
     i64 bits = BITS(obj);
     bits = (bits >> 2) << 2;
     return BitsCvt(bits)._float;
@@ -515,7 +510,7 @@ inline PyObject* py_var(VM* vm, bool val){
 }
 
 template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
-    vm->check_type(obj, vm->tp_bool);
+    vm->check_non_tagged_type(obj, vm->tp_bool);
     return obj == vm->True;
 }
 template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
@@ -536,7 +531,7 @@ inline PyObject* py_var(VM* vm, std::string_view val){
 
 template<typename T>
 void _check_py_class(VM* vm, PyObject* obj){
-    vm->check_type(obj, T::_type(vm));
+    vm->check_non_tagged_type(obj, T::_type(vm));
 }
 
 inline PyObject* VM::num_negated(PyObject* obj){
@@ -1001,12 +996,11 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
-    PyObject* _module = fn._module != nullptr ? fn._module : callstack.top()._module;
 
-    if(args.size() < fn.decl->args.size()){
+    if(args.size() < fn.argc){
         vm->TypeError(fmt(
             "expected ",
-            fn.decl->args.size(),
+            fn.argc,
             " positional arguments, but got ",
             args.size(),
             " (", fn.decl->code->name, ')'
@@ -1015,11 +1009,11 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     // if this function is simple, a.k.a, no kwargs and no *args and not a generator
     // we can use a fast path to avoid using buffer copy
-    if(fn.is_simple && kwargs.size()==0){
-        if(args.size() > fn.decl->args.size()) TypeError("too many positional arguments");
-        int spaces = co->varnames.size() - fn.decl->args.size();
+    if(fn.is_simple){
+        if(args.size() > fn.argc) TypeError("too many positional arguments");
+        int spaces = co->varnames.size() - fn.argc;
         for(int j=0; j<spaces; j++) PUSH(nullptr);
-        callstack.emplace(&s_data, p0, co, _module, callable, FastLocals(co, args.begin()));
+        callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         return nullptr;
     }
 
@@ -1062,7 +1056,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     if(co->is_generator){
         PyObject* ret = PyIter(Generator(
             this,
-            Frame(&s_data, nullptr, co, _module, callable),
+            Frame(&s_data, nullptr, co, fn._module, callable),
             ArgsView(buffer, buffer + co->varnames.size())
         ));
         return ret;
@@ -1070,7 +1064,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     // copy buffer to stack
     for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
-    callstack.emplace(&s_data, p0, co, _module, callable);
+    callstack.emplace(&s_data, p0, co, fn._module, callable);
     return nullptr;
 }
 
@@ -1170,7 +1164,7 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 
 template<int ARGC>
 void VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
-    check_type(obj, tp_type);
+    check_non_tagged_type(obj, tp_type);
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
 }
 

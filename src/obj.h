@@ -47,6 +47,7 @@ using FuncDecl_ = shared_ptr<FuncDecl>;
 struct Function{
     FuncDecl_ decl;
     bool is_simple;
+    int argc;   // cached argc
     PyObject* _module;
     NameDict_ _closure;
 };
@@ -55,6 +56,13 @@ struct BoundMethod {
     PyObject* self;
     PyObject* func;
     BoundMethod(PyObject* self, PyObject* func) : self(self), func(func) {}
+    
+    bool operator==(const BoundMethod& rhs) const noexcept {
+        return self == rhs.self && func == rhs.func;
+    }
+    bool operator!=(const BoundMethod& rhs) const noexcept {
+        return self != rhs.self || func != rhs.func;
+    }
 };
 
 struct Range {

@@ -1,9 +1,8 @@
 ---
 icon: dot
+title: Basic Features
 order: 100
 ---
-
-# basic
 
 The following table shows the basic features of pkpy with respect to [cpython](https://github.com/python/cpython).
 The features marked with `YES` are supported, and the features marked with `NO` are not supported.

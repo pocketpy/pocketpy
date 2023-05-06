@@ -63,8 +63,9 @@ struct ValueStackImpl {
     // We allocate extra MAX_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
     PyObject* _begin[MAX_SIZE + MAX_SIZE/128];
     PyObject** _sp;
+    PyObject** _max_end;
 
-    ValueStackImpl(): _sp(_begin) {}
+    ValueStackImpl(): _sp(_begin), _max_end(_begin + MAX_SIZE) {}
 
     PyObject*& top(){ return _sp[-1]; }
     PyObject* top() const { return _sp[-1]; }
@@ -90,7 +91,7 @@ struct ValueStackImpl {
         _sp = sp;
     }
     void clear() { _sp = _begin; }
-    bool is_overflow() const { return _sp >= _begin + MAX_SIZE; }
+    bool is_overflow() const { return _sp >= _max_end; }
     
     ValueStackImpl(const ValueStackImpl&) = delete;
     ValueStackImpl(ValueStackImpl&&) = delete;
@@ -132,6 +133,9 @@ struct Frame {
 
     Bytecode next_bytecode() {
         _ip = _next_ip++;
+#if DEBUG_EXTRA_CHECK
+        if(_ip >= co->codes.size()) FATAL_ERROR();
+#endif
         return co->codes[_ip];
     }
 

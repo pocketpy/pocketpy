@@ -43,8 +43,15 @@
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 
-#if (defined(__ANDROID__) && __ANDROID_API__ <= 22)
+#ifdef __ANDROID__
+#include <android/ndk-version.h>
+
+#if __NDK_MAJOR__ <= 22
 #define PK_ENABLE_OS 			0
+#else
+#define PK_ENABLE_OS 			1
+#endif
+
 #else
 #define PK_ENABLE_OS 			1
 #endif
