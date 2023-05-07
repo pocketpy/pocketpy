@@ -1,6 +1,6 @@
 ---
 icon: book
-order: 2
+order: 0
 label: Developer guide
 ---
 

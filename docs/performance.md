@@ -1,6 +1,6 @@
 ---
 icon: zap
-order: 1
+order: -1
 label: Performance
 ---
 

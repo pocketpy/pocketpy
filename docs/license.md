@@ -1,6 +1,6 @@
 ---
 icon: verified
-order: 0
+order: -10
 label: License
 ---
 

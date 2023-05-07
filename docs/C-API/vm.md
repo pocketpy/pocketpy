@@ -3,6 +3,11 @@ title: VM
 icon: dot
 order: 10
 ---
+
+!!!
+Lua Style C-API cannot be mixed with Legacy C-API.
+!!!
+
 #### `VM* pkpy_new_vm()`
 
 Create a virtual machine.
@@ -28,3 +33,12 @@ Get a global variable of a virtual machine.
 
 Return `__repr__` of the result.
 If the variable is not found, return `nullptr`.
+
+#### `void pkpy_delete(void* p)`
+
+Delete a pointer allocated by `pkpy_xxx_xxx`.
+It can be `VM*`, `REPL*`, `char*`, etc.
+
+!!!
+If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
+!!!
