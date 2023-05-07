@@ -1,0 +1,51 @@
+hello world!
+successfully errored with this message: 
+NameError: name 'could not find requested global' is not defined
+
+testing int methods
+11
+11
+
+testing float methods
+11.11
+11.110000
+
+testing bool methods
+False
+0
+
+testing string methods
+hello!
+hello
+hello
+
+testing None methods
+None
+
+testing voidp methods
+<void* at 0x7b>
+123
+
+testing sizing and indexing
+stack size 6
+
+testing error catching
+successfully errored with this message: 
+  File "<c-bound>", line 1
+    let's make sure syntax errors get caught
+SyntaxError: EOL while scanning string literal
+
+testing calls
+x : -1
+vararg_x : 21
+keyword_x : 4
+keyword_x : 2
+retmany_x : 1
+retmany_x : 2
+retmany_x : 3
+successfully errored with this message: 
+TypeError: expected 2 positional arguments, but got 0 (x)
+['hello']
+
+testing pushing functions
+12
