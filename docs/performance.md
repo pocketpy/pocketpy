@@ -10,7 +10,7 @@ Currently, pkpy is almost~ fast as cpython 3.8. Here is a benchmark result of a 
 
 Benchmark files are located in `benchmarks/`.
 
-https://github.com/blueloveTH/pocketpy/actions/runs/4729609975/jobs/8392313856
+See [actions/runs/4729609975/jobs/8392313856](https://github.com/blueloveTH/pocketpy/actions/runs/4729609975/jobs/8392313856).
 
 
 ```

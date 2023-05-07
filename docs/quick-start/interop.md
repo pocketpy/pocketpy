@@ -37,7 +37,7 @@ std::cout << CAST(Str, i);	// abc
 
 ### Type check
 
-+ `is_type(PyObject* obj, Type type)`
-+ `is_non_tagged_type(PyObject* obj, Type type)`
-+ `VM::check_type(PyObject* obj, Type type)`
-+ `VM::check_non_tagged_type(PyObject* obj, Type type)`
++ `bool is_type(PyObject* obj, Type type)`
++ `bool is_non_tagged_type(PyObject* obj, Type type)`
++ `void VM::check_type(PyObject* obj, Type type)` throws `TypeError` on failure
++ `void VM::check_non_tagged_type(PyObject* obj, Type type)` throws `TypeError` on failure
