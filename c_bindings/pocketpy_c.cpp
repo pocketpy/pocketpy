@@ -302,7 +302,7 @@ bool pkpy_get_global(pkpy_vm* vm_handle, const char* name) {
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(name);
         if (o == nullptr)
-            vm->AttributeError("could not find requested global");
+            vm->NameError("could not find requested global");
     }
 
     vm->c_data->push(o);

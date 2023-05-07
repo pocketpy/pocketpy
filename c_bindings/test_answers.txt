@@ -1,7 +1,6 @@
 hello world!
 successfully errored with this message: 
-Traceback (most recent call last):
-AttributeError: could not find requested global
+NameError: name 'could not find requested global' is not defined
 
 testing int methods
 11
@@ -50,6 +49,3 @@ TypeError: expected 2 positional arguments, but got 0 (x)
 
 testing pushing functions
 12
-successfully errored with this message: 
-Traceback (most recent call last):
-AttributeError: could not find requested global
