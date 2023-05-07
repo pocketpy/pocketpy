@@ -22,4 +22,5 @@ echo "cleaning up"
 rm pocketpy_c.o
 rm test.o
 rm binding_test_scratch
+rm c_binding_test
 

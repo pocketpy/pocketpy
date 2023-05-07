@@ -167,7 +167,7 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     CVM* cvm = (CVM*) vm;
 
     //setup c stack
-    ValueStackImpl<PKPY_STACK_SIZE> local_stack = ValueStackImpl<PKPY_STACK_SIZE>();
+    ValueStackImpl<PKPY_STACK_SIZE> local_stack;
 
     for (int i = 0; i < args.size(); i++)
         local_stack.push(args[i]);
@@ -185,7 +185,7 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     if (retc == 1) 
         ret = local_stack.top();
     else if (retc > 1) {
-        Tuple t = Tuple(retc);
+        Tuple t(retc);
 
         for (int i = 0; i < retc; i++)  {
             int stack_index = (local_stack.size() - retc) + i;
