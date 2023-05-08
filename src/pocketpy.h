@@ -181,7 +181,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, ArgsView args) {
         std::set<StrName> names;
-        if(args[0]->is_attr_valid()){
+        if(!is_tagged(args[0] && args[0]->is_attr_valid()){
             std::vector<StrName> keys = args[0]->attr().keys();
             names.insert(keys.begin(), keys.end());
         }
