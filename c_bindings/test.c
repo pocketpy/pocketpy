@@ -74,6 +74,12 @@ int test_error_propagate(pkpy_vm* vm) {
     return 1;
 }
 
+int test_nested_error(pkpy_vm* vm) {
+    pkpy_get_global(vm, "error_from_python");
+    pkpy_call(vm, 0);
+    return 0;
+}
+
 
 pkpy_vm* vm;
 
@@ -280,6 +286,7 @@ int main(int argc, char** argv) {
     //check(pkpy_vm_run(vm, "test_multiple_return()"));
     //check(pkpy_stack_size(vm) == 2);
 
+
     check(pkpy_push_function(vm, test_error_propagate));
     check(pkpy_set_global(vm, "test_error_propagate"));
     error(pkpy_vm_run(vm, "test_error_propagate()"));
@@ -288,13 +295,46 @@ int main(int argc, char** argv) {
     check(pkpy_call(vm, 0));
     check(pkpy_stack_size(vm) == 2);
 
+    
     check(pkpy_pop(vm, 2));
     check(pkpy_stack_size(vm) == 0);
 
     check(pkpy_check_global(vm, "test_error_propagate"));
     fail(pkpy_check_global(vm, "nonexistant"));
+
+    error(pkpy_vm_run(vm, "raise NameError('testing error throwing from python')"));
+
     pkpy_vm_run(vm, "test_error_propagate()");
     check(pkpy_check_error(vm));
+    fprintf(stderr, "testing code going to standard error, can ignore next error\n");
+    pkpy_clear_error(vm, NULL);
+
+    //with the current way execptions are handled, this will fail and pass the
+    //error clean through, ignoring the python handling
+    //
+    //maybe worth fixing someday, but for now it is functionating as implemented
+    error(pkpy_vm_run(vm, "try : test_error_propagate(); except NameError : pass"));
+
+
+    //more complicated error handling
+    //
+    //at the moment this is disabled, as this use case is not supported
+    //it will cause the program to abort 
+    //
+    //a python exception thrown from python can not pass through a c binding
+    //
+    //this means for now the api can only be used to make shallow bindings, or
+    //else care must be taken to not let an exception go through a c binding by
+    //catching it in python first 
+    //
+    //at such a time this interferes with a real world use case of the bindings
+    //we can revisit it
+    //
+    //check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
+    //check(pkpy_push_function(vm, test_nested_error));
+    //check(pkpy_set_global(vm, "test_nested_error"));
+    //fail(pkpy_vm_run(vm, "test_nested_error()"));
+
 
     return 0;
 }

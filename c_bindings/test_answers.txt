@@ -1,6 +1,7 @@
 hello world!
 successfully errored with this message: 
-NameError: name 'could not find requested global' is not defined
+Traceback (most recent call last):
+NameError: could not find requested global
 
 testing int methods
 11
@@ -49,3 +50,14 @@ TypeError: expected 2 positional arguments, but got 0 (x)
 
 testing pushing functions
 12
+successfully errored with this message: 
+Traceback (most recent call last):
+NameError: could not find requested global
+successfully errored with this message: 
+Traceback (most recent call last):
+  File "<c-bound>", line 1
+    raise NameError('testing error throwing from python')
+NameError: testing error throwing from python
+successfully errored with this message: 
+Traceback (most recent call last):
+NameError: could not find requested global
