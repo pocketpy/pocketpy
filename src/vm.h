@@ -286,7 +286,7 @@ public:
 
     template<typename T, typename __T>
     void bind_default_constructor(__T&& type) {
-        bind_constructor<1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
+        bind_constructor<-1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
             Type t = OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<T>(t, T());
         });

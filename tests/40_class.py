@@ -91,3 +91,11 @@ class B(A):
 # assert B.a == 1  ...bug here
 assert B.b == 3
 assert B.c == 4
+
+from c import void_p
+
+class A(void_p):
+    pass
+    
+a = A()
+assert repr(a) == '<void* at (nil)>'
