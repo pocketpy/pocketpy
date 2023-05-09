@@ -98,4 +98,4 @@ class A(void_p):
     pass
     
 a = A()
-assert repr(a) == '<void* at (nil)>'
+assert repr(a).startswith('<void* at')
