@@ -13,11 +13,6 @@ using namespace pkpy;
         << "this probably means pocketpy itself has a bug!\n" \
         << e.what() << "\n"; \
         exit(2); \
-    } catch(std::runtime_error& e) { \
-        std::cerr << "ERROR: a std::runtime_error " \
-        << "this probably means pocketpy itself has a bug!\n" \
-        << e.what() << "\n"; \
-        exit(2); \
     } catch(...) { \
         std::cerr << "ERROR: a unknown exception was thrown from " << __func__ \
         << "\nthis probably means pocketpy itself has a bug!\n"; \
