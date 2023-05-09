@@ -204,8 +204,10 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(VAR(args[0] == args[1])));
     _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
 
-    _vm->bind_static_method<1>("type", "__new__", CPP_LAMBDA(vm->_t(args[0])));
-    _vm->bind_static_method<-1>("range", "__new__", [](VM* vm, ArgsView args) {
+    _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
+
+    _vm->bind_constructor<-1>("range", [](VM* vm, ArgsView args) {
+        args._begin += 1;   // skip cls
         Range r;
         switch (args.size()) {
             case 1: r.stop = CAST(i64, args[0]); break;
@@ -258,12 +260,12 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<1>("float", "__pow__", py_number_pow);
 
     /************ PyInt ************/
-    _vm->bind_static_method<1>("int", "__new__", [](VM* vm, ArgsView args) {
-        if (is_type(args[0], vm->tp_float)) return VAR((i64)CAST(f64, args[0]));
-        if (is_type(args[0], vm->tp_int)) return args[0];
-        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST(bool, args[0]) ? 1 : 0);
-        if (is_type(args[0], vm->tp_str)) {
-            const Str& s = CAST(Str&, args[0]);
+    _vm->bind_constructor<2>("int", [](VM* vm, ArgsView args) {
+        if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
+        if (is_type(args[1], vm->tp_int)) return args[1];
+        if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
+        if (is_type(args[1], vm->tp_str)) {
+            const Str& s = CAST(Str&, args[1]);
             try{
                 size_t parsed = 0;
                 i64 val = Number::stoi(s.str(), &parsed, 10);
@@ -304,12 +306,12 @@ inline void init_builtins(VM* _vm) {
 #undef INT_BITWISE_OP
 
     /************ PyFloat ************/
-    _vm->bind_static_method<1>("float", "__new__", [](VM* vm, ArgsView args) {
-        if (is_type(args[0], vm->tp_int)) return VAR((f64)CAST(i64, args[0]));
-        if (is_type(args[0], vm->tp_float)) return args[0];
-        if (is_type(args[0], vm->tp_bool)) return VAR(_CAST(bool, args[0]) ? 1.0 : 0.0);
-        if (is_type(args[0], vm->tp_str)) {
-            const Str& s = CAST(Str&, args[0]);
+    _vm->bind_constructor<2>("float", [](VM* vm, ArgsView args) {
+        if (is_type(args[1], vm->tp_int)) return VAR((f64)CAST(i64, args[1]));
+        if (is_type(args[1], vm->tp_float)) return args[1];
+        if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1.0 : 0.0);
+        if (is_type(args[1], vm->tp_str)) {
+            const Str& s = CAST(Str&, args[1]);
             if(s == "inf") return VAR(INFINITY);
             if(s == "-inf") return VAR(-INFINITY);
             try{
@@ -340,7 +342,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ PyString ************/
-    _vm->bind_static_method<1>("str", "__new__", CPP_LAMBDA(vm->asStr(args[0])));
+    _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->asStr(args[1])));
 
     _vm->bind_method<1>("str", "__add__", [](VM* vm, ArgsView args) {
         const Str& lhs = _CAST(Str&, args[0]);
@@ -453,16 +455,21 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         FastStrStream ss;
-        PyObject* obj = vm->asList(args[1]);
-        const List& list = CAST(List&, obj);
-        for (int i = 0; i < list.size(); ++i) {
-            if (i > 0) ss << self;
-            ss << CAST(Str&, list[i]);
+        PyObject* it = vm->asIter(args[1]);
+        PyObject* obj = vm->PyIterNext(it);
+        while(obj != vm->StopIteration){
+            if(!ss.empty()) ss << self;
+            ss << CAST(Str&, obj);
+            obj = vm->PyIterNext(it);
         }
         return VAR(ss.str());
     });
 
     /************ PyList ************/
+    _vm->bind_constructor<2>("list", [](VM* vm, ArgsView args) {
+        return vm->asList(args[1]);
+    });
+
     _vm->bind_method<1>("list", "append", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         self.push_back(args[1]);
@@ -471,9 +478,12 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<1>("list", "extend", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
-        PyObject* obj = vm->asList(args[1]);
-        const List& list = CAST(List&, obj);
-        self.extend(list);
+        PyObject* it = vm->asIter(args[1]);
+        PyObject* obj = vm->PyIterNext(it);
+        while(obj != vm->StopIteration){
+            self.push_back(obj);
+            obj = vm->PyIterNext(it);
+        }
         return vm->None;
     });
 
@@ -560,8 +570,8 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ PyTuple ************/
-    _vm->bind_static_method<1>("tuple", "__new__", [](VM* vm, ArgsView args) {
-        List list = CAST(List, vm->asList(args[0]));
+    _vm->bind_constructor<2>("tuple", [](VM* vm, ArgsView args) {
+        List list = CAST(List, vm->asList(args[1]));
         return VAR(Tuple(std::move(list)));
     });
 
@@ -592,7 +602,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ bool ************/
-    _vm->bind_static_method<1>("bool", "__new__", CPP_LAMBDA(VAR(vm->asBool(args[0]))));
+    _vm->bind_constructor<2>("bool", CPP_LAMBDA(VAR(vm->asBool(args[1]))));
 
     _vm->bind_method<0>("bool", "__repr__", [](VM* vm, ArgsView args) {
         bool val = _CAST(bool, args[0]);
@@ -613,8 +623,8 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
 
     /************ bytes ************/
-    _vm->bind_static_method<1>("bytes", "__new__", [](VM* vm, ArgsView args){
-        List& list = CAST(List&, args[0]);
+    _vm->bind_constructor<2>("bytes", [](VM* vm, ArgsView args){
+        List& list = CAST(List&, args[1]);
         std::vector<char> buffer(list.size());
         for(int i=0; i<list.size(); i++){
             i64 b = CAST(i64, list[i]);
@@ -668,8 +678,8 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ slice ************/
-    _vm->bind_static_method<3>("slice", "__new__", [](VM* vm, ArgsView args) {
-        return VAR(Slice(args[0], args[1], args[2]));
+    _vm->bind_constructor<4>("slice", [](VM* vm, ArgsView args) {
+        return VAR(Slice(args[1], args[2], args[3]));
     });
 
     _vm->bind_method<0>("slice", "__repr__", [](VM* vm, ArgsView args) {
@@ -919,7 +929,7 @@ struct Random{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_static_method<0>(type, "__new__", CPP_LAMBDA(VAR_T(Random)));
+        vm->bind_default_constructor<Random>(type);
 
         vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {
             Random& self = _CAST(Random&, args[0]);

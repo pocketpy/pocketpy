@@ -359,6 +359,8 @@ struct FastStrStream{
         return *this;
     }
 
+    bool empty() const { return parts.empty(); }
+
     Str str() const{
         int len = 0;
         bool is_ascii = true;

@@ -64,6 +64,7 @@ struct PyTypeInfo{
     PyObject* obj;
     Type base;
     Str name;
+    bool subclass_enabled;
 };
 
 struct FrameId{
@@ -142,18 +143,12 @@ public:
         return nullptr;
     }
 
-    PyObject* asList(PyObject* it){
-        if(is_non_tagged_type(it, tp_list)) return it;
-        return call(_t(tp_list), it);
-    }
-
     PyObject* find_name_in_mro(PyObject* cls, StrName name){
         PyObject* val;
         do{
             val = cls->attr().try_get(name);
             if(val != nullptr) return val;
-            Type cls_t = OBJ_GET(Type, cls);
-            Type base = _all_types[cls_t].base;
+            Type base = _all_types[OBJ_GET(Type, cls)].base;
             if(base.index == -1) break;
             cls = _all_types[base].obj;
         }while(true);
@@ -242,12 +237,17 @@ public:
         return call(p, _0, _1);
     }
 
-    PyObject* new_type_object(PyObject* mod, StrName name, Type base){
+    PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true){
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
+        const PyTypeInfo& base_info = _all_types[base];
+        if(!base_info.subclass_enabled){
+            TypeError(fmt("type ", base_info.name.escape(), " is not `subclass_enabled`"));
+        }
         PyTypeInfo info{
             obj,
             base,
-            (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv()
+            (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv(),
+            subclass_enabled,
         };
         if(mod != nullptr) mod->attr().set(name, obj);
         _all_types.push_back(info);
@@ -255,7 +255,7 @@ public:
     }
 
     Type _new_type_object(StrName name, Type base=0) {
-        PyObject* obj = new_type_object(nullptr, name, base);
+        PyObject* obj = new_type_object(nullptr, name, base, false);
         return OBJ_GET(Type, obj);
     }
 
@@ -278,9 +278,18 @@ public:
         bind_method<ARGC>(_find_type(type), name, fn);
     }
 
-    template<int ARGC, typename... Args>
-    void bind_static_method(Args&&... args) {
-        bind_func<ARGC>(std::forward<Args>(args)...);
+    template<int ARGC, typename __T>
+    void bind_constructor(__T&& type, NativeFuncC fn) {
+        static_assert(ARGC==-1 || ARGC>=1);
+        bind_func<ARGC>(std::forward<__T>(type), "__new__", fn);
+    }
+
+    template<typename T, typename __T>
+    void bind_default_constructor(__T&& type) {
+        bind_constructor<1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
+            Type t = OBJ_GET(Type, args[0]);
+            return vm->heap.gcnew<T>(t, T());
+        });
     }
 
     template<int ARGC>
@@ -382,7 +391,8 @@ public:
     f64 num_to_float(PyObject* obj);
     bool asBool(PyObject* obj);
     i64 hash(PyObject* obj);
-    PyObject* asRepr(PyObject* obj);
+    PyObject* asRepr(PyObject*);
+    PyObject* asList(PyObject*);
     PyObject* new_module(StrName name);
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
@@ -566,6 +576,17 @@ inline bool VM::asBool(PyObject* obj){
         return CAST(i64, ret) > 0;
     }
     return true;
+}
+
+inline PyObject* VM::asList(PyObject* it){
+    it = asIter(it);
+    List list;
+    PyObject* obj = PyIterNext(it);
+    while(obj != StopIteration){
+        list.push_back(obj);
+        obj = PyIterNext(it);
+    }
+    return VAR(std::move(list));
 }
 
 inline void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step){
@@ -838,8 +859,8 @@ inline void VM::_log_s_data(const char* title) {
 }
 
 inline void VM::init_builtin_types(){
-    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, "object"});
-    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, "type"});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, "object", true});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, "type", false});
     tp_object = 0; tp_type = 1;
 
     tp_int = _new_type_object("int");
@@ -947,19 +968,25 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(method_call) FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
 
-        // TODO: derived __new__ ?
-        PyObject* new_f = callable->attr().try_get(__new__);
+        // __new__
+        const static StrName m_new("__new__");
+        PyObject* new_f = find_name_in_mro(callable, m_new);
         PyObject* obj;
         if(new_f != nullptr){
             PUSH(new_f);
             PUSH(PY_NULL);
+            PUSH(callable);    // cls
             for(PyObject* obj: args) PUSH(obj);
             for(PyObject* obj: kwargs) PUSH(obj);
-            obj = vectorcall(ARGC, KWARGC);
-            if(!isinstance(obj, OBJ_GET(Type, callable))) return obj;
+            // if obj is not an instance of callable, the behavior is undefined
+            obj = vectorcall(ARGC+1, KWARGC);
         }else{
-            obj = heap.gcnew<DummyInstance>(OBJ_GET(Type, callable), {});
+            // fast path for object.__new__
+            Type t = OBJ_GET(Type, callable);
+            obj= vm->heap.gcnew<DummyInstance>(t, {});
         }
+
+        // __init__
         PyObject* self;
         callable = get_unbound_method(obj, __init__, &self, false);
         if (self != PY_NULL) {
