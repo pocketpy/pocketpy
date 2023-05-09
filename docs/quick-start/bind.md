@@ -9,7 +9,7 @@ In `VM` class, there are 4 methods to bind native function.
 + `VM::bind_func<ARGC>`
 + `VM::bind_builtin_func<ARGC>`
 + `VM::bind_method<ARGC>`
-+ `VM::bind_static_method<ARGC>`
++ `VM::bind_constructor<ARGC>`
 
 They are all template methods, the template argument is a `int` number, indicating the argument count. For variadic arguments, use `-1`. For methods, `ARGC` do not include `self`.
 
