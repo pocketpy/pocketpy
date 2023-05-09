@@ -48,3 +48,10 @@ assert f'{b:10}' == '123       '
 assert f'{b:>10}' == '       123'
 assert f'{b:1}' == '123'
 assert f'{b:10s}' == '123       '
+
+obj = object()
+obj.b = '123'
+assert f'{obj.b:10}' == '123       '
+assert f'{obj.b:>10}' == '       123'
+assert f'{obj.b:1}' == '123'
+assert f'{obj.b:10s}' == '123       '

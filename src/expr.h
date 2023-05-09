@@ -522,6 +522,18 @@ struct FStringExpr: Expr{
         return fmt("f", src.escape());
     }
 
+    void _load_simple_expr(CodeEmitContext* ctx, Str expr){
+        int dot = expr.index(".");
+        if(dot < 0){
+            ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+        }else{
+            StrName name(expr.substr(0, dot).sv());
+            StrName attr(expr.substr(dot+1).sv());
+            ctx->emit(OP_LOAD_NAME, name.index, line);
+            ctx->emit(OP_LOAD_ATTR, attr.index, line);
+        }
+    }
+
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
         static const std::regex pattern(R"(\{(.*?)\})");
@@ -539,15 +551,11 @@ struct FStringExpr: Expr{
             Str expr = m[1].str();
             int conon = expr.index(":");
             if(conon >= 0){
-                ctx->emit(
-                    OP_LOAD_NAME,
-                    StrName(expr.substr(0, conon)).index,
-                    line
-                );
+                _load_simple_expr(ctx, expr.substr(0, conon));
                 Str spec = expr.substr(conon+1);
                 ctx->emit(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
             }else{
-                ctx->emit(OP_LOAD_NAME, StrName(expr).index, line);
+                _load_simple_expr(ctx, expr);
             }
             size++;
             i = (int)(m.position() + m.length());
