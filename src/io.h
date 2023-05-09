@@ -47,9 +47,9 @@ struct FileIO {
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_static_method<2>(type, "__new__", [](VM* vm, ArgsView args){
+        vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
             return VAR_T(FileIO, 
-                vm, CAST(Str&, args[0]).str(), CAST(Str&, args[1]).str()
+                vm, CAST(Str&, args[1]).str(), CAST(Str&, args[2]).str()
             );
         });
 

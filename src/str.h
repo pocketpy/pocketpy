@@ -381,7 +381,6 @@ inline std::vector<Str> StrName::_r_interned;
 
 const StrName __class__ = StrName::get("__class__");
 const StrName __base__ = StrName::get("__base__");
-const StrName __new__ = StrName::get("__new__");
 const StrName __iter__ = StrName::get("__iter__");
 const StrName __next__ = StrName::get("__next__");
 const StrName __str__ = StrName::get("__str__");
