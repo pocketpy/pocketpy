@@ -209,6 +209,8 @@ int main(int argc, char** argv) {
     check(pkpy_is_string(vm, -3));
     check(pkpy_is_none(vm, -2));
     check(pkpy_is_voidp(vm, -1));
+    check(pkpy_push(vm, -3));
+    check(pkpy_is_string(vm, -1));
     
     printf("\ntesting error catching\n");
     error(pkpy_vm_run(vm, "let's make sure syntax errors get caught"));

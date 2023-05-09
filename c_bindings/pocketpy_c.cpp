@@ -547,3 +547,11 @@ bool pkpy_pop(pkpy_vm* vm_handle, int n) {
     vm->c_data->shrink(n);
     return true;
 }
+
+
+bool pkpy_push(pkpy_vm* vm_handle, int index) {
+    CVM* vm = (CVM*) vm_handle;
+    index = lua_to_cstack_index(index, vm->c_data->size());
+    vm->c_data->push(vm->c_data->begin()[index]);
+    return true;
+}
