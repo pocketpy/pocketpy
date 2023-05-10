@@ -576,6 +576,7 @@ inline bool VM::asBool(PyObject* obj){
 }
 
 inline PyObject* VM::asList(PyObject* it){
+    auto _lock = heap.gc_scope_lock();
     it = asIter(it);
     List list;
     PyObject* obj = PyIterNext(it);
@@ -1051,9 +1052,9 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     
     // handle *args
     if(fn.decl->starred_arg != -1){
-        List vargs;        // handle *args
-        while(i < args.size()) vargs.push_back(args[i++]);
-        buffer[fn.decl->starred_arg] = VAR(Tuple(std::move(vargs)));
+        ArgsView vargs(args.begin() + i, args.end());
+        buffer[fn.decl->starred_arg] = VAR(vargs.to_tuple());
+        i += vargs.size();
     }else{
         // kwdefaults override
         for(auto& kv: fn.decl->kwargs){
@@ -1070,8 +1071,9 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
         buffer[index] = kwargs[i+1];
     }
     
-    s_data.reset(p0);
+    
     if(co->is_generator){
+        s_data.reset(p0);
         PyObject* ret = PyIter(Generator(
             this,
             Frame(&s_data, nullptr, co, fn._module, callable),
@@ -1080,9 +1082,10 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
         return ret;
     }
 
-    // copy buffer to stack
+    // copy buffer back to stack
+    s_data.reset(args.begin());
     for(int i=0; i<co_nlocals; i++) PUSH(buffer[i]);
-    callstack.emplace(&s_data, p0, co, fn._module, callable);
+    callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
     return nullptr;
 }
 

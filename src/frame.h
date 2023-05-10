@@ -110,7 +110,7 @@ struct Frame {
 
     const CodeObject* co;
     PyObject* _module;
-    PyObject* _callable;
+    PyObject* _callable;    // weak ref
     FastLocals _locals;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
@@ -189,7 +189,6 @@ struct Frame {
 
     void _gc_mark() const {
         OBJ_MARK(_module);
-        if(_callable != nullptr) OBJ_MARK(_callable);
         co->_gc_mark();
     }
 };

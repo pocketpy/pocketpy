@@ -453,9 +453,10 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
+        auto _lock = vm->heap.gc_scope_lock();
         const Str& self = _CAST(Str&, args[0]);
         FastStrStream ss;
-        PyObject* it = vm->asIter(args[1]);
+        PyObject* it = vm->asIter(args[1]);     // strong ref
         PyObject* obj = vm->PyIterNext(it);
         while(obj != vm->StopIteration){
             if(!ss.empty()) ss << self;
@@ -477,8 +478,9 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "extend", [](VM* vm, ArgsView args) {
+        auto _lock = vm->heap.gc_scope_lock();
         List& self = _CAST(List&, args[0]);
-        PyObject* it = vm->asIter(args[1]);
+        PyObject* it = vm->asIter(args[1]);     // strong ref
         PyObject* obj = vm->PyIterNext(it);
         while(obj != vm->StopIteration){
             self.push_back(obj);

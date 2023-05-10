@@ -38,12 +38,9 @@ public:
         for(PyObject* p : list) _args[i++] = p;
     }
 
-    // TODO: poor performance
-    // List is allocated by pool128 while tuple is by pool64
-    // ...
     Tuple(List&& other) noexcept : Tuple(other.size()){
-        for(int i=0; i<_size; i++) _args[i] = other[i];
-        other.clear();
+        _args = other._data;
+        other._data = nullptr;
     }
 
     PyObject*& operator[](int i){ return _args[i]; }
