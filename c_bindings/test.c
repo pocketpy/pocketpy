@@ -317,6 +317,8 @@ int main(int argc, char** argv) {
     //maybe worth fixing someday, but for now it is functionating as implemented
     error(pkpy_vm_run(vm, "try : test_error_propagate(); except NameError : pass"));
 
+    error(pkpy_error(vm, "test direct error mechanism"));
+
 
     //more complicated error handling
     //
