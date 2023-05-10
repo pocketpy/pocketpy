@@ -1016,6 +1016,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
 
     const Function& fn = CAST(Function&, callable);
     const CodeObject* co = fn.decl->code.get();
+    int co_nlocals = co->varnames.size();
 
     if(args.size() < fn.argc){
         vm->TypeError(fmt(
@@ -1031,7 +1032,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     // we can use a fast path to avoid using buffer copy
     if(fn.is_simple){
         if(args.size() > fn.argc) TypeError("too many positional arguments");
-        int spaces = co->varnames.size() - fn.argc;
+        int spaces = co_nlocals - fn.argc;
         for(int j=0; j<spaces; j++) PUSH(nullptr);
         callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         return nullptr;
@@ -1043,7 +1044,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     // prepare args
     for(int index: fn.decl->args) buffer[index] = args[i++];
     // set extra varnames to nullptr
-    for(int j=i; j<co->varnames.size(); j++) buffer[j] = nullptr;
+    for(int j=i; j<co_nlocals; j++) buffer[j] = nullptr;
 
     // prepare kwdefaults
     for(auto& kv: fn.decl->kwargs) buffer[kv.key] = kv.value;
@@ -1056,11 +1057,8 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     }else{
         // kwdefaults override
         for(auto& kv: fn.decl->kwargs){
-            if(i < args.size()){
-                buffer[kv.key] = args[i++];
-            }else{
-                break;
-            }
+            if(i >= args.size()) break;
+            buffer[kv.key] = args[i++];
         }
         if(i < args.size()) TypeError(fmt("too many arguments", " (", fn.decl->code->name, ')'));
     }
@@ -1077,13 +1075,13 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
         PyObject* ret = PyIter(Generator(
             this,
             Frame(&s_data, nullptr, co, fn._module, callable),
-            ArgsView(buffer, buffer + co->varnames.size())
+            ArgsView(buffer, buffer + co_nlocals)
         ));
         return ret;
     }
 
     // copy buffer to stack
-    for(int i=0; i<co->varnames.size(); i++) PUSH(buffer[i]);
+    for(int i=0; i<co_nlocals; i++) PUSH(buffer[i]);
     callstack.emplace(&s_data, p0, co, fn._module, callable);
     return nullptr;
 }
