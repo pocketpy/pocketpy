@@ -61,3 +61,6 @@ NameError: testing error throwing from python
 successfully errored with this message: 
 Traceback (most recent call last):
 NameError: could not find requested global
+successfully errored with this message: 
+Traceback (most recent call last):
+CBindingError: test direct error mechanism

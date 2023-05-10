@@ -13,11 +13,6 @@ using namespace pkpy;
         << "this probably means pocketpy itself has a bug!\n" \
         << e.what() << "\n"; \
         exit(2); \
-    } catch(std::runtime_error& e) { \
-        std::cerr << "ERROR: a std::runtime_error " \
-        << "this probably means pocketpy itself has a bug!\n" \
-        << e.what() << "\n"; \
-        exit(2); \
     } catch(...) { \
         std::cerr << "ERROR: a unknown exception was thrown from " << __func__ \
         << "\nthis probably means pocketpy itself has a bug!\n"; \
@@ -547,3 +542,20 @@ bool pkpy_pop(pkpy_vm* vm_handle, int n) {
     vm->c_data->shrink(n);
     return true;
 }
+
+
+bool pkpy_push(pkpy_vm* vm_handle, int index) {
+    CVM* vm = (CVM*) vm_handle;
+    index = lua_to_cstack_index(index, vm->c_data->size());
+    vm->c_data->push(vm->c_data->begin()[index]);
+    return true;
+}
+
+
+bool pkpy_error(pkpy_vm* vm_handle, const char* message) {
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    throw Exception("CBindingError", message);
+    ERRHANDLER_CLOSE
+}
+
