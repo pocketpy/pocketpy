@@ -99,8 +99,6 @@ public:
     PrintFunc _stdout;
     PrintFunc _stderr;
 
-    bool _initialized;
-
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
@@ -115,9 +113,8 @@ public:
         _stdout = [](VM* vm, const Str& s) { std::cout << s; };
         _stderr = [](VM* vm, const Str& s) { std::cerr << s; };
         callstack.reserve(8);
-        _initialized = false;
+        _main = nullptr;
         init_builtin_types();
-        _initialized = true;
     }
 
     FrameId top_frame() {
@@ -752,9 +749,6 @@ inline std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
         case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST:
             argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
             break;
-        case OP_BINARY_OP:
-            argStr += fmt(" (", BINARY_SPECIAL_METHODS[byte.arg], ")");
-            break;
         case OP_LOAD_FUNCTION:
             argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")");
             break;
@@ -809,7 +803,7 @@ inline Str VM::disassemble(CodeObject_ co){
 }
 
 inline void VM::_log_s_data(const char* title) {
-    if(!_initialized) return;
+    if(_main == nullptr) return;
     if(callstack.empty()) return;
     std::stringstream ss;
     if(title) ss << title << " | ";
@@ -890,7 +884,6 @@ inline void VM::init_builtin_types(){
     this->StopIteration = heap._new<Dummy>(_new_type_object("StopIterationType"), {});
 
     this->builtins = new_module("builtins");
-    this->_main = new_module("__main__");
     
     // setup public types
     builtins->attr().set("type", _t(tp_type));
@@ -911,6 +904,7 @@ inline void VM::init_builtin_types(){
         _all_types[i].obj->attr()._try_perfect_rehash();
     }
     for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
+    this->_main = new_module("__main__");
 }
 
 inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
@@ -930,7 +924,6 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     }
     PyObject* callable = p1[-(ARGC + 2)];
     bool method_call = p1[-(ARGC + 1)] != PY_NULL;
-
 
     // handle boundmethod, do a patch
     if(is_non_tagged_type(callable, tp_bound_method)){

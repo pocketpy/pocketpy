@@ -681,10 +681,10 @@ struct BinaryExpr: Expr{
             case TK("+"):   ctx->emit(OP_BINARY_ADD, BC_NOARG, line);  break;
             case TK("-"):   ctx->emit(OP_BINARY_SUB, BC_NOARG, line);  break;
             case TK("*"):   ctx->emit(OP_BINARY_MUL, BC_NOARG, line);  break;
-            case TK("/"):   ctx->emit(OP_BINARY_OP, 3, line);  break;
+            case TK("/"):   ctx->emit(OP_BINARY_TRUEDIV, BC_NOARG, line);  break;
             case TK("//"):  ctx->emit(OP_BINARY_FLOORDIV, BC_NOARG, line);  break;
             case TK("%"):   ctx->emit(OP_BINARY_MOD, BC_NOARG, line);  break;
-            case TK("**"):  ctx->emit(OP_BINARY_OP, 6, line);  break;
+            case TK("**"):  ctx->emit(OP_BINARY_POW, BC_NOARG, line);  break;
 
             case TK("<"):   ctx->emit(OP_COMPARE_LT, BC_NOARG, line);  break;
             case TK("<="):  ctx->emit(OP_COMPARE_LE, BC_NOARG, line);  break;

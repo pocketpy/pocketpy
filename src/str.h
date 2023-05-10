@@ -423,6 +423,9 @@ const StrName BINARY_SPECIAL_METHODS[] = {
     StrName::get("__mod__"), StrName::get("__pow__")
 };
 
+const StrName __truediv__ = StrName::get("__truediv__");
+const StrName __pow__ = StrName::get("__pow__");
+
 const StrName __lt__ = StrName::get("__lt__");
 const StrName __le__ = StrName::get("__le__");
 const StrName __eq__ = StrName::get("__eq__");

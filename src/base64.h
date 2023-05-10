@@ -74,7 +74,7 @@ static const unsigned char base64de[] = {
 	    49,  50,  51, 255, 255, 255, 255, 255
 };
 
-unsigned int
+inline static unsigned int
 base64_encode(const unsigned char *in, unsigned int inlen, char *out)
 {
 	int s;
@@ -123,7 +123,7 @@ base64_encode(const unsigned char *in, unsigned int inlen, char *out)
 	return j;
 }
 
-unsigned int
+inline static unsigned int
 base64_decode(const char *in, unsigned int inlen, unsigned char *out)
 {
 	unsigned int i;
@@ -168,7 +168,7 @@ base64_decode(const char *in, unsigned int inlen, unsigned char *out)
 	return j;
 }
 
-void add_module_base64(VM* vm){
+inline void add_module_base64(VM* vm){
     PyObject* mod = vm->new_module("base64");
 
     // b64encode

@@ -21,7 +21,6 @@ inline PyObject* VM::_run_top_frame(){
 #endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
-            // if(s_data.is_overflow()) StackOverflowError();
 /**********************************************************************/
 /* NOTE: 
  * Be aware of accidental gc!
@@ -145,8 +144,8 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(LOAD_SUBSCR)
-        _1 = POPX();
-        _0 = TOP();
+        _1 = POPX();    // b
+        _0 = TOP();     // a
         TOP() = call_method(_0, __getitem__, _1);
         DISPATCH();
     TARGET(STORE_FAST)
@@ -203,7 +202,7 @@ __NEXT_STEP:;
     TARGET(DELETE_ATTR)
         _0 = POPX();
         _name = StrName(byte.arg);
-        if(!_0->is_attr_valid()) TypeError("cannot delete attribute");
+        if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
         if(!_0->attr().contains(_name)) AttributeError(_0, _name);
         _0->attr().erase(_name);
         DISPATCH();
@@ -218,18 +217,18 @@ __NEXT_STEP:;
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
-    TARGET(BUILD_DICT) {
-        PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call(builtins->attr(m_dict), t);
+    TARGET(BUILD_DICT)
+        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
+        _0 = call(builtins->attr(m_dict), _0);
         STACK_SHRINK(byte.arg);
-        PUSH(obj);
-    } DISPATCH();
-    TARGET(BUILD_SET) {
-        PyObject* t = VAR(STACK_VIEW(byte.arg).to_tuple());
-        PyObject* obj = call(builtins->attr(m_set), t);
+        PUSH(_0);
+        DISPATCH();
+    TARGET(BUILD_SET)
+        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
+        _0 = call(builtins->attr(m_set), _0);
         STACK_SHRINK(byte.arg);
-        PUSH(obj);
-    } DISPATCH();
+        PUSH(_0);
+        DISPATCH();
     TARGET(BUILD_SLICE)
         _2 = POPX();    // step
         _1 = POPX();    // stop
@@ -243,16 +242,25 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(BUILD_STRING) {
         std::stringstream ss;
-        auto view = STACK_VIEW(byte.arg);
+        ArgsView view = STACK_VIEW(byte.arg);
         for(PyObject* obj : view) ss << CAST(Str&, asStr(obj));
         STACK_SHRINK(byte.arg);
         PUSH(VAR(ss.str()));
     } DISPATCH();
     /*****************************************/
-    TARGET(BINARY_OP)
-        _1 = POPX();  // b
-        _0 = TOP();   // a
-        TOP() = call_method(_0, BINARY_SPECIAL_METHODS[byte.arg], _1);
+    TARGET(BINARY_TRUEDIV)
+        _1 = POPX();
+        _0 = TOP();
+        if(is_float(_0)){
+            TOP() = VAR(_CAST(f64, _0) / num_to_float(_1));
+        }else{
+            TOP() = call_method(_0, __truediv__, _1);
+        }
+        DISPATCH();
+    TARGET(BINARY_POW)
+        _1 = POPX();
+        _0 = TOP();
+        TOP() = call_method(_0, __pow__, _1);
         DISPATCH();
 
 #define INT_BINARY_OP(op, func)                             \
@@ -358,9 +366,9 @@ __NEXT_STEP:;
         frame->jump_abs_break(co_blocks[byte.block].end);
         DISPATCH();
     TARGET(GOTO) {
-        StrName name(byte.arg);
-        int index = co->labels.try_get(name);
-        if(index < 0) _error("KeyError", fmt("label ", name.escape(), " not found"));
+        _name = StrName(byte.arg);
+        int index = co->labels.try_get(_name);
+        if(index < 0) _error("KeyError", fmt("label ", _name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
@@ -445,55 +453,55 @@ __NEXT_STEP:;
             PUSH(ext_mod);
         }
     } DISPATCH();
-    TARGET(IMPORT_STAR) {
-        PyObject* obj = POPX();
-        for(auto& [name, value]: obj->attr().items()){
+    TARGET(IMPORT_STAR)
+        _0 = POPX();
+        for(auto& [name, value]: _0->attr().items()){
             std::string_view s = name.sv();
             if(s.empty() || s[0] == '_') continue;
             frame->f_globals().set(name, value);
         }
-    }; DISPATCH();
+        DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE)
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        PyObject* iter = asIter(POPX());
+        _0 = asIter(POPX());
         for(int i=0; i<byte.arg; i++){
-            PyObject* item = PyIterNext(iter);
-            if(item == StopIteration) ValueError("not enough values to unpack");
-            PUSH(item);
+            _1 = PyIterNext(_0);
+            if(_1 == StopIteration) ValueError("not enough values to unpack");
+            PUSH(_1);
         }
         // handle extra items
         if(byte.op == OP_UNPACK_EX){
             List extras;
             while(true){
-                PyObject* item = PyIterNext(iter);
-                if(item == StopIteration) break;
-                extras.push_back(item);
+                _1 = PyIterNext(_0);
+                if(_1 == StopIteration) break;
+                extras.push_back(_1);
             }
             PUSH(VAR(extras));
         }else{
-            if(PyIterNext(iter) != StopIteration) ValueError("too many values to unpack");
+            if(PyIterNext(_0) != StopIteration) ValueError("too many values to unpack");
         }
     } DISPATCH();
     TARGET(UNPACK_UNLIMITED) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        PyObject* iter = asIter(POPX());
-        _0 = PyIterNext(iter);
-        while(_0 != StopIteration){
-            PUSH(_0);
-            _0 = PyIterNext(iter);
+        _0 = asIter(POPX());
+        _1 = PyIterNext(_0);
+        while(_1 != StopIteration){
+            PUSH(_1);
+            _1 = PyIterNext(_0);
         }
     } DISPATCH();
     /*****************************************/
-    TARGET(BEGIN_CLASS) {
-        StrName name(byte.arg);
-        PyObject* super_cls = POPX();
-        if(super_cls == None) super_cls = _t(tp_object);
-        check_non_tagged_type(super_cls, tp_type);
-        PyObject* cls = new_type_object(frame->_module, name, OBJ_GET(Type, super_cls));
-        PUSH(cls);
-    } DISPATCH();
+    TARGET(BEGIN_CLASS)
+        _name = StrName(byte.arg);
+        _0 = POPX();   // super
+        if(_0 == None) _0 = _t(tp_object);
+        check_non_tagged_type(_0, tp_type);
+        _1 = new_type_object(frame->_module, _name, OBJ_GET(Type, _0));
+        PUSH(_1);
+        DISPATCH();
     TARGET(END_CLASS)
         _0 = POPX();
         _0->attr()._try_perfect_rehash();
@@ -513,15 +521,15 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(ASSERT) {
-        PyObject* obj = TOP();
+        _0 = TOP();
         Str msg;
-        if(is_type(obj, tp_tuple)){
-            auto& t = CAST(Tuple&, obj);
+        if(is_type(_0, tp_tuple)){
+            auto& t = CAST(Tuple&, _0);
             if(t.size() != 2) ValueError("assert tuple must have 2 elements");
-            obj = t[0];
+            _0 = t[0];
             msg = CAST(Str&, asStr(t[1]));
         }
-        bool ok = asBool(obj);
+        bool ok = asBool(_0);
         POP();
         if(!ok) _error("AssertionError", msg);
     } DISPATCH();
@@ -531,8 +539,8 @@ __NEXT_STEP:;
         PUSH(VAR(e.match_type(_name)));
     } DISPATCH();
     TARGET(RAISE) {
-        PyObject* obj = POPX();
-        Str msg = obj == None ? "" : CAST(Str, asStr(obj));
+        _0 = POPX();
+        Str msg = _0 == None ? "" : CAST(Str, asStr(_0));
         _error(StrName(byte.arg), msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
