@@ -536,10 +536,6 @@ inline PyObject* py_var(VM* vm, std::string_view val){
     return VAR(Str(val));
 }
 
-template<typename T>
-void _check_py_class(VM* vm, PyObject* obj){
-    vm->check_non_tagged_type(obj, T::_type(vm));
-}
 
 inline PyObject* VM::num_negated(PyObject* obj){
     if (is_int(obj)){

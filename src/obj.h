@@ -223,16 +223,15 @@ union BitsCvt {
 template <typename, typename=void> struct is_py_class : std::false_type {};
 template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};
 
-template<typename T> void _check_py_class(VM*, PyObject*);
-template<typename T> T py_pointer_cast(VM*, PyObject*);
+template<typename T> T to_void_p(VM*, PyObject*);
 
 template<typename __T>
 __T py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<T>){
-        return py_pointer_cast<T>(vm, obj);
+        return to_void_p<T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
-        _check_py_class<T>(vm, obj);
+        T::_check_type(vm, obj);
         return OBJ_GET(T, obj);
     }else {
         return Discarded();
@@ -243,7 +242,7 @@ template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
     if constexpr(std::is_pointer_v<__T>){
-        return py_pointer_cast<__T>(vm, obj);
+        return to_void_p<__T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         return OBJ_GET(T, obj);
     }else{

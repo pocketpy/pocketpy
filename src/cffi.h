@@ -11,6 +11,11 @@ namespace pkpy {
         static const StrName __x1(#name);       \
         return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
     }                                                                       \
+    static void _check_type(VM* vm, PyObject* val){                          \
+        if(!vm->isinstance(val, T::_type(vm))){                             \
+            vm->TypeError("expected '" #mod "." #name "', got " + OBJ_NAME(val).escape());  \
+        }                                                                   \
+    }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod) {                \
         if(OBJ_NAME(mod) != #mod) {                                         \
             auto msg = fmt("register_class() failed: ", OBJ_NAME(mod), " != ", #mod); \
@@ -57,27 +62,8 @@ inline PyObject* py_var(VM* vm, char* p){
     return VAR_T(VoidP, p);
 }
 /***********************************************/
-
 template<typename T>
-struct _pointer {
-    static constexpr int level = 0;
-    using baseT = T;
-};
-
-template<typename T>
-struct _pointer<T*> {
-    static constexpr int level = _pointer<T>::level + 1;
-    using baseT = typename _pointer<T>::baseT;
-};
-
-template<typename T>
-struct pointer {
-    static constexpr int level = _pointer<std::decay_t<T>>::level;
-    using baseT = typename _pointer<std::decay_t<T>>::baseT;
-};
-
-template<typename T>
-T py_pointer_cast(VM* vm, PyObject* var){
+T to_void_p(VM* vm, PyObject* var){
     static_assert(std::is_pointer_v<T>);
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<T>(p.ptr);
