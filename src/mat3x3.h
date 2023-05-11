@@ -172,13 +172,7 @@ struct Mat3x3{
         return true;
     }
 
-    /*************** affine transform ***************/
-    bool is_affine() const{
-        float det = _11 * _22 - _12 * _21;
-        if(fabsf(det) < kEpsilon) return false;
-        return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
-    }
-
+    /*************** affine transformations ***************/
     static Mat3x3 translate(Vec2 v){
         return Mat3x3(1.0f, 0.0f, v.x,
                       0.0f, 1.0f, v.y,
@@ -211,6 +205,12 @@ struct Mat3x3{
         return Mat3x3(2.0f / (right - left),  0.0f,                       -(right + left) / (right - left),
                       0.0f,                   2.0f / (top - bottom),      -(top + bottom) / (top - bottom),
                       0.0f,                   0.0f,                       1.0f);
+    }
+
+    bool is_affine() const{
+        float det = _11 * _22 - _12 * _21;
+        if(fabsf(det) < kEpsilon) return false;
+        return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 
     Mat3x3 inverse_affine() const{
@@ -591,6 +591,14 @@ struct PyMat3x3: Mat3x3{
             f64 r = vm->num_to_float(args[1]);
             PyVec2& s = CAST(PyVec2&, args[2]);
             return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
+        });
+
+        vm->bind_func<4>(type, "ortho", [](VM* vm, ArgsView args){
+            f64 left = vm->num_to_float(args[0]);
+            f64 right = vm->num_to_float(args[1]);
+            f64 bottom = vm->num_to_float(args[2]);
+            f64 top = vm->num_to_float(args[3]);
+            return VAR_T(PyMat3x3, Mat3x3::ortho(left, right, bottom, top));
         });
 
         vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
