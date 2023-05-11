@@ -549,9 +549,9 @@ inline PyObject* VM::num_negated(PyObject* obj){
 
 inline f64 VM::num_to_float(PyObject* obj){
     if(is_float(obj)){
-        return CAST(f64, obj);
+        return _CAST(f64, obj);
     } else if (is_int(obj)){
-        return (f64)CAST(i64, obj);
+        return (f64)_CAST(i64, obj);
     }
     TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
     return 0;
@@ -560,8 +560,8 @@ inline f64 VM::num_to_float(PyObject* obj){
 inline bool VM::asBool(PyObject* obj){
     if(is_non_tagged_type(obj, tp_bool)) return obj == True;
     if(obj == None) return false;
-    if(is_int(obj)) return CAST(i64, obj) != 0;
-    if(is_float(obj)) return CAST(f64, obj) != 0.0;
+    if(is_int(obj)) return _CAST(i64, obj) != 0;
+    if(is_float(obj)) return _CAST(f64, obj) != 0.0;
     PyObject* self;
     PyObject* len_f = get_unbound_method(obj, __len__, &self, false);
     if(self != PY_NULL){
