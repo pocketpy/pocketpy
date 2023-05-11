@@ -246,6 +246,7 @@ struct PyMat3x3: Mat3x3{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             std::stringstream ss;
+            ss << std::fixed << std::setprecision(4);
             ss << "mat3x3([[" << self._11 << ", " << self._12 << ", " << self._13 << "],\n";
             ss << "        [" << self._21 << ", " << self._22 << ", " << self._23 << "],\n";
             ss << "        [" << self._31 << ", " << self._32 << ", " << self._33 << "]])";
