@@ -5,8 +5,35 @@
 
 namespace pkpy{
 
-struct Mat3x3{
-    static constexpr float kEpsilon = 1e-5f;
+static constexpr float kEpsilon = 1e-5f;
+inline static bool isclose(float a, float b){ return fabsf(a - b) < kEpsilon; }
+
+struct Vec2{
+    float x, y;
+    Vec2() : x(0.0f), y(0.0f) {}
+    Vec2(float x, float y) : x(x), y(y) {}
+    Vec2(const Vec2& v) : x(v.x), y(v.y) {}
+
+    Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
+    Vec2& operator+=(const Vec2& v) { x += v.x; y += v.y; return *this; }
+    Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
+    Vec2& operator-=(const Vec2& v) { x -= v.x; y -= v.y; return *this; }
+    Vec2 operator*(float s) const { return Vec2(x * s, y * s); }
+    Vec2& operator*=(float s) { x *= s; y *= s; return *this; }
+    Vec2 operator/(float s) const { return Vec2(x / s, y / s); }
+    Vec2& operator/=(float s) { x /= s; y /= s; return *this; }
+    Vec2 operator-() const { return Vec2(-x, -y); }
+    bool operator==(const Vec2& v) const { return isclose(x, v.x) && isclose(y, v.y); }
+    bool operator!=(const Vec2& v) const { return !isclose(x, v.x) || !isclose(y, v.y); }
+    float dot(const Vec2& v) const { return x * v.x + y * v.y; }
+    float cross(const Vec2& v) const { return x * v.y - y * v.x; }
+    float length() const { return sqrtf(x * x + y * y); }
+    float length_squared() const { return x * x + y * y; }
+    void normalize() { float l = length(); x /= l; y /= l; }
+    Vec2 normalized() const { float l = length(); return Vec2(x / l, y / l); }
+};
+
+struct Mat3x3{    
     union {
         struct {
             float        _11, _12, _13;
@@ -17,31 +44,79 @@ struct Mat3x3{
         float v[9];
     };
 
-    void set_zeros(){
-        for (int i=0; i<9; ++i) v[i] = 0.0f;
+    Mat3x3() {}
+    Mat3x3(float _11, float _12, float _13,
+           float _21, float _22, float _23,
+           float _31, float _32, float _33)
+        : _11(_11), _12(_12), _13(_13)
+        , _21(_21), _22(_22), _23(_23)
+        , _31(_31), _32(_32), _33(_33) {}
+
+    void set_zeros(){ for (int i=0; i<9; ++i) v[i] = 0.0f; }
+    void set_ones(){ for (int i=0; i<9; ++i) v[i] = 1.0f; }
+    void set_identity(){ set_zeros(); _11 = _22 = _33 = 1.0f; }
+
+    static Mat3x3 zeros(){
+        static Mat3x3 ret(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        return ret;
     }
 
-    void set_ones(){
-        for (int i=0; i<9; ++i) v[i] = 1.0f;
+    static Mat3x3 ones(){
+        static Mat3x3 ret(1, 1, 1, 1, 1, 1, 1, 1, 1);
+        return ret;
     }
 
-    void set_identity(){
-        _11 = 1.0f;  _12 = 0.0f;  _13 = 0.0f;
-        _21 = 0.0f;  _22 = 1.0f;  _23 = 0.0f;
-        _31 = 0.0f;  _32 = 0.0f;  _33 = 1.0f;
+    static Mat3x3 identity(){
+        static Mat3x3 ret(1, 0, 0, 0, 1, 0, 0, 0, 1);
+        return ret;
     }
 
-    void add_(const Mat3x3& other){ for (int i=0; i<9; ++i) v[i] += other.v[i]; }
-    void sub_(const Mat3x3& other){ for (int i=0; i<9; ++i) v[i] -= other.v[i]; }
-    void mul_(float s){ for (int i=0; i<9; ++i) v[i] *= s; }
-    void div_(float s){ for (int i=0; i<9; ++i) v[i] /= s; }
+    Mat3x3 operator+(const Mat3x3& other) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] + other.v[i];
+        return ret;
+    }
 
-    Mat3x3 add(const Mat3x3& other) const{ Mat3x3 ret(*this); ret.add_(other); return ret; }
-    Mat3x3 sub(const Mat3x3& other) const{ Mat3x3 ret(*this); ret.sub_(other); return ret; }
-    Mat3x3 mul(float s) const{ Mat3x3 ret(*this); ret.mul_(s); return ret; }
-    Mat3x3 div(float s) const{ Mat3x3 ret(*this); ret.div_(s); return ret; }
+    Mat3x3 operator-(const Mat3x3& other) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] - other.v[i];
+        return ret;
+    }
 
-    void matmul(const Mat3x3& other, Mat3x3& ret) const{
+    Mat3x3 operator*(float scalar) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] * scalar;
+        return ret;
+    }
+
+    Mat3x3 operator/(float scalar) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] / scalar;
+        return ret;
+    }
+
+    Mat3x3& operator+=(const Mat3x3& other){ 
+        for (int i=0; i<9; ++i) v[i] += other.v[i];
+        return *this;
+    }
+
+    Mat3x3& operator-=(const Mat3x3& other){ 
+        for (int i=0; i<9; ++i) v[i] -= other.v[i];
+        return *this;
+    }
+
+    Mat3x3& operator*=(float scalar){ 
+        for (int i=0; i<9; ++i) v[i] *= scalar;
+        return *this;
+    }
+
+    Mat3x3& operator/=(float scalar){ 
+        for (int i=0; i<9; ++i) v[i] /= scalar;
+        return *this;
+    }
+
+    Mat3x3 matmul(const Mat3x3& other) const{
+        Mat3x3 ret;
         ret._11 = _11 * other._11 + _12 * other._21 + _13 * other._31;
         ret._12 = _11 * other._12 + _12 * other._22 + _13 * other._32;
         ret._13 = _11 * other._13 + _12 * other._23 + _13 * other._33;
@@ -51,24 +126,19 @@ struct Mat3x3{
         ret._31 = _31 * other._11 + _32 * other._21 + _33 * other._31;
         ret._32 = _31 * other._12 + _32 * other._22 + _33 * other._32;
         ret._33 = _31 * other._13 + _32 * other._23 + _33 * other._33;
-    }
-
-    Mat3x3 matmul(const Mat3x3& other) const{
-        Mat3x3 ret;
-        matmul(other, ret);
         return ret;
     }
 
     bool operator==(const Mat3x3& other) const{
         for (int i=0; i<9; ++i){
-            if (v[i] != other.v[i]) return false;
+            if (!isclose(v[i], other.v[i])) return false;
         }
         return true;
     }
 
     bool operator!=(const Mat3x3& other) const{
         for (int i=0; i<9; ++i){
-            if (v[i] != other.v[i]) return true;
+            if (!isclose(v[i], other.v[i])) return true;
         }
         return false;
     }
@@ -102,48 +172,49 @@ struct Mat3x3{
         return true;
     }
 
-    bool is_identity() const{
-        return _11 == 1.0f && _12 == 0.0f && _13 == 0.0f
-            && _21 == 0.0f && _22 == 1.0f && _23 == 0.0f
-            && _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
-    }
-
-    /*************** affine transform (no bindings) ***************/
+    /*************** affine transform ***************/
     bool is_affine() const{
         float det = _11 * _22 - _12 * _21;
         if(fabsf(det) < kEpsilon) return false;
         return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 
-    void set_translate(float x, float y){
-        _11 = 1.0f;  _12 = 0.0f;  _13 = x;
-        _21 = 0.0f;  _22 = 1.0f;  _23 = y;
-        _31 = 0.0f;  _32 = 0.0f;  _33 = 1.0f;
+    static Mat3x3 translate(Vec2 v){
+        return Mat3x3(1.0f, 0.0f, v.x,
+                      0.0f, 1.0f, v.y,
+                      0.0f, 0.0f, 1.0f);
     }
 
-    void set_rotate(float radian){
-        float c = cosf(radian);
-        float s = sinf(radian);
-        _11 = c;    _12 = -s;   _13 = 0.0f;
-        _21 = s;    _22 = c;    _23 = 0.0f;
-        _31 = 0.0f; _32 = 0.0f; _33 = 1.0f;
+    static Mat3x3 rotate(float radian){
+        float cr = cosf(radian);
+        float sr = sinf(radian);
+        return Mat3x3(cr,   -sr,  0.0f,
+                      sr,   cr,   0.0f,
+                      0.0f, 0.0f, 1.0f);
     }
 
-    void set_scale(float sx, float sy){
-        _11 = sx;    _12 = 0.0f;  _13 = 0.0f;
-        _21 = 0.0f;  _22 = sy;    _23 = 0.0f;
-        _31 = 0.0f;  _32 = 0.0f;  _33 = 1.0f;
+    static Mat3x3 scale(Vec2 s){
+        return Mat3x3(s.x,  0.0f,   0.0f,
+                      0.0f, s.y,    0.0f,
+                      0.0f, 0.0f,   1.0f);
     }
 
-    void set_trs(float x, float y, float radian, float sx, float sy){
-        float c = cosf(radian);
-        float s = sinf(radian);
-        _11 = sx * c;   _12 = -sy * s;  _13 = x;
-        _21 = sx * s;   _22 = sy * c;   _23 = y;
-        _31 = 0.0f;     _32 = 0.0f;     _33 = 1.0f;
+    static Mat3x3 trs(Vec2 t, float radian, Vec2 s){
+        float cr = cosf(radian);
+        float sr = sinf(radian);
+        return Mat3x3(s.x * cr,   -s.y * sr,  t.x,
+                      s.x * sr,   s.y * cr,   t.y,
+                      0.0f,       0.0f,       1.0f);
     }
 
-    void inverse_affine(Mat3x3& ret) const{
+    static Mat3x3 ortho(float left, float right, float bottom, float top){
+        return Mat3x3(2.0f / (right - left),  0.0f,                       -(right + left) / (right - left),
+                      0.0f,                   2.0f / (top - bottom),      -(top + bottom) / (top - bottom),
+                      0.0f,                   0.0f,                       1.0f);
+    }
+
+    Mat3x3 inverse_affine() const{
+        Mat3x3 ret;
         float det = _11 * _22 - _12 * _21;
         float inv_det = 1.0f / det;
         ret._11 = _22 * inv_det;
@@ -155,9 +226,11 @@ struct Mat3x3{
         ret._31 = 0.0f;
         ret._32 = 0.0f;
         ret._33 = 1.0f;
+        return ret;
     }
 
-    void matmul_affine(const Mat3x3& other, Mat3x3& ret) const{
+    Mat3x3 matmul_affine(const Mat3x3& other) const{
+        Mat3x3 ret;
         ret._11 = _11 * other._11 + _12 * other._21;
         ret._12 = _11 * other._12 + _12 * other._22;
         ret._13 = _11 * other._13 + _12 * other._23 + _13;
@@ -167,41 +240,142 @@ struct Mat3x3{
         ret._31 = 0.0f;
         ret._32 = 0.0f;
         ret._33 = 1.0f;
-    }
-
-    Mat3x3 matmul_affine(const Mat3x3& other) const{
-        Mat3x3 ret;
-        matmul_affine(other, ret);
         return ret;
     }
 
-    float x() const { return _13; }
-    float y() const { return _23; }
+    Vec2 translation() const { return Vec2(_13, _23); }
     float rotation() const { return atan2f(_21, _11); }
-    float scale_x() const { return sqrtf(_11 * _11 + _21 * _21); }
-    float scale_y() const { return sqrtf(_12 * _12 + _22 * _22); }
-
-    void transform_point(float& x, float& y) const {
-        float tx = x;
-        float ty = y;
-        x = _11 * tx + _12 * ty + _13;
-        y = _21 * tx + _22 * ty + _23;
+    Vec2 scale() const {
+        return Vec2(
+            sqrtf(_11 * _11 + _21 * _21),
+            sqrtf(_12 * _12 + _22 * _22)
+        );
     }
 
-    void transform_vector(float& x, float& y) const {
-        float tx = x;
-        float ty = y;
-        x = _11 * tx + _12 * ty;
-        y = _21 * tx + _22 * ty;
+    Vec2 transform_point(Vec2 v) const {
+        return Vec2(_11 * v.x + _12 * v.y + _13, _21 * v.x + _22 * v.y + _23);
     }
 
-    void set_ortho(float left, float right, float bottom, float top){
-        _11 = 2.0f / (right - left);    _12 = 0.0f;                      _13 = -(right + left) / (right - left);
-        _21 = 0.0f;                     _22 = 2.0f / (top - bottom);     _23 = -(top + bottom) / (top - bottom);
-        _31 = 0.0f;                     _32 = 0.0f;                      _33 = 1.0f;
+    Vec2 transform_vector(Vec2 v) const {
+        return Vec2(_11 * v.x + _12 * v.y, _21 * v.x + _22 * v.y);
     }
 };
 
+struct PyVec2: Vec2 {
+    PY_CLASS(PyVec2, builtins, vec2)
+
+    PyVec2() : Vec2() {}
+    PyVec2(float x, float y) : Vec2(x, y) {}
+    PyVec2(const Vec2& v) : Vec2(v) {}
+    PyVec2(const PyVec2& v) : Vec2(v) {}
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
+            float x = vm->num_to_float(args[1]);
+            float y = vm->num_to_float(args[2]);
+            return VAR_T(PyVec2, x, y);
+        });
+
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            std::stringstream ss;
+            ss << "vec2(" << self.x << ", " << self.y << ")";
+            return VAR(ss.str());
+        });
+
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR_T(PyVec2, self);
+        });
+
+        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR_T(PyVec2, self + other);
+        });
+
+        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR_T(PyVec2, self - other);
+        });
+
+        vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            f64 other = vm->num_to_float(args[1]);
+            return VAR_T(PyVec2, self * other);
+        });
+
+        vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            f64 other = vm->num_to_float(args[1]);
+            return VAR_T(PyVec2, self / other);
+        });
+
+        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR(self == other);
+        });
+
+        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR(self != other);
+        });
+
+        type->attr().set("x", vm->property([](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR(self.x);
+        }, [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            self.x = vm->num_to_float(args[1]);
+            return vm->None;
+        }));
+
+        type->attr().set("y", vm->property([](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR(self.y);
+        }, [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            self.y = vm->num_to_float(args[1]);
+            return vm->None;
+        }));
+
+        vm->bind_method<1>(type, "dot", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR(self.dot(other));
+        });
+
+        vm->bind_method<1>(type, "cross", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR(self.cross(other));
+        });
+
+        vm->bind_method<0>(type, "length", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR(self.length());
+        });
+
+        vm->bind_method<0>(type, "length_squared", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR(self.length_squared());
+        });
+
+        vm->bind_method<0>(type, "normalize", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            self.normalize();
+            return vm->None;
+        });
+
+        vm->bind_method<0>(type, "normalized", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR_T(PyVec2, self.normalized());
+        });
+    }
+};
 
 struct PyMat3x3: Mat3x3{
     PY_CLASS(PyMat3x3, builtins, mat3x3)
@@ -212,7 +386,12 @@ struct PyMat3x3: Mat3x3{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
-            if(args.size() == 1+0) return VAR_T(PyMat3x3);
+            if(args.size() == 1+0) return VAR_T(PyMat3x3, Mat3x3::zeros());
+            if(args.size() == 1+9){
+                Mat3x3 mat;
+                for(int i=0; i<9; i++) mat.v[i] = vm->num_to_float(args[1+i]);
+                return VAR_T(PyMat3x3, mat);
+            }
             if(args.size() == 1+1){
                 List& a = CAST(List&, args[1]);
                 if(a.size() != 3) vm->ValueError("Mat3x3.__new__ takes 3x3 list");
@@ -251,6 +430,11 @@ struct PyMat3x3: Mat3x3{
             ss << "        [" << self._21 << ", " << self._22 << ", " << self._23 << "],\n";
             ss << "        [" << self._31 << ", " << self._32 << ", " << self._33 << "]])";
             return VAR(ss.str());
+        });
+
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            return VAR_T(PyMat3x3, self);
         });
 
         vm->bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
@@ -311,30 +495,36 @@ struct PyMat3x3: Mat3x3{
         vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR_T(PyMat3x3, self.add(other));
+            return VAR_T(PyMat3x3, self + other);
         });
 
         vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR_T(PyMat3x3, self.sub(other));
+            return VAR_T(PyMat3x3, self - other);
         });
 
         vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             f64 other = vm->num_to_float(args[1]);
-            return VAR_T(PyMat3x3, self.mul(other));
+            return VAR_T(PyMat3x3, self * other);
         });
 
         vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             f64 other = vm->num_to_float(args[1]);
-            return VAR_T(PyMat3x3, self.div(other));
+            return VAR_T(PyMat3x3, self / other);
         });
 
         vm->bind_method<1>(type, "__matmul__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             PyMat3x3& other = CAST(PyMat3x3&, args[1]);
+            return VAR_T(PyMat3x3, self.matmul(other));
+        });
+
+        vm->bind_method<1>(type, "matmul", [](VM* vm, ArgsView args){
+            PyMat3x3& other = CAST(PyMat3x3&, args[0]);
+            PyMat3x3& self = _CAST(PyMat3x3&, args[1]);
             return VAR_T(PyMat3x3, self.matmul(other));
         });
 
@@ -350,7 +540,7 @@ struct PyMat3x3: Mat3x3{
             return VAR(self != other);
         });
 
-        vm->bind_method<0>(type, "deteminant", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "determinant", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             return VAR(self.determinant());
         });
@@ -368,9 +558,83 @@ struct PyMat3x3: Mat3x3{
             return VAR_T(PyMat3x3, ret);
         });
 
-        vm->bind_method<0>(type, "is_identity", [](VM* vm, ArgsView args){
+        vm->bind_func<0>(type, "zeros", [](VM* vm, ArgsView args){
+            return VAR_T(PyMat3x3, Mat3x3::zeros());
+        });
+
+        vm->bind_func<0>(type, "ones", [](VM* vm, ArgsView args){
+            return VAR_T(PyMat3x3, Mat3x3::ones());
+        });
+
+        vm->bind_func<0>(type, "identity", [](VM* vm, ArgsView args){
+            return VAR_T(PyMat3x3, Mat3x3::identity());
+        });
+
+        /*************** affine transformations ***************/
+        vm->bind_func<1>(type, "translate", [](VM* vm, ArgsView args){
+            PyVec2& v = CAST(PyVec2&, args[0]);
+            return VAR_T(PyMat3x3, Mat3x3::translate(v));
+        });
+
+        vm->bind_func<1>(type, "rotate", [](VM* vm, ArgsView args){
+            f64 angle = vm->num_to_float(args[0]);
+            return VAR_T(PyMat3x3, Mat3x3::rotate(angle));
+        });
+
+        vm->bind_func<1>(type, "scale", [](VM* vm, ArgsView args){
+            PyVec2& v = CAST(PyVec2&, args[0]);
+            return VAR_T(PyMat3x3, Mat3x3::scale(v));
+        });
+
+        vm->bind_func<3>(type, "trs", [](VM* vm, ArgsView args){
+            PyVec2& t = CAST(PyVec2&, args[0]);
+            f64 r = vm->num_to_float(args[1]);
+            PyVec2& s = CAST(PyVec2&, args[2]);
+            return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
+        });
+
+        vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR(self.is_identity());
+            return VAR(self.is_affine());
+        });
+
+        vm->bind_method<0>(type, "inverse_affine", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            return VAR_T(PyMat3x3, self.inverse_affine());
+        });
+
+        vm->bind_method<1>(type, "matmul_affine", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
+            return VAR_T(PyMat3x3, self.matmul_affine(other));
+        });
+
+
+        vm->bind_method<0>(type, "translation", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            return VAR_T(PyVec2, self.translation());
+        });
+
+        vm->bind_method<0>(type, "rotation", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            return VAR(self.rotation());
+        });
+
+        vm->bind_method<0>(type, "scale", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            return VAR_T(PyVec2, self.scale());
+        });
+
+        vm->bind_method<1>(type, "transform_point", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            PyVec2& v = CAST(PyVec2&, args[1]);
+            return VAR_T(PyVec2, self.transform_point(v));
+        });
+
+        vm->bind_method<1>(type, "transform_vector", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            PyVec2& v = CAST(PyVec2&, args[1]);
+            return VAR_T(PyVec2, self.transform_vector(v));
         });
     }
 };
