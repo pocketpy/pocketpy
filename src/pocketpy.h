@@ -7,7 +7,7 @@
 #include "iter.h"
 #include "base64.h"
 #include "cffi.h"
-#include "mat3x3.h"
+#include "linalg.h"
 #include "requests.h"
 #include "io.h"
 #include "_generated.h"
@@ -1053,8 +1053,9 @@ inline void VM::post_init(){
         add_module_requests(this);
     }
 
-    PyVec2::register_class(this, builtins);
-    PyMat3x3::register_class(this, builtins);
+    PyObject* linalg = new_module("linalg");
+    PyVec2::register_class(this, linalg);
+    PyMat3x3::register_class(this, linalg);
 #endif
 }
 

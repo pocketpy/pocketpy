@@ -262,7 +262,7 @@ struct Mat3x3{
 };
 
 struct PyVec2: Vec2 {
-    PY_CLASS(PyVec2, builtins, vec2)
+    PY_CLASS(PyVec2, linalg, vec2)
 
     PyVec2() : Vec2() {}
     PyVec2(float x, float y) : Vec2(x, y) {}
@@ -378,7 +378,7 @@ struct PyVec2: Vec2 {
 };
 
 struct PyMat3x3: Mat3x3{
-    PY_CLASS(PyMat3x3, builtins, mat3x3)
+    PY_CLASS(PyMat3x3, linalg, mat3x3)
 
     PyMat3x3(): Mat3x3(){}
     PyMat3x3(const Mat3x3& other): Mat3x3(other){}
