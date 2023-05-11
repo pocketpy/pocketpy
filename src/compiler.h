@@ -104,6 +104,7 @@ class Compiler {
         rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
         rules[TK("|")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_OR };
         rules[TK("^")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_XOR };
+        rules[TK("@")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("if")] =       { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
         rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };

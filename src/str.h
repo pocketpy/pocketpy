@@ -412,19 +412,11 @@ const StrName __exit__ = StrName::get("__exit__");
 const StrName __add__ = StrName::get("__add__");
 const StrName __sub__ = StrName::get("__sub__");
 const StrName __mul__ = StrName::get("__mul__");
-// const StrName __truediv__ = StrName::get("__truediv__");
+const StrName __truediv__ = StrName::get("__truediv__");
 const StrName __floordiv__ = StrName::get("__floordiv__");
 const StrName __mod__ = StrName::get("__mod__");
-// const StrName __pow__ = StrName::get("__pow__");
-
-const StrName BINARY_SPECIAL_METHODS[] = {
-    StrName::get("__add__"), StrName::get("__sub__"), StrName::get("__mul__"),
-    StrName::get("__truediv__"), StrName::get("__floordiv__"),
-    StrName::get("__mod__"), StrName::get("__pow__")
-};
-
-const StrName __truediv__ = StrName::get("__truediv__");
 const StrName __pow__ = StrName::get("__pow__");
+const StrName __matmul__ = StrName::get("__matmul__");
 
 const StrName __lt__ = StrName::get("__lt__");
 const StrName __le__ = StrName::get("__le__");

@@ -86,7 +86,7 @@ enum Precedence {
   PREC_BITWISE_AND,   // &
   PREC_BITWISE_SHIFT, // << >>
   PREC_TERM,          // + -
-  PREC_FACTOR,        // * / % //
+  PREC_FACTOR,        // * / % // @
   PREC_UNARY,         // - not
   PREC_EXPONENT,      // **
   PREC_CALL,          // ()

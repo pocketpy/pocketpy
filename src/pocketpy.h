@@ -7,6 +7,7 @@
 #include "iter.h"
 #include "base64.h"
 #include "cffi.h"
+#include "mat3x3.h"
 #include "requests.h"
 #include "io.h"
 #include "_generated.h"
@@ -1051,6 +1052,8 @@ inline void VM::post_init(){
         add_module_os(this);
         add_module_requests(this);
     }
+
+    PyMat3x3::register_class(this, builtins);
 #endif
 }
 

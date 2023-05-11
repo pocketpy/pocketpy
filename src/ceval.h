@@ -325,6 +325,12 @@ __NEXT_STEP:;
         DISPATCH()
 #undef INT_BINARY_OP
 
+    TARGET(BINARY_MATMUL)
+        _1 = POPX();
+        _0 = TOP();
+        TOP() = call_method(_0, __matmul__, _1);
+        DISPATCH();
+
     TARGET(IS_OP)
         _1 = POPX();    // rhs
         _0 = TOP();     // lhs

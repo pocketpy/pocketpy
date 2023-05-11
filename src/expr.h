@@ -702,6 +702,8 @@ struct BinaryExpr: Expr{
             case TK("&"):   ctx->emit(OP_BITWISE_AND, BC_NOARG, line);  break;
             case TK("|"):   ctx->emit(OP_BITWISE_OR, BC_NOARG, line);  break;
             case TK("^"):   ctx->emit(OP_BITWISE_XOR, BC_NOARG, line);  break;
+
+            case TK("@"):   ctx->emit(OP_BINARY_MATMUL, BC_NOARG, line);  break;
             default: FATAL_ERROR();
         }
     }
