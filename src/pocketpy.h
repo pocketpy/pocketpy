@@ -1053,6 +1053,7 @@ inline void VM::post_init(){
         add_module_requests(this);
     }
 
+    PyVec2::register_class(this, builtins);
     PyMat3x3::register_class(this, builtins);
 #endif
 }
