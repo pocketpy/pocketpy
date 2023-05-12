@@ -65,6 +65,9 @@ if sys.platform == 'linux':
 
 print("amalgamated/pocketpy.h")
 
+shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
+shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
+
 # my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
