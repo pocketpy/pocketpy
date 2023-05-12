@@ -581,13 +581,13 @@ struct PyMat3x3: Mat3x3{
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
             return VAR(self == other);
         });
 
         vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
             return VAR(self != other);
         });
 
