@@ -326,7 +326,7 @@ PyObject* py_var(VM*, const PyMat3x3&);
         });
 
 #define BIND_VEC_FIELD(D, name)  \
-        type->attr().set("x", vm->property([](VM* vm, ArgsView args){       \
+        type->attr().set(#name, vm->property([](VM* vm, ArgsView args){     \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
             return VAR(self.name);                                          \
         }, [](VM* vm, ArgsView args){                                       \
