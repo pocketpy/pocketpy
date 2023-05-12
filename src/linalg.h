@@ -706,4 +706,6 @@ inline void add_module_linalg(VM* vm){
     PyMat3x3::register_class(vm, linalg);
 }
 
+static_assert(sizeof(Py_<PyMat3x3>) <= 64);
+
 }   // namespace pkpy
