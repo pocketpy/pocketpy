@@ -694,4 +694,11 @@ inline PyObject* py_var(VM* vm, const PyVec3& obj){ return VAR_T(PyVec3, obj);}
 inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(PyMat3x3, obj); }
 inline PyObject* py_var(VM* vm, const PyMat3x3& obj){ return VAR_T(PyMat3x3, obj); }
 
+inline void add_module_linalg(VM* vm){
+    PyObject* linalg = vm->new_module("linalg");
+    PyVec2::register_class(vm, linalg);
+    PyVec3::register_class(vm, linalg);
+    PyMat3x3::register_class(vm, linalg);
+}
+
 }   // namespace pkpy

@@ -1053,9 +1053,7 @@ inline void VM::post_init(){
         add_module_requests(this);
     }
 
-    PyObject* linalg = new_module("linalg");
-    PyVec2::register_class(this, linalg);
-    PyMat3x3::register_class(this, linalg);
+    add_module_linalg(this);
 #endif
 }
 
