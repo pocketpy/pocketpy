@@ -13,7 +13,7 @@ namespace pkpy {
     }                                                                       \
     static void _check_type(VM* vm, PyObject* val){                          \
         if(!vm->isinstance(val, T::_type(vm))){                             \
-            vm->TypeError("expected '" #mod "." #name "', got " + OBJ_NAME(val).escape());  \
+            vm->TypeError("expected '" #mod "." #name "', got " + OBJ_NAME(vm->_t(val)).escape());  \
         }                                                                   \
     }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod) {                \
