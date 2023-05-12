@@ -562,17 +562,22 @@ struct PyMat3x3: Mat3x3{
             return VAR_T(PyMat3x3, self / other);
         });
 
-        vm->bind_method<1>(type, "__matmul__", [](VM* vm, ArgsView args){
+        auto f_mm = [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR_T(PyMat3x3, self.matmul(other));
-        });
+            if(is_non_tagged_type(args[1], PyMat3x3::_type(vm))){
+                PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+                return VAR_T(PyMat3x3, self.matmul(other));
+            }
+            if(is_non_tagged_type(args[1], PyVec3::_type(vm))){
+                PyVec3& other = _CAST(PyVec3&, args[1]);
+                return VAR_T(PyVec3, self.matmul(other));
+            }
+            vm->TypeError("unsupported operand type(s) for @");
+            return vm->None;
+        };
 
-        vm->bind_method<1>(type, "matmul", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR_T(PyMat3x3, self.matmul(other));
-        });
+        vm->bind_method<1>(type, "__matmul__", f_mm);
+        vm->bind_method<1>(type, "matmul", f_mm);
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
