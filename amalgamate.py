@@ -9,7 +9,7 @@ pipeline = [
 	["common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
 	["obj.h", "codeobject.h", "frame.h"],
 	["gc.h", "vm.h", "ceval.h", "expr.h", "compiler.h", "repl.h"],
-	["_generated.h", "iter.h", "base64.h", "cffi.h", "linalg.h", "requests.h", "io.h", "pocketpy.h"]
+	["_generated.h", "iter.h", "base64.h", "cffi.h", "linalg.h", "easing.h", "requests.h", "io.h", "pocketpy.h"]
 ]
 
 copied = set()
@@ -68,6 +68,7 @@ print("amalgamated/pocketpy.h")
 # my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
+	shutil.copy("src/easing.pyi", "/mnt/e/PainterEngine/game/easing.pyi")
 	shutil.copy("src/linalg.pyi", "/mnt/e/PainterEngine/game/linalg.pyi")
 
 

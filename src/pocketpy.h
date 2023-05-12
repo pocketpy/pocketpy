@@ -8,6 +8,7 @@
 #include "base64.h"
 #include "cffi.h"
 #include "linalg.h"
+#include "easing.h"
 #include "requests.h"
 #include "io.h"
 #include "_generated.h"
@@ -1054,6 +1055,7 @@ inline void VM::post_init(){
     }
 
     add_module_linalg(this);
+    add_module_easing(this);
 #endif
 }
 
