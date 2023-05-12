@@ -113,6 +113,7 @@ static_assert(std::numeric_limits<f64>::is_iec559);
 struct Dummy { };
 struct DummyInstance { };
 struct DummyModule { };
+struct NoReturn { };
 struct Discarded { };
 
 struct Type {

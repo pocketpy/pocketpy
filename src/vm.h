@@ -536,6 +536,9 @@ inline PyObject* py_var(VM* vm, std::string_view val){
     return VAR(Str(val));
 }
 
+inline PyObject* py_var(VM* vm, NoReturn val){
+    return vm->None;
+}
 
 inline PyObject* VM::num_negated(PyObject* obj){
     if (is_int(obj)){

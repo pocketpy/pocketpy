@@ -63,18 +63,11 @@ if sys.platform == 'linux':
 		print("Test build success!")
 		os.remove("pocketpy")
 
-# plugins sync
-shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
-shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
+print("amalgamated/pocketpy.h")
 
-if os.path.exists("plugins/unity/PocketPyUnityPlugin"):
-	unity_ios_header = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPy/Plugins/iOS/pocketpy.h'
-	shutil.copy("amalgamated/pocketpy.h", unity_ios_header)
-
-if os.path.exists("plugins/godot/godot-cpp/pocketpy"):
-	shutil.copy("amalgamated/pocketpy.h", "plugins/godot/godot-cpp/pocketpy/src/pocketpy.h")
-
+# my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
+	shutil.copy("src/linalg.pyi", "/mnt/e/PainterEngine/game/linalg.pyi")
 
-print("amalgamated/pocketpy.h")
+

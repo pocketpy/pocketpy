@@ -5,7 +5,7 @@
 
 namespace pkpy{
 
-static constexpr float kEpsilon = 1e-5f;
+static constexpr float kEpsilon = 1e-4f;
 inline static bool isclose(float a, float b){ return fabsf(a - b) < kEpsilon; }
 
 struct Vec2{
@@ -29,8 +29,33 @@ struct Vec2{
     float cross(const Vec2& v) const { return x * v.y - y * v.x; }
     float length() const { return sqrtf(x * x + y * y); }
     float length_squared() const { return x * x + y * y; }
-    void normalize() { float l = length(); x /= l; y /= l; }
+    NoReturn normalize() { float l = length(); x /= l; y /= l; return {}; }
     Vec2 normalized() const { float l = length(); return Vec2(x / l, y / l); }
+};
+
+struct Vec3{
+    float x, y, z;
+    Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
+    Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+    Vec3(const Vec3& v) : x(v.x), y(v.y), z(v.z) {}
+
+    Vec3 operator+(const Vec3& v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
+    Vec3& operator+=(const Vec3& v) { x += v.x; y += v.y; z += v.z; return *this; }
+    Vec3 operator-(const Vec3& v) const { return Vec3(x - v.x, y - v.y, z - v.z); }
+    Vec3& operator-=(const Vec3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+    Vec3 operator*(float s) const { return Vec3(x * s, y * s, z * s); }
+    Vec3& operator*=(float s) { x *= s; y *= s; z *= s; return *this; }
+    Vec3 operator/(float s) const { return Vec3(x / s, y / s, z / s); }
+    Vec3& operator/=(float s) { x /= s; y /= s; z /= s; return *this; }
+    Vec3 operator-() const { return Vec3(-x, -y, -z); }
+    bool operator==(const Vec3& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z); }
+    bool operator!=(const Vec3& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z); }
+    float dot(const Vec3& v) const { return x * v.x + y * v.y + z * v.z; }
+    Vec3 cross(const Vec3& v) const { return Vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
+    float length() const { return sqrtf(x * x + y * y + z * z); }
+    float length_squared() const { return x * x + y * y + z * z; }
+    NoReturn normalize() { float l = length(); x /= l; y /= l; z /= l; return {}; }
+    Vec3 normalized() const { float l = length(); return Vec3(x / l, y / l, z / l); }
 };
 
 struct Mat3x3{    
@@ -129,6 +154,14 @@ struct Mat3x3{
         return ret;
     }
 
+    Vec3 matmul(const Vec3& other) const{
+        Vec3 ret;
+        ret.x = _11 * other.x + _12 * other.y + _13 * other.z;
+        ret.y = _21 * other.x + _22 * other.y + _23 * other.z;
+        ret.z = _31 * other.x + _32 * other.y + _33 * other.z;
+        return ret;
+    }
+
     bool operator==(const Mat3x3& other) const{
         for (int i=0; i<9; ++i){
             if (!isclose(v[i], other.v[i])) return false;
@@ -201,12 +234,6 @@ struct Mat3x3{
                       0.0f,       0.0f,       1.0f);
     }
 
-    static Mat3x3 ortho(float left, float right, float bottom, float top){
-        return Mat3x3(2.0f / (right - left),  0.0f,                       -(right + left) / (right - left),
-                      0.0f,                   2.0f / (top - bottom),      -(top + bottom) / (top - bottom),
-                      0.0f,                   0.0f,                       1.0f);
-    }
-
     bool is_affine() const{
         float det = _11 * _22 - _12 * _21;
         if(fabsf(det) < kEpsilon) return false;
@@ -261,11 +288,57 @@ struct Mat3x3{
     }
 };
 
+struct PyVec2;
+struct PyVec3;
+struct PyMat3x3;
+PyObject* py_var(VM*, Vec2);
+PyObject* py_var(VM*, const PyVec2&);
+PyObject* py_var(VM*, Vec3);
+PyObject* py_var(VM*, const PyVec3&);
+PyObject* py_var(VM*, const Mat3x3&);
+PyObject* py_var(VM*, const PyMat3x3&);
+
+#define BIND_VEC_VEC_OP(D, name, op)                                        \
+        vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            PyVec##D& other = CAST(PyVec##D&, args[1]);                     \
+            return VAR(self op other);                                      \
+        });
+
+#define BIND_VEC_FLOAT_OP(D, name, op)  \
+        vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            f64 other = vm->num_to_float(args[1]);                          \
+            return VAR(self op other);                                      \
+        });
+
+#define BIND_VEC_FUNCTION_0(D, name)        \
+        vm->bind_method<0>(type, #name, [](VM* vm, ArgsView args){          \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            return VAR(self.name());                                        \
+        });
+
+#define BIND_VEC_FUNCTION_1(D, name)        \
+        vm->bind_method<0>(type, #name, [](VM* vm, ArgsView args){          \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            PyVec##D& other = CAST(PyVec##D&, args[1]);                     \
+            return VAR(self.name(other));                                   \
+        });
+
+#define BIND_VEC_FIELD(D, name)  \
+        type->attr().set("x", vm->property([](VM* vm, ArgsView args){       \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            return VAR(self.name);                                          \
+        }, [](VM* vm, ArgsView args){                                       \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            self.name = vm->num_to_float(args[1]);                          \
+            return vm->None;                                                \
+        }));
+
 struct PyVec2: Vec2 {
     PY_CLASS(PyVec2, linalg, vec2)
 
     PyVec2() : Vec2() {}
-    PyVec2(float x, float y) : Vec2(x, y) {}
     PyVec2(const Vec2& v) : Vec2(v) {}
     PyVec2(const PyVec2& v) : Vec2(v) {}
 
@@ -273,7 +346,7 @@ struct PyVec2: Vec2 {
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
             float x = vm->num_to_float(args[1]);
             float y = vm->num_to_float(args[2]);
-            return VAR_T(PyVec2, x, y);
+            return VAR(Vec2(x, y));
         });
 
         vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
@@ -288,92 +361,65 @@ struct PyVec2: Vec2 {
             return VAR_T(PyVec2, self);
         });
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR_T(PyVec2, self + other);
+        BIND_VEC_VEC_OP(2, __add__, +)
+        BIND_VEC_VEC_OP(2, __sub__, -)
+        BIND_VEC_FLOAT_OP(2, __mul__, *)
+        BIND_VEC_FLOAT_OP(2, __truediv__, /)
+        BIND_VEC_VEC_OP(2, __eq__, ==)
+        BIND_VEC_VEC_OP(2, __ne__, !=)
+        BIND_VEC_FIELD(2, x)
+        BIND_VEC_FIELD(2, y)
+        BIND_VEC_FUNCTION_1(2, dot)
+        BIND_VEC_FUNCTION_1(2, cross)
+        BIND_VEC_FUNCTION_0(2, length)
+        BIND_VEC_FUNCTION_0(2, length_squared)
+        BIND_VEC_FUNCTION_0(2, normalize)
+        BIND_VEC_FUNCTION_0(2, normalized)
+    }
+};
+
+struct PyVec3: Vec3 {
+    PY_CLASS(PyVec3, linalg, vec3)
+
+    PyVec3() : Vec3() {}
+    PyVec3(const Vec3& v) : Vec3(v) {}
+    PyVec3(const PyVec3& v) : Vec3(v) {}
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_constructor<4>(type, [](VM* vm, ArgsView args){
+            float x = vm->num_to_float(args[1]);
+            float y = vm->num_to_float(args[2]);
+            float z = vm->num_to_float(args[3]);
+            return VAR(Vec3(x, y, z));
         });
 
-        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR_T(PyVec2, self - other);
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
+            PyVec3& self = _CAST(PyVec3&, args[0]);
+            std::stringstream ss;
+            ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
+            return VAR(ss.str());
         });
 
-        vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            f64 other = vm->num_to_float(args[1]);
-            return VAR_T(PyVec2, self * other);
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+            PyVec3& self = _CAST(PyVec3&, args[0]);
+            return VAR_T(PyVec3, self);
         });
 
-        vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            f64 other = vm->num_to_float(args[1]);
-            return VAR_T(PyVec2, self / other);
-        });
-
-        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR(self == other);
-        });
-
-        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR(self != other);
-        });
-
-        type->attr().set("x", vm->property([](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR(self.x);
-        }, [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            self.x = vm->num_to_float(args[1]);
-            return vm->None;
-        }));
-
-        type->attr().set("y", vm->property([](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR(self.y);
-        }, [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            self.y = vm->num_to_float(args[1]);
-            return vm->None;
-        }));
-
-        vm->bind_method<1>(type, "dot", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR(self.dot(other));
-        });
-
-        vm->bind_method<1>(type, "cross", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR(self.cross(other));
-        });
-
-        vm->bind_method<0>(type, "length", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR(self.length());
-        });
-
-        vm->bind_method<0>(type, "length_squared", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR(self.length_squared());
-        });
-
-        vm->bind_method<0>(type, "normalize", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            self.normalize();
-            return vm->None;
-        });
-
-        vm->bind_method<0>(type, "normalized", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR_T(PyVec2, self.normalized());
-        });
+        BIND_VEC_VEC_OP(3, __add__, +)
+        BIND_VEC_VEC_OP(3, __sub__, -)
+        BIND_VEC_FLOAT_OP(3, __mul__, *)
+        BIND_VEC_FLOAT_OP(3, __truediv__, /)
+        BIND_VEC_VEC_OP(3, __eq__, ==)
+        BIND_VEC_VEC_OP(3, __ne__, !=)
+        BIND_VEC_FIELD(3, x)
+        BIND_VEC_FIELD(3, y)
+        BIND_VEC_FIELD(3, z)
+        BIND_VEC_FUNCTION_1(3, dot)
+        BIND_VEC_FUNCTION_1(3, cross)
+        BIND_VEC_FUNCTION_0(3, length)
+        BIND_VEC_FUNCTION_0(3, length_squared)
+        BIND_VEC_FUNCTION_0(3, normalize)
+        BIND_VEC_FUNCTION_0(3, normalized)
     }
 };
 
@@ -523,8 +569,8 @@ struct PyMat3x3: Mat3x3{
         });
 
         vm->bind_method<1>(type, "matmul", [](VM* vm, ArgsView args){
-            PyMat3x3& other = CAST(PyMat3x3&, args[0]);
-            PyMat3x3& self = _CAST(PyMat3x3&, args[1]);
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
             return VAR_T(PyMat3x3, self.matmul(other));
         });
 
@@ -536,7 +582,7 @@ struct PyMat3x3: Mat3x3{
 
         vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
+            PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
             return VAR(self != other);
         });
 
@@ -593,14 +639,6 @@ struct PyMat3x3: Mat3x3{
             return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
         });
 
-        vm->bind_func<4>(type, "ortho", [](VM* vm, ArgsView args){
-            f64 left = vm->num_to_float(args[0]);
-            f64 right = vm->num_to_float(args[1]);
-            f64 bottom = vm->num_to_float(args[2]);
-            f64 top = vm->num_to_float(args[3]);
-            return VAR_T(PyMat3x3, Mat3x3::ortho(left, right, bottom, top));
-        });
-
         vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             return VAR(self.is_affine());
@@ -646,5 +684,14 @@ struct PyMat3x3: Mat3x3{
         });
     }
 };
+
+inline PyObject* py_var(VM* vm, Vec2 obj){ return VAR_T(PyVec2, obj); }
+inline PyObject* py_var(VM* vm, const PyVec2& obj){ return VAR_T(PyVec2, obj);}
+
+inline PyObject* py_var(VM* vm, Vec3 obj){ return VAR_T(PyVec3, obj); }
+inline PyObject* py_var(VM* vm, const PyVec3& obj){ return VAR_T(PyVec3, obj);}
+
+inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(PyMat3x3, obj); }
+inline PyObject* py_var(VM* vm, const PyMat3x3& obj){ return VAR_T(PyMat3x3, obj); }
 
 }   // namespace pkpy
