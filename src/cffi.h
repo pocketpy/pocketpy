@@ -116,6 +116,12 @@ std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM
 /*****************************************************************/
 struct NativeProxyFuncCBase {
     virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
+
+    static void check_args_size(VM* vm, ArgsView args, int n){
+        if (args.size() != n){
+            vm->TypeError("expected " + std::to_string(n) + " arguments, but got " + std::to_string(args.size()));
+        }
+    }
 };
 
 template<typename Ret, typename... Params>
@@ -126,9 +132,7 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
     NativeProxyFuncC(_Fp func) : func(func) {}
 
     PyObject* operator()(VM* vm, ArgsView args) override {
-        if (args.size() != N){
-            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
-        }
+        check_args_size(vm, args, N);
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
