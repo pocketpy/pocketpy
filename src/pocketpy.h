@@ -468,6 +468,16 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
+    _vm->bind_method<0>("str", "to_char_array", [](VM* vm, ArgsView args){
+        const Str& self = _CAST(Str&, args[0]);
+        return VAR(self.c_str_dup());
+    });
+
+    _vm->bind_func<1>("str", "from_char_array", [](VM* vm, ArgsView args){
+        char* p = CAST(char*, args[0]);
+        return VAR(Str(p));
+    });
+
     /************ PyList ************/
     _vm->bind_constructor<2>("list", [](VM* vm, ArgsView args) {
         return vm->asList(args[1]);

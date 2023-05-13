@@ -72,6 +72,7 @@ struct PlainOldData{
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
     VoidP::register_class(vm, mod);
+    PlainOldData::register_class(vm, mod);
 }
 
 inline PyObject* py_var(VM* vm, void* p){
@@ -97,18 +98,22 @@ T to_plain_old_data(VM* vm, PyObject* var){
 }
 
 template<typename T>
-std::enable_if_t<std::is_pod_v<T>, PyObject*> py_var(VM* vm, const T& data){
+std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
     return VAR_T(PlainOldData, data);
 }
 /*****************************************************************/
+struct NativeProxyFuncCBase {
+    virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
+};
+
 template<typename Ret, typename... Params>
-struct NativeProxyFuncC {
+struct NativeProxyFuncC final: NativeProxyFuncCBase {
     static constexpr int N = sizeof...(Params);
     using _Fp = Ret(*)(Params...);
     _Fp func;
     NativeProxyFuncC(_Fp func) : func(func) {}
 
-    PyObject* operator()(VM* vm, ArgsView args) {
+    PyObject* operator()(VM* vm, ArgsView args) override {
         if (args.size() != N) {
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
         }
@@ -128,4 +133,17 @@ struct NativeProxyFuncC {
     }
 };
 
+template<int ARGC, typename T>
+inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
+    static_assert(std::is_pod_v<T>);
+    static_assert(std::is_pointer_v<T>);
+    static const StrName m_proxy("__proxy__");
+    static const auto wrapper = [](VM* vm, ArgsView args){
+        NativeProxyFuncCBase* pf = CAST(NativeProxyFuncCBase*, args[-2]->attr(m_proxy));
+        return (*pf)(vm, args);
+    };
+    PyObject* func = VAR(NativeFunc(wrapper, ARGC, false));
+    func->attr().set(m_proxy, VAR_T(VoidP, new NativeProxyFuncC(fp)));
+    obj->attr().set(name, func);
+}
 }   // namespace pkpy
