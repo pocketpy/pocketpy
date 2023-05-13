@@ -72,6 +72,11 @@ struct PlainOldData{
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
 
+    vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
+        i64 size = CAST(i64, args[0]);
+        return VAR(malloc(size));
+    });
+
     vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
         free(p);
@@ -121,36 +126,36 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
     NativeProxyFuncC(_Fp func) : func(func) {}
 
     PyObject* operator()(VM* vm, ArgsView args) override {
-        if (args.size() != N) {
+        if (args.size() != N){
             vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
         }
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
     template<typename __Ret, size_t... Is>
-    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        func(py_cast<Params>(vm, args[Is])...);
-        return vm->None;
-    }
-
-    template<typename __Ret, size_t... Is>
-    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
-        __Ret ret = func(py_cast<Params>(vm, args[Is])...);
-        return VAR(std::move(ret));
+    PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
+        if constexpr(std::is_void_v<__Ret>){
+            func(py_cast<Params>(vm, args[Is])...);
+            return vm->None;
+        }else{
+            __Ret ret = func(py_cast<Params>(vm, args[Is])...);
+            return VAR(std::move(ret));
+        }
     }
 };
+
+inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
+    static const StrName m_proxy("__proxy__");
+    NativeProxyFuncCBase* pf = CAST(NativeProxyFuncCBase*, args[-2]->attr(m_proxy));
+    return (*pf)(vm, args);
+}
 
 template<int ARGC, typename T>
 inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     static_assert(std::is_pod_v<T>);
     static_assert(std::is_pointer_v<T>);
-    static const StrName m_proxy("__proxy__");
-    static const auto wrapper = [](VM* vm, ArgsView args){
-        NativeProxyFuncCBase* pf = CAST(NativeProxyFuncCBase*, args[-2]->attr(m_proxy));
-        return (*pf)(vm, args);
-    };
-    PyObject* func = VAR(NativeFunc(wrapper, ARGC, false));
-    func->attr().set(m_proxy, VAR_T(VoidP, new NativeProxyFuncC(fp)));
+    PyObject* func = VAR(NativeFunc(_any_c_wrapper, ARGC, false));
+    func->attr().set("__proxy__", VAR_T(VoidP, new NativeProxyFuncC(fp)));
     obj->attr().set(name, func);
 }
 }   // namespace pkpy
