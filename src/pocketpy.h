@@ -468,12 +468,12 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind_method<0>("str", "to_char_array", [](VM* vm, ArgsView args){
+    _vm->bind_method<0>("str", "to_c_str", [](VM* vm, ArgsView args){
         const Str& self = _CAST(Str&, args[0]);
         return VAR(self.c_str_dup());
     });
 
-    _vm->bind_func<1>("str", "from_char_array", [](VM* vm, ArgsView args){
+    _vm->bind_func<1>("str", "from_c_str", [](VM* vm, ArgsView args){
         char* p = CAST(char*, args[0]);
         return VAR(Str(p));
     });
