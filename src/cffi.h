@@ -150,12 +150,13 @@ inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
     return (*pf)(vm, args);
 }
 
-template<int ARGC, typename T>
+template<typename T>
 inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     static_assert(std::is_pod_v<T>);
     static_assert(std::is_pointer_v<T>);
-    PyObject* func = VAR(NativeFunc(_any_c_wrapper, ARGC, false));
-    func->attr().set("__proxy__", VAR_T(VoidP, new NativeProxyFuncC(fp)));
+    auto proxy = new NativeProxyFuncC(fp);
+    PyObject* func = VAR(NativeFunc(_any_c_wrapper, proxy->N, false));
+    func->attr().set("__proxy__", VAR_T(VoidP, proxy));
     obj->attr().set(name, func);
 }
 }   // namespace pkpy
