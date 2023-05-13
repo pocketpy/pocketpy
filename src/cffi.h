@@ -71,6 +71,13 @@ struct PlainOldData{
 
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
+
+    vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args){
+        void* p = CAST(void*, args[0]);
+        free(p);
+        return vm->None;
+    });
+
     VoidP::register_class(vm, mod);
     PlainOldData::register_class(vm, mod);
 }
