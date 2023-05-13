@@ -29,13 +29,36 @@ namespace pkpy {
 
 #define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
 
+inline static int c99_sizeof(VM* vm, const Str& type){
+    static const std::map<Str, i64> c99_sizes = {
+        {"char", sizeof(char)},
+        {"uchar", sizeof(unsigned char)},
+        {"short", sizeof(short)},
+        {"ushort", sizeof(unsigned short)},
+        {"int", sizeof(int)},
+        {"uint", sizeof(unsigned int)},
+        {"long", sizeof(long)},
+        {"ulong", sizeof(unsigned long)},
+        {"longlong", sizeof(long long)},
+        {"ulonglong", sizeof(unsigned long long)},
+        {"float", sizeof(float)},
+        {"double", sizeof(double)},
+        {"bool", sizeof(bool)},
+        {"void_p", sizeof(void*)}
+    };
+    auto it = c99_sizes.find(type);
+    if(it != c99_sizes.end()) return it->second;
+    vm->ValueError("not a valid c99 type");
+    return 0;
+}
 
 struct VoidP{
     PY_CLASS(VoidP, c, void_p)
 
     void* ptr;
-    VoidP(void* ptr): ptr(ptr){}
-    VoidP(): ptr(nullptr){}
+    int base_offset;
+    VoidP(void* ptr): ptr(ptr), base_offset(1){}
+    VoidP(): ptr(nullptr), base_offset(1){}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_default_constructor<VoidP>(type);
@@ -43,31 +66,139 @@ struct VoidP{
         vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             std::stringstream ss;
-            ss << "<void* at " << self.ptr << ">";
+            ss << "<void* at " << self.ptr;
+            if(self.base_offset != 1) ss << ", base_offset=" << self.base_offset;
+            ss << ">";
             return VAR(ss.str());
+        });
+
+        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            VoidP& other = CAST(VoidP&, args[1]);
+            return VAR(self.ptr == other.ptr && self.base_offset == other.base_offset);
+        });
+
+        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            VoidP& other = CAST(VoidP&, args[1]);
+            return VAR(self.ptr != other.ptr || self.base_offset != other.base_offset);
+        });
+
+        vm->bind_method<1>(type, "set_base_offset", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            if(is_non_tagged_type(args[1], vm->tp_str)){
+                const Str& type = _CAST(Str&, args[1]);
+                self.base_offset = c99_sizeof(vm, type);
+            }else{
+                self.base_offset = CAST(int, args[1]);
+            }
+            return vm->None;
+        });
+
+        vm->bind_method<0>(type, "get_base_offset", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            return VAR(self.base_offset);
+        });
+
+        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            i64 offset = CAST(i64, args[1]);
+            return VAR_T(VoidP, (char*)self.ptr + offset * self.base_offset);
+        });
+
+        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            i64 offset = CAST(i64, args[1]);
+            return VAR_T(VoidP, (char*)self.ptr - offset * self.base_offset);
+        });
+
+#define BIND_SETGET(T, name) \
+        vm->bind_method<0>(type, name, [](VM* vm, ArgsView args){   \
+            VoidP& self = _CAST(VoidP&, args[0]);                   \
+            return VAR(*(T*)self.ptr);                              \
+        });                                                         \
+        vm->bind_method<1>(type, "set_" name, [](VM* vm, ArgsView args){   \
+            VoidP& self = _CAST(VoidP&, args[0]);                   \
+            *(T*)self.ptr = CAST(T, args[1]);                       \
+            return vm->None;                                        \
+        });
+
+        BIND_SETGET(char, "char")
+        BIND_SETGET(unsigned char, "uchar")
+        BIND_SETGET(short, "short")
+        BIND_SETGET(unsigned short, "ushort")
+        BIND_SETGET(int, "int")
+        BIND_SETGET(unsigned int, "uint")
+        BIND_SETGET(long, "long")
+        BIND_SETGET(unsigned long, "ulong")
+        BIND_SETGET(long long, "longlong")
+        BIND_SETGET(unsigned long long, "ulonglong")
+        BIND_SETGET(float, "float")
+        BIND_SETGET(double, "double")
+        BIND_SETGET(bool, "bool")
+
+        vm->bind_method<0>(type, "void_p", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            return VAR_T(VoidP, *(void**)self.ptr);
+        });
+        vm->bind_method<1>(type, "set_void_p", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            VoidP& other = CAST(VoidP&, args[0]);
+            self.ptr = other.ptr;
+            return vm->None;
         });
     }
 };
 
-struct PlainOldData{
-    PY_CLASS(PlainOldData, c, pod)
+struct Struct{
+    PY_CLASS(Struct, c, struct)
 
+    static constexpr int INLINE_SIZE = 32;
+
+    char _inlined[INLINE_SIZE];
     char* p;
 
     template<typename T>
-    PlainOldData(const T& data){
+    Struct(const T& data){
         static_assert(std::is_pod_v<T>);
-        p = new char[sizeof(T)];
-        memcpy(p, &data, sizeof(T));
+        if(sizeof(T) <= INLINE_SIZE){
+            memcpy(_inlined, &data, sizeof(T));
+            p = _inlined;
+        }else{
+            p = (char*)malloc(sizeof(T));
+            memcpy(p, &data, sizeof(T));
+        }
     }
 
-    PlainOldData(): p(nullptr){}
-    ~PlainOldData(){ delete[] p; }
+    Struct() { p = _inlined; }
+    ~Struct(){ if(p!=_inlined) free(p); }
+
+    Struct(const Struct& other){
+        if(other.p == other._inlined){
+            memcpy(_inlined, other._inlined, INLINE_SIZE);
+            p = _inlined;
+        }else{
+            p = (char*)malloc(sizeof(other));
+            memcpy(p, other.p, sizeof(other));
+        }
+    }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<PlainOldData>(type);
+        vm->bind_default_constructor<Struct>(type);
+
+        vm->bind_method<0>(type, "address", [](VM* vm, ArgsView args){
+            Struct& self = _CAST(Struct&, args[0]);
+            return VAR_T(VoidP, self.p);
+        });
+
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+            const Struct& self = _CAST(Struct&, args[0]);
+            return VAR_T(Struct, self);
+        });
     }
 };
+
+static_assert(sizeof(Py_<Struct>) <= 64);
 
 inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(VoidP, p);
@@ -87,13 +218,13 @@ T to_void_p(VM* vm, PyObject* var){
 template<typename T>
 T to_plain_old_data(VM* vm, PyObject* var){
     static_assert(std::is_pod_v<T>);
-    PlainOldData& pod = CAST(PlainOldData&, var);
+    Struct& pod = CAST(Struct&, var);
     return *reinterpret_cast<T*>(pod.p);
 }
 
 template<typename T>
 std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
-    return VAR_T(PlainOldData, data);
+    return VAR_T(Struct, data);
 }
 /*****************************************************************/
 struct NativeProxyFuncCBase {
@@ -148,7 +279,7 @@ inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
 
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
-
+    
     vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
         return VAR(malloc(size));
@@ -160,8 +291,15 @@ inline void add_module_c(VM* vm){
         return vm->None;
     });
 
+    vm->bind_func<1>(mod, "sizeof", [](VM* vm, ArgsView args){
+        const Str& type = CAST(Str&, args[0]);
+        i64 size = c99_sizeof(vm, type);
+        return VAR(size);
+    });
+
     VoidP::register_class(vm, mod);
-    PlainOldData::register_class(vm, mod);
+    Struct::register_class(vm, mod);
+    mod->attr().set("NULL", VAR_T(VoidP, nullptr));
 }
 
 }   // namespace pkpy
