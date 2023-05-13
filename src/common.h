@@ -29,7 +29,7 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"0.9.9"
+#define PK_VERSION				"1.0.0"
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES	0

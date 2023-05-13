@@ -49,6 +49,26 @@ struct VoidP{
     }
 };
 
+struct PlainOldData{
+    PY_CLASS(PlainOldData, c, pod)
+
+    char* p;
+
+    template<typename T>
+    PlainOldData(const T& data){
+        static_assert(std::is_pod_v<T>);
+        p = new char[sizeof(T)];
+        memcpy(p, &data, sizeof(T));
+    }
+
+    PlainOldData(): p(nullptr){}
+    ~PlainOldData(){ delete[] p; }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_default_constructor<PlainOldData>(type);
+    }
+};
+
 inline void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
     VoidP::register_class(vm, mod);
@@ -68,4 +88,44 @@ T to_void_p(VM* vm, PyObject* var){
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<T>(p.ptr);
 }
+
+template<typename T>
+T to_plain_old_data(VM* vm, PyObject* var){
+    static_assert(std::is_pod_v<T>);
+    PlainOldData& pod = CAST(PlainOldData&, var);
+    return *reinterpret_cast<T*>(pod.p);
+}
+
+template<typename T>
+std::enable_if_t<std::is_pod_v<T>, PyObject*> py_var(VM* vm, const T& data){
+    return VAR_T(PlainOldData, data);
+}
+/*****************************************************************/
+template<typename Ret, typename... Params>
+struct NativeProxyFuncC {
+    static constexpr int N = sizeof...(Params);
+    using _Fp = Ret(*)(Params...);
+    _Fp func;
+    NativeProxyFuncC(_Fp func) : func(func) {}
+
+    PyObject* operator()(VM* vm, ArgsView args) {
+        if (args.size() != N) {
+            vm->TypeError("expected " + std::to_string(N) + " arguments, but got " + std::to_string(args.size()));
+        }
+        return call<Ret>(vm, args, std::make_index_sequence<N>());
+    }
+
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+        func(py_cast<Params>(vm, args[Is])...);
+        return vm->None;
+    }
+
+    template<typename __Ret, size_t... Is>
+    std::enable_if_t<!std::is_void_v<__Ret>, PyObject*> call(VM* vm, ArgsView args, std::index_sequence<Is...>) {
+        __Ret ret = func(py_cast<Params>(vm, args[Is])...);
+        return VAR(std::move(ret));
+    }
+};
+
 }   // namespace pkpy
