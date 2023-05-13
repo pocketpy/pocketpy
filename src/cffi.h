@@ -69,24 +69,6 @@ struct PlainOldData{
     }
 };
 
-inline void add_module_c(VM* vm){
-    PyObject* mod = vm->new_module("c");
-
-    vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
-        i64 size = CAST(i64, args[0]);
-        return VAR(malloc(size));
-    });
-
-    vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args){
-        void* p = CAST(void*, args[0]);
-        free(p);
-        return vm->None;
-    });
-
-    VoidP::register_class(vm, mod);
-    PlainOldData::register_class(vm, mod);
-}
-
 inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(VoidP, p);
 }
@@ -163,4 +145,23 @@ inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     func->attr().set("__proxy__", VAR_T(VoidP, proxy));
     obj->attr().set(name, func);
 }
+
+inline void add_module_c(VM* vm){
+    PyObject* mod = vm->new_module("c");
+
+    vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
+        i64 size = CAST(i64, args[0]);
+        return VAR(malloc(size));
+    });
+
+    vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args){
+        void* p = CAST(void*, args[0]);
+        free(p);
+        return vm->None;
+    });
+
+    VoidP::register_class(vm, mod);
+    PlainOldData::register_class(vm, mod);
+}
+
 }   // namespace pkpy
