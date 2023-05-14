@@ -29,28 +29,7 @@ namespace pkpy {
 
 #define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
 
-inline static int c99_sizeof(VM* vm, const Str& type){
-    static const std::map<Str, i64> c99_sizes = {
-        {"char", sizeof(char)},
-        {"uchar", sizeof(unsigned char)},
-        {"short", sizeof(short)},
-        {"ushort", sizeof(unsigned short)},
-        {"int", sizeof(int)},
-        {"uint", sizeof(unsigned int)},
-        {"long", sizeof(long)},
-        {"ulong", sizeof(unsigned long)},
-        {"longlong", sizeof(long long)},
-        {"ulonglong", sizeof(unsigned long long)},
-        {"float", sizeof(float)},
-        {"double", sizeof(double)},
-        {"bool", sizeof(bool)},
-        {"void_p", sizeof(void*)}
-    };
-    auto it = c99_sizes.find(type);
-    if(it != c99_sizes.end()) return it->second;
-    vm->ValueError("not a valid c99 type");
-    return 0;
-}
+static int c99_sizeof(VM*, const Str&);
 
 struct VoidP{
     PY_CLASS(VoidP, c, void_p)
@@ -168,20 +147,22 @@ struct VoidP{
 struct C99Struct{
     PY_CLASS(C99Struct, c, struct)
 
-    static constexpr int INLINE_SIZE = 32;
+    static constexpr int INLINE_SIZE = 24;
 
     char _inlined[INLINE_SIZE];
     char* p;
+    int size;
 
     template<typename T>
     C99Struct(const T& data){
         static_assert(std::is_pod_v<T>);
+        this->size = sizeof(T);
         if(sizeof(T) <= INLINE_SIZE){
-            memcpy(_inlined, &data, sizeof(T));
+            memcpy(_inlined, &data, size);
             p = _inlined;
         }else{
-            p = (char*)malloc(sizeof(T));
-            memcpy(p, &data, sizeof(T));
+            p = (char*)malloc(size);
+            memcpy(p, &data, size);
         }
     }
 
@@ -189,12 +170,13 @@ struct C99Struct{
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
     C99Struct(const C99Struct& other){
+        this->size = other.size;
         if(other.p == other._inlined){
             memcpy(_inlined, other._inlined, INLINE_SIZE);
             p = _inlined;
         }else{
-            p = (char*)malloc(sizeof(other));
-            memcpy(p, other.p, sizeof(other));
+            p = (char*)malloc(other.size);
+            memcpy(p, other.p, other.size);
         }
     }
 
@@ -206,25 +188,29 @@ struct C99Struct{
             return VAR_T(VoidP, self.p);
         });
 
+        vm->bind_method<0>(type, "size", [](VM* vm, ArgsView args){
+            C99Struct& self = _CAST(C99Struct&, args[0]);
+            return VAR(self.size);
+        });
+
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
             const C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR_T(C99Struct, self);
         });
 
-        // patch void_p
         // type = vm->_t(VoidP::_type(vm));
 
         // vm->bind_method<1>(type, "read_struct", [](VM* vm, ArgsView args){
         //     VoidP& self = _CAST(VoidP&, args[0]);
-        //     Str& type = CAST(Str&, args[1]);
+        //     const Str& type = CAST(Str&, args[1]);
+        //     int size = c99_sizeof(vm, type);
         //     return VAR_T(C99Struct)
         // });
 
         // vm->bind_method<1>(type, "write_struct", [](VM* vm, ArgsView args){
         //     VoidP& self = _CAST(VoidP&, args[0]);
-        //     Str& type = CAST(Str&, args[1]);
-        //     VoidP& other = CAST(VoidP&, args[2]);
-        //     c99_write_struct(vm, type, self.ptr, other.ptr);
+        //     C99Struct& other = CAST(C99Struct&, args[1]);
+        //     memcpy(self.ptr, other.p, other.size);
         //     return vm->None;
         // });
     }
@@ -242,9 +228,33 @@ struct ReflType{
 };
 inline static std::map<std::string_view, ReflType> _refl_types;
 
-template<typename T>
-inline void add_refl_type(std::string_view name, std::initializer_list<ReflField> fields){
-    _refl_types[name] = {name, sizeof(T), fields};
+inline void add_refl_type(std::string_view name, size_t size, std::initializer_list<ReflField> fields){
+    _refl_types[name] = {name, size, fields};
+}
+
+inline static int c99_sizeof(VM* vm, const Str& type){
+    static const std::map<std::string_view, i64> c99_sizes = {
+        {"char", sizeof(char)},
+        {"uchar", sizeof(unsigned char)},
+        {"short", sizeof(short)},
+        {"ushort", sizeof(unsigned short)},
+        {"int", sizeof(int)},
+        {"uint", sizeof(unsigned int)},
+        {"long", sizeof(long)},
+        {"ulong", sizeof(unsigned long)},
+        {"longlong", sizeof(long long)},
+        {"ulonglong", sizeof(unsigned long long)},
+        {"float", sizeof(float)},
+        {"double", sizeof(double)},
+        {"bool", sizeof(bool)},
+        {"void_p", sizeof(void*)}
+    };
+    auto it = c99_sizes.find(type.sv());
+    if(it != c99_sizes.end()) return it->second;
+    auto it2 = _refl_types.find(type.sv());
+    if(it2 != _refl_types.end()) return it2->second.size;
+    vm->ValueError("not a valid c99 type");
+    return 0;
 }
 
 struct C99ReflType{
@@ -278,7 +288,7 @@ T to_void_p(VM* vm, PyObject* var){
 }
 
 template<typename T>
-T to_plain_old_data(VM* vm, PyObject* var){
+T to_c99_struct(VM* vm, PyObject* var){
     static_assert(std::is_pod_v<T>);
     C99Struct& pod = CAST(C99Struct&, var);
     return *reinterpret_cast<T*>(pod.p);
@@ -366,8 +376,6 @@ inline void add_module_c(VM* vm){
         const ReflType& rt = it->second;
         PyObject* obj = VAR_T(C99ReflType);
         obj->enable_instance_dict();
-        obj->attr().set("__name__", VAR(rt.name));
-        obj->attr().set("__size__", VAR(rt.size));
         for(auto [k,v]: rt.fields) obj->attr().set(StrName::get(k), VAR(v));
         return obj;
     });
