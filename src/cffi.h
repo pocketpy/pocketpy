@@ -113,11 +113,11 @@ struct VoidP{
         });
 
 #define BIND_SETGET(T, name) \
-        vm->bind_method<0>(type, name, [](VM* vm, ArgsView args){   \
+        vm->bind_method<0>(type, "read_" name, [](VM* vm, ArgsView args){   \
             VoidP& self = _CAST(VoidP&, args[0]);                   \
             return VAR(*(T*)self.ptr);                              \
         });                                                         \
-        vm->bind_method<1>(type, "set_" name, [](VM* vm, ArgsView args){   \
+        vm->bind_method<1>(type, "write_" name, [](VM* vm, ArgsView args){   \
             VoidP& self = _CAST(VoidP&, args[0]);                   \
             *(T*)self.ptr = CAST(T, args[1]);                       \
             return vm->None;                                        \
@@ -137,21 +137,36 @@ struct VoidP{
         BIND_SETGET(double, "double")
         BIND_SETGET(bool, "bool")
 
-        vm->bind_method<0>(type, "void_p", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "read_void_p", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             return VAR_T(VoidP, *(void**)self.ptr);
         });
-        vm->bind_method<1>(type, "set_void_p", [](VM* vm, ArgsView args){
+        vm->bind_method<1>(type, "write_void_p", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             VoidP& other = CAST(VoidP&, args[0]);
             self.ptr = other.ptr;
             return vm->None;
         });
+
+        vm->bind_method<1>(type, "read_bytes", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            i64 size = CAST(i64, args[1]);
+            std::vector<char> buffer(size);
+            memcpy(buffer.data(), self.ptr, size);
+            return VAR(Bytes(std::move(buffer)));
+        });
+
+        vm->bind_method<1>(type, "write_bytes", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            Bytes& bytes = CAST(Bytes&, args[1]);
+            memcpy(self.ptr, bytes.data(), bytes.size());
+            return vm->None;
+        });
     }
 };
 
-struct Struct{
-    PY_CLASS(Struct, c, struct)
+struct C99Struct{
+    PY_CLASS(C99Struct, c, struct)
 
     static constexpr int INLINE_SIZE = 32;
 
@@ -159,7 +174,7 @@ struct Struct{
     char* p;
 
     template<typename T>
-    Struct(const T& data){
+    C99Struct(const T& data){
         static_assert(std::is_pod_v<T>);
         if(sizeof(T) <= INLINE_SIZE){
             memcpy(_inlined, &data, sizeof(T));
@@ -170,10 +185,10 @@ struct Struct{
         }
     }
 
-    Struct() { p = _inlined; }
-    ~Struct(){ if(p!=_inlined) free(p); }
+    C99Struct() { p = _inlined; }
+    ~C99Struct(){ if(p!=_inlined) free(p); }
 
-    Struct(const Struct& other){
+    C99Struct(const C99Struct& other){
         if(other.p == other._inlined){
             memcpy(_inlined, other._inlined, INLINE_SIZE);
             p = _inlined;
@@ -184,21 +199,68 @@ struct Struct{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<Struct>(type);
+        vm->bind_default_constructor<C99Struct>(type);
 
         vm->bind_method<0>(type, "address", [](VM* vm, ArgsView args){
-            Struct& self = _CAST(Struct&, args[0]);
+            C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR_T(VoidP, self.p);
         });
 
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
-            const Struct& self = _CAST(Struct&, args[0]);
-            return VAR_T(Struct, self);
+            const C99Struct& self = _CAST(C99Struct&, args[0]);
+            return VAR_T(C99Struct, self);
+        });
+
+        // patch void_p
+        // type = vm->_t(VoidP::_type(vm));
+
+        // vm->bind_method<1>(type, "read_struct", [](VM* vm, ArgsView args){
+        //     VoidP& self = _CAST(VoidP&, args[0]);
+        //     Str& type = CAST(Str&, args[1]);
+        //     return VAR_T(C99Struct)
+        // });
+
+        // vm->bind_method<1>(type, "write_struct", [](VM* vm, ArgsView args){
+        //     VoidP& self = _CAST(VoidP&, args[0]);
+        //     Str& type = CAST(Str&, args[1]);
+        //     VoidP& other = CAST(VoidP&, args[2]);
+        //     c99_write_struct(vm, type, self.ptr, other.ptr);
+        //     return vm->None;
+        // });
+    }
+};
+
+struct ReflField{
+    std::string_view name;
+    int offset;
+};
+
+struct ReflType{
+    std::string_view name;
+    size_t size;
+    std::vector<ReflField> fields;
+};
+inline static std::map<std::string_view, ReflType> _refl_types;
+
+template<typename T>
+inline void add_refl_type(std::string_view name, std::initializer_list<ReflField> fields){
+    _refl_types[name] = {name, sizeof(T), fields};
+}
+
+struct C99ReflType{
+    PY_CLASS(C99ReflType, c, "_refl")
+    Str repr;
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
+
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            return VAR(self.repr);
         });
     }
 };
 
-static_assert(sizeof(Py_<Struct>) <= 64);
+static_assert(sizeof(Py_<C99Struct>) <= 64);
 
 inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(VoidP, p);
@@ -218,13 +280,13 @@ T to_void_p(VM* vm, PyObject* var){
 template<typename T>
 T to_plain_old_data(VM* vm, PyObject* var){
     static_assert(std::is_pod_v<T>);
-    Struct& pod = CAST(Struct&, var);
+    C99Struct& pod = CAST(C99Struct&, var);
     return *reinterpret_cast<T*>(pod.p);
 }
 
 template<typename T>
 std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
-    return VAR_T(Struct, data);
+    return VAR_T(C99Struct, data);
 }
 /*****************************************************************/
 struct NativeProxyFuncCBase {
@@ -297,8 +359,22 @@ inline void add_module_c(VM* vm){
         return VAR(size);
     });
 
+    vm->bind_func<1>(mod, "refl", [](VM* vm, ArgsView args){
+        const Str& key = CAST(Str&, args[0]);
+        auto it = _refl_types.find(key.sv());
+        if(it == _refl_types.end()) vm->ValueError("reflection type not found");
+        const ReflType& rt = it->second;
+        PyObject* obj = VAR_T(C99ReflType);
+        obj->enable_instance_dict();
+        obj->attr().set("__name__", VAR(rt.name));
+        obj->attr().set("__size__", VAR(rt.size));
+        for(auto [k,v]: rt.fields) obj->attr().set(StrName::get(k), VAR(v));
+        return obj;
+    });
+
     VoidP::register_class(vm, mod);
-    Struct::register_class(vm, mod);
+    C99Struct::register_class(vm, mod);
+    C99ReflType::register_class(vm, mod);
     mod->attr().set("NULL", VAR_T(VoidP, nullptr));
 }
 

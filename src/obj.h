@@ -229,7 +229,9 @@ template<typename T> T to_plain_old_data(VM*, PyObject*);
 template<typename __T>
 __T py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
-    if constexpr(std::is_pointer_v<T>){
+    if constexpr(std::is_enum_v<T>){
+        return (__T)py_cast<i64>(vm, obj);
+    }else if constexpr(std::is_pointer_v<T>){
         return to_void_p<T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         T::_check_type(vm, obj);
@@ -244,7 +246,9 @@ __T py_cast(VM* vm, PyObject* obj) {
 template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
-    if constexpr(std::is_pointer_v<__T>){
+    if constexpr(std::is_enum_v<T>){
+        return (__T)_py_cast<i64>(vm, obj);
+    }else if constexpr(std::is_pointer_v<__T>){
         return to_void_p<__T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         return OBJ_GET(T, obj);
