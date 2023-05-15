@@ -79,16 +79,22 @@ struct VoidP{
             return VAR(self.base_offset);
         });
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
+        vm->bind_method<1>(type, "offset", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             i64 offset = CAST(i64, args[1]);
             return VAR_T(VoidP, (char*)self.ptr + offset * self.base_offset);
         });
 
+        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            i64 offset = CAST(i64, args[1]);
+            return VAR_T(VoidP, (char*)self.ptr + offset);
+        });
+
         vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             i64 offset = CAST(i64, args[1]);
-            return VAR_T(VoidP, (char*)self.ptr - offset * self.base_offset);
+            return VAR_T(VoidP, (char*)self.ptr - offset);
         });
 
 #define BIND_SETGET(T, name) \
