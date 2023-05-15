@@ -153,31 +153,33 @@ struct C99Struct{
     char* p;
     int size;
 
-    template<typename T>
-    C99Struct(const T& data){
-        static_assert(std::is_pod_v<T>);
-        this->size = sizeof(T);
-        if(sizeof(T) <= INLINE_SIZE){
-            memcpy(_inlined, &data, size);
+    void _init(int size){
+        this->size = size;
+        if(size <= INLINE_SIZE){
             p = _inlined;
         }else{
             p = (char*)malloc(size);
-            memcpy(p, &data, size);
         }
     }
 
+    template<typename T>
+    C99Struct(const T& data){
+        static_assert(std::is_pod_v<T>);
+        static_assert(!std::is_pointer_v<T>);
+        _init(sizeof(T));
+        memcpy(p, &data, this->size);
+    }
+
     C99Struct() { p = _inlined; }
+    C99Struct(void* p, int size){
+        _init(size);
+        memcpy(this->p, p, size);
+    }
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
     C99Struct(const C99Struct& other){
-        this->size = other.size;
-        if(other.p == other._inlined){
-            memcpy(_inlined, other._inlined, INLINE_SIZE);
-            p = _inlined;
-        }else{
-            p = (char*)malloc(other.size);
-            memcpy(p, other.p, other.size);
-        }
+        _init(other.size);
+        memcpy(p, other.p, size);
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
@@ -198,21 +200,22 @@ struct C99Struct{
             return VAR_T(C99Struct, self);
         });
 
-        // type = vm->_t(VoidP::_type(vm));
+        // patch VoidP
+        type = vm->_t(VoidP::_type(vm));
 
-        // vm->bind_method<1>(type, "read_struct", [](VM* vm, ArgsView args){
-        //     VoidP& self = _CAST(VoidP&, args[0]);
-        //     const Str& type = CAST(Str&, args[1]);
-        //     int size = c99_sizeof(vm, type);
-        //     return VAR_T(C99Struct)
-        // });
+        vm->bind_method<1>(type, "read_struct", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            const Str& type = CAST(Str&, args[1]);
+            int size = c99_sizeof(vm, type);
+            return VAR_T(C99Struct, self.ptr, size);
+        });
 
-        // vm->bind_method<1>(type, "write_struct", [](VM* vm, ArgsView args){
-        //     VoidP& self = _CAST(VoidP&, args[0]);
-        //     C99Struct& other = CAST(C99Struct&, args[1]);
-        //     memcpy(self.ptr, other.p, other.size);
-        //     return vm->None;
-        // });
+        vm->bind_method<1>(type, "write_struct", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            C99Struct& other = CAST(C99Struct&, args[1]);
+            memcpy(self.ptr, other.p, other.size);
+            return vm->None;
+        });
     }
 };
 
@@ -259,14 +262,8 @@ inline static int c99_sizeof(VM* vm, const Str& type){
 
 struct C99ReflType{
     PY_CLASS(C99ReflType, c, "_refl")
-    Str repr;
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
-
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            C99ReflType& self = _CAST(C99ReflType&, args[0]);
-            return VAR(self.repr);
-        });
     }
 };
 
@@ -376,8 +373,26 @@ inline void add_module_c(VM* vm){
         const ReflType& rt = it->second;
         PyObject* obj = VAR_T(C99ReflType);
         obj->enable_instance_dict();
+        obj->attr().set("__name__", VAR(rt.name));
+        obj->attr().set("__size__", VAR(rt.size));
         for(auto [k,v]: rt.fields) obj->attr().set(StrName::get(k), VAR(v));
         return obj;
+    });
+
+    vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args){
+        void* p = CAST(void*, args[0]);
+        i64 c = CAST(i64, args[1]);
+        i64 size = CAST(i64, args[2]);
+        memset(p, c, size);
+        return vm->None;
+    });
+
+    vm->bind_func<3>(mod, "memcpy", [](VM* vm, ArgsView args){
+        void* dst = CAST(void*, args[0]);
+        void* src = CAST(void*, args[1]);
+        i64 size = CAST(i64, args[2]);
+        memcpy(dst, src, size);
+        return vm->None;
     });
 
     VoidP::register_class(vm, mod);
