@@ -8,9 +8,11 @@ def generate_python_sources():
         key = file.split(".")[0]
         with open("python/" + file) as f:
             value = f.read()
-            value = value.encode('utf-8').hex(':')
-            value = '\\x' + value.replace(':', '\\x')
-        sources[key] = value
+            value = value.encode('utf-8').hex()
+            new_value = []
+            for i in range(0, len(value), 2):
+                new_value.append("\\x" + value[i:i+2])
+        sources[key] = "".join(new_value)
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
