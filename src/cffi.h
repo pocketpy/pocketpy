@@ -173,7 +173,7 @@ struct C99Struct{
     C99Struct() { p = _inlined; }
     C99Struct(void* p, int size){
         _init(size);
-        memcpy(this->p, p, size);
+        if(p!=nullptr) memcpy(this->p, p, size);
     }
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
@@ -185,7 +185,7 @@ struct C99Struct{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_default_constructor<C99Struct>(type);
 
-        vm->bind_method<0>(type, "address", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){
             C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR_T(VoidP, self.p);
         });
@@ -264,6 +264,12 @@ struct C99ReflType{
     PY_CLASS(C99ReflType, c, "_refl")
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
+
+        vm->bind_method<0>(type, "__call__", [](VM* vm, ArgsView args){
+            PyObject* self = args[0];
+            i64 size = CAST(i64, self->attr("__size__"));
+            return VAR_T(C99Struct, nullptr, size);
+        });
     }
 };
 
