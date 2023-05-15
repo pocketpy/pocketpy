@@ -43,6 +43,8 @@
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 
+#ifndef PK_ENABLE_OS
+
 #ifdef __ANDROID__
 #include <android/ndk-version.h>
 
@@ -54,6 +56,8 @@
 
 #else
 #define PK_ENABLE_OS 			1
+#endif
+
 #endif
 
 // This is the maximum number of arguments in a function declaration
