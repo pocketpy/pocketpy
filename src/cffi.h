@@ -219,20 +219,20 @@ struct C99Struct{
     }
 };
 
-struct ReflField{
-    std::string_view name;
-    int offset;
-};
 
 struct ReflType{
     std::string_view name;
     size_t size;
-    std::vector<ReflField> fields;
+    std::map<std::string_view, int> fields;
 };
 inline static std::map<std::string_view, ReflType> _refl_types;
 
-inline void add_refl_type(std::string_view name, size_t size, std::initializer_list<ReflField> fields){
-    _refl_types[name] = {name, size, fields};
+inline void add_refl_type(std::string_view name, size_t size, std::initializer_list<std::pair<std::string_view, int>> fields){
+    ReflType type{name, size, {}};
+    for(auto& [name, offset] : fields){
+        type.fields[name] = offset;
+    }
+    _refl_types[name] = std::move(type);
 }
 
 inline static int c99_sizeof(VM* vm, const Str& type){
@@ -260,15 +260,42 @@ inline static int c99_sizeof(VM* vm, const Str& type){
     return 0;
 }
 
-struct C99ReflType{
+struct C99ReflType final: ReflType{
     PY_CLASS(C99ReflType, c, "_refl")
+
+    C99ReflType(const ReflType& type){
+        this->name = type.name;
+        this->size = type.size;
+        this->fields = type.fields;
+    }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
 
         vm->bind_method<0>(type, "__call__", [](VM* vm, ArgsView args){
-            PyObject* self = args[0];
-            i64 size = CAST(i64, self->attr("__size__"));
-            return VAR_T(C99Struct, nullptr, size);
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            return VAR_T(C99Struct, nullptr, self.size);
+        });
+
+        vm->bind_method<0>(type, "name", [](VM* vm, ArgsView args){
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            return VAR(self.name);
+        });
+
+        vm->bind_method<0>(type, "size", [](VM* vm, ArgsView args){
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            return VAR(self.size);
+        });
+
+        vm->bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            const Str& name = CAST(Str&, args[1]);
+            auto it = self.fields.find(name.sv());
+            if(it == self.fields.end()){
+                vm->_error("KeyError", name.escape());
+                return vm->None;
+            }
+            return VAR(it->second);
         });
     }
 };
@@ -377,12 +404,7 @@ inline void add_module_c(VM* vm){
         auto it = _refl_types.find(key.sv());
         if(it == _refl_types.end()) vm->ValueError("reflection type not found");
         const ReflType& rt = it->second;
-        PyObject* obj = VAR_T(C99ReflType);
-        obj->enable_instance_dict();
-        obj->attr().set("__name__", VAR(rt.name));
-        obj->attr().set("__size__", VAR(rt.size));
-        for(auto [k,v]: rt.fields) obj->attr().set(StrName::get(k), VAR(v));
-        return obj;
+        return VAR_T(C99ReflType, rt);
     });
 
     vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args){
