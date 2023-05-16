@@ -263,6 +263,8 @@ __T _py_cast(VM* vm, PyObject* obj) {
 #define CAST(T, x) py_cast<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
 
+#define FLOAT(x) vm->num_to_float(x)
+
 /*****************************************************************/
 template<>
 struct Py_<List> final: PyObject {

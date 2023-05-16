@@ -766,14 +766,14 @@ inline void init_builtins(VM* _vm) {
 }
 
 #ifdef _WIN32
-#define __EXPORT __declspec(dllexport) inline
+#define PK_LEGACY_EXPORT __declspec(dllexport) inline
 #elif __APPLE__
-#define __EXPORT __attribute__((visibility("default"))) __attribute__((used)) inline
+#define PK_LEGACY_EXPORT __attribute__((visibility("default"))) __attribute__((used)) inline
 #elif __EMSCRIPTEN__
 #include <emscripten.h>
-#define __EXPORT EMSCRIPTEN_KEEPALIVE inline
+#define PK_LEGACY_EXPORT EMSCRIPTEN_KEEPALIVE inline
 #else
-#define __EXPORT inline
+#define PK_LEGACY_EXPORT inline
 #endif
 
 inline void add_module_time(VM* vm){
@@ -815,23 +815,31 @@ inline void add_module_json(VM* vm){
     vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call_method(args[0], __json__)));
 }
 
+
+// https://docs.python.org/3.5/library/math.html
 inline void add_module_math(VM* vm){
     PyObject* mod = vm->new_module("math");
     mod->attr().set("pi", VAR(3.1415926535897932384));
     mod->attr().set("e" , VAR(2.7182818284590452354));
+    mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
+    mod->attr().set("nan", VAR(std::numeric_limits<double>::quiet_NaN()));
 
-    vm->bind_func<1>(mod, "log", CPP_LAMBDA(VAR(std::log(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(VAR(std::log10(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(VAR(std::log2(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(VAR(std::sin(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(VAR(std::cos(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(VAR(std::tan(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(VAR(std::isnan(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(VAR(std::isinf(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(VAR(std::fabs(vm->num_to_float(args[0])))));
     vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(vm->num_to_float(args[0])))));
-    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "fsum", [](VM* vm, ArgsView args) {
+        List& list = CAST(List&, args[0]);
+        double sum = 0;
+        double c = 0;
+        for(PyObject* arg : list){
+            double x = vm->num_to_float(arg);
+            double y = x - c;
+            double t = sum + y;
+            c = (t - sum) - y;
+            sum = t;
+        }
+        return VAR(sum);
+    });
     vm->bind_func<2>(mod, "gcd", [](VM* vm, ArgsView args) {
         i64 a = CAST(i64, args[0]);
         i64 b = CAST(i64, args[1]);
@@ -844,6 +852,30 @@ inline void add_module_math(VM* vm){
         }
         return VAR(a);
     });
+
+    vm->bind_func<1>(mod, "isfinite", CPP_LAMBDA(VAR(std::isfinite(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(VAR(std::isinf(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(VAR(std::isnan(vm->num_to_float(args[0])))));
+
+    vm->bind_func<1>(mod, "exp", CPP_LAMBDA(VAR(std::exp(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log", CPP_LAMBDA(VAR(std::log(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(VAR(std::log2(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(VAR(std::log10(vm->num_to_float(args[0])))));
+
+    vm->bind_func<2>(mod, "pow", CPP_LAMBDA(VAR(std::pow(vm->num_to_float(args[0]), vm->num_to_float(args[1])))));
+    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(vm->num_to_float(args[0])))));
+
+    vm->bind_func<1>(mod, "acos", CPP_LAMBDA(VAR(std::acos(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "asin", CPP_LAMBDA(VAR(std::asin(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "atan", CPP_LAMBDA(VAR(std::atan(vm->num_to_float(args[0])))));
+    vm->bind_func<2>(mod, "atan2", CPP_LAMBDA(VAR(std::atan2(vm->num_to_float(args[0]), vm->num_to_float(args[1])))));
+
+    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(VAR(std::cos(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(VAR(std::sin(vm->num_to_float(args[0])))));
+    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(VAR(std::tan(vm->num_to_float(args[0])))));
+    
+    vm->bind_func<1>(mod, "degrees", CPP_LAMBDA(VAR(vm->num_to_float(args[0]) * 180 / 3.1415926535897932384)));
+    vm->bind_func<1>(mod, "radians", CPP_LAMBDA(VAR(vm->num_to_float(args[0]) * 3.1415926535897932384 / 180)));
 }
 
 inline void add_module_dis(VM* vm){
@@ -1075,7 +1107,7 @@ inline void VM::post_init(){
 static std::map<void*, void(*)(void*)> _pk_deleter_map;
 
 extern "C" {
-    __EXPORT
+    PK_LEGACY_EXPORT
     void pkpy_delete(void* p){
         auto it = _pk_deleter_map.find(p);
         if(it != _pk_deleter_map.end()){
@@ -1085,12 +1117,12 @@ extern "C" {
         }
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     void pkpy_vm_exec(pkpy::VM* vm, const char* source){
         vm->exec(source, "main.py", pkpy::EXEC_MODE);
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
         pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
@@ -1102,7 +1134,7 @@ extern "C" {
         }
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     char* pkpy_vm_eval(pkpy::VM* vm, const char* source){
         pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
@@ -1114,24 +1146,24 @@ extern "C" {
         }
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     pkpy::REPL* pkpy_new_repl(pkpy::VM* vm){
         pkpy::REPL* p = new pkpy::REPL(vm);
         _pk_deleter_map[p] = [](void* p){ delete (pkpy::REPL*)p; };
         return p;
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     bool pkpy_repl_input(pkpy::REPL* r, const char* line){
         return r->input(line);
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     void pkpy_vm_add_module(pkpy::VM* vm, const char* name, const char* source){
         vm->_lazy_modules[name] = source;
     }
 
-    __EXPORT
+    PK_LEGACY_EXPORT
     pkpy::VM* pkpy_new_vm(bool enable_os=true){
         pkpy::VM* p = new pkpy::VM(enable_os);
         _pk_deleter_map[p] = [](void* p){ delete (pkpy::VM*)p; };
