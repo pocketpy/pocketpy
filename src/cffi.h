@@ -267,7 +267,7 @@ inline static int c99_sizeof(VM* vm, const Str& type){
 }
 
 struct C99ReflType final: ReflType{
-    PY_CLASS(C99ReflType, c, "_refl")
+    PY_CLASS(C99ReflType, c, _refl)
 
     C99ReflType(const ReflType& type){
         this->name = type.name;
