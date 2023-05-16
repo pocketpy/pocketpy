@@ -677,6 +677,21 @@ inline void init_builtins(VM* _vm) {
         return VAR(Str(self.str()));
     });
 
+    _vm->bind_method<0>("bytes", "to_char_array", [](VM* vm, ArgsView args) {
+        const Bytes& self = _CAST(Bytes&, args[0]);
+        void* buffer = malloc(self.size());
+        memcpy(buffer, self.data(), self.size());
+        return VAR_T(VoidP, buffer);
+    });
+
+    _vm->bind_func<2>("bytes", "from_char_array", [](VM* vm, ArgsView args) {
+        const VoidP& data = _CAST(VoidP&, args[0]);
+        int size = CAST(int, args[1]);
+        std::vector<char> buffer(size);
+        memcpy(buffer.data(), data.ptr, size);
+        return VAR(Bytes(std::move(buffer)));
+    });
+
     _vm->bind_method<1>("bytes", "__eq__", [](VM* vm, ArgsView args) {
         const Bytes& self = _CAST(Bytes&, args[0]);
         if(!is_type(args[1], vm->tp_bytes)) return VAR(false);
