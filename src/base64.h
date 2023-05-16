@@ -7,9 +7,9 @@ namespace pkpy {
 
 // https://github.com/zhicheng/base64/blob/master/base64.c
 
-#define BASE64_PAD '='
-#define BASE64DE_FIRST '+'
-#define BASE64DE_LAST 'z'
+inline static const char BASE64_PAD = '=';
+inline static const char BASE64DE_FIRST = '+';
+inline static const char BASE64DE_LAST = 'z';
 
 /* BASE 64 encode table */
 static const char base64en[] = {

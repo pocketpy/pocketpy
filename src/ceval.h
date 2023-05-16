@@ -607,4 +607,8 @@ __NEXT_STEP:;
 #undef POPX
 #undef STACK_VIEW
 
+#undef DISPATCH
+#undef TARGET
+#undef DISPATCH_OP_CALL
+
 } // namespace pkpy

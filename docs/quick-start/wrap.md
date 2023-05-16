@@ -26,8 +26,8 @@ struct Vector2 {
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            float x = vm->num_to_float(args[1]);
-            float y = vm->num_to_float(args[2]);
+            float x = VAR_F(args[1]);
+            float y = VAR_F(args[2]);
             return VAR_T(Vector2, x, y);
         });
 
@@ -52,13 +52,13 @@ struct Vector2 {
 
         vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
             Vector2& self = CAST(Vector2&, args[0]);
-            f64 other = vm->num_to_float(args[1]);
+            f64 other = VAR_F(args[1]);
             return VAR_T(Vector2, self.x * other, self.y * other);
         });
 
         vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
             Vector2& self = CAST(Vector2&, args[0]);
-            f64 other = vm->num_to_float(args[1]);
+            f64 other = VAR_F(args[1]);
             return VAR_T(Vector2, self.x / other, self.y / other);
         });
 
