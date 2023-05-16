@@ -797,6 +797,17 @@ inline void add_module_time(VM* vm){
         auto now = std::chrono::high_resolution_clock::now();
         return VAR(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
     });
+
+    vm->bind_func<1>(mod, "sleep", [](VM* vm, ArgsView args) {
+        f64 seconds = FLOAT(args[0]);
+        auto begin = std::chrono::high_resolution_clock::now();
+        while(true){
+            auto now = std::chrono::high_resolution_clock::now();
+            f64 elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - begin).count() / 1000000.0;
+            if(elapsed >= seconds) break;
+        }
+        return vm->None;
+    });
 }
 
 inline void add_module_sys(VM* vm){
