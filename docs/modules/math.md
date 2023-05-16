@@ -36,9 +36,9 @@ Return the floor of `x` as a float, the largest integer value less than or equal
 Return an accurate floating point sum of values in the iterable. Avoids loss of precision by tracking multiple intermediate partial sums:
 
 ```
->>> sum([.1, .1, .1, .1, .1, .1, .1, .1, .1, .1])
+>>> sum([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 0.9999999999999999
->>> fsum([.1, .1, .1, .1, .1, .1, .1, .1, .1, .1])
+>>> fsum([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
 1.0
 ```
 

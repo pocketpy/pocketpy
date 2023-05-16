@@ -185,8 +185,6 @@ class property:
     def __init__(self, fget, fset=None):
         self.fget = fget
         self.fset = fset
-        if hasattr(fget, '__doc__'):
-            self.__doc__ = fget.__doc__
 
     def __get__(self, obj):
         return self.fget(obj)
