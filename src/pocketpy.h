@@ -223,6 +223,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("range", "__iter__", CPP_LAMBDA(
         vm->PyIter(RangeIter(vm, args[0]))
     ));
+    _vm->_type_info("range")->m__iter__ = PyGetIter<RangeIter>;
 
     _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(VAR("None")));
     _vm->bind_method<0>("NoneType", "__json__", CPP_LAMBDA(VAR("null")));
@@ -365,6 +366,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
     _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
+    _vm->_type_info("str")->m__iter__ = PyGetIter<StringIter>;
 
     _vm->bind_method<0>("str", "__repr__", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
@@ -539,13 +541,13 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("list", "__iter__", [](VM* vm, ArgsView args) {
         return vm->PyIter(ArrayIter<List>(vm, args[0]));
     });
-
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, ArgsView args) {
         return PyArrayGetItem<List>(vm, args[0], args[1]);
     });
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, ArgsView args) {
         return PyListSetItem(vm, args[0], args[1], args[2]);
     });
+    _vm->_type_info("list")->m__iter__ = PyGetIter<ArrayIter<List>>;
     _vm->_type_info("list")->m__getitem__ = PyArrayGetItem<List>;
     _vm->_type_info("list")->m__setitem__ = PyListSetItem;
 
@@ -566,6 +568,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, ArgsView args) {
         return vm->PyIter(ArrayIter<Tuple>(vm, args[0]));
     });
+    _vm->_type_info("tuple")->m__iter__ = PyGetIter<ArrayIter<Tuple>>;
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, ArgsView args) {
         return PyArrayGetItem<Tuple>(vm, args[0], args[1]);
