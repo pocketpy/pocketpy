@@ -389,19 +389,9 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-
-        if(is_type(args[1], vm->tp_slice)){
-            const Slice& s = _CAST(Slice&, args[1]);
-            int start, stop, step;
-            vm->parse_int_slice(s, self.u8_length(), start, stop, step);
-            return VAR(self.u8_slice(start, stop, step));
-        }
-
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.u8_length());
-        return VAR(self.u8_getitem(index));
+        return PyStrGetItem(vm, args[0], args[1]);
     });
+    _vm->_type_info("str")->m__getitem__ = PyStrGetItem;
 
     _vm->bind_method<1>("str", "__gt__", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);

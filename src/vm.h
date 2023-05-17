@@ -1263,4 +1263,19 @@ inline PyObject* PyListSetItem(VM* vm, PyObject* obj, PyObject* index, PyObject*
     return vm->None;
 }
 
+inline PyObject* PyStrGetItem(VM* vm, PyObject* obj, PyObject* index){
+    const Str& self = _CAST(Str&, obj);
+
+    if(is_type(index, vm->tp_slice)){
+        const Slice& s = _CAST(Slice&, index);
+        int start, stop, step;
+        vm->parse_int_slice(s, self.u8_length(), start, stop, step);
+        return VAR(self.u8_slice(start, stop, step));
+    }
+
+    int i = CAST(int, index);
+    i = vm->normalized_index(i, self.u8_length());
+    return VAR(self.u8_getitem(i));
+}
+
 }   // namespace pkpy
