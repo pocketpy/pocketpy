@@ -68,7 +68,6 @@ struct PyTypeInfo{
     // cached special methods
     PyObject* (*m__getitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
     PyObject* (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
-    PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
 };
 
 struct FrameId{
@@ -137,8 +136,6 @@ public:
 
     PyObject* asIter(PyObject* obj){
         if(is_type(obj, tp_iterator)) return obj;
-        const PyTypeInfo* ti = _inst_type_info(obj);
-        if(ti->m__iter__) return ti->m__iter__(this, obj);
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
         if(self != PY_NULL) return call_method(self, iter_f);
@@ -1279,11 +1276,6 @@ inline PyObject* PyStrGetItem(VM* vm, PyObject* obj, PyObject* index){
     int i = CAST(int, index);
     i = vm->normalized_index(i, self.u8_length());
     return VAR(self.u8_getitem(i));
-}
-
-template<typename T>
-inline PyObject* PyGetIter(VM* vm, PyObject* obj){
-    return vm->PyIter(T(vm, obj));
 }
 
 }   // namespace pkpy
