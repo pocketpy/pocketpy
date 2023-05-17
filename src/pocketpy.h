@@ -551,29 +551,13 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("list", "__getitem__", [](VM* vm, ArgsView args) {
-        const List& self = _CAST(List&, args[0]);
-
-        if(is_type(args[1], vm->tp_slice)){
-            const Slice& s = _CAST(Slice&, args[1]);
-            int start, stop, step;
-            vm->parse_int_slice(s, self.size(), start, stop, step);
-            List new_list;
-            for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
-            return VAR(std::move(new_list));
-        }
-
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.size());
-        return self[index];
+        return PyArrayGetItem<List>(vm, args[0], args[1]);
     });
-
     _vm->bind_method<2>("list", "__setitem__", [](VM* vm, ArgsView args) {
-        List& self = _CAST(List&, args[0]);
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.size());
-        self[index] = args[2];
-        return vm->None;
+        return PyListSetItem(vm, args[0], args[1], args[2]);
     });
+    _vm->_type_info("list")->m__getitem__ = PyArrayGetItem<List>;
+    _vm->_type_info("list")->m__setitem__ = PyListSetItem;
 
     _vm->bind_method<1>("list", "__delitem__", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
@@ -594,21 +578,9 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, ArgsView args) {
-        const Tuple& self = _CAST(Tuple&, args[0]);
-
-        if(is_type(args[1], vm->tp_slice)){
-            const Slice& s = _CAST(Slice&, args[1]);
-            int start, stop, step;
-            vm->parse_int_slice(s, self.size(), start, stop, step);
-            List new_list;
-            for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
-            return VAR(Tuple(std::move(new_list)));
-        }
-
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.size());
-        return self[index];
+        return PyArrayGetItem<Tuple>(vm, args[0], args[1]);
     });
+    _vm->_type_info("tuple")->m__getitem__ = PyArrayGetItem<Tuple>;
 
     _vm->bind_method<0>("tuple", "__len__", [](VM* vm, ArgsView args) {
         const Tuple& self = _CAST(Tuple&, args[0]);

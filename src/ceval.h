@@ -13,6 +13,7 @@ inline PyObject* VM::_run_top_frame(){
 
     // shared registers
     PyObject *_0, *_1, *_2;
+    const PyTypeInfo* _ti;
     StrName _name;
 
     while(true){
@@ -146,7 +147,12 @@ __NEXT_STEP:;
     TARGET(LOAD_SUBSCR)
         _1 = POPX();    // b
         _0 = TOP();     // a
-        TOP() = call_method(_0, __getitem__, _1);
+        _ti = _inst_type_info(_0);
+        if(_ti->m__getitem__){
+            TOP() = _ti->m__getitem__(this, _0, _1);
+        }else{
+            TOP() = call_method(_0, __getitem__, _1);
+        }
         DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
@@ -174,7 +180,12 @@ __NEXT_STEP:;
         _2 = POPX();        // b
         _1 = POPX();        // a
         _0 = POPX();        // val
-        call_method(_1, __setitem__, _2, _0);
+        _ti = _inst_type_info(_1);
+        if(_ti->m__setitem__){
+            _ti->m__setitem__(this, _1, _2, _0);
+        }else{
+            call_method(_1, __setitem__, _2, _0);
+        }
         DISPATCH();
     TARGET(DELETE_FAST)
         _0 = frame->_locals[byte.arg];

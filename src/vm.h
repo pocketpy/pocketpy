@@ -65,6 +65,9 @@ struct PyTypeInfo{
     Type base;
     Str name;
     bool subclass_enabled;
+    // cached special methods
+    PyObject* (*m__getitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
 };
 
 struct FrameId{
@@ -265,6 +268,21 @@ public:
         return obj;
     }
 
+    PyTypeInfo* _type_info(const Str& type){
+        PyObject* obj = builtins->attr().try_get(type);
+        if(obj == nullptr){
+            for(auto& t: _all_types) if(t.name == type) return &t;
+            FATAL_ERROR();
+        }
+        return &_all_types[OBJ_GET(Type, obj)];
+    }
+
+    const PyTypeInfo* _inst_type_info(PyObject* obj){
+        if(is_int(obj)) return &_all_types[tp_int];
+        if(is_float(obj)) return &_all_types[tp_float];
+        return &_all_types[obj->type];
+    }
+
     template<int ARGC>
     void bind_func(Str type, Str name, NativeFuncC fn) {
         bind_func<ARGC>(_find_type(type), name, fn);
@@ -370,7 +388,7 @@ public:
     PyObject* _t(PyObject* obj){
         if(is_int(obj)) return _t(tp_int);
         if(is_float(obj)) return _t(tp_float);
-        return _all_types[OBJ_GET(Type, _t(obj->type)).index].obj;
+        return _all_types[obj->type].obj;
     }
 
     ~VM() {
@@ -1215,5 +1233,34 @@ inline Str obj_type_name(VM *vm, Type type){
 
 #undef PY_VAR_INT
 #undef PY_VAR_FLOAT
+
+/***************************************************/
+
+template<typename T>
+PyObject* PyArrayGetItem(VM* vm, PyObject* obj, PyObject* index){
+    static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
+    const T& self = _CAST(T&, obj);
+
+    if(is_type(index, vm->tp_slice)){
+        const Slice& s = _CAST(Slice&, index);
+        int start, stop, step;
+        vm->parse_int_slice(s, self.size(), start, stop, step);
+        List new_list;
+        for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
+        return VAR(T(std::move(new_list)));
+    }
+
+    int i = CAST(int, index);
+    i = vm->normalized_index(i, self.size());
+    return self[i];
+}
+
+inline PyObject* PyListSetItem(VM* vm, PyObject* obj, PyObject* index, PyObject* value){
+    List& self = _CAST(List&, obj);
+    int i = CAST(int, index);
+    i = vm->normalized_index(i, self.size());
+    self[i] = value;
+    return vm->None;
+}
 
 }   // namespace pkpy
