@@ -308,10 +308,14 @@ __NEXT_STEP:;
         INT_BINARY_OP(<=, __le__)
         DISPATCH()
     TARGET(COMPARE_EQ)
-        INT_BINARY_OP(==, __eq__)
+        _1 = POPX();
+        _0 = TOP();
+        TOP() = VAR(py_equals(_0, _1));
         DISPATCH()
     TARGET(COMPARE_NE)
-        INT_BINARY_OP(!=, __ne__)
+        _1 = POPX();
+        _0 = TOP();
+        TOP() = VAR(py_not_equals(_0, _1));
         DISPATCH()
     TARGET(COMPARE_GT)
         INT_BINARY_OP(>, __gt__)

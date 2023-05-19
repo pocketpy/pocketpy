@@ -11,7 +11,7 @@ namespace pkpy {
         static const StrName __x1(#name);       \
         return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
     }                                                                       \
-    static void _check_type(VM* vm, PyObject* val){                          \
+    static void _check_type(VM* vm, PyObject* val){                         \
         if(!vm->isinstance(val, T::_type(vm))){                             \
             vm->TypeError("expected '" #mod "." #name "', got " + OBJ_NAME(vm->_t(val)).escape());  \
         }                                                                   \
@@ -39,6 +39,13 @@ struct VoidP{
     VoidP(void* ptr): ptr(ptr), base_offset(1){}
     VoidP(): ptr(nullptr), base_offset(1){}
 
+    bool operator==(const VoidP& other) const {
+        return ptr == other.ptr && base_offset == other.base_offset;
+    }
+    bool operator!=(const VoidP& other) const {
+        return ptr != other.ptr || base_offset != other.base_offset;
+    }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_default_constructor<VoidP>(type);
 
@@ -51,16 +58,25 @@ struct VoidP{
             return VAR(ss.str());
         });
 
-        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            VoidP& other = CAST(VoidP&, args[1]);
-            return VAR(self.ptr == other.ptr && self.base_offset == other.base_offset);
+        vm->bind__eq__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return false;
+            return _CAST(VoidP&, lhs) == _CAST(VoidP&, rhs);
         });
-
-        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            VoidP& other = CAST(VoidP&, args[1]);
-            return VAR(self.ptr != other.ptr || self.base_offset != other.base_offset);
+        vm->bind__ne__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return true;
+            return _CAST(VoidP&, lhs) != _CAST(VoidP&, rhs);
+        });
+        vm->bind__gt__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            return _CAST(VoidP&, lhs).ptr > CAST(VoidP&, rhs).ptr;
+        });
+        vm->bind__lt__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            return _CAST(VoidP&, lhs).ptr < CAST(VoidP&, rhs).ptr;
+        });
+        vm->bind__ge__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            return _CAST(VoidP&, lhs).ptr >= CAST(VoidP&, rhs).ptr;
+        });
+        vm->bind__le__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            return _CAST(VoidP&, lhs).ptr <= CAST(VoidP&, rhs).ptr;
         });
 
         vm->bind_method<1>(type, "set_base_offset", [](VM* vm, ArgsView args){

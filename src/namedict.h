@@ -8,12 +8,6 @@ namespace pkpy{
 
 const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143};
 
-inline uint16_t find_next_power_of_2(uint16_t n){
-    uint16_t x = 2;
-    while(x < n) x <<= 1;
-    return x;
-}
-
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
 inline uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys){
@@ -53,10 +47,10 @@ struct NameDictImpl {
         memset(_items, 0, cap * sizeof(Item));
     }
 
-    NameDictImpl(float load_factor=0.67, uint16_t capacity=__Capacity, uint16_t hash_seed=kHashSeeds[0]):
-        _load_factor(load_factor), _capacity(capacity), _size(0), 
-        _hash_seed(hash_seed), _mask(capacity-1) {
-        _alloc(capacity);
+    NameDictImpl(float load_factor=0.67):
+        _load_factor(load_factor), _capacity(__Capacity), _size(0), 
+        _hash_seed(kHashSeeds[0]), _mask(__Capacity-1) {
+        _alloc(__Capacity);
     }
 
     NameDictImpl(const NameDictImpl& other) {
@@ -116,7 +110,7 @@ while(!_items[i].first.empty()) {       \
         Item* old_items = _items;
         uint16_t old_capacity = _capacity;
         if(resize){
-            _capacity = find_next_power_of_2(_capacity * 2);
+            _capacity *= 2;
             _mask = _capacity - 1;
         }
         _alloc(_capacity);

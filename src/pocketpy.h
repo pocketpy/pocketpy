@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ceval.h"
+#include "common.h"
 #include "compiler.h"
 #include "obj.h"
 #include "repl.h"
@@ -39,30 +40,28 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool 
     _vm->bind_method<1>("float", #name, [](VM* vm, ArgsView args){                                      \
         return VAR(_CAST(f64, args[0]) op vm->num_to_float(args[1]));                                   \
     });
-
-
-
-#define BIND_NUM_LOGICAL_OPT(name, op, is_eq)                                                           \
-    _vm->bind_method<1>("int", #name, [](VM* vm, ArgsView args){                                        \
-        if(is_int(args[1]))   return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                   \
-        if(is_float(args[1])) return VAR(vm->num_to_float(args[0]) op _CAST(f64, args[1]));             \
-        if constexpr(is_eq)   return VAR(args[0] op args[1]);                                           \
-        vm->TypeError("unsupported operand type(s) for " #op );                                         \
-        return vm->None;                                                                                \
-    });                                                                                                 \
-    _vm->bind_method<1>("float", #name, [](VM* vm, ArgsView args){                                      \
-        if(is_float(args[1])) return VAR(_CAST(f64, args[0]) op _CAST(f64, args[1]));                   \
-        if(is_int(args[1]))   return VAR(_CAST(f64, args[0]) op _CAST(i64, args[1]));                   \
-        if constexpr(is_eq)   return VAR(args[0] op args[1]);                                           \
-        vm->TypeError("unsupported operand type(s) for " #op );                                         \
-        return vm->None;                                                                                \
-    });
     
 
 inline void init_builtins(VM* _vm) {
     BIND_NUM_ARITH_OPT(__add__, +)
     BIND_NUM_ARITH_OPT(__sub__, -)
     BIND_NUM_ARITH_OPT(__mul__, *)
+
+#define BIND_NUM_LOGICAL_OPT(name, op, is_eq)   \
+    _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
+        if(is_int(rhs))     return _CAST(i64, lhs) op _CAST(i64, rhs);      \
+        if(is_float(rhs))   return _CAST(i64, lhs) op _CAST(f64, rhs);      \
+        if constexpr(is_eq) return false;                                   \
+        vm->TypeError("unsupported operand type(s) for " #op );             \
+        return false;                                                       \
+    });                                                                     \
+    _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {   \
+        if(is_int(rhs))     return _CAST(f64, lhs) == _CAST(i64, rhs);          \
+        if(is_float(rhs))   return _CAST(f64, lhs) == _CAST(f64, rhs);          \
+        if constexpr(is_eq) return false;                                       \
+        vm->TypeError("unsupported operand type(s) for " #op );                 \
+        return false;                                                           \
+    });
 
     BIND_NUM_LOGICAL_OPT(__lt__, <, false)
     BIND_NUM_LOGICAL_OPT(__le__, <=, false)
@@ -203,8 +202,8 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind_method<1>("object", "__eq__", CPP_LAMBDA(VAR(args[0] == args[1])));
-    _vm->bind_method<1>("object", "__ne__", CPP_LAMBDA(VAR(args[0] != args[1])));
+    _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs == rhs; });
+    _vm->bind__ne__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs != rhs; });
 
     _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
 
@@ -376,34 +375,31 @@ inline void init_builtins(VM* _vm) {
         return VAR(self.escape(false));
     });
 
-    _vm->bind_method<1>("str", "__eq__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        if(!is_type(args[1], vm->tp_str)) return VAR(false);
-        return VAR(self == CAST(Str&, args[1]));
+    _vm->bind__eq__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        if(!is_non_tagged_type(rhs, vm->tp_str)) return false;
+        return _CAST(Str&, lhs) == _CAST(Str&, rhs);
     });
-
-    _vm->bind_method<1>("str", "__ne__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        if(!is_type(args[1], vm->tp_str)) return VAR(true);
-        return VAR(self != CAST(Str&, args[1]));
+    _vm->bind__ne__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        if(!is_non_tagged_type(rhs, vm->tp_str)) return true;
+        return _CAST(Str&, lhs) != _CAST(Str&, rhs);
+    });
+    _vm->bind__gt__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Str&, lhs) > CAST(Str&, rhs);
+    });
+    _vm->bind__lt__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Str&, lhs) < CAST(Str&, rhs);
+    });
+    _vm->bind__ge__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Str&, lhs) >= CAST(Str&, rhs);
+    });
+    _vm->bind__le__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Str&, lhs) <= CAST(Str&, rhs);
     });
 
     _vm->bind_method<1>("str", "__getitem__", [](VM* vm, ArgsView args) {
         return PyStrGetItem(vm, args[0], args[1]);
     });
     _vm->_type_info("str")->m__getitem__ = PyStrGetItem;
-
-    _vm->bind_method<1>("str", "__gt__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        const Str& obj = CAST(Str&, args[1]);
-        return VAR(self > obj);
-    });
-
-    _vm->bind_method<1>("str", "__lt__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        const Str& obj = CAST(Str&, args[1]);
-        return VAR(self < obj);
-    });
 
     _vm->bind_method<-1>("str", "replace", [](VM* vm, ArgsView args) {
         if(args.size() != 1+2 && args.size() != 1+3) vm->TypeError("replace() takes 2 or 3 arguments");
@@ -654,18 +650,11 @@ inline void init_builtins(VM* _vm) {
         return VAR(Bytes(std::move(buffer)));
     });
 
-    _vm->bind_method<1>("bytes", "__eq__", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
-        if(!is_type(args[1], vm->tp_bytes)) return VAR(false);
-        const Bytes& other = CAST(Bytes&, args[1]);
-        return VAR(self == other);
+    _vm->bind__eq__(_vm->tp_bytes, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Bytes&, lhs) == _CAST(Bytes&, rhs);
     });
-
-    _vm->bind_method<1>("bytes", "__ne__", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
-        if(!is_type(args[1], vm->tp_bytes)) return VAR(true);
-        const Bytes& other = CAST(Bytes&, args[1]);
-        return VAR(self != other);
+    _vm->bind__ne__(_vm->tp_bytes, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(Bytes&, lhs) != _CAST(Bytes&, rhs);
     });
 
     /************ slice ************/
@@ -886,7 +875,7 @@ struct ReMatch {
     ReMatch(i64 start, i64 end, std::cmatch m) : start(start), end(end), m(m) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_method<-1>(type, "__init__", CPP_NOT_IMPLEMENTED());
+        vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
         vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).start)));
         vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).end)));
 
@@ -1033,8 +1022,8 @@ inline void VM::post_init(){
     this->_exec(code, this->builtins);
 
     // property is defined in builtins.py so we need to add it after builtins is loaded
-    _t(tp_object)->attr().set(__class__, property(CPP_LAMBDA(vm->_t(args[0]))));
-    _t(tp_type)->attr().set(__base__, property([](VM* vm, ArgsView args){
+    _t(tp_object)->attr().set("__class__", property(CPP_LAMBDA(vm->_t(args[0]))));
+    _t(tp_type)->attr().set("__base__", property([](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
     }));
@@ -1050,16 +1039,13 @@ inline void VM::post_init(){
         return CAST(BoundMethod&, args[0]).func;
     }));
 
-    vm->bind_method<1>(_t(tp_bound_method), "__eq__", [](VM* vm, ArgsView args){
-        if(!is_non_tagged_type(args[1], vm->tp_bound_method)) return vm->False;
-        bool ok = _CAST(BoundMethod&, args[0]) == _CAST(BoundMethod&, args[1]);
-        return VAR(ok);
+    bind__eq__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
+        if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return false;
+        return _CAST(BoundMethod&, lhs) == _CAST(BoundMethod&, rhs);
     });
-
-    vm->bind_method<1>(_t(tp_bound_method), "__ne__", [](VM* vm, ArgsView args){
-        if(!is_non_tagged_type(args[1], vm->tp_bound_method)) return vm->True;
-        bool ok = _CAST(BoundMethod&, args[0]) != _CAST(BoundMethod&, args[1]);
-        return VAR(ok);
+    bind__ne__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
+        if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return true;
+        return _CAST(BoundMethod&, lhs) != _CAST(BoundMethod&, rhs);
     });
 
     _t(tp_slice)->attr().set("start", property([](VM* vm, ArgsView args){
@@ -1071,10 +1057,9 @@ inline void VM::post_init(){
     _t(tp_slice)->attr().set("step", property([](VM* vm, ArgsView args){
         return CAST(Slice&, args[0]).step;
     }));
+
     _t(tp_object)->attr().set("__dict__", property([](VM* vm, ArgsView args){
-        if(is_tagged(args[0]) || !args[0]->is_attr_valid()){
-            vm->AttributeError("__dict__");
-        }
+        if(is_tagged(args[0]) || !args[0]->is_attr_valid()) vm->AttributeError("__dict__");
         return VAR(MappingProxy(args[0]));
     }));
 

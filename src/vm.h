@@ -9,6 +9,7 @@
 #include "obj.h"
 #include "str.h"
 #include "tuplelist.h"
+#include "dict.h"
 
 namespace pkpy{
 
@@ -65,9 +66,47 @@ struct PyTypeInfo{
     Type base;
     Str name;
     bool subclass_enabled;
+
     // cached special methods
+    // unary operators
+    PyObject* (*m__repr__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__str__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__hash__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__len__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__next__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__json__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__neg__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__bool__)(VM* vm, PyObject*) = nullptr;
+
+    bool (*m__eq__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__ne__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__lt__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__le__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__gt__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__ge__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    bool (*m__contains__)(VM* vm, PyObject*, PyObject*) = nullptr;
+
+    // binary operators
+    PyObject* (*m__add__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__sub__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__mul__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__truediv__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__floordiv__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__mod__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__pow__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__matmul__)(VM* vm, PyObject*, PyObject*) = nullptr;
+
+    PyObject* (*m__lshift__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__rshift__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__and__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__or__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__xor__)(VM* vm, PyObject*, PyObject*) = nullptr;
+
+    // indexer
     PyObject* (*m__getitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
     PyObject* (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
+    PyObject* (*m__delitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
 };
 
 struct FrameId{
@@ -283,6 +322,55 @@ public:
         return &_all_types[obj->type];
     }
 
+#define BIND_LOGICAL_SPECIAL(name)                                                      \
+    void bind##name(Type type, bool (*f)(VM* vm, PyObject* lhs, PyObject* rhs)){        \
+        PyObject* obj = _t(type);                                                       \
+        _all_types[type].m##name = f;                                                   \
+        bind_method<1>(obj, #name, [](VM* vm, ArgsView args){                           \
+            bool ok = vm->_inst_type_info(args[0])->m##name(vm, args[0], args[1]);      \
+            return ok ? vm->True : vm->False;                                           \
+        });                                                                             \
+    }
+
+    BIND_LOGICAL_SPECIAL(__eq__)
+    BIND_LOGICAL_SPECIAL(__ne__)
+    BIND_LOGICAL_SPECIAL(__lt__)
+    BIND_LOGICAL_SPECIAL(__le__)
+    BIND_LOGICAL_SPECIAL(__gt__)
+    BIND_LOGICAL_SPECIAL(__ge__)
+    BIND_LOGICAL_SPECIAL(__contains__)
+
+#undef BIND_LOGICAL_SPECIAL
+
+
+#define BIND_BINARY_SPECIAL(name)                                                       \
+    void bind##name(Type type, PyObject* (*f)(VM* vm, PyObject* lhs, PyObject* rhs)){   \
+        PyObject* obj = _t(type);                                                       \
+        _all_types[type].m##name = f;                                                   \
+        bind_method<1>(obj, #name, [](VM* vm, ArgsView args){                           \
+            return vm->_inst_type_info(args[0])->m##name(vm, args[0], args[1]);         \
+        });                                                                             \
+    }
+
+    BIND_BINARY_SPECIAL(__add__)
+    BIND_BINARY_SPECIAL(__sub__)
+    BIND_BINARY_SPECIAL(__mul__)
+    BIND_BINARY_SPECIAL(__truediv__)
+
+    bool py_equals(PyObject* lhs, PyObject* rhs){
+        if(lhs == rhs) return true;
+        const PyTypeInfo* ti = _inst_type_info(lhs);
+        if(ti->m__eq__) return ti->m__eq__(this, lhs, rhs);
+        return call_method(lhs, __eq__, rhs) == True;
+    }
+
+    bool py_not_equals(PyObject* lhs, PyObject* rhs){
+        if(lhs == rhs) return false;
+        const PyTypeInfo* ti = _inst_type_info(lhs);
+        if(ti->m__ne__) return ti->m__ne__(this, lhs, rhs);
+        return call_method(lhs, __ne__, rhs) == True;
+    }
+
     template<int ARGC>
     void bind_func(Str type, Str name, NativeFuncC fn) {
         bind_func<ARGC>(_find_type(type), name, fn);
@@ -353,6 +441,7 @@ public:
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
+    void KeyError(const Str& msg){ _error("KeyError", msg); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
@@ -373,12 +462,12 @@ public:
 
     void check_int(PyObject* obj){
         if(is_int(obj)) return;
-        check_type(obj, tp_int);
+        check_type(obj, tp_int);    // if failed, redirect to check_type to raise TypeError
     }
 
     void check_float(PyObject* obj){
         if(is_float(obj)) return;
-        check_type(obj, tp_float);
+        check_type(obj, tp_float);  // if failed, redirect to check_type to raise TypeError
     }
 
     PyObject* _t(Type t){
@@ -1276,6 +1365,15 @@ inline PyObject* PyStrGetItem(VM* vm, PyObject* obj, PyObject* index){
     int i = CAST(int, index);
     i = vm->normalized_index(i, self.u8_length());
     return VAR(self.u8_getitem(i));
+}
+
+inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
+    ok = false;
+    i = vm->hash(key) & _mask;
+    while(_items[i].first != nullptr) {
+        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+        i = (i + 1) & _mask;
+    }
 }
 
 }   // namespace pkpy
