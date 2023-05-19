@@ -71,8 +71,8 @@ shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
 # my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
-	shutil.copy("src/easing.pyi", "/mnt/e/PainterEngine/game/easing.pyi")
-	shutil.copy("src/linalg.pyi", "/mnt/e/PainterEngine/game/linalg.pyi")
-	shutil.copy("src/c.pyi", "/mnt/e/PainterEngine/game/c.pyi")
+	shutil.copy("src/easing.pyi", "/mnt/e/PainterEngine/game/pype/easing.pyi")
+	shutil.copy("src/linalg.pyi", "/mnt/e/PainterEngine/game/pype/linalg.pyi")
+	shutil.copy("src/c.pyi", "/mnt/e/PainterEngine/game/pype/c.pyi")
 
 
