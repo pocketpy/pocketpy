@@ -105,8 +105,8 @@ struct PyTypeInfo{
 
     // indexer
     PyObject* (*m__getitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
-    PyObject* (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
-    PyObject* (*m__delitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
+    void (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
+    void (*m__delitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
 };
 
 struct FrameId{
@@ -322,6 +322,28 @@ public:
         return &_all_types[obj->type];
     }
 
+#define BIND_UNARY_SPECIAL(name)                                                    \
+    void bind##name(Type type, PyObject* (*f)(VM* vm, PyObject*)){                      \
+        PyObject* obj = _t(type);                                                       \
+        _all_types[type].m##name = f;                                                   \
+        bind_method<0>(obj, #name, [](VM* vm, ArgsView args){                           \
+            return vm->_inst_type_info(args[0])->m##name(vm, args[0]);                  \
+        });                                                                             \
+    }
+
+    BIND_UNARY_SPECIAL(__repr__)
+    BIND_UNARY_SPECIAL(__str__)
+    BIND_UNARY_SPECIAL(__hash__)
+    BIND_UNARY_SPECIAL(__len__)
+    BIND_UNARY_SPECIAL(__iter__)
+    BIND_UNARY_SPECIAL(__next__)
+    BIND_UNARY_SPECIAL(__json__)
+    BIND_UNARY_SPECIAL(__neg__)
+    BIND_UNARY_SPECIAL(__bool__)
+
+#undef BIND_UNARY_SPECIAL
+
+
 #define BIND_LOGICAL_SPECIAL(name)                                                      \
     void bind##name(Type type, bool (*f)(VM* vm, PyObject* lhs, PyObject* rhs)){        \
         PyObject* obj = _t(type);                                                       \
@@ -356,6 +378,44 @@ public:
     BIND_BINARY_SPECIAL(__sub__)
     BIND_BINARY_SPECIAL(__mul__)
     BIND_BINARY_SPECIAL(__truediv__)
+    BIND_BINARY_SPECIAL(__floordiv__)
+    BIND_BINARY_SPECIAL(__mod__)
+    BIND_BINARY_SPECIAL(__pow__)
+    BIND_BINARY_SPECIAL(__matmul__)
+
+    BIND_BINARY_SPECIAL(__lshift__)
+    BIND_BINARY_SPECIAL(__rshift__)
+    BIND_BINARY_SPECIAL(__and__)
+    BIND_BINARY_SPECIAL(__or__)
+    BIND_BINARY_SPECIAL(__xor__)
+
+#undef BIND_BINARY_SPECIAL
+
+    void bind__getitem__(Type type, PyObject* (*f)(VM* vm, PyObject* lhs, PyObject* rhs)){
+        PyObject* obj = _t(type);
+        _all_types[type].m__getitem__ = f;
+        bind_method<1>(obj, "__getitem__", [](VM* vm, ArgsView args){
+            return vm->_inst_type_info(args[0])->m__getitem__(vm, args[0], args[1]);
+        });
+    }
+
+    void bind__setitem__(Type type, void (*f)(VM* vm, PyObject* lhs, PyObject* rhs, PyObject* value)){
+        PyObject* obj = _t(type);
+        _all_types[type].m__setitem__ = f;
+        bind_method<2>(obj, "__setitem__", [](VM* vm, ArgsView args){
+            vm->_inst_type_info(args[0])->m__setitem__(vm, args[0], args[1], args[2]);
+            return vm->None;
+        });
+    }
+
+    void bind__delitem__(Type type, void (*f)(VM* vm, PyObject* lhs, PyObject* rhs)){
+        PyObject* obj = _t(type);
+        _all_types[type].m__delitem__ = f;
+        bind_method<1>(obj, "__delitem__", [](VM* vm, ArgsView args){
+            vm->_inst_type_info(args[0])->m__delitem__(vm, args[0], args[1]);
+            return vm->None;
+        });
+    }
 
     bool py_equals(PyObject* lhs, PyObject* rhs){
         if(lhs == rhs) return true;
