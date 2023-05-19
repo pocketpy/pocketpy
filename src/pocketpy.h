@@ -58,8 +58,8 @@ inline void init_builtins(VM* _vm) {
         return false;                                                       \
     });                                                                     \
     _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {   \
-        if(is_int(rhs))     return _CAST(f64, lhs) == _CAST(i64, rhs);          \
-        if(is_float(rhs))   return _CAST(f64, lhs) == _CAST(f64, rhs);          \
+        if(is_int(rhs))     return _CAST(f64, lhs) op _CAST(i64, rhs);          \
+        if(is_float(rhs))   return _CAST(f64, lhs) op _CAST(f64, rhs);          \
         if constexpr(is_eq) return lhs op rhs;                                  \
         vm->TypeError("unsupported operand type(s) for " #op );                 \
         return false;                                                           \
@@ -131,7 +131,7 @@ inline void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
+    _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->py_repr(args[0])));
 
     _vm->bind_builtin_func<1>("len", [](VM* vm, ArgsView args){
         const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
@@ -140,7 +140,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
-        i64 value = vm->py_hash(args[0]);
+        i64 value = vm->hash(args[0]);
         if(((value << 2) >> 2) != value) value >>= 2;
         return VAR(value);
     });
@@ -178,7 +178,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("iter", [](VM* vm, ArgsView args) {
-        return vm->asIter(args[0]);
+        return vm->py_iter(args[0]);
     });
 
     _vm->bind_builtin_func<1>("next", [](VM* vm, ArgsView args) {
@@ -199,8 +199,9 @@ inline void init_builtins(VM* _vm) {
         return VAR(std::move(ret));
     });
 
-    _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* self) {
-        if(is_tagged(self)) self = nullptr;
+    _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* obj) {
+        PyObject* self = obj;
+        if(is_tagged(obj)) self = nullptr;
         std::stringstream ss;
         ss << "<" << OBJ_NAME(vm->_t(self)) << " object at " << std::hex << self << ">";
         return VAR(ss.str());
@@ -356,7 +357,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ PyString ************/
-    _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->asStr(args[1])));
+    _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->py_str(args[1])));
 
     _vm->bind__hash__(_vm->tp_str, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(Str&, obj).hash();
@@ -460,7 +461,7 @@ inline void init_builtins(VM* _vm) {
         auto _lock = vm->heap.gc_scope_lock();
         const Str& self = _CAST(Str&, args[0]);
         FastStrStream ss;
-        PyObject* it = vm->asIter(args[1]);     // strong ref
+        PyObject* it = vm->py_iter(args[1]);     // strong ref
         PyObject* obj = vm->PyIterNext(it);
         while(obj != vm->StopIteration){
             if(!ss.empty()) ss << self;
@@ -494,7 +495,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_method<1>("list", "extend", [](VM* vm, ArgsView args) {
         auto _lock = vm->heap.gc_scope_lock();
         List& self = _CAST(List&, args[0]);
-        PyObject* it = vm->asIter(args[1]);     // strong ref
+        PyObject* it = vm->py_iter(args[1]);     // strong ref
         PyObject* obj = vm->PyIterNext(it);
         while(obj != vm->StopIteration){
             self.push_back(obj);
@@ -578,7 +579,7 @@ inline void init_builtins(VM* _vm) {
         i64 x = 1000003;
         const Tuple& items = CAST(Tuple&, obj);
         for (int i=0; i<items.size(); i++) {
-            i64 y = vm->py_hash(items[i]);
+            i64 y = vm->hash(items[i]);
             // recommended by Github Copilot
             x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
         }
@@ -617,7 +618,12 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__xor__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         return VAR(_CAST(bool, lhs) != CAST(bool, rhs));
     });
-
+    _vm->bind__eq__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(bool, lhs) == CAST(bool, rhs);
+    });
+    _vm->bind__ne__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return _CAST(bool, lhs) != CAST(bool, rhs);
+    });
     _vm->bind__repr__(_vm->_type("ellipsis"), [](VM* vm, PyObject* self) {
         return VAR("Ellipsis");
     });
@@ -697,9 +703,9 @@ inline void init_builtins(VM* _vm) {
         const Slice& self = _CAST(Slice&, obj);
         std::stringstream ss;
         ss << "slice(";
-        ss << CAST(Str, vm->asRepr(self.start)) << ", ";
-        ss << CAST(Str, vm->asRepr(self.stop)) << ", ";
-        ss << CAST(Str, vm->asRepr(self.step)) << ")";
+        ss << CAST(Str, vm->py_repr(self.start)) << ", ";
+        ss << CAST(Str, vm->py_repr(self.stop)) << ", ";
+        ss << CAST(Str, vm->py_repr(self.step)) << ")";
         return VAR(ss.str());
     });
 
@@ -748,7 +754,7 @@ inline void init_builtins(VM* _vm) {
         for(auto& item : self.attr().items()){
             if(!first) ss << ", ";
             first = false;
-            ss << item.first.escape() << ": " << CAST(Str, vm->asRepr(item.second));
+            ss << item.first.escape() << ": " << CAST(Str, vm->py_repr(item.second));
         }
         ss << "})";
         return VAR(ss.str());
@@ -818,7 +824,11 @@ inline void add_module_json(VM* vm){
         return vm->_exec(code, vm->top_frame()->_module);
     });
 
-    vm->bind_func<1>(mod, "dumps", CPP_LAMBDA(vm->call_method(args[0], __json__)));
+    vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
+        const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
+        if(ti->m__json__) return ti->m__json__(vm, args[0]);
+        return vm->call_method(args[0], __json__);
+    });
 }
 
 
@@ -1129,7 +1139,7 @@ extern "C" {
         pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;
         try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->asRepr(val));
+            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->py_repr(val));
             return repr.c_str_dup();
         }catch(...){
             return nullptr;
@@ -1141,7 +1151,7 @@ extern "C" {
         pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
         if(ret == nullptr) return nullptr;
         try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->asRepr(ret));
+            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->py_repr(ret));
             return repr.c_str_dup();
         }catch(...){
             return nullptr;

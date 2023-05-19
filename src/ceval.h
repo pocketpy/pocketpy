@@ -68,7 +68,7 @@ __NEXT_STEP:;
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
     TARGET(PRINT_EXPR)
         if(TOP() != None){
-            _stdout(this, CAST(Str&, asRepr(TOP())));
+            _stdout(this, CAST(Str&, py_repr(TOP())));
             _stdout(this, "\n");
         }
         POP();
@@ -220,7 +220,12 @@ __NEXT_STEP:;
     TARGET(DELETE_SUBSCR)
         _1 = POPX();
         _0 = POPX();
-        call_method(_0, __delitem__, _1);
+        _ti = _inst_type_info(_0);
+        if(_ti->m__delitem__){
+            _ti->m__delitem__(this, _0, _1);
+        }else{
+            call_method(_0, __delitem__, _1);
+        }
         DISPATCH();
     /*****************************************/
     TARGET(BUILD_LIST)
@@ -229,16 +234,16 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_DICT)
-        const static StrName m_dict("dict");
+        DEF_SNAME(dict);
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
-        _0 = call(builtins->attr(m_dict), _0);
+        _0 = call(builtins->attr(dict), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_SET)
-        const static StrName m_set("set");
+        DEF_SNAME(set);
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
-        _0 = call(builtins->attr(m_set), _0);
+        _0 = call(builtins->attr(set), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
@@ -256,58 +261,47 @@ __NEXT_STEP:;
     TARGET(BUILD_STRING) {
         std::stringstream ss;
         ArgsView view = STACK_VIEW(byte.arg);
-        for(PyObject* obj : view) ss << CAST(Str&, asStr(obj));
+        for(PyObject* obj : view) ss << CAST(Str&, py_str(obj));
         STACK_SHRINK(byte.arg);
         PUSH(VAR(ss.str()));
     } DISPATCH();
     /*****************************************/
-    TARGET(BINARY_TRUEDIV)
-        _1 = POPX();
-        _0 = TOP();
-        if(is_float(_0)){
-            TOP() = VAR(_CAST(f64, _0) / num_to_float(_1));
-        }else{
-            TOP() = call_method(_0, __truediv__, _1);
+#define BINARY_OP_SPECIAL(func)                         \
+        _1 = POPX();                                    \
+        _0 = TOP();                                     \
+        _ti = _inst_type_info(_0);                      \
+        if(_ti->m##func){                               \
+            TOP() = VAR(_ti->m##func(this, _0, _1));    \
+        }else{                                          \
+            TOP() = call_method(_0, func, _1);          \
         }
+
+    TARGET(BINARY_TRUEDIV)
+        BINARY_OP_SPECIAL(__truediv__);
         DISPATCH();
     TARGET(BINARY_POW)
-        _1 = POPX();
-        _0 = TOP();
-        TOP() = call_method(_0, __pow__, _1);
+        BINARY_OP_SPECIAL(__pow__);
         DISPATCH();
-
-#define INT_BINARY_OP(op, func)                             \
-        if(is_both_int(TOP(), SECOND())){                   \
-            i64 b = _CAST(i64, TOP());                      \
-            i64 a = _CAST(i64, SECOND());                   \
-            POP();                                          \
-            TOP() = VAR(a op b);                            \
-        }else{                                              \
-            _1 = POPX();                                    \
-            _0 = TOP();                                     \
-            TOP() = call_method(_0, func, _1);              \
-        }
-
     TARGET(BINARY_ADD)
-        INT_BINARY_OP(+, __add__)
+        BINARY_OP_SPECIAL(__add__);
         DISPATCH()
     TARGET(BINARY_SUB)
-        INT_BINARY_OP(-, __sub__)
+        BINARY_OP_SPECIAL(__sub__);
         DISPATCH()
     TARGET(BINARY_MUL)
-        INT_BINARY_OP(*, __mul__)
+        BINARY_OP_SPECIAL(__mul__);
         DISPATCH()
     TARGET(BINARY_FLOORDIV)
-        INT_BINARY_OP(/, __floordiv__)
+        BINARY_OP_SPECIAL(__floordiv__);
         DISPATCH()
     TARGET(BINARY_MOD)
-        INT_BINARY_OP(%, __mod__)
+        BINARY_OP_SPECIAL(__mod__);
         DISPATCH()
     TARGET(COMPARE_LT)
-        INT_BINARY_OP(<, __lt__)
+        BINARY_OP_SPECIAL(__lt__);
         DISPATCH()
     TARGET(COMPARE_LE)
-        INT_BINARY_OP(<=, __le__)
+        BINARY_OP_SPECIAL(__le__);
         DISPATCH()
     TARGET(COMPARE_EQ)
         _1 = POPX();
@@ -320,33 +314,31 @@ __NEXT_STEP:;
         TOP() = VAR(py_not_equals(_0, _1));
         DISPATCH()
     TARGET(COMPARE_GT)
-        INT_BINARY_OP(>, __gt__)
+        BINARY_OP_SPECIAL(__gt__);
         DISPATCH()
     TARGET(COMPARE_GE)
-        INT_BINARY_OP(>=, __ge__)
+        BINARY_OP_SPECIAL(__ge__);
         DISPATCH()
     TARGET(BITWISE_LSHIFT)
-        INT_BINARY_OP(<<, __lshift__)
+        BINARY_OP_SPECIAL(__lshift__);
         DISPATCH()
     TARGET(BITWISE_RSHIFT)
-        INT_BINARY_OP(>>, __rshift__)
+        BINARY_OP_SPECIAL(__rshift__);
         DISPATCH()
     TARGET(BITWISE_AND)
-        INT_BINARY_OP(&, __and__)
+        BINARY_OP_SPECIAL(__and__);
         DISPATCH()
     TARGET(BITWISE_OR)
-        INT_BINARY_OP(|, __or__)
+        BINARY_OP_SPECIAL(__or__);
         DISPATCH()
     TARGET(BITWISE_XOR)
-        INT_BINARY_OP(^, __xor__)
+        BINARY_OP_SPECIAL(__xor__);
         DISPATCH()
-#undef INT_BINARY_OP
-
     TARGET(BINARY_MATMUL)
-        _1 = POPX();
-        _0 = TOP();
-        TOP() = call_method(_0, __matmul__, _1);
+        BINARY_OP_SPECIAL(__matmul__);
         DISPATCH();
+
+#undef BINARY_OP_SPECIAL
 
     TARGET(IS_OP)
         _1 = POPX();    // rhs
@@ -359,7 +351,12 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(CONTAINS_OP)
         // a in b -> b __contains__ a
-        _0 = call_method(TOP(), __contains__, SECOND());
+        _ti = _inst_type_info(TOP());
+        if(_ti->m__contains__){
+            _0 = VAR(_ti->m__contains__(this, TOP(), SECOND()));
+        }else{
+            _0 = call_method(TOP(), __contains__, SECOND());
+        }
         POP();
         if(byte.arg == 1){
             TOP() = VAR(!CAST(bool, _0));
@@ -430,9 +427,9 @@ __NEXT_STEP:;
         call_method(SECOND(), __setitem__, t[0], t[1]);
     } DISPATCH();
     TARGET(SET_ADD)
-        const static StrName m_add("add");
+        DEF_SNAME(add);
         _0 = POPX();
-        call_method(SECOND(), m_add, _0);
+        call_method(SECOND(), add, _0);
         DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)
@@ -443,7 +440,7 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
-        TOP() = asIter(TOP());
+        TOP() = py_iter(TOP());
         DISPATCH();
     TARGET(FOR_ITER)
         _0 = PyIterNext(TOP());
@@ -489,7 +486,7 @@ __NEXT_STEP:;
     TARGET(UNPACK_SEQUENCE)
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        _0 = asIter(POPX());
+        _0 = py_iter(POPX());
         for(int i=0; i<byte.arg; i++){
             _1 = PyIterNext(_0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
@@ -510,7 +507,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(UNPACK_UNLIMITED) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        _0 = asIter(POPX());
+        _0 = py_iter(POPX());
         _1 = PyIterNext(_0);
         while(_1 != StopIteration){
             PUSH(_1);
@@ -538,11 +535,11 @@ __NEXT_STEP:;
     /*****************************************/
     // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
-        const static StrName __enter__("__enter__");
+        DEF_SNAME(__enter__);
         call_method(POPX(), __enter__);
         DISPATCH();
     TARGET(WITH_EXIT)
-        const static StrName __exit__("__exit__");
+        DEF_SNAME(__exit__);
         call_method(POPX(), __exit__);
         DISPATCH();
     /*****************************************/
@@ -553,7 +550,7 @@ __NEXT_STEP:;
             auto& t = CAST(Tuple&, _0);
             if(t.size() != 2) ValueError("assert tuple must have 2 elements");
             _0 = t[0];
-            msg = CAST(Str&, asStr(t[1]));
+            msg = CAST(Str&, py_str(t[1]));
         }
         bool ok = asBool(_0);
         POP();
@@ -566,13 +563,13 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(RAISE) {
         _0 = POPX();
-        Str msg = _0 == None ? "" : CAST(Str, asStr(_0));
+        Str msg = _0 == None ? "" : CAST(Str, py_str(_0));
         _error(StrName(byte.arg), msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
     /*****************************************/
     TARGET(SETUP_DOCSTRING)
-        const static StrName __doc__("__doc__");
+        DEF_SNAME(__doc__);
         TOP()->attr().set(__doc__, co_consts[byte.arg]);
         DISPATCH();
     TARGET(FORMAT_STRING) {

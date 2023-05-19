@@ -347,8 +347,8 @@ struct PyVec2: Vec2 {
             return VAR(Vec2(x, y));
         });
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
+        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
             ss << "vec2(" << self.x << ", " << self.y << ")";
             return VAR(ss.str());
@@ -397,8 +397,8 @@ struct PyVec3: Vec3 {
             return VAR(Vec3(x, y, z));
         });
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            PyVec3& self = _CAST(PyVec3&, args[0]);
+        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyVec3& self = _CAST(PyVec3&, obj);
             std::stringstream ss;
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
             return VAR(ss.str());
@@ -471,8 +471,8 @@ struct PyMat3x3: Mat3x3{
 
 #undef METHOD_PROXY_NONE
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyMat3x3& self = _CAST(PyMat3x3&, obj);
             std::stringstream ss;
             ss << std::fixed << std::setprecision(4);
             ss << "mat3x3([[" << self._11 << ", " << self._12 << ", " << self._13 << "],\n";
@@ -486,9 +486,9 @@ struct PyMat3x3: Mat3x3{
             return VAR_T(PyMat3x3, self);
         });
 
-        vm->bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            Tuple& t = CAST(Tuple&, args[1]);
+        vm->bind__getitem__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){
+            PyMat3x3& self = _CAST(PyMat3x3&, obj);
+            Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
                 vm->TypeError("Mat3x3.__getitem__ takes a tuple of 2 integers");
                 return vm->None;

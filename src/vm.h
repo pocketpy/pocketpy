@@ -166,15 +166,25 @@ public:
         return FrameId(&callstack.data(), callstack.size()-1);
     }
 
-    PyObject* asStr(PyObject* obj){
+    PyObject* py_str(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__str__) return ti->m__str__(this, obj);
         PyObject* self;
         PyObject* f = get_unbound_method(obj, __str__, &self, false);
         if(self != PY_NULL) return call_method(self, f);
-        return asRepr(obj);
+        return py_repr(obj);
     }
 
-    PyObject* asIter(PyObject* obj){
+    PyObject* py_repr(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__repr__) return ti->m__repr__(this, obj);
+        return call_method(obj, __repr__);
+    }
+
+    PyObject* py_iter(PyObject* obj){
         if(is_type(obj, tp_iterator)) return obj;
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__iter__) return ti->m__iter__(this, obj);
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
         if(self != PY_NULL) return call_method(self, iter_f);
@@ -300,11 +310,11 @@ public:
 
     PyObject* _find_type_object(const Str& type){
         PyObject* obj = builtins->attr().try_get(type);
-        check_non_tagged_type(obj, tp_type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
             throw std::runtime_error(fmt("type not found: ", type));
         }
+        check_non_tagged_type(obj, tp_type);
         return obj;
     }
 
@@ -560,8 +570,7 @@ public:
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
     bool asBool(PyObject* obj);
-    i64 py_hash(PyObject* obj);
-    PyObject* asRepr(PyObject*);
+    i64 hash(PyObject* obj);
     PyObject* asList(PyObject*);
     PyObject* new_module(StrName name);
     Str disassemble(CodeObject_ co);
@@ -713,6 +722,10 @@ inline PyObject* py_var(VM* vm, NoReturn val){
     return vm->None;
 }
 
+inline PyObject* py_var(VM* vm, PyObject* val){
+    return val;
+}
+
 inline PyObject* VM::num_negated(PyObject* obj){
     if (is_int(obj)){
         return VAR(-CAST(i64, obj));
@@ -749,7 +762,7 @@ inline bool VM::asBool(PyObject* obj){
 
 inline PyObject* VM::asList(PyObject* it){
     auto _lock = heap.gc_scope_lock();
-    it = asIter(it);
+    it = py_iter(it);
     List list;
     PyObject* obj = PyIterNext(it);
     while(obj != StopIteration){
@@ -801,19 +814,15 @@ inline void VM::parse_int_slice(const Slice& s, int length, int& start, int& sto
     }
 }
 
-inline i64 VM::py_hash(PyObject* obj){
+inline i64 VM::hash(PyObject* obj){
     const PyTypeInfo* ti = _inst_type_info(obj);
     if(ti->m__hash__) return ti->m__hash__(this, obj);
     PyObject* ret = call_method(obj, __hash__);
     return CAST(i64, ret);
 }
 
-inline PyObject* VM::asRepr(PyObject* obj){
-    return call_method(obj, __repr__);
-}
-
 inline PyObject* VM::format(Str spec, PyObject* obj){
-    if(spec.empty()) return asStr(obj);
+    if(spec.empty()) return py_str(obj);
     char type;
     switch(spec.end()[-1]){
         case 'f': case 'd': case 's':
@@ -867,7 +876,7 @@ inline PyObject* VM::format(Str spec, PyObject* obj){
     }else if(type == 's'){
         ret = CAST(Str&, obj);
     }else{
-        ret = CAST(Str&, asStr(obj));
+        ret = CAST(Str&, py_str(obj));
     }
     if(width > ret.length()){
         int pad = width - ret.length();
@@ -893,7 +902,7 @@ inline std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     switch(byte.op){
         case OP_LOAD_CONST:
             if(vm != nullptr){
-                argStr += fmt(" (", CAST(Str, vm->asRepr(co->consts[byte.arg])), ")");
+                argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")");
             }
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
@@ -1117,7 +1126,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(method_call) FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
 
-        const static StrName __new__("__new__");
+        DEF_SNAME(__new__);
         PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;
         if(new_f != nullptr){
@@ -1136,7 +1145,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         // __init__
         PyObject* self;
-        const static StrName __init__("__init__");
+        DEF_SNAME(__init__);
         callable = get_unbound_method(obj, __init__, &self, false);
         if (self != PY_NULL) {
             // replace `NULL` with `self`
@@ -1155,7 +1164,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     // handle `__call__` overload
     PyObject* self;
-    const static StrName __call__("__call__");
+    DEF_SNAME(__call__);
     PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
     if(self != PY_NULL){
         p1[-(ARGC + 2)] = call_f;
@@ -1245,8 +1254,8 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     return nullptr;
 }
 
-const static StrName __get__("__get__");
-const static StrName __set__("__set__");
+DEF_SNAME(__get__);
+DEF_SNAME(__set__);
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
@@ -1424,7 +1433,7 @@ inline void VM::bind__len__(Type type, i64 (*f)(VM* vm, PyObject*)){
 
 inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     ok = false;
-    i = vm->py_hash(key) & _mask;
+    i = vm->hash(key) & _mask;
     while(_items[i].first != nullptr) {
         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
         i = (i + 1) & _mask;

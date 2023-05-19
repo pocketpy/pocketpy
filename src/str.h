@@ -387,7 +387,6 @@ const StrName __next__ = StrName::get("__next__");      // unused
 const StrName __json__ = StrName::get("__json__");
 const StrName __neg__ = StrName::get("__neg__");        // unused
 const StrName __bool__ = StrName::get("__bool__");      // unused
-
 // logical operators
 const StrName __eq__ = StrName::get("__eq__");
 const StrName __ne__ = StrName::get("__ne__");
@@ -396,7 +395,6 @@ const StrName __le__ = StrName::get("__le__");
 const StrName __gt__ = StrName::get("__gt__");
 const StrName __ge__ = StrName::get("__ge__");
 const StrName __contains__ = StrName::get("__contains__");
-
 // binary operators
 const StrName __add__ = StrName::get("__add__");
 const StrName __sub__ = StrName::get("__sub__");
@@ -406,16 +404,16 @@ const StrName __floordiv__ = StrName::get("__floordiv__");
 const StrName __mod__ = StrName::get("__mod__");
 const StrName __pow__ = StrName::get("__pow__");
 const StrName __matmul__ = StrName::get("__matmul__");
-
 const StrName __lshift__ = StrName::get("__lshift__");
 const StrName __rshift__ = StrName::get("__rshift__");
 const StrName __and__ = StrName::get("__and__");
 const StrName __or__ = StrName::get("__or__");
 const StrName __xor__ = StrName::get("__xor__");
-
 // indexer
 const StrName __getitem__ = StrName::get("__getitem__");
 const StrName __setitem__ = StrName::get("__setitem__");
 const StrName __delitem__ = StrName::get("__delitem__");
+
+#define DEF_SNAME(name) const static StrName name(#name)
 
 } // namespace pkpy
