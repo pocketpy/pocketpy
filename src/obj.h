@@ -14,14 +14,26 @@ class VM;
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 typedef int (*LuaStyleFuncC)(VM*);
 
+union UserData{
+    void* _p;
+    void (*_fp)(void);
+    char _char;
+    int _int;
+    float _float;
+    bool _bool;
+};
+
 struct NativeFunc {
     NativeFuncC f;
     int argc;       // DONOT include self
     bool method;
 
     // this is designed for lua style C bindings
-    // access it via `CAST(NativeFunc&, args[-2])._lua_f`
+    // access it via `_CAST(NativeFunc&, args[-2])._lua_f`
+    // (-2) or (-1) depends on the calling convention
     LuaStyleFuncC _lua_f;
+
+    UserData userdata;
     
     NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method), _lua_f(nullptr) {}
     PyObject* operator()(VM* vm, ArgsView args) const;
@@ -387,6 +399,16 @@ struct Py_<DummyModule> final: PyObject {
     }
     void _obj_gc_mark() override {}
 };
+
+
+template<typename T>
+T lambda_get_fp(ArgsView args){
+    void (*f)();
+    if(args[-1] != PY_NULL) f = OBJ_GET(NativeFunc, args[-1]).userdata._fp;
+    else f = OBJ_GET(NativeFunc, args[-2]).userdata._fp;
+    return reinterpret_cast<T>(f);
+}
+
 
 
 }   // namespace pkpy
