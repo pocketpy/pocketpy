@@ -29,8 +29,7 @@ struct Vec2{
     float cross(const Vec2& v) const { return x * v.y - y * v.x; }
     float length() const { return sqrtf(x * x + y * y); }
     float length_squared() const { return x * x + y * y; }
-    NoReturn normalize() { float l = length(); x /= l; y /= l; return {}; }
-    Vec2 normalized() const { float l = length(); return Vec2(x / l, y / l); }
+    Vec2 normalize() const { float l = length(); return Vec2(x / l, y / l); }
 };
 
 struct Vec3{
@@ -54,8 +53,7 @@ struct Vec3{
     Vec3 cross(const Vec3& v) const { return Vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
     float length() const { return sqrtf(x * x + y * y + z * z); }
     float length_squared() const { return x * x + y * y + z * z; }
-    NoReturn normalize() { float l = length(); x /= l; y /= l; z /= l; return {}; }
-    Vec3 normalized() const { float l = length(); return Vec3(x / l, y / l, z / l); }
+    Vec3 normalize() const { float l = length(); return Vec3(x / l, y / l, z / l); }
 };
 
 struct Mat3x3{    
@@ -361,6 +359,13 @@ struct PyVec2: Vec2 {
             return VAR_T(PyVec2, self);
         });
 
+        vm->bind_method<1>(type, "rotate", [](VM* vm, ArgsView args){
+            Vec2 self = _CAST(PyVec2&, args[0]);
+            float radian = vm->num_to_float(args[1]);
+            self = Mat3x3::rotate(radian).transform_vector(self);
+            return VAR(self);
+        });
+
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_FLOAT_OP(2, __mul__, *)
@@ -374,7 +379,6 @@ struct PyVec2: Vec2 {
         BIND_VEC_FUNCTION_0(2, length)
         BIND_VEC_FUNCTION_0(2, length_squared)
         BIND_VEC_FUNCTION_0(2, normalize)
-        BIND_VEC_FUNCTION_0(2, normalized)
     }
 };
 
@@ -419,7 +423,6 @@ struct PyVec3: Vec3 {
         BIND_VEC_FUNCTION_0(3, length)
         BIND_VEC_FUNCTION_0(3, length_squared)
         BIND_VEC_FUNCTION_0(3, normalize)
-        BIND_VEC_FUNCTION_0(3, normalized)
     }
 };
 
@@ -622,21 +625,6 @@ struct PyMat3x3: Mat3x3{
         });
 
         /*************** affine transformations ***************/
-        vm->bind_func<1>(type, "translate", [](VM* vm, ArgsView args){
-            PyVec2& v = CAST(PyVec2&, args[0]);
-            return VAR_T(PyMat3x3, Mat3x3::translate(v));
-        });
-
-        vm->bind_func<1>(type, "rotate", [](VM* vm, ArgsView args){
-            f64 angle = VAR_F(args[0]);
-            return VAR_T(PyMat3x3, Mat3x3::rotate(angle));
-        });
-
-        vm->bind_func<1>(type, "scale", [](VM* vm, ArgsView args){
-            PyVec2& v = CAST(PyVec2&, args[0]);
-            return VAR_T(PyMat3x3, Mat3x3::scale(v));
-        });
-
         vm->bind_func<3>(type, "trs", [](VM* vm, ArgsView args){
             PyVec2& t = CAST(PyVec2&, args[0]);
             f64 r = VAR_F(args[1]);

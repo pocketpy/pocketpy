@@ -71,8 +71,8 @@ struct PyTypeInfo{
     // unary operators
     PyObject* (*m__repr__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__str__)(VM* vm, PyObject*) = nullptr;
-    PyObject* (*m__hash__)(VM* vm, PyObject*) = nullptr;
-    PyObject* (*m__len__)(VM* vm, PyObject*) = nullptr;
+    i64 (*m__hash__)(VM* vm, PyObject*) = nullptr;
+    i64 (*m__len__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__next__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__json__)(VM* vm, PyObject*) = nullptr;
@@ -298,13 +298,19 @@ public:
         return OBJ_GET(Type, obj);
     }
 
-    PyObject* _find_type(const Str& type){
+    PyObject* _find_type_object(const Str& type){
         PyObject* obj = builtins->attr().try_get(type);
+        check_non_tagged_type(obj, tp_type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
             throw std::runtime_error(fmt("type not found: ", type));
         }
         return obj;
+    }
+
+    Type _type(const Str& type){
+        PyObject* obj = _find_type_object(type);
+        return OBJ_GET(Type, obj);
     }
 
     PyTypeInfo* _type_info(const Str& type){
@@ -322,7 +328,7 @@ public:
         return &_all_types[obj->type];
     }
 
-#define BIND_UNARY_SPECIAL(name)                                                    \
+#define BIND_UNARY_SPECIAL(name)                                                        \
     void bind##name(Type type, PyObject* (*f)(VM* vm, PyObject*)){                      \
         PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
@@ -333,14 +339,14 @@ public:
 
     BIND_UNARY_SPECIAL(__repr__)
     BIND_UNARY_SPECIAL(__str__)
-    BIND_UNARY_SPECIAL(__hash__)
-    BIND_UNARY_SPECIAL(__len__)
     BIND_UNARY_SPECIAL(__iter__)
     BIND_UNARY_SPECIAL(__next__)
     BIND_UNARY_SPECIAL(__json__)
     BIND_UNARY_SPECIAL(__neg__)
     BIND_UNARY_SPECIAL(__bool__)
 
+    void bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*));
+    void bind__len__(Type type, i64 (*f)(VM* vm, PyObject*));
 #undef BIND_UNARY_SPECIAL
 
 
@@ -433,12 +439,12 @@ public:
 
     template<int ARGC>
     void bind_func(Str type, Str name, NativeFuncC fn) {
-        bind_func<ARGC>(_find_type(type), name, fn);
+        bind_func<ARGC>(_find_type_object(type), name, fn);
     }
 
     template<int ARGC>
     void bind_method(Str type, Str name, NativeFuncC fn) {
-        bind_method<ARGC>(_find_type(type), name, fn);
+        bind_method<ARGC>(_find_type_object(type), name, fn);
     }
 
     template<int ARGC, typename __T>
@@ -554,7 +560,7 @@ public:
     PyObject* num_negated(PyObject* obj);
     f64 num_to_float(PyObject* obj);
     bool asBool(PyObject* obj);
-    i64 hash(PyObject* obj);
+    i64 py_hash(PyObject* obj);
     PyObject* asRepr(PyObject*);
     PyObject* asList(PyObject*);
     PyObject* new_module(StrName name);
@@ -795,28 +801,11 @@ inline void VM::parse_int_slice(const Slice& s, int length, int& start, int& sto
     }
 }
 
-inline i64 VM::hash(PyObject* obj){
-    if (is_non_tagged_type(obj, tp_str)) return CAST(Str&, obj).hash();
-    if (is_int(obj)) return CAST(i64, obj);
-    if (is_non_tagged_type(obj, tp_tuple)) {
-        i64 x = 1000003;
-        const Tuple& items = CAST(Tuple&, obj);
-        for (int i=0; i<items.size(); i++) {
-            i64 y = hash(items[i]);
-            // recommended by Github Copilot
-            x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
-        }
-        return x;
-    }
-    if (is_non_tagged_type(obj, tp_type)) return BITS(obj);
-    if (is_non_tagged_type(obj, tp_iterator)) return BITS(obj);
-    if (is_non_tagged_type(obj, tp_bool)) return _CAST(bool, obj) ? 1 : 0;
-    if (is_float(obj)){
-        f64 val = CAST(f64, obj);
-        return (i64)std::hash<f64>()(val);
-    }
-    TypeError("unhashable type: " +  OBJ_NAME(_t(obj)).escape());
-    return 0;
+inline i64 VM::py_hash(PyObject* obj){
+    const PyTypeInfo* ti = _inst_type_info(obj);
+    if(ti->m__hash__) return ti->m__hash__(this, obj);
+    PyObject* ret = call_method(obj, __hash__);
+    return CAST(i64, ret);
 }
 
 inline PyObject* VM::asRepr(PyObject* obj){
@@ -891,10 +880,10 @@ inline PyObject* VM::format(Str spec, PyObject* obj){
 
 inline PyObject* VM::new_module(StrName name) {
     PyObject* obj = heap._new<DummyModule>(tp_module, DummyModule());
-    obj->attr().set(__name__, VAR(name.sv()));
+    obj->attr().set("__name__", VAR(name.sv()));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    if(_modules.contains(name)) FATAL_ERROR();
+    if(_modules.contains(name)) throw std::runtime_error("module already exists");
     _modules.set(name, obj);
     return obj;
 }
@@ -1128,9 +1117,8 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(method_call) FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
 
-        // __new__
-        const static StrName m_new("__new__");
-        PyObject* new_f = find_name_in_mro(callable, m_new);
+        const static StrName __new__("__new__");
+        PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;
         if(new_f != nullptr){
             PUSH(new_f);
@@ -1148,6 +1136,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         // __init__
         PyObject* self;
+        const static StrName __init__("__init__");
         callable = get_unbound_method(obj, __init__, &self, false);
         if (self != PY_NULL) {
             // replace `NULL` with `self`
@@ -1166,6 +1155,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     // handle `__call__` overload
     PyObject* self;
+    const static StrName __call__("__call__");
     PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
     if(self != PY_NULL){
         p1[-(ARGC + 2)] = call_f;
@@ -1254,6 +1244,9 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
     return nullptr;
 }
+
+const static StrName __get__("__get__");
+const static StrName __set__("__set__");
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
@@ -1352,11 +1345,17 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 template<int ARGC>
 void VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_non_tagged_type(obj, tp_type);
+    if(obj->attr().contains(name)){
+        throw std::runtime_error(fmt("bind_method() failed: ", name.escape(), " already exists"));
+    }
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, true)));
 }
 
 template<int ARGC>
 void VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
+    if(obj->attr().contains(name)){
+        throw std::runtime_error(fmt("bind_func() failed: ", name.escape(), " already exists"));
+    }
     obj->attr().set(name, VAR(NativeFunc(fn, ARGC, false)));
 }
 
@@ -1404,32 +1403,28 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* obj, PyObject* index){
     return self[i];
 }
 
-inline PyObject* PyListSetItem(VM* vm, PyObject* obj, PyObject* index, PyObject* value){
-    List& self = _CAST(List&, obj);
-    int i = CAST(int, index);
-    i = vm->normalized_index(i, self.size());
-    self[i] = value;
-    return vm->None;
+inline void VM::bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*)){
+    PyObject* obj = _t(type);
+    _all_types[type].m__hash__ = f;
+    bind_method<0>(obj, "__hash__", [](VM* vm, ArgsView args){
+        i64 ret = vm->_inst_type_info(args[0])->m__hash__(vm, args[0]);
+        return VAR(ret);
+    });
 }
 
-inline PyObject* PyStrGetItem(VM* vm, PyObject* obj, PyObject* index){
-    const Str& self = _CAST(Str&, obj);
-
-    if(is_type(index, vm->tp_slice)){
-        const Slice& s = _CAST(Slice&, index);
-        int start, stop, step;
-        vm->parse_int_slice(s, self.u8_length(), start, stop, step);
-        return VAR(self.u8_slice(start, stop, step));
-    }
-
-    int i = CAST(int, index);
-    i = vm->normalized_index(i, self.u8_length());
-    return VAR(self.u8_getitem(i));
+inline void VM::bind__len__(Type type, i64 (*f)(VM* vm, PyObject*)){
+    PyObject* obj = _t(type);
+    _all_types[type].m__len__ = f;
+    bind_method<0>(obj, "__len__", [](VM* vm, ArgsView args){
+        i64 ret = vm->_inst_type_info(args[0])->m__len__(vm, args[0]);
+        return VAR(ret);
+    });
 }
+
 
 inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     ok = false;
-    i = vm->hash(key) & _mask;
+    i = vm->py_hash(key) & _mask;
     while(_items[i].first != nullptr) {
         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
         i = (i + 1) & _mask;

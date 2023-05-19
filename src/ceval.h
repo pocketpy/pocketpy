@@ -229,12 +229,14 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_DICT)
+        const static StrName m_dict("dict");
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         _0 = call(builtins->attr(m_dict), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_SET)
+        const static StrName m_set("set");
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         _0 = call(builtins->attr(m_set), _0);
         STACK_SHRINK(byte.arg);
@@ -428,6 +430,7 @@ __NEXT_STEP:;
         call_method(SECOND(), __setitem__, t[0], t[1]);
     } DISPATCH();
     TARGET(SET_ADD)
+        const static StrName m_add("add");
         _0 = POPX();
         call_method(SECOND(), m_add, _0);
         DISPATCH();
@@ -535,9 +538,11 @@ __NEXT_STEP:;
     /*****************************************/
     // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
+        const static StrName __enter__("__enter__");
         call_method(POPX(), __enter__);
         DISPATCH();
     TARGET(WITH_EXIT)
+        const static StrName __exit__("__exit__");
         call_method(POPX(), __exit__);
         DISPATCH();
     /*****************************************/
@@ -567,6 +572,7 @@ __NEXT_STEP:;
     TARGET(RE_RAISE) _raise(); DISPATCH();
     /*****************************************/
     TARGET(SETUP_DOCSTRING)
+        const static StrName __doc__("__doc__");
         TOP()->attr().set(__doc__, co_consts[byte.arg]);
         DISPATCH();
     TARGET(FORMAT_STRING) {

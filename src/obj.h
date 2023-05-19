@@ -187,6 +187,7 @@ Str obj_type_name(VM* vm, Type type);
 #if DEBUG_NO_BUILTIN_MODULES
 #define OBJ_NAME(obj) Str("<?>")
 #else
+const static StrName __name__("__name__");
 #define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
 #endif
 

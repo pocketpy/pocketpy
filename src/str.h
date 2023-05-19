@@ -302,7 +302,6 @@ inline bool is_unicode_Lo_char(uint32_t c) {
     return c >= kLoRangeA[index] && c <= kLoRangeB[index];
 }
 
-
 struct StrName {
     uint16_t index;
     StrName(): index(0) {}
@@ -338,8 +337,8 @@ struct StrName {
         return this->index > other.index;
     }
 
-    static std::map<Str, uint16_t, std::less<>> _interned;
-    static std::vector<Str> _r_interned;
+    inline static std::map<Str, uint16_t, std::less<>> _interned;
+    inline static std::vector<Str> _r_interned;
 
     static StrName get(std::string_view s){
         auto it = _interned.find(s);
@@ -377,24 +376,6 @@ struct FastStrStream{
         return result;
     }
 };
-
-inline std::map<Str, uint16_t, std::less<>> StrName::_interned;
-inline std::vector<Str> StrName::_r_interned;
-
-// other specials
-const StrName __init__ = StrName::get("__init__");
-const StrName __call__ = StrName::get("__call__");
-const StrName __doc__ = StrName::get("__doc__");
-const StrName __enter__ = StrName::get("__enter__");
-const StrName __exit__ = StrName::get("__exit__");
-const StrName __name__ = StrName::get("__name__");
-const StrName __get__ = StrName::get("__get__");
-const StrName __set__ = StrName::get("__set__");
-
-// special names
-const StrName m_dict = StrName::get("dict");
-const StrName m_set = StrName::get("set");
-const StrName m_add = StrName::get("add");
 
 // unary operators
 const StrName __repr__ = StrName::get("__repr__");

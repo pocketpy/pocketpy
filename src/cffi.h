@@ -49,8 +49,8 @@ struct VoidP{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_default_constructor<VoidP>(type);
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
+        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            VoidP& self = _CAST(VoidP&, obj);
             std::stringstream ss;
             ss << "<void* at " << self.ptr;
             if(self.base_offset != 1) ss << ", base_offset=" << self.base_offset;
@@ -101,15 +101,15 @@ struct VoidP{
             return VAR_T(VoidP, (char*)self.ptr + offset * self.base_offset);
         });
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            i64 offset = CAST(i64, args[1]);
+        vm->bind__add__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            VoidP& self = _CAST(VoidP&, lhs);
+            i64 offset = CAST(i64, rhs);
             return VAR_T(VoidP, (char*)self.ptr + offset);
         });
 
-        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            i64 offset = CAST(i64, args[1]);
+        vm->bind__sub__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            VoidP& self = _CAST(VoidP&, lhs);
+            i64 offset = CAST(i64, rhs);
             return VAR_T(VoidP, (char*)self.ptr - offset);
         });
 
@@ -309,9 +309,9 @@ struct C99ReflType final: ReflType{
             return VAR(self.size);
         });
 
-        vm->bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
-            C99ReflType& self = _CAST(C99ReflType&, args[0]);
-            const Str& name = CAST(Str&, args[1]);
+        vm->bind__getitem__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* key){
+            C99ReflType& self = _CAST(C99ReflType&, obj);
+            const Str& name = CAST(Str&, key);
             auto it = self.fields.find(name.sv());
             if(it == self.fields.end()){
                 vm->_error("KeyError", name.escape());

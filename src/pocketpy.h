@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ceval.h"
-#include "common.h"
 #include "compiler.h"
 #include "obj.h"
 #include "repl.h"
@@ -13,6 +12,7 @@
 #include "requests.h"
 #include "io.h"
 #include "_generated.h"
+#include "vm.h"
 
 namespace pkpy {
 
@@ -29,36 +29,38 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool 
     }
 }
 
-#define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bind_method<1>("int", #name, [](VM* vm, ArgsView args){                                        \
-        if(is_int(args[1])){                                                                            \
-            return VAR(_CAST(i64, args[0]) op _CAST(i64, args[1]));                                     \
-        }else{                                                                                          \
-            return VAR(vm->num_to_float(args[0]) op vm->num_to_float(args[1]));                         \
-        }                                                                                               \
-    });                                                                                                 \
-    _vm->bind_method<1>("float", #name, [](VM* vm, ArgsView args){                                      \
-        return VAR(_CAST(f64, args[0]) op vm->num_to_float(args[1]));                                   \
-    });
-    
 
 inline void init_builtins(VM* _vm) {
+#define BIND_NUM_ARITH_OPT(name, op)                                                                    \
+    _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                             \
+        if(is_int(rhs)){                                                                                \
+            return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));                                             \
+        }else{                                                                                          \
+            return VAR(_CAST(i64, lhs) op vm->num_to_float(rhs));                                       \
+        }                                                                                               \
+    });                                                                                                 \
+    _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {                           \
+        return VAR(_CAST(f64, lhs) op vm->num_to_float(rhs));                                           \
+    });
+
     BIND_NUM_ARITH_OPT(__add__, +)
     BIND_NUM_ARITH_OPT(__sub__, -)
     BIND_NUM_ARITH_OPT(__mul__, *)
+
+#undef BIND_NUM_ARITH_OPT
 
 #define BIND_NUM_LOGICAL_OPT(name, op, is_eq)   \
     _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
         if(is_int(rhs))     return _CAST(i64, lhs) op _CAST(i64, rhs);      \
         if(is_float(rhs))   return _CAST(i64, lhs) op _CAST(f64, rhs);      \
-        if constexpr(is_eq) return false;                                   \
+        if constexpr(is_eq) return lhs op rhs;                              \
         vm->TypeError("unsupported operand type(s) for " #op );             \
         return false;                                                       \
     });                                                                     \
     _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {   \
         if(is_int(rhs))     return _CAST(f64, lhs) == _CAST(i64, rhs);          \
         if(is_float(rhs))   return _CAST(f64, lhs) == _CAST(f64, rhs);          \
-        if constexpr(is_eq) return false;                                       \
+        if constexpr(is_eq) return lhs op rhs;                                  \
         vm->TypeError("unsupported operand type(s) for " #op );                 \
         return false;                                                           \
     });
@@ -130,12 +132,15 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->asRepr(args[0])));
+
     _vm->bind_builtin_func<1>("len", [](VM* vm, ArgsView args){
+        const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
+        if(ti->m__len__) return VAR(ti->m__len__(vm, args[0]));
         return vm->call_method(args[0], __len__);
     });
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
-        i64 value = vm->hash(args[0]);
+        i64 value = vm->py_hash(args[0]);
         if(((value << 2) >> 2) != value) value >>= 2;
         return VAR(value);
     });
@@ -194,8 +199,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(std::move(ret));
     });
 
-    _vm->bind_method<0>("object", "__repr__", [](VM* vm, ArgsView args) {
-        PyObject* self = args[0];
+    _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* self) {
         if(is_tagged(self)) self = nullptr;
         std::stringstream ss;
         ss << "<" << OBJ_NAME(vm->_t(self)) << " object at " << std::hex << self << ">";
@@ -204,6 +208,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs == rhs; });
     _vm->bind__ne__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs != rhs; });
+    _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return BITS(obj); });
 
     _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
 
@@ -219,29 +224,29 @@ inline void init_builtins(VM* _vm) {
         return VAR(r);
     });
 
-    _vm->bind_method<0>("range", "__iter__", CPP_LAMBDA(
-        vm->PyIter(RangeIter(vm, args[0]))
-    ));
-
-    _vm->bind_method<0>("NoneType", "__repr__", CPP_LAMBDA(VAR("None")));
-    _vm->bind_method<0>("NoneType", "__json__", CPP_LAMBDA(VAR("null")));
-
-    _vm->bind_method<1>("int", "__truediv__", [](VM* vm, ArgsView args) {
-        f64 rhs = VAR_F(args[1]);
-        if (rhs == 0) vm->ZeroDivisionError();
-        return VAR(_CAST(i64, args[0]) / rhs);
+    _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) {
+        return vm->PyIter(RangeIter(vm, obj));
     });
 
-    _vm->bind_method<1>("float", "__truediv__", [](VM* vm, ArgsView args) {
-        f64 rhs = VAR_F(args[1]);
-        if (rhs == 0) vm->ZeroDivisionError();
-        return VAR(_CAST(f64, args[0]) / rhs);
+    _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("None"); });
+    _vm->bind__json__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("null"); });
+
+    _vm->bind__truediv__(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        f64 value = VAR_F(rhs);
+        if (value == 0) vm->ZeroDivisionError();
+        return VAR(_CAST(f64, lhs) / value);
     });
 
-    auto py_number_pow = [](VM* vm, ArgsView args) {
-        if(is_both_int(args[0], args[1])){
-            i64 lhs = _CAST(i64, args[0]);
-            i64 rhs = _CAST(i64, args[1]);
+    _vm->bind__truediv__(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        f64 value = VAR_F(rhs);
+        if (value == 0) vm->ZeroDivisionError();
+        return VAR(_CAST(i64, lhs) / value);
+    });
+
+    auto py_number_pow = [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
+        if(is_both_int(lhs_, rhs_)){
+            i64 lhs = _CAST(i64, lhs_);
+            i64 rhs = _CAST(i64, rhs_);
             bool flag = false;
             if(rhs < 0) {flag = true; rhs = -rhs;}
             i64 ret = 1;
@@ -253,12 +258,12 @@ inline void init_builtins(VM* _vm) {
             if(flag) return VAR((f64)(1.0 / ret));
             return VAR(ret);
         }else{
-            return VAR((f64)std::pow(VAR_F(args[0]), VAR_F(args[1])));
+            return VAR((f64)std::pow(VAR_F(lhs_), VAR_F(rhs_)));
         }
     };
 
-    _vm->bind_method<1>("int", "__pow__", py_number_pow);
-    _vm->bind_method<1>("float", "__pow__", py_number_pow);
+    _vm->bind__pow__(_vm->tp_int, py_number_pow);
+    _vm->bind__pow__(_vm->tp_float, py_number_pow);
 
     /************ PyInt ************/
     _vm->bind_constructor<2>("int", [](VM* vm, ArgsView args) {
@@ -280,23 +285,27 @@ inline void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_method<1>("int", "__floordiv__", [](VM* vm, ArgsView args) {
-        i64 rhs = CAST(i64, args[1]);
+    _vm->bind__floordiv__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
+        i64 rhs = CAST(i64, rhs_);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(CAST(i64, args[0]) / rhs);
+        return VAR(_CAST(i64, lhs_) / rhs);
     });
 
-    _vm->bind_method<1>("int", "__mod__", [](VM* vm, ArgsView args) {
-        i64 rhs = CAST(i64, args[1]);
+    _vm->bind__mod__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
+        i64 rhs = CAST(i64, rhs_);
         if(rhs == 0) vm->ZeroDivisionError();
-        return VAR(CAST(i64, args[0]) % rhs);
+        return VAR(_CAST(i64, lhs_) % rhs);
     });
 
-    _vm->bind_method<0>("int", "__repr__", CPP_LAMBDA(VAR(std::to_string(CAST(i64, args[0])))));
-    _vm->bind_method<0>("int", "__json__", CPP_LAMBDA(VAR(std::to_string(CAST(i64, args[0])))));
+    _vm->bind__repr__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
+    _vm->bind__json__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
 
-#define INT_BITWISE_OP(name,op) \
-    _vm->bind_method<1>("int", #name, CPP_LAMBDA(VAR(CAST(i64, args[0]) op CAST(i64, args[1]))));
+    _vm->bind__hash__(_vm->tp_int, [](VM* vm, PyObject* obj) { return _CAST(i64, obj); });
+
+#define INT_BITWISE_OP(name, op) \
+    _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
+        return VAR(_CAST(i64, lhs) op CAST(i64, rhs)); \
+    });
 
     INT_BITWISE_OP(__lshift__, <<)
     INT_BITWISE_OP(__rshift__, >>)
@@ -319,15 +328,20 @@ inline void init_builtins(VM* _vm) {
                 f64 val = Number::stof(s.str());
                 return VAR(val);
             }catch(std::invalid_argument&){
-                vm->ValueError("invalid literal for float(): '" + s + "'");
+                vm->ValueError("invalid literal for float(): " + s.escape());
             }
         }
         vm->TypeError("float() argument must be a int, float, bool or str");
         return vm->None;
     });
 
-    _vm->bind_method<0>("float", "__repr__", [](VM* vm, ArgsView args) {
-        f64 val = CAST(f64, args[0]);
+    _vm->bind__hash__(_vm->tp_float, [](VM* vm, PyObject* obj) {
+        f64 val = _CAST(f64, obj);
+        return (i64)std::hash<f64>()(val);
+    });
+
+    _vm->bind__repr__(_vm->tp_float, [](VM* vm, PyObject* obj) {
+        f64 val = _CAST(f64, obj);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
         std::stringstream ss;
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
@@ -335,9 +349,8 @@ inline void init_builtins(VM* _vm) {
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return VAR(s);
     });
-
-    _vm->bind_method<0>("float", "__json__", [](VM* vm, ArgsView args) {
-        f64 val = CAST(f64, args[0]);
+    _vm->bind__json__(_vm->tp_float, [](VM* vm, PyObject* obj) {
+        f64 val = _CAST(f64, obj);
         if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
         return VAR(std::to_string(val));
     });
@@ -345,36 +358,31 @@ inline void init_builtins(VM* _vm) {
     /************ PyString ************/
     _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->asStr(args[1])));
 
-    _vm->bind_method<1>("str", "__add__", [](VM* vm, ArgsView args) {
-        const Str& lhs = _CAST(Str&, args[0]);
-        const Str& rhs = CAST(Str&, args[1]);
-        return VAR(lhs + rhs);
+    _vm->bind__hash__(_vm->tp_str, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(Str&, obj).hash();
     });
 
-    _vm->bind_method<0>("str", "__len__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        return VAR(self.u8_length());
+    _vm->bind__add__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return VAR(_CAST(Str&, lhs) + CAST(Str&, rhs));
     });
-
-    _vm->bind_method<1>("str", "__contains__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        const Str& other = CAST(Str&, args[1]);
-        return VAR(self.index(other) != -1);
+    _vm->bind__len__(_vm->tp_str, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(Str&, obj).u8_length();
     });
-
-    _vm->bind_method<0>("str", "__str__", CPP_LAMBDA(args[0]));
-    _vm->bind_method<0>("str", "__iter__", CPP_LAMBDA(vm->PyIter(StringIter(vm, args[0]))));
-
-    _vm->bind_method<0>("str", "__repr__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
-        return VAR(self.escape());
+    _vm->bind__contains__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        const Str& self = _CAST(Str&, lhs);
+        const Str& other = CAST(Str&, rhs);
+        return self.index(other) != -1;
     });
-
-    _vm->bind_method<0>("str", "__json__", [](VM* vm, ArgsView args) {
-        const Str& self = _CAST(Str&, args[0]);
+    _vm->bind__str__(_vm->tp_str, [](VM* vm, PyObject* obj) { return obj; });
+    _vm->bind__iter__(_vm->tp_str, [](VM* vm, PyObject* obj) { return vm->PyIter(StringIter(vm, obj)); });
+    _vm->bind__repr__(_vm->tp_str, [](VM* vm, PyObject* obj) {
+        const Str& self = _CAST(Str&, obj);
+        return VAR(self.escape(true));
+    });
+    _vm->bind__json__(_vm->tp_str, [](VM* vm, PyObject* obj) {
+        const Str& self = _CAST(Str&, obj);
         return VAR(self.escape(false));
     });
-
     _vm->bind__eq__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         if(!is_non_tagged_type(rhs, vm->tp_str)) return false;
         return _CAST(Str&, lhs) == _CAST(Str&, rhs);
@@ -396,10 +404,18 @@ inline void init_builtins(VM* _vm) {
         return _CAST(Str&, lhs) <= CAST(Str&, rhs);
     });
 
-    _vm->bind_method<1>("str", "__getitem__", [](VM* vm, ArgsView args) {
-        return PyStrGetItem(vm, args[0], args[1]);
+    _vm->bind__getitem__(_vm->tp_str, [](VM* vm, PyObject* obj, PyObject* index) {
+        const Str& self = _CAST(Str&, obj);
+        if(is_non_tagged_type(index, vm->tp_slice)){
+            const Slice& s = _CAST(Slice&, index);
+            int start, stop, step;
+            vm->parse_int_slice(s, self.u8_length(), start, stop, step);
+            return VAR(self.u8_slice(start, stop, step));
+        }
+        int i = CAST(int, index);
+        i = vm->normalized_index(i, self.u8_length());
+        return VAR(self.u8_getitem(i));
     });
-    _vm->_type_info("str")->m__getitem__ = PyStrGetItem;
 
     _vm->bind_method<-1>("str", "replace", [](VM* vm, ArgsView args) {
         if(args.size() != 1+2 && args.size() != 1+3) vm->TypeError("replace() takes 2 or 3 arguments");
@@ -493,9 +509,9 @@ inline void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_method<1>("list", "__mul__", [](VM* vm, ArgsView args) {
-        const List& self = _CAST(List&, args[0]);
-        int n = CAST(int, args[1]);
+    _vm->bind__mul__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        const List& self = _CAST(List&, lhs);
+        int n = CAST(int, rhs);
         List result;
         result.reserve(self.size() * n);
         for(int i = 0; i < n; i++) result.extend(self);
@@ -519,38 +535,37 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("list", "copy", CPP_LAMBDA(VAR(_CAST(List, args[0]))));
 
-    _vm->bind_method<1>("list", "__add__", [](VM* vm, ArgsView args) {
-        const List& self = _CAST(List&, args[0]);
-        const List& other = CAST(List&, args[1]);
+    _vm->bind__hash__(_vm->tp_list, [](VM* vm, PyObject* obj) {
+        vm->TypeError("unhashable type: 'list'");
+        return (i64)0;
+    });
+
+    _vm->bind__add__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        const List& self = _CAST(List&, lhs);
+        const List& other = CAST(List&, rhs);
         List new_list(self);    // copy construct
         new_list.extend(other);
         return VAR(std::move(new_list));
     });
 
-    _vm->bind_method<0>("list", "__len__", [](VM* vm, ArgsView args) {
-        const List& self = _CAST(List&, args[0]);
-        return VAR(self.size());
+    _vm->bind__len__(_vm->tp_list, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(List&, obj).size();
     });
-
-    _vm->bind_method<0>("list", "__iter__", [](VM* vm, ArgsView args) {
-        return vm->PyIter(ArrayIter<List>(vm, args[0]));
+    _vm->bind__iter__(_vm->tp_list, [](VM* vm, PyObject* obj) {
+        return vm->PyIter(ArrayIter<List>(vm, obj));
     });
-
-    _vm->bind_method<1>("list", "__getitem__", [](VM* vm, ArgsView args) {
-        return PyArrayGetItem<List>(vm, args[0], args[1]);
+    _vm->bind__getitem__(_vm->tp_list, PyArrayGetItem<List>);
+    _vm->bind__setitem__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* index, PyObject* value){
+        List& self = _CAST(List&, obj);
+        int i = CAST(int, index);
+        i = vm->normalized_index(i, self.size());
+        self[i] = value;
     });
-    _vm->bind_method<2>("list", "__setitem__", [](VM* vm, ArgsView args) {
-        return PyListSetItem(vm, args[0], args[1], args[2]);
-    });
-    _vm->_type_info("list")->m__getitem__ = PyArrayGetItem<List>;
-    _vm->_type_info("list")->m__setitem__ = PyListSetItem;
-
-    _vm->bind_method<1>("list", "__delitem__", [](VM* vm, ArgsView args) {
-        List& self = _CAST(List&, args[0]);
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.size());
-        self.erase(index);
-        return vm->None;
+    _vm->bind__delitem__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* index){
+        List& self = _CAST(List&, obj);
+        int i = CAST(int, index);
+        i = vm->normalized_index(i, self.size());
+        self.erase(i);
     });
 
     /************ PyTuple ************/
@@ -559,40 +574,53 @@ inline void init_builtins(VM* _vm) {
         return VAR(Tuple(std::move(list)));
     });
 
-    _vm->bind_method<0>("tuple", "__iter__", [](VM* vm, ArgsView args) {
-        return vm->PyIter(ArrayIter<Tuple>(vm, args[0]));
+    _vm->bind__hash__(_vm->tp_tuple, [](VM* vm, PyObject* obj) {
+        i64 x = 1000003;
+        const Tuple& items = CAST(Tuple&, obj);
+        for (int i=0; i<items.size(); i++) {
+            i64 y = vm->py_hash(items[i]);
+            // recommended by Github Copilot
+            x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
+        }
+        return x;
     });
 
-    _vm->bind_method<1>("tuple", "__getitem__", [](VM* vm, ArgsView args) {
-        return PyArrayGetItem<Tuple>(vm, args[0], args[1]);
+    _vm->bind__iter__(_vm->tp_tuple, [](VM* vm, PyObject* self) {
+        return vm->PyIter(ArrayIter<Tuple>(vm, self));
     });
-    _vm->_type_info("tuple")->m__getitem__ = PyArrayGetItem<Tuple>;
-
-    _vm->bind_method<0>("tuple", "__len__", [](VM* vm, ArgsView args) {
-        const Tuple& self = _CAST(Tuple&, args[0]);
-        return VAR(self.size());
+    _vm->bind__getitem__(_vm->tp_tuple, PyArrayGetItem<Tuple>);
+    _vm->bind__len__(_vm->tp_tuple, [](VM* vm, PyObject* self) {
+        const Tuple& tuple = _CAST(Tuple&, self);
+        return (i64)tuple.size();
     });
 
     /************ bool ************/
     _vm->bind_constructor<2>("bool", CPP_LAMBDA(VAR(vm->asBool(args[1]))));
-
-    _vm->bind_method<0>("bool", "__repr__", [](VM* vm, ArgsView args) {
-        bool val = _CAST(bool, args[0]);
+    _vm->bind__hash__(_vm->tp_bool, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(bool, obj);
+    });
+    _vm->bind__repr__(_vm->tp_bool, [](VM* vm, PyObject* self) {
+        bool val = _CAST(bool, self);
         return VAR(val ? "True" : "False");
     });
-
-    _vm->bind_method<0>("bool", "__json__", [](VM* vm, ArgsView args) {
-        bool val = _CAST(bool, args[0]);
+    _vm->bind__json__(_vm->tp_bool, [](VM* vm, PyObject* self) {
+        bool val = _CAST(bool, self);
         return VAR(val ? "true" : "false");
     });
 
-    _vm->bind_method<1>("bool", "__xor__", [](VM* vm, ArgsView args) {
-        bool self = _CAST(bool, args[0]);
-        bool other = CAST(bool, args[1]);
-        return VAR(self ^ other);
+    _vm->bind__and__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return VAR(_CAST(bool, lhs) && CAST(bool, rhs));
+    });
+    _vm->bind__or__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return VAR(_CAST(bool, lhs) || CAST(bool, rhs));
+    });
+    _vm->bind__xor__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return VAR(_CAST(bool, lhs) != CAST(bool, rhs));
     });
 
-    _vm->bind_method<0>("ellipsis", "__repr__", CPP_LAMBDA(VAR("Ellipsis")));
+    _vm->bind__repr__(_vm->_type("ellipsis"), [](VM* vm, PyObject* self) {
+        return VAR("Ellipsis");
+    });
 
     /************ bytes ************/
     _vm->bind_constructor<2>("bytes", [](VM* vm, ArgsView args){
@@ -606,15 +634,20 @@ inline void init_builtins(VM* _vm) {
         return VAR(Bytes(std::move(buffer)));
     });
 
-    _vm->bind_method<1>("bytes", "__getitem__", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
-        int index = CAST(int, args[1]);
-        index = vm->normalized_index(index, self.size());
-        return VAR(self[index]);
+    _vm->bind__getitem__(_vm->tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {
+        const Bytes& self = _CAST(Bytes&, obj);
+        int i = CAST(int, index);
+        i = vm->normalized_index(i, self.size());
+        return VAR(self[i]);
     });
 
-    _vm->bind_method<0>("bytes", "__repr__", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
+    _vm->bind__hash__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
+        const Bytes& self = _CAST(Bytes&, obj);
+        return (i64)std::hash<std::string>()(self.str());
+    });
+
+    _vm->bind__repr__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
+        const Bytes& self = _CAST(Bytes&, obj);
         std::stringstream ss;
         ss << "b'";
         for(int i=0; i<self.size(); i++){
@@ -623,10 +656,8 @@ inline void init_builtins(VM* _vm) {
         ss << "'";
         return VAR(ss.str());
     });
-
-    _vm->bind_method<0>("bytes", "__len__", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
-        return VAR(self.size());
+    _vm->bind__len__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(Bytes&, obj).size();
     });
 
     _vm->bind_method<0>("bytes", "decode", [](VM* vm, ArgsView args) {
@@ -662,8 +693,8 @@ inline void init_builtins(VM* _vm) {
         return VAR(Slice(args[1], args[2], args[3]));
     });
 
-    _vm->bind_method<0>("slice", "__repr__", [](VM* vm, ArgsView args) {
-        const Slice& self = _CAST(Slice&, args[0]);
+    _vm->bind__repr__(_vm->tp_slice, [](VM* vm, PyObject* obj) {
+        const Slice& self = _CAST(Slice&, obj);
         std::stringstream ss;
         ss << "slice(";
         ss << CAST(Str, vm->asRepr(self.start)) << ", ";
@@ -697,21 +728,20 @@ inline void init_builtins(VM* _vm) {
         return VAR(std::move(items));
     });
 
-    _vm->bind_method<0>("mappingproxy", "__len__", [](VM* vm, ArgsView args) {
-        MappingProxy& self = _CAST(MappingProxy&, args[0]);
-        return VAR(self.attr().size());
+    _vm->bind__len__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(MappingProxy&, obj).attr().size();
     });
 
-    _vm->bind_method<1>("mappingproxy", "__getitem__", [](VM* vm, ArgsView args) {
-        MappingProxy& self = _CAST(MappingProxy&, args[0]);
-        StrName key = CAST(Str&, args[1]);
+    _vm->bind__getitem__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* index) {
+        MappingProxy& self = _CAST(MappingProxy&, obj);
+        StrName key = CAST(Str&, index);
         PyObject* ret = self.attr().try_get(key);
         if(ret == nullptr) vm->AttributeError(key.sv());
         return ret;
     });
 
-    _vm->bind_method<0>("mappingproxy", "__repr__", [](VM* vm, ArgsView args) {
-        MappingProxy& self = _CAST(MappingProxy&, args[0]);
+    _vm->bind__repr__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
+        MappingProxy& self = _CAST(MappingProxy&, obj);
         std::stringstream ss;
         ss << "mappingproxy({";
         bool first = true;
@@ -724,10 +754,9 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind_method<1>("mappingproxy", "__contains__", [](VM* vm, ArgsView args) {
-        MappingProxy& self = _CAST(MappingProxy&, args[0]);
-        StrName key = CAST(Str&, args[1]);
-        return VAR(self.attr().contains(key));
+    _vm->bind__contains__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* key) {
+        MappingProxy& self = _CAST(MappingProxy&, obj);
+        return self.attr().contains(CAST(Str&, key));
     });
 }
 
@@ -1027,7 +1056,7 @@ inline void VM::post_init(){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
     }));
-    _t(tp_type)->attr().set(__name__, property([](VM* vm, ArgsView args){
+    _t(tp_type)->attr().set("__name__", property([](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
         return VAR(info.name);
     }));
