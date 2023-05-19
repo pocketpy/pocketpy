@@ -340,9 +340,8 @@ public:
 
 #define BIND_UNARY_SPECIAL(name)                                                        \
     void bind##name(Type type, PyObject* (*f)(VM* vm, PyObject*)){                      \
-        PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
-        bind_method<0>(obj, #name, [](VM* vm, ArgsView args){                           \
+        bind_method<0>(_t(type), #name, [](VM* vm, ArgsView args){                      \
             return vm->_inst_type_info(args[0])->m##name(vm, args[0]);                  \
         });                                                                             \
     }
