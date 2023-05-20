@@ -9,7 +9,7 @@
 #include "obj.h"
 #include "str.h"
 #include "tuplelist.h"
-// #include "dict.h"
+#include "dict.h"
 
 namespace pkpy{
 
@@ -147,6 +147,7 @@ public:
     Type tp_function, tp_native_func, tp_iterator, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
+    Type tp_dict;
 
     const bool enable_os;
 
@@ -179,6 +180,12 @@ public:
         const PyTypeInfo* ti = _inst_type_info(obj);
         if(ti->m__repr__) return ti->m__repr__(this, obj);
         return call_method(obj, __repr__);
+    }
+
+    PyObject* py_json(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__json__) return ti->m__json__(this, obj);
+        return call_method(obj, __json__);
     }
 
     PyObject* py_iter(PyObject* obj){
@@ -521,7 +528,7 @@ public:
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
-    void KeyError(const Str& msg){ _error("KeyError", msg); }
+    void KeyError(PyObject* obj){ _error("KeyError", OBJ_GET(Str, py_repr(obj))); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
@@ -567,15 +574,16 @@ public:
         _modules.clear();
         _lazy_modules.clear();
     }
-
+#if DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
+#endif
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
-    PyObject* num_negated(PyObject* obj);
+    PyObject* py_negate(PyObject* obj);
     f64 num_to_float(PyObject* obj);
-    bool asBool(PyObject* obj);
-    i64 hash(PyObject* obj);
-    PyObject* asList(PyObject*);
+    bool py_bool(PyObject* obj);
+    i64 py_hash(PyObject* obj);
+    PyObject* py_list(PyObject*);
     PyObject* new_module(StrName name);
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
@@ -622,6 +630,7 @@ DEF_NATIVE_2(Slice, tp_slice)
 DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(Bytes, tp_bytes)
 DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
+DEF_NATIVE_2(Dict, tp_dict)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
@@ -733,14 +742,10 @@ inline PyObject* py_var(VM* vm, PyObject* val){
     return val;
 }
 
-inline PyObject* VM::num_negated(PyObject* obj){
-    if (is_int(obj)){
-        return VAR(-CAST(i64, obj));
-    }else if(is_float(obj)){
-        return VAR(-CAST(f64, obj));
-    }
-    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
-    return nullptr;
+inline PyObject* VM::py_negate(PyObject* obj){
+    const PyTypeInfo* ti = _inst_type_info(obj);
+    if(ti->m__neg__) return ti->m__neg__(this, obj);
+    return call_method(obj, __neg__);
 }
 
 inline f64 VM::num_to_float(PyObject* obj){
@@ -753,7 +758,7 @@ inline f64 VM::num_to_float(PyObject* obj){
     return 0;
 }
 
-inline bool VM::asBool(PyObject* obj){
+inline bool VM::py_bool(PyObject* obj){
     if(is_non_tagged_type(obj, tp_bool)) return obj == True;
     if(obj == None) return false;
     if(is_int(obj)) return _CAST(i64, obj) != 0;
@@ -767,7 +772,7 @@ inline bool VM::asBool(PyObject* obj){
     return true;
 }
 
-inline PyObject* VM::asList(PyObject* it){
+inline PyObject* VM::py_list(PyObject* it){
     auto _lock = heap.gc_scope_lock();
     it = py_iter(it);
     List list;
@@ -821,7 +826,7 @@ inline void VM::parse_int_slice(const Slice& s, int length, int& start, int& sto
     }
 }
 
-inline i64 VM::hash(PyObject* obj){
+inline i64 VM::py_hash(PyObject* obj){
     const PyTypeInfo* ti = _inst_type_info(obj);
     if(ti->m__hash__) return ti->m__hash__(this, obj);
     PyObject* ret = call_method(obj, __hash__);
@@ -974,6 +979,7 @@ inline Str VM::disassemble(CodeObject_ co){
     return Str(ss.str());
 }
 
+#if DEBUG_CEVAL_STEP
 inline void VM::_log_s_data(const char* title) {
     if(_main == nullptr) return;
     if(callstack.empty()) return;
@@ -1023,6 +1029,7 @@ inline void VM::_log_s_data(const char* title) {
     Bytecode byte = frame->co->codes[frame->_ip];
     std::cout << output << " " << OP_NAMES[byte.op] << " " << _opcode_argstr(nullptr, byte, frame->co) << std::endl;
 }
+#endif
 
 inline void VM::init_builtin_types(){
     _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, "object", true});
@@ -1048,6 +1055,7 @@ inline void VM::init_builtin_types(){
     tp_exception = _new_type_object("Exception");
     tp_bytes = _new_type_object("bytes");
     tp_mappingproxy = _new_type_object("mappingproxy");
+    tp_dict = _new_type_object("dict");
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
@@ -1068,6 +1076,7 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("tuple", _t(tp_tuple));
     builtins->attr().set("range", _t(tp_range));
     builtins->attr().set("bytes", _t(tp_bytes));
+    builtins->attr().set("dict", _t(tp_dict));
     builtins->attr().set("StopIteration", StopIteration);
     builtins->attr().set("slice", _t(tp_slice));
 
@@ -1444,13 +1453,13 @@ inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
 }
 
 
-// inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
-//     ok = false;
-//     i = vm->hash(key) & _mask;
-//     while(_items[i].first != nullptr) {
-//         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
-//         i = (i + 1) & _mask;
-//     }
-// }
+inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
+    ok = false;
+    i = vm->py_hash(key) & _mask;
+    while(_items[i].first != nullptr) {
+        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+        i = (i + 1) & _mask;
+    }
+}
 
 }   // namespace pkpy

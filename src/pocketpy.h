@@ -2,6 +2,7 @@
 
 #include "ceval.h"
 #include "compiler.h"
+#include "dict.h"
 #include "obj.h"
 #include "repl.h"
 #include "iter.h"
@@ -139,7 +140,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
-        i64 value = vm->hash(args[0]);
+        i64 value = vm->py_hash(args[0]);
         if(((value << 2) >> 2) != value) value >>= 2;
         return VAR(value);
     });
@@ -262,7 +263,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__pow__(_vm->tp_int, py_number_pow);
     _vm->bind__pow__(_vm->tp_float, py_number_pow);
 
-    /************ PyInt ************/
+    /************ int ************/
     _vm->bind_constructor<2>("int", [](VM* vm, ArgsView args) {
         if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
         if (is_type(args[1], vm->tp_int)) return args[1];
@@ -295,6 +296,8 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
     _vm->bind__json__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
 
+    _vm->bind__neg__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(-_CAST(i64, obj)); });
+
     _vm->bind__hash__(_vm->tp_int, [](VM* vm, PyObject* obj) { return _CAST(i64, obj); });
 
 #define INT_BITWISE_OP(name, op) \
@@ -310,7 +313,7 @@ inline void init_builtins(VM* _vm) {
 
 #undef INT_BITWISE_OP
 
-    /************ PyFloat ************/
+    /************ float ************/
     _vm->bind_constructor<2>("float", [](VM* vm, ArgsView args) {
         if (is_type(args[1], vm->tp_int)) return VAR((f64)CAST(i64, args[1]));
         if (is_type(args[1], vm->tp_float)) return args[1];
@@ -335,6 +338,8 @@ inline void init_builtins(VM* _vm) {
         return (i64)std::hash<f64>()(val);
     });
 
+    _vm->bind__neg__(_vm->tp_float, [](VM* vm, PyObject* obj) { return VAR(-_CAST(f64, obj)); });
+
     _vm->bind__repr__(_vm->tp_float, [](VM* vm, PyObject* obj) {
         f64 val = _CAST(f64, obj);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
@@ -350,7 +355,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(std::to_string(val));
     });
 
-    /************ PyString ************/
+    /************ str ************/
     _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->py_str(args[1])));
 
     _vm->bind__hash__(_vm->tp_str, [](VM* vm, PyObject* obj) {
@@ -475,9 +480,9 @@ inline void init_builtins(VM* _vm) {
         return VAR(Str(p));
     });
 
-    /************ PyList ************/
+    /************ list ************/
     _vm->bind_constructor<2>("list", [](VM* vm, ArgsView args) {
-        return vm->asList(args[1]);
+        return vm->py_list(args[1]);
     });
 
     _vm->bind_method<1>("list", "append", [](VM* vm, ArgsView args) {
@@ -563,9 +568,9 @@ inline void init_builtins(VM* _vm) {
         self.erase(i);
     });
 
-    /************ PyTuple ************/
+    /************ tuple ************/
     _vm->bind_constructor<2>("tuple", [](VM* vm, ArgsView args) {
-        List list = CAST(List, vm->asList(args[1]));
+        List list = CAST(List, vm->py_list(args[1]));
         return VAR(Tuple(std::move(list)));
     });
 
@@ -573,7 +578,7 @@ inline void init_builtins(VM* _vm) {
         i64 x = 1000003;
         const Tuple& items = CAST(Tuple&, obj);
         for (int i=0; i<items.size(); i++) {
-            i64 y = vm->hash(items[i]);
+            i64 y = vm->py_hash(items[i]);
             // recommended by Github Copilot
             x = x ^ (y + 0x9e3779b9 + (x << 6) + (x >> 2));
         }
@@ -590,7 +595,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ bool ************/
-    _vm->bind_constructor<2>("bool", CPP_LAMBDA(VAR(vm->asBool(args[1]))));
+    _vm->bind_constructor<2>("bool", CPP_LAMBDA(VAR(vm->py_bool(args[1]))));
     _vm->bind__hash__(_vm->tp_bool, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(bool, obj);
     });
@@ -758,6 +763,165 @@ inline void init_builtins(VM* _vm) {
         MappingProxy& self = _CAST(MappingProxy&, obj);
         return self.attr().contains(CAST(Str&, key));
     });
+
+    /************ dict ************/
+    _vm->bind_constructor<-1>("dict", [](VM* vm, ArgsView args){
+        return VAR(Dict(vm));
+    });
+
+    _vm->bind_method<-1>("dict", "__init__", [](VM* vm, ArgsView args){
+        if(args.size() == 1+0) return vm->None;
+        if(args.size() == 1+1){
+            auto _lock = vm->heap.gc_scope_lock();
+            Dict& self = _CAST(Dict&, args[0]);
+            List& list = CAST(List&, vm->py_list(args[1]));
+            for(PyObject* item : list){
+                Tuple& t = CAST(Tuple&, item);
+                if(t.size() != 2){
+                    vm->ValueError("dict() takes an iterable of tuples (key, value)");
+                    return vm->None;
+                }
+                self.set(t[0], t[1]);
+            }
+        }
+        vm->TypeError("dict() takes at most 1 argument");
+        return vm->None;
+    });
+
+    _vm->bind__len__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(Dict&, obj).size();
+    });
+
+    _vm->bind__getitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* index) {
+        Dict& self = _CAST(Dict&, obj);
+        PyObject* ret = self.try_get(index);
+        if(ret == nullptr) vm->KeyError(index);
+        return ret;
+    });
+
+    _vm->bind__setitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key, PyObject* value) {
+        Dict& self = _CAST(Dict&, obj);
+        self.set(key, value);
+    });
+
+    _vm->bind__delitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
+        Dict& self = _CAST(Dict&, obj);
+        if(!self.contains(key)) vm->KeyError(key);
+        self.erase(key);
+    });
+
+    _vm->bind__contains__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
+        Dict& self = _CAST(Dict&, obj);
+        return self.contains(key);
+    });
+
+    _vm->bind_method<-1>("dict", "get", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        if(args.size() == 1+1){
+            PyObject* ret = self.try_get(args[1]);
+            if(ret != nullptr) return ret;
+            return vm->None;
+        }else if(args.size() == 1+2){
+            PyObject* ret = self.try_get(args[1]);
+            if(ret != nullptr) return ret;
+            return args[2];
+        }
+        vm->TypeError("get() takes at most 2 arguments");
+        return vm->None;
+    });
+
+    _vm->bind_method<0>("dict", "keys", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        List keys;
+        for(auto& item : self.items()) keys.push_back(item.first);
+        return VAR(std::move(keys));
+    });
+
+    _vm->bind_method<0>("dict", "values", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        List values;
+        for(auto& item : self.items()) values.push_back(item.second);
+        return VAR(std::move(values));
+    });
+
+    _vm->bind_method<0>("dict", "items", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        List items;
+        for(auto& item : self.items()){
+            PyObject* t = VAR(Tuple({item.first, item.second}));
+            items.push_back(std::move(t));
+        }
+        return VAR(std::move(items));
+    });
+
+    _vm->bind_method<-1>("dict", "update", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        Dict& other = CAST(Dict&, args[1]);
+        for(auto& item : other.items()) self.set(item.first, item.second);
+        return vm->None;
+    });
+
+    _vm->bind_method<0>("dict", "copy", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        Dict copy(vm);
+        for(auto& item : self.items()) copy.set(item.first, item.second);
+        return VAR(std::move(copy));
+    });
+
+    _vm->bind_method<0>("dict", "clear", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        self.clear();
+        return vm->None;
+    });
+
+    _vm->bind__repr__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
+        Dict& self = _CAST(Dict&, obj);
+        std::stringstream ss;
+        ss << "{";
+        bool first = true;
+        for(auto& item : self.items()){
+            if(!first) ss << ", ";
+            first = false;
+            Str key = CAST(Str&, vm->py_repr(item.first));
+            Str value = CAST(Str&, vm->py_repr(item.second));
+            ss << key << ": " << value;
+        }
+        ss << "}";
+        return VAR(ss.str());
+    });
+
+    _vm->bind__json__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
+        Dict& self = _CAST(Dict&, obj);
+        std::stringstream ss;
+        ss << "{";
+        bool first = true;
+        for(auto& item : self.items()){
+            if(!first) ss << ", ";
+            first = false;
+            Str key = CAST(Str&, item.first);
+            Str value = CAST(Str&, vm->py_json(item.second));
+            ss << key << ": " << value;
+        }
+        ss << "}";
+        return VAR(ss.str());
+    });
+
+    _vm->bind__eq__(_vm->tp_dict, [](VM* vm, PyObject* a, PyObject* b) {
+        Dict& self = _CAST(Dict&, a);
+        if(!is_non_tagged_type(b, vm->tp_dict)) return false;
+        Dict& other = _CAST(Dict&, b);
+        if(self.size() != other.size()) return false;
+        for(auto& item : self.items()){
+            PyObject* value = other.try_get(item.first);
+            if(value == nullptr) return false;
+            if(!vm->py_equals(item.second, value)) return false;
+        }
+        return true;
+    });
+
+    _vm->bind__ne__(_vm->tp_dict, [](VM* vm, PyObject* a, PyObject* b) {
+        return !vm->py_equals(a, b);
+    });
 }
 
 #ifdef _WIN32
@@ -819,9 +983,7 @@ inline void add_module_json(VM* vm){
     });
 
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
-        const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
-        if(ti->m__json__) return ti->m__json__(vm, args[0]);
-        return vm->call_method(args[0], __json__);
+        return vm->py_json(args[0]);
     });
 }
 
@@ -1048,8 +1210,6 @@ inline void VM::post_init(){
     }
 
     CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
-    this->_exec(code, this->builtins);
-    code = compile(kPythonLibs["_dict"], "<dict>", EXEC_MODE);
     this->_exec(code, this->builtins);
     code = compile(kPythonLibs["_set"], "<set>", EXEC_MODE);
     this->_exec(code, this->builtins);

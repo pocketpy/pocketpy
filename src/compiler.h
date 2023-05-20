@@ -980,7 +980,7 @@ __SUBSCR_END:
             case TK("-"): {
                 consume(TK("@num"));
                 PyObject* val = to_object(prev().value);
-                return vm->num_negated(val);
+                return vm->py_negate(val);
             }
             case TK("@num"): return to_object(prev().value);
             case TK("@str"): return to_object(prev().value);

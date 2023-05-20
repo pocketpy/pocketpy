@@ -368,6 +368,7 @@ __NEXT_STEP:;
         DISPATCH();
 
 #undef BINARY_OP_SPECIAL
+#undef PREDICT_INT_OP
 
     TARGET(IS_OP)
         _1 = POPX();    // rhs
@@ -398,14 +399,14 @@ __NEXT_STEP:;
         frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(POP_JUMP_IF_FALSE)
-        if(!asBool(POPX())) frame->jump_abs(byte.arg);
+        if(!py_bool(POPX())) frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(JUMP_IF_TRUE_OR_POP)
-        if(asBool(TOP()) == true) frame->jump_abs(byte.arg);
+        if(py_bool(TOP()) == true) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
     TARGET(JUMP_IF_FALSE_OR_POP)
-        if(asBool(TOP()) == false) frame->jump_abs(byte.arg);
+        if(py_bool(TOP()) == false) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
     TARGET(LOOP_CONTINUE)
@@ -461,10 +462,10 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)
-        TOP() = num_negated(TOP());
+        TOP() = py_negate(TOP());
         DISPATCH();
     TARGET(UNARY_NOT)
-        TOP() = VAR(!asBool(TOP()));
+        TOP() = VAR(!py_bool(TOP()));
         DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
@@ -578,7 +579,7 @@ __NEXT_STEP:;
             _0 = t[0];
             msg = CAST(Str&, py_str(t[1]));
         }
-        bool ok = asBool(_0);
+        bool ok = py_bool(_0);
         POP();
         if(!ok) _error("AssertionError", msg);
     } DISPATCH();

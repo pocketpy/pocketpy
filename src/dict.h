@@ -70,6 +70,34 @@ struct Dict{
         return _items[i].second;
     }
 
+    bool contains(PyObject* key) const{
+        bool ok; int i;
+        _probe(key, ok, i);
+        return ok;
+    }
+
+    void erase(PyObject* key){
+        bool ok; int i;
+        _probe(key, ok, i);
+        if(!ok) return;
+        _items[i].first = nullptr;
+        _size--;
+    }
+
+    std::vector<Item> items() const {
+        std::vector<Item> v;
+        for(uint16_t i=0; i<_capacity; i++){
+            if(_items[i].first == nullptr) continue;
+            v.push_back(_items[i]);
+        }
+        return v;
+    }
+
+    void clear(){
+        memset(_items, 0, _capacity * sizeof(Item));
+        _size = 0;
+    }
+
     ~Dict(){ pool128.dealloc(_items); }
 };
 
