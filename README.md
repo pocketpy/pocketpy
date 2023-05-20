@@ -11,7 +11,7 @@
 
 **English |** [**简体中文**](README_zh.md)
 
-pkpy is a lightweight(~8000 LOC) Python interpreter for game engine/apps, built on C++17 with STL.
+pkpy is a lightweight(~10000 LOC) Python interpreter for game engine/apps, built on C++17 with STL.
 
 It is extremely easy to embed. Including a compiler and a bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
 
