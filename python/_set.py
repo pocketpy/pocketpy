@@ -95,4 +95,4 @@ class set:
         return '{'+ ', '.join([repr(i) for i in self._a.keys()]) + '}'
     
     def __iter__(self):
-        return self._a.keys()
+        return iter(self._a.keys())

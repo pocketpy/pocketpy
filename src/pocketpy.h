@@ -897,7 +897,7 @@ inline void init_builtins(VM* _vm) {
         for(auto& item : self.items()){
             if(!first) ss << ", ";
             first = false;
-            Str key = CAST(Str&, item.first);
+            Str key = CAST(Str&, item.first).escape();
             Str value = CAST(Str&, vm->py_json(item.second));
             ss << key << ": " << value;
         }
