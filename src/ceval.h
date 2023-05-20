@@ -288,6 +288,12 @@ __NEXT_STEP:;
         BINARY_OP_SPECIAL(__pow__);
         DISPATCH();
     TARGET(BINARY_ADD)
+        if(is_both_int(TOP(), SECOND())){
+            _1 = POPX();
+            _0 = TOP();
+            TOP() = VAR(_CAST(i64, _0) + _CAST(i64, _1));
+            DISPATCH();
+        }
         BINARY_OP_SPECIAL(__add__);
         DISPATCH()
     TARGET(BINARY_SUB)
