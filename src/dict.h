@@ -104,6 +104,7 @@ struct Dict{
         _probe(key, ok, i);
         if(!ok) return;
         _items[i].first = nullptr;
+        _items[i].second = nullptr;
         _size--;
     }
 
@@ -129,6 +130,14 @@ struct Dict{
     }
 
     ~Dict(){ if(_items!=nullptr) pool128.dealloc(_items); }
+
+    void _gc_mark() const{
+        for(int i=0; i<_capacity; i++){
+            if(_items[i].first == nullptr) continue;
+            OBJ_MARK(_items[i].first);
+            OBJ_MARK(_items[i].second);
+        }
+    }
 };
 
 } // namespace pkpy
