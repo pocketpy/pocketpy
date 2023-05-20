@@ -2,7 +2,6 @@
 
 #include "ceval.h"
 #include "compiler.h"
-#include "dict.h"
 #include "obj.h"
 #include "repl.h"
 #include "iter.h"
