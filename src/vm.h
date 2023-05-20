@@ -9,7 +9,7 @@
 #include "obj.h"
 #include "str.h"
 #include "tuplelist.h"
-#include "dict.h"
+// #include "dict.h"
 
 namespace pkpy{
 
@@ -1445,13 +1445,13 @@ inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
 }
 
 
-inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
-    ok = false;
-    i = vm->hash(key) & _mask;
-    while(_items[i].first != nullptr) {
-        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
-        i = (i + 1) & _mask;
-    }
-}
+// inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
+//     ok = false;
+//     i = vm->hash(key) & _mask;
+//     while(_items[i].first != nullptr) {
+//         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+//         i = (i + 1) & _mask;
+//     }
+// }
 
 }   // namespace pkpy
