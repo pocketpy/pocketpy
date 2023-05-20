@@ -518,7 +518,6 @@ public:
     void IOError(const Str& msg) { _error("IOError", msg); }
     void NotImplementedError(){ _error("NotImplementedError", ""); }
     void TypeError(const Str& msg){ _error("TypeError", msg); }
-    void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }

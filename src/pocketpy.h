@@ -107,7 +107,6 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);
-        if(rhs == 0) vm->ZeroDivisionError();
         return VAR(Tuple({VAR(lhs/rhs), VAR(lhs%rhs)}));
     });
 
@@ -233,13 +232,11 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind__truediv__(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         f64 value = VAR_F(rhs);
-        if (value == 0) vm->ZeroDivisionError();
         return VAR(_CAST(f64, lhs) / value);
     });
 
     _vm->bind__truediv__(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         f64 value = VAR_F(rhs);
-        if (value == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, lhs) / value);
     });
 
@@ -287,13 +284,11 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind__floordiv__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 rhs = CAST(i64, rhs_);
-        if(rhs == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, lhs_) / rhs);
     });
 
     _vm->bind__mod__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 rhs = CAST(i64, rhs_);
-        if(rhs == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, lhs_) % rhs);
     });
 
