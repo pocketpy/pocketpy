@@ -7,6 +7,13 @@
 namespace pkpy{
 
 inline PyObject* VM::_run_top_frame(){
+    DEF_SNAME(add);
+    DEF_SNAME(dict);
+    DEF_SNAME(set);
+    DEF_SNAME(__enter__);
+    DEF_SNAME(__exit__);
+    DEF_SNAME(__doc__);
+
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
@@ -234,14 +241,12 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_DICT)
-        DEF_SNAME(dict);
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         _0 = call(builtins->attr(dict), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_SET)
-        DEF_SNAME(set);
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         _0 = call(builtins->attr(set), _0);
         STACK_SHRINK(byte.arg);
@@ -427,7 +432,6 @@ __NEXT_STEP:;
         call_method(SECOND(), __setitem__, t[0], t[1]);
     } DISPATCH();
     TARGET(SET_ADD)
-        DEF_SNAME(add);
         _0 = POPX();
         call_method(SECOND(), add, _0);
         DISPATCH();
@@ -535,11 +539,9 @@ __NEXT_STEP:;
     /*****************************************/
     // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
-        DEF_SNAME(__enter__);
         call_method(POPX(), __enter__);
         DISPATCH();
     TARGET(WITH_EXIT)
-        DEF_SNAME(__exit__);
         call_method(POPX(), __exit__);
         DISPATCH();
     /*****************************************/
@@ -569,7 +571,6 @@ __NEXT_STEP:;
     TARGET(RE_RAISE) _raise(); DISPATCH();
     /*****************************************/
     TARGET(SETUP_DOCSTRING)
-        DEF_SNAME(__doc__);
         TOP()->attr().set(__doc__, co_consts[byte.arg]);
         DISPATCH();
     TARGET(FORMAT_STRING) {
