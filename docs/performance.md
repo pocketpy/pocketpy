@@ -6,43 +6,44 @@ label: Performance
 
 # Performance
 
-Currently, pkpy is almost~ fast as cpython 3.8. Here is a benchmark result of a special commit.
+Currently, pkpy is a bit faster than cpython 3.8. Here is a benchmark result of a special commit.
 
 Benchmark files are located in `benchmarks/`.
 
-See [actions/runs/4729609975/jobs/8392313856](https://github.com/blueloveTH/pocketpy/actions/runs/4729609975/jobs/8392313856).
+See [actions/runs/5031865496/jobs/9025183674](https://github.com/blueloveTH/pocketpy/actions/runs/5031865496/jobs/9025183674).
 
 
 ```
 Testing directory: benchmarks/
 > benchmarks/fib.py
-  cpython:  0.686955s (100%)
-  pocketpy: 0.652851s (95.04%)
+  cpython:  0.684102s (100%)
+  pocketpy: 0.680497s (99.47%)
 > benchmarks/loop_0.py
-  cpython:  0.315438s (100%)
-  pocketpy: 0.205589s (65.18%)
+  cpython:  0.338688s (100%)
+  pocketpy: 0.189629s (55.99%)
 > benchmarks/loop_1.py
-  cpython:  0.621474s (100%)
-  pocketpy: 0.347335s (55.89%)
+  cpython:  0.569272s (100%)
+  pocketpy: 0.332900s (58.48%)
 > benchmarks/loop_2.py
-  cpython:  0.842779s (100%)
-  pocketpy: 0.465181s (55.20%)
+  cpython:  0.826183s (100%)
+  pocketpy: 0.440160s (53.28%)
 > benchmarks/loop_3.py
-  cpython:  3.069278s (100%)
-  pocketpy: 1.455937s (47.44%)
+  cpython:  3.121079s (100%)
+  pocketpy: 1.390122s (44.54%)
 > benchmarks/primes.py
-  cpython:  6.848963s (100%)
-  pocketpy: 13.592313s (198.46%)
+  cpython:  6.705832s (100%)
+  pocketpy: 5.420015s (80.83%)
 > benchmarks/recursive.py
-  cpython:  0.020444s (100%)
-  pocketpy: 0.004801s (23.48%)
+  cpython:  0.019430s (100%)
+  pocketpy: 0.005298s (27.27%)
 > benchmarks/simple.py
-  cpython:  0.372713s (100%)
-  pocketpy: 0.273696s (73.43%)
+  cpython:  0.373461s (100%)
+  pocketpy: 0.281169s (75.29%)
 > benchmarks/sort.py
-  cpython:  0.324214s (100%)
-  pocketpy: 0.464951s (143.41%)
+  cpython:  0.338689s (100%)
+  pocketpy: 0.287986s (85.03%)
 > benchmarks/sum.py
-  cpython:  0.019418s (100%)
-  pocketpy: 0.004817s (24.80%)
+  cpython:  0.019819s (100%)
+  pocketpy: 0.005130s (25.88%)
+ALL TESTS PASSED
 ```
