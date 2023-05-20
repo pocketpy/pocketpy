@@ -29,6 +29,29 @@ struct Dict{
 
     int size() const { return _size; }
 
+    Dict(Dict&& other){
+        vm = other.vm;
+        _capacity = other._capacity;
+        _mask = other._mask;
+        _size = other._size;
+        _critical_size = other._critical_size;
+        _items = other._items;
+        other._items = nullptr;
+    }
+
+    Dict(const Dict& other){
+        vm = other.vm;
+        _capacity = other._capacity;
+        _mask = other._mask;
+        _size = other._size;
+        _critical_size = other._critical_size;
+        _items = (Item*)pool128.alloc(_capacity * sizeof(Item));
+        memcpy(_items, other._items, _capacity * sizeof(Item));
+    }
+
+    Dict& operator=(const Dict&) = delete;
+    Dict& operator=(Dict&&) = delete;
+
     void _probe(PyObject* key, bool& ok, int& i) const;
 
     void set(PyObject* key, PyObject* val){
@@ -84,9 +107,16 @@ struct Dict{
         _size--;
     }
 
+    void update(const Dict& other){
+        for(int i=0; i<other._capacity; i++){
+            if(other._items[i].first == nullptr) continue;
+            set(other._items[i].first, other._items[i].second);
+        }
+    }
+
     std::vector<Item> items() const {
         std::vector<Item> v;
-        for(uint16_t i=0; i<_capacity; i++){
+        for(int i=0; i<_capacity; i++){
             if(_items[i].first == nullptr) continue;
             v.push_back(_items[i]);
         }
@@ -98,7 +128,7 @@ struct Dict{
         _size = 0;
     }
 
-    ~Dict(){ pool128.dealloc(_items); }
+    ~Dict(){ if(_items!=nullptr) pool128.dealloc(_items); }
 };
 
 } // namespace pkpy

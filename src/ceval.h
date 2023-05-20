@@ -8,7 +8,6 @@ namespace pkpy{
 
 inline PyObject* VM::_run_top_frame(){
     DEF_SNAME(add);
-    DEF_SNAME(dict);
     DEF_SNAME(set);
     DEF_SNAME(__enter__);
     DEF_SNAME(__exit__);
@@ -241,13 +240,17 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_DICT)
-        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
-        _0 = call(builtins->attr(dict), _0);
+        if(byte.arg == 0){
+            PUSH(VAR(Dict(this)));
+            DISPATCH();
+        }
+        _0 = VAR(STACK_VIEW(byte.arg).to_list());
+        _0 = call(_t(tp_dict), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
     TARGET(BUILD_SET)
-        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
+        _0 = VAR(STACK_VIEW(byte.arg).to_list());
         _0 = call(builtins->attr(set), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);

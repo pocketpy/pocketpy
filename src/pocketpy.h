@@ -774,7 +774,7 @@ inline void init_builtins(VM* _vm) {
         if(args.size() == 1+1){
             auto _lock = vm->heap.gc_scope_lock();
             Dict& self = _CAST(Dict&, args[0]);
-            List& list = CAST(List&, vm->py_list(args[1]));
+            List& list = CAST(List&, args[1]);
             for(PyObject* item : list){
                 Tuple& t = CAST(Tuple&, item);
                 if(t.size() != 2){
@@ -783,6 +783,7 @@ inline void init_builtins(VM* _vm) {
                 }
                 self.set(t[0], t[1]);
             }
+            return vm->None;
         }
         vm->TypeError("dict() takes at most 1 argument");
         return vm->None;
@@ -854,18 +855,16 @@ inline void init_builtins(VM* _vm) {
         return VAR(std::move(items));
     });
 
-    _vm->bind_method<-1>("dict", "update", [](VM* vm, ArgsView args) {
+    _vm->bind_method<1>("dict", "update", [](VM* vm, ArgsView args) {
         Dict& self = _CAST(Dict&, args[0]);
-        Dict& other = CAST(Dict&, args[1]);
-        for(auto& item : other.items()) self.set(item.first, item.second);
+        const Dict& other = CAST(Dict&, args[1]);
+        self.update(other);
         return vm->None;
     });
 
     _vm->bind_method<0>("dict", "copy", [](VM* vm, ArgsView args) {
-        Dict& self = _CAST(Dict&, args[0]);
-        Dict copy(vm);
-        for(auto& item : self.items()) copy.set(item.first, item.second);
-        return VAR(std::move(copy));
+        const Dict& self = _CAST(Dict&, args[0]);
+        return VAR(self);
     });
 
     _vm->bind_method<0>("dict", "clear", [](VM* vm, ArgsView args) {

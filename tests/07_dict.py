@@ -16,6 +16,8 @@ for k,v in dict1.items():
 
 tinydict = {'Name': 'circle', 'Age': 7}
 tinydict2 = {'Sex': 'female' }
+assert len(tinydict) == 2
+assert len(tinydict2) == 1
 tinydict.update(tinydict2)
 updated_dict = {'Name': 'circle', 'Age': 7, 'Sex': 'female'}
 for k,v in tinydict.items():

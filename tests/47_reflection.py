@@ -10,7 +10,7 @@ assert hasattr(int, '__add__')
 assert type(1).__add__(1, 2) == 3
 assert getattr(1, '__add__')(2) == 3
 
-a = {}
+a = object()
 setattr(a, 'b', 1)
 assert a.b == 1
 assert getattr(a, 'b') == 1
