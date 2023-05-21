@@ -7,7 +7,7 @@ order: 80
 ### Direct access
 
 Some python objects have an instance dict, a.k.a, `__dict__` in cpython.
-You can use `PyObject::attr()` to manipulate the instance dict of an object.
+You can use `obj->attr()` to manipulate the instance dict of an object.
 
 ```cpp
 // get the `builtin` module
@@ -39,7 +39,8 @@ bool ok = !is_tagged(obj) && obj->is_attr_valid();  // false
 
 ### General access
 
-As you can see, direct access does not take care of derived attributes or methods. In most cases, what you need is `getattr` and `setattr`.
+As you can see, direct access does not take care of derived attributes or methods.
+In most cases, what you need is `getattr` and `setattr`.
 These two methods handle all possible cases.
 
 #### `PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err=true)`
