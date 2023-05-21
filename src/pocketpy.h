@@ -705,7 +705,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    /************ MappingProxy ************/
+    /************ mappingproxy ************/
     _vm->bind_method<0>("mappingproxy", "keys", [](VM* vm, ArgsView args) {
         MappingProxy& self = _CAST(MappingProxy&, args[0]);
         List keys;
@@ -918,6 +918,11 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__ne__(_vm->tp_dict, [](VM* vm, PyObject* a, PyObject* b) {
         return !vm->py_equals(a, b);
     });
+
+    RangeIter::register_class(_vm, _vm->builtins);
+    ArrayIter::register_class(_vm, _vm->builtins);
+    StringIter::register_class(_vm, _vm->builtins);
+    Generator::register_class(_vm, _vm->builtins);
 }
 
 #ifdef _WIN32
