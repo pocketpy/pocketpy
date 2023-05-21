@@ -66,3 +66,14 @@ When you are done with the `VM` instance, use `delete` operator to dispose it.
 ```cpp
 delete vm;
 ```
+
+### Hook standard buffer
+
+By default, pkpy outputs all messages and errors to `stdout` and `stderr`.
+You can redirect them to your own buffer by setting `vm->_stdout` and `vm->_stderr`.
+
+These two fields are C function pointers `PrintFunc` with the following signature:
+
+```cpp
+typedef void(*PrintFunc)(VM*, const Str&);
+```
