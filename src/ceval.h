@@ -92,7 +92,9 @@ __NEXT_STEP:;
         int argc = decl->args.size();
         PyObject* obj;
         if(decl->nested){
-            obj = VAR(Function({decl, is_simple, argc, frame->_module, frame->_locals.to_namedict()}));
+            NameDict_ captured = frame->_locals.to_namedict();
+            obj = VAR(Function({decl, is_simple, argc, frame->_module, captured}));
+            captured->set(decl->code->name, obj);
         }else{
             obj = VAR(Function({decl, is_simple, argc, frame->_module}));
         }
@@ -110,7 +112,7 @@ __NEXT_STEP:;
         heap._auto_collect();
         _name = StrName(byte.arg);
         _0 = frame->_locals.try_get(_name);
-        if(_0 != PY_NULL) { PUSH(_0); DISPATCH(); }
+        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get(_name);
