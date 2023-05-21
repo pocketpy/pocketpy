@@ -49,10 +49,11 @@ struct FastLocals{
 
     NameDict_ to_namedict(){
         NameDict_ dict = make_sp<NameDict>();
-        // TODO: optimize this
-        // NameDict.items() is expensive
+        // TODO: optimize this, NameDict.items() is expensive
         for(auto& kv: varnames_inv->items()){
-            dict->set(kv.first, a[kv.second]);
+            PyObject* value = a[kv.second];
+            if(value == PY_NULL) continue;
+            dict->set(kv.first, value);
         }
         return dict;
     }

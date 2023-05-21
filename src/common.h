@@ -36,7 +36,6 @@
 #define DEBUG_EXTRA_CHECK			0
 #define DEBUG_DIS_EXEC				0
 #define DEBUG_CEVAL_STEP			0
-#define DEBUG_CEVAL_STEP_MIN		0
 #define DEBUG_FULL_EXCEPTION		0
 #define DEBUG_MEMORY_POOL			0
 #define DEBUG_NO_MEMORY_POOL		0
@@ -71,7 +70,7 @@
 #define PK_ENABLE_COMPUTED_GOTO		1
 #define UNREACHABLE()				__builtin_unreachable()
 
-#if DEBUG_CEVAL_STEP || DEBUG_CEVAL_STEP_MIN
+#if DEBUG_CEVAL_STEP
 #undef PK_ENABLE_COMPUTED_GOTO
 #endif
 

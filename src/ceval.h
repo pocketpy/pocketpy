@@ -61,9 +61,6 @@ __NEXT_STEP:;
 #if DEBUG_CEVAL_STEP
     _log_s_data();
 #endif
-#if DEBUG_CEVAL_STEP_MIN
-    std::cout << OP_NAMES[byte.op] << std::endl;
-#endif
     switch (byte.op)
     {
 #endif
@@ -113,7 +110,7 @@ __NEXT_STEP:;
         heap._auto_collect();
         _name = StrName(byte.arg);
         _0 = frame->_locals.try_get(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        if(_0 != PY_NULL) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get(_name);
