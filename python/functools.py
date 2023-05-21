@@ -1,9 +1,9 @@
 def cache(f):
     def wrapper(*args):
-        if not hasattr(f, 'cache'):
-            f.cache = {}
+        if not hasattr(f, '__cache__'):
+            f.__cache__ = {}
         key = args
-        if key not in f.cache:
-            f.cache[key] = f(*args)
-        return f.cache[key]
+        if key not in f.__cache__:
+            f.__cache__[key] = f(*args)
+        return f.__cache__[key]
     return wrapper
