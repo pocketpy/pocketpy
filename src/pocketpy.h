@@ -364,6 +364,13 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__len__(_vm->tp_str, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(Str&, obj).u8_length();
     });
+    _vm->bind__mul__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        const Str& self = _CAST(Str&, lhs);
+        i64 n = CAST(i64, rhs);
+        std::stringstream ss;
+        for(i64 i = 0; i < n; i++) ss << self.sv();
+        return VAR(ss.str());
+    });
     _vm->bind__contains__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const Str& self = _CAST(Str&, lhs);
         const Str& other = CAST(Str&, rhs);
@@ -481,6 +488,73 @@ inline void init_builtins(VM* _vm) {
         return vm->py_list(args[1]);
     });
 
+    _vm->bind__contains__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* item) {
+        List& self = _CAST(List&, obj);
+        for(PyObject* i: self) if(vm->py_equals(i, item)) return true;
+        return false;
+    });
+
+    _vm->bind_method<1>("list", "count", [](VM* vm, ArgsView args) {
+        List& self = _CAST(List&, args[0]);
+        int count = 0;
+        for(PyObject* i: self) if(vm->py_equals(i, args[1])) count++;
+        return VAR(count);
+    });
+
+    _vm->bind__eq__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        List& a = _CAST(List&, lhs);
+        List& b = _CAST(List&, rhs);
+        if(a.size() != b.size()) return false;
+        for(int i=0; i<a.size(); i++){
+            if(vm->py_not_equals(a[i], b[i])) return false;
+        }
+        return true;
+    });
+
+    _vm->bind__ne__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return !vm->py_equals(lhs, rhs);
+    });
+
+    _vm->bind_method<1>("list", "index", [](VM* vm, ArgsView args) {
+        List& self = _CAST(List&, args[0]);
+        PyObject* obj = args[1];
+        for(int i=0; i<self.size(); i++){
+            if(vm->py_equals(self[i], obj)) return VAR(i);
+        }
+        vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
+        return vm->None;
+    });
+
+    _vm->bind_method<1>("list", "remove", [](VM* vm, ArgsView args) {
+        List& self = _CAST(List&, args[0]);
+        PyObject* obj = args[1];
+        for(int i=0; i<self.size(); i++){
+            if(vm->py_equals(self[i], obj)){
+                self.erase(i);
+                return vm->None;
+            }
+        }
+        vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
+        return vm->None;
+    });
+
+    _vm->bind_method<-1>("list", "pop", [](VM* vm, ArgsView args) {
+        List& self = _CAST(List&, args[0]);
+        if(args.size() == 1+0){
+            if(self.empty()) vm->IndexError("pop from empty list");
+            return self.popx_back();
+        }
+        if(args.size() == 1+1){
+            int index = CAST(int, args[1]);
+            index = vm->normalized_index(index, self.size());
+            PyObject* ret = self[index];
+            self.erase(index);
+            return ret;
+        }
+        vm->TypeError("pop() takes at most 1 argument");
+        return vm->None;
+    });
+
     _vm->bind_method<1>("list", "append", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         self.push_back(args[1]);
@@ -569,6 +643,33 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_constructor<2>("tuple", [](VM* vm, ArgsView args) {
         List list = CAST(List, vm->py_list(args[1]));
         return VAR(Tuple(std::move(list)));
+    });
+
+    _vm->bind__contains__(_vm->tp_tuple, [](VM* vm, PyObject* obj, PyObject* item) {
+        Tuple& self = _CAST(Tuple&, obj);
+        for(PyObject* i: self) if(vm->py_equals(i, item)) return true;
+        return false;
+    });
+
+    _vm->bind_method<1>("tuple", "count", [](VM* vm, ArgsView args) {
+        Tuple& self = _CAST(Tuple&, args[0]);
+        int count = 0;
+        for(PyObject* i: self) if(vm->py_equals(i, args[1])) count++;
+        return VAR(count);
+    });
+
+    _vm->bind__eq__(_vm->tp_tuple, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        const Tuple& self = _CAST(Tuple&, lhs);
+        const Tuple& other = CAST(Tuple&, rhs);
+        if(self.size() != other.size()) return false;
+        for(int i = 0; i < self.size(); i++) {
+            if(vm->py_not_equals(self[i], other[i])) return false;
+        }
+        return true;
+    });
+
+    _vm->bind__ne__(_vm->tp_tuple, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return !vm->py_equals(lhs, rhs);
     });
 
     _vm->bind__hash__(_vm->tp_tuple, [](VM* vm, PyObject* obj) {

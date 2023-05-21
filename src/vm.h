@@ -613,6 +613,8 @@ DEF_NATIVE_2(Bytes, tp_bytes)
 DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 DEF_NATIVE_2(Dict, tp_dict)
 
+#undef DEF_NATIVE_2
+
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
     vm->check_int(obj);                                 \
@@ -690,6 +692,9 @@ PY_VAR_INT(unsigned long long)
 
 PY_VAR_FLOAT(float)
 PY_VAR_FLOAT(double)
+
+#undef PY_VAR_INT
+#undef PY_VAR_FLOAT
 
 inline PyObject* py_var(VM* vm, bool val){
     return val ? vm->True : vm->False;

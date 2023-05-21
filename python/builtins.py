@@ -70,9 +70,6 @@ def sorted(iterable, reverse=False):
     return a
 
 ##### str #####
-
-str.__mul__ = lambda self, n: ''.join([self for _ in range(n)])
-
 def str@split(self, sep):
     if sep == "":
         return list(self)
@@ -131,55 +128,6 @@ def list@sort(self, reverse=False):
     __qsort(self, 0, len(self)-1)
     if reverse:
         self.reverse()
-
-def list@remove(self, value):
-    for i in range(len(self)):
-        if self[i] == value:
-            del self[i]
-            return
-    value = repr(value)
-    raise ValueError(f'{value} is not in list')
-
-def list@index(self, value):
-    for i in range(len(self)):
-        if self[i] == value:
-            return i
-    value = repr(value)
-    raise ValueError(f'{value} is not in list')
-
-def list@pop(self, i=-1):
-    res = self[i]
-    del self[i]
-    return res
-
-def list@__eq__(self, other):
-    if type(self) is not type(other):
-        return False
-    if len(self) != len(other):
-        return False
-    for i in range(len(self)):
-        if self[i] != other[i]:
-            return False
-    return True
-tuple.__eq__ = list.__eq__
-list.__ne__ = lambda self, other: not self.__eq__(other)
-tuple.__ne__ = lambda self, other: not self.__eq__(other)
-
-def list@count(self, x):
-    res = 0
-    for i in self:
-        if i == x:
-            res += 1
-    return res
-tuple.count = list.count
-
-def list@__contains__(self, item):
-    for i in self:
-        if i == item:
-            return True
-    return False
-tuple.__contains__ = list.__contains__
-
 
 class property:
     def __init__(self, fget, fset=None):
