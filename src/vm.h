@@ -1215,7 +1215,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     if(fn.is_simple){
         if(args.size() > fn.argc) TypeError("too many positional arguments");
         int spaces = co_nlocals - fn.argc;
-        for(int j=0; j<spaces; j++) PUSH(nullptr);
+        for(int j=0; j<spaces; j++) PUSH(PY_NULL);
         callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         return nullptr;
     }
@@ -1226,7 +1226,7 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     // prepare args
     for(int index: fn.decl->args) buffer[index] = args[i++];
     // set extra varnames to nullptr
-    for(int j=i; j<co_nlocals; j++) buffer[j] = nullptr;
+    for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
 
     // prepare kwdefaults
     for(auto& kv: fn.decl->kwargs) buffer[kv.key] = kv.value;
@@ -1400,7 +1400,7 @@ inline void VM::_error(Exception e){
 inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
-    for(PyObject* obj: vm->s_data) if(obj!=nullptr) OBJ_MARK(obj);
+    for(PyObject* obj: vm->s_data) OBJ_MARK(obj);
     if(vm->_gc_marker_ex != nullptr) vm->_gc_marker_ex(vm);
 }
 

@@ -106,7 +106,7 @@ __NEXT_STEP:;
     TARGET(LOAD_FAST) {
         heap._auto_collect();
         _0 = frame->_locals[byte.arg];
-        if(_0 == nullptr) vm->NameError(co->varnames[byte.arg]);
+        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
         PUSH(_0);
     } DISPATCH();
     TARGET(LOAD_NAME)
@@ -195,8 +195,8 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(DELETE_FAST)
         _0 = frame->_locals[byte.arg];
-        if(_0 == nullptr) vm->NameError(co->varnames[byte.arg]);
-        frame->_locals[byte.arg] = nullptr;
+        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        frame->_locals[byte.arg] = PY_NULL;
         DISPATCH();
     TARGET(DELETE_NAME)
         _name = StrName(byte.arg);

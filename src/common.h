@@ -158,7 +158,7 @@ inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
 }
 
 // special singals, is_tagged() for them is true
-inline PyObject* const PY_NULL = (PyObject*)0b000011;
+inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
 inline PyObject* const PY_BEGIN_CALL = (PyObject*)0b010011;
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;

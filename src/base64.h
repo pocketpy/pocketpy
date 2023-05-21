@@ -7,12 +7,12 @@ namespace pkpy {
 
 // https://github.com/zhicheng/base64/blob/master/base64.c
 
-inline static const char BASE64_PAD = '=';
-inline static const char BASE64DE_FIRST = '+';
-inline static const char BASE64DE_LAST = 'z';
+const char BASE64_PAD = '=';
+const char BASE64DE_FIRST = '+';
+const char BASE64DE_LAST = 'z';
 
 /* BASE 64 encode table */
-static const char base64en[] = {
+const char base64en[] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
@@ -24,7 +24,7 @@ static const char base64en[] = {
 };
 
 /* ASCII order for BASE 64 decode, 255 in unused character */
-static const unsigned char base64de[] = {
+const unsigned char base64de[] = {
 	/* nul, soh, stx, etx, eot, enq, ack, bel, */
 	   255, 255, 255, 255, 255, 255, 255, 255,
 
