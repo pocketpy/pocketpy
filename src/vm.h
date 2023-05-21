@@ -591,19 +591,13 @@ public:
 
 inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     int args_size = args.size() - (int)method;  // remove self
-    if(argc != -1 && args_size != argc) {
+    if(args_size != argc && argc != -1) {
         vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
     }
 #if DEBUG_EXTRA_CHECK
     if(f == nullptr) FATAL_ERROR();
 #endif
     return f(vm, args);
-}
-
-inline void CodeObject::optimize(VM* vm){
-    // uint32_t base_n = (uint32_t)(names.size() / kLocalsLoadFactor + 0.5);
-    // perfect_locals_capacity = std::max(find_next_capacity(base_n), NameDict::__Capacity);
-    // perfect_hash_seed = find_perfect_hash_seed(perfect_locals_capacity, names);
 }
 
 DEF_NATIVE_2(Str, tp_str)

@@ -204,14 +204,6 @@ struct Mat3x3{
     }
 
     /*************** affine transformations ***************/
-    static Mat3x3 rotate(float radian){
-        float cr = cosf(radian);
-        float sr = sinf(radian);
-        return Mat3x3(cr,   -sr,  0.0f,
-                      sr,   cr,   0.0f,
-                      0.0f, 0.0f, 1.0f);
-    }
-
     static Mat3x3 trs(Vec2 t, float radian, Vec2 s){
         float cr = cosf(radian);
         float sr = sinf(radian);
@@ -350,7 +342,12 @@ struct PyVec2: Vec2 {
         vm->bind_method<1>(type, "rotate", [](VM* vm, ArgsView args){
             Vec2 self = _CAST(PyVec2&, args[0]);
             float radian = vm->num_to_float(args[1]);
-            self = Mat3x3::rotate(radian).transform_vector(self);
+            float cr = cosf(radian);
+            float sr = sinf(radian);
+            Mat3x3 rotate(cr,   -sr,  0.0f,
+                          sr,   cr,   0.0f,
+                          0.0f, 0.0f, 1.0f);
+            self = rotate.transform_vector(self);
             return VAR(self);
         });
 

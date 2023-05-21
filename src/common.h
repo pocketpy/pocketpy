@@ -161,7 +161,4 @@ inline PyObject* const PY_BEGIN_CALL = (PyObject*)0b010011;
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 
-struct Expr;
-typedef std::unique_ptr<Expr> Expr_;
-
 } // namespace pkpy

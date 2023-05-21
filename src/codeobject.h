@@ -65,8 +65,6 @@ struct CodeObject {
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
-    void optimize(VM* vm);
-
     void _gc_mark() const {
         for(PyObject* v : consts) OBJ_MARK(v);
         for(auto& decl: func_decls) decl->_gc_mark();

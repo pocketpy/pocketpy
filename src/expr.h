@@ -6,11 +6,12 @@
 #include "error.h"
 #include "ceval.h"
 #include "str.h"
-#include <algorithm>
 
 namespace pkpy{
 
 struct CodeEmitContext;
+struct Expr;
+typedef std::unique_ptr<Expr> Expr_;
 
 struct Expr{
     int line = 0;
