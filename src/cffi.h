@@ -317,7 +317,7 @@ struct C99ReflType final: ReflType{
             C99ReflType& self = _CAST(C99ReflType&, obj);
             const Str& name = CAST(Str&, key);
             auto it = std::lower_bound(self.fields.begin(), self.fields.end(), name.sv());
-            if(it == self.fields.end()){
+            if(it == self.fields.end() || it->name != name.sv()){
                 vm->KeyError(key);
                 return vm->None;
             }

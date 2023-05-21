@@ -513,6 +513,7 @@ __NEXT_STEP:;
             if(s.empty() || s[0] == '_') continue;
             frame->f_globals().set(name, value);
         }
+        frame->f_globals()._try_perfect_rehash();
         DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE)

@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 35803, 54469, 27689, 9719, 34897, 18973, 30661, 19913, 27919, 32143};
+const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
 
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
@@ -42,32 +42,35 @@ struct NameDictImpl {
     uint16_t _mask;
     Item* _items;
 
-    void _alloc(int cap){
-        _items = (Item*)pool128.alloc(cap * sizeof(Item));
-        memset(_items, 0, cap * sizeof(Item));
-    }
+#define HASH_PROBE(key, ok, i)          \
+ok = false;                             \
+i = _hash(key, _mask, _hash_seed);      \
+while(!_items[i].first.empty()) {       \
+    if(_items[i].first == (key)) { ok = true; break; }  \
+    i = (i + 1) & _mask;                                \
+}
+
+#define NAMEDICT_ALLOC()                \
+    _items = (Item*)pool128.alloc(_capacity * sizeof(Item));    \
+    memset(_items, 0, _capacity * sizeof(Item));                \
 
     NameDictImpl(float load_factor=0.67f):
         _load_factor(load_factor), _capacity(__Capacity), _size(0), 
         _hash_seed(kHashSeeds[0]), _mask(__Capacity-1) {
-        _alloc(__Capacity);
+        NAMEDICT_ALLOC()
     }
 
     NameDictImpl(const NameDictImpl& other) {
         memcpy(this, &other, sizeof(NameDictImpl));
-        _alloc(_capacity);
-        for(int i=0; i<_capacity; i++){
-            _items[i] = other._items[i];
-        }
+        NAMEDICT_ALLOC()
+        for(int i=0; i<_capacity; i++) _items[i] = other._items[i];
     }
 
     NameDictImpl& operator=(const NameDictImpl& other) {
         pool128.dealloc(_items);
         memcpy(this, &other, sizeof(NameDictImpl));
-        _alloc(_capacity);
-        for(int i=0; i<_capacity; i++){
-            _items[i] = other._items[i];
-        }
+        NAMEDICT_ALLOC()
+        for(int i=0; i<_capacity; i++) _items[i] = other._items[i];
         return *this;
     }
     
@@ -76,14 +79,6 @@ struct NameDictImpl {
     NameDictImpl(NameDictImpl&&) = delete;
     NameDictImpl& operator=(NameDictImpl&&) = delete;
     uint16_t size() const { return _size; }
-
-#define HASH_PROBE(key, ok, i)          \
-ok = false;                             \
-i = _hash(key, _mask, _hash_seed);      \
-while(!_items[i].first.empty()) {       \
-    if(_items[i].first == (key)) { ok = true; break; }  \
-    i = (i + 1) & _mask;                                \
-}
 
     T operator[](StrName key) const {
         bool ok; uint16_t i;
@@ -113,7 +108,7 @@ while(!_items[i].first.empty()) {       \
             _capacity *= 2;
             _mask = _capacity - 1;
         }
-        _alloc(_capacity);
+        NAMEDICT_ALLOC()
         for(uint16_t i=0; i<old_capacity; i++){
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
@@ -196,6 +191,7 @@ while(!_items[i].first.empty()) {       \
         _size = 0;
     }
 #undef HASH_PROBE
+#undef NAMEDICT_ALLOC
 #undef _hash
 };
 

@@ -33,7 +33,7 @@ enum CodeBlockType {
     TRY_EXCEPT,
 };
 
-#define BC_NOARG       -1
+#define BC_NOARG        -1
 #define BC_KEEPLINE     -1
 
 struct CodeBlock {
