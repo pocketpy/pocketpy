@@ -409,6 +409,11 @@ T lambda_get_fp(ArgsView args){
     return reinterpret_cast<T>(f);
 }
 
+inline UserData& lambda_get_userdata(ArgsView args){
+    if(args[-1] != PY_NULL) return OBJ_GET(NativeFunc, args[-1]).userdata;
+    else return OBJ_GET(NativeFunc, args[-2]).userdata;
+}
+
 
 
 }   // namespace pkpy

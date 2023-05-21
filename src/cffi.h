@@ -222,6 +222,20 @@ struct C99Struct{
             return VAR_T(C99Struct, self);
         });
 
+        vm->bind__eq__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            C99Struct& self = _CAST(C99Struct&, lhs);
+            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return false;
+            C99Struct& other = _CAST(C99Struct&, rhs);
+            return self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
+        });
+
+        vm->bind__ne__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+            C99Struct& self = _CAST(C99Struct&, lhs);
+            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return true;
+            C99Struct& other = _CAST(C99Struct&, rhs);
+            return self.size != other.size || memcmp(self.p, other.p, self.size) != 0;
+        });
+
         // patch VoidP
         type = vm->_t(VoidP::_type(vm));
 
@@ -241,43 +255,33 @@ struct C99Struct{
     }
 };
 
+struct ReflField{
+    std::string_view name;
+    int offset;
+    bool operator<(const ReflField& other) const{ return name < other.name; }
+    bool operator==(const ReflField& other) const{ return name == other.name; }
+    bool operator!=(const ReflField& other) const{ return name != other.name; }
+    bool operator<(std::string_view other) const{ return name < other; }
+    bool operator==(std::string_view other) const{ return name == other; }
+    bool operator!=(std::string_view other) const{ return name != other; }
+};
 
 struct ReflType{
     std::string_view name;
     size_t size;
-    std::map<std::string_view, int> fields;
+    std::vector<ReflField> fields;
 };
 inline static std::map<std::string_view, ReflType> _refl_types;
 
-inline void add_refl_type(std::string_view name, size_t size, std::initializer_list<std::pair<std::string_view, int>> fields){
-    ReflType type{name, size, {}};
-    for(auto& [name, offset] : fields){
-        type.fields[name] = offset;
-    }
+inline void add_refl_type(std::string_view name, size_t size, std::vector<ReflField> fields){
+    ReflType type{name, size, std::move(fields)};
+    std::sort(type.fields.begin(), type.fields.end());
     _refl_types[name] = std::move(type);
 }
 
 inline static int c99_sizeof(VM* vm, const Str& type){
-    static const std::map<std::string_view, i64> c99_sizes = {
-        {"char", sizeof(char)},
-        {"uchar", sizeof(unsigned char)},
-        {"short", sizeof(short)},
-        {"ushort", sizeof(unsigned short)},
-        {"int", sizeof(int)},
-        {"uint", sizeof(unsigned int)},
-        {"long", sizeof(long)},
-        {"ulong", sizeof(unsigned long)},
-        {"longlong", sizeof(long long)},
-        {"ulonglong", sizeof(unsigned long long)},
-        {"float", sizeof(float)},
-        {"double", sizeof(double)},
-        {"bool", sizeof(bool)},
-        {"void_p", sizeof(void*)}
-    };
-    auto it = c99_sizes.find(type.sv());
-    if(it != c99_sizes.end()) return it->second;
-    auto it2 = _refl_types.find(type.sv());
-    if(it2 != _refl_types.end()) return it2->second.size;
+    auto it = _refl_types.find(type.sv());
+    if(it != _refl_types.end()) return it->second.size;
     vm->ValueError("not a valid c99 type");
     return 0;
 }
@@ -312,12 +316,12 @@ struct C99ReflType final: ReflType{
         vm->bind__getitem__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* key){
             C99ReflType& self = _CAST(C99ReflType&, obj);
             const Str& name = CAST(Str&, key);
-            auto it = self.fields.find(name.sv());
+            auto it = std::lower_bound(self.fields.begin(), self.fields.end(), name.sv());
             if(it == self.fields.end()){
-                vm->_error("KeyError", name.escape());
+                vm->KeyError(key);
                 return vm->None;
             }
-            return VAR(it->second);
+            return VAR(it->offset);
         });
     }
 };
@@ -386,8 +390,7 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
 };
 
 inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
-    static const StrName m_proxy("__proxy__");
-    NativeProxyFuncCBase* pf = CAST(NativeProxyFuncCBase*, args[-2]->attr(m_proxy));
+    NativeProxyFuncCBase* pf = static_cast<NativeProxyFuncCBase*>(lambda_get_userdata(args)._p);
     return (*pf)(vm, args);
 }
 
@@ -397,7 +400,7 @@ inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     static_assert(std::is_pointer_v<T>);
     auto proxy = new NativeProxyFuncC(fp);
     PyObject* func = VAR(NativeFunc(_any_c_wrapper, proxy->N, false));
-    func->attr().set("__proxy__", VAR_T(VoidP, proxy));
+    _CAST(NativeFunc&, func).userdata._p = proxy;
     obj->attr().set(name, func);
 }
 
@@ -449,6 +452,21 @@ inline void add_module_c(VM* vm){
     C99Struct::register_class(vm, mod);
     C99ReflType::register_class(vm, mod);
     mod->attr().set("NULL", VAR_T(VoidP, nullptr));
+
+    add_refl_type("char", sizeof(char), {});
+    add_refl_type("uchar", sizeof(unsigned char), {});
+    add_refl_type("short", sizeof(short), {});
+    add_refl_type("ushort", sizeof(unsigned short), {});
+    add_refl_type("int", sizeof(int), {});
+    add_refl_type("uint", sizeof(unsigned int), {});
+    add_refl_type("long", sizeof(long), {});
+    add_refl_type("ulong", sizeof(unsigned long), {});
+    add_refl_type("longlong", sizeof(long long), {});
+    add_refl_type("ulonglong", sizeof(unsigned long long), {});
+    add_refl_type("float", sizeof(float), {});
+    add_refl_type("double", sizeof(double), {});
+    add_refl_type("bool", sizeof(bool), {});
+    add_refl_type("void_p", sizeof(void*), {});
 }
 
 }   // namespace pkpy

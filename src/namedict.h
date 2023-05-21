@@ -47,7 +47,7 @@ struct NameDictImpl {
         memset(_items, 0, cap * sizeof(Item));
     }
 
-    NameDictImpl(float load_factor=0.67):
+    NameDictImpl(float load_factor=0.67f):
         _load_factor(load_factor), _capacity(__Capacity), _size(0), 
         _hash_seed(kHashSeeds[0]), _mask(__Capacity-1) {
         _alloc(__Capacity);

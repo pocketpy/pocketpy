@@ -10,7 +10,7 @@ namespace pkpy{
 struct Dict{
     using Item = std::pair<PyObject*, PyObject*>;
     static constexpr int __Capacity = 8;
-    static constexpr float __LoadFactor = 0.67;
+    static constexpr float __LoadFactor = 0.67f;
     static_assert(sizeof(Item) * __Capacity <= 128);
 
     VM* vm;
