@@ -246,16 +246,13 @@ inline size_t memory_usage(){
     return pool64.allocated_size() + pool128.allocated_size();
 }
 
-#define SP_MALLOC(size) pool128.alloc(size)
-#define SP_FREE(p) pool128.dealloc(p)
-
 template <typename T>
 struct shared_ptr {
     int* counter;
 
     T* _t() const noexcept { return (T*)(counter + 1); }
     void _inc_counter() { if(counter) ++(*counter); }
-    void _dec_counter() { if(counter && --(*counter) == 0) {((T*)(counter + 1))->~T(); SP_FREE(counter);} }
+    void _dec_counter() { if(counter && --(*counter) == 0) {((T*)(counter + 1))->~T(); pool128.dealloc(counter);} }
 
 public:
     shared_ptr() : counter(nullptr) {}
@@ -307,7 +304,7 @@ public:
 
 template <typename T, typename... Args>
 shared_ptr<T> make_sp(Args&&... args) {
-    int* p = (int*)SP_MALLOC(sizeof(int) + sizeof(T));
+    int* p = (int*)pool128.alloc(sizeof(int) + sizeof(T));
     *p = 1;
     new(p+1) T(std::forward<Args>(args)...);
     return shared_ptr<T>(p);

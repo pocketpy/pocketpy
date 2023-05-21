@@ -115,15 +115,6 @@ struct Slice {
     Slice(PyObject* start, PyObject* stop, PyObject* step) : start(start), stop(stop), step(step) {}
 };
 
-class BaseIter {
-protected:
-    VM* vm;
-public:
-    BaseIter(VM* vm) : vm(vm) {}
-    virtual PyObject* next() = 0;
-    virtual ~BaseIter() = default;
-};
-
 struct GCHeader {
     bool enabled;   // whether this object is managed by GC
     bool marked;    // whether this object is marked

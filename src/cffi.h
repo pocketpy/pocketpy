@@ -296,7 +296,7 @@ struct C99ReflType final: ReflType{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
+        vm->bind_notimplemented_constructor<C99ReflType>(type);
 
         vm->bind_method<0>(type, "__call__", [](VM* vm, ArgsView args){
             C99ReflType& self = _CAST(C99ReflType&, args[0]);

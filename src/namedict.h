@@ -6,7 +6,7 @@
 
 namespace pkpy{
 
-const std::vector<uint16_t> kHashSeeds = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
+const uint16_t kHashSeeds[] = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
 
 #define _hash(key, mask, hash_seed) ( ( (key).index * (hash_seed) >> 8 ) & (mask) )
 
@@ -15,7 +15,8 @@ inline uint16_t find_perfect_hash_seed(uint16_t capacity, const std::vector<StrN
     static std::set<uint16_t> indices;
     indices.clear();
     std::pair<uint16_t, float> best_score = {kHashSeeds[0], 0.0f};
-    for(int i=0; i<kHashSeeds.size(); i++){
+    const int kHashSeedsSize = sizeof(kHashSeeds) / sizeof(kHashSeeds[0]);
+    for(int i=0; i<kHashSeedsSize; i++){
         indices.clear();
         for(auto key: keys){
             uint16_t index = _hash(key, capacity-1, kHashSeeds[i]);

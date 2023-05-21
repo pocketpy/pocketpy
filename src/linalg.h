@@ -204,24 +204,12 @@ struct Mat3x3{
     }
 
     /*************** affine transformations ***************/
-    static Mat3x3 translate(Vec2 v){
-        return Mat3x3(1.0f, 0.0f, v.x,
-                      0.0f, 1.0f, v.y,
-                      0.0f, 0.0f, 1.0f);
-    }
-
     static Mat3x3 rotate(float radian){
         float cr = cosf(radian);
         float sr = sinf(radian);
         return Mat3x3(cr,   -sr,  0.0f,
                       sr,   cr,   0.0f,
                       0.0f, 0.0f, 1.0f);
-    }
-
-    static Mat3x3 scale(Vec2 s){
-        return Mat3x3(s.x,  0.0f,   0.0f,
-                      0.0f, s.y,    0.0f,
-                      0.0f, 0.0f,   1.0f);
     }
 
     static Mat3x3 trs(Vec2 t, float radian, Vec2 s){

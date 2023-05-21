@@ -223,10 +223,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(r);
     });
 
-    _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) {
-        return vm->PyIter(RangeIter(vm, obj));
-    });
-
+    _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, OBJ_GET(Range, obj)); });
     _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("None"); });
     _vm->bind__json__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("null"); });
 
@@ -373,7 +370,7 @@ inline void init_builtins(VM* _vm) {
         return self.index(other) != -1;
     });
     _vm->bind__str__(_vm->tp_str, [](VM* vm, PyObject* obj) { return obj; });
-    _vm->bind__iter__(_vm->tp_str, [](VM* vm, PyObject* obj) { return vm->PyIter(StringIter(vm, obj)); });
+    _vm->bind__iter__(_vm->tp_str, [](VM* vm, PyObject* obj) { return VAR_T(StringIter, obj); });
     _vm->bind__repr__(_vm->tp_str, [](VM* vm, PyObject* obj) {
         const Str& self = _CAST(Str&, obj);
         return VAR(self.escape(true));
@@ -551,7 +548,8 @@ inline void init_builtins(VM* _vm) {
         return (i64)_CAST(List&, obj).size();
     });
     _vm->bind__iter__(_vm->tp_list, [](VM* vm, PyObject* obj) {
-        return vm->PyIter(ArrayIter<List>(vm, obj));
+        List& self = _CAST(List&, obj);
+        return VAR_T(ArrayIter, obj, self.begin(), self.end());
     });
     _vm->bind__getitem__(_vm->tp_list, PyArrayGetItem<List>);
     _vm->bind__setitem__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* index, PyObject* value){
@@ -584,13 +582,13 @@ inline void init_builtins(VM* _vm) {
         return x;
     });
 
-    _vm->bind__iter__(_vm->tp_tuple, [](VM* vm, PyObject* self) {
-        return vm->PyIter(ArrayIter<Tuple>(vm, self));
+    _vm->bind__iter__(_vm->tp_tuple, [](VM* vm, PyObject* obj) {
+        Tuple& self = _CAST(Tuple&, obj);
+        return VAR_T(ArrayIter, obj, self.begin(), self.end());
     });
     _vm->bind__getitem__(_vm->tp_tuple, PyArrayGetItem<Tuple>);
-    _vm->bind__len__(_vm->tp_tuple, [](VM* vm, PyObject* self) {
-        const Tuple& tuple = _CAST(Tuple&, self);
-        return (i64)tuple.size();
+    _vm->bind__len__(_vm->tp_tuple, [](VM* vm, PyObject* obj) {
+        return (i64)_CAST(Tuple&, obj).size();
     });
 
     /************ bool ************/
@@ -1068,7 +1066,7 @@ struct ReMatch {
     ReMatch(i64 start, i64 end, std::cmatch m) : start(start), end(end), m(m) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<-1>(type, CPP_NOT_IMPLEMENTED());
+        vm->bind_notimplemented_constructor<ReMatch>(type);
         vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).start)));
         vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).end)));
 

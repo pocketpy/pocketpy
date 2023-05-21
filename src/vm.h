@@ -48,19 +48,6 @@ inline int set_read_file_cwd(ReadFileCwdFunc func) { _read_file_cwd = func; retu
     inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew(vm->ptype, std::move(value));}
 
 
-class Generator final: public BaseIter {
-    Frame frame;
-    int state;      // 0,1,2
-    List s_backup;
-public:
-    Generator(VM* vm, Frame&& frame, ArgsView buffer): BaseIter(vm), frame(std::move(frame)), state(0) {
-        for(PyObject* obj: buffer) s_backup.push_back(obj);
-    }
-
-    PyObject* next() override;
-    void _gc_mark() const;
-};
-
 struct PyTypeInfo{
     PyObject* obj;
     Type base;
@@ -144,7 +131,7 @@ public:
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
     Type tp_list, tp_tuple;
-    Type tp_function, tp_native_func, tp_iterator, tp_bound_method;
+    Type tp_function, tp_native_func, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
     Type tp_dict;
@@ -189,7 +176,6 @@ public:
     }
 
     PyObject* py_iter(PyObject* obj){
-        if(is_type(obj, tp_iterator)) return obj;
         const PyTypeInfo* ti = _inst_type_info(obj);
         if(ti->m__iter__) return ti->m__iter__(this, obj);
         PyObject* self;
@@ -477,9 +463,17 @@ public:
 
     template<typename T, typename __T>
     PyObject* bind_default_constructor(__T&& type) {
-        return bind_constructor<-1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
+        return bind_constructor<1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
             Type t = OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<T>(t, T());
+        });
+    }
+
+    template<typename T, typename __T>
+    PyObject* bind_notimplemented_constructor(__T&& type) {
+        return bind_constructor<-1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
+            vm->NotImplementedError();
+            return vm->None;
         });
     }
 
@@ -496,17 +490,9 @@ public:
         return index;
     }
 
-    template<typename P>
-    PyObject* PyIter(P&& value) {
-        static_assert(std::is_base_of_v<BaseIter, std::decay_t<P>>);
-        return heap.gcnew<P>(tp_iterator, std::forward<P>(value));
-    }
-
     PyObject* PyIterNext(PyObject* obj){
-        if(is_non_tagged_type(obj, tp_iterator)){
-            BaseIter* iter = static_cast<BaseIter*>(obj->value());
-            return iter->next();
-        }
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__next__) return ti->m__next__(this, obj);
         return call_method(obj, __next__);
     }
     
@@ -600,6 +586,7 @@ public:
     void _error(Exception);
     PyObject* _run_top_frame();
     void post_init();
+    PyObject* _py_generator(Frame&& frame, ArgsView buffer);
 };
 
 inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
@@ -1049,7 +1036,6 @@ inline void VM::init_builtin_types(){
     tp_module = _new_type_object("module");
     tp_function = _new_type_object("function");
     tp_native_func = _new_type_object("native_func");
-    tp_iterator = _new_type_object("iterator");
     tp_bound_method = _new_type_object("bound_method");
     tp_super = _new_type_object("super");
     tp_exception = _new_type_object("Exception");
@@ -1255,12 +1241,10 @@ inline PyObject* VM::_py_call(PyObject** p0, PyObject* callable, ArgsView args, 
     
     if(co->is_generator){
         s_data.reset(p0);
-        PyObject* ret = PyIter(Generator(
-            this,
+        return _py_generator(
             Frame(&s_data, nullptr, co, fn._module, callable),
             ArgsView(buffer, buffer + co_nlocals)
-        ));
-        return ret;
+        );
     }
 
     // copy buffer back to stack
