@@ -4,14 +4,16 @@ label: 'Execute Python code'
 order: 93
 ---
 
+### Simple execution
+
 Once you have a `VM` instance, you can execute python code by calling `exec` method.
 
-### `PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr)`
+#### `PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr)`
 
 + `source`, the python source code to be executed
 + `filename`, the filename of the source code. This is used for error reporting
 + `mode`, the compile mode. See below for details
-+ `module`, the module to be executed. If `nullptr`, the code will be executed in the `__main__` module
++ `module`, the module where the code will be executed. If `nullptr`, the code will be executed in the `__main__` module
 
 `exec` handles possible exceptions and returns a `PyObject*`.
 If the execution is not successful, e.g. a syntax error or a runtime exception,
@@ -22,8 +24,8 @@ the return value will be `nullptr`.
 The `mode` parameter controls how the source code is compiled. There are 4 possible values:
 + `EXEC_MODE`, this is the default mode. Just do normal execution.
 + `EVAL_MODE`, this mode is used for evaluating a single expression. The `source` should be a single expression. It cannot contain any statements.
-+ `REPL_MODE`, this mode is used for REPL. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` bytecode for global expressions.
-+ `JSON_MODE`, this mode is used for JSON parsing. It is similar to `EVAL_MODE`, but uses a lexing rule designed for JSON. For example, `true` will be parsed as `True`.
++ `REPL_MODE`, this mode is used for REPL. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
++ `JSON_MODE`, this mode is used for JSON parsing. It is similar to `EVAL_MODE`, but uses a lexing rule designed for JSON.
 
 
 ### Fine-grained execution
@@ -35,5 +37,6 @@ These two methods are provided for this purpose:
 + `PyObject* _exec(CodeObject_ co, PyObject* _module)`
 
 `compile` compiles the source code into a `CodeObject_` instance.
-`_exec` executes the `CodeObject_` instance.
-It does not handle exceptions, so you may need to use `try..catch` manually.
+`_exec` executes the `CodeObject_` instance. Leave `unknown_global_scope` to `false` if you are not sure.
+
+It does not handle exceptions, you need to use `try..catch` manually.

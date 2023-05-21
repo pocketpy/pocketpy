@@ -15,10 +15,6 @@ To compile it with your project, these flags must be set:
 + Exception must be enabled
 + RTTI is not required
 
-!!!
-For maximum performance, we recommend to use `clang++` with `-O2` flag.
-!!!
-
 ### Example
 
 ```cpp
@@ -48,9 +44,12 @@ int main(){
 pkpy's C++ interfaces are organized in an object-oriented way.
 All classes are located in `pkpy` namespace.
 
-The most important class is the `VM` class. A `VM` instance is a python virtual machine which holds all necessary runtime states, including callstacks, modules, variables, etc.
+The most important class is the `VM` class. A `VM` instance is a python virtual machine which holds all necessary runtime states, including callstack, modules, variables, etc.
+
+A process can have multiple `VM` instances. Each `VM` instance is independent from each other.
 
 You need to use the C++ `new` operator to create a `VM` instance.
+Do not declare it on the stack.
 
 ```cpp
 VM* vm = new VM();
@@ -60,9 +59,9 @@ The constructor can take 1 extra parameters.
 
 #### `VM(bool enable_os=true)`
 
-+ `enable_os`, whether to enable OS-related features or not. This setting controls the availability of some priviledged modules such os `io` and `os` as well as builtin function `open`.
++ `enable_os`, whether to enable OS-related features or not. This setting controls the availability of priviledged modules such os `io` and `os` as well as builtin function `open`.
 
-When you are done with the `VM` instance, you need to use the C++ `delete` operator to free the memory.
+When you are done with the `VM` instance, use `delete` operator to dispose it.
 
 ```cpp
 delete vm;
