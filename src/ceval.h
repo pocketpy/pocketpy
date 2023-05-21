@@ -337,7 +337,7 @@ __NEXT_STEP:;
     TARGET(COMPARE_NE)
         _1 = POPX();
         _0 = TOP();
-        TOP() = VAR(py_not_equals(_0, _1));
+        TOP() = VAR(!py_equals(_0, _1));
         DISPATCH()
     TARGET(COMPARE_GT)
         BINARY_OP_SPECIAL(__gt__);

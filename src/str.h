@@ -389,7 +389,6 @@ const StrName __neg__ = StrName::get("__neg__");        // unused
 const StrName __bool__ = StrName::get("__bool__");      // unused
 // logical operators
 const StrName __eq__ = StrName::get("__eq__");
-const StrName __ne__ = StrName::get("__ne__");
 const StrName __lt__ = StrName::get("__lt__");
 const StrName __le__ = StrName::get("__le__");
 const StrName __gt__ = StrName::get("__gt__");

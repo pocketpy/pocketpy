@@ -74,9 +74,6 @@ class set:
     def __eq__(self, other):
         return self.__xor__(other).__len__() == 0
 
-    def __ne__(self, other):
-        return self.__xor__(other).__len__() != 0
-    
     def isdisjoint(self, other):
         return self.__and__(other).__len__() == 0
     

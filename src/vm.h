@@ -67,7 +67,6 @@ struct PyTypeInfo{
     PyObject* (*m__bool__)(VM* vm, PyObject*) = nullptr;
 
     bool (*m__eq__)(VM* vm, PyObject*, PyObject*) = nullptr;
-    bool (*m__ne__)(VM* vm, PyObject*, PyObject*) = nullptr;
     bool (*m__lt__)(VM* vm, PyObject*, PyObject*) = nullptr;
     bool (*m__le__)(VM* vm, PyObject*, PyObject*) = nullptr;
     bool (*m__gt__)(VM* vm, PyObject*, PyObject*) = nullptr;
@@ -325,6 +324,10 @@ public:
         return &_all_types[OBJ_GET(Type, obj)];
     }
 
+    PyTypeInfo* _type_info(Type type){
+        return &_all_types[type];
+    }
+
     const PyTypeInfo* _inst_type_info(PyObject* obj){
         if(is_int(obj)) return &_all_types[tp_int];
         if(is_float(obj)) return &_all_types[tp_float];
@@ -365,7 +368,6 @@ public:
     }
 
     BIND_LOGICAL_SPECIAL(__eq__)
-    BIND_LOGICAL_SPECIAL(__ne__)
     BIND_LOGICAL_SPECIAL(__lt__)
     BIND_LOGICAL_SPECIAL(__le__)
     BIND_LOGICAL_SPECIAL(__gt__)
@@ -436,13 +438,6 @@ public:
         const PyTypeInfo* ti = _inst_type_info(lhs);
         if(ti->m__eq__) return ti->m__eq__(this, lhs, rhs);
         return call_method(lhs, __eq__, rhs) == True;
-    }
-
-    bool py_not_equals(PyObject* lhs, PyObject* rhs){
-        if(lhs == rhs) return false;
-        const PyTypeInfo* ti = _inst_type_info(lhs);
-        if(ti->m__ne__) return ti->m__ne__(this, lhs, rhs);
-        return call_method(lhs, __ne__, rhs) == True;
     }
 
     template<int ARGC>

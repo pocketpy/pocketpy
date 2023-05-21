@@ -72,10 +72,6 @@ class deque:
                 return False
             t1, t2 = t1.next, t2.next
         return True
-    
-    def __ne__(self, __o: object) -> bool:
-        return not self == __o
-
 
 def Counter(iterable):
     a = {}

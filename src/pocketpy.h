@@ -70,7 +70,6 @@ inline void init_builtins(VM* _vm) {
     BIND_NUM_LOGICAL_OPT(__gt__, >, false)
     BIND_NUM_LOGICAL_OPT(__ge__, >=, false)
     BIND_NUM_LOGICAL_OPT(__eq__, ==, true)
-    BIND_NUM_LOGICAL_OPT(__ne__, !=, true)
 
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
@@ -206,7 +205,6 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs == rhs; });
-    _vm->bind__ne__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs != rhs; });
     _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return BITS(obj); });
 
     _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
@@ -390,10 +388,6 @@ inline void init_builtins(VM* _vm) {
         if(!is_non_tagged_type(rhs, vm->tp_str)) return false;
         return _CAST(Str&, lhs) == _CAST(Str&, rhs);
     });
-    _vm->bind__ne__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        if(!is_non_tagged_type(rhs, vm->tp_str)) return true;
-        return _CAST(Str&, lhs) != _CAST(Str&, rhs);
-    });
     _vm->bind__gt__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         return _CAST(Str&, lhs) > CAST(Str&, rhs);
     });
@@ -506,13 +500,9 @@ inline void init_builtins(VM* _vm) {
         List& b = _CAST(List&, rhs);
         if(a.size() != b.size()) return false;
         for(int i=0; i<a.size(); i++){
-            if(vm->py_not_equals(a[i], b[i])) return false;
+            if(!vm->py_equals(a[i], b[i])) return false;
         }
         return true;
-    });
-
-    _vm->bind__ne__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        return !vm->py_equals(lhs, rhs);
     });
 
     _vm->bind_method<1>("list", "index", [](VM* vm, ArgsView args) {
@@ -663,13 +653,9 @@ inline void init_builtins(VM* _vm) {
         const Tuple& other = CAST(Tuple&, rhs);
         if(self.size() != other.size()) return false;
         for(int i = 0; i < self.size(); i++) {
-            if(vm->py_not_equals(self[i], other[i])) return false;
+            if(!vm->py_equals(self[i], other[i])) return false;
         }
         return true;
-    });
-
-    _vm->bind__ne__(_vm->tp_tuple, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        return !vm->py_equals(lhs, rhs);
     });
 
     _vm->bind__hash__(_vm->tp_tuple, [](VM* vm, PyObject* obj) {
@@ -717,9 +703,6 @@ inline void init_builtins(VM* _vm) {
     });
     _vm->bind__eq__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         return _CAST(bool, lhs) == CAST(bool, rhs);
-    });
-    _vm->bind__ne__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        return _CAST(bool, lhs) != CAST(bool, rhs);
     });
     _vm->bind__repr__(_vm->_type("ellipsis"), [](VM* vm, PyObject* self) {
         return VAR("Ellipsis");
@@ -787,10 +770,6 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__eq__(_vm->tp_bytes, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         return _CAST(Bytes&, lhs) == _CAST(Bytes&, rhs);
     });
-    _vm->bind__ne__(_vm->tp_bytes, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        return _CAST(Bytes&, lhs) != _CAST(Bytes&, rhs);
-    });
-
     /************ slice ************/
     _vm->bind_constructor<4>("slice", [](VM* vm, ArgsView args) {
         return VAR(Slice(args[1], args[2], args[3]));
@@ -1014,10 +993,6 @@ inline void init_builtins(VM* _vm) {
             if(!vm->py_equals(item.second, value)) return false;
         }
         return true;
-    });
-
-    _vm->bind__ne__(_vm->tp_dict, [](VM* vm, PyObject* a, PyObject* b) {
-        return !vm->py_equals(a, b);
     });
 
     RangeIter::register_class(_vm, _vm->builtins);
@@ -1338,11 +1313,6 @@ inline void VM::post_init(){
         if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return false;
         return _CAST(BoundMethod&, lhs) == _CAST(BoundMethod&, rhs);
     });
-    bind__ne__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
-        if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return true;
-        return _CAST(BoundMethod&, lhs) != _CAST(BoundMethod&, rhs);
-    });
-
     _t(tp_slice)->attr().set("start", property([](VM* vm, ArgsView args){
         return CAST(Slice&, args[0]).start;
     }));

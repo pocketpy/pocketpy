@@ -62,10 +62,6 @@ struct VoidP{
             if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return false;
             return _CAST(VoidP&, lhs) == _CAST(VoidP&, rhs);
         });
-        vm->bind__ne__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return true;
-            return _CAST(VoidP&, lhs) != _CAST(VoidP&, rhs);
-        });
         vm->bind__gt__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             return _CAST(VoidP&, lhs).ptr > CAST(VoidP&, rhs).ptr;
         });
@@ -227,13 +223,6 @@ struct C99Struct{
             if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return false;
             C99Struct& other = _CAST(C99Struct&, rhs);
             return self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
-        });
-
-        vm->bind__ne__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            C99Struct& self = _CAST(C99Struct&, lhs);
-            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return true;
-            C99Struct& other = _CAST(C99Struct&, rhs);
-            return self.size != other.size || memcmp(self.p, other.p, self.size) != 0;
         });
 
         // patch VoidP

@@ -10,5 +10,5 @@ These are the undefined behaviours of pkpy. The behaviour of pkpy is undefined i
 3. Use goto statement to jump out of a context block.
 4. Type `T`'s `__new__` returns an object that is not an instance of `T`.
 5. Call `__new__` with a type that is not a subclass of `type`.
-6. `__eq__`, `__ne__` or `__contains__`, etc.. returns a value that is not a boolean.
+6. `__eq__`, `__lt__` or `__contains__`, etc.. returns a value that is not a boolean.
 7. Division by zero.
