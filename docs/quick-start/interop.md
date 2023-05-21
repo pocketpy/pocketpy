@@ -98,6 +98,17 @@ you can use the following functions:
 + `bool is_tagged(PyObject* obj)`
 + `bool is_non_tagged_type(PyObject* obj, Type type)`
 
+```cpp
+PyObject* obj = VAR(1);
+
+bool ok = is_type(obj, vm->tp_int);		// true
+ok = is_int(obj);						// true
+ok = is_tagged(obj);					// true
+
+ok = is_type(obj, vm->tp_float);		// false
+ok = is_float(obj);						// false
+```
+
 Simply put, `is_type` is the most general function and can check any types.
 Other variants are designed for specific types and are faster.
 
