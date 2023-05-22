@@ -1,7 +1,6 @@
 ---
 icon: package
 label: linalg
-order: -6
 ---
 
 Provide `mat3x3`, `vec2` and `vec3` types.

@@ -1,7 +1,6 @@
 ---
 icon: package
 label: easing
-order: -6
 ---
 
 Python wrapper for [easing functions](https://easings.net/).
