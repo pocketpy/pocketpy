@@ -7,8 +7,6 @@ pkpy supports `goto` and `label` just like C. You are allowed to change the cont
 
 ## Syntax
 
-Labels are named a dot `.` and an identifier.
-
 ```
 $goto <identifier>
 $label <identifier>
