@@ -42,6 +42,7 @@
 #define DEBUG_NO_AUTO_GC			0
 #define DEBUG_GC_STATS				0
 
+// config macros
 #ifndef PK_ENABLE_OS
 
 #ifdef __ANDROID__
@@ -58,6 +59,14 @@
 #endif
 
 #endif
+
+#if PK_ENABLE_THREAD
+#define THREAD_LOCAL thread_local
+#else
+#define THREAD_LOCAL
+#endif
+
+/*******************************************************************************/
 
 // This is the maximum number of arguments in a function declaration
 // including positional arguments, keyword-only arguments, and varargs
@@ -128,7 +137,6 @@ struct Type {
 	operator int() const noexcept { return this->index; }
 };
 
-#define THREAD_LOCAL	// thread_local
 #define CPP_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
 
 #ifdef POCKETPY_H

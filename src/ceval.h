@@ -490,7 +490,18 @@ __NEXT_STEP:;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
                 Bytes b = _read_file_cwd(fmt(name, ".py"));
-                if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
+                if(!b) {
+                    for(Str path: _path){
+#ifdef _WIN32
+                        const char* sep = "\\";
+#else
+                        const char* sep = "/";
+#endif
+                        b = _read_file_cwd(fmt(path, sep, name, ".py"));
+                        if(b) break;
+                    }
+                    if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
+                }
                 source = Str(b.str());
             }else{
                 source = it->second;

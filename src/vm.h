@@ -113,8 +113,9 @@ public:
     std::vector<PyTypeInfo> _all_types;
     void (*_gc_marker_ex)(VM*) = nullptr;
 
-    NameDict _modules;                                  // loaded modules
-    std::map<StrName, Str> _lazy_modules;               // lazy loaded modules
+    NameDict _modules;                                 // loaded modules
+    std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
+    std::vector<Str> _path;                            // search path
 
     PyObject* None;
     PyObject* True;
