@@ -379,7 +379,7 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
 };
 
 inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
-    NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args);
+    NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args.begin());
     return (*pf)(vm, args);
 }
 

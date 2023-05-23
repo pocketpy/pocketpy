@@ -398,9 +398,9 @@ struct Py_<DummyModule> final: PyObject {
 };
 
 template<typename T>
-inline T lambda_get_userdata(ArgsView args){
-    if(args[-1] != PY_NULL) return OBJ_GET(NativeFunc, args[-1]).get_userdata<T>();
-    else return OBJ_GET(NativeFunc, args[-2]).get_userdata<T>();
+inline T lambda_get_userdata(PyObject** p){
+    if(p[-1] != PY_NULL) return OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
+    else return OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
 }
 
 

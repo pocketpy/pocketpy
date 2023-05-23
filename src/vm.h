@@ -338,7 +338,7 @@ public:
     void bind##name(Type type, PyObject* (*f)(VM*, PyObject*)){                         \
         _all_types[type].m##name = f;                                                   \
         PyObject* nf = bind_method<0>(_t(type), #name, [](VM* vm, ArgsView args){       \
-            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args)(vm, args[0]);\
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);\
         });                                                                             \
         OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
@@ -361,7 +361,7 @@ public:
         PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
         PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
-            bool ok = lambda_get_userdata<bool(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
+            bool ok = lambda_get_userdata<bool(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]); \
             return ok ? vm->True : vm->False;                                           \
         });                                                                             \
         OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
@@ -382,7 +382,7 @@ public:
         PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
         PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
-            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]); \
         });                                                                             \
         OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
@@ -408,7 +408,7 @@ public:
         PyObject* obj = _t(type);
         _all_types[type].m__getitem__ = f;
         PyObject* nf = bind_method<1>(obj, "__getitem__", [](VM* vm, ArgsView args){
-            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
         });
         OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
@@ -417,7 +417,7 @@ public:
         PyObject* obj = _t(type);
         _all_types[type].m__setitem__ = f;
         PyObject* nf = bind_method<2>(obj, "__setitem__", [](VM* vm, ArgsView args){
-            lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args)(vm, args[0], args[1], args[2]);
+            lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1], args[2]);
             return vm->None;
         });
         OBJ_GET(NativeFunc, nf).set_userdata(f);
@@ -427,7 +427,7 @@ public:
         PyObject* obj = _t(type);
         _all_types[type].m__delitem__ = f;
         PyObject* nf = bind_method<1>(obj, "__delitem__", [](VM* vm, ArgsView args){
-            lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
+            lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
             return vm->None;
         });
         OBJ_GET(NativeFunc, nf).set_userdata(f);
@@ -1406,7 +1406,7 @@ inline void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__hash__ = f;
     PyObject* nf = bind_method<0>(obj, "__hash__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
+        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
     OBJ_GET(NativeFunc, nf).set_userdata(f);
@@ -1416,7 +1416,7 @@ inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__len__ = f;
     PyObject* nf = bind_method<0>(obj, "__len__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
+        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
     OBJ_GET(NativeFunc, nf).set_userdata(f);
