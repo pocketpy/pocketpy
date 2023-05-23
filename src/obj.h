@@ -41,6 +41,9 @@ struct NativeFunc {
     T get_userdata() const {
         static_assert(std::is_trivially_copyable_v<T>);
         static_assert(sizeof(T) <= sizeof(UserData));
+#if DEBUG_EXTRA_CHECK
+        if(!_has_userdata) throw std::runtime_error("userdata not set");
+#endif
         return reinterpret_cast<const T&>(_userdata);
     }
     
