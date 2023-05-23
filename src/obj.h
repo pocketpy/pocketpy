@@ -26,11 +26,14 @@ struct NativeFunc {
 
     using UserData = char[32];
     UserData _userdata;
+    bool _has_userdata;
 
     template <typename T>
     void set_userdata(T data) {
         static_assert(std::is_trivially_copyable_v<T>);
         static_assert(sizeof(T) <= sizeof(UserData));
+        if(_has_userdata) throw std::runtime_error("userdata already set");
+        _has_userdata = true;
         memcpy(_userdata, &data, sizeof(T));
     }
 
@@ -41,7 +44,7 @@ struct NativeFunc {
         return reinterpret_cast<const T&>(_userdata);
     }
     
-    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method), _lua_f(nullptr) {}
+    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method), _has_userdata(false) {}
     PyObject* operator()(VM* vm, ArgsView args) const;
 };
 
