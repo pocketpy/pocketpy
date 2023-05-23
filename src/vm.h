@@ -338,9 +338,9 @@ public:
     void bind##name(Type type, PyObject* (*f)(VM*, PyObject*)){                         \
         _all_types[type].m##name = f;                                                   \
         PyObject* nf = bind_method<0>(_t(type), #name, [](VM* vm, ArgsView args){       \
-            return lambda_get_fp<PyObject*(*)(VM*, PyObject*)>(args)(vm, args[0]);      \
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args)(vm, args[0]);\
         });                                                                             \
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);          \
+        OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
     BIND_UNARY_SPECIAL(__repr__)
@@ -361,10 +361,10 @@ public:
         PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
         PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
-            bool ok = lambda_get_fp<bool(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
+            bool ok = lambda_get_userdata<bool(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
             return ok ? vm->True : vm->False;                                           \
         });                                                                             \
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);          \
+        OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
     BIND_LOGICAL_SPECIAL(__eq__)
@@ -381,10 +381,10 @@ public:
     void bind##name(Type type, PyObject* (*f)(VM*, PyObject*, PyObject*)){              \
         PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
-        PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){                           \
-            return lambda_get_fp<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
+        PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]); \
         });                                                                             \
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);          \
+        OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
     BIND_BINARY_SPECIAL(__add__)
@@ -408,29 +408,29 @@ public:
         PyObject* obj = _t(type);
         _all_types[type].m__getitem__ = f;
         PyObject* nf = bind_method<1>(obj, "__getitem__", [](VM* vm, ArgsView args){
-            return lambda_get_fp<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
         });
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);
+        OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     void bind__setitem__(Type type, void (*f)(VM*, PyObject*, PyObject*, PyObject*)){
         PyObject* obj = _t(type);
         _all_types[type].m__setitem__ = f;
         PyObject* nf = bind_method<2>(obj, "__setitem__", [](VM* vm, ArgsView args){
-            lambda_get_fp<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args)(vm, args[0], args[1], args[2]);
+            lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args)(vm, args[0], args[1], args[2]);
             return vm->None;
         });
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);
+        OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     void bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
         PyObject* obj = _t(type);
         _all_types[type].m__delitem__ = f;
         PyObject* nf = bind_method<1>(obj, "__delitem__", [](VM* vm, ArgsView args){
-            lambda_get_fp<void(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
+            lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args)(vm, args[0], args[1]);
             return vm->None;
         });
-        OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)()>(f);
+        OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     bool py_equals(PyObject* lhs, PyObject* rhs){
@@ -1406,20 +1406,20 @@ inline void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__hash__ = f;
     PyObject* nf = bind_method<0>(obj, "__hash__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_fp<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
+        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
         return VAR(ret);
     });
-    OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)(void)>(f);
+    OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
 inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__len__ = f;
     PyObject* nf = bind_method<0>(obj, "__len__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_fp<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
+        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args)(vm, args[0]);
         return VAR(ret);
     });
-    OBJ_GET(NativeFunc, nf).userdata._fp = reinterpret_cast<void(*)(void)>(f);
+    OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
 

@@ -379,7 +379,7 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
 };
 
 inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
-    NativeProxyFuncCBase* pf = static_cast<NativeProxyFuncCBase*>(lambda_get_userdata(args)._p);
+    NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args);
     return (*pf)(vm, args);
 }
 
@@ -389,7 +389,7 @@ inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     static_assert(std::is_pointer_v<T>);
     auto proxy = new NativeProxyFuncC(fp);
     PyObject* func = VAR(NativeFunc(_any_c_wrapper, proxy->N, false));
-    _CAST(NativeFunc&, func).userdata._p = proxy;
+    _CAST(NativeFunc&, func).set_userdata(proxy);
     obj->attr().set(name, func);
 }
 
