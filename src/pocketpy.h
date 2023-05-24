@@ -12,6 +12,7 @@
 #include "requests.h"
 #include "io.h"
 #include "_generated.h"
+#include "export.h"
 #include "vm.h"
 
 namespace pkpy {
@@ -1000,19 +1001,6 @@ inline void init_builtins(VM* _vm) {
     StringIter::register_class(_vm, _vm->builtins);
     Generator::register_class(_vm, _vm->builtins);
 }
-
-#ifdef _WIN32
-#define PK_EXPORT __declspec(dllexport)
-#elif __APPLE__
-#define PK_EXPORT __attribute__((visibility("default"))) __attribute__((used))
-#elif __EMSCRIPTEN__
-#include <emscripten.h>
-#define PK_EXPORT EMSCRIPTEN_KEEPALIVE
-#else
-#define PK_EXPORT
-#endif
-
-#define PK_LEGACY_EXPORT PK_EXPORT inline
 
 inline void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");

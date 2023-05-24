@@ -100,10 +100,12 @@ void gc_marker_ex(CVM* vm) {
     for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
 }
 
+static OutputHandler stdout_handler = nullptr;
+static OutputHandler stderr_handler = nullptr;
 
-static void noop_output_handler(VM* vm, const Str& str) {
-    (void) vm;
-    (void) str;
+void pkpy_set_output_handlers(pkpy_vm*, OutputHandler stdout_handler, OutputHandler stderr_handler){
+    ::stdout_handler = stdout_handler;
+    ::stderr_handler = stderr_handler;
 }
 
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
@@ -113,8 +115,14 @@ pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
     vm->_gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
 
     if (!use_stdio) {
-        vm->_stdout = noop_output_handler;
-        vm->_stderr = noop_output_handler;
+        vm->_stdout = [](VM* vm, const Str& s){
+            std::string str = s.str();
+            if (stdout_handler != nullptr) stdout_handler((pkpy_vm*)vm, str.c_str());
+        };
+        vm->_stderr = [](VM* vm, const Str& s){
+            std::string str = s.str();
+            if (stderr_handler != nullptr) stderr_handler((pkpy_vm*)vm, str.c_str());
+        };
     }
 
     return (pkpy_vm*) vm;

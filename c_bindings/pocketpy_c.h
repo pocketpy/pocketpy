@@ -1,14 +1,13 @@
 #ifndef POCKETPY_C_H 
 #define POCKETPY_C_H
 
-#include "pocketpy.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "export.h"
 
 typedef struct pkpy_vm_handle pkpy_vm;
 
