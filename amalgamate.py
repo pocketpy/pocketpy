@@ -66,10 +66,16 @@ if sys.platform == 'linux':
 
 print("amalgamated/pocketpy.h")
 
+content = []
+for i in ["src/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"]:
+	with open(i, "rt", encoding='utf-8') as g:
+		content.append(g.read())
+
 with open("amalgamated/pocketpy.cpp", "wt", encoding='utf-8') as f:
-	for i in ["src/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"]:
-		with open(i, "rt", encoding='utf-8') as g:
-			f.write(g.read() + '\n\n')
+	content = '\n\n'.join(content)
+	content.replace('#include "export.h"', '')
+	f.write(content)
+
 
 shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
 shutil.copy("amalgamated/pocketpy.cpp", "plugins/flutter/src/pocketpy.cpp")
