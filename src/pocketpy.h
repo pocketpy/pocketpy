@@ -226,12 +226,12 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__json__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("null"); });
 
     _vm->bind__truediv__(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        f64 value = VAR_F(rhs);
+        f64 value = CAST_F(rhs);
         return VAR(_CAST(f64, lhs) / value);
     });
 
     _vm->bind__truediv__(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {
-        f64 value = VAR_F(rhs);
+        f64 value = CAST_F(rhs);
         return VAR(_CAST(i64, lhs) / value);
     });
 
@@ -250,7 +250,7 @@ inline void init_builtins(VM* _vm) {
             if(flag) return VAR((f64)(1.0 / ret));
             return VAR(ret);
         }else{
-            return VAR((f64)std::pow(VAR_F(lhs_), VAR_F(rhs_)));
+            return VAR((f64)std::pow(CAST_F(lhs_), CAST_F(rhs_)));
         }
     };
 
@@ -1022,7 +1022,7 @@ inline void add_module_time(VM* vm){
     });
 
     vm->bind_func<1>(mod, "sleep", [](VM* vm, ArgsView args) {
-        f64 seconds = VAR_F(args[0]);
+        f64 seconds = CAST_F(args[0]);
         auto begin = std::chrono::high_resolution_clock::now();
         while(true){
             auto now = std::chrono::high_resolution_clock::now();
@@ -1075,15 +1075,15 @@ inline void add_module_math(VM* vm){
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
     mod->attr().set("nan", VAR(std::numeric_limits<double>::quiet_NaN()));
 
-    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(VAR(std::fabs(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(VAR_F(args[0])))));
+    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(VAR(std::fabs(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(CAST_F(args[0])))));
     vm->bind_func<1>(mod, "fsum", [](VM* vm, ArgsView args) {
         List& list = CAST(List&, args[0]);
         double sum = 0;
         double c = 0;
         for(PyObject* arg : list){
-            double x = VAR_F(arg);
+            double x = CAST_F(arg);
             double y = x - c;
             double t = sum + y;
             c = (t - sum) - y;
@@ -1104,29 +1104,29 @@ inline void add_module_math(VM* vm){
         return VAR(a);
     });
 
-    vm->bind_func<1>(mod, "isfinite", CPP_LAMBDA(VAR(std::isfinite(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(VAR(std::isinf(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(VAR(std::isnan(VAR_F(args[0])))));
+    vm->bind_func<1>(mod, "isfinite", CPP_LAMBDA(VAR(std::isfinite(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(VAR(std::isinf(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(VAR(std::isnan(CAST_F(args[0])))));
 
-    vm->bind_func<1>(mod, "exp", CPP_LAMBDA(VAR(std::exp(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "log", CPP_LAMBDA(VAR(std::log(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(VAR(std::log2(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(VAR(std::log10(VAR_F(args[0])))));
+    vm->bind_func<1>(mod, "exp", CPP_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log", CPP_LAMBDA(VAR(std::log(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
 
-    vm->bind_func<2>(mod, "pow", CPP_LAMBDA(VAR(std::pow(VAR_F(args[0]), VAR_F(args[1])))));
-    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(VAR_F(args[0])))));
+    vm->bind_func<2>(mod, "pow", CPP_LAMBDA(VAR(std::pow(CAST_F(args[0]), CAST_F(args[1])))));
+    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(CAST_F(args[0])))));
 
-    vm->bind_func<1>(mod, "acos", CPP_LAMBDA(VAR(std::acos(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "asin", CPP_LAMBDA(VAR(std::asin(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "atan", CPP_LAMBDA(VAR(std::atan(VAR_F(args[0])))));
-    vm->bind_func<2>(mod, "atan2", CPP_LAMBDA(VAR(std::atan2(VAR_F(args[0]), VAR_F(args[1])))));
+    vm->bind_func<1>(mod, "acos", CPP_LAMBDA(VAR(std::acos(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "asin", CPP_LAMBDA(VAR(std::asin(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "atan", CPP_LAMBDA(VAR(std::atan(CAST_F(args[0])))));
+    vm->bind_func<2>(mod, "atan2", CPP_LAMBDA(VAR(std::atan2(CAST_F(args[0]), CAST_F(args[1])))));
 
-    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(VAR(std::cos(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(VAR(std::sin(VAR_F(args[0])))));
-    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(VAR(std::tan(VAR_F(args[0])))));
+    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
     
-    vm->bind_func<1>(mod, "degrees", CPP_LAMBDA(VAR(VAR_F(args[0]) * 180 / 3.1415926535897932384)));
-    vm->bind_func<1>(mod, "radians", CPP_LAMBDA(VAR(VAR_F(args[0]) * 3.1415926535897932384 / 180)));
+    vm->bind_func<1>(mod, "degrees", CPP_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
+    vm->bind_func<1>(mod, "radians", CPP_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
 }
 
 inline void add_module_dis(VM* vm){

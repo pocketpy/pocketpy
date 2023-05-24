@@ -279,7 +279,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
 #define CAST(T, x) py_cast<T>(vm, x)
 #define _CAST(T, x) _py_cast<T>(vm, x)
 
-#define VAR_F(x) vm->num_to_float(x)
+#define CAST_F(x) vm->num_to_float(x)
 
 /*****************************************************************/
 template<>

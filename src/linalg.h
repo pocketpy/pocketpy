@@ -322,8 +322,8 @@ struct PyVec2: Vec2 {
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            float x = VAR_F(args[1]);
-            float y = VAR_F(args[2]);
+            float x = CAST_F(args[1]);
+            float y = CAST_F(args[2]);
             return VAR(Vec2(x, y));
         });
 
@@ -375,9 +375,9 @@ struct PyVec3: Vec3 {
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<4>(type, [](VM* vm, ArgsView args){
-            float x = VAR_F(args[1]);
-            float y = VAR_F(args[2]);
-            float z = VAR_F(args[3]);
+            float x = CAST_F(args[1]);
+            float y = CAST_F(args[2]);
+            float z = CAST_F(args[3]);
             return VAR(Vec3(x, y, z));
         });
 
@@ -421,7 +421,7 @@ struct PyMat3x3: Mat3x3{
             if(args.size() == 1+0) return VAR_T(PyMat3x3, Mat3x3::zeros());
             if(args.size() == 1+9){
                 Mat3x3 mat;
-                for(int i=0; i<9; i++) mat.v[i] = VAR_F(args[1+i]);
+                for(int i=0; i<9; i++) mat.v[i] = CAST_F(args[1+i]);
                 return VAR_T(PyMat3x3, mat);
             }
             if(args.size() == 1+1){
@@ -432,7 +432,7 @@ struct PyMat3x3: Mat3x3{
                     List& b = CAST(List&, a[i]);
                     if(b.size() != 3) vm->ValueError("Mat3x3.__new__ takes 3x3 list");
                     for(int j=0; j<3; j++){
-                        mat.m[i][j] = VAR_F(b[j]);
+                        mat.m[i][j] = CAST_F(b[j]);
                     }
                 }
                 return VAR_T(PyMat3x3, mat);
@@ -498,7 +498,7 @@ struct PyMat3x3: Mat3x3{
                 vm->IndexError("index out of range");
                 return vm->None;
             }
-            self.m[i][j] = VAR_F(args[2]);
+            self.m[i][j] = CAST_F(args[2]);
             return vm->None;
         });
 
@@ -538,13 +538,13 @@ struct PyMat3x3: Mat3x3{
 
         vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            f64 other = VAR_F(args[1]);
+            f64 other = CAST_F(args[1]);
             return VAR_T(PyMat3x3, self * other);
         });
 
         vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            f64 other = VAR_F(args[1]);
+            f64 other = CAST_F(args[1]);
             return VAR_T(PyMat3x3, self / other);
         });
 
@@ -604,7 +604,7 @@ struct PyMat3x3: Mat3x3{
         /*************** affine transformations ***************/
         vm->bind_func<3>(type, "trs", [](VM* vm, ArgsView args){
             PyVec2& t = CAST(PyVec2&, args[0]);
-            f64 r = VAR_F(args[1]);
+            f64 r = CAST_F(args[1]);
             PyVec2& s = CAST(PyVec2&, args[2]);
             return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
         });
