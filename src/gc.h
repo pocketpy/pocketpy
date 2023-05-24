@@ -101,8 +101,8 @@ struct ManagedHeap{
     void mark();
 
     ~ManagedHeap(){
-        for(PyObject* obj: _no_gc) obj->~PyObject(), pool64.dealloc(obj);
-        for(PyObject* obj: gen) obj->~PyObject(), pool64.dealloc(obj);
+        for(PyObject* obj: _no_gc) { obj->~PyObject(); pool64.dealloc(obj); }
+        for(PyObject* obj: gen) { obj->~PyObject(); pool64.dealloc(obj); }
 #if DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
             std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
