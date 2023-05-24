@@ -1397,4 +1397,9 @@ extern "C" {
         _pk_deleter_map[p] = [](void* p){ delete (pkpy::VM*)p; };
         return p;
     }
+
+    PK_LEGACY_EXPORT
+    void pkpy_vm_gc_on_delete(pkpy::VM* vm, void (*f)(pkpy::VM *, pkpy::PyObject *)){
+        vm->heap._gc_on_delete = f;
+    }
 }

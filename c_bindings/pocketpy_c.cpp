@@ -112,7 +112,7 @@ pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
 
     CVM* vm = new CVM(enable_os);
     vm->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
-    vm->_gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
+    vm->heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
 
     if (!use_stdio) {
         vm->_stdout = [](VM* vm, const Str& s){

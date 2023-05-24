@@ -11,6 +11,9 @@ struct ManagedHeap{
     std::vector<PyObject*> _no_gc;
     std::vector<PyObject*> gen;
     VM* vm;
+    void (*_gc_on_delete)(VM*, PyObject*) = nullptr;
+    void (*_gc_marker_ex)(VM*) = nullptr;
+
     ManagedHeap(VM* vm): vm(vm) {}
     
     static const int kMinGCThreshold = 3072;
@@ -66,6 +69,7 @@ struct ManagedHeap{
 #if DEBUG_GC_STATS
                 deleted[obj->type] += 1;
 #endif
+                if(_gc_on_delete) _gc_on_delete(vm, obj);
                 obj->~PyObject();
                 pool64.dealloc(obj);
             }
