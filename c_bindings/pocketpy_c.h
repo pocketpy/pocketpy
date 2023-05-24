@@ -107,6 +107,9 @@ bool pkpy_check_stack(pkpy_vm*, int free);
 //returns the number of elements on the stack
 int pkpy_stack_size(pkpy_vm*);
 
+typedef void (*OutputHandler)(pkpy_vm*, const char*);
+void pkpy_set_output_handlers(pkpy_vm*, OutputHandler stdout_handler, OutputHandler stderr_handler);
+
 
 #ifdef __cplusplus
 }
