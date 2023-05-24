@@ -74,6 +74,13 @@ shutil.copy("c_bindings/pocketpy_c.cpp", "plugins/flutter/src/pocketpy.cpp")
 shutil.copy("c_bindings/pocketpy_c.h", "plugins/macos/pocketpy/pocketpy_c.h")
 shutil.copy("c_bindings/pocketpy_c.cpp", "plugins/macos/pocketpy/pocketpy.cpp")
 
+# unity plugin
+unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPy/Plugins/iOS'
+if os.path.exists(unity_ios_root):
+	shutil.copy("amalgamated/pocketpy.h", unity_ios_root)
+	shutil.copy("c_bindings/pocketpy_c.h", unity_ios_root)
+	shutil.copy("c_bindings/pocketpy_c.cpp", unity_ios_root + '/pocketpy.cpp')
+
 # my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")

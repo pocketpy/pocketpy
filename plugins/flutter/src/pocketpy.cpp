@@ -125,7 +125,7 @@ bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source) {
     ERRHANDLER_OPEN
 
     CodeObject_ code = vm->compile(source, "<c-bound>", EXEC_MODE);
-    PyObject* result = vm->_exec(code, vm->_main);
+    // PyObject* result = vm->_exec(code, vm->_main);
 
     //unpack_return(w, result);
     //NOTE: it seems like vm->_exec should return whatever the last command it
