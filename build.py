@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 assert __name__ == "__main__"
 
@@ -14,10 +15,12 @@ linux_lib_cmd = "clang++ -fPIC -shared -o pocketpy.so src/tmp.cpp " + linux_comm
 
 class LibBuildEnv:
     def __enter__(self):
-        with open("src/tmp.cpp", "w", encoding='utf-8') as f:
-            f.write('#include "pocketpy.h"')
+        shutil.copy("c_bindings/pocketpy_c.h", "src/")
+        shutil.copy("c_bindings/pocketpy_c.cpp", "src/tmp.cpp")
 
     def __exit__(self, *args):
+        if os.path.exists("src/pocketpy_c.h"):
+            os.remove("src/pocketpy_c.h")
         if os.path.exists("src/tmp.cpp"):
             os.remove("src/tmp.cpp")
 

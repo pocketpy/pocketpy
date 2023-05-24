@@ -48,6 +48,8 @@ jobs:
       run: python3 scripts/run_tests.py benchmark
     - name: GCC Build Test
       run: g++ -o pocketpy --std=c++17 src/main.cpp
+    - name: C Binding Test
+      run: bash run_c_binding_test.sh
   build_macos:
       runs-on: macos-latest
       steps:

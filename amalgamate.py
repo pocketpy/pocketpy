@@ -68,6 +68,12 @@ print("amalgamated/pocketpy.h")
 shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
 shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
 
+shutil.copy("c_bindings/pocketpy_c.h", "plugins/flutter/src")
+shutil.copy("c_bindings/pocketpy_c.cpp", "plugins/flutter/src/pocketpy.cpp")
+
+shutil.copy("c_bindings/pocketpy_c.h", "plugins/macos/pocketpy/pocketpy_c.h")
+shutil.copy("c_bindings/pocketpy_c.cpp", "plugins/macos/pocketpy/pocketpy.cpp")
+
 # my custom things...
 if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
 	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
