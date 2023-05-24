@@ -66,7 +66,8 @@ struct ManagedHeap{
 #if DEBUG_GC_STATS
                 deleted[obj->type] += 1;
 #endif
-                obj->~PyObject(), pool64.dealloc(obj);
+                obj->~PyObject();
+                pool64.dealloc(obj);
             }
         }
 

@@ -24,7 +24,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "export.h"
+
 
 typedef struct pkpy_vm_handle pkpy_vm;
 
@@ -720,6 +720,4 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* message) {
     throw Exception("CBindingError", message);
     ERRHANDLER_CLOSE
 }
-
-
 
