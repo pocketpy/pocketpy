@@ -16,7 +16,8 @@ delta1 = timedelta(seconds=57)
 delta2 = timedelta(hours=25, seconds=2)
 assert True == (delta2 != delta1)
 
-UTC = timezone.utc = timezone(timedelta(0))
+timezone.utc = timezone(timedelta(0))
+UTC = timezone.utc
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
