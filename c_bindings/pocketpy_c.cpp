@@ -1,4 +1,3 @@
-#include "pocketpy.h"
 #include "pocketpy_c.h"
 
 using namespace pkpy;
