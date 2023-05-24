@@ -74,7 +74,7 @@ for i in ["src/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"
 with open("amalgamated/pocketpy.cpp", "wt", encoding='utf-8') as f:
 	content = '\n\n'.join(content)
 	content = content.replace('#include "export.h"', '')
-	content = content.replace('#include "pocketpy_c.h", '')
+	content = content.replace('#include "pocketpy_c.h"', '')
 	f.write(content)
 
 
