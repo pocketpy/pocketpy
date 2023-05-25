@@ -625,5 +625,6 @@ void* pkpy_get_id(pkpy_vm* vm_handle, int index) {
     CVM* vm = (CVM*) vm_handle;
     index = lua_to_cstack_index(index, vm->c_data->size());
     PyObject* o = vm->c_data->begin()[index];
+    if(is_tagged(o)) return nullptr;
     return (void*) o;
 }
