@@ -64,3 +64,6 @@ NameError: could not find requested global
 successfully errored with this message: 
 Traceback (most recent call last):
 CBindingError: test direct error mechanism
+pi: 3.14
+pi: 3.14
+2

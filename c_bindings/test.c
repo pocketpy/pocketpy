@@ -339,6 +339,22 @@ int main(int argc, char** argv) {
     //check(pkpy_set_global(vm, "test_nested_error"));
     //fail(pkpy_vm_run(vm, "test_nested_error()"));
 
+    check(pkpy_vm_run(vm, "import math"));
+    check(pkpy_get_global(vm, "math"));
+    check(pkpy_getattr(vm, "pi"));
+    check(pkpy_to_float(vm, -1, &r_float));
+    printf("pi: %.2f\n", r_float);
 
+    check(pkpy_eval(vm, "math.pi"));
+    check(pkpy_to_float(vm, -1, &r_float));
+    printf("pi: %.2f\n", r_float);
+
+    check(pkpy_pop(vm, 1));
+
+    // math.pi = 2
+    check(pkpy_push_int(vm, 2));
+    check(pkpy_eval(vm, "math"));
+    check(pkpy_setattr(vm, "pi"));
+    check(pkpy_vm_run(vm, "print(math.pi)"));
     return 0;
 }

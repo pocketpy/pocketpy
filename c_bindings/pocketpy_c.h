@@ -110,6 +110,9 @@ PK_EXPORT int pkpy_stack_size(pkpy_vm*);
 typedef void (*OutputHandler)(pkpy_vm*, const char*);
 PK_EXPORT void pkpy_set_output_handlers(pkpy_vm*, OutputHandler stdout_handler, OutputHandler stderr_handler);
 
+PK_EXPORT bool pkpy_getattr(pkpy_vm*, const char* name);
+PK_EXPORT bool pkpy_setattr(pkpy_vm*, const char* name);
+PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 
 #ifdef __cplusplus
 }

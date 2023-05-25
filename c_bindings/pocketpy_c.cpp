@@ -133,7 +133,7 @@ bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source) {
     ERRHANDLER_OPEN
 
     CodeObject_ code = vm->compile(source, "<c-bound>", EXEC_MODE);
-    // PyObject* result = vm->_exec(code, vm->_main);
+    vm->_exec(code, vm->_main);
 
     //unpack_return(w, result);
     //NOTE: it seems like vm->_exec should return whatever the last command it
@@ -584,3 +584,34 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* message) {
     ERRHANDLER_CLOSE
 }
 
+bool pkpy_getattr(pkpy_vm* vm_handle, const char* name) {
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    PyObject* o = vm->c_data->top();
+    PyObject* ret = vm->getattr(o, name, false);
+    if(ret == nullptr) return false;
+    vm->c_data->top() = ret;
+    ERRHANDLER_CLOSE
+    return true;
+}
+
+bool pkpy_setattr(pkpy_vm* vm_handle, const char* name) {
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    PyObject* a = vm->c_data->top();
+    PyObject* val = vm->c_data->second();
+    vm->setattr(a, name, val);
+    vm->c_data->shrink(2);
+    ERRHANDLER_CLOSE
+    return true;
+}
+
+bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    CodeObject_ co = vm->compile(code, "<eval>", EVAL_MODE);
+    PyObject* ret = vm->_exec(co, vm->_main);
+    vm->c_data->push(ret);
+    ERRHANDLER_CLOSE
+    return true;
+}
