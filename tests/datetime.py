@@ -55,9 +55,7 @@ def _ymd2ord(year, month, day):
     assert 1 <= month <= 12, 'month must be in 1..12'
     dim = _days_in_month(year, month)
     assert 1 <= day <= dim, ('day must be in 1..%d' % dim)
-    return (_days_before_year(year) +
-            _days_before_month(year, month) +
-            day)
+    return (_days_before_year(year) + _days_before_month(year, month) + day)
 
 _DI400Y = _days_before_year(401)    # number of days in 400 years
 _DI100Y = _days_before_year(101)    #    "    "   "   " 100   "
