@@ -70,10 +70,7 @@ __NEXT_STEP:;
     TARGET(DUP_TOP) PUSH(TOP()); DISPATCH();
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
     TARGET(PRINT_EXPR)
-        if(TOP() != None){
-            _stdout(this, CAST(Str&, py_repr(TOP())));
-            _stdout(this, "\n");
-        }
+        if(TOP() != None) _stdout(this, CAST(Str&, py_repr(TOP())) + "\n");
         POP();
         DISPATCH();
     /*****************************************/
