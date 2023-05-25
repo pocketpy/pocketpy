@@ -25,6 +25,7 @@ The `mode` parameter controls how the source code is compiled. There are 4 possi
 + `EXEC_MODE`, this is the default mode. Just do normal execution.
 + `EVAL_MODE`, this mode is used for evaluating a single expression. The `source` should be a single expression. It cannot contain any statements.
 + `REPL_MODE`, this mode is used for REPL. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
++ `CELL_MODE`, this mode is designed for Jupyter like execution.
 + `JSON_MODE`, this mode is used for JSON parsing. It is similar to `EVAL_MODE`, but uses a lexing rule designed for JSON.
 
 

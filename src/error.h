@@ -19,6 +19,7 @@ enum CompileMode {
     EXEC_MODE,
     EVAL_MODE,
     REPL_MODE,
+    CELL_MODE,
     JSON_MODE,
 };
 

@@ -1355,6 +1355,11 @@ extern "C" {
     }
 
     PK_LEGACY_EXPORT
+    void pkpy_vm_exec_cell(pkpy::VM* vm, const char* source){
+        vm->exec(source, "<cell>", pkpy::CELL_MODE);
+    }
+
+    PK_LEGACY_EXPORT
     char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
         pkpy::PyObject* val = vm->_main->attr().try_get(name);
         if(val == nullptr) return nullptr;

@@ -816,7 +816,7 @@ __SUBSCR_END:
                 EXPR_TUPLE();
                 if(!try_compile_assignment()){
                     ctx()->emit_expr();
-                    if(mode()==REPL_MODE && name_scope()==NAME_GLOBAL){
+                    if((mode()==CELL_MODE || mode()==REPL_MODE) && name_scope()==NAME_GLOBAL){
                         ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                     }else{
                         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
