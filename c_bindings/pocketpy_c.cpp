@@ -615,3 +615,10 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
     ERRHANDLER_CLOSE
     return true;
 }
+
+void* pkpy_get_id(pkpy_vm* vm_handle, int index) {
+    CVM* vm = (CVM*) vm_handle;
+    index = lua_to_cstack_index(index, vm->c_data->size());
+    PyObject* o = vm->c_data->begin()[index];
+    return (void*) o;
+}

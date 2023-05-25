@@ -75,6 +75,11 @@ struct VoidP{
             return _CAST(VoidP&, lhs).ptr <= CAST(VoidP&, rhs).ptr;
         });
 
+        vm->bind__hash__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            VoidP& self = _CAST(VoidP&, obj);
+            return reinterpret_cast<i64>(self.ptr);
+        });
+
         vm->bind_method<1>(type, "set_base_offset", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             if(is_non_tagged_type(args[1], vm->tp_str)){

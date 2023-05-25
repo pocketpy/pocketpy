@@ -100,8 +100,8 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, ArgsView args) {
         PyObject* obj = args[0];
-        if(is_tagged(obj)) return VAR((i64)0);
-        return VAR(BITS(obj));
+        if(is_tagged(obj)) return vm->None;
+        return VAR_T(VoidP, obj);
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
