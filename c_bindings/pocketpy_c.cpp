@@ -171,7 +171,12 @@ static void propagate_if_errored(CVM* vm, ValueStackImpl<PKPY_STACK_SIZE>* store
 }
 
 PyObject* c_function_wrapper(VM* vm, ArgsView args) {
-    LuaStyleFuncC f = py_cast<NativeFunc&>(vm, args[-2])._lua_f;
+    LuaStyleFuncC f;
+    if(args[-1] != PY_NULL){
+        f = _py_cast<NativeFunc&>(vm, args[-1])._lua_f;
+    } else {
+        f = _py_cast<NativeFunc&>(vm, args[-2])._lua_f;
+    }
     CVM* cvm = (CVM*) vm;
 
     //setup c stack
