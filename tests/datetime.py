@@ -137,11 +137,11 @@ def _format_time(hh, mm, ss, us, timespec='auto'):
         timespec = 'microseconds' if us else 'seconds'
     elif timespec == 'milliseconds':
         us //= 1000
-    try:
-        fmt = specs[timespec]
-    except KeyError:
-        raise ValueError('Unknown timespec value')
     else:
+        try:
+            fmt = specs[timespec]
+        except KeyError:
+            raise ValueError('Unknown timespec value')
         return fmt.format(hh, mm, ss, us)
 
 
@@ -168,12 +168,9 @@ def _check_utc_offset(name, offset):
     if offset is None:
         return
     if not isinstance(offset, timedelta):
-        raise TypeError("tzinfo.%s() must return None "
-                        "or timedelta, not '%s'" % (name, type(offset)))
+        raise TypeError("tzinfo must return None TypeError")
     if not -timedelta(1) < offset < timedelta(1):
-        raise ValueError("%s()=%s, must be strictly between "
-                         "-timedelta(hours=24) and timedelta(hours=24)" %
-                         (name, offset))
+        raise ValueError("timedelta valueError")
 
 
 class timedelta:
@@ -272,8 +269,7 @@ class tzinfo:
         dtoff = dt.utcoffset()
         # raise ValueError if dtoff is None or dtdst is None
         if dtoff is None:
-            raise ValueError("fromutc() requires a non-None utcoffset() "
-                             "result")
+            raise ValueError("fromutc() requires a non-None utcoffset() ")
         dtdst = dt.dst()
         delta = dtoff - dtdst  # this is self's standard offset
         if delta:
@@ -281,8 +277,7 @@ class tzinfo:
             dtdst = dt.dst()
             # raise ValueError if dtdst is None
             if dtdst is None:
-                raise ValueError("fromutc(): dt.dst gave inconsistent "
-                                 "results; cannot convert")
+                raise ValueError("fromutc(): dt.dst gave inconsistent ")
         if dtdst:
             return dt + dtdst
         else:
@@ -295,7 +290,7 @@ def _check_tzinfo_arg(tz):
 class timezone(tzinfo):
     _Omitted = object()
 
-    def __init__(self, offset, name=_Omitted):
+    def __init__(self, offset, name):
         if not isinstance(offset, timedelta):
             raise TypeError("offset must be a timedelta")
         if name is self._Omitted:
@@ -305,9 +300,7 @@ class timezone(tzinfo):
         elif name != None and not isinstance(name, str):
             raise TypeError("name must be a string")
         if not self._minoffset.second <= offset.second <= self._maxoffset.second:
-            raise ValueError("offset must be a timedelta "
-                             "strictly between -timedelta(hours=24) and "
-                             "timedelta(hours=24).")
+            raise ValueError("offset must be a timedelta strictly between -timedelta(hours=24) and timedelta(hours=24).")
         self._offset = offset
         self._name = name
         #self.utc = timezone(timedelta(0))
@@ -320,34 +313,29 @@ class timezone(tzinfo):
     def utcoffset(self, dt):
         if isinstance(dt, datetime) or dt is None:
             return self._offset
-        raise TypeError("utcoffset() argument must be a datetime instance"
-                        " or None")
+        raise TypeError("utcoffset() argument must be a datetime instance or None")
 
     def tzname(self, dt):
         if isinstance(dt, datetime) or dt is None:
             if self._name is None:
                 return self._name_from_offset(self._offset)
             return self._name
-        raise TypeError("tzname() argument must be a datetime instance"
-                        " or None")
+        raise TypeError("tzname() argument must be a datetime instance or None")
 
     def dst(self, dt):
         if isinstance(dt, datetime) or dt is None:
             return None
-        raise TypeError("dst() argument must be a datetime instance"
-                        " or None")
+        raise TypeError("dst() argument must be a datetime instance or None")
 
     def fromutc(self, dt):
         if isinstance(dt, datetime):
             if dt.tzinfo is not self:
-                raise ValueError("fromutc: dt.tzinfo "
-                                 "is not self")
+                raise ValueError("fromutc: dt.tzinfo is not self")
             return dt + self._offset
-        raise TypeError("fromutc() argument must be a datetime instance"
-                        " or None")
+        raise TypeError("fromutc() argument must be a datetime instance or None")
 
     _maxoffset = timedelta(hours=24, microseconds=-1)
-    _minoffset = -_maxoffset
+    _minoffset = -(timedelta(hours=24, microseconds=-1))
 '''
 TODO:
 - 运算符重载
@@ -356,15 +344,12 @@ TODO:
 '''
 
 
-def check_time_arg(hour=0, minute=0,
-             second=0, microsecond=0, fold=0):
-    if hour < 0 or hour >= 24 or minute < 0 or minute >= 60 or second < 0 or second >= 60 or microsecond < 0 or microsecond >= 1000000 or fold not in [
-        0, 1]:
+def check_time_arg(hour=0, minute=0,second=0, microsecond=0, fold=0):
+    if hour < 0 or hour >= 24 or minute < 0 or minute >= 60 or second < 0 or second >= 60 or microsecond < 0 or microsecond >= 1000000 or fold not in [0, 1]:
         raise ValueError('time() argument error, eg: 0 <= hour < 24, please to check')
 
 class time:
-    def __init__(self, hour=0, minute=0,
-                 second=0, microsecond=0, tzinfo=None, *, fold=0):
+    def __init__(self, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, fold=0):
         _check_tzinfo_arg(tzinfo)
         check_time_arg(hour, minute, second, microsecond, fold)
 
@@ -376,8 +361,7 @@ class time:
         self._hashcode = -1
         self._fold = fold
 
-    def replace(self, hour=None, minute=None,
-                second=None, microsecond=None, tzinfo=True, *, fold=None):
+    def replace(self, hour=None, minute=None, second=None, microsecond=None, tzinfo=True, fold=None):
 
         if hour is None:
             hour = self.hour
@@ -437,7 +421,7 @@ class date:
         if month == 2 and is_leap(year):
             _max_day += 1
         if day < 1 or day > _max_day:
-            raise ValueError('day must be in [1, ', MONTH_DAYS[month], ']')
+            raise ValueError('day must be in [1, ' +MONTH_DAYS[month] + ']')
 
         self.year = year
         self.month = month
@@ -561,8 +545,7 @@ def _isoweek_to_gregorian(year, week, day):
             # ISO years have 53 weeks in them on years starting with a
             # Thursday and leap years starting on a Wednesday
             first_weekday = _ymd2ord(year, 1, 1) % 7
-            if (first_weekday == 4 or (first_weekday == 3 and
-                                       is_leap(year))):
+            if (first_weekday == 4 or (first_weekday == 3 and is_leap(year))):
                 out_of_range = False
 
         if out_of_range:
@@ -659,8 +642,7 @@ def _parse_hh_mm_ss_ff(tstr):
             time_comps[3] = int(tstr[pos:(pos+to_parse)])
             if to_parse < 6:
                 time_comps[3] *= _FRACTION_CORRECTION[to_parse-1]
-            if (len_remainder > to_parse
-                    and not all(map(_is_ascii_digit, tstr[(pos+to_parse):]))):
+            if (len_remainder > to_parse and not all(map(_is_ascii_digit, tstr[(pos+to_parse):]))):
                 raise ValueError("Non-digit values in unparsed fraction")
 
     return time_comps
@@ -697,7 +679,7 @@ def _parse_isoformat_time(tstr):
 
         tz_comps = _parse_hh_mm_ss_ff(tzstr)
 
-        if all(x == 0 for x in tz_comps):
+        if all([x == 0 for x in tz_comps]):
             tzi = timezone.utc
         else:
             tzsign = -1 if tstr[tz_pos - 1] == '-' else 1
@@ -713,7 +695,7 @@ def _parse_isoformat_time(tstr):
 
 
 class datetime(date):
-    def __init__(self, year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0):
+    def __init__(self, year, month, day, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, fold=0):
         check_time_arg(hour, minute, second, microsecond, fold)
         self._year = year
         self._month = month
@@ -838,9 +820,7 @@ class datetime(date):
         terms of the time to include. Valid options are 'auto', 'hours',
         'minutes', 'seconds', 'milliseconds' and 'microseconds'.
         """
-        s = ("%04d-%02d-%02d%c" % (self._year, self._month, self._day, sep) +
-             _format_time(self._hour, self._minute, self._second,
-                          self._microsecond, timespec))
+        s = ("%04d-%02d-%02d%c" % (self._year, self._month, self._day, sep) + _format_time(self._hour, self._minute, self._second, self._microsecond, timespec))
 
         off = self.utcoffset()
         tz = _format_offset(off)
@@ -859,9 +839,7 @@ class datetime(date):
         >>> repr(dt)
         'datetime.datetime(2010, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)'
         """
-        return "datetime.datetime(%d, %d, %d)" % (self._year,
-                                      self._month,
-                                      self._day)
+        return "datetime.datetime(%d, %d, %d)" % (self._year,self._month, self._day)
     '''
     def __str__(self):
         "Convert to string, for str()."
