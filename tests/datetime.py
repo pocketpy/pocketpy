@@ -757,7 +757,7 @@ class datetime(date):
         A timezone info object may be passed in as well.
         """
         frac, t = math.modf(t)
-        us = round(frac * 1e6)
+        us = round(frac * 1000000)
         if us >= 1000000:
             t += 1
             us -= 1000000
