@@ -104,6 +104,10 @@ inline void init_builtins(VM* _vm) {
         return VAR_T(VoidP, obj);
     });
 
+    _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
+        return vm->py_import(CAST(Str&, args[0]));
+    });
+
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);

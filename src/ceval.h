@@ -482,40 +482,10 @@ __NEXT_STEP:;
         }
         DISPATCH();
     /*****************************************/
-    TARGET(IMPORT_NAME) {
-        StrName name(byte.arg);
-        PyObject* ext_mod = _modules.try_get(name);
-        if(ext_mod == nullptr){
-            Str source;
-            auto it = _lazy_modules.find(name);
-            if(it == _lazy_modules.end()){
-                Bytes b = _read_file_cwd(fmt(name, ".py"));
-                if(!b) {
-                    for(Str path: _path){
-#ifdef _WIN32
-                        const char* sep = "\\";
-#else
-                        const char* sep = "/";
-#endif
-                        b = _read_file_cwd(fmt(path, sep, name, ".py"));
-                        if(b) break;
-                    }
-                    if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
-                }
-                source = Str(b.str());
-            }else{
-                source = it->second;
-                _lazy_modules.erase(it);
-            }
-            CodeObject_ code = compile(source, Str(name.sv())+".py", EXEC_MODE);
-            PyObject* new_mod = new_module(name);
-            _exec(code, new_mod);
-            new_mod->attr()._try_perfect_rehash();
-            PUSH(new_mod);
-        }else{
-            PUSH(ext_mod);
-        }
-    } DISPATCH();
+    TARGET(IMPORT_NAME)
+        _name = StrName(byte.arg);
+        PUSH(py_import(_name));
+        DISPATCH();
     TARGET(IMPORT_STAR)
         _0 = POPX();
         for(auto& [name, value]: _0->attr().items()){
