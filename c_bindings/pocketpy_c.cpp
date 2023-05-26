@@ -1,3 +1,4 @@
+#include "error.h"
 #include "pocketpy.h"
 #include "pocketpy_c.h"
 
@@ -5,33 +6,17 @@ using namespace pkpy;
 
 #define PKPY_STACK_SIZE 32
 
-#define SAFEGUARD_OPEN try { \
-
-#define SAFEGUARD_CLOSE \
-    } catch(std::exception& e) { \
-        std::cerr << "ERROR: a std::exception " \
-        << "this probably means pocketpy itself has a bug!\n" \
-        << e.what() << "\n"; \
-        exit(2); \
-    } catch(...) { \
-        std::cerr << "ERROR: a unknown exception was thrown from " << __func__ \
-        << "\nthis probably means pocketpy itself has a bug!\n"; \
-        exit(2); \
-    }
-
-
-#define ERRHANDLER_OPEN SAFEGUARD_OPEN \
-    try { \
+#define ERRHANDLER_OPEN \
     if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) \
         return false; \
+    try {
 
 #define ERRHANDLER_CLOSE \
-    } catch( Exception e ) { \
+    } catch(Exception& e ) { \
         vm->c_data->push(py_var(vm, e)); \
         vm->c_data->push(NULL); \
         return false; \
-    } \
-    SAFEGUARD_CLOSE \
+    }
 
 
 
@@ -47,6 +32,23 @@ class CVM : public VM {
         c_data->clear();
         delete c_data;
     }
+
+    struct TempStack{
+        CVM* cvm;
+        ValueStackImpl<PKPY_STACK_SIZE>* prev;
+        TempStack(CVM* cvm, ValueStackImpl<PKPY_STACK_SIZE>* new_data) : cvm(cvm) {
+            prev = cvm->c_data;
+            cvm->c_data = new_data;
+        }
+
+        ~TempStack() { restore(); }
+
+        void restore(){
+            if(prev == nullptr) return;
+            cvm->c_data = prev;
+            prev = nullptr;
+        }
+    };
 };
 
 
@@ -76,24 +78,20 @@ static void unpack_return(CVM* vm, PyObject* ret) {
 
 bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     CVM* vm = (CVM*) vm_handle;
-    SAFEGUARD_OPEN
+    if (vm->c_data->size() == 0 || vm->c_data->top() != nullptr) 
+        return false;
 
-        if (vm->c_data->size() == 0 || vm->c_data->top() != nullptr) 
-            return false;
+    vm->c_data->pop();
+    Exception& e = py_cast<Exception&>(vm, vm->c_data->top());
+    if (message != nullptr) 
+        *message = e.summary().c_str_dup();
+    else
+        std::cerr << "ERROR: " << e.summary() << "\n";
 
-        vm->c_data->pop();
-        Exception& e = py_cast<Exception&>(vm, vm->c_data->top());
-        if (message != nullptr) 
-            *message = e.summary().c_str_dup();
-        else
-            std::cerr << "ERROR: " << e.summary() << "\n";
-
-        vm->c_data->clear();
-        vm->callstack.clear();
-        vm->s_data.clear(); 
-        return true;
-
-    SAFEGUARD_CLOSE
+    vm->c_data->clear();
+    vm->callstack.clear();
+    vm->s_data.clear(); 
+    return true;
 }
 
 void gc_marker_ex(CVM* vm) {
@@ -149,27 +147,6 @@ void pkpy_vm_destroy(pkpy_vm* vm_handle) {
     delete vm;
 }
 
-static void propagate_if_errored(CVM* vm, ValueStackImpl<PKPY_STACK_SIZE>* stored_stack) {
-    try {
-        if (vm->c_data->size() == 0 || vm->c_data->top() != nullptr) 
-            return;
-
-        vm->c_data->pop();
-        Exception& e = py_cast<Exception&>(vm, vm->c_data->top());
-        vm->c_data->pop();
-
-        vm->c_data = stored_stack;
-
-        throw e;
-    } catch(Exception& e) {
-        throw;
-    } catch(...) {
-        std::cerr << "ERROR: a non pocketpy exeception was thrown " 
-            << "this probably means pocketpy itself has a bug!\n"; 
-        exit(2); 
-    }
-}
-
 PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     LuaStyleFuncC f;
     if(args[-1] != PY_NULL){
@@ -185,13 +162,19 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     for (int i = 0; i < args.size(); i++)
         local_stack.push(args[i]);
     
-    ValueStackImpl<PKPY_STACK_SIZE>* stored_stack = cvm->c_data;
-    cvm->c_data = &local_stack;
-
+    // tmp is controlled by RAII
+    auto tmp = CVM::TempStack(cvm, &local_stack);
     int retc = f(cvm);
 
-    propagate_if_errored(cvm, stored_stack);
-    cvm->c_data = stored_stack;
+    // propagate_if_errored
+    if (!cvm->c_data->empty() && cvm->c_data->top() == nullptr){
+        cvm->c_data->pop();     // pop nullptr
+        Exception& e = _py_cast<Exception&>(vm, cvm->c_data->popx());
+        tmp.restore();
+        // throw e;
+        vm->_error(e);
+    }
+    tmp.restore();
 
     PyObject* ret = cvm->None;
 
@@ -315,7 +298,7 @@ bool pkpy_get_global(pkpy_vm* vm_handle, const char* name) {
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(name);
         if (o == nullptr)
-            throw Exception("NameError", "could not find requested global");
+            throw Exception("NameError", name);
     }
 
     vm->c_data->push(o);
@@ -535,7 +518,6 @@ bool pkpy_is_none(pkpy_vm* vm_handle, int index) {
 
 bool pkpy_check_global(pkpy_vm* vm_handle, const char* name) {
     CVM* vm = (CVM*) vm_handle;
-    SAFEGUARD_OPEN
     PyObject* o = vm->_main->attr().try_get(name);
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(name);
@@ -543,17 +525,13 @@ bool pkpy_check_global(pkpy_vm* vm_handle, const char* name) {
             return false;
     }
     return true;
-
-    SAFEGUARD_CLOSE
 }
 
 bool pkpy_check_error(pkpy_vm* vm_handle) {
     CVM* vm = (CVM*) vm_handle;
-    SAFEGUARD_OPEN
     if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) 
         return true; 
     return false;
-    SAFEGUARD_CLOSE
 }
 
 
@@ -582,11 +560,15 @@ bool pkpy_push(pkpy_vm* vm_handle, int index) {
 }
 
 
-bool pkpy_error(pkpy_vm* vm_handle, const char* message) {
+bool pkpy_error(pkpy_vm* vm_handle, const char* name, const char* message) {
     CVM* vm = (CVM*) vm_handle;
-    ERRHANDLER_OPEN
-    throw Exception("CBindingError", message);
-    ERRHANDLER_CLOSE
+    // already in error state
+    if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) {
+        return false;
+    }
+    vm->c_data->push(py_var(vm, Exception(name, message)));
+    vm->c_data->push(nullptr);
+    return false;
 }
 
 bool pkpy_getattr(pkpy_vm* vm_handle, const char* name) {

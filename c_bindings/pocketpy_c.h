@@ -27,7 +27,7 @@ PK_EXPORT bool pkpy_clear_error(pkpy_vm*, char** message);
 //when queried
 //note that at the moment this is more like a panic than throwing an error
 //the user will not be able to catch it with python code
-PK_EXPORT bool pkpy_error(pkpy_vm*, const char* message);
+PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, const char* message);
 
 PK_EXPORT pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
 PK_EXPORT bool pkpy_vm_run(pkpy_vm*, const char* source);

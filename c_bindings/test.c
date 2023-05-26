@@ -26,7 +26,7 @@ void fail_impl(pkpy_vm* vm, bool result, int lineno) {
     } else {
         char* message;
         if (pkpy_clear_error(vm, &message)) {
-            printf("actually errored!\n");
+            printf("actually errored! line %i\n", lineno);
             free(message);
             exit(1);
         }
@@ -83,14 +83,9 @@ int test_nested_error(pkpy_vm* vm) {
 
 pkpy_vm* vm;
 
-void cleanup(void) {
-    pkpy_vm_destroy(vm);
-}
-
 int main(int argc, char** argv) {
 
     vm = pkpy_vm_create(true, true);
-    atexit(cleanup);
 
     //test run
     check(pkpy_vm_run(vm, "print('hello world!')"));
@@ -308,16 +303,16 @@ int main(int argc, char** argv) {
 
     pkpy_vm_run(vm, "test_error_propagate()");
     check(pkpy_check_error(vm));
-    fprintf(stderr, "testing code going to standard error, can ignore next error\n");
+    // testing code going to standard error, can ignore next error
     pkpy_clear_error(vm, NULL);
 
     //with the current way execptions are handled, this will fail and pass the
     //error clean through, ignoring the python handling
     //
     //maybe worth fixing someday, but for now it is functionating as implemented
-    error(pkpy_vm_run(vm, "try : test_error_propagate(); except NameError : pass"));
+    check(pkpy_vm_run(vm, "try : test_error_propagate(); except NameError : pass"));
 
-    error(pkpy_error(vm, "test direct error mechanism"));
+    error(pkpy_error(vm, "_", "test direct error mechanism"));
 
 
     //more complicated error handling
@@ -334,10 +329,10 @@ int main(int argc, char** argv) {
     //at such a time this interferes with a real world use case of the bindings
     //we can revisit it
     //
-    //check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
-    //check(pkpy_push_function(vm, test_nested_error));
-    //check(pkpy_set_global(vm, "test_nested_error"));
-    //fail(pkpy_vm_run(vm, "test_nested_error()"));
+    check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
+    check(pkpy_push_function(vm, test_nested_error));
+    check(pkpy_set_global(vm, "test_nested_error"));
+    error(pkpy_vm_run(vm, "test_nested_error()"));
 
     check(pkpy_vm_run(vm, "import math"));
     check(pkpy_get_global(vm, "math"));
@@ -356,5 +351,7 @@ int main(int argc, char** argv) {
     check(pkpy_eval(vm, "math"));
     check(pkpy_setattr(vm, "pi"));
     check(pkpy_vm_run(vm, "print(math.pi)"));
+
+    pkpy_vm_destroy(vm);
     return 0;
 }
