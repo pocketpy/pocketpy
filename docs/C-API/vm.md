@@ -27,13 +27,6 @@ If there is any error, return `nullptr`.
 
 Run a given source on a virtual machine.
 
-#### `char* pkpy_vm_get_global(VM* vm, const char* name)`
-
-Get a global variable of a virtual machine.
-
-Return `__repr__` of the result.
-If the variable is not found, return `nullptr`.
-
 #### `void pkpy_delete(void* p)`
 
 Delete a pointer allocated by `pkpy_xxx_xxx`.

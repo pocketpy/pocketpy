@@ -1355,20 +1355,14 @@ extern "C" {
     }
 
     PK_LEGACY_EXPORT
-    void pkpy_vm_exec_cell(pkpy::VM* vm, const char* source){
-        vm->exec(source, "<cell>", pkpy::CELL_MODE);
-    }
-
-    PK_LEGACY_EXPORT
-    char* pkpy_vm_get_global(pkpy::VM* vm, const char* name){
-        pkpy::PyObject* val = vm->_main->attr().try_get(name);
-        if(val == nullptr) return nullptr;
-        try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->py_repr(val));
-            return repr.c_str_dup();
-        }catch(...){
-            return nullptr;
+    void pkpy_vm_exec_2(pkpy::VM* vm, const char* source, const char* filename, int mode, const char* module){
+        pkpy::PyObject* mod;
+        if(module == nullptr) mod = vm->_main;
+        else{
+            mod = vm->_modules.try_get(module);
+            if(mod == nullptr) return;
         }
+        vm->exec(source, filename, (pkpy::CompileMode)mode, mod);
     }
 
     PK_LEGACY_EXPORT
