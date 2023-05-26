@@ -220,9 +220,9 @@ public:
         }
 #if !DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
-            _stderr(this, "An std::exception occurred! It could be a bug.\n");
-            _stderr(this, e.what());
-            _stderr(this, "\n");
+            Str msg = "An std::exception occurred! It could be a bug.\n";
+            msg = msg + e.what();
+            _stderr(this, msg + "\n");
         }
 #endif
         callstack.clear();

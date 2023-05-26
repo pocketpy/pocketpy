@@ -15,6 +15,11 @@ using namespace pkpy;
         vm->c_data->push(py_var(vm, e)); \
         vm->c_data->push(NULL); \
         return false; \
+    } catch(const std::exception& re){ \
+        auto e = Exception("std::exception", re.what()); \
+        vm->c_data->push(py_var(vm, e)); \
+        vm->c_data->push(NULL); \
+        return false; \
     }
 
 
