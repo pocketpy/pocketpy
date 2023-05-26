@@ -1,4 +1,3 @@
-#include "error.h"
 #include "pocketpy.h"
 #include "pocketpy_c.h"
 
