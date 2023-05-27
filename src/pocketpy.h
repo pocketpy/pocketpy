@@ -1124,6 +1124,12 @@ inline void add_module_math(VM* vm){
 inline void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
+        if(is_type(args[0], vm->tp_str)){
+            const Str& source = CAST(Str, args[0]);
+            CodeObject_ code = vm->compile(source, "<dis>", EXEC_MODE);
+            vm->_stdout(vm, vm->disassemble(code));
+            return vm->None;
+        }
         PyObject* f = args[0];
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).func;
         CodeObject_ code = CAST(Function&, f).decl->code;

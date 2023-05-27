@@ -426,7 +426,14 @@ struct TupleExpr: SequenceExpr{
         }
 
         if(starred_i == -1){
-            ctx->emit(OP_UNPACK_SEQUENCE, items.size(), line);
+            Bytecode& prev = ctx->co->codes.back();
+            if(prev.op == OP_BUILD_TUPLE && prev.arg == items.size()){
+                // build tuple and unpack it is meaningless
+                prev.op = OP_NO_OP;
+                prev.arg = BC_NOARG;
+            }else{
+                ctx->emit(OP_UNPACK_SEQUENCE, items.size(), line);
+            }
         }else{
             // starred assignment target must be in a tuple
             if(items.size() == 1) return false;
