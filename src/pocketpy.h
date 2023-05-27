@@ -1366,18 +1366,6 @@ extern "C" {
     }
 
     PK_LEGACY_EXPORT
-    char* pkpy_vm_eval(pkpy::VM* vm, const char* source){
-        pkpy::PyObject* ret = vm->exec(source, "<eval>", pkpy::EVAL_MODE);
-        if(ret == nullptr) return nullptr;
-        try{
-            pkpy::Str repr = pkpy::CAST(pkpy::Str&, vm->py_repr(ret));
-            return repr.c_str_dup();
-        }catch(...){
-            return nullptr;
-        }
-    }
-
-    PK_LEGACY_EXPORT
     pkpy::REPL* pkpy_new_repl(pkpy::VM* vm){
         pkpy::REPL* p = new pkpy::REPL(vm);
         _pk_deleter_map[p] = [](void* p){ delete (pkpy::REPL*)p; };

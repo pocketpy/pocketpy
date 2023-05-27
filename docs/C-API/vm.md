@@ -16,13 +16,6 @@ Create a virtual machine.
 
 Add a source module into a virtual machine.
 
-#### `char* pkpy_vm_eval(VM* vm, const char* source)`
-
-Evaluate an expression.
-
-Return `__repr__` of the result.
-If there is any error, return `nullptr`.
-
 #### `void pkpy_vm_exec(VM* vm, const char* source)`
 
 Run a given source on a virtual machine.

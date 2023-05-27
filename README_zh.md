@@ -33,8 +33,7 @@ int main(){
     pkpy_vm_exec(vm, "a = [1, 2, 3]");
 
     // 对列表进行求和
-    char* result = pkpy_vm_eval(vm, "sum(a)");
-    printf("%s", result);   // 6
+    pkpy_vm_exec(vm, "print(sum(a))");
 
     // 释放资源
     pkpy_delete(result);
