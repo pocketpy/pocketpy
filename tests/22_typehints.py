@@ -42,3 +42,16 @@ def i(x, y: int, *args):
 
 def j(x, y: int, *args: str) -> int:
     return x + y + len(args)
+
+x: int = 1
+y: 'str' = '2'
+
+x: 'list[int]' = [1, 2, 3]
+y: 'list[str]' = ['1', '2', '3']
+
+def g(x: 'list[int]', y: 'list[str]') -> 'list[int]':
+    return x + y
+
+def z(x: float):
+    x: int = 1
+    y: 'str' = '2'

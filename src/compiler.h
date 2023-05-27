@@ -814,6 +814,8 @@ __SUBSCR_END:
             default: {
                 advance(-1);    // do revert since we have pre-called advance() at the beginning
                 EXPR_TUPLE();
+                // eat variable's type hint
+                if(match(TK(":"))) consume_type_hints();
                 if(!try_compile_assignment()){
                     ctx()->emit_expr();
                     if((mode()==CELL_MODE || mode()==REPL_MODE) && name_scope()==NAME_GLOBAL){
@@ -827,7 +829,11 @@ __SUBSCR_END:
         }
     }
 
-    
+    void consume_type_hints(){
+        EXPR();
+        ctx()->s_expr.pop();
+    }
+
     void compile_class(){
         consume(TK("@id"));
         int namei = StrName(prev().str()).index;
@@ -876,7 +882,7 @@ __SUBSCR_END:
             }
 
             // eat type hints
-            if(enable_type_hints && match(TK(":"))) consume(TK("@id"));
+            if(enable_type_hints && match(TK(":"))) consume_type_hints();
             if(state == 0 && curr().type == TK("=")) state = 2;
             int index = ctx()->add_varname(name);
             switch (state)
@@ -917,9 +923,7 @@ __SUBSCR_END:
             _compile_f_args(decl, true);
             consume(TK(")"));
         }
-        if(match(TK("->"))){
-            if(!match(TK("None"))) consume(TK("@id"));
-        }
+        if(match(TK("->"))) consume_type_hints();
         compile_block_body();
         pop_context();
 
