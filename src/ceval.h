@@ -471,7 +471,7 @@ __NEXT_STEP:;
         TOP() = py_iter(TOP());
         DISPATCH();
     TARGET(FOR_ITER)
-        _0 = PyIterNext(TOP());
+        _0 = py_next(TOP());
         if(_0 != StopIteration){
             PUSH(_0);
         }else{
@@ -493,35 +493,39 @@ __NEXT_STEP:;
         frame->f_globals()._try_perfect_rehash();
         DISPATCH();
     /*****************************************/
-    TARGET(UNPACK_SEQUENCE)
+    TARGET(UNPACK_SEQUENCE){
+        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+        _0 = py_iter(POPX());
+        for(int i=0; i<byte.arg; i++){
+            _1 = py_next(_0);
+            if(_1 == StopIteration) ValueError("not enough values to unpack");
+            PUSH(_1);
+        }
+        if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
+    } DISPATCH();
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         _0 = py_iter(POPX());
         for(int i=0; i<byte.arg; i++){
-            _1 = PyIterNext(_0);
+            _1 = py_next(_0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
             PUSH(_1);
         }
-        // handle extra items
-        if(byte.op == OP_UNPACK_EX){
-            List extras;
-            while(true){
-                _1 = PyIterNext(_0);
-                if(_1 == StopIteration) break;
-                extras.push_back(_1);
-            }
-            PUSH(VAR(extras));
-        }else{
-            if(PyIterNext(_0) != StopIteration) ValueError("too many values to unpack");
+        List extras;
+        while(true){
+            _1 = py_next(_0);
+            if(_1 == StopIteration) break;
+            extras.push_back(_1);
         }
+        PUSH(VAR(extras));
     } DISPATCH();
     TARGET(UNPACK_UNLIMITED) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         _0 = py_iter(POPX());
-        _1 = PyIterNext(_0);
+        _1 = py_next(_0);
         while(_1 != StopIteration){
             PUSH(_1);
-            _1 = PyIterNext(_0);
+            _1 = py_next(_0);
         }
     } DISPATCH();
     /*****************************************/

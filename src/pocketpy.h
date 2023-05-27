@@ -185,7 +185,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("next", [](VM* vm, ArgsView args) {
-        return vm->PyIterNext(args[0]);
+        return vm->py_next(args[0]);
     });
 
     _vm->bind_builtin_func<1>("dir", [](VM* vm, ArgsView args) {
@@ -463,11 +463,11 @@ inline void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         FastStrStream ss;
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        PyObject* obj = vm->PyIterNext(it);
+        PyObject* obj = vm->py_next(it);
         while(obj != vm->StopIteration){
             if(!ss.empty()) ss << self;
             ss << CAST(Str&, obj);
-            obj = vm->PyIterNext(it);
+            obj = vm->py_next(it);
         }
         return VAR(ss.str());
     });
@@ -560,10 +560,10 @@ inline void init_builtins(VM* _vm) {
         auto _lock = vm->heap.gc_scope_lock();
         List& self = _CAST(List&, args[0]);
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        PyObject* obj = vm->PyIterNext(it);
+        PyObject* obj = vm->py_next(it);
         while(obj != vm->StopIteration){
             self.push_back(obj);
-            obj = vm->PyIterNext(it);
+            obj = vm->py_next(it);
         }
         return vm->None;
     });

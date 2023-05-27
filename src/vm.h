@@ -485,7 +485,7 @@ public:
         return index;
     }
 
-    PyObject* PyIterNext(PyObject* obj){
+    PyObject* py_next(PyObject* obj){
         const PyTypeInfo* ti = _inst_type_info(obj);
         if(ti->m__next__) return ti->m__next__(this, obj);
         return call_method(obj, __next__);
@@ -790,10 +790,10 @@ inline PyObject* VM::py_list(PyObject* it){
     auto _lock = heap.gc_scope_lock();
     it = py_iter(it);
     List list;
-    PyObject* obj = PyIterNext(it);
+    PyObject* obj = py_next(it);
     while(obj != StopIteration){
         list.push_back(obj);
-        obj = PyIterNext(it);
+        obj = py_next(it);
     }
     return VAR(std::move(list));
 }
