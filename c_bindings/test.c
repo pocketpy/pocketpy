@@ -39,9 +39,10 @@ void error_impl(pkpy_vm* vm, bool result, int lineno) {
         exit(1);
     } else {
         char* message;
-        if (!pkpy_clear_error(vm, &message)) 
+        if (!pkpy_clear_error(vm, &message)){
             printf("clear error reported everything was fine\n");
-        else {
+            exit(1);
+        } else {
             printf("successfully errored with this message: \n");
             printf("%s\n", message);
             free(message);

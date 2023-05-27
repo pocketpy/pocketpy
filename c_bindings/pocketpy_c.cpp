@@ -34,19 +34,17 @@ struct LuaStack: public ValueStackImpl<32>{
 };
 
 #define ERRHANDLER_OPEN \
-    if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) \
+    if (vm->error != nullptr) \
         return false; \
     try {
 
 #define ERRHANDLER_CLOSE \
     } catch(Exception& e ) { \
-        vm->c_data->push(py_var(vm, e)); \
-        vm->c_data->push(NULL); \
+        vm->error = py_var(vm, e); \
         return false; \
     } catch(const std::exception& re){ \
         auto e = Exception("std::exception", re.what()); \
-        vm->c_data->push(py_var(vm, e)); \
-        vm->c_data->push(NULL); \
+        vm->error = py_var(vm, e); \
         return false; \
     }
 
@@ -55,8 +53,11 @@ class CVM : public VM {
     public :
 
     LuaStack* c_data;
+    PyObject* error;
+
     CVM(bool enable_os=true) : VM(enable_os) {
         c_data = new LuaStack();
+        error = nullptr;
     }
 
     ~CVM() {
@@ -109,16 +110,14 @@ static void unpack_return(CVM* vm, PyObject* ret) {
 
 bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     CVM* vm = (CVM*) vm_handle;
-    if (vm->c_data->size() == 0 || vm->c_data->top() != nullptr) 
-        return false;
-
-    vm->c_data->pop();
-    Exception& e = py_cast<Exception&>(vm, vm->c_data->top());
+    // no error
+    if (vm->error == nullptr) return false;
+    Exception& e = _py_cast<Exception&>(vm, vm->error);
     if (message != nullptr) 
         *message = e.summary().c_str_dup();
     else
         std::cerr << "ERROR: " << e.summary() << "\n";
-
+    vm->error = nullptr;
     vm->c_data->clear();
     vm->callstack.clear();
     vm->s_data.clear(); 
@@ -127,6 +126,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
 
 void gc_marker_ex(CVM* vm) {
     for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
+    if(vm->error != nullptr) OBJ_MARK(vm->error);
 }
 
 static OutputHandler stdout_handler = nullptr;
@@ -138,7 +138,6 @@ void pkpy_set_output_handlers(pkpy_vm*, OutputHandler stdout_handler, OutputHand
 }
 
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
-
     CVM* vm = new CVM(enable_os);
     vm->c_data = new LuaStack();
     vm->heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
@@ -197,11 +196,10 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     int retc = f(cvm);
 
     // propagate_if_errored
-    if (!cvm->c_data->empty() && cvm->c_data->top() == nullptr){
-        cvm->c_data->pop();     // pop nullptr
-        Exception& e = _py_cast<Exception&>(vm, cvm->c_data->popx());
+    if (cvm->error != nullptr){
+        Exception e = _py_cast<Exception&>(vm, cvm->error);
+        cvm->error = nullptr;
         tmp.restore();
-        // throw e;
         vm->_error(e);
     }
     tmp.restore();
@@ -320,11 +318,8 @@ bool pkpy_get_global(pkpy_vm* vm_handle, const char* name) {
 bool pkpy_call(pkpy_vm* vm_handle, int argc) {
     CVM* vm = (CVM*) vm_handle;
     ERRHANDLER_OPEN
-
     int callable_index = vm->c_data->size() - argc  - 1;
-
-    PyObject* callable = vm->c_data->begin()[callable_index];
-
+    PyObject* callable = vm->c_data->at(callable_index);
     vm->s_data.push(callable);
     vm->s_data.push(PY_NULL);
 
@@ -346,7 +341,7 @@ bool pkpy_call_method(pkpy_vm* vm_handle, const char* name, int argc) {
     ERRHANDLER_OPEN
 
     int self_index = vm->c_data->size() - argc  - 1;
-    PyObject* self = vm->c_data->begin()[self_index];
+    PyObject* self = vm->c_data->at(self_index);
 
     PyObject* callable = vm->get_unbound_method(self, name, &self);
 
@@ -357,16 +352,11 @@ bool pkpy_call_method(pkpy_vm* vm_handle, const char* name, int argc) {
         vm->s_data.push(vm->c_data->at(self_index + i + 1));
 
     PyObject* o = vm->vectorcall(argc);
-
     vm->c_data->shrink(argc + 1);
-
     unpack_return(vm, o);
-
     return true;
     ERRHANDLER_CLOSE
 }
-
-
 
 static int lua_to_cstack_index(int index, int size) {
     if (index < 0) index = size + index;
@@ -494,9 +484,7 @@ bool pkpy_check_global(pkpy_vm* vm_handle, const char* name) {
 
 bool pkpy_check_error(pkpy_vm* vm_handle) {
     CVM* vm = (CVM*) vm_handle;
-    if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) 
-        return true; 
-    return false;
+    return vm->error != nullptr;
 }
 
 
@@ -528,11 +516,8 @@ bool pkpy_push(pkpy_vm* vm_handle, int index) {
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, const char* message) {
     CVM* vm = (CVM*) vm_handle;
     // already in error state
-    if (vm->c_data->size() > 0 && vm->c_data->top() == nullptr) {
-        return false;
-    }
-    vm->c_data->safe_push(py_var(vm, Exception(name, message)));
-    vm->c_data->safe_push(NULL);
+    if (vm->error != nullptr) return false;
+    vm->error = py_var(vm, Exception(name, message));
     return false;
 }
 
