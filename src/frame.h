@@ -66,6 +66,8 @@ struct ValueStackImpl {
     PyObject** _sp;
     PyObject** _max_end;
 
+    static constexpr size_t max_size() { return MAX_SIZE; }
+
     ValueStackImpl(): _sp(_begin), _max_end(_begin + MAX_SIZE) {}
 
     PyObject*& top(){ return _sp[-1]; }

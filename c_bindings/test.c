@@ -272,11 +272,11 @@ int main(int argc, char** argv) {
 
     printf("\ntesting pushing functions\n");
 
-    check(pkpy_push_function(vm, test_binding));
+    check(pkpy_push_function(vm, test_binding, 0));
     check(pkpy_set_global(vm, "test_binding"));
     check(pkpy_vm_run(vm, "print(test_binding())"));
 
-    check(pkpy_push_function(vm, test_multiple_return));
+    check(pkpy_push_function(vm, test_multiple_return, 0));
     check(pkpy_set_global(vm, "test_multiple_return"));
 
     //uncomment if _exec changes
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
     //check(pkpy_stack_size(vm) == 2);
 
 
-    check(pkpy_push_function(vm, test_error_propagate));
+    check(pkpy_push_function(vm, test_error_propagate, 0));
     check(pkpy_set_global(vm, "test_error_propagate"));
     error(pkpy_vm_run(vm, "test_error_propagate()"));
 
@@ -330,7 +330,7 @@ int main(int argc, char** argv) {
     //we can revisit it
     //
     check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
-    check(pkpy_push_function(vm, test_nested_error));
+    check(pkpy_push_function(vm, test_nested_error, 0));
     check(pkpy_set_global(vm, "test_nested_error"));
     error(pkpy_vm_run(vm, "test_nested_error()"));
 

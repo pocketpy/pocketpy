@@ -41,7 +41,7 @@ PK_EXPORT bool pkpy_pop(pkpy_vm*, int n);
 //it is on the stack)
 PK_EXPORT bool pkpy_push(pkpy_vm*, int index);
 
-PK_EXPORT bool pkpy_push_function(pkpy_vm*, pkpy_function);
+PK_EXPORT bool pkpy_push_function(pkpy_vm*, pkpy_function, int);
 PK_EXPORT bool pkpy_push_int(pkpy_vm*, int);
 PK_EXPORT bool pkpy_push_float(pkpy_vm*, double);
 PK_EXPORT bool pkpy_push_bool(pkpy_vm*, bool);
