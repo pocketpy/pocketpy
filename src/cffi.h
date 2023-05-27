@@ -46,13 +46,31 @@ struct VoidP{
         return ptr != other.ptr || base_offset != other.base_offset;
     }
 
+    Str hex() const{
+        std::stringstream ss;
+        ss << std::hex << reinterpret_cast<intptr_t>(ptr);
+        return "0x" + ss.str();
+    }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_default_constructor<VoidP>(type);
+
+        vm->bind_func<1>(type, "from_hex", [](VM* vm, ArgsView args){
+            std::string s = CAST(Str&, args[0]).str();
+            size_t size;
+            intptr_t ptr = std::stoll(s, &size, 16);
+            if(size != s.size()) vm->ValueError("invalid literal for void_p(): " + s);
+            return VAR_T(VoidP, (void*)ptr);
+        });
+        vm->bind_method<0>(type, "hex", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            return VAR(self.hex());
+        });
 
         vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
             std::stringstream ss;
-            ss << "<void* at " << self.ptr;
+            ss << "<void* at " << self.hex();
             if(self.base_offset != 1) ss << ", base_offset=" << self.base_offset;
             ss << ">";
             return VAR(ss.str());
