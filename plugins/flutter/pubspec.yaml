@@ -11,13 +11,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ffi: ^2.0.1
-  js: ^0.6.4
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^2.0.0
 
 flutter:
   plugin:
