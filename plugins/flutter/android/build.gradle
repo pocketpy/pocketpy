@@ -27,11 +27,11 @@ apply plugin: 'com.android.library'
 android {
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
     // to bump the version in their app.
-    compileSdkVersion 30
+    compileSdkVersion 31
 
     // Bumping the plugin ndkVersion requires all clients of this plugin to bump
     // the version in their app and to download a newer version of the NDK.
-    ndkVersion "21.4.7075529"
+    ndkVersion "25.2.9519653"
 
     // Invoke the shared CMake build with the Android Gradle Plugin.
     externalNativeBuild {
@@ -54,6 +54,6 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 22
     }
 }
