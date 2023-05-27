@@ -32,15 +32,15 @@
 #define PK_VERSION				"1.0.0"
 
 // debug macros
-#define DEBUG_NO_BUILTIN_MODULES	0
-#define DEBUG_EXTRA_CHECK			0
-#define DEBUG_DIS_EXEC				0
-#define DEBUG_CEVAL_STEP			0
-#define DEBUG_FULL_EXCEPTION		0
-#define DEBUG_MEMORY_POOL			0
-#define DEBUG_NO_MEMORY_POOL		1
-#define DEBUG_NO_AUTO_GC			0
-#define DEBUG_GC_STATS				0
+#define DEBUG_NO_BUILTIN_MODULES    0
+#define DEBUG_EXTRA_CHECK           0
+#define DEBUG_DIS_EXEC              0
+#define DEBUG_CEVAL_STEP            0
+#define DEBUG_FULL_EXCEPTION        0
+#define DEBUG_MEMORY_POOL           0
+#define DEBUG_NO_MEMORY_POOL        0
+#define DEBUG_NO_AUTO_GC            0
+#define DEBUG_GC_STATS              0
 
 // config macros
 #ifndef PK_ENABLE_OS
