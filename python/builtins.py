@@ -129,28 +129,8 @@ def list@sort(self, reverse=False):
     if reverse:
         self.reverse()
 
-class property:
-    def __init__(self, fget, fset=None):
-        self.fget = fget
-        self.fset = fset
-
-    def __get__(self, obj):
-        return self.fget(obj)
-    
-    def __set__(self, obj, value):
-        if self.fset is None:
-            raise AttributeError("readonly property")
-        self.fset(obj, value)
-
-class staticmethod:
-    def __init__(self, f):
-        self.f = f
-
-    def __get__(self, obj):
-        return self.f
-
-    def __call__(self, *args):
-        return self.f(*args)
+def staticmethod(f):
+    return f    # no effect
     
 def type@__repr__(self):
     return "<class '" + self.__name__ + "'>"

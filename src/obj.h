@@ -89,6 +89,12 @@ struct BoundMethod {
     }
 };
 
+struct Property{
+    PyObject* getter;
+    PyObject* setter;
+    Property(PyObject* getter, PyObject* setter) : getter(getter), setter(setter) {}
+};
+
 struct Range {
     i64 start = 0;
     i64 stop = -1;

@@ -133,7 +133,7 @@ public:
     Type tp_function, tp_native_func, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
-    Type tp_dict;
+    Type tp_dict, tp_property;
 
     const bool enable_os;
 
@@ -271,11 +271,10 @@ public:
     }
 
     PyObject* property(NativeFuncC fget, NativeFuncC fset=nullptr){
-        PyObject* p = builtins->attr("property");
         PyObject* _0 = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
         PyObject* _1 = vm->None;
         if(fset != nullptr) _1 = heap.gcnew(tp_native_func, NativeFunc(fset, 2, false));
-        return call(p, _0, _1);
+        return call(_t(tp_property), _0, _1);
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true){
@@ -640,6 +639,7 @@ DEF_NATIVE_2(Exception, tp_exception)
 DEF_NATIVE_2(Bytes, tp_bytes)
 DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 DEF_NATIVE_2(Dict, tp_dict)
+DEF_NATIVE_2(Property, tp_property)
 
 #undef DEF_NATIVE_2
 
@@ -1069,6 +1069,7 @@ inline void VM::init_builtin_types(){
     tp_bytes = _new_type_object("bytes");
     tp_mappingproxy = _new_type_object("mappingproxy");
     tp_dict = _new_type_object("dict");
+    tp_property = _new_type_object("property");
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
@@ -1090,6 +1091,7 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("range", _t(tp_range));
     builtins->attr().set("bytes", _t(tp_bytes));
     builtins->attr().set("dict", _t(tp_dict));
+    builtins->attr().set("property", _t(tp_property));
     builtins->attr().set("StopIteration", StopIteration);
     builtins->attr().set("slice", _t(tp_slice));
 
@@ -1274,9 +1276,6 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     return nullptr;
 }
 
-DEF_SNAME(__get__);
-DEF_SNAME(__set__);
-
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* objtype = _t(obj);
@@ -1289,8 +1288,10 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
-        if(descr_get != nullptr) return call_method(cls_var, descr_get, obj);
+        if(is_non_tagged_type(cls_var, tp_property)){
+            const Property& prop = _CAST(Property&, cls_var);
+            return call(prop.getter, obj);
+        }
     }
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
@@ -1324,8 +1325,10 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     if(fallback){
         if(cls_var != nullptr){
             // handle descriptor
-            PyObject* descr_get = _t(cls_var)->attr().try_get(__get__);
-            if(descr_get != nullptr) return call_method(cls_var, descr_get, obj);
+            if(is_non_tagged_type(cls_var, tp_property)){
+                const Property& prop = _CAST(Property&, cls_var);
+                return call(prop.getter, obj);
+            }
         }
         // handle instance __dict__
         if(!is_tagged(obj) && obj->is_attr_valid()){
@@ -1355,11 +1358,10 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        PyObject* cls_var_t = _t(cls_var);
-        if(cls_var_t->attr().contains(__get__)){
-            PyObject* descr_set = cls_var_t->attr().try_get(__set__);
-            if(descr_set != nullptr){
-                call_method(cls_var, descr_set, obj, value);
+        if(is_non_tagged_type(cls_var, tp_property)){
+            const Property& prop = _CAST(Property&, cls_var);
+            if(prop.setter != vm->None){
+                call(prop.setter, obj, value);
             }else{
                 TypeError(fmt("readonly attribute: ", name.escape()));
             }

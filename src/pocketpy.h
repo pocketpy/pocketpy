@@ -999,6 +999,16 @@ inline void init_builtins(VM* _vm) {
         }
         return true;
     });
+    /************ property ************/
+    _vm->bind_constructor<-1>("property", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+1){
+            return VAR(Property(args[1], vm->None));
+        }else if(args.size() == 1+2){
+            return VAR(Property(args[1], args[2]));
+        }
+        vm->TypeError("property() takes at most 2 arguments");
+        return vm->None;
+    });
 
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);
@@ -1324,7 +1334,7 @@ inline void VM::post_init(){
     }));
 
     _t(tp_object)->attr().set("__dict__", property([](VM* vm, ArgsView args){
-        if(is_tagged(args[0]) || !args[0]->is_attr_valid()) vm->AttributeError("__dict__");
+        if(is_tagged(args[0]) || !args[0]->is_attr_valid()) vm->AttributeError("'__dict__'");
         return VAR(MappingProxy(args[0]));
     }));
 
