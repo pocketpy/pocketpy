@@ -38,7 +38,7 @@ def enumerate(iterable, start=0):
     n = start
     for elem in iterable:
         yield n, elem
-        n += 1
+        ++n
 
 def sum(iterable):
     res = 0
@@ -87,7 +87,7 @@ def str@split(self, sep):
             self = self[i+len(sep):]
             i = 0
         else:
-            i += 1
+            ++i
     res.append(self)
     return res
 
@@ -104,10 +104,10 @@ def str@strip(self, chars=None):
     chars = chars or ' \t\n\r'
     i = 0
     while i < len(self) and self[i] in chars:
-        i += 1
+        ++i
     j = len(self) - 1
     while j >= 0 and self[j] in chars:
-        j -= 1
+        --j
     return self[i:j+1]
 
 ##### list #####
@@ -122,12 +122,11 @@ def __qsort(a: list, L: int, R: int, key):
     mid = key(mid)
     i, j = L, R
     while i<=j:
-        while key(a[i])<mid: i+=1
-        while key(a[j])>mid: j-=1
+        while key(a[i])<mid: ++i;
+        while key(a[j])>mid: --j;
         if i<=j:
             a[i], a[j] = a[j], a[i]
-            i+=1
-            j-=1
+            ++i; --j;
     __qsort(a, L, j, key)
     __qsort(a, i, R, key)
 
