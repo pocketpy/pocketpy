@@ -924,15 +924,9 @@ __SUBSCR_END:
     }
 
     void compile_function(const std::vector<Expr_>& decorators={}){
-        Str obj_name;
         Str decl_name;
         consume(TK("@id"));
         decl_name = prev().str();
-        if(!ctx()->is_compiling_class && match(TK("@"))){
-            consume(TK("@id"));
-            obj_name = decl_name;
-            decl_name = prev().str();
-        }
         FuncDecl_ decl = push_f_context(decl_name);
         consume(TK("("));
         if (!match(TK(")"))) {
@@ -965,14 +959,8 @@ __SUBSCR_END:
             ctx()->emit(OP_CALL, 1, (*it)->line);
         }
         if(!ctx()->is_compiling_class){
-            if(obj_name.empty()){
-                auto e = make_expr<NameExpr>(decl_name, name_scope());
-                e->emit_store(ctx());
-            } else {
-                ctx()->emit(OP_LOAD_GLOBAL, StrName(obj_name).index, prev().line);
-                int index = StrName(decl_name).index;
-                ctx()->emit(OP_STORE_ATTR, index, prev().line);
-            }
+            auto e = make_expr<NameExpr>(decl_name, name_scope());
+            e->emit_store(ctx());
         }else{
             int index = StrName(decl_name).index;
             ctx()->emit(OP_STORE_CLASS_ATTR, index, prev().line);

@@ -76,7 +76,7 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def str@split(self, sep):
+def __f(self, sep):
     if sep == "":
         return list(self)
     res = []
@@ -90,8 +90,9 @@ def str@split(self, sep):
             ++i
     res.append(self)
     return res
+str.split = __f
 
-def str@format(self, *args):
+def __f(self, *args):
     if '{}' in self:
         for i in range(len(args)):
             self = self.replace('{}', str(args[i]), 1)
@@ -99,8 +100,9 @@ def str@format(self, *args):
         for i in range(len(args)):
             self = self.replace('{'+str(i)+'}', str(args[i]))
     return self
+str.format = __f
 
-def str@strip(self, chars=None):
+def __f(self, chars=None):
     chars = chars or ' \t\n\r'
     i = 0
     while i < len(self) and self[i] in chars:
@@ -109,6 +111,7 @@ def str@strip(self, chars=None):
     while j >= 0 and self[j] in chars:
         --j
     return self[i:j+1]
+str.strip = __f
 
 ##### list #####
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
@@ -130,18 +133,18 @@ def __qsort(a: list, L: int, R: int, key):
     __qsort(a, L, j, key)
     __qsort(a, i, R, key)
 
-def list@sort(self, reverse=False, key=None):
+def __f(self, reverse=False, key=None):
     if key is None:
         key = lambda x:x
     __qsort(self, 0, len(self)-1, key)
     if reverse:
         self.reverse()
+list.sort = __f
 
 def staticmethod(f):
     return f    # no effect
-    
-def type@__repr__(self):
-    return "<class '" + self.__name__ + "'>"
+
+type.__repr__ = lambda self: "<class '" + self.__name__ + "'>"
 
 def help(obj):
     if hasattr(obj, '__func__'):
@@ -150,3 +153,6 @@ def help(obj):
         print(obj.__doc__)
     else:
         print("No docstring found")
+
+
+del __f
