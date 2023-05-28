@@ -749,6 +749,7 @@ __SUBSCR_END:
                     default: SyntaxError(); break;
                 }
                 consume_end_stmt();
+                break;
             }
             case TK("--"):{
                 consume(TK("@id"));
@@ -763,6 +764,7 @@ __SUBSCR_END:
                     default: SyntaxError(); break;
                 }
                 consume_end_stmt();
+                break;
             }
             case TK("assert"):
                 EXPR_TUPLE(false);
