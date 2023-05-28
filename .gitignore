@@ -23,3 +23,7 @@ profile.sh
 test
 tmp.rar
 src/httplib.h
+pocketpy.exe
+main.obj
+pocketpy.exp
+pocketpy.lib
