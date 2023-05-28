@@ -336,6 +336,17 @@ struct Py_<BoundMethod> final: PyObject {
 };
 
 template<>
+struct Py_<Property> final: PyObject {
+    Property _value;
+    void* value() override { return &_value; }
+    Py_(Type type, Property val): PyObject(type), _value(val) {}
+    void _obj_gc_mark() override {
+        OBJ_MARK(_value.getter);
+        OBJ_MARK(_value.setter);
+    }
+};
+
+template<>
 struct Py_<Slice> final: PyObject {
     Slice _value;
     void* value() override { return &_value; }
