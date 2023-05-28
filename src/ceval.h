@@ -588,6 +588,23 @@ __NEXT_STEP:;
         const Str& spec = CAST(Str&, co_consts[byte.arg]);
         PUSH(format(spec, _0));
     } DISPATCH();
+    /*****************************************/
+    TARGET(INC_FAST)
+        _0 = frame->_locals[byte.arg];
+        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        frame->_locals[byte.arg] = VAR(CAST(i64, _0) + 1);
+        DISPATCH();
+    TARGET(DEC_FAST)
+        _0 = frame->_locals[byte.arg];
+        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        frame->_locals[byte.arg] = VAR(CAST(i64, _0) - 1);
+        DISPATCH();
+    // TARGET(INC_GLOBAL)
+    //     _name = StrName(byte.arg);
+    //     _0 = frame->f_globals().try_get(_name);
+    //     if(_0 == nullptr) vm->NameError(_name);
+    //     frame->f_globals().try_set()
+
 #if !PK_ENABLE_COMPUTED_GOTO
 #if DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));

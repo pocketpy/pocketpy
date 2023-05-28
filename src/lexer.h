@@ -21,6 +21,7 @@ constexpr const char* kTokens[] = {
     /*****************************************/
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
     "**", "=", ">", "<", "...", "->", "?", "@", "==", "!=", ">=", "<=",
+    "++", "--",
     /** SPEC_BEGIN **/
     "$goto", "$label",
     /** KW_BEGIN **/
@@ -411,7 +412,13 @@ struct Lexer {
                     return true;
                 }
                 case '=': add_token_2('=', TK("="), TK("==")); return true;
-                case '+': add_token_2('=', TK("+"), TK("+=")); return true;
+                case '+':
+                    if(matchchar('+')){
+                        add_token(TK("++"));
+                    }else{
+                        add_token_2('=', TK("+"), TK("+="));
+                    }
+                    return true;
                 case '>': {
                     if(matchchar('=')) add_token(TK(">="));
                     else if(matchchar('>')) add_token_2('=', TK(">>"), TK(">>="));
@@ -425,9 +432,13 @@ struct Lexer {
                     return true;
                 }
                 case '-': {
-                    if(matchchar('=')) add_token(TK("-="));
-                    else if(matchchar('>')) add_token(TK("->"));
-                    else add_token(TK("-"));
+                    if(matchchar('-')){
+                        add_token(TK("--"));
+                    }else{
+                        if(matchchar('=')) add_token(TK("-="));
+                        else if(matchchar('>')) add_token(TK("->"));
+                        else add_token(TK("-"));
+                    }
                     return true;
                 }
                 case '!':

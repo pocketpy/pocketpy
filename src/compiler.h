@@ -736,6 +736,36 @@ __SUBSCR_END:
             case TK("try"): compile_try_except(); break;
             case TK("pass"): consume_end_stmt(); break;
             /*************************************************/
+            case TK("++"):{
+                consume(TK("@id"));
+                StrName name(prev().sv());
+                switch(name_scope()){
+                    case NAME_LOCAL:
+                        int namei = ctx()->add_varname(name);
+                        ctx()->emit(OP_INC_FAST, namei, prev().line);
+                        break;
+                    case NAME_GLOBAL:
+                        ctx()->emit(OP_INC_GLOBAL, name.index, prev().line);
+                        break;
+                    default: SyntaxError(); break;
+                }
+                consume_end_stmt();
+            }
+            case TK("--"):{
+                consume(TK("@id"));
+                StrName name(prev().sv());
+                switch(name_scope()){
+                    case NAME_LOCAL:
+                        int namei = ctx()->add_varname(name);
+                        ctx()->emit(OP_DEC_FAST, namei, prev().line);
+                        break;
+                    case NAME_GLOBAL:
+                        ctx()->emit(OP_DEC_GLOBAL, name.index, prev().line);
+                        break;
+                    default: SyntaxError(); break;
+                }
+                consume_end_stmt();
+            }
             case TK("assert"):
                 EXPR_TUPLE(false);
                 ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
