@@ -69,7 +69,7 @@ public:
                 need_more_lines = 0;
                 line = buffer;
                 buffer.clear();
-                mode = EXEC_MODE;
+                mode = CELL_MODE;
             }else{
                 return true;
             }

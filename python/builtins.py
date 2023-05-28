@@ -56,17 +56,23 @@ def filter(f, iterable):
             yield i
 
 def zip(a, b):
-    for i in range(min(len(a), len(b))):
-        yield (a[i], b[i])
+    a = iter(a)
+    b = iter(b)
+    while True:
+        ai = next(a)
+        bi = next(b)
+        if ai is StopIteration or bi is StopIteration:
+            break
+        yield ai, bi
 
 def reversed(iterable):
     a = list(iterable)
     a.reverse()
     return a
 
-def sorted(iterable, reverse=False):
+def sorted(iterable, reverse=False, key=None):
     a = list(iterable)
-    a.sort(reverse=reverse)
+    a.sort(reverse=reverse, key=key)
     return a
 
 ##### str #####
@@ -110,22 +116,25 @@ tuple.__repr__ = lambda self: '(' + ', '.join([repr(i) for i in self]) + ')'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
 tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
 
-def __qsort(a: list, L: int, R: int):
+def __qsort(a: list, L: int, R: int, key):
     if L >= R: return;
     mid = a[(R+L)//2];
+    mid = key(mid)
     i, j = L, R
     while i<=j:
-        while a[i]<mid: i+=1
-        while a[j]>mid: j-=1
+        while key(a[i])<mid: i+=1
+        while key(a[j])>mid: j-=1
         if i<=j:
             a[i], a[j] = a[j], a[i]
             i+=1
             j-=1
-    __qsort(a, L, j)
-    __qsort(a, i, R)
+    __qsort(a, L, j, key)
+    __qsort(a, i, R, key)
 
-def list@sort(self, reverse=False):
-    __qsort(self, 0, len(self)-1)
+def list@sort(self, reverse=False, key=None):
+    if key is None:
+        key = lambda x:x
+    __qsort(self, 0, len(self)-1, key)
     if reverse:
         self.reverse()
 

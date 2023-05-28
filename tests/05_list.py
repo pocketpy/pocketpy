@@ -63,3 +63,15 @@ l.insert(3, 'o')
 l.insert(1, 'e')
 assert l == ['h', 'e', 'l', 'l', 'o']
 assert l[-2] == 'l'
+
+# test sort
+a = [8, 2, 4, 2, 9]
+assert sorted(a) == [2, 2, 4, 8, 9]
+assert sorted(a, reverse=True) == [9, 8, 4, 2, 2]
+
+assert sorted(a, key=lambda x:-x, reverse=True) == [2, 2, 4, 8, 9]
+assert a == [8, 2, 4, 2, 9]
+
+b = [(1, 2), (3, 3), (5, 1)]
+b.sort(key=lambda x:x[1])
+assert b == [(5, 1), (1, 2), (3,3)]
