@@ -136,6 +136,13 @@ while(!_items[i].first.empty()) {       \
         return _items[i].second;
     }
 
+    T* try_get_2(StrName key) {
+        bool ok; uint16_t i;
+        HASH_PROBE(key, ok, i);
+        if(!ok) return nullptr;
+        return &_items[i].second;
+    }
+
     bool try_set(StrName key, T val){
         bool ok; uint16_t i;
         HASH_PROBE(key, ok, i);

@@ -589,21 +589,28 @@ __NEXT_STEP:;
         PUSH(format(spec, _0));
     } DISPATCH();
     /*****************************************/
-    TARGET(INC_FAST)
-        _0 = frame->_locals[byte.arg];
-        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
-        frame->_locals[byte.arg] = VAR(CAST(i64, _0) + 1);
-        DISPATCH();
-    TARGET(DEC_FAST)
-        _0 = frame->_locals[byte.arg];
-        if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
-        frame->_locals[byte.arg] = VAR(CAST(i64, _0) - 1);
-        DISPATCH();
-    // TARGET(INC_GLOBAL)
-    //     _name = StrName(byte.arg);
-    //     _0 = frame->f_globals().try_get(_name);
-    //     if(_0 == nullptr) vm->NameError(_name);
-    //     frame->f_globals().try_set()
+    TARGET(INC_FAST){
+        PyObject** p = &frame->_locals[byte.arg];
+        if(*p == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        *p = VAR(CAST(i64, *p) + 1);
+    } DISPATCH();
+    TARGET(DEC_FAST){
+        PyObject** p = &frame->_locals[byte.arg];
+        if(*p == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        *p = VAR(CAST(i64, *p) - 1);
+    } DISPATCH();
+    TARGET(INC_GLOBAL){
+        _name = StrName(byte.arg);
+        PyObject** p = frame->f_globals().try_get_2(_name);
+        if(p == nullptr) vm->NameError(_name);
+        *p = VAR(CAST(i64, *p) + 1);
+    } DISPATCH();
+    TARGET(DEC_GLOBAL){
+        _name = StrName(byte.arg);
+        PyObject** p = frame->f_globals().try_get_2(_name);
+        if(p == nullptr) vm->NameError(_name);
+        *p = VAR(CAST(i64, *p) - 1);
+    } DISPATCH();
 
 #if !PK_ENABLE_COMPUTED_GOTO
 #if DEBUG_EXTRA_CHECK

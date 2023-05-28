@@ -741,8 +741,7 @@ __SUBSCR_END:
                 StrName name(prev().sv());
                 switch(name_scope()){
                     case NAME_LOCAL:
-                        int namei = ctx()->add_varname(name);
-                        ctx()->emit(OP_INC_FAST, namei, prev().line);
+                        ctx()->emit(OP_INC_FAST, ctx()->add_varname(name), prev().line);
                         break;
                     case NAME_GLOBAL:
                         ctx()->emit(OP_INC_GLOBAL, name.index, prev().line);
@@ -756,8 +755,7 @@ __SUBSCR_END:
                 StrName name(prev().sv());
                 switch(name_scope()){
                     case NAME_LOCAL:
-                        int namei = ctx()->add_varname(name);
-                        ctx()->emit(OP_DEC_FAST, namei, prev().line);
+                        ctx()->emit(OP_DEC_FAST, ctx()->add_varname(name), prev().line);
                         break;
                     case NAME_GLOBAL:
                         ctx()->emit(OP_DEC_GLOBAL, name.index, prev().line);
