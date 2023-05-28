@@ -56,3 +56,5 @@ em++ src/main.cpp -fno-rtti -fexceptions -O3 -sEXPORTED_FUNCTIONS=_pkpy_new_repl
 ''')
     DONE()
 
+print("invalid usage!!")
+exit(2)

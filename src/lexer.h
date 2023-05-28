@@ -502,7 +502,7 @@ struct Lexer {
     }
 
     void throw_err(Str type, Str msg, int lineno, const char* cursor){
-        auto e = Exception("SyntaxError", msg);
+        auto e = Exception(type, msg);
         e.st_push(src->snapshot(lineno, cursor));
         throw e;
     }
