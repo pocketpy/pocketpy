@@ -4,10 +4,6 @@ icon: dot
 order: 10
 ---
 
-!!!
-Lua Style C-API cannot be mixed with Legacy C-API.
-!!!
-
 #### `VM* pkpy_new_vm()`
 
 Create a virtual machine.
@@ -19,6 +15,10 @@ Add a source module into a virtual machine.
 #### `void pkpy_vm_exec(VM* vm, const char* source)`
 
 Run a given source on a virtual machine.
+
+#### `void pkpy_vm_exec_2(pkpy::VM* vm, const char* source, const char* filename, int mode, const char* module)`
+
+Advanced version of `pkpy_vm_exec`.
 
 #### `void pkpy_delete(void* p)`
 

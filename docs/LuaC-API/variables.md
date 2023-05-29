@@ -17,3 +17,10 @@ Set the global variable to the value at the top of the stack.
 
 Get the global variable and push it to the top of the stack.
 
+#### `bool pkpy_getattr(pkpy_vm*, const char* name)`
+
+A wrapper of `OP_LOAD_ATTR` bytecode.
+
+#### `bool pkpy_setattr(pkpy_vm*, const char* name)`
+
+A wrapper of `OP_STORE_ATTR` bytecode.
