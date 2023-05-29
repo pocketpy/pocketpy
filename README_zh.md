@@ -14,6 +14,8 @@ pocketpy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 
 你可以 [在浏览器中体验](https://pocketpy.dev/static/web/) pocketpy的交互式界面（REPL）。
 
+<a href="https://www.buymeacoffee.com/blueloveTH"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=blueloveTH&button_colour=FF5F5F&font_colour=ffffff&font_family=Bree&outline_colour=000000&coffee_colour=FFDD00" /></a>
+
 ## 快速上手
 
 你可以在 [Github Release](https://github.com/blueloveTH/pocketpy/releases) 页面下载`pocketpy.h`，

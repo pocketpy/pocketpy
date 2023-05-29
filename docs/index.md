@@ -25,3 +25,7 @@ primes = [i for i in range(2, 20) if is_prime(i)]
 print(primes)
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
+
+## Sponsor me
+
+<a href="https://www.buymeacoffee.com/blueloveTH"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=blueloveTH&button_colour=FF5F5F&font_colour=ffffff&font_family=Bree&outline_colour=000000&coffee_colour=FFDD00" /></a>
