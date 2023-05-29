@@ -67,12 +67,6 @@ struct Vector2 {
             Vector2& other = CAST(Vector2&, args[1]);
             return VAR(self.x == other.x && self.y == other.y);
         });
-
-        vm->bind_method<1>(type, "__ne__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            Vector2& other = CAST(Vector2&, args[1]);
-            return VAR(self.x != other.x || self.y != other.y);
-        });
     }
 };
 
