@@ -104,8 +104,3 @@ For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__ad
 ### Bind a property
 
 You can use `vm->property(...)` to create a `property` object and assign it to an type object.
-
-### Further reading
-
-See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for a complete example that uses all the binding functions
-for `vec2`, `vec3` and `mat3x3` types.
