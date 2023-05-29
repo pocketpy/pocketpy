@@ -48,7 +48,7 @@ print(test.add(1, 2))  # 3
 ```
 
 
-### Module resolution
+### Module resolution order
 
 When you do `import` a module, the VM will try to find it in the following order:
 
