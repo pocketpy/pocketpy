@@ -1019,16 +1019,16 @@ inline void init_builtins(VM* _vm) {
 inline void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
-        auto now = std::chrono::high_resolution_clock::now();
-        return VAR(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() / 1000000.0);
+        auto now = std::chrono::system_clock::now();
+        return VAR(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000.0);
     });
 
     vm->bind_func<1>(mod, "sleep", [](VM* vm, ArgsView args) {
         f64 seconds = CAST_F(args[0]);
-        auto begin = std::chrono::high_resolution_clock::now();
+        auto begin = std::chrono::system_clock::now();
         while(true){
-            auto now = std::chrono::high_resolution_clock::now();
-            f64 elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - begin).count() / 1000000.0;
+            auto now = std::chrono::system_clock::now();
+            f64 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - begin).count() / 1000.0;
             if(elapsed >= seconds) break;
         }
         return vm->None;

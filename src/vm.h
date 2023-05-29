@@ -1156,9 +1156,9 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(args.size() < fn.argc){
             vm->TypeError(fmt(
                 "expected ",
-                fn.argc,
+                fn.argc - (int)method_call,
                 " positional arguments, but got ",
-                args.size(),
+                args.size() - (int)method_call,
                 " (", fn.decl->code->name, ')'
             ));
         }
