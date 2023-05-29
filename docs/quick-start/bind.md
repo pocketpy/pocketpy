@@ -107,5 +107,5 @@ You can use `vm->property(...)` to create a `property` object and assign it to a
 
 ### Further reading
 
-See [linalg.h](src/linalg.h) for a complete example that uses all the binding functions
+See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for a complete example that uses all the binding functions
 for `vec2`, `vec3` and `mat3x3` types.
