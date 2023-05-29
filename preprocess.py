@@ -25,7 +25,10 @@ namespace pkpy{
     inline static std::map<std::string, const char*> kPythonLibs = {
 '''
     for key, value in sources.items():
-        header += ' '*8 + '{"' + key + '", "' + value + '"},'
+        CHAR_LIMIT = 5000
+        value = ['"' + value[i:i+CHAR_LIMIT] + '" ' for i in range(0, len(value), CHAR_LIMIT)]
+        value = ''.join(value)
+        header += ' '*8 + '{"' + key + '", ' + value + '},'
         header += '\n'
 
     header += '''
