@@ -13,7 +13,8 @@
 
 pkpy is a lightweight(~10000 LOC) Python interpreter for game scripting, built on C++17 with STL.
 
-It is extremely easy to embed. Including a compiler and a bytecode virtual machine. All of them are available in a single header file `pocketpy.h`, without external dependencies.
+It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
+pkpy is extremely easy to embed via a single header file `pocketpy.h`, without external dependencies.
 
 Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.dev/static/web/).
 
