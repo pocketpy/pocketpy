@@ -26,8 +26,14 @@ For performance and simplicity, some features are not implemented, or behave dif
 6. One element tuple. `(1,)` is not supported.
 7. Unpacking in `list` and `dict` literals, i.e. `[1, 2, *a]`.
 8. Access the exception object in try..except.
+9. `else` clause in try..except.
+10. Inplace methods like `__iadd__` and `__imul__`.
+11. `__del__` in class definition.
 
 ## Different behaviors
 1. positional and keyword arguments are strictly evaluated.
 2. When a generator is exhausted, `StopIteration` is returned instead of raised.
 3. `++i` and `--j` is an increment/decrement statement, not an expression.
+4. `int` and `float` are not subclasses of `bool`.
+5. `int` is not of unlimited precision. In 32 bit system, `int` and `float` is 30 bit; in 64 bit system, they are both 62 bit.
+6. `__ne__` is not required. Define `__eq__` is enough.
