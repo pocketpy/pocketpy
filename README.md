@@ -6,7 +6,6 @@
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
-<a title="Pub" href="https://pub.dev/packages/pocketpy" ><img src="https://img.shields.io/pub/v/pocketpy" /></a>
 </p>
 
 **English |** [**简体中文**](README_zh.md)
