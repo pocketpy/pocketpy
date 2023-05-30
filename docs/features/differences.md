@@ -31,6 +31,7 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 9.  `else` clause in try..except.
 10. Inplace methods like `__iadd__` and `__imul__`.
 11. `__del__` in class definition.
+12. `a = b = 1`, use `a, b = 1, 1` instead.
 
 ## Different behaviors
 
@@ -42,4 +43,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 6. `__ne__` is not required. Define `__eq__` is enough.
 7. Raw string cannot have boundary quotes in it, even escaped. See [#55](https://github.com/blueloveTH/pocketpy/issues/55).
 8. In a starred unpacked assignment, e.g. `a, b, *c = x`, the starred variable can only be presented in the last position. `a, *b, c = x` is not supported.
-9. `a < b < c` does not work as you expected in cpython. Use `a < b and b < c` instead.
+9. `a < b < c` does not work as you expected. Use `a < b and b < c` instead.
