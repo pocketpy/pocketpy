@@ -1033,6 +1033,23 @@ inline void add_module_time(VM* vm){
         }
         return vm->None;
     });
+
+    vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        std::tm* tm = std::localtime(&t);
+        Dict d(vm);
+        d.set(VAR("tm_year"), VAR(tm->tm_year + 1900));
+        d.set(VAR("tm_mon"), VAR(tm->tm_mon + 1));
+        d.set(VAR("tm_mday"), VAR(tm->tm_mday));
+        d.set(VAR("tm_hour"), VAR(tm->tm_hour));
+        d.set(VAR("tm_min"), VAR(tm->tm_min));
+        d.set(VAR("tm_sec"), VAR(tm->tm_sec + 1));
+        d.set(VAR("tm_wday"), VAR((tm->tm_wday + 6) % 7));
+        d.set(VAR("tm_yday"), VAR(tm->tm_yday + 1));
+        d.set(VAR("tm_isdst"), VAR(tm->tm_isdst));
+        return VAR(std::move(d));
+    });
 }
 
 inline void add_module_sys(VM* vm){
@@ -1129,6 +1146,12 @@ inline void add_module_math(VM* vm){
     
     vm->bind_func<1>(mod, "degrees", CPP_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
     vm->bind_func<1>(mod, "radians", CPP_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
+
+    vm->bind_func<1>(mod, "modf", [](VM* vm, ArgsView args) {
+        f64 i;
+        f64 f = std::modf(CAST_F(args[0]), &i);
+        return VAR(Tuple({VAR(f), VAR(i)}));
+    });
 }
 
 inline void add_module_dis(VM* vm){

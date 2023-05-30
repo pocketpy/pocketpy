@@ -120,5 +120,7 @@ Convert angle `x` from radians to degrees.
 Convert angle `x` from degrees to radians.
 
 
+### `math.modf(x)`
 
+Return the fractional and integer parts of `x`. Both results carry the sign of `x` and are floats.
 

@@ -42,3 +42,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 6. `__ne__` is not required. Define `__eq__` is enough.
 7. Raw string cannot have boundary quotes in it, even escaped. See [#55](https://github.com/blueloveTH/pocketpy/issues/55).
 8. In a starred unpacked assignment, e.g. `a, b, *c = x`, the starred variable can only be presented in the last position. `a, *b, c = x` is not supported.
+9. `a < b < c` does not work as you expected in cpython. Use `a < b and b < c` instead.
