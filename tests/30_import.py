@@ -1,3 +1,3 @@
-import test
+import test1
 
-assert test.add(1, 2) == 13
+assert test1.add(1, 2) == 13

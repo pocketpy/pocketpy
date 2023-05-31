@@ -46,7 +46,7 @@ int main(int argc, char** argv){
         std::filesystem::current_path(filepath.parent_path());
 
         pkpy::PyObject* ret = nullptr;
-        ret = vm->exec(src.c_str(), argv_1, pkpy::EXEC_MODE);
+        ret = vm->exec(src.c_str(), filepath.filename().string(), pkpy::EXEC_MODE);
         pkpy_delete(vm);
         return ret != nullptr ? 0 : 1;
     }
