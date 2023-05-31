@@ -169,4 +169,10 @@ inline PyObject* const PY_BEGIN_CALL = (PyObject*)0b010011;
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 
+#ifdef _WIN32
+    char kPlatformSep = '\\';
+#else
+    char kPlatformSep = '/';
+#endif
+
 } // namespace pkpy

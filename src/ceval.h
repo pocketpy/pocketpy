@@ -483,6 +483,10 @@ __NEXT_STEP:;
         _name = StrName(byte.arg);
         PUSH(py_import(_name));
         DISPATCH();
+    TARGET(IMPORT_NAME_REL)
+        _name = StrName(byte.arg);
+        PUSH(py_import(_name, true));
+        DISPATCH();
     TARGET(IMPORT_STAR)
         _0 = POPX();
         for(auto& [name, value]: _0->attr().items()){

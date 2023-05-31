@@ -505,9 +505,11 @@ __SUBSCR_END:
 
     Str _compile_import() {
         if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
+        Opcode op = OP_IMPORT_NAME;
+        if(match(TK("."))) op = OP_IMPORT_NAME_REL;
         consume(TK("@id"));
         Str name = prev().str();
-        ctx()->emit(OP_IMPORT_NAME, StrName(name).index, prev().line);
+        ctx()->emit(op, StrName(name).index, prev().line);
         return name;
     }
 

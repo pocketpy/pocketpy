@@ -205,7 +205,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* obj) {
         if(is_tagged(obj)) FATAL_ERROR();
         std::stringstream ss;
-        ss << "<" << OBJ_NAME(vm->_t(obj)) << " object at " << std::hex << obj << ">";
+        ss << "<" << OBJ_NAME(vm->_t(obj)) << " object at 0x" << std::hex << obj << ">";
         return VAR(ss.str());
     });
 

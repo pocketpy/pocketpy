@@ -53,7 +53,7 @@ When you do `import` a module, the VM will try to find it in the following order
 
 1. Search `vm->_modules`, if found, return it.
 2. Search `vm->_lazy_modules`, if found, compile and execute it, then return it.
-3. Search `vm->_path` and try to load it from file system.
+3. Search the working directory and try to load it from file system via `read_file_cwd`.
 
 
 ### Filesystem hook

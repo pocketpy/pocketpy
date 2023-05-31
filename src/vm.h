@@ -114,7 +114,6 @@ public:
     
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
-    std::vector<Str> _path;                            // search path
 
     PyObject* None;
     PyObject* True;
@@ -547,31 +546,75 @@ public:
         return _all_types[obj->type].obj;
     }
 
-    PyObject* py_import(StrName name){
+    struct ImportContext{
+        // 0: normal; 1: __init__.py; 2: relative
+        std::vector<std::pair<StrName, int>> pending;
+
+        struct Temp{
+            VM* vm;
+            StrName name;
+
+            Temp(VM* vm, StrName name, int type): vm(vm), name(name){
+                ImportContext* ctx = &vm->_import_context;
+                for(auto& [k,v]: ctx->pending){
+                    if(k == name){
+                        vm->_error("ImportError", fmt("circular import ", name.escape()));
+                    }
+                }
+                ctx->pending.emplace_back(name, type);
+            }
+
+            ~Temp(){
+                ImportContext* ctx = &vm->_import_context;
+                ctx->pending.pop_back();
+            }
+        };
+
+        Temp temp(VM* vm, StrName name, int type){
+            return Temp(vm, name, type);
+        }
+    };
+
+    ImportContext _import_context;
+
+    PyObject* py_import(StrName name, bool relative=false){
+        Str filename;
+        int type;
+        if(relative){
+            ImportContext* ctx = &_import_context;
+            type = 2;
+            for(auto it=ctx->pending.rbegin(); it!=ctx->pending.rend(); ++it){
+                if(it->second == 2) continue;
+                if(it->second == 1){
+                    filename = fmt(it->first, kPlatformSep, name, ".py");
+                    name = fmt(it->first, '.', name).c_str();
+                    break;
+                }
+            }
+            if(filename.length() == 0) _error("ImportError", "relative import outside of package");
+        }else{
+            type = 0;
+            filename = fmt(name, ".py");
+        }
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod == nullptr){
             Str source;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
-                Bytes b = _read_file_cwd(fmt(name, ".py"));
-                if(!b) {
-                    for(Str path: _path){
-#ifdef _WIN32
-                        const char* sep = "\\";
-#else
-                        const char* sep = "/";
-#endif
-                        b = _read_file_cwd(fmt(path, sep, name, ".py"));
-                        if(b) break;
-                    }
-                    if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
+                Bytes b = _read_file_cwd(filename);
+                if(!relative && !b){
+                    filename = fmt(name, kPlatformSep, "__init__.py");
+                    b = _read_file_cwd(filename);
+                    if(b) type = 1;
                 }
+                if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
                 source = Str(b.str());
             }else{
                 source = it->second;
                 _lazy_modules.erase(it);
             }
-            CodeObject_ code = compile(source, Str(name.sv())+".py", EXEC_MODE);
+            auto _ = _import_context.temp(this, name, type);
+            CodeObject_ code = compile(source, filename, EXEC_MODE);
             PyObject* new_mod = new_module(name);
             _exec(code, new_mod);
             new_mod->attr()._try_perfect_rehash();
