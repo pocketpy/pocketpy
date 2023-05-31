@@ -556,11 +556,6 @@ public:
 
             Temp(VM* vm, StrName name, int type): vm(vm), name(name){
                 ImportContext* ctx = &vm->_import_context;
-                for(auto& [k,v]: ctx->pending){
-                    if(k == name){
-                        vm->_error("ImportError", fmt("circular import ", name.escape()));
-                    }
-                }
                 ctx->pending.emplace_back(name, type);
             }
 
@@ -595,6 +590,11 @@ public:
         }else{
             type = 0;
             filename = fmt(name, ".py");
+        }
+        for(auto& [k, v]: _import_context.pending){
+            if(k == name){
+                vm->_error("ImportError", fmt("circular import ", name.escape()));
+            }
         }
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod == nullptr){
