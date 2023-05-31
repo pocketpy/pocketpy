@@ -24,14 +24,13 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 2. `__getattr__` and `__setattr__`.
 3. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
 4. `__slots__` in class definition.
-5. `import` module from a directory with `__init__.py`.
-6. One element tuple. `(1,)` is not supported.
-7. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
-8. Access the exception object in try..except.
-9.  `else` clause in try..except.
-10. Inplace methods like `__iadd__` and `__imul__`.
-11. `__del__` in class definition.
-12. `a = b = 1`, use `a, b = 1, 1` instead.
+5. One element tuple. `(1,)` is not supported.
+6. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
+7. Access the exception object in try..except.
+8.  `else` clause in try..except.
+9.  Inplace methods like `__iadd__` and `__imul__`.
+10. `__del__` in class definition.
+11. `a = b = 1`, use `a, b = 1, 1` instead.
 
 ## Different behaviors
 
