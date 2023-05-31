@@ -101,6 +101,10 @@ struct NumberTraits<4> {
 	static int_t stoi(Args&&... args) { return std::stoi(std::forward<Args>(args)...); }
 	template<typename... Args>
 	static float_t stof(Args&&... args) { return std::stof(std::forward<Args>(args)...); }
+
+	static constexpr int_t c0 = 0b00000000011111111111111111111100;
+	static constexpr int_t c1 = 0b11111111111111111111111111111100;
+	static constexpr int_t c2 = 0b00000000000000000000000000000011;
 };
 
 template <>
@@ -112,6 +116,10 @@ struct NumberTraits<8> {
 	static int_t stoi(Args&&... args) { return std::stoll(std::forward<Args>(args)...); }
 	template<typename... Args>
 	static float_t stof(Args&&... args) { return std::stod(std::forward<Args>(args)...); }
+
+	static constexpr int_t c0 = 0b0000000000001111111111111111111111111111111111111111111111111100;
+	static constexpr int_t c1 = 0b1111111111111111111111111111111111111111111111111111111111111100;
+	static constexpr int_t c2 = 0b0000000000000000000000000000000000000000000000000000000000000011;
 };
 
 using Number = NumberTraits<sizeof(void*)>;

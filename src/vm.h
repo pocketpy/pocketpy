@@ -709,24 +709,20 @@ PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
     vm->check_float(obj);
-    i64 bits = BITS(obj);
-    bits = (bits >> 2) << 2;
+    i64 bits = BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
-    i64 bits = BITS(obj);
-    bits = (bits >> 2) << 2;
+    i64 bits = BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
     vm->check_float(obj);
-    i64 bits = BITS(obj);
-    bits = (bits >> 2) << 2;
+    i64 bits = BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
-    i64 bits = BITS(obj);
-    bits = (bits >> 2) << 2;
+    i64 bits = BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 
@@ -752,11 +748,17 @@ PY_VAR_INT(unsigned int)
 PY_VAR_INT(unsigned long)
 PY_VAR_INT(unsigned long long)
 
-#define PY_VAR_FLOAT(T)                             \
+
+#define PY_VAR_FLOAT(T)                                 \
     inline PyObject* py_var(VM* vm, T _val){        \
-        f64 val = static_cast<f64>(_val);           \
-        i64 bits = BitsCvt(val)._int;               \
-        bits = (bits >> 2) << 2;                    \
+        BitsCvt val(static_cast<f64>(_val));        \
+        i64 bits = val._int & Number::c1;           \
+        i64 tail = val._int & Number::c2;           \
+        if(tail == 0b10){                                                       \
+            if((bits&Number::c0)!=Number::c0 && (bits&0b100)) bits += 0b100;    \
+        }else if(tail == 0b11){                                                 \
+            if((bits&Number::c0)!=Number::c0) bits += 0b100;                    \
+        }                                                                       \
         bits |= 0b10;                               \
         return reinterpret_cast<PyObject*>(bits);   \
     }

@@ -343,7 +343,7 @@ inline void init_builtins(VM* _vm) {
         f64 val = _CAST(f64, obj);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
         std::stringstream ss;
-        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1-2) << val;
+        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-2) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return VAR(s);
