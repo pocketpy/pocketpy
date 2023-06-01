@@ -1423,9 +1423,6 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 template<int ARGC>
 PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_non_tagged_type(obj, tp_type);
-    if(obj->attr().contains(name)){
-        throw std::runtime_error(fmt("bind_method() failed: ", name.escape(), " already exists"));
-    }
     PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
     obj->attr().set(name, nf);
     return nf;
@@ -1433,9 +1430,6 @@ PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
 
 template<int ARGC>
 PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
-    if(obj->attr().contains(name)){
-        throw std::runtime_error(fmt("bind_func() failed: ", name.escape(), " already exists"));
-    }
     PyObject* nf = VAR(NativeFunc(fn, ARGC, false));
     obj->attr().set(name, nf);
     return nf;
