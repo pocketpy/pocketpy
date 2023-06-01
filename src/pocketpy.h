@@ -1316,7 +1316,7 @@ inline void VM::post_init(){
     add_module_random(this);
     add_module_base64(this);
 
-    for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
+    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "datetime"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 
