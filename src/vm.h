@@ -774,8 +774,10 @@ inline PyObject* py_var(VM* vm, bool val){
 }
 
 template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
+    if(obj == vm->True) return true;
+    if(obj == vm->False) return false;
     vm->check_non_tagged_type(obj, vm->tp_bool);
-    return obj == vm->True;
+    return false;
 }
 template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
     return obj == vm->True;
