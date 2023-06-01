@@ -16,11 +16,39 @@ def round(x, ndigits=0):
 def abs(x):
     return -x if x < 0 else x
 
-def max(a, b):
-    return a if a > b else b
+def max(*args):
+    if len(args) == 0:
+        raise TypeError('max expected 1 arguments, got 0')
+    if len(args) == 1:
+        args = args[0]
+    args = iter(args)
+    res = next(args)
+    if res is StopIteration:
+        raise ValueError('max() arg is an empty sequence')
+    while True:
+        i = next(args)
+        if i is StopIteration:
+            break
+        if i > res:
+            res = i
+    return res
 
-def min(a, b):
-    return a if a < b else b
+def min(*args):
+    if len(args) == 0:
+        raise TypeError('min expected 1 arguments, got 0')
+    if len(args) == 1:
+        args = args[0]
+    args = iter(args)
+    res = next(args)
+    if res is StopIteration:
+        raise ValueError('min() arg is an empty sequence')
+    while True:
+        i = next(args)
+        if i is StopIteration:
+            break
+        if i < res:
+            res = i
+    return res
 
 def all(iterable):
     for i in iterable:
