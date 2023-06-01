@@ -749,16 +749,16 @@ PY_VAR_INT(unsigned long)
 PY_VAR_INT(unsigned long long)
 
 
-#define PY_VAR_FLOAT(T)                                 \
+#define PY_VAR_FLOAT(T)                             \
     inline PyObject* py_var(VM* vm, T _val){        \
         BitsCvt val(static_cast<f64>(_val));        \
         i64 bits = val._int & Number::c1;           \
         i64 tail = val._int & Number::c2;           \
-        if(tail == 0b10){                                                       \
-            if((bits&Number::c0)!=Number::c0 && (bits&0b100)) bits += 0b100;    \
-        }else if(tail == 0b11){                                                 \
-            if((bits&Number::c0)!=Number::c0) bits += 0b100;                    \
-        }                                                                       \
+        if(tail == 0b10){                           \
+            if(bits&0b100) bits += 0b100;           \
+        }else if(tail == 0b11){                     \
+            bits += 0b100;                          \
+        }                                           \
         bits |= 0b10;                               \
         return reinterpret_cast<PyObject*>(bits);   \
     }
