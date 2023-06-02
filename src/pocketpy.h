@@ -1069,6 +1069,23 @@ struct PyREPL{
         other.repl = nullptr;
     }
 
+    struct TempOut{
+        PrintFunc backup;
+        VM* vm;
+        TempOut(VM* vm, PrintFunc f){
+            this->vm = vm;
+            this->backup = vm->_stdout;
+            vm->_stdout = f;
+        }
+        ~TempOut(){
+            vm->_stdout = backup;
+        }
+        TempOut(const TempOut&) = delete;
+        TempOut& operator=(const TempOut&) = delete;
+        TempOut(TempOut&&) = delete;
+        TempOut& operator=(TempOut&&) = delete;
+    };
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<1>(type, [](VM* vm, ArgsView args){
             return VAR_T(PyREPL, vm);
@@ -1077,7 +1094,11 @@ struct PyREPL{
         vm->bind_method<1>(type, "input", [](VM* vm, ArgsView args){
             PyREPL& self = _CAST(PyREPL&, args[0]);
             const Str& s = CAST(Str&, args[1]);
-            return VAR(self.repl->input(s.str()));
+            static std::stringstream ss_out;
+            ss_out.str("");
+            TempOut _(vm, [](VM* vm, const Str& s){ ss_out << s; });
+            bool ok = self.repl->input(s.str());
+            return VAR(Tuple({VAR(ok), VAR(ss_out.str())}));
         });
     }
 };
