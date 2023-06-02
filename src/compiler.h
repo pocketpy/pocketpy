@@ -786,7 +786,7 @@ __SUBSCR_END:
                 if(match(TK("(")) && !match(TK(")"))){
                     EXPR(false); consume(TK(")"));
                 }else{
-                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
+                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }
                 ctx()->emit(OP_RAISE, dummy_t, kw_line);
                 consume_end_stmt();

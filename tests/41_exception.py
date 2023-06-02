@@ -71,3 +71,14 @@ try:
     exit(1)
 except AssertionError:
     pass
+
+def f(a: list):
+    try:
+        raise ValueError
+        exit(1)
+    except:
+        pass
+    a[0] = 1
+a = [0]
+f(a)
+assert a == [1]

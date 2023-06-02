@@ -166,7 +166,7 @@ struct Frame {
         // get the stack size of the try block (depth of for loops)
         int _stack_size = co->blocks[block].for_loop_depth;
         if(stack_size() < _stack_size) throw std::runtime_error("invalid stack size");
-        _s->reset(actual_sp_base() + _stack_size);          // rollback the stack   
+        _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
         _s->push(obj);                                      // push exception object
         _next_ip = co->blocks[block].end;
         return true;
