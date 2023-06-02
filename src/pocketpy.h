@@ -1053,8 +1053,38 @@ inline void add_module_time(VM* vm){
     });
 }
 
+struct PyREPL{
+    PY_CLASS(PyREPL, sys, _repl)
+
+    REPL* repl;
+
+    PyREPL(VM* vm){ repl = new REPL(vm); }
+    ~PyREPL(){ delete repl; }
+
+    PyREPL(const PyREPL&) = delete;
+    PyREPL& operator=(const PyREPL&) = delete;
+
+    PyREPL(PyREPL&& other) noexcept{
+        repl = other.repl;
+        other.repl = nullptr;
+    }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_constructor<1>(type, [](VM* vm, ArgsView args){
+            return VAR_T(PyREPL, vm);
+        });
+
+        vm->bind_method<1>(type, "input", [](VM* vm, ArgsView args){
+            PyREPL& self = _CAST(PyREPL&, args[0]);
+            const Str& s = CAST(Str&, args[1]);
+            return VAR(self.repl->input(s.str()));
+        });
+    }
+};
+
 inline void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
+    PyREPL::register_class(vm, mod);
     vm->setattr(mod, "version", VAR(PK_VERSION));
 
     PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
