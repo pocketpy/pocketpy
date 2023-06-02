@@ -583,6 +583,7 @@ __NEXT_STEP:;
         _error(StrName(byte.arg), msg);
     } DISPATCH();
     TARGET(RE_RAISE) _raise(); DISPATCH();
+    TARGET(POP_EXCEPTION) _last_exception = POPX(); DISPATCH();
     /*****************************************/
     TARGET(SETUP_DOCSTRING)
         TOP()->attr().set(__doc__, co_consts[byte.arg]);

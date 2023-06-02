@@ -123,6 +123,8 @@ public:
     PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
+    PyObject* _last_exception;
+
     PrintFunc _stdout;
     PrintFunc _stderr;
 
@@ -142,6 +144,7 @@ public:
         _stderr = [](VM* vm, const Str& s) { std::cerr << s; };
         callstack.reserve(8);
         _main = nullptr;
+        _last_exception = nullptr;
         init_builtin_types();
     }
 
@@ -1448,7 +1451,8 @@ inline void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
     for(PyObject* obj: vm->s_data) OBJ_MARK(obj);
-    if(_gc_marker_ex != nullptr) _gc_marker_ex(vm);
+    if(_gc_marker_ex) _gc_marker_ex(vm);
+    if(vm->_last_exception) OBJ_MARK(vm->_last_exception);
 }
 
 inline Str obj_type_name(VM *vm, Type type){

@@ -103,4 +103,36 @@ For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__ad
 
 ### Bind a property
 
-You can use `vm->property(...)` to create a `property` object and assign it to an type object.
+a property is a python's `property` that attached to a type instance with a getter and an optional setter. It is a data descriptor. A property redirects attribute access to specific functions.
+
+You can use `@property` to create python property or use `vm->property` to create native property.
+
+```cpp
+struct Point {
+  PY_CLASS(Point, test, Point);
+
+  int x;
+  int y;
+
+  Point(int x, int y) : x(x), y(y) {}
+
+  static void _register(VM *vm, auto mod, auto type) {
+    vm->bind_constructor<3>(type, [](VM *vm, auto args) {
+      auto x = CAST(i64, args[1]);
+      auto y = CAST(i64, args[2]);
+      return VAR_T(Point, x, y);
+    });
+
+    // getter and setter of property `x`
+    type->attr().set("x", vm->property([](VM* vm, ArgsView args){
+        Point& self = CAST(Point&, args[0]);
+        return VAR(self.x);
+    },
+    [](VM* vm, ArgsView args){
+        Point& self = CAST(Point&, args[0]);
+        self.x = CAST(int, args[1]);
+        return vm->None;
+    }));
+  }
+};
+```

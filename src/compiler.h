@@ -624,7 +624,7 @@ __SUBSCR_END:
             }
             int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
             // pop the exception on match
-            ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             compile_block_body();
             patches.push_back(ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));
             ctx()->patch_jump(patch);

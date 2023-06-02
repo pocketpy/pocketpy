@@ -1155,6 +1155,22 @@ inline void add_module_math(VM* vm){
     });
 }
 
+inline void add_module_traceback(VM* vm){
+    PyObject* mod = vm->new_module("traceback");
+    vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
+        if(vm->_last_exception==nullptr) vm->ValueError("no exception");
+        Exception& e = CAST(Exception&, vm->_last_exception);
+        vm->_stdout(vm, e.summary());
+        return vm->None;
+    });
+
+    vm->bind_func<0>(mod, "format_exc", [](VM* vm, ArgsView args) {
+        if(vm->_last_exception==nullptr) vm->ValueError("no exception");
+        Exception& e = CAST(Exception&, vm->_last_exception);
+        return VAR(e.summary());
+    });
+}
+
 inline void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
     vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
@@ -1306,6 +1322,7 @@ inline void VM::post_init(){
     init_builtins(this);
 #if !DEBUG_NO_BUILTIN_MODULES
     add_module_sys(this);
+    add_module_traceback(this);
     add_module_time(this);
     add_module_json(this);
     add_module_math(this);
