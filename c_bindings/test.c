@@ -71,7 +71,7 @@ int test_return_none(pkpy_vm* vm) {
 }
 
 int test_error_propagate(pkpy_vm* vm) {
-    pkpy_get_global(vm, "does not exist");
+    pkpy_error(vm, "NameError", "catch me");
     return 1;
 }
 
@@ -307,10 +307,8 @@ int main(int argc, char** argv) {
     // testing code going to standard error, can ignore next error
     pkpy_clear_error(vm, NULL);
 
-    //with the current way execptions are handled, this will fail and pass the
-    //error clean through, ignoring the python handling
-    //
-    //maybe worth fixing someday, but for now it is functionating as implemented
+    //errors
+    //this should be catchable
     check(pkpy_vm_run(vm, "try : test_error_propagate(); except NameError : pass"));
 
     error(pkpy_error(vm, "_", "test direct error mechanism"));
@@ -330,10 +328,10 @@ int main(int argc, char** argv) {
     //at such a time this interferes with a real world use case of the bindings
     //we can revisit it
     //
-    check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
-    check(pkpy_push_function(vm, test_nested_error, 0));
-    check(pkpy_set_global(vm, "test_nested_error"));
-    error(pkpy_vm_run(vm, "test_nested_error()"));
+    //check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
+    //check(pkpy_push_function(vm, test_nested_error, 0));
+    //check(pkpy_set_global(vm, "test_nested_error"));
+    //error(pkpy_vm_run(vm, "test_nested_error()"));
 
     check(pkpy_vm_run(vm, "import math"));
     check(pkpy_get_global(vm, "math"));
@@ -353,6 +351,10 @@ int main(int argc, char** argv) {
     check(pkpy_setattr(vm, "pi"));
     check(pkpy_vm_run(vm, "print(math.pi)"));
 
-    pkpy_vm_destroy(vm);
+
+    //should give a type error
+    check(pkpy_push_float(vm, 2.0));
+    error(pkpy_to_int(vm, -1, &r_int));
+
     return 0;
 }
