@@ -7,10 +7,11 @@
 
 int main(int argc, char** argv){
     pkpy::VM* vm = pkpy_new_vm();
-    vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
+    pkpy::PyObject* input_f = vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
         // pkpy::getline() has bugs for PIPE input on Windows
         return VAR(pkpy::getline());
     });
+    vm->_modules["sys"]->attr("stdin")->attr().set("readline", input_f);
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);
         bool need_more_lines = false;

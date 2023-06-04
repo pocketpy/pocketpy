@@ -104,7 +104,8 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def __f(self, sep):
+def __f(self, sep=None):
+    sep = sep or ' '
     if sep == "":
         return list(self)
     res = []
@@ -129,6 +130,22 @@ def __f(self, *args):
             self = self.replace('{'+str(i)+'}', str(args[i]))
     return self
 str.format = __f
+
+def __f(self, chars=None):
+    chars = chars or ' \t\n\r'
+    i = 0
+    while i < len(self) and self[i] in chars:
+        ++i
+    return self[i:]
+str.lstrip = __f
+
+def __f(self, chars=None):
+    chars = chars or ' \t\n\r'
+    j = len(self) - 1
+    while j >= 0 and self[j] in chars:
+        --j
+    return self[:j+1]
+str.rstrip = __f
 
 def __f(self, chars=None):
     chars = chars or ' \t\n\r'
@@ -169,8 +186,37 @@ def __f(self, reverse=False, key=None):
         self.reverse()
 list.sort = __f
 
-def staticmethod(f):
-    return f    # no effect
+def __f(self, other):
+    for i, j in zip(self, other):
+        if i != j:
+            return i < j
+    return len(self) < len(other)
+tuple.__lt__ = __f
+list.__lt__ = __f
+
+def __f(self, other):
+    for i, j in zip(self, other):
+        if i != j:
+            return i > j
+    return len(self) > len(other)
+tuple.__gt__ = __f
+list.__gt__ = __f
+
+def __f(self, other):
+    for i, j in zip(self, other):
+        if i != j:
+            return i <= j
+    return len(self) <= len(other)
+tuple.__le__ = __f
+list.__le__ = __f
+
+def __f(self, other):
+    for i, j in zip(self, other):
+        if i != j:
+            return i >= j
+    return len(self) >= len(other)
+tuple.__ge__ = __f
+list.__ge__ = __f
 
 type.__repr__ = lambda self: "<class '" + self.__name__ + "'>"
 

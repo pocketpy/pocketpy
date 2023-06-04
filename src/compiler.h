@@ -856,8 +856,10 @@ __SUBSCR_END:
         consume(TK("@id"));
         int namei = StrName(prev().str()).index;
         int super_namei = -1;
-        if(match(TK("(")) && match(TK("@id"))){
-            super_namei = StrName(prev().str()).index;
+        if(match(TK("("))){
+            if(match(TK("@id"))){
+                super_namei = StrName(prev().str()).index;
+            }
             consume(TK(")"));
         }
         if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
