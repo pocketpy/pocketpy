@@ -716,13 +716,11 @@ struct BinaryExpr: Expr{
     }
 
     void emit(CodeEmitContext* ctx) override {
-        
+        std::vector<int> jmps;
         if(is_compare() && lhs->is_compare()){
             // (a < b) < c
-            std::vector<int> jmps;
             static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
             // [b, RES]
-            for(int i: jmps) ctx->patch_jump(i);
         }else{
             // (1 + 2) < c
             lhs->emit(ctx);
@@ -759,6 +757,8 @@ struct BinaryExpr: Expr{
             case TK("@"):   ctx->emit(OP_BINARY_MATMUL, BC_NOARG, line);  break;
             default: FATAL_ERROR();
         }
+
+        for(int i: jmps) ctx->patch_jump(i);
     }
 };
 

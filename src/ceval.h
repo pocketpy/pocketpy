@@ -420,6 +420,7 @@ __NEXT_STEP:;
             PUSH(vm->False);                // [False]
             frame->jump_abs(byte.arg);
         } else POP();                       // [b]
+        DISPATCH();
     TARGET(LOOP_CONTINUE)
         frame->jump_abs(co_blocks[byte.block].start);
         DISPATCH();
