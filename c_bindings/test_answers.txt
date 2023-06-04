@@ -63,6 +63,13 @@ NameError: testing error throwing from python
 successfully errored with this message: 
 Traceback (most recent call last):
 _: test direct error mechanism
+successfully errored with this message: 
+Traceback (most recent call last):
+  File "<c-bound>", line 1
+    test_nested_error()
+  File "<c-bound>", line 1
+    def error_from_python() : raise NotImplementedError()
+NotImplementedError
 pi: 3.14
 pi: 3.14
 2

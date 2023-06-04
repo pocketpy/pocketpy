@@ -328,10 +328,10 @@ int main(int argc, char** argv) {
     //at such a time this interferes with a real world use case of the bindings
     //we can revisit it
     //
-    //check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
-    //check(pkpy_push_function(vm, test_nested_error, 0));
-    //check(pkpy_set_global(vm, "test_nested_error"));
-    //error(pkpy_vm_run(vm, "test_nested_error()"));
+    check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
+    check(pkpy_push_function(vm, test_nested_error, 0));
+    check(pkpy_set_global(vm, "test_nested_error"));
+    error(pkpy_vm_run(vm, "test_nested_error()"));
 
     check(pkpy_vm_run(vm, "import math"));
     check(pkpy_get_global(vm, "math"));
