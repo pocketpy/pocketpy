@@ -69,6 +69,12 @@ __NEXT_STEP:;
     TARGET(POP_TOP) POP(); DISPATCH();
     TARGET(DUP_TOP) PUSH(TOP()); DISPATCH();
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
+    TARGET(ROT_THREE)
+        _0 = TOP();
+        TOP() = SECOND();
+        SECOND() = THIRD();
+        THIRD() = _0;
+        DISPATCH();
     TARGET(PRINT_EXPR)
         if(TOP() != None) _stdout(this, CAST(Str&, py_repr(TOP())) + "\n");
         POP();
@@ -408,6 +414,12 @@ __NEXT_STEP:;
         if(py_bool(TOP()) == false) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
+    TARGET(SHORTCUT_IF_FALSE_OR_POP)
+        if(py_bool(TOP()) == false){        // [b, False]
+            STACK_SHRINK(2);                // []
+            PUSH(vm->False);                // [False]
+            frame->jump_abs(byte.arg);
+        } else POP();                       // [b]
     TARGET(LOOP_CONTINUE)
         frame->jump_abs(co_blocks[byte.block].start);
         DISPATCH();
