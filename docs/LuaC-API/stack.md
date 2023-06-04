@@ -17,6 +17,7 @@ Pop `n` items from the stack.
 #### `bool pkpy_push_function(pkpy_vm*, pkpy_function, int argc)`
 
 Push a function onto the stack. The function is of `typedef int (*pkpy_function)(pkpy_vm*);`
+The provided function should return the number of return values it leaves on the stack 
 
 #### `bool pkpy_push_int(pkpy_vm*, int)`
 
