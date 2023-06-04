@@ -79,9 +79,12 @@ enum Precedence {
   PREC_LOGICAL_OR,    // or
   PREC_LOGICAL_AND,   // and
   PREC_LOGICAL_NOT,   // not
-  PREC_EQUALITY,      // == !=
-  PREC_TEST,          // in / is / is not / not in
-  PREC_COMPARISION,   // < > <= >=
+  /* https://docs.python.org/3/reference/expressions.html#comparisons
+   * Unlike C, all comparison operations in Python have the same priority,
+   * which is lower than that of any arithmetic, shifting or bitwise operation.
+   * Also unlike C, expressions like a < b < c have the interpretation that is conventional in mathematics.
+   */
+  PREC_COMPARISION,   // < > <= >= != ==, in / is / is not / not in
   PREC_BITWISE_OR,    // |
   PREC_BITWISE_XOR,   // ^
   PREC_BITWISE_AND,   // &

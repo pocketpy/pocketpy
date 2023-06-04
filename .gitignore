@@ -21,9 +21,9 @@ plugins/macos/pocketpy/pocketpy.*
 src/_generated.h
 profile.sh
 test
-tmp.rar
 src/httplib.h
 pocketpy.exe
 main.obj
 pocketpy.exp
 pocketpy.lib
+APPS

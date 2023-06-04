@@ -93,12 +93,12 @@ class Compiler {
         rules[TK("**")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
         rules[TK(">")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("<")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("==")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
-        rules[TK("!=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EQUALITY };
+        rules[TK("==")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("!=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK(">=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("<=")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
-        rules[TK("in")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("is")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("in")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("is")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("<<")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK(">>")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_SHIFT };
         rules[TK("&")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_BITWISE_AND };
@@ -107,8 +107,8 @@ class Compiler {
         rules[TK("@")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("if")] =       { nullptr,               METHOD(exprTernary),        PREC_TERNARY };
         rules[TK(",")] =        { nullptr,               METHOD(exprTuple),          PREC_TUPLE };
-        rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
-        rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_TEST };
+        rules[TK("not in")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
+        rules[TK("is not")] =   { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("and") ] =     { nullptr,               METHOD(exprAnd),            PREC_LOGICAL_AND };
         rules[TK("or")] =       { nullptr,               METHOD(exprOr),             PREC_LOGICAL_OR };
         rules[TK("not")] =      { METHOD(exprNot),       nullptr,                    PREC_LOGICAL_NOT };
@@ -856,8 +856,10 @@ __SUBSCR_END:
         consume(TK("@id"));
         int namei = StrName(prev().str()).index;
         int super_namei = -1;
-        if(match(TK("(")) && match(TK("@id"))){
-            super_namei = StrName(prev().str()).index;
+        if(match(TK("("))){
+            if(match(TK("@id"))){
+                super_namei = StrName(prev().str()).index;
+            }
             consume(TK(")"));
         }
         if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);

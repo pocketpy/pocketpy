@@ -81,3 +81,39 @@ def Counter(iterable):
         else:
             a[x] = 1
     return a
+
+class defaultdict:
+    def __init__(self, default_factory) -> None:
+        self.default_factory = default_factory
+        self._a = {}
+
+    def __getitem__(self, key):
+        if key not in self._a:
+            self._a[key] = self.default_factory()
+        return self._a[key]
+        
+    def __setitem__(self, key, value):
+        self._a[key] = value
+
+    def __repr__(self) -> str:
+        return f"defaultdict({self.default_factory}, {self._a})"
+    
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, defaultdict):
+            return False
+        if self.default_factory != __o.default_factory:
+            return False
+        return self._a == __o._a
+    
+    def __len__(self):
+        return len(self._a)
+
+    def keys(self):
+        return self._a.keys()
+    
+    def values(self):
+        return self._a.values()
+    
+    def items(self):
+        return self._a.items()
+

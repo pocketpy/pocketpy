@@ -23,6 +23,7 @@ struct Expr{
     virtual bool is_literal() const { return false; }
     virtual bool is_json_object() const { return false; }
     virtual bool is_attrib() const { return false; }
+    virtual bool is_compare() const { return false; }
 
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) { return false; }
@@ -531,6 +532,7 @@ struct FStringExpr: Expr{
     }
 
     void _load_simple_expr(CodeEmitContext* ctx, Str expr){
+        // TODO: pre compile this into a function
         int dot = expr.index(".");
         if(dot < 0){
             ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
@@ -682,8 +684,48 @@ struct BinaryExpr: Expr{
     Expr_ rhs;
     std::string str() const override { return TK_STR(op); }
 
+    bool is_compare() const override {
+        switch(op){
+            case TK("<"): case TK("<="): case TK("=="):
+            case TK("!="): case TK(">"): case TK(">="): return true;
+            default: return false;
+        }
+    }
+
+    void _emit_compare(CodeEmitContext* ctx, std::vector<int>& jmps){
+        if(lhs->is_compare()){
+            static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
+        }else{
+            lhs->emit(ctx); // [a]
+        }
+        rhs->emit(ctx); // [a, b]
+        ctx->emit(OP_DUP_TOP, BC_NOARG, line);      // [a, b, b]
+        ctx->emit(OP_ROT_THREE, BC_NOARG, line);    // [b, a, b]
+        switch(op){
+            case TK("<"):   ctx->emit(OP_COMPARE_LT, BC_NOARG, line);  break;
+            case TK("<="):  ctx->emit(OP_COMPARE_LE, BC_NOARG, line);  break;
+            case TK("=="):  ctx->emit(OP_COMPARE_EQ, BC_NOARG, line);  break;
+            case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
+            case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
+            case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
+            default: UNREACHABLE();
+        }
+        // [b, RES]
+        int index = ctx->emit(OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, line);
+        jmps.push_back(index);
+    }
+
     void emit(CodeEmitContext* ctx) override {
-        lhs->emit(ctx);
+        std::vector<int> jmps;
+        if(is_compare() && lhs->is_compare()){
+            // (a < b) < c
+            static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
+            // [b, RES]
+        }else{
+            // (1 + 2) < c
+            lhs->emit(ctx);
+        }
+
         rhs->emit(ctx);
         switch (op) {
             case TK("+"):   ctx->emit(OP_BINARY_ADD, BC_NOARG, line);  break;
@@ -700,6 +742,7 @@ struct BinaryExpr: Expr{
             case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
             case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
             case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
+
             case TK("in"):      ctx->emit(OP_CONTAINS_OP, 0, line);   break;
             case TK("not in"):  ctx->emit(OP_CONTAINS_OP, 1, line);   break;
             case TK("is"):      ctx->emit(OP_IS_OP, 0, line);         break;
@@ -714,6 +757,8 @@ struct BinaryExpr: Expr{
             case TK("@"):   ctx->emit(OP_BINARY_MATMUL, BC_NOARG, line);  break;
             default: FATAL_ERROR();
         }
+
+        for(int i: jmps) ctx->patch_jump(i);
     }
 };
 

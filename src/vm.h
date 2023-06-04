@@ -1005,7 +1005,7 @@ inline Str VM::disassemble(CodeObject_ co){
 
     std::vector<int> jumpTargets;
     for(auto byte : co->codes){
-        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE){
+        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP){
             jumpTargets.push_back(byte.arg);
         }
     }
@@ -1027,11 +1027,12 @@ inline Str VM::disassemble(CodeObject_ co){
             pointer = "   ";
         }
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
-        ss << " " << pad(OP_NAMES[byte.op], 20) << " ";
+        ss << " " << pad(OP_NAMES[byte.op], 25) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
         std::string argStr = _opcode_argstr(this, byte, co.get());
-        ss << pad(argStr, 40);      // may overflow
-        ss << co->blocks[byte.block].type;
+        ss << argStr;
+        // ss << pad(argStr, 40);      // may overflow
+        // ss << co->blocks[byte.block].type;
         if(i != co->codes.size() - 1) ss << '\n';
     }
 

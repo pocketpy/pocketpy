@@ -104,6 +104,10 @@ inline void init_builtins(VM* _vm) {
         return VAR_T(VoidP, obj);
     });
 
+    _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
+        return args[0];
+    });
+
     _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
         return vm->py_import(CAST(Str&, args[0]));
     });
@@ -1110,8 +1114,10 @@ inline void add_module_sys(VM* vm){
 
     PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
     PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    PyObject* stdin_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
+    vm->setattr(mod, "stdin", stdin_);
 
     vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
         vm->_stdout(vm, CAST(Str&, args[0]));
