@@ -531,6 +531,7 @@ struct FStringExpr: Expr{
     }
 
     void _load_simple_expr(CodeEmitContext* ctx, Str expr){
+        // TODO: pre compile this into a function
         int dot = expr.index(".");
         if(dot < 0){
             ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
@@ -700,6 +701,7 @@ struct BinaryExpr: Expr{
             case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
             case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
             case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
+            
             case TK("in"):      ctx->emit(OP_CONTAINS_OP, 0, line);   break;
             case TK("not in"):  ctx->emit(OP_CONTAINS_OP, 1, line);   break;
             case TK("is"):      ctx->emit(OP_IS_OP, 0, line);         break;

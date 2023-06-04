@@ -8,11 +8,8 @@
 int main(int argc, char** argv){
     pkpy::VM* vm = pkpy_new_vm();
     vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
-        // TODO: we do not use pkpy::getline() here. It doesn't accept unicode characters.
-        // pkpy::getline() has bugs for PIPE input
-        static std::string buffer;
-        std::cin >> buffer;
-        return VAR(buffer);
+        // pkpy::getline() has bugs for PIPE input on Windows
+        return VAR(pkpy::getline());
     });
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);
