@@ -315,23 +315,10 @@ int main(int argc, char** argv) {
 
 
     //more complicated error handling
-    //
-    //at the moment this is disabled, as this use case is not supported
-    //it will cause the program to abort 
-    //
-    //a python exception thrown from python can not pass through a c binding
-    //
-    //this means for now the api can only be used to make shallow bindings, or
-    //else care must be taken to not let an exception go through a c binding by
-    //catching it in python first 
-    //
-    //at such a time this interferes with a real world use case of the bindings
-    //we can revisit it
-    //
-    //check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
-    //check(pkpy_push_function(vm, test_nested_error, 0));
-    //check(pkpy_set_global(vm, "test_nested_error"));
-    //error(pkpy_vm_run(vm, "test_nested_error()"));
+    check(pkpy_vm_run(vm, "def error_from_python() : raise NotImplementedError()"));
+    check(pkpy_push_function(vm, test_nested_error, 0));
+    check(pkpy_set_global(vm, "test_nested_error"));
+    error(pkpy_vm_run(vm, "test_nested_error()"));
 
     check(pkpy_vm_run(vm, "import math"));
     check(pkpy_get_global(vm, "math"));
