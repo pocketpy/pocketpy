@@ -378,11 +378,7 @@ __NEXT_STEP:;
     TARGET(IS_OP)
         _1 = POPX();    // rhs
         _0 = TOP();     // lhs
-        if(byte.arg == 1){
-            TOP() = VAR(_0 != _1);
-        }else{
-            TOP() = VAR(_0 == _1);
-        }
+        TOP() = VAR(static_cast<bool>((_0==_1) ^ byte.arg));
         DISPATCH();
     TARGET(CONTAINS_OP)
         // a in b -> b __contains__ a
@@ -393,11 +389,7 @@ __NEXT_STEP:;
             _0 = call_method(TOP(), __contains__, SECOND());
         }
         POP();
-        if(byte.arg == 1){
-            TOP() = VAR(!CAST(bool, _0));
-        }else{
-            TOP() = VAR(CAST(bool, _0));
-        }
+        TOP() = VAR(static_cast<bool>(CAST(bool, _0) ^ byte.arg));
         DISPATCH();
     /*****************************************/
     TARGET(JUMP_ABSOLUTE)
