@@ -48,3 +48,8 @@ assert d1 != d3
 
 a = dict([(1, 2), (3, 4)])
 assert a == {1: 2, 3: 4}
+
+assert a.pop(1) == 2
+assert a == {3: 4}
+assert a.pop(3) == 4
+assert a == {}

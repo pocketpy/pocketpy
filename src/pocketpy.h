@@ -898,6 +898,14 @@ inline void init_builtins(VM* _vm) {
         self.erase(key);
     });
 
+    _vm->bind_method<1>("dict", "pop", [](VM* vm, ArgsView args) {
+        Dict& self = _CAST(Dict&, args[0]);
+        PyObject* value = self.try_get(args[1]);
+        if(value == nullptr) vm->KeyError(args[1]);
+        self.erase(args[1]);
+        return value;
+    });
+
     _vm->bind__contains__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
         Dict& self = _CAST(Dict&, obj);
         return self.contains(key);

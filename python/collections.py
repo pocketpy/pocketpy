@@ -117,3 +117,5 @@ class defaultdict:
     def items(self):
         return self._a.items()
 
+    def pop(self, key):
+        return self._a.pop(key)
