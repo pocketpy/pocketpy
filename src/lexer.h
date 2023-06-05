@@ -231,25 +231,6 @@ struct Lexer {
         }
 
         if(kTokenKwMap.count(name)){
-            if(name == "not"){
-                if(strncmp(curr_char, " in", 3) == 0){
-                    curr_char += 3;
-                    add_token(TK("not in"));
-                    return 0;
-                }
-            }else if(name == "is"){
-                if(strncmp(curr_char, " not", 4) == 0){
-                    curr_char += 4;
-                    add_token(TK("is not"));
-                    return 0;
-                }
-            }else if(name == "yield"){
-                if(strncmp(curr_char, " from", 5) == 0){
-                    curr_char += 5;
-                    add_token(TK("yield from"));
-                    return 0;
-                }
-            }
             add_token(kTokenKwMap.at(name));
         } else {
             add_token(TK("@id"));
@@ -276,13 +257,34 @@ struct Lexer {
             case TK("{"): case TK("["): case TK("("): brackets_level++; break;
             case TK(")"): case TK("]"): case TK("}"): brackets_level--; break;
         }
-        nexts.push_back( Token{
+        auto token = Token{
             type,
             token_start,
             (int)(curr_char - token_start),
             current_line - ((type == TK("@eol")) ? 1 : 0),
             value
-        });
+        };
+        // handle "not in", "is not", "yield from"
+        if(!nexts.empty()){
+            switch(nexts.back().type){
+                case TK("not"):
+                    if(type == TK("in")) {
+                        nexts.back().type = TK("not in");
+                        return;
+                    }
+                case TK("is"):
+                    if(type == TK("not")){
+                        nexts.back().type = TK("is not");
+                        return;
+                    }
+                case TK("yield"):
+                    if(type == TK("from")){
+                        nexts.back().type = TK("yield from");
+                        return;
+                    }
+                default: nexts.push_back(token); return;
+            }
+        }
     }
 
     void add_token_2(char c, TokenIndex one, TokenIndex two) {

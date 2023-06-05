@@ -19,3 +19,14 @@ assert a.append == a.append
 assert a.append is not a.append
 assert a.append is not b.append
 assert a.append != b.append
+
+inq = 0
+if not inq:
+    assert True
+else:
+    assert False
+
+if inq is   not 1:
+    assert True
+if inq  is  not  0:
+    assert False
