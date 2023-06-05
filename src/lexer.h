@@ -266,24 +266,20 @@ struct Lexer {
         };
         // handle "not in", "is not", "yield from"
         if(!nexts.empty()){
-            switch(nexts.back().type){
-                case TK("not"):
-                    if(type == TK("in")) {
-                        nexts.back().type = TK("not in");
-                        return;
-                    }
-                case TK("is"):
-                    if(type == TK("not")){
-                        nexts.back().type = TK("is not");
-                        return;
-                    }
-                case TK("yield"):
-                    if(type == TK("from")){
-                        nexts.back().type = TK("yield from");
-                        return;
-                    }
-                default: nexts.push_back(token); return;
+            auto& back = nexts.back();
+            if(back.type == TK("not") && type == TK("in")){
+                back.type = TK("not in");
+                return;
             }
+            if(back.type == TK("is") && type == TK("not")){
+                back.type = TK("is not");
+                return;
+            }
+            if(back.type == TK("yield") && type == TK("from")){
+                back.type = TK("yield from");
+                return;
+            }
+            nexts.push_back(token);
         }
     }
 
