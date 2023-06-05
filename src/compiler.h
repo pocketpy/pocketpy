@@ -646,40 +646,42 @@ __SUBSCR_END:
     }
 
     bool try_compile_assignment(){
-        Expr* lhs_p = ctx()->s_expr.top().get();
-        bool inplace;
         switch (curr().type) {
             case TK("+="): case TK("-="): case TK("*="): case TK("/="): case TK("//="): case TK("%="):
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
+                Expr* lhs_p = ctx()->s_expr.top().get();
+                if(lhs_p->is_starred()) SyntaxError();
                 if(ctx()->is_compiling_class) SyntaxError();
-                inplace = true;
                 advance();
                 auto e = make_expr<BinaryExpr>();
                 e->op = prev().type - 1; // -1 to remove =
                 e->lhs = ctx()->s_expr.popx();
                 EXPR_TUPLE();
                 e->rhs = ctx()->s_expr.popx();
-                ctx()->s_expr.push(std::move(e));
-            } break;
-            case TK("="):
-                inplace = false;
-                advance();
-                EXPR_TUPLE();
-                break;
+                if(e->is_starred()) SyntaxError();
+                e->emit(ctx());
+                bool ok = lhs_p->emit_store(ctx());
+                if(!ok) SyntaxError();
+            } return true;
+            case TK("="): {
+                int n = 0;
+                while(match(TK("="))){
+                    EXPR_TUPLE();
+                    n += 1;
+                }
+                // stack size is n+1
+                Expr_ val = ctx()->s_expr.popx();
+                val->emit(ctx());
+                for(int i=1; i<n; i++) ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+                for(int i=0; i<n; i++){
+                    auto e = ctx()->s_expr.popx();
+                    if(e->is_starred()) SyntaxError();
+                    bool ok = e->emit_store(ctx());
+                    if(!ok) SyntaxError();
+                }
+            } return true;
             default: return false;
         }
-        // std::cout << ctx()->_log_s_expr() << std::endl;
-        Expr_ rhs = ctx()->s_expr.popx();
-
-        if(lhs_p->is_starred() || rhs->is_starred()){
-            SyntaxError("can't use starred expression here");
-        }
-
-        rhs->emit(ctx());
-        bool ok = lhs_p->emit_store(ctx());
-        if(!ok) SyntaxError();
-        if(!inplace) ctx()->s_expr.pop();
-        return true;
     }
 
     void compile_stmt() {

@@ -30,7 +30,7 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 8.  `else` clause in try..except.
 9.  Inplace methods like `__iadd__` and `__imul__`.
 10. `__del__` in class definition.
-11. `a = b = 1`, use `a, b = 1, 1` instead.
+11. Multiple inheritance.
 
 ## Different behaviors
 
