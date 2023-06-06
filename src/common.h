@@ -29,7 +29,7 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"1.0.1"
+#define PK_VERSION				"1.0.2"
 
 // debug macros
 #define DEBUG_NO_BUILTIN_MODULES    0
@@ -153,6 +153,8 @@ struct Type {
 #define FATAL_ERROR() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #endif
 
+#define PK_ASSERT(x) if(!(x)) FATAL_ERROR();
+
 inline const float kInstAttrLoadFactor = 0.67f;
 inline const float kTypeAttrLoadFactor = 0.5f;
 
@@ -173,7 +175,6 @@ inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
 
 // special singals, is_tagged() for them is true
 inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
-inline PyObject* const PY_BEGIN_CALL = (PyObject*)0b010011;
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 

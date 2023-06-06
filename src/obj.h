@@ -60,8 +60,9 @@ struct FuncDecl {
     };
     CodeObject_ code;           // code object of this function
     pod_vector<int> args;       // indices in co->varnames
-    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     pod_vector<KwArg> kwargs;   // indices in co->varnames
+    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
+    int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
     bool nested = false;        // whether this function is nested
     void _gc_mark() const;
 };
@@ -99,6 +100,12 @@ struct Range {
     i64 start = 0;
     i64 stop = -1;
     i64 step = 1;
+};
+
+struct StarWrapper{
+    int level;      // either 1 or 2
+    PyObject* obj;
+    StarWrapper(int level, PyObject* obj) : level(level), obj(obj) {}
 };
 
 struct Bytes{
@@ -332,6 +339,16 @@ struct Py_<BoundMethod> final: PyObject {
     void _obj_gc_mark() override {
         OBJ_MARK(_value.self);
         OBJ_MARK(_value.func);
+    }
+};
+
+template<>
+struct Py_<StarWrapper> final: PyObject {
+    StarWrapper _value;
+    void* value() override { return &_value; }
+    Py_(Type type, StarWrapper val): PyObject(type), _value(val) {}
+    void _obj_gc_mark() override {
+        OBJ_MARK(_value.obj);
     }
 };
 

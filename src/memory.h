@@ -238,6 +238,7 @@ struct MemoryPool{
     }
 };
 
+// TODO: make them thread-safe
 inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
 

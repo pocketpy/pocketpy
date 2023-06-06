@@ -20,17 +20,16 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 
 ## Unimplemented features
 
-1. `**kwargs` in function definition.
-2. `__getattr__` and `__setattr__`.
-3. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
-4. `__slots__` in class definition.
-5. One element tuple. `(1,)` is not supported.
-6. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
-7. Access the exception object in try..except.
-8.  `else` clause in try..except.
-9.  Inplace methods like `__iadd__` and `__imul__`.
-10. `__del__` in class definition.
-11. Multiple inheritance.
+1. `__getattr__` and `__setattr__`.
+2. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
+3. `__slots__` in class definition.
+4. One element tuple. `(1,)` is not supported.
+5. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
+6. Access the exception object in try..except.
+7.  `else` clause in try..except.
+8.  Inplace methods like `__iadd__` and `__imul__`.
+9. `__del__` in class definition.
+10. Multiple inheritance.
 
 ## Different behaviors
 
