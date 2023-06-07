@@ -17,8 +17,6 @@ pkpy is extremely easy to embed via a single header file `pocketpy.h`, without e
 
 Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.dev/static/web/).
 
-<a href="https://www.buymeacoffee.com/blueloveTH"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=blueloveTH&button_colour=FF5F5F&font_colour=ffffff&font_family=Bree&outline_colour=000000&coffee_colour=FFDD00" /></a>
-
 ## Quick start
 
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
