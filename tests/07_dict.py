@@ -54,7 +54,7 @@ assert a == {3: 4}
 assert a.pop(3) == 4
 assert a == {}
 
-# unpack expression
+# unpacking builder
 a = {1:2, 3:4}
 b = {**a, 5:6, **a}
 assert b == {1: 2, 3: 4, 5: 6}

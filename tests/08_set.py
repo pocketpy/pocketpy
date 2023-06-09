@@ -78,7 +78,7 @@ assert {1,2,3}.issuperset({1,2})
 assert {1,2,3}.isdisjoint({4,5,6})
 assert not {1,2,3}.isdisjoint({2,3,4})
 
-# unpack expression
+# unpacking builder
 a = {1, 2, 3}
 b = {*a, 4, 5, *a, *a}
 assert b == {1, 2, 3, 4, 5}

@@ -76,7 +76,7 @@ b = [(1, 2), (3, 3), (5, 1)]
 b.sort(key=lambda x:x[1])
 assert b == [(5, 1), (1, 2), (3,3)]
 
-# unpack expression
+# unpacking builder
 a = [1, 2, 3]
 b = [*a, 4, 5]
 assert b == [1, 2, 3, 4, 5]
