@@ -15,7 +15,7 @@ inline std::filesystem::path get_rel(const VM* vm, const std::filesystem::path &
     return rel.lexically_relative(vm->_lowest_isolated_cwd_path);
 }
 
-bool check_if_path_is_isolated(const std::string & path_to_check_str,
+inline bool check_if_path_is_isolated(const std::string & path_to_check_str,
                                const std::string & toplevel_path_str) {
     //.lexically_normal() expands somepath/somdir/.. to somepath/
     auto toplevel_path = std::filesystem::path(toplevel_path_str).lexically_normal();
