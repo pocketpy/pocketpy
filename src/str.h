@@ -124,19 +124,37 @@ struct Str{
         return memcmp(data, other.data, size) != 0;
     }
 
+    bool operator==(const std::string_view other) const {
+        if(size != (int)other.size()) return false;
+        return memcmp(data, other.data(), size) == 0;
+    }
+
+    bool operator!=(const std::string_view other) const {
+        if(size != (int)other.size()) return true;
+        return memcmp(data, other.data(), size) != 0;
+    }
+
+    bool operator==(const char* p) const {
+        return *this == std::string_view(p);
+    }
+
+    bool operator!=(const char* p) const {
+        return *this != std::string_view(p);
+    }
+
     bool operator<(const Str& other) const {
         int ret = strncmp(data, other.data, std::min(size, other.size));
         if(ret != 0) return ret < 0;
         return size < other.size;
     }
 
-    bool operator<(const std::string_view& other) const {
+    bool operator<(const std::string_view other) const {
         int ret = strncmp(data, other.data(), std::min(size, (int)other.size()));
         if(ret != 0) return ret < 0;
         return size < (int)other.size();
     }
 
-    friend bool operator<(const std::string_view& other, const Str& str){
+    friend bool operator<(const std::string_view other, const Str& str){
         return str > other;
     }
 

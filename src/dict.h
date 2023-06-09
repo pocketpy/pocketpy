@@ -124,6 +124,14 @@ struct Dict{
         return v;
     }
 
+    template<typename __Func>
+    void apply(__Func f) const {
+        for(int i=0; i<_capacity; i++){
+            if(_items[i].first == nullptr) continue;
+            f(_items[i].first, _items[i].second);
+        }
+    }
+
     void clear(){
         memset(_items, 0, _capacity * sizeof(Item));
         _size = 0;

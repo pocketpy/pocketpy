@@ -90,7 +90,7 @@ class Compiler {
         rules[TK("*")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("/")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("//")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
-        rules[TK("**")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_EXPONENT };
+        rules[TK("**")] =       { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_EXPONENT };
         rules[TK(">")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("<")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
         rules[TK("==")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_COMPARISION };
@@ -280,7 +280,10 @@ class Compiler {
                 ctx()->s_expr.push(make_expr<NegatedExpr>(ctx()->s_expr.popx()));
                 break;
             case TK("*"):
-                ctx()->s_expr.push(make_expr<StarredExpr>(ctx()->s_expr.popx()));
+                ctx()->s_expr.push(make_expr<StarredExpr>(1, ctx()->s_expr.popx()));
+                break;
+            case TK("**"):
+                ctx()->s_expr.push(make_expr<StarredExpr>(2, ctx()->s_expr.popx()));
                 break;
             default: FATAL_ERROR();
         }
@@ -319,7 +322,6 @@ class Compiler {
             if (curr().type == TK("]")) break;
             EXPR();
             items.push_back(ctx()->s_expr.popx());
-            if(items.back()->is_starred()) SyntaxError();
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
                 _consume_comp<ListCompExpr>(std::move(items[0]));
@@ -341,19 +343,24 @@ class Compiler {
             match_newlines_repl();
             if (curr().type == TK("}")) break;
             EXPR();
-            if(curr().type == TK(":")) parsing_dict = true;
+            int star_level = ctx()->s_expr.top()->star_level();
+            if(star_level==2 || curr().type == TK(":")){
+                parsing_dict = true;
+            }
             if(parsing_dict){
-                consume(TK(":"));
-                EXPR();
                 auto dict_item = make_expr<DictItemExpr>();
-                dict_item->key = ctx()->s_expr.popx();
-                dict_item->value = ctx()->s_expr.popx();
-                if(dict_item->key->is_starred()) SyntaxError();
-                if(dict_item->value->is_starred()) SyntaxError();
+                if(star_level == 2){
+                    dict_item->key = nullptr;
+                    dict_item->value = ctx()->s_expr.popx();
+                }else{
+                    consume(TK(":"));
+                    EXPR();
+                    dict_item->key = ctx()->s_expr.popx();
+                    dict_item->value = ctx()->s_expr.popx();
+                }
                 items.push_back(std::move(dict_item));
             }else{
                 items.push_back(ctx()->s_expr.popx());
-                if(items.back()->is_starred()) SyntaxError();
             }
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
@@ -387,9 +394,15 @@ class Compiler {
                 EXPR();
                 e->kwargs.push_back({key, ctx()->s_expr.popx()});
             } else{
-                if(!e->kwargs.empty()) SyntaxError("positional argument follows keyword argument");
                 EXPR();
-                e->args.push_back(ctx()->s_expr.popx());
+                if(ctx()->s_expr.top()->star_level() == 2){
+                    // **kwargs
+                    e->kwargs.push_back({"**", ctx()->s_expr.popx()});
+                }else{
+                    // positional argument
+                    if(!e->kwargs.empty()) SyntaxError("positional argument follows keyword argument");
+                    e->args.push_back(ctx()->s_expr.popx());
+                }
             }
             match_newlines_repl();
         } while (match(TK(",")));
@@ -876,6 +889,7 @@ __SUBSCR_END:
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints){
         int state = 0;      // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
         do {
+            if(state > 3) SyntaxError();
             if(state == 3) SyntaxError("**kwargs should be the last argument");
             match_newlines();
             if(match(TK("*"))){
@@ -894,13 +908,16 @@ __SUBSCR_END:
                     SyntaxError("duplicate argument name");
                 }
             }
-            if(decl->starred_arg!=-1 && decl->code->varnames[decl->starred_arg] == name){
-                SyntaxError("duplicate argument name");
-            }
             for(auto& kv: decl->kwargs){
                 if(decl->code->varnames[kv.key] == name){
                     SyntaxError("duplicate argument name");
                 }
+            }
+            if(decl->starred_arg!=-1 && decl->code->varnames[decl->starred_arg] == name){
+                SyntaxError("duplicate argument name");
+            }
+            if(decl->starred_kwarg!=-1 && decl->code->varnames[decl->starred_kwarg] == name){
+                SyntaxError("duplicate argument name");
             }
 
             // eat type hints
@@ -924,7 +941,10 @@ __SUBSCR_END:
                     }
                     decl->kwargs.push_back(FuncDecl::KwArg{index, value});
                 } break;
-                case 3: SyntaxError("**kwargs is not supported yet"); break;
+                case 3:
+                    decl->starred_kwarg = index;
+                    state+=1;
+                    break;
             }
         } while (match(TK(",")));
     }

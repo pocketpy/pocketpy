@@ -91,7 +91,7 @@ __NEXT_STEP:;
     TARGET(LOAD_ELLIPSIS) PUSH(Ellipsis); DISPATCH();
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
-        bool is_simple = decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
+        bool is_simple = decl->starred_kwarg==-1 && decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
         int argc = decl->args.size();
         PyObject* obj;
         if(decl->nested){
@@ -236,6 +236,11 @@ __NEXT_STEP:;
         }
         DISPATCH();
     /*****************************************/
+    TARGET(BUILD_TUPLE)
+        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
+        STACK_SHRINK(byte.arg);
+        PUSH(_0);
+        DISPATCH();
     TARGET(BUILD_LIST)
         _0 = VAR(STACK_VIEW(byte.arg).to_list());
         STACK_SHRINK(byte.arg);
@@ -263,17 +268,46 @@ __NEXT_STEP:;
         _0 = POPX();    // start
         PUSH(VAR(Slice(_0, _1, _2)));
         DISPATCH();
-    TARGET(BUILD_TUPLE)
-        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
-        STACK_SHRINK(byte.arg);
-        PUSH(_0);
-        DISPATCH();
     TARGET(BUILD_STRING) {
         std::stringstream ss;
         ArgsView view = STACK_VIEW(byte.arg);
         for(PyObject* obj : view) ss << CAST(Str&, py_str(obj));
         STACK_SHRINK(byte.arg);
         PUSH(VAR(ss.str()));
+    } DISPATCH();
+    /*****************************************/
+    TARGET(BUILD_TUPLE_UNPACK) {
+        auto _lock = heap.gc_scope_lock();
+        List list;
+        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        STACK_SHRINK(byte.arg);
+        _0 = VAR(Tuple(std::move(list)));
+        PUSH(_0);
+    } DISPATCH();
+    TARGET(BUILD_LIST_UNPACK) {
+        auto _lock = heap.gc_scope_lock();
+        List list;
+        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        STACK_SHRINK(byte.arg);
+        _0 = VAR(std::move(list));
+        PUSH(_0);
+    } DISPATCH();
+    TARGET(BUILD_DICT_UNPACK) {
+        auto _lock = heap.gc_scope_lock();
+        Dict dict(this);
+        _unpack_as_dict(STACK_VIEW(byte.arg), dict);
+        STACK_SHRINK(byte.arg);
+        _0 = VAR(std::move(dict));
+        PUSH(_0);
+    } DISPATCH();
+    TARGET(BUILD_SET_UNPACK) {
+        auto _lock = heap.gc_scope_lock();
+        List list;
+        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        STACK_SHRINK(byte.arg);
+        _0 = VAR(std::move(list));
+        _0 = call(builtins->attr(set), _0);
+        PUSH(_0);
     } DISPATCH();
     /*****************************************/
 #define PREDICT_INT_OP(op)                              \
@@ -426,13 +460,27 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(BEGIN_CALL)
-        PUSH(PY_BEGIN_CALL);
-        DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
             byte.arg & 0xFFFF,          // ARGC
             (byte.arg>>16) & 0xFFFF,    // KWARGC
+            true
+        );
+        if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
+        PUSH(_0);
+        DISPATCH();
+    TARGET(CALL_TP)
+        // [callable, <self>, args: tuple, kwargs: dict]
+        _2 = POPX();
+        _1 = POPX();
+        for(PyObject* obj: _CAST(Tuple&, _1)) PUSH(obj);
+        _CAST(Dict&, _2).apply([this](PyObject* k, PyObject* v){
+            PUSH(VAR(StrName(CAST(Str&, k)).index));
+            PUSH(v);
+        });
+        _0 = vectorcall(
+            _CAST(Tuple&, _1).size(),   // ARGC
+            _CAST(Dict&, _2).size(),    // KWARGC
             true
         );
         if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
@@ -470,6 +518,9 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(UNARY_NOT)
         TOP() = VAR(!py_bool(TOP()));
+        DISPATCH();
+    TARGET(UNARY_STAR)
+        TOP() = VAR(StarWrapper(byte.arg, TOP()));
         DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
@@ -527,15 +578,6 @@ __NEXT_STEP:;
             extras.push_back(_1);
         }
         PUSH(VAR(extras));
-    } DISPATCH();
-    TARGET(UNPACK_UNLIMITED) {
-        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        _0 = py_iter(POPX());
-        _1 = py_next(_0);
-        while(_1 != StopIteration){
-            PUSH(_1);
-            _1 = py_next(_0);
-        }
     } DISPATCH();
     /*****************************************/
     TARGET(BEGIN_CLASS)

@@ -134,7 +134,7 @@ public:
     Type tp_function, tp_native_func, tp_bound_method;
     Type tp_slice, tp_range, tp_module;
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
-    Type tp_dict, tp_property;
+    Type tp_dict, tp_property, tp_star_wrapper;
 
     const bool enable_os;
 
@@ -637,6 +637,8 @@ public:
 #if DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
 #endif
+    void _unpack_as_list(ArgsView args, List& list);
+    void _unpack_as_dict(ArgsView args, Dict& dict);
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* py_negate(PyObject* obj);
@@ -686,6 +688,7 @@ DEF_NATIVE_2(Bytes, tp_bytes)
 DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 DEF_NATIVE_2(Dict, tp_dict)
 DEF_NATIVE_2(Property, tp_property)
+DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 #undef DEF_NATIVE_2
 
@@ -1063,7 +1066,6 @@ inline void VM::_log_s_data(const char* title) {
         if(sp_bases[p] > 0) ss << " ";
         PyObject* obj = *p;
         if(obj == nullptr) ss << "(nil)";
-        else if(obj == PY_BEGIN_CALL) ss << "BEGIN_CALL";
         else if(obj == PY_NULL) ss << "NULL";
         else if(is_int(obj)) ss << CAST(i64, obj);
         else if(is_float(obj)) ss << CAST(f64, obj);
@@ -1121,6 +1123,7 @@ inline void VM::init_builtin_types(){
     tp_mappingproxy = _new_type_object("mappingproxy");
     tp_dict = _new_type_object("dict");
     tp_property = _new_type_object("property");
+    tp_star_wrapper = _new_type_object("_star_wrapper");
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
@@ -1154,21 +1157,47 @@ inline void VM::init_builtin_types(){
     this->_main = new_module("__main__");
 }
 
-inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
-    bool is_varargs = ARGC == 0xFFFF;
-    PyObject** p0;
-    PyObject** p1 = s_data._sp - KWARGC*2;
-    if(is_varargs){
-        p0 = p1 - 1;
-        while(*p0 != PY_BEGIN_CALL) p0--;
-        // [BEGIN_CALL, callable, <self>, args..., kwargs...]
-        //      ^p0                                ^p1      ^_sp
-        ARGC = p1 - (p0 + 3);
-    }else{
-        p0 = p1 - ARGC - 2 - (int)is_varargs;
-        // [callable, <self>, args..., kwargs...]
-        //      ^p0                    ^p1      ^_sp
+// `heap.gc_scope_lock();` needed before calling this function
+inline void VM::_unpack_as_list(ArgsView args, List& list){
+    for(PyObject* obj: args){
+        if(is_non_tagged_type(obj, tp_star_wrapper)){
+            const StarWrapper& w = _CAST(StarWrapper&, obj);
+            // maybe this check should be done in the compile time
+            if(w.level != 1) TypeError("expected level 1 star wrapper");
+            PyObject* _0 = py_iter(w.obj);
+            PyObject* _1 = py_next(_0);
+            while(_1 != StopIteration){
+                list.push_back(_1);
+                _1 = py_next(_0);
+            }
+        }else{
+            list.push_back(obj);
+        }
     }
+}
+
+// `heap.gc_scope_lock();` needed before calling this function
+inline void VM::_unpack_as_dict(ArgsView args, Dict& dict){
+    for(PyObject* obj: args){
+        if(is_non_tagged_type(obj, tp_star_wrapper)){
+            const StarWrapper& w = _CAST(StarWrapper&, obj);
+            // maybe this check should be done in the compile time
+            if(w.level != 2) TypeError("expected level 2 star wrapper");
+            const Dict& other = CAST(Dict&, w.obj);
+            dict.update(other);
+        }else{
+            const Tuple& t = CAST(Tuple&, obj);
+            if(t.size() != 2) TypeError("expected tuple of length 2");
+            dict.set(t[0], t[1]);
+        }
+    }
+}
+
+inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
+    PyObject** p1 = s_data._sp - KWARGC*2;
+    PyObject** p0 = p1 - ARGC - 2;
+    // [callable, <self>, args..., kwargs...]
+    //      ^p0                    ^p1      ^_sp
     PyObject* callable = p1[-(ARGC + 2)];
     bool method_call = p1[-(ARGC + 1)] != PY_NULL;
 
@@ -1249,11 +1278,27 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             if(i < args.size()) TypeError(fmt("too many arguments", " (", fn.decl->code->name, ')'));
         }
         
+        PyObject* vkwargs;
+        if(fn.decl->starred_kwarg != -1){
+            vkwargs = VAR(Dict(this));
+            buffer[fn.decl->starred_kwarg] = vkwargs;
+        }else{
+            vkwargs = nullptr;
+        }
+
         for(int i=0; i<kwargs.size(); i+=2){
             StrName key = CAST(int, kwargs[i]);
             int index = co->varnames_inv.try_get(key);
-            if(index<0) TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
-            buffer[index] = kwargs[i+1];
+            if(index < 0){
+                if(vkwargs == nullptr){
+                    TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+                }else{
+                    Dict& dict = _CAST(Dict&, vkwargs);
+                    dict.set(VAR(key.sv()), kwargs[i+1]);
+                }
+            }else{
+                buffer[index] = kwargs[i+1];
+            }
         }
         
         if(co->is_generator){

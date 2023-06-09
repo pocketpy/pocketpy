@@ -19,11 +19,12 @@ struct Expr{
     virtual void emit(CodeEmitContext* ctx) = 0;
     virtual std::string str() const = 0;
 
-    virtual bool is_starred() const { return false; }
     virtual bool is_literal() const { return false; }
     virtual bool is_json_object() const { return false; }
     virtual bool is_attrib() const { return false; }
     virtual bool is_compare() const { return false; }
+    virtual int star_level() const { return 0; }
+    bool is_starred() const { return star_level() > 0; }
 
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) { return false; }
@@ -183,23 +184,24 @@ struct NameExpr: Expr{
 };
 
 struct StarredExpr: Expr{
+    int level;
     Expr_ child;
-    StarredExpr(Expr_&& child): child(std::move(child)) {}
-    std::string str() const override { return "Starred()"; }
+    StarredExpr(int level, Expr_&& child): level(level), child(std::move(child)) {}
+    std::string str() const override { return fmt("Starred(level=", level, ")"); }
 
-    bool is_starred() const override { return true; }
+    int star_level() const override { return level; }
 
     void emit(CodeEmitContext* ctx) override {
         child->emit(ctx);
-        ctx->emit(OP_UNPACK_UNLIMITED, BC_NOARG, line);
+        ctx->emit(OP_UNARY_STAR, level, line);
     }
 
     bool emit_store(CodeEmitContext* ctx) override {
+        if(level != 1) return false;
         // simply proxy to child
         return child->emit_store(ctx);
     }
 };
-
 
 struct NotExpr: Expr{
     Expr_ child;
@@ -265,16 +267,13 @@ struct LiteralExpr: Expr{
         if(std::holds_alternative<i64>(value)){
             return std::to_string(std::get<i64>(value));
         }
-
         if(std::holds_alternative<f64>(value)){
             return std::to_string(std::get<f64>(value));
         }
-
         if(std::holds_alternative<Str>(value)){
             Str s = std::get<Str>(value).escape();
             return s.str();
         }
-
         FATAL_ERROR();
     }
 
@@ -367,14 +366,21 @@ struct SliceExpr: Expr{
 };
 
 struct DictItemExpr: Expr{
-    Expr_ key;
+    Expr_ key;      // maybe nullptr if it is **kwargs
     Expr_ value;
     std::string str() const override { return "DictItem()"; }
 
+    int star_level() const override { return value->star_level(); }
+
     void emit(CodeEmitContext* ctx) override {
-        value->emit(ctx);
-        key->emit(ctx);     // reverse order
-        ctx->emit(OP_BUILD_TUPLE, 2, line);
+        if(is_starred()){
+            PK_ASSERT(key == nullptr);
+            value->emit(ctx);
+        }else{
+            value->emit(ctx);
+            key->emit(ctx);     // reverse order
+            ctx->emit(OP_BUILD_TUPLE, 2, line);
+        }
     }
 };
 
@@ -392,7 +398,11 @@ struct SequenceExpr: Expr{
 struct ListExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "List()"; }
-    Opcode opcode() const override { return OP_BUILD_LIST; }
+
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_LIST_UNPACK;
+        return OP_BUILD_LIST;
+    }
 
     bool is_json_object() const override { return true; }
 };
@@ -400,7 +410,10 @@ struct ListExpr: SequenceExpr{
 struct DictExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Dict()"; }
-    Opcode opcode() const override { return OP_BUILD_DICT; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_DICT_UNPACK;
+        return OP_BUILD_DICT;
+    }
 
     bool is_json_object() const override { return true; }
 };
@@ -408,13 +421,19 @@ struct DictExpr: SequenceExpr{
 struct SetExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Set()"; }
-    Opcode opcode() const override { return OP_BUILD_SET; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_SET_UNPACK;
+        return OP_BUILD_SET;
+    }
 };
 
 struct TupleExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Tuple()"; }
-    Opcode opcode() const override { return OP_BUILD_TUPLE; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_TUPLE_UNPACK;
+        return OP_BUILD_TUPLE;
+    }
 
     bool emit_store(CodeEmitContext* ctx) override {
         // TOS is an iterable
@@ -644,37 +663,55 @@ struct AttribExpr: Expr{
 struct CallExpr: Expr{
     Expr_ callable;
     std::vector<Expr_> args;
+    // **a will be interpreted as a special keyword argument: {"**": a}
     std::vector<std::pair<Str, Expr_>> kwargs;
     std::string str() const override { return "Call()"; }
 
-    bool need_unpack() const {
-        for(auto& item: args) if(item->is_starred()) return true;
-        return false;
-    }
-
     void emit(CodeEmitContext* ctx) override {
-        VM* vm = ctx->vm;
-        if(need_unpack()) ctx->emit(OP_BEGIN_CALL, BC_NOARG, line);
+        bool vargs = false;
+        bool vkwargs = false;
+        for(auto& arg: args) if(arg->is_starred()) vargs = true;
+        for(auto& item: kwargs) if(item.second->is_starred()) vkwargs = true;
+
         // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod` proxy
         if(callable->is_attrib()){
             auto p = static_cast<AttribExpr*>(callable.get());
-            p->emit_method(ctx);
+            p->emit_method(ctx);    // OP_LOAD_METHOD
         }else{
             callable->emit(ctx);
             ctx->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
         }
-        // emit args
-        for(auto& item: args) item->emit(ctx);
-        // emit kwargs
-        for(auto& item: kwargs){
-            int index = StrName::get(item.first.sv()).index;
-            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(index)), line);
-            item.second->emit(ctx);
+
+        if(vargs || vkwargs){
+            for(auto& item: args) item->emit(ctx);
+            ctx->emit(OP_BUILD_TUPLE_UNPACK, (int)args.size(), line);
+
+            for(auto& item: kwargs){
+                if(item.second->is_starred()){
+                    if(item.second->star_level() != 2) FATAL_ERROR();
+                    item.second->emit(ctx);
+                }else{
+                    // k=v
+                    int index = ctx->add_const(py_var(ctx->vm, item.first));
+                    ctx->emit(OP_LOAD_CONST, index, line);
+                    item.second->emit(ctx);
+                    ctx->emit(OP_BUILD_TUPLE, 2, line);
+                }
+            }
+            ctx->emit(OP_BUILD_DICT_UNPACK, (int)kwargs.size(), line);
+            ctx->emit(OP_CALL_TP, BC_NOARG, line);
+        }else{
+            // vectorcall protocal
+            for(auto& item: args) item->emit(ctx);
+            for(auto& item: kwargs){
+                int index = StrName(item.first.sv()).index;
+                ctx->emit(OP_LOAD_INTEGER, index, line);
+                item.second->emit(ctx);
+            }
+            int KWARGC = (int)kwargs.size();
+            int ARGC = (int)args.size();
+            ctx->emit(OP_CALL, (KWARGC<<16)|ARGC, line);
         }
-        int KWARGC = (int)kwargs.size();
-        int ARGC = (int)args.size();
-        if(need_unpack()) ARGC = 0xFFFF;
-        ctx->emit(OP_CALL, (KWARGC<<16)|ARGC, line);
     }
 };
 
