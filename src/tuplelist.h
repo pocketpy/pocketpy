@@ -11,13 +11,13 @@ using List = pod_vector<PyObject*>;
 
 class Tuple {
     PyObject** _args;
-    PyObject* _inlined[3];
+    PyObject* _inlined[2];
     int _size;
 
     bool is_inlined() const { return _args == _inlined; }
 
     void _alloc(int n){
-        if(n <= 3){
+        if(n <= 2){
             this->_args = _inlined;
         }else{
             this->_args = (PyObject**)pool64.alloc(n * sizeof(void*));
