@@ -14,6 +14,7 @@
 #include "_generated.h"
 #include "export.h"
 #include "vm.h"
+#include "isolated_os.h"
 #include "re.h"
 #include "random.h"
 
