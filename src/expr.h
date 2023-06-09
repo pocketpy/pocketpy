@@ -370,10 +370,16 @@ struct DictItemExpr: Expr{
     Expr_ value;
     std::string str() const override { return "DictItem()"; }
 
+    int star_level() const override { return value->star_level(); }
+
     void emit(CodeEmitContext* ctx) override {
-        value->emit(ctx);
-        key->emit(ctx);     // reverse order
-        ctx->emit(OP_BUILD_TUPLE, 2, line);
+        if(is_starred()){
+            value->emit(ctx);
+        }else{
+            value->emit(ctx);
+            key->emit(ctx);     // reverse order
+            ctx->emit(OP_BUILD_TUPLE, 2, line);
+        }
     }
 };
 
@@ -391,7 +397,11 @@ struct SequenceExpr: Expr{
 struct ListExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "List()"; }
-    Opcode opcode() const override { return OP_BUILD_LIST; }
+
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_LIST_UNPACK;
+        return OP_BUILD_LIST;
+    }
 
     bool is_json_object() const override { return true; }
 };
@@ -399,7 +409,10 @@ struct ListExpr: SequenceExpr{
 struct DictExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Dict()"; }
-    Opcode opcode() const override { return OP_BUILD_DICT; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_DICT_UNPACK;
+        return OP_BUILD_DICT;
+    }
 
     bool is_json_object() const override { return true; }
 };
@@ -407,13 +420,19 @@ struct DictExpr: SequenceExpr{
 struct SetExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Set()"; }
-    Opcode opcode() const override { return OP_BUILD_SET; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_SET_UNPACK;
+        return OP_BUILD_SET;
+    }
 };
 
 struct TupleExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Tuple()"; }
-    Opcode opcode() const override { return OP_BUILD_TUPLE; }
+    Opcode opcode() const override {
+        for(auto& e: items) if(e->is_starred()) return OP_BUILD_TUPLE_UNPACK;
+        return OP_BUILD_TUPLE;
+    }
 
     bool emit_store(CodeEmitContext* ctx) override {
         // TOS is an iterable

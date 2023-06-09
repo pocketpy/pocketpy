@@ -322,7 +322,6 @@ class Compiler {
             if (curr().type == TK("]")) break;
             EXPR();
             items.push_back(ctx()->s_expr.popx());
-            if(items.back()->is_starred()) SyntaxError();
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
                 _consume_comp<ListCompExpr>(std::move(items[0]));
@@ -351,12 +350,9 @@ class Compiler {
                 auto dict_item = make_expr<DictItemExpr>();
                 dict_item->key = ctx()->s_expr.popx();
                 dict_item->value = ctx()->s_expr.popx();
-                if(dict_item->key->is_starred()) SyntaxError();
-                if(dict_item->value->is_starred()) SyntaxError();
                 items.push_back(std::move(dict_item));
             }else{
                 items.push_back(ctx()->s_expr.popx());
-                if(items.back()->is_starred()) SyntaxError();
             }
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
