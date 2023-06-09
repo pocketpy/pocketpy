@@ -62,8 +62,18 @@
 
 #if PK_ENABLE_THREAD
 #define THREAD_LOCAL thread_local
+#include <mutex>
+
+struct GIL {
+	inline static std::mutex _mutex;
+    explicit GIL() { _mutex.lock(); }
+    ~GIL() { _mutex.unlock(); }
+};
+#define GLOBAL_SCOPE_LOCK() auto _lock = GIL();
+
 #else
 #define THREAD_LOCAL
+#define GLOBAL_SCOPE_LOCK()
 #endif
 
 /*******************************************************************************/

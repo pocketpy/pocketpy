@@ -175,6 +175,7 @@ struct MemoryPool{
     void* alloc() { return alloc(sizeof(__T)); }
 
     void* alloc(size_t size){
+        GLOBAL_SCOPE_LOCK();
 #if DEBUG_NO_MEMORY_POOL
         return malloc(size);
 #endif
@@ -199,6 +200,7 @@ struct MemoryPool{
     }
 
     void dealloc(void* p){
+        GLOBAL_SCOPE_LOCK();
 #if DEBUG_NO_MEMORY_POOL
         free(p);
         return;
@@ -238,7 +240,6 @@ struct MemoryPool{
     }
 };
 
-// TODO: make them thread-safe
 inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
 
