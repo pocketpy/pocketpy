@@ -339,6 +339,7 @@ struct C99ReflType final: ReflType{
 };
 
 static_assert(sizeof(Py_<C99Struct>) <= 64);
+static_assert(sizeof(Py_<Tuple>) <= 64);
 
 inline PyObject* py_var(VM* vm, void* p){
     return VAR_T(VoidP, p);
