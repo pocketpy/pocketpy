@@ -487,6 +487,16 @@ inline void init_builtins(VM* _vm) {
         return VAR(Str(p));
     });
 
+    _vm->bind_method<0>("str", "lower", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        return VAR(self.lower());
+    });
+
+    _vm->bind_method<0>("str", "upper", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        return VAR(self.upper());
+    });
+
     /************ list ************/
     _vm->bind_constructor<2>("list", [](VM* vm, ArgsView args) {
         return vm->py_list(args[1]);

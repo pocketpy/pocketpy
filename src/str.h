@@ -210,6 +210,18 @@ struct Str{
         return Str(copy);
     }
 
+    Str lower() const{
+        std::string copy(data, size);
+        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){ return std::tolower(c); });
+        return Str(copy);
+    }
+
+    Str upper() const{
+        std::string copy(data, size);
+        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){ return std::toupper(c); });
+        return Str(copy);
+    }
+
     Str escape(bool single_quote=true) const {
         std::stringstream ss;
         ss << (single_quote ? '\'' : '"');
