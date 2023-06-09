@@ -343,13 +343,21 @@ class Compiler {
             match_newlines_repl();
             if (curr().type == TK("}")) break;
             EXPR();
-            if(curr().type == TK(":")) parsing_dict = true;
+            int star_level = ctx()->s_expr.top()->star_level();
+            if(star_level==2 || curr().type == TK(":")){
+                parsing_dict = true;
+            }
             if(parsing_dict){
-                consume(TK(":"));
-                EXPR();
                 auto dict_item = make_expr<DictItemExpr>();
-                dict_item->key = ctx()->s_expr.popx();
-                dict_item->value = ctx()->s_expr.popx();
+                if(star_level == 2){
+                    dict_item->key = nullptr;
+                    dict_item->value = ctx()->s_expr.popx();
+                }else{
+                    consume(TK(":"));
+                    EXPR();
+                    dict_item->key = ctx()->s_expr.popx();
+                    dict_item->value = ctx()->s_expr.popx();
+                }
                 items.push_back(std::move(dict_item));
             }else{
                 items.push_back(ctx()->s_expr.popx());

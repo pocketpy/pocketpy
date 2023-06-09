@@ -366,7 +366,7 @@ struct SliceExpr: Expr{
 };
 
 struct DictItemExpr: Expr{
-    Expr_ key;
+    Expr_ key;      // maybe nullptr if it is **kwargs
     Expr_ value;
     std::string str() const override { return "DictItem()"; }
 
@@ -374,6 +374,7 @@ struct DictItemExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         if(is_starred()){
+            PK_ASSERT(key == nullptr);
             value->emit(ctx);
         }else{
             value->emit(ctx);

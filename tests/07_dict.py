@@ -53,3 +53,17 @@ assert a.pop(1) == 2
 assert a == {3: 4}
 assert a.pop(3) == 4
 assert a == {}
+
+# unpack expression
+a = {1:2, 3:4}
+b = {**a, 5:6, **a}
+assert b == {1: 2, 3: 4, 5: 6}
+
+a = {}
+b = {**a, 1:2, 3:4}
+assert b == {1: 2, 3: 4}
+
+a = {1:2, 3:4, 7:8}
+b = {**a, 1:5, 3:6}
+c = {**a, **b}
+assert c == {1: 5, 3: 6, 7: 8}
