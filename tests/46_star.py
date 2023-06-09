@@ -53,3 +53,14 @@ try:
     exit(1)
 except TypeError:
     pass
+
+
+def g(*args, **kwargs):
+    return args, kwargs
+
+def f(a, b, *args, c=1, **kwargs):
+    return g(a, b, *args, c=c, **kwargs)
+
+args, kwargs = f(1, 2, 3, 4, c=5, d=6, e=-6.0)
+assert args == (1, 2, 3, 4)
+assert kwargs == {'c': 5, 'd': 6, 'e': -6.0}
