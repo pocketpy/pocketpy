@@ -1287,7 +1287,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         }
 
         for(int i=0; i<kwargs.size(); i+=2){
-            StrName key = CAST(int, kwargs[i]);
+            StrName key(CAST(int, kwargs[i]));
             int index = co->varnames_inv.try_get(key);
             if(index < 0){
                 if(vkwargs == nullptr){

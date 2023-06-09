@@ -154,7 +154,6 @@ struct PyObject{
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
-    virtual void* value() = 0;
     virtual void _obj_gc_mark() = 0;
 
     PyObject(Type type) : type(type), _attr(nullptr) {}
@@ -176,7 +175,6 @@ template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)
 template <typename T>
 struct Py_ final: PyObject {
     T _value;
-    void* value() override { return &_value; }
     void _obj_gc_mark() override {
         if constexpr (has_gc_marker<T>::value) {
             _value._gc_mark();
@@ -193,7 +191,6 @@ struct MappingProxy{
 };
 
 #define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
-// #define OBJ_GET(T, obj) (*reinterpret_cast<T*>((obj)->value()))
 
 #define OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc.marked) {                      \
@@ -298,8 +295,6 @@ __T _py_cast(VM* vm, PyObject* obj) {
 template<>
 struct Py_<List> final: PyObject {
     List _value;
-    void* value() override { return &_value; }
-
     Py_(Type type, List&& val): PyObject(type), _value(std::move(val)) {}
     Py_(Type type, const List& val): PyObject(type), _value(val) {}
 
@@ -311,8 +306,6 @@ struct Py_<List> final: PyObject {
 template<>
 struct Py_<Tuple> final: PyObject {
     Tuple _value;
-    void* value() override { return &_value; }
-
     Py_(Type type, Tuple&& val): PyObject(type), _value(std::move(val)) {}
     Py_(Type type, const Tuple& val): PyObject(type), _value(val) {}
 
@@ -324,7 +317,6 @@ struct Py_<Tuple> final: PyObject {
 template<>
 struct Py_<MappingProxy> final: PyObject {
     MappingProxy _value;
-    void* value() override { return &_value; }
     Py_(Type type, MappingProxy val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.obj);
@@ -334,7 +326,6 @@ struct Py_<MappingProxy> final: PyObject {
 template<>
 struct Py_<BoundMethod> final: PyObject {
     BoundMethod _value;
-    void* value() override { return &_value; }
     Py_(Type type, BoundMethod val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.self);
@@ -345,7 +336,6 @@ struct Py_<BoundMethod> final: PyObject {
 template<>
 struct Py_<StarWrapper> final: PyObject {
     StarWrapper _value;
-    void* value() override { return &_value; }
     Py_(Type type, StarWrapper val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.obj);
@@ -355,7 +345,6 @@ struct Py_<StarWrapper> final: PyObject {
 template<>
 struct Py_<Property> final: PyObject {
     Property _value;
-    void* value() override { return &_value; }
     Py_(Type type, Property val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.getter);
@@ -366,7 +355,6 @@ struct Py_<Property> final: PyObject {
 template<>
 struct Py_<Slice> final: PyObject {
     Slice _value;
-    void* value() override { return &_value; }
     Py_(Type type, Slice val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.start);
@@ -378,7 +366,6 @@ struct Py_<Slice> final: PyObject {
 template<>
 struct Py_<Function> final: PyObject {
     Function _value;
-    void* value() override { return &_value; }
     Py_(Type type, Function val): PyObject(type), _value(val) {
         enable_instance_dict();
     }
@@ -392,7 +379,6 @@ struct Py_<Function> final: PyObject {
 template<>
 struct Py_<NativeFunc> final: PyObject {
     NativeFunc _value;
-    void* value() override { return &_value; }
     Py_(Type type, NativeFunc val): PyObject(type), _value(val) {
         enable_instance_dict();
     }
@@ -402,7 +388,6 @@ struct Py_<NativeFunc> final: PyObject {
 template<>
 struct Py_<Super> final: PyObject {
     Super _value;
-    void* value() override { return &_value; }
     Py_(Type type, Super val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         OBJ_MARK(_value.first);
@@ -411,7 +396,6 @@ struct Py_<Super> final: PyObject {
 
 template<>
 struct Py_<DummyInstance> final: PyObject {
-    void* value() override { return nullptr; }
     Py_(Type type, DummyInstance val): PyObject(type) {
         enable_instance_dict();
     }
@@ -421,7 +405,6 @@ struct Py_<DummyInstance> final: PyObject {
 template<>
 struct Py_<Type> final: PyObject {
     Type _value;
-    void* value() override { return &_value; }
     Py_(Type type, Type val): PyObject(type), _value(val) {
         enable_instance_dict(kTypeAttrLoadFactor);
     }
@@ -430,7 +413,6 @@ struct Py_<Type> final: PyObject {
 
 template<>
 struct Py_<DummyModule> final: PyObject {
-    void* value() override { return nullptr; }
     Py_(Type type, DummyModule val): PyObject(type) {
         enable_instance_dict(kTypeAttrLoadFactor);
     }

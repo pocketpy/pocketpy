@@ -323,7 +323,7 @@ inline bool is_unicode_Lo_char(uint32_t c) {
 struct StrName {
     uint16_t index;
     StrName(): index(0) {}
-    StrName(uint16_t index): index(index) {}
+    explicit StrName(uint16_t index): index(index) {}
     StrName(const char* s): index(get(s).index) {}
     StrName(const Str& s){
         index = get(s.sv()).index;
