@@ -598,7 +598,6 @@ __NEXT_STEP:;
         TOP()->attr().set(_name, _0);
         DISPATCH();
     /*****************************************/
-    // TODO: using "goto" inside with block may cause __exit__ not called
     TARGET(WITH_ENTER)
         call_method(POPX(), __enter__);
         DISPATCH();

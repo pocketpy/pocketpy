@@ -497,7 +497,7 @@ struct CompExpr: Expr{
         ctx->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
-        if(!ok) FATAL_ERROR();  // TODO: raise a SyntaxError instead
+        PK_ASSERT(ok);  // TODO: raise a SyntaxError instead
         if(cond){
             cond->emit(ctx);
             int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);

@@ -182,6 +182,14 @@ while(!_items[i].first.empty()) {       \
         return v;
     }
 
+    template<typename __Func>
+    void apply(__Func func) const {
+        for(uint16_t i=0; i<_capacity; i++){
+            if(_items[i].first.empty()) continue;
+            func(_items[i].first, _items[i].second);
+        }
+    }
+
     std::vector<StrName> keys() const {
         std::vector<StrName> v;
         for(uint16_t i=0; i<_capacity; i++){
