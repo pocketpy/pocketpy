@@ -53,7 +53,7 @@ When you do `import` a module, the VM will try to find it in the following order
 
 1. Search `vm->_modules`, if found, return it.
 2. Search `vm->_lazy_modules`, if found, compile and execute it, then return it.
-3. Search the working directory and try to load it from file system via `vm->_import_handler`.
+3. Try `vm->_import_handler`.
 
 
 ### Customized import handler
@@ -77,3 +77,9 @@ inline Bytes _default_import_handler(const Str& name){
     return Bytes(std::move(buffer));
 };
 ```
+
+### Import module via cpp
+
+You can use `vm->py_import` to import a module.
+This is equivalent to `import` in python.
+Return the module object if success.

@@ -43,7 +43,7 @@ As you can see, direct access does not take care of derived attributes or method
 In most cases, what you need is `getattr` and `setattr`.
 These two methods handle all possible cases.
 
-#### `PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err=true)`
+#### `PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true)`
 
 This method is equivalent to `getattr` in python.
 If the attribute is not found, it will return `nullptr`
@@ -64,7 +64,7 @@ int result = CAST(int, ret);
 std::cout << result << std::endl; // 3
 ```
 
-#### `void VM::setattr(PyObject*, StrName, PyObject*)`
+#### `void setattr(PyObject*, StrName, PyObject*)`
 
 This method is equivalent to `setattr` in python.
 It raises `TypeError` if the object does not support attribute assignment.

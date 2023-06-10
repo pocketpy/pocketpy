@@ -10,8 +10,8 @@ You can use `call` to invoke any python callable object,
 including functions, methods, classes, etc.
 For methods, `call_method` can be used.
 
-+ `PyObject* VM::call(PyObject* obj, ...)`
-+ `PyObject* VM::call_method(PyObject* obj, StrName name, ...)`
++ `PyObject* call(PyObject* obj, ...)`
++ `PyObject* call_method(PyObject* obj, StrName name, ...)`
 
 ### Exmaple
 

@@ -79,7 +79,7 @@ List& list = CAST(List&, obj);
 ### Check type of `PyObject*`
 
 Each `PyObject*` has a `Type` field to indicate its type.
-`Type` is just an integer which is the global index in `VM::_all_types`.
+`Type` is just an integer which is the global index in `vm->_all_types`.
 
 `VM` class has a set of predefined `Type` constants for quick access.
 They are prefixed by `tp_`. For example, `tp_object`(object),
@@ -115,5 +115,5 @@ Other variants are designed for specific types and are faster.
 You can also use `check_` prefix functions assert the type of a `PyObject*`,
 which will throw `TypeError` on failure.
 
-+ `void VM::check_type(PyObject* obj, Type type)`
-+ `void VM::check_non_tagged_type(PyObject* obj, Type type)`
++ `void check_type(PyObject* obj, Type type)`
++ `void check_non_tagged_type(PyObject* obj, Type type)`
