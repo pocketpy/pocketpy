@@ -11,7 +11,7 @@
 
 namespace pkpy{
 
-inline int _ = set_read_file_cwd([](const Str& name){
+inline Bytes _default_import_handler(const Str& name){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists) return Bytes();
@@ -24,7 +24,7 @@ inline int _ = set_read_file_cwd([](const Str& name){
     fread(buffer.data(), 1, buffer.size(), fp);
     fclose(fp);
     return Bytes(std::move(buffer));
-});
+};
 
 struct FileIO {
     PY_CLASS(FileIO, io, FileIO)
@@ -183,6 +183,7 @@ inline void add_module_os(VM* vm){
 namespace pkpy{
 inline void add_module_io(void* vm){}
 inline void add_module_os(void* vm){}
+inline Bytes _default_import_handler(const Str& name) { return Bytes(); }
 } // namespace pkpy
 
 #endif

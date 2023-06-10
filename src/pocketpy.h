@@ -1458,6 +1458,7 @@ inline void VM::post_init(){
         add_module_io(this);
         add_module_os(this);
         add_module_requests(this);
+        _import_handler = _default_import_handler;
     }
 
     add_module_linalg(this);

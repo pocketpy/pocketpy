@@ -53,16 +53,16 @@ When you do `import` a module, the VM will try to find it in the following order
 
 1. Search `vm->_modules`, if found, return it.
 2. Search `vm->_lazy_modules`, if found, compile and execute it, then return it.
-3. Search the working directory and try to load it from file system via `read_file_cwd`.
+3. Search the working directory and try to load it from file system via `vm->_import_handler`.
 
 
-### Filesystem hook
+### Customized import handler
 
-You can use `set_read_file_cwd` to provide a custom filesystem hook, which is used for `import` (3rd step).
-The default implementation is:
+You can use `vm->_import_handler` to provide a custom import handler for the 3rd step.
+if both `enable_os` and `PK_ENABLE_OS` are `true`, the default `import_handler` is as follows:
 
 ```cpp
-set_read_file_cwd([](const Str& name){
+inline Bytes _default_import_handler(const Str& name){
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists) return Bytes();
@@ -75,5 +75,5 @@ set_read_file_cwd([](const Str& name){
     fread(buffer.data(), 1, buffer.size(), fp);
     fclose(fp);
     return Bytes(std::move(buffer));
-});
+};
 ```

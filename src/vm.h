@@ -25,10 +25,6 @@ namespace pkpy{
 #define POPX()            (s_data.popx())
 #define STACK_VIEW(n)     (s_data.view(n))
 
-typedef Bytes (*ReadFileCwdFunc)(const Str& name);
-inline ReadFileCwdFunc _read_file_cwd = [](const Str& name) { return Bytes(); };
-inline int set_read_file_cwd(ReadFileCwdFunc func) { _read_file_cwd = func; return 0; }
-
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
@@ -127,6 +123,7 @@ public:
 
     PrintFunc _stdout;
     PrintFunc _stderr;
+    Bytes (*_import_handler)(const Str& name);
 
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
@@ -145,6 +142,7 @@ public:
         callstack.reserve(8);
         _main = nullptr;
         _last_exception = nullptr;
+        _import_handler = [](const Str& name) { return Bytes(); };
         init_builtin_types();
     }
 
@@ -604,10 +602,10 @@ public:
             Str source;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
-                Bytes b = _read_file_cwd(filename);
+                Bytes b = _import_handler(filename);
                 if(!relative && !b){
                     filename = fmt(name, kPlatformSep, "__init__.py");
-                    b = _read_file_cwd(filename);
+                    b = _import_handler(filename);
                     if(b) type = 1;
                 }
                 if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
