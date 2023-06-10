@@ -686,20 +686,24 @@ struct CallExpr: Expr{
             for(auto& item: args) item->emit(ctx);
             ctx->emit(OP_BUILD_TUPLE_UNPACK, (int)args.size(), line);
 
-            for(auto& item: kwargs){
-                if(item.second->is_starred()){
-                    if(item.second->star_level() != 2) FATAL_ERROR();
-                    item.second->emit(ctx);
-                }else{
-                    // k=v
-                    int index = ctx->add_const(py_var(ctx->vm, item.first));
-                    ctx->emit(OP_LOAD_CONST, index, line);
-                    item.second->emit(ctx);
-                    ctx->emit(OP_BUILD_TUPLE, 2, line);
+            if(!kwargs.empty()){
+                for(auto& item: kwargs){
+                    if(item.second->is_starred()){
+                        if(item.second->star_level() != 2) FATAL_ERROR();
+                        item.second->emit(ctx);
+                    }else{
+                        // k=v
+                        int index = ctx->add_const(py_var(ctx->vm, item.first));
+                        ctx->emit(OP_LOAD_CONST, index, line);
+                        item.second->emit(ctx);
+                        ctx->emit(OP_BUILD_TUPLE, 2, line);
+                    }
                 }
+                ctx->emit(OP_BUILD_DICT_UNPACK, (int)kwargs.size(), line);
+                ctx->emit(OP_CALL_TP, 1, line);
+            }else{
+                ctx->emit(OP_CALL_TP, 0, line);
             }
-            ctx->emit(OP_BUILD_DICT_UNPACK, (int)kwargs.size(), line);
-            ctx->emit(OP_CALL_TP, BC_NOARG, line);
         }else{
             // vectorcall protocal
             for(auto& item: args) item->emit(ctx);

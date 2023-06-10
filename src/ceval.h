@@ -470,19 +470,30 @@ __NEXT_STEP:;
         PUSH(_0);
         DISPATCH();
     TARGET(CALL_TP)
-        // [callable, <self>, args: tuple, kwargs: dict]
-        _2 = POPX();
-        _1 = POPX();
-        for(PyObject* obj: _CAST(Tuple&, _1)) PUSH(obj);
-        _CAST(Dict&, _2).apply([this](PyObject* k, PyObject* v){
-            PUSH(VAR(StrName(CAST(Str&, k)).index));
-            PUSH(v);
-        });
-        _0 = vectorcall(
-            _CAST(Tuple&, _1).size(),   // ARGC
-            _CAST(Dict&, _2).size(),    // KWARGC
-            true
-        );
+        // [callable, <self>, args: tuple, kwargs: dict | NULL]
+        if(byte.arg){
+            _2 = POPX();
+            _1 = POPX();
+            for(PyObject* obj: _CAST(Tuple&, _1)) PUSH(obj);
+            _CAST(Dict&, _2).apply([this](PyObject* k, PyObject* v){
+                PUSH(VAR(StrName(CAST(Str&, k)).index));
+                PUSH(v);
+            });
+            _0 = vectorcall(
+                _CAST(Tuple&, _1).size(),   // ARGC
+                _CAST(Dict&, _2).size(),    // KWARGC
+                true
+            );
+        }else{
+            // no **kwargs
+            _1 = POPX();
+            for(PyObject* obj: _CAST(Tuple&, _1)) PUSH(obj);
+            _0 = vectorcall(
+                _CAST(Tuple&, _1).size(),   // ARGC
+                0,                          // KWARGC
+                true
+            );
+        }
         if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
         PUSH(_0);
         DISPATCH();
