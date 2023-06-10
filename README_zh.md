@@ -37,8 +37,7 @@ int main(){
     pkpy_vm_exec(vm, "print(sum(a))");
 
     // 释放资源
-    pkpy_delete(result);
-    pkpy_delete(vm);
+    pkpy_delete_vm(vm);
     return 0;
 }
 ```

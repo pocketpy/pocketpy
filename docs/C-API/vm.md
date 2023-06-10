@@ -20,11 +20,14 @@ Run a given source on a virtual machine.
 
 Advanced version of `pkpy_vm_exec`.
 
-#### `void pkpy_delete(void* p)`
+#### `void pkpy_free(void* p)`
 
-Delete a pointer allocated by `pkpy_xxx_xxx`.
-It can be `VM*`, `REPL*`, `char*`, etc.
+Free a pointer via `free`.
 
-!!!
-If the pointer is not allocated by `pkpy_xxx_xxx`, the behavior is undefined.
-!!!
+#### `void pkpy_delete_vm(VM* vm)`
+
+Delete a virtual machine.
+
+#### `void pkpy_delete_repl(REPL* repl)`
+
+Delete a REPL.

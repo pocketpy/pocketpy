@@ -22,7 +22,7 @@ int main(int argc, char** argv){
             if(eof) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
-        pkpy_delete(vm);
+        pkpy_delete_vm(vm);
         return 0;
     }
     
@@ -49,7 +49,7 @@ int main(int argc, char** argv){
 
         pkpy::PyObject* ret = nullptr;
         ret = vm->exec(src.c_str(), filepath.filename().string(), pkpy::EXEC_MODE);
-        pkpy_delete(vm);
+        pkpy_delete_vm(vm);
         return ret != nullptr ? 0 : 1;
     }
 
