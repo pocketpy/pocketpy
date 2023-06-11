@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef PK_USER_CONFIG
+#ifdef PK_USER_CONFIG_H
 
 #include "user_config.h"
 
@@ -25,7 +25,7 @@
 
 // This is the maximum number of arguments in a function declaration
 // including positional arguments, keyword-only arguments, and varargs
-#define PK_MAX_CO_VARNAMES			255
+#define PK_MAX_CO_VARNAMES          255
 
 // Hash table load factor (smaller ones mean less collision but more memory)
 inline const float kInstAttrLoadFactor = 0.67f;
