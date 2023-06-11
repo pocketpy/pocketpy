@@ -100,7 +100,7 @@ struct ValueStackImpl {
     ValueStackImpl& operator=(ValueStackImpl&&) = delete;
 };
 
-using ValueStack = ValueStackImpl<32768>;
+using ValueStack = ValueStackImpl<PK_VM_STACK_SIZE>;
 
 struct Frame {
     int _ip = -1;

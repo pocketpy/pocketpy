@@ -29,36 +29,17 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"1.0.2"
+#include "config.h"
 
-// debug macros
-#define DEBUG_NO_BUILTIN_MODULES    0
-#define DEBUG_EXTRA_CHECK           0
-#define DEBUG_DIS_EXEC              0
-#define DEBUG_CEVAL_STEP            0
-#define DEBUG_FULL_EXCEPTION        0
-#define DEBUG_MEMORY_POOL           0
-#define DEBUG_NO_MEMORY_POOL        0
-#define DEBUG_NO_AUTO_GC            0
-#define DEBUG_GC_STATS              0
+#define PK_VERSION				"1.0.3"
 
-// config macros
-#ifndef PK_ENABLE_OS
+/*******************************************************************************/
 
-#ifdef __ANDROID__
-#include <android/ndk-version.h>
-
-#if __NDK_MAJOR__ <= 22
-#define PK_ENABLE_OS 			0
-#else
-#define PK_ENABLE_OS 			1
+#if PK_ENABLE_STD_FUNCTION
+#include <functional>
 #endif
 
-#else
-#define PK_ENABLE_OS 			1
-#endif
-
-#endif
+/*******************************************************************************/
 
 #if PK_ENABLE_THREAD
 #define THREAD_LOCAL thread_local
@@ -77,11 +58,6 @@ struct GIL {
 #endif
 
 /*******************************************************************************/
-
-// This is the maximum number of arguments in a function declaration
-// including positional arguments, keyword-only arguments, and varargs
-#define PK_MAX_CO_VARNAMES			255
-
 #if _MSC_VER
 #define PK_ENABLE_COMPUTED_GOTO		0
 #define UNREACHABLE()				__assume(0)
@@ -94,6 +70,8 @@ struct GIL {
 #endif
 
 #endif
+
+/*******************************************************************************/
 
 namespace pkpy{
 
@@ -165,9 +143,6 @@ struct Type {
 
 #define PK_ASSERT(x) if(!(x)) FATAL_ERROR();
 
-inline const float kInstAttrLoadFactor = 0.67f;
-inline const float kTypeAttrLoadFactor = 0.5f;
-
 struct PyObject;
 #define BITS(p) (reinterpret_cast<i64>(p))
 inline bool is_tagged(PyObject* p) noexcept { return (BITS(p) & 0b11) != 0b00; }
@@ -187,11 +162,5 @@ inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
 inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
-
-#ifdef _WIN32
-    inline const char kPlatformSep = '\\';
-#else
-    inline const char kPlatformSep = '/';
-#endif
 
 } // namespace pkpy

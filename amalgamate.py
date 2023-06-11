@@ -6,7 +6,7 @@ with open("src/opcodes.h", "rt", encoding='utf-8') as f:
 	OPCODES_TEXT = f.read()
 
 pipeline = [
-	["common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
+	["config.h", "common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
 	["obj.h", "dict.h", "codeobject.h", "frame.h"],
 	["gc.h", "vm.h", "ceval.h", "expr.h", "compiler.h", "repl.h"],
 	["_generated.h", "cffi.h", "iter.h", "base64.h", "re.h", "linalg.h", "easing.h", "requests.h", "io.h"],

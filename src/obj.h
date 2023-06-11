@@ -11,7 +11,12 @@ struct Frame;
 struct Function;
 class VM;
 
+#if PK_ENABLE_STD_FUNCTION
+using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
+#else
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
+#endif
+
 typedef int (*LuaStyleFuncC)(VM*);
 
 struct NativeFunc {
