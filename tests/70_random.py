@@ -11,21 +11,8 @@ r.shuffle(a)
 r.choice(a)
 r.choice(b)
 
-# from sys import version as v
+assert 0.0 <= r.random() <= 1.0
 
-# assert type(v) is str
-
-# class Context:
-#     def __init__(self):
-#         self.x = 0
-
-#     def __enter__(self):
-#         self.x = 1
-
-#     def __exit__(self):
-#         self.x = 2
-
-# with Context() as c:
-#     assert c.x == 1
-
-# assert c.x == 2
+r.seed(10)
+assert r.randint(1, 1000) == 266
+assert r.randint(1, 1000) == 126
