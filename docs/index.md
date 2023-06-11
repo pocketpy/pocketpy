@@ -28,4 +28,4 @@ print(primes)
 
 ## Sponsor me
 
-https://github.com/sponsors/blueloveTH
+You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH).
