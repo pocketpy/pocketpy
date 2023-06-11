@@ -10,21 +10,36 @@
 #include <cstdio>
 
 namespace pkpy{
+inline std::filesystem::path get_rel(const VM* vm, const std::filesystem::path & rel) {
+    return rel.lexically_relative(vm->_lowest_isolated_cwd_path);
+}
 
-inline Bytes _default_import_handler(const Str& name){
-    std::filesystem::path path(name.sv());
-    bool exists = std::filesystem::exists(path);
-    if(!exists) return Bytes();
-    std::string cname = name.str();
-    FILE* fp = fopen(cname.c_str(), "rb");
-    if(!fp) return Bytes();
-    fseek(fp, 0, SEEK_END);
-    std::vector<char> buffer(ftell(fp));
-    fseek(fp, 0, SEEK_SET);
-    fread(buffer.data(), 1, buffer.size(), fp);
-    fclose(fp);
-    return Bytes(std::move(buffer));
-};
+inline bool check_if_path_is_isolated(const std::string & path_to_check_str,
+                                      const std::string & toplevel_path_str) {
+    //.lexically_normal() expands somepath/somdir/.. to somepath/
+    auto toplevel_path = std::filesystem::path(toplevel_path_str).lexically_normal();
+    auto path_to_check = (toplevel_path / std::filesystem::path(path_to_check_str)).lexically_normal();
+
+    //toplevel_path is part of toplevel_path, so if toplevel_path is less than path_to_check, then toplevel_path is certainly not a part of it
+    if (path_to_check < toplevel_path) {return false;}
+    if (path_to_check == toplevel_path) {return true;}
+    while (true) {
+        auto temp = path_to_check.parent_path();
+        if (path_to_check == temp) { break;}
+        path_to_check = temp;
+        if (path_to_check < toplevel_path) {return false;}
+        if (path_to_check == toplevel_path) {return true;}
+    }
+
+    return false;
+}
+
+static inline void helper_process_isolated(VM *vm, std::filesystem::path & path) {
+    if (!vm->isolated_os) { return;}
+    path = std::filesystem::path(vm->_lowest_isolated_cwd_path) / path;
+    if (!check_if_path_is_isolated(path, vm->_lowest_isolated_cwd_path)) {vm->IOError(Str("Invalid path."));}
+}
+
 
 struct FileIO {
     PY_CLASS(FileIO, io, FileIO)
@@ -36,7 +51,8 @@ struct FileIO {
     bool is_text() const { return mode != "rb" && mode != "wb" && mode != "ab"; }
 
     FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
-        if (vm->check_is_invalid_io_path(file)) {vm->IOError(strerror(errno));}
+        if (vm->isolated_os && !check_if_path_is_isolated(file, vm->_lowest_isolated_cwd_path)) {vm->IOError(strerror(errno));}
+        if (vm->isolated_os) {file = vm->_lowest_isolated_cwd_path / std::filesystem::path(file);}
         fp = fopen(file.c_str(), mode.c_str());
         if(!fp) vm->IOError(strerror(errno));
     }
@@ -110,17 +126,24 @@ inline void add_module_os(VM* vm){
     
     // Working directory is shared by all VMs!!
     vm->bind_func<0>(mod, "getcwd", [](VM* vm, ArgsView args){
-        return VAR(std::filesystem::current_path().string());
+        if (!vm->isolated_os) {
+            return VAR(std::filesystem::current_path().string());
+        } else {
+            return VAR(get_rel(vm, std::filesystem::current_path()).string());//TODO BUG! while technically correct, cwd needs to change to a file path upon executing
+        }
     });
 
     vm->bind_func<1>(mod, "chdir", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        helper_process_isolated(vm, path);
         std::filesystem::current_path(path);
         return vm->None;
     });
 
     vm->bind_func<1>(mod, "listdir", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        helper_process_isolated(vm, path);
+
         std::filesystem::directory_iterator di;
         try{
             di = std::filesystem::directory_iterator(path);
@@ -131,28 +154,40 @@ inline void add_module_os(VM* vm){
             vm->IOError(Str(msg).lstrip());
         }
         List ret;
-        for(auto& p: di) ret.push_back(VAR(p.path().filename().string()));
+        if (!vm->isolated_os) {
+        for (auto &p: di) ret.push_back(VAR(p.path().filename().string()));
+        } else {
+        for(auto& p: di) ret.push_back(VAR(get_rel(vm, p.path()).filename().string()));
+        }
         return VAR(ret);
     });
 
     vm->bind_func<1>(mod, "remove", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        helper_process_isolated(vm, path);
+
         bool ok = std::filesystem::remove(path);
-        if(!ok) vm->IOError("operation failed");
+        if(!ok) vm->IOError("Operation failed.");
         return vm->None;
     });
 
     vm->bind_func<1>(mod, "mkdir", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        helper_process_isolated(vm, path);
+
+        std::cout << path.string().c_str() << "\n";
+
         bool ok = std::filesystem::create_directory(path);
-        if(!ok) vm->IOError("operation failed");
+        if(!ok) vm->IOError("Operation failed.");
         return vm->None;
     });
 
     vm->bind_func<1>(mod, "rmdir", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        helper_process_isolated(vm, path);
+
         bool ok = std::filesystem::remove(path);
-        if(!ok) vm->IOError("operation failed");
+        if(!ok) vm->IOError("Operation failed.");
         return vm->None;
     });
 
@@ -166,6 +201,11 @@ inline void add_module_os(VM* vm){
 
     vm->bind_func<1>(path_obj, "exists", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
+        if (vm->isolated_os) {
+            path = vm->_lowest_isolated_cwd_path / path;
+            if (!check_if_path_is_isolated(path, vm->_lowest_isolated_cwd_path)) {return VAR(false);}
+        }
+
         bool exists = std::filesystem::exists(path);
         return VAR(exists);
     });
