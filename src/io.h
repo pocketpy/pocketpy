@@ -31,11 +31,12 @@ struct FileIO {
 
     Str file;
     Str mode;
-    FILE* fp;
+    FILE* fp= nullptr;
 
     bool is_text() const { return mode != "rb" && mode != "wb" && mode != "ab"; }
 
     FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
+        if (vm->check_is_invalid_io_path(file)) {vm->IOError(strerror(errno));}
         fp = fopen(file.c_str(), mode.c_str());
         if(!fp) vm->IOError(strerror(errno));
     }
@@ -125,7 +126,7 @@ inline void add_module_os(VM* vm){
             di = std::filesystem::directory_iterator(path);
         }catch(std::filesystem::filesystem_error& e){
             std::string msg = e.what();
-            auto pos = msg.find_last_of(":");
+            auto pos = msg.find_last_of(':');
             if(pos != std::string::npos) msg = msg.substr(pos + 1);
             vm->IOError(Str(msg).lstrip());
         }

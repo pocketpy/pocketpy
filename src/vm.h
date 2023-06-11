@@ -25,6 +25,8 @@ namespace pkpy{
 #define POPX()            (s_data.popx())
 #define STACK_VIEW(n)     (s_data.view(n))
 
+typedef std::function<Bytes(const Str & name)> ReadFileCwdFunc;
+
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
@@ -98,7 +100,7 @@ struct FrameId{
     Frame* operator->() const { return &data->operator[](index); }
 };
 
-typedef void(*PrintFunc)(VM*, const Str&);
+typedef std::function<void(VM*, const Str&)> PrintFunc;
 
 class VM {
     VM* vm;     // self reference for simplify code
@@ -123,7 +125,7 @@ public:
 
     PrintFunc _stdout;
     PrintFunc _stderr;
-    Bytes (*_import_handler)(const Str& name);
+    std::function<Bytes(const Str&)> _import_handler;
 
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
@@ -133,9 +135,14 @@ public:
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
     Type tp_dict, tp_property, tp_star_wrapper;
 
-    const bool enable_os;
+    std::function<bool(std::string)> check_is_invalid_io_path = [](const std::string&){return false;};
+    std::string _lowest_isolated_cwd_path; // should be absolute, only used in isolated_io.h
 
-    VM(bool enable_os=true) : heap(this), enable_os(enable_os) {
+    const bool enable_os;
+    const bool isolated_os;
+
+    VM(bool enable_os=true, bool isolated_os=false):
+        heap(this), enable_os(enable_os), isolated_os(isolated_os) {
         this->vm = this;
         _stdout = [](VM* vm, const Str& s) { std::cout << s; };
         _stderr = [](VM* vm, const Str& s) { std::cerr << s; };

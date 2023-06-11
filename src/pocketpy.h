@@ -1333,7 +1333,11 @@ inline void VM::post_init(){
 
     if(enable_os){
         add_module_io(this);
-        add_module_os(this);
+        if (isolated_os) {
+            add_module_isolated_os(this);
+        } else {
+            add_module_os(this);
+        }
         add_module_requests(this);
         _import_handler = _default_import_handler;
     }
