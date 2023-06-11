@@ -1,12 +1,11 @@
 #pragma once
 
 #include "common.h"
-#include "obj.h"
-#include "vm.h"
-#include "_generated.h"
 
-#if __has_include("httplib.h")
+#if PK_MODULE_REQUESTS
 #include "httplib.h"
+#include "cffi.h"
+#include "_generated.h"
 
 namespace pkpy {
 
@@ -98,6 +97,6 @@ inline void add_module_requests(VM* vm){
 
 #else
 
-inline void add_module_requests(void* vm){ }
+ADD_MODULE_PLACEHOLDER(requests)
 
 #endif

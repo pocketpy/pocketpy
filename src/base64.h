@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common.h"
-#include "vm.h"
+#if PK_MODULE_BASE64
+
+#include "cffi.h"
 
 namespace pkpy {
 
@@ -191,3 +192,12 @@ inline void add_module_base64(VM* vm){
 }
 
 } // namespace pkpy
+
+
+#else
+
+#include "common.h"
+
+ADD_MODULE_PLACEHOLDER(base64)
+
+#endif

@@ -1,5 +1,7 @@
 #pragma once
 
+#if PK_MODULE_RE
+
 #include "cffi.h"
 
 namespace pkpy{
@@ -82,3 +84,11 @@ inline void add_module_re(VM* vm){
 }
 
 }   // namespace pkpy
+
+#else
+
+#include "common.h"
+
+ADD_MODULE_PLACEHOLDER(re)
+
+#endif

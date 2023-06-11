@@ -8,13 +8,13 @@
 
 /*************** feature settings ***************/
 
-// Whether to compile os-related modules
+// Whether to compile os-related modules or not
 #define PK_ENABLE_OS                1
 // Enable this if you are working with multi-threading (experimental)
 // This triggers necessary locks to make the VM thread-safe
 #define PK_ENABLE_THREAD            0
 
-// Whether to use `std::function` to do bindings
+// Whether to use `std::function` to do bindings or not
 // By default, functions to be binded must be a C function pointer without capture
 // However, someone thinks it's not convenient.
 // By setting this to 1, capturing lambdas can be binded,
@@ -79,5 +79,14 @@ inline const float kTypeAttrLoadFactor = 0.5f;
 #if DEBUG_CEVAL_STEP && defined(PK_ENABLE_COMPUTED_GOTO)
 #undef PK_ENABLE_COMPUTED_GOTO
 #endif
+
+/*************** module settings ***************/
+
+#define PK_MODULE_RE                1
+#define PK_MODULE_RANDOM            1
+#define PK_MODULE_BASE64            1
+#define PK_MODULE_LINALG            1
+#define PK_MODULE_EASING            1
+#define PK_MODULE_REQUESTS          0
 
 #endif

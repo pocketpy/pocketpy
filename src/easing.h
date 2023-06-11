@@ -1,5 +1,7 @@
 #pragma once
 
+#if PK_MODULE_EASING
+
 #include "cffi.h"
 
 namespace pkpy{
@@ -252,5 +254,12 @@ inline void add_module_easing(VM* vm){
 #undef EASE
 }
 
-
 } // namespace pkpy
+
+#else
+
+#include "common.h"
+
+ADD_MODULE_PLACEHOLDER(easing)
+
+#endif

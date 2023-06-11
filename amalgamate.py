@@ -9,7 +9,7 @@ pipeline = [
 	["config.h", "common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
 	["obj.h", "dict.h", "codeobject.h", "frame.h"],
 	["gc.h", "vm.h", "ceval.h", "expr.h", "compiler.h", "repl.h"],
-	["_generated.h", "cffi.h", "iter.h", "base64.h", "re.h", "linalg.h", "easing.h", "requests.h", "io.h"],
+	["_generated.h", "cffi.h", "iter.h", "base64.h", "random.h", "re.h", "linalg.h", "easing.h", "requests.h", "io.h"],
 	["export.h", "pocketpy.h"]
 ]
 
