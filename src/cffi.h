@@ -447,9 +447,7 @@ inline void add_module_c(VM* vm){
 
     vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
-        i64 c = CAST(i64, args[1]);
-        i64 size = CAST(i64, args[2]);
-        memset(p, c, size);
+        memset(p, CAST(int, args[1]), CAST(size_t, args[2]));
         return vm->None;
     });
 
