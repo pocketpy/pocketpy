@@ -1,4 +1,4 @@
-clang++ -std=c++17 -fno-rtti --coverage -stdlib=libc++ -Wall -o pocketpy src/main.cpp
+clang++ -std=c++17 -fno-rtti --coverage -O1 -stdlib=libc++ -Wall -o pocketpy src/main.cpp
 python3 scripts/run_tests.py
 rm -rf .coverage
 mkdir -p .coverage

@@ -2,6 +2,9 @@
 
 <p>
 <a title="Build" href="https://github.com/blueloveTH/pocketpy/actions/workflows" ><img src="https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<a href="https://codecov.io/gh/blueloveTH/pocketpy" > 
+ <img src="https://codecov.io/gh/blueloveTH/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
+ </a>
 <a href="https://github.com/blueloveth/pocketpy/blob/main/LICENSE">
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
 <a href="https://github.com/blueloveth/pocketpy/releases">
