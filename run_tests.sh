@@ -1,3 +1,4 @@
+python3 preprocess.py
 clang++ -std=c++17 -fno-rtti --coverage -O1 -stdlib=libc++ -Wall -o pocketpy src/main.cpp
 python3 scripts/run_tests.py
 rm -rf .coverage
