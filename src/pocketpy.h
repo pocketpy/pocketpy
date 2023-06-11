@@ -14,11 +14,12 @@
 #include "_generated.h"
 #include "export.h"
 #include "vm.h"
-#include "isolated_os.h"
 #include "re.h"
 #include "random.h"
 
 namespace pkpy {
+
+inline std::function<Bytes(const Str&)> _default_import_handler = [](const Str& str){return pkpy::Bytes();};
 
 inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope) {
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
