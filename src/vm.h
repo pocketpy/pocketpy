@@ -1513,7 +1513,7 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* obj, PyObject* index){
     static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
     const T& self = _CAST(T&, obj);
 
-    if(is_type(index, vm->tp_slice)){
+    if(is_non_tagged_type(index, vm->tp_slice)){
         const Slice& s = _CAST(Slice&, index);
         int start, stop, step;
         vm->parse_int_slice(s, self.size(), start, stop, step);

@@ -1,13 +1,5 @@
 #pragma once
 
-#ifdef _MSC_VER
-#pragma warning (disable:4267)
-#pragma warning (disable:4101)
-#pragma warning (disable:4244)
-#define _CRT_NONSTDC_NO_DEPRECATE
-#define strdup _strdup
-#endif
-
 #include <cmath>
 #include <cstring>
 
@@ -29,16 +21,14 @@
 #include <variant>
 #include <type_traits>
 
-#include "config.h"
-
 #define PK_VERSION				"1.0.3"
 
-/*******************************************************************************/
+#include "config.h"
 
+/*******************************************************************************/
 #if PK_ENABLE_STD_FUNCTION
 #include <functional>
 #endif
-
 /*******************************************************************************/
 
 #if PK_ENABLE_THREAD
@@ -55,20 +45,6 @@ struct GIL {
 #else
 #define THREAD_LOCAL
 #define GLOBAL_SCOPE_LOCK()
-#endif
-
-/*******************************************************************************/
-#if _MSC_VER
-#define PK_ENABLE_COMPUTED_GOTO		0
-#define UNREACHABLE()				__assume(0)
-#else
-#define PK_ENABLE_COMPUTED_GOTO		1
-#define UNREACHABLE()				__builtin_unreachable()
-
-#if DEBUG_CEVAL_STEP
-#undef PK_ENABLE_COMPUTED_GOTO
-#endif
-
 #endif
 
 /*******************************************************************************/

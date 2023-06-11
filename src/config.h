@@ -21,6 +21,21 @@
 // but it's slower and may cause severe "code bloat", also needs more time to compile.
 #define PK_ENABLE_STD_FUNCTION      0
 
+/*************** debug settings ***************/
+
+// Enable this may help you find bugs
+#define DEBUG_EXTRA_CHECK           0
+
+// Do not edit the following settings unless you know what you are doing
+#define DEBUG_NO_BUILTIN_MODULES    0
+#define DEBUG_DIS_EXEC              0
+#define DEBUG_CEVAL_STEP            0
+#define DEBUG_FULL_EXCEPTION        0
+#define DEBUG_MEMORY_POOL           0
+#define DEBUG_NO_MEMORY_POOL        0
+#define DEBUG_NO_AUTO_GC            0
+#define DEBUG_GC_STATS              0
+
 /*************** internal settings ***************/
 
 // This is the maximum size of the value stack in void* units
@@ -44,19 +59,25 @@ inline const float kTypeAttrLoadFactor = 0.5f;
     inline const char kPlatformSep = '/';
 #endif
 
-/*************** debug settings ***************/
+#ifdef _MSC_VER
+#pragma warning (disable:4267)
+#pragma warning (disable:4101)
+#pragma warning (disable:4244)
+#define _CRT_NONSTDC_NO_DEPRECATE
+#define strdup _strdup
+#endif
 
-// Enable this may help you find bugs
-#define DEBUG_EXTRA_CHECK           0
+#ifdef _MSC_VER
+#define PK_ENABLE_COMPUTED_GOTO		0
+#define UNREACHABLE()				__assume(0)
+#else
+#define PK_ENABLE_COMPUTED_GOTO		1
+#define UNREACHABLE()				__builtin_unreachable()
+#endif
 
-// Do not edit the following settings unless you know what you are doing
-#define DEBUG_NO_BUILTIN_MODULES    0
-#define DEBUG_DIS_EXEC              0
-#define DEBUG_CEVAL_STEP            0
-#define DEBUG_FULL_EXCEPTION        0
-#define DEBUG_MEMORY_POOL           0
-#define DEBUG_NO_MEMORY_POOL        0
-#define DEBUG_NO_AUTO_GC            0
-#define DEBUG_GC_STATS              0
+
+#if DEBUG_CEVAL_STEP && defined(PK_ENABLE_COMPUTED_GOTO)
+#undef PK_ENABLE_COMPUTED_GOTO
+#endif
 
 #endif
