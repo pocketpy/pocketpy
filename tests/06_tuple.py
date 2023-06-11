@@ -15,3 +15,10 @@ assert b == (1, 2, 3, 4, 5)
 a = tuple([])
 b = *a, 1, 2, 3, *a, *a
 assert b == (1, 2, 3)
+
+
+assert (1,) == tuple([1])
+assert (1,2,) == tuple([1,2])
+
+a = 1,
+assert a == (1,)

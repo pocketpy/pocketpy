@@ -23,13 +23,12 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 1. `__getattr__` and `__setattr__`.
 2. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
 3. `__slots__` in class definition.
-4. One element tuple. `(1,)` is not supported.
-5. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
-6. Access the exception object in try..except.
-7.  `else` clause in try..except.
-8.  Inplace methods like `__iadd__` and `__imul__`.
-9. `__del__` in class definition.
-10. Multiple inheritance.
+4. Unpacking in `list` and `dict` literals, e.g. `[1, 2, *a]`.
+5. Access the exception object in try..except.
+6.  `else` clause in try..except.
+7.  Inplace methods like `__iadd__` and `__imul__`.
+8. `__del__` in class definition.
+9. Multiple inheritance.
 
 ## Different behaviors
 
@@ -41,5 +40,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 6. `__ne__` is not required. Define `__eq__` is enough.
 7. Raw string cannot have boundary quotes in it, even escaped. See [#55](https://github.com/blueloveTH/pocketpy/issues/55).
 8. In a starred unpacked assignment, e.g. `a, b, *c = x`, the starred variable can only be presented in the last position. `a, *b, c = x` is not supported.
-9. `a < b < c` does not work as you expected. Use `a < b and b < c` instead. **(available in main branch now)**
-10. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
+9. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.

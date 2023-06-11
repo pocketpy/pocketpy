@@ -221,7 +221,8 @@ class Compiler {
         std::vector<Expr_> items;
         items.push_back(ctx()->s_expr.popx());
         do {
-            EXPR();         // NOTE: "1," will fail, "1,2" will be ok
+            if(!is_expression()) break;
+            EXPR();
             items.push_back(ctx()->s_expr.popx());
         } while(match(TK(",")));
         ctx()->s_expr.push(make_expr<TupleExpr>(
@@ -563,16 +564,21 @@ __SUBSCR_END:
         consume_end_stmt();
     }
 
+    bool is_expression(){
+        PrattCallback prefix = rules[curr().type].prefix;
+        return prefix != nullptr;
+    }
+
     void parse_expression(int precedence, bool push_stack=true) {
+        PrattCallback prefix = rules[curr().type].prefix;
+        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(curr().type));
         advance();
-        PrattCallback prefix = rules[prev().type].prefix;
-        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(prev().type));
         (this->*prefix)();
         while (rules[curr().type].precedence >= precedence) {
             TokenIndex op = curr().type;
             advance();
             PrattCallback infix = rules[op].infix;
-            if(infix == nullptr) throw std::runtime_error("(infix == nullptr) is true");
+            PK_ASSERT(infix != nullptr);
             (this->*infix)();
         }
         if(!push_stack) ctx()->emit_expr();
