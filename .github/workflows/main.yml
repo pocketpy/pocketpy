@@ -31,7 +31,7 @@ jobs:
         version: 15
         platform: x64
     - name: Install libc++
-      run: sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15
+      run: sudo apt install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15 libclang-rt-15-dev
     - name: Compile
       run: |
         python3 build.py linux
@@ -43,7 +43,12 @@ jobs:
       with:
         path: output
     - name: Unit Test
-      run: python3 scripts/run_tests.py
+      run: bash run_tests.sh
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: .coverage
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
     - name: GCC Build Test
