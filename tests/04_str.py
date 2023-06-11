@@ -14,12 +14,12 @@ assert len(a) == 0
 assert len(b) == 4
 assert b == c
 
-# upper and lower not work for utf-8
-# assert ''.lower() == '' and ''.upper() == ''
-# assert 'already+lower '.lower() == 'already+lower '
-# assert 'ALREADY+UPPER '.upper() == 'ALREADY+UPPER '
-# assert 'tEST+InG'.lower() == 'test+ing'
-# assert 'tEST+InG'.upper() == 'TEST+ING'
+# upper and lower does not work for utf-8
+assert ''.lower() == '' and ''.upper() == ''
+assert 'already+lower '.lower() == 'already+lower '
+assert 'ALREADY+UPPER '.upper() == 'ALREADY+UPPER '
+assert 'tEST+InG'.lower() == 'test+ing'
+assert 'tEST+InG'.upper() == 'TEST+ING'
 
 s = "football"
 q = "abcd"
