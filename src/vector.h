@@ -105,6 +105,10 @@ struct pod_vector{
         _size--;
     }
 
+    void reverse(){
+        std::reverse(_data, _data+_size);
+    }
+
     void resize(int size){
         if(size > _capacity) reserve(size);
         _size = size;

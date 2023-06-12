@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 #if PK_MODULE_RANDOM
 
 #include <random>
@@ -60,8 +62,6 @@ inline void add_module_random(VM* vm){
 }   // namespace pkpy
 
 #else
-
-#include "common.h"
 
 ADD_MODULE_PLACEHOLDER(random)
 

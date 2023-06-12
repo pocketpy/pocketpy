@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 #if PK_MODULE_BASE64
 
 #include "cffi.h"
@@ -195,8 +197,6 @@ inline void add_module_base64(VM* vm){
 
 
 #else
-
-#include "common.h"
 
 ADD_MODULE_PLACEHOLDER(base64)
 
