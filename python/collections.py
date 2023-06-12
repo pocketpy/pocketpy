@@ -59,7 +59,8 @@ class deque:
             node = node.next
 
     def __repr__(self) -> str:
-        return f"deque({list(self)})"
+        a = list(self)
+        return f"deque({a})"
     
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, deque):
