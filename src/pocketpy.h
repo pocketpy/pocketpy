@@ -219,6 +219,12 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return lhs == rhs; });
     _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return BITS(obj); });
 
+    _vm->cached_object__new__ = _vm->bind_constructor<1>("object", [](VM* vm, ArgsView args) {
+        vm->check_non_tagged_type(args[0], vm->tp_type);
+        Type t = OBJ_GET(Type, args[0]);
+        return vm->heap.gcnew<DummyInstance>(t, {});
+    });
+
     _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
 
     _vm->bind_constructor<-1>("range", [](VM* vm, ArgsView args) {
@@ -1285,7 +1291,7 @@ inline void VM::post_init(){
     add_module_random(this);
     add_module_base64(this);
 
-    for(const char* name: {"this", "functools", "collections", "heapq", "bisect"}){
+    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 
@@ -1327,7 +1333,7 @@ inline void VM::post_init(){
     }));
 
     _t(tp_object)->attr().set("__dict__", property([](VM* vm, ArgsView args){
-        if(is_tagged(args[0]) || !args[0]->is_attr_valid()) vm->AttributeError("'__dict__'");
+        if(is_tagged(args[0]) || !args[0]->is_attr_valid()) return vm->None;
         return VAR(MappingProxy(args[0]));
     }));
 

@@ -133,6 +133,8 @@ public:
     Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
     Type tp_dict, tp_property, tp_star_wrapper;
 
+    PyObject* cached_object__new__;
+
     const bool enable_os;
 
     VM(bool enable_os=true) : heap(this), enable_os(enable_os) {
@@ -1323,7 +1325,14 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         DEF_SNAME(__new__);
         PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;
-        if(new_f != nullptr){
+#if DEBUG_EXTRA_CHECK
+        PK_ASSERT(new_f != nullptr);
+#endif
+        if(new_f == cached_object__new__) {
+            // fast path for object.__new__
+            Type t = OBJ_GET(Type, callable);
+            obj= vm->heap.gcnew<DummyInstance>(t, {});
+        }else{
             PUSH(new_f);
             PUSH(PY_NULL);
             PUSH(callable);    // cls
@@ -1331,10 +1340,6 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             for(PyObject* obj: kwargs) PUSH(obj);
             // if obj is not an instance of callable, the behavior is undefined
             obj = vectorcall(ARGC+1, KWARGC);
-        }else{
-            // fast path for object.__new__
-            Type t = OBJ_GET(Type, callable);
-            obj= vm->heap.gcnew<DummyInstance>(t, {});
         }
 
         // __init__

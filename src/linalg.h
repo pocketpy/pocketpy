@@ -330,6 +330,11 @@ struct PyVec2: Vec2 {
             return VAR(Vec2(x, y));
         });
 
+        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            return VAR(Tuple({ VAR(self.x), VAR(self.y) }));
+        });
+
         vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
@@ -382,6 +387,11 @@ struct PyVec3: Vec3 {
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
             return VAR(Vec3(x, y, z));
+        });
+
+        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
+            PyVec3& self = _CAST(PyVec3&, args[0]);
+            return VAR(Tuple({ VAR(self.x), VAR(self.y), VAR(self.z) }));
         });
 
         vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
@@ -442,6 +452,13 @@ struct PyMat3x3: Mat3x3{
             }
             vm->TypeError("Mat3x3.__new__ takes 0 or 1 arguments");
             return vm->None;
+        });
+
+        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Tuple t(9);
+            for(int i=0; i<9; i++) t[i] = VAR(self.v[i]);
+            return VAR(std::move(t));
         });
 
 #define METHOD_PROXY_NONE(name)  \
