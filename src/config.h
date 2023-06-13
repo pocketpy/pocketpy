@@ -64,7 +64,6 @@ inline const float kTypeAttrLoadFactor = 0.5f;
 #pragma warning (disable:4101)
 #pragma warning (disable:4244)
 #define _CRT_NONSTDC_NO_DEPRECATE
-#define strdup _strdup
 #endif
 
 #ifdef _MSC_VER

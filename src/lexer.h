@@ -394,7 +394,7 @@ struct Lexer {
                         }
                     }
                     SyntaxError("invalid special token");
-                }
+                } return false;
                 case '%': add_token_2('=', TK("%"), TK("%=")); return true;
                 case '&': add_token_2('=', TK("&"), TK("&=")); return true;
                 case '|': add_token_2('=', TK("|"), TK("|=")); return true;
@@ -481,8 +481,8 @@ struct Lexer {
                     switch (eat_name())
                     {
                         case 0: break;
-                        case 1: SyntaxError("invalid char: " + std::string(1, c));
-                        case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c));
+                        case 1: SyntaxError("invalid char: " + std::string(1, c)); break;
+                        case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c)); break;
                         case 3: SyntaxError("@id contains invalid char"); break;
                         case 4: SyntaxError("invalid JSON token"); break;
                         default: FATAL_ERROR();
