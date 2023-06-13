@@ -21,12 +21,9 @@ typedef int (*LuaStyleFuncC)(VM*);
 
 struct NativeFunc {
     NativeFuncC f;
-    int argc;       // DONOT include self
-    bool method;
+    int argc;
 
     // this is designed for lua style C bindings
-    // access it via `_CAST(NativeFunc&, args[-2])._lua_f`
-    // (-2) or (-1) depends on the calling convention
     LuaStyleFuncC _lua_f;
 
     using UserData = char[32];
@@ -52,7 +49,14 @@ struct NativeFunc {
         return reinterpret_cast<const T&>(_userdata);
     }
     
-    NativeFunc(NativeFuncC f, int argc, bool method) : f(f), argc(argc), method(method), _has_userdata(false) {}
+    NativeFunc(NativeFuncC f, int argc, bool method){
+        this->f = f;
+        this->argc = argc;
+        if(argc != -1) this->argc += (int)method;
+        _lua_f = nullptr;
+        _has_userdata = false;
+    }
+
     PyObject* operator()(VM* vm, ArgsView args) const;
 };
 

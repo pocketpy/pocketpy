@@ -665,9 +665,8 @@ public:
 };
 
 inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
-    int args_size = args.size() - (int)method;  // remove self
-    if(args_size != argc && argc != -1) {
-        vm->TypeError(fmt("expected ", argc, " arguments, but got ", args_size));
+    if(args.size() != argc && argc != -1) {
+        vm->TypeError(fmt("expected ", argc, " arguments, but got ", args.size()));
     }
 #if DEBUG_EXTRA_CHECK
     if(f == nullptr) FATAL_ERROR();
@@ -1235,10 +1234,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         if(args.size() < fn.argc){
             vm->TypeError(fmt(
-                "expected ",
-                fn.argc - (int)method_call,
-                " positional arguments, but got ",
-                args.size() - (int)method_call,
+                "expected ", fn.argc, " positional arguments, but got ", args.size(),
                 " (", fn.decl->code->name, ')'
             ));
         }
