@@ -21,5 +21,12 @@ The following types can be pickled:
 - [x] strings, bytes;
 - [x] tuples, lists, sets, and dictionaries containing only picklable objects;
 - [ ] functions (built-in and user-defined) accessible from the top level of a module (using def, not lambda);
-- [ ] classes accessible from the top level of a module;
+- [x] classes accessible from the top level of a module;
 - [x] instances of such classes
+
+The following magic methods are available:
+
+- [x] `__getnewargs__`
+- [ ] `__getstate__`
+- [ ] `__setstate__`
+- [ ] `__reduce__`

@@ -29,7 +29,9 @@ class _Pickler:
     def wrap(self, o):
         if type(o) in _BASIC_TYPES:
             return o
-        
+        if type(o) is type:
+            return ["type", o.__name__]
+
         index = self.raw_memo.get(id(o), None)
         if index is not None:
             return [index]
@@ -47,6 +49,7 @@ class _Pickler:
             ret.append("bytes")
             ret.append([o[j] for j in range(len(o))])
             return [index]
+
         if type(o) is list:
             ret.append("list")
             ret.append([self.wrap(i) for i in o])
@@ -96,6 +99,9 @@ class _Unpickler:
         if type(o) in _BASIC_TYPES:
             return o
         assert type(o) is list
+
+        if o[0] == "type":
+            return _find_class(o[1])
 
         # reference
         if type(o[0]) is int:

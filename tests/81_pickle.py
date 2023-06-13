@@ -61,3 +61,6 @@ from collections import deque
 
 a = deque([1, 2, 3])
 test(a)
+
+a = [int, float, Foo]
+test(a)
