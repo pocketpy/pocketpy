@@ -4,9 +4,12 @@ def test(x):
     ok = x == loads(dumps(x))
     if not ok:
         _0 = _wrap(x)
-        _1 = _unwrap(0)
+        _1 = _unwrap(_0)
+        print('='*50)
         print(_0)
+        print('-'*50)
         print(_1)
+        print('='*50)
         assert False
 
 test(1)
@@ -34,9 +37,7 @@ class Foo:
         return f"Foo({self.x}, {self.y})"
     
 test(Foo(1, 2))
-
-a = [1,2]
-test(Foo([1, 2], a))
+test(Foo([1, True], 'c'))
 
 from linalg import vec2
 
@@ -54,3 +55,9 @@ c = loads(dumps(d))
 
 assert c['k'] is c['j']
 assert c == d
+
+# test circular references
+from collections import deque
+
+a = deque([1, 2, 3])
+test(a)
