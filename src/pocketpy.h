@@ -117,7 +117,7 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);
         i64 rhs = CAST(i64, args[1]);
-        std::ldiv_t res = std::div(lhs, rhs);
+        auto res = std::div(lhs, rhs);
         return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
     });
 
