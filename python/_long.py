@@ -175,15 +175,15 @@ class long:
         else:
             assert type(other) is long
         if self.sign == other.sign:
-            return long(ulong_add(self.digits, other.digits), self.sign)
+            return long((ulong_add(self.digits, other.digits), self.sign))
         else:
             cmp = ulong_cmp(self.digits, other.digits)
             if cmp == 0:
                 return long(0)
             if cmp > 0:
-                return long(ulong_sub(self.digits, other.digits), self.sign)
+                return long((ulong_sub(self.digits, other.digits), self.sign))
             else:
-                return long(ulong_sub(other.digits, self.digits), other.sign)
+                return long((ulong_sub(other.digits, self.digits), other.sign))
             
     def __radd__(self, other):
         return self.__add__(other)
@@ -194,15 +194,15 @@ class long:
         else:
             assert type(other) is long
         if self.sign != other.sign:
-            return long(ulong_add(self.digits, other.digits), self.sign)
+            return long((ulong_add(self.digits, other.digits), self.sign))
         else:
             cmp = ulong_cmp(self.digits, other.digits)
             if cmp == 0:
                 return long(0)
             if cmp > 0:
-                return long(ulong_sub(self.digits, other.digits), self.sign)
+                return long((ulong_sub(self.digits, other.digits), self.sign))
             else:
-                return long(ulong_sub(other.digits, self.digits), -other.sign)
+                return long((ulong_sub(other.digits, self.digits), -other.sign))
             
     def __rsub__(self, other):
         return self.__sub__(other)
@@ -270,7 +270,7 @@ class long:
         raise NotImplementedError
     
     def __neg__(self):
-        return long(self.digits, -self.sign)
+        return long((self.digits, -self.sign))
     
     def __cmp__(self, other):
         if type(other) is int:

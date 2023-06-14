@@ -114,6 +114,7 @@ public:
     PyObject* None;
     PyObject* True;
     PyObject* False;
+    PyObject* NotImplemented;   // unused
     PyObject* Ellipsis;
     PyObject* builtins;         // builtins module
     PyObject* StopIteration;
@@ -1125,6 +1126,7 @@ inline void VM::init_builtin_types(){
     tp_star_wrapper = _new_type_object("_star_wrapper");
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
+    this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"), {});
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
     this->True = heap._new<Dummy>(tp_bool, {});
     this->False = heap._new<Dummy>(tp_bool, {});
