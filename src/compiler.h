@@ -221,9 +221,11 @@ class Compiler {
         std::vector<Expr_> items;
         items.push_back(ctx()->s_expr.popx());
         do {
+            if(curr().brackets_level) match_newlines_repl();
             if(!is_expression()) break;
             EXPR();
             items.push_back(ctx()->s_expr.popx());
+            if(curr().brackets_level) match_newlines_repl();
         } while(match(TK(",")));
         ctx()->s_expr.push(make_expr<TupleExpr>(
             std::move(items)

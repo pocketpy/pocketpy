@@ -56,6 +56,7 @@ struct Token{
   const char* start;
   int length;
   int line;
+  int brackets_level;
   TokenValue value;
 
   Str str() const { return Str(start, length);}
@@ -151,11 +152,11 @@ struct Lexer {
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
-            nexts.push_back(Token{TK("@indent"), token_start, 0, current_line});
+            nexts.push_back(Token{TK("@indent"), token_start, 0, current_line, brackets_level});
         } else if(spaces < indents.top()){
             while(spaces < indents.top()){
                 indents.pop();
-                nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line});
+                nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line, brackets_level});
             }
             if(spaces != indents.top()){
                 return false;
@@ -262,6 +263,7 @@ struct Lexer {
             token_start,
             (int)(curr_char - token_start),
             current_line - ((type == TK("@eol")) ? 1 : 0),
+            brackets_level,
             value
         };
         // handle "not in", "is not", "yield from"
@@ -526,7 +528,7 @@ struct Lexer {
         this->src = src;
         this->token_start = src->source.c_str();
         this->curr_char = src->source.c_str();
-        this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line});
+        this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level});
         this->indents.push(0);
     }
 

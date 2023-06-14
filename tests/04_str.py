@@ -60,6 +60,9 @@ seq = ["r","u","n","o","o","b"]
 assert s1.join( seq ) == "r-u-n-o-o-b"
 assert s2.join( seq ) == "runoob"
 
+assert 'x'.zfill(5) == '0000x'
+assert '568'.zfill(1) == '568'
+
 def test(*seq):
     return s1.join(seq)
 assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"

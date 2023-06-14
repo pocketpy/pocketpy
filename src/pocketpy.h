@@ -115,10 +115,15 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
-        i64 lhs = CAST(i64, args[0]);
-        i64 rhs = CAST(i64, args[1]);
-        auto res = std::div(lhs, rhs);
-        return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
+        if(is_int(args[0])){
+            i64 lhs = _CAST(i64, args[0]);
+            i64 rhs = CAST(i64, args[1]);
+            auto res = std::div(lhs, rhs);
+            return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
+        }else{
+            DEF_SNAME(__divmod__);
+            return vm->call_method(args[0], __divmod__, args[1]);
+        }
     });
 
     _vm->bind_builtin_func<1>("eval", [](VM* vm, ArgsView args) {
@@ -1048,6 +1053,19 @@ inline void init_builtins(VM* _vm) {
     Generator::register_class(_vm, _vm->builtins);
 }
 
+inline void add_module_timeit(VM* vm){
+    PyObject* mod = vm->new_module("timeit");
+    vm->bind_func<2>(mod, "timeit", [](VM* vm, ArgsView args) {
+        PyObject* f = args[0];
+        i64 iters = CAST(i64, args[1]);
+        auto now = std::chrono::system_clock::now();
+        for(i64 i=0; i<iters; i++) vm->call(f);
+        auto end = std::chrono::system_clock::now();
+        f64 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - now).count() / 1000.0;
+        return VAR(elapsed);
+    });
+}
+
 inline void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
     vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
@@ -1279,29 +1297,7 @@ inline void add_module_gc(VM* vm){
 
 inline void VM::post_init(){
     init_builtins(this);
-#if !DEBUG_NO_BUILTIN_MODULES
-    add_module_sys(this);
-    add_module_traceback(this);
-    add_module_time(this);
-    add_module_json(this);
-    add_module_math(this);
-    add_module_re(this);
-    add_module_dis(this);
-    add_module_c(this);
-    add_module_gc(this);
-    add_module_random(this);
-    add_module_base64(this);
 
-    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle"}){
-        _lazy_modules[name] = kPythonLibs[name];
-    }
-
-    CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
-    this->_exec(code, this->builtins);
-    code = compile(kPythonLibs["_set"], "<set>", EXEC_MODE);
-    this->_exec(code, this->builtins);
-
-    // property is defined in builtins.py so we need to add it after builtins is loaded
     _t(tp_object)->attr().set("__class__", property(CPP_LAMBDA(vm->_t(args[0]))));
     _t(tp_type)->attr().set("__base__", property([](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
@@ -1337,6 +1333,35 @@ inline void VM::post_init(){
         if(is_tagged(args[0]) || !args[0]->is_attr_valid()) return vm->None;
         return VAR(MappingProxy(args[0]));
     }));
+
+#if !DEBUG_NO_BUILTIN_MODULES
+    add_module_sys(this);
+    add_module_traceback(this);
+    add_module_time(this);
+    add_module_json(this);
+    add_module_math(this);
+    add_module_re(this);
+    add_module_dis(this);
+    add_module_c(this);
+    add_module_gc(this);
+    add_module_random(this);
+    add_module_base64(this);
+    add_module_timeit(this);
+
+    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle", "_long"}){
+        _lazy_modules[name] = kPythonLibs[name];
+    }
+
+    try{
+        CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
+        this->_exec(code, this->builtins);
+        code = compile(kPythonLibs["_set"], "<set>", EXEC_MODE);
+        this->_exec(code, this->builtins);
+    }catch(Exception& e){
+        std::cerr << e.summary() << std::endl;
+        std::cerr << "failed to load builtins module!!" << std::endl;
+        exit(1);
+    }
 
     if(enable_os){
         add_module_io(this);

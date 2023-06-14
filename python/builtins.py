@@ -158,6 +158,13 @@ def __f(self, chars=None):
     return self[i:j+1]
 str.strip = __f
 
+def __f(self, width: int):
+    delta = width - len(self)
+    if delta <= 0:
+        return self
+    return '0' * delta + self
+str.zfill = __f
+
 ##### list #####
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
@@ -235,3 +242,5 @@ def help(obj):
 
 
 del __f
+
+from _long import long
