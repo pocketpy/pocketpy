@@ -41,3 +41,5 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 7. Raw string cannot have boundary quotes in it, even escaped. See [#55](https://github.com/blueloveTH/pocketpy/issues/55).
 8. In a starred unpacked assignment, e.g. `a, b, *c = x`, the starred variable can only be presented in the last position. `a, *b, c = x` is not supported.
 9. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
+10. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
+11. `int` is of limited precision. For arbitrary sized integers, you may use `long` type explicitly.
