@@ -100,6 +100,19 @@ inline void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
+    _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
+        i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
+        i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
+        i64 mod = CAST(i64, args[2]);   // assume mod>0
+        i64 res = 1;
+        while(rhs){
+            if(rhs & 1) res = res*lhs % mod;
+            lhs = lhs*lhs % mod;
+            rhs >>= 1;
+        }
+        return VAR(res);
+    });
+
     _vm->bind_builtin_func<1>("id", [](VM* vm, ArgsView args) {
         PyObject* obj = args[0];
         if(is_tagged(obj)) return vm->None;
@@ -299,6 +312,14 @@ inline void init_builtins(VM* _vm) {
         }
         vm->TypeError("int() argument must be a int, float, bool or str");
         return vm->None;
+    });
+
+    _vm->bind_method<0>("int", "bit_length", [](VM* vm, ArgsView args) {
+        i64 x = _CAST(i64, args[0]);
+        if(x < 0) x = -x;
+        int bits = 0;
+        while(x){ x >>= 1; bits++; }
+        return VAR(bits);
     });
 
     _vm->bind__floordiv__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
