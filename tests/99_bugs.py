@@ -30,3 +30,21 @@ if inq is   not 1:
     assert True
 if inq  is  not  0:
     assert False
+
+assert pow(2,5000,2**59-1) == 17592186044416
+
+def g(x):
+    return x
+def f(x):
+    return x
+
+assert (g(1), 2) == (1, 2)
+assert (
+    g(1),
+    2
+) == (1, 2)
+
+assert f((
+    g(1),
+    2
+)) == (1, 2)
