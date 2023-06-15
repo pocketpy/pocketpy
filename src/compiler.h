@@ -121,6 +121,7 @@ class Compiler {
         rules[TK("@num")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@str")] =     { METHOD(exprLiteral),   NO_INFIX };
         rules[TK("@fstr")] =    { METHOD(exprFString),   NO_INFIX };
+        rules[TK("@long")] =    { METHOD(exprLong),      NO_INFIX };
 #undef METHOD
 #undef NO_INFIX
     }
@@ -194,9 +195,12 @@ class Compiler {
         return expr;
     }
 
-    
     void exprLiteral(){
         ctx()->s_expr.push(make_expr<LiteralExpr>(prev().value));
+    }
+
+    void exprLong(){
+        ctx()->s_expr.push(make_expr<LongExpr>(prev().str()));
     }
 
     void exprFString(){

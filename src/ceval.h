@@ -325,46 +325,59 @@ __NEXT_STEP:;
         if(_ti->m##func){                               \
             TOP() = VAR(_ti->m##func(this, _0, _1));    \
         }else{                                          \
-            TOP() = call_method(_0, func, _1);          \
+            PyObject* self;                                         \
+            _2 = get_unbound_method(_0, func, &self, false);        \
+            if(_2 != nullptr) TOP() = call_method(self, _2, _1);    \
+            else TOP() = NotImplemented;                            \
+        }
+
+#define BINARY_OP_RSPECIAL(op, func)                                \
+        if(TOP() == NotImplemented){                                \
+            PyObject* self;                                         \
+            _2 = get_unbound_method(_1, func, &self, false);        \
+            if(_2 != nullptr) TOP() = call_method(self, _2, _0);    \
+            else BinaryOptError(op);                                \
         }
 
     TARGET(BINARY_TRUEDIV)
-        if(is_tagged(SECOND())){
-            f64 lhs = num_to_float(SECOND());
-            f64 rhs = num_to_float(TOP());
-            POP();
-            TOP() = VAR(lhs / rhs);
-            DISPATCH();
-        }
         BINARY_OP_SPECIAL(__truediv__);
+        if(TOP() == NotImplemented) BinaryOptError("/");
         DISPATCH();
     TARGET(BINARY_POW)
         BINARY_OP_SPECIAL(__pow__);
+        if(TOP() == NotImplemented) BinaryOptError("**");
         DISPATCH();
     TARGET(BINARY_ADD)
         PREDICT_INT_OP(+);
         BINARY_OP_SPECIAL(__add__);
+        BINARY_OP_RSPECIAL("+", __radd__);
         DISPATCH()
     TARGET(BINARY_SUB)
         PREDICT_INT_OP(-);
         BINARY_OP_SPECIAL(__sub__);
+        BINARY_OP_RSPECIAL("-", __rsub__);
         DISPATCH()
     TARGET(BINARY_MUL)
         BINARY_OP_SPECIAL(__mul__);
+        BINARY_OP_RSPECIAL("*", __rmul__);
         DISPATCH()
     TARGET(BINARY_FLOORDIV)
         PREDICT_INT_OP(/);
         BINARY_OP_SPECIAL(__floordiv__);
+        if(TOP() == NotImplemented) BinaryOptError("//");
         DISPATCH()
     TARGET(BINARY_MOD)
         PREDICT_INT_OP(%);
         BINARY_OP_SPECIAL(__mod__);
+        if(TOP() == NotImplemented) BinaryOptError("%");
         DISPATCH()
     TARGET(COMPARE_LT)
         BINARY_OP_SPECIAL(__lt__);
+        if(TOP() == NotImplemented) BinaryOptError("<");
         DISPATCH()
     TARGET(COMPARE_LE)
         BINARY_OP_SPECIAL(__le__);
+        if(TOP() == NotImplemented) BinaryOptError("<=");
         DISPATCH()
     TARGET(COMPARE_EQ)
         _1 = POPX();
@@ -378,32 +391,40 @@ __NEXT_STEP:;
         DISPATCH()
     TARGET(COMPARE_GT)
         BINARY_OP_SPECIAL(__gt__);
+        if(TOP() == NotImplemented) BinaryOptError(">");
         DISPATCH()
     TARGET(COMPARE_GE)
         BINARY_OP_SPECIAL(__ge__);
+        if(TOP() == NotImplemented) BinaryOptError(">=");
         DISPATCH()
     TARGET(BITWISE_LSHIFT)
         PREDICT_INT_OP(<<);
         BINARY_OP_SPECIAL(__lshift__);
+        if(TOP() == NotImplemented) BinaryOptError("<<");
         DISPATCH()
     TARGET(BITWISE_RSHIFT)
         PREDICT_INT_OP(>>);
         BINARY_OP_SPECIAL(__rshift__);
+        if(TOP() == NotImplemented) BinaryOptError(">>");
         DISPATCH()
     TARGET(BITWISE_AND)
         PREDICT_INT_OP(&);
         BINARY_OP_SPECIAL(__and__);
+        if(TOP() == NotImplemented) BinaryOptError("&");
         DISPATCH()
     TARGET(BITWISE_OR)
         PREDICT_INT_OP(|);
         BINARY_OP_SPECIAL(__or__);
+        if(TOP() == NotImplemented) BinaryOptError("|");
         DISPATCH()
     TARGET(BITWISE_XOR)
         PREDICT_INT_OP(^);
         BINARY_OP_SPECIAL(__xor__);
+        if(TOP() == NotImplemented) BinaryOptError("^");
         DISPATCH()
     TARGET(BINARY_MATMUL)
         BINARY_OP_SPECIAL(__matmul__);
+        if(TOP() == NotImplemented) BinaryOptError("@");
         DISPATCH();
 
 #undef BINARY_OP_SPECIAL

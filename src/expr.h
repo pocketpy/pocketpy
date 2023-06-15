@@ -259,6 +259,20 @@ struct Literal0Expr: Expr{
     bool is_json_object() const override { return true; }
 };
 
+struct LongExpr: Expr{
+    Str s;
+    LongExpr(const Str& s): s(s) {}
+    std::string str() const override { return s.str(); }
+
+    void emit(CodeEmitContext* ctx) override {
+        VM* vm = ctx->vm;
+        PyObject* long_type = vm->builtins->attr().try_get("long");
+        PK_ASSERT(long_type != nullptr);
+        PyObject* obj = vm->call(long_type, VAR(s));
+        ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
+    }
+};
+
 // @num, @str which needs to invoke OP_LOAD_CONST
 struct LiteralExpr: Expr{
     TokenValue value;

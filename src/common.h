@@ -133,6 +133,10 @@ inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
 
+inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
+	return is_float(a) && is_float(b);
+}
+
 // special singals, is_tagged() for them is true
 inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;

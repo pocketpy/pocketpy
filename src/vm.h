@@ -512,6 +512,7 @@ public:
     void ValueError(const Str& msg){ _error("ValueError", msg); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
     void KeyError(PyObject* obj){ _error("KeyError", OBJ_GET(Str, py_repr(obj))); }
+    void BinaryOptError(const char* op) { TypeError(fmt("unsupported operand type(s) for ", op)); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
@@ -1148,6 +1149,7 @@ inline void VM::init_builtin_types(){
     builtins->attr().set("dict", _t(tp_dict));
     builtins->attr().set("property", _t(tp_property));
     builtins->attr().set("StopIteration", StopIteration);
+    builtins->attr().set("NotImplemented", NotImplemented);
     builtins->attr().set("slice", _t(tp_slice));
 
     post_init();

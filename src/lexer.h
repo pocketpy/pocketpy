@@ -11,7 +11,7 @@ typedef uint8_t TokenIndex;
 constexpr const char* kTokens[] = {
     "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
-    "@id", "@num", "@str", "@fstr",
+    "@id", "@num", "@str", "@fstr", "@long",
     "@indent", "@dedent",
     /*****************************************/
     "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
@@ -342,29 +342,34 @@ struct Lexer {
     }
 
     void eat_number() {
-        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?");
+        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
         std::smatch m;
 
         const char* i = token_start;
         while(*i != '\n' && *i != '\0') i++;
         std::string s = std::string(token_start, i);
 
-        try{
-            if (std::regex_search(s, m, pattern)) {
-                // here is m.length()-1, since the first char was eaten by lex_token()
-                for(int j=0; j<m.length()-1; j++) eatchar();
+        bool ok = std::regex_search(s, m, pattern);
+        PK_ASSERT(ok);
+        // here is m.length()-1, since the first char was eaten by lex_token()
+        for(int j=0; j<m.length()-1; j++) eatchar();
 
-                int base = 10;
-                size_t size;
-                if (m[1].matched) base = 16;
-                if (m[2].matched) {
-                    if(base == 16) SyntaxError("hex literal should not contain a dot");
-                    add_token(TK("@num"), Number::stof(m[0], &size));
-                } else {
-                    add_token(TK("@num"), Number::stoi(m[0], &size, base));
-                }
-                if (size != m.length()) FATAL_ERROR();
+        if(m[3].matched){
+            add_token(TK("@long"));
+            return;
+        }
+
+        try{
+            int base = 10;
+            size_t size;
+            if (m[1].matched) base = 16;
+            if (m[2].matched) {
+                if(base == 16) SyntaxError("hex literal should not contain a dot");
+                add_token(TK("@num"), Number::stof(m[0], &size));
+            } else {
+                add_token(TK("@num"), Number::stoi(m[0], &size, base));
             }
+            PK_ASSERT(size == m.length());
         }catch(std::exception& _){
             SyntaxError("invalid number literal");
         } 

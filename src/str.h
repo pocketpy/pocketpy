@@ -426,8 +426,11 @@ const StrName __ge__ = StrName::get("__ge__");
 const StrName __contains__ = StrName::get("__contains__");
 // binary operators
 const StrName __add__ = StrName::get("__add__");
+const StrName __radd__ = StrName::get("__radd__");
 const StrName __sub__ = StrName::get("__sub__");
+const StrName __rsub__ = StrName::get("__rsub__");
 const StrName __mul__ = StrName::get("__mul__");
+const StrName __rmul__ = StrName::get("__rmul__");
 const StrName __truediv__ = StrName::get("__truediv__");
 const StrName __floordiv__ = StrName::get("__floordiv__");
 const StrName __mod__ = StrName::get("__mod__");

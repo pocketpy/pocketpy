@@ -143,8 +143,9 @@ def ulong_repr(x: list) -> str:
     return s
 
 def ulong_fromstr(s: str):
-    res = [0]
-    base = [1]
+    if s[-1] == 'L':
+        s = s[:-1]
+    res, base = [0], [1]
     if s[0] == '-':
         sign = -1
         s = s[1:]
@@ -172,8 +173,8 @@ class long:
     def __add__(self, other):
         if type(other) is int:
             other = long(other)
-        else:
-            assert type(other) is long
+        elif type(other) is not long:
+            return NotImplemented
         if self.sign == other.sign:
             return long((ulong_add(self.digits, other.digits), self.sign))
         else:
@@ -191,21 +192,24 @@ class long:
     def __sub__(self, other):
         if type(other) is int:
             other = long(other)
-        else:
-            assert type(other) is long
+        elif type(other) is not long:
+            return NotImplemented
         if self.sign != other.sign:
             return long((ulong_add(self.digits, other.digits), self.sign))
+        cmp = ulong_cmp(self.digits, other.digits)
+        if cmp == 0:
+            return long(0)
+        if cmp > 0:
+            return long((ulong_sub(self.digits, other.digits), self.sign))
         else:
-            cmp = ulong_cmp(self.digits, other.digits)
-            if cmp == 0:
-                return long(0)
-            if cmp > 0:
-                return long((ulong_sub(self.digits, other.digits), self.sign))
-            else:
-                return long((ulong_sub(other.digits, self.digits), -other.sign))
+            return long((ulong_sub(other.digits, self.digits), -other.sign))
             
     def __rsub__(self, other):
-        return self.__sub__(other)
+        if type(other) is int:
+            other = long(other)
+        elif type(other) is not long:
+            return NotImplemented
+        return other.__sub__(self)
     
     def __mul__(self, other):
         if type(other) is int:
@@ -218,7 +222,7 @@ class long:
                 ulong_mul(self.digits, other.digits),
                 self.sign * other.sign
             ))
-        raise TypeError('unsupported operand type(s) for *')
+        return NotImplemented
     
     def __rmul__(self, other):
         return self.__mul__(other)

@@ -36,14 +36,14 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool 
 inline void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                             \
-        if(is_int(rhs)){                                                                                \
-            return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));                                             \
-        }else{                                                                                          \
-            return VAR(_CAST(i64, lhs) op vm->num_to_float(rhs));                                       \
-        }                                                                                               \
+        if(is_int(rhs)) return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));                                 \
+        if(is_float(rhs)) return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));                               \
+        return vm->NotImplemented;                                                                      \
     });                                                                                                 \
     _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {                           \
-        return VAR(_CAST(f64, lhs) op vm->num_to_float(rhs));                                           \
+        if(is_float(rhs)) return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));                               \
+        if(is_int(rhs)) return VAR(_CAST(f64, lhs) op _CAST(i64, rhs));                                 \
+        return vm->NotImplemented;                                                                      \
     });
 
     BIND_NUM_ARITH_OPT(__add__, +)
