@@ -24,3 +24,11 @@ for i in range(29):
     assert 2L ** i >> i == 1L
 
 assert 12L >> 100 == 0
+
+a = 32764L
+s = []
+while a != 0:
+    a, r = divmod(a, 10L)
+    s.append(r)
+
+assert s == [4, 6, 7, 2, 3]

@@ -59,6 +59,17 @@ def ulong_add(a: list, b: list) -> list:
         res.append(carry)
     return res
 
+def ulong_inc_(a: list):
+    a[0] += 1
+    for i in range(len(a)):
+        if a[i] < PyLong_BASE: break
+        a[i] -= PyLong_BASE
+        if i+1 == len(a):
+            a.append(1)
+        else:
+            a[i+1] += 1
+    
+
 def ulong_sub(a: list, b: list) -> list:
     # a >= b
     res = []
@@ -94,6 +105,13 @@ def ulong_divmodi(a: list, b: int):
     res.reverse()
     ulong_unpad_(res)
     return res, carry
+
+def ulong_divmod(a: list, b: list):
+    q = [0]
+    while ulong_cmp(a, b) >= 0:
+        ulong_inc_(q)
+        a = ulong_sub(a, b)
+    return q, a
 
 def ulong_floordivi(a: list, b: int):
     # b > 0
@@ -178,6 +196,9 @@ class long:
             self.digits, self.sign = x.digits.copy(), x.sign
         else:
             raise TypeError('expected int or str')
+        
+    def __len__(self):
+        return len(self.digits)
 
     def __add__(self, other):
         if type(other) is int:
@@ -239,16 +260,20 @@ class long:
     #######################################################
     def __divmod__(self, other):
         if type(other) is int:
-            assert type(other) is int and other > 0
-            assert self.sign == 1
+            assert self.sign == 1 and other > 0
             q, r = ulong_divmodi(self.digits, other)
             return long((q, 1)), r
+        if type(other) is long:
+            assert self.sign == 1 and other.sign == 1
+            q, r = ulong_divmod(self.digits, other.digits)
+            assert len(other)>1 or other.digits[0]>0
+            return long((q, 1)), long((r, 1))
         raise NotImplementedError
 
-    def __floordiv__(self, other: int):
+    def __floordiv__(self, other):
         return self.__divmod__(other)[0]
 
-    def __mod__(self, other: int):
+    def __mod__(self, other):
         return self.__divmod__(other)[1]
 
     def __pow__(self, other: int):
