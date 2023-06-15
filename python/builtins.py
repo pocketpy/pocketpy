@@ -165,6 +165,22 @@ def __f(self, width: int):
     return '0' * delta + self
 str.zfill = __f
 
+def __f(self, width: int, fillchar=' '):
+    delta = width - len(self)
+    if delta <= 0:
+        return self
+    assert len(fillchar) == 1
+    return fillchar * delta + self
+str.rjust = __f
+
+def __f(self, width: int, fillchar=' '):
+    delta = width - len(self)
+    if delta <= 0:
+        return self
+    assert len(fillchar) == 1
+    return self + fillchar * delta
+str.ljust = __f
+
 ##### list #####
 list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
 list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'

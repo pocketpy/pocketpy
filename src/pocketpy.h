@@ -103,11 +103,12 @@ inline void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
         i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
-        i64 mod = CAST(i64, args[2]);   // assume mod>0
+        i64 mod = CAST(i64, args[2]);   // assume mod>0, mod*mod should not overflow
         i64 res = 1;
         while(rhs){
-            if(rhs & 1) res = res*lhs % mod;
-            lhs = lhs*lhs % mod;
+            i64 lhs_mod = lhs % mod;
+            if(rhs & 1) res = ((res % mod) * lhs_mod) % mod;
+            lhs = (lhs_mod * lhs_mod) % mod;
             rhs >>= 1;
         }
         return VAR(res);
@@ -213,6 +214,22 @@ inline void init_builtins(VM* _vm) {
         return vm->py_next(args[0]);
     });
 
+    _vm->bind_builtin_func<1>("bin", [](VM* vm, ArgsView args) {
+        std::stringstream ss;
+        i64 x = CAST(i64, args[0]);
+        if(x < 0){ ss << "-"; x = -x; }
+        ss << "0b";
+        std::string bits;
+        while(x){
+            bits += (x & 1) ? '1' : '0';
+            x >>= 1;
+        }
+        std::reverse(bits.begin(), bits.end());
+        if(bits.empty()) bits = "0";
+        ss << bits;
+        return VAR(ss.str());
+    });
+
     _vm->bind_builtin_func<1>("dir", [](VM* vm, ArgsView args) {
         std::set<StrName> names;
         if(!is_tagged(args[0]) && args[0]->is_attr_valid()){
@@ -295,22 +312,27 @@ inline void init_builtins(VM* _vm) {
     _vm->bind__pow__(_vm->tp_float, py_number_pow);
 
     /************ int ************/
-    _vm->bind_constructor<2>("int", [](VM* vm, ArgsView args) {
-        if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
-        if (is_type(args[1], vm->tp_int)) return args[1];
-        if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
+    _vm->bind_constructor<-1>("int", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+1){
+            if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
+            if (is_type(args[1], vm->tp_int)) return args[1];
+            if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
+        }
+        if(args.size() > 1+2) vm->TypeError("int() takes at most 2 arguments");
         if (is_type(args[1], vm->tp_str)) {
+            int base = 10;
+            if(args.size() == 1+2) base = CAST(i64, args[2]);
             const Str& s = CAST(Str&, args[1]);
             try{
                 size_t parsed = 0;
-                i64 val = Number::stoi(s.str(), &parsed, 10);
+                i64 val = Number::stoi(s.str(), &parsed, base);
                 if(parsed != s.length()) throw std::invalid_argument("<?>");
                 return VAR(val);
             }catch(std::invalid_argument&){
                 vm->ValueError("invalid literal for int(): " + s.escape());
             }
         }
-        vm->TypeError("int() argument must be a int, float, bool or str");
+        vm->TypeError("invalid arguments for int()");
         return vm->None;
     });
 

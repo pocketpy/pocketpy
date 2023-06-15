@@ -101,3 +101,9 @@ assert b[::2] == ['H', 'l', 'o', ' ', 'o', 'l', '!']
 assert b[2:5:2] == ['l', 'o']
 assert b[5:2:-1] == [',', 'o', 'l']
 assert b[5:2:-2] == [',', 'l']
+
+a = '123'
+assert a.rjust(5) == '  123'
+assert a.rjust(5, '0') == '00123'
+assert a.ljust(5) == '123  '
+assert a.ljust(5, '0') == '12300'
