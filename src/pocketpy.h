@@ -100,15 +100,26 @@ inline void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
+    static const auto _mul = [](i64 a, i64 b, i64 c){
+        if(c < 16384) return (a%c) * (b%c) % c;
+        i64 res = 0;
+        while(b > 0){
+            if(b & 1) res = (res + a) % c;
+            a = (a << 1) % c;
+            b >>= 1;
+        }
+        return res;
+    };
+
     _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
         i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
         i64 mod = CAST(i64, args[2]);   // assume mod>0, mod*mod should not overflow
         i64 res = 1;
+        lhs %= mod;
         while(rhs){
-            i64 lhs_mod = lhs % mod;
-            if(rhs & 1) res = ((res % mod) * lhs_mod) % mod;
-            lhs = (lhs_mod * lhs_mod) % mod;
+            if(rhs & 1) res = _mul(res, lhs, mod);
+            lhs = _mul(lhs, lhs, mod);
             rhs >>= 1;
         }
         return VAR(res);
