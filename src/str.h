@@ -21,15 +21,26 @@ struct Str{
     int size;
     bool is_ascii;
     char* data;
+    char _inlined[16];
 
-    Str(): size(0), is_ascii(true), data(nullptr) {}
+    bool is_inlined() const { return data == _inlined; }
+
+    Str(): size(0), is_ascii(true), data(_inlined) {}
+
+    void _alloc(){
+        if(size <= 16){
+            this->data = _inlined;
+        }else{
+            this->data = (char*)pool64.alloc(size);
+        }
+    }
 
     Str(int size, bool is_ascii): size(size), is_ascii(is_ascii) {
-        data = (char*)pool64.alloc(size);
+        _alloc();
     }
 
 #define STR_INIT()                                  \
-        data = (char*)pool64.alloc(size);           \
+        _alloc();                                   \
         for(int i=0; i<size; i++){                  \
             data[i] = s[i];                         \
             if(!isascii(s[i])) is_ascii = false;    \
@@ -54,13 +65,19 @@ struct Str{
 #undef STR_INIT
 
     Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
-        data = (char*)pool64.alloc(size);
+        _alloc();
         memcpy(data, other.data, size);
     }
 
-    Str(Str&& other): size(other.size), is_ascii(other.is_ascii), data(other.data) {
-        other.data = nullptr;
-        other.size = 0;
+    Str(Str&& other): size(other.size), is_ascii(other.is_ascii) {
+        if(other.is_inlined()){
+            data = _inlined;
+            for(int i=0; i<size; i++) _inlined[i] = other._inlined[i];
+        }else{
+            data = other.data;
+            other.data = other._inlined;
+            other.size = 0;
+        }
     }
 
     const char* begin() const { return data; }
@@ -71,25 +88,16 @@ struct Str{
     size_t hash() const{ return std::hash<std::string_view>()(sv()); }
 
     Str& operator=(const Str& other){
-        if(data!=nullptr) pool64.dealloc(data);
+        if(!is_inlined()) pool64.dealloc(data);
         size = other.size;
         is_ascii = other.is_ascii;
-        data = (char*)pool64.alloc(size);
+        _alloc();
         memcpy(data, other.data, size);
         return *this;
     }
 
-    Str& operator=(Str&& other) noexcept{
-        if(data!=nullptr) pool64.dealloc(data);
-        size = other.size;
-        is_ascii = other.is_ascii;
-        data = other.data;
-        other.data = nullptr;
-        return *this;
-    }
-
     ~Str(){
-        if(data!=nullptr) pool64.dealloc(data);
+        if(!is_inlined()) pool64.dealloc(data);
     }
 
     Str operator+(const Str& other) const {
