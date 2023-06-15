@@ -107,3 +107,5 @@ assert a.rjust(5) == '  123'
 assert a.rjust(5, '0') == '00123'
 assert a.ljust(5) == '123  '
 assert a.ljust(5, '0') == '12300'
+
+assert '\x30\x31\x32' == '012'

@@ -323,6 +323,18 @@ struct Lexer {
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
+                    case 'x': {
+                        char hex[3] = {eatchar(), eatchar(), '\0'};
+                        size_t parsed;
+                        char code;
+                        try{
+                            code = (char)Number::stoi(hex, &parsed, 16);
+                        }catch(std::invalid_argument&){
+                            SyntaxError("invalid hex char");
+                        }
+                        if (parsed != 2) SyntaxError("invalid hex char");
+                        buff.push_back(code);
+                    } break;
                     default: SyntaxError("invalid escape char");
                 }
             } else {
