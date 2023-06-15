@@ -362,6 +362,7 @@ struct PyVec2: Vec2 {
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_FLOAT_OP(2, __mul__, *)
+        BIND_VEC_FLOAT_OP(2, __rmul__, *)
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
         BIND_VEC_VEC_OP(2, __eq__, ==)
         BIND_VEC_FIELD(2, x)
@@ -409,6 +410,7 @@ struct PyVec3: Vec3 {
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
         BIND_VEC_FLOAT_OP(3, __mul__, *)
+        BIND_VEC_FLOAT_OP(3, __rmul__, *)
         BIND_VEC_FLOAT_OP(3, __truediv__, /)
         BIND_VEC_VEC_OP(3, __eq__, ==)
         BIND_VEC_FIELD(3, x)
@@ -559,6 +561,11 @@ struct PyMat3x3: Mat3x3{
         vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             f64 other = CAST_F(args[1]);
+            return VAR_T(PyMat3x3, self * other);
+        });
+        vm->bind_method<1>(type, "__rmul__", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[1]);
+            f64 other = CAST_F(args[0]);
             return VAR_T(PyMat3x3, self * other);
         });
 
