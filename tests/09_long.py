@@ -14,3 +14,13 @@ assert -a == -2
 assert 1 + a == 3L
 assert 1 - a == -1L
 assert 2 * a == 4L
+
+
+# __lshift__ and __rshift__
+for i in range(29):
+    assert 1L << i == 2 ** i
+
+for i in range(29):
+    assert 2L ** i >> i == 1L
+
+assert 12L >> 100 == 0

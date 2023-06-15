@@ -165,8 +165,12 @@ class long:
             self.digits, self.sign = x
         elif type(x) is int:
             self.digits, self.sign = ulong_fromint(x)
+        elif type(x) is float:
+            self.digits, self.sign = ulong_fromint(int(x))
         elif type(x) is str:
             self.digits, self.sign = ulong_fromstr(x)
+        elif type(x) is long:
+            self.digits, self.sign = x.digits.copy(), x.sign
         else:
             raise TypeError('expected int or str')
 
@@ -228,11 +232,13 @@ class long:
         return self.__mul__(other)
     
     #######################################################
-    def __divmod__(self, other: int):
-        assert type(other) is int and other > 0
-        assert self.sign == 1
-        q, r = ulong_divmodi(self.digits, other)
-        return long((q, 1)), r
+    def __divmod__(self, other):
+        if type(other) is int:
+            assert type(other) is int and other > 0
+            assert self.sign == 1
+            q, r = ulong_divmodi(self.digits, other)
+            return long((q, 1)), r
+        raise NotImplementedError
 
     def __floordiv__(self, other: int):
         return self.__divmod__(other)[0]
@@ -249,29 +255,21 @@ class long:
         return long((ulong_powi(self.digits, other), sign))
     
     def __lshift__(self, other: int):
-        # TODO: optimize
         assert type(other) is int and other >= 0
         x = self.digits.copy()
-        for _ in range(other):
-            x = ulong_muli(x, 2)
+        q, r = divmod(other, PyLong_SHIFT)
+        x = [0]*q + x
+        for _ in range(r): x = ulong_muli(x, 2)
         return long((x, self.sign))
     
     def __rshift__(self, other: int):
-        # TODO: optimize
         assert type(other) is int and other >= 0
         x = self.digits.copy()
-        for _ in range(other):
-            x = ulong_floordivi(x, 2)
+        q, r = divmod(other, PyLong_SHIFT)
+        x = x[q:]
+        if not x: return long(0)
+        for _ in range(r): x = ulong_floordivi(x, 2)
         return long((x, self.sign))
-    
-    def __and__(self, other):
-        raise NotImplementedError
-    
-    def __or__(self, other):
-        raise NotImplementedError
-    
-    def __xor__(self, other):
-        raise NotImplementedError
     
     def __neg__(self):
         return long((self.digits, -self.sign))
