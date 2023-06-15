@@ -118,7 +118,7 @@ struct Str{
     }
 
     friend std::ostream& operator<<(std::ostream& os, const Str& str){
-        if(str.data!=nullptr) os.write(str.data, str.size);
+        os.write(str.data, str.size);
         return os;
     }
 
