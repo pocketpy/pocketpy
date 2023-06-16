@@ -1,4 +1,4 @@
-assert long(123) == long('123') == 123L == 123
+assert long(123) == long('123') == 123 == 123L
 
 a = long(2)
 assert a ** 0 == 1
@@ -32,3 +32,7 @@ while a != 0:
     s.append(r)
 
 assert s == [4, 6, 7, 2, 3]
+
+assert 1 < 2L < 3 < 6.6
+assert 1L < 2 < 9.6 >= 7 > 2L
+assert 1L < 2 < 3 < 6.6

@@ -337,6 +337,7 @@ __NEXT_STEP:;
             _2 = get_unbound_method(_1, func, &self, false);        \
             if(_2 != nullptr) TOP() = call_method(self, _2, _0);    \
             else BinaryOptError(op);                                \
+            if(TOP() == NotImplemented) BinaryOptError(op);         \
         }
 
     TARGET(BINARY_TRUEDIV)
@@ -373,11 +374,11 @@ __NEXT_STEP:;
         DISPATCH()
     TARGET(COMPARE_LT)
         BINARY_OP_SPECIAL(__lt__);
-        if(TOP() == NotImplemented) BinaryOptError("<");
+        BINARY_OP_RSPECIAL("<", __gt__);
         DISPATCH()
     TARGET(COMPARE_LE)
         BINARY_OP_SPECIAL(__le__);
-        if(TOP() == NotImplemented) BinaryOptError("<=");
+        BINARY_OP_RSPECIAL("<=", __ge__);
         DISPATCH()
     TARGET(COMPARE_EQ)
         _1 = POPX();
@@ -391,11 +392,11 @@ __NEXT_STEP:;
         DISPATCH()
     TARGET(COMPARE_GT)
         BINARY_OP_SPECIAL(__gt__);
-        if(TOP() == NotImplemented) BinaryOptError(">");
+        BINARY_OP_RSPECIAL(">", __lt__);
         DISPATCH()
     TARGET(COMPARE_GE)
         BINARY_OP_SPECIAL(__ge__);
-        if(TOP() == NotImplemented) BinaryOptError(">=");
+        BINARY_OP_RSPECIAL(">=", __le__);
         DISPATCH()
     TARGET(BITWISE_LSHIFT)
         PREDICT_INT_OP(<<);

@@ -45,6 +45,11 @@ struct VoidP{
     bool operator!=(const VoidP& other) const {
         return ptr != other.ptr || base_offset != other.base_offset;
     }
+    bool operator<(const VoidP& other) const { return ptr < other.ptr; }
+    bool operator<=(const VoidP& other) const { return ptr <= other.ptr; }
+    bool operator>(const VoidP& other) const { return ptr > other.ptr; }
+    bool operator>=(const VoidP& other) const { return ptr >= other.ptr; }
+
 
     Str hex() const{
         std::stringstream ss;
@@ -76,22 +81,19 @@ struct VoidP{
             return VAR(ss.str());
         });
 
-        vm->bind__eq__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return false;
-            return _CAST(VoidP&, lhs) == _CAST(VoidP&, rhs);
+#define BIND_CMP(name, op)  \
+        vm->bind##name(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){       \
+            if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return vm->NotImplemented;       \
+            return VAR(_CAST(VoidP&, lhs) op _CAST(VoidP&, rhs));                           \
         });
-        vm->bind__gt__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            return _CAST(VoidP&, lhs).ptr > CAST(VoidP&, rhs).ptr;
-        });
-        vm->bind__lt__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            return _CAST(VoidP&, lhs).ptr < CAST(VoidP&, rhs).ptr;
-        });
-        vm->bind__ge__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            return _CAST(VoidP&, lhs).ptr >= CAST(VoidP&, rhs).ptr;
-        });
-        vm->bind__le__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
-            return _CAST(VoidP&, lhs).ptr <= CAST(VoidP&, rhs).ptr;
-        });
+
+        BIND_CMP(__eq__, ==)
+        BIND_CMP(__lt__, <)
+        BIND_CMP(__le__, <=)
+        BIND_CMP(__gt__, >)
+        BIND_CMP(__ge__, >=)
+
+#undef BIND_CMP
 
         vm->bind__hash__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
@@ -243,9 +245,10 @@ struct C99Struct{
 
         vm->bind__eq__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             C99Struct& self = _CAST(C99Struct&, lhs);
-            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return false;
+            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return vm->NotImplemented;
             C99Struct& other = _CAST(C99Struct&, rhs);
-            return self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
+            bool ok = self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
+            return VAR(ok);
         });
 
         // patch VoidP

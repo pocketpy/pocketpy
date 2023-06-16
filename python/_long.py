@@ -307,8 +307,8 @@ class long:
     def __cmp__(self, other):
         if type(other) is int:
             other = long(other)
-        else:
-            assert type(other) is long
+        elif type(other) is not long:
+            return NotImplemented
         if self.sign > other.sign:
             return 1
         elif self.sign < other.sign:
