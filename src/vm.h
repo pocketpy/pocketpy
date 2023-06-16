@@ -525,12 +525,12 @@ public:
 
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
-        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
+        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", got " + OBJ_NAME(_t(obj)).escape());
     }
 
     void check_non_tagged_type(PyObject* obj, Type type){
         if(is_non_tagged_type(obj, type)) return;
-        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", but got " + OBJ_NAME(_t(obj)).escape());
+        TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", got " + OBJ_NAME(_t(obj)).escape());
     }
 
     void check_int(PyObject* obj){
@@ -670,7 +670,7 @@ public:
 
 inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     if(args.size() != argc && argc != -1) {
-        vm->TypeError(fmt("expected ", argc, " arguments, but got ", args.size()));
+        vm->TypeError(fmt("expected ", argc, " arguments, got ", args.size()));
     }
 #if DEBUG_EXTRA_CHECK
     if(f == nullptr) FATAL_ERROR();
@@ -1240,7 +1240,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         if(args.size() < fn.argc){
             vm->TypeError(fmt(
-                "expected ", fn.argc, " positional arguments, but got ", args.size(),
+                "expected ", fn.argc, " positional arguments, got ", args.size(),
                 " (", fn.decl->code->name, ')'
             ));
         }
