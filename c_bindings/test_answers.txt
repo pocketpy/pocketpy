@@ -45,7 +45,7 @@ retmany_x : 1
 retmany_x : 2
 retmany_x : 3
 successfully errored with this message: 
-TypeError: expected 2 positional arguments, but got 0 (x)
+TypeError: expected 2 positional arguments, got 0 (x)
 ['hello']
 
 testing pushing functions
@@ -74,4 +74,4 @@ pi: 3.14
 pi: 3.14
 2
 successfully errored with this message: 
-TypeError: expected 'int', but got 'float'
+TypeError: expected 'int', got 'float'

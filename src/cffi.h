@@ -376,7 +376,7 @@ struct NativeProxyFuncCBase {
 
     static void check_args_size(VM* vm, ArgsView args, int n){
         if (args.size() != n){
-            vm->TypeError("expected " + std::to_string(n) + " arguments, but got " + std::to_string(args.size()));
+            vm->TypeError("expected " + std::to_string(n) + " arguments, got " + std::to_string(args.size()));
         }
     }
 };

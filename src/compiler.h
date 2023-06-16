@@ -135,7 +135,7 @@ class Compiler {
     void consume(TokenIndex expected) {
         if (!match(expected)){
             SyntaxError(
-                fmt("expected '", TK_STR(expected), "', but got '", TK_STR(curr().type), "'")
+                fmt("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")
             );
         }
     }
@@ -577,7 +577,7 @@ __SUBSCR_END:
 
     void parse_expression(int precedence, bool push_stack=true) {
         PrattCallback prefix = rules[curr().type].prefix;
-        if (prefix == nullptr) SyntaxError(Str("expected an expression, but got ") + TK_STR(curr().type));
+        if (prefix == nullptr) SyntaxError(Str("expected an expression, got ") + TK_STR(curr().type));
         advance();
         (this->*prefix)();
         while (rules[curr().type].precedence >= precedence) {
