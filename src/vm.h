@@ -1566,9 +1566,11 @@ inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
 
 inline void CodeObjectSerializer::write_object(VM *vm, PyObject *obj){
     if(is_int(obj)) write_int(_CAST(i64, obj));
-    if(is_float(obj)) write_float(_CAST(f64, obj));
-    if(is_type(obj, vm->tp_str)) write_str(_CAST(Str&, obj));
-    FATAL_ERROR();
+    else if(is_float(obj)) write_float(_CAST(f64, obj));
+    else if(is_type(obj, vm->tp_str)) write_str(_CAST(Str&, obj));
+    else{
+        throw std::runtime_error(fmt(OBJ_NAME(vm->_t(obj)).escape(), " is not serializable"));
+    }
 }
 
 }   // namespace pkpy

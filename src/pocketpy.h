@@ -1471,6 +1471,9 @@ extern "C" {
         }catch(pkpy::Exception& e){
             *ok = false;
             *res = e.summary().c_str_dup();
+        }catch(std::exception& e){
+            *ok = false;
+            *res = strdup(e.what());
         }catch(...){
             *ok = false;
             *res = strdup("unknown error");
