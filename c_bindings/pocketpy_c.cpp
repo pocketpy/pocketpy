@@ -418,7 +418,7 @@ bool pkpy_to_string(pkpy_vm* vm_handle, int index, char** ret) {
     ERRHANDLER_CLOSE
 }
 
-bool pkpy_to_stringn(pkpy_vm* vm_handle, int index, char** ret, int* size) {
+bool pkpy_to_stringn(pkpy_vm* vm_handle, int index, const char** ret, int* size) {
     CVM* vm = (CVM*) vm_handle;
     ERRHANDLER_OPEN
     index = lua_to_cstack_index(index, vm->c_data->size());
