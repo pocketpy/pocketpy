@@ -1329,18 +1329,26 @@ inline void add_module_traceback(VM* vm){
 
 inline void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
-    vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
-        if(is_type(args[0], vm->tp_str)){
-            const Str& source = CAST(Str, args[0]);
-            CodeObject_ code = vm->compile(source, "<dis>", EXEC_MODE);
-            vm->_stdout(vm, vm->disassemble(code));
-            return vm->None;
+
+    static const auto get_code = [](VM* vm, PyObject* obj)->CodeObject_{
+        if(is_type(obj, vm->tp_str)){
+            const Str& source = CAST(Str, obj);
+            return vm->compile(source, "<dis>", EXEC_MODE);
         }
-        PyObject* f = args[0];
-        if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, args[0]).func;
-        CodeObject_ code = CAST(Function&, f).decl->code;
+        PyObject* f = obj;
+        if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, obj).func;
+        return CAST(Function&, f).decl->code;
+    };
+
+    vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
+        CodeObject_ code = get_code(vm, args[0]);
         vm->_stdout(vm, vm->disassemble(code));
         return vm->None;
+    });
+
+    vm->bind_func<1>(mod, "_s", [](VM* vm, ArgsView args) {
+        CodeObject_ code = get_code(vm, args[0]);
+        return VAR(code->serialize(vm));
     });
 }
 
@@ -1452,6 +1460,21 @@ extern "C" {
             if(mod == nullptr) return;
         }
         vm->exec(source, filename, (pkpy::CompileMode)mode, mod);
+    }
+
+    PK_LEGACY_EXPORT
+    void pkpy_vm_compile(pkpy::VM* vm, const char* source, const char* filename, int mode, bool* ok, char* res){
+        try{
+            pkpy::CodeObject_ code = vm->compile(source, filename, (pkpy::CompileMode)mode);
+            res = code->serialize(vm).c_str_dup();
+            *ok = true;
+        }catch(pkpy::Exception& e){
+            *ok = false;
+            res = e.summary().c_str_dup();
+        }catch(...){
+            *ok = false;
+            res = strdup("unknown error");
+        }
     }
 
     PK_LEGACY_EXPORT

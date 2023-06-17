@@ -24,3 +24,7 @@ A wrapper of `OP_LOAD_ATTR` bytecode.
 #### `bool pkpy_setattr(pkpy_vm*, const char* name)`
 
 A wrapper of `OP_STORE_ATTR` bytecode.
+
+#### `bool pkpy_eval(pkpy_vm*, const char* code)`
+
+Evaluate the code and push the result to the top of the stack.

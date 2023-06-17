@@ -1564,4 +1564,11 @@ inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     }
 }
 
+inline void CodeObjectSerializer::write_object(VM *vm, PyObject *obj){
+    buffer += 'o';
+    PyObject* s = vm->py_repr(obj);
+    write_str(CAST(Str&, s));
+    buffer += END;
+}
+
 }   // namespace pkpy

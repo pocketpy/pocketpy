@@ -355,6 +355,11 @@ struct StrName {
         return os << sn.sv();
     }
 
+    static bool is_valid(int index) {
+        // check _r_interned[index-1] is valid
+        return index > 0 && index <= _r_interned.size();
+    }
+
     Str escape() const {
         return _r_interned[index-1].escape();
     }
