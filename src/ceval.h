@@ -445,7 +445,7 @@ __NEXT_STEP:;
             _0 = call_method(TOP(), __contains__, SECOND());
         }
         POP();
-        TOP() = VAR(static_cast<bool>(CAST(bool, _0) ^ byte.arg));
+        TOP() = VAR(static_cast<bool>((int)CAST(bool, _0) ^ byte.arg));
         DISPATCH();
     /*****************************************/
     TARGET(JUMP_ABSOLUTE)

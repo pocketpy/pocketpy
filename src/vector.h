@@ -141,6 +141,4 @@ public:
 	Container& data() { return vec; }
 };
 
-// template <typename T>
-// using pod_stack = stack<T, pod_vector<T>>;
 } // namespace pkpy
