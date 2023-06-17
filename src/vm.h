@@ -1565,10 +1565,10 @@ inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
 }
 
 inline void CodeObjectSerializer::write_object(VM *vm, PyObject *obj){
-    buffer += 'o';
-    PyObject* s = vm->py_repr(obj);
-    buffer += CAST(Str&, s).str();
-    buffer += END;
+    if(is_int(obj)) write_int(_CAST(i64, obj));
+    if(is_float(obj)) write_float(_CAST(f64, obj));
+    if(is_type(obj, vm->tp_str)) write_str(_CAST(Str&, obj));
+    FATAL_ERROR();
 }
 
 }   // namespace pkpy

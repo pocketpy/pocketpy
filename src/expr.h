@@ -269,10 +269,8 @@ struct LongExpr: Expr{
 
     void emit(CodeEmitContext* ctx) override {
         VM* vm = ctx->vm;
-        PyObject* long_type = vm->builtins->attr().try_get("long");
-        PK_ASSERT(long_type != nullptr);
-        PyObject* obj = vm->call(long_type, VAR(s));
-        ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
+        ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
+        ctx->emit(OP_BUILD_LONG, BC_NOARG, line);
     }
 };
 

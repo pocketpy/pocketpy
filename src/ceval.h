@@ -236,6 +236,12 @@ __NEXT_STEP:;
         }
         DISPATCH();
     /*****************************************/
+    TARGET(BUILD_LONG) {
+        const static StrName m_long("long");
+        _0 = builtins->attr().try_get(m_long);
+        if(_0 == nullptr) AttributeError(builtins, m_long);
+        TOP() = call(_0, TOP());
+    } DISPATCH();
     TARGET(BUILD_TUPLE)
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         STACK_SHRINK(byte.arg);
