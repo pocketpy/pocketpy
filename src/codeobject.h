@@ -60,7 +60,6 @@ struct CodeObject {
     List consts;
     std::vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
-    std::set<Str> global_names;
     std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;

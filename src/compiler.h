@@ -422,7 +422,7 @@ class Compiler {
     void exprName(){
         Str name = prev().str();
         NameScope scope = name_scope();
-        if(ctx()->co->global_names.count(name)){
+        if(ctx()->global_names.count(name)){
             scope = NAME_GLOBAL;
         }
         ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
@@ -803,7 +803,7 @@ __SUBSCR_END:
             case TK("global"):
                 do {
                     consume(TK("@id"));
-                    ctx()->co->global_names.insert(prev().str());
+                    ctx()->global_names.insert(prev().str());
                 } while (match(TK(",")));
                 consume_end_stmt();
                 break;

@@ -38,6 +38,7 @@ struct CodeEmitContext{
     CodeObject_ co;
     stack<Expr_> s_expr;
     int level;
+    std::set<Str> global_names;
     CodeEmitContext(VM* vm, CodeObject_ co, int level): vm(vm), co(co), level(level) {}
 
     int curr_block_i = 0;
