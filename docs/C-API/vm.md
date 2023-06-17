@@ -32,7 +32,7 @@ Delete a virtual machine.
 
 Delete a REPL.
 
-#### `void pkpy_vm_compile(VM* vm, const char* source, const char* filename, int mode, bool* ok, char* res)`
+#### `void pkpy_vm_compile(VM* vm, const char* source, const char* filename, int mode, bool* ok, char** res)`
 
 Compile a source into bytecode and serialize it into a string.
 

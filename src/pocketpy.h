@@ -1463,17 +1463,17 @@ extern "C" {
     }
 
     PK_LEGACY_EXPORT
-    void pkpy_vm_compile(pkpy::VM* vm, const char* source, const char* filename, int mode, bool* ok, char* res){
+    void pkpy_vm_compile(pkpy::VM* vm, const char* source, const char* filename, int mode, bool* ok, char** res){
         try{
             pkpy::CodeObject_ code = vm->compile(source, filename, (pkpy::CompileMode)mode);
-            res = code->serialize(vm).c_str_dup();
+            *res = code->serialize(vm).c_str_dup();
             *ok = true;
         }catch(pkpy::Exception& e){
             *ok = false;
-            res = e.summary().c_str_dup();
+            *res = e.summary().c_str_dup();
         }catch(...){
             *ok = false;
-            res = strdup("unknown error");
+            *res = strdup("unknown error");
         }
     }
 
