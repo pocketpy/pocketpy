@@ -36,7 +36,9 @@ struct Expr{
 struct CodeEmitContext{
     VM* vm;
     CodeObject_ co;
-    stack<Expr_> s_expr;
+    // some bugs on MSVC (error C2280) when using std::vector<Expr_>
+    // so we use stack_no_copy instead
+    stack_no_copy<Expr_> s_expr;
     int level;
     std::set<Str> global_names;
     CodeEmitContext(VM* vm, CodeObject_ co, int level): vm(vm), co(co), level(level) {}

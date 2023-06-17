@@ -141,4 +141,14 @@ public:
 	Container& data() { return vec; }
 };
 
+template <typename T, typename Container=std::vector<T>>
+class stack_no_copy: public stack<T, Container>{
+public:
+    stack_no_copy() = default;
+    stack_no_copy(const stack_no_copy& other) = delete;
+    stack_no_copy& operator=(const stack_no_copy& other) = delete;
+    stack_no_copy(stack_no_copy&& other) noexcept = default;
+    stack_no_copy& operator=(stack_no_copy&& other) noexcept = default;
+};
+
 } // namespace pkpy
