@@ -108,8 +108,13 @@ struct CodeObjectSerializer{
     template<typename T>
     void write_bytes(T v){
         static_assert(std::is_trivially_copyable<T>::value);
-        buffer += 'm';
-        buffer.append((const char*)&v, sizeof(T));
+        buffer += 'x';
+        char* p = (char*)&v;
+        for(int i=0; i<sizeof(T); i++){
+            char c = p[i];
+            buffer += "0123456789abcdef"[(c >> 4) & 0xf];
+            buffer += "0123456789abcdef"[c & 0xf];
+        }
         buffer += END;
     }
 
