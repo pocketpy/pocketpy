@@ -1569,6 +1569,8 @@ inline void CodeObjectSerializer::write_object(VM *vm, PyObject *obj){
     else if(is_float(obj)) write_float(_CAST(f64, obj));
     else if(is_type(obj, vm->tp_str)) write_str(_CAST(Str&, obj));
     else if(is_type(obj, vm->tp_bool)) write_bool(_CAST(bool, obj));
+    else if(obj == vm->None) write_none();
+    else if(obj == vm->Ellipsis) write_ellipsis();
     else{
         throw std::runtime_error(fmt(OBJ_NAME(vm->_t(obj)).escape(), " is not serializable"));
     }

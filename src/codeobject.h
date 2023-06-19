@@ -78,6 +78,16 @@ struct CodeObjectSerializer{
         buffer += END;
     }
 
+    void write_none(){
+        buffer += 'N';
+        buffer += END;
+    }
+
+    void write_ellipsis(){
+        buffer += 'E';
+        buffer += END;
+    }
+
     void write_bool(bool v){
         buffer += 'b';
         buffer += v ? '1' : '0';
