@@ -1379,12 +1379,14 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
-    PyObject* objtype = _t(obj);
+    PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
         const Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
+    }else{
+        objtype = _t(obj);
     }
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
