@@ -43,10 +43,11 @@ struct SourceData {
         int index = 0;
         // Skip utf8 BOM if there is any.
         if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
-        // Remove all '\r'
+        // Replace all '\r' with ' '
         std::stringstream ss;
         while(index < source.length()){
-            if(source[index] != '\r') ss << source[index];
+            if(source[index] == '\r') ss << ' ';
+            else ss << source[index];
             index++;
         }
 

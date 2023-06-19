@@ -167,7 +167,6 @@ struct CodeObject {
 
     void write(VM* vm, CodeObjectSerializer& ss) const{
         ss.write_begin_mark();          // [
-        ss.write_str(src->source);      // src->source
         ss.write_str(src->filename);    // src->filename
         ss.write_int(src->mode);        // src->mode
         ss.write_end_mark();            // ]
@@ -175,10 +174,7 @@ struct CodeObject {
         ss.write_bool(is_generator);    // is_generator
         ss.write_begin_mark();          // [
             for(Bytecode bc: codes){
-                if(StrName::is_valid(bc.arg)){
-                    // std::cout << bc.arg << StrName(bc.arg).sv() << std::endl;
-                    ss.names.insert(StrName(bc.arg));
-                }
+                if(StrName::is_valid(bc.arg)) ss.names.insert(StrName(bc.arg));
                 ss.write_bytes(bc);
             }
         ss.write_end_mark();            // ]
