@@ -1416,12 +1416,14 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
 // try to load a unbound method (fallback to `getattr` if not found)
 inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err, bool fallback){
     *self = PY_NULL;
-    PyObject* objtype = _t(obj);
+    PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
         const Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
+    }else{
+        objtype = _t(obj);
     }
     PyObject* cls_var = find_name_in_mro(objtype, name);
 
@@ -1451,12 +1453,14 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
 }
 
 inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
-    PyObject* objtype = _t(obj);
+    PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
         Super& super = OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
+    }else{
+        objtype = _t(obj);
     }
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
