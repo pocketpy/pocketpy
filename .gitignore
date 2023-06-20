@@ -22,3 +22,10 @@ plugins/godot/godot-cpp/
 src/_generated.h
 profile.sh
 test
+
+.coverage
+APPS/
+main.obj
+pocketpy.exe
+pocketpy.lib
+pocketpy.exp
