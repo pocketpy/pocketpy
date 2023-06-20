@@ -114,8 +114,6 @@ PK_EXPORT bool pkpy_getattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_setattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 
-PK_EXPORT void* pkpy_get_id(pkpy_vm*, int index);
-
 #ifdef __cplusplus
 }
 #endif
