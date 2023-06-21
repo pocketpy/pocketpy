@@ -133,10 +133,11 @@ The `VM` class provides a sandboxed Python environment and a set of APIs for int
     A callback that will be called when the Python code invokes `print` function.
     By default, it will print the message to Unity console.
 
-+ `System.Action<string> stderr = Debug.LogError`
++ `System.Action<string> stderr = null`
 
     A callback that will be called when the Python code emits an error message.
-    By default, it will print the exception message to Unity console.
+    By default, an Exception will be raised.
+    You can set it to `Debug.LogError` for printing to the Unity Console.
 
 ### Debug Flag
 
