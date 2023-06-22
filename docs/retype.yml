@@ -4,8 +4,8 @@ url: https://pocketpy.dev
 branding:
   title: pocketpy
   label: v1.0
-  # logo: "./static/logo.png"
-# favicon: "./static/logo.png"
+  logo: "./static/logo.png"
+favicon: "./static/logo.png"
 meta:
   title: " | Open Source Python interpreter in 1 file"
 links:
