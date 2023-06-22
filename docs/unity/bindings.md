@@ -155,8 +155,7 @@ And set the returned object into a module.
 Here we set it into `builtins` module, so that it can be accessed from anywhere.
 
 ```csharp
-var type = vm.RegisterType(new PyVector2Type());
-vm.builtins.attr["Vector2"] = type;
+vm.RegisterType(new PyVector2Type(), vm.builtins);
 ```
 
 To summarize, manual static bindings provide detailed control for exposing a C# class to Python.
@@ -169,8 +168,7 @@ Automatic static bindings use C# reflection to automatically generate bindings f
 It is convenient for testing and prototyping, but it is slow and unsafe since the user can access any member of the class.
 
 ```csharp
-var type = vm.RegisterAutoType<Vector2>();
-vm.builtins.attr["Vector2"] = type;
+vm.RegisterAutoType<Vector2>(vm.builtins);
 ```
 
 That's all you need to do. The `RegisterAutoType<T>` method will automatically generate bindings for `Vector2`.
