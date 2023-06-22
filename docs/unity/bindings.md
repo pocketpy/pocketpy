@@ -178,7 +178,7 @@ That's all you need to do. The `RegisterAutoType<T>` method will automatically g
 
 ## Dynamic Bindings
 
-Dynamic bindings allows you to add a single C# lambda function to an object at runtime.
+Dynamic bindings allow you to add a single C# lambda function to an object at runtime.
 
 ```csharp
 delegate object NativeFuncC(VM vm, object[] args);
@@ -186,4 +186,4 @@ delegate object NativeFuncC(VM vm, object[] args);
 
 + `CSharpLambda BindFunc(PyObject obj, string name, int argc, NativeFuncC f)`
 
-You can use `BindFunc` to achieve this.
+It is similar to `bind_func` in [C++ API](../quick-start/bind/).
