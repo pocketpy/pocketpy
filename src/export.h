@@ -11,6 +11,6 @@
 #define PK_EXPORT
 #endif
 
-#define PK_LEGACY_EXPORT PK_EXPORT inline
+#define PK_LEGACY_EXPORT PK_EXPORT
 
 #endif
