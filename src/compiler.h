@@ -301,6 +301,9 @@ class Compiler {
         EXPR_TUPLE();   // () is just for change precedence
         match_newlines_repl();
         consume(TK(")"));
+        if(ctx()->s_expr.top()->is_tuple()) return;
+        Expr_ g = make_expr<GroupedExpr>(ctx()->s_expr.popx());
+        ctx()->s_expr.push(std::move(g));
     }
 
     template<typename T>

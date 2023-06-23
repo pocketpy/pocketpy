@@ -24,6 +24,7 @@ struct Expr{
     virtual bool is_attrib() const { return false; }
     virtual bool is_compare() const { return false; }
     virtual int star_level() const { return 0; }
+    virtual bool is_tuple() const { return false; }
     bool is_starred() const { return star_level() > 0; }
 
     // for OP_DELETE_XXX
@@ -445,6 +446,7 @@ struct SetExpr: SequenceExpr{
 struct TupleExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
     std::string str() const override { return "Tuple()"; }
+    bool is_tuple() const override { return true; }
     Opcode opcode() const override {
         for(auto& e: items) if(e->is_starred()) return OP_BUILD_TUPLE_UNPACK;
         return OP_BUILD_TUPLE;
@@ -731,6 +733,17 @@ struct CallExpr: Expr{
             int ARGC = (int)args.size();
             ctx->emit(OP_CALL, (KWARGC<<16)|ARGC, line);
         }
+    }
+};
+
+struct GroupedExpr: Expr{
+    Expr_ a;
+    std::string str() const override { return "Grouped()"; }
+
+    GroupedExpr(Expr_&& a): a(std::move(a)) {}
+
+    void emit(CodeEmitContext* ctx) override{
+        a->emit(ctx);
     }
 };
 

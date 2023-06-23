@@ -14,3 +14,6 @@ a = [1,2,3]
 assert a[0] < a[1] < a[2]
 assert a[0]+1 == a[1] < a[2]
 assert a[0]+1 == a[1] < a[2]+1 < 5
+
+assert (4>3<2) == False
+# assert ((4>3)<2) == True
