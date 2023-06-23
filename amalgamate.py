@@ -85,7 +85,7 @@ shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
 shutil.copy("amalgamated/pocketpy.cpp", "plugins/macos/pocketpy/pocketpy.cpp")
 
 # unity plugin
-unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPy/Plugins/iOS'
+unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPython/Plugins/iOS'
 if os.path.exists(unity_ios_root):
 	shutil.copy("amalgamated/pocketpy.h", unity_ios_root)
 	shutil.copy("amalgamated/pocketpy.cpp", unity_ios_root)
