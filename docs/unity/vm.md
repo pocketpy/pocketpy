@@ -5,6 +5,11 @@ order: 20
 ---
 
 The `VM` class provides a sandboxed Python environment and a set of APIs for interacting with it.
+Using the namespace `PocketPython` before any operations.
+
+```csharp
+using PocketPython;
+```
 
 ### Construction
 
