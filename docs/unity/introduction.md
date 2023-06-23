@@ -66,6 +66,7 @@ which means passing arguments between C# and Python is extremely easy and intuit
 | Python Type | C# Type |
 | ----------- | ------- |
 | `None`      | `PocketPy.NoneType` |
+| `object`    | `System.Object` |
 | `bool`      | `System.Boolean` |
 | `int`       | `System.Int32` |
 | `float`     | `System.Single` |
@@ -74,6 +75,11 @@ which means passing arguments between C# and Python is extremely easy and intuit
 | `list`      | `System.Collections.Generic.List<object>` |
 | `dict`      | `System.Collections.Generic.Dictionary<PocketPy.PyDictKey, object>` |
 | ...         | ... |
+
+### Python Console in Editor
+
+PocketPython provides a Python console in Unity editor,
+which allows you to do quick debugging and testing.
 
 ### Lua Style API
 

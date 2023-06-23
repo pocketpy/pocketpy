@@ -50,7 +50,7 @@ public class PyVector2Type: PyTypeObject{
     public override System.Type type => typeof(Vector2);
 
     [PythonBinding]
-    public static object __add__(VM vm, Vector2 self, object other){
+    public object __add__(Vector2 self, object other){
         // If the other object is not a Vector2, return NotImplemented
         if(!(other is Vector2)) return VM.NotImplemented;
         // Otherwise, return the result of addition
@@ -59,7 +59,7 @@ public class PyVector2Type: PyTypeObject{
 }
 ```
 
-This is easy to understand, right?
+This is easy to understand.
 Let's see another example, `__mul__`, it is used to implement the `*` operator in Python.
 `Vector2` object in C# can be multiplied with a `float` object in Python.
 The following code shows this usage.
@@ -82,19 +82,18 @@ public class PyVector2Type: PyTypeObject{
     // ...
 
     [PythonBinding]
-    public static object __mul__(VM vm, Vector2 self, object other){
+    public object __mul__(Vector2 self, object other){
         if(!(other is float)) return VM.NotImplemented;
         return self * (float)other;
     }
 
     [PythonBinding]
-    public static object __rmul__(VM vm, Vector2 self, object other){
+    public object __rmul__(Vector2 self, object other){
         if(!(other is float)) return VM.NotImplemented;
         return self * (float)other;
     }
 }
 ```
-
 
 Finally, let's implement the constructor of `Vector2`.
 `__new__` magic method must be defined.
@@ -105,7 +104,7 @@ public class PyVector2Type: PyTypeObject{
     public override System.Type type => typeof(Vector2);
 
     [PythonBinding]
-    public static object __new__(VM vm, PyTypeObject cls, params object[] args){
+    public object __new__(PyTypeObject cls, params object[] args){
         if(args.Length == 0) return new Vector2();
         if(args.Length == 2){
             float x = vm.PyCast<float>(args[0]);
@@ -137,21 +136,20 @@ public class PyVector2Type: PyTypeObject{
     public override System.Type type => typeof(Vector2);
 
     [PythonBinding(BindingType.Getter)]
-    public static object x(VM vm, Vector2 self) => self.x;
+    public object x(Vector2 self) => self.x;
 
     [PythonBinding(BindingType.Setter)]
-    public static void x(VM vm, Vector2 self, object value) => self.x = vm.PyCast<float>(value);
+    public void x(Vector2 self, object value) => self.x = vm.PyCast<float>(value);
 
     [PythonBinding(BindingType.Getter)]
-    public static object y(VM vm, Vector2 self) => self.y;
+    public object y(Vector2 self) => self.y;
 
     [PythonBinding(BindingType.Setter)]
-    public static void y(VM vm, Vector2 self, object value) => self.y = vm.PyCast<float>(value);
+    public void y(Vector2 self, object value) => self.y = vm.PyCast<float>(value);
 }
 ```
 
 Once you have done all the above, you must register the type to the VM.
-And set the returned object into a module.
 Here we set it into `builtins` module, so that it can be accessed from anywhere.
 
 ```csharp

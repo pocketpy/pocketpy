@@ -30,6 +30,10 @@ The `VM` class provides a sandboxed Python environment and a set of APIs for int
 
     Compile and execute Python source code in the given module. It is equivalent to `Exec(Compile(source, filename, mode), mod)`.
 
++ `object Eval(string source, PyModule mod = null)`
+
+    Evaluate an expression in the given module.
+
 + `object Call(object callable, object[] args, Dictionary<string, object> kwargs)`
 
     Call a Python callable object with the given arguments and keyword arguments. It is equivalent to `callable(*args, **kwargs)` in Python.
@@ -77,6 +81,19 @@ The `VM` class provides a sandboxed Python environment and a set of APIs for int
 
 
 ### Type Conversion
+
++ `T PyCast<T>(object obj)`
+
+    Convert a Python object to a C# object. It is equivalent to `obj as T` in C#.
+    Raise `TypeError` if the conversion fails.
+
++ `bool IsInstance(object obj, PyTypeObject type)`
+
+    Check if a Python object is an instance of the given type. It is equivalent to `isinstance(obj, type)` in Python.
+
++ `void CheckType<T>(object t)`
+
+    Check if `t is T`. Raise `TypeError` if the check fails.
 
 + `bool PyEquals(object lhs, object rhs)`
 
