@@ -1,5 +1,5 @@
 ---
-label: Python Console
+label: Python console
 icon: dot
 order: 5
 ---

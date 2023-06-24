@@ -1,5 +1,5 @@
 ---
-label: Virtual Machine
+label: Virtual machine
 icon: dot
 order: 20
 ---
