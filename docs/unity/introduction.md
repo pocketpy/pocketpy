@@ -43,7 +43,7 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 | Unpacking       | `a, b = 1, 2`                   | YES       | YES |
 | Star Unpacking  | `a, *b = [1, 2, 3]`             | YES       | YES |
 | Exception       | `raise/try..catch`              | YES       | NO |
-| Dynamic Code    | `eval()/exec()`                 | YES       | NO |
+| Dynamic Code    | `eval()/exec()`                 | YES       | YES |
 | Reflection      | `hasattr()/getattr()/setattr()` | YES       | YES |
 | Import          | `import/from..import`           | YES       | YES |
 | Context Block   | `with <expr> as <id>:`          | YES       | NO |
@@ -65,7 +65,7 @@ which means passing arguments between C# and Python is extremely easy and intuit
 
 | Python Type | C# Type |
 | ----------- | ------- |
-| `None`      | `PocketPy.NoneType` |
+| `None`      | `NoneType` |
 | `object`    | `System.Object` |
 | `bool`      | `System.Boolean` |
 | `int`       | `System.Int32` |
@@ -73,7 +73,7 @@ which means passing arguments between C# and Python is extremely easy and intuit
 | `str`       | `System.String` |
 | `tuple`     | `System.Object[]` |
 | `list`      | `System.Collections.Generic.List<object>` |
-| `dict`      | `System.Collections.Generic.Dictionary<PocketPy.PyDictKey, object>` |
+| `dict`      | `System.Collections.Generic.Dictionary<PyDictKey, object>` |
 | ...         | ... |
 
 ### Python Console in Editor
