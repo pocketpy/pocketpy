@@ -9,7 +9,7 @@ namespace pkpy {
     static Type _type(VM* vm) {                 \
         static const StrName __x0(#mod);        \
         static const StrName __x1(#name);       \
-        return OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
+        return PK_OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
     }                                                                       \
     static void _check_type(VM* vm, PyObject* val){                         \
         if(!vm->isinstance(val, T::_type(vm))){                             \
@@ -72,7 +72,7 @@ struct VoidP{
             return VAR(self.hex());
         });
 
-        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
             std::stringstream ss;
             ss << "<void* at " << self.hex();
@@ -82,7 +82,7 @@ struct VoidP{
         });
 
 #define BIND_CMP(name, op)  \
-        vm->bind##name(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){       \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){       \
             if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return vm->NotImplemented;       \
             return VAR(_CAST(VoidP&, lhs) op _CAST(VoidP&, rhs));                           \
         });
@@ -95,7 +95,7 @@ struct VoidP{
 
 #undef BIND_CMP
 
-        vm->bind__hash__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
@@ -122,13 +122,13 @@ struct VoidP{
             return VAR_T(VoidP, (char*)self.ptr + offset * self.base_offset);
         });
 
-        vm->bind__add__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             VoidP& self = _CAST(VoidP&, lhs);
             i64 offset = CAST(i64, rhs);
             return VAR_T(VoidP, (char*)self.ptr + offset);
         });
 
-        vm->bind__sub__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+        vm->bind__sub__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             VoidP& self = _CAST(VoidP&, lhs);
             i64 offset = CAST(i64, rhs);
             return VAR_T(VoidP, (char*)self.ptr - offset);
@@ -243,7 +243,7 @@ struct C99Struct{
             return VAR_T(C99Struct, self);
         });
 
-        vm->bind__eq__(OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             C99Struct& self = _CAST(C99Struct&, lhs);
             if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return vm->NotImplemented;
             C99Struct& other = _CAST(C99Struct&, rhs);
@@ -328,7 +328,7 @@ struct C99ReflType final: ReflType{
             return VAR(self.size);
         });
 
-        vm->bind__getitem__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* key){
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* key){
             C99ReflType& self = _CAST(C99ReflType&, obj);
             const Str& name = CAST(Str&, key);
             auto it = std::lower_bound(self.fields.begin(), self.fields.end(), name.sv());

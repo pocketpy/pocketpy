@@ -86,7 +86,7 @@ struct ValueStackImpl {
     PyObject** begin() { return _begin; }
     PyObject** end() { return _sp; }
     void reset(PyObject** sp) {
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         if(sp < _begin || sp > _begin + MAX_SIZE) FATAL_ERROR();
 #endif
         _sp = sp;
@@ -118,7 +118,7 @@ struct Frame {
     
     PyObject* f_closure_try_get(StrName name){
         if(_callable == nullptr) return nullptr;
-        Function& fn = OBJ_GET(Function, _callable);
+        Function& fn = PK_OBJ_GET(Function, _callable);
         if(fn._closure == nullptr) return nullptr;
         return fn._closure->try_get(name);
     }
@@ -134,7 +134,7 @@ struct Frame {
 
     Bytecode next_bytecode() {
         _ip = _next_ip++;
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         if(_ip >= co->codes.size()) FATAL_ERROR();
 #endif
         return co->codes[_ip];

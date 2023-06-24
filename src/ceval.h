@@ -23,7 +23,7 @@ inline PyObject* VM::_run_top_frame(){
     StrName _name;
 
     while(true){
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         if(frame.index < base_id) FATAL_ERROR();
 #endif
         try{
@@ -34,9 +34,16 @@ inline PyObject* VM::_run_top_frame(){
  * DO NOT leave any strong reference of PyObject* in the C stack
  */
 {
+
+#if PK_ENABLE_CEVAL_CALLBACK
+#define CEVAL_STEP() byte = frame->next_bytecode(); if(_ceval_on_step) _ceval_on_step(this, frame, byte)
+#else
+#define CEVAL_STEP() byte = frame->next_bytecode()
+#endif
+
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
-    Bytecode byte = frame->next_bytecode();
+    Bytecode CEVAL_STEP();
     // cache
     const CodeObject* co = frame->co;
     const auto& co_consts = co->consts;
@@ -49,16 +56,16 @@ static void* OP_LABELS[] = {
     #undef OPCODE
 };
 
-#define DISPATCH() { byte = frame->next_bytecode(); goto *OP_LABELS[byte.op];}
+#define DISPATCH() { CEVAL_STEP(); goto *OP_LABELS[byte.op];}
 #define TARGET(op) CASE_OP_##op:
 goto *OP_LABELS[byte.op];
 
 #else
 #define TARGET(op) case OP_##op:
-#define DISPATCH() { byte = frame->next_bytecode(); goto __NEXT_STEP;}
+#define DISPATCH() { CEVAL_STEP(); goto __NEXT_STEP;}
 
 __NEXT_STEP:;
-#if DEBUG_CEVAL_STEP
+#if PK_DEBUG_CEVAL_STEP
     _log_s_data();
 #endif
     switch (byte.op)
@@ -624,7 +631,7 @@ __NEXT_STEP:;
         _0 = POPX();   // super
         if(_0 == None) _0 = _t(tp_object);
         check_non_tagged_type(_0, tp_type);
-        _1 = new_type_object(frame->_module, _name, OBJ_GET(Type, _0));
+        _1 = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
         PUSH(_1);
         DISPATCH();
     TARGET(END_CLASS)
@@ -703,7 +710,7 @@ __NEXT_STEP:;
     } DISPATCH();
 
 #if !PK_ENABLE_COMPUTED_GOTO
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
     default: throw std::runtime_error(fmt(OP_NAMES[byte.op], " is not implemented"));
 #else
     default: UNREACHABLE();
@@ -715,6 +722,7 @@ __NEXT_STEP:;
 #undef DISPATCH
 #undef TARGET
 #undef DISPATCH_OP_CALL
+#undef CEVAL_STEP
 /**********************************************************************/
             UNREACHABLE();
         }catch(HandledException& e){
@@ -725,7 +733,7 @@ __NEXT_STEP:;
             _e.st_push(frame->snapshot());
             _pop_frame();
             if(callstack.empty()){
-#if DEBUG_FULL_EXCEPTION
+#if PK_DEBUG_FULL_EXCEPTION
                 std::cerr << _e.summary() << std::endl;
 #endif
                 throw _e;

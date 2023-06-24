@@ -24,7 +24,7 @@ inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool 
     try{
         return compiler.compile();
     }catch(Exception& e){
-#if DEBUG_FULL_EXCEPTION
+#if PK_DEBUG_FULL_EXCEPTION
         std::cerr << e.summary() << std::endl;
 #endif
         _error(e);
@@ -75,9 +75,9 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<2>("super", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
-        Type type = OBJ_GET(Type, args[0]);
+        Type type = PK_OBJ_GET(Type, args[0]);
         if(!vm->isinstance(args[1], type)){
-            Str _0 = obj_type_name(vm, OBJ_GET(Type, vm->_t(args[1])));
+            Str _0 = obj_type_name(vm, PK_OBJ_GET(Type, vm->_t(args[1])));
             Str _1 = obj_type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
@@ -87,7 +87,7 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[1], vm->tp_type);
-        Type type = OBJ_GET(Type, args[1]);
+        Type type = PK_OBJ_GET(Type, args[1]);
         return VAR(vm->isinstance(args[0], type));
     });
 
@@ -260,11 +260,11 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return VAR(lhs == rhs); });
-    _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return BITS(obj); });
+    _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return PK_BITS(obj); });
 
     _vm->cached_object__new__ = _vm->bind_constructor<1>("object", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
-        Type t = OBJ_GET(Type, args[0]);
+        Type t = PK_OBJ_GET(Type, args[0]);
         return vm->heap.gcnew<DummyInstance>(t, {});
     });
 
@@ -282,7 +282,7 @@ inline void init_builtins(VM* _vm) {
         return VAR(r);
     });
 
-    _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, OBJ_GET(Range, obj)); });
+    _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
     _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("None"); });
     _vm->bind__json__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("null"); });
 
@@ -1362,11 +1362,11 @@ inline void VM::post_init(){
 
     _t(tp_object)->attr().set("__class__", property(CPP_LAMBDA(vm->_t(args[0]))));
     _t(tp_type)->attr().set("__base__", property([](VM* vm, ArgsView args){
-        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
     }));
     _t(tp_type)->attr().set("__name__", property([](VM* vm, ArgsView args){
-        const PyTypeInfo& info = vm->_all_types[OBJ_GET(Type, args[0])];
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return VAR(info.name);
     }));
 
@@ -1396,7 +1396,7 @@ inline void VM::post_init(){
         return VAR(MappingProxy(args[0]));
     }));
 
-#if !DEBUG_NO_BUILTIN_MODULES
+#if !PK_DEBUG_NO_BUILTINS
     add_module_sys(this);
     add_module_traceback(this);
     add_module_time(this);

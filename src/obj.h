@@ -43,7 +43,7 @@ struct NativeFunc {
     T get_userdata() const {
         static_assert(std::is_trivially_copyable_v<T>);
         static_assert(sizeof(T) <= sizeof(UserData));
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         if(!_has_userdata) throw std::runtime_error("userdata not set");
 #endif
         return reinterpret_cast<const T&>(_userdata);
@@ -199,7 +199,7 @@ struct MappingProxy{
     NameDict& attr() noexcept { return obj->attr(); }
 };
 
-#define OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
+#define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 
 #define OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc.marked) {                      \
@@ -218,18 +218,18 @@ inline void gc_mark_namedict(NameDict& t){
 
 Str obj_type_name(VM* vm, Type type);
 
-#if DEBUG_NO_BUILTIN_MODULES
+#if PK_DEBUG_NO_BUILTINS
 #define OBJ_NAME(obj) Str("<?>")
 #else
 DEF_SNAME(__name__);
-#define OBJ_NAME(obj) OBJ_GET(Str, vm->getattr(obj, __name__))
+#define OBJ_NAME(obj) PK_OBJ_GET(Str, vm->getattr(obj, __name__))
 #endif
 
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
 inline bool is_type(PyObject* obj, Type type) {
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
     if(is_special(obj)) throw std::runtime_error("is_type() called with special object");
 #endif
@@ -241,7 +241,7 @@ inline bool is_type(PyObject* obj, Type type) {
 }
 
 inline bool is_non_tagged_type(PyObject* obj, Type type) {
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
     if(is_special(obj)) throw std::runtime_error("is_non_tagged_type() called with special object");
 #endif
@@ -270,7 +270,7 @@ __T py_cast(VM* vm, PyObject* obj) {
         return to_void_p<T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         T::_check_type(vm, obj);
-        return OBJ_GET(T, obj);
+        return PK_OBJ_GET(T, obj);
     }else if constexpr(std::is_pod_v<T>){
         return to_c99_struct<T>(vm, obj);
     }else {
@@ -286,7 +286,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
     }else if constexpr(std::is_pointer_v<__T>){
         return to_void_p<__T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
-        return OBJ_GET(T, obj);
+        return PK_OBJ_GET(T, obj);
     }else if constexpr(std::is_pod_v<T>){
         return to_c99_struct<T>(vm, obj);
     }else {
@@ -430,8 +430,8 @@ struct Py_<DummyModule> final: PyObject {
 
 template<typename T>
 inline T lambda_get_userdata(PyObject** p){
-    if(p[-1] != PY_NULL) return OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
-    else return OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
+    if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
+    else return PK_OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
 }
 
 

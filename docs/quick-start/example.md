@@ -56,14 +56,14 @@ struct PyVec2: Vec2 {
             return VAR(Vec2(x, y));
         });
 
-        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
             ss << "vec2(" << self.x << ", " << self.y << ")";
             return VAR(ss.str());
         });
 
-        vm->bind__add__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* other){
+        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* other){
             PyVec2& self = _CAST(PyVec2&, obj);
             PyVec2& other_ = CAST(PyVec2&, other);
             return VAR_T(PyVec2, self + other_);

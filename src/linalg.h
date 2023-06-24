@@ -335,7 +335,7 @@ struct PyVec2: Vec2 {
             return VAR(Tuple({ VAR(self.x), VAR(self.y) }));
         });
 
-        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
             ss << "vec2(" << self.x << ", " << self.y << ")";
@@ -395,7 +395,7 @@ struct PyVec3: Vec3 {
             return VAR(Tuple({ VAR(self.x), VAR(self.y), VAR(self.z) }));
         });
 
-        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec3& self = _CAST(PyVec3&, obj);
             std::stringstream ss;
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
@@ -476,7 +476,7 @@ struct PyMat3x3: Mat3x3{
 
 #undef METHOD_PROXY_NONE
 
-        vm->bind__repr__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyMat3x3& self = _CAST(PyMat3x3&, obj);
             std::stringstream ss;
             ss << std::fixed << std::setprecision(4);
@@ -491,7 +491,7 @@ struct PyMat3x3: Mat3x3{
             return VAR_T(PyMat3x3, self);
         });
 
-        vm->bind__getitem__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){
             PyMat3x3& self = _CAST(PyMat3x3&, obj);
             Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){

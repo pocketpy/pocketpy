@@ -1101,4 +1101,7 @@ public:
     }
 };
 
+#undef BC_NOARG
+#undef BC_KEEPLINE
+
 } // namespace pkpy

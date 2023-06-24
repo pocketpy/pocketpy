@@ -40,7 +40,7 @@ struct DoubleLinkedList{
     }
 
     void pop_back(){
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(empty()) throw std::runtime_error("DoubleLinkedList::pop_back() called on empty list");
 #endif
         tail.prev->prev->next = &tail;
@@ -49,7 +49,7 @@ struct DoubleLinkedList{
     }
 
     void pop_front(){
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(empty()) throw std::runtime_error("DoubleLinkedList::pop_front() called on empty list");
 #endif
         head.next->next->prev = &head;
@@ -58,21 +58,21 @@ struct DoubleLinkedList{
     }
 
     T* back() const {
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(empty()) throw std::runtime_error("DoubleLinkedList::back() called on empty list");
 #endif
         return static_cast<T*>(tail.prev);
     }
 
     T* front() const {
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(empty()) throw std::runtime_error("DoubleLinkedList::front() called on empty list");
 #endif
         return static_cast<T*>(head.next);
     }
 
     void erase(T* node){
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(empty()) throw std::runtime_error("DoubleLinkedList::erase() called on empty list");
         LinkedListNode* n = head.next;
         while(n != &tail){
@@ -99,7 +99,7 @@ struct DoubleLinkedList{
     }
 
     bool empty() const {
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(size() == 0){
             if(head.next != &tail || tail.prev != &head){
                 throw std::runtime_error("DoubleLinkedList::size() returned 0 but the list is not empty");
@@ -152,7 +152,7 @@ struct MemoryPool{
         }
 
         Block* alloc(){
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
             if(empty()) throw std::runtime_error("Arena::alloc() called on empty arena");
 #endif
             _free_list_size--;
@@ -160,7 +160,7 @@ struct MemoryPool{
         }
 
         void dealloc(Block* block){
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
             if(full()) throw std::runtime_error("Arena::dealloc() called on full arena");
 #endif
             _free_list[_free_list_size] = block;
@@ -175,8 +175,8 @@ struct MemoryPool{
     void* alloc() { return alloc(sizeof(__T)); }
 
     void* alloc(size_t size){
-        GLOBAL_SCOPE_LOCK();
-#if DEBUG_NO_MEMORY_POOL
+        PK_GLOBAL_SCOPE_LOCK();
+#if PK_DEBUG_NO_MEMORY_POOL
         return malloc(size);
 #endif
         if(size > __BlockSize){
@@ -200,12 +200,12 @@ struct MemoryPool{
     }
 
     void dealloc(void* p){
-        GLOBAL_SCOPE_LOCK();
-#if DEBUG_NO_MEMORY_POOL
+        PK_GLOBAL_SCOPE_LOCK();
+#if PK_DEBUG_NO_MEMORY_POOL
         free(p);
         return;
 #endif
-#if DEBUG_MEMORY_POOL
+#if PK_DEBUG_MEMORY_POOL
         if(p == nullptr) throw std::runtime_error("MemoryPool::dealloc() called on nullptr");
 #endif
         Block* block = (Block*)((char*)p - sizeof(void*));

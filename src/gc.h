@@ -65,7 +65,7 @@ struct ManagedHeap{
         return obj;
     }
 
-#if DEBUG_GC_STATS
+#if PK_DEBUG_GC_STATS
     inline static std::map<Type, int> deleted;
 #endif
 
@@ -76,7 +76,7 @@ struct ManagedHeap{
                 obj->gc.marked = false;
                 alive.push_back(obj);
             }else{
-#if DEBUG_GC_STATS
+#if PK_DEBUG_GC_STATS
                 deleted[obj->type] += 1;
 #endif
                 if(_gc_on_delete) _gc_on_delete(vm, obj);
@@ -96,7 +96,7 @@ struct ManagedHeap{
     }
 
     void _auto_collect(){
-#if !DEBUG_NO_AUTO_GC
+#if !PK_DEBUG_NO_AUTO_GC
         if(_gc_lock_counter > 0) return;
         if(gc_counter < gc_threshold) return;
         gc_counter = 0;
@@ -118,7 +118,7 @@ struct ManagedHeap{
     ~ManagedHeap(){
         for(PyObject* obj: _no_gc) { obj->~PyObject(); pool64.dealloc(obj); }
         for(PyObject* obj: gen) { obj->~PyObject(); pool64.dealloc(obj); }
-#if DEBUG_GC_STATS
+#if PK_DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
             std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
         }

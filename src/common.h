@@ -39,11 +39,11 @@ struct GIL {
     explicit GIL() { _mutex.lock(); }
     ~GIL() { _mutex.unlock(); }
 };
-#define GLOBAL_SCOPE_LOCK() auto _lock = GIL();
+#define PK_GLOBAL_SCOPE_LOCK() auto _lock = GIL();
 
 #else
 #define THREAD_LOCAL
-#define GLOBAL_SCOPE_LOCK()
+#define PK_GLOBAL_SCOPE_LOCK()
 #endif
 
 /*******************************************************************************/
@@ -119,11 +119,11 @@ struct Type {
 #define PK_ASSERT(x) if(!(x)) FATAL_ERROR();
 
 struct PyObject;
-#define BITS(p) (reinterpret_cast<i64>(p))
-inline bool is_tagged(PyObject* p) noexcept { return (BITS(p) & 0b11) != 0b00; }
-inline bool is_int(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b01; }
-inline bool is_float(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b10; }
-inline bool is_special(PyObject* p) noexcept { return (BITS(p) & 0b11) == 0b11; }
+#define PK_BITS(p) (reinterpret_cast<i64>(p))
+inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
+inline bool is_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b01; }
+inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
+inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
 
 inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
     return is_tagged(a) && is_tagged(b);

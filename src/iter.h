@@ -13,10 +13,10 @@ struct RangeIter{
     RangeIter(Range r) : r(r), current(r.start) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<RangeIter>(type);
-        vm->bind__iter__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             RangeIter& self = _CAST(RangeIter&, obj);
             bool has_next = self.r.step > 0 ? self.current < self.r.stop : self.current > self.r.stop;
             if(!has_next) return vm->StopIteration;
@@ -39,10 +39,10 @@ struct ArrayIter{
     void _gc_mark() const{ OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<ArrayIter>(type);
-        vm->bind__iter__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             ArrayIter& self = _CAST(ArrayIter&, obj);
             if(self.current == self.end) return vm->StopIteration;
             return *self.current++;
@@ -56,15 +56,15 @@ struct StringIter{
     Str* str;
     int index;
 
-    StringIter(PyObject* ref) : ref(ref), str(&OBJ_GET(Str, ref)), index(0) {}
+    StringIter(PyObject* ref) : ref(ref), str(&PK_OBJ_GET(Str, ref)), index(0) {}
 
     void _gc_mark() const{ OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);
-        vm->bind__iter__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             StringIter& self = _CAST(StringIter&, obj);
             // TODO: optimize this... operator[] is of O(n) complexity
             if(self.index == self.str->u8_length()) return vm->StopIteration;
@@ -114,10 +114,10 @@ struct Generator{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Generator>(type);
-        vm->bind__iter__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             Generator& self = _CAST(Generator&, obj);
             return self.next(vm);
         });

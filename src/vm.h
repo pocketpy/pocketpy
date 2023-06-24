@@ -28,17 +28,17 @@ namespace pkpy{
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
-        return OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
-        return OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew(vm->ptype, value);}     \
     inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew(vm->ptype, std::move(value));}
@@ -124,6 +124,10 @@ public:
 
     PyObject* _last_exception;
 
+#if PK_ENABLE_CEVAL_CALLBACK
+    void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
+#endif
+
     PrintFunc _stdout;
     PrintFunc _stderr;
     Bytes (*_import_handler)(const Str& name);
@@ -152,7 +156,7 @@ public:
     }
 
     FrameId top_frame() {
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         if(callstack.empty()) FATAL_ERROR();
 #endif
         return FrameId(&callstack.data(), callstack.size()-1);
@@ -194,7 +198,7 @@ public:
         do{
             val = cls->attr().try_get(name);
             if(val != nullptr) return val;
-            Type base = _all_types[OBJ_GET(Type, cls)].base;
+            Type base = _all_types[PK_OBJ_GET(Type, cls)].base;
             if(base.index == -1) break;
             cls = _all_types[base].obj;
         }while(true);
@@ -202,7 +206,7 @@ public:
     }
 
     bool isinstance(PyObject* obj, Type cls_t){
-        Type obj_t = OBJ_GET(Type, _t(obj));
+        Type obj_t = PK_OBJ_GET(Type, _t(obj));
         do{
             if(obj_t == cls_t) return true;
             Type base = _all_types[obj_t].base;
@@ -216,14 +220,14 @@ public:
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
-#if DEBUG_DIS_EXEC
+#if PK_DEBUG_DIS_EXEC
             if(_module == _main) std::cout << disassemble(code) << '\n';
 #endif
             return _exec(code, _module);
         }catch (const Exception& e){
             _stderr(this, e.summary() + "\n");
         }
-#if !DEBUG_FULL_EXCEPTION
+#if !PK_DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
             Str msg = "An std::exception occurred! It could be a bug.\n";
             msg = msg + e.what();
@@ -301,7 +305,7 @@ public:
 
     Type _new_type_object(StrName name, Type base=0) {
         PyObject* obj = new_type_object(nullptr, name, base, false);
-        return OBJ_GET(Type, obj);
+        return PK_OBJ_GET(Type, obj);
     }
 
     PyObject* _find_type_object(const Str& type){
@@ -316,7 +320,7 @@ public:
 
     Type _type(const Str& type){
         PyObject* obj = _find_type_object(type);
-        return OBJ_GET(Type, obj);
+        return PK_OBJ_GET(Type, obj);
     }
 
     PyTypeInfo* _type_info(const Str& type){
@@ -325,7 +329,7 @@ public:
             for(auto& t: _all_types) if(t.name == type) return &t;
             FATAL_ERROR();
         }
-        return &_all_types[OBJ_GET(Type, obj)];
+        return &_all_types[PK_OBJ_GET(Type, obj)];
     }
 
     PyTypeInfo* _type_info(Type type){
@@ -344,7 +348,7 @@ public:
         PyObject* nf = bind_method<0>(_t(type), #name, [](VM* vm, ArgsView args){       \
             return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);\
         });                                                                             \
-        OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
     BIND_UNARY_SPECIAL(__repr__)
@@ -367,7 +371,7 @@ public:
         PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
             return lambda_get_userdata<BinaryFuncC>(args.begin())(vm, args[0], args[1]); \
         });                                                                             \
-        OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
     BIND_BINARY_SPECIAL(__eq__)
@@ -400,7 +404,7 @@ public:
         PyObject* nf = bind_method<1>(obj, "__getitem__", [](VM* vm, ArgsView args){
             return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
         });
-        OBJ_GET(NativeFunc, nf).set_userdata(f);
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     void bind__setitem__(Type type, void (*f)(VM*, PyObject*, PyObject*, PyObject*)){
@@ -410,7 +414,7 @@ public:
             lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1], args[2]);
             return vm->None;
         });
-        OBJ_GET(NativeFunc, nf).set_userdata(f);
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     void bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
@@ -420,7 +424,7 @@ public:
             lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
             return vm->None;
         });
-        OBJ_GET(NativeFunc, nf).set_userdata(f);
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     bool py_equals(PyObject* lhs, PyObject* rhs){
@@ -463,7 +467,7 @@ public:
     template<typename T, typename __T>
     PyObject* bind_default_constructor(__T&& type) {
         return bind_constructor<1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
-            Type t = OBJ_GET(Type, args[0]);
+            Type t = PK_OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<T>(t, T());
         });
     }
@@ -513,7 +517,7 @@ public:
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
-    void KeyError(PyObject* obj){ _error("KeyError", OBJ_GET(Str, py_repr(obj))); }
+    void KeyError(PyObject* obj){ _error("KeyError", PK_OBJ_GET(Str, py_repr(obj))); }
     void BinaryOptError(const char* op) { TypeError(fmt("unsupported operand type(s) for ", op)); }
 
     void AttributeError(PyObject* obj, StrName name){
@@ -638,7 +642,7 @@ public:
         _modules.clear();
         _lazy_modules.clear();
     }
-#if DEBUG_CEVAL_STEP
+#if PK_DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
 #endif
     void _unpack_as_list(ArgsView args, List& list);
@@ -672,7 +676,7 @@ inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
     if(args.size() != argc && argc != -1) {
         vm->TypeError(fmt("expected ", argc, " arguments, got ", args.size()));
     }
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
     if(f == nullptr) FATAL_ERROR();
 #endif
     return f(vm, args);
@@ -698,10 +702,10 @@ DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
     vm->check_int(obj);                                 \
-    return (T)(BITS(obj) >> 2);                         \
+    return (T)(PK_BITS(obj) >> 2);                         \
 }                                                       \
 template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
-    return (T)(BITS(obj) >> 2);                         \
+    return (T)(PK_BITS(obj) >> 2);                         \
 }
 
 PY_CAST_INT(char)
@@ -718,20 +722,20 @@ PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
     vm->check_float(obj);
-    i64 bits = BITS(obj) & Number::c1;
+    i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
-    i64 bits = BITS(obj) & Number::c1;
+    i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
     vm->check_float(obj);
-    i64 bits = BITS(obj) & Number::c1;
+    i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
-    i64 bits = BITS(obj) & Number::c1;
+    i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
 
@@ -1050,7 +1054,7 @@ inline Str VM::disassemble(CodeObject_ co){
     return Str(ss.str());
 }
 
-#if DEBUG_CEVAL_STEP
+#if PK_DEBUG_CEVAL_STEP
 inline void VM::_log_s_data(const char* title) {
     if(_main == nullptr) return;
     if(callstack.empty()) return;
@@ -1080,7 +1084,7 @@ inline void VM::_log_s_data(const char* title) {
             auto& f = CAST(Function&, obj);
             ss << f.decl->code->name << "(...)";
         } else if(is_type(obj, tp_type)){
-            Type t = OBJ_GET(Type, obj);
+            Type t = PK_OBJ_GET(Type, obj);
             ss << "<class " + _all_types[t].name.escape() + ">";
         } else if(is_type(obj, tp_list)){
             auto& t = CAST(List&, obj);
@@ -1220,7 +1224,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView args(p1 - ARGC - int(method_call), p1);
 
     if(is_non_tagged_type(callable, tp_native_func)){
-        const auto& f = OBJ_GET(NativeFunc, callable);
+        const auto& f = PK_OBJ_GET(NativeFunc, callable);
         if(KWARGC != 0) TypeError("native_func does not accept keyword arguments");
         PyObject* ret = f(this, args);
         s_data.reset(p0);
@@ -1327,12 +1331,12 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         DEF_SNAME(__new__);
         PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;
-#if DEBUG_EXTRA_CHECK
+#if PK_DEBUG_EXTRA_CHECK
         PK_ASSERT(new_f != nullptr);
 #endif
         if(new_f == cached_object__new__) {
             // fast path for object.__new__
-            Type t = OBJ_GET(Type, callable);
+            Type t = PK_OBJ_GET(Type, callable);
             obj= vm->heap.gcnew<DummyInstance>(t, {});
         }else{
             PUSH(new_f);
@@ -1382,7 +1386,7 @@ inline PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
-        const Super& super = OBJ_GET(Super, obj);
+        const Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
     }else{
@@ -1419,7 +1423,7 @@ inline PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** 
     PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
-        const Super& super = OBJ_GET(Super, obj);
+        const Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
     }else{
@@ -1456,7 +1460,7 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     PyObject* objtype;
     // handle super() proxy
     if(is_non_tagged_type(obj, tp_super)){
-        Super& super = OBJ_GET(Super, obj);
+        Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = _t(super.second);
     }else{
@@ -1547,7 +1551,7 @@ inline void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
         i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
-    OBJ_GET(NativeFunc, nf).set_userdata(f);
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
 inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
@@ -1557,7 +1561,7 @@ inline void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
         i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
-    OBJ_GET(NativeFunc, nf).set_userdata(f);
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
 

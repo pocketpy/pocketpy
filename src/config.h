@@ -14,6 +14,9 @@
 // This triggers necessary locks to make the VM thread-safe
 #define PK_ENABLE_THREAD            0
 
+// Enable this for `vm->_ceval_on_step`
+#define PK_ENABLE_CEVAL_CALLBACK    0
+
 // Whether to use `std::function` to do bindings or not
 // By default, functions to be binded must be a C function pointer without capture
 // However, someone thinks it's not convenient.
@@ -24,17 +27,17 @@
 /*************** debug settings ***************/
 
 // Enable this may help you find bugs
-#define DEBUG_EXTRA_CHECK           0
+#define PK_DEBUG_EXTRA_CHECK        0
 
 // Do not edit the following settings unless you know what you are doing
-#define DEBUG_NO_BUILTIN_MODULES    0
-#define DEBUG_DIS_EXEC              0
-#define DEBUG_CEVAL_STEP            0
-#define DEBUG_FULL_EXCEPTION        0
-#define DEBUG_MEMORY_POOL           0
-#define DEBUG_NO_MEMORY_POOL        0
-#define DEBUG_NO_AUTO_GC            0
-#define DEBUG_GC_STATS              0
+#define PK_DEBUG_NO_BUILTINS        0
+#define PK_DEBUG_DIS_EXEC           0
+#define PK_DEBUG_CEVAL_STEP         0
+#define PK_DEBUG_FULL_EXCEPTION     0
+#define PK_DEBUG_MEMORY_POOL        0
+#define PK_DEBUG_NO_MEMORY_POOL     0
+#define PK_DEBUG_NO_AUTO_GC         0
+#define PK_DEBUG_GC_STATS           0
 
 /*************** internal settings ***************/
 
@@ -75,7 +78,7 @@ inline const float kTypeAttrLoadFactor = 0.5f;
 #endif
 
 
-#if DEBUG_CEVAL_STEP && defined(PK_ENABLE_COMPUTED_GOTO)
+#if PK_DEBUG_CEVAL_STEP && defined(PK_ENABLE_COMPUTED_GOTO)
 #undef PK_ENABLE_COMPUTED_GOTO
 #endif
 
