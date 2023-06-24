@@ -36,7 +36,7 @@ inline PyObject* VM::_run_top_frame(){
 {
 
 #if PK_ENABLE_CEVAL_CALLBACK
-#define CEVAL_STEP() byte = frame->next_bytecode(); if(_ceval_on_step) _ceval_on_step(this, frame, byte)
+#define CEVAL_STEP() byte = frame->next_bytecode(); if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte)
 #else
 #define CEVAL_STEP() byte = frame->next_bytecode()
 #endif

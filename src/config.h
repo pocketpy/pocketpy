@@ -50,17 +50,19 @@
 // (not recommended to change this)
 #define PK_MAX_CO_VARNAMES          255
 
-// Hash table load factor (smaller ones mean less collision but more memory)
-// For class instance
-inline const float kInstAttrLoadFactor = 0.67f;
-// For class itself
-inline const float kTypeAttrLoadFactor = 0.5f;
+namespace pkpy{
+    // Hash table load factor (smaller ones mean less collision but more memory)
+    // For class instance
+    inline const float kInstAttrLoadFactor = 0.67f;
+    // For class itself
+    inline const float kTypeAttrLoadFactor = 0.5f;
 
-#ifdef _WIN32
-    inline const char kPlatformSep = '\\';
-#else
-    inline const char kPlatformSep = '/';
-#endif
+    #ifdef _WIN32
+        inline const char kPlatformSep = '\\';
+    #else
+        inline const char kPlatformSep = '/';
+    #endif
+}
 
 #ifdef _MSC_VER
 #pragma warning (disable:4267)
