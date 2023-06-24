@@ -108,7 +108,7 @@ struct Type {
 	operator int() const noexcept { return this->index; }
 };
 
-#define CPP_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
+#define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
 
 #ifdef POCKETPY_H
 #define FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");

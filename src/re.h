@@ -18,8 +18,8 @@ struct ReMatch {
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<ReMatch>(type);
-        vm->bind_method<0>(type, "start", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).start)));
-        vm->bind_method<0>(type, "end", CPP_LAMBDA(VAR(_CAST(ReMatch&, args[0]).end)));
+        vm->bind_method<0>(type, "start", PK_LAMBDA(VAR(_CAST(ReMatch&, args[0]).start)));
+        vm->bind_method<0>(type, "end", PK_LAMBDA(VAR(_CAST(ReMatch&, args[0]).end)));
 
         vm->bind_method<0>(type, "span", [](VM* vm, ArgsView args) {
             auto& self = _CAST(ReMatch&, args[0]);

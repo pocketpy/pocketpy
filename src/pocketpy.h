@@ -96,21 +96,26 @@ inline void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
-    static const auto _mul = [](i64 a, i64 b, i64 c){
-        if(c < 16384) return (a%c) * (b%c) % c;
-        i64 res = 0;
-        while(b > 0){
-            if(b & 1) res = (res + a) % c;
-            a = (a << 1) % c;
-            b >>= 1;
-        }
-        return res;
-    };
-
     _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
         i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
         i64 mod = CAST(i64, args[2]);   // assume mod>0, mod*mod should not overflow
+
+        if(rhs <= 0){
+            vm->ValueError("pow(): rhs should be positive");
+        }
+
+        static const auto _mul = [](i64 a, i64 b, i64 c){
+            if(c < 16384) return (a%c) * (b%c) % c;
+            i64 res = 0;
+            while(b > 0){
+                if(b & 1) res = (res + a) % c;
+                a = (a << 1) % c;
+                b >>= 1;
+            }
+            return res;
+        };
+
         i64 res = 1;
         lhs %= mod;
         while(rhs){
@@ -167,7 +172,7 @@ inline void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_builtin_func<1>("repr", CPP_LAMBDA(vm->py_repr(args[0])));
+    _vm->bind_builtin_func<1>("repr", PK_LAMBDA(vm->py_repr(args[0])));
 
     _vm->bind_builtin_func<1>("len", [](VM* vm, ArgsView args){
         const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
@@ -268,7 +273,7 @@ inline void init_builtins(VM* _vm) {
         return vm->heap.gcnew<DummyInstance>(t, {});
     });
 
-    _vm->bind_constructor<2>("type", CPP_LAMBDA(vm->_t(args[1])));
+    _vm->bind_constructor<2>("type", PK_LAMBDA(vm->_t(args[1])));
 
     _vm->bind_constructor<-1>("range", [](VM* vm, ArgsView args) {
         args._begin += 1;   // skip cls
@@ -424,7 +429,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ str ************/
-    _vm->bind_constructor<2>("str", CPP_LAMBDA(vm->py_str(args[1])));
+    _vm->bind_constructor<2>("str", PK_LAMBDA(vm->py_str(args[1])));
 
     _vm->bind__hash__(_vm->tp_str, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(Str&, obj).hash();
@@ -488,6 +493,7 @@ inline void init_builtins(VM* _vm) {
         if(args.size() != 1+2 && args.size() != 1+3) vm->TypeError("replace() takes 2 or 3 arguments");
         const Str& self = _CAST(Str&, args[0]);
         const Str& old = CAST(Str&, args[1]);
+        if(old.empty()) vm->ValueError("empty substring");
         const Str& new_ = CAST(Str&, args[2]);
         int count = args.size()==1+3 ? CAST(int, args[3]) : -1;
         return VAR(self.replace(old, new_, count));
@@ -652,7 +658,17 @@ inline void init_builtins(VM* _vm) {
 
     _vm->bind__mul__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const List& self = _CAST(List&, lhs);
-        int n = CAST(int, rhs);
+        if(!is_int(rhs)) return vm->NotImplemented;
+        int n = _CAST(int, rhs);
+        List result;
+        result.reserve(self.size() * n);
+        for(int i = 0; i < n; i++) result.extend(self);
+        return VAR(std::move(result));
+    });
+    _vm->bind_method<1>("list", "__rmul__", [](VM* vm, ArgsView args) {
+        const List& self = _CAST(List&, args[0]);
+        if(!is_int(args[1])) return vm->NotImplemented;
+        int n = _CAST(int, args[1]);
         List result;
         result.reserve(self.size() * n);
         for(int i = 0; i < n; i++) result.extend(self);
@@ -674,7 +690,7 @@ inline void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_method<0>("list", "copy", CPP_LAMBDA(VAR(_CAST(List, args[0]))));
+    _vm->bind_method<0>("list", "copy", PK_LAMBDA(VAR(_CAST(List, args[0]))));
 
     _vm->bind__hash__(_vm->tp_list, [](VM* vm, PyObject* obj) {
         vm->TypeError("unhashable type: 'list'");
@@ -761,7 +777,7 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ bool ************/
-    _vm->bind_constructor<2>("bool", CPP_LAMBDA(VAR(vm->py_bool(args[1]))));
+    _vm->bind_constructor<2>("bool", PK_LAMBDA(VAR(vm->py_bool(args[1]))));
     _vm->bind__hash__(_vm->tp_bool, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(bool, obj);
     });
@@ -1251,9 +1267,9 @@ inline void add_module_math(VM* vm){
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
     mod->attr().set("nan", VAR(std::numeric_limits<double>::quiet_NaN()));
 
-    vm->bind_func<1>(mod, "ceil", CPP_LAMBDA(VAR((i64)std::ceil(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "fabs", CPP_LAMBDA(VAR(std::fabs(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "floor", CPP_LAMBDA(VAR((i64)std::floor(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "ceil", PK_LAMBDA(VAR((i64)std::ceil(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "fabs", PK_LAMBDA(VAR(std::fabs(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "floor", PK_LAMBDA(VAR((i64)std::floor(CAST_F(args[0])))));
     vm->bind_func<1>(mod, "fsum", [](VM* vm, ArgsView args) {
         List& list = CAST(List&, args[0]);
         double sum = 0;
@@ -1280,29 +1296,29 @@ inline void add_module_math(VM* vm){
         return VAR(a);
     });
 
-    vm->bind_func<1>(mod, "isfinite", CPP_LAMBDA(VAR(std::isfinite(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "isinf", CPP_LAMBDA(VAR(std::isinf(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "isnan", CPP_LAMBDA(VAR(std::isnan(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "isfinite", PK_LAMBDA(VAR(std::isfinite(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "isinf", PK_LAMBDA(VAR(std::isinf(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "isnan", PK_LAMBDA(VAR(std::isnan(CAST_F(args[0])))));
 
-    vm->bind_func<1>(mod, "exp", CPP_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "log", CPP_LAMBDA(VAR(std::log(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "log2", CPP_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "log10", CPP_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "exp", PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log", PK_LAMBDA(VAR(std::log(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log2", PK_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "log10", PK_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
 
-    vm->bind_func<2>(mod, "pow", CPP_LAMBDA(VAR(std::pow(CAST_F(args[0]), CAST_F(args[1])))));
-    vm->bind_func<1>(mod, "sqrt", CPP_LAMBDA(VAR(std::sqrt(CAST_F(args[0])))));
+    vm->bind_func<2>(mod, "pow", PK_LAMBDA(VAR(std::pow(CAST_F(args[0]), CAST_F(args[1])))));
+    vm->bind_func<1>(mod, "sqrt", PK_LAMBDA(VAR(std::sqrt(CAST_F(args[0])))));
 
-    vm->bind_func<1>(mod, "acos", CPP_LAMBDA(VAR(std::acos(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "asin", CPP_LAMBDA(VAR(std::asin(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "atan", CPP_LAMBDA(VAR(std::atan(CAST_F(args[0])))));
-    vm->bind_func<2>(mod, "atan2", CPP_LAMBDA(VAR(std::atan2(CAST_F(args[0]), CAST_F(args[1])))));
+    vm->bind_func<1>(mod, "acos", PK_LAMBDA(VAR(std::acos(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "asin", PK_LAMBDA(VAR(std::asin(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "atan", PK_LAMBDA(VAR(std::atan(CAST_F(args[0])))));
+    vm->bind_func<2>(mod, "atan2", PK_LAMBDA(VAR(std::atan2(CAST_F(args[0]), CAST_F(args[1])))));
 
-    vm->bind_func<1>(mod, "cos", CPP_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "sin", CPP_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "tan", CPP_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "cos", PK_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "sin", PK_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
+    vm->bind_func<1>(mod, "tan", PK_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
     
-    vm->bind_func<1>(mod, "degrees", CPP_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
-    vm->bind_func<1>(mod, "radians", CPP_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
+    vm->bind_func<1>(mod, "degrees", PK_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
+    vm->bind_func<1>(mod, "radians", PK_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
 
     vm->bind_func<1>(mod, "modf", [](VM* vm, ArgsView args) {
         f64 i;
@@ -1354,13 +1370,13 @@ inline void add_module_dis(VM* vm){
 
 inline void add_module_gc(VM* vm){
     PyObject* mod = vm->new_module("gc");
-    vm->bind_func<0>(mod, "collect", CPP_LAMBDA(VAR(vm->heap.collect())));
+    vm->bind_func<0>(mod, "collect", PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
 inline void VM::post_init(){
     init_builtins(this);
 
-    _t(tp_object)->attr().set("__class__", property(CPP_LAMBDA(vm->_t(args[0]))));
+    _t(tp_object)->attr().set("__class__", property(PK_LAMBDA(vm->_t(args[0]))));
     _t(tp_type)->attr().set("__base__", property([](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;

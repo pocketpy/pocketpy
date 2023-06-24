@@ -42,6 +42,15 @@ assert t.split('w') == ['this is string example....', 'o', '!!!']
 assert "a,b,c".split(',') == ['a', 'b', 'c']
 assert 'a,'.split(',') == ['a', '']
 assert 'foo!!bar!!baz'.split('!!') == ['foo', 'bar', 'baz']
+assert ' 4 3 '.split() == ['4', '3']
+assert '  4 3  '.split(' ') == ['', '', '4', '3', '', '']
+
+assert '111'.count('1') == 3
+assert '111'.count('11') == 1
+assert '1111'.count('11') == 2
+assert '11'.count('') == 3
+assert ''.count('1') == 0
+assert ''.count('') == 1
 
 t = "*****this is **string** example....wow!!!*****"
 s = "123abcrunoob321"

@@ -105,6 +105,7 @@ def sorted(iterable, reverse=False, key=None):
 
 ##### str #####
 def __f(self, sep=None):
+    flag = sep is None
     sep = sep or ' '
     if sep == "":
         return list(self)
@@ -118,8 +119,26 @@ def __f(self, sep=None):
         else:
             ++i
     res.append(self)
+    if flag:
+        return [i for i in res if i != '']
     return res
 str.split = __f
+
+def __f(self, s: str):
+    if type(s) is not str:
+        raise TypeError('must be str, not ' + type(s).__name__)
+    if s == '':
+        return len(self) + 1
+    res = 0
+    i = 0
+    while i < len(self):
+        if self[i:i+len(s)] == s:
+            ++res
+            i += len(s)
+        else:
+            ++i
+    return res
+str.count = __f
 
 def __f(self, *args):
     if '{}' in self:

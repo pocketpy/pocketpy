@@ -88,7 +88,7 @@ struct FileIO {
             return vm->None;
         });
 
-        vm->bind_method<0>(type, "__enter__", CPP_LAMBDA(vm->None));
+        vm->bind_method<0>(type, "__enter__", PK_LAMBDA(vm->None));
     }
 };
 
