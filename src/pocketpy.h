@@ -1021,6 +1021,14 @@ inline void init_builtins(VM* _vm) {
         return VAR(self.contains(key));
     });
 
+    _vm->bind__iter__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
+        Dict& self = _CAST(Dict&, obj);
+        auto items = self.items();
+        Tuple t(items.size());
+        for(int i=0; i<items.size(); i++) t[i] = items[i].first;
+        return vm->py_iter(VAR(std::move(t)));
+    });
+
     _vm->bind_method<-1>("dict", "get", [](VM* vm, ArgsView args) {
         Dict& self = _CAST(Dict&, args[0]);
         if(args.size() == 1+1){

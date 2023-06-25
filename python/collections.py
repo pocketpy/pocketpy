@@ -106,6 +106,12 @@ class defaultdict:
             return False
         return self._a == __o._a
     
+    def __iter__(self):
+        return iter(self._a)
+
+    def __contains__(self, key):
+        return key in self._a
+    
     def __len__(self):
         return len(self._a)
 
