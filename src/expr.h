@@ -745,6 +745,14 @@ struct GroupedExpr: Expr{
     void emit(CodeEmitContext* ctx) override{
         a->emit(ctx);
     }
+
+    bool emit_del(CodeEmitContext* ctx) override {
+        return a->emit_del(ctx);
+    }
+
+    bool emit_store(CodeEmitContext* ctx) override {
+        return a->emit_store(ctx);
+    }
 };
 
 struct BinaryExpr: Expr{

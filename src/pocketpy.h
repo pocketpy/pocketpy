@@ -325,6 +325,7 @@ inline void init_builtins(VM* _vm) {
 
     /************ int ************/
     _vm->bind_constructor<-1>("int", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+0) return VAR(0);
         if(args.size() == 1+1){
             if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
             if (is_type(args[1], vm->tp_int)) return args[1];
