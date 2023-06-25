@@ -124,3 +124,6 @@ Convert angle `x` from degrees to radians.
 
 Return the fractional and integer parts of `x`. Both results carry the sign of `x` and are floats.
 
+### `math.factorial(x)`
+
+Return `x` factorial as an integer.

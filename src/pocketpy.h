@@ -507,6 +507,12 @@ inline void init_builtins(VM* _vm) {
         return VAR(index);
     });
 
+    _vm->bind_method<1>("str", "find", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        const Str& sub = CAST(Str&, args[1]);
+        return VAR(self.index(sub));
+    });
+
     _vm->bind_method<1>("str", "startswith", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& prefix = CAST(Str&, args[1]);
@@ -564,8 +570,13 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ list ************/
-    _vm->bind_constructor<2>("list", [](VM* vm, ArgsView args) {
-        return vm->py_list(args[1]);
+    _vm->bind_constructor<-1>("list", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+0) return VAR(List());
+        if(args.size() == 1+1){
+            return vm->py_list(args[1]);
+        }
+        vm->TypeError("list() takes 0 or 1 arguments");
+        return vm->None;
     });
 
     _vm->bind__contains__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* item) {
@@ -727,9 +738,14 @@ inline void init_builtins(VM* _vm) {
     });
 
     /************ tuple ************/
-    _vm->bind_constructor<2>("tuple", [](VM* vm, ArgsView args) {
-        List list = CAST(List, vm->py_list(args[1]));
-        return VAR(Tuple(std::move(list)));
+    _vm->bind_constructor<-1>("tuple", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+0) return VAR(Tuple(0));
+        if(args.size() == 1+1){
+            List list = CAST(List, vm->py_list(args[1]));
+            return VAR(Tuple(std::move(list)));
+        }
+        vm->TypeError("tuple() takes at most 1 argument");
+        return vm->None;
     });
 
     _vm->bind__contains__(_vm->tp_tuple, [](VM* vm, PyObject* obj, PyObject* item) {
@@ -1324,6 +1340,14 @@ inline void add_module_math(VM* vm){
         f64 i;
         f64 f = std::modf(CAST_F(args[0]), &i);
         return VAR(Tuple({VAR(f), VAR(i)}));
+    });
+
+    vm->bind_func<1>(mod, "factorial", [](VM* vm, ArgsView args) {
+        i64 n = CAST(i64, args[0]);
+        if(n < 0) vm->ValueError("factorial() not defined for negative values");
+        i64 r = 1;
+        for(i64 i=2; i<=n; i++) r *= i;
+        return VAR(r);
     });
 }
 
