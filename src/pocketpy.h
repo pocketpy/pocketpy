@@ -816,6 +816,32 @@ inline void init_builtins(VM* _vm) {
         return VAR(val ? "true" : "false");
     });
 
+    const static auto f_bool_add = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
+        int x = (int)_CAST(bool, lhs);
+        if(is_int(rhs)) return VAR(x + _CAST(int, rhs));
+        if(rhs == vm->True) return VAR(x + 1);
+        if(rhs == vm->False) return VAR(x);
+        return vm->NotImplemented;
+    };
+
+    const static auto f_bool_mul = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
+        int x = (int)_CAST(bool, lhs);
+        if(is_int(rhs)) return VAR(x * _CAST(int, rhs));
+        if(rhs == vm->True) return VAR(x);
+        if(rhs == vm->False) return VAR(0);
+        return vm->NotImplemented;
+    };
+
+    _vm->bind__add__(_vm->tp_bool, f_bool_add);
+    _vm->bind_method<1>("bool", "__radd__", [](VM* vm, ArgsView args){
+        return f_bool_add(vm, args[0], args[1]);
+    });
+
+    _vm->bind__mul__(_vm->tp_bool, f_bool_mul);
+    _vm->bind_method<1>("bool", "__rmul__", [](VM* vm, ArgsView args){
+        return f_bool_mul(vm, args[0], args[1]);
+    });
+
     _vm->bind__and__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         return VAR(_CAST(bool, lhs) && CAST(bool, rhs));
     });
