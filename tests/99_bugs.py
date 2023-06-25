@@ -48,3 +48,9 @@ assert f((
     g(1),
     2
 )) == (1, 2)
+
+def f():
+    for i in range(4):
+        _ = 0
+    while i: --i
+f()

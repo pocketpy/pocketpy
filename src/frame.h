@@ -182,6 +182,11 @@ struct Frame {
         if(_next_ip >= co->codes.size()){
             while(i>=0) i = _exit_block(i);
         }else{
+            // BUG!!!
+            // for i in range(4):
+            //     _ = 0
+            // # if there is no op here, the block check will fail
+            // while i: --i
             const Bytecode& next = co->codes[target];
             while(i>=0 && i!=next.block) i = _exit_block(i);
             if(i!=next.block) throw std::runtime_error("invalid jump");

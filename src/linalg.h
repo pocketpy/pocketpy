@@ -585,7 +585,7 @@ struct PyMat3x3: Mat3x3{
                 PyVec3& other = _CAST(PyVec3&, args[1]);
                 return VAR_T(PyVec3, self.matmul(other));
             }
-            vm->TypeError("unsupported operand type(s) for @");
+            vm->BinaryOptError("@");
             return vm->None;
         };
 

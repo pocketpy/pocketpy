@@ -65,6 +65,8 @@ struct CodeEmitContext{
         co->blocks[curr_block_i].end = co->codes.size();
         curr_block_i = co->blocks[curr_block_i].parent;
         if(curr_block_i < 0) FATAL_ERROR();
+        // add a no op here to make block check work
+        emit(OP_NO_OP, BC_NOARG, BC_KEEPLINE);
     }
 
     // clear the expression stack and generate bytecode
