@@ -15,6 +15,34 @@ class deque:
             for value in iterable:
                 self.append(value)
 
+    def __getitem__(self, index):
+        assert 0 <= index < len(self)
+        node = self.head.next
+        for _ in range(index):
+            node = node.next
+        return node.value
+    
+    def __setitem__(self, index, value):
+        assert 0 <= index < len(self)
+        node = self.head.next
+        for _ in range(index):
+            node = node.next
+        node.value = value
+
+    def __delitem__(self, index):
+        assert 0 <= index < len(self)
+        node = self.head.next
+        for _ in range(index):
+            node = node.next
+        node.prev.next = node.next
+        node.next.prev = node.prev
+        self.size -= 1
+
+    def clear(self):
+        self.head.next = self.tail
+        self.tail.prev = self.head
+        self.size = 0
+
     def append(self, value):
         node = _LinkedListNode(self.tail.prev, self.tail, value)
         self.tail.prev.next = node

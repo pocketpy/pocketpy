@@ -952,7 +952,7 @@ __SUBSCR_END:
                     consume(TK("="));
                     PyObject* value = read_literal();
                     if(value == nullptr){
-                        SyntaxError(Str("expect a literal, not ") + TK_STR(curr().type));
+                        SyntaxError(Str("default argument must be a literal"));
                     }
                     decl->kwargs.push_back(FuncDecl::KwArg{index, value});
                 } break;
