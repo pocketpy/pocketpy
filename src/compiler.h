@@ -679,7 +679,7 @@ __SUBSCR_END:
             case TK("<<="): case TK(">>="): case TK("&="): case TK("|="): case TK("^="): {
                 Expr* lhs_p = ctx()->s_expr.top().get();
                 if(lhs_p->is_starred()) SyntaxError();
-                if(ctx()->is_compiling_class) SyntaxError();
+                if(ctx()->is_compiling_class) SyntaxError("can't use inplace operator in class definition");
                 advance();
                 auto e = make_expr<BinaryExpr>();
                 e->op = prev().type - 1; // -1 to remove =
@@ -695,7 +695,14 @@ __SUBSCR_END:
                 int n = 0;
                 while(match(TK("="))){
                     EXPR_TUPLE();
+                    Expr* _tp = ctx()->s_expr.top().get();
+                    if(ctx()->is_compiling_class && _tp->is_tuple()){
+                        SyntaxError("can't use unpack tuple in class definition");
+                    }
                     n += 1;
+                }
+                if(ctx()->is_compiling_class && n>1){
+                    SyntaxError("can't assign to multiple targets in class definition");
                 }
                 // stack size is n+1
                 Expr_ val = ctx()->s_expr.popx();

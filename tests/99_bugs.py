@@ -54,3 +54,6 @@ def f():
         _ = 0
     while i: --i
 f()
+
+# class A: a=b=1
+# class A: a, b = 1, 2

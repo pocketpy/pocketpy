@@ -995,7 +995,7 @@ inline std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
         case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
         case OP_IMPORT_NAME: case OP_BEGIN_CLASS: case OP_RAISE:
-        case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL:
+        case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR:
             argStr += fmt(" (", StrName(byte.arg).sv(), ")");
             break;
         case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST:

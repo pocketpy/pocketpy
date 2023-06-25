@@ -61,12 +61,16 @@ struct CodeEmitContext{
     }
 
     void exit_block(){
-        if(co->blocks[curr_block_i].type == FOR_LOOP) for_loop_depth--;
+        auto curr_type = co->blocks[curr_block_i].type;
+        if(curr_type == FOR_LOOP) for_loop_depth--;
         co->blocks[curr_block_i].end = co->codes.size();
         curr_block_i = co->blocks[curr_block_i].parent;
         if(curr_block_i < 0) FATAL_ERROR();
-        // add a no op here to make block check work
-        emit(OP_NO_OP, BC_NOARG, BC_KEEPLINE);
+
+        if(curr_type == FOR_LOOP){
+            // add a no op here to make block check work
+            emit(OP_NO_OP, BC_NOARG, BC_KEEPLINE);
+        }
     }
 
     // clear the expression stack and generate bytecode

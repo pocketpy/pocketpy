@@ -20,7 +20,7 @@
 #include <variant>
 #include <type_traits>
 
-#define PK_VERSION				"1.0.4"
+#define PK_VERSION				"1.0.5"
 
 #include "config.h"
 
