@@ -449,6 +449,15 @@ inline void init_builtins(VM* _vm) {
         for(i64 i = 0; i < n; i++) ss << self.sv();
         return VAR(ss.str());
     });
+
+    _vm->bind_method<1>("str", "__rmul__", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        i64 n = CAST(i64, args[1]);
+        std::stringstream ss;
+        for(i64 i = 0; i < n; i++) ss << self.sv();
+        return VAR(ss.str());
+    });
+
     _vm->bind__contains__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const Str& self = _CAST(Str&, lhs);
         return VAR(self.index(CAST(Str&, rhs)) != -1);

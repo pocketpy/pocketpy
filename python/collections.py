@@ -43,6 +43,10 @@ class deque:
         self.tail.prev = self.head
         self.size = 0
 
+    def extend(self, iterable):
+        for value in iterable:
+            self.append(value)
+
     def append(self, value):
         node = _LinkedListNode(self.tail.prev, self.tail, value)
         self.tail.prev.next = node
