@@ -725,8 +725,10 @@ __NEXT_STEP:;
 /**********************************************************************/
             UNREACHABLE();
         }catch(HandledException& e){
+            PK_UNUSED(e);
             continue;
         }catch(UnhandledException& e){
+            PK_UNUSED(e);
             PyObject* obj = POPX();
             Exception& _e = CAST(Exception&, obj);
             _e.st_push(frame->snapshot());
@@ -742,6 +744,7 @@ __NEXT_STEP:;
             if(frame.index < base_id) throw ToBeRaisedException();
             need_raise = true;
         }catch(ToBeRaisedException& e){
+            PK_UNUSED(e);
             need_raise = true;
         }
     }

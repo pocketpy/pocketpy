@@ -196,8 +196,8 @@ struct C99Struct{
     char* p;
     int size;
 
-    void _init(int size){
-        this->size = size;
+    void _init(int new_size){
+        this->size = new_size;
         if(size <= INLINE_SIZE){
             p = _inlined;
         }else{
