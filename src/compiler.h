@@ -925,8 +925,8 @@ __SUBSCR_END:
             StrName name = prev().str();
 
             // check duplicate argument name
-            for(int i: decl->args){
-                if(decl->code->varnames[i] == name) {
+            for(int j: decl->args){
+                if(decl->code->varnames[j] == name) {
                     SyntaxError("duplicate argument name");
                 }
             }

@@ -101,7 +101,7 @@ struct Generator{
         if(ret == PY_OP_YIELD){
             // backup the context
             frame = std::move(vm->callstack.top());
-            PyObject* ret = frame._s->popx();
+            ret = frame._s->popx();
             for(PyObject* obj: frame.stack_view()) s_backup.push_back(obj);
             vm->_pop_frame();
             state = 1;

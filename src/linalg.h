@@ -260,12 +260,12 @@ struct Mat3x3{
         );
     }
 
-    Vec2 transform_point(Vec2 v) const {
-        return Vec2(_11 * v.x + _12 * v.y + _13, _21 * v.x + _22 * v.y + _23);
+    Vec2 transform_point(Vec2 vec) const {
+        return Vec2(_11 * vec.x + _12 * vec.y + _13, _21 * vec.x + _22 * vec.y + _23);
     }
 
-    Vec2 transform_vector(Vec2 v) const {
-        return Vec2(_11 * v.x + _12 * v.y, _21 * v.x + _22 * v.y);
+    Vec2 transform_vector(Vec2 vec) const {
+        return Vec2(_11 * vec.x + _12 * vec.y, _21 * vec.x + _22 * vec.y);
     }
 };
 
@@ -617,14 +617,17 @@ struct PyMat3x3: Mat3x3{
         });
 
         vm->bind_func<0>(type, "zeros", [](VM* vm, ArgsView args){
+            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::zeros());
         });
 
         vm->bind_func<0>(type, "ones", [](VM* vm, ArgsView args){
+            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::ones());
         });
 
         vm->bind_func<0>(type, "identity", [](VM* vm, ArgsView args){
+            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::identity());
         });
 

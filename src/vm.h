@@ -487,6 +487,7 @@ public:
     template<typename T, typename __T>
     PyObject* bind_notimplemented_constructor(__T&& type) {
         return bind_constructor<-1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
+            PK_UNUSED(args);
             vm->NotImplementedError();
             return vm->None;
         });
@@ -739,6 +740,7 @@ template<> inline float py_cast<float>(VM* vm, PyObject* obj){
     return BitsCvt(bits)._float;
 }
 template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
+    PK_UNUSED(vm);
     i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
@@ -748,6 +750,7 @@ template<> inline double py_cast<double>(VM* vm, PyObject* obj){
     return BitsCvt(bits)._float;
 }
 template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
+    PK_UNUSED(vm);
     i64 bits = PK_BITS(obj) & Number::c1;
     return BitsCvt(bits)._float;
 }
@@ -777,6 +780,7 @@ PY_VAR_INT(unsigned long long)
 
 #define PY_VAR_FLOAT(T)                             \
     inline PyObject* py_var(VM* vm, T _val){        \
+        PK_UNUSED(vm);                              \
         BitsCvt val(static_cast<f64>(_val));        \
         i64 bits = val._int & Number::c1;           \
         i64 tail = val._int & Number::c2;           \
