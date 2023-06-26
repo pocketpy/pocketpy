@@ -707,8 +707,8 @@ __SUBSCR_END:
                 // stack size is n+1
                 Expr_ val = ctx()->s_expr.popx();
                 val->emit(ctx());
-                for(int i=1; i<n; i++) ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
-                for(int i=0; i<n; i++){
+                for(int j=1; j<n; j++) ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+                for(int j=0; j<n; j++){
                     auto e = ctx()->s_expr.popx();
                     if(e->is_starred()) SyntaxError();
                     bool ok = e->emit_store(ctx());

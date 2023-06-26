@@ -28,10 +28,16 @@ struct Expr{
     bool is_starred() const { return star_level() > 0; }
 
     // for OP_DELETE_XXX
-    [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) { return false; }
+    [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) {
+        PK_UNUSED(ctx);
+        return false;
+    }
 
     // for OP_STORE_XXX
-    [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) { return false; }
+    [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) {
+        PK_UNUSED(ctx);
+        return false;
+    }
 };
 
 struct CodeEmitContext{

@@ -141,7 +141,6 @@ __NEXT_STEP:;
         _0 = vm->builtins->attr().try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
-        DISPATCH();
     } DISPATCH();
     TARGET(LOAD_GLOBAL)
         heap._auto_collect();

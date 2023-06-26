@@ -962,6 +962,7 @@ inline PyObject* VM::format(Str spec, PyObject* obj){
         }
     }catch(...){
         ValueError("invalid format specifer");
+        UNREACHABLE();
     }
 
     if(type != 'f' && dot >= 0) ValueError("precision not allowed in the format specifier");
@@ -1307,18 +1308,18 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             vkwargs = nullptr;
         }
 
-        for(int i=0; i<kwargs.size(); i+=2){
-            StrName key(CAST(int, kwargs[i]));
+        for(int j=0; j<kwargs.size(); j+=2){
+            StrName key(CAST(int, kwargs[j]));
             int index = co->varnames_inv.try_get(key);
             if(index < 0){
                 if(vkwargs == nullptr){
                     TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
                 }else{
                     Dict& dict = _CAST(Dict&, vkwargs);
-                    dict.set(VAR(key.sv()), kwargs[i+1]);
+                    dict.set(VAR(key.sv()), kwargs[j+1]);
                 }
             }else{
-                buffer[index] = kwargs[i+1];
+                buffer[index] = kwargs[j+1];
             }
         }
         
@@ -1332,7 +1333,7 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         // copy buffer back to stack
         s_data.reset(args.begin());
-        for(int i=0; i<co_nlocals; i++) PUSH(buffer[i]);
+        for(int j=0; j<co_nlocals; j++) PUSH(buffer[j]);
         callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
@@ -1357,8 +1358,8 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             PUSH(new_f);
             PUSH(PY_NULL);
             PUSH(callable);    // cls
-            for(PyObject* obj: args) PUSH(obj);
-            for(PyObject* obj: kwargs) PUSH(obj);
+            for(PyObject* o: args) PUSH(o);
+            for(PyObject* o: kwargs) PUSH(o);
             // if obj is not an instance of callable, the behavior is undefined
             obj = vectorcall(ARGC+1, KWARGC);
         }
