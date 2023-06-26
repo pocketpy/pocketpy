@@ -68,7 +68,7 @@ namespace pkpy{
 #pragma warning (disable:4267)
 #pragma warning (disable:4100)
 #pragma warning (disable:4244)
-#define strdup _strdup
+#pragma warning (disable:4996)
 #endif
 
 #ifdef _MSC_VER
