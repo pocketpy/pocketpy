@@ -201,6 +201,12 @@ struct Str{
         return p;
     }
 
+    const char* c_str_temp() const {
+        static THREAD_LOCAL std::string temp;
+        temp.assign(data, size);
+        return temp.c_str();
+    }
+
     std::string_view sv() const {
         return std::string_view(data, size);
     }
