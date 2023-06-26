@@ -161,7 +161,7 @@ struct CodeObject {
     std::vector<FuncDecl_> func_decls;
 
     void _gc_mark() const {
-        for(PyObject* v : consts) OBJ_MARK(v);
+        for(PyObject* v : consts) PK_OBJ_MARK(v);
         for(auto& decl: func_decls) decl->_gc_mark();
     }
 

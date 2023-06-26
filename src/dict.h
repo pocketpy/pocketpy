@@ -142,8 +142,8 @@ struct Dict{
     void _gc_mark() const{
         for(int i=0; i<_capacity; i++){
             if(_items[i].first == nullptr) continue;
-            OBJ_MARK(_items[i].first);
-            OBJ_MARK(_items[i].second);
+            PK_OBJ_MARK(_items[i].first);
+            PK_OBJ_MARK(_items[i].second);
         }
     }
 };

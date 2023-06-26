@@ -168,6 +168,12 @@ struct MemoryPool{
         }
     };
 
+    MemoryPool() = default;
+    MemoryPool(const MemoryPool&) = delete;
+    MemoryPool& operator=(const MemoryPool&) = delete;
+    MemoryPool(MemoryPool&&) = delete;
+    MemoryPool& operator=(MemoryPool&&) = delete;
+
     DoubleLinkedList<Arena> _arenas;
     DoubleLinkedList<Arena> _empty_arenas;
 

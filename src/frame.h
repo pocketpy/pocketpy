@@ -194,7 +194,7 @@ struct Frame {
     }
 
     void _gc_mark() const {
-        OBJ_MARK(_module);
+        PK_OBJ_MARK(_module);
         co->_gc_mark();
     }
 };

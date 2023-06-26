@@ -36,7 +36,7 @@ struct ArrayIter{
     ArrayIter(PyObject* ref, PyObject** begin, PyObject** end)
         : ref(ref), begin(begin), end(end), current(begin) {}
 
-    void _gc_mark() const{ OBJ_MARK(ref); }
+    void _gc_mark() const{ PK_OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
@@ -58,7 +58,7 @@ struct StringIter{
 
     StringIter(PyObject* ref) : ref(ref), str(&PK_OBJ_GET(Str, ref)), index(0) {}
 
-    void _gc_mark() const{ OBJ_MARK(ref); }
+    void _gc_mark() const{ PK_OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
@@ -85,7 +85,7 @@ struct Generator{
 
     void _gc_mark() const{
         frame._gc_mark();
-        for(PyObject* obj: s_backup) OBJ_MARK(obj);
+        for(PyObject* obj: s_backup) PK_OBJ_MARK(obj);
     }
 
     PyObject* next(VM* vm){

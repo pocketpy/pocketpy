@@ -201,7 +201,7 @@ struct MappingProxy{
 
 #define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 
-#define OBJ_MARK(obj) \
+#define PK_OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc.marked) {                      \
         (obj)->gc.marked = true;                                    \
         (obj)->_obj_gc_mark();                                      \
@@ -212,7 +212,7 @@ inline void gc_mark_namedict(NameDict& t){
     if(t.size() == 0) return;
     for(uint16_t i=0; i<t._capacity; i++){
         if(t._items[i].first.empty()) continue;
-        OBJ_MARK(t._items[i].second);
+        PK_OBJ_MARK(t._items[i].second);
     }
 }
 
@@ -308,7 +308,7 @@ struct Py_<List> final: PyObject {
     Py_(Type type, const List& val): PyObject(type), _value(val) {}
 
     void _obj_gc_mark() override {
-        for(PyObject* obj: _value) OBJ_MARK(obj);
+        for(PyObject* obj: _value) PK_OBJ_MARK(obj);
     }
 };
 
@@ -319,7 +319,7 @@ struct Py_<Tuple> final: PyObject {
     Py_(Type type, const Tuple& val): PyObject(type), _value(val) {}
 
     void _obj_gc_mark() override {
-        for(PyObject* obj: _value) OBJ_MARK(obj);
+        for(PyObject* obj: _value) PK_OBJ_MARK(obj);
     }
 };
 
@@ -328,7 +328,7 @@ struct Py_<MappingProxy> final: PyObject {
     MappingProxy _value;
     Py_(Type type, MappingProxy val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.obj);
+        PK_OBJ_MARK(_value.obj);
     }
 };
 
@@ -337,8 +337,8 @@ struct Py_<BoundMethod> final: PyObject {
     BoundMethod _value;
     Py_(Type type, BoundMethod val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.self);
-        OBJ_MARK(_value.func);
+        PK_OBJ_MARK(_value.self);
+        PK_OBJ_MARK(_value.func);
     }
 };
 
@@ -347,7 +347,7 @@ struct Py_<StarWrapper> final: PyObject {
     StarWrapper _value;
     Py_(Type type, StarWrapper val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.obj);
+        PK_OBJ_MARK(_value.obj);
     }
 };
 
@@ -356,8 +356,8 @@ struct Py_<Property> final: PyObject {
     Property _value;
     Py_(Type type, Property val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.getter);
-        OBJ_MARK(_value.setter);
+        PK_OBJ_MARK(_value.getter);
+        PK_OBJ_MARK(_value.setter);
     }
 };
 
@@ -366,9 +366,9 @@ struct Py_<Slice> final: PyObject {
     Slice _value;
     Py_(Type type, Slice val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.start);
-        OBJ_MARK(_value.stop);
-        OBJ_MARK(_value.step);
+        PK_OBJ_MARK(_value.start);
+        PK_OBJ_MARK(_value.stop);
+        PK_OBJ_MARK(_value.step);
     }
 };
 
@@ -380,7 +380,7 @@ struct Py_<Function> final: PyObject {
     }
     void _obj_gc_mark() override {
         _value.decl->_gc_mark();
-        if(_value._module != nullptr) OBJ_MARK(_value._module);
+        if(_value._module != nullptr) PK_OBJ_MARK(_value._module);
         if(_value._closure != nullptr) gc_mark_namedict(*_value._closure);
     }
 };
@@ -399,7 +399,7 @@ struct Py_<Super> final: PyObject {
     Super _value;
     Py_(Type type, Super val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
-        OBJ_MARK(_value.first);
+        PK_OBJ_MARK(_value.first);
     }
 };
 

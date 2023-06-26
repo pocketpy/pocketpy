@@ -125,8 +125,8 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
 }
 
 void gc_marker_ex(CVM* vm) {
-    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
-    if(vm->error != nullptr) OBJ_MARK(vm->error);
+    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
+    if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
 }
 
 static OutputHandler stdout_handler = nullptr;
