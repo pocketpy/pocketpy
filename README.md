@@ -25,6 +25,8 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
 
+If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
+
 ### Compile flags
 
 To compile it with your project, these flags must be set:

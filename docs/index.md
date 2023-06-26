@@ -26,6 +26,10 @@ print(primes)
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
 
+## Unity plugin
+
+If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
+
 ## Sponsor me
 
 You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH).

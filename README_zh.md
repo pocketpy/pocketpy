@@ -21,6 +21,8 @@ pocketpy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计
 你可以在 [Github Release](https://github.com/blueloveTH/pocketpy/releases) 页面下载`pocketpy.h`，
 并加入到你的工程中。请参阅 https://pocketpy.dev 以获取更详细的文档。
 
+如果你使用 [Unity引擎](https://unity.com/)，你可以在Asset Store下载我们的插件 [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120)。
+
 ```cpp
 #include "pocketpy.h"
 

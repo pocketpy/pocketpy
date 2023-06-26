@@ -7,8 +7,7 @@ order: 4
 See `Assets/PocketPython/Examples` after you import the plugin.
 
 
-
-## Primes Example
+### Primes Example
 
 ```csharp
 using UnityEngine;
