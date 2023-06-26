@@ -381,7 +381,7 @@ struct Lexer {
             } else {
                 add_token(TK("@num"), Number::stoi(m[0], &size, base));
             }
-            PK_ASSERT(size == m.length());
+            PK_ASSERT((int)size == (int)m.length());
         }catch(std::exception& _){
             SyntaxError("invalid number literal");
         } 

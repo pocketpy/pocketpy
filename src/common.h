@@ -48,6 +48,8 @@ struct GIL {
 
 /*******************************************************************************/
 
+#define PK_UNUSED(x) (void)(x)
+
 namespace pkpy{
 
 namespace std = ::std;

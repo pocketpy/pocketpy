@@ -31,6 +31,7 @@ namespace pkpy{
         return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
+        PK_UNUSED(vm);                                                  \
         return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
@@ -38,6 +39,7 @@ namespace pkpy{
         return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
+        PK_UNUSED(vm);                                                  \
         return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
     inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew(vm->ptype, value);}     \
@@ -147,12 +149,21 @@ public:
 
     VM(bool enable_os=true) : heap(this), enable_os(enable_os) {
         this->vm = this;
-        _stdout = [](VM* vm, const Str& s) { std::cout << s; };
-        _stderr = [](VM* vm, const Str& s) { std::cerr << s; };
+        _stdout = [](VM* vm, const Str& s) {
+            PK_UNUSED(vm);
+            std::cout << s;
+        };
+        _stderr = [](VM* vm, const Str& s) {
+            PK_UNUSED(vm);
+            std::cerr << s;
+        };
         callstack.reserve(8);
         _main = nullptr;
         _last_exception = nullptr;
-        _import_handler = [](const Str& name) { return Bytes(); };
+        _import_handler = [](const Str& name) {
+            PK_UNUSED(name);
+            return Bytes();
+        };
         init_builtin_types();
     }
 
@@ -706,6 +717,7 @@ template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
     return (T)(PK_BITS(obj) >> 2);                         \
 }                                                       \
 template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
+    PK_UNUSED(vm);                                      \
     return (T)(PK_BITS(obj) >> 2);                         \
 }
 
@@ -810,10 +822,12 @@ inline PyObject* py_var(VM* vm, std::string_view val){
 }
 
 inline PyObject* py_var(VM* vm, NoReturn val){
+    PK_UNUSED(val);
     return vm->None;
 }
 
 inline PyObject* py_var(VM* vm, PyObject* val){
+    PK_UNUSED(vm);
     return val;
 }
 

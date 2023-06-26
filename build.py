@@ -9,7 +9,7 @@ os.system("python3 preprocess.py")
 def DONE(code=0):
     exit(code)
 
-linux_common = "-Wfatal-errors --std=c++17 -O2 -Wall -Wno-sign-compare -Wno-unused-variable -fno-rtti -stdlib=libc++"
+linux_common = "-Wfatal-errors --std=c++17 -O2 -Wall -fno-rtti -stdlib=libc++"
 linux_cmd = "clang++ -o pocketpy src/main.cpp " + linux_common
 linux_lib_cmd = "clang++ -fPIC -shared -o pocketpy.so src/tmp.cpp " + linux_common
 

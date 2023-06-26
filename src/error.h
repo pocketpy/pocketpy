@@ -84,7 +84,7 @@ class Exception {
     StackTrace stacktrace;
 public:
     Exception(StrName type, Str msg): type(type), msg(msg) {}
-    bool match_type(StrName type) const { return this->type == type;}
+    bool match_type(StrName t) const { return this->type == t;}
     bool is_re = true;
 
     void st_push(Str snapshot){

@@ -406,6 +406,7 @@ struct Py_<Super> final: PyObject {
 template<>
 struct Py_<DummyInstance> final: PyObject {
     Py_(Type type, DummyInstance val): PyObject(type) {
+        PK_UNUSED(val);
         enable_instance_dict();
     }
     void _obj_gc_mark() override {}
@@ -423,6 +424,7 @@ struct Py_<Type> final: PyObject {
 template<>
 struct Py_<DummyModule> final: PyObject {
     Py_(Type type, DummyModule val): PyObject(type) {
+        PK_UNUSED(val);
         enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}

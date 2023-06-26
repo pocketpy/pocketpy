@@ -189,8 +189,8 @@ struct CodeObject {
             }
         ss.write_end_mark();            // ]
         ss.write_begin_mark();          // [
-            for(StrName name: varnames){
-                ss.write_name(name);        // name
+            for(StrName vn: varnames){
+                ss.write_name(vn);        // name
             }
         ss.write_end_mark();            // ]
         ss.write_begin_mark();          // [
