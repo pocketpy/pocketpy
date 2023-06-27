@@ -489,6 +489,9 @@ struct Int32Flags{
     uint32_t value;
     Int32Flags(uint32_t value) : value(value) {}
 
+    operator int32_t() const { return value; }
+    operator uint32_t() const { return value; }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
             vm->check_args_size(args.size(), 1+0, 1+1);
