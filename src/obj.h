@@ -30,6 +30,8 @@ struct NativeFunc {
     UserData _userdata;
     bool _has_userdata;
 
+    const char* signature;
+
     template <typename T>
     void set_userdata(T data) {
         static_assert(std::is_trivially_copyable_v<T>);
@@ -49,8 +51,9 @@ struct NativeFunc {
         return reinterpret_cast<const T&>(_userdata);
     }
     
-    NativeFunc(NativeFuncC f, int argc, bool method){
+    NativeFunc(NativeFuncC f, int argc, bool method, const char* sig=nullptr){
         this->f = f;
+        this->signature = sig;
         this->argc = argc;
         if(argc != -1) this->argc += (int)method;
         _lua_f = nullptr;
@@ -299,6 +302,8 @@ __T _py_cast(VM* vm, PyObject* obj) {
 #define _CAST(T, x) _py_cast<T>(vm, x)
 
 #define CAST_F(x) vm->num_to_float(x)
+
+#define CAST_DEFAULT(T, i, default_value) (i < args.size()) ? py_cast<T>(vm, args[index]) : (default_value)
 
 /*****************************************************************/
 template<>

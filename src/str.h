@@ -426,6 +426,13 @@ struct FastStrStream{
     }
 };
 
+struct CString{
+	const char* ptr;
+	CString(const char* ptr): ptr(ptr) {}
+	CString(const Str& str): ptr(str.c_str_temp()) {}
+    operator const char*() const { return ptr; }
+};
+
 // unary operators
 const StrName __repr__ = StrName::get("__repr__");
 const StrName __str__ = StrName::get("__str__");

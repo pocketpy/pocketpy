@@ -461,19 +461,19 @@ public:
     }
 
     template<int ARGC>
-    PyObject* bind_func(Str type, Str name, NativeFuncC fn) {
-        return bind_func<ARGC>(_find_type_object(type), name, fn);
+    PyObject* bind_func(Str type, Str name, NativeFuncC fn, const char* sig=nullptr) {
+        return bind_func<ARGC>(_find_type_object(type), name, fn, sig);
     }
 
     template<int ARGC>
-    PyObject* bind_method(Str type, Str name, NativeFuncC fn) {
-        return bind_method<ARGC>(_find_type_object(type), name, fn);
+    PyObject* bind_method(Str type, Str name, NativeFuncC fn, const char* sig=nullptr) {
+        return bind_method<ARGC>(_find_type_object(type), name, fn, sig);
     }
 
     template<int ARGC, typename __T>
-    PyObject* bind_constructor(__T&& type, NativeFuncC fn) {
+    PyObject* bind_constructor(__T&& type, NativeFuncC fn, const char* sig=nullptr) {
         static_assert(ARGC==-1 || ARGC>=1);
-        return bind_func<ARGC>(std::forward<__T>(type), "__new__", fn);
+        return bind_func<ARGC>(std::forward<__T>(type), "__new__", fn, sig);
     }
 
     template<typename T, typename __T>
@@ -494,8 +494,8 @@ public:
     }
 
     template<int ARGC>
-    PyObject* bind_builtin_func(Str name, NativeFuncC fn) {
-        return bind_func<ARGC>(builtins, name, fn);
+    PyObject* bind_builtin_func(Str name, NativeFuncC fn, const char* sig=nullptr) {
+        return bind_func<ARGC>(builtins, name, fn, sig);
     }
 
     int normalized_index(int index, int size){
@@ -543,6 +543,11 @@ public:
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
         TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", got " + OBJ_NAME(_t(obj)).escape());
+    }
+
+    void check_args_size(int size, int min_size, int max_size){
+        if(size >= min_size && size <= max_size) return;
+        TypeError(fmt("expected ", min_size, "-", max_size, " arguments, got ", size));
     }
 
     void check_non_tagged_type(PyObject* obj, Type type){
@@ -676,9 +681,9 @@ public:
     PyObject* format(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
-    PyObject* bind_method(PyObject*, Str, NativeFuncC);
+    PyObject* bind_method(PyObject*, Str, NativeFuncC, const char* sig=nullptr);
     template<int ARGC>
-    PyObject* bind_func(PyObject*, Str, NativeFuncC);
+    PyObject* bind_func(PyObject*, Str, NativeFuncC, const char* sig=nullptr);
     void _error(Exception);
     PyObject* _run_top_frame();
     void post_init();
@@ -811,6 +816,15 @@ template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
 }
 template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
     return obj == vm->True;
+}
+
+template<> inline CString py_cast<CString>(VM* vm, PyObject* obj){
+    vm->check_non_tagged_type(obj, vm->tp_str);
+    return PK_OBJ_GET(Str, obj).c_str_temp();
+}
+
+template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
+    return PK_OBJ_GET(Str, obj).c_str_temp();
 }
 
 inline PyObject* py_var(VM* vm, const char val[]){
@@ -1505,16 +1519,16 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 }
 
 template<int ARGC>
-PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
+PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn, const char* sig) {
     check_non_tagged_type(obj, tp_type);
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
+    PyObject* nf = VAR(NativeFunc(fn, ARGC, true, sig));
     obj->attr().set(name, nf);
     return nf;
 }
 
 template<int ARGC>
-PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, false));
+PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn, const char* sig) {
+    PyObject* nf = VAR(NativeFunc(fn, ARGC, false, sig));
     obj->attr().set(name, nf);
     return nf;
 }
