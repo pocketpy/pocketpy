@@ -59,6 +59,29 @@ struct Vec3{
     Vec3 normalize() const { float l = length(); return Vec3(x / l, y / l, z / l); }
 };
 
+struct Vec4{
+    float x, y, z, w;
+    Vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+    Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+    Vec4(const Vec4& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+
+    Vec4 operator+(const Vec4& v) const { return Vec4(x + v.x, y + v.y, z + v.z, w + v.w); }
+    Vec4& operator+=(const Vec4& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
+    Vec4 operator-(const Vec4& v) const { return Vec4(x - v.x, y - v.y, z - v.z, w - v.w); }
+    Vec4& operator-=(const Vec4& v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
+    Vec4 operator*(float s) const { return Vec4(x * s, y * s, z * s, w * s); }
+    Vec4& operator*=(float s) { x *= s; y *= s; z *= s; w *= s; return *this; }
+    Vec4 operator/(float s) const { return Vec4(x / s, y / s, z / s, w / s); }
+    Vec4& operator/=(float s) { x /= s; y /= s; z /= s; w /= s; return *this; }
+    Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
+    bool operator==(const Vec4& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z) && isclose(w, v.w); }
+    bool operator!=(const Vec4& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z) || !isclose(w, v.w); }
+    float dot(const Vec4& v) const { return x * v.x + y * v.y + z * v.z + w * v.w; }
+    float length() const { return sqrtf(x * x + y * y + z * z + w * w); }
+    float length_squared() const { return x * x + y * y + z * z + w * w; }
+    Vec4 normalize() const { float l = length(); return Vec4(x / l, y / l, z / l, w / l); }
+};
+
 struct Mat3x3{    
     union {
         struct {
@@ -271,11 +294,14 @@ struct Mat3x3{
 
 struct PyVec2;
 struct PyVec3;
+struct PyVec4;
 struct PyMat3x3;
 PyObject* py_var(VM*, Vec2);
 PyObject* py_var(VM*, const PyVec2&);
 PyObject* py_var(VM*, Vec3);
 PyObject* py_var(VM*, const PyVec3&);
+PyObject* py_var(VM*, Vec4);
+PyObject* py_var(VM*, const PyVec4&);
 PyObject* py_var(VM*, const Mat3x3&);
 PyObject* py_var(VM*, const PyMat3x3&);
 
@@ -421,6 +447,56 @@ struct PyVec3: Vec3 {
         BIND_VEC_FUNCTION_0(3, length)
         BIND_VEC_FUNCTION_0(3, length_squared)
         BIND_VEC_FUNCTION_0(3, normalize)
+    }
+};
+
+struct PyVec4: Vec4{
+    PY_CLASS(PyVec4, linalg, vec4)
+
+    PyVec4(): Vec4(){}
+    PyVec4(const Vec4& v): Vec4(v){}
+    PyVec4(const PyVec4& v): Vec4(v){}
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_constructor<1+4>(type, [](VM* vm, ArgsView args){
+            float x = CAST_F(args[1]);
+            float y = CAST_F(args[2]);
+            float z = CAST_F(args[3]);
+            float w = CAST_F(args[4]);
+            return VAR(Vec4(x, y, z, w));
+        });
+
+        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
+            PyVec4& self = _CAST(PyVec4&, args[0]);
+            return VAR(Tuple({ VAR(self.x), VAR(self.y), VAR(self.z), VAR(self.w) }));
+        });
+
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyVec4& self = _CAST(PyVec4&, obj);
+            std::stringstream ss;
+            ss << "vec4(" << self.x << ", " << self.y << ", " << self.z << ", " << self.w << ")";
+            return VAR(ss.str());
+        });
+
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+            PyVec4& self = _CAST(PyVec4&, args[0]);
+            return VAR_T(PyVec4, self);
+        });
+
+        BIND_VEC_VEC_OP(4, __add__, +)
+        BIND_VEC_VEC_OP(4, __sub__, -)
+        BIND_VEC_FLOAT_OP(4, __mul__, *)
+        BIND_VEC_FLOAT_OP(4, __rmul__, *)
+        BIND_VEC_FLOAT_OP(4, __truediv__, /)
+        BIND_VEC_VEC_OP(4, __eq__, ==)
+        BIND_VEC_FIELD(4, x)
+        BIND_VEC_FIELD(4, y)
+        BIND_VEC_FIELD(4, z)
+        BIND_VEC_FIELD(4, w)
+        BIND_VEC_FUNCTION_1(4, dot)
+        BIND_VEC_FUNCTION_0(4, length)
+        BIND_VEC_FUNCTION_0(4, length_squared)
+        BIND_VEC_FUNCTION_0(4, normalize)
     }
 };
 
@@ -691,6 +767,9 @@ inline PyObject* py_var(VM* vm, const PyVec2& obj){ return VAR_T(PyVec2, obj);}
 inline PyObject* py_var(VM* vm, Vec3 obj){ return VAR_T(PyVec3, obj); }
 inline PyObject* py_var(VM* vm, const PyVec3& obj){ return VAR_T(PyVec3, obj);}
 
+inline PyObject* py_var(VM* vm, Vec4 obj){ return VAR_T(PyVec4, obj); }
+inline PyObject* py_var(VM* vm, const PyVec4& obj){ return VAR_T(PyVec4, obj);}
+
 inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(PyMat3x3, obj); }
 inline PyObject* py_var(VM* vm, const PyMat3x3& obj){ return VAR_T(PyMat3x3, obj); }
 
@@ -698,6 +777,7 @@ inline void add_module_linalg(VM* vm){
     PyObject* linalg = vm->new_module("linalg");
     PyVec2::register_class(vm, linalg);
     PyVec3::register_class(vm, linalg);
+    PyVec4::register_class(vm, linalg);
     PyMat3x3::register_class(vm, linalg);
 }
 
