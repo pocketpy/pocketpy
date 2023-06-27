@@ -1181,6 +1181,7 @@ inline void init_builtins(VM* _vm) {
     ArrayIter::register_class(_vm, _vm->builtins);
     StringIter::register_class(_vm, _vm->builtins);
     Generator::register_class(_vm, _vm->builtins);
+    Int32Flags::register_class(_vm, _vm->builtins);
 }
 
 inline void add_module_timeit(VM* vm){
