@@ -20,8 +20,6 @@ struct Dict{
 
     static constexpr int __Capacity = 8;
     static constexpr float __LoadFactor = 0.67f;
-    // by ensuring this, we can use pool64 to alloc ItemNode and pool128 to alloc Item
-    static_assert(sizeof(Item) == 2*sizeof(ItemNode));
     static_assert(sizeof(Item) * __Capacity <= 128);
     static_assert(sizeof(ItemNode) * __Capacity <= 64);
 
