@@ -1604,7 +1604,8 @@ inline void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     i = vm->py_hash(key) & _mask;
     while(_items[i].first != nullptr) {
         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
-        i = (i + 1) & _mask;
+        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
+        i = ((5*i) + 1) & _mask;
     }
 }
 

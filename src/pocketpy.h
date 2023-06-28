@@ -1058,11 +1058,8 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind__iter__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
-        Dict& self = _CAST(Dict&, obj);
-        auto items = self.items();
-        Tuple t(items.size());
-        for(int i=0; i<items.size(); i++) t[i] = items[i].first;
-        return vm->py_iter(VAR(std::move(t)));
+        const Dict& self = _CAST(Dict&, obj);
+        return vm->py_iter(VAR(self.keys()));
     });
 
     _vm->bind_method<-1>("dict", "get", [](VM* vm, ArgsView args) {
@@ -1081,26 +1078,22 @@ inline void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>("dict", "keys", [](VM* vm, ArgsView args) {
-        Dict& self = _CAST(Dict&, args[0]);
-        List keys;
-        for(auto& item : self.items()) keys.push_back(item.first);
-        return VAR(std::move(keys));
+        const Dict& self = _CAST(Dict&, args[0]);
+        return VAR(self.keys());
     });
 
     _vm->bind_method<0>("dict", "values", [](VM* vm, ArgsView args) {
-        Dict& self = _CAST(Dict&, args[0]);
-        List values;
-        for(auto& item : self.items()) values.push_back(item.second);
-        return VAR(std::move(values));
+        const Dict& self = _CAST(Dict&, args[0]);
+        return VAR(self.values());
     });
 
     _vm->bind_method<0>("dict", "items", [](VM* vm, ArgsView args) {
-        Dict& self = _CAST(Dict&, args[0]);
-        List items;
-        for(auto& item : self.items()){
-            PyObject* t = VAR(Tuple({item.first, item.second}));
-            items.push_back(std::move(t));
-        }
+        const Dict& self = _CAST(Dict&, args[0]);
+        Tuple items(self.size());
+        int j = 0;
+        self.apply([&](PyObject* k, PyObject* v){
+            items[j++] = VAR(Tuple({k, v}));
+        });
         return VAR(std::move(items));
     });
 
@@ -1127,13 +1120,15 @@ inline void init_builtins(VM* _vm) {
         std::stringstream ss;
         ss << "{";
         bool first = true;
-        for(auto& item : self.items()){
+
+        self.apply([&](PyObject* k, PyObject* v){
             if(!first) ss << ", ";
             first = false;
-            Str key = CAST(Str&, vm->py_repr(item.first));
-            Str value = CAST(Str&, vm->py_repr(item.second));
+            Str key = CAST(Str&, vm->py_repr(k));
+            Str value = CAST(Str&, vm->py_repr(v));
             ss << key << ": " << value;
-        }
+        });
+
         ss << "}";
         return VAR(ss.str());
     });
@@ -1143,13 +1138,15 @@ inline void init_builtins(VM* _vm) {
         std::stringstream ss;
         ss << "{";
         bool first = true;
-        for(auto& item : self.items()){
+
+        self.apply([&](PyObject* k, PyObject* v){
             if(!first) ss << ", ";
             first = false;
-            Str key = CAST(Str&, item.first).escape(false);
-            Str value = CAST(Str&, vm->py_json(item.second));
+            Str key = CAST(Str&, k).escape(false);
+            Str value = CAST(Str&, vm->py_json(v));
             ss << key << ": " << value;
-        }
+        });
+
         ss << "}";
         return VAR(ss.str());
     });
@@ -1159,7 +1156,9 @@ inline void init_builtins(VM* _vm) {
         if(!is_non_tagged_type(b, vm->tp_dict)) return vm->NotImplemented;
         Dict& other = _CAST(Dict&, b);
         if(self.size() != other.size()) return vm->False;
-        for(auto& item : self.items()){
+        for(int i=0; i<self._capacity; i++){
+            auto item = self._items[i];
+            if(item.first == nullptr) continue;
             PyObject* value = other.try_get(item.first);
             if(value == nullptr) return vm->False;
             if(!vm->py_equals(item.second, value)) return vm->False;

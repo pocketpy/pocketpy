@@ -26,10 +26,9 @@ assert len(tinydict) == 3
 assert tinydict == updated_dict
 
 dishes = {'eggs': 2, 'sausage': 1, 'bacon': 1, 'spam': 500}
-keys = dishes.keys()
-values = dishes.values()
-assert sorted(keys) == sorted(['eggs', 'sausage', 'bacon', 'spam'])
-assert sorted(values) == sorted([2, 1, 1, 500])
+# dict is now ordered
+assert dishes.keys() == ('eggs', 'sausage', 'bacon', 'spam')
+assert dishes.values() == (2, 1, 1, 500)
 
 d={1:"a",2:"b",3:"c"}
 result=[]
@@ -37,7 +36,14 @@ for k,v in d.items():
     result.append(k)
     result.append(v)
 assert len(result) == 6
-assert set(result) == set([1, 'a', 2, 'b', 3, 'c'])
+
+del d[2]
+assert len(d) == 2
+assert d.keys() == (1, 3)
+assert d.values() == ('a', 'c')
+del d[1]
+del d[3]
+assert len(d) == 0
 
 # test __eq__
 d1 = {1:2, 3:4}
@@ -67,3 +73,11 @@ a = {1:2, 3:4, 7:8}
 b = {**a, 1:5, 3:6}
 c = {**a, **b}
 assert c == {1: 5, 3: 6, 7: 8}
+
+a = {}
+for i in range(1000):
+    a[i] = i
+assert len(a) == 1000
+for i in range(1000):
+    del a[i]
+assert len(a) == 0

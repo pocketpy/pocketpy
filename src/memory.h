@@ -249,11 +249,6 @@ struct MemoryPool{
 inline MemoryPool<64> pool64;
 inline MemoryPool<128> pool128;
 
-// get the total memory usage of pkpy (across all VMs)
-inline size_t memory_usage(){
-    return pool64.allocated_size() + pool128.allocated_size();
-}
-
 template <typename T>
 struct shared_ptr {
     int* counter;

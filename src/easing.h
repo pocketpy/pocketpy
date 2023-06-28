@@ -12,31 +12,31 @@ namespace pkpy{
 
 static const double PI = 3.1415926545;
 
-inline static double easeLinear( double x ) {
+static double easeLinear( double x ) {
     return x;
 }
 
-inline static double easeInSine( double x ) {
+static double easeInSine( double x ) {
     return 1.0 - std::cos( x * PI / 2 );
 }
 
-inline static double easeOutSine( double x ) {
+static double easeOutSine( double x ) {
 	return std::sin( x * PI / 2 );
 }
 
-inline static double easeInOutSine( double x ) {
+static double easeInOutSine( double x ) {
 	return -( std::cos( PI * x ) - 1 ) / 2;
 }
 
-inline static double easeInQuad( double x ) {
+static double easeInQuad( double x ) {
     return x * x;
 }
 
-inline static double easeOutQuad( double x ) {
+static double easeOutQuad( double x ) {
     return 1 - std::pow( 1 - x, 2 );
 }
 
-inline static double easeInOutQuad( double x ) {
+static double easeInOutQuad( double x ) {
     if( x < 0.5 ) {
         return 2 * x * x;
     } else {
@@ -44,15 +44,15 @@ inline static double easeInOutQuad( double x ) {
     }
 }
 
-inline static double easeInCubic( double x ) {
+static double easeInCubic( double x ) {
     return x * x * x;
 }
 
-inline static double easeOutCubic( double x ) {
+static double easeOutCubic( double x ) {
     return 1 - std::pow( 1 - x, 3 );
 }
 
-inline static double easeInOutCubic( double x ) {
+static double easeInOutCubic( double x ) {
     if( x < 0.5 ) {
         return 4 * x * x * x;
     } else {
@@ -60,15 +60,15 @@ inline static double easeInOutCubic( double x ) {
     }
 }
 
-inline static double easeInQuart( double x ) {
+static double easeInQuart( double x ) {
     return std::pow( x, 4 );
 }
 
-inline static double easeOutQuart( double x ) {
+static double easeOutQuart( double x ) {
     return 1 - std::pow( 1 - x, 4 );
 }
 
-inline static double easeInOutQuart( double x ) {
+static double easeInOutQuart( double x ) {
     if( x < 0.5 ) {
         return 8 * std::pow( x, 4 );
     } else {
@@ -76,15 +76,15 @@ inline static double easeInOutQuart( double x ) {
     }
 }
 
-inline static double easeInQuint( double x ) {
+static double easeInQuint( double x ) {
     return std::pow( x, 5 );
 }
 
-inline static double easeOutQuint( double x ) {
+static double easeOutQuint( double x ) {
     return 1 - std::pow( 1 - x, 5 );
 }
 
-inline static double easeInOutQuint( double x ) {
+static double easeInOutQuint( double x ) {
     if( x < 0.5 ) {
         return 16 * std::pow( x, 5 );
     } else {
@@ -92,11 +92,11 @@ inline static double easeInOutQuint( double x ) {
     }
 }
 
-inline static double easeInExpo( double x ) {
+static double easeInExpo( double x ) {
     return x == 0 ? 0 : std::pow( 2, 10 * x - 10 );
 }
 
-inline static double easeOutExpo( double x ) {
+static double easeOutExpo( double x ) {
     return x == 1 ? 1 : 1 - std::pow( 2, -10 * x );
 }
 
@@ -112,15 +112,15 @@ inline double easeInOutExpo( double x ) {
     }
 }
 
-inline static double easeInCirc( double x ) {
+static double easeInCirc( double x ) {
     return 1 - std::sqrt( 1 - std::pow( x, 2 ) );
 }
 
-inline static double easeOutCirc( double x ) {
+static double easeOutCirc( double x ) {
     return std::sqrt( 1 - std::pow( x - 1, 2 ) );
 }
 
-inline static double easeInOutCirc( double x ) {
+static double easeInOutCirc( double x ) {
     if( x < 0.5 ) {
         return (1 - std::sqrt( 1 - std::pow( 2 * x, 2 ) )) / 2;
     } else {
@@ -128,19 +128,19 @@ inline static double easeInOutCirc( double x ) {
     }
 }
 
-inline static double easeInBack( double x ) {
+static double easeInBack( double x ) {
     const double c1 = 1.70158;
     const double c3 = c1 + 1;
     return c3 * x * x * x - c1 * x * x;
 }
 
-inline static double easeOutBack( double x ) {
+static double easeOutBack( double x ) {
     const double c1 = 1.70158;
     const double c3 = c1 + 1;
     return 1 + c3 * std::pow( x - 1, 3 ) + c1 * std::pow( x - 1, 2 );
 }
 
-inline static double easeInOutBack( double x ) {
+static double easeInOutBack( double x ) {
     const double c1 = 1.70158;
     const double c2 = c1 * 1.525;
     if( x < 0.5 ) {
@@ -150,7 +150,7 @@ inline static double easeInOutBack( double x ) {
     }
 }
 
-inline static double easeInElastic( double x ) {
+static double easeInElastic( double x ) {
     const double c4 = (2 * PI) / 3;
     if( x == 0 ) {
         return 0;
@@ -161,7 +161,7 @@ inline static double easeInElastic( double x ) {
     }
 }
 
-inline static double easeOutElastic( double x ) {
+static double easeOutElastic( double x ) {
     const double c4 = (2 * PI) / 3;
     if( x == 0 ) {
         return 0;
@@ -185,7 +185,7 @@ inline double easeInOutElastic( double x ) {
     }
 }
 
-inline static double easeOutBounce( double x ) {
+static double easeOutBounce( double x ) {
     const double n1 = 7.5625;
     const double d1 = 2.75;
     if( x < 1 / d1 ) {
@@ -202,11 +202,11 @@ inline static double easeOutBounce( double x ) {
     }
 }
 
-inline double easeInBounce( double x ) {
+static double easeInBounce( double x ) {
     return 1 - easeOutBounce(1 - x);
 }
 
-inline static double easeInOutBounce( double x ) {
+static double easeInOutBounce( double x ) {
     return x < 0.5
     ? (1 - easeOutBounce(1 - 2 * x)) / 2
     : (1 + easeOutBounce(2 * x - 1)) / 2;
