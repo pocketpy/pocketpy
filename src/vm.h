@@ -461,19 +461,19 @@ public:
     }
 
     template<int ARGC>
-    PyObject* bind_func(Str type, Str name, NativeFuncC fn, const char* sig=nullptr) {
-        return bind_func<ARGC>(_find_type_object(type), name, fn, sig);
+    PyObject* bind_func(Str type, Str name, NativeFuncC fn) {
+        return bind_func<ARGC>(_find_type_object(type), name, fn);
     }
 
     template<int ARGC>
-    PyObject* bind_method(Str type, Str name, NativeFuncC fn, const char* sig=nullptr) {
-        return bind_method<ARGC>(_find_type_object(type), name, fn, sig);
+    PyObject* bind_method(Str type, Str name, NativeFuncC fn) {
+        return bind_method<ARGC>(_find_type_object(type), name, fn);
     }
 
     template<int ARGC, typename __T>
-    PyObject* bind_constructor(__T&& type, NativeFuncC fn, const char* sig=nullptr) {
+    PyObject* bind_constructor(__T&& type, NativeFuncC fn) {
         static_assert(ARGC==-1 || ARGC>=1);
-        return bind_func<ARGC>(std::forward<__T>(type), "__new__", fn, sig);
+        return bind_func<ARGC>(std::forward<__T>(type), "__new__", fn);
     }
 
     template<typename T, typename __T>
@@ -494,8 +494,8 @@ public:
     }
 
     template<int ARGC>
-    PyObject* bind_builtin_func(Str name, NativeFuncC fn, const char* sig=nullptr) {
-        return bind_func<ARGC>(builtins, name, fn, sig);
+    PyObject* bind_builtin_func(Str name, NativeFuncC fn) {
+        return bind_func<ARGC>(builtins, name, fn);
     }
 
     int normalized_index(int index, int size){
@@ -681,13 +681,15 @@ public:
     PyObject* format(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
-    PyObject* bind_method(PyObject*, Str, NativeFuncC, const char* sig=nullptr);
+    PyObject* bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
-    PyObject* bind_func(PyObject*, Str, NativeFuncC, const char* sig=nullptr);
+    PyObject* bind_func(PyObject*, Str, NativeFuncC);
     void _error(Exception);
     PyObject* _run_top_frame();
     void post_init();
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
+    // new style binding api
+    PyObject* bind(PyObject*, const Str&, NativeFuncC);
 };
 
 inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
@@ -1267,27 +1269,34 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     ArgsView kwargs(p1, s_data._sp);
 
+    if(false){      // native_func_ex
+
+    }
+
     if(is_non_tagged_type(callable, tp_function)){
         /*****************_py_call*****************/
         // callable must be a `function` object
         if(s_data.is_overflow()) StackOverflowError();
 
         const Function& fn = CAST(Function&, callable);
+
+        const FuncDecl_& decl = fn.decl;
+        int decl_argc = decl->args.size();
         const CodeObject* co = fn.decl->code.get();
         int co_nlocals = co->varnames.size();
 
-        if(args.size() < fn.argc){
+        if(args.size() < decl_argc){
             vm->TypeError(fmt(
-                "expected ", fn.argc, " positional arguments, got ", args.size(),
-                " (", fn.decl->code->name, ')'
+                "expected ", decl_argc, " positional arguments, got ", args.size(),
+                " (", co->name, ')'
             ));
         }
 
         // if this function is simple, a.k.a, no kwargs and no *args and not a generator
         // we can use a fast path to avoid using buffer copy
         if(fn.is_simple){
-            if(args.size() > fn.argc) TypeError("too many positional arguments");
-            int spaces = co_nlocals - fn.argc;
+            if(args.size() > decl_argc) TypeError("too many positional arguments");
+            int spaces = co_nlocals - decl_argc;
             for(int j=0; j<spaces; j++) PUSH(PY_NULL);
             callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
             if(op_call) return PY_OP_CALL;
@@ -1298,30 +1307,30 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
 
         // prepare args
-        for(int index: fn.decl->args) buffer[index] = args[i++];
+        for(int index: decl->args) buffer[index] = args[i++];
         // set extra varnames to nullptr
         for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
         // prepare kwdefaults
-        for(auto& kv: fn.decl->kwargs) buffer[kv.key] = kv.value;
+        for(auto& kv: decl->kwargs) buffer[kv.key] = kv.value;
         
         // handle *args
-        if(fn.decl->starred_arg != -1){
+        if(decl->starred_arg != -1){
             ArgsView vargs(args.begin() + i, args.end());
-            buffer[fn.decl->starred_arg] = VAR(vargs.to_tuple());
+            buffer[decl->starred_arg] = VAR(vargs.to_tuple());
             i += vargs.size();
         }else{
             // kwdefaults override
-            for(auto& kv: fn.decl->kwargs){
+            for(auto& kv: decl->kwargs){
                 if(i >= args.size()) break;
                 buffer[kv.key] = args[i++];
             }
-            if(i < args.size()) TypeError(fmt("too many arguments", " (", fn.decl->code->name, ')'));
+            if(i < args.size()) TypeError(fmt("too many arguments", " (", decl->code->name, ')'));
         }
         
         PyObject* vkwargs;
-        if(fn.decl->starred_kwarg != -1){
+        if(decl->starred_kwarg != -1){
             vkwargs = VAR(Dict(this));
-            buffer[fn.decl->starred_kwarg] = vkwargs;
+            buffer[decl->starred_kwarg] = vkwargs;
         }else{
             vkwargs = nullptr;
         }
@@ -1519,18 +1528,34 @@ inline void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 }
 
 template<int ARGC>
-PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn, const char* sig) {
+PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_non_tagged_type(obj, tp_type);
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, true, sig));
+    PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
     obj->attr().set(name, nf);
     return nf;
 }
 
 template<int ARGC>
-PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn, const char* sig) {
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, false, sig));
+PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
+    PyObject* nf = VAR(NativeFunc(fn, ARGC, false));
     obj->attr().set(name, nf);
     return nf;
+}
+
+inline PyObject* VM::bind(PyObject* obj, const Str& sig, NativeFuncC fn){
+    CodeObject_ co;
+    try{
+        // fn(a, b, *c, d=1) -> None
+        co = compile("def " + sig + " : pass", "<bind>", EXEC_MODE);
+    }catch(Exception& e){
+        throw std::runtime_error(("invalid signature: " + sig).str());
+    }
+    if(co->func_decls.size() != 1){
+        throw std::runtime_error("expected 1 function declaration");
+    }
+    FuncDecl_ decl = co->func_decls[0];
+    // return VAR(NativeFuncEx(fn, argc, false, sig));
+    return nullptr;
 }
 
 inline void VM::_error(Exception e){

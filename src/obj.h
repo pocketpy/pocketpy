@@ -30,8 +30,6 @@ struct NativeFunc {
     UserData _userdata;
     bool _has_userdata;
 
-    const char* signature;
-
     template <typename T>
     void set_userdata(T data) {
         static_assert(std::is_trivially_copyable_v<T>);
@@ -51,9 +49,8 @@ struct NativeFunc {
         return reinterpret_cast<const T&>(_userdata);
     }
     
-    NativeFunc(NativeFuncC f, int argc, bool method, const char* sig=nullptr){
+    NativeFunc(NativeFuncC f, int argc, bool method){
         this->f = f;
-        this->signature = sig;
         this->argc = argc;
         if(argc != -1) this->argc += (int)method;
         _lua_f = nullptr;
@@ -61,6 +58,11 @@ struct NativeFunc {
     }
 
     PyObject* operator()(VM* vm, ArgsView args) const;
+};
+
+
+struct NativeFuncEx{
+    NativeFuncC f;
 };
 
 typedef shared_ptr<CodeObject> CodeObject_;
@@ -84,7 +86,6 @@ using FuncDecl_ = shared_ptr<FuncDecl>;
 struct Function{
     FuncDecl_ decl;
     bool is_simple;
-    int argc;   // cached argc
     PyObject* _module;
     NameDict_ _closure;
 };
