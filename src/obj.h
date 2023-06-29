@@ -306,9 +306,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
 #define _CAST(T, x) _py_cast<T>(vm, x)
 
 #define CAST_F(x) vm->num_to_float(x)
-
-#define CAST_F_DEFAULT(i, default_value) (i < args.size()) ? vm->num_to_float(args[i]) : (default_value)
-#define CAST_DEFAULT(T, i, default_value) (i < args.size()) ? py_cast<T>(vm, args[i]) : (default_value)
+#define CAST_DEFAULT(T, i, default_value) (args[i] != vm->None) ? py_cast<T>(vm, args[i]) : (default_value)
 
 /*****************************************************************/
 template<>
