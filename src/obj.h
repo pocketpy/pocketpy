@@ -401,7 +401,11 @@ struct Py_<NativeFunc> final: PyObject {
     Py_(Type type, NativeFunc val): PyObject(type), _value(val) {
         enable_instance_dict();
     }
-    void _obj_gc_mark() override {}
+    void _obj_gc_mark() override {
+        if(_value.decl != nullptr){
+            _value.decl->_gc_mark();
+        }
+    }
 };
 
 template<>
