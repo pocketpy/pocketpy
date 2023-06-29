@@ -3,6 +3,8 @@
 
 using namespace pkpy;
 
+typedef int (*LuaStyleFuncC)(VM*);
+
 struct LuaStack: public ValueStackImpl<32>{
     PyObject*& at(int i) {
         if(i < 0 || i >= size()){
@@ -177,12 +179,7 @@ void pkpy_vm_destroy(pkpy_vm* vm_handle) {
 }
 
 PyObject* c_function_wrapper(VM* vm, ArgsView args) {
-    LuaStyleFuncC f;
-    if(args[-1] != PY_NULL){
-        f = _py_cast<NativeFunc&>(vm, args[-1])._lua_f;
-    } else {
-        f = _py_cast<NativeFunc&>(vm, args[-2])._lua_f;
-    }
+    LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
     CVM* cvm = (CVM*) vm;
 
     //setup c stack
@@ -225,7 +222,7 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
 bool pkpy_push_function(pkpy_vm* vm_handle, pkpy_function f, int argc) {
     CVM* vm = (CVM*) vm_handle;
     NativeFunc nf = NativeFunc(c_function_wrapper, argc, false);
-    nf._lua_f = (LuaStyleFuncC) f;
+    nf.set_userdata(f);
     ERRHANDLER_OPEN
     vm->c_data->safe_push(py_var(vm, nf));
     ERRHANDLER_CLOSE

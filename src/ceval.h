@@ -98,14 +98,13 @@ __NEXT_STEP:;
     TARGET(LOAD_ELLIPSIS) PUSH(Ellipsis); DISPATCH();
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
-        bool is_simple = decl->starred_kwarg==-1 && decl->starred_arg==-1 && decl->kwargs.size()==0 && !decl->code->is_generator;
         PyObject* obj;
         if(decl->nested){
             NameDict_ captured = frame->_locals.to_namedict();
-            obj = VAR(Function({decl, is_simple, frame->_module, captured}));
+            obj = VAR(Function({decl, frame->_module, captured}));
             captured->set(decl->code->name, obj);
         }else{
-            obj = VAR(Function({decl, is_simple, frame->_module}));
+            obj = VAR(Function({decl, frame->_module}));
         }
         PUSH(obj);
     } DISPATCH();

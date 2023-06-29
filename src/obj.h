@@ -17,14 +17,29 @@ using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 #endif
 
-typedef int (*LuaStyleFuncC)(VM*);
+typedef shared_ptr<CodeObject> CodeObject_;
+
+struct FuncDecl {
+    struct KwArg {
+        int key;                // index in co->varnames
+        PyObject* value;        // default value
+    };
+    CodeObject_ code;           // code object of this function
+    pod_vector<int> args;       // indices in co->varnames
+    pod_vector<KwArg> kwargs;   // indices in co->varnames
+    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
+    int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
+    bool nested = false;        // whether this function is nested
+    void _gc_mark() const;
+};
+
+using FuncDecl_ = shared_ptr<FuncDecl>;
 
 struct NativeFunc {
     NativeFuncC f;
     int argc;
 
-    // this is designed for lua style C bindings
-    LuaStyleFuncC _lua_f;
+    FuncDecl_ decl;     // if this is not null, use ex call
 
     using UserData = char[32];
     UserData _userdata;
@@ -53,39 +68,22 @@ struct NativeFunc {
         this->f = f;
         this->argc = argc;
         if(argc != -1) this->argc += (int)method;
-        _lua_f = nullptr;
         _has_userdata = false;
     }
 
-    PyObject* operator()(VM* vm, ArgsView args) const;
+    NativeFunc(NativeFuncC f, FuncDecl_ decl){
+        this->f = f;
+        this->argc = -1;
+        this->decl = decl;
+        _has_userdata = false;
+    }
+
+    void check_size(VM* vm, ArgsView args) const;
+    PyObject* call(VM* vm, ArgsView args) const;
 };
-
-
-struct NativeFuncEx{
-    NativeFuncC f;
-};
-
-typedef shared_ptr<CodeObject> CodeObject_;
-
-struct FuncDecl {
-    struct KwArg {
-        int key;                // index in co->varnames
-        PyObject* value;        // default value
-    };
-    CodeObject_ code;           // code object of this function
-    pod_vector<int> args;       // indices in co->varnames
-    pod_vector<KwArg> kwargs;   // indices in co->varnames
-    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
-    int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
-    bool nested = false;        // whether this function is nested
-    void _gc_mark() const;
-};
-
-using FuncDecl_ = shared_ptr<FuncDecl>;
 
 struct Function{
     FuncDecl_ decl;
-    bool is_simple;
     PyObject* _module;
     NameDict_ _closure;
 };

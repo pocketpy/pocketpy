@@ -690,15 +690,16 @@ public:
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
     // new style binding api
     PyObject* bind(PyObject*, const Str&, NativeFuncC);
+    void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
 };
 
-inline PyObject* NativeFunc::operator()(VM* vm, ArgsView args) const{
+inline void NativeFunc::check_size(VM* vm, ArgsView args) const{
     if(args.size() != argc && argc != -1) {
         vm->TypeError(fmt("expected ", argc, " arguments, got ", args.size()));
     }
-#if PK_DEBUG_EXTRA_CHECK
-    if(f == nullptr) FATAL_ERROR();
-#endif
+}
+
+inline PyObject* NativeFunc::call(VM *vm, ArgsView args) const {
     return f(vm, args);
 }
 
@@ -1238,6 +1239,64 @@ inline void VM::_unpack_as_dict(ArgsView args, Dict& dict){
     }
 }
 
+inline void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl){
+    const CodeObject* co = decl->code.get();
+    int co_nlocals = co->varnames.size();
+    int decl_argc = decl->args.size();
+
+    if(args.size() < decl_argc){
+        vm->TypeError(fmt(
+            "expected ", decl_argc, " positional arguments, got ", args.size(),
+            " (", co->name, ')'
+        ));
+    }
+
+    int i = 0;
+    // prepare args
+    for(int index: decl->args) buffer[index] = args[i++];
+    // set extra varnames to nullptr
+    for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
+    // prepare kwdefaults
+    for(auto& kv: decl->kwargs) buffer[kv.key] = kv.value;
+    
+    // handle *args
+    if(decl->starred_arg != -1){
+        ArgsView vargs(args.begin() + i, args.end());
+        buffer[decl->starred_arg] = VAR(vargs.to_tuple());
+        i += vargs.size();
+    }else{
+        // kwdefaults override
+        for(auto& kv: decl->kwargs){
+            if(i >= args.size()) break;
+            buffer[kv.key] = args[i++];
+        }
+        if(i < args.size()) TypeError(fmt("too many arguments", " (", decl->code->name, ')'));
+    }
+    
+    PyObject* vkwargs;
+    if(decl->starred_kwarg != -1){
+        vkwargs = VAR(Dict(this));
+        buffer[decl->starred_kwarg] = vkwargs;
+    }else{
+        vkwargs = nullptr;
+    }
+
+    for(int j=0; j<kwargs.size(); j+=2){
+        StrName key(CAST(int, kwargs[j]));
+        int index = co->varnames_inv.try_get(key);
+        if(index < 0){
+            if(vkwargs == nullptr){
+                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+            }else{
+                Dict& dict = _CAST(Dict&, vkwargs);
+                dict.set(VAR(key.sv()), kwargs[j+1]);
+            }
+        }else{
+            buffer[index] = kwargs[j+1];
+        }
+    }
+}
+
 inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject** p1 = s_data._sp - KWARGC*2;
     PyObject** p0 = p1 - ARGC - 2;
@@ -1258,19 +1317,27 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     }
 
     ArgsView args(p1 - ARGC - int(method_call), p1);
+    ArgsView kwargs(p1, s_data._sp);
+
+    static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
 
     if(is_non_tagged_type(callable, tp_native_func)){
         const auto& f = PK_OBJ_GET(NativeFunc, callable);
-        if(KWARGC != 0) TypeError("native_func does not accept keyword arguments");
-        PyObject* ret = f(this, args);
+        PyObject* ret;
+        if(f.decl != nullptr){
+            int co_nlocals = f.decl->code->varnames.size();
+            _prepare_py_call(buffer, args, kwargs, f.decl);
+            // copy buffer back to stack
+            s_data.reset(args.begin());
+            for(int j=0; j<co_nlocals; j++) PUSH(buffer[j]);
+            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
+        }else{
+            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
+            f.check_size(this, args);
+            ret = f.call(this, args);
+        }
         s_data.reset(p0);
         return ret;
-    }
-
-    ArgsView kwargs(p1, s_data._sp);
-
-    if(false){      // native_func_ex
-
     }
 
     if(is_non_tagged_type(callable, tp_function)){
@@ -1278,77 +1345,12 @@ inline PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         // callable must be a `function` object
         if(s_data.is_overflow()) StackOverflowError();
 
-        const Function& fn = CAST(Function&, callable);
-
+        const Function& fn = PK_OBJ_GET(Function, callable);
         const FuncDecl_& decl = fn.decl;
-        int decl_argc = decl->args.size();
-        const CodeObject* co = fn.decl->code.get();
+        const CodeObject* co = decl->code.get();
         int co_nlocals = co->varnames.size();
 
-        if(args.size() < decl_argc){
-            vm->TypeError(fmt(
-                "expected ", decl_argc, " positional arguments, got ", args.size(),
-                " (", co->name, ')'
-            ));
-        }
-
-        // if this function is simple, a.k.a, no kwargs and no *args and not a generator
-        // we can use a fast path to avoid using buffer copy
-        if(fn.is_simple){
-            if(args.size() > decl_argc) TypeError("too many positional arguments");
-            int spaces = co_nlocals - decl_argc;
-            for(int j=0; j<spaces; j++) PUSH(PY_NULL);
-            callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
-            if(op_call) return PY_OP_CALL;
-            return _run_top_frame();
-        }
-
-        int i = 0;
-        static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
-
-        // prepare args
-        for(int index: decl->args) buffer[index] = args[i++];
-        // set extra varnames to nullptr
-        for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
-        // prepare kwdefaults
-        for(auto& kv: decl->kwargs) buffer[kv.key] = kv.value;
-        
-        // handle *args
-        if(decl->starred_arg != -1){
-            ArgsView vargs(args.begin() + i, args.end());
-            buffer[decl->starred_arg] = VAR(vargs.to_tuple());
-            i += vargs.size();
-        }else{
-            // kwdefaults override
-            for(auto& kv: decl->kwargs){
-                if(i >= args.size()) break;
-                buffer[kv.key] = args[i++];
-            }
-            if(i < args.size()) TypeError(fmt("too many arguments", " (", decl->code->name, ')'));
-        }
-        
-        PyObject* vkwargs;
-        if(decl->starred_kwarg != -1){
-            vkwargs = VAR(Dict(this));
-            buffer[decl->starred_kwarg] = vkwargs;
-        }else{
-            vkwargs = nullptr;
-        }
-
-        for(int j=0; j<kwargs.size(); j+=2){
-            StrName key(CAST(int, kwargs[j]));
-            int index = co->varnames_inv.try_get(key);
-            if(index < 0){
-                if(vkwargs == nullptr){
-                    TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
-                }else{
-                    Dict& dict = _CAST(Dict&, vkwargs);
-                    dict.set(VAR(key.sv()), kwargs[j+1]);
-                }
-            }else{
-                buffer[index] = kwargs[j+1];
-            }
-        }
+        _prepare_py_call(buffer, args, kwargs, decl);
         
         if(co->is_generator){
             s_data.reset(p0);
