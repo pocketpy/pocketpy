@@ -23,6 +23,8 @@ struct Str{
     char* data;
     char _inlined[16];
 
+    const char* _cached_c_str = nullptr;
+
     bool is_inlined() const { return data == _inlined; }
 
     Str(): size(0), is_ascii(true), data(_inlined) {}
@@ -98,6 +100,7 @@ struct Str{
 
     ~Str(){
         if(!is_inlined()) pool64.dealloc(data);
+        if(_cached_c_str != nullptr) free((void*)_cached_c_str);
     }
 
     Str operator+(const Str& other) const {
@@ -201,10 +204,11 @@ struct Str{
         return p;
     }
 
-    const char* c_str_temp() const {
-        static THREAD_LOCAL std::string temp;
-        temp.assign(data, size);
-        return temp.c_str();
+    const char* c_str(){
+        if(_cached_c_str == nullptr){
+            _cached_c_str = c_str_dup();
+        }
+        return _cached_c_str;
     }
 
     std::string_view sv() const {
@@ -429,7 +433,6 @@ struct FastStrStream{
 struct CString{
 	const char* ptr;
 	CString(const char* ptr): ptr(ptr) {}
-	CString(const Str& str): ptr(str.c_str_temp()) {}
     operator const char*() const { return ptr; }
 };
 

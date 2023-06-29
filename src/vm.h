@@ -824,11 +824,11 @@ template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
 
 template<> inline CString py_cast<CString>(VM* vm, PyObject* obj){
     vm->check_non_tagged_type(obj, vm->tp_str);
-    return PK_OBJ_GET(Str, obj).c_str_temp();
+    return PK_OBJ_GET(Str, obj).c_str();
 }
 
 template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
-    return PK_OBJ_GET(Str, obj).c_str_temp();
+    return PK_OBJ_GET(Str, obj).c_str();
 }
 
 inline PyObject* py_var(VM* vm, const char val[]){
