@@ -31,6 +31,9 @@ namespace pkpy {
 
 static int c99_sizeof(VM*, const Str&);
 
+inline PyObject* py_var(VM* vm, void* p);
+inline PyObject* py_var(VM* vm, char* p);
+
 struct VoidP{
     PY_CLASS(VoidP, c, void_p)
 
@@ -158,17 +161,7 @@ struct VoidP{
         BIND_SETGET(float, "float")
         BIND_SETGET(double, "double")
         BIND_SETGET(bool, "bool")
-
-        vm->bind_method<0>(type, "read_void_p", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            return VAR_T(VoidP, *(void**)self.ptr);
-        });
-        vm->bind_method<1>(type, "write_void_p", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            VoidP& other = CAST(VoidP&, args[0]);
-            self.ptr = other.ptr;
-            return vm->None;
-        });
+        BIND_SETGET(void*, "void_p")
 
         vm->bind_method<1>(type, "read_bytes", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
@@ -185,6 +178,8 @@ struct VoidP{
             return vm->None;
         });
     }
+
+#undef BIND_SETGET
 };
 
 struct C99Struct{
@@ -251,6 +246,37 @@ struct C99Struct{
             return VAR(ok);
         });
 
+#define BIND_SETGET(T, name) \
+        vm->bind(type, "read_" name "(self, offset=0)", [](VM* vm, ArgsView args){          \
+            C99Struct& self = _CAST(C99Struct&, args[0]);   \
+            i64 offset = CAST(i64, args[1]);    \
+            void* ptr = self.p + offset;    \
+            return VAR(*(T*)ptr);   \
+        }); \
+        vm->bind(type, "write_" name "(self, value, offset=0)", [](VM* vm, ArgsView args){  \
+            C99Struct& self = _CAST(C99Struct&, args[0]);   \
+            i64 offset = CAST(i64, args[2]);    \
+            void* ptr = self.p + offset;    \
+            *(T*)ptr = CAST(T, args[1]);    \
+            return vm->None;    \
+        });
+
+        BIND_SETGET(char, "char")
+        BIND_SETGET(unsigned char, "uchar")
+        BIND_SETGET(short, "short")
+        BIND_SETGET(unsigned short, "ushort")
+        BIND_SETGET(int, "int")
+        BIND_SETGET(unsigned int, "uint")
+        BIND_SETGET(long, "long")
+        BIND_SETGET(unsigned long, "ulong")
+        BIND_SETGET(long long, "longlong")
+        BIND_SETGET(unsigned long long, "ulonglong")
+        BIND_SETGET(float, "float")
+        BIND_SETGET(double, "double")
+        BIND_SETGET(bool, "bool")
+        BIND_SETGET(void*, "void_p")
+#undef BIND_SETGET
+
         // patch VoidP
         type = vm->_t(VoidP::_type(vm));
 
@@ -316,6 +342,11 @@ struct C99ReflType final: ReflType{
         vm->bind_method<0>(type, "__call__", [](VM* vm, ArgsView args){
             C99ReflType& self = _CAST(C99ReflType&, args[0]);
             return VAR_T(C99Struct, nullptr, self.size);
+        });
+
+        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
+            C99ReflType& self = _CAST(C99ReflType&, args[0]);
+            return VAR("<ctype '" + Str(self.name) + "'>");
         });
 
         vm->bind_method<0>(type, "name", [](VM* vm, ArgsView args){
@@ -482,6 +513,10 @@ inline void add_module_c(VM* vm){
     add_refl_type("double", sizeof(double), {});
     add_refl_type("bool", sizeof(bool), {});
     add_refl_type("void_p", sizeof(void*), {});
+
+    for(const char* t: {"char", "uchar", "short", "ushort", "int", "uint", "long", "ulong", "longlong", "ulonglong", "float", "double", "bool"}){
+        mod->attr().set(Str(t) + "_", VAR_T(C99ReflType, _refl_types[t]));
+    }
 }
 
 }   // namespace pkpy
