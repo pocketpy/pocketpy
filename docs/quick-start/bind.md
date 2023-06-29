@@ -14,6 +14,34 @@ typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 + The second argument is an array-like object indicates the arguments list. You can use `[]` operator to get the element.
 + The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
 
+
+## New style bindings
+
+Use `vm->bind` to bind a function or method.
+
++ `PyObject* bind(PyObject*, const char* sig, NativeFuncC)`
++ `PyObject* bind(PyObject*, const char* sig, const char* docstring, NativeFuncC)`
+
+```cpp
+
+vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
+    int a = CAST(int, args[0]);
+    int b = CAST(int, args[1]);
+    return VAR(a + b);
+});
+
+// or you can provide a docstring
+vm->bind(obj,
+    "add(a: int, b: int) -> int",
+    "add two integers", [](VM* vm, ArgsView args){
+    int a = CAST(int, args[0]);
+    int b = CAST(int, args[1]);
+    return VAR(a + b);
+});
+```
+
+## Old style bindings
+
 !!!
 Native functions do not support keyword arguments.
 !!!

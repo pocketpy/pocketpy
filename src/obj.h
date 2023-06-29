@@ -37,9 +37,13 @@ using FuncDecl_ = shared_ptr<FuncDecl>;
 
 struct NativeFunc {
     NativeFuncC f;
+
+    // old style argc-based call
     int argc;
 
-    FuncDecl_ decl;     // if this is not null, use ex call
+    // new style decl-based call
+    FuncDecl_ decl;
+    const char* docstring;
 
     using UserData = char[32];
     UserData _userdata;
@@ -71,10 +75,11 @@ struct NativeFunc {
         _has_userdata = false;
     }
 
-    NativeFunc(NativeFuncC f, FuncDecl_ decl){
+    NativeFunc(NativeFuncC f, FuncDecl_ decl, const char* docstring){
         this->f = f;
         this->argc = -1;
         this->decl = decl;
+        this->docstring = docstring;
         _has_userdata = false;
     }
 

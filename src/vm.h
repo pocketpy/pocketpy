@@ -689,7 +689,8 @@ public:
     void post_init();
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
     // new style binding api
-    PyObject* bind(PyObject*, const Str&, NativeFuncC);
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC);
+    PyObject* bind(PyObject*, const char*, NativeFuncC);
     void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
 };
 
@@ -1544,20 +1545,23 @@ PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
     return nf;
 }
 
-inline PyObject* VM::bind(PyObject* obj, const Str& sig, NativeFuncC fn){
+inline PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn){
+    return bind(obj, sig, nullptr, fn);
+}
+
+inline PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn){
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
-        co = compile("def " + sig + " : pass", "<bind>", EXEC_MODE);
+        co = compile("def " + Str(sig) + " : pass", "<bind>", EXEC_MODE);
     }catch(Exception& e){
-        throw std::runtime_error(("invalid signature: " + sig).str());
+        throw std::runtime_error("invalid signature: " + std::string(sig));
     }
     if(co->func_decls.size() != 1){
         throw std::runtime_error("expected 1 function declaration");
     }
     FuncDecl_ decl = co->func_decls[0];
-    // return VAR(NativeFuncEx(fn, argc, false, sig));
-    return nullptr;
+    return VAR(NativeFunc(fn, decl, docstring));
 }
 
 inline void VM::_error(Exception e){
