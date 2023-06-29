@@ -355,6 +355,7 @@ inline PyObject* py_var(VM* vm, char* p){
 template<typename T>
 T to_void_p(VM* vm, PyObject* var){
     static_assert(std::is_pointer_v<T>);
+    if(var == vm->None) return nullptr;     // None can be casted to any pointer implicitly
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<T>(p.ptr);
 }
