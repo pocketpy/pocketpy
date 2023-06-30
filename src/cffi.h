@@ -545,8 +545,10 @@ inline void add_module_c(VM* vm){
     add_refl_type("bool", sizeof(bool), {});
     add_refl_type("void_p", sizeof(void*), {});
 
+    PyObject* void_p_t = mod->attr("void_p");
     for(const char* t: {"char", "uchar", "short", "ushort", "int", "uint", "long", "ulong", "longlong", "ulonglong", "float", "double", "bool"}){
         mod->attr().set(Str(t) + "_", VAR_T(C99ReflType, _refl_types[t]));
+        mod->attr().set(Str(t) + "_p", void_p_t);
     }
 }
 

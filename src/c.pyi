@@ -126,3 +126,17 @@ ulonglong_ = refl("ulonglong")
 float_ = refl("float")
 double_ = refl("double")
 bool_ = refl("bool")
+
+char_p = void_p
+uchar_p = void_p
+short_p = void_p
+ushort_p = void_p
+int_p = void_p
+uint_p = void_p
+long_p = void_p
+ulong_p = void_p
+longlong_p = void_p
+ulonglong_p = void_p
+float_p = void_p
+double_p = void_p
+bool_p = void_p
