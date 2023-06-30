@@ -9,7 +9,6 @@
 #include "cffi.h"
 #include "linalg.h"
 #include "easing.h"
-#include "requests.h"
 #include "io.h"
 #include "_generated.h"
 #include "export.h"
@@ -1506,7 +1505,6 @@ inline void VM::post_init(){
     if(enable_os){
         add_module_io(this);
         add_module_os(this);
-        add_module_requests(this);
         _import_handler = _default_import_handler;
     }
 
