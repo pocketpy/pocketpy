@@ -11,7 +11,6 @@ inline PyObject* VM::_run_top_frame(){
     DEF_SNAME(set);
     DEF_SNAME(__enter__);
     DEF_SNAME(__exit__);
-    DEF_SNAME(__doc__);
 
     FrameId frame = top_frame();
     const int base_id = frame.index;
@@ -674,9 +673,6 @@ __NEXT_STEP:;
     TARGET(RE_RAISE) _raise(); DISPATCH();
     TARGET(POP_EXCEPTION) _last_exception = POPX(); DISPATCH();
     /*****************************************/
-    TARGET(SETUP_DOCSTRING)
-        TOP()->attr().set(__doc__, co_consts[byte.arg]);
-        DISPATCH();
     TARGET(FORMAT_STRING) {
         _0 = POPX();
         const Str& spec = CAST(Str&, co_consts[byte.arg]);

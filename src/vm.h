@@ -1561,7 +1561,11 @@ inline PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring,
         throw std::runtime_error("expected 1 function declaration");
     }
     FuncDecl_ decl = co->func_decls[0];
-    PyObject* f_obj = VAR(NativeFunc(fn, decl, docstring));
+    decl->signature = Str(sig);
+    if(docstring != nullptr){
+        decl->docstring = Str(docstring).strip();
+    }
+    PyObject* f_obj = VAR(NativeFunc(fn, decl));
     obj->attr().set(decl->code->name, f_obj);
     return f_obj;
 }

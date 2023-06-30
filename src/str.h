@@ -228,6 +228,17 @@ struct Str{
         return Str(copy);
     }
 
+    Str strip() const {
+        std::string copy(data, size);
+        copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
+            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
+        }));
+        copy.erase(std::find_if(copy.rbegin(), copy.rend(), [](char c) {
+            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
+        }).base(), copy.end());
+        return Str(copy);
+    }
+
     Str lower() const{
         std::string copy(data, size);
         std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){ return std::tolower(c); });

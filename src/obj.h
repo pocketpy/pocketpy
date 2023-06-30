@@ -30,6 +30,9 @@ struct FuncDecl {
     int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
     bool nested = false;        // whether this function is nested
+
+    Str signature;              // signature of this function
+    Str docstring;              // docstring of this function
     void _gc_mark() const;
 };
 
@@ -43,7 +46,6 @@ struct NativeFunc {
 
     // new style decl-based call
     FuncDecl_ decl;
-    const char* docstring;
 
     using UserData = char[32];
     UserData _userdata;
@@ -75,11 +77,10 @@ struct NativeFunc {
         _has_userdata = false;
     }
 
-    NativeFunc(NativeFuncC f, FuncDecl_ decl, const char* docstring){
+    NativeFunc(NativeFuncC f, FuncDecl_ decl){
         this->f = f;
         this->argc = -1;
         this->decl = decl;
-        this->docstring = docstring;
         _has_userdata = false;
     }
 

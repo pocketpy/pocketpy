@@ -559,16 +559,6 @@ inline void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind_method<0>("str", "to_c_str", [](VM* vm, ArgsView args){
-        const Str& self = _CAST(Str&, args[0]);
-        return VAR(self.c_str_dup());
-    });
-
-    _vm->bind_func<1>("str", "from_c_str", [](VM* vm, ArgsView args){
-        char* p = CAST(char*, args[0]);
-        return VAR(Str(p));
-    });
-
     _vm->bind_method<0>("str", "lower", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         return VAR(self.lower());
@@ -907,21 +897,6 @@ inline void init_builtins(VM* _vm) {
         return VAR(Str(self.str()));
     });
 
-    _vm->bind_method<0>("bytes", "to_char_array", [](VM* vm, ArgsView args) {
-        const Bytes& self = _CAST(Bytes&, args[0]);
-        void* buffer = malloc(self.size());
-        memcpy(buffer, self.data(), self.size());
-        return VAR_T(VoidP, buffer);
-    });
-
-    _vm->bind_func<2>("bytes", "from_char_array", [](VM* vm, ArgsView args) {
-        const VoidP& data = _CAST(VoidP&, args[0]);
-        int size = CAST(int, args[1]);
-        std::vector<char> buffer(size);
-        memcpy(buffer.data(), data.ptr, size);
-        return VAR(Bytes(std::move(buffer)));
-    });
-
     _vm->bind__eq__(_vm->tp_bytes, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         if(!is_non_tagged_type(rhs, vm->tp_bytes)) return vm->NotImplemented;
         return VAR(_CAST(Bytes&, lhs) == _CAST(Bytes&, rhs));
@@ -1175,6 +1150,28 @@ inline void init_builtins(VM* _vm) {
         vm->TypeError("property() takes at most 2 arguments");
         return vm->None;
     });
+    
+    _vm->_t(_vm->tp_function)->attr().set("__doc__", _vm->property([](VM* vm, ArgsView args) {
+        Function& func = _CAST(Function&, args[0]);
+        return VAR(func.decl->docstring);
+    }));
+
+    _vm->_t(_vm->tp_native_func)->attr().set("__doc__", _vm->property([](VM* vm, ArgsView args) {
+        NativeFunc& func = _CAST(NativeFunc&, args[0]);
+        if(func.decl != nullptr) return VAR(func.decl->docstring);
+        return VAR("");
+    }));
+
+    _vm->_t(_vm->tp_function)->attr().set("__signature__", _vm->property([](VM* vm, ArgsView args) {
+        Function& func = _CAST(Function&, args[0]);
+        return VAR(func.decl->signature);
+    }));
+
+    _vm->_t(_vm->tp_native_func)->attr().set("__signature__", _vm->property([](VM* vm, ArgsView args) {
+        NativeFunc& func = _CAST(NativeFunc&, args[0]);
+        if(func.decl != nullptr) return VAR(func.decl->signature);
+        return VAR("unknown(*args, **kwargs)");
+    }));
 
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);
@@ -1288,10 +1285,8 @@ inline void add_module_sys(VM* vm){
 
     PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
     PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
-    PyObject* stdin_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
-    vm->setattr(mod, "stdin", stdin_);
 
     vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
         vm->_stdout(vm, CAST(Str&, args[0]));

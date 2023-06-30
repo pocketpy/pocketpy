@@ -972,9 +972,9 @@ __SUBSCR_END:
     }
 
     void compile_function(const std::vector<Expr_>& decorators={}){
-        Str decl_name;
+        const char* _start = curr().start;
         consume(TK("@id"));
-        decl_name = prev().str();
+        Str decl_name = prev().str();
         FuncDecl_ decl = push_f_context(decl_name);
         consume(TK("("));
         if (!match(TK(")"))) {
@@ -982,6 +982,8 @@ __SUBSCR_END:
             consume(TK(")"));
         }
         if(match(TK("->"))) consume_type_hints();
+        const char* _end = curr().start;
+        decl->signature = Str(_start, _end-_start);
         compile_block_body();
         pop_context();
 
@@ -994,10 +996,11 @@ __SUBSCR_END:
                 docstring = c;
             }
         }
-        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
         if(docstring != nullptr){
-            ctx()->emit(OP_SETUP_DOCSTRING, ctx()->add_const(docstring), prev().line);
+            decl->docstring = PK_OBJ_GET(Str, docstring);
         }
+        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
+
         // add decorators
         for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
             (*it)->emit(ctx());

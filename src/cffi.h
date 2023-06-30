@@ -191,7 +191,7 @@ struct C99Struct{
     char* p;
     int size;
 
-    void _init(int new_size){
+    C99Struct(int new_size){
         this->size = new_size;
         if(size <= INLINE_SIZE){
             p = _inlined;
@@ -201,27 +201,46 @@ struct C99Struct{
     }
 
     template<typename T>
-    C99Struct(const T& data){
+    C99Struct(const T& data): C99Struct(sizeof(T)){
         static_assert(std::is_pod_v<T>);
         static_assert(!std::is_pointer_v<T>);
-        _init(sizeof(T));
         memcpy(p, &data, this->size);
     }
 
-    C99Struct() { p = _inlined; }
-    C99Struct(void* p, int size){
-        _init(size);
-        if(p!=nullptr) memcpy(this->p, p, size);
+    C99Struct(void* p, int size): C99Struct(size){
+        if(p != nullptr) memcpy(this->p, p, size);
     }
+
+    C99Struct(const C99Struct& other): C99Struct(other.p, other.size){}
+
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
-    C99Struct(const C99Struct& other){
-        _init(other.size);
-        memcpy(p, other.p, size);
-    }
-
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<C99Struct>(type);
+        vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
+            if(args.size() == 1+1){
+                if(is_int(args[1])){
+                    int size = _CAST(int, args[1]);
+                    return VAR_T(C99Struct, size);
+                }
+                if(is_non_tagged_type(args[1], vm->tp_str)){
+                    const Str& s = _CAST(Str&, args[1]);
+                    return VAR_T(C99Struct, (void*)s.data, s.size);
+                }
+                if(is_non_tagged_type(args[1], vm->tp_bytes)){
+                    const Bytes& b = _CAST(Bytes&, args[1]);
+                    return VAR_T(C99Struct, (void*)b.data(), b.size());
+                }
+                vm->TypeError("expected int, str or bytes");
+                return vm->None;
+            }
+            if(args.size() == 1+2){
+                void* p = CAST(void*, args[1]);
+                int size = CAST(int, args[2]);
+                return VAR_T(C99Struct, p, size);
+            }
+            vm->TypeError("expected 1 or 2 arguments");
+            return vm->None;
+        });
 
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){
             C99Struct& self = _CAST(C99Struct&, args[0]);
@@ -236,6 +255,18 @@ struct C99Struct{
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
             const C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR_T(C99Struct, self);
+        });
+
+        vm->bind_method<0>(type, "to_string", [](VM* vm, ArgsView args){
+            C99Struct& self = _CAST(C99Struct&, args[0]);
+            return VAR(Str(self.p, self.size));
+        });
+
+        vm->bind_method<0>(type, "to_bytes", [](VM* vm, ArgsView args){
+            C99Struct& self = _CAST(C99Struct&, args[0]);
+            std::vector<char> buffer(self.size);
+            memcpy(buffer.data(), self.p, self.size);
+            return VAR(Bytes(std::move(buffer)));
         });
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
