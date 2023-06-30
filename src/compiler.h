@@ -839,12 +839,13 @@ __SUBSCR_END:
                 EXPR(false);
                 consume(TK("as"));
                 consume(TK("@id"));
-                StrName name(prev().str());
-                ctx()->emit(OP_STORE_NAME, name.index, prev().line);
-                ctx()->emit(OP_LOAD_NAME, name.index, prev().line);
+                Expr_ e = make_expr<NameExpr>(prev().str(), name_scope());
+                bool ok = e->emit_store(ctx());
+                if(!ok) SyntaxError();
+                e->emit(ctx());
                 ctx()->emit(OP_WITH_ENTER, BC_NOARG, prev().line);
                 compile_block_body();
-                ctx()->emit(OP_LOAD_NAME, name.index, prev().line);
+                e->emit(ctx());
                 ctx()->emit(OP_WITH_EXIT, BC_NOARG, prev().line);
             } break;
             /*************************************************/
