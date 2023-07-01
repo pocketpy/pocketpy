@@ -1,14 +1,14 @@
 import os
 
-os.system("python3 preprocess.py")
+os.system("python3 prebuild.py")
 
-with open("src/opcodes.h", "rt", encoding='utf-8') as f:
-	OPCODES_TEXT = f.read()
+with open("include/pocketpy/opcodes.h", "rt", encoding='utf-8') as f:
+	OPCODES_TEXT = '\n' + f.read() + '\n'
 
 pipeline = [
 	["config.h", "common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "lexer.h"],
 	["obj.h", "dict.h", "codeobject.h", "frame.h"],
-	["gc.h", "vm.h", "expr.h", "compiler.h", "repl.h"],
+	["gc.h", "vm.h", "ceval.h", "expr.h", "compiler.h", "repl.h"],
 	["_generated.h", "cffi.h", "iter.h", "base64.h", "random.h", "re.h", "linalg.h", "easing.h", "io.h"],
 	["export.h", "pocketpy.h"]
 ]
@@ -24,24 +24,41 @@ import time
 
 if os.path.exists("amalgamated"):
 	shutil.rmtree("amalgamated")
-	time.sleep(0.6)
+	time.sleep(0.5)
 os.mkdir("amalgamated")
 
 def remove_copied_include(text):
 	text = text.replace("#pragma once", "")
+
+	def _replace(m):
+		key = m.group(1)
+		if key.startswith("pocketpy/"):
+			key = key[9:]
+		if key == "user_config.h":
+			return m.group(0)
+		if key == "opcodes.h":
+			return OPCODES_TEXT
+		assert key in copied, f"include {key} not found"
+		return ""
+
 	text = re.sub(
 		r'#include\s+"(.+)"\s*',
-		lambda m: "" if m.group(1) in copied else m.group(0),
+		_replace,
 		text
 	)
-	text = text.replace('#include "opcodes.h"', OPCODES_TEXT)
 	return text
 
 for seq in pipeline:
 	for j in seq:
-		with open("src/"+j, "rt", encoding='utf-8') as f:
+		print(j)
+		with open("include/pocketpy/"+j, "rt", encoding='utf-8') as f:
 			text += remove_copied_include(f.read()) + '\n'
 			copied.add(j)
+		j = j.replace(".h", ".cpp")
+		if os.path.exists("src/"+j):
+			with open("src/"+j, "rt", encoding='utf-8') as f:
+				text += remove_copied_include(f.read()) + '\n'
+				copied.add(j)
 
 with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
 	final_text = \
@@ -56,7 +73,12 @@ r'''/*
 ''' + text + '\n#endif // POCKETPY_H'
 	f.write(final_text)
 
-shutil.copy("src/main.cpp", "amalgamated/main.cpp")
+shutil.copy("src2/main.cpp", "amalgamated/main.cpp")
+with open("amalgamated/main.cpp", "rt", encoding='utf-8') as f:
+	text = f.read()
+text = text.replace('#include "pocketpy/pocketpy.h"', '#include "pocketpy.h"')
+with open("amalgamated/main.cpp", "wt", encoding='utf-8') as f:
+	f.write(text)
 
 if sys.platform == 'linux':
 	ok = os.system("clang++ -o pocketpy amalgamated/main.cpp --std=c++17 -stdlib=libc++")
@@ -67,7 +89,7 @@ if sys.platform == 'linux':
 print("amalgamated/pocketpy.h")
 
 content = []
-for i in ["src/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"]:
+for i in ["include/pocketpy/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"]:
 	with open(i, "rt", encoding='utf-8') as g:
 		content.append(g.read())
 
@@ -89,12 +111,5 @@ unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPython/Plugins/
 if os.path.exists(unity_ios_root):
 	shutil.copy("amalgamated/pocketpy.h", unity_ios_root)
 	shutil.copy("amalgamated/pocketpy.cpp", unity_ios_root)
-
-# my custom things...
-if os.path.exists("/mnt/e/PainterEngine/project/pocketpy.h"):
-	shutil.copy("amalgamated/pocketpy.h", "/mnt/e/PainterEngine/project/pocketpy.h")
-	shutil.copy("src/easing.pyi", "/mnt/e/PainterEngine/game/pype/easing.pyi")
-	shutil.copy("src/linalg.pyi", "/mnt/e/PainterEngine/game/pype/linalg.pyi")
-	shutil.copy("src/c.pyi", "/mnt/e/PainterEngine/game/pype/c.pyi")
 
 

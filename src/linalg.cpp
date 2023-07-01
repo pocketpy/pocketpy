@@ -1,4 +1,4 @@
-#include "pocketpy/pocketpy.h"
+#include "pocketpy/linalg.h"
 
 namespace pkpy{
 

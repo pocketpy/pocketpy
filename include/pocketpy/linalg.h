@@ -1,9 +1,5 @@
 #pragma once
 
-#include "common.h"
-
-#if PK_MODULE_LINALG
-
 #include "cffi.h"
 
 namespace pkpy{
@@ -379,9 +375,3 @@ inline void add_module_linalg(VM* vm){
 static_assert(sizeof(Py_<PyMat3x3>) <= 64);
 
 }   // namespace pkpy
-
-#else
-
-ADD_MODULE_PLACEHOLDER(linalg)
-
-#endif

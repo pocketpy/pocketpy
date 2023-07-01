@@ -88,8 +88,6 @@ namespace pkpy{
 
 #define PK_MODULE_RE                1
 #define PK_MODULE_RANDOM            1
-#define PK_MODULE_BASE64            1
-#define PK_MODULE_LINALG            1
 #define PK_MODULE_EASING            1
 
 #endif

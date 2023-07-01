@@ -2,6 +2,8 @@
 
 namespace pkpy{
 
+#if PK_MODULE_EASING
+
 // https://easings.net/
 
 static const double PI = 3.1415926545;
@@ -249,5 +251,14 @@ void add_module_easing(VM* vm){
 
 #undef EASE
 }
+
+
+#else
+
+void add_module_easing(VM* vm){
+    PK_UNUSED(vm);
+}
+
+#endif
 
 }   // namespace pkpy

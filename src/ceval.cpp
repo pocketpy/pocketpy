@@ -1,6 +1,4 @@
-#include "pocketpy/common.h"
-#include "pocketpy/namedict.h"
-#include "pocketpy/vm.h"
+#include "pocketpy/ceval.h"
 
 namespace pkpy{
 
