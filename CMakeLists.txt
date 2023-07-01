@@ -38,6 +38,7 @@ option(PK_BUILD_STATIC_LIB "Build static library" OFF)
 
 if(NOT PK_BUILD_EXE AND NOT PK_BUILD_SHARED_LIB AND NOT PK_BUILD_STATIC_LIB)
     set(PK_BUILD_EXE ON)
+endif()
 
 if(PK_BUILD_EXE)
     message(STATUS "Building executable")
