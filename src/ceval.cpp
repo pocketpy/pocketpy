@@ -1,12 +1,10 @@
-#pragma once
-
-#include "common.h"
-#include "namedict.h"
-#include "vm.h"
+#include "pocketpy/common.h"
+#include "pocketpy/namedict.h"
+#include "pocketpy/vm.h"
 
 namespace pkpy{
 
-inline PyObject* VM::_run_top_frame(){
+PyObject* VM::_run_top_frame(){
     DEF_SNAME(add);
     DEF_SNAME(set);
     DEF_SNAME(__enter__);
@@ -51,7 +49,7 @@ __NEXT_FRAME:
 #if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
     #define OPCODE(name) &&CASE_OP_##name,
-    #include "opcodes.h"
+    #include "pocketpy/opcodes.h"
     #undef OPCODE
 };
 

@@ -37,5 +37,5 @@ namespace pkpy{
 '''
     return header
 
-with open("src/_generated.h", "w", encoding='utf-8') as f:
+with open("include/pocketpy/_generated.h", "w", encoding='utf-8') as f:
     f.write(generate_python_sources())

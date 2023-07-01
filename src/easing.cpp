@@ -1,10 +1,4 @@
-#pragma once
-
-#include "common.h"
-
-#if PK_MODULE_EASING
-
-#include "cffi.h"
+#include "pocketpy/easing.h"
 
 namespace pkpy{
 
@@ -212,7 +206,7 @@ static double easeInOutBounce( double x ) {
     : (1 + easeOutBounce(2 * x - 1)) / 2;
 }
 
-inline void add_module_easing(VM* vm){
+void add_module_easing(VM* vm){
     PyObject* mod = vm->new_module("easing");
 
 #define EASE(name)  \
@@ -256,10 +250,4 @@ inline void add_module_easing(VM* vm){
 #undef EASE
 }
 
-} // namespace pkpy
-
-#else
-
-ADD_MODULE_PLACEHOLDER(easing)
-
-#endif
+}   // namespace pkpy

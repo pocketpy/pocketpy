@@ -1,12 +1,6 @@
-#pragma once
+#include "pocketpy/base64.h"
 
-#include "common.h"
-
-#if PK_MODULE_BASE64
-
-#include "cffi.h"
-
-namespace pkpy {
+namespace pkpy{
 
 // https://github.com/zhicheng/base64/blob/master/base64.c
 
@@ -77,7 +71,7 @@ const unsigned char base64de[] = {
 	    49,  50,  51, 255, 255, 255, 255, 255
 };
 
-inline static unsigned int
+static unsigned int
 base64_encode(const unsigned char *in, unsigned int inlen, char *out)
 {
 	int s;
@@ -126,7 +120,7 @@ base64_encode(const unsigned char *in, unsigned int inlen, char *out)
 	return j;
 }
 
-inline static unsigned int
+static unsigned int
 base64_decode(const char *in, unsigned int inlen, unsigned char *out)
 {
 	unsigned int i;
@@ -171,7 +165,7 @@ base64_decode(const char *in, unsigned int inlen, unsigned char *out)
 	return j;
 }
 
-inline void add_module_base64(VM* vm){
+void add_module_base64(VM* vm){
     PyObject* mod = vm->new_module("base64");
 
     // b64encode
@@ -193,11 +187,4 @@ inline void add_module_base64(VM* vm){
     });
 }
 
-} // namespace pkpy
-
-
-#else
-
-ADD_MODULE_PLACEHOLDER(base64)
-
-#endif
+}	// namespace pkpy

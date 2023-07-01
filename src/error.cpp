@@ -1,45 +1,8 @@
-#pragma once
-
-#include "namedict.h"
-#include "str.h"
-#include "tuplelist.h"
+#include "pocketpy/error.h"
 
 namespace pkpy{
 
-struct NeedMoreLines {
-    NeedMoreLines(bool is_compiling_class) : is_compiling_class(is_compiling_class) {}
-    bool is_compiling_class;
-};
-
-struct HandledException {};
-struct UnhandledException {};
-struct ToBeRaisedException {};
-
-enum CompileMode {
-    EXEC_MODE,
-    EVAL_MODE,
-    REPL_MODE,
-    JSON_MODE,
-    CELL_MODE
-};
-
-struct SourceData {
-    std::string source;
-    Str filename;
-    std::vector<const char*> line_starts;
-    CompileMode mode;
-
-    std::pair<const char*,const char*> get_line(int lineno) const {
-        if(lineno == -1) return {nullptr, nullptr};
-        lineno -= 1;
-        if(lineno < 0) lineno = 0;
-        const char* _start = line_starts.at(lineno);
-        const char* i = _start;
-        while(*i != '\n' && *i != '\0') i++;
-        return {_start, i};
-    }
-
-    SourceData(const Str& source, const Str& filename, CompileMode mode) {
+    SourceData::SourceData(const Str& source, const Str& filename, CompileMode mode) {
         int index = 0;
         // Skip utf8 BOM if there is any.
         if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
@@ -57,7 +20,17 @@ struct SourceData {
         this->mode = mode;
     }
 
-    Str snapshot(int lineno, const char* cursor=nullptr){
+    std::pair<const char*,const char*> SourceData::get_line(int lineno) const {
+        if(lineno == -1) return {nullptr, nullptr};
+        lineno -= 1;
+        if(lineno < 0) lineno = 0;
+        const char* _start = line_starts.at(lineno);
+        const char* i = _start;
+        while(*i != '\n' && *i != '\0') i++;
+        return {_start, i};
+    }
+
+    Str SourceData::snapshot(int lineno, const char* cursor){
         std::stringstream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
@@ -75,25 +48,14 @@ struct SourceData {
         }
         return ss.str();
     }
-};
 
-class Exception {
-    using StackTrace = stack<Str>;
-    StrName type;
-    Str msg;
-    StackTrace stacktrace;
-public:
-    Exception(StrName type, Str msg): type(type), msg(msg) {}
-    bool match_type(StrName t) const { return this->type == t;}
-    bool is_re = true;
-
-    void st_push(Str snapshot){
+    void Exception::st_push(Str snapshot){
         if(stacktrace.size() >= 8) return;
         stacktrace.push(snapshot);
     }
 
-    Str summary() const {
-        StackTrace st(stacktrace);
+    Str Exception::summary() const {
+        stack<Str> st(stacktrace);
         std::stringstream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
@@ -101,6 +63,5 @@ public:
         else ss << type.sv();
         return ss.str();
     }
-};
 
 }   // namespace pkpy

@@ -4,8 +4,7 @@
 #include "common.h"
 #include "lexer.h"
 #include "error.h"
-#include "ceval.h"
-#include "str.h"
+#include "vm.h"
 
 namespace pkpy{
 

@@ -18,7 +18,7 @@ plugins/flutter/example/web/lib/pocketpy.js
 plugins/flutter/example/web/lib/pocketpy.wasm
 plugins/flutter/src/pocketpy.*
 plugins/macos/pocketpy/pocketpy.*
-src/_generated.h
+include/pocketpy/_generated.h
 profile.sh
 test
 src/httplib.h

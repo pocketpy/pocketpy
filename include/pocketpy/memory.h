@@ -86,17 +86,17 @@ struct DoubleLinkedList{
         _size--;
     }
 
-    void move_all_back(DoubleLinkedList<T>& other){
-        if(other.empty()) return;
-        other.tail.prev->next = &tail;
-        tail.prev->next = other.head.next;
-        other.head.next->prev = tail.prev;
-        tail.prev = other.tail.prev;
-        _size += other._size;
-        other.head.next = &other.tail;
-        other.tail.prev = &other.head;
-        other._size = 0;
-    }
+    // void move_all_back(DoubleLinkedList<T>& other){
+    //     if(other.empty()) return;
+    //     other.tail.prev->next = &tail;
+    //     tail.prev->next = other.head.next;
+    //     other.head.next->prev = tail.prev;
+    //     tail.prev = other.tail.prev;
+    //     _size += other._size;
+    //     other.head.next = &other.tail;
+    //     other.tail.prev = &other.head;
+    //     other._size = 0;
+    // }
 
     bool empty() const {
 #if PK_DEBUG_MEMORY_POOL

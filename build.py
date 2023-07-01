@@ -9,9 +9,17 @@ os.system("python3 preprocess.py")
 def DONE(code=0):
     exit(code)
 
-linux_common = "-Wfatal-errors --std=c++17 -O2 -Wall -fno-rtti -stdlib=libc++"
-linux_cmd = "clang++ -o pocketpy src/main.cpp " + linux_common
-linux_lib_cmd = "clang++ -fPIC -shared -o pocketpy.so src/tmp.cpp " + linux_common
+src_file_list = []
+for file in os.listdir("src"):
+    if file.endswith(".cpp") and file != "main.cpp" and file != "tmp.cpp":
+        src_file_list.append("src/" + file)
+
+main_src_arg = " ".join(src_file_list+["src/main.cpp"])
+tmp_src_arg = " ".join(src_file_list+["src/tmp.cpp"])
+
+linux_common = " -Wfatal-errors --std=c++17 -O2 -Wall -fno-rtti -stdlib=libc++ -Iinclude/ "
+linux_cmd = "clang++ -o pocketpy " + main_src_arg + linux_common
+linux_lib_cmd = "clang++ -fPIC -shared -o pocketpy.so " + tmp_src_arg + linux_common
 
 class LibBuildEnv:
     def __enter__(self):

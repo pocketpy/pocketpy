@@ -1,7 +1,7 @@
 #include <fstream>
 #include <filesystem>
 
-#include "pocketpy.h"
+#include "pocketpy/pocketpy.h"
 
 #ifndef __EMSCRIPTEN__
 
