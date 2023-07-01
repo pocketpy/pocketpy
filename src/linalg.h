@@ -305,6 +305,12 @@ PyObject* py_var(VM*, const PyVec4&);
 PyObject* py_var(VM*, const Mat3x3&);
 PyObject* py_var(VM*, const PyMat3x3&);
 
+#define BIND_VEC_ADDR(D)   \
+        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){         \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
+            return VAR_T(VoidP, &self.x);                                   \
+        });
+
 #define BIND_VEC_VEC_OP(D, name, op)                                        \
         vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
@@ -385,6 +391,7 @@ struct PyVec2: Vec2 {
             return VAR(self);
         });
 
+        BIND_VEC_ADDR(2)
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_FLOAT_OP(2, __mul__, *)
@@ -433,6 +440,7 @@ struct PyVec3: Vec3 {
             return VAR_T(PyVec3, self);
         });
 
+        BIND_VEC_ADDR(3)
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
         BIND_VEC_FLOAT_OP(3, __mul__, *)
@@ -483,6 +491,7 @@ struct PyVec4: Vec4{
             return VAR_T(PyVec4, self);
         });
 
+        BIND_VEC_ADDR(4)
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
         BIND_VEC_FLOAT_OP(4, __mul__, *)
