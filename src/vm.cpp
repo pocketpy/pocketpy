@@ -967,6 +967,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
         // fn(a, b, *c, d=1) -> None
         co = compile("def " + Str(sig) + " : pass", "<bind>", EXEC_MODE);
     }catch(Exception& e){
+        PK_UNUSED(e);
         throw std::runtime_error("invalid signature: " + std::string(sig));
     }
     if(co->func_decls.size() != 1){
