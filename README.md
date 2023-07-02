@@ -25,6 +25,12 @@ Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
 
+You can also use cmake to build it from source. See CMakeLists.txt for details.
+These variables can be set to control the build process:
++ `PK_BUILD_EXE` - Build the executable file
++ `PK_BUILD_STATIC_LIB` - Build the static library
++ `PK_BUILD_SHARED_LIB` - Build the shared library
+
 If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
 
 ### Compile flags
