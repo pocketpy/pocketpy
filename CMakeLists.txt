@@ -32,9 +32,9 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
-option(PK_BUILD_EXE "Build executable" OFF)
-option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
-option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+set(PK_BUILD_EXE OFF)
+set(PK_BUILD_SHARED_LIB OFF)
+set(PK_BUILD_STATIC_LIB OFF)
 
 if(NOT PK_BUILD_EXE AND NOT PK_BUILD_SHARED_LIB AND NOT PK_BUILD_STATIC_LIB)
     set(PK_BUILD_EXE ON)
