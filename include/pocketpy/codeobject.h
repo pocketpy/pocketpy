@@ -56,64 +56,17 @@ struct CodeObjectSerializer{
 
     static const char END = '\n';
 
-    CodeObjectSerializer(){
-        write_str(PK_VERSION);
-    }
+    CodeObjectSerializer();
 
-    void write_int(i64 v){
-        buffer += 'i';
-        buffer += std::to_string(v);
-        buffer += END;
-    }
-
-    void write_float(f64 v){
-        buffer += 'f';
-        buffer += std::to_string(v);
-        buffer += END;
-    }
-
-    void write_str(const Str& v){
-        buffer += 's';
-        buffer += v.escape(false).str();
-        buffer += END;
-    }
-
-    void write_none(){
-        buffer += 'N';
-        buffer += END;
-    }
-
-    void write_ellipsis(){
-        buffer += 'E';
-        buffer += END;
-    }
-
-    void write_bool(bool v){
-        buffer += 'b';
-        buffer += v ? '1' : '0';
-        buffer += END;
-    }
-
-    void write_begin_mark(){
-        buffer += '[';
-        buffer += END;
-        depth++;
-    }
-
-    void write_name(StrName name){
-        PK_ASSERT(StrName::is_valid(name.index));
-        buffer += 'n';
-        buffer += std::to_string(name.index);
-        buffer += END;
-        names.insert(name);
-    }
-
-    void write_end_mark(){
-        buffer += ']';
-        buffer += END;
-        depth--;
-        PK_ASSERT(depth >= 0);
-    }
+    void write_int(i64 v);
+    void write_float(f64 v);
+    void write_str(const Str& v);
+    void write_none();
+    void write_ellipsis();
+    void write_bool(bool v);
+    void write_begin_mark();
+    void write_name(StrName name);
+    void write_end_mark();
 
     template<typename T>
     void write_bytes(T v){
@@ -130,16 +83,7 @@ struct CodeObjectSerializer{
 
     void write_object(VM* vm, PyObject* obj);
     void write_code(VM* vm, const CodeObject* co);
-
-    std::string str(){
-        PK_ASSERT(depth == 0);
-        for(auto name: names){
-            PK_ASSERT(StrName::is_valid(name.index));
-            write_name(name);
-            write_str(name.sv());
-        }
-        return std::move(buffer);
-    }
+    std::string str();
 };
 
 
@@ -147,9 +91,6 @@ struct CodeObject {
     shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
-
-    CodeObject(shared_ptr<SourceData> src, const Str& name):
-        src(src), name(name) {}
 
     std::vector<Bytecode> codes;
     std::vector<int> lines; // line number for each bytecode
@@ -160,84 +101,10 @@ struct CodeObject {
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
-    void _gc_mark() const {
-        for(PyObject* v : consts) PK_OBJ_MARK(v);
-        for(auto& decl: func_decls) decl->_gc_mark();
-    }
-
-    void write(VM* vm, CodeObjectSerializer& ss) const{
-        ss.write_begin_mark();          // [
-        ss.write_str(src->filename);    // src->filename
-        ss.write_int(src->mode);        // src->mode
-        ss.write_end_mark();            // ]
-        ss.write_str(name);             // name
-        ss.write_bool(is_generator);    // is_generator
-        ss.write_begin_mark();          // [
-            for(Bytecode bc: codes){
-                if(StrName::is_valid(bc.arg)) ss.names.insert(StrName(bc.arg));
-                ss.write_bytes(bc);
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(int line: lines){
-                ss.write_int(line);         // line
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(PyObject* o: consts){
-                ss.write_object(vm, o);
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(StrName vn: varnames){
-                ss.write_name(vn);        // name
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(CodeBlock block: blocks){
-                ss.write_bytes(block);      // block
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(auto& label: labels.items()){
-                ss.write_name(label.first);     // label.first
-                ss.write_int(label.second);     // label.second
-            }
-        ss.write_end_mark();            // ]
-        ss.write_begin_mark();          // [
-            for(auto& decl: func_decls){
-                ss.write_code(vm, decl->code.get()); // decl->code
-                ss.write_begin_mark();      // [
-                    for(int arg: decl->args) ss.write_int(arg);
-                ss.write_end_mark();        // ]
-                
-                ss.write_begin_mark();      // [
-                    for(auto kw: decl->kwargs){
-                        ss.write_int(kw.key);           // kw.key
-                        ss.write_object(vm, kw.value);  // kw.value
-                    }
-                ss.write_end_mark();        // ]
-
-                ss.write_int(decl->starred_arg);
-                ss.write_int(decl->starred_kwarg);
-                ss.write_bool(decl->nested);
-            }
-        ss.write_end_mark();            // ]
-    }
-
-    Str serialize(VM* vm) const{
-        CodeObjectSerializer ss;
-        ss.write_code(vm, this);
-        return ss.str();
-    }
+    CodeObject(shared_ptr<SourceData> src, const Str& name);
+    void _gc_mark() const;
+    void write(VM* vm, CodeObjectSerializer& ss) const;
+    Str serialize(VM* vm) const;
 };
-
-inline void CodeObjectSerializer::write_code(VM* vm, const CodeObject* co){
-    buffer += '(';
-    buffer += END;
-    co->write(vm, *this);
-    buffer += ')';
-    buffer += END;
-}
 
 } // namespace pkpy

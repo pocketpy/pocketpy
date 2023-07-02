@@ -7,8 +7,9 @@
 namespace pkpy {
     
 struct CodeObject;
+typedef shared_ptr<CodeObject> CodeObject_;
+
 struct Frame;
-struct Function;
 class VM;
 
 #if PK_ENABLE_STD_FUNCTION
@@ -16,8 +17,6 @@ using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
 #else
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 #endif
-
-typedef shared_ptr<CodeObject> CodeObject_;
 
 struct FuncDecl {
     struct KwArg {
@@ -70,19 +69,8 @@ struct NativeFunc {
         return reinterpret_cast<const T&>(_userdata);
     }
     
-    NativeFunc(NativeFuncC f, int argc, bool method){
-        this->f = f;
-        this->argc = argc;
-        if(argc != -1) this->argc += (int)method;
-        _has_userdata = false;
-    }
-
-    NativeFunc(NativeFuncC f, FuncDecl_ decl){
-        this->f = f;
-        this->argc = -1;
-        this->decl = decl;
-        _has_userdata = false;
-    }
+    NativeFunc(NativeFuncC f, int argc, bool method);
+    NativeFunc(NativeFuncC f, FuncDecl_ decl);
 
     void check_size(VM* vm, ArgsView args) const;
     PyObject* call(VM* vm, ArgsView args) const;
@@ -175,13 +163,9 @@ struct PyObject{
 
     PyObject(Type type) : type(type), _attr(nullptr) {}
 
-    virtual ~PyObject() {
-        if(_attr == nullptr) return;
-        _attr->~NameDict();
-        pool64.dealloc(_attr);
-    }
+    virtual ~PyObject();
 
-    void enable_instance_dict(float lf=kInstAttrLoadFactor) noexcept {
+    void enable_instance_dict(float lf=kInstAttrLoadFactor) {
         _attr = new(pool64.alloc<NameDict>()) NameDict(lf);
     }
 };
@@ -444,11 +428,9 @@ struct Py_<DummyModule> final: PyObject {
 };
 
 template<typename T>
-inline T lambda_get_userdata(PyObject** p){
+T lambda_get_userdata(PyObject** p){
     if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
     else return PK_OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
 }
-
-
 
 }   // namespace pkpy

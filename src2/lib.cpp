@@ -1,1 +1,1 @@
-#include "pocketpy/pocketpy.h"
+#include "pocketpy.h"

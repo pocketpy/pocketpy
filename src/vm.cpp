@@ -2,6 +2,275 @@
 
 namespace pkpy{
 
+    VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
+        this->vm = this;
+        _stdout = [](VM* vm, const Str& s) {
+            PK_UNUSED(vm);
+            std::cout << s;
+        };
+        _stderr = [](VM* vm, const Str& s) {
+            PK_UNUSED(vm);
+            std::cerr << s;
+        };
+        callstack.reserve(8);
+        _main = nullptr;
+        _last_exception = nullptr;
+        _import_handler = [](const Str& name) {
+            PK_UNUSED(name);
+            return Bytes();
+        };
+        init_builtin_types();
+    }
+
+    PyObject* VM::py_str(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__str__) return ti->m__str__(this, obj);
+        PyObject* self;
+        PyObject* f = get_unbound_method(obj, __str__, &self, false);
+        if(self != PY_NULL) return call_method(self, f);
+        return py_repr(obj);
+    }
+
+    PyObject* VM::py_repr(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__repr__) return ti->m__repr__(this, obj);
+        return call_method(obj, __repr__);
+    }
+
+    PyObject* VM::py_json(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__json__) return ti->m__json__(this, obj);
+        return call_method(obj, __json__);
+    }
+
+    PyObject* VM::py_iter(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__iter__) return ti->m__iter__(this, obj);
+        PyObject* self;
+        PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
+        if(self != PY_NULL) return call_method(self, iter_f);
+        TypeError(OBJ_NAME(_t(obj)).escape() + " object is not iterable");
+        return nullptr;
+    }
+
+    FrameId VM::top_frame(){
+#if PK_DEBUG_EXTRA_CHECK
+        if(callstack.empty()) FATAL_ERROR();
+#endif
+        return FrameId(&callstack.data(), callstack.size()-1);
+    }
+
+    void VM::_pop_frame(){
+        Frame* frame = &callstack.top();
+        s_data.reset(frame->_sp_base);
+        callstack.pop();
+    }
+
+    PyObject* VM::find_name_in_mro(PyObject* cls, StrName name){
+        PyObject* val;
+        do{
+            val = cls->attr().try_get(name);
+            if(val != nullptr) return val;
+            Type base = _all_types[PK_OBJ_GET(Type, cls)].base;
+            if(base.index == -1) break;
+            cls = _all_types[base].obj;
+        }while(true);
+        return nullptr;
+    }
+
+    bool VM::isinstance(PyObject* obj, Type cls_t){
+        Type obj_t = PK_OBJ_GET(Type, _t(obj));
+        do{
+            if(obj_t == cls_t) return true;
+            Type base = _all_types[obj_t].base;
+            if(base.index == -1) break;
+            obj_t = base;
+        }while(true);
+        return false;
+    }
+
+    PyObject* VM::exec(Str source, Str filename, CompileMode mode, PyObject* _module){
+        if(_module == nullptr) _module = _main;
+        try {
+            CodeObject_ code = compile(source, filename, mode);
+#if PK_DEBUG_DIS_EXEC
+            if(_module == _main) std::cout << disassemble(code) << '\n';
+#endif
+            return _exec(code, _module);
+        }catch (const Exception& e){
+            _stderr(this, e.summary() + "\n");
+        }
+#if !PK_DEBUG_FULL_EXCEPTION
+        catch (const std::exception& e) {
+            Str msg = "An std::exception occurred! It could be a bug.\n";
+            msg = msg + e.what();
+            _stderr(this, msg + "\n");
+        }
+#endif
+        callstack.clear();
+        s_data.clear();
+        return nullptr;
+    }
+
+    PyObject* VM::property(NativeFuncC fget, NativeFuncC fset){
+        PyObject* _0 = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
+        PyObject* _1 = vm->None;
+        if(fset != nullptr) _1 = heap.gcnew(tp_native_func, NativeFunc(fset, 2, false));
+        return call(_t(tp_property), _0, _1);
+    }
+
+    PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
+        PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
+        const PyTypeInfo& base_info = _all_types[base];
+        if(!base_info.subclass_enabled){
+            TypeError(fmt("type ", base_info.name.escape(), " is not `subclass_enabled`"));
+        }
+        PyTypeInfo info{
+            obj,
+            base,
+            (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv(),
+            subclass_enabled,
+        };
+        if(mod != nullptr) mod->attr().set(name, obj);
+        _all_types.push_back(info);
+        return obj;
+    }
+
+    Type VM::_new_type_object(StrName name, Type base) {
+        PyObject* obj = new_type_object(nullptr, name, base, false);
+        return PK_OBJ_GET(Type, obj);
+    }
+
+    PyObject* VM::_find_type_object(const Str& type){
+        PyObject* obj = builtins->attr().try_get(type);
+        if(obj == nullptr){
+            for(auto& t: _all_types) if(t.name == type) return t.obj;
+            throw std::runtime_error(fmt("type not found: ", type));
+        }
+        check_non_tagged_type(obj, tp_type);
+        return obj;
+    }
+
+
+    Type VM::_type(const Str& type){
+        PyObject* obj = _find_type_object(type);
+        return PK_OBJ_GET(Type, obj);
+    }
+
+    PyTypeInfo* VM::_type_info(const Str& type){
+        PyObject* obj = builtins->attr().try_get(type);
+        if(obj == nullptr){
+            for(auto& t: _all_types) if(t.name == type) return &t;
+            FATAL_ERROR();
+        }
+        return &_all_types[PK_OBJ_GET(Type, obj)];
+    }
+
+    PyTypeInfo* VM::_type_info(Type type){
+        return &_all_types[type];
+    }
+
+    const PyTypeInfo* VM::_inst_type_info(PyObject* obj){
+        if(is_int(obj)) return &_all_types[tp_int];
+        if(is_float(obj)) return &_all_types[tp_float];
+        return &_all_types[obj->type];
+    }
+
+    bool VM::py_equals(PyObject* lhs, PyObject* rhs){
+        if(lhs == rhs) return true;
+        const PyTypeInfo* ti = _inst_type_info(lhs);
+        PyObject* res;
+        if(ti->m__eq__){
+            res = ti->m__eq__(this, lhs, rhs);
+            if(res != vm->NotImplemented) return res == vm->True;
+        }
+        res = call_method(lhs, __eq__, rhs);
+        if(res != vm->NotImplemented) return res == vm->True;
+
+        ti = _inst_type_info(rhs);
+        if(ti->m__eq__){
+            res = ti->m__eq__(this, rhs, lhs);
+            if(res != vm->NotImplemented) return res == vm->True;
+        }
+        res = call_method(rhs, __eq__, lhs);
+        if(res != vm->NotImplemented) return res == vm->True;
+        return false;
+    }
+
+
+    int VM::normalized_index(int index, int size){
+        if(index < 0) index += size;
+        if(index < 0 || index >= size){
+            IndexError(std::to_string(index) + " not in [0, " + std::to_string(size) + ")");
+        }
+        return index;
+    }
+
+    PyObject* VM::py_next(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        if(ti->m__next__) return ti->m__next__(this, obj);
+        return call_method(obj, __next__);
+    }
+
+    PyObject* VM::py_import(StrName name, bool relative){
+        Str filename;
+        int type;
+        if(relative){
+            ImportContext* ctx = &_import_context;
+            type = 2;
+            for(auto it=ctx->pending.rbegin(); it!=ctx->pending.rend(); ++it){
+                if(it->second == 2) continue;
+                if(it->second == 1){
+                    filename = fmt(it->first, kPlatformSep, name, ".py");
+                    name = fmt(it->first, '.', name).c_str();
+                    break;
+                }
+            }
+            if(filename.length() == 0) _error("ImportError", "relative import outside of package");
+        }else{
+            type = 0;
+            filename = fmt(name, ".py");
+        }
+        for(auto& [k, v]: _import_context.pending){
+            if(k == name){
+                vm->_error("ImportError", fmt("circular import ", name.escape()));
+            }
+        }
+        PyObject* ext_mod = _modules.try_get(name);
+        if(ext_mod == nullptr){
+            Str source;
+            auto it = _lazy_modules.find(name);
+            if(it == _lazy_modules.end()){
+                Bytes b = _import_handler(filename);
+                if(!relative && !b){
+                    filename = fmt(name, kPlatformSep, "__init__.py");
+                    b = _import_handler(filename);
+                    if(b) type = 1;
+                }
+                if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
+                source = Str(b.str());
+            }else{
+                source = it->second;
+                _lazy_modules.erase(it);
+            }
+            auto _ = _import_context.temp(this, name, type);
+            CodeObject_ code = compile(source, filename, EXEC_MODE);
+            PyObject* new_mod = new_module(name);
+            _exec(code, new_mod);
+            new_mod->attr()._try_perfect_rehash();
+            return new_mod;
+        }else{
+            return ext_mod;
+        }
+    }
+
+    VM::~VM() {
+        callstack.clear();
+        s_data.clear();
+        _all_types.clear();
+        _modules.clear();
+        _lazy_modules.clear();
+    }
 
 PyObject* VM::py_negate(PyObject* obj){
     const PyTypeInfo* ti = _inst_type_info(obj);
