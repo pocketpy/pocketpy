@@ -6,9 +6,6 @@
 
 namespace pkpy {
     
-struct CodeObject;
-typedef shared_ptr<CodeObject> CodeObject_;
-
 struct Frame;
 class VM;
 
@@ -17,70 +14,6 @@ using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
 #else
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 #endif
-
-struct FuncDecl {
-    struct KwArg {
-        int key;                // index in co->varnames
-        PyObject* value;        // default value
-    };
-    CodeObject_ code;           // code object of this function
-    pod_vector<int> args;       // indices in co->varnames
-    pod_vector<KwArg> kwargs;   // indices in co->varnames
-    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
-    int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
-    bool nested = false;        // whether this function is nested
-
-    Str signature;              // signature of this function
-    Str docstring;              // docstring of this function
-    void _gc_mark() const;
-};
-
-using FuncDecl_ = shared_ptr<FuncDecl>;
-
-struct NativeFunc {
-    NativeFuncC f;
-
-    // old style argc-based call
-    int argc;
-
-    // new style decl-based call
-    FuncDecl_ decl;
-
-    using UserData = char[32];
-    UserData _userdata;
-    bool _has_userdata;
-
-    template <typename T>
-    void set_userdata(T data) {
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(UserData));
-        if(_has_userdata) throw std::runtime_error("userdata already set");
-        _has_userdata = true;
-        memcpy(_userdata, &data, sizeof(T));
-    }
-
-    template <typename T>
-    T get_userdata() const {
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(UserData));
-#if PK_DEBUG_EXTRA_CHECK
-        if(!_has_userdata) throw std::runtime_error("userdata not set");
-#endif
-        return reinterpret_cast<const T&>(_userdata);
-    }
-    
-    NativeFunc(NativeFuncC f, int argc, bool method);
-    NativeFunc(NativeFuncC f, FuncDecl_ decl);
-
-    void check_size(VM* vm, ArgsView args) const;
-    PyObject* call(VM* vm, ArgsView args) const;
-};
-
-struct Function{
-    FuncDecl_ decl;
-    PyObject* _module;
-    NameDict_ _closure;
-};
 
 struct BoundMethod {
     PyObject* self;
@@ -366,32 +299,6 @@ struct Py_<Slice> final: PyObject {
 };
 
 template<>
-struct Py_<Function> final: PyObject {
-    Function _value;
-    Py_(Type type, Function val): PyObject(type), _value(val) {
-        enable_instance_dict();
-    }
-    void _obj_gc_mark() override {
-        _value.decl->_gc_mark();
-        if(_value._module != nullptr) PK_OBJ_MARK(_value._module);
-        if(_value._closure != nullptr) gc_mark_namedict(*_value._closure);
-    }
-};
-
-template<>
-struct Py_<NativeFunc> final: PyObject {
-    NativeFunc _value;
-    Py_(Type type, NativeFunc val): PyObject(type), _value(val) {
-        enable_instance_dict();
-    }
-    void _obj_gc_mark() override {
-        if(_value.decl != nullptr){
-            _value.decl->_gc_mark();
-        }
-    }
-};
-
-template<>
 struct Py_<Super> final: PyObject {
     Super _value;
     Py_(Type type, Super val): PyObject(type), _value(val) {}
@@ -426,11 +333,5 @@ struct Py_<DummyModule> final: PyObject {
     }
     void _obj_gc_mark() override {}
 };
-
-template<typename T>
-T lambda_get_userdata(PyObject** p){
-    if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
-    else return PK_OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
-}
 
 }   // namespace pkpy
