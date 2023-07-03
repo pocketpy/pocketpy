@@ -23,7 +23,7 @@ struct Str{
     char* data;
     char _inlined[16];
 
-    const char* _cached_c_str = nullptr;
+    mutable const char* _cached_c_str = nullptr;
 
     bool is_inlined() const { return data == _inlined; }
 
@@ -124,7 +124,7 @@ struct Str{
     Str substr(int start, int len) const;
     Str substr(int start) const;
     char* c_str_dup() const;
-    const char* c_str();
+    const char* c_str() const;
     std::string_view sv() const;
     std::string str() const;
     Str lstrip() const;

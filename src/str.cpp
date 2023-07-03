@@ -103,7 +103,7 @@ namespace pkpy {
         return p;
     }
 
-    const char* Str::c_str(){
+    const char* Str::c_str() const{
         if(_cached_c_str == nullptr){
             _cached_c_str = c_str_dup();
         }
