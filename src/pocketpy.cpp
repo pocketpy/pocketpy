@@ -308,9 +308,9 @@ void init_builtins(VM* _vm) {
             try{
                 size_t parsed = 0;
                 i64 val = Number::stoi(s.str(), &parsed, base);
-                if(parsed != s.length()) throw std::invalid_argument("<?>");
+                PK_ASSERT(parsed == s.length());
                 return VAR(val);
-            }catch(std::invalid_argument&){
+            }catch(...){
                 vm->ValueError("invalid literal for int(): " + s.escape());
             }
         }
@@ -368,7 +368,7 @@ void init_builtins(VM* _vm) {
             try{
                 f64 val = Number::stof(s.str());
                 return VAR(val);
-            }catch(std::invalid_argument&){
+            }catch(...){
                 vm->ValueError("invalid literal for float(): " + s.escape());
             }
         }

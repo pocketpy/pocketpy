@@ -15,7 +15,7 @@ main_src_arg = " ".join(src_file_list+["src2/main.cpp"])
 
 print(main_src_arg)
 
-linux_common = " -Wfatal-errors --std=c++17 -O2 -Wall -fno-rtti -stdlib=libc++ -Iinclude/ "
+linux_common = " -Wfatal-errors --std=c++17 -O1 -Wall -fno-rtti -stdlib=libc++ -Iinclude/ "
 linux_cmd = "clang++ -o pocketpy " + main_src_arg + linux_common
 
 if "web" in sys.argv:

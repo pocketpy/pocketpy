@@ -217,7 +217,7 @@ namespace pkpy{
                         char code;
                         try{
                             code = (char)Number::stoi(hex, &parsed, 16);
-                        }catch(std::invalid_argument&){
+                        }catch(...){
                             SyntaxError("invalid hex char");
                         }
                         if (parsed != 2) SyntaxError("invalid hex char");
@@ -259,21 +259,24 @@ namespace pkpy{
             return;
         }
 
+        if(m[1].matched && m[2].matched){
+            SyntaxError("hex literal should not contain a dot");
+        }
+
         try{
             int base = 10;
             size_t size;
             if (m[1].matched) base = 16;
             if (m[2].matched) {
-                if(base == 16) SyntaxError("hex literal should not contain a dot");
+                PK_ASSERT(base == 10);
                 add_token(TK("@num"), Number::stof(m[0], &size));
             } else {
                 add_token(TK("@num"), Number::stoi(m[0], &size, base));
             }
             PK_ASSERT((int)size == (int)m.length());
-        }catch(std::exception& e){
-            PK_UNUSED(e);
+        }catch(...){
             SyntaxError("invalid number literal");
-        } 
+        }
     }
 
     bool Lexer::lex_one_token() {
