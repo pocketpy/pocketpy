@@ -9,15 +9,15 @@ jobs:
     - name: Compile
       shell: bash
       run: |
+        mkdir -p output/windows/x86_64
         mkdir build
         cd build
         cmake ..
         cmake --build . --config Release
         cmake .. -DPK_BUILD_SHARED_LIB=1
         cmake --build . --config Release
-        mkdir -p output/windows/x86_64
-        cp Release/pocketpy.exe output/windows/x86_64
-        cp Release/pocketpy.dll output/windows/x86_64
+        cp Release/pocketpy.exe ../output/windows/x86_64
+        cp Release/pocketpy.dll ../output/windows/x86_64
         cp Release/pocketpy.exe ../
     - uses: actions/upload-artifact@v3
       with:
@@ -46,15 +46,15 @@ jobs:
         directory: .coverage
     - name: Compile
       run: |
+        mkdir -p output/linux/x86_64
         mkdir build
         cd build
         cmake ..
         cmake --build . --config Release
         cmake .. -DPK_BUILD_SHARED_LIB=1
         cmake --build . --config Release
-        mkdir -p output/linux/x86_64
-        cp pocketpy output/linux/x86_64
-        cp libpocketpy.so output/linux/x86_64
+        cp pocketpy ../output/linux/x86_64
+        cp libpocketpy.so ../output/linux/x86_64
         cp pocketpy ../
     - uses: actions/upload-artifact@v3
       with:
