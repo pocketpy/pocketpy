@@ -54,7 +54,7 @@ jobs:
         cmake --build . --config Release
         mkdir -p output/linux/x86_64
         cp pocketpy output/linux/x86_64
-        cp pocketpy.so output/linux/x86_64
+        cp libpocketpy.so output/linux/x86_64
         cp pocketpy ../
     - uses: actions/upload-artifact@v3
       with:
