@@ -5,9 +5,9 @@ project(pocketpy)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_program(PYTHON3 python)
+find_program(PYTHON3 python3)
 if(NOT PYTHON3)
-    find_program(PYTHON3 python3)
+    message(FATAL_ERROR "Could not find python3 executable, exiting.")
 endif()
 
 execute_process(
