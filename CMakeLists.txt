@@ -5,13 +5,10 @@ project(pocketpy)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_program(PYTHON3 python)
-if(NOT PYTHON3)
-    find_program(PYTHON3 python3)
-endif()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 execute_process(
-    COMMAND ${PYTHON3} prebuild.py
+    COMMAND ${Python3_EXECUTABLE} prebuild.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
     RESULT_VARIABLE PREBUILD_RESULT
 )
