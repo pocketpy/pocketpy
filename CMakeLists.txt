@@ -34,6 +34,9 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
+option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+
 if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC} src2/lib.cpp)
 elseif(PK_BUILD_STATIC_LIB)
