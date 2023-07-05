@@ -82,7 +82,7 @@ struct C99Struct{
     }
 
     template<typename T>
-    C99Struct(const T& data): C99Struct(sizeof(T)){
+    C99Struct(std::nullopt_t _, const T& data): C99Struct(sizeof(T)){
         static_assert(std::is_pod_v<T>);
         static_assert(!std::is_pointer_v<T>);
         memcpy(p, &data, this->size);
@@ -163,7 +163,7 @@ T to_c99_struct(VM* vm, PyObject* var){
 
 template<typename T>
 std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
-    return VAR_T(C99Struct, data);
+    return VAR_T(C99Struct, std::nullopt, data);
 }
 /*****************************************************************/
 struct NativeProxyFuncCBase {
