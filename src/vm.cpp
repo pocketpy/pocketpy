@@ -398,7 +398,11 @@ PyObject* VM::format(Str spec, PyObject* obj){
     int width, precision;
     try{
         if(dot >= 0){
-            width = Number::stoi(spec.substr(0, dot).str());
+            if(dot == 0){
+                width = -1;
+            }else{
+                width = Number::stoi(spec.substr(0, dot).str());
+            }
             precision = Number::stoi(spec.substr(dot+1).str());
         }else{
             width = Number::stoi(spec.str());
@@ -424,7 +428,7 @@ PyObject* VM::format(Str spec, PyObject* obj){
     }else{
         ret = CAST(Str&, py_str(obj));
     }
-    if(width > ret.length()){
+    if(width != -1 && width > ret.length()){
         int pad = width - ret.length();
         std::string padding(pad, pad_c);
         if(align == '>') ret = padding.c_str() + ret;
@@ -446,7 +450,7 @@ PyObject* VM::new_module(StrName name) {
 static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
     switch(byte.op){
-        case OP_LOAD_CONST:
+        case OP_LOAD_CONST: case OP_FORMAT_STRING:
             if(vm != nullptr){
                 argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")");
             }

@@ -57,3 +57,18 @@ f()
 
 # class A: a=b=1
 # class A: a, b = 1, 2
+
+bmi = 0.0
+
+def test(a):
+    if a:
+        bmi = 1.4
+    return f'{bmi:.2f}'
+
+assert test(1) == '1.40'
+
+try:
+    assert test(0) == '0.00'
+    exit(1)
+except UnboundLocalError:
+    pass

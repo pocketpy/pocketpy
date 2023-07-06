@@ -111,11 +111,15 @@ __NEXT_STEP:;
         if(_0 == PY_NULL) vm->NameError(co->varnames[byte.arg]);
         PUSH(_0);
     } DISPATCH();
-    TARGET(LOAD_NAME)
+    TARGET(LOAD_NAME) {
         heap._auto_collect();
         _name = StrName(byte.arg);
-        _0 = frame->_locals.try_get(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
+        PyObject** slot = frame->_locals.try_get_name(_name);
+        if(slot != nullptr) {
+            if(*slot == PY_NULL) vm->UnboundLocalError(_name);
+            PUSH(*slot);
+            DISPATCH();
+        }
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get(_name);
@@ -123,7 +127,7 @@ __NEXT_STEP:;
         _0 = vm->builtins->attr().try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
-        DISPATCH();
+    } DISPATCH();
     TARGET(LOAD_NONLOCAL) {
         heap._auto_collect();
         _name = StrName(byte.arg);
@@ -164,16 +168,17 @@ __NEXT_STEP:;
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
-    TARGET(STORE_NAME)
+    TARGET(STORE_NAME){
         _name = StrName(byte.arg);
         _0 = POPX();
         if(frame->_callable != nullptr){
-            bool ok = frame->_locals.try_set(_name, _0);
-            if(!ok) vm->NameError(_name);
+            PyObject** slot = frame->_locals.try_get_name(_name);
+            if(slot == nullptr) vm->UnboundLocalError(_name);
+            *slot = _0;
         }else{
             frame->f_globals().set(_name, _0);
         }
-        DISPATCH();
+    } DISPATCH();
     TARGET(STORE_GLOBAL)
         frame->f_globals().set(StrName(byte.arg), POPX());
         DISPATCH();
@@ -202,8 +207,9 @@ __NEXT_STEP:;
     TARGET(DELETE_NAME)
         _name = StrName(byte.arg);
         if(frame->_callable != nullptr){
-            if(!frame->_locals.contains(_name)) vm->NameError(_name);
-            frame->_locals.erase(_name);
+            PyObject** slot = frame->_locals.try_get_name(_name);
+            if(slot == nullptr) vm->UnboundLocalError(_name);
+            *slot = PY_NULL;
         }else{
             if(!frame->f_globals().contains(_name)) vm->NameError(_name);
             frame->f_globals().erase(_name);
