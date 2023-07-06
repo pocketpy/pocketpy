@@ -450,7 +450,7 @@ PyObject* VM::new_module(StrName name) {
 static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
     switch(byte.op){
-        case OP_LOAD_CONST:
+        case OP_LOAD_CONST: case OP_FORMAT_STRING:
             if(vm != nullptr){
                 argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")");
             }

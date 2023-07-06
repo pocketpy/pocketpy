@@ -1,28 +1,10 @@
 #include "pocketpy/frame.h"
 
 namespace pkpy{
-
-    PyObject* FastLocals::try_get(StrName name){
+    PyObject** FastLocals::try_get_name(StrName name){
         int index = varnames_inv->try_get(name);
         if(index == -1) return nullptr;
-        return a[index];
-    }
-
-    bool FastLocals::contains(StrName name){
-        return varnames_inv->contains(name);
-    }
-
-    void FastLocals::erase(StrName name){
-        int index = varnames_inv->try_get(name);
-        if(index == -1) FATAL_ERROR();
-        a[index] = nullptr;
-    }
-
-    bool FastLocals::try_set(StrName name, PyObject* value){
-        int index = varnames_inv->try_get(name);
-        if(index == -1) return false;
-        a[index] = value;
-        return true;
+        return &a[index];
     }
 
     NameDict_ FastLocals::to_namedict(){

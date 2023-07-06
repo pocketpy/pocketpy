@@ -22,10 +22,7 @@ struct FastLocals{
     FastLocals(const CodeObject* co, PyObject** a): varnames_inv(&co->varnames_inv), a(a) {}
     FastLocals(const FastLocals& other): varnames_inv(other.varnames_inv), a(other.a) {}
 
-    PyObject* try_get(StrName name);
-    bool contains(StrName name);
-    void erase(StrName name);
-    bool try_set(StrName name, PyObject* value);
+    PyObject** try_get_name(StrName name);
     NameDict_ to_namedict();
 };
 
