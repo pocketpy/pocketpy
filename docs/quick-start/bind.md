@@ -43,7 +43,7 @@ vm->bind(obj,
 ## Old style bindings
 
 !!!
-Native functions do not support keyword arguments.
+Old style bindings do not support keyword arguments.
 !!!
 
 ### Bind a function
