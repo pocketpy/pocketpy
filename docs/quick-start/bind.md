@@ -15,7 +15,7 @@ typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 + The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
 
 
-## New style bindings
+## Bind a function or method
 
 Use `vm->bind` to bind a function or method.
 
@@ -40,48 +40,6 @@ vm->bind(obj,
 });
 ```
 
-## Old style bindings
-
-!!!
-Old style bindings do not support keyword arguments.
-!!!
-
-### Bind a function
-
-Assume you have a cpp function `bool equals(int a, int b)`.
-```cpp
-bool equals(int a, int b){
-    return a == b;
-}
-```
-
-You can bind it into `test.equals` by using `vm->bind_func<ARGC>`:
-
-```cpp
-PyObject* obj = vm->new_module("test");
-
-//                     v [function name]
-vm->bind_func<2>(obj, "equals", [](VM* vm, ArgsView args){
-//            ^ argument count
-    int a = CAST(int, args[0]);
-    int b = CAST(int, args[1]);
-    bool result = equals(a, b);
-    return VAR(result);
-});
-```
-
-+ The first argument is the target object to bind. It can be any python object with an instance dict, such as a module, a class, or an instance.
-+ The second argument is the function name.
-+ The third argument is the function pointer. We often use lambda expression to wrap it. A non-capturing lambda expression can be converted to a function pointer.
-
-The template argument `ARGC` is the argument count of the function. If the function is variadic, use `-1` as the argument count.
-
-The interpreter will ensure `args.size() == ARGC` and throws `TypeError` if not.
-For variadic functions, you need to check `args.size()` manually.
-
-If you want to bind a function into `builtins` module, use `vm->bind_builtin_func<ARGC>` instead.
-
-
 ### Bind a constructor
 
 The constructor of a class is a special function that returns an instance of the class.
@@ -92,19 +50,6 @@ vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
     float x = CAST_F(args[1]);
     float y = CAST_F(args[2]);
     return VAR(Vec2(x, y));
-});
-```
-
-### Bind a method
-
-The `vm->bind_method<ARGC>` usage is almost the same as `vm->bind_func<ARGC>`.
-The only difference is that `ARGC` in `vm->bind_method<ARGC>` does not include the `self` argument.
-
-```cpp
-vm->bind_method<1>("int", "equals", [](VM* vm, ArgsView args){
-    int self = CAST(int, args[0]);
-    int other = CAST(int, args[1]);
-    return VAR(self == other);
 });
 ```
 
