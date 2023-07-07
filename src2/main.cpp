@@ -5,27 +5,15 @@
 
 #ifndef __EMSCRIPTEN__
 
+std::string f_input(){
+    return pkpy::getline();
+}
+
 int main(int argc, char** argv){
     pkpy::VM* vm = pkpy_new_vm();
-    vm->bind_builtin_func<0>("input", [](pkpy::VM* vm, pkpy::ArgsView args){
-        // pkpy::getline() has bugs for PIPE input on Windows
-        return VAR(pkpy::getline());
-    });
 
-    // vm->bind(vm->builtins, "test_sum(a: int, b: int, *args, x=5)",
-    //     "Test function for summing up numbers.",
-    //     [](pkpy::VM* vm, pkpy::ArgsView args){
-    //         PK_ASSERT(args.size() == 4);
-    //         int sum = 0;
-    //         sum += pkpy::CAST(int, args[0]);
-    //         sum += pkpy::CAST(int, args[1]);
-    //         pkpy::Tuple& t = pkpy::CAST(pkpy::Tuple&, args[2]);
-    //         for(pkpy::PyObject* ob: t){
-    //             sum += pkpy::CAST(int, ob);
-    //         }
-    //         sum *= pkpy::CAST(int, args[3]);
-    //         return VAR(sum);
-    //     });
+    pkpy::bind_any_c_fp(vm, vm->builtins, "input", &f_input);
+
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);
         bool need_more_lines = false;
