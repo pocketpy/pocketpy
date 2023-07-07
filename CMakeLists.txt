@@ -20,19 +20,10 @@ endif()
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR- /EHsc /utf-8 /O2")
 else()
-    if (NOT EMSCRIPTEN)
-        find_program(CLANGPP clang++)
-        if(CLANGPP)
-            message(STATUS "Using clang with libc++")
-            set(CMAKE_CXX_COMPILER ${CLANGPP})
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-        endif()
-    endif()
-
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fexceptions -O2")
 endif()
 
-option(PK_EXPORT_C_API "Build C API" OFF)
+option(PK_EXPORT_C_API "Export C API" OFF)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
