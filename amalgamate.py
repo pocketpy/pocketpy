@@ -80,7 +80,7 @@ text = text.replace('#include "pocketpy/pocketpy.h"', '#include "pocketpy.h"')
 with open("amalgamated/main.cpp", "wt", encoding='utf-8') as f:
 	f.write(text)
 
-if sys.platform == 'linux':
+if sys.platform in ['linux', 'darwin']:
 	ok = os.system("clang++ -o pocketpy amalgamated/main.cpp --std=c++17 -stdlib=libc++")
 	if ok == 0:
 		print("Test build success!")
@@ -95,7 +95,7 @@ for i in ["include/pocketpy/export.h", "c_bindings/pocketpy_c.h", "c_bindings/po
 
 with open("amalgamated/pocketpy.cpp", "wt", encoding='utf-8') as f:
 	content = '\n\n'.join(content)
-	content = content.replace('#include "export.h"', '')
+	content = content.replace('#include "pocketpy/export.h"', '')
 	content = content.replace('#include "pocketpy_c.h"', '')
 	f.write(content)
 
