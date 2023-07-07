@@ -8,9 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifndef PK_EXPORT
-#define PK_EXPORT
-#endif
+#include "pocketpy/export.h"
 
 typedef struct pkpy_vm_handle pkpy_vm;
 
