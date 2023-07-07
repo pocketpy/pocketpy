@@ -18,7 +18,7 @@ namespace pkpy{
 #define BIND_VEC_FLOAT_OP(D, name, op)  \
         vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            f64 other = vm->num_to_float(args[1]);                          \
+            f64 other = CAST(f64, args[1]);                                 \
             return VAR(self op other);                                      \
         });
 
@@ -41,7 +41,7 @@ namespace pkpy{
             return VAR(self.name);                                          \
         }, [](VM* vm, ArgsView args){                                       \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            self.name = vm->num_to_float(args[1]);                          \
+            self.name = CAST(f64, args[1]);                                 \
             return vm->None;                                                \
         }));
 
@@ -72,7 +72,7 @@ namespace pkpy{
 
         vm->bind_method<1>(type, "rotate", [](VM* vm, ArgsView args){
             Vec2 self = _CAST(PyVec2&, args[0]);
-            float radian = vm->num_to_float(args[1]);
+            float radian = CAST(f64, args[1]);
             float cr = cosf(radian);
             float sr = sinf(radian);
             Mat3x3 rotate(cr,   -sr,  0.0f,
@@ -289,7 +289,7 @@ namespace pkpy{
             return VAR(self.field);                                         \
         }, [](VM* vm, ArgsView args){                                       \
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);                     \
-            self.field = vm->num_to_float(args[1]);                         \
+            self.field = CAST(f64, args[1]);                                \
             return vm->None;                                                \
         }));
 

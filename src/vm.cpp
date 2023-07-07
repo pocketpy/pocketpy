@@ -278,16 +278,11 @@ PyObject* VM::py_negate(PyObject* obj){
     return call_method(obj, __neg__);
 }
 
-f64 VM::num_to_float(PyObject* obj){
-    if(is_float(obj)){
-        return _CAST(f64, obj);
-    } else if (is_int(obj)){
-        return (f64)_CAST(i64, obj);
+void VM::check_int_or_float(PyObject *obj){
+    if(!is_tagged(obj)){
+        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
     }
-    TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
-    return 0;
 }
-
 
 bool VM::py_bool(PyObject* obj){
     if(is_non_tagged_type(obj, tp_bool)) return obj == True;
@@ -416,7 +411,7 @@ PyObject* VM::format(Str spec, PyObject* obj){
     if(type != 'f' && dot >= 0) ValueError("precision not allowed in the format specifier");
     Str ret;
     if(type == 'f'){
-        f64 val = num_to_float(obj);
+        f64 val = CAST(f64, obj);
         if(precision < 0) precision = 6;
         std::stringstream ss;
         ss << std::fixed << std::setprecision(precision) << val;

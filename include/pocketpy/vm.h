@@ -382,10 +382,7 @@ public:
         check_type(obj, tp_int);    // if failed, redirect to check_type to raise TypeError
     }
 
-    void check_float(PyObject* obj){
-        if(is_float(obj)) return;
-        check_type(obj, tp_float);  // if failed, redirect to check_type to raise TypeError
-    }
+    void check_int_or_float(PyObject* obj);
 
     PyObject* _t(Type t){
         return _all_types[t.index].obj;
@@ -433,7 +430,6 @@ public:
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* py_negate(PyObject* obj);
-    f64 num_to_float(PyObject* obj);
     bool py_bool(PyObject* obj);
     i64 py_hash(PyObject* obj);
     PyObject* py_list(PyObject*);
@@ -498,24 +494,32 @@ PY_CAST_INT(unsigned long)
 PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
-    vm->check_float(obj);
-    i64 bits = PK_BITS(obj) & Number::c1;
-    return BitsCvt(bits)._float;
+    if(is_float(obj)){
+        i64 bits = PK_BITS(obj) & Number::c1;
+        return BitsCvt(bits)._float;
+    }
+    if(is_int(obj)){
+        return (float)_py_cast<i64>(vm, obj);
+    }
+    vm->check_int_or_float(obj);       // error!
+    return 0;
 }
 template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
-    PK_UNUSED(vm);
-    i64 bits = PK_BITS(obj) & Number::c1;
-    return BitsCvt(bits)._float;
+    return py_cast<float>(vm, obj);
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
-    vm->check_float(obj);
-    i64 bits = PK_BITS(obj) & Number::c1;
-    return BitsCvt(bits)._float;
+    if(is_float(obj)){
+        i64 bits = PK_BITS(obj) & Number::c1;
+        return BitsCvt(bits)._float;
+    }
+    if(is_int(obj)){
+        return (float)_py_cast<i64>(vm, obj);
+    }
+    vm->check_int_or_float(obj);       // error!
+    return 0;
 }
 template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
-    PK_UNUSED(vm);
-    i64 bits = PK_BITS(obj) & Number::c1;
-    return BitsCvt(bits)._float;
+    return py_cast<double>(vm, obj);
 }
 
 
