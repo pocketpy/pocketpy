@@ -7,7 +7,10 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "export.h"
+
+#ifndef PK_EXPORT
+#define PK_EXPORT
+#endif
 
 typedef struct pkpy_vm_handle pkpy_vm;
 
