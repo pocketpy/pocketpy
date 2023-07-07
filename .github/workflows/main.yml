@@ -46,6 +46,8 @@ jobs:
         directory: .coverage
     - name: Compile
       run: |
+        export CXX=clang++
+        export CC=clang
         mkdir -p output/linux/x86_64
         mkdir build
         cd build
