@@ -830,15 +830,19 @@ __SUBSCR_END:
     void Compiler::compile_class(){
         consume(TK("@id"));
         int namei = StrName(prev().str()).index;
-        int super_namei = -1;
+        Expr_ base = nullptr;
         if(match(TK("("))){
-            if(match(TK("@id"))){
-                super_namei = StrName(prev().str()).index;
+            if(is_expression()){
+                EXPR();
+                base = ctx()->s_expr.popx();
             }
             consume(TK(")"));
         }
-        if(super_namei == -1) ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
-        else ctx()->emit(OP_LOAD_GLOBAL, super_namei, prev().line);
+        if(base == nullptr){
+            ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
+        }else {
+            base->emit(ctx());
+        }
         ctx()->emit(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
         ctx()->is_compiling_class = true;
         compile_block_body();

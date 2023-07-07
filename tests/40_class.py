@@ -92,9 +92,9 @@ class B(A):
 assert B.b == 3
 assert B.c == 4
 
-from c import void_p
+import c
 
-class A(void_p):
+class A(c.void_p):
     pass
     
 a = A()
