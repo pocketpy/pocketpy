@@ -566,6 +566,12 @@ __NEXT_STEP:;
     TARGET(UNARY_STAR)
         TOP() = VAR(StarWrapper(byte.arg, TOP()));
         DISPATCH();
+    TARGET(UNARY_INVERT)
+        _ti = _inst_type_info(TOP());
+        if(_ti->m__invert__) _0 = _ti->m__invert__(this, TOP());
+        else _0 = call_method(TOP(), __invert__);
+        TOP() = _0;
+        DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
         TOP() = py_iter(TOP());

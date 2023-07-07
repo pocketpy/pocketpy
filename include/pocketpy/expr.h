@@ -78,6 +78,13 @@ struct NameExpr: Expr{
     bool emit_store(CodeEmitContext* ctx) override;
 };
 
+struct InvertExpr: Expr{
+    Expr_ child;
+    InvertExpr(Expr_&& child): child(std::move(child)) {}
+    std::string str() const override { return "Invert()"; }
+    void emit(CodeEmitContext* ctx) override;
+};
+
 struct StarredExpr: Expr{
     int level;
     Expr_ child;

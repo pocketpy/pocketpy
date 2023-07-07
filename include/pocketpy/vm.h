@@ -65,6 +65,7 @@ struct PyTypeInfo{
     PyObject* (*m__json__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__neg__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__bool__)(VM* vm, PyObject*) = nullptr;
+    PyObject* (*m__invert__)(VM* vm, PyObject*) = nullptr;
 
     BinaryFuncC m__eq__ = nullptr;
     BinaryFuncC m__lt__ = nullptr;
@@ -221,6 +222,7 @@ public:
     BIND_UNARY_SPECIAL(__json__)
     BIND_UNARY_SPECIAL(__neg__)
     BIND_UNARY_SPECIAL(__bool__)
+    BIND_UNARY_SPECIAL(__invert__)
 
     void bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*));
     void bind__len__(Type type, i64 (*f)(VM* vm, PyObject*));

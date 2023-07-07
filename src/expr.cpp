@@ -139,6 +139,10 @@ namespace pkpy{
         return true;
     }
 
+    void InvertExpr::emit(CodeEmitContext* ctx) {
+        child->emit(ctx);
+        ctx->emit(OP_UNARY_INVERT, BC_NOARG, line);
+    }
 
     void StarredExpr::emit(CodeEmitContext* ctx) {
         child->emit(ctx);

@@ -343,6 +343,8 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__hash__(_vm->tp_int, [](VM* vm, PyObject* obj) { return _CAST(i64, obj); });
 
+    _vm->bind__invert__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(~_CAST(i64, obj)); });
+
 #define INT_BITWISE_OP(name, op) \
     _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
         return VAR(_CAST(i64, lhs) op CAST(i64, rhs)); \

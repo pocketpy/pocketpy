@@ -52,6 +52,7 @@ namespace pkpy{
         rules[TK("+")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_TERM };
         rules[TK("-")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_TERM };
         rules[TK("*")] =        { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_FACTOR };
+        rules[TK("~")] =        { METHOD(exprUnaryOp),   nullptr,                    PREC_UNARY };
         rules[TK("/")] =        { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("//")] =       { nullptr,               METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("**")] =       { METHOD(exprUnaryOp),   METHOD(exprBinaryOp),       PREC_EXPONENT };
@@ -240,6 +241,9 @@ namespace pkpy{
         switch(op){
             case TK("-"):
                 ctx()->s_expr.push(make_expr<NegatedExpr>(ctx()->s_expr.popx()));
+                break;
+            case TK("~"):
+                ctx()->s_expr.push(make_expr<InvertExpr>(ctx()->s_expr.popx()));
                 break;
             case TK("*"):
                 ctx()->s_expr.push(make_expr<StarredExpr>(1, ctx()->s_expr.popx()));

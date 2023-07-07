@@ -286,6 +286,7 @@ namespace pkpy{
             switch (c) {
                 case '\'': case '"': eat_string(c, NORMAL_STRING); return true;
                 case '#': skip_line_comment(); break;
+                case '~': add_token(TK("~")); return true;
                 case '{': add_token(TK("{")); return true;
                 case '}': add_token(TK("}")); return true;
                 case ',': add_token(TK(",")); return true;

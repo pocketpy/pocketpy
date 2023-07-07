@@ -375,6 +375,14 @@ namespace pkpy{
             return VAR_T(PyMat3x3, ret);
         });
 
+        vm->bind__invert__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyMat3x3& self = _CAST(PyMat3x3&, obj);
+            Mat3x3 ret;
+            bool ok = self.inverse(ret);
+            if(!ok) vm->ValueError("matrix is not invertible");
+            return VAR_T(PyMat3x3, ret);
+        });
+
         vm->bind_func<0>(type, "zeros", [](VM* vm, ArgsView args){
             PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::zeros());

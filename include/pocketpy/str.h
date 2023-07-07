@@ -281,6 +281,7 @@ const StrName __rshift__ = StrName::get("__rshift__");
 const StrName __and__ = StrName::get("__and__");
 const StrName __or__ = StrName::get("__or__");
 const StrName __xor__ = StrName::get("__xor__");
+const StrName __invert__ = StrName::get("__invert__");
 // indexer
 const StrName __getitem__ = StrName::get("__getitem__");
 const StrName __setitem__ = StrName::get("__setitem__");

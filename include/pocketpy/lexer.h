@@ -21,7 +21,7 @@ constexpr const char* kTokens[] = {
     /*****************************************/
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
     "**", "=", ">", "<", "...", "->", "?", "@", "==", "!=", ">=", "<=",
-    "++", "--",
+    "++", "--", "~",
     /** SPEC_BEGIN **/
     "$goto", "$label",
     /** KW_BEGIN **/
@@ -92,7 +92,7 @@ enum Precedence {
   PREC_BITWISE_SHIFT, // << >>
   PREC_TERM,          // + -
   PREC_FACTOR,        // * / % // @
-  PREC_UNARY,         // - not
+  PREC_UNARY,         // - not ~
   PREC_EXPONENT,      // **
   PREC_CALL,          // ()
   PREC_SUBSCRIPT,     // []
