@@ -240,36 +240,6 @@ struct Mat3x3{
         return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 
-    Mat3x3 inverse_affine() const{
-        Mat3x3 ret;
-        float det = _11 * _22 - _12 * _21;
-        float inv_det = 1.0f / det;
-        ret._11 = _22 * inv_det;
-        ret._12 = -_12 * inv_det;
-        ret._13 = (_12 * _23 - _13 * _22) * inv_det;
-        ret._21 = -_21 * inv_det;
-        ret._22 = _11 * inv_det;
-        ret._23 = (_13 * _21 - _11 * _23) * inv_det;
-        ret._31 = 0.0f;
-        ret._32 = 0.0f;
-        ret._33 = 1.0f;
-        return ret;
-    }
-
-    Mat3x3 matmul_affine(const Mat3x3& other) const{
-        Mat3x3 ret;
-        ret._11 = _11 * other._11 + _12 * other._21;
-        ret._12 = _11 * other._12 + _12 * other._22;
-        ret._13 = _11 * other._13 + _12 * other._23 + _13;
-        ret._21 = _21 * other._11 + _22 * other._21;
-        ret._22 = _21 * other._12 + _22 * other._22;
-        ret._23 = _21 * other._13 + _22 * other._23 + _23;
-        ret._31 = 0.0f;
-        ret._32 = 0.0f;
-        ret._33 = 1.0f;
-        return ret;
-    }
-
     Vec2 translation() const { return Vec2(_13, _23); }
     float rotation() const { return atan2f(_21, _11); }
     Vec2 scale() const {

@@ -206,7 +206,7 @@ inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
 }
 
 template<typename T>
-inline void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
+void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
     static_assert(std::is_pod_v<T>);
     static_assert(std::is_pointer_v<T>);
     auto proxy = new NativeProxyFuncC(fp);

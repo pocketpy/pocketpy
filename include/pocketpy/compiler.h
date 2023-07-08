@@ -137,7 +137,4 @@ public:
     Compiler& operator=(const Compiler&) = delete;
 };
 
-#undef BC_NOARG
-#undef BC_KEEPLINE
-
 } // namespace pkpy

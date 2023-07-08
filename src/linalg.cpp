@@ -353,8 +353,11 @@ namespace pkpy{
 
         vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR(self == other);
+            if(is_non_tagged_type(args[1], PyMat3x3::_type(vm))){
+                PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+                return VAR(self == other);
+            }
+            return vm->NotImplemented;
         });
 
         vm->bind_method<0>(type, "determinant", [](VM* vm, ArgsView args){
@@ -410,18 +413,6 @@ namespace pkpy{
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             return VAR(self.is_affine());
         });
-
-        vm->bind_method<0>(type, "inverse_affine", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR_T(PyMat3x3, self.inverse_affine());
-        });
-
-        vm->bind_method<1>(type, "matmul_affine", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
-            return VAR_T(PyMat3x3, self.matmul_affine(other));
-        });
-
 
         vm->bind_method<0>(type, "translation", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
