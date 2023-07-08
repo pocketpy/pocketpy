@@ -6,7 +6,7 @@
 #ifndef __EMSCRIPTEN__
 
 std::string f_input(){
-    return pkpy::getline();
+    return pkpy::platform_getline();
 }
 
 int main(int argc, char** argv){
@@ -20,7 +20,7 @@ int main(int argc, char** argv){
         while(true){
             vm->_stdout(vm, need_more_lines ? "... " : ">>> ");
             bool eof = false;
-            std::string line = pkpy::getline(&eof);
+            std::string line = pkpy::platform_getline(&eof);
             if(eof) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
