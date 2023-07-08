@@ -35,7 +35,7 @@
 #define THREAD_LOCAL thread_local
 #include <mutex>
 
-struct PK_EXPORT GIL {
+struct GIL {
 	inline static std::mutex _mutex;
     explicit GIL() { _mutex.lock(); }
     ~GIL() { _mutex.unlock(); }
@@ -59,7 +59,7 @@ template <size_t T>
 struct NumberTraits;
 
 template <>
-struct PK_EXPORT NumberTraits<4> {
+struct NumberTraits<4> {
 	using int_t = int32_t;
 	using float_t = float;
 
@@ -74,7 +74,7 @@ struct PK_EXPORT NumberTraits<4> {
 };
 
 template <>
-struct PK_EXPORT NumberTraits<8> {
+struct NumberTraits<8> {
 	using int_t = int64_t;
 	using float_t = double;
 
@@ -96,13 +96,13 @@ static_assert(sizeof(i64) == sizeof(void*));
 static_assert(sizeof(f64) == sizeof(void*));
 static_assert(std::numeric_limits<f64>::is_iec559);
 
-struct PK_EXPORT Dummy { };
-struct PK_EXPORT DummyInstance { };
-struct PK_EXPORT DummyModule { };
-struct PK_EXPORT NoReturn { };
-struct PK_EXPORT Discarded { };
+struct Dummy { };
+struct DummyInstance { };
+struct DummyModule { };
+struct NoReturn { };
+struct Discarded { };
 
-struct PK_EXPORT Type {
+struct Type {
 	int index;
 	Type(): index(-1) {}
 	Type(int index): index(index) {}
@@ -125,27 +125,27 @@ struct PK_EXPORT Type {
 
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<i64>(p))
-PK_EXPORT inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
-PK_EXPORT inline bool is_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b01; }
-PK_EXPORT inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
-PK_EXPORT inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
+inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
+inline bool is_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b01; }
+inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
+inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
 
-PK_EXPORT inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
+inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
     return is_tagged(a) && is_tagged(b);
 }
 
-PK_EXPORT inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
+inline bool is_both_int(PyObject* a, PyObject* b) noexcept {
     return is_int(a) && is_int(b);
 }
 
-PK_EXPORT inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
+inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
 	return is_float(a) && is_float(b);
 }
 
 // special singals, is_tagged() for them is true
-PK_EXPORT inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
-PK_EXPORT inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
-PK_EXPORT inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
+inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
+inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
+inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 
 #define ADD_MODULE_PLACEHOLDER(name) namespace pkpy { inline void add_module_##name(void* vm) { (void)vm; } }
 
