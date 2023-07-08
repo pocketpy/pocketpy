@@ -17,6 +17,7 @@ jobs:
         cp Release/main.exe ../output/windows/x86_64
         cp Release/pocketpy.dll ../output/windows/x86_64
         cp Release/main.exe ../
+        cp Release/pocketpy.dll ../
     - uses: actions/upload-artifact@v3
       with:
         path: output
@@ -54,6 +55,7 @@ jobs:
         cp main ../output/linux/x86_64
         cp libpocketpy.so ../output/linux/x86_64
         cp main ../
+        cp libpocketpy.so ../
     - uses: actions/upload-artifact@v3
       with:
         path: output
