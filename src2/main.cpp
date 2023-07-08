@@ -10,7 +10,7 @@ std::string f_input(){
 int main(int argc, char** argv){
     pkpy::VM* vm = pkpy_new_vm();
 
-    pkpy::bind_any_c_fp(vm, vm->builtins, "input", &f_input);
+    pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
 
     if(argc == 1){
         pkpy::REPL* repl = pkpy_new_repl(vm);

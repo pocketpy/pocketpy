@@ -14,6 +14,7 @@
 #include "vm.h"
 #include "re.h"
 #include "random.h"
+#include "bindings.h"
 
 namespace pkpy {
 

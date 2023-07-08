@@ -451,10 +451,10 @@ public:
     PyObject* _run_top_frame();
     void post_init();
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
-    // new style binding api
-    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC);
-    PyObject* bind(PyObject*, const char*, NativeFuncC);
     void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
+    // new style binding api
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, void* userdata=nullptr);
+    PyObject* bind(PyObject*, const char*, NativeFuncC, void* userdata=nullptr);
 };
 
 DEF_NATIVE_2(Str, tp_str)

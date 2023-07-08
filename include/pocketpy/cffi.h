@@ -166,55 +166,6 @@ std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM
     return VAR_T(C99Struct, std::monostate(), data);
 }
 /*****************************************************************/
-struct NativeProxyFuncCBase {
-    virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
-
-    static void check_args_size(VM* vm, ArgsView args, int n){
-        if (args.size() != n){
-            vm->TypeError("expected " + std::to_string(n) + " arguments, got " + std::to_string(args.size()));
-        }
-    }
-};
-
-template<typename Ret, typename... Params>
-struct NativeProxyFuncC final: NativeProxyFuncCBase {
-    static constexpr int N = sizeof...(Params);
-    using _Fp = Ret(*)(Params...);
-    _Fp func;
-    NativeProxyFuncC(_Fp func) : func(func) {}
-
-    PyObject* operator()(VM* vm, ArgsView args) override {
-        check_args_size(vm, args, N);
-        return call<Ret>(vm, args, std::make_index_sequence<N>());
-    }
-
-    template<typename __Ret, size_t... Is>
-    PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
-        if constexpr(std::is_void_v<__Ret>){
-            func(py_cast<Params>(vm, args[Is])...);
-            return vm->None;
-        }else{
-            __Ret ret = func(py_cast<Params>(vm, args[Is])...);
-            return VAR(std::move(ret));
-        }
-    }
-};
-
-inline PyObject* _any_c_wrapper(VM* vm, ArgsView args){
-    NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args.begin());
-    return (*pf)(vm, args);
-}
-
-template<typename T>
-void bind_any_c_fp(VM* vm, PyObject* obj, Str name, T fp){
-    static_assert(std::is_pod_v<T>);
-    static_assert(std::is_pointer_v<T>);
-    auto proxy = new NativeProxyFuncC(fp);
-    PyObject* func = VAR(NativeFunc(_any_c_wrapper, proxy->N, false));
-    _CAST(NativeFunc&, func).set_userdata(proxy);
-    obj->attr().set(name, func);
-}
-
 void add_module_c(VM* vm);
 
 }   // namespace pkpy
