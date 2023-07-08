@@ -7,9 +7,23 @@ std::string f_input(){
     return pkpy::platform_getline();
 }
 
-int main(int argc, char** argv){
-    pkpy::VM* vm = pkpy_new_vm();
+#define ABS_PATH(x) std::filesystem::absolute(x).c_str()
 
+int main(int argc, char** argv){
+#if _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    void* p = LoadLibraryA(ABS_PATH("pocketpy.dll"));
+#elif __linux__
+    void* p = dlopen(ABS_PATH("libpocketpy.so"), RTLD_NOW | RTLD_GLOBAL);
+#elif __APPLE__
+    void* p = dlopen(ABS_PATH("libpocketpy.dylib"), RTLD_NOW | RTLD_GLOBAL);
+#endif
+    if(p == nullptr){
+        std::cerr << "unable to load dynamic library" << std::endl;
+        return 1;
+    }
+
+    pkpy::VM* vm = pkpy_new_vm();
     pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
 
     if(argc == 1){
