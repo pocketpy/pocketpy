@@ -2,6 +2,38 @@
 
 namespace pkpy{
 
+using dylib_entry_t = PyObject*(*)(VM*, const char*);
+
+#if PK_ENABLE_OS
+
+#if _WIN32
+static dylib_entry_t load_dylib(const char* path){
+    std::error_code ec;
+    auto p = std::filesystem::absolute(path, ec);
+    if(ec) return nullptr;
+    HMODULE handle = LoadLibraryA(p.c_str());
+    if(!handle) return nullptr;
+    return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
+}
+#else
+static dylib_entry_t load_dylib(const char* path){
+    std::error_code ec;
+    auto p = std::filesystem::absolute(path, ec);
+    if(ec) return nullptr;
+    void* handle = dlopen(p.c_str(), RTLD_LAZY);
+    if(!handle) return nullptr;
+    return (dylib_entry_t)dlsym(handle, "platform_module__init__");
+}
+#endif
+
+#else
+static dylib_entry_t load_dylib(const char* path){
+    PK_UNUSED(path);
+    return nullptr;
+}
+#endif
+
+
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                             \
@@ -106,7 +138,19 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
-        return vm->py_import(CAST(Str&, args[0]));
+        const Str& name = CAST(Str&, args[0]);
+        auto dot = name.sv().find_first_of(".");
+        if(dot != std::string_view::npos){
+            auto ext = name.sv().substr(dot);
+            if(ext == ".so" || ext == ".dll" || ext == ".dylib" || ext == ".pyd"){
+                dylib_entry_t entry = load_dylib(name.c_str());
+                if(!entry){
+                    vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
+                }
+                return entry(vm, PK_VERSION);
+            }
+        }
+        return vm->py_import(name);
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {

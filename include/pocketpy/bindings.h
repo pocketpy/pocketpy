@@ -122,4 +122,10 @@ struct OpaquePointer{
                 return VAR(self->get_##NAME()); \
             }));
 
+#define PK_REGISTER_CONSTRUCTOR(T, T0)  \
+        vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){ \
+            void* p = CAST(void*, args[0]); \
+            return VAR_T(T, (T0*)p);    \
+        });
+
 }   // namespace pkpy
