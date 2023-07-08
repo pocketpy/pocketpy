@@ -16,11 +16,6 @@ int main(int argc, char** argv){
 #elif __APPLE__
     void* p = dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
 #endif
-    if(p == nullptr){
-        std::cerr << "unable to load dynamic library" << std::endl;
-        return 1;
-    }
-
     pkpy::VM* vm = pkpy_new_vm();
     pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
 
