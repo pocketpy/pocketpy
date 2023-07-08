@@ -61,8 +61,11 @@ jobs:
         path: output
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
-    # - name: GCC Build Test
-    #   run: g++ -o pocketpy --std=c++17 src/main.cpp
+    - name: GCC Build Test
+      run: |
+        SRC=$(find src/ -name "*.cpp")
+        g++ -o main --std=c++17 src/main.cpp $SRC
+        python3 scripts/run_tests.py
     - name: C Binding Test
       run: bash run_c_binding_test.sh
   build_macos:

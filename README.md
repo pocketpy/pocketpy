@@ -43,10 +43,6 @@ To compile it with your project, these flags must be set:
 + RTTI is not required
 + If clang is used, `-stdlib=libc++` must be set
 
-!!!
-For maximum performance, we recommend to use `clang++` with `-O2` flag.
-!!!
-
 ### Example
 
 ```cpp
