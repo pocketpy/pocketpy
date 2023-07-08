@@ -1,3 +1,4 @@
+#define PK_SHARED_MODULE
 #include "pocketpy.h"
 
 using namespace pkpy;
@@ -14,5 +15,15 @@ extern "C" {
         });
         return mod;
     }
+
+#if _WIN32
+BOOL WINAPI DllMain(
+    HINSTANCE hinstDLL,  // handle to DLL module
+    DWORD fdwReason,     // reason for calling function
+    LPVOID lpvReserved )  // reserved
+{
+    return TRUE;  // Successful DLL_PROCESS_ATTACH.
+}
+#endif
 
 }

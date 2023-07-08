@@ -12,3 +12,8 @@
 #define PK_INLINE_EXPORT PK_EXPORT inline
 
 #endif
+
+#ifdef PK_SHARED_MODULE
+#undef PK_EXPORT
+#define PK_EXPORT
+#endif

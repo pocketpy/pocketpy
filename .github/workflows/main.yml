@@ -61,11 +61,6 @@ jobs:
         path: output
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
-    - name: GCC Build Test
-      run: |
-        SRC=$(find src/ -name "*.cpp")
-        g++ -o main --std=c++17 src/main.cpp $SRC
-        python3 scripts/run_tests.py
     - name: C Binding Test
       run: bash run_c_binding_test.sh
   build_macos:
@@ -112,22 +107,3 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: plugins/flutter/example/build/app/outputs/flutter-apk/output
-  # build_web:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #   - uses: actions/checkout@v3
-  #   - name: Setup emsdk
-  #     uses: mymindstorm/setup-emsdk@v12
-  #     with:
-  #       version: 3.1.25
-  #       actions-cache-folder: 'emsdk-cache'
-  #   - name: Verify emsdk
-  #     run: emcc -v
-  #   - name: Compile
-  #     run: |
-  #       mkdir -p output/web/lib
-  #       python3 build.py web
-  #       cp web/lib/* output/web/lib
-  #   - uses: actions/upload-artifact@v3
-  #     with:
-  #       path: output
