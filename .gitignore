@@ -22,7 +22,7 @@ include/pocketpy/_generated.h
 profile.sh
 test
 src/httplib.h
-pocketpy.exe
+main.exe
 main.obj
 pocketpy.exp
 pocketpy.lib

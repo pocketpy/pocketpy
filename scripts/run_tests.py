@@ -6,9 +6,9 @@ def test_file(filepath, cpython=False):
     if cpython:
         return os.system("python3 " + filepath) == 0
     if sys.platform == 'win32':
-        return os.system("pocketpy.exe " + filepath) == 0
+        return os.system("main.exe " + filepath) == 0
     else:
-        return os.system("./pocketpy " + filepath) == 0
+        return os.system("./main " + filepath) == 0
 
 def test_dir(path):
     print("Testing directory:", path)

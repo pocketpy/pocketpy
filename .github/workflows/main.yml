@@ -14,9 +14,9 @@ jobs:
         cd build
         cmake ..
         cmake --build . --config Release
-        cp Release/pocketpy.exe ../output/windows/x86_64
+        cp Release/main.exe ../output/windows/x86_64
         cp Release/pocketpy.dll ../output/windows/x86_64
-        cp Release/pocketpy.exe ../
+        cp Release/main.exe ../
     - uses: actions/upload-artifact@v3
       with:
         path: output
@@ -51,9 +51,9 @@ jobs:
         cd build
         cmake ..
         cmake --build . --config Release
-        cp pocketpy ../output/linux/x86_64
+        cp main ../output/linux/x86_64
         cp libpocketpy.so ../output/linux/x86_64
-        cp pocketpy ../
+        cp main ../
     - uses: actions/upload-artifact@v3
       with:
         path: output
