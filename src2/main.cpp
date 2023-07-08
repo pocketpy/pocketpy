@@ -3,8 +3,6 @@
 
 #include "pocketpy.h"
 
-#ifndef __EMSCRIPTEN__
-
 std::string f_input(){
     return pkpy::platform_getline();
 }
@@ -59,5 +57,3 @@ __HELP:
     std::cout << "Usage: pocketpy [filename]" << std::endl;
     return 0;
 }
-
-#endif
