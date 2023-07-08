@@ -23,7 +23,7 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fexceptions -O2")
 endif()
 
-option(PK_EXPORT_C_API "Export C API" OFF)
+option(PK_EXPORT_C_API "Export C API" ON)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 

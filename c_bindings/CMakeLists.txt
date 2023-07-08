@@ -4,7 +4,6 @@ project(test_c_bindings)
 
 set(CMAKE_C_STANDARD 11)
 
-option(PK_EXPORT_C_API "Export C API" ON)
 option(PK_BUILD_STATIC_LIB "Build static library" ON)
 
 add_subdirectory(

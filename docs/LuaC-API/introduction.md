@@ -12,8 +12,6 @@ true if it succeeded false if it did not.
 Special thanks for [@koltenpearson](https://github.com/koltenpearson) for bringing us the Lua Style API implementation.
 !!!
 
-Set option `PK_EXPORT_C_API` to `ON` to enable the C API in cmake build process.
-
 ## Basic Functions
 
 #### `pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os)`
