@@ -10,11 +10,11 @@ std::string f_input(){
 int main(int argc, char** argv){
 #if _WIN32
     SetConsoleOutputCP(CP_UTF8);
-    void* p = LoadLibraryA("pocketpy.dll");
+    // implicitly load pocketpy.dll in current directory
 #elif __linux__
-    void* p = dlopen("libpocketpy.so", RTLD_NOW | RTLD_GLOBAL);
+    dlopen("libpocketpy.so", RTLD_NOW | RTLD_GLOBAL);
 #elif __APPLE__
-    void* p = dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
+    dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
 #endif
     pkpy::VM* vm = pkpy_new_vm();
     pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
