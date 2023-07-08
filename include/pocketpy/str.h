@@ -163,27 +163,18 @@ inline bool is_unicode_Lo_char(uint32_t c) {
 
 struct StrName {
     uint16_t index;
-    StrName(): index(0) {}
-    explicit StrName(uint16_t index): index(index) {}
-    StrName(const char* s): index(get(s).index) {}
-    StrName(const Str& s){
-        index = get(s.sv()).index;
-    }
-    std::string_view sv() const { return _r_interned[index-1].sv(); }
+    StrName();
+    explicit StrName(uint16_t index);
+    StrName(const char* s);
+    StrName(const Str& s);
+    std::string_view sv() const;
     bool empty() const { return index == 0; }
 
     friend std::ostream& operator<<(std::ostream& os, const StrName& sn){
         return os << sn.sv();
     }
 
-    static bool is_valid(int index) {
-        // check _r_interned[index-1] is valid
-        return index > 0 && index <= _r_interned.size();
-    }
-
-    Str escape() const {
-        return _r_interned[index-1].escape();
-    }
+    Str escape() const;
 
     bool operator==(const StrName& other) const noexcept {
         return this->index == other.index;
@@ -204,14 +195,8 @@ struct StrName {
     inline static std::map<Str, uint16_t, std::less<>> _interned;
     inline static std::vector<Str> _r_interned;
 
-    static StrName get(std::string_view s){
-        auto it = _interned.find(s);
-        if(it != _interned.end()) return StrName(it->second);
-        uint16_t index = (uint16_t)(_r_interned.size() + 1);
-        _interned[s] = index;
-        _r_interned.push_back(s);
-        return StrName(index);
-    }
+    static bool is_valid(int index);
+    static StrName get(std::string_view s);
 };
 
 struct FastStrStream{

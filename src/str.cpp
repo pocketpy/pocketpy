@@ -239,4 +239,31 @@ namespace pkpy {
     int Str::u8_length() const {
         return _byte_index_to_unicode(size);
     }
+
+    StrName StrName::get(std::string_view s){
+        auto it = _interned.find(s);
+        if(it != _interned.end()) return StrName(it->second);
+        uint16_t index = (uint16_t)(_r_interned.size() + 1);
+        _interned[s] = index;
+        _r_interned.push_back(s);
+        return StrName(index);
+    }
+
+    Str StrName::escape() const {
+        return _r_interned[index-1].escape();
+    }
+
+    bool StrName::is_valid(int index) {
+        // check _r_interned[index-1] is valid
+        return index > 0 && index <= _r_interned.size();
+    }
+
+    StrName::StrName(): index(0) {}
+    StrName::StrName(uint16_t index): index(index) {}
+    StrName::StrName(const char* s): index(get(s).index) {}
+    StrName::StrName(const Str& s){
+        index = get(s.sv()).index;
+    }
+
+    std::string_view StrName::sv() const { return _r_interned[index-1].sv(); }
 } // namespace pkpy

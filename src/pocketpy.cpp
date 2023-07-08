@@ -145,10 +145,10 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
         const Str& name = CAST(Str&, args[0]);
-        auto dot = name.sv().find_first_of(".");
+        auto dot = name.sv().find_last_of(".");
         if(dot != std::string_view::npos){
             auto ext = name.sv().substr(dot);
-            if(ext == ".so" || ext == ".dll" || ext == ".dylib" || ext == ".pyd"){
+            if(ext == ".so" || ext == ".dll" || ext == ".dylib"){
                 dylib_entry_t entry = load_dylib(name.c_str());
                 if(!entry){
                     vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
