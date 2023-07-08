@@ -162,12 +162,13 @@ inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
 #endif
 
 #include <Windows.h>
-#elif __unix__
-
-#include <dlfcn.h>
 
 #elif __EMSCRIPTEN__
 
 #include <emscripten.h>
+
+#elif __unix__
+
+#include <dlfcn.h>
 
 #endif

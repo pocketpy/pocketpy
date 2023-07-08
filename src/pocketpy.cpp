@@ -11,11 +11,18 @@ static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;
     auto p = std::filesystem::absolute(path, ec);
     if(ec) return nullptr;
-    HMODULE handle = LoadLibraryA(p.c_str());
+    HMODULE handle = LoadLibraryA((LPCSTR)p.c_str());
     if(!handle) return nullptr;
     return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
 }
-#else
+#elif __EMSCRIPTEN__
+
+static dylib_entry_t load_dylib(const char* path){
+    return nullptr;
+}
+
+#elif __unix__
+
 static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;
     auto p = std::filesystem::absolute(path, ec);
@@ -24,13 +31,12 @@ static dylib_entry_t load_dylib(const char* path){
     if(!handle) return nullptr;
     return (dylib_entry_t)dlsym(handle, "platform_module__init__");
 }
-#endif
-
 #else
 static dylib_entry_t load_dylib(const char* path){
-    PK_UNUSED(path);
     return nullptr;
 }
+#endif
+
 #endif
 
 
