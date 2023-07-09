@@ -131,27 +131,15 @@ void gc_marker_ex(CVM* vm) {
     if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
 }
 
-static OutputHandler stdout_handler = nullptr;
-static OutputHandler stderr_handler = nullptr;
-
-void pkpy_set_output_handlers(pkpy_vm*, OutputHandler stdout_handler, OutputHandler stderr_handler){
-    ::stdout_handler = stdout_handler;
-    ::stderr_handler = stderr_handler;
-}
-
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
     CVM* vm = new CVM(enable_os);
     vm->c_data = new LuaStack();
     vm->heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
 
     if (!use_stdio) {
-        vm->_stdout = [](VM* vm, const Str& s){
-            std::string str = s.str();
-            if (stdout_handler != nullptr) stdout_handler((pkpy_vm*)vm, str.c_str());
-        };
-        vm->_stderr = [](VM* vm, const Str& s){
-            std::string str = s.str();
-            if (stderr_handler != nullptr) stderr_handler((pkpy_vm*)vm, str.c_str());
+        vm->_stdout = vm->_stderr = [](VM* vm, const Str& s){
+            PK_UNUSED(vm);
+            PK_UNUSED(s);
         };
     }
 
