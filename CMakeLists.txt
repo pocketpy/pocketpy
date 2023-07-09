@@ -26,31 +26,25 @@ else()
     endif()
 endif()
 
-option(PK_EXPORT_C_API "Export C API" ON)
+option(PK_EXPORT_CXX_API "Export C++ API" OFF)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-
-if(PK_EXPORT_C_API)
-    message(STATUS "Exporting C API")
-    include_directories(${CMAKE_CURRENT_LIST_DIR}/c_bindings)
-    set(PK_LIB_CPP ${CMAKE_CURRENT_LIST_DIR}/c_bindings/pocketpy_c.cpp)
-else()
-    set(PK_LIB_CPP ${CMAKE_CURRENT_LIST_DIR}/src2/lib.cpp)
-endif()
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
 option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
 option(PK_BUILD_STATIC_LIB "Build static library" OFF)
 
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+if (PK_EXPORT_CXX_API)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
 
 if(PK_BUILD_SHARED_LIB)
-    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC} ${PK_LIB_CPP})
+    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
-    add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC} ${PK_LIB_CPP})
+    add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
 else()
-    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC} ${PK_LIB_CPP})
+    add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
     set(PROJECT_EXE_NAME main)
     add_executable(${PROJECT_EXE_NAME} src2/main.cpp)
     target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})

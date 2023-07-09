@@ -1,39 +1,6 @@
 #include "pocketpy/repl.h"
 
 namespace pkpy {
-
-#ifdef _WIN32
-
-std::string platform_getline(bool* eof){
-    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    std::wstringstream wss;
-    WCHAR buf;
-    DWORD read;
-    while (ReadConsoleW(hStdin, &buf, 1, &read, NULL) && buf != L'\n') {
-        if(eof && buf == L'\x1A') *eof = true;  // Ctrl+Z
-        wss << buf;
-    }
-    std::wstring wideInput = wss.str();
-    int length = WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), NULL, 0, NULL, NULL);
-    std::string output;
-    output.resize(length);
-    WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    if(!output.empty() && output.back() == '\r') output.pop_back();
-    return output;
-}
-
-#else
-
-std::string platform_getline(bool* eof){
-    std::string line;
-    if(!std::getline(std::cin, line)){
-        if(eof) *eof = true;
-    }
-    return line;
-}
-
-#endif
-
     REPL::REPL(VM* vm) : vm(vm){
         vm->_stdout(vm, "pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
         vm->_stdout(vm, fmt("[", sizeof(void*)*8, " bit]" "\n"));

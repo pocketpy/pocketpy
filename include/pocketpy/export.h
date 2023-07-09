@@ -9,11 +9,27 @@
 #define PK_EXPORT __attribute__((visibility("default")))
 #endif
 
-#define PK_INLINE_EXPORT PK_EXPORT inline
-
 #endif
 
-#ifdef PK_SHARED_MODULE
-#undef PK_INLINE_EXPORT
-#define PK_INLINE_EXPORT inline
+
+#ifdef _WIN32
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <Windows.h>
+
+#elif __EMSCRIPTEN__
+
+#include <emscripten.h>
+
+#elif __unix__
+
+#include <dlfcn.h>
+
 #endif

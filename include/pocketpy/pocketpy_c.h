@@ -8,7 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "pocketpy/export.h"
+#include "export.h"
 
 typedef struct pkpy_vm_handle pkpy_vm;
 
@@ -118,5 +118,42 @@ PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 #ifdef __cplusplus
 }
 #endif
+
+
+/*************************GLOBAL NAMESPACE*************************/
+extern "C" {
+    PK_EXPORT
+    void pkpy_free(void* p);
+
+    PK_EXPORT
+    void pkpy_vm_exec(void* vm, const char* source);
+
+    PK_EXPORT
+    void pkpy_vm_exec_2(void* vm, const char* source, const char* filename, int mode, const char* module);
+
+    PK_EXPORT
+    void pkpy_vm_compile(void* vm, const char* source, const char* filename, int mode, bool* ok, char** res);
+
+    PK_EXPORT
+    void* pkpy_new_repl(void* vm);
+
+    PK_EXPORT
+    bool pkpy_repl_input(void* r, const char* line);
+
+    PK_EXPORT
+    void pkpy_vm_add_module(void* vm, const char* name, const char* source);
+
+    PK_EXPORT
+    void* pkpy_new_vm(bool enable_os=true);
+
+    PK_EXPORT
+    void pkpy_delete_vm(void* vm);
+
+    PK_EXPORT
+    void pkpy_delete_repl(void* repl);
+}
+
+
+
 
 #endif

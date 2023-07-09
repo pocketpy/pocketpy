@@ -552,3 +552,67 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
     ERRHANDLER_CLOSE
     return true;
 }
+
+/*****************************************************************/
+
+    void pkpy_free(void* p){
+        free(p);
+    }
+
+    void pkpy_vm_exec(void* vm, const char* source){
+        ((VM*)vm)->exec(source, "main.py", EXEC_MODE);
+    }
+
+    void pkpy_vm_exec_2(void* vm_, const char* source, const char* filename, int mode, const char* module){
+        VM* vm = (VM*)vm_;
+        PyObject* mod;
+        if(module == nullptr) mod = vm->_main;
+        else{
+            mod = vm->_modules.try_get(module);
+            if(mod == nullptr) return;
+        }
+        vm->exec(source, filename, (CompileMode)mode, mod);
+    }
+
+    void pkpy_vm_compile(void* vm_, const char* source, const char* filename, int mode, bool* ok, char** res){
+        VM* vm = (VM*)vm_;
+        try{
+            CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
+            *res = code->serialize(vm).c_str_dup();
+            *ok = true;
+        }catch(Exception& e){
+            *ok = false;
+            *res = e.summary().c_str_dup();
+        }catch(std::exception& e){
+            *ok = false;
+            *res = strdup(e.what());
+        }catch(...){
+            *ok = false;
+            *res = strdup("unknown error");
+        }
+    }
+
+    void* pkpy_new_repl(void* vm){
+        return new REPL((VM*)vm);
+    }
+
+    bool pkpy_repl_input(void* r, const char* line){
+        return ((REPL*)r)->input(line);
+    }
+
+    void pkpy_vm_add_module(void* vm, const char* name, const char* source){
+        ((VM*)vm)->_lazy_modules[name] = source;
+    }
+
+    void* pkpy_new_vm(bool enable_os){
+        void* p = new VM(enable_os);
+        return p;
+    }
+
+    void pkpy_delete_vm(void* vm){
+        delete (VM*)vm;
+    }
+
+    void pkpy_delete_repl(void* repl){
+        delete (REPL*)repl;
+    }
