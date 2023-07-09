@@ -50,41 +50,31 @@ struct LuaStack: public ValueStackImpl<32>{
         return false; \
     }
 
+class CVM;
+void gc_marker_ex(CVM* vm);
 
-class CVM : public VM {
-    public :
-
-    LuaStack* c_data;
+class CVM: public VM {
+public:
+    LuaStack c_data;
     PyObject* error;
 
-    CVM(bool enable_os=true) : VM(enable_os) {
+    CVM(bool use_stdio, bool enable_os) : VM(enable_os) {
         c_data = new LuaStack();
         error = nullptr;
-    }
-
-    ~CVM() {
-        c_data->clear();
-        delete c_data;
-    }
-
-    struct TempStack{
-        CVM* cvm;
-        LuaStack* prev;
-        TempStack(CVM* cvm, LuaStack* new_data) : cvm(cvm) {
-            prev = cvm->c_data;
-            cvm->c_data = new_data;
+        heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
+        if (!use_stdio) {
+            _stdout = _stderr = [](VM* vm, const Str& s){
+                PK_UNUSED(vm);
+                PK_UNUSED(s);
+            };
         }
-
-        ~TempStack() { restore(); }
-
-        void restore(){
-            if(prev == nullptr) return;
-            cvm->c_data = prev;
-            prev = nullptr;
-        }
-    };
+    }
 };
 
+void gc_marker_ex(CVM* vm) {
+    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
+    if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
+}
 
 //for now I will unpack a tuple automatically, we may not want to handle
 //it this way, not sure
@@ -126,38 +116,34 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     return true;
 }
 
-void gc_marker_ex(CVM* vm) {
-    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
-    if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
-}
-
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
-    CVM* vm = new CVM(enable_os);
-    vm->c_data = new LuaStack();
-    vm->heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
-
-    if (!use_stdio) {
-        vm->_stdout = vm->_stderr = [](VM* vm, const Str& s){
-            PK_UNUSED(vm);
-            PK_UNUSED(s);
-        };
-    }
-
+    CVM* vm = new CVM(use_stdio, enable_os);
     return (pkpy_vm*) vm;
 }
 
-bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source) {
+bool pkpy_vm_exec(pkpy_vm* vm_handle, const char* source) {
     CVM* vm = (CVM*) vm_handle;
     PyObject* res;
     ERRHANDLER_OPEN
-    CodeObject_ code = vm->compile(source, "<c-bound>", EXEC_MODE);
+    CodeObject_ code = vm->compile(source, "main.py", EXEC_MODE);
     res = vm->_exec(code, vm->_main);
     ERRHANDLER_CLOSE
+    return res != nullptr;
+}
 
-    //unpack_return(w, result);
-    //NOTE: it seems like vm->_exec should return whatever the last command it
-    //ran returned but instead it seems to pretty much always return None
-    //so I guess uncomment this line if that every changes
+bool pkpy_vm_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module){
+    CVM* vm = (CVM*) vm_handle;
+    PyObject* res;
+    PyObject* mod;
+    ERRHANDLER_OPEN
+    if(module == nullptr){
+        mod = vm->_main;
+    }else{
+        mod = vm->_modules[module];     // may raise
+    }
+    CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
+    res = vm->_exec(code, mod);
+    ERRHANDLER_CLOSE
     return res != nullptr;
 }
 
@@ -497,7 +483,6 @@ bool pkpy_push(pkpy_vm* vm_handle, int index) {
     return true;
 }
 
-
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, const char* message) {
     CVM* vm = (CVM*) vm_handle;
     // already in error state
@@ -541,27 +526,18 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
     return true;
 }
 
-/*****************************************************************/
+bool pkpy_new_module(pkpy_vm* vm_handle, const char* name){
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    PyObject* mod = vm->new_module(name);
+    vm->c_data->safe_push(mod);
+    ERRHANDLER_CLOSE
+    return true;
+}
 
+/*****************************************************************/
     void pkpy_free(void* p){
         free(p);
-    }
-
-    bool pkpy_vm_exec(void* vm, const char* source){
-        void* res = ((VM*)vm)->exec(source, "main.py", EXEC_MODE);
-        return res != nullptr;
-    }
-
-    bool pkpy_vm_exec_2(void* vm_, const char* source, const char* filename, int mode, const char* module){
-        VM* vm = (VM*)vm_;
-        PyObject* mod;
-        if(module == nullptr) mod = vm->_main;
-        else{
-            mod = vm->_modules.try_get(module);
-            if(mod == nullptr) return false;
-        }
-        void* res = vm->exec(source, filename, (CompileMode)mode, mod);
-        return res != nullptr;
     }
 
     void pkpy_vm_compile(void* vm_, const char* source, const char* filename, int mode, bool* ok, char** res){
@@ -588,19 +564,6 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
 
     bool pkpy_repl_input(void* r, const char* line){
         return ((REPL*)r)->input(line);
-    }
-
-    void pkpy_vm_add_module(void* vm, const char* name, const char* source){
-        ((VM*)vm)->_lazy_modules[name] = source;
-    }
-
-    void* pkpy_new_vm(bool enable_os){
-        void* p = new VM(enable_os);
-        return p;
-    }
-
-    void pkpy_delete_vm(void* vm){
-        delete (VM*)vm;
     }
 
     void pkpy_delete_repl(void* repl){

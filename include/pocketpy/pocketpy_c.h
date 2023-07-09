@@ -11,6 +11,11 @@ extern "C" {
 #include "export.h"
 
 typedef struct pkpy_vm_handle pkpy_vm;
+typedef int (*pkpy_function)(pkpy_vm*); 
+
+/* Basic Functions */
+PK_EXPORT pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
+PK_EXPORT void pkpy_vm_destroy(pkpy_vm*);
 
 //we we take a lot of inspiration from the lua api for these bindings
 //the key difference being most methods return a bool, 
@@ -30,11 +35,9 @@ PK_EXPORT bool pkpy_clear_error(pkpy_vm*, char** message);
 //the user will not be able to catch it with python code
 PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, const char* message);
 
-PK_EXPORT pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
-PK_EXPORT bool pkpy_vm_run(pkpy_vm*, const char* source);
-PK_EXPORT void pkpy_vm_destroy(pkpy_vm*);
 
-typedef int (*pkpy_function)(pkpy_vm*); 
+
+
 
 PK_EXPORT bool pkpy_pop(pkpy_vm*, int n);
 
@@ -110,16 +113,25 @@ PK_EXPORT bool pkpy_getattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_setattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 
-/* legacy api */
+// create a new native module with the given name and push it onto the stack
+PK_EXPORT bool pkpy_new_module(void* vm, const char* name);
+
+
+/* vm api */
+
+// for backwards compatibility
+#define pkpy_vm_run(vm, source) pkpy_vm_exec(vm, source)
+
+PK_EXPORT bool pkpy_vm_exec(pkpy_vm* vm, const char* source);
+PK_EXPORT bool pkpy_vm_exec_2(pkpy_vm* vm, const char* source, const char* filename, int mode, const char* module);
+
+/* special api */
+
+// free a pointer allocated from pkpy's heap
 PK_EXPORT void pkpy_free(void* p);
-PK_EXPORT bool pkpy_vm_exec(void* vm, const char* source);
-PK_EXPORT bool pkpy_vm_exec_2(void* vm, const char* source, const char* filename, int mode, const char* module);
 PK_EXPORT void pkpy_vm_compile(void* vm, const char* source, const char* filename, int mode, bool* ok, char** res);
 PK_EXPORT void* pkpy_new_repl(void* vm);
 PK_EXPORT bool pkpy_repl_input(void* r, const char* line);
-PK_EXPORT void pkpy_vm_add_module(void* vm, const char* name, const char* source);
-PK_EXPORT void* pkpy_new_vm(bool enable_os=true);
-PK_EXPORT void pkpy_delete_vm(void* vm);
 PK_EXPORT void pkpy_delete_repl(void* repl);
 
 #ifdef __cplusplus
