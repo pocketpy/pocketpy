@@ -148,17 +148,17 @@ pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
 
 bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source) {
     CVM* vm = (CVM*) vm_handle;
+    PyObject* res;
     ERRHANDLER_OPEN
     CodeObject_ code = vm->compile(source, "<c-bound>", EXEC_MODE);
-    vm->_exec(code, vm->_main);
+    res = vm->_exec(code, vm->_main);
     ERRHANDLER_CLOSE
 
     //unpack_return(w, result);
     //NOTE: it seems like vm->_exec should return whatever the last command it
     //ran returned but instead it seems to pretty much always return None
     //so I guess uncomment this line if that every changes
-
-    return true;
+    return res != nullptr;
 }
 
 void pkpy_vm_destroy(pkpy_vm* vm_handle) {
@@ -547,19 +547,21 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* code) {
         free(p);
     }
 
-    void pkpy_vm_exec(void* vm, const char* source){
-        ((VM*)vm)->exec(source, "main.py", EXEC_MODE);
+    bool pkpy_vm_exec(void* vm, const char* source){
+        void* res = ((VM*)vm)->exec(source, "main.py", EXEC_MODE);
+        return res != nullptr;
     }
 
-    void pkpy_vm_exec_2(void* vm_, const char* source, const char* filename, int mode, const char* module){
+    bool pkpy_vm_exec_2(void* vm_, const char* source, const char* filename, int mode, const char* module){
         VM* vm = (VM*)vm_;
         PyObject* mod;
         if(module == nullptr) mod = vm->_main;
         else{
             mod = vm->_modules.try_get(module);
-            if(mod == nullptr) return;
+            if(mod == nullptr) return false;
         }
-        vm->exec(source, filename, (CompileMode)mode, mod);
+        void* res = vm->exec(source, filename, (CompileMode)mode, mod);
+        return res != nullptr;
     }
 
     void pkpy_vm_compile(void* vm_, const char* source, const char* filename, int mode, bool* ok, char** res){

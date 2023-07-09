@@ -84,7 +84,6 @@ PK_EXPORT bool pkpy_to_string(pkpy_vm*, int index, char** ret);
 //it is not null terminated
 PK_EXPORT bool pkpy_to_stringn(pkpy_vm*, int index, const char** ret, int* size);
 
-
 //these do not follow the same error semantics as above, their return values
 //just say whether the check succeeded or not, or else return the value asked for
 
@@ -94,7 +93,6 @@ PK_EXPORT bool pkpy_is_bool(pkpy_vm*, int index);
 PK_EXPORT bool pkpy_is_string(pkpy_vm*, int index);
 PK_EXPORT bool pkpy_is_voidp(pkpy_vm*, int index);
 PK_EXPORT bool pkpy_is_none(pkpy_vm*, int index);
-
 
 //will return true if global exists
 PK_EXPORT bool pkpy_check_global(pkpy_vm*, const char* name);
@@ -112,36 +110,17 @@ PK_EXPORT bool pkpy_getattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_setattr(pkpy_vm*, const char* name);
 PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 
-/*********************************************************/
-PK_EXPORT
-void pkpy_free(void* p);
-
-PK_EXPORT
-void pkpy_vm_exec(void* vm, const char* source);
-
-PK_EXPORT
-void pkpy_vm_exec_2(void* vm, const char* source, const char* filename, int mode, const char* module);
-
-PK_EXPORT
-void pkpy_vm_compile(void* vm, const char* source, const char* filename, int mode, bool* ok, char** res);
-
-PK_EXPORT
-void* pkpy_new_repl(void* vm);
-
-PK_EXPORT
-bool pkpy_repl_input(void* r, const char* line);
-
-PK_EXPORT
-void pkpy_vm_add_module(void* vm, const char* name, const char* source);
-
-PK_EXPORT
-void* pkpy_new_vm(bool enable_os=true);
-
-PK_EXPORT
-void pkpy_delete_vm(void* vm);
-
-PK_EXPORT
-void pkpy_delete_repl(void* repl);
+/* legacy api */
+PK_EXPORT void pkpy_free(void* p);
+PK_EXPORT bool pkpy_vm_exec(void* vm, const char* source);
+PK_EXPORT bool pkpy_vm_exec_2(void* vm, const char* source, const char* filename, int mode, const char* module);
+PK_EXPORT void pkpy_vm_compile(void* vm, const char* source, const char* filename, int mode, bool* ok, char** res);
+PK_EXPORT void* pkpy_new_repl(void* vm);
+PK_EXPORT bool pkpy_repl_input(void* r, const char* line);
+PK_EXPORT void pkpy_vm_add_module(void* vm, const char* name, const char* source);
+PK_EXPORT void* pkpy_new_vm(bool enable_os=true);
+PK_EXPORT void pkpy_delete_vm(void* vm);
+PK_EXPORT void pkpy_delete_repl(void* repl);
 
 #ifdef __cplusplus
 }

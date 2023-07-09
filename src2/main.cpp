@@ -7,7 +7,7 @@
 
 #ifdef _WIN32
 
-void pkpy_platform_getline(char* buffer, int size, bool* eof){
+std::string pkpy_platform_getline(bool* eof){
     HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
     std::wstringstream wss;
     WCHAR buf;
@@ -22,22 +22,17 @@ void pkpy_platform_getline(char* buffer, int size, bool* eof){
     output.resize(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
     if(!output.empty() && output.back() == '\r') output.pop_back();
-
-    size = std::min<int>(size-1, output.size());
-    for(int i=0; i<size; i++) buffer[i] = output[i];
-    buffer[size] = '\0';
+    return output;
 }
 
 #else
 
-void pkpy_platform_getline(char* buffer, int size, bool* eof){
+std::string pkpy_platform_getline(bool* eof){
     std::string output;
     if(!std::getline(std::cin, output)){
         if(eof) *eof = true;
     }
-    size = std::min<int>(size-1, output.size());
-    for(int i=0; i<size; i++) buffer[i] = output[i];
-    buffer[size] = '\0';
+    return output;
 }
 
 #endif
@@ -47,7 +42,6 @@ void pkpy_platform_getline(char* buffer, int size, bool* eof){
 // }
 
 int main(int argc, char** argv){
-    char buffer[1024];
 #if _WIN32
     // implicitly load pocketpy.dll in current directory
 #elif __linux__
@@ -64,9 +58,9 @@ int main(int argc, char** argv){
         while(true){
             std::cout << (need_more_lines ? "... " : ">>> ");
             bool eof = false;
-            pkpy_platform_getline(buffer, 1024, &eof);
+            std::string line = pkpy_platform_getline(&eof);
             if(eof) break;
-            need_more_lines = pkpy_repl_input(repl, buffer);
+            need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete_vm(vm);
         return 0;
