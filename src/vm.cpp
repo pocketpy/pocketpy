@@ -4,6 +4,7 @@ namespace pkpy{
 
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
+        for(int i=0; i<REG_COUNT; i++) _reg[i] = nullptr;
         _stdout = [](VM* vm, const Str& s) {
             PK_UNUSED(vm);
             std::cout << s;
@@ -999,6 +1000,9 @@ void ManagedHeap::mark() {
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     if(_gc_marker_ex) _gc_marker_ex(vm);
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);
+    for(int i=0; i<vm->REG_COUNT; i++){
+        if(vm->_reg[i] != nullptr) PK_OBJ_MARK(vm->_reg[i]);
+    }
 }
 
 Str obj_type_name(VM *vm, Type type){

@@ -117,6 +117,9 @@ public:
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
 
+    PyObject* _reg[32];     // registers for user purpose, also used by C-API
+    static constexpr int REG_COUNT = sizeof(_reg) / sizeof(void*);
+
     PyObject* None;
     PyObject* True;
     PyObject* False;

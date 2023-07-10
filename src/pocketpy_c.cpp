@@ -50,18 +50,20 @@ struct LuaStack: public ValueStackImpl<32>{
         return false; \
     }
 
-class CVM;
-void gc_marker_ex(CVM* vm);
 
 class CVM: public VM {
 public:
-    LuaStack c_data;
+    LuaStack c_data;        // operation stack
     PyObject* error;
 
     CVM(bool use_stdio, bool enable_os) : VM(enable_os) {
-        c_data = new LuaStack();
         error = nullptr;
-        heap._gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
+        heap._gc_marker_ex = [](VM* vm_) {
+            CVM* vm = (CVM*)vm_;
+            for(PyObject* obj: vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
+            if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
+        };
+
         if (!use_stdio) {
             _stdout = _stderr = [](VM* vm, const Str& s){
                 PK_UNUSED(vm);
@@ -71,10 +73,6 @@ public:
     }
 };
 
-void gc_marker_ex(CVM* vm) {
-    for(PyObject* obj: *vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
-    if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
-}
 
 //for now I will unpack a tuple automatically, we may not want to handle
 //it this way, not sure
