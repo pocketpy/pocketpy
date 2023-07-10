@@ -62,6 +62,9 @@ struct ValueStackImpl {
     }
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _max_end; }
+
+    PyObject* operator[](int i) const { return _begin[i]; }
+    PyObject*& operator[](int i) { return _begin[i]; }
     
     ValueStackImpl(const ValueStackImpl&) = delete;
     ValueStackImpl(ValueStackImpl&&) = delete;

@@ -1,77 +1,60 @@
 #include "pocketpy.h"
+#include "pocketpy/tuplelist.h"
 #include "pocketpy_c.h"
 
 using namespace pkpy;
 
 typedef int (*LuaStyleFuncC)(VM*);
 
-struct LuaStack: public ValueStackImpl<32>{
-    PyObject*& at(int i) {
-        if(i < 0 || i >= size()){
-            throw std::runtime_error("lua stack index out of range");
-        }
-        return _begin[i];
-    }
-    PyObject* const& at(int i) const {
-        if(i < 0 || i >= size()){
-            throw std::runtime_error("lua stack index out of range");
-        }
-        return _begin[i];
-    }
-
-    void safe_push(PyObject* obj){
-        if(size() >= max_size()) throw std::runtime_error("lua stack overflow");
-        push(obj);
-    }
-
-    void safe_pop(){
-        if(size() == 0) throw std::runtime_error("lua stack is empty");
-        pop();
-    }
-
-    PyObject*& safe_top(){
-        if(size() == 0) throw std::runtime_error("lua stack is empty");
-        return top();
-    }
-};
-
 #define ERRHANDLER_OPEN \
-    if (vm->error != nullptr) \
+    if (vm->_c.error != nullptr) \
         return false; \
     try {
 
 #define ERRHANDLER_CLOSE \
     } catch(Exception& e ) { \
-        vm->error = py_var(vm, e); \
+        vm->_c.error = py_var(vm, e); \
         return false; \
     } catch(const std::exception& re){ \
         auto e = Exception("std::exception", re.what()); \
-        vm->error = py_var(vm, e); \
+        vm->_c.error = py_var(vm, e); \
         return false; \
     }
 
+pkpy_vm* pkpy_new_vm(bool enable_os){
+    return (pkpy_vm*)new VM(enable_os);
+}
 
-class CVM: public VM {
-public:
-    LuaStack c_data;        // operation stack
-    PyObject* error;
+void pkpy_delete_vm(pkpy_vm* vm){
+    return delete (VM*)vm;
+}
 
-    CVM(bool use_stdio, bool enable_os) : VM(enable_os) {
-        error = nullptr;
-        heap._gc_marker_ex = [](VM* vm_) {
-            CVM* vm = (CVM*)vm_;
-            for(PyObject* obj: vm->c_data) if(obj!=nullptr) PK_OBJ_MARK(obj);
-            if(vm->error != nullptr) PK_OBJ_MARK(vm->error);
-        };
+bool pkpy_vm_exec(pkpy_vm* vm_handle, const char* source) {
+    VM* vm = (VM*) vm_handle;
+    PyObject* res;
+    ERRHANDLER_OPEN
+    CodeObject_ code = vm->compile(source, "main.py", EXEC_MODE);
+    res = vm->_exec(code, vm->_main);
+    ERRHANDLER_CLOSE
+    return res != nullptr;
+}
 
-        if (!use_stdio) {
-            _stdout = _stderr = [](VM* vm, const Str& s){
-                PK_UNUSED(vm);
-                PK_UNUSED(s);
-            };
-        }
+bool pkpy_vm_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module){
+    VM* vm = (VM*) vm_handle;
+    PyObject* res;
+    PyObject* mod;
+    ERRHANDLER_OPEN
+    if(module == nullptr){
+        mod = vm->_main;
+    }else{
+        mod = vm->_modules[module];     // may raise
     }
-};
+    CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
+    res = vm->_exec(code, mod);
+    ERRHANDLER_CLOSE
+    return res != nullptr;
+}
+
 
 
 //for now I will unpack a tuple automatically, we may not want to handle
@@ -114,89 +97,34 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     return true;
 }
 
-pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
-    CVM* vm = new CVM(use_stdio, enable_os);
-    return (pkpy_vm*) vm;
-}
-
-bool pkpy_vm_exec(pkpy_vm* vm_handle, const char* source) {
-    CVM* vm = (CVM*) vm_handle;
-    PyObject* res;
-    ERRHANDLER_OPEN
-    CodeObject_ code = vm->compile(source, "main.py", EXEC_MODE);
-    res = vm->_exec(code, vm->_main);
-    ERRHANDLER_CLOSE
-    return res != nullptr;
-}
-
-bool pkpy_vm_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module){
-    CVM* vm = (CVM*) vm_handle;
-    PyObject* res;
-    PyObject* mod;
-    ERRHANDLER_OPEN
-    if(module == nullptr){
-        mod = vm->_main;
-    }else{
-        mod = vm->_modules[module];     // may raise
-    }
-    CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
-    res = vm->_exec(code, mod);
-    ERRHANDLER_CLOSE
-    return res != nullptr;
-}
-
-void pkpy_vm_destroy(pkpy_vm* vm_handle) {
-    CVM* vm = (CVM*) vm_handle;
-    delete vm;
-}
-
 PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
-    CVM* cvm = (CVM*) vm;
-
-    //setup c stack
-    LuaStack local_stack;
-
-    for (int i = 0; i < args.size(); i++)
-        local_stack.safe_push(args[i]);
-    
-    // tmp is controlled by RAII
-    auto tmp = CVM::TempStack(cvm, &local_stack);
-    int retc = f(cvm);
-
+    PyObject** curr_sp = &vm->s_data.top();
+    int retc = f(vm);
     // propagate_if_errored
-    if (cvm->error != nullptr){
-        Exception e = _py_cast<Exception&>(vm, cvm->error);
-        cvm->error = nullptr;
-        tmp.restore();
+    if (vm->_c.error != nullptr){
+        Exception e = _py_cast<Exception&>(vm, vm->_c.error);
+        vm->_c.error = nullptr;
         vm->_error(e);
     }
-    tmp.restore();
-
-    PyObject* ret = cvm->None;
-
-    if (retc == 1) 
-        ret = local_stack.safe_top();
-    else if (retc > 1) {
-        Tuple t(retc);
-
-        for (int i = 0; i < retc; i++)  {
-            int stack_index = (local_stack.size() - retc) + i;
-            t[i] = local_stack.at(stack_index);
-        }
-
-        ret = py_var(cvm, t);
-    }
-
-    return ret;
+    PK_ASSERT(retc == vm->s_data._sp-curr_sp);
+    if(retc == 0) return vm->None;
+    if (retc == 1) return vm->s_data.popx();
+    ArgsView ret_view(curr_sp, vm->s_data._sp);
+    return py_var(vm, ret_view.to_tuple());
 }
 
-bool pkpy_push_function(pkpy_vm* vm_handle, pkpy_function f, int argc) {
-    CVM* vm = (CVM*) vm_handle;
-    NativeFunc nf = NativeFunc(c_function_wrapper, argc, false);
-    nf.set_userdata(f);
+bool pkpy_push_function(pkpy_vm* vm_handle, const char* sig, pkpy_function f) {
+    VM* vm = (VM*) vm_handle;
     ERRHANDLER_OPEN
-    vm->c_data->safe_push(py_var(vm, nf));
+    PyObject* f_obj = vm->bind(
+        nullptr,
+        sig,
+        nullptr,
+        c_function_wrapper,
+        f
+    );
+    vm->s_data.push(f_obj);
     ERRHANDLER_CLOSE
     return true;
 }

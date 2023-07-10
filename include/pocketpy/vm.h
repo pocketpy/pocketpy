@@ -117,9 +117,6 @@ public:
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
 
-    PyObject* _reg[32];     // registers for user purpose, also used by C-API
-    static constexpr int REG_COUNT = sizeof(_reg) / sizeof(void*);
-
     PyObject* None;
     PyObject* True;
     PyObject* False;
@@ -456,8 +453,8 @@ public:
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
     void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
     // new style binding api
-    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, void* userdata=nullptr);
-    PyObject* bind(PyObject*, const char*, NativeFuncC, void* userdata=nullptr);
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={});
+    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={});
 };
 
 DEF_NATIVE_2(Str, tp_str)

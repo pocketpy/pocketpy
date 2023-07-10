@@ -4,7 +4,6 @@ namespace pkpy{
 
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
-        for(int i=0; i<REG_COUNT; i++) _reg[i] = nullptr;
         _stdout = [](VM* vm, const Str& s) {
             PK_UNUSED(vm);
             std::cout << s;
@@ -957,11 +956,11 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     obj->attr().set(name, value);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, void* userdata){
+PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, UserData userdata){
     return bind(obj, sig, nullptr, fn, userdata);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, void* userdata){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, UserData userdata){
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
@@ -978,10 +977,8 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
         decl->docstring = Str(docstring).strip();
     }
     PyObject* f_obj = VAR(NativeFunc(fn, decl));
-    if(userdata != nullptr){
-        PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
-    }
-    obj->attr().set(decl->code->name, f_obj);
+    PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
+    if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
     return f_obj;
 }
 
@@ -1000,9 +997,6 @@ void ManagedHeap::mark() {
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     if(_gc_marker_ex) _gc_marker_ex(vm);
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);
-    for(int i=0; i<vm->REG_COUNT; i++){
-        if(vm->_reg[i] != nullptr) PK_OBJ_MARK(vm->_reg[i]);
-    }
 }
 
 Str obj_type_name(VM *vm, Type type){
