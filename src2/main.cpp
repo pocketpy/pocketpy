@@ -49,7 +49,7 @@ int main(int argc, char** argv){
 #elif __APPLE__
     dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
 #endif
-    void* vm = pkpy_new_vm();
+    pkpy_vm* vm = pkpy_new_vm(true);
     // pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
 
     if(argc == 1){
@@ -87,7 +87,7 @@ int main(int argc, char** argv){
         // set parent path as cwd
         std::filesystem::current_path(filepath.parent_path());
 
-        pkpy_vm_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
+        pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
         pkpy_delete_vm(vm);
         // return ret != nullptr ? 0 : 1;
         return 0;

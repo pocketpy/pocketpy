@@ -6,7 +6,7 @@ using dylib_entry_t = PyObject*(*)(VM*, const char*);
 
 #if PK_ENABLE_OS
 
-#if _WIN32
+#if PK_SUPPORT_DYLIB == 1
 static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;
     auto p = std::filesystem::absolute(path, ec);
@@ -37,13 +37,7 @@ static dylib_entry_t load_dylib(const char* path){
     if(!handle) return nullptr;
     return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
 }
-#elif __EMSCRIPTEN__
-
-static dylib_entry_t load_dylib(const char* path){
-    return nullptr;
-}
-
-#elif __unix__
+#elif PK_SUPPORT_DYLIB == 2
 
 static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;

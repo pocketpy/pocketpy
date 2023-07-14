@@ -24,6 +24,9 @@ struct FastLocals{
 
     PyObject** try_get_name(StrName name);
     NameDict_ to_namedict();
+
+    PyObject** begin() const { return a; }
+    PyObject** end() const { return a + size(); }
 };
 
 template<size_t MAX_SIZE>

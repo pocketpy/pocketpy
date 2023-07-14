@@ -117,6 +117,10 @@ public:
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
 
+    struct{
+        PyObject* error;
+    } _c;
+
     PyObject* None;
     PyObject* True;
     PyObject* False;

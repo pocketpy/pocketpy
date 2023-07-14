@@ -158,14 +158,12 @@ void CodeObjectSerializer::write_code(VM* vm, const CodeObject* co){
         this->f = f;
         this->argc = argc;
         if(argc != -1) this->argc += (int)method;
-        _has_userdata = false;
     }
 
     NativeFunc::NativeFunc(NativeFuncC f, FuncDecl_ decl){
         this->f = f;
         this->argc = -1;
         this->decl = decl;
-        _has_userdata = false;
     }
 
 }   // namespace pkpy

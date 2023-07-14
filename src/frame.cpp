@@ -58,7 +58,7 @@ namespace pkpy{
         if(_next_ip >= co->codes.size()){
             while(i>=0) i = _exit_block(i);
         }else{
-            // BUG!!!
+            // BUG (solved)
             // for i in range(4):
             //     _ = 0
             // # if there is no op here, the block check will fail
