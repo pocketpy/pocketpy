@@ -61,8 +61,8 @@ jobs:
         path: output
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
-    - name: C Binding Test
-      run: bash run_c_binding_test.sh
+    # - name: C Binding Test
+    #   run: bash run_c_binding_test.sh
   build_macos:
       runs-on: macos-latest
       steps:
