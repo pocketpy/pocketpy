@@ -62,10 +62,8 @@ PK_EXPORT bool pkpy_to_voidp(pkpy_vm*, int i, void** out);
 PK_EXPORT bool pkpy_push_none(pkpy_vm*);
 PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
-// null
-PK_EXPORT bool pkpy_push_null(pkpy_vm*);
-
 // special push
+PK_EXPORT bool pkpy_push_null(pkpy_vm*);
 PK_EXPORT bool pkpy_push_function(pkpy_vm*, const char*, pkpy_CFunction);
 PK_EXPORT bool pkpy_push_module(pkpy_vm*, const char*);
 

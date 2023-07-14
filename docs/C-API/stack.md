@@ -4,91 +4,135 @@ icon: dot
 order: 8
 ---
 
-!!!
-Stack index is 0-based instead of 1-based.
-!!!
+### Stack manipulation
 
-## Push and Pop
++ `bool pkpy_pop(pkpy_vm*, int)`
 
-#### `bool pkpy_pop(pkpy_vm*, int n)`
+    Pop `n` values from the stack.
 
-Pop `n` items from the stack.
++ `bool pkpy_pop_top(pkpy_vm*)`
+    
+    Pop the top value from the stack.
 
-#### `bool pkpy_push_function(pkpy_vm*, pkpy_function, int argc)`
++ `bool pkpy_dup_top(pkpy_vm*)`
 
-Push a function onto the stack. The function is of `typedef int (*pkpy_function)(pkpy_vm*);`
-The provided function should return the number of return values it leaves on the stack 
+    Duplicate the top value on the stack.
 
-#### `bool pkpy_push_int(pkpy_vm*, int)`
++ `bool pkpy_rot_two(pkpy_vm*)`
 
-Push an integer onto the stack.
+    Swap the top two values on the stack.
 
-#### `bool pkpy_push_float(pkpy_vm*, double)`
++ `int pkpy_stack_size(pkpy_vm*)`
 
-Push a float onto the stack.
+    Get the element count of the stack.
 
-#### `bool pkpy_push_bool(pkpy_vm*, bool)`
 
-Push a boolean onto the stack.
+### Basic push, check and convert
 
-#### `bool pkpy_push_string(pkpy_vm*, const char*)`
++ `pkpy_push_xxx` pushes a value onto the stack.
++ `pkpy_is_xxx` checks if the value at the given index is of the given type.
++ `pkpy_to_xxx` converts the value at the given index to the given type.
 
-Push a string onto the stack.
+Stack index is 0-based instead of 1-based. And it can be negative, which means the index is counted from the top of the stack.
 
-#### `bool pkpy_push_stringn(pkpy_vm*, const char*, int length)`
+```c
+// int
+PK_EXPORT bool pkpy_push_int(pkpy_vm*, int);
+PK_EXPORT bool pkpy_is_int(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_to_int(pkpy_vm*, int i, int* out);
 
-Push a string onto the stack.
+// float
+PK_EXPORT bool pkpy_push_float(pkpy_vm*, float);
+PK_EXPORT bool pkpy_is_float(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_to_float(pkpy_vm*, int i, float* out);
 
-+ `length`: the length of the string
+// bool
+PK_EXPORT bool pkpy_push_bool(pkpy_vm*, bool);
+PK_EXPORT bool pkpy_is_bool(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_to_bool(pkpy_vm*, int i, bool* out);
 
-#### `bool pkpy_push_voidp(pkpy_vm*, void*)`
+// string
+PK_EXPORT bool pkpy_push_string(pkpy_vm*, pkpy_CString);
+PK_EXPORT bool pkpy_is_string(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_to_string(pkpy_vm*, int i, pkpy_CString* out);
 
-Push a void pointer onto the stack.
+// void_p
+PK_EXPORT bool pkpy_push_voidp(pkpy_vm*, void*);
+PK_EXPORT bool pkpy_is_voidp(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_to_voidp(pkpy_vm*, int i, void** out);
 
-#### `bool pkpy_push_none(pkpy_vm*)`
+// none
+PK_EXPORT bool pkpy_push_none(pkpy_vm*);
+PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
+```
 
-Push `None` onto the stack.
+### Special push
 
-## Size Queries
++ `pkpy_push_null(pkpy_vm*)`
 
-#### `bool pkpy_check_stack(pkpy_vm*, int free)`
+    Push a `PY_NULL` onto the stack.
 
-Return true if at least `free` empty slots remain on the stack.
++ `pkpy_push_function(pkpy_vm*, const char* sig, pkpy_CFunction f)`
 
-#### `int pkpy_stack_size(pkpy_vm*)`
+    Push a function onto the stack. `sig` is the function signature, e.g. `add(a: int, b: int) -> int`. `f` is the function pointer.
 
-Return the number of elements on the stack.
++ `pkpy_push_module(pkpy_vm*, const char* name)`
 
-## Conversion
+    Push a new module onto the stack. `name` is the module name. This is not `import`. It creates a new module object.
 
-#### `bool pkpy_to_int(pkpy_vm*, int index, int* ret)`
+### Advanced operations
 
-Convert the value at the given index to an integer.
+<!-- PK_EXPORT bool pkpy_getattr(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_setattr(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_getglobal(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_setglobal(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
+PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
+PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName); -->
 
-#### `bool pkpy_to_float(pkpy_vm*, int index, double* ret)`
++ `bool pkpy_getattr(pkpy_vm*, pkpy_CName name)`
 
-Convert the value at the given index to a float.
+    Push `b.<name>` onto the stack.
 
-#### `bool pkpy_to_bool(pkpy_vm*, int index, bool* ret)`
+    ```
+    [b] -> [b.<name>]
+    ```
 
-Convert the value at the given index to a boolean.
++ `bool pkpy_setattr(pkpy_vm*, pkpy_CName name)`
 
-#### `bool pkpy_to_voidp(pkpy_vm*, int index, void** ret)`
+    Set `b.<name>` to the value at the top of the stack.
+    First push the value, then push `b`.
 
-Convert the value at the given index to a void pointer.
+    ```
+    [b, value] -> []
+    ```
 
-#### `bool pkpy_to_string(pkpy_vm*, int index, char** ret)`
++ `bool pkpy_getglobal(pkpy_vm*, pkpy_CName name)`
 
-Convert the value at the given index to a string (strong reference).
+    Push a global variable onto the stack.
 
-+ `ret` is null terminated.
-+ You are responsible for freeing the string when you are done with it.
++ `bool pkpy_setglobal(pkpy_vm*, pkpy_CName name)`
 
-#### `bool pkpy_to_stringn(pkpy_vm*, int index, const char** ret, int* size)`
+    Set a global variable to the value at the top of the stack.
 
-Convert the value at the given index to a string (weak reference).
++ `bool pkpy_eval(pkpy_vm*, const char* source)`
 
-+ `ret` is not null terminated.
-+ `size` is the length of the string.
-+ The string is only valid until the next API call.
+    Evaluate a string and push the result onto the stack.
 
++ `bool pkpy_unpack_sequence(pkpy_vm*, int size)`
+
+    Unpack a sequence at the top of the stack. `size` is the element count of the sequence.
+
+    ```
+    [a] -> [a[0], a[1], ..., a[size - 1]]
+    ```
+
++ `bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName name)`
+
+    It is used for method call.
+    Get an unbound method from the object at the top of the stack. `name` is the method name.
+    Also push the object as self.
+
+    ```
+    [obj] -> [obj.<name> self]
+    ```

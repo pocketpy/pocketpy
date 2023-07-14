@@ -13,31 +13,29 @@ The C-APIs are designed for these purposes:
 
 Our C-APIs take a lot of inspiration from the lua C-APIs.
 Methods return a `bool` indicating if the operation succeeded or not.
-
 Special thanks for [@koltenpearson](https://github.com/koltenpearson)'s contribution.
 
-## Basic Functions
+!!!
+**C-APIs are always stable and backward compatible** in order to support the second use case.
+!!!
 
-#### `pkpy_vm* pkpy_new_vm(bool enable_os)`
+### Basic Functions
 
-Create a new VM.
++ `pkpy_vm* pkpy_new_vm(bool enable_os)`
 
-+ `enable_os`: if true, the VM will have access to the os library
+    Wraps `new VM(enable_os)` in C++.
 
-#### `bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source)`
++ `void pkpy_delete_vm(pkpy_vm*)`
 
-Run the given source code in the VM.
+    Wraps `delete vm` in C++.
 
-+ `source`: the source code to run
++ `bool pkpy_exec(pkpy_vm*, const char* source)`
 
-#### `void pkpy_delete_vm(pkpy_vm* vm_handle)`
+    Wraps `vm->exec`. Execute a string of source code.
 
-Dispose the VM.
++ `bool pkpy_exec_2(pkpy_vm*, const char* source, const char* filename, int mode, const char* module)`
 
-#### `bool pkpy_vm_exec(pkpy_vm* vm_handle, const char* source)`
+    Wraps `vm->exec_2`. Execute a string of source code with more options.
 
-A wrapper of `vm->exec(...)`.
+### Basic Types
 
-#### `bool pkpy_vm_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module)`
-
-A wrapper of `vm->exec_2(...)`.

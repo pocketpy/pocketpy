@@ -1,18 +1,15 @@
 ---
-title: Callables
+title: Call
 icon: dot
 order: 6
 ---
 
-#### `bool pkpy_call(pkpy_vm*, int argc)`
+### `bool pkpy_vectorcall(pkpy_vm*, int argc)`
 
-First push callable you want to call, then push the arguments to send.
+Wraps `vm->vectorcall(argc)`.
 
-+ `argc` is the number of arguments that was pushed (not counting the callable).
+This is the only way to call a function in the C-APIs.
 
-#### `bool pkpy_call_method(pkpy_vm*, const char* name, int argc)`
-
-First push the object the method belongs to (self), then push the the argments.
-
-+ `argc` is the number of arguments that was pushed (not counting the callable or self)
-+ `name` is the name of the method to call on the object
+1. First push the function to call.
+2. Push `self` argument if it is a method call. Otherwise, call `pkpy_push_null`.
+3. Push arguments from left to right.
