@@ -49,7 +49,7 @@ std::string f_input(){
 static int f_input(pkpy_vm* vm){
     bool eof;
     std::string output = pkpy_platform_getline(&eof);
-    pkpy_push_string(vm, output.c_str());
+    pkpy_push_string(vm, pkpy_string(output.c_str()));
     return 1;
 }
 

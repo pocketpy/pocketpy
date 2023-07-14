@@ -216,10 +216,10 @@ bool pkpy_to_bool(pkpy_vm* vm_handle, int i, bool* out){
 }
 
 // string
-bool pkpy_push_string(pkpy_vm* vm_handle, const char* value) {
+bool pkpy_push_string(pkpy_vm* vm_handle, pkpy_CString value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res = py_var(vm, value);
+    PyObject* res = py_var(vm, std::string_view(value.data, value.size));
     vm->s_data.push(res);
     return true;
 }
@@ -481,6 +481,13 @@ bool pkpy_vectorcall(pkpy_vm* vm_handle, int argc) {
 /*****************************************************************/
 void pkpy_free(void* p){
     free(p);
+}
+
+pkpy_CString pkpy_string(const char* value){
+    pkpy_CString s;
+    s.data = value;
+    s.size = strlen(value);
+    return s;
 }
 
 pkpy_CName pkpy_name(const char* name){

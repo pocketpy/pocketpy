@@ -49,7 +49,7 @@ PK_EXPORT bool pkpy_is_bool(pkpy_vm*, int i);
 PK_EXPORT bool pkpy_to_bool(pkpy_vm*, int i, bool* out);
 
 // string
-PK_EXPORT bool pkpy_push_string(pkpy_vm*, const char*);
+PK_EXPORT bool pkpy_push_string(pkpy_vm*, pkpy_CString);
 PK_EXPORT bool pkpy_is_string(pkpy_vm*, int i);
 PK_EXPORT bool pkpy_to_string(pkpy_vm*, int i, pkpy_CString* out);
 
@@ -88,6 +88,7 @@ PK_EXPORT bool pkpy_vectorcall(pkpy_vm*, int argc);
 
 /* Special APIs */
 PK_EXPORT void pkpy_free(void* p);
+PK_EXPORT pkpy_CString pkpy_string(const char*);
 PK_EXPORT pkpy_CName pkpy_name(const char*);
 PK_EXPORT void pkpy_compile_to_string(pkpy_vm*, const char* source, const char* filename, int mode, bool* ok, char** out);
 
