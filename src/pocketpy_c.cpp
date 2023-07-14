@@ -5,11 +5,11 @@ using namespace pkpy;
 
 typedef int (*LuaStyleFuncC)(VM*);
 
-#define C_API_ASSERT(x) if(!(x)) { pkpy_error(vm_handle, "AssertionError", #x); return false; }
-
 #define PK_ASSERT_N_EXTRA_ELEMENTS(n) \
-    if(!has_n_extra_elements(vm, n)){ \
-        pkpy_error(vm_handle, "StackError", "not enough elements on stack"); \
+    int __ex_count = count_extra_elements(vm, n); \
+    if(__ex_count < n){ \
+        std::string msg = fmt("expected at least ", n, " elements, got ", __ex_count); \
+        pkpy_error(vm_handle, "StackError", msg.c_str()); \
         return false; \
     }
 
@@ -17,12 +17,12 @@ typedef int (*LuaStyleFuncC)(VM*);
     if(vm->_c.error != nullptr) \
         return false;
 
-static int has_n_extra_elements(VM* vm, int n){
+static int count_extra_elements(VM* vm, int n){
     if(vm->callstack.empty()){
-        return vm->s_data.size() >= n;
+        return vm->s_data.size();
     }
     PyObject** base = vm->top_frame()->_locals.end();
-    return vm->s_data._sp - base >= n;
+    return vm->s_data._sp - base;
 }
 
 static PyObject* stack_item(VM* vm, int index){
