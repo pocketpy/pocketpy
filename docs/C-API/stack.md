@@ -4,7 +4,7 @@ icon: dot
 order: 8
 ---
 
-### Stack manipulation
+### Basic manipulation
 
 + `bool pkpy_pop(pkpy_vm*, int)`
 
@@ -80,15 +80,7 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
     Push a new module onto the stack. `name` is the module name. This is not `import`. It creates a new module object.
 
-### Advanced operations
-
-<!-- PK_EXPORT bool pkpy_getattr(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_setattr(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_getglobal(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_setglobal(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
-PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
-PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName); -->
+### Variable access
 
 + `bool pkpy_getattr(pkpy_vm*, pkpy_CName name)`
 

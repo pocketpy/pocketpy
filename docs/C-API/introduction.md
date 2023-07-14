@@ -19,7 +19,7 @@ Special thanks for [@koltenpearson](https://github.com/koltenpearson)'s contribu
 **C-APIs are always stable and backward compatible** in order to support the second use case.
 !!!
 
-### Basic Functions
+### Basic functions
 
 + `pkpy_vm* pkpy_new_vm(bool enable_os)`
 
@@ -36,6 +36,3 @@ Special thanks for [@koltenpearson](https://github.com/koltenpearson)'s contribu
 + `bool pkpy_exec_2(pkpy_vm*, const char* source, const char* filename, int mode, const char* module)`
 
     Wraps `vm->exec_2`. Execute a string of source code with more options.
-
-### Basic Types
-
