@@ -103,13 +103,25 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
     Push a global variable onto the stack.
 
+    ```
+    [] -> [value]
+    ```
+
 + `bool pkpy_setglobal(pkpy_vm*, pkpy_CName name)`
 
     Set a global variable to the value at the top of the stack.
 
+    ```
+    [value] -> []
+    ```
+
 + `bool pkpy_eval(pkpy_vm*, const char* source)`
 
     Evaluate a string and push the result onto the stack.
+
+    ```
+    [] -> [result]
+    ```
 
 + `bool pkpy_unpack_sequence(pkpy_vm*, int size)`
 
