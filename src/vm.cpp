@@ -742,7 +742,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView args(p1 - ARGC - int(method_call), p1);
     ArgsView kwargs(p1, s_data._sp);
 
-    static THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
+    static PK_THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
 
     if(is_non_tagged_type(callable, tp_native_func)){
         const auto& f = PK_OBJ_GET(NativeFunc, callable);

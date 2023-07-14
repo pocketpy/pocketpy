@@ -40,7 +40,7 @@
 /*******************************************************************************/
 
 #if PK_ENABLE_THREAD
-#define THREAD_LOCAL thread_local
+#define PK_THREAD_LOCAL thread_local
 #include <mutex>
 
 struct GIL {
@@ -48,10 +48,10 @@ struct GIL {
     explicit GIL() { _mutex.lock(); }
     ~GIL() { _mutex.unlock(); }
 };
-#define PK_GLOBAL_SCOPE_LOCK() auto _lock = GIL();
+#define PK_GLOBAL_SCOPE_LOCK() GIL _lock();
 
 #else
-#define THREAD_LOCAL
+#define PK_THREAD_LOCAL
 #define PK_GLOBAL_SCOPE_LOCK()
 #endif
 
