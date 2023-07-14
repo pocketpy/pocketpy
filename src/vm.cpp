@@ -956,11 +956,11 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     obj->attr().set(name, value);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, void* userdata){
+PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, UserData userdata){
     return bind(obj, sig, nullptr, fn, userdata);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, void* userdata){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, UserData userdata){
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
@@ -977,10 +977,8 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
         decl->docstring = Str(docstring).strip();
     }
     PyObject* f_obj = VAR(NativeFunc(fn, decl));
-    if(userdata != nullptr){
-        PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
-    }
-    obj->attr().set(decl->code->name, f_obj);
+    PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
+    if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
     return f_obj;
 }
 

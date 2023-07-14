@@ -246,8 +246,8 @@ struct MemoryPool{
     }
 };
 
-PK_EXPORT inline MemoryPool<64> pool64;
-PK_EXPORT inline MemoryPool<128> pool128;
+inline MemoryPool<64> pool64;
+inline MemoryPool<128> pool128;
 
 template <typename T>
 struct shared_ptr {

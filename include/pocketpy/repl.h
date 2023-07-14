@@ -4,9 +4,7 @@
 #include "vm.h"
 
 namespace pkpy{
-
-std::string platform_getline(bool* eof=nullptr);
-
+    
 class REPL {
 protected:
     int need_more_lines = 0;

@@ -6,22 +6,38 @@ using dylib_entry_t = PyObject*(*)(VM*, const char*);
 
 #if PK_ENABLE_OS
 
-#if _WIN32
+#if PK_SUPPORT_DYLIB == 1
 static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;
     auto p = std::filesystem::absolute(path, ec);
     if(ec) return nullptr;
-    HMODULE handle = LoadLibraryA((LPCSTR)p.c_str());
+    HMODULE handle = LoadLibraryA((LPCSTR)"test.dll");
+    // get last error
+    // Get the last error code
+    SetErrorMode(SEM_FAILCRITICALERRORS);
+    DWORD errorCode = GetLastError();
+
+    // Convert the error code to text
+    LPSTR errorMessage = nullptr;
+    FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        errorCode,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&errorMessage,
+        0,
+        nullptr
+    );
+
+    // Print the error message to stdout
+    printf("%lu: %s\n", errorCode, errorMessage);
+
+    // Free the message buffer
+    LocalFree(errorMessage);
     if(!handle) return nullptr;
     return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
 }
-#elif __EMSCRIPTEN__
-
-static dylib_entry_t load_dylib(const char* path){
-    return nullptr;
-}
-
-#elif __unix__
+#elif PK_SUPPORT_DYLIB == 2
 
 static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;

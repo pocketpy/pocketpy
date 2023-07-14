@@ -1,31 +1,64 @@
 #include <fstream>
 #include <filesystem>
+#include <iostream>
 
-#include "pocketpy.h"
+#include "pocketpy_c.h"
 
-std::string f_input(){
-    return pkpy::platform_getline();
+
+#ifdef _WIN32
+
+std::string pkpy_platform_getline(bool* eof){
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    std::wstringstream wss;
+    WCHAR buf;
+    DWORD read;
+    while (ReadConsoleW(hStdin, &buf, 1, &read, NULL) && buf != L'\n') {
+        if(eof && buf == L'\x1A') *eof = true;  // Ctrl+Z
+        wss << buf;
+    }
+    std::wstring wideInput = wss.str();
+    int length = WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), NULL, 0, NULL, NULL);
+    std::string output;
+    output.resize(length);
+    WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
+    if(!output.empty() && output.back() == '\r') output.pop_back();
+    return output;
 }
+
+#else
+
+std::string pkpy_platform_getline(bool* eof){
+    std::string output;
+    if(!std::getline(std::cin, output)){
+        if(eof) *eof = true;
+    }
+    return output;
+}
+
+#endif
+
+// std::string f_input(){
+//     return pkpy::platform_getline();
+// }
 
 int main(int argc, char** argv){
 #if _WIN32
-    SetConsoleOutputCP(CP_UTF8);
     // implicitly load pocketpy.dll in current directory
 #elif __linux__
     dlopen("libpocketpy.so", RTLD_NOW | RTLD_GLOBAL);
 #elif __APPLE__
     dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
 #endif
-    pkpy::VM* vm = pkpy_new_vm();
-    pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
+    pkpy_vm* vm = pkpy_new_vm(true);
+    // pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
 
     if(argc == 1){
-        pkpy::REPL* repl = pkpy_new_repl(vm);
+        void* repl = pkpy_new_repl(vm);
         bool need_more_lines = false;
         while(true){
-            vm->_stdout(vm, need_more_lines ? "... " : ">>> ");
+            std::cout << (need_more_lines ? "... " : ">>> ");
             bool eof = false;
-            std::string line = pkpy::platform_getline(&eof);
+            std::string line = pkpy_platform_getline(&eof);
             if(eof) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
@@ -54,10 +87,10 @@ int main(int argc, char** argv){
         // set parent path as cwd
         std::filesystem::current_path(filepath.parent_path());
 
-        pkpy::PyObject* ret = nullptr;
-        ret = vm->exec(src.c_str(), filepath.filename().string(), pkpy::EXEC_MODE);
+        pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
         pkpy_delete_vm(vm);
-        return ret != nullptr ? 0 : 1;
+        // return ret != nullptr ? 0 : 1;
+        return 0;
     }
 
 __HELP:

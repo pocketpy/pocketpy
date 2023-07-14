@@ -128,6 +128,29 @@ struct FuncDecl {
     void _gc_mark() const;
 };
 
+struct UserData{
+    char data[16];
+    bool empty;
+
+    UserData(): empty(true) {}
+    template<typename T>
+    UserData(T t): empty(false){
+        static_assert(std::is_trivially_copyable_v<T>);
+        static_assert(sizeof(T) <= sizeof(data));
+        memcpy(data, &t, sizeof(T));
+    }
+
+    template <typename T>
+    T get() const{
+        static_assert(std::is_trivially_copyable_v<T>);
+        static_assert(sizeof(T) <= sizeof(data));
+#if PK_DEBUG_EXTRA_CHECK
+        PK_ASSERT(!empty);
+#endif
+        return reinterpret_cast<const T&>(data);
+    }
+};
+
 struct NativeFunc {
     NativeFuncC f;
 
@@ -137,29 +160,16 @@ struct NativeFunc {
     // new style decl-based call
     FuncDecl_ decl;
 
-    using UserData = char[32];
     UserData _userdata;
-    bool _has_userdata;
 
-    template <typename T>
-    void set_userdata(T data) {
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(UserData));
-        if(_has_userdata) throw std::runtime_error("userdata already set");
-        _has_userdata = true;
-        memcpy(_userdata, &data, sizeof(T));
+    void set_userdata(UserData data) {
+        if(!_userdata.empty && !data.empty){
+            // override is not supported
+            throw std::runtime_error("userdata already set");
+        }
+        _userdata = data;
     }
 
-    template <typename T>
-    T get_userdata() const {
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(UserData));
-#if PK_DEBUG_EXTRA_CHECK
-        if(!_has_userdata) throw std::runtime_error("userdata not set");
-#endif
-        return reinterpret_cast<const T&>(_userdata);
-    }
-    
     NativeFunc(NativeFuncC f, int argc, bool method);
     NativeFunc(NativeFuncC f, FuncDecl_ decl);
 
@@ -201,8 +211,8 @@ struct Py_<NativeFunc> final: PyObject {
 
 template<typename T>
 T lambda_get_userdata(PyObject** p){
-    if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1]).get_userdata<T>();
-    else return PK_OBJ_GET(NativeFunc, p[-2]).get_userdata<T>();
+    if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1])._userdata.get<T>();
+    else return PK_OBJ_GET(NativeFunc, p[-2])._userdata.get<T>();
 }
 
 } // namespace pkpy

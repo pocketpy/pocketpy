@@ -88,28 +88,12 @@ if sys.platform in ['linux', 'darwin']:
 
 print("amalgamated/pocketpy.h")
 
-content = []
-for i in ["include/pocketpy/export.h", "c_bindings/pocketpy_c.h", "c_bindings/pocketpy_c.cpp"]:
-	with open(i, "rt", encoding='utf-8') as g:
-		content.append(g.read())
-
-with open("amalgamated/pocketpy.cpp", "wt", encoding='utf-8') as f:
-	content = '\n\n'.join(content)
-	content = content.replace('#include "pocketpy/export.h"', '')
-	content = content.replace('#include "pocketpy_c.h"', '')
-	f.write(content)
-
-
 shutil.copy("amalgamated/pocketpy.h", "plugins/flutter/src/pocketpy.h")
-shutil.copy("amalgamated/pocketpy.cpp", "plugins/flutter/src/pocketpy.cpp")
-
 shutil.copy("amalgamated/pocketpy.h", "plugins/macos/pocketpy/pocketpy.h")
-shutil.copy("amalgamated/pocketpy.cpp", "plugins/macos/pocketpy/pocketpy.cpp")
 
 # unity plugin
 unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPython/Plugins/iOS'
 if os.path.exists(unity_ios_root):
 	shutil.copy("amalgamated/pocketpy.h", unity_ios_root)
-	shutil.copy("amalgamated/pocketpy.cpp", unity_ios_root)
 
 

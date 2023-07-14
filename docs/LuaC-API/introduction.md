@@ -14,20 +14,26 @@ Special thanks for [@koltenpearson](https://github.com/koltenpearson) for bringi
 
 ## Basic Functions
 
-#### `pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os)`
+#### `pkpy_vm* pkpy_new_vm(bool enable_os)`
 
-Creates a new Lua Style VM.
+Create a new VM.
 
-+ `use_stdio`: if true, the VM will use stdout and stderr
 + `enable_os`: if true, the VM will have access to the os library
 
-#### `bool pkpy_vm_run(pkpy_vm*, const char* source)`
+#### `bool pkpy_vm_run(pkpy_vm* vm_handle, const char* source)`
 
-Runs the given source code in the VM.
+Run the given source code in the VM.
 
 + `source`: the source code to run
 
-#### `void pkpy_vm_destroy(pkpy_vm*)`
+#### `void pkpy_delete_vm(pkpy_vm* vm_handle)`
 
-Destroys the VM.
+Dispose the VM.
 
+#### `bool pkpy_vm_exec(pkpy_vm* vm_handle, const char* source)`
+
+A wrapper of `vm->exec(...)`.
+
+#### `bool pkpy_vm_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module)`
+
+A wrapper of `vm->exec_2(...)`.
