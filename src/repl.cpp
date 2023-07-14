@@ -3,7 +3,7 @@
 namespace pkpy {
     REPL::REPL(VM* vm) : vm(vm){
         vm->_stdout(vm, "pocketpy " PK_VERSION " (" __DATE__ ", " __TIME__ ") ");
-        vm->_stdout(vm, fmt("[", sizeof(void*)*8, " bit]" "\n"));
+        vm->_stdout(vm, fmt("[", sizeof(void*)*8, " bit] on ", PK_SYS_PLATFORM "\n"));
         vm->_stdout(vm, "https://github.com/blueloveTH/pocketpy" "\n");
         vm->_stdout(vm, "Type \"exit()\" to exit." "\n");
     }
