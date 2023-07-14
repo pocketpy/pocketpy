@@ -1,7 +1,4 @@
 #include "pocketpy.h"
-#include "pocketpy/obj.h"
-#include "pocketpy/pocketpy_c.h"
-#include "pocketpy/tuplelist.h"
 #include "pocketpy_c.h"
 
 using namespace pkpy;
@@ -350,7 +347,7 @@ bool pkpy_push_module(pkpy_vm* vm_handle, const char* name) {
 }
 
 // some opt
-bool pkpy_load_attr(pkpy_vm* vm_handle, pkpy_CName name) {
+bool pkpy_getattr(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
@@ -362,7 +359,7 @@ bool pkpy_load_attr(pkpy_vm* vm_handle, pkpy_CName name) {
     return true;
 }
 
-bool pkpy_store_attr(pkpy_vm* vm_handle, pkpy_CName name) {
+bool pkpy_setattr(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(2)
@@ -376,7 +373,7 @@ bool pkpy_store_attr(pkpy_vm* vm_handle, pkpy_CName name) {
 }
 
 //get global will also get bulitins
-bool pkpy_load_global(pkpy_vm* vm_handle, const char* name) {
+bool pkpy_getglobal(pkpy_vm* vm_handle, const char* name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PyObject* o = vm->_main->attr().try_get(name);
@@ -391,7 +388,7 @@ bool pkpy_load_global(pkpy_vm* vm_handle, const char* name) {
     return true;
 }
 
-bool pkpy_store_global(pkpy_vm* vm_handle, const char* name) {
+bool pkpy_setglobal(pkpy_vm* vm_handle, const char* name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)

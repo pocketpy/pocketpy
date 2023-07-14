@@ -65,9 +65,7 @@ int main(int argc, char** argv){
 
     pkpy_push_function(vm, "input() -> str", f_input);
     pkpy_eval(vm, "__import__('builtins')");
-    pkpy_store_attr(vm, pkpy_name("input"));
-
-    PK_ASSERT(pkpy_stack_size(vm) == 0);
+    pkpy_setattr(vm, pkpy_name("input"));
 
     if(argc == 1){
         void* repl = pkpy_new_repl(vm);

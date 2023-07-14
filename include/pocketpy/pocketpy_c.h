@@ -70,10 +70,10 @@ PK_EXPORT bool pkpy_push_function(pkpy_vm*, const char*, pkpy_CFunction);
 PK_EXPORT bool pkpy_push_module(pkpy_vm*, const char*);
 
 // some opt
-PK_EXPORT bool pkpy_load_attr(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_store_attr(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_load_global(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_store_global(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_getattr(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_setattr(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_getglobal(pkpy_vm*, pkpy_CName);
+PK_EXPORT bool pkpy_setglobal(pkpy_vm*, pkpy_CName);
 PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
 PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName);
