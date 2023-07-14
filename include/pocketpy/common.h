@@ -25,6 +25,14 @@
 #include "config.h"
 #include "export.h"
 
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+
 /*******************************************************************************/
 #if PK_ENABLE_STD_FUNCTION
 #include <functional>
