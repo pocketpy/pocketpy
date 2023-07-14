@@ -1,6 +1,7 @@
 #include <fstream>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 
 #if __has_include("pocketpy_c.h")
     #include "pocketpy_c.h"
