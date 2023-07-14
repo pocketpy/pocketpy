@@ -57,9 +57,9 @@ int main(int argc, char** argv){
 #if _WIN32
     // implicitly load pocketpy.dll in current directory
 #elif __linux__
-    dlopen("libpocketpy.so", RTLD_NOW | RTLD_GLOBAL);
+    dlopen("libpocketpy.so", RTLD_LAZY);
 #elif __APPLE__
-    dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
+    dlopen("libpocketpy.dylib", RTLD_LAZY);
 #endif
     pkpy_vm* vm = pkpy_new_vm(true);
 
