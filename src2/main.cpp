@@ -2,8 +2,11 @@
 #include <filesystem>
 #include <iostream>
 
-#include "pocketpy_c.h"
-
+#if __has_include("pocketpy_c.h")
+    #include "pocketpy_c.h"
+#else
+    #include "pocketpy.h"
+#endif
 
 #ifdef _WIN32
 
@@ -87,10 +90,9 @@ int main(int argc, char** argv){
         // set parent path as cwd
         std::filesystem::current_path(filepath.parent_path());
 
-        pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
+        bool ok = pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
         pkpy_delete_vm(vm);
-        // return ret != nullptr ? 0 : 1;
-        return 0;
+        return ok ? 0 : 1;
     }
 
 __HELP:

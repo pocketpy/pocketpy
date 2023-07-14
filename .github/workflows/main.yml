@@ -26,7 +26,7 @@ jobs:
     - name: Benchmark
       run: python3 scripts/run_tests.py benchmark
   build_linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
     - name: Setup Clang
