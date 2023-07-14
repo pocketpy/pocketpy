@@ -305,13 +305,14 @@ bool pkpy_push_null(pkpy_vm* vm_handle) {
 // function
 static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
-    PyObject** curr_sp = &vm->s_data.top();
+    PyObject** curr_sp = vm->s_data._sp;
     int retc = f(vm);
     // propagate_if_errored
     if (vm->_c.error != nullptr){
         Exception e = _py_cast<Exception&>(vm, vm->_c.error);
         vm->_c.error = nullptr;
         vm->_error(e);
+        return nullptr;
     }
     PK_ASSERT(retc == vm->s_data._sp-curr_sp);
     if(retc == 0) return vm->None;

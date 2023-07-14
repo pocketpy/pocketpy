@@ -41,9 +41,17 @@ std::string pkpy_platform_getline(bool* eof){
 
 #endif
 
-// std::string f_input(){
-//     return pkpy::platform_getline();
-// }
+std::string f_input(){
+    bool eof;
+    return pkpy_platform_getline(&eof);
+}
+
+static int f_input(pkpy_vm* vm){
+    bool eof;
+    std::string output = pkpy_platform_getline(&eof);
+    pkpy_push_string(vm, output.c_str());
+    return 1;
+}
 
 int main(int argc, char** argv){
 #if _WIN32
@@ -54,7 +62,12 @@ int main(int argc, char** argv){
     dlopen("libpocketpy.dylib", RTLD_NOW | RTLD_GLOBAL);
 #endif
     pkpy_vm* vm = pkpy_new_vm(true);
-    // pkpy::_bind(vm, vm->builtins, "input() -> str", &f_input);
+
+    pkpy_push_function(vm, "input() -> str", f_input);
+    pkpy_eval(vm, "__import__('builtins')");
+    pkpy_store_attr(vm, pkpy_name("input"));
+
+    PK_ASSERT(pkpy_stack_size(vm) == 0);
 
     if(argc == 1){
         void* repl = pkpy_new_repl(vm);
