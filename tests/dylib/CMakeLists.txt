@@ -2,19 +2,12 @@ cmake_minimum_required(VERSION 3.17)
 
 project(test)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR- /EHsc /utf-8 /O2")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -fexceptions -O2")
-    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-    endif()
-endif()
-
-if (MSVC)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:UNRESOLVED")
 endif()
 
 include_directories(
@@ -24,5 +17,19 @@ include_directories(
 add_library(
     ${PROJECT_NAME}
     SHARED
-    test.cpp
+    test.c
 )
+
+
+if (WIN32)
+    add_library(
+        ${PROJECT_NAME}_stub
+        SHARED
+        ${CMAKE_CURRENT_LIST_DIR}/../../src2/pocketpy_c.cpp
+    )
+
+    target_link_libraries(
+        ${PROJECT_NAME}
+        ${PROJECT_NAME}_stub
+    )
+endif()

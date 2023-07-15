@@ -2,7 +2,7 @@
 
 namespace pkpy{
 
-using dylib_entry_t = PyObject*(*)(VM*, const char*);
+using dylib_entry_t = const char* (*)(void*, const char*);
 
 #if PK_ENABLE_OS
 
@@ -11,7 +11,7 @@ static dylib_entry_t load_dylib(const char* path){
     std::error_code ec;
     auto p = std::filesystem::absolute(path, ec);
     if(ec) return nullptr;
-    HMODULE handle = LoadLibraryA((LPCSTR)"test.dll");
+    HMODULE handle = LoadLibraryA(p.string().c_str());
     // get last error
     // Get the last error code
     SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -169,7 +169,8 @@ void init_builtins(VM* _vm) {
                 if(!entry){
                     vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
                 }
-                return entry(vm, PK_VERSION);
+                const char* name = entry(vm, PK_VERSION);
+                return vm->_modules[name];
             }
         }
         return vm->py_import(name);
