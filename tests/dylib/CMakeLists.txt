@@ -23,13 +23,13 @@ add_library(
 
 if (WIN32)
     add_library(
-        ${PROJECT_NAME}_stub
+        pocketpy
         SHARED
         ${CMAKE_CURRENT_LIST_DIR}/../../src2/pocketpy_c.cpp
     )
 
     target_link_libraries(
         ${PROJECT_NAME}
-        ${PROJECT_NAME}_stub
+        pocketpy
     )
 endif()
