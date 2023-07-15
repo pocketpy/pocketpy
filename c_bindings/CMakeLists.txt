@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.17)
 project(test_c_bindings)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 option(PK_BUILD_STATIC_LIB "Build static library" ON)
 
