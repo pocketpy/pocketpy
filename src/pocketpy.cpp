@@ -30,7 +30,7 @@ static dylib_entry_t load_dylib(const char* path){
         LocalFree(errorMessage);
         return nullptr;
     }
-    return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
+    return (dylib_entry_t)GetProcAddress(handle, "pkpy_module__init__");
 }
 #elif PK_SUPPORT_DYLIB == 2
 // linux/darwin
@@ -40,7 +40,7 @@ static dylib_entry_t load_dylib(const char* path){
     if(ec) return nullptr;
     void* handle = dlopen(p.c_str(), RTLD_LAZY);
     if(!handle) return nullptr;
-    return (dylib_entry_t)dlsym(handle, "platform_module__init__");
+    return (dylib_entry_t)dlsym(handle, "pkpy_module__init__");
 }
 
 #elif PK_SUPPORT_DYLIB == 3
@@ -48,7 +48,7 @@ static dylib_entry_t load_dylib(const char* path){
 static dylib_entry_t load_dylib(const char* path){
     void* handle = dlopen(path, RTLD_LAZY);
     if(!handle) return nullptr;
-    return (dylib_entry_t)dlsym(handle, "platform_module__init__");
+    return (dylib_entry_t)dlsym(handle, "pkpy_module__init__");
 }
 
 #else

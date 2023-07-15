@@ -8,7 +8,7 @@ static int hello(pkpy_vm* vm){
 }
 
 PK_EXPORT
-const char* platform_module__init__(pkpy_vm* vm, const char* version){
+const char* pkpy_module__init__(pkpy_vm* vm, const char* version){
     printf("version: %s\n", version);
     pkpy_push_function(vm, "hello()", hello);
     pkpy_push_module(vm, "test");
