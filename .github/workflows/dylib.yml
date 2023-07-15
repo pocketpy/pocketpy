@@ -12,7 +12,7 @@ jobs:
       run: |
         Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
         xmake --version
-        bash -c "mkdir -p output/windows/x86_64"
+        mkdir -p output/windows/x86_64
         cd dylib
         xmake f -p windows -a x86_64
         xmake
