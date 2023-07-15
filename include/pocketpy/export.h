@@ -25,11 +25,11 @@
     #if TARGET_IPHONE_SIMULATOR
         // iOS, tvOS, or watchOS Simulator
         #define PK_SYS_PLATFORM     "ios"
-        #define PK_SUPPORT_DYLIB    0
+        #define PK_SUPPORT_DYLIB    4
     #elif TARGET_OS_IPHONE
         // iOS, tvOS, or watchOS device
         #define PK_SYS_PLATFORM     "ios"
-        #define PK_SUPPORT_DYLIB    0
+        #define PK_SUPPORT_DYLIB    4
     #elif TARGET_OS_MAC
         #define PK_SYS_PLATFORM     "darwin"
         #include <dlfcn.h>
@@ -39,7 +39,8 @@
     #endif
     #define PK_EXPORT __attribute__((visibility("default")))
 #elif __ANDROID__
-    #define PK_SUPPORT_DYLIB    0
+    #include <dlfcn.h>
+    #define PK_SUPPORT_DYLIB    3
     #define PK_EXPORT __attribute__((visibility("default")))
     #define PK_SYS_PLATFORM     "android"
 #elif __linux__
