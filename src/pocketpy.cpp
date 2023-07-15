@@ -12,29 +12,23 @@ static dylib_entry_t load_dylib(const char* path){
     auto p = std::filesystem::absolute(path, ec);
     if(ec) return nullptr;
     HMODULE handle = LoadLibraryA(p.string().c_str());
-    // get last error
-    // Get the last error code
-    SetErrorMode(SEM_FAILCRITICALERRORS);
-    DWORD errorCode = GetLastError();
-
-    // Convert the error code to text
-    LPSTR errorMessage = nullptr;
-    FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr,
-        errorCode,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        (LPSTR)&errorMessage,
-        0,
-        nullptr
-    );
-
-    // Print the error message to stdout
-    printf("%lu: %s\n", errorCode, errorMessage);
-
-    // Free the message buffer
-    LocalFree(errorMessage);
-    if(!handle) return nullptr;
+    if(!handle){
+        DWORD errorCode = GetLastError();
+        // Convert the error code to text
+        LPSTR errorMessage = nullptr;
+        FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr,
+            errorCode,
+            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+            (LPSTR)&errorMessage,
+            0,
+            nullptr
+        );
+        printf("%lu: %s\n", errorCode, errorMessage);
+        LocalFree(errorMessage);
+        return nullptr;
+    }
     return (dylib_entry_t)GetProcAddress(handle, "platform_module__init__");
 }
 #elif PK_SUPPORT_DYLIB == 2
