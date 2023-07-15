@@ -14,15 +14,13 @@ add_library(
     test.c
 )
 
-if (WIN32)
-    add_library(
-        pocketpy
-        SHARED
-        ${CMAKE_CURRENT_LIST_DIR}/../../src2/pocketpy_c.cpp
-    )
+add_library(
+    pocketpy
+    SHARED
+    ${CMAKE_CURRENT_LIST_DIR}/../../src2/pocketpy_c.cpp
+)
 
-    target_link_libraries(
-        ${PROJECT_NAME}
-        pocketpy
-    )
-endif()
+target_link_libraries(
+    ${PROJECT_NAME}
+    pocketpy
+)

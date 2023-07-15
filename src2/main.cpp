@@ -54,13 +54,6 @@ static int f_input(pkpy_vm* vm){
 }
 
 int main(int argc, char** argv){
-#if _WIN32
-    // implicitly load pocketpy.dll in current directory
-#elif __linux__
-    dlopen("libpocketpy.so", RTLD_LAZY | RTLD_GLOBAL);
-#elif __APPLE__
-    dlopen("libpocketpy.dylib", RTLD_LAZY | RTLD_GLOBAL);
-#endif
     pkpy_vm* vm = pkpy_new_vm(true);
 
     pkpy_push_function(vm, "input() -> str", f_input);
