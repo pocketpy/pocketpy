@@ -52,10 +52,10 @@ jobs:
         cd dylib
         xmake f -p android -a armeabi-v7a --ndk=$ANDROID_NDK_HOME
         xmake
-        cp build/android/armeabi-v7a/libtest.so ../output/android/armeabi-v7a
+        cp build/android/armeabi-v7a/release/libtest.so ../output/android/armeabi-v7a
         xmake f -p android -a arm64-v8a --ndk=$ANDROID_NDK_HOME
         xmake
-        cp build/android/arm64-v8a/libtest.so ../output/android/arm64-v8a
+        cp build/android/arm64-v8a/release/libtest.so ../output/android/arm64-v8a
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
     - uses: actions/upload-artifact@v3
