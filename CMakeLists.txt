@@ -42,4 +42,6 @@ else()
     target_link_libraries(${PROJECT_EXE_NAME} ${CMAKE_DL_LIBS})
 endif()
 
-target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows" OR CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+endif()
