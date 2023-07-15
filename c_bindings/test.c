@@ -351,11 +351,13 @@ int main(int argc, char** argv) {
     error(pkpy_exec(vm, "test_nested_error()"));
 
     PRINT_TITLE("test getattr/setattr");
+    check(pkpy_stack_size(vm) == 0);
     check(pkpy_exec(vm, "import math"));
     check(pkpy_getglobal(vm, pkpy_name("math")));
     check(pkpy_getattr(vm, pkpy_name("pi")));
     check(pkpy_to_float(vm, -1, &r_float));
     printf("pi: %.2f\n", r_float);
+    check(pkpy_pop(vm, 1));
 
     // math.pi = 2
     check(pkpy_push_int(vm, 2));
@@ -376,7 +378,7 @@ int main(int argc, char** argv) {
     check(pkpy_to_string(vm, -1, &r_string));
     for(int i = 0; i < r_string.size; i++) putchar(r_string.data[i]);
     putchar('\n');
-    check(pkpy_pop(vm, 1));
+    check(pkpy_pop(vm, 2));
     check(pkpy_stack_size(vm) == 0);
     return 0;
 }
