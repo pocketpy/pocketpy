@@ -1,46 +1,54 @@
+
+====== test basic exec ======
 hello world!
 successfully errored with this message: 
 Traceback (most recent call last):
 NameError: nonexistatn
 
-testing int methods
+====== test int methods ======
 11
 11
+1
 
-testing float methods
-11.11
-11.110000
+====== test float methods ======
+11.125
+11.125
 
-testing bool methods
+====== test bool methods ======
 False
 0
 
-testing string methods
+====== test string methods ======
 hello!
-hello
-hello
+hello!
 
-testing None methods
+====== test none methods ======
 None
 
-testing voidp methods
+====== test voidp methods ======
 <void* at 0x7b>
 123
 
-testing sizing and indexing
+====== test sizing and indexing ======
 stack size 6
 
-testing error catching
+====== test error catching ======
 successfully errored with this message: 
-  File "<c-bound>", line 1
+  File "main.py", line 1
     let's make sure syntax errors get caught
 SyntaxError: EOL while scanning string literal
 
-testing calls
+====== test simple call ======
 x : -1
+
+====== test vararg call ======
 vararg_x : 21
+
+====== test keyword call ======
 keyword_x : 4
 keyword_x : 2
+
+====== test return many ======
 retmany_x : 1
 retmany_x : 2
 retmany_x : 3
@@ -48,30 +56,45 @@ successfully errored with this message:
 TypeError: expected 2 positional arguments, got 0 (x)
 ['hello']
 
-testing pushing functions
+====== test bindings ======
 12
+
+====== test error propagate ======
 successfully errored with this message: 
 Traceback (most recent call last):
-  File "<c-bound>", line 1
+  File "main.py", line 1
     test_error_propagate()
 NameError: catch me
+
+====== test other errors ======
 successfully errored with this message: 
 Traceback (most recent call last):
-  File "<c-bound>", line 1
+NameError: nonexistant
+successfully errored with this message: 
+Traceback (most recent call last):
+  File "main.py", line 1
     raise NameError('testing error throwing from python')
 NameError: testing error throwing from python
+
+====== test TypeError ======
+successfully errored with this message: 
+TypeError: expected 'int', got 'float'
+
+====== test complicated errors ======
 successfully errored with this message: 
 Traceback (most recent call last):
 _: test direct error mechanism
 successfully errored with this message: 
 Traceback (most recent call last):
-  File "<c-bound>", line 1
+  File "main.py", line 1
     test_nested_error()
-  File "<c-bound>", line 1
+  File "main.py", line 1
     def error_from_python() : raise NotImplementedError()
 NotImplementedError
-pi: 3.14
+
+====== test getattr/setattr ======
 pi: 3.14
 2
-successfully errored with this message: 
-TypeError: expected 'int', got 'float'
+
+====== test eval ======
+pi: 2.00

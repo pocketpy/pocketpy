@@ -8,8 +8,11 @@ order: 5
 
 + If a method returns false, call the `pkpy_clear_error` method to check the error and clear it
 + If `pkpy_clear_error` returns false, it means that no error was set, and it takes no action
-+ If `pkpy_clear_error` returns true, it means there was an error and it was cleared. It will provide a string summary of the error in the message parameter (if it is not NULL) If null is passed in as message, and it will just print the message to stderr.
-+ You are responsible for freeing `message`.
++ If `pkpy_clear_error` returns true, it means there was an error and it was cleared. It will provide a string summary of the error in the message parameter if it is not `NULL`.
+
+!!!
+You are responsible for freeing `message`.
+!!!
 
 #### `bool pkpy_check_error(pkpy_vm*)`
 

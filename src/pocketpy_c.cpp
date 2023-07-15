@@ -374,15 +374,14 @@ bool pkpy_setattr(pkpy_vm* vm_handle, pkpy_CName name) {
 }
 
 //get global will also get bulitins
-bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name_) {
+bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
-    StrName name(name_);
     PK_ASSERT_NO_ERROR()
-    PyObject* o = vm->_main->attr().try_get(name);
+    PyObject* o = vm->_main->attr().try_get(StrName(name));
     if (o == nullptr) {
-        o = vm->builtins->attr().try_get(name);
+        o = vm->builtins->attr().try_get(StrName(name));
         if (o == nullptr){
-            pkpy_error(vm_handle, "NameError", pkpy_name_to_string(name_));
+            pkpy_error(vm_handle, "NameError", pkpy_name_to_string(name));
             return false;
         }
     }
@@ -390,11 +389,11 @@ bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name_) {
     return true;
 }
 
-bool pkpy_setglobal(pkpy_vm* vm_handle, pkpy_CName name_) {
+bool pkpy_setglobal(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    vm->_main->attr().set(StrName(name_), vm->s_data.popx());
+    vm->_main->attr().set(StrName(name), vm->s_data.popx());
     return true;
 }
 
@@ -435,7 +434,7 @@ bool pkpy_get_unbound_method(pkpy_vm* vm_handle, pkpy_CName name){
     PK_PROTECTED(
         o = vm->get_unbound_method(o, StrName(name), &self);
     )
-    vm->s_data.shrink(2);
+    vm->s_data.pop();
     vm->s_data.push(o);
     vm->s_data.push(self);
     return true;
@@ -459,10 +458,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     // no error
     if (vm->_c.error == nullptr) return false;
     Exception& e = _py_cast<Exception&>(vm, vm->_c.error);
-    if (message != nullptr) 
-        *message = e.summary().c_str_dup();
-    else
-        std::cerr << "ERROR: " << e.summary() << "\n";
+    if (message != nullptr) *message = e.summary().c_str_dup();
     vm->_c.error = nullptr;
     // clear the whole stack??
     vm->callstack.clear();
