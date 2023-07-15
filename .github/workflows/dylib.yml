@@ -12,20 +12,12 @@ jobs:
       run: |
         Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
         xmake --version
-    - name: Compile 01
-      shell: bash
-      run: |
+    - name: Compile
         mkdir -p output/windows/x86_64
         cd dylib
-    - name: Compile 02
-      shell: powershell
-      run: |
-        xmake f -p windows -a x64
-        xmake
-    - name: Compile 03
-      shell: bash
-      run: |
-        cp build/windows/x64/release/test.dll ../output/windows/x86_64
+        pwsh -Command "xmake f -p windows -a x86_64"
+        pwsh -Command "xmake"
+        cp build/windows/x86_64/release/test.dll ../output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
