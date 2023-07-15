@@ -15,6 +15,6 @@ order: 5
 
 Return true if the vm is currently in an error state.
 
-#### `bool pkpy_error(pkpy_vm*, const char* name, const char* message)`
+#### `bool pkpy_error(pkpy_vm*, const char* name, pkpy_CString message)`
 
 Set the error state of the vm. It is almost equivalent to `raise` in python.

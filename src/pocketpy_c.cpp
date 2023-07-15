@@ -1,4 +1,5 @@
 #include "pocketpy.h"
+#include "pocketpy/pocketpy_c.h"
 #include "pocketpy_c.h"
 
 using namespace pkpy;
@@ -9,7 +10,7 @@ typedef int (*LuaStyleFuncC)(VM*);
     int __ex_count = count_extra_elements(vm, n); \
     if(__ex_count < n){ \
         std::string msg = fmt("expected at least ", n, " elements, got ", __ex_count); \
-        pkpy_error(vm_handle, "StackError", msg.c_str()); \
+        pkpy_error(vm_handle, "StackError", pkpy_string(msg.c_str())); \
         return false; \
     }
 
@@ -373,14 +374,15 @@ bool pkpy_setattr(pkpy_vm* vm_handle, pkpy_CName name) {
 }
 
 //get global will also get bulitins
-bool pkpy_getglobal(pkpy_vm* vm_handle, const char* name) {
+bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name_) {
     VM* vm = (VM*) vm_handle;
+    StrName name(name_);
     PK_ASSERT_NO_ERROR()
     PyObject* o = vm->_main->attr().try_get(name);
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(name);
         if (o == nullptr){
-            pkpy_error(vm_handle, "NameError", name);
+            pkpy_error(vm_handle, "NameError", pkpy_name_to_string(name_));
             return false;
         }
     }
@@ -388,11 +390,11 @@ bool pkpy_getglobal(pkpy_vm* vm_handle, const char* name) {
     return true;
 }
 
-bool pkpy_setglobal(pkpy_vm* vm_handle, const char* name) {
+bool pkpy_setglobal(pkpy_vm* vm_handle, pkpy_CName name_) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    vm->_main->attr().set(name, vm->s_data.popx());
+    vm->_main->attr().set(StrName(name_), vm->s_data.popx());
     return true;
 }
 
@@ -440,10 +442,10 @@ bool pkpy_get_unbound_method(pkpy_vm* vm_handle, pkpy_CName name){
 }
 
 /* Error Handling */
-bool pkpy_error(pkpy_vm* vm_handle, const char* name, const char* message) {
+bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    vm->_c.error = py_var(vm, Exception(name, message));
+    vm->_c.error = py_var(vm, Exception(name, Str(message.data, message.size)));
     return false;
 }
 
@@ -492,6 +494,14 @@ pkpy_CString pkpy_string(const char* value){
 
 pkpy_CName pkpy_name(const char* name){
     return StrName(name).index;
+}
+
+pkpy_CString pkpy_name_to_string(pkpy_CName name){
+    std::string_view sv = StrName(name).sv();
+    pkpy_CString s;
+    s.data = sv.data();
+    s.size = sv.size();
+    return s;
 }
 
 void pkpy_compile_to_string(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, bool* ok, char** out){

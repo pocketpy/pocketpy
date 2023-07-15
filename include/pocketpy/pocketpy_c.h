@@ -77,7 +77,7 @@ PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
 PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName);
 
 /* Error Handling */
-PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, const char* message);
+PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, pkpy_CString);
 PK_EXPORT bool pkpy_check_error(pkpy_vm*);
 PK_EXPORT bool pkpy_clear_error(pkpy_vm*, char** message);
 
@@ -88,6 +88,7 @@ PK_EXPORT bool pkpy_vectorcall(pkpy_vm*, int argc);
 PK_EXPORT void pkpy_free(void* p);
 PK_EXPORT pkpy_CString pkpy_string(const char*);
 PK_EXPORT pkpy_CName pkpy_name(const char*);
+PK_EXPORT pkpy_CString pkpy_name_to_string(pkpy_CName);
 PK_EXPORT void pkpy_compile_to_string(pkpy_vm*, const char* source, const char* filename, int mode, bool* ok, char** out);
 
 /* REPL */
