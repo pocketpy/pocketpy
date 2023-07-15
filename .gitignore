@@ -31,3 +31,5 @@ build
 
 pocketpy.dSYM
 main
+
+pypi/
