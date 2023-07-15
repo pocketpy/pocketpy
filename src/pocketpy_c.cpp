@@ -469,7 +469,10 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     // no error
     if (vm->_c.error == nullptr) return false;
     Exception& e = _py_cast<Exception&>(vm, vm->_c.error);
-    if (message != nullptr) *message = e.summary().c_str_dup();
+    if (message != nullptr)
+        *message = e.summary().c_str_dup();
+    else
+        std::cerr << e.summary() << std::endl;
     vm->_c.error = nullptr;
     // clear the whole stack??
     vm->callstack.clear();

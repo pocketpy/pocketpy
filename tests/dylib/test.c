@@ -14,10 +14,7 @@ const char* platform_module__init__(pkpy_vm* vm, const char* version){
     pkpy_push_module(vm, "test");
     pkpy_setattr(vm, pkpy_name("hello"));
     if(pkpy_check_error(vm)){
-        char* err;
-        pkpy_clear_error(vm, &err);
-        printf("%s\n", err);
-        free(err);
+        pkpy_clear_error(vm, NULL);
         exit(1);
     }
     return "test";
