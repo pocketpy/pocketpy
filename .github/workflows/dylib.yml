@@ -7,14 +7,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: ilammy/msvc-dev-cmd@v1
-    - name: Install xmake
+    - name: Compile
       shell: powershell
       run: |
         Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
         xmake --version
-    - name: Compile
-      shell: powershell
-      run: |
         bash -c "mkdir -p output/windows/x86_64"
         cd dylib
         xmake f -p windows -a x86_64
