@@ -11,12 +11,11 @@ jobs:
       shell: powershell
       run: |
         Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
-        xmake --version
         mkdir -p output/windows/x86_64
         cd dylib
-        xmake f -p windows -a x86_64
+        xmake f -p windows -a x64
         xmake
-        cp build/windows/x86_64/release/test.dll ../output/windows/x86_64
+        cp build/windows/x64/release/test.dll ../output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
