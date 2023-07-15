@@ -368,5 +368,15 @@ int main(int argc, char** argv) {
     check(pkpy_to_float(vm, -1, &r_float));
     printf("pi: %.2f\n", r_float);
     check(pkpy_pop(vm, 1));
+    check(pkpy_stack_size(vm) == 0);
+
+    PRINT_TITLE("test py_repr");
+    check(pkpy_eval(vm, "['1', 2, (3, '4')]"));
+    check(pkpy_py_repr(vm, -1));
+    check(pkpy_to_string(vm, -1, &r_string));
+    for(int i = 0; i < r_string.size; i++) putchar(r_string.data[i]);
+    putchar('\n');
+    check(pkpy_pop(vm, 1));
+    check(pkpy_stack_size(vm) == 0);
     return 0;
 }

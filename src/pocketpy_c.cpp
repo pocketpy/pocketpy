@@ -1,5 +1,4 @@
 #include "pocketpy.h"
-#include "pocketpy/pocketpy_c.h"
 #include "pocketpy_c.h"
 
 using namespace pkpy;
@@ -437,6 +436,18 @@ bool pkpy_get_unbound_method(pkpy_vm* vm_handle, pkpy_CName name){
     vm->s_data.pop();
     vm->s_data.push(o);
     vm->s_data.push(self);
+    return true;
+}
+
+bool pkpy_py_repr(pkpy_vm* vm_handle, int i) {
+    VM* vm = (VM*) vm_handle;
+    PK_ASSERT_NO_ERROR()
+    PK_ASSERT_N_EXTRA_ELEMENTS(1)
+    PK_PROTECTED(
+        PyObject* item = stack_item(vm, i);
+        PyObject* repr = vm->py_repr(item);
+        vm->s_data.push(repr);
+    )
     return true;
 }
 

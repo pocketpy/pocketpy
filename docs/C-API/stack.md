@@ -140,3 +140,10 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
     ```
     [obj] -> [obj.<name> self]
     ```
++ `bool pkpy_py_repr(pkpy_vm*, int i)`
+
+    Get the repr of the value at the given index and push it onto the stack.
+
+    ```
+    [..., value, ...] -> [..., value, ..., repr(value)]
+    ```
