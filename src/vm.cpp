@@ -4,6 +4,7 @@ namespace pkpy{
 
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
+        this->_c.error = nullptr;
         _stdout = [](VM* vm, const Str& s) {
             PK_UNUSED(vm);
             std::cout << s;
