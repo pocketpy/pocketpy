@@ -468,6 +468,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
 
 bool pkpy_vectorcall(pkpy_vm* vm_handle, int argc) {
     VM* vm = (VM*) vm_handle;
+    PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(argc + 2)
     PyObject* res;
     PK_PROTECTED(
@@ -502,6 +503,7 @@ pkpy_CString pkpy_name_to_string(pkpy_CName name){
 
 void pkpy_compile_to_string(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, bool* ok, char** out){
     VM* vm = (VM*) vm_handle;
+    pkpy_clear_error(vm_handle, NULL);
     try{
         CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
         *out = code->serialize(vm).c_str_dup();
