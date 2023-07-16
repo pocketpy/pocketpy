@@ -190,6 +190,12 @@ namespace pkpy{
         ctx->emit(OP_BUILD_LONG, BC_NOARG, line);
     }
 
+    void BytesExpr::emit(CodeEmitContext* ctx) {
+        VM* vm = ctx->vm;
+        ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
+        ctx->emit(OP_BUILD_BYTES, BC_NOARG, line);
+    }
+
     std::string LiteralExpr::str() const{
         if(std::holds_alternative<i64>(value)){
             return std::to_string(std::get<i64>(value));

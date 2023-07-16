@@ -247,6 +247,12 @@ __NEXT_STEP:;
         if(_0 == nullptr) AttributeError(builtins, m_long);
         TOP() = call(_0, TOP());
     } DISPATCH();
+    TARGET(BUILD_BYTES) {
+        const Str& s = CAST(Str&, TOP());
+        std::vector<char> buffer(s.size);
+        memcpy(buffer.data(), s.data, s.size);
+        TOP() = VAR(Bytes(std::move(buffer)));
+    } DISPATCH();
     TARGET(BUILD_TUPLE)
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         STACK_SHRINK(byte.arg);

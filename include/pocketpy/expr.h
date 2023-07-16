@@ -134,6 +134,13 @@ struct LongExpr: Expr{
     void emit(CodeEmitContext* ctx) override;
 };
 
+struct BytesExpr: Expr{
+    Str s;
+    BytesExpr(const Str& s): s(s) {}
+    std::string str() const override { return s.str(); }
+    void emit(CodeEmitContext* ctx) override;
+};
+
 // @num, @str which needs to invoke OP_LOAD_CONST
 struct LiteralExpr: Expr{
     TokenValue value;

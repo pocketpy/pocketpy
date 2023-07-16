@@ -236,9 +236,13 @@ namespace pkpy{
         Str s = eat_string_until(quote, type == RAW_STRING);
         if(type == F_STRING){
             add_token(TK("@fstr"), s);
-        }else{
-            add_token(TK("@str"), s);
+            return;
         }
+        if(type == NORMAL_BYTES){
+            add_token(TK("@bytes"), s);
+            return;
+        }
+        add_token(TK("@str"), s);
     }
 
     void Lexer::eat_number() {
@@ -385,6 +389,9 @@ namespace pkpy{
                     }else if(c == 'r'){
                         if(matchchar('\'')) {eat_string('\'', RAW_STRING); return true;}
                         if(matchchar('"')) {eat_string('"', RAW_STRING); return true;}
+                    }else if(c == 'b'){
+                        if(matchchar('\'')) {eat_string('\'', NORMAL_BYTES); return true;}
+                        if(matchchar('"')) {eat_string('"', NORMAL_BYTES); return true;}
                     }
                     if (c >= '0' && c <= '9') {
                         eat_number();

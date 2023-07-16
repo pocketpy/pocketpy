@@ -11,7 +11,7 @@ typedef uint8_t TokenIndex;
 constexpr const char* kTokens[] = {
     "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
-    "@id", "@num", "@str", "@fstr", "@long",
+    "@id", "@num", "@str", "@fstr", "@long", "@bytes",
     "@indent", "@dedent",
     /*****************************************/
     "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed
@@ -100,7 +100,7 @@ enum Precedence {
   PREC_PRIMARY,
 };
 
-enum StringType { NORMAL_STRING, RAW_STRING, F_STRING };
+enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
     shared_ptr<SourceData> src;
