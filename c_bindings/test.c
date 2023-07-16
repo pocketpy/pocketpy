@@ -66,6 +66,32 @@ int test_multiple_return(pkpy_vm* vm) {
     return 2;
 }
 
+int test_minus(pkpy_vm* vm) {
+    int a, b;
+    pkpy_to_int(vm, 0, &a);
+    pkpy_to_int(vm, 1, &b);
+    pkpy_push_int(vm, a - b);
+    return 1;
+}
+
+int test_fib(pkpy_vm* vm) {
+    int n;
+    pkpy_to_int(vm, 0, &n);
+    if (n == 1) {
+        pkpy_push_int(vm, n);
+    } else {
+        pkpy_getglobal(vm, pkpy_name("test_fib"));
+        pkpy_push_null(vm);
+        pkpy_push_int(vm, n-1);
+        pkpy_vectorcall(vm, 1);
+        int r_int;
+        pkpy_to_int(vm, -1, &r_int);
+        pkpy_pop_top(vm);
+        pkpy_push_int(vm, r_int + n);
+    }
+    return 1;
+}
+
 int test_default_argument(pkpy_vm* vm){
     int x;
     pkpy_to_int(vm, -1, &x);
@@ -309,6 +335,19 @@ int main(int argc, char** argv) {
     check(pkpy_to_bool(vm, -1, &r_bool));
     check(r_bool == true);
     check(pkpy_pop_top(vm));
+    check(pkpy_stack_size(vm) == 0);
+
+    PRINT_TITLE("test bindings 2");
+    check(pkpy_push_function(vm, "test_minus(a, b)", test_minus));
+    check(pkpy_setglobal(vm, pkpy_name("test_minus")));
+    check(pkpy_exec(vm, "print(test_minus(5, 3))"));
+    check(pkpy_exec(vm, "for i in range(5): print(test_minus(5, i))"));
+    check(pkpy_stack_size(vm) == 0);
+
+    PRINT_TITLE("test bindings fib");
+    check(pkpy_push_function(vm, "test_fib(n: int) -> int", test_fib));
+    check(pkpy_setglobal(vm, pkpy_name("test_fib")));
+    check(pkpy_exec(vm, "print(test_fib(10))"));
     check(pkpy_stack_size(vm) == 0);
 
     PRINT_TITLE("test error propagate");

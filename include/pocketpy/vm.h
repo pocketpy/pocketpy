@@ -119,6 +119,7 @@ public:
 
     struct{
         PyObject* error;
+        stack<ArgsView> s_view;
     } _c;
 
     PyObject* None;

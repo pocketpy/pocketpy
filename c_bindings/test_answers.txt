@@ -59,6 +59,17 @@ TypeError: expected 2 positional arguments, got 0 (x)
 ====== test bindings ======
 12
 
+====== test bindings 2 ======
+2
+5
+4
+3
+2
+1
+
+====== test bindings fib ======
+55
+
 ====== test error propagate ======
 successfully errored with this message: 
 Traceback (most recent call last):
@@ -81,6 +92,10 @@ successfully errored with this message:
 TypeError: expected 'int', got 'float'
 
 ====== test complicated errors ======
+Traceback (most recent call last):
+  File "main.py", line 1
+    test_error_propagate()
+NameError: catch me
 successfully errored with this message: 
 Traceback (most recent call last):
 _: test direct error mechanism

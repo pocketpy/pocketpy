@@ -21,23 +21,24 @@ static int count_extra_elements(VM* vm, int n){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    PyObject** base = vm->top_frame()->_locals.end();
-    return vm->s_data._sp - base;
+    PK_ASSERT(!vm->_c.s_view.empty());
+    return vm->s_data._sp - vm->_c.s_view.top().end();
 }
 
 static PyObject* stack_item(VM* vm, int index){
     PyObject** begin;
-    PyObject** end;
+    PyObject** end = vm->s_data.end();
     if(vm->callstack.empty()){
         begin = vm->s_data.begin();
-        end = vm->s_data.end();
     }else{
-        Frame* frame = vm->top_frame().get();
-        begin = frame->_locals.begin();
-        end = frame->_locals.end();
+        PK_ASSERT(!vm->_c.s_view.empty());
+        begin = vm->_c.s_view.top().begin();
     }
-    // may raise
-    index = vm->normalized_index(index, end-begin);
+    int size = end - begin;
+    if(index < 0) index += size;
+    if(index < 0 || index >= size){
+        throw std::runtime_error("stack_item() => index out of range");
+    }
     return begin[index];
 }
 
@@ -126,7 +127,8 @@ int pkpy_stack_size(pkpy_vm* vm_handle){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    return vm->top_frame()->stack_size();
+    PK_ASSERT(!vm->_c.s_view.empty());
+    return vm->s_data._sp - vm->_c.s_view.top().begin();
 }
 
 // int
@@ -299,11 +301,31 @@ bool pkpy_push_null(pkpy_vm* vm_handle) {
     return true;
 }
 
+struct TempViewPopper{
+    VM* vm;
+    bool used;
+
+    TempViewPopper(VM* vm): vm(vm), used(false) {}
+
+    void restore() noexcept{
+        if(used) return;
+        vm->_c.s_view.pop();
+        used = true;
+    }
+
+    ~TempViewPopper(){ restore(); }
+};
+
 // function
 static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
     PyObject** curr_sp = vm->s_data._sp;
-    int retc = f(vm);
+
+    vm->_c.s_view.push(args);
+    TempViewPopper _tvp(vm);
+    int retc = f(vm);       // may raise, _tvp will handle this via RAII
+    _tvp.restore();
+
     // propagate_if_errored
     if (vm->_c.error != nullptr){
         Exception e = _py_cast<Exception&>(vm, vm->_c.error);
@@ -472,11 +494,14 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     if (message != nullptr)
         *message = e.summary().c_str_dup();
     else
-        std::cerr << e.summary() << std::endl;
+        std::cout << e.summary() << std::endl;
     vm->_c.error = nullptr;
-    // clear the whole stack??
-    vm->callstack.clear();
-    vm->s_data.clear(); 
+    if(vm->callstack.empty()){
+        vm->s_data.clear();
+    }else{
+        PK_ASSERT(!vm->_c.s_view.empty());
+        vm->s_data.reset(vm->_c.s_view.top().end());
+    }
     return true;
 }
 
