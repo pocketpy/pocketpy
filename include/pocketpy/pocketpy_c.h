@@ -27,6 +27,7 @@ PK_EXPORT bool pkpy_exec(pkpy_vm*, const char* source);
 PK_EXPORT bool pkpy_exec_2(pkpy_vm*, const char* source, const char* filename, int mode, const char* module);
 
 /* Stack Manipulation */
+PK_EXPORT bool pkpy_dup(pkpy_vm*, int);
 PK_EXPORT bool pkpy_pop(pkpy_vm*, int);
 PK_EXPORT bool pkpy_pop_top(pkpy_vm*);
 PK_EXPORT bool pkpy_dup_top(pkpy_vm*);
@@ -75,7 +76,7 @@ PK_EXPORT bool pkpy_setglobal(pkpy_vm*, pkpy_CName);
 PK_EXPORT bool pkpy_eval(pkpy_vm*, const char* source);
 PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
 PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName);
-PK_EXPORT bool pkpy_py_repr(pkpy_vm*, int i);
+PK_EXPORT bool pkpy_py_repr(pkpy_vm*);
 
 /* Error Handling */
 PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, pkpy_CString);

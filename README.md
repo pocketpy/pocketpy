@@ -40,7 +40,6 @@ To compile it with your project, these flags must be set:
 
 + `--std=c++17` flag must be set
 + Exception must be enabled
-+ RTTI is not required
 
 ### Example
 

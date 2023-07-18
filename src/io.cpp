@@ -40,7 +40,7 @@ Bytes _default_import_handler(const Str& name){
             size_t sz = fread(buffer.data(), 1, buffer.size(), io.fp);
             PK_UNUSED(sz);
             Bytes b(std::move(buffer));
-            if(io.is_text()) return VAR(Str(b.str()));
+            if(io.is_text()) return VAR(b.str());
             return VAR(std::move(b));
         });
 

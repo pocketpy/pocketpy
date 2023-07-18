@@ -89,6 +89,16 @@ bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, i
     return res != nullptr;
 }
 
+bool pkpy_dup(pkpy_vm* vm_handle, int n){
+    VM* vm = (VM*) vm_handle;
+    PK_ASSERT_NO_ERROR()
+    PK_PROTECTED(
+        PyObject* item = stack_item(vm, n);
+        vm->s_data.push(item);
+    )
+    return true;
+}
+
 bool pkpy_pop(pkpy_vm* vm_handle, int n){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
@@ -461,15 +471,15 @@ bool pkpy_get_unbound_method(pkpy_vm* vm_handle, pkpy_CName name){
     return true;
 }
 
-bool pkpy_py_repr(pkpy_vm* vm_handle, int i) {
+bool pkpy_py_repr(pkpy_vm* vm_handle) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
+    PyObject* item = vm->s_data.top();
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
-        PyObject* repr = vm->py_repr(item);
-        vm->s_data.push(repr);
+        item = vm->py_repr(item);
     )
+    vm->s_data.top() = item;
     return true;
 }
 
