@@ -127,7 +127,7 @@ int pkpy_stack_size(pkpy_vm* vm_handle){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    PK_ASSERT(!vm->_c.s_view.empty());
+    if(vm->_c.s_view.empty()) exit(127);
     return vm->s_data._sp - vm->_c.s_view.top().begin();
 }
 
@@ -499,7 +499,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     if(vm->callstack.empty()){
         vm->s_data.clear();
     }else{
-        PK_ASSERT(!vm->_c.s_view.empty());
+        if(vm->_c.s_view.empty()) exit(127);
         vm->s_data.reset(vm->_c.s_view.top().end());
     }
     return true;
