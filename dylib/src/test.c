@@ -15,7 +15,7 @@ const char* pkpy_module__init__(pkpy_vm* vm, const char* version){
     pkpy_setattr(vm, pkpy_name("hello"));
     if(pkpy_check_error(vm)){
         pkpy_clear_error(vm, NULL);
-        exit(1);
+        return NULL;
     }
     return "test";
 }
