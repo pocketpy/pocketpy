@@ -916,7 +916,8 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__hash__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
         const Bytes& self = _CAST(Bytes&, obj);
-        return (i64)std::hash<std::string>()(self.str());
+        std::string_view view(self.data(), self.size());
+        return (i64)std::hash<std::string_view>()(view);
     });
 
     _vm->bind__repr__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
