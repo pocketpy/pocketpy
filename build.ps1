@@ -1,4 +1,10 @@
 mkdir -p output/windows/x86_64
+cd dylib
+xmake f -p windows -a x64
+xmake
+cp build/windows/x64/release/test.dll ../output/windows/x86_64
+cd ..
+mkdir -p output/windows/x86_64
 mkdir build
 cd build
 cmake ..
