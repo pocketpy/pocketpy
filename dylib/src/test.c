@@ -13,9 +13,7 @@ const char* pkpy_module__init__(pkpy_vm* vm, const char* version){
     pkpy_push_function(vm, "hello()", hello);
     pkpy_push_module(vm, "test");
     pkpy_setattr(vm, pkpy_name("hello"));
-    if(pkpy_check_error(vm)){
-        pkpy_clear_error(vm, NULL);
-        return NULL;
-    }
+    // check if initialization failed
+    if(pkpy_clear_error(vm, NULL)) return NULL;
     return "test";
 }
