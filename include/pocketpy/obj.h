@@ -61,11 +61,12 @@ struct Bytes{
         return _data != rhs._data;
     }
 
-    std::string str() const noexcept { return std::string(_data.begin(), _data.end()); }
+    Str str() const noexcept { return Str(_data.data(), _data.size()); }
 
     Bytes() : _data(), _ok(false) {}
     Bytes(std::vector<char>&& data) : _data(std::move(data)), _ok(true) {}
-    Bytes(const std::string& data) : _data(data.begin(), data.end()), _ok(true) {}
+    Bytes(const Str& data) : _data(data.begin(), data.end()), _ok(true) {}
+    Bytes(std::string_view sv): _data(sv.begin(), sv.end()), _ok(true) {}
     operator bool() const noexcept { return _ok; }
 };
 

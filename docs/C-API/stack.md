@@ -6,6 +6,10 @@ order: 8
 
 ### Basic manipulation
 
++ `bool pkpy_dup(pkpy_vm*, int)`
+
+    Duplicate the value at the given index.
+
 + `bool pkpy_pop(pkpy_vm*, int)`
 
     Pop `n` values from the stack.
@@ -70,7 +74,7 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
 + `pkpy_push_null(pkpy_vm*)`
 
-    Push a `PY_NULL` onto the stack.
+    Push a `PY_NULL` onto the stack. It is used for `pkpy_vectorcall`.
 
 + `pkpy_push_function(pkpy_vm*, const char* sig, pkpy_CFunction f)`
 
@@ -140,10 +144,10 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
     ```
     [obj] -> [obj.<name> self]
     ```
-+ `bool pkpy_py_repr(pkpy_vm*, int i)`
++ `bool pkpy_py_repr(pkpy_vm*)`
 
-    Get the repr of the value at the given index and push it onto the stack.
+    Get the repr of the value at the top of the stack.
 
     ```
-    [..., value, ...] -> [..., value, ..., repr(value)]
+    [value] -> [repr(value)]
     ```

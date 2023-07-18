@@ -13,12 +13,6 @@ add_library(pocketpy SHARED
   "pocketpy.cpp"
 )
 
-if (NOT MSVC)
-  target_compile_options(pocketpy PRIVATE -fno-rtti)
-else()
-  target_compile_options(pocketpy PRIVATE /GR- /EHsc)
-endif()
-
 set_target_properties(pocketpy PROPERTIES
   PUBLIC_HEADER pocketpy.h
   OUTPUT_NAME "pocketpy"
