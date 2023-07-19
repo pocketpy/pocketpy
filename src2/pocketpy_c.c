@@ -237,7 +237,7 @@ void pkpy_compile_to_string(pkpy_vm* vm, const char* source, const char* filenam
 
 }
 
-void* pkpy_new_repl(pkpy_vm* vm vm) {
+void* pkpy_new_repl(pkpy_vm* vm) {
     void* returnValue;
     return returnValue;
 }

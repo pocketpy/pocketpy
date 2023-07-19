@@ -94,7 +94,7 @@ PK_EXPORT pkpy_CString pkpy_name_to_string(pkpy_CName name);
 PK_EXPORT void pkpy_compile_to_string(pkpy_vm*, const char* source, const char* filename, int mode, bool* ok, char** out);
 
 /* REPL */
-PK_EXPORT void* pkpy_new_repl(pkpy_vm* vm);
+PK_EXPORT void* pkpy_new_repl(pkpy_vm*);
 PK_EXPORT bool pkpy_repl_input(void* r, const char* line);
 PK_EXPORT void pkpy_delete_repl(void* repl);
 #ifdef __cplusplus
