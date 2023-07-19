@@ -173,7 +173,9 @@ void init_builtins(VM* _vm) {
                 if(!entry){
                     vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
                 }
+                vm->_c.s_view.push(ArgsView(vm->s_data.end(), vm->s_data.end()));
                 const char* name = entry(vm, PK_VERSION);
+                vm->_c.s_view.pop();
                 if(name == nullptr){
                     vm->_error("ImportError", "module initialization failed: " + Str(name).escape());
                 }
