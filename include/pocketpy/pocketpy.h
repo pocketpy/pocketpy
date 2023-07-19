@@ -17,20 +17,6 @@
 
 namespace pkpy {
 
-inline CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope) {
-    Compiler compiler(this, source, filename, mode, unknown_global_scope);
-    try{
-        return compiler.compile();
-    }catch(Exception& e){
-#if PK_DEBUG_FULL_EXCEPTION
-        std::cerr << e.summary() << std::endl;
-#endif
-        _error(e);
-        return nullptr;
-    }
-}
-
-
 void init_builtins(VM* _vm);
 
 struct PyREPL{
