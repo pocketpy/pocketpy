@@ -5,87 +5,102 @@ order: 50
 ---
 
 Add `PY_CLASS` macro into your `struct` and implement a static function `_register`.
+Inside the `_register` function, you can bind methods and properties to the class.
 
 ```cpp
 PY_CLASS(T, mod, name)
+
+// T is the struct type in cpp
+// mod is the module name in python
+// name is the class name in python
 ```
 
 ## Example
 
+In this example, we will create a `linalg` module
+and implement a `vec2` type with some methods.
+And make them available in python just like this.
+
+```python
+from linalg import vec2
+
+# construct a vec2
+a = vec2(1.0, 2.0)
+b = vec2(0.0, -1.0)
+
+# add two vec2
+print(a + b)    # vec2(1.0, 1.0)
+
+# set x component
+a.x = 8.0
+print(a)        # vec2(8.0, 2.0)
+
+# use dot method
+print(a.dot(b)) # -2.0
+```
+
+### Implement `Vec2` struct in cpp
+
 ```cpp
-#include "pocketpy.h"
+struct Vec2{
+    float x, y;
+    Vec2() : x(0.0f), y(0.0f) {}
+    Vec2(float x, float y) : x(x), y(y) {}
+    Vec2(const Vec2& v) : x(v.x), y(v.y) {}
+    Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
+    float dot(const Vec2& v) const { return x * v.x + y * v.y; }
+};
+```
 
-using namespace pkpy;
+### Create `PyVec2` wrapper
 
-struct Vector2 {
-    PY_CLASS(Vector2, test, Vector2)
-    float x;
-    float y;
+```cpp
+struct PyVec2: Vec2 {
+    PY_CLASS(PyVec2, linalg, vec2)
 
-    Vector2(float x, float y) : x(x), y(y) {}
+    PyVec2() : Vec2() {}
+    PyVec2(const Vec2& v) : Vec2(v) {}
+    PyVec2(const PyVec2& v) : Vec2(v) {}
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
-            return VAR_T(Vector2, x, y);
+            return VAR(Vec2(x, y));
         });
 
-        vm->bind_method<0>(type, "__repr__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
-            ss << "Vector2(" << self.x << ", " << self.y << ")";
+            ss << "vec2(" << self.x << ", " << self.y << ")";
             return VAR(ss.str());
         });
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            Vector2& other = CAST(Vector2&, args[1]);
-            return VAR_T(Vector2, self.x + other.x, self.y + other.y);
+        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* other){
+            PyVec2& self = _CAST(PyVec2&, obj);
+            PyVec2& other_ = CAST(PyVec2&, other);
+            return VAR_T(PyVec2, self + other_);
         });
 
-        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            Vector2& other = CAST(Vector2&, args[1]);
-            return VAR_T(Vector2, self.x - other.x, self.y - other.y);
-        });
-
-        vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            f64 other = CAST_F(args[1]);
-            return VAR_T(Vector2, self.x * other, self.y * other);
-        });
-
-        vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            f64 other = CAST_F(args[1]);
-            return VAR_T(Vector2, self.x / other, self.y / other);
-        });
-
-        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
-            Vector2& self = CAST(Vector2&, args[0]);
-            Vector2& other = CAST(Vector2&, args[1]);
-            return VAR(self.x == other.x && self.y == other.y);
+        vm->bind(type, "dot(other: vec2) -> float", [](VM* vm, ArgsView args){
+            PyVec2& self = _CAST(PyVec2&, args[0]);
+            PyVec2& other = CAST(PyVec2&, args[1]);
+            return VAR(self.dot(other));
         });
     }
 };
+```
 
-int main(){
-    VM* vm = new VM();
-    // create a new module `test`
-    PyObject* mod = vm->new_module("test");
-    // register `Vector2` to `test` module
-    Vector2::register_class(vm, mod);
-    return 0;
+### Create `linalg` module
+
+```cpp
+void add_module_linalg(VM* vm){
+    PyObject* linalg = vm->new_module("linalg");
+    // register PyVec2
+    PyVec2::register_class(vm, linalg);
 }
 ```
 
-## Usage
+### Further reading
 
-```python
-from test import Vector2
-
-a = Vector2(1.0, 2.0)
-b = Vector2(-1.0, -2.0)
-print(a + b)    # Vector2(0.0, 0.0)
-```
+See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for the complete implementation.

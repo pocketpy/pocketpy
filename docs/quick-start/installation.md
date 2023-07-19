@@ -56,8 +56,10 @@ The most important class is the `VM` class. A `VM` instance is a python virtual 
 
 A process can have multiple `VM` instances. Each `VM` instance is independent from each other.
 
-You need to use the C++ `new` operator to create a `VM` instance.
+!!!
+Always use C++ `new` operator to create a `VM` instance.
 Do not declare it on the stack.
+!!!
 
 ```cpp
 VM* vm = new VM();
