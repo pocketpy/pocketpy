@@ -17,23 +17,35 @@ typedef int (*LuaStyleFuncC)(VM*);
     if(vm->_c.error != nullptr) \
         return false;
 
-static int count_extra_elements(VM* vm, int n){
-    if(vm->callstack.empty()){
-        return vm->s_data.size();
+static PyObject** vstack_ro_begin(VM* vm){
+    if(vm->_c.s_view.empty()){
+        if(vm->callstack.empty()) return vm->s_data.begin();
+        else{
+            return vm->callstack.top()._locals.end();
+        }
+    }else{
+        return vm->_c.s_view.top().end();
     }
-    PK_ASSERT(!vm->_c.s_view.empty());
-    return vm->s_data._sp - vm->_c.s_view.top().end();
+}
+
+static PyObject** vstack_begin(VM* vm){
+    if(vm->_c.s_view.empty()){
+        if(vm->callstack.empty()) return vm->s_data.begin();
+        else{
+            return vm->callstack.top()._locals.begin();
+        }
+    }else{
+        return vm->_c.s_view.top().begin();
+    }
+}
+
+static int count_extra_elements(VM* vm, int n){
+    return vm->s_data._sp - vstack_ro_begin(vm);
 }
 
 static PyObject* stack_item(VM* vm, int index){
-    PyObject** begin;
+    PyObject** begin = vstack_begin(vm);
     PyObject** end = vm->s_data.end();
-    if(vm->callstack.empty()){
-        begin = vm->s_data.begin();
-    }else{
-        PK_ASSERT(!vm->_c.s_view.empty());
-        begin = vm->_c.s_view.top().begin();
-    }
     int size = end - begin;
     if(index < 0) index += size;
     if(index < 0 || index >= size){
@@ -134,11 +146,7 @@ bool pkpy_rot_two(pkpy_vm* vm_handle){
 int pkpy_stack_size(pkpy_vm* vm_handle){
     VM* vm = (VM*)vm_handle;
     PK_ASSERT_NO_ERROR()
-    if(vm->callstack.empty()){
-        return vm->s_data.size();
-    }
-    if(vm->_c.s_view.empty()) exit(127);
-    return vm->s_data._sp - vm->_c.s_view.top().begin();
+    return vm->s_data._sp - vstack_begin(vm);
 }
 
 // int
@@ -506,12 +514,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     else
         std::cout << e.summary() << std::endl;
     vm->_c.error = nullptr;
-    if(vm->callstack.empty()){
-        vm->s_data.clear();
-    }else{
-        if(vm->_c.s_view.empty()) exit(127);
-        vm->s_data.reset(vm->_c.s_view.top().end());
-    }
+    vm->s_data.reset(vstack_begin(vm));
     return true;
 }
 
