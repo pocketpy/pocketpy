@@ -100,7 +100,7 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
     First push the value, then push `b`.
 
     ```
-    [b, value] -> []
+    [value, b] -> []
     ```
 
 + `bool pkpy_getglobal(pkpy_vm*, pkpy_CName name)`
