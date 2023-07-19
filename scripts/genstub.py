@@ -13,6 +13,9 @@ for line in lines:
     assert body.endswith(";")
     body = body[:-1]
 
+    if '(pkpy_vm*' in body:
+        body = body.replace('(pkpy_vm*', '(pkpy_vm* vm')
+
     if ret == 'void':
         mock_string = ''
     else:
@@ -22,7 +25,7 @@ for line in lines:
         ret + ' ' + body + ' {\n' + mock_string + '\n}\n'
     )
 
-with open('src2/pocketpy_c.cpp', 'w') as f:
+with open('src2/pocketpy_c.c', 'w') as f:
     f.write('''
 #include "pocketpy_c.h"
 
