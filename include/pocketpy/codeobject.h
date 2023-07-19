@@ -48,9 +48,9 @@ struct CodeBlock {
 };
 
 struct CodeObject;
-typedef shared_ptr<CodeObject> CodeObject_;
 struct FuncDecl;
-using FuncDecl_ = shared_ptr<FuncDecl>;
+using CodeObject_ = std::shared_ptr<CodeObject>;
+using FuncDecl_ = std::shared_ptr<FuncDecl>;
 
 struct CodeObjectSerializer{
     std::string buffer;
@@ -92,7 +92,7 @@ struct CodeObjectSerializer{
 
 
 struct CodeObject {
-    shared_ptr<SourceData> src;
+    std::shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
 
@@ -105,7 +105,7 @@ struct CodeObject {
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
-    CodeObject(shared_ptr<SourceData> src, const Str& name);
+    CodeObject(std::shared_ptr<SourceData> src, const Str& name);
     void _gc_mark() const;
     void write(VM* vm, CodeObjectSerializer& ss) const;
     Str serialize(VM* vm) const;

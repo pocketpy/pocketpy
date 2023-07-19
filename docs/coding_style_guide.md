@@ -88,12 +88,12 @@ if(x == 1){
 }
 ```
 
-## For `shared_ptr<T>`
+## For `std::shared_ptr<T>`
 
 Use a `_` suffix to indicate a type is a shared pointer.
 
 ```cpp
-typedef shared_ptr<CodeObject> CodeObject_;
-CodeObject_ co = make_shared<CodeObject>();
+using CodeObject_ = std::shared_ptr<CodeObject>;
+CodeObject_ co = std::make_shared<CodeObject>();
 ```
 

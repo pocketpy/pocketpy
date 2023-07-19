@@ -2,7 +2,7 @@
 
 namespace pkpy{
 
-    CodeObject::CodeObject(shared_ptr<SourceData> src, const Str& name):
+    CodeObject::CodeObject(std::shared_ptr<SourceData> src, const Str& name):
         src(src), name(name) {}
 
     void CodeObject::_gc_mark() const {

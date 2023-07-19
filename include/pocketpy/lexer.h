@@ -103,7 +103,7 @@ enum Precedence {
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
-    shared_ptr<SourceData> src;
+    std::shared_ptr<SourceData> src;
     const char* token_start;
     const char* curr_char;
     int current_line = 1;
@@ -137,7 +137,7 @@ struct Lexer {
     void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
     void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
     void IndentationError(Str msg){ throw_err("IndentationError", msg); }
-    Lexer(shared_ptr<SourceData> src);
+    Lexer(std::shared_ptr<SourceData> src);
     std::vector<Token> run();
 };
 

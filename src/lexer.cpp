@@ -449,7 +449,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
         throw e;
     }
 
-    Lexer::Lexer(shared_ptr<SourceData> src) {
+    Lexer::Lexer(std::shared_ptr<SourceData> src) {
         this->src = src;
         this->token_start = src->source.c_str();
         this->curr_char = src->source.c_str();

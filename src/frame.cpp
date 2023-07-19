@@ -8,7 +8,7 @@ namespace pkpy{
     }
 
     NameDict_ FastLocals::to_namedict(){
-        NameDict_ dict = make_sp<NameDict>();
+        NameDict_ dict = std::make_shared<NameDict>();
         varnames_inv->apply([&](StrName name, int index){
             PyObject* value = a[index];
             if(value != PY_NULL) dict->set(name, value);

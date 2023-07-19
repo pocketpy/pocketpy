@@ -9,14 +9,14 @@ namespace pkpy{
     }
 
     CodeObject_ Compiler::push_global_context(){
-        CodeObject_ co = make_sp<CodeObject>(lexer->src, lexer->src->filename);
+        CodeObject_ co = std::make_shared<CodeObject>(lexer->src, lexer->src->filename);
         contexts.push(CodeEmitContext(vm, co, contexts.size()));
         return co;
     }
 
     FuncDecl_ Compiler::push_f_context(Str name){
-        FuncDecl_ decl = make_sp<FuncDecl>();
-        decl->code = make_sp<CodeObject>(lexer->src, name);
+        FuncDecl_ decl = std::make_shared<FuncDecl>();
+        decl->code = std::make_shared<CodeObject>(lexer->src, name);
         decl->nested = name_scope() == NAME_LOCAL;
         contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
         return decl;
@@ -1008,7 +1008,7 @@ __SUBSCR_END:
         this->used = false;
         this->unknown_global_scope = unknown_global_scope;
         this->lexer = std::make_unique<Lexer>(
-            make_sp<SourceData>(source, filename, mode)
+            std::make_shared<SourceData>(source, filename, mode)
         );
         init_pratt_rules();
     }
