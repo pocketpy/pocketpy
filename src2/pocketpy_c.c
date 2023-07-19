@@ -144,7 +144,7 @@ bool pkpy_push_null(pkpy_vm* vm) {
     return returnValue;
 }
 
-bool pkpy_push_function(pkpy_vm* vm, const char* sig, pkpy_CFunction) {
+bool pkpy_push_function(pkpy_vm* vm, const char* sig, pkpy_CFunction val) {
     bool returnValue;
     return returnValue;
 }
