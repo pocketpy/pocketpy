@@ -344,15 +344,22 @@ namespace pkpy{
 
 
     void FStringExpr::_load_simple_expr(CodeEmitContext* ctx, Str expr){
-        // TODO: pre compile this into a function
-        int dot = expr.index(".");
-        if(dot < 0){
-            ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+        // name or name.name
+        std::regex pattern(R"(^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*){0,1}$)");
+        if(std::regex_match(expr.str(), pattern)){
+            int dot = expr.index(".");
+            if(dot < 0){
+                ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+            }else{
+                StrName name(expr.substr(0, dot).sv());
+                StrName attr(expr.substr(dot+1).sv());
+                ctx->emit(OP_LOAD_NAME, name.index, line);
+                ctx->emit(OP_LOAD_ATTR, attr.index, line);
+            }
         }else{
-            StrName name(expr.substr(0, dot).sv());
-            StrName attr(expr.substr(dot+1).sv());
-            ctx->emit(OP_LOAD_NAME, name.index, line);
-            ctx->emit(OP_LOAD_ATTR, attr.index, line);
+            int index = ctx->add_const(py_var(ctx->vm, expr));
+            ctx->emit(OP_LOAD_CONST, index, line);
+            ctx->emit(OP_EVAL, BC_NOARG, line);
         }
     }
 

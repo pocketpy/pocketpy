@@ -57,3 +57,7 @@ assert f'{obj.b:10}' == '123       '
 assert f'{obj.b:>10}' == '       123'
 assert f'{obj.b:1}' == '123'
 assert f'{obj.b:10s}' == '123       '
+
+a = [(1,2), 3, obj]
+assert f'{a[0][1]}' == '2'
+assert f'abc{a[-1].b:10}==={1234}' == 'abc123       ===1234'

@@ -499,6 +499,11 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
+    TARGET(EVAL){
+        DEF_SNAME(eval);
+        _0 = builtins->attr(eval);
+        TOP() = call(_0, TOP());
+    } DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
             byte.arg & 0xFFFF,          // ARGC

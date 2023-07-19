@@ -1,6 +1,6 @@
 add_rules("mode.debug", "mode.release")
 
-set_languages("c11", "c++17")
+set_languages("c11")
 
 root_dir = "../"
 
@@ -10,7 +10,7 @@ add_includedirs(root_dir .. "include")
 -- Define the shared library target for pocketpy
 target("pocketpy")
     set_kind("shared")
-    add_files(root_dir .. "src2/pocketpy_c.cpp")
+    add_files(root_dir .. "src2/pocketpy_c.c")
 
 -- Define the shared library target
 target("test")
