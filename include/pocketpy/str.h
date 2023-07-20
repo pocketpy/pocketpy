@@ -8,7 +8,7 @@ namespace pkpy {
 
 int utf8len(unsigned char c, bool suppress=false);
 
-struct Str{
+struct PK_EXPORT Str{
     int size;
     bool is_ascii;
     char* data;
@@ -87,7 +87,7 @@ std::string fmt(Args&&... args) {
     return ss.str();
 }
 
-struct StrName {
+struct PK_EXPORT StrName {
     uint16_t index;
     StrName();
     explicit StrName(uint16_t index);
