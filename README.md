@@ -5,6 +5,8 @@
 <a href="https://codecov.io/gh/blueloveTH/pocketpy" > 
  <img src="https://codecov.io/gh/blueloveTH/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
  </a>
+<a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization">
+<img alt="C++17" src="https://img.shields.io/badge/C%2B%2B-17-blue.svg"></a>
 <a href="https://github.com/blueloveth/pocketpy/blob/main/LICENSE">
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
 <a href="https://github.com/blueloveth/pocketpy/releases">
