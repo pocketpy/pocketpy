@@ -28,11 +28,14 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
 option(PK_BUILD_STATIC_LIB "Build static library" OFF)
 
+option(PK_EXPORT_CXX_SYMBOLS "Export C++ symbols" OFF)
+
+if(PK_EXPORT_CXX_SYMBOLS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
-    if(WIN32)
-        set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-    endif()
 elseif(PK_BUILD_STATIC_LIB)
     add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
 else()
