@@ -18,9 +18,7 @@ if(NOT ${PREBUILD_RESULT} EQUAL 0)
 endif()
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /O2")
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -O2")
+    add_compile_options("/utf-8")
 endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
