@@ -6,16 +6,7 @@
 
 namespace pkpy {
 
-inline int utf8len(unsigned char c, bool suppress=false){
-    if((c & 0b10000000) == 0) return 1;
-    if((c & 0b11100000) == 0b11000000) return 2;
-    if((c & 0b11110000) == 0b11100000) return 3;
-    if((c & 0b11111000) == 0b11110000) return 4;
-    if((c & 0b11111100) == 0b11111000) return 5;
-    if((c & 0b11111110) == 0b11111100) return 6;
-    if(!suppress) throw std::runtime_error("invalid utf8 char: " + std::to_string(c));
-    return 0;
-}
+int utf8len(unsigned char c, bool suppress=false);
 
 struct Str{
     int size;
@@ -28,59 +19,15 @@ struct Str{
     bool is_inlined() const { return data == _inlined; }
 
     Str(): size(0), is_ascii(true), data(_inlined) {}
+    Str(int size, bool is_ascii);
+    Str(const std::string& s);
+    Str(std::string_view s);
+    Str(const char* s);
+    Str(const char* s, int len);
+    Str(const Str& other);
+    Str(Str&& other);
 
-    void _alloc(){
-        if(size <= 16){
-            this->data = _inlined;
-        }else{
-            this->data = (char*)pool64.alloc(size);
-        }
-    }
-
-    Str(int size, bool is_ascii): size(size), is_ascii(is_ascii) {
-        _alloc();
-    }
-
-#define STR_INIT()                                  \
-        _alloc();                                   \
-        for(int i=0; i<size; i++){                  \
-            data[i] = s[i];                         \
-            if(!isascii(s[i])) is_ascii = false;    \
-        }
-
-    Str(const std::string& s): size(s.size()), is_ascii(true) {
-        STR_INIT()
-    }
-
-    Str(std::string_view s): size(s.size()), is_ascii(true) {
-        STR_INIT()
-    }
-
-    Str(const char* s): size(strlen(s)), is_ascii(true) {
-        STR_INIT()
-    }
-
-    Str(const char* s, int len): size(len), is_ascii(true) {
-        STR_INIT()
-    }
-
-#undef STR_INIT
-
-    Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
-        _alloc();
-        memcpy(data, other.data, size);
-    }
-
-    Str(Str&& other): size(other.size), is_ascii(other.is_ascii) {
-        if(other.is_inlined()){
-            data = _inlined;
-            for(int i=0; i<size; i++) _inlined[i] = other._inlined[i];
-        }else{
-            data = other.data;
-            other.data = other._inlined;
-            other.size = 0;
-        }
-    }
+    void _alloc();
 
     const char* begin() const { return data; }
     const char* end() const { return data + size; }
@@ -107,19 +54,9 @@ struct Str{
 
     ~Str();
 
-    friend Str operator+(const char* p, const Str& str){
-        Str other(p);
-        return other + str;
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const Str& str){
-        os.write(str.data, str.size);
-        return os;
-    }
-
-    friend bool operator<(const std::string_view other, const Str& str){
-        return str > other;
-    }
+    friend Str operator+(const char* p, const Str& str);
+    friend std::ostream& operator<<(std::ostream& os, const Str& str);
+    friend bool operator<(const std::string_view other, const Str& str);
 
     Str substr(int start, int len) const;
     Str substr(int start) const;
@@ -144,7 +81,7 @@ struct Str{
 };
 
 template<typename... Args>
-inline std::string fmt(Args&&... args) {
+std::string fmt(Args&&... args) {
     std::stringstream ss;
     (ss << ... << args);
     return ss.str();
@@ -159,10 +96,7 @@ struct StrName {
     std::string_view sv() const;
     bool empty() const { return index == 0; }
 
-    friend std::ostream& operator<<(std::ostream& os, const StrName& sn){
-        return os << sn.sv();
-    }
-
+    friend std::ostream& operator<<(std::ostream& os, const StrName& sn);
     Str escape() const;
 
     bool operator==(const StrName& other) const noexcept {
@@ -190,29 +124,9 @@ struct StrName {
 
 struct FastStrStream{
     pod_vector<const Str*> parts;
-
-    FastStrStream& operator<<(const Str& s){
-        parts.push_back(&s);
-        return *this;
-    }
-
+    FastStrStream& operator<<(const Str& s);
     bool empty() const { return parts.empty(); }
-
-    Str str() const{
-        int len = 0;
-        bool is_ascii = true;
-        for(auto& s: parts){
-            len += s->length();
-            is_ascii &= s->is_ascii;
-        }
-        Str result(len, is_ascii);
-        char* p = result.data;
-        for(auto& s: parts){
-            memcpy(p, s->data, s->length());
-            p += s->length();
-        }
-        return result;
-    }
+    Str str() const;
 };
 
 struct CString{

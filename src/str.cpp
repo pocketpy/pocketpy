@@ -2,6 +2,84 @@
 
 namespace pkpy {
 
+int utf8len(unsigned char c, bool suppress){
+    if((c & 0b10000000) == 0) return 1;
+    if((c & 0b11100000) == 0b11000000) return 2;
+    if((c & 0b11110000) == 0b11100000) return 3;
+    if((c & 0b11111000) == 0b11110000) return 4;
+    if((c & 0b11111100) == 0b11111000) return 5;
+    if((c & 0b11111110) == 0b11111100) return 6;
+    if(!suppress) throw std::runtime_error("invalid utf8 char: " + std::to_string(c));
+    return 0;
+}
+
+    Str::Str(int size, bool is_ascii): size(size), is_ascii(is_ascii) {
+        _alloc();
+    }
+
+#define STR_INIT()                                  \
+        _alloc();                                   \
+        for(int i=0; i<size; i++){                  \
+            data[i] = s[i];                         \
+            if(!isascii(s[i])) is_ascii = false;    \
+        }
+
+    Str::Str(const std::string& s): size(s.size()), is_ascii(true) {
+        STR_INIT()
+    }
+
+    Str::Str(std::string_view s): size(s.size()), is_ascii(true) {
+        STR_INIT()
+    }
+
+    Str::Str(const char* s): size(strlen(s)), is_ascii(true) {
+        STR_INIT()
+    }
+
+    Str::Str(const char* s, int len): size(len), is_ascii(true) {
+        STR_INIT()
+    }
+
+#undef STR_INIT
+
+    Str::Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
+        _alloc();
+        memcpy(data, other.data, size);
+    }
+
+    Str::Str(Str&& other): size(other.size), is_ascii(other.is_ascii) {
+        if(other.is_inlined()){
+            data = _inlined;
+            for(int i=0; i<size; i++) _inlined[i] = other._inlined[i];
+        }else{
+            data = other.data;
+            other.data = other._inlined;
+            other.size = 0;
+        }
+    }
+
+    Str operator+(const char* p, const Str& str){
+        Str other(p);
+        return other + str;
+    }
+
+    std::ostream& operator<<(std::ostream& os, const Str& str){
+        os.write(str.data, str.size);
+        return os;
+    }
+
+    bool operator<(const std::string_view other, const Str& str){
+        return str > other;
+    }
+
+    void Str::_alloc(){
+        if(size <= 16){
+            this->data = _inlined;
+        }else{
+            this->data = (char*)pool64.alloc(size);
+        }
+    }
+
     Str& Str::operator=(const Str& other){
         if(!is_inlined()) pool64.dealloc(data);
         size = other.size;
@@ -240,6 +318,10 @@ namespace pkpy {
         return _byte_index_to_unicode(size);
     }
 
+    std::ostream& operator<<(std::ostream& os, const StrName& sn){
+        return os << sn.sv();
+    }
+
     StrName StrName::get(std::string_view s){
         auto it = _interned.find(s);
         if(it != _interned.end()) return StrName(it->second);
@@ -266,4 +348,25 @@ namespace pkpy {
     }
 
     std::string_view StrName::sv() const { return _r_interned[index-1].sv(); }
+
+    FastStrStream& FastStrStream::operator<<(const Str& s){
+        parts.push_back(&s);
+        return *this;
+    }
+
+    Str FastStrStream::str() const{
+        int len = 0;
+        bool is_ascii = true;
+        for(auto& s: parts){
+            len += s->length();
+            is_ascii &= s->is_ascii;
+        }
+        Str result(len, is_ascii);
+        char* p = result.data;
+        for(auto& s: parts){
+            memcpy(p, s->data, s->length());
+            p += s->length();
+        }
+        return result;    
+    }
 } // namespace pkpy
