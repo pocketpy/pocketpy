@@ -30,10 +30,6 @@ option(PK_BUILD_STATIC_LIB "Build static library" OFF)
 
 option(PK_EXPORT_CXX_SYMBOLS "Export C++ symbols" OFF)
 
-if(PK_EXPORT_CXX_SYMBOLS)
-    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif()
-
 if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
@@ -48,4 +44,8 @@ endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+endif()
+
+if(PK_EXPORT_CXX_SYMBOLS AND MSVC)
+    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
