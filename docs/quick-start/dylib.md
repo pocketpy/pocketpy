@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Using dynamic library'
+label: 'Use dynamic library'
 order: 45
 ---
 
