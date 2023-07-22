@@ -12,7 +12,6 @@
 #include "_generated.h"
 #include "vm.h"
 #include "re.h"
-#include "yaml.h"
 #include "random.h"
 #include "bindings.h"
 

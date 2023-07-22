@@ -92,6 +92,20 @@ namespace pkpy{
 #undef NO_INFIX
     }
 
+    bool Compiler::match(TokenIndex expected) {
+        if (curr().type != expected) return false;
+        advance();
+        return true;
+    }
+
+    void Compiler::consume(TokenIndex expected) {
+        if (!match(expected)){
+            SyntaxError(
+                fmt("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")
+            );
+        }
+    }
+
     bool Compiler::match_newlines_repl(){
         return match_newlines(mode()==REPL_MODE);
     }
