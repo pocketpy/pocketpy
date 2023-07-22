@@ -4,6 +4,14 @@
 
 namespace pkpy{
 
+template<typename T>
+struct OpaquePointer{
+    T* ptr;
+    OpaquePointer(T* ptr): ptr(ptr){}
+
+    T* operator->(){ return ptr; }
+};
+
 struct NativeProxyFuncCBase {
     virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
 };
@@ -34,19 +42,46 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
 
 template<typename Ret, typename T, typename... Params>
 struct NativeProxyMethodC final: NativeProxyFuncCBase {
-    static constexpr int N = sizeof...(Params) + 1;
+    static constexpr int N = sizeof...(Params);
     using _Fp = Ret(T::*)(Params...);
     _Fp func;
     NativeProxyMethodC(_Fp func) : func(func) {}
 
     PyObject* operator()(VM* vm, ArgsView args) override {
-        PK_ASSERT(args.size() == N);
+        PK_ASSERT(args.size() == N+1);
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
     template<typename __Ret, size_t... Is>
     PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
         T& self = py_cast<T&>(vm, args[0]);
+        if constexpr(std::is_void_v<__Ret>){
+            (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+            return vm->None;
+        }else{
+            __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
+            return VAR(std::move(ret));
+        }
+    }
+};
+
+template<typename _OpaqueT, typename Ret, typename T, typename... Params>
+struct NativeProxyOpaqueMethodC final: NativeProxyFuncCBase {
+    static_assert(std::is_base_of_v<OpaquePointer<T>, _OpaqueT>);
+    static constexpr int N = sizeof...(Params);
+    using _Fp = Ret(T::*)(Params...);
+    _Fp func;
+    NativeProxyOpaqueMethodC(_Fp func) : func(func) {}
+
+    PyObject* operator()(VM* vm, ArgsView args) override {
+        PK_ASSERT(args.size() == N+1);
+        return call<Ret>(vm, args, std::make_index_sequence<N>());
+    }
+
+    template<typename __Ret, size_t... Is>
+    PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
+        OpaquePointer<T>& _opa_self = py_cast<_OpaqueT&>(vm, args[0]);
+        T& self = *_opa_self.ptr;
         if constexpr(std::is_void_v<__Ret>){
             (self.*func)(py_cast<Params>(vm, args[Is+1])...);
             return vm->None;
@@ -73,16 +108,13 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
     auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     vm->bind(obj, sig, proxy_wrapper, proxy);
 }
+
+template<typename _OpaqueT, typename Ret, typename T, typename... Params>
+void _bind_opaque(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
+    auto proxy = new NativeProxyOpaqueMethodC<_OpaqueT, Ret, T, Params...>(func);
+    vm->bind(obj, sig, proxy_wrapper, proxy);
+}
 /*****************************************************************/
-
-template<typename T>
-struct OpaquePointer{
-    T* ptr;
-    OpaquePointer(T* ptr): ptr(ptr){}
-
-    T* operator->(){ return ptr; }
-};
-
 #define PK_REGISTER_FIELD(T, NAME) \
         type->attr().set(#NAME, vm->property(   \
             [](VM* vm, ArgsView args){  \
