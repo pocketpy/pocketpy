@@ -16,25 +16,12 @@ struct PrattRule{
     Precedence precedence;
 };
 
-class Compiler {
+class Compiler: public CompilerBase {
     inline static PrattRule rules[kTokenCount];
-    std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
     VM* vm;
     bool unknown_global_scope;     // for eval/exec() call
     bool used;
-    // for parsing token stream
-    int i = 0;
-    std::vector<Token> tokens;
-
-    const Token& prev() const{ return tokens.at(i-1); }
-    const Token& curr() const{ return tokens.at(i); }
-    const Token& next() const{ return tokens.at(i+1); }
-    const Token& err() const{
-        if(i >= tokens.size()) return prev();
-        return curr();
-    }
-    void advance(int delta=1) { i += delta; }
 
     CodeEmitContext* ctx() { return &contexts.top(); }
     CompileMode mode() const{ return lexer->src->mode; }
@@ -45,10 +32,7 @@ class Compiler {
 
     static void init_pratt_rules();
 
-    bool match(TokenIndex expected);
-    void consume(TokenIndex expected);
     bool match_newlines_repl();
-
     bool match_newlines(bool repl_throw=false);
     bool match_end_stmt();
     void consume_end_stmt();
@@ -125,17 +109,9 @@ class Compiler {
 
     PyObject* to_object(const TokenValue& value);
     PyObject* read_literal();
-
-    void SyntaxError(Str msg){ lexer->throw_err("SyntaxError", msg, err().line, err().start); }
-    void SyntaxError(){ lexer->throw_err("SyntaxError", "invalid syntax", err().line, err().start); }
-    void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, err().line, err().start); }
-
 public:
     Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     CodeObject_ compile();
-
-    Compiler(const Compiler&) = delete;
-    Compiler& operator=(const Compiler&) = delete;
 };
 
 } // namespace pkpy

@@ -141,4 +141,44 @@ struct Lexer {
     std::vector<Token> run();
 };
 
+class CompilerBase{
+public:
+    std::unique_ptr<Lexer> lexer;
+
+    // for parsing token stream
+    int i = 0;
+    std::vector<Token> tokens;
+
+    const Token& prev() const{ return tokens.at(i-1); }
+    const Token& curr() const{ return tokens.at(i); }
+    const Token& next() const{ return tokens.at(i+1); }
+    const Token& err() const{
+        if(i >= tokens.size()) return prev();
+        return curr();
+    }
+    void advance(int delta=1) { i += delta; }
+
+    bool match(TokenIndex expected) {
+        if (curr().type != expected) return false;
+        advance();
+        return true;
+    }
+
+    void consume(TokenIndex expected) {
+        if (!match(expected)){
+            SyntaxError(
+                fmt("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")
+            );
+        }
+    }
+
+    void SyntaxError(Str msg){ lexer->throw_err("SyntaxError", msg, err().line, err().start); }
+    void SyntaxError(){ lexer->throw_err("SyntaxError", "invalid syntax", err().line, err().start); }
+    void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, err().line, err().start); }
+
+    CompilerBase(const CompilerBase&) = delete;
+    CompilerBase& operator=(const CompilerBase&) = delete;
+    CompilerBase() = default;
+};
+
 } // namespace pkpy
