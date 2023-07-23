@@ -48,7 +48,7 @@ struct GIL {
     explicit GIL() { _mutex.lock(); }
     ~GIL() { _mutex.unlock(); }
 };
-#define PK_GLOBAL_SCOPE_LOCK() GIL _lock();
+#define PK_GLOBAL_SCOPE_LOCK() GIL _lock;
 
 #else
 #define PK_THREAD_LOCAL
