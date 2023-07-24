@@ -34,8 +34,6 @@ These variables can be set to control the build process:
 
 If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
 
-If you use [Dear ImGui](https://github.com/ocornut/imgui), we provide official bindings for it. See [pkpy-imgui](https://github.com/blueloveTH/pkpy-imgui) for details.
-
 ### Compile flags
 
 To compile it with your project, these flags must be set:
