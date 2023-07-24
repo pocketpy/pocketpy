@@ -34,3 +34,5 @@ main
 
 pypi/
 libpocketpy.dylib
+
+.xmake/
