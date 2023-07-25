@@ -64,12 +64,11 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     std::ostream& operator<<(std::ostream& os, const Str& str){
-        os.write(str.data, str.size);
-        return os;
+        return os << str.sv();
     }
 
     bool operator<(const std::string_view other, const Str& str){
-        return str > other;
+        return other < str.sv();
     }
 
     void Str::_alloc(){
@@ -130,33 +129,23 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     bool Str::operator<(const Str& other) const {
-        int ret = strncmp(data, other.data, std::min(size, other.size));
-        if(ret != 0) return ret < 0;
-        return size < other.size;
+        return this->sv() < other.sv();
     }
 
     bool Str::operator<(const std::string_view other) const {
-        int ret = strncmp(data, other.data(), std::min(size, (int)other.size()));
-        if(ret != 0) return ret < 0;
-        return size < (int)other.size();
+        return this->sv() < other;
     }
 
     bool Str::operator>(const Str& other) const {
-        int ret = strncmp(data, other.data, std::min(size, other.size));
-        if(ret != 0) return ret > 0;
-        return size > other.size;
+        return this->sv() > other.sv();
     }
 
     bool Str::operator<=(const Str& other) const {
-        int ret = strncmp(data, other.data, std::min(size, other.size));
-        if(ret != 0) return ret < 0;
-        return size <= other.size;
+        return this->sv() <= other.sv();
     }
 
     bool Str::operator>=(const Str& other) const {
-        int ret = strncmp(data, other.data, std::min(size, other.size));
-        if(ret != 0) return ret > 0;
-        return size >= other.size;
+        return this->sv() >= other.sv();
     }
 
     Str::~Str(){
