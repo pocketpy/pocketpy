@@ -83,6 +83,7 @@ int utf8len(unsigned char c, bool suppress){
         if(!is_inlined()) pool64.dealloc(data);
         size = other.size;
         is_ascii = other.is_ascii;
+        _cached_c_str = nullptr;
         _alloc();
         memcpy(data, other.data, size);
         return *this;
