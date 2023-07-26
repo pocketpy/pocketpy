@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "vm.h"
+#include "_generated.h"
 
 namespace pkpy {
 

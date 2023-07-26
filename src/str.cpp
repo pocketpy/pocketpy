@@ -312,22 +312,33 @@ int utf8len(unsigned char c, bool suppress){
         return os << sn.sv();
     }
 
+    std::map<std::string, uint16_t, std::less<>>& StrName::_interned(){
+        static std::map<std::string, uint16_t, std::less<>> interned;
+        return interned;
+    }
+
+    std::vector<std::string>& StrName::_r_interned(){
+        static std::vector<std::string> r_interned;
+        return r_interned;
+    }
+
     StrName StrName::get(std::string_view s){
-        auto it = _interned.find(s);
-        if(it != _interned.end()) return StrName(it->second);
-        uint16_t index = (uint16_t)(_r_interned.size() + 1);
-        _interned[s] = index;
-        _r_interned.push_back(s);
+        auto it = _interned().find(s);
+        if(it != _interned().end()) return StrName(it->second);
+        uint16_t index = (uint16_t)(_r_interned().size() + 1);
+        std::string str(s);
+        _interned()[str] = index;
+        _r_interned().push_back(str);
         return StrName(index);
     }
 
     Str StrName::escape() const {
-        return _r_interned[index-1].escape();
+        return Str(sv()).escape();
     }
 
     bool StrName::is_valid(int index) {
-        // check _r_interned[index-1] is valid
-        return index > 0 && index <= _r_interned.size();
+        // check _r_interned()[index-1] is valid
+        return index > 0 && index <= _r_interned().size();
     }
 
     StrName::StrName(): index(0) {}
@@ -337,7 +348,10 @@ int utf8len(unsigned char c, bool suppress){
         index = get(s.sv()).index;
     }
 
-    std::string_view StrName::sv() const { return _r_interned[index-1].sv(); }
+    std::string_view StrName::sv() const {
+        const std::string& str = _r_interned()[index-1];
+        return std::string_view(str);
+    }
 
     FastStrStream& FastStrStream::operator<<(const Str& s){
         parts.push_back(&s);
