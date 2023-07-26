@@ -115,11 +115,10 @@ struct StrName {
         return this->index > other.index;
     }
 
-    inline static std::map<Str, uint16_t, std::less<>> _interned;
-    inline static std::vector<Str> _r_interned;
-
     static bool is_valid(int index);
     static StrName get(std::string_view s);
+    static std::map<std::string, uint16_t, std::less<>>& _interned();
+    static std::vector<std::string>& _r_interned();
 };
 
 struct FastStrStream{
