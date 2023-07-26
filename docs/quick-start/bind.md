@@ -109,3 +109,9 @@ struct Point {
   }
 };
 ```
+
+### Old style binding
+
+You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
+They are old style binding functions and are deprecated.
+You should use `vm->bind` instead.
