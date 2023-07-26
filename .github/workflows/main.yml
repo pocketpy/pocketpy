@@ -68,6 +68,10 @@ jobs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v3
+      - name: Compile and Test
+        run: |
+          bash build.sh
+          python3 scripts/run_tests.py
       - run: |
           python3 amalgamate.py
           cd plugins/macos/pocketpy
