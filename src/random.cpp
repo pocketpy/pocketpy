@@ -3,7 +3,6 @@
 #if PK_MODULE_RANDOM
 
 #include <random>
-#include "pocketpy/_generated.h"
 
 namespace pkpy{
 

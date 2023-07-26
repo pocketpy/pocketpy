@@ -9,7 +9,6 @@
 #include "linalg.h"
 #include "easing.h"
 #include "io.h"
-#include "_generated.h"
 #include "vm.h"
 #include "re.h"
 #include "random.h"
