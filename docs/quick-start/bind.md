@@ -40,19 +40,6 @@ vm->bind(obj,
 });
 ```
 
-### Bind a constructor
-
-The constructor of a class is a special function that returns an instance of the class.
-It corresponds to the `__new__` magic method in python (not `__init__`).
-
-```cpp
-vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-    float x = CAST_F(args[1]);
-    float y = CAST_F(args[2]);
-    return VAR(Vec2(x, y));
-});
-```
-
 ### Bind a magic method
 
 For some magic methods, we provide specialized binding function.
