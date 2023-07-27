@@ -47,27 +47,66 @@ struct StarWrapper{
 };
 
 struct Bytes{
-    std::vector<char> _data;
-    bool _ok;
+    const char* _data;
+    int _size;
 
-    int size() const noexcept { return _data.size(); }
+    int size() const noexcept { return _size; }
     int operator[](int i) const noexcept { return (int)(uint8_t)_data[i]; }
-    const char* data() const noexcept { return _data.data(); }
+    const char* data() const noexcept { return _data; }
 
     bool operator==(const Bytes& rhs) const noexcept {
-        return _data == rhs._data;
+        return _size == rhs._size && memcmp(_data, rhs._data, _size) == 0;
     }
+
     bool operator!=(const Bytes& rhs) const noexcept {
-        return _data != rhs._data;
+        return _size != rhs._size || memcmp(_data, rhs._data, _size) != 0;
     }
 
-    Str str() const noexcept { return Str(_data.data(), _data.size()); }
+    Str str() const noexcept { return Str(_data, _size); }
+    std::string_view sv() const noexcept { return std::string_view(_data, _size); }
 
-    Bytes() : _data(), _ok(false) {}
-    Bytes(std::vector<char>&& data) : _data(std::move(data)), _ok(true) {}
-    Bytes(const Str& data) : _data(data.begin(), data.end()), _ok(true) {}
-    Bytes(std::string_view sv): _data(sv.begin(), sv.end()), _ok(true) {}
-    operator bool() const noexcept { return _ok; }
+    Bytes() : _data(nullptr), _size(0) {}
+    Bytes(std::vector<char>&& v){
+        char a[sizeof(std::vector<char>)];
+        new (a) std::vector<char>(std::move(v));
+        std::vector<char>* p = reinterpret_cast<std::vector<char>*>(a);
+        _data = p->data();
+        _size = p->size();
+    }
+    Bytes(std::string_view sv){
+        _data = new char[sv.size()];
+        memcpy((void*)_data, sv.data(), sv.size());
+        _size = sv.size();
+    }
+    Bytes(const Str& str): Bytes(str.sv()) {}
+    operator bool() const noexcept { return _data != nullptr;}
+
+    // copy constructor
+    Bytes(const Bytes& rhs): Bytes(rhs.sv()) {}
+
+    // move constructor
+    Bytes(Bytes&& rhs){
+        _data = rhs._data;
+        _size = rhs._size;
+        rhs._data = nullptr;
+        rhs._size = 0;
+    }
+
+    Bytes& operator=(Bytes&& rhs) noexcept {
+        delete[] _data;
+        _data = rhs._data;
+        _size = rhs._size;
+        rhs._data = nullptr;
+        rhs._size = 0;
+        return *this;
+    }
+
+    // delete copy assignment
+    Bytes& operator=(const Bytes& rhs) = delete;
+
+    ~Bytes(){
+        delete[] _data;
+    }
 };
 
 using Super = std::pair<PyObject*, Type>;
