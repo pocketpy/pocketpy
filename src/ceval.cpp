@@ -3,11 +3,6 @@
 namespace pkpy{
 
 PyObject* VM::_run_top_frame(){
-    DEF_SNAME(add);
-    DEF_SNAME(set);
-    DEF_SNAME(__enter__);
-    DEF_SNAME(__exit__);
-
     FrameId frame = top_frame();
     const int base_id = frame.index;
     bool need_raise = false;
@@ -242,7 +237,7 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(BUILD_LONG) {
-        const static StrName m_long("long");
+        PK_LOCAL_STATIC const StrName m_long("long");
         _0 = builtins->attr().try_get(m_long);
         if(_0 == nullptr) AttributeError(builtins, m_long);
         TOP() = call(_0, TOP());
@@ -275,7 +270,7 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(BUILD_SET)
         _0 = VAR(STACK_VIEW(byte.arg).to_list());
-        _0 = call(builtins->attr(set), _0);
+        _0 = call(builtins->attr(pk_id_set), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
         DISPATCH();
@@ -323,7 +318,7 @@ __NEXT_STEP:;
         _unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
         _0 = VAR(std::move(list));
-        _0 = call(builtins->attr(set), _0);
+        _0 = call(builtins->attr(pk_id_set), _0);
         PUSH(_0);
     } DISPATCH();
     /*****************************************/
@@ -499,11 +494,10 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(EVAL){
-        DEF_SNAME(eval);
-        _0 = builtins->attr(eval);
+    TARGET(EVAL)
+        _0 = builtins->attr(pk_id_eval);
         TOP() = call(_0, TOP());
-    } DISPATCH();
+        DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
             byte.arg & 0xFFFF,          // ARGC
@@ -565,7 +559,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(SET_ADD)
         _0 = POPX();
-        call_method(SECOND(), add, _0);
+        call_method(SECOND(), pk_id_add, _0);
         DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)

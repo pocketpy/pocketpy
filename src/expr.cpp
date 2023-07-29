@@ -365,7 +365,7 @@ namespace pkpy{
 
     void FStringExpr::emit(CodeEmitContext* ctx){
         VM* vm = ctx->vm;
-        static const std::regex pattern(R"(\{(.*?)\})");
+        PK_LOCAL_STATIC const std::regex pattern(R"(\{(.*?)\})");
         std::cregex_iterator begin(src.begin(), src.end(), pattern);
         std::cregex_iterator end;
         int size = 0;

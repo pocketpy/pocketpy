@@ -59,7 +59,7 @@ struct PyREPL{
         vm->bind_method<1>(type, "input", [](VM* vm, ArgsView args){
             PyREPL& self = _CAST(PyREPL&, args[0]);
             const Str& s = CAST(Str&, args[1]);
-            static std::stringstream ss_out;
+            PK_LOCAL_STATIC std::stringstream ss_out;
             ss_out.str("");
             TempOut _(vm, [](VM* vm, const Str& s){ ss_out << s; });
             bool ok = self.repl->input(s.str());

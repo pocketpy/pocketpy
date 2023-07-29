@@ -260,7 +260,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     void Lexer::eat_number() {
-        static const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
+        PK_LOCAL_STATIC const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
         std::smatch m;
 
         const char* i = token_start;

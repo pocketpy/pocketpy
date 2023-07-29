@@ -132,7 +132,7 @@ void init_builtins(VM* _vm) {
             vm->ValueError("pow(): rhs should be positive");
         }
 
-        static const auto _mul = [](i64 a, i64 b, i64 c){
+        PK_LOCAL_STATIC const auto _mul = [](i64 a, i64 b, i64 c){
             if(c < 16384) return (a%c) * (b%c) % c;
             i64 res = 0;
             while(b > 0){
@@ -192,7 +192,6 @@ void init_builtins(VM* _vm) {
             auto res = std::div(lhs, rhs);
             return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
         }else{
-            DEF_SNAME(__divmod__);
             return vm->call_method(args[0], __divmod__, args[1]);
         }
     });
@@ -853,7 +852,7 @@ void init_builtins(VM* _vm) {
         return VAR(val ? "true" : "false");
     });
 
-    const static auto f_bool_add = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
+    const PK_LOCAL_STATIC auto f_bool_add = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
         int x = (int)_CAST(bool, lhs);
         if(is_int(rhs)) return VAR(x + _CAST(int, rhs));
         if(rhs == vm->True) return VAR(x + 1);
@@ -861,7 +860,7 @@ void init_builtins(VM* _vm) {
         return vm->NotImplemented;
     };
 
-    const static auto f_bool_mul = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
+    const PK_LOCAL_STATIC auto f_bool_mul = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
         int x = (int)_CAST(bool, lhs);
         if(is_int(rhs)) return VAR(x * _CAST(int, rhs));
         if(rhs == vm->True) return VAR(x);

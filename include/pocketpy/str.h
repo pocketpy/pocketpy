@@ -174,6 +174,19 @@ const StrName __getitem__ = StrName::get("__getitem__");
 const StrName __setitem__ = StrName::get("__setitem__");
 const StrName __delitem__ = StrName::get("__delitem__");
 
+// specials
+const StrName __new__ = StrName::get("__new__");
+const StrName __init__ = StrName::get("__init__");
+const StrName __call__ = StrName::get("__call__");
+const StrName __divmod__ = StrName::get("__divmod__");
+const StrName __enter__ = StrName::get("__enter__");
+const StrName __exit__ = StrName::get("__exit__");
+const StrName __name__ = StrName::get("__name__");
+
+const StrName pk_id_add = StrName::get("add");
+const StrName pk_id_set = StrName::get("set");
+const StrName pk_id_eval = StrName::get("eval");
+
 #define DEF_SNAME(name) const static StrName name(#name)
 
 } // namespace pkpy

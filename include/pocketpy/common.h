@@ -59,6 +59,8 @@ struct GIL {
 
 #define PK_UNUSED(x) (void)(x)
 
+#define PK_LOCAL_STATIC static
+
 namespace pkpy{
 
 namespace std = ::std;

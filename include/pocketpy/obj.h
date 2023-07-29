@@ -165,7 +165,6 @@ Str obj_type_name(VM* vm, Type type);
 #if PK_DEBUG_NO_BUILTINS
 #define OBJ_NAME(obj) Str("<?>")
 #else
-DEF_SNAME(__name__);
 #define OBJ_NAME(obj) PK_OBJ_GET(Str, vm->getattr(obj, __name__))
 #endif
 

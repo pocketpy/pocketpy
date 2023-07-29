@@ -102,18 +102,15 @@ struct Mat3x3{
     void set_identity(){ set_zeros(); _11 = _22 = _33 = 1.0f; }
 
     static Mat3x3 zeros(){
-        static Mat3x3 ret(0, 0, 0, 0, 0, 0, 0, 0, 0);
-        return ret;
+        return Mat3x3(0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 
     static Mat3x3 ones(){
-        static Mat3x3 ret(1, 1, 1, 1, 1, 1, 1, 1, 1);
-        return ret;
+        return Mat3x3(1, 1, 1, 1, 1, 1, 1, 1, 1);
     }
 
     static Mat3x3 identity(){
-        static Mat3x3 ret(1, 0, 0, 0, 1, 0, 0, 0, 1);
-        return ret;
+        return Mat3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
     }
 
     Mat3x3 operator+(const Mat3x3& other) const{ 

@@ -743,7 +743,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView args(p1 - ARGC - int(method_call), p1);
     ArgsView kwargs(p1, s_data._sp);
 
-    static PK_THREAD_LOCAL PyObject* buffer[PK_MAX_CO_VARNAMES];
+    PyObject* buffer[PK_MAX_CO_VARNAMES];
 
     if(is_non_tagged_type(callable, tp_native_func)){
         const auto& f = PK_OBJ_GET(NativeFunc, callable);
@@ -796,8 +796,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     if(is_non_tagged_type(callable, tp_type)){
         if(method_call) FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
-
-        DEF_SNAME(__new__);
         PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;
 #if PK_DEBUG_EXTRA_CHECK
@@ -819,7 +817,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         // __init__
         PyObject* self;
-        DEF_SNAME(__init__);
         callable = get_unbound_method(obj, __init__, &self, false);
         if (self != PY_NULL) {
             // replace `NULL` with `self`
@@ -838,7 +835,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     // handle `__call__` overload
     PyObject* self;
-    DEF_SNAME(__call__);
     PyObject* call_f = get_unbound_method(callable, __call__, &self, false);
     if(self != PY_NULL){
         p1[-(ARGC + 2)] = call_f;

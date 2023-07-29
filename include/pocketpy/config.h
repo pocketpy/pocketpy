@@ -48,7 +48,7 @@
 // This is the maximum number of arguments in a function declaration
 // including positional arguments, keyword-only arguments, and varargs
 // (not recommended to change this)
-#define PK_MAX_CO_VARNAMES          255
+#define PK_MAX_CO_VARNAMES          32
 
 namespace pkpy{
     // Hash table load factor (smaller ones mean less collision but more memory)

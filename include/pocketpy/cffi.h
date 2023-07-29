@@ -8,9 +8,8 @@ namespace pkpy {
 
 #define PY_CLASS(T, mod, name)                  \
     static Type _type(VM* vm) {                 \
-        static const StrName __x0(#mod);        \
-        static const StrName __x1(#name);       \
-        return PK_OBJ_GET(Type, vm->_modules[__x0]->attr(__x1));               \
+        PK_LOCAL_STATIC const std::pair<StrName, StrName> _path(#mod, #name); \
+        return PK_OBJ_GET(Type, vm->_modules[_path.first]->attr()[_path.second]); \
     }                                                                       \
     static void _check_type(VM* vm, PyObject* val){                         \
         if(!vm->isinstance(val, T::_type(vm))){                             \
