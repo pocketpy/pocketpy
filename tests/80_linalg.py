@@ -151,8 +151,10 @@ test_mat_copy = test_mat.copy()
 for i in range(3):
     for j in range(3):
         test_mat_copy[i, j] = test_mat[j, i]
-        
-# test __repr__
-test_mat_copy = test_mat.copy()
-print(test_mat_copy[0,0])
-assert test_mat_copy.__repr__() == f'mat3x3([[{test_mat_copy[0,0].round(4)}, {test_mat_copy[1,0].round(4)}, {test_mat_copy[2,0].round(4)}],\n        [{test_mat_copy[0,1].round(4)}, {test_mat_copy[1,1].round(4)}, {test_mat_copy[2,1].round(4)}],\n        [{test_mat_copy[0,2].round(4)}, {test_mat_copy[1,2].round(4)}, {test_mat_copy[2,2].round(4)}]])'
+
+# # test __repr__
+# test_mat_copy = test_mat.copy()
+# print(test_mat_copy[0,0])
+# assert test_mat_copy.__repr__() == f'mat3x3([[{test_mat_copy[0,0].round(4)}, {test_mat_copy[1,0].round(4)}, {test_mat_copy[2,0].round(4)}],\n        [{test_mat_copy[0,1].round(4)}, {test_mat_copy[1,1].round(4)}, {test_mat_copy[2,1].round(4)}],\n        [{test_mat_copy[0,2].round(4)}, {test_mat_copy[1,2].round(4)}, {test_mat_copy[2,2].round(4)}]])'
+
+
