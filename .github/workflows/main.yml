@@ -43,6 +43,7 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: .coverage
+      if: github.ref == 'refs/heads/main'
     - name: Compile
       run: |
         export CXX=clang++

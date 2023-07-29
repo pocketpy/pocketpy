@@ -174,6 +174,9 @@ void init_builtins(VM* _vm) {
                     vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
                 }
                 const char* name = entry(vm, PK_VERSION);
+                if(name == nullptr){
+                    vm->_error("ImportError", "module initialization failed: " + Str(name).escape());
+                }
                 return vm->_modules[name];
             }
         }

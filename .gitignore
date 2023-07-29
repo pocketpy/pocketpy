@@ -33,3 +33,4 @@ pocketpy.dSYM
 main
 
 pypi/
+libpocketpy.dylib

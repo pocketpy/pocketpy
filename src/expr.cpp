@@ -196,20 +196,6 @@ namespace pkpy{
         ctx->emit(OP_BUILD_BYTES, BC_NOARG, line);
     }
 
-    std::string LiteralExpr::str() const{
-        if(std::holds_alternative<i64>(value)){
-            return std::to_string(std::get<i64>(value));
-        }
-        if(std::holds_alternative<f64>(value)){
-            return std::to_string(std::get<f64>(value));
-        }
-        if(std::holds_alternative<Str>(value)){
-            Str s = std::get<Str>(value).escape();
-            return s.str();
-        }
-        FATAL_ERROR();
-    }
-
     void LiteralExpr::emit(CodeEmitContext* ctx) {
         VM* vm = ctx->vm;
         PyObject* obj = nullptr;

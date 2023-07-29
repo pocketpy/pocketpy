@@ -16,8 +16,6 @@ struct Expr{
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit(CodeEmitContext* ctx) = 0;
-    virtual std::string str() const = 0;
-
     virtual bool is_literal() const { return false; }
     virtual bool is_json_object() const { return false; }
     virtual bool is_attrib() const { return false; }
@@ -25,6 +23,8 @@ struct Expr{
     virtual int star_level() const { return 0; }
     virtual bool is_tuple() const { return false; }
     bool is_starred() const { return star_level() > 0; }
+
+    std::string str() const { PK_ASSERT(false); }
 
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) {
@@ -70,9 +70,6 @@ struct NameExpr: Expr{
     StrName name;
     NameScope scope;
     NameExpr(StrName name, NameScope scope): name(name), scope(scope) {}
-
-    std::string str() const override { return fmt("Name(", name.escape(), ")"); }
-
     void emit(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
@@ -81,7 +78,6 @@ struct NameExpr: Expr{
 struct InvertExpr: Expr{
     Expr_ child;
     InvertExpr(Expr_&& child): child(std::move(child)) {}
-    std::string str() const override { return "Invert()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
@@ -89,7 +85,6 @@ struct StarredExpr: Expr{
     int level;
     Expr_ child;
     StarredExpr(int level, Expr_&& child): level(level), child(std::move(child)) {}
-    std::string str() const override { return fmt("Starred(level=", level, ")"); }
     int star_level() const override { return level; }
     void emit(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
@@ -98,22 +93,18 @@ struct StarredExpr: Expr{
 struct NotExpr: Expr{
     Expr_ child;
     NotExpr(Expr_&& child): child(std::move(child)) {}
-    std::string str() const override { return "Not()"; }
-
     void emit(CodeEmitContext* ctx) override;
 };
 
 struct AndExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
-    std::string str() const override { return "And()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
 struct OrExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
-    std::string str() const override { return "Or()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
@@ -121,7 +112,6 @@ struct OrExpr: Expr{
 struct Literal0Expr: Expr{
     TokenIndex token;
     Literal0Expr(TokenIndex token): token(token) {}
-    std::string str() const override { return TK_STR(token); }
     bool is_json_object() const override { return true; }
 
     void emit(CodeEmitContext* ctx) override;
@@ -130,14 +120,12 @@ struct Literal0Expr: Expr{
 struct LongExpr: Expr{
     Str s;
     LongExpr(const Str& s): s(s) {}
-    std::string str() const override { return s.str(); }
     void emit(CodeEmitContext* ctx) override;
 };
 
 struct BytesExpr: Expr{
     Str s;
     BytesExpr(const Str& s): s(s) {}
-    std::string str() const override { return s.str(); }
     void emit(CodeEmitContext* ctx) override;
 };
 
@@ -145,7 +133,6 @@ struct BytesExpr: Expr{
 struct LiteralExpr: Expr{
     TokenValue value;
     LiteralExpr(TokenValue value): value(value) {}
-    std::string str() const override;
     void emit(CodeEmitContext* ctx) override;
     bool is_literal() const override { return true; }
     bool is_json_object() const override { return true; }
@@ -154,8 +141,6 @@ struct LiteralExpr: Expr{
 struct NegatedExpr: Expr{
     Expr_ child;
     NegatedExpr(Expr_&& child): child(std::move(child)) {}
-    std::string str() const override { return "Negated()"; }
-
     void emit(CodeEmitContext* ctx) override;
     bool is_json_object() const override { return child->is_literal(); }
 };
@@ -164,14 +149,12 @@ struct SliceExpr: Expr{
     Expr_ start;
     Expr_ stop;
     Expr_ step;
-    std::string str() const override { return "Slice()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
 struct DictItemExpr: Expr{
     Expr_ key;      // maybe nullptr if it is **kwargs
     Expr_ value;
-    std::string str() const override { return "DictItem()"; }
     int star_level() const override { return value->star_level(); }
     void emit(CodeEmitContext* ctx) override;
 };
@@ -189,8 +172,6 @@ struct SequenceExpr: Expr{
 
 struct ListExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    std::string str() const override { return "List()"; }
-
     Opcode opcode() const override {
         for(auto& e: items) if(e->is_starred()) return OP_BUILD_LIST_UNPACK;
         return OP_BUILD_LIST;
@@ -201,7 +182,6 @@ struct ListExpr: SequenceExpr{
 
 struct DictExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    std::string str() const override { return "Dict()"; }
     Opcode opcode() const override {
         for(auto& e: items) if(e->is_starred()) return OP_BUILD_DICT_UNPACK;
         return OP_BUILD_DICT;
@@ -212,7 +192,6 @@ struct DictExpr: SequenceExpr{
 
 struct SetExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    std::string str() const override { return "Set()"; }
     Opcode opcode() const override {
         for(auto& e: items) if(e->is_starred()) return OP_BUILD_SET_UNPACK;
         return OP_BUILD_SET;
@@ -221,7 +200,6 @@ struct SetExpr: SequenceExpr{
 
 struct TupleExpr: SequenceExpr{
     using SequenceExpr::SequenceExpr;
-    std::string str() const override { return "Tuple()"; }
     bool is_tuple() const override { return true; }
     Opcode opcode() const override {
         for(auto& e: items) if(e->is_starred()) return OP_BUILD_TUPLE_UNPACK;
@@ -247,24 +225,20 @@ struct CompExpr: Expr{
 struct ListCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_LIST; }
     Opcode op1() override { return OP_LIST_APPEND; }
-    std::string str() const override { return "ListComp()"; }
 };
 
 struct DictCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_DICT; }
     Opcode op1() override { return OP_DICT_ADD; }
-    std::string str() const override { return "DictComp()"; }
 };
 
 struct SetCompExpr: CompExpr{
     Opcode op0() override { return OP_BUILD_SET; }
     Opcode op1() override { return OP_SET_ADD; }
-    std::string str() const override { return "SetComp()"; }
 };
 
 struct LambdaExpr: Expr{
     FuncDecl_ decl;
-    std::string str() const override { return "Lambda()"; }
 
     LambdaExpr(FuncDecl_ decl): decl(decl) {}
 
@@ -277,10 +251,6 @@ struct LambdaExpr: Expr{
 struct FStringExpr: Expr{
     Str src;
     FStringExpr(const Str& src): src(src) {}
-    std::string str() const override {
-        return fmt("f", src.escape());
-    }
-
     void _load_simple_expr(CodeEmitContext* ctx, Str expr);
     void emit(CodeEmitContext* ctx) override;
 };
@@ -288,8 +258,6 @@ struct FStringExpr: Expr{
 struct SubscrExpr: Expr{
     Expr_ a;
     Expr_ b;
-    std::string str() const override { return "Subscr()"; }
-
     void emit(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
@@ -300,7 +268,6 @@ struct AttribExpr: Expr{
     Str b;
     AttribExpr(Expr_ a, const Str& b): a(std::move(a)), b(b) {}
     AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
-    std::string str() const override { return "Attrib()"; }
 
     void emit(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
@@ -314,14 +281,11 @@ struct CallExpr: Expr{
     std::vector<Expr_> args;
     // **a will be interpreted as a special keyword argument: {"**": a}
     std::vector<std::pair<Str, Expr_>> kwargs;
-    std::string str() const override { return "Call()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
 struct GroupedExpr: Expr{
     Expr_ a;
-    std::string str() const override { return "Grouped()"; }
-
     GroupedExpr(Expr_&& a): a(std::move(a)) {}
 
     void emit(CodeEmitContext* ctx) override{
@@ -341,8 +305,6 @@ struct BinaryExpr: Expr{
     TokenIndex op;
     Expr_ lhs;
     Expr_ rhs;
-    std::string str() const override { return TK_STR(op); }
-
     bool is_compare() const override;
     void _emit_compare(CodeEmitContext* ctx, std::vector<int>& jmps);
     void emit(CodeEmitContext* ctx) override;
@@ -353,7 +315,6 @@ struct TernaryExpr: Expr{
     Expr_ cond;
     Expr_ true_expr;
     Expr_ false_expr;
-    std::string str() const override { return "Ternary()"; }
     void emit(CodeEmitContext* ctx) override;
 };
 
