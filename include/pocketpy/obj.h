@@ -47,66 +47,45 @@ struct StarWrapper{
 };
 
 struct Bytes{
-    const char* _data;
-    int _size;
+    std::vector<char> _v;
+    bool valid;
 
-    int size() const noexcept { return _size; }
-    int operator[](int i) const noexcept { return (int)(uint8_t)_data[i]; }
-    const char* data() const noexcept { return _data; }
+    int size() const noexcept { return (int)_v.size(); }
+    int operator[](int i) const noexcept { return (int)(uint8_t)_v[i]; }
+    const char* data() const noexcept { return _v.data(); }
 
-    bool operator==(const Bytes& rhs) const noexcept {
-        return _size == rhs._size && memcmp(_data, rhs._data, _size) == 0;
-    }
+    bool operator==(const Bytes& rhs) const{ return _v == rhs._v && valid == rhs.valid; }
+    bool operator!=(const Bytes& rhs) const{ return _v != rhs._v || valid != rhs.valid; }
 
-    bool operator!=(const Bytes& rhs) const noexcept {
-        return _size != rhs._size || memcmp(_data, rhs._data, _size) != 0;
-    }
+    Str str() const noexcept { return Str(_v.data(), _v.size()); }
+    std::string_view sv() const noexcept { return std::string_view(_v.data(), _v.size()); }
 
-    Str str() const noexcept { return Str(_data, _size); }
-    std::string_view sv() const noexcept { return std::string_view(_data, _size); }
-
-    Bytes() : _data(nullptr), _size(0) {}
-    Bytes(std::vector<char>&& v){
-        char a[sizeof(std::vector<char>)];
-        new (a) std::vector<char>(std::move(v));
-        std::vector<char>* p = reinterpret_cast<std::vector<char>*>(a);
-        _data = p->data();
-        _size = p->size();
-    }
-    Bytes(std::string_view sv){
-        _data = new char[sv.size()];
-        memcpy((void*)_data, sv.data(), sv.size());
-        _size = sv.size();
+    Bytes() : valid(false) {}
+    Bytes(std::vector<char>&& v): _v(std::move(v)), valid(true) {}
+    Bytes(std::string_view sv): valid(true) {
+        _v.resize(sv.size());
+        for(int i=0; i<sv.size(); i++) _v[i] = sv[i];
     }
     Bytes(const Str& str): Bytes(str.sv()) {}
-    operator bool() const noexcept { return _data != nullptr;}
+    operator bool() const noexcept { return valid; }
 
     // copy constructor
-    Bytes(const Bytes& rhs): Bytes(rhs.sv()) {}
+    Bytes(const Bytes& rhs) : _v(rhs._v), valid(rhs.valid) {}
 
     // move constructor
-    Bytes(Bytes&& rhs){
-        _data = rhs._data;
-        _size = rhs._size;
-        rhs._data = nullptr;
-        rhs._size = 0;
+    Bytes(Bytes&& rhs) noexcept : _v(std::move(rhs._v)), valid(rhs.valid) {
+        rhs.valid = false;
     }
 
     Bytes& operator=(Bytes&& rhs) noexcept {
-        delete[] _data;
-        _data = rhs._data;
-        _size = rhs._size;
-        rhs._data = nullptr;
-        rhs._size = 0;
+        _v = std::move(rhs._v);
+        valid = rhs.valid;
+        rhs.valid = false;
         return *this;
     }
 
     // delete copy assignment
     Bytes& operator=(const Bytes& rhs) = delete;
-
-    ~Bytes(){
-        delete[] _data;
-    }
 };
 
 using Super = std::pair<PyObject*, Type>;
