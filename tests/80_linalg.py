@@ -1,4 +1,4 @@
-from linalg import mat3x3, vec2
+from linalg import mat3x3, vec2, vec3
 import random
 import sys
 
@@ -45,6 +45,29 @@ test_mat = mat3x3([[random.uniform(min_num, max_num) for _ in range(3)] for _ in
 #         [7, 8, 9]]
 #     )
 
+# test incorrect number of parameters is passed
+for i in range(20):
+    
+    if i in [0, 9]:
+        continue
+    
+    try:
+        test_mat_copy = mat3x3(*tuple([e+0.1 for e in range(i)]))
+        
+        # 既然参数数量不是合法的0个或9个,并且这里也没有触发TypeError,那么引发测试失败
+        print(f'When there are {i} arguments, no TypeError is triggered')
+        exit(1)
+        
+    except TypeError:
+        pass
+
+# test 9 floating parameters is passed
+test_mat_copy = test_mat.copy()
+element_name_list = [e for e in dir(test_mat_copy) if e[:2] != '__' and e[0] == '_']
+element_value_list = [getattr(test_mat, attr) for attr in element_name_list]
+assert mat3x3(*tuple(element_value_list)) == test_mat
+
+        
 # test copy
 test_mat_copy = test_mat.copy()
 assert test_mat is not test_mat_copy
@@ -128,3 +151,8 @@ test_mat_copy = test_mat.copy()
 for i in range(3):
     for j in range(3):
         test_mat_copy[i, j] = test_mat[j, i]
+        
+# test __repr__
+test_mat_copy = test_mat.copy()
+print(test_mat_copy[0,0])
+assert test_mat_copy.__repr__() == f'mat3x3([[{test_mat_copy[0,0].round(4)}, {test_mat_copy[1,0].round(4)}, {test_mat_copy[2,0].round(4)}],\n        [{test_mat_copy[0,1].round(4)}, {test_mat_copy[1,1].round(4)}, {test_mat_copy[2,1].round(4)}],\n        [{test_mat_copy[0,2].round(4)}, {test_mat_copy[1,2].round(4)}, {test_mat_copy[2,2].round(4)}]])'
