@@ -32,7 +32,7 @@ import c
 
 c_int_1 = c.refl("int")
 c_struct_1 = c_int_1()
-assert (c_int_1() == c_int_1()) == False
+assert (c_int_1() == c_int_1())
 assert (c_struct_1 == c_struct_1) == True
 
 # ------------------------------------------------
