@@ -15,7 +15,8 @@ with open('123.txt', 'rt') as f:
 with open('123.txt', 'a') as f:
     f.write('测试')
 
-with open('123.txt', 'r') as f:
+# default mode is 'r'
+with open('123.txt') as f:
     assert f.read() == '123456' + '测试'
 
 assert os.path.exists('123.txt')

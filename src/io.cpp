@@ -88,7 +88,7 @@ void add_module_io(VM* vm){
 #if PK_ENABLE_OS
     PyObject* mod = vm->new_module("io");
     FileIO::register_class(vm, mod);
-    vm->bind_builtin_func<2>("open", [](VM* vm, ArgsView args){
+    vm->bind(vm->builtins, "open(path, mode='r')", [](VM* vm, ArgsView args){
         PK_LOCAL_STATIC StrName m_io("io");
         PK_LOCAL_STATIC StrName m_FileIO("FileIO");
         return vm->call(vm->_modules[m_io]->attr(m_FileIO), args[0], args[1]);
