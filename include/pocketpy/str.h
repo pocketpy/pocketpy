@@ -182,6 +182,7 @@ const StrName __divmod__ = StrName::get("__divmod__");
 const StrName __enter__ = StrName::get("__enter__");
 const StrName __exit__ = StrName::get("__exit__");
 const StrName __name__ = StrName::get("__name__");
+const StrName __all__ = StrName::get("__all__");
 
 const StrName pk_id_add = StrName::get("add");
 const StrName pk_id_set = StrName::get("set");

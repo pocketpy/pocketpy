@@ -8,7 +8,7 @@ namespace pkpy{
 template<typename T>
 struct pod_vector{
     static_assert(64 % sizeof(T) == 0);
-    static_assert(std::is_pod_v<T>);
+    static_assert(is_pod<T>::value);
     static constexpr int N = 64 / sizeof(T);
     static_assert(N >= 4);
     int _size;

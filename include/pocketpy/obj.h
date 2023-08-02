@@ -214,7 +214,7 @@ __T py_cast(VM* vm, PyObject* obj) {
     }else if constexpr(is_py_class<T>::value){
         T::_check_type(vm, obj);
         return PK_OBJ_GET(T, obj);
-    }else if constexpr(std::is_pod_v<T>){
+    }else if constexpr(is_pod<T>::value){
         return to_c99_struct<T>(vm, obj);
     }else {
         return Discarded();
@@ -230,7 +230,7 @@ __T _py_cast(VM* vm, PyObject* obj) {
         return to_void_p<__T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         return PK_OBJ_GET(T, obj);
-    }else if constexpr(std::is_pod_v<T>){
+    }else if constexpr(is_pod<T>::value){
         return to_c99_struct<T>(vm, obj);
     }else {
         return Discarded();

@@ -598,15 +598,28 @@ __NEXT_STEP:;
         _name = StrName(byte.arg);
         PUSH(py_import(_name, true));
         DISPATCH();
-    TARGET(IMPORT_STAR)
+    TARGET(IMPORT_STAR) {
         _0 = POPX();
-        for(auto& [name, value]: _0->attr().items()){
-            std::string_view s = name.sv();
-            if(s.empty() || s[0] == '_') continue;
-            frame->f_globals().set(name, value);
+        _1 = _0->attr().try_get(__all__);
+        if(_1 != nullptr){
+            for(PyObject* key: CAST(List&, _1)){
+                _name = StrName::get(CAST(Str&, key).sv());
+                PyObject* value = _0->attr().try_get(_name);
+                if(value == nullptr){
+                    _error("ImportError", fmt("cannot import name ", _name.escape()));
+                }else{
+                    frame->f_globals().set(_name, value);
+                }
+            }
+        }else{
+            for(auto& [name, value]: _0->attr().items()){
+                std::string_view s = name.sv();
+                if(s.empty() || s[0] == '_') continue;
+                frame->f_globals().set(name, value);
+            }
         }
         frame->f_globals()._try_perfect_rehash();
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE){
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!

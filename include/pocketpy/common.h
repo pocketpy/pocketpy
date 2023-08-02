@@ -156,4 +156,11 @@ inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
 inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
 inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
 inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
+
+// is_pod<> for c++17 and c++20
+template<typename T>
+struct is_pod {
+	static constexpr bool value = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
+};
+
 } // namespace pkpy

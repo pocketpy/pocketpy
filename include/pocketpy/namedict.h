@@ -19,7 +19,7 @@ struct NameDictImpl {
     using Item = std::pair<StrName, T>;
     static constexpr uint16_t __Capacity = 8;
     // ensure the initial capacity is ok for memory pool
-    static_assert(std::is_pod_v<T>);
+    static_assert(is_pod<T>::value);
     static_assert(sizeof(Item) * __Capacity <= 128);
 
     float _load_factor;

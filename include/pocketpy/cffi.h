@@ -83,7 +83,7 @@ struct C99Struct{
 
     template<typename T>
     C99Struct(std::monostate _, const T& data): C99Struct(sizeof(T)){
-        static_assert(std::is_pod_v<T>);
+        static_assert(is_pod<T>::value);
         static_assert(!std::is_pointer_v<T>);
         memcpy(p, &data, this->size);
     }
@@ -156,13 +156,13 @@ T to_void_p(VM* vm, PyObject* var){
 
 template<typename T>
 T to_c99_struct(VM* vm, PyObject* var){
-    static_assert(std::is_pod_v<T>);
+    static_assert(is_pod<T>::value);
     C99Struct& pod = CAST(C99Struct&, var);
     return *reinterpret_cast<T*>(pod.p);
 }
 
 template<typename T>
-std::enable_if_t<std::is_pod_v<T> && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
+std::enable_if_t<is_pod<T>::value && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
     return VAR_T(C99Struct, std::monostate(), data);
 }
 /*****************************************************************/
