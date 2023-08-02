@@ -93,7 +93,9 @@ def rgb_to_hls(r, g, b):
         h = 2.0+rc-bc
     else:
         h = 4.0+gc-rc
-    h = (h/6.0) % 1.0
+    # h = (h/6.0) % 1.0
+    h = h / 6.0
+    h = h - int(h)
     return h, l, s
 
 def hls_to_rgb(h, l, s):
@@ -107,7 +109,8 @@ def hls_to_rgb(h, l, s):
     return (_v(m1, m2, h+ONE_THIRD), _v(m1, m2, h), _v(m1, m2, h-ONE_THIRD))
 
 def _v(m1, m2, hue):
-    hue = hue % 1.0
+    # hue = hue % 1.0
+    hue = hue - int(hue)
     if hue < ONE_SIXTH:
         return m1 + (m2-m1)*hue*6.0
     if hue < 0.5:
@@ -139,7 +142,9 @@ def rgb_to_hsv(r, g, b):
         h = 2.0+rc-bc
     else:
         h = 4.0+gc-rc
-    h = (h/6.0) % 1.0
+    # h = (h/6.0) % 1.0
+    h = h / 6.0
+    h = h - int(h)
     return h, s, v
 
 def hsv_to_rgb(h, s, v):
