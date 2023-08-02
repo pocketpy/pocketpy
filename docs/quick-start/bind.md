@@ -67,6 +67,8 @@ a property is a python's `property` that attached to a type instance with a gett
 
 You can use `@property` to create python property or use `vm->property` to create native property.
 
+You can also use `vm->bind_property()`, the new style property binding function.
+
 ```cpp
 struct Point {
   PY_CLASS(Point, test, Point);

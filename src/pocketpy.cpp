@@ -1190,12 +1190,18 @@ void init_builtins(VM* _vm) {
     /************ property ************/
     _vm->bind_constructor<-1>("property", [](VM* vm, ArgsView args) {
         if(args.size() == 1+1){
-            return VAR(Property(args[1], vm->None));
+            return VAR(Property(args[1], vm->None, nullptr));
         }else if(args.size() == 1+2){
-            return VAR(Property(args[1], args[2]));
+            return VAR(Property(args[1], args[2], nullptr));
         }
         vm->TypeError("property() takes at most 2 arguments");
         return vm->None;
+    });
+
+    _vm->bind_property(_vm->_t(_vm->tp_property), "type_hint", "str", [](VM* vm, ArgsView args){
+        Property& self = _CAST(Property&, args[0]);
+        if(self.type_hint == nullptr) return vm->None;
+        return VAR(self.type_hint);
     });
     
     _vm->_t(_vm->tp_function)->attr().set("__doc__", _vm->property([](VM* vm, ArgsView args) {

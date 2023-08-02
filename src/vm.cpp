@@ -113,11 +113,11 @@ namespace pkpy{
         return nullptr;
     }
 
-    PyObject* VM::property(NativeFuncC fget, NativeFuncC fset){
+    PyObject* VM::property(NativeFuncC fget, NativeFuncC fset, const char* type_hint){
         PyObject* _0 = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
         PyObject* _1 = vm->None;
         if(fset != nullptr) _1 = heap.gcnew(tp_native_func, NativeFunc(fset, 2, false));
-        return call(_t(tp_property), _0, _1);
+        return VAR(Property(_0, _1, type_hint));
     }
 
     PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
@@ -977,6 +977,12 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
     if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
     return f_obj;
+}
+
+PyObject* VM::bind_property(PyObject* obj, StrName name, const char* type_hint, NativeFuncC fget, NativeFuncC fset){
+    PyObject* prop = property(fget, fset, type_hint);
+    obj->attr().set(name, prop);
+    return prop;
 }
 
 void VM::_error(Exception e){
