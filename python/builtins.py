@@ -4,15 +4,6 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     _sys.stdout.write(s + end)
 
-def round(x, ndigits=0):
-    assert ndigits >= 0
-    if ndigits == 0:
-        return int(x + 0.5) if x >= 0 else int(x - 0.5)
-    if x >= 0:
-        return int(x * 10**ndigits + 0.5) / 10**ndigits
-    else:
-        return int(x * 10**ndigits - 0.5) / 10**ndigits
-
 def abs(x):
     return -x if x < 0 else x
 

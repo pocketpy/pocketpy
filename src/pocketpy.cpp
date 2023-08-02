@@ -123,6 +123,28 @@ void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
+    // def round(x, ndigits=0):
+    //     assert ndigits >= 0
+    //     if ndigits == 0:
+    //         return int(x + 0.5) if x >= 0 else int(x - 0.5)
+    //     if x >= 0:
+    //         return int(x * 10**ndigits + 0.5) / 10**ndigits
+    //     else:
+    //         return int(x * 10**ndigits - 0.5) / 10**ndigits
+    _vm->bind(_vm->builtins, "round(x, ndigits=0)", [](VM* vm, ArgsView args) {
+        f64 x = CAST(f64, args[0]);
+        int ndigits = CAST(int, args[1]);
+        if(ndigits == 0){
+            return x >= 0 ? VAR((i64)(x + 0.5)) : VAR((i64)(x - 0.5));
+        }
+        if(ndigits < 0) vm->ValueError("ndigits should be non-negative");
+        if(x >= 0){
+            return VAR((i64)(x * std::pow(10, ndigits) + 0.5) / std::pow(10, ndigits));
+        }else{
+            return VAR((i64)(x * std::pow(10, ndigits) - 0.5) / std::pow(10, ndigits));
+        }
+    });
+
     _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
         i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
         i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
