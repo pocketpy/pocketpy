@@ -145,14 +145,14 @@ void _bind_opaque(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params..
                 using __NT = decltype(self->get_##NAME());    \
                 self->set_##NAME(CAST(__NT, args[1])); \
                 return vm->None;    \
-            }, #__tp));
+            }, __tp));
 
 #define PK_REGISTER_READONLY_PROPERTY(T, NAME, __tp)   \
         type->attr().set(#NAME, vm->property(   \
             [](VM* vm, ArgsView args){  \
                 T& self = _CAST(T&, args[0]);   \
                 return VAR(self->get_##NAME()); \
-            }, nullptr, #__tp));
+            }, nullptr, __tp));
 
 #define PK_REGISTER_CONSTRUCTOR(T, T0)  \
         vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){ \
