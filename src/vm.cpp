@@ -239,6 +239,14 @@ namespace pkpy{
         }
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod == nullptr){
+            auto it2 = _lazy_native_modules.find(name);
+            if(it2 != _lazy_native_modules.end()){
+                it2->second(this);  // init
+                ext_mod = _modules.try_get(name);
+                PK_ASSERT(ext_mod != nullptr);
+                _lazy_native_modules.erase(it2);
+                return ext_mod;
+            }
             Str source;
             auto it = _lazy_modules.find(name);
             if(it == _lazy_modules.end()){
@@ -271,6 +279,7 @@ namespace pkpy{
         _all_types.clear();
         _modules.clear();
         _lazy_modules.clear();
+        _lazy_native_modules.clear();
     }
 
 PyObject* VM::py_negate(PyObject* obj){
