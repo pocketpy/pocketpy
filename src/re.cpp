@@ -1,7 +1,5 @@
 #include "pocketpy/re.h"
 
-#if PK_MODULE_RE
-
 namespace pkpy{
 
 struct ReMatch {
@@ -82,11 +80,3 @@ void add_module_re(VM* vm){
 }
 
 }   // namespace pkpy
-
-#else
-
-namespace pkpy{
-void add_module_re(VM* vm){ (void)vm; }
-}   // namespace pkpy
-
-#endif

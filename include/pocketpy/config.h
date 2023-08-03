@@ -84,10 +84,4 @@ namespace pkpy{
 #undef PK_ENABLE_COMPUTED_GOTO
 #endif
 
-/*************** module settings ***************/
-
-#define PK_MODULE_RE                1
-#define PK_MODULE_RANDOM            1
-#define PK_MODULE_EASING            1
-
 #endif

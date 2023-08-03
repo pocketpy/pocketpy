@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <variant>
 #include <type_traits>
+#include <random>
 
 #define PK_VERSION				"1.1.2"
 

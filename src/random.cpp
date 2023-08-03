@@ -1,9 +1,5 @@
 #include "pocketpy/random.h"
 
-#if PK_MODULE_RANDOM
-
-#include <random>
-
 namespace pkpy{
 
 struct Random{
@@ -55,11 +51,3 @@ void add_module_random(VM* vm){
 }
 
 }   // namespace pkpy
-
-#else
-
-namespace pkpy{
-void add_module_random(VM* vm){ (void)vm; }
-}   // namespace pkpy
-
-#endif
