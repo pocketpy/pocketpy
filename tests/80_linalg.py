@@ -118,7 +118,39 @@ def get_col(mat, col_index):
         ret.append(mat[i, col_index])
     return ret
 
+def calculate_inverse(matrix):
+    '''
+    返回逆矩阵
+    '''
+    # 获取矩阵的行数和列数
+    rows = len(matrix)
+    cols = len(matrix[0])
+    # 确保矩阵是方阵
+    if rows != cols:
+        raise ValueError("输入矩阵必须是方阵")
+    # 构建单位矩阵
+    identity = [[1 if i == j else 0 for j in range(cols)] for i in range(rows)]
+    # 将单位矩阵与输入矩阵进行初等行变换
+    augmented_matrix = [row + identity[i] for i, row in enumerate(matrix)]
+    # 初等行变换，将输入矩阵转化为单位矩阵，同时在另一边进行相同的行变换
+    for i in range(cols):
+        pivot = augmented_matrix[i][i]
+        if pivot == 0:
+            raise ValueError("输入矩阵不可逆")
+        scale_row(augmented_matrix, i, 1/pivot)
+        for j in range(cols):
+            if j != i:
+                scale = augmented_matrix[j][i]
+                row_operation(augmented_matrix, j, i, -scale)
+    # 提取逆矩阵
+    inverse_matrix = [row[cols:] for row in augmented_matrix]
+    return inverse_matrix
 
+def scale_row(matrix, row, scale):
+    matrix[row] = [element * scale for element in matrix[row]]
+
+def row_operation(matrix, target_row, source_row, scale):
+    matrix[target_row] = [target_element + scale * source_element for target_element, source_element in zip(matrix[target_row], matrix[source_row])]
 # 生成随机测试目标
 min_num = -10.0
 max_num = 10.0
@@ -262,9 +294,14 @@ assert result_mat == correct_result_mat
 
 # test determinant
 test_mat_copy = test_mat.copy()
+list_mat = [[0,0,0], [0,0,0], [0,0,0]]
 for i in range(3):
     for j in range(3):
-        test_mat_copy[i, j] = test_mat[j, i]
+        list_mat[i][j] = test_mat[i, j]
+determinant = list_mat[0][0]*(list_mat[1][1]*list_mat[2][2] - list_mat[1][2]*list_mat[2][1]) - list_mat[0][1]*(list_mat[1][0]*list_mat[2][2] - list_mat[1][2]*list_mat[2][0]) + list_mat[0][2]*(list_mat[1][0]*list_mat[2][1] - list_mat[1][1]*list_mat[2][0])
+assert str(determinant)[:6] == str(test_mat_copy.determinant())[:6]
+
+
 
 # test __repr__
 assert str(static_test_mat_float) == 'mat3x3([[7.2642, -5.4322, 1.8765],\n        [-2.4911, 8.9897, -0.7169],\n        [9.5580, -3.3363, 4.9514]])'
@@ -306,3 +343,56 @@ test_mat_copy @ vec3(83,-9.12, 0.2983)
 try:
     test_mat_copy @ 12345
     raise Exception('未能拦截错误 BinaryOptError("@") 在处理表达式 test_mat_copy @ 12345')
+except:
+    pass
+
+
+# test transpose
+test_mat_copy = test_mat.copy()
+assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
+
+
+# test inverse
+test_mat_copy = test_mat.copy()
+if round(test_mat_copy.determinant(), 5) != 0:
+    list_mat = [[0,0,0], [0,0,0], [0,0,0]]
+    list_mat_2 = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in range(3):
+        for j in range(3):
+            list_mat[i][j] = test_mat[i, j]
+            list_mat_2[i][j] = str(test_mat_copy.inverse()[i, j])[:6]
+assert [[str(e)[:6] for e in layer] for layer in calculate_inverse(list_mat)] == list_mat_2
+
+
+try:
+    mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]]).inverse()
+    raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
+except:
+    pass
+
+# test __invert__
+test_mat_copy = test_mat.copy()
+if round(test_mat_copy.determinant(), 5) != 0:
+    list_mat = [[0,0,0], [0,0,0], [0,0,0]]
+    list_mat_2 = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in range(3):
+        for j in range(3):
+            list_mat[i][j] = test_mat[i, j]
+            list_mat_2[i][j] = str((~test_mat_copy)[i, j])[:6]
+assert [[str(e)[:6] for e in layer] for layer in calculate_inverse(list_mat)] == list_mat_2
+
+
+try:
+    ~mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
+    raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
+except:
+    pass
+
+# test zeros
+assert mat3x3([[0 for _ in range(3)] for _ in range(3)]) == mat3x3.zeros()
+
+# test ones
+assert mat3x3([[1 for _ in range(3)] for _ in range(3)]) == mat3x3.ones()
+
+# test identity
+assert mat3x3([[1,0,0],[0,1,0],[0,0,1]]) == mat3x3.identity()
