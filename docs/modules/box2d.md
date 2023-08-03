@@ -42,11 +42,80 @@ It hides the details of Box2D's API and provides a high-level interface.
 
 ## API list
 
-TBA
+```python
+from linalg import *
+from typing import Iterable
+
+class _Node:
+    def on_contact_begin(self, other: 'Body'): ...
+    def on_contact_end(self, other: 'Body'): ...
+
+class World:
+    gravity: vec2       # gravity of the world, by default vec2(0, 0)
+
+    def create_body(self, node: _Node = None) -> 'Body':
+        """create a body in the world"""
+
+    def get_bodies(self) -> Iterable['Body']:
+        """return all bodies in the world."""
+
+    def raycast(self, start: vec2, end: vec2) -> list['Body']:
+        """raycast from start to end, return all bodies that intersect with the ray."""
+
+    def query_aabb(self, p0: vec2, p1: vec2) -> list['Body']:
+        """query bodies in the AABB region."""
+
+    def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
+        """step the simulation, e.g. world.step(1/60, 8, 3)"""
+
+class Body:
+    type: int           # 0-static, 1-kinematic, 2-dynamic, by default 2
+    mass: float
+    inertia: float
+    gravity_scale: float
+    fixed_rotation: bool
+    enabled: bool
+    bullet: bool        # whether to use continuous collision detection
+
+    position: vec2
+    rotation: float     # in radians (counter-clockwise)
+    velocity: vec2      # linear velocity
+    angular_velocity: float
+    damping: float      # linear damping
+    angular_damping: float
+
+    # fixture settings
+    density: float
+    friction: float
+    restitution: float
+    restitution_threshold: float
+    is_trigger: bool
+
+    def set_box_shape(self, hx: float, hy: float): ...
+    def set_circle_shape(self, radius: float): ...
+    def set_polygon_shape(self, points: list[vec2]): ...
+    def set_chain_shape(self, points: list[vec2]): ...
+
+    def apply_force(self, force: vec2, point: vec2): ...
+    def apply_force_to_center(self, force: vec2): ...
+    def apply_torque(self, torque: float): ...
+    def apply_linear_impulse(self, impulse: vec2, point: vec2): ...
+    def apply_linear_impulse_to_center(self, impulse: vec2): ...
+    def apply_angular_impulse(self, impulse: float): ...
+
+    def get_node(self) -> _Node:
+        """return the node that is attached to this body."""
+
+    def get_contacts(self) -> list['Body']:
+        """return all bodies that are in contact with this body."""
+
+    def destroy(self):
+        """destroy this body."""
+```
 
 ## Example
 
-```
+```python
 import box2d
 
 world = box2d.World()

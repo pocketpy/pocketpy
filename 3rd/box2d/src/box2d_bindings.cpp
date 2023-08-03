@@ -75,7 +75,7 @@ public:
         PK_REGISTER_PROPERTY(PyBody, rotation, "float");
         PK_REGISTER_PROPERTY(PyBody, velocity, "vec2");
         PK_REGISTER_PROPERTY(PyBody, angular_velocity, "float");
-        PK_REGISTER_PROPERTY(PyBody, linear_damping, "float");
+        PK_REGISTER_PROPERTY(PyBody, damping, "float");
         PK_REGISTER_PROPERTY(PyBody, angular_damping, "float");
         PK_REGISTER_PROPERTY(PyBody, gravity_scale, "float");
         PK_REGISTER_PROPERTY(PyBody, type, "int");
