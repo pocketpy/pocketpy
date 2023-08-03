@@ -14,6 +14,9 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src/rope BOX2D_SRC_3)
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
+# may need this for linking to shared object
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_library(
     box2d
     STATIC
