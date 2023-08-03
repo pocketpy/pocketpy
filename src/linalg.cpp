@@ -323,8 +323,8 @@ namespace pkpy{
             return VAR_T(PyMat3x3, self * other);
         });
         vm->bind_method<1>(type, "__rmul__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[1]);
-            f64 other = CAST_F(args[0]);
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            f64 other = CAST_F(args[1]);
             return VAR_T(PyMat3x3, self * other);
         });
 
