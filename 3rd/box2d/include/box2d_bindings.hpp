@@ -60,8 +60,8 @@ struct Body final{
     void set_angular_velocity(float omega){ body->SetAngularVelocity(omega); }
     float get_angular_velocity() const{ return body->GetAngularVelocity(); }
 
-    void set_linear_damping(float damping){ body->SetLinearDamping(damping); }
-    float get_linear_damping(){ return body->GetLinearDamping(); }
+    void set_damping(float damping){ body->SetLinearDamping(damping); }
+    float get_damping(){ return body->GetLinearDamping(); }
 
     void set_angular_damping(float damping){ body->SetAngularDamping(damping); }
     float get_angular_damping() const{ return body->GetAngularDamping(); }
@@ -74,6 +74,9 @@ struct Body final{
 
     float get_mass() const{ return body->GetMass(); }
     float get_inertia() const{ return body->GetInertia(); }
+
+    bool get_fixed_rotation() const{ return body->IsFixedRotation(); }
+    void set_fixed_rotation(bool fixed){ body->SetFixedRotation(fixed); }
 
     // fixture settings
     float get_density() const{ return fixture->GetDensity(); }
