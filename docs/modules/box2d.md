@@ -43,17 +43,39 @@ It hides the details of Box2D's API and provides a high-level interface.
 ## API list
 
 ```python
-from linalg import *
+from linalg import vec2, vec4
 from typing import Iterable
 
-class _Node:
+class _NodeLike:        # duck-type protocol
     def on_contact_begin(self, other: 'Body'): ...
     def on_contact_end(self, other: 'Body'): ...
+
+class DebugDraw:
+	# enum
+	# {
+	# 	e_shapeBit				= 0x0001,	///< draw shapes
+	# 	e_jointBit				= 0x0002,	///< draw joint connections
+	# 	e_aabbBit				= 0x0004,	///< draw axis aligned bounding boxes
+	# 	e_pairBit				= 0x0008,	///< draw broad-phase pairs
+	# 	e_centerOfMassBit		= 0x0010	///< draw center of mass frame
+	# };
+
+    def set_flags(self, flags: int): ...
+    def get_flags(self) -> int: ...
+
+    # pure virtual functions
+    def draw_polygon(self, vertices: list[vec2], color: vec4): ...
+    def draw_solid_polygon(self, vertices: list[vec2], color: vec4): ...
+    def draw_circle(self, center: vec2, radius: float, color: vec4): ...
+    def draw_solid_circle(self, center: vec2, radius: float, axis: vec2, color: vec4): ...
+    def draw_segment(self, p1: vec2, p2: vec2, color: vec4): ...
+    def draw_transform(self, position: vec2, rotation: float): ...
+    def draw_point(self, p: vec2, size: float, color: vec4): ...
 
 class World:
     gravity: vec2       # gravity of the world, by default vec2(0, 0)
 
-    def create_body(self, node: _Node = None) -> 'Body':
+    def create_body(self, node: _NodeLike = None) -> 'Body':
         """create a body in the world"""
 
     def get_bodies(self) -> Iterable['Body']:
@@ -67,6 +89,15 @@ class World:
 
     def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
         """step the simulation, e.g. world.step(1/60, 8, 3)"""
+
+    def destroy(self):
+        """destroy this world."""
+
+    def debug_draw(self):
+        """draw debug shapes of all bodies in the world."""
+
+    def set_debug_draw(self, draw: DebugDraw):
+        """set the debug draw object."""
 
 class Body:
     type: int           # 0-static, 1-kinematic, 2-dynamic, by default 2
@@ -94,7 +125,7 @@ class Body:
     def set_box_shape(self, hx: float, hy: float): ...
     def set_circle_shape(self, radius: float): ...
     def set_polygon_shape(self, points: list[vec2]): ...
-    def set_chain_shape(self, points: list[vec2]): ...
+    def set_chain_shape(self, points: list[vec2], loop: bool): ...
 
     def apply_force(self, force: vec2, point: vec2): ...
     def apply_force_to_center(self, force: vec2): ...
@@ -103,7 +134,7 @@ class Body:
     def apply_linear_impulse_to_center(self, impulse: vec2): ...
     def apply_angular_impulse(self, impulse: float): ...
 
-    def get_node(self) -> _Node:
+    def get_node(self) -> _NodeLike:
         """return the node that is attached to this body."""
 
     def get_contacts(self) -> list['Body']:
