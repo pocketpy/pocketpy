@@ -1,5 +1,9 @@
 #include "pocketpy/pocketpy.h"
 
+#ifdef PK_USE_BOX2D
+#include "box2d_bindings.hpp"
+#endif
+
 namespace pkpy{
 
 using dylib_entry_t = const char* (*)(void*, const char*);
@@ -1589,6 +1593,10 @@ void VM::post_init(){
 
     add_module_linalg(this);
     add_module_easing(this);
+
+#ifdef PK_USE_BOX2D
+    add_module_box2d(this);
+#endif
 #endif
 }
 

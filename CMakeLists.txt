@@ -31,6 +31,13 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
+option(PK_USE_BOX2D "Use Box2D" ON)
+if(PK_USE_BOX2D)
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d/include)
+    add_definitions(-DPK_USE_BOX2D)
+endif()
+
 option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
 option(PK_BUILD_STATIC_LIB "Build static library" OFF)
 
@@ -50,6 +57,10 @@ endif()
 
 if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+endif()
+
+if(PK_USE_BOX2D)
+    target_link_libraries(${PROJECT_NAME} box2d)
 endif()
 
 if(PK_EXPORT_CXX_SYMBOLS AND MSVC)

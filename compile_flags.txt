@@ -4,3 +4,4 @@
 -std=c++17
 -stdlib=libc++
 -Iinclude/
+-I3rd/box2d/include/
