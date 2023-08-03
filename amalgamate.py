@@ -34,7 +34,7 @@ def remove_copied_include(text):
 		key = m.group(1)
 		if key.startswith("pocketpy/"):
 			key = key[9:]
-		if key == "user_config.h":
+		if key in ["user_config.h", "box2d_bindings.hpp"]:
 			return m.group(0)
 		if key == "opcodes.h":
 			return OPCODES_TEXT
