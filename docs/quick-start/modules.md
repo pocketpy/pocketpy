@@ -25,7 +25,7 @@ print(test.pi)  # 3.14
 ### Native modules
 
 A native module is a module written in c++ or mixed c++/python.
-Native modules can be added into `_modules` or `_lazy_native_modules`.
+Native modules are always compiled and executed when the VM is created.
 
 To creata a native module,
 use `vm->new_module(...)`.
@@ -52,9 +52,9 @@ print(test.add(1, 2))  # 3
 When you do `import` a module, the VM will try to find it in the following order:
 
 1. Search `vm->_modules`, if found, return it.
-2. Search `vm->_lazy_native_modules`, if found, compile and execute it, then return it.
-3. Search `vm->_lazy_modules`, if found, compile and execute it, then return it.
-4. Try `vm->_import_handler`.
+2. Search `vm->_lazy_modules`, if found, compile and execute it, then return it.
+3. Try `vm->_import_handler`.
+
 
 ### Customized import handler
 

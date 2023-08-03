@@ -47,7 +47,6 @@ namespace pkpy{
 
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
-typedef void (*NativeModuleInitializer)(VM*);
 
 struct PyTypeInfo{
     PyObject* obj;
@@ -117,7 +116,6 @@ public:
     
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
-    std::map<StrName, NativeModuleInitializer> _lazy_native_modules;  // lazy loaded native modules
 
     struct{
         PyObject* error;

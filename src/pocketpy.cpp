@@ -1554,18 +1554,17 @@ void VM::post_init(){
 
 #if !PK_DEBUG_NO_BUILTINS
     add_module_sys(this);
+    add_module_traceback(this);
+    add_module_time(this);
+    add_module_json(this);
+    add_module_math(this);
+    add_module_re(this);
+    add_module_dis(this);
     add_module_c(this);
-    // lazy modules
-    vm->_lazy_native_modules["traceback"] = &add_module_traceback;
-    vm->_lazy_native_modules["time"] = &add_module_time;
-    vm->_lazy_native_modules["json"] = &add_module_json;
-    vm->_lazy_native_modules["math"] = &add_module_math;
-    vm->_lazy_native_modules["re"] = &add_module_re;
-    vm->_lazy_native_modules["dis"] = &add_module_dis;
-    vm->_lazy_native_modules["gc"] = &add_module_gc;
-    vm->_lazy_native_modules["random"] = &add_module_random;
-    vm->_lazy_native_modules["base64"] = &add_module_base64;
-    vm->_lazy_native_modules["timeit"] = &add_module_timeit;
+    add_module_gc(this);
+    add_module_random(this);
+    add_module_base64(this);
+    add_module_timeit(this);
 
     for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle", "_long", "colorsys"}){
         _lazy_modules[name] = kPythonLibs[name];
@@ -1588,8 +1587,8 @@ void VM::post_init(){
         _import_handler = _default_import_handler;
     }
 
-    vm->_lazy_native_modules["linalg"] = &add_module_linalg;
-    vm->_lazy_native_modules["easing"] = &add_module_easing;
+    add_module_linalg(this);
+    add_module_easing(this);
 #endif
 }
 
