@@ -3,7 +3,7 @@ icon: package
 label: box2d
 ---
 
-[Box2D](https://box2d.org/) by Erin Catto, the world's best 2D physics engine now becomes a built-in module in pkpy.
+[Box2D](https://box2d.org/) by Erin Catto, the world's best 2D physics engine now becomes a built-in module in pkpy `v1.1.3` and later.
 
 ## Setup
 
