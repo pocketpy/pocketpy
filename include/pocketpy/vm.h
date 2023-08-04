@@ -107,6 +107,8 @@ struct FrameId{
 typedef void(*PrintFunc)(VM*, const Str&);
 
 class VM {
+    PK_ALWAYS_PASS_BY_POINTER(VM)
+    
     VM* vm;     // self reference for simplify code
 public:
     ManagedHeap heap;

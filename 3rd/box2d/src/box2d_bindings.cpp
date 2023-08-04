@@ -2,12 +2,6 @@
 
 namespace pkpy{
 
-void add_module_box2d(VM *vm){
-    PyObject* mod = vm->new_module("box2d");
-    imbox2d::PyBody::register_class(vm, mod);
-    imbox2d::PyWorld::register_class(vm, mod);
-}
-
 namespace imbox2d{
 
 

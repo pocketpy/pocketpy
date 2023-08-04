@@ -3,27 +3,122 @@
 #include "box2d/b2_world.h"
 #include "box2d/box2d.h"
 #include "pocketpy/pocketpy.h"
-#include <cstdlib>
 
 namespace pkpy{
+    template<>
+    inline b2Vec2 py_cast<b2Vec2>(VM* vm, PyObject* obj){
+        Vec2 v = py_cast<Vec2>(vm, obj);
+        return b2Vec2(v.x, v.y);
+    }
 
-template<>
-inline b2Vec2 py_cast<b2Vec2>(VM* vm, PyObject* obj){
-    Vec2 v = py_cast<Vec2>(vm, obj);
-    return b2Vec2(v.x, v.y);
+    template<>
+    inline b2Vec2 _py_cast<b2Vec2>(VM* vm, PyObject* obj){
+        Vec2 v = _py_cast<Vec2>(vm, obj);
+        return b2Vec2(v.x, v.y);
+    }
+
+    inline PyObject* py_var(VM* vm, b2Vec2 v){
+        return py_var(vm, Vec2(v.x, v.y));
+    }
 }
 
-template<>
-inline b2Vec2 _py_cast<b2Vec2>(VM* vm, PyObject* obj){
-    Vec2 v = _py_cast<Vec2>(vm, obj);
-    return b2Vec2(v.x, v.y);
-}
-
-inline PyObject* py_var(VM* vm, b2Vec2 v){
-    return py_var(vm, Vec2(v.x, v.y));
-}
+using namespace pkpy;
 
 namespace imbox2d{
+
+// maybe we will use this class later
+struct PyDebugDraw: b2Draw{
+    PK_ALWAYS_PASS_BY_POINTER(PyDebugDraw)
+
+    VM* vm;
+    PyObject* draw_like;
+
+    PyDebugDraw(VM* vm): vm(vm){}
+
+    void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override{
+    }
+
+    void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override{
+    }
+
+    void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override{
+    }
+
+    void DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2& axis, const b2Color& color) override{
+    }
+
+    void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override{
+    }
+
+    void DrawTransform(const b2Transform& xf) override{
+    }
+
+    void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override{
+    }
+};
+
+struct PyContactListener: b2ContactListener{
+    PK_ALWAYS_PASS_BY_POINTER(PyContactListener)
+    VM* vm;
+    PyContactListener(VM* vm): vm(vm){}
+
+    void _contact_f(b2Contact* contact, StrName name){
+        auto a = contact->GetFixtureA()->GetBody()->GetUserData().pointer;
+        auto b = contact->GetFixtureB()->GetBody()->GetUserData().pointer;
+        Body* bodyA = reinterpret_cast<Body*>(a);
+        Body* bodyB = reinterpret_cast<Body*>(b);
+        PyObject* self;
+        PyObject* f;
+        f = vm->get_unbound_method(bodyA->obj, name, &self, false);
+        if(f != nullptr) vm->call_method(self, f, VAR_T(PyBody, bodyB));
+        f = vm->get_unbound_method(bodyB->obj, name, &self, false);
+        if(f != nullptr) vm->call_method(self, f, VAR_T(PyBody, bodyA));
+    }
+
+	void BeginContact(b2Contact* contact) override {
+        DEF_SNAME(on_contact_begin);
+        _contact_f(contact, on_contact_begin);
+    }
+
+    void EndContact(b2Contact* contact) override {
+        DEF_SNAME(on_contact_end);
+        _contact_f(contact, on_contact_end);
+    }
+};
+
+struct PyBody{
+    PY_CLASS(PyBody, box2d, Body)
+    PK_ALWAYS_PASS_BY_POINTER(PyBody)
+
+    b2Body* body;
+    b2Fixture* fixture;
+    PyObject* node_like;
+
+    PyBody() = default;
+
+    void _gc_mark() {
+        PK_OBJ_MARK(node_like);
+    }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+};
+
+struct PyWorld {
+    PY_CLASS(PyWorld, box2d, World)
+    PK_ALWAYS_PASS_BY_POINTER(PyWorld)
+
+    b2World world;
+    PyContactListener _contact_listener;
+    PyDebugDraw _debug_draw;
+
+    PyWorld(VM* vm);
+
+    void _gc_mark(){
+        PK_OBJ_MARK(_debug_draw.draw_like);
+    }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+};
 
 
 struct Body final{
@@ -128,17 +223,18 @@ struct Body final{
     }
 };
 
-struct PyBody: OpaquePointer<Body>{
-    PY_CLASS(PyBody, box2d, Body)
 
-    using OpaquePointer<Body>::OpaquePointer;
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-
+inline PyObject* get_body_object(b2Body* p){
+    auto userdata = p->GetUserData().pointer;
+    return reinterpret_cast<PyObject*>(userdata);
+}
 
 }   // namespace imbox2d
 
-void add_module_box2d(VM* vm);
-
-}   // namespace pkpy
+namespace pkpy{
+    inline void add_module_box2d(VM* vm){
+        PyObject* mod = vm->new_module("box2d");
+        imbox2d::PyBody::register_class(vm, mod);
+        imbox2d::PyWorld::register_class(vm, mod);
+    }
+}

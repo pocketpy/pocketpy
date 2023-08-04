@@ -164,4 +164,10 @@ struct is_pod {
 	static constexpr bool value = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
 };
 
+#define PK_ALWAYS_PASS_BY_POINTER(T) \
+	T(const T&) = delete; \
+	T& operator=(const T&) = delete; \
+	T(T&&) = delete; \
+	T& operator=(T&&) = delete;
+
 } // namespace pkpy
