@@ -113,7 +113,7 @@ void init_builtins(VM* _vm) {
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
         Type base = vm->_all_types[type].base;
-        return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
+        return vm->heap.gcnew<Super>(vm->tp_super, args[1], base);
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
@@ -340,7 +340,7 @@ void init_builtins(VM* _vm) {
     _vm->cached_object__new__ = _vm->bind_constructor<1>("object", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
         Type t = PK_OBJ_GET(Type, args[0]);
-        return vm->heap.gcnew<DummyInstance>(t, {});
+        return vm->heap.gcnew<DummyInstance>(t);
     });
 
     _vm->bind_constructor<2>("type", PK_LAMBDA(vm->_t(args[1])));
@@ -1364,8 +1364,8 @@ void add_module_sys(VM* vm){
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(PK_SYS_PLATFORM));
 
-    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
-    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object, {});
+    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 

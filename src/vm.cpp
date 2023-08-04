@@ -114,9 +114,9 @@ namespace pkpy{
     }
 
     PyObject* VM::property(NativeFuncC fget, NativeFuncC fset, const char* type_hint){
-        PyObject* _0 = heap.gcnew(tp_native_func, NativeFunc(fget, 1, false));
+        PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
         PyObject* _1 = vm->None;
-        if(fset != nullptr) _1 = heap.gcnew(tp_native_func, NativeFunc(fset, 2, false));
+        if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
         return VAR(Property(_0, _1, type_hint));
     }
 
@@ -434,7 +434,7 @@ PyObject* VM::format(Str spec, PyObject* obj){
 }
 
 PyObject* VM::new_module(StrName name) {
-    PyObject* obj = heap._new<DummyModule>(tp_module, DummyModule());
+    PyObject* obj = heap._new<DummyModule>(tp_module);
     obj->attr().set("__name__", VAR(name.sv()));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
@@ -592,12 +592,12 @@ void VM::init_builtin_types(){
     tp_property = _new_type_object("property");
     tp_star_wrapper = _new_type_object("_star_wrapper");
 
-    this->None = heap._new<Dummy>(_new_type_object("NoneType"), {});
-    this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"), {});
-    this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"), {});
-    this->True = heap._new<Dummy>(tp_bool, {});
-    this->False = heap._new<Dummy>(tp_bool, {});
-    this->StopIteration = heap._new<Dummy>(_new_type_object("StopIterationType"), {});
+    this->None = heap._new<Dummy>(_new_type_object("NoneType"));
+    this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"));
+    this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"));
+    this->True = heap._new<Dummy>(tp_bool);
+    this->False = heap._new<Dummy>(tp_bool);
+    this->StopIteration = heap._new<Dummy>(_new_type_object("StopIterationType"));
 
     this->builtins = new_module("builtins");
     
@@ -804,7 +804,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(new_f == cached_object__new__) {
             // fast path for object.__new__
             Type t = PK_OBJ_GET(Type, callable);
-            obj= vm->heap.gcnew<DummyInstance>(t, {});
+            obj= vm->heap.gcnew<DummyInstance>(t);
         }else{
             PUSH(new_f);
             PUSH(PY_NULL);
