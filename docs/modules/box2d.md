@@ -145,5 +145,5 @@ class Body:
 import box2d
 
 world = box2d.World()
-body = world.create_body()
+body = box2d.Body(world)
 ```
