@@ -1,5 +1,7 @@
 name: build dylib
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
 
 jobs:
   build_win:
