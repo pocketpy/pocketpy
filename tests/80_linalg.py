@@ -3,7 +3,7 @@ import random
 import sys
 import math
 
-
+# 出于对精度转换的考虑,在本测试中具体将采用str(floating_num)[:6]来比较两个浮点数是否相等
 
 # test vec2--------------------------------------------------------------------
 
@@ -18,6 +18,7 @@ def rotated_vec2(vec_2, radians: float):
 min_num = -10.0
 max_num = 10.0
 test_vec2 = vec2(*tuple([random.uniform(min_num, max_num) for _ in range(2)]))
+test_vec2_2 = vec2(*tuple([random.uniform(min_num, max_num) for _ in range(2)]))
 static_test_vec2_float = vec2(3.1886954323, -1098399.59932453432)
 static_test_vec2_int = vec2(278, -13919730938747)
 
@@ -86,6 +87,27 @@ assert element_value_list == copy_element_value_list
 
 
 # test mat3x3--------------------------------------------------------------------
+def mat_to_str_list(mat):
+    ret = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in range(3):
+        for j in range(3):
+            ret[i][j] = str(mat[i, j])[:6]
+    return ret
+
+def mat_list_to_str_list(mat_list):
+    ret = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in range(3):
+        for j in range(3):
+            ret[i][j] = str(mat_list[i][j])[:6]
+    return ret
+
+def mat_to_list(mat):
+    ret = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in range(3):
+        for j in range(3):
+            ret[i][j] = mat[i, j]
+    return ret
+    
 def mat_round(mat, pos):
     '''
     对mat的副本的每一个元素执行round(element, pos)，返回副本
@@ -381,7 +403,6 @@ if round(test_mat_copy.determinant(), 5) != 0:
             list_mat_2[i][j] = str((~test_mat_copy)[i, j])[:6]
 assert [[str(e)[:6] for e in layer] for layer in calculate_inverse(list_mat)] == list_mat_2
 
-
 try:
     ~mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
     raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
@@ -396,3 +417,82 @@ assert mat3x3([[1 for _ in range(3)] for _ in range(3)]) == mat3x3.ones()
 
 # test identity
 assert mat3x3([[1,0,0],[0,1,0],[0,0,1]]) == mat3x3.identity()
+
+
+# test affine transformations-----------------------------------------------
+# test trs
+def trs(t, radian, s):
+    cr = math.cos(radian)
+    sr = math.sin(radian)
+    elements = [[s[0] * cr, -s[1] * sr, t[0]],
+                [s[0] * sr, s[1] * cr, t[1]],
+                [0.0, 0.0, 1.0]]
+    return elements
+
+test_vec2_copy = test_vec2.copy()
+test_vec2_2_copy = test_vec2_2.copy()
+
+test_vec2_list = [test_vec2_copy.x, test_vec2_copy.y]
+test_vec2_2_list = [test_vec2_2_copy.x, test_vec2_2_copy.y]
+
+radian = random.uniform(-10*math.pi, 10*math.pi)
+
+assert mat_to_str_list(mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)) == mat_list_to_str_list(trs(test_vec2_list, radian, test_vec2_2_list))
+
+
+# test is_affine
+def mat_is_affine(mat_list):
+    return mat_list[2][0] == 0 and mat_list[2][1] == 0 and mat_list[2][2] == 1
+
+# 通过random.unifrom的返回值不可能是整数0或1, 因此认为test_mat不可能is_affine
+test_mat_copy = test_mat.copy()
+assert test_mat_copy.is_affine() == mat_is_affine(mat_to_list(test_mat_copy))
+
+test_mat_copy[2,0] = 0
+test_mat_copy[2,1] = 0
+test_mat_copy[2,2] = 1
+assert test_mat_copy.is_affine() == mat_is_affine(mat_to_list(test_mat_copy))
+
+
+# test translation
+test_mat_copy = test_mat.copy()
+assert test_mat_copy.translation() == vec2(test_mat_copy[0, 2], test_mat_copy[1, 2])
+
+# 该方法的测试未验证计算的准确性
+# test rotation
+test_mat_copy = test_mat.copy()
+assert type(test_mat_copy.rotation()) is float
+
+
+# test scale
+def mat_scale(mat_list):
+    return [(mat_list[0][0] ** 2 + mat_list[1][0] ** 2) ** 0.5, (mat_list[0][1] ** 2 + mat_list[1][1] ** 2) ** 0.5]
+    
+test_mat_copy = test_mat.copy()
+temp_vec2 = test_mat_copy.scale()
+temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
+assert [str(e)[:6] for e in mat_scale(mat_to_list(test_mat_copy))] == temp_vec2_list
+
+
+# test transform_point
+def mat_transform_point(mat_list, vec2_list):
+    return [mat_list[0][0] * vec2_list[0] + mat_list[0][1] * vec2_list[1] + mat_list[0][2], mat_list[1][0] * vec2_list[0] + mat_list[1][1] * vec2_list[1] + mat_list[1][2]]
+    
+test_mat_copy = test_mat.copy()
+test_mat_copy = test_mat.copy()
+test_vec2_copy = test_vec2.copy()
+temp_vec2 = test_mat_copy.transform_point(test_vec2_copy)
+temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
+assert [str(e)[:6] for e in mat_transform_point(mat_to_list(test_mat_copy), [test_vec2_copy.x, test_vec2_copy.y])] == temp_vec2_list
+
+
+# test transform_vector
+def mat_transform_vector(mat_list, vec2_list):
+    return [mat_list[0][0] * vec2_list[0] + mat_list[0][1] * vec2_list[1], mat_list[1][0] * vec2_list[0] + mat_list[1][1] * vec2_list[1]]
+    
+test_mat_copy = test_mat.copy()
+test_mat_copy = test_mat.copy()
+test_vec2_copy = test_vec2.copy()
+temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
+temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
+assert [str(e)[:6] for e in mat_transform_vector(mat_to_list(test_mat_copy), [test_vec2_copy.x, test_vec2_copy.y])] == temp_vec2_list
