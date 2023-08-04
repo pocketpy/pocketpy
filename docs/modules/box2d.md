@@ -46,24 +46,11 @@ It hides the details of Box2D's API and provides a high-level interface.
 from linalg import vec2, vec4
 from typing import Iterable
 
-class _NodeLike:        # duck-type protocol
+class _NodeLike:    # duck-type protocol
     def on_contact_begin(self, other: 'Body'): ...
     def on_contact_end(self, other: 'Body'): ...
 
-class DebugDraw:
-	# enum
-	# {
-	# 	e_shapeBit				= 0x0001,	///< draw shapes
-	# 	e_jointBit				= 0x0002,	///< draw joint connections
-	# 	e_aabbBit				= 0x0004,	///< draw axis aligned bounding boxes
-	# 	e_pairBit				= 0x0008,	///< draw broad-phase pairs
-	# 	e_centerOfMassBit		= 0x0010	///< draw center of mass frame
-	# };
-
-    def set_flags(self, flags: int): ...
-    def get_flags(self) -> int: ...
-
-    # pure virtual functions
+class _DrawLike:    # duck-type protocol
     def draw_polygon(self, vertices: list[vec2], color: vec4): ...
     def draw_solid_polygon(self, vertices: list[vec2], color: vec4): ...
     def draw_circle(self, center: vec2, radius: float, color: vec4): ...
@@ -75,16 +62,13 @@ class DebugDraw:
 class World:
     gravity: vec2       # gravity of the world, by default vec2(0, 0)
 
-    def create_body(self, node: _NodeLike = None) -> 'Body':
-        """create a body in the world"""
-
     def get_bodies(self) -> Iterable['Body']:
         """return all bodies in the world."""
 
-    def raycast(self, start: vec2, end: vec2) -> list['Body']:
-        """raycast from start to end, return all bodies that intersect with the ray."""
+    def ray_cast(self, start: vec2, end: vec2) -> list['Body']:
+        """raycast from start to end"""
 
-    def query_aabb(self, p0: vec2, p1: vec2) -> list['Body']:
+    def box_cast(self, p0: vec2, p1: vec2) -> list['Body']:
         """query bodies in the AABB region."""
 
     def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
@@ -93,10 +77,18 @@ class World:
     def destroy(self):
         """destroy this world."""
 
-    def debug_draw(self):
+	# enum
+	# {
+	# 	e_shapeBit				= 0x0001,	///< draw shapes
+	# 	e_jointBit				= 0x0002,	///< draw joint connections
+	# 	e_aabbBit				= 0x0004,	///< draw axis aligned bounding boxes
+	# 	e_pairBit				= 0x0008,	///< draw broad-phase pairs
+	# 	e_centerOfMassBit		= 0x0010	///< draw center of mass frame
+	# };
+    def debug_draw(self, flags: int):
         """draw debug shapes of all bodies in the world."""
 
-    def set_debug_draw(self, draw: DebugDraw):
+    def set_debug_draw(self, draw: _DrawLike):
         """set the debug draw object."""
 
 class Body:
@@ -121,6 +113,9 @@ class Body:
     restitution: float
     restitution_threshold: float
     is_trigger: bool
+
+    def __new__(cls, world: World, node: _NodeLike = None):
+        """create a body in the world."""
 
     def set_box_shape(self, hx: float, hy: float): ...
     def set_circle_shape(self, radius: float): ...
