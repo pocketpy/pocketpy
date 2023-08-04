@@ -27,7 +27,7 @@ namespace pkpy {
         return type;                                                        \
     }                                                                       
 
-#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), T(__VA_ARGS__))
+#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), __VA_ARGS__)
 
 int c99_sizeof(VM*, const Str&);
 

@@ -42,8 +42,8 @@ namespace pkpy{
         PK_UNUSED(vm);                                                  \
         return PK_OBJ_GET(ctype, obj);                                     \
     }                                                                   \
-    inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew(vm->ptype, value);}     \
-    inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew(vm->ptype, std::move(value));}
+    inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew<ctype>(vm->ptype, value);}     \
+    inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew<ctype>(vm->ptype, std::move(value));}
 
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);

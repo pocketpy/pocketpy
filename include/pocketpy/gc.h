@@ -37,29 +37,21 @@ struct ManagedHeap{
     }
     /********************/
 
-    template<typename T>
-    PyObject* gcnew(Type type, T&& val){
+    template<typename T, typename... Args>
+    PyObject* gcnew(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
-#if _WIN32
         // https://github.com/blueloveTH/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<T>(val));
-#else
-        PyObject* obj = new(pool64.alloc<__T>()) __T(type, std::forward<T>(val));
-#endif
+        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         gen.push_back(obj);
         gc_counter++;
         return obj;
     }
 
-    template<typename T>
-    PyObject* _new(Type type, T&& val){
+    template<typename T, typename... Args>
+    PyObject* _new(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
-#if _WIN32
         // https://github.com/blueloveTH/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<T>(val));
-#else
-        PyObject* obj = new(pool64.alloc<__T>()) __T(type, std::forward<T>(val));
-#endif
+        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         obj->gc.enabled = false;
         _no_gc.push_back(obj);
         return obj;
