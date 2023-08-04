@@ -1,5 +1,6 @@
 #pragma once
 
+#include "box2d/b2_world.h"
 #include "box2d/box2d.h"
 #include "pocketpy/pocketpy.h"
 #include <cstdlib>
@@ -23,6 +24,7 @@ inline PyObject* py_var(VM* vm, b2Vec2 v){
 }
 
 namespace imbox2d{
+
 
 struct Body final{
     b2Body* body;
@@ -133,12 +135,7 @@ struct PyBody: OpaquePointer<Body>{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-struct PyWorld: OpaquePointer<b2World>{
-    PY_CLASS(PyWorld, box2d, World)
 
-    using OpaquePointer<b2World>::OpaquePointer;
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
 
 }   // namespace imbox2d
 

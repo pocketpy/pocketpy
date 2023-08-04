@@ -68,14 +68,11 @@ class World:
     def ray_cast(self, start: vec2, end: vec2) -> list['Body']:
         """raycast from start to end"""
 
-    def box_cast(self, p0: vec2, p1: vec2) -> list['Body']:
+    def box_cast(self, lower: vec2, upper: vec2) -> list['Body']:
         """query bodies in the AABB region."""
 
     def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
         """step the simulation, e.g. world.step(1/60, 8, 3)"""
-
-    def destroy(self):
-        """destroy this world."""
 
 	# enum
 	# {
