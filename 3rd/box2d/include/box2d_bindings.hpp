@@ -113,6 +113,8 @@ struct PyBody{
     void set_position(b2Vec2 v){ body->SetTransform(v, body->GetAngle()); }
     float get_rotation() const { return body->GetAngle(); }
     void set_rotation(float v){ body->SetTransform(body->GetPosition(), v); }
+    b2Vec2 get_velocity() const { return body->GetLinearVelocity(); }
+    void set_velocity(b2Vec2 v){ body->SetLinearVelocity(v); }
 
     void apply_force(b2Vec2 force, b2Vec2 point){ body->ApplyForce(force, point, true); }
     void apply_force_to_center(b2Vec2 force){ body->ApplyForceToCenter(force, true); }
