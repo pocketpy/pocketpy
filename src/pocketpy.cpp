@@ -988,6 +988,11 @@ void init_builtins(VM* _vm) {
         return (i64)_CAST(MappingProxy&, obj).attr().size();
     });
 
+    _vm->bind__hash__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
+        vm->TypeError("unhashable type: 'mappingproxy'");
+        return (i64)0;
+    });
+
     _vm->bind__getitem__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* index) {
         MappingProxy& self = _CAST(MappingProxy&, obj);
         StrName key = CAST(Str&, index);
@@ -1042,6 +1047,11 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__len__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(Dict&, obj).size();
+    });
+    
+    _vm->bind__hash__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
+        vm->TypeError("unhashable type: 'dict'");
+        return (i64)0;
     });
 
     _vm->bind__getitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* index) {
