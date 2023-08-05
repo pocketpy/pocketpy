@@ -1,8 +1,6 @@
 #pragma once
 
-#include "box2d/b2_world.h"
 #include "box2d/box2d.h"
-#include "pocketpy/common.h"
 #include "pocketpy/pocketpy.h"
 
 namespace pkpy{
@@ -33,30 +31,17 @@ struct PyDebugDraw: b2Draw{
     PK_ALWAYS_PASS_BY_POINTER(PyDebugDraw)
 
     VM* vm;
-    PyObject* draw_like;
+    PyObject* draw_like;    // world will mark this
 
     PyDebugDraw(VM* vm): vm(vm){}
 
-    void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override{
-    }
-
-    void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override{
-    }
-
-    void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override{
-    }
-
-    void DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2& axis, const b2Color& color) override{
-    }
-
-    void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override{
-    }
-
-    void DrawTransform(const b2Transform& xf) override{
-    }
-
-    void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override{
-    }
+    void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
+    void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override;
+    void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override;
+    void DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2& axis, const b2Color& color) override;
+    void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override;
+    void DrawTransform(const b2Transform& xf) override;
+    void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override;
 };
 
 struct PyContactListener: b2ContactListener{
@@ -64,18 +49,7 @@ struct PyContactListener: b2ContactListener{
     VM* vm;
     PyContactListener(VM* vm): vm(vm){}
 
-    void _contact_f(b2Contact* contact, StrName name){
-        b2Body* bodyA = contact->GetFixtureA()->GetBody();
-        b2Body* bodyB = contact->GetFixtureB()->GetBody();
-        PyObject* a = get_body_object(bodyA);
-        PyObject* b = get_body_object(bodyB);
-        PyObject* self;
-        PyObject* f;
-        f = vm->get_unbound_method(a, name, &self, false);
-        if(f != nullptr) vm->call_method(self, f, b);
-        f = vm->get_unbound_method(b, name, &self, false);
-        if(f != nullptr) vm->call_method(self, f, a);
-    }
+    void _contact_f(b2Contact* contact, StrName name);
 
 	void BeginContact(b2Contact* contact) override {
         DEF_SNAME(on_contact_begin);
