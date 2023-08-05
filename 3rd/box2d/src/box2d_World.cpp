@@ -48,7 +48,7 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
     });
 
     // gravity
-    vm->bind_property(type, "gravity", "vec2", [](VM* vm, ArgsView args){
+    vm->bind_property(type, "gravity: vec2", [](VM* vm, ArgsView args){
         PyWorld& self = _CAST(PyWorld&, args[0]);
         return VAR(self.world.GetGravity());
     }, [](VM* vm, ArgsView args){
