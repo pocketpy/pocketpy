@@ -183,6 +183,10 @@ static_test_mat_float= mat3x3([
     [9.558042327611506, -3.336280256662496, 4.951381528057387]]
     )
 
+static_test_mat_float_inv = mat3x3([[ 0.32265243,  0.15808159, -0.09939472],
+       [ 0.04199553,  0.13813096,  0.00408326],
+       [-0.59454451, -0.21208362,  0.39658464]])
+
 static_test_mat_int = mat3x3([
         [1, 2, 3],
         [4, 5, 6],
@@ -373,35 +377,15 @@ except:
 test_mat_copy = test_mat.copy()
 assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
 
-
 # test inverse
-test_mat_copy = test_mat.copy()
-if round(test_mat_copy.determinant(), 5) != 0:
-    list_mat = [[0,0,0], [0,0,0], [0,0,0]]
-    list_mat_2 = [[0,0,0], [0,0,0], [0,0,0]]
-    for i in range(3):
-        for j in range(3):
-            list_mat[i][j] = test_mat[i, j]
-            list_mat_2[i][j] = str(test_mat_copy.inverse()[i, j])[:6]
-assert [[str(e)[:6] for e in layer] for layer in calculate_inverse(list_mat)] == list_mat_2
-
+assert static_test_mat_float.inverse() == static_test_mat_float_inv
+assert ~static_test_mat_float == static_test_mat_float_inv
 
 try:
     mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]]).inverse()
     raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
 except:
     pass
-
-# test __invert__
-test_mat_copy = test_mat.copy()
-if round(test_mat_copy.determinant(), 5) != 0:
-    list_mat = [[0,0,0], [0,0,0], [0,0,0]]
-    list_mat_2 = [[0,0,0], [0,0,0], [0,0,0]]
-    for i in range(3):
-        for j in range(3):
-            list_mat[i][j] = test_mat[i, j]
-            list_mat_2[i][j] = str((~test_mat_copy)[i, j])[:6]
-assert [[str(e)[:6] for e in layer] for layer in calculate_inverse(list_mat)] == list_mat_2
 
 try:
     ~mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
