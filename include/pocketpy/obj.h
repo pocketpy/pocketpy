@@ -31,8 +31,8 @@ struct BoundMethod {
 struct Property{
     PyObject* getter;
     PyObject* setter;
-    const char* type_hint;
-    Property(PyObject* getter, PyObject* setter, const char* type_hint) : getter(getter), setter(setter), type_hint(type_hint) {}
+    Str type_hint;
+    Property(PyObject* getter, PyObject* setter, Str type_hint) : getter(getter), setter(setter), type_hint(type_hint) {}
 };
 
 struct Range {

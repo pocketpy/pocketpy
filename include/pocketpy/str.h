@@ -3,6 +3,7 @@
 #include "common.h"
 #include "memory.h"
 #include "vector.h"
+#include <cstddef>
 
 namespace pkpy {
 
@@ -22,6 +23,7 @@ struct Str{
     Str(int size, bool is_ascii);
     Str(const std::string& s);
     Str(std::string_view s);
+    Str(std::nullptr_t) { FATAL_ERROR(); }
     Str(const char* s);
     Str(const char* s, int len);
     Str(const Str& other);

@@ -67,7 +67,7 @@ a property is a python's `property` that attached to a type instance with a gett
 
 You can use `@property` to create python property or use `vm->property` to create native property.
 
-You can also use `vm->bind_property()`, the new style property binding function.
+Use `vm->bind_property()`, the new style property binding function.
 
 ```cpp
 struct Point {
@@ -86,15 +86,16 @@ struct Point {
     });
 
     // getter and setter of property `x`
-    type->attr().set("x", vm->property([](VM* vm, ArgsView args){
-        Point& self = CAST(Point&, args[0]);
-        return VAR(self.x);
-    },
-    [](VM* vm, ArgsView args){
-        Point& self = CAST(Point&, args[0]);
-        self.x = CAST(int, args[1]);
-        return vm->None;
-    }));
+    vm->bind_property(type, "x: int",
+      [](VM* vm, ArgsView args){
+          Point& self = CAST(Point&, args[0]);
+          return VAR(self.x);
+      },
+      [](VM* vm, ArgsView args){
+          Point& self = CAST(Point&, args[0]);
+          self.x = CAST(int, args[1]);
+          return vm->None;
+      });
   }
 };
 ```

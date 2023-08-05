@@ -65,33 +65,6 @@ struct NativeProxyMethodC final: NativeProxyFuncCBase {
     }
 };
 
-template<typename _OpaqueT, typename Ret, typename T, typename... Params>
-struct NativeProxyOpaqueMethodC final: NativeProxyFuncCBase {
-    static_assert(std::is_base_of_v<OpaquePointer<T>, _OpaqueT>);
-    static constexpr int N = sizeof...(Params);
-    using _Fp = Ret(T::*)(Params...);
-    _Fp func;
-    NativeProxyOpaqueMethodC(_Fp func) : func(func) {}
-
-    PyObject* operator()(VM* vm, ArgsView args) override {
-        PK_ASSERT(args.size() == N+1);
-        return call<Ret>(vm, args, std::make_index_sequence<N>());
-    }
-
-    template<typename __Ret, size_t... Is>
-    PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
-        OpaquePointer<T>& _opa_self = py_cast<_OpaqueT&>(vm, args[0]);
-        T& self = *_opa_self.ptr;
-        if constexpr(std::is_void_v<__Ret>){
-            (self.*func)(py_cast<Params>(vm, args[Is+1])...);
-            return vm->None;
-        }else{
-            __Ret ret = (self.*func)(py_cast<Params>(vm, args[Is+1])...);
-            return VAR(std::move(ret));
-        }
-    }
-};
-
 inline PyObject* proxy_wrapper(VM* vm, ArgsView args){
     NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args.begin());
     return (*pf)(vm, args);
@@ -108,56 +81,44 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
     auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     vm->bind(obj, sig, proxy_wrapper, proxy);
 }
-
-template<typename _OpaqueT, typename Ret, typename T, typename... Params>
-void _bind_opaque(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
-    auto proxy = new NativeProxyOpaqueMethodC<_OpaqueT, Ret, T, Params...>(func);
-    vm->bind(obj, sig, proxy_wrapper, proxy);
-}
 /*****************************************************************/
-#define PK_REGISTER_FIELD(T, NAME) \
-        type->attr().set(#NAME, vm->property(   \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                return VAR(self->NAME); \
-            },  \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                self->NAME = CAST(decltype(self->NAME), args[1]); \
-                return vm->None;    \
-            }));
+#define PK_REGISTER_FIELD(T, NAME, REF, EXPR)       \
+        vm->bind_property(type, NAME,               \
+            [](VM* vm, ArgsView args){              \
+                T& self = _CAST(T&, args[0]);       \
+                return VAR(self.REF().EXPR);        \
+            },                                      \
+            [](VM* vm, ArgsView args){              \
+                T& self = _CAST(T&, args[0]);       \
+                self.REF().EXPR = CAST(decltype(self.REF().EXPR), args[1]);     \
+                return vm->None;                                                \
+            });
 
-#define PK_REGISTER_READONLY_FIELD(T, NAME) \
-        type->attr().set(#NAME, vm->property(   \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                return VAR(self->NAME); \
-            }));
+#define PK_REGISTER_READONLY_FIELD(T, NAME, REF, EXPR)          \
+        vm->bind_property(type, NAME,                           \
+            [](VM* vm, ArgsView args){              \
+                T& self = _CAST(T&, args[0]);       \
+                return VAR(self.REF().EXPR);        \
+            });
 
-#define PK_REGISTER_PROPERTY(T, NAME, __tp)   \
-        type->attr().set(#NAME, vm->property(   \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                return VAR(self->get_##NAME()); \
-            },  \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                using __NT = decltype(self->get_##NAME());    \
-                self->set_##NAME(CAST(__NT, args[1])); \
-                return vm->None;    \
-            }, __tp));
+#define PK_REGISTER_PROPERTY(T, NAME, REF, FGET, FSET)  \
+        vm->bind_property(type, NAME,                   \
+            [](VM* vm, ArgsView args){                  \
+                T& self = _CAST(T&, args[0]);           \
+                return VAR(self.REF().FGET());          \
+            },                                          \
+            [](VM* vm, ArgsView args){                  \
+                T& self = _CAST(T&, args[0]);           \
+                using __NT = decltype(self.REF().FGET());   \
+                self.REF().FSET(CAST(__NT, args[1]));       \
+                return vm->None;                            \
+            });
 
-#define PK_REGISTER_READONLY_PROPERTY(T, NAME, __tp)   \
-        type->attr().set(#NAME, vm->property(   \
-            [](VM* vm, ArgsView args){  \
-                T& self = _CAST(T&, args[0]);   \
-                return VAR(self->get_##NAME()); \
-            }, nullptr, __tp));
-
-#define PK_REGISTER_CONSTRUCTOR(T, T0)  \
-        vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){ \
-            void* p = CAST(void*, args[0]); \
-            return VAR_T(T, (T0*)p);    \
-        });
+#define PK_REGISTER_READONLY_PROPERTY(T, NAME, REF, FGET)  \
+        vm->bind_property(type, NAME,                   \
+            [](VM* vm, ArgsView args){                  \
+                T& self = _CAST(T&, args[0]);           \
+                return VAR(self.REF().FGET());          \
+            });
 
 }   // namespace pkpy

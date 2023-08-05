@@ -203,7 +203,6 @@ public:
         return call_method(self, callable, args...);
     }
 
-    PyObject* property(NativeFuncC fget, NativeFuncC fset=nullptr, const char* type_hint=nullptr);
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
     Type _new_type_object(StrName name, Type base=0);
     PyObject* _find_type_object(const Str& type);
@@ -462,7 +461,7 @@ public:
     // new style binding api
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={});
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={});
-    PyObject* bind_property(PyObject*, StrName name, const char* type_hint, NativeFuncC fget, NativeFuncC fset=nullptr);
+    PyObject* bind_property(PyObject*, Str, NativeFuncC fget, NativeFuncC fset=nullptr);
 };
 
 DEF_NATIVE_2(Str, tp_str)

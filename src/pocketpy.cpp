@@ -149,36 +149,6 @@ void init_builtins(VM* _vm) {
         }
     });
 
-    _vm->bind_builtin_func<3>("pow", [](VM* vm, ArgsView args) {
-        i64 lhs = CAST(i64, args[0]);   // assume lhs>=0
-        i64 rhs = CAST(i64, args[1]);   // assume rhs>=0
-        i64 mod = CAST(i64, args[2]);   // assume mod>0, mod*mod should not overflow
-
-        if(rhs <= 0){
-            vm->ValueError("pow(): rhs should be positive");
-        }
-
-        PK_LOCAL_STATIC const auto _mul = [](i64 a, i64 b, i64 c){
-            if(c < 16384) return (a%c) * (b%c) % c;
-            i64 res = 0;
-            while(b > 0){
-                if(b & 1) res = (res + a) % c;
-                a = (a << 1) % c;
-                b >>= 1;
-            }
-            return res;
-        };
-
-        i64 res = 1;
-        lhs %= mod;
-        while(rhs){
-            if(rhs & 1) res = _mul(res, lhs, mod);
-            lhs = _mul(lhs, lhs, mod);
-            rhs >>= 1;
-        }
-        return VAR(res);
-    });
-
     _vm->bind_builtin_func<1>("id", [](VM* vm, ArgsView args) {
         PyObject* obj = args[0];
         if(is_tagged(obj)) return vm->None;
@@ -1216,41 +1186,41 @@ void init_builtins(VM* _vm) {
     /************ property ************/
     _vm->bind_constructor<-1>("property", [](VM* vm, ArgsView args) {
         if(args.size() == 1+1){
-            return VAR(Property(args[1], vm->None, nullptr));
+            return VAR(Property(args[1], vm->None, ""));
         }else if(args.size() == 1+2){
-            return VAR(Property(args[1], args[2], nullptr));
+            return VAR(Property(args[1], args[2], ""));
         }
         vm->TypeError("property() takes at most 2 arguments");
         return vm->None;
     });
 
-    _vm->bind_property(_vm->_t(_vm->tp_property), "type_hint", "str", [](VM* vm, ArgsView args){
+    _vm->bind_property(_vm->_t(_vm->tp_property), "type_hint: str", [](VM* vm, ArgsView args){
         Property& self = _CAST(Property&, args[0]);
-        if(self.type_hint == nullptr) return vm->None;
         return VAR(self.type_hint);
     });
     
-    _vm->_t(_vm->tp_function)->attr().set("__doc__", _vm->property([](VM* vm, ArgsView args) {
+
+    _vm->bind_property(_vm->_t(_vm->tp_function), "__doc__", [](VM* vm, ArgsView args) {
         Function& func = _CAST(Function&, args[0]);
         return VAR(func.decl->docstring);
-    }));
+    });
 
-    _vm->_t(_vm->tp_native_func)->attr().set("__doc__", _vm->property([](VM* vm, ArgsView args) {
+    _vm->bind_property(_vm->_t(_vm->tp_native_func), "__doc__", [](VM* vm, ArgsView args) {
         NativeFunc& func = _CAST(NativeFunc&, args[0]);
         if(func.decl != nullptr) return VAR(func.decl->docstring);
         return VAR("");
-    }));
+    });
 
-    _vm->_t(_vm->tp_function)->attr().set("__signature__", _vm->property([](VM* vm, ArgsView args) {
+    _vm->bind_property(_vm->_t(_vm->tp_function), "__signature__", [](VM* vm, ArgsView args) {
         Function& func = _CAST(Function&, args[0]);
         return VAR(func.decl->signature);
-    }));
+    });
 
-    _vm->_t(_vm->tp_native_func)->attr().set("__signature__", _vm->property([](VM* vm, ArgsView args) {
+    _vm->bind_property(_vm->_t(_vm->tp_native_func), "__signature__", [](VM* vm, ArgsView args) {
         NativeFunc& func = _CAST(NativeFunc&, args[0]);
         if(func.decl != nullptr) return VAR(func.decl->signature);
         return VAR("unknown(*args, **kwargs)");
-    }));
+    });
 
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);
@@ -1520,41 +1490,41 @@ void add_module_gc(VM* vm){
 void VM::post_init(){
     init_builtins(this);
 
-    _t(tp_object)->attr().set("__class__", property(PK_LAMBDA(vm->_t(args[0]))));
-    _t(tp_type)->attr().set("__base__", property([](VM* vm, ArgsView args){
+    bind_property(_t(tp_object), "__class__", PK_LAMBDA(VAR(vm->_t(args[0]))));
+    bind_property(_t(tp_type), "__base__", [](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
-    }));
-    _t(tp_type)->attr().set("__name__", property([](VM* vm, ArgsView args){
+    });
+    bind_property(_t(tp_type), "__name__", [](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return VAR(info.name);
-    }));
-
-    _t(tp_bound_method)->attr().set("__self__", property([](VM* vm, ArgsView args){
+    });
+    bind_property(_t(tp_bound_method), "__self__", [](VM* vm, ArgsView args){
         return CAST(BoundMethod&, args[0]).self;
-    }));
-    _t(tp_bound_method)->attr().set("__func__", property([](VM* vm, ArgsView args){
+    });
+    bind_property(_t(tp_bound_method), "__func__", [](VM* vm, ArgsView args){
         return CAST(BoundMethod&, args[0]).func;
-    }));
+    });
 
     bind__eq__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
         if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return vm->NotImplemented;
         return VAR(_CAST(BoundMethod&, lhs) == _CAST(BoundMethod&, rhs));
     });
-    _t(tp_slice)->attr().set("start", property([](VM* vm, ArgsView args){
-        return CAST(Slice&, args[0]).start;
-    }));
-    _t(tp_slice)->attr().set("stop", property([](VM* vm, ArgsView args){
-        return CAST(Slice&, args[0]).stop;
-    }));
-    _t(tp_slice)->attr().set("step", property([](VM* vm, ArgsView args){
-        return CAST(Slice&, args[0]).step;
-    }));
 
-    _t(tp_object)->attr().set("__dict__", property([](VM* vm, ArgsView args){
+    bind_property(_t(tp_slice), "start", [](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).start;
+    });
+    bind_property(_t(tp_slice), "stop", [](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).stop;
+    });
+    bind_property(_t(tp_slice), "step", [](VM* vm, ArgsView args){
+        return CAST(Slice&, args[0]).step;
+    });
+
+    bind_property(_t(tp_object), "__dict__", [](VM* vm, ArgsView args){
         if(is_tagged(args[0]) || !args[0]->is_attr_valid()) return vm->None;
         return VAR(MappingProxy(args[0]));
-    }));
+    });
 
 #if !PK_DEBUG_NO_BUILTINS
     add_module_sys(this);
