@@ -129,7 +129,7 @@ struct FuncDecl {
 };
 
 struct UserData{
-    char data[16];
+    char data[15];
     bool empty;
 
     UserData(): empty(true) {}
@@ -186,7 +186,8 @@ struct Function{
 template<>
 struct Py_<Function> final: PyObject {
     Function _value;
-    Py_(Type type, Function val): PyObject(type), _value(val) {
+    template<typename... Args>
+    Py_(Type type, Args&&... args): PyObject(type), _value(std::forward<Args>(args)...) {
         enable_instance_dict();
     }
     void _obj_gc_mark() override {
@@ -199,7 +200,8 @@ struct Py_<Function> final: PyObject {
 template<>
 struct Py_<NativeFunc> final: PyObject {
     NativeFunc _value;
-    Py_(Type type, NativeFunc val): PyObject(type), _value(val) {
+    template<typename... Args>
+    Py_(Type type, Args&&... args): PyObject(type), _value(std::forward<Args>(args)...) {
         enable_instance_dict();
     }
     void _obj_gc_mark() override {

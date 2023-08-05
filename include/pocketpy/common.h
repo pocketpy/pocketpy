@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <random>
 
-#define PK_VERSION				"1.1.2"
+#define PK_VERSION				"1.1.3"
 
 #include "config.h"
 #include "export.h"
@@ -163,5 +163,11 @@ template<typename T>
 struct is_pod {
 	static constexpr bool value = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
 };
+
+#define PK_ALWAYS_PASS_BY_POINTER(T) \
+	T(const T&) = delete; \
+	T& operator=(const T&) = delete; \
+	T(T&&) = delete; \
+	T& operator=(T&&) = delete;
 
 } // namespace pkpy

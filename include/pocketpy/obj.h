@@ -31,8 +31,8 @@ struct BoundMethod {
 struct Property{
     PyObject* getter;
     PyObject* setter;
-    const char* type_hint;
-    Property(PyObject* getter, PyObject* setter, const char* type_hint) : getter(getter), setter(setter), type_hint(type_hint) {}
+    Str type_hint;
+    Property(PyObject* getter, PyObject* setter, Str type_hint) : getter(getter), setter(setter), type_hint(type_hint) {}
 };
 
 struct Range {
@@ -134,8 +134,9 @@ struct Py_ final: PyObject {
             _value._gc_mark();
         }
     }
-    Py_(Type type, const T& value) : PyObject(type), _value(value) {}
-    Py_(Type type, T&& value) : PyObject(type), _value(std::move(value)) {}
+    
+    template <typename... Args>
+    Py_(Type type, Args&&... args) : PyObject(type), _value(std::forward<Args>(args)...) { }
 };
 
 struct MappingProxy{
@@ -320,7 +321,8 @@ struct Py_<Slice> final: PyObject {
 template<>
 struct Py_<Super> final: PyObject {
     Super _value;
-    Py_(Type type, Super val): PyObject(type), _value(val) {}
+    template<typename... Args>
+    Py_(Type type, Args&&... args): PyObject(type), _value(std::forward<Args>(args)...) {}
     void _obj_gc_mark() override {
         PK_OBJ_MARK(_value.first);
     }
@@ -328,8 +330,7 @@ struct Py_<Super> final: PyObject {
 
 template<>
 struct Py_<DummyInstance> final: PyObject {
-    Py_(Type type, DummyInstance val): PyObject(type) {
-        PK_UNUSED(val);
+    Py_(Type type): PyObject(type) {
         enable_instance_dict();
     }
     void _obj_gc_mark() override {}
@@ -346,8 +347,7 @@ struct Py_<Type> final: PyObject {
 
 template<>
 struct Py_<DummyModule> final: PyObject {
-    Py_(Type type, DummyModule val): PyObject(type) {
-        PK_UNUSED(val);
+    Py_(Type type): PyObject(type) {
         enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}

@@ -36,14 +36,15 @@ namespace pkpy{
         });
 
 #define BIND_VEC_FIELD(D, name)  \
-        type->attr().set(#name, vm->property([](VM* vm, ArgsView args){     \
+        vm->bind_property(type, #name,                                      \
+        [](VM* vm, ArgsView args){                                          \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
             return VAR(self.name);                                          \
         }, [](VM* vm, ArgsView args){                                       \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
             self.name = CAST(f64, args[1]);                                 \
             return vm->None;                                                \
-        }));
+        });
 
 
     void PyVec2::_register(VM* vm, PyObject* mod, PyObject* type){
@@ -284,14 +285,15 @@ namespace pkpy{
         });
 
 #define PROPERTY_FIELD(field) \
-        type->attr().set(#field, vm->property([](VM* vm, ArgsView args){    \
+        vm->bind_property(type, #field ": float", \
+        [](VM* vm, ArgsView args){      \
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);                     \
             return VAR(self.field);                                         \
         }, [](VM* vm, ArgsView args){                                       \
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);                     \
             self.field = CAST(f64, args[1]);                                \
             return vm->None;                                                \
-        }));
+        });
 
         PROPERTY_FIELD(_11)
         PROPERTY_FIELD(_12)

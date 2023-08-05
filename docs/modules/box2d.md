@@ -68,14 +68,11 @@ class World:
     def ray_cast(self, start: vec2, end: vec2) -> list['Body']:
         """raycast from start to end"""
 
-    def box_cast(self, p0: vec2, p1: vec2) -> list['Body']:
+    def box_cast(self, lower: vec2, upper: vec2) -> list['Body']:
         """query bodies in the AABB region."""
 
     def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
         """step the simulation, e.g. world.step(1/60, 8, 3)"""
-
-    def destroy(self):
-        """destroy this world."""
 
 	# enum
 	# {
@@ -93,12 +90,15 @@ class World:
 
 class Body:
     type: int           # 0-static, 1-kinematic, 2-dynamic, by default 2
-    mass: float
-    inertia: float
     gravity_scale: float
     fixed_rotation: bool
     enabled: bool
     bullet: bool        # whether to use continuous collision detection
+
+    @property
+    def mass(self) -> float: ...
+    @property
+    def inertia(self) -> float: ...
 
     position: vec2
     rotation: float     # in radians (counter-clockwise)
@@ -125,8 +125,8 @@ class Body:
     def apply_force(self, force: vec2, point: vec2): ...
     def apply_force_to_center(self, force: vec2): ...
     def apply_torque(self, torque: float): ...
-    def apply_linear_impulse(self, impulse: vec2, point: vec2): ...
-    def apply_linear_impulse_to_center(self, impulse: vec2): ...
+    def apply_impulse(self, impulse: vec2, point: vec2): ...
+    def apply_impulse_to_center(self, impulse: vec2): ...
     def apply_angular_impulse(self, impulse: float): ...
 
     def get_node(self) -> _NodeLike:
