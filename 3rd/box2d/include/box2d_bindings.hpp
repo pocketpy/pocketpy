@@ -26,6 +26,11 @@ using namespace pkpy;
 
 namespace imbox2d{
 
+inline PyObject* get_body_object(b2Body* p){
+    auto userdata = p->GetUserData().pointer;
+    return reinterpret_cast<PyObject*>(userdata);
+}
+
 // maybe we will use this class later
 struct PyDebugDraw: b2Draw{
     PK_ALWAYS_PASS_BY_POINTER(PyDebugDraw)
@@ -63,16 +68,16 @@ struct PyContactListener: b2ContactListener{
     PyContactListener(VM* vm): vm(vm){}
 
     void _contact_f(b2Contact* contact, StrName name){
-        auto a = contact->GetFixtureA()->GetBody()->GetUserData().pointer;
-        auto b = contact->GetFixtureB()->GetBody()->GetUserData().pointer;
-        Body* bodyA = reinterpret_cast<Body*>(a);
-        Body* bodyB = reinterpret_cast<Body*>(b);
+        b2Body* bodyA = contact->GetFixtureA()->GetBody();
+        b2Body* bodyB = contact->GetFixtureB()->GetBody();
+        PyObject* a = get_body_object(bodyA);
+        PyObject* b = get_body_object(bodyB);
         PyObject* self;
         PyObject* f;
-        f = vm->get_unbound_method(bodyA->obj, name, &self, false);
-        if(f != nullptr) vm->call_method(self, f, VAR_T(PyBody, bodyB));
-        f = vm->get_unbound_method(bodyB->obj, name, &self, false);
-        if(f != nullptr) vm->call_method(self, f, VAR_T(PyBody, bodyA));
+        f = vm->get_unbound_method(a, name, &self, false);
+        if(f != nullptr) vm->call_method(self, f, b);
+        f = vm->get_unbound_method(b, name, &self, false);
+        if(f != nullptr) vm->call_method(self, f, a);
     }
 
 	void BeginContact(b2Contact* contact) override {
@@ -100,7 +105,31 @@ struct PyBody{
         PK_OBJ_MARK(node_like);
     }
 
+    PyBody& _() { return *this; }
+    b2Body& _b2Body() { return *body; }
+    b2Fixture& _b2Fixture() { return *fixture; }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type);
+
+    // methods
+
+    b2Vec2 get_position() const { return body->GetPosition(); }
+    void set_position(b2Vec2 v){ body->SetTransform(v, body->GetAngle()); }
+    float get_rotation() const { return body->GetAngle(); }
+    void set_rotation(float v){ body->SetTransform(body->GetPosition(), v); }
+
+    void apply_force(b2Vec2 force, b2Vec2 point){ body->ApplyForce(force, point, true); }
+    void apply_force_to_center(b2Vec2 force){ body->ApplyForceToCenter(force, true); }
+    void apply_torque(float torque){ body->ApplyTorque(torque, true); }
+    void apply_impulse(b2Vec2 impulse, b2Vec2 point){
+        body->ApplyLinearImpulse(impulse, point, true);
+    }
+    void apply_impulse_to_center(b2Vec2 impulse){
+        body->ApplyLinearImpulseToCenter(impulse, true);
+    }
+    void apply_angular_impulse(float impulse){
+        body->ApplyAngularImpulse(impulse, true);
+    }
 };
 
 struct PyWorld {
@@ -222,12 +251,6 @@ struct Body final{
         body = nullptr;
     }
 };
-
-
-inline PyObject* get_body_object(b2Body* p){
-    auto userdata = p->GetUserData().pointer;
-    return reinterpret_cast<PyObject*>(userdata);
-}
 
 }   // namespace imbox2d
 

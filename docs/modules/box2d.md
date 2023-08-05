@@ -90,12 +90,15 @@ class World:
 
 class Body:
     type: int           # 0-static, 1-kinematic, 2-dynamic, by default 2
-    mass: float
-    inertia: float
     gravity_scale: float
     fixed_rotation: bool
     enabled: bool
     bullet: bool        # whether to use continuous collision detection
+
+    @property
+    def mass(self) -> float: ...
+    @property
+    def inertia(self) -> float: ...
 
     position: vec2
     rotation: float     # in radians (counter-clockwise)
