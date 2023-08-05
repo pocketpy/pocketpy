@@ -33,7 +33,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
 
     PK_REGISTER_PROPERTY(PyBody, "position: vec2", _, get_position, set_position)
     PK_REGISTER_PROPERTY(PyBody, "rotation: float", _, get_rotation, set_rotation)
-    PK_REGISTER_PROPERTY(PyBody, "velocity: vec2", _b2Body, GetLinearVelocity, SetLinearVelocity)
+    PK_REGISTER_PROPERTY(PyBody, "velocity: vec2", _, get_velocity, set_velocity)
     PK_REGISTER_PROPERTY(PyBody, "angular_velocity: float", _b2Body, GetAngularVelocity, SetAngularVelocity)
     PK_REGISTER_PROPERTY(PyBody, "damping: float", _b2Body, GetLinearDamping, SetLinearDamping)
     PK_REGISTER_PROPERTY(PyBody, "angular_damping: float", _b2Body, GetAngularDamping, SetAngularDamping)
