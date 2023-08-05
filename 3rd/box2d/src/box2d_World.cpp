@@ -1,5 +1,3 @@
-#include "box2d/b2_world.h"
-#include "box2d/b2_world_callbacks.h"
 #include "box2d_bindings.hpp"
 
 namespace pkpy{
@@ -30,6 +28,19 @@ struct MyBoxCastCallback: b2QueryCallback{
         return true;
     }
 };
+
+void PyContactListener::_contact_f(b2Contact* contact, StrName name){
+    PyObject* a = get_body_object(contact->GetFixtureA()->GetBody());
+    PyObject* b = get_body_object(contact->GetFixtureB()->GetBody());
+    PyBody& bodyA = PK_OBJ_GET(PyBody, a);
+    PyBody& bodyB = PK_OBJ_GET(PyBody, b);
+    PyObject* self;
+    PyObject* f;
+    f = vm->get_unbound_method(bodyA.node_like, name, &self, false);
+    if(f != nullptr) vm->call_method(self, f, b);
+    f = vm->get_unbound_method(bodyB.node_like, name, &self, false);
+    if(f != nullptr) vm->call_method(self, f, a);
+}
 
 /****************** PyWorld ******************/
 PyWorld::PyWorld(VM* vm): world(b2Vec2(0, 0)), _contact_listener(vm), _debug_draw(vm){
