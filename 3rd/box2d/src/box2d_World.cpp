@@ -2,8 +2,7 @@
 #include "box2d/b2_world_callbacks.h"
 #include "box2d_bindings.hpp"
 
-using namespace pkpy;
-
+namespace pkpy{
 namespace imbox2d{
 
 struct MyRayCastCallback: b2RayCastCallback{
@@ -44,7 +43,7 @@ PyWorld::PyWorld(VM* vm): world(b2Vec2(0, 0)), _contact_listener(vm), _debug_dra
 
 void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
     vm->bind(type, "__new__(cls)", [](VM* vm, ArgsView args){
-        return VAR_T(PyWorld, PyWorld(vm));
+        return vm->heap.gcnew<PyWorld>(PyWorld::_type(vm), vm);
     });
 
     // gravity
@@ -131,3 +130,4 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
 }
 
 }   // namespace imbox2d
+}   // namespace pkpy

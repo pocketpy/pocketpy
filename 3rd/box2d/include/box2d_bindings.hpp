@@ -2,27 +2,26 @@
 
 #include "box2d/b2_world.h"
 #include "box2d/box2d.h"
+#include "pocketpy/common.h"
 #include "pocketpy/pocketpy.h"
 
 namespace pkpy{
-    template<>
-    inline b2Vec2 py_cast<b2Vec2>(VM* vm, PyObject* obj){
-        Vec2 v = py_cast<Vec2>(vm, obj);
-        return b2Vec2(v.x, v.y);
-    }
 
-    template<>
-    inline b2Vec2 _py_cast<b2Vec2>(VM* vm, PyObject* obj){
-        Vec2 v = _py_cast<Vec2>(vm, obj);
-        return b2Vec2(v.x, v.y);
-    }
-
-    inline PyObject* py_var(VM* vm, b2Vec2 v){
-        return py_var(vm, Vec2(v.x, v.y));
-    }
+template<>
+inline b2Vec2 py_cast<b2Vec2>(VM* vm, PyObject* obj){
+    Vec2 v = py_cast<Vec2>(vm, obj);
+    return b2Vec2(v.x, v.y);
 }
 
-using namespace pkpy;
+template<>
+inline b2Vec2 _py_cast<b2Vec2>(VM* vm, PyObject* obj){
+    Vec2 v = _py_cast<Vec2>(vm, obj);
+    return b2Vec2(v.x, v.y);
+}
+
+inline PyObject* py_var(VM* vm, b2Vec2 v){
+    return py_var(vm, Vec2(v.x, v.y));
+}
 
 namespace imbox2d{
 
@@ -99,7 +98,7 @@ struct PyBody{
     b2Fixture* fixture;
     PyObject* node_like;
 
-    PyBody() = default;
+    PyBody(): body(nullptr), fixture(nullptr), node_like(nullptr){}
 
     void _gc_mark() {
         PK_OBJ_MARK(node_like);
@@ -151,10 +150,10 @@ struct PyWorld {
 
 }   // namespace imbox2d
 
-namespace pkpy{
-    inline void add_module_box2d(VM* vm){
-        PyObject* mod = vm->new_module("box2d");
-        imbox2d::PyBody::register_class(vm, mod);
-        imbox2d::PyWorld::register_class(vm, mod);
-    }
+
+inline void add_module_box2d(VM* vm){
+    PyObject* mod = vm->new_module("box2d");
+    imbox2d::PyBody::register_class(vm, mod);
+    imbox2d::PyWorld::register_class(vm, mod);
 }
+}   // namespace pkpy
