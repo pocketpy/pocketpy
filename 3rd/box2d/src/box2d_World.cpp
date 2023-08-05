@@ -3,7 +3,6 @@
 #include "box2d_bindings.hpp"
 
 namespace pkpy{
-namespace imbox2d{
 
 struct MyRayCastCallback: b2RayCastCallback{
     PK_ALWAYS_PASS_BY_POINTER(MyRayCastCallback)
@@ -128,6 +127,4 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
         return vm->None;
     });
 }
-
-}   // namespace imbox2d
 }   // namespace pkpy

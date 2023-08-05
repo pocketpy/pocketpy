@@ -23,8 +23,6 @@ inline PyObject* py_var(VM* vm, b2Vec2 v){
     return py_var(vm, Vec2(v.x, v.y));
 }
 
-namespace imbox2d{
-
 inline PyObject* get_body_object(b2Body* p){
     auto userdata = p->GetUserData().pointer;
     return reinterpret_cast<PyObject*>(userdata);
@@ -111,7 +109,6 @@ struct PyBody{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     // methods
-
     b2Vec2 get_position() const { return body->GetPosition(); }
     void set_position(b2Vec2 v){ body->SetTransform(v, body->GetAngle()); }
     float get_rotation() const { return body->GetAngle(); }
@@ -148,12 +145,10 @@ struct PyWorld {
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-}   // namespace imbox2d
-
-
 inline void add_module_box2d(VM* vm){
     PyObject* mod = vm->new_module("box2d");
-    imbox2d::PyBody::register_class(vm, mod);
-    imbox2d::PyWorld::register_class(vm, mod);
+    PyBody::register_class(vm, mod);
+    PyWorld::register_class(vm, mod);
 }
+
 }   // namespace pkpy

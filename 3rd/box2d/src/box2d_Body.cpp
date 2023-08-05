@@ -4,7 +4,6 @@
 #include "pocketpy/bindings.h"
 
 namespace pkpy{
-namespace imbox2d{
 
 void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
     vm->bind(type, "__new__(cls, world: World, node: _NodeLike = None)",
@@ -84,5 +83,4 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
     });
 }
 
-}   // namespace imbox2d
 }   // namespace pkpy
