@@ -113,13 +113,6 @@ namespace pkpy{
         return nullptr;
     }
 
-    PyObject* VM::property(NativeFuncC fget, NativeFuncC fset, const char* type_hint){
-        PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
-        PyObject* _1 = vm->None;
-        if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-        return VAR(Property(_0, _1, type_hint));
-    }
-
     PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         const PyTypeInfo& base_info = _all_types[base];
@@ -979,8 +972,17 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     return f_obj;
 }
 
-PyObject* VM::bind_property(PyObject* obj, StrName name, const char* type_hint, NativeFuncC fget, NativeFuncC fset){
-    PyObject* prop = property(fget, fset, type_hint);
+PyObject* VM::bind_property(PyObject* obj, Str name, NativeFuncC fget, NativeFuncC fset){
+    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
+    PyObject* _1 = vm->None;
+    if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
+    Str type_hint;
+    int pos = name.index(":");
+    if(pos > 0){
+        type_hint = name.substr(pos + 1).strip();
+        name = name.substr(0, pos).strip();
+    }
+    PyObject* prop = VAR(Property(_0, _1, type_hint));
     obj->attr().set(name, prop);
     return prop;
 }
