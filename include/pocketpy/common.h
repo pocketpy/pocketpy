@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <random>
 
-#define PK_VERSION				"1.1.2"
+#define PK_VERSION				"1.1.3"
 
 #include "config.h"
 #include "export.h"
