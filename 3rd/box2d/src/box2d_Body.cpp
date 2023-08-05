@@ -3,8 +3,7 @@
 #include "box2d_bindings.hpp"
 #include "pocketpy/bindings.h"
 
-using namespace pkpy;
-
+namespace pkpy{
 namespace imbox2d{
 
 void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
@@ -12,7 +11,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
         [](VM* vm, ArgsView args){
             PyWorld& world = CAST(PyWorld&, args[1]);
             PyObject* node = args[2];
-            PyObject* obj = VAR_T(PyBody, PyBody());
+            PyObject* obj = vm->heap.gcnew<PyBody>(PyBody::_type(vm));
             PyBody& body = _CAST(PyBody&, obj);
             b2BodyDef def;
             def.type = b2_dynamicBody;
@@ -86,3 +85,4 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
 }
 
 }   // namespace imbox2d
+}   // namespace pkpy
