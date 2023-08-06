@@ -4,14 +4,6 @@
 
 namespace pkpy{
 
-template<typename T>
-struct OpaquePointer{
-    T* ptr;
-    OpaquePointer(T* ptr): ptr(ptr){}
-
-    T* operator->(){ return ptr; }
-};
-
 struct NativeProxyFuncCBase {
     virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
 };
