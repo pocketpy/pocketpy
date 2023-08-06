@@ -113,6 +113,10 @@ Check our [Coding Style Guide](https://pocketpy.dev/coding_style_guide/) if you 
 
   An excellent learning material. It illustrates how Python's virtual machine works.
 
++ [box2d](https://box2d.org/)
+
+  The world's best 2D physics engine, written by Erin Catto. `box2d` now becomes a built-in module in pkpy `v1.1.3` and later.
+
 
 ## License
 
