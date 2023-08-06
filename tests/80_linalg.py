@@ -91,14 +91,14 @@ def mat_to_str_list(mat):
     ret = [[0,0,0], [0,0,0], [0,0,0]]
     for i in range(3):
         for j in range(3):
-            ret[i][j] = str(mat[i, j])[:6]
+            ret[i][j] = str(round(mat[i, j], 2))[:6]
     return ret
 
 def mat_list_to_str_list(mat_list):
     ret = [[0,0,0], [0,0,0], [0,0,0]]
     for i in range(3):
         for j in range(3):
-            ret[i][j] = str(mat_list[i][j])[:6]
+            ret[i][j] = str(round(mat_list[i][j], 2))[:6]
     return ret
 
 def mat_to_list(mat):
