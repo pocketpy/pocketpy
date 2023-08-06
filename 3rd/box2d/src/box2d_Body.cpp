@@ -41,6 +41,63 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
     PK_REGISTER_PROPERTY(PyBody, "restitution_threshold: float", _b2Fixture, GetRestitutionThreshold, SetRestitutionThreshold)
     PK_REGISTER_PROPERTY(PyBody, "is_trigger: bool", _b2Fixture, IsSensor, SetSensor)
 
+    vm->bind(type, "set_box_shape(self, hx: float, hy: float)",
+        [](VM* vm, ArgsView args){
+            PyBody& body = CAST(PyBody&, args[0]);
+            float hx = CAST(float, args[1]);
+            float hy = CAST(float, args[2]);
+            b2PolygonShape shape;
+            shape.SetAsBox(hx, hy);
+            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            return vm->None;
+        });
+
+    vm->bind(type, "set_circle_shape(self, radius: float)",
+        [](VM* vm, ArgsView args){
+            PyBody& body = CAST(PyBody&, args[0]);
+            float radius = CAST(float, args[1]);
+            b2CircleShape shape;
+            shape.m_radius = radius;
+            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            return vm->None;
+        });
+
+    vm->bind(type, "set_polygon_shape(self, points: list[vec2])",
+        [](VM* vm, ArgsView args){
+            PyBody& body = CAST(PyBody&, args[0]);
+            List& points = CAST(List&, args[1]);
+            if(points.size() < 3 || points.size() > b2_maxPolygonVertices){
+                vm->ValueError("invalid vertices count");
+            }
+            b2PolygonShape shape;
+            std::vector<b2Vec2> vertices;
+            for(auto& point : points){
+                Vec2 vec = CAST(Vec2, point);
+                vertices.push_back(b2Vec2(vec.x, vec.y));
+            }
+            shape.Set(vertices.data(), vertices.size());
+            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            return vm->None;
+        });
+
+    vm->bind(type, "set_chain_shape(self, points: list[vec2])",
+        [](VM* vm, ArgsView args){
+            PyBody& body = CAST(PyBody&, args[0]);
+            List& points = CAST(List&, args[1]);
+            if(points.size() < 3){
+                vm->ValueError("invalid vertices count");
+            }
+            b2ChainShape shape;
+            std::vector<b2Vec2> vertices;
+            for(auto& point : points){
+                Vec2 vec = CAST(Vec2, point);
+                vertices.push_back(b2Vec2(vec.x, vec.y));
+            }
+            shape.CreateLoop(vertices.data(), vertices.size());
+            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            return vm->None;
+        });
+
     // methods
     _bind(vm, type, "apply_force(self, force: vec2, point: vec2)", &PyBody::apply_force);
     _bind(vm, type, "apply_force_to_center(self, force: vec2)", &PyBody::apply_force_to_center);
