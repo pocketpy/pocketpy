@@ -40,34 +40,11 @@ vm->bind(obj,
 });
 ```
 
-### Bind a magic method
-
-For some magic methods, we provide specialized binding function.
-They do not take universal function pointer as argument.
-You need to provide the detailed `Type` object and the corresponding function pointer.
-
-```cpp
-PyObject* __add__(PyObject* lhs, PyObject* rhs){
-    int a = CAST(int, lhs);
-    int b = CAST(int, rhs);
-    return VAR(a + b);
-}
-
-Type type = vm->tp_int;
-vm->bind__add__(type, __add__);
-```
-
-This specialized binding function has optimizations and result in better performance when calling from python code.
-
-For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
-
-### Bind a property
+## Bind a property
 
 a property is a python's `property` that attached to a type instance with a getter and an optional setter. It is a data descriptor. A property redirects attribute access to specific functions.
 
-You can use `@property` to create python property or use `vm->property` to create native property.
-
-Use `vm->bind_property()`, the new style property binding function.
+Use `vm->bind_property()` to bind a getter and an optional setter to a property.
 
 ```cpp
 struct Point {
@@ -79,7 +56,7 @@ struct Point {
   Point(int x, int y) : x(x), y(y) {}
 
   static void _register(VM *vm, auto mod, auto type) {
-    vm->bind_constructor<3>(type, [](VM *vm, auto args) {
+    vm->bind(type, "__new__(cls, x, y)", [](VM *vm, ArgsView args) {
       auto x = CAST(i64, args[1]);
       auto y = CAST(i64, args[2]);
       return VAR_T(Point, x, y);
@@ -100,8 +77,27 @@ struct Point {
 };
 ```
 
-### Old style binding
+## Others
 
 You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
 They are old style binding functions and are deprecated.
 You should use `vm->bind` instead.
+
+For some magic methods, we provide specialized binding function.
+They do not take universal function pointer as argument.
+You need to provide the detailed `Type` object and the corresponding function pointer.
+
+```cpp
+PyObject* __add__(PyObject* lhs, PyObject* rhs){
+    int a = CAST(int, lhs);
+    int b = CAST(int, rhs);
+    return VAR(a + b);
+}
+
+Type type = vm->tp_int;
+vm->bind__add__(type, __add__);
+```
+
+This specialized binding function has optimizations and result in better performance when calling from python code.
+
+For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
