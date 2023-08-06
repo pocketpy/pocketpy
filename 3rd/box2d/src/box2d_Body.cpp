@@ -108,7 +108,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
 
     // get_node
     vm->bind(type, "get_node(self)", [](VM* vm, ArgsView args){
-        PyBody& body = CAST(PyBody&, args[1]);
+        PyBody& body = CAST(PyBody&, args[0]);
         return body.node_like;
     });
 
