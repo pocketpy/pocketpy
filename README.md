@@ -11,6 +11,9 @@
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
+<!-- docs -->
+<a href="https://pocketpy.dev">
+<img alt="Website" src="https://img.shields.io/website/https/pocketpy.dev.svg?down_color=red&down_message=offline&up_color=blue&up_message=online"></a>
 </p>
 
 **English |** [**简体中文**](README_zh.md)
