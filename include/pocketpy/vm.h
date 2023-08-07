@@ -104,7 +104,7 @@ struct FrameId{
     Frame* get() const { return &data->operator[](index); }
 };
 
-typedef void(*PrintFunc)(VM*, const Str&);
+typedef void(*PrintFunc)(VM*, const char*, int);
 
 class VM {
     PK_ALWAYS_PASS_BY_POINTER(VM)
@@ -180,6 +180,10 @@ public:
     void _push_varargs(PyObject* _0, PyObject* _1){ PUSH(_0); PUSH(_1); }
     void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
     void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
+
+    void stdout_write(const Str& s){
+        _stdout(this, s.data, s.size);
+    }
 
     template<typename... Args>
     PyObject* call(PyObject* callable, Args&&... args){

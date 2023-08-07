@@ -237,6 +237,10 @@ void pkpy_compile_to_string(pkpy_vm* vm, const char* source, const char* filenam
 
 }
 
+void pkpy_set_output_handler(pkpy_vm* vm, pkpy_COutputHandler handler) {
+
+}
+
 void* pkpy_new_repl(pkpy_vm* vm) {
     void* returnValue;
     return returnValue;

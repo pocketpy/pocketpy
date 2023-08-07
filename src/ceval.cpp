@@ -73,7 +73,7 @@ __NEXT_STEP:;
         THIRD() = _0;
         DISPATCH();
     TARGET(PRINT_EXPR)
-        if(TOP() != None) _stdout(this, CAST(Str&, py_repr(TOP())) + "\n");
+        if(TOP() != None) stdout_write(CAST(Str&, py_repr(TOP())) + "\n");
         POP();
         DISPATCH();
     /*****************************************/

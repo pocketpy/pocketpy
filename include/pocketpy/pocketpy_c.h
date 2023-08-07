@@ -12,6 +12,7 @@ extern "C" {
 
 typedef struct pkpy_vm_handle pkpy_vm;
 typedef int (*pkpy_CFunction)(pkpy_vm*);
+typedef void (*pkpy_COutputHandler)(pkpy_vm*, const char*, int);
 typedef int pkpy_CName;
 typedef int pkpy_CType;
 
@@ -92,6 +93,7 @@ PK_EXPORT pkpy_CString pkpy_string(const char* s);
 PK_EXPORT pkpy_CName pkpy_name(const char* s);
 PK_EXPORT pkpy_CString pkpy_name_to_string(pkpy_CName name);
 PK_EXPORT void pkpy_compile_to_string(pkpy_vm*, const char* source, const char* filename, int mode, bool* ok, char** out);
+PK_EXPORT void pkpy_set_output_handler(pkpy_vm*, pkpy_COutputHandler handler);
 
 /* REPL */
 PK_EXPORT void* pkpy_new_repl(pkpy_vm*);

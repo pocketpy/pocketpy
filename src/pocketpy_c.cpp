@@ -569,6 +569,11 @@ void pkpy_compile_to_string(pkpy_vm* vm_handle, const char* source, const char* 
     }
 }
 
+void pkpy_set_output_handler(pkpy_vm* vm_handle, pkpy_COutputHandler handler){
+    VM* vm = (VM*) vm_handle;
+    vm->_stdout = reinterpret_cast<PrintFunc>(handler);
+}
+
 void* pkpy_new_repl(pkpy_vm* vm_handle){
     return new REPL((VM*)vm_handle);
 }

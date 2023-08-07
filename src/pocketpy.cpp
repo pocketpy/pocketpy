@@ -1293,59 +1293,8 @@ void add_module_time(VM* vm){
     });
 }
 
-struct PyREPL{
-    PY_CLASS(PyREPL, sys, _repl)
-
-    REPL* repl;
-
-    PyREPL(VM* vm){ repl = new REPL(vm); }
-    ~PyREPL(){ delete repl; }
-
-    PyREPL(const PyREPL&) = delete;
-    PyREPL& operator=(const PyREPL&) = delete;
-
-    PyREPL(PyREPL&& other) noexcept{
-        repl = other.repl;
-        other.repl = nullptr;
-    }
-
-    struct TempOut{
-        PrintFunc backup;
-        VM* vm;
-        TempOut(VM* vm, PrintFunc f){
-            this->vm = vm;
-            this->backup = vm->_stdout;
-            vm->_stdout = f;
-        }
-        ~TempOut(){
-            vm->_stdout = backup;
-        }
-        TempOut(const TempOut&) = delete;
-        TempOut& operator=(const TempOut&) = delete;
-        TempOut(TempOut&&) = delete;
-        TempOut& operator=(TempOut&&) = delete;
-    };
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<1>(type, [](VM* vm, ArgsView args){
-            return VAR_T(PyREPL, vm);
-        });
-
-        vm->bind_method<1>(type, "input", [](VM* vm, ArgsView args){
-            PyREPL& self = _CAST(PyREPL&, args[0]);
-            const Str& s = CAST(Str&, args[1]);
-            PK_LOCAL_STATIC std::stringstream ss_out;
-            ss_out.str("");
-            TempOut _(vm, [](VM* vm, const Str& s){ ss_out << s; });
-            bool ok = self.repl->input(s.str());
-            return VAR(Tuple({VAR(ok), VAR(ss_out.str())}));
-        });
-    }
-};
-
 void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
-    PyREPL::register_class(vm, mod);
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(PK_SYS_PLATFORM));
 
@@ -1355,12 +1304,14 @@ void add_module_sys(VM* vm){
     vm->setattr(mod, "stderr", stderr_);
 
     vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
-        vm->_stdout(vm, CAST(Str&, args[0]));
+        Str& s = CAST(Str&, args[0]);
+        vm->_stdout(vm, s.data, s.size);
         return vm->None;
     });
 
     vm->bind_func<1>(stderr_, "write", [](VM* vm, ArgsView args) {
-        vm->_stderr(vm, CAST(Str&, args[0]));
+        Str& s = CAST(Str&, args[0]);
+        vm->_stderr(vm, s.data, s.size);
         return vm->None;
     });
 }
@@ -1460,7 +1411,8 @@ void add_module_traceback(VM* vm){
     vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = CAST(Exception&, vm->_last_exception);
-        vm->_stdout(vm, e.summary());
+        Str sum = e.summary();
+        vm->_stdout(vm, sum.data, sum.size);
         return vm->None;
     });
 
@@ -1486,7 +1438,8 @@ void add_module_dis(VM* vm){
 
     vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
         CodeObject_ code = get_code(vm, args[0]);
-        vm->_stdout(vm, vm->disassemble(code));
+        Str msg = vm->disassemble(code);
+        vm->_stdout(vm, msg.data, msg.size);
         return vm->None;
     });
 
