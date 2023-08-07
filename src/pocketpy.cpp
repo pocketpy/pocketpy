@@ -366,12 +366,14 @@ void init_builtins(VM* _vm) {
     /************ int ************/
     _vm->bind_constructor<-1>("int", [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(0);
+        // 1 arg
         if(args.size() == 1+1){
             if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
             if (is_type(args[1], vm->tp_int)) return args[1];
             if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
         }
         if(args.size() > 1+2) vm->TypeError("int() takes at most 2 arguments");
+        // 2 args
         if (is_type(args[1], vm->tp_str)) {
             int base = 10;
             if(args.size() == 1+2) base = CAST(i64, args[2]);
@@ -430,7 +432,10 @@ void init_builtins(VM* _vm) {
 #undef INT_BITWISE_OP
 
     /************ float ************/
-    _vm->bind_constructor<2>("float", [](VM* vm, ArgsView args) {
+    _vm->bind_constructor<-1>("float", [](VM* vm, ArgsView args) {
+        if(args.size() == 1+0) return VAR(0.0);
+        if(args.size() > 1+1) vm->TypeError("float() takes at most 1 argument");
+        // 1 arg
         if (is_type(args[1], vm->tp_int)) return VAR((f64)CAST(i64, args[1]));
         if (is_type(args[1], vm->tp_float)) return args[1];
         if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1.0 : 0.0);
@@ -445,7 +450,7 @@ void init_builtins(VM* _vm) {
                 vm->ValueError("invalid literal for float(): " + s.escape());
             }
         }
-        vm->TypeError("float() argument must be a int, float, bool or str");
+        vm->TypeError("invalid arguments for float()");
         return vm->None;
     });
 
