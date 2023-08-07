@@ -63,24 +63,29 @@ namespace pkpy{
 
     void Dict::_rehash(){
         Item* old_items = _items;
-        int old_capacity = _capacity;
+        ItemNode* old_nodes = _nodes;
+        int old_head_idx = _head_idx;
+
         _capacity *= 2;
         _mask = _capacity - 1;
         _size = 0;
         _critical_size = _capacity*__LoadFactor+0.5f;
         _head_idx = -1;
         _tail_idx = -1;
-        pool64.dealloc(_nodes);
+        
         _items = (Item*)pool128.alloc(_capacity * sizeof(Item));
         memset(_items, 0, _capacity * sizeof(Item));
         _nodes = (ItemNode*)pool64.alloc(_capacity * sizeof(ItemNode));
         memset(_nodes, -1, _capacity * sizeof(ItemNode));
 
-        for(int i=0; i<old_capacity; i++){
-            if(old_items[i].first == nullptr) continue;
+        // copy old items to new dict
+        int i = old_head_idx;
+        while(i != -1){
             set(old_items[i].first, old_items[i].second);
+            i = old_nodes[i].next;
         }
         pool128.dealloc(old_items);
+        pool64.dealloc(old_nodes);
     }
 
 

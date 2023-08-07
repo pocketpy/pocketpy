@@ -81,3 +81,11 @@ assert len(a) == 1000
 for i in range(1000):
     del a[i]
 assert len(a) == 0
+
+a = {
+    str(i): i
+    for i in range(10)
+}
+
+for i, s in enumerate(a):
+    assert s == str(i)
