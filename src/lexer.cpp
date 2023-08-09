@@ -315,6 +315,13 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 case '[': add_token(TK("[")); return true;
                 case ']': add_token(TK("]")); return true;
                 case '@': add_token(TK("@")); return true;
+                case '\\': {
+                    // line continuation character
+                    char c = eatchar_include_newline();
+                    if (c != '\n') SyntaxError("expected newline after line continuation character");
+                    eat_spaces();
+                    return true;
+                }
                 case '$': {
                     for(int i=TK("$goto"); i<=TK("$label"); i++){
                         // +1 to skip the '$'
