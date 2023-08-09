@@ -318,7 +318,10 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 case '\\': {
                     // line continuation character
                     char c = eatchar_include_newline();
-                    if (c != '\n') SyntaxError("expected newline after line continuation character");
+                    if (c != '\n'){
+                        if(src->mode == REPL_MODE && c == '\0') throw NeedMoreLines(false);
+                        SyntaxError("expected newline after line continuation character");
+                    }
                     eat_spaces();
                     return true;
                 }
