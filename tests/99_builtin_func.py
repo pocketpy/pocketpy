@@ -736,6 +736,22 @@ assert type(repr(bytes([0x41, 0x42, 0x43]))) is str
 # test slice:
 assert type(slice(0.1, 0.2, 0.3)) is slice
 
+
+# 未完全测试准确性-----------------------------------------------
+#       116: 1529:    bind_property(_t(tp_slice), "start", [](VM* vm, ArgsView args){
+#     #####: 1530:        return CAST(Slice&, args[0]).start;
+#         -: 1531:    });
+#       116: 1532:    bind_property(_t(tp_slice), "stop", [](VM* vm, ArgsView args){
+#     #####: 1533:        return CAST(Slice&, args[0]).stop;
+#         -: 1534:    });
+#       116: 1535:    bind_property(_t(tp_slice), "step", [](VM* vm, ArgsView args){
+#     #####: 1536:        return CAST(Slice&, args[0]).step;
+#         -: 1537:    });
+# test slice.start:
+assert type(slice(0.1, 0.2, 0.3)) is slice
+# test slice.stop:
+# test slice.step:
+
 # 未完全测试准确性-----------------------------------------------
 #       116:  957:    _vm->bind__repr__(_vm->tp_slice, [](VM* vm, PyObject* obj) {
 #     #####:  958:        const Slice& self = _CAST(Slice&, obj);
@@ -964,8 +980,61 @@ except:
 assert type(repr({1:2, 3:4})) is str
 
 # /************ property ************/
+class A():
+    def __init__(self):
+        self._name = '123'
+
+    def get_name(self):
+        '''
+        doc string 1
+        '''
+        return self._name
+
+    def set_name(self, val):
+        '''
+        doc string 2
+        '''
+        self._name = val
+
+A.name = property(A.get_name, A.set_name)
+try:
+    property(A.get_name, A.set_name, 1)
+    print('未能拦截错误, 在测试 property')
+    exit(1)
+except:
+    pass
 
 # /************ module timeit ************/
+import timeit
+
+def aaa():
+    for i in range(1000):
+        for j in range(1000):
+            pass
+    
+assert type(timeit.timeit(aaa, 2)) is float
+
+# 未完全测试准确性-----------------------------------------------
+#       116: 1218:    _vm->bind_property(_vm->_t(_vm->tp_function), "__doc__", [](VM* vm, ArgsView args) {
+#     #####: 1219:        Function& func = _CAST(Function&, args[0]);
+#     #####: 1220:        return VAR(func.decl->docstring);
+#         -: 1221:    });
+# function.__doc__
+def aaa():
+    '12345'
+    pass
+assert type(aaa.__doc__) is str
+
+# 未完全测试准确性-----------------------------------------------
+#       116: 1229:    _vm->bind_property(_vm->_t(_vm->tp_function), "__signature__", [](VM* vm, ArgsView args) {
+#     #####: 1230:        Function& func = _CAST(Function&, args[0]);
+#     #####: 1231:        return VAR(func.decl->signature);
+#         -: 1232:    });
+# function.__signature__
+def aaa():
+    pass
+assert type(aaa.__signature__) is str
+
 
 # /************ module time ************/
 import time
@@ -1018,4 +1087,14 @@ time.sleep(0.5)
 # test time.localtime
 assert type(time.localtime()) is dict
 
-
+# /************ module dis ************/
+import dis
+#       116: 1487:    vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
+#     #####: 1488:        CodeObject_ code = get_code(vm, args[0]);
+#     #####: 1489:        vm->_stdout(vm, vm->disassemble(code));
+#     #####: 1490:        return vm->None;
+#     #####: 1491:    });
+# test dis.dis
+def aaa():
+    pass
+assert dis.dis(aaa) is None
