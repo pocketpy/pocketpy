@@ -41,7 +41,7 @@ struct ManagedHeap{
     PyObject* gcnew(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
         // https://github.com/blueloveTH/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
+        PyObject* obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         gen.push_back(obj);
         gc_counter++;
         return obj;
@@ -51,7 +51,7 @@ struct ManagedHeap{
     PyObject* _new(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
         // https://github.com/blueloveTH/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64.alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
+        PyObject* obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         obj->gc.enabled = false;
         _no_gc.push_back(obj);
         return obj;

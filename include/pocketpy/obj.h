@@ -119,7 +119,7 @@ struct PyObject{
     virtual ~PyObject();
 
     void enable_instance_dict(float lf=kInstAttrLoadFactor) {
-        _attr = new(pool64.alloc<NameDict>()) NameDict(lf);
+        _attr = new(pool64_alloc<NameDict>()) NameDict(lf);
     }
 };
 

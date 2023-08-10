@@ -16,15 +16,15 @@ struct pod_vector{
     T* _data;
 
     pod_vector(): _size(0), _capacity(N) {
-        _data = (T*)pool64.alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * sizeof(T));
     }
 
     pod_vector(int size): _size(size), _capacity(std::max(N, size)) {
-        _data = (T*)pool64.alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * sizeof(T));
     }
 
     pod_vector(const pod_vector& other): _size(other._size), _capacity(other._capacity) {
-        _data = (T*)pool64.alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * sizeof(T));
         memcpy(_data, other._data, sizeof(T) * _size);
     }
 
@@ -36,7 +36,7 @@ struct pod_vector{
     }
 
     pod_vector& operator=(pod_vector&& other) noexcept {
-        if(_data!=nullptr) pool64.dealloc(_data);
+        if(_data!=nullptr) pool64_dealloc(_data);
         _size = other._size;
         _capacity = other._capacity;
         _data = other._data;
@@ -63,10 +63,10 @@ struct pod_vector{
         if(cap <= _capacity) return;
         _capacity = cap;
         T* old_data = _data;
-        _data = (T*)pool64.alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * sizeof(T));
         if(old_data!=nullptr){
             memcpy(_data, old_data, sizeof(T) * _size);
-            pool64.dealloc(old_data);
+            pool64_dealloc(old_data);
         }
     }
 
@@ -115,7 +115,7 @@ struct pod_vector{
     }
 
     ~pod_vector() {
-        if(_data!=nullptr) pool64.dealloc(_data);
+        if(_data!=nullptr) pool64_dealloc(_data);
     }
 };
 

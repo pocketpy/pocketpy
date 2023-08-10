@@ -6,7 +6,7 @@ Tuple::Tuple(int n){
     if(n <= 3){
         this->_args = _inlined;
     }else{
-        this->_args = (PyObject**)pool64.alloc(n * sizeof(void*));
+        this->_args = (PyObject**)pool64_alloc(n * sizeof(void*));
     }
     this->_size = n;
 }
@@ -38,7 +38,7 @@ Tuple::Tuple(std::initializer_list<PyObject*> list): Tuple(list.size()){
     for(PyObject* obj: list) _args[i++] = obj;
 }
 
-Tuple::~Tuple(){ if(!is_inlined()) pool64.dealloc(_args); }
+Tuple::~Tuple(){ if(!is_inlined()) pool64_dealloc(_args); }
 
 List ArgsView::to_list() const{
     List ret(size());

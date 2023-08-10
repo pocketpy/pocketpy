@@ -38,7 +38,7 @@ while(!_items[i].first.empty()) {       \
 }
 
 #define NAMEDICT_ALLOC()                \
-    _items = (Item*)pool128.alloc(_capacity * sizeof(Item));    \
+    _items = (Item*)pool128_alloc(_capacity * sizeof(Item));    \
     memset(_items, 0, _capacity * sizeof(Item));                \
 
     NameDictImpl(float load_factor=0.67f):
@@ -54,14 +54,14 @@ while(!_items[i].first.empty()) {       \
     }
 
     NameDictImpl& operator=(const NameDictImpl& other) {
-        pool128.dealloc(_items);
+        pool128_dealloc(_items);
         memcpy(this, &other, sizeof(NameDictImpl));
         NAMEDICT_ALLOC()
         for(int i=0; i<_capacity; i++) _items[i] = other._items[i];
         return *this;
     }
     
-    ~NameDictImpl(){ pool128.dealloc(_items); }
+    ~NameDictImpl(){ pool128_dealloc(_items); }
 
     NameDictImpl(NameDictImpl&&) = delete;
     NameDictImpl& operator=(NameDictImpl&&) = delete;
@@ -103,7 +103,7 @@ while(!_items[i].first.empty()) {       \
             if(ok) FATAL_ERROR();
             _items[j] = old_items[i];
         }
-        pool128.dealloc(old_items);
+        pool128_dealloc(old_items);
     }
 
     void _try_perfect_rehash(){

@@ -75,12 +75,12 @@ int utf8len(unsigned char c, bool suppress){
         if(size <= 16){
             this->data = _inlined;
         }else{
-            this->data = (char*)pool64.alloc(size);
+            this->data = (char*)pool64_alloc(size);
         }
     }
 
     Str& Str::operator=(const Str& other){
-        if(!is_inlined()) pool64.dealloc(data);
+        if(!is_inlined()) pool64_dealloc(data);
         size = other.size;
         is_ascii = other.is_ascii;
         _cached_c_str = nullptr;
@@ -150,7 +150,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str::~Str(){
-        if(!is_inlined()) pool64.dealloc(data);
+        if(!is_inlined()) pool64_dealloc(data);
         if(_cached_c_str != nullptr) free((void*)_cached_c_str);
     }
 

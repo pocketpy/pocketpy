@@ -5,9 +5,9 @@ namespace pkpy{
     Dict::Dict(VM* vm): vm(vm), _capacity(__Capacity),
             _mask(__Capacity-1),
             _size(0), _critical_size(__Capacity*__LoadFactor+0.5f), _head_idx(-1), _tail_idx(-1){
-        _items = (Item*)pool128.alloc(_capacity * sizeof(Item));
+        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
         memset(_items, 0, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64.alloc(_capacity * sizeof(ItemNode));
+        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
         memset(_nodes, -1, _capacity * sizeof(ItemNode));
     }
 
@@ -33,9 +33,9 @@ namespace pkpy{
         _critical_size = other._critical_size;
         _head_idx = other._head_idx;
         _tail_idx = other._tail_idx;
-        _items = (Item*)pool128.alloc(_capacity * sizeof(Item));
+        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
         memcpy(_items, other._items, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64.alloc(_capacity * sizeof(ItemNode));
+        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
         memcpy(_nodes, other._nodes, _capacity * sizeof(ItemNode));
     }
 
@@ -73,9 +73,9 @@ namespace pkpy{
         _head_idx = -1;
         _tail_idx = -1;
         
-        _items = (Item*)pool128.alloc(_capacity * sizeof(Item));
+        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
         memset(_items, 0, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64.alloc(_capacity * sizeof(ItemNode));
+        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
         memset(_nodes, -1, _capacity * sizeof(ItemNode));
 
         // copy old items to new dict
@@ -84,8 +84,8 @@ namespace pkpy{
             set(old_items[i].first, old_items[i].second);
             i = old_nodes[i].next;
         }
-        pool128.dealloc(old_items);
-        pool64.dealloc(old_nodes);
+        pool128_dealloc(old_items);
+        pool64_dealloc(old_nodes);
     }
 
 
@@ -167,8 +167,8 @@ namespace pkpy{
 
     Dict::~Dict(){
         if(_items==nullptr) return;
-        pool128.dealloc(_items);
-        pool64.dealloc(_nodes);
+        pool128_dealloc(_items);
+        pool64_dealloc(_nodes);
     }
 
     void Dict::_gc_mark() const{
