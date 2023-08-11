@@ -28,4 +28,5 @@ struct FileIO {
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
+} // namespace pkpy
 #endif
