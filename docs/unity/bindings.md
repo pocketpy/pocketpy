@@ -24,10 +24,10 @@ class like the following.
 ```csharp
 public class PyVector2Type: PyTypeObject{
     // The name of the type in Python
-    public override string name => "Vector2";
+    public override string Name => "Vector2";
 
     // The corresponding C# type
-    public override System.Type type => typeof(Vector2);
+    public override System.Type CSType => typeof(Vector2);
 }
 ```
 
@@ -46,8 +46,8 @@ With `__add__`, `Vector2` object in Python can be added with another `Vector2` o
 
 ```csharp
 public class PyVector2Type: PyTypeObject{
-    public override string name => "Vector2";
-    public override System.Type type => typeof(Vector2);
+    public override string Name => "Vector2";
+    public override System.Type CSType => typeof(Vector2);
 
     [PythonBinding]
     public object __add__(Vector2 self, object other){
@@ -76,8 +76,8 @@ In this case, you need to define `__mul__` and `__rmul__` at the same time.
 
 ```csharp
 public class PyVector2Type: PyTypeObject{
-    public override string name => "Vector2";
-    public override System.Type type => typeof(Vector2);
+    public override string Name => "Vector2";
+    public override System.Type CSType => typeof(Vector2);
 
     // ...
 
@@ -100,8 +100,8 @@ Finally, let's implement the constructor of `Vector2`.
 
 ```csharp
 public class PyVector2Type: PyTypeObject{
-    public override string name => "Vector2";
-    public override System.Type type => typeof(Vector2);
+    public override string Name => "Vector2";
+    public override System.Type CSType => typeof(Vector2);
 
     [PythonBinding]
     public object __new__(PyTypeObject cls, params object[] args){
@@ -132,8 +132,8 @@ So our setter will not be able to modify the original `Vector2` object.
 
 ```csharp
 public class PyVector2Type: PyTypeObject{
-    public override string name => "Vector2";
-    public override System.Type type => typeof(Vector2);
+    public override string Name => "Vector2";
+    public override System.Type CSType => typeof(Vector2);
 
     [PythonBinding(BindingType.Getter)]
     public object x(Vector2 self) => self.x;
