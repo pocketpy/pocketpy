@@ -80,9 +80,3 @@ which means passing arguments between C# and Python is extremely easy and intuit
 
 PocketPython provides a Python console in Unity editor,
 which allows you to do quick debugging and testing.
-
-### Lua Style API
-
-PocketPython also provides a Lua style API for C# in `LuaBindings` class.
-It uses cpp implemented virtual machine instead of C# virtual machine.
-It is faster than C# virtual machine, but it is not sandboxed.
