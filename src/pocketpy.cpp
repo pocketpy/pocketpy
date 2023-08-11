@@ -61,6 +61,10 @@ static dylib_entry_t load_dylib(const char* path){
 }
 #endif
 
+#else
+static dylib_entry_t load_dylib(const char* path){
+    return nullptr;
+}
 #endif
 
 

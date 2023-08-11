@@ -29,5 +29,3 @@ struct FileIO {
 };
 
 #endif
-
-} // namespace pkpy
