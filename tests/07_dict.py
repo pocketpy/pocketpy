@@ -89,3 +89,40 @@ a = {
 
 for i, s in enumerate(a):
     assert s == str(i)
+
+
+# destroy: ball_0
+# ('g', 'ball_0') ball_0 True
+# destroy: ball_1
+# ('g', 'ball_1') ball_1 True
+# destroy: ball_2
+# ('g', 'ball_2') ball_2 True
+# destroy: ball_3
+# ('g', 'ball_3', 'ball_4') ball_3 True
+# destroy: ball_4
+# ('g', 'ball_4') ball_4 False
+
+a = {'g': 0, 'ball_0': 0}
+del a['ball_0']
+assert a.keys() == ('g',)
+
+a['ball_1'] = 0
+assert a.keys() == ('g', 'ball_1')
+del a['ball_1']
+assert a.keys() == ('g',)
+
+a['ball_2'] = 0
+assert a.keys() == ('g', 'ball_2')
+del a['ball_2']
+assert a.keys() == ('g',)
+
+a['ball_3'] = 0
+a['ball_4'] = 0
+assert a.keys() == ('g', 'ball_3', 'ball_4')
+del a['ball_3']
+assert a.keys() == ('g', 'ball_4')
+del a['ball_4']
+assert a.keys() == ('g',)
+
+del a['g']
+assert len(a) == 0
