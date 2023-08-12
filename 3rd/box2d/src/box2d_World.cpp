@@ -112,8 +112,10 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
                 while(p != nullptr){
                     PyObject* body_obj = get_body_object(p);
                     PyBody& body = _CAST(PyBody&, body_obj);
-                    if(body.node_like != vm->None){
-                        vm->call_method(body.node_like, name);
+                    if(!body._is_destroyed){
+                        if(body.node_like != vm->None){
+                            vm->call_method(body.node_like, name);
+                        }
                     }
                     p = p->GetNext();
                 }
