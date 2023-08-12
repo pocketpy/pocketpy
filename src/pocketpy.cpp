@@ -1089,6 +1089,29 @@ void init_builtins(VM* _vm) {
         return value;
     });
 
+    // _vm->bind_method<0>("dict", "_data", [](VM* vm, ArgsView args) {
+    //     Dict& self = _CAST(Dict&, args[0]);
+    //     std::stringstream ss;
+    //     ss << "[\n";
+    //     for(int i=0; i<self._capacity; i++){
+    //         auto item = self._items[i];
+    //         Str key("None");
+    //         Str value("None");
+    //         if(item.first != nullptr){
+    //             key = CAST(Str&, vm->py_repr(item.first));
+    //         }
+    //         if(item.second != nullptr){
+    //             value = CAST(Str&, vm->py_repr(item.second));
+    //         }
+    //         int prev = self._nodes[i].prev;
+    //         int next = self._nodes[i].next;
+    //         ss << "  [" << key << ", " << value << ", " << prev << ", " << next << "],\n";
+    //     }
+    //     ss << "]\n";
+    //     vm->stdout_write(ss.str());
+    //     return vm->None;
+    // });
+
     _vm->bind__contains__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
         Dict& self = _CAST(Dict&, obj);
         return VAR(self.contains(key));

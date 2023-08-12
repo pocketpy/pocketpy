@@ -1033,7 +1033,9 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
 
 void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     ok = false;
-    i = vm->py_hash(key) & _mask;
+    i64 hash = vm->py_hash(key);
+    if(hash < 0) hash = -hash;
+    i = hash & _mask;
     while(_items[i].first != nullptr) {
         if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
         // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
