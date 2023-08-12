@@ -32,7 +32,7 @@ struct NameDictImpl {
 #define HASH_PROBE(key, ok, i)          \
 ok = false;                             \
 i = _hash(key, _mask, _hash_seed);      \
-while(true) {       \
+for(int _j=0; _j<_capacity; _j++) {       \
     if(!_items[i].first.empty()){       \
         if(_items[i].first == (key)) { ok = true; break; }  \
     }else{                                                  \

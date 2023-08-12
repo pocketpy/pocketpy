@@ -1036,7 +1036,7 @@ void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     i64 hash = vm->py_hash(key);
     i = hash & _mask;
     // std::cout << CAST(Str, vm->py_repr(key)) << " " << hash << " " << i << std::endl;
-    while(true) {
+    for(int j=0; j<_capacity; j++) {
         if(_items[i].first != nullptr){
             if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
         }else{
