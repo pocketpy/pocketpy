@@ -109,3 +109,20 @@ for i in range(2, 1000):
     a[str(i)] = i
     del a[str(i - 2)]
     assert a[str(i - 1)] == i - 1
+
+a = {'0': 0, '1': 1}
+b = ['0', '1']
+
+data = []
+j = 6
+for i in range(65535):
+    j = ((j*5+1) % 65535)
+    data.append(str(j))
+
+for i in range(len(data)):
+    z = data[i]
+    a[z] = i
+    b.append(z)
+    if i % 3 == 0:
+        y = b.pop()
+        del a[y]
