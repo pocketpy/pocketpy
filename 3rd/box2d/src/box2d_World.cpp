@@ -93,6 +93,9 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
 
     vm->bind(type, "step(self, dt: float, velocity_iterations: int, position_iterations: int)",
         [](VM* vm, ArgsView args){
+            // disable gc during step for safety
+            auto _lock = vm->heap.gc_scope_lock();
+
             PyWorld& self = _CAST(PyWorld&, args[0]);
             float dt = CAST(float, args[1]);
             int velocity_iterations = CAST(int, args[2]);
