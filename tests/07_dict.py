@@ -99,7 +99,13 @@ assert a.keys() == ('g', 'ball_3', 'ball_4')
 del a['ball_3']
 assert a.keys() == ('g', 'ball_4')
 del a['ball_4']
+assert a.keys() == ('g',)
+del a['g']
+assert len(a) == 0
 
-# assert a.keys() == ('g',)
-# del a['g']
-# assert len(a) == 0
+# ultra test!!
+a = {'0': 0, '1': 1}
+for i in range(2, 1000):
+    a[str(i)] = i
+    del a[str(i - 2)]
+    assert a[str(i - 1)] == i - 1
