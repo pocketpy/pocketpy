@@ -73,7 +73,9 @@ struct PyBody{
     PyBody(): body(nullptr), fixture(nullptr), node_like(nullptr){}
 
     void _gc_mark() {
-        PK_OBJ_MARK(node_like);
+        if(node_like != nullptr){
+            PK_OBJ_MARK(node_like);
+        }
     }
 
     PyBody& _() { return *this; }

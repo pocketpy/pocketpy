@@ -128,7 +128,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
 
     // destroy
     vm->bind(type, "destroy(self)", [](VM* vm, ArgsView args){
-        PyBody& body = CAST(PyBody&, args[1]);
+        PyBody& body = CAST(PyBody&, args[0]);
         body.body->GetWorld()->DestroyBody(body.body);
         body.body = nullptr;
         body.fixture = nullptr;
