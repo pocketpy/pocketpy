@@ -32,9 +32,13 @@ struct NameDictImpl {
 #define HASH_PROBE(key, ok, i)          \
 ok = false;                             \
 i = _hash(key, _mask, _hash_seed);      \
-while(!_items[i].first.empty()) {       \
-    if(_items[i].first == (key)) { ok = true; break; }  \
-    i = (i + 1) & _mask;                                \
+while(true) {       \
+    if(!_items[i].first.empty()){       \
+        if(_items[i].first == (key)) { ok = true; break; }  \
+    }else{                                                  \
+        if(_items[i].second == 0) break;                    \
+    }                                                       \
+    i = (i + 1) & _mask;                                    \
 }
 
 #define NAMEDICT_ALLOC()                \
@@ -155,7 +159,7 @@ while(!_items[i].first.empty()) {       \
         HASH_PROBE(key, ok, i);
         if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         _items[i].first = StrName();
-        _items[i].second = nullptr;
+        // _items[i].second = PY_DELETED_SLOT;      // do not change .second if it is not zero, it means the slot is occupied by a deleted item
         _size--;
     }
 

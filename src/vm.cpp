@@ -1034,12 +1034,17 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
 void Dict::_probe(PyObject *key, bool &ok, int &i) const{
     ok = false;
     i64 hash = vm->py_hash(key);
-    if(hash < 0) hash = -hash;
     i = hash & _mask;
-    while(_items[i].first != nullptr) {
-        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+    // std::cout << CAST(Str, vm->py_repr(key)) << " " << hash << " " << i << std::endl;
+    while(true) {
+        if(_items[i].first != nullptr){
+            if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+        }else{
+            if(_items[i].second == nullptr) break;
+        }
         // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
         i = ((5*i) + 1) & _mask;
+        // std::cout << CAST(Str, vm->py_repr(key)) << " next: " << i << std::endl;
     }
 }
 

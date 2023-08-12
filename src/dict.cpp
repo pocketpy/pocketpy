@@ -107,7 +107,7 @@ namespace pkpy{
         _probe(key, ok, i);
         if(!ok) return false;
         _items[i].first = nullptr;
-        _items[i].second = nullptr;
+        // _items[i].second = PY_DELETED_SLOT;  // do not change .second if it is not NULL, it means the slot is occupied by a deleted item
         _size--;
 
         if(_size == 0){
