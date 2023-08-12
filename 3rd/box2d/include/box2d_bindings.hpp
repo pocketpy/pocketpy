@@ -70,7 +70,8 @@ struct PyBody{
     b2Fixture* fixture;
     PyObject* node_like;
 
-    PyBody(): body(nullptr), fixture(nullptr), node_like(nullptr){}
+    bool _is_destroyed;
+    PyBody(): body(nullptr), fixture(nullptr), node_like(nullptr), _is_destroyed(false){}
 
     void _gc_mark() {
         if(node_like != nullptr){

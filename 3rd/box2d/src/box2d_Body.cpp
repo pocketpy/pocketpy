@@ -16,6 +16,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
             body.body = world.world.CreateBody(&def);
             body.fixture = nullptr;
             body.node_like = node;
+            body._is_destroyed = false;
             return obj;
         });
 
@@ -129,10 +130,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
     // destroy
     vm->bind(type, "destroy(self)", [](VM* vm, ArgsView args){
         PyBody& body = CAST(PyBody&, args[0]);
-        body.body->GetWorld()->DestroyBody(body.body);
-        body.body = nullptr;
-        body.fixture = nullptr;
-        body.node_like = nullptr;
+        body._is_destroyed = true;  // mark as destroyed
         return vm->None;
     });
 }

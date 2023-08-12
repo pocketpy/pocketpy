@@ -124,6 +124,20 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
             f(vm, self.world.GetBodyList(), on_box2d_pre_step);
             self.world.Step(dt, velocity_iterations, position_iterations);
             f(vm, self.world.GetBodyList(), on_box2d_post_step);
+
+            // destroy bodies which are marked as destroyed
+            b2Body* p = self.world.GetBodyList();
+            while(p != nullptr){
+                b2Body* next = p->GetNext();
+                PyBody& body = _CAST(PyBody&, get_body_object(p));
+                if(body._is_destroyed){
+                    body.body->GetWorld()->DestroyBody(body.body);
+                    body.body = nullptr;
+                    body.fixture = nullptr;
+                    body.node_like = nullptr;
+                }
+                p = next;
+            }
             return vm->None;
         });
 
