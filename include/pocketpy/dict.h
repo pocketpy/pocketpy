@@ -49,7 +49,7 @@ struct Dict{
     PyObject* try_get(PyObject* key) const;
 
     bool contains(PyObject* key) const;
-    void erase(PyObject* key);
+    bool erase(PyObject* key);
     void update(const Dict& other);
 
     template<typename __Func>

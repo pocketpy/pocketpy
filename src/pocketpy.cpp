@@ -1077,8 +1077,8 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__delitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
         Dict& self = _CAST(Dict&, obj);
-        if(!self.contains(key)) vm->KeyError(key);
-        self.erase(key);
+        bool ok = self.erase(key);
+        if(!ok) vm->KeyError(key);
     });
 
     _vm->bind_method<1>("dict", "pop", [](VM* vm, ArgsView args) {

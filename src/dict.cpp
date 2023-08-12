@@ -102,10 +102,10 @@ namespace pkpy{
         return ok;
     }
 
-    void Dict::erase(PyObject* key){
+    bool Dict::erase(PyObject* key){
         bool ok; int i;
         _probe(key, ok, i);
-        if(!ok) return;
+        if(!ok) return false;
         _items[i].first = nullptr;
         _items[i].second = nullptr;
         _size--;
@@ -127,6 +127,7 @@ namespace pkpy{
         }
         _nodes[i].prev = -1;
         _nodes[i].next = -1;
+        return true;
     }
 
     void Dict::update(const Dict& other){
