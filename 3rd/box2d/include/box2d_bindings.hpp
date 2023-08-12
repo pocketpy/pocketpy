@@ -3,8 +3,6 @@
 #include "box2d/box2d.h"
 #include "pocketpy/pocketpy.h"
 
-#include <queue>
-
 namespace pkpy{
 
 template<>
@@ -46,17 +44,9 @@ struct PyDebugDraw: b2Draw{
     void DrawPoint(const b2Vec2& p, float size, const b2Color& color) override;
 };
 
-struct PyContactMessage{
-    PyObject* a;
-    PyObject* b;
-    StrName name;
-};
-
 struct PyContactListener: b2ContactListener{
     PK_ALWAYS_PASS_BY_POINTER(PyContactListener)
     VM* vm;
-    std::queue<PyContactMessage> messages;
-
     PyContactListener(VM* vm): vm(vm){}
 
     void _contact_f(b2Contact* contact, StrName name);

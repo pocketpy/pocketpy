@@ -32,7 +32,14 @@ struct MyBoxCastCallback: b2QueryCallback{
 void PyContactListener::_contact_f(b2Contact* contact, StrName name){
     PyObject* a = get_body_object(contact->GetFixtureA()->GetBody());
     PyObject* b = get_body_object(contact->GetFixtureB()->GetBody());
-    messages.push({a, b, name});
+    PyBody& bodyA = PK_OBJ_GET(PyBody, a);
+    PyBody& bodyB = PK_OBJ_GET(PyBody, b);
+    PyObject* self;
+    PyObject* f;
+    f = vm->get_unbound_method(bodyA.node_like, name, &self, false);
+    if(f != nullptr) vm->call_method(self, f, b);
+    f = vm->get_unbound_method(bodyB.node_like, name, &self, false);
+    if(f != nullptr) vm->call_method(self, f, a);
 }
 
 /****************** PyWorld ******************/
@@ -117,20 +124,6 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
             f(vm, self.world.GetBodyList(), on_box2d_pre_step);
             self.world.Step(dt, velocity_iterations, position_iterations);
             f(vm, self.world.GetBodyList(), on_box2d_post_step);
-
-            // clear contact messages
-            while(!self._contact_listener.messages.empty()){
-                PyContactMessage& msg = self._contact_listener.messages.front();
-                PyBody& bodyA = PK_OBJ_GET(PyBody, msg.a);
-                PyBody& bodyB = PK_OBJ_GET(PyBody, msg.b);
-                PyObject* f_self;
-                PyObject* f;
-                f = vm->get_unbound_method(bodyA.node_like, msg.name, &f_self, false);
-                if(f != nullptr) vm->call_method(f_self, f, msg.b);
-                f = vm->get_unbound_method(bodyB.node_like, msg.name, &f_self, false);
-                if(f != nullptr) vm->call_method(f_self, f, msg.a);
-                self._contact_listener.messages.pop();
-            }
             return vm->None;
         });
 
