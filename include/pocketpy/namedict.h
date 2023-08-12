@@ -29,16 +29,24 @@ struct NameDictImpl {
     uint16_t _mask;
     Item* _items;
 
-#define HASH_PROBE(key, ok, i)          \
-ok = false;                             \
-i = _hash(key, _mask, _hash_seed);      \
-for(int _j=0; _j<_capacity; _j++) {       \
-    if(!_items[i].first.empty()){       \
+#define HASH_PROBE_0(key, ok, i)            \
+ok = false;                                 \
+i = _hash(key, _mask, _hash_seed);          \
+for(int _j=0; _j<_capacity; _j++) {         \
+    if(!_items[i].first.empty()){           \
         if(_items[i].first == (key)) { ok = true; break; }  \
     }else{                                                  \
         if(_items[i].second == 0) break;                    \
     }                                                       \
     i = (i + 1) & _mask;                                    \
+}
+
+#define HASH_PROBE_1(key, ok, i)            \
+ok = false;                                 \
+i = _hash(key, _mask, _hash_seed);          \
+while(!_items[i].first.empty()) {           \
+    if(_items[i].first == (key)) { ok = true; break; }  \
+    i = (i + 1) & _mask;                                \
 }
 
 #define NAMEDICT_ALLOC()                \
@@ -73,19 +81,19 @@ for(int _j=0; _j<_capacity; _j++) {       \
 
     T operator[](StrName key) const {
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_0(key, ok, i);
         if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         return _items[i].second;
     }
 
     void set(StrName key, T val){
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_1(key, ok, i);
         if(!ok) {
             _size++;
             if(_size > _capacity*_load_factor){
                 _rehash(true);
-                HASH_PROBE(key, ok, i);
+                HASH_PROBE_1(key, ok, i);
             }
             _items[i].first = key;
         }
@@ -103,7 +111,7 @@ for(int _j=0; _j<_capacity; _j++) {       \
         for(uint16_t i=0; i<old_capacity; i++){
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
-            HASH_PROBE(old_items[i].first, ok, j);
+            HASH_PROBE_1(old_items[i].first, ok, j);
             if(ok) FATAL_ERROR();
             _items[j] = old_items[i];
         }
@@ -117,7 +125,7 @@ for(int _j=0; _j<_capacity; _j++) {       \
 
     T try_get(StrName key) const{
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_0(key, ok, i);
         if(!ok){
             if constexpr(std::is_pointer_v<T>) return nullptr;
             else if constexpr(std::is_same_v<int, T>) return -1;
@@ -128,14 +136,14 @@ for(int _j=0; _j<_capacity; _j++) {       \
 
     T* try_get_2(StrName key) {
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_0(key, ok, i);
         if(!ok) return nullptr;
         return &_items[i].second;
     }
 
     bool try_set(StrName key, T val){
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_1(key, ok, i);
         if(!ok) return false;
         _items[i].second = val;
         return true;
@@ -143,7 +151,7 @@ for(int _j=0; _j<_capacity; _j++) {       \
 
     bool contains(StrName key) const {
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_0(key, ok, i);
         return ok;
     }
 
@@ -156,7 +164,7 @@ for(int _j=0; _j<_capacity; _j++) {       \
 
     void erase(StrName key){
         bool ok; uint16_t i;
-        HASH_PROBE(key, ok, i);
+        HASH_PROBE_0(key, ok, i);
         if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
         _items[i].first = StrName();
         // _items[i].second = PY_DELETED_SLOT;      // do not change .second if it is not zero, it means the slot is occupied by a deleted item

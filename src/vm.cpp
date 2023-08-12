@@ -1031,7 +1031,7 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
-void Dict::_probe(PyObject *key, bool &ok, int &i) const{
+void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
     ok = false;
     i64 hash = vm->py_hash(key);
     i = hash & _mask;
@@ -1045,6 +1045,16 @@ void Dict::_probe(PyObject *key, bool &ok, int &i) const{
         // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
         i = ((5*i) + 1) & _mask;
         // std::cout << CAST(Str, vm->py_repr(key)) << " next: " << i << std::endl;
+    }
+}
+
+void Dict::_probe_1(PyObject *key, bool &ok, int &i) const{
+    ok = false;
+    i = vm->py_hash(key) & _mask;
+    while(_items[i].first != nullptr) {
+        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
+        i = ((5*i) + 1) & _mask;
     }
 }
 

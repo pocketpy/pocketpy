@@ -41,7 +41,8 @@ struct Dict{
 
     int size() const { return _size; }
 
-    void _probe(PyObject* key, bool& ok, int& i) const;
+    void _probe_0(PyObject* key, bool& ok, int& i) const;
+    void _probe_1(PyObject* key, bool& ok, int& i) const;
 
     void set(PyObject* key, PyObject* val);
     void _rehash();
