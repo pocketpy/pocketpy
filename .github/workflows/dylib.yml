@@ -14,9 +14,10 @@ jobs:
       run: |
         Invoke-Expression (Invoke-Webrequest 'https://xmake.io/psget.text' -UseBasicParsing).Content
         mkdir -p output/windows/x86_64
-        xmake f -y -p windows -a x64
-        xmake build test
-        cp build/windows/x64/release/test.dll output/windows/x86_64
+        cd dylib
+        xmake f -p windows -a x64
+        xmake
+        cp build/windows/x64/release/test.dll ../output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
@@ -31,9 +32,10 @@ jobs:
     - name: Compile linux
       run: |
         mkdir -p output/linux/x86_64
-        xmake f -y -p linux -a x86_64
-        xmake build test
-        cp build/linux/x86_64/release/libtest.so output/linux/x86_64
+        cd dylib
+        xmake f -p linux -a x86_64
+        xmake
+        cp build/linux/x86_64/release/libtest.so ../output/linux/x86_64
     - uses: android-actions/setup-android@v2
     - uses: nttld/setup-ndk@v1
       id: setup-ndk
@@ -45,12 +47,13 @@ jobs:
       run: |
         mkdir -p output/android/armeabi-v7a
         mkdir -p output/android/arm64-v8a
-        xmake f -y -p android -a armeabi-v7a --ndk=$ANDROID_NDK_HOME
-        xmake build test
-        cp build/android/armeabi-v7a/release/libtest.so output/android/armeabi-v7a
-        xmake f -y -p android -a arm64-v8a --ndk=$ANDROID_NDK_HOME
-        xmake build test
-        cp build/android/arm64-v8a/release/libtest.so output/android/arm64-v8a
+        cd dylib
+        xmake f -p android -a armeabi-v7a --ndk=$ANDROID_NDK_HOME
+        xmake
+        cp build/android/armeabi-v7a/release/libtest.so ../output/android/armeabi-v7a
+        xmake f -p android -a arm64-v8a --ndk=$ANDROID_NDK_HOME
+        xmake
+        cp build/android/arm64-v8a/release/libtest.so ../output/android/arm64-v8a
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
     - uses: actions/upload-artifact@v3
@@ -69,9 +72,12 @@ jobs:
         run: |
           source ~/.xmake/profile
           mkdir -p output/macos/x86_64
-          xmake f -y -p macosx -a x86_64
-          xmake build test
-          cp build/macosx/x86_64/release/libtest.dylib output/macos/x86_64
+          cd dylib
+          xmake f -p macosx -a x86_64
+          xmake
+          cp build/macosx/x86_64/release/libtest.dylib ../output/macos/x86_64
       - uses: actions/upload-artifact@v3
         with:
           path: output
+
+
