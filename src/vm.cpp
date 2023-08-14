@@ -977,13 +977,10 @@ PyObject* VM::bind_property(PyObject* obj, Str name, NativeFuncC fget, NativeFun
     PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
     PyObject* _1 = vm->None;
     if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-    Str type_hint;
+    Str signature = name;
     int pos = name.index(":");
-    if(pos > 0){
-        type_hint = name.substr(pos + 1).strip();
-        name = name.substr(0, pos).strip();
-    }
-    PyObject* prop = VAR(Property(_0, _1, type_hint));
+    if(pos > 0) name = name.substr(0, pos).strip();
+    PyObject* prop = VAR(Property(_0, _1, signature));
     obj->attr().set(name, prop);
     return prop;
 }

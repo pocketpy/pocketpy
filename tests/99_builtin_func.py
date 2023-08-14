@@ -747,10 +747,12 @@ assert type(slice(0.1, 0.2, 0.3)) is slice
 #       116: 1535:    bind_property(_t(tp_slice), "step", [](VM* vm, ArgsView args){
 #     #####: 1536:        return CAST(Slice&, args[0]).step;
 #         -: 1537:    });
-# test slice.start:
-assert type(slice(0.1, 0.2, 0.3)) is slice
-# test slice.stop:
-# test slice.step:
+s = slice(1, 2, 3)
+assert type(s) is slice
+assert s.start == 1
+assert s.stop == 2
+assert s.step == 3
+assert slice.__dict__['start'].__signature__ == 'start'
 
 # 未完全测试准确性-----------------------------------------------
 #       116:  957:    _vm->bind__repr__(_vm->tp_slice, [](VM* vm, PyObject* obj) {
@@ -984,6 +986,10 @@ class A():
     def __init__(self):
         self._name = '123'
 
+    @property
+    def value(self):
+        return 2
+
     def get_name(self):
         '''
         doc string 1
@@ -996,7 +1002,11 @@ class A():
         '''
         self._name = val
 
-A.name = property(A.get_name, A.set_name)
+assert A().value == 2
+assert A.__dict__['value'].__signature__ == ''
+
+A.name = property(A.get_name, A.set_name, "name: str")
+assert A.__dict__['name'].__signature__ == 'name: str'
 try:
     property(A.get_name, A.set_name, 1)
     print('未能拦截错误, 在测试 property')
@@ -1008,8 +1018,8 @@ except:
 import timeit
 
 def aaa():
-    for i in range(1000):
-        for j in range(1000):
+    for i in range(100):
+        for j in range(100):
             pass
     
 assert type(timeit.timeit(aaa, 2)) is float
@@ -1064,7 +1074,7 @@ assert type(time.time()) is float
 #     #####: 1275:        return vm->None;
 #     #####: 1276:    });
 # test time.sleep
-time.sleep(0.5)
+time.sleep(0.1)
 
 # 未完全测试准确性-----------------------------------------------
 #       116: 1278:    vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
