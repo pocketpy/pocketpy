@@ -53,8 +53,8 @@ struct CodeEmitContext{
     bool is_compiling_class = false;
     int for_loop_depth = 0;
 
-    bool is_curr_block_loop() const;
-    void enter_block(CodeBlockType type);
+    int get_loop() const;
+    CodeBlock* enter_block(CodeBlockType type);
     void exit_block();
     void emit_expr();   // clear the expression stack and generate bytecode
     std::string _log_s_expr();

@@ -482,10 +482,10 @@ __NEXT_STEP:;
         } else POP();                       // [b]
         DISPATCH();
     TARGET(LOOP_CONTINUE)
-        frame->jump_abs(co_blocks[byte.block].start);
+        frame->jump_abs(co_blocks[byte.arg].start);
         DISPATCH();
     TARGET(LOOP_BREAK)
-        frame->jump_abs_break(co_blocks[byte.block].end);
+        frame->jump_abs_break(co_blocks[byte.arg].get_break_end());
         DISPATCH();
     TARGET(GOTO) {
         _name = StrName(byte.arg);

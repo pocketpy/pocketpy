@@ -71,3 +71,64 @@ assert d == 1
 d = 1 if 2 < 1 else 2
 assert d == 2
 
+t = 0
+for i in range(5):
+    try:
+        break
+    except:
+        pass
+    t = 1
+assert t == 0
+
+t = 0
+for i in range(5):
+    if True and 1:
+        break
+    t = 1
+assert t == 0
+
+for i in range(5):
+    break
+else:
+    assert False
+
+for i in range(5):
+    if i==3:
+        break
+else:
+    assert False
+
+flag = False
+for i in range(5):
+    if i==6:
+        break
+else:
+    flag = True
+assert flag is True
+
+while True:
+    break
+else:
+    assert False
+
+flag = False
+while False:
+    assert False
+else:
+    flag = True
+assert flag is True
+
+x = 1
+while 0:
+    while True:
+        break
+else:
+    x = 2
+assert x == 2
+
+if x == 2:
+    while 0:
+        pass
+else:
+    x = 3
+assert x == 2

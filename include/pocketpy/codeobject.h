@@ -42,9 +42,15 @@ struct CodeBlock {
     int for_loop_depth; // this is used for exception handling
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
+    int end2;           // ...
 
     CodeBlock(CodeBlockType type, int parent, int for_loop_depth, int start):
-        type(type), parent(parent), for_loop_depth(for_loop_depth), start(start), end(-1) {}
+        type(type), parent(parent), for_loop_depth(for_loop_depth), start(start), end(-1), end2(-1) {}
+
+    int get_break_end() const{
+        if(end2 != -1) return end2;
+        return end;
+    }
 };
 
 struct CodeObject;

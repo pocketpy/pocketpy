@@ -2,16 +2,23 @@
 
 namespace pkpy{
 
-    bool CodeEmitContext::is_curr_block_loop() const {
-        return co->blocks[curr_block_i].type == FOR_LOOP || co->blocks[curr_block_i].type == WHILE_LOOP;
+    int CodeEmitContext::get_loop() const {
+        int index = curr_block_i;
+        while(index >= 0){
+            if(co->blocks[index].type == FOR_LOOP) break;
+            if(co->blocks[index].type == WHILE_LOOP) break;
+            index = co->blocks[index].parent;
+        }
+        return index;
     }
 
-    void CodeEmitContext::enter_block(CodeBlockType type){
+    CodeBlock* CodeEmitContext::enter_block(CodeBlockType type){
         if(type == FOR_LOOP) for_loop_depth++;
         co->blocks.push_back(CodeBlock(
             type, curr_block_i, for_loop_depth, (int)co->codes.size()
         ));
         curr_block_i = co->blocks.size()-1;
+        return &co->blocks[curr_block_i];
     }
 
     void CodeEmitContext::exit_block(){
@@ -338,7 +345,7 @@ namespace pkpy{
             expr->emit(ctx);
             ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
         }
-        ctx->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+        ctx->emit(OP_LOOP_CONTINUE, ctx->get_loop(), BC_KEEPLINE);
         ctx->exit_block();
     }
 

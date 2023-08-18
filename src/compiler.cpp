@@ -559,13 +559,18 @@ __SUBSCR_END:
     }
 
     void Compiler::compile_while_loop() {
-        ctx()->enter_block(WHILE_LOOP);
+        CodeBlock* block = ctx()->enter_block(WHILE_LOOP);
         EXPR(false);   // condition
         int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
-        ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
         ctx()->patch_jump(patch);
         ctx()->exit_block();
+        // optional else clause
+        if (match(TK("else"))) {
+            compile_block_body();
+            block->end2 = ctx()->co->codes.size();
+        }
     }
 
     void Compiler::compile_for_loop() {
@@ -573,13 +578,18 @@ __SUBSCR_END:
         consume(TK("in"));
         EXPR_TUPLE(false);
         ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
-        ctx()->enter_block(FOR_LOOP);
+        CodeBlock* block = ctx()->enter_block(FOR_LOOP);
         ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
         compile_block_body();
-        ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
         ctx()->exit_block();
+        // optional else clause
+        if (match(TK("else"))) {
+            compile_block_body();
+            block->end2 = ctx()->co->codes.size();
+        }
     }
 
     void Compiler::compile_try_except() {
@@ -668,15 +678,16 @@ __SUBSCR_END:
     void Compiler::compile_stmt() {
         advance();
         int kw_line = prev().line;  // backup line number
+        int curr_loop_block = ctx()->get_loop();
         switch(prev().type){
             case TK("break"):
-                if (!ctx()->is_curr_block_loop()) SyntaxError("'break' outside loop");
-                ctx()->emit(OP_LOOP_BREAK, BC_NOARG, kw_line);
+                if (curr_loop_block < 0) SyntaxError("'break' outside loop");
+                ctx()->emit(OP_LOOP_BREAK, curr_loop_block, kw_line);
                 consume_end_stmt();
                 break;
             case TK("continue"):
-                if (!ctx()->is_curr_block_loop()) SyntaxError("'continue' not properly in loop");
-                ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, kw_line);
+                if (curr_loop_block < 0) SyntaxError("'continue' not properly in loop");
+                ctx()->emit(OP_LOOP_CONTINUE, curr_loop_block, kw_line);
                 consume_end_stmt();
                 break;
             case TK("yield"): 
@@ -696,7 +707,7 @@ __SUBSCR_END:
                 ctx()->enter_block(FOR_LOOP);
                 ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
                 ctx()->emit(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
-                ctx()->emit(OP_LOOP_CONTINUE, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
                 ctx()->exit_block();
                 consume_end_stmt();
                 break;
