@@ -16,7 +16,7 @@ static FILE* io_fopen(const char* name, const char* mode){
 
 static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
 #if _WIN32
-    return fread_s(buffer, size, size, count, fp);
+    return fread_s(buffer, std::numeric_limits<size_t>::max(), size, count, fp);
 #else
     return fread(buffer, size, count, fp);
 #endif
