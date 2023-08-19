@@ -3,20 +3,45 @@
 
 namespace pkpy{
 
+static FILE* io_fopen(const char* name, const char* mode){
+#if _WIN32
+    FILE* fp;
+    errno_t err = fopen_s(&fp, name, mode);
+    if(err != 0) return nullptr;
+    return fp;
+#else
+    return fopen(name, mode);
+#endif
+}
+
+static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
+#if _WIN32
+    return fread_s(buffer, size, size, count, fp);
+#else
+    return fread(buffer, size, count, fp);
+#endif
+}
+
+#define io_fclose fclose
+#define io_ftell ftell
+#define io_fseek fseek
+#define io_fwrite fwrite
+
+
 Bytes _default_import_handler(const Str& name){
 #if PK_ENABLE_OS
     std::filesystem::path path(name.sv());
     bool exists = std::filesystem::exists(path);
     if(!exists) return Bytes();
     std::string cname = name.str();
-    FILE* fp = fopen(cname.c_str(), "rb");
+    FILE* fp = io_fopen(cname.c_str(), "rb");
     if(!fp) return Bytes();
-    fseek(fp, 0, SEEK_END);
-    std::vector<char> buffer(ftell(fp));
-    fseek(fp, 0, SEEK_SET);
-    size_t sz = fread(buffer.data(), 1, buffer.size(), fp);
+    io_fseek(fp, 0, SEEK_END);
+    std::vector<char> buffer(io_ftell(fp));
+    io_fseek(fp, 0, SEEK_SET);
+    size_t sz = io_fread(buffer.data(), 1, buffer.size(), fp);
     PK_UNUSED(sz);
-    fclose(fp);
+    io_fclose(fp);
     return Bytes(std::move(buffer));
 #else
     return Bytes();
@@ -34,10 +59,10 @@ Bytes _default_import_handler(const Str& name){
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            fseek(io.fp, 0, SEEK_END);
-            std::vector<char> buffer(ftell(io.fp));
-            fseek(io.fp, 0, SEEK_SET);
-            size_t sz = fread(buffer.data(), 1, buffer.size(), io.fp);
+            io_fseek(io.fp, 0, SEEK_END);
+            std::vector<char> buffer(io_ftell(io.fp));
+            io_fseek(io.fp, 0, SEEK_SET);
+            size_t sz = io_fread(buffer.data(), 1, buffer.size(), io.fp);
             PK_UNUSED(sz);
             Bytes b(std::move(buffer));
             if(io.is_text()) return VAR(b.str());
@@ -48,10 +73,10 @@ Bytes _default_import_handler(const Str& name){
             FileIO& io = CAST(FileIO&, args[0]);
             if(io.is_text()){
                 Str& s = CAST(Str&, args[1]);
-                fwrite(s.data, 1, s.length(), io.fp);
+                io_fwrite(s.data, 1, s.length(), io.fp);
             }else{
                 Bytes& buffer = CAST(Bytes&, args[1]);
-                fwrite(buffer.data(), 1, buffer.size(), io.fp);
+                io_fwrite(buffer.data(), 1, buffer.size(), io.fp);
             }
             return vm->None;
         });
@@ -72,13 +97,13 @@ Bytes _default_import_handler(const Str& name){
     }
 
     FileIO::FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
-        fp = fopen(file.c_str(), mode.c_str());
+        fp = io_fopen(file.c_str(), mode.c_str());
         if(!fp) vm->IOError(strerror(errno));
     }
 
     void FileIO::close(){
         if(fp == nullptr) return;
-        fclose(fp);
+        io_fclose(fp);
         fp = nullptr;
     }
 
