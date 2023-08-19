@@ -22,11 +22,6 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
 #endif
 }
 
-#define io_fclose fclose
-#define io_ftell ftell
-#define io_fseek fseek
-#define io_fwrite fwrite
-
 
 Bytes _default_import_handler(const Str& name){
 #if PK_ENABLE_OS
@@ -36,12 +31,12 @@ Bytes _default_import_handler(const Str& name){
     std::string cname = name.str();
     FILE* fp = io_fopen(cname.c_str(), "rb");
     if(!fp) return Bytes();
-    io_fseek(fp, 0, SEEK_END);
-    std::vector<char> buffer(io_ftell(fp));
-    io_fseek(fp, 0, SEEK_SET);
+    fseek(fp, 0, SEEK_END);
+    std::vector<char> buffer(ftell(fp));
+    fseek(fp, 0, SEEK_SET);
     size_t sz = io_fread(buffer.data(), 1, buffer.size(), fp);
     PK_UNUSED(sz);
-    io_fclose(fp);
+    fclose(fp);
     return Bytes(std::move(buffer));
 #else
     return Bytes();
@@ -59,9 +54,9 @@ Bytes _default_import_handler(const Str& name){
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
-            io_fseek(io.fp, 0, SEEK_END);
-            std::vector<char> buffer(io_ftell(io.fp));
-            io_fseek(io.fp, 0, SEEK_SET);
+            fseek(io.fp, 0, SEEK_END);
+            std::vector<char> buffer(ftell(io.fp));
+            fseek(io.fp, 0, SEEK_SET);
             size_t sz = io_fread(buffer.data(), 1, buffer.size(), io.fp);
             PK_UNUSED(sz);
             Bytes b(std::move(buffer));
@@ -73,10 +68,10 @@ Bytes _default_import_handler(const Str& name){
             FileIO& io = CAST(FileIO&, args[0]);
             if(io.is_text()){
                 Str& s = CAST(Str&, args[1]);
-                io_fwrite(s.data, 1, s.length(), io.fp);
+                fwrite(s.data, 1, s.length(), io.fp);
             }else{
                 Bytes& buffer = CAST(Bytes&, args[1]);
-                io_fwrite(buffer.data(), 1, buffer.size(), io.fp);
+                fwrite(buffer.data(), 1, buffer.size(), io.fp);
             }
             return vm->None;
         });
@@ -103,7 +98,7 @@ Bytes _default_import_handler(const Str& name){
 
     void FileIO::close(){
         if(fp == nullptr) return;
-        io_fclose(fp);
+        fclose(fp);
         fp = nullptr;
     }
 
