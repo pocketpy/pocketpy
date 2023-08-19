@@ -284,20 +284,6 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<1>(mod, "sizeof", [](VM* vm, ArgsView args){
-        const Str& type = CAST(Str&, args[0]);
-        i64 size = c99_sizeof(vm, type);
-        return VAR(size);
-    });
-
-    vm->bind_func<1>(mod, "refl", [](VM* vm, ArgsView args){
-        const Str& key = CAST(Str&, args[0]);
-        auto it = _refl_types.find(key.sv());
-        if(it == _refl_types.end()) vm->ValueError("reflection type not found");
-        const ReflType& rt = it->second;
-        return VAR_T(C99ReflType, rt);
-    });
-
     vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
         memset(p, CAST(int, args[1]), CAST(size_t, args[2]));
@@ -312,6 +298,20 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 #endif
+
+    vm->bind_func<1>(mod, "sizeof", [](VM* vm, ArgsView args){
+        const Str& type = CAST(Str&, args[0]);
+        i64 size = c99_sizeof(vm, type);
+        return VAR(size);
+    });
+
+    vm->bind_func<1>(mod, "refl", [](VM* vm, ArgsView args){
+        const Str& key = CAST(Str&, args[0]);
+        auto it = _refl_types.find(key.sv());
+        if(it == _refl_types.end()) vm->ValueError("reflection type not found");
+        const ReflType& rt = it->second;
+        return VAR_T(C99ReflType, rt);
+    });
 
     VoidP::register_class(vm, mod);
     C99Struct::register_class(vm, mod);
