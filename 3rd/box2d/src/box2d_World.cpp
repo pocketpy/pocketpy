@@ -156,5 +156,15 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
         self._debug_draw.draw_like = args[1];
         return vm->None;
     });
-}
+
+    // joints
+    vm->bind(type, "create_weld_joint(self, a, b)", [](VM* vm, ArgsView args){
+        PyWorld& self = _CAST(PyWorld&, args[0]);
+        PyBody& bodyA = CAST(PyBody&, args[1]);
+        PyBody& bodyB = CAST(PyBody&, args[2]);
+        b2WeldJointDef def;
+        def.Initialize(bodyA.body, bodyB.body, bodyA.body->GetWorldCenter());
+        b2Joint* p = self.world.CreateJoint(&def);
+        return VAR(p);      // void_p
+    });
 }   // namespace pkpy

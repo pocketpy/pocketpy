@@ -88,6 +88,9 @@ class World:
     def set_debug_draw(self, draw: _DrawLike):
         """set the debug draw object."""
 
+    def create_weld_joint(self, body_a: 'Body', body_b: 'Body'):
+        """create a weld joint between two bodies."""
+
 class Body:
     type: int           # 0-static, 1-kinematic, 2-dynamic, by default 2
     gravity_scale: float
