@@ -167,4 +167,6 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
         b2Joint* p = self.world.CreateJoint(&def);
         return VAR(p);      // void_p
     });
+}
+
 }   // namespace pkpy
