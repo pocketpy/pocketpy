@@ -112,7 +112,7 @@ class Body:
     friction: float
     restitution: float
     restitution_threshold: float
-    is_trigger: bool
+    is_sensor: bool
 
     def __new__(cls, world: World, node: _NodeLike = None):
         """create a body in the world."""

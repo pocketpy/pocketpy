@@ -40,7 +40,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
     PK_REGISTER_PROPERTY(PyBody, "friction: float", _b2Fixture, GetFriction, SetFriction)
     PK_REGISTER_PROPERTY(PyBody, "restitution: float", _b2Fixture, GetRestitution, SetRestitution)
     PK_REGISTER_PROPERTY(PyBody, "restitution_threshold: float", _b2Fixture, GetRestitutionThreshold, SetRestitutionThreshold)
-    PK_REGISTER_PROPERTY(PyBody, "is_trigger: bool", _b2Fixture, IsSensor, SetSensor)
+    PK_REGISTER_PROPERTY(PyBody, "is_sensor: bool", _b2Fixture, IsSensor, SetSensor)
 
     vm->bind(type, "set_box_shape(self, hx: float, hy: float)",
         [](VM* vm, ArgsView args){
