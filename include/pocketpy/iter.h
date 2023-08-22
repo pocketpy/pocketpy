@@ -33,7 +33,7 @@ struct StringIter{
     PY_CLASS(StringIter, builtins, "_string_iterator")
     PyObject* ref;
     Str* str;
-    int index;
+    int index;      // byte index
 
     StringIter(PyObject* ref) : ref(ref), str(&PK_OBJ_GET(Str, ref)), index(0) {}
 
@@ -43,7 +43,7 @@ struct StringIter{
 };
 
 struct Generator{
-    PY_CLASS(Generator, builtins, "_generator")
+    PY_CLASS(Generator, builtins, "generator")
     Frame frame;
     int state;      // 0,1,2
     List s_backup;

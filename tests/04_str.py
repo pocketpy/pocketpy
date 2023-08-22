@@ -118,3 +118,20 @@ assert a.ljust(5) == '123  '
 assert a.ljust(5, '0') == '12300'
 
 assert '\x30\x31\x32' == '012'
+
+a = 'abcd'
+assert list(a) == ['a', 'b', 'c', 'd']
+a = '测试'
+assert list(a) == ['测', '试']
+a = 'a测b试c'
+assert list(a) == ['a', '测', 'b', '试', 'c']
+a = 'a测b试'
+assert list(a) == ['a', '测', 'b', '试']
+a = '测b试c'
+assert list(a) == ['测', 'b', '试', 'c']
+a = '测b'
+assert list(a) == ['测', 'b']
+a = 'b'
+assert list(a) == ['b']
+a = '测'
+assert list(a) == ['测']

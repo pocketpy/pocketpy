@@ -32,9 +32,11 @@ namespace pkpy{
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             StringIter& self = _CAST(StringIter&, obj);
-            // TODO: optimize this... operator[] is of O(n) complexity
-            if(self.index == self.str->u8_length()) return vm->StopIteration;
-            return VAR(self.str->u8_getitem(self.index++));
+            if(self.index == self.str->size) return vm->StopIteration;
+            int start = self.index;
+            int len = utf8len(self.str->data[self.index]);
+            self.index += len;
+            return VAR(self.str->substr(start, len));
         });
     }
 
