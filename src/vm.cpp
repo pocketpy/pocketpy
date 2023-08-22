@@ -360,7 +360,9 @@ i64 VM::py_hash(PyObject* obj){
         PyObject* ret = call_method(self, f);
         return CAST(i64, ret);
     }
-    // it flow reaches here, obj must not be the trivial `object` type
+    // if it is trivial `object`, return PK_BITS
+    if(ti == &_all_types[tp_object]) return PK_BITS(obj);
+    // otherwise, we check if it has a custom __eq__ other than object.__eq__
     bool has_custom_eq = false;
     if(ti->m__eq__) has_custom_eq = true;
     else{

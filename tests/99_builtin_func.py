@@ -845,6 +845,18 @@ try:
 except TypeError:
     pass
 
+a = hash(object())  # object is hashable
+a = hash(A())       # A is hashable
+class B:
+    def __eq__(self, o): return True
+
+try:
+    hash(B())
+    print('未能拦截错误, 在测试 B.__hash__')
+    exit(1)
+except TypeError:
+    pass
+
 # 未完全测试准确性-----------------------------------------------
 #       116: 1009:    _vm->bind__repr__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
 #     #####: 1010:        MappingProxy& self = _CAST(MappingProxy&, obj);
