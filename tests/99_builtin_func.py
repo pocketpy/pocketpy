@@ -207,12 +207,12 @@ def f():
 assert type(hash(a)) is int
 
 # 测试不可哈希对象
-# try:
-#     hash({1:1})
-#     print('未能拦截错误')
-#     exit(1)
-# except:
-#     pass
+try:
+    hash({1:1})
+    print('未能拦截错误')
+    exit(1)
+except:
+    pass
 
 try:
     hash([1])
@@ -842,7 +842,7 @@ try:
     hash(my_mappingproxy)
     print('未能拦截错误, 在测试 mappingproxy.__hash__')
     exit(1)
-except:
+except TypeError:
     pass
 
 # 未完全测试准确性-----------------------------------------------

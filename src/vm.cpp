@@ -350,10 +350,29 @@ void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int&
 }
 
 i64 VM::py_hash(PyObject* obj){
+    // https://docs.python.org/3.10/reference/datamodel.html#object.__hash__
     const PyTypeInfo* ti = _inst_type_info(obj);
     if(ti->m__hash__) return ti->m__hash__(this, obj);
-    PyObject* ret = call_method(obj, __hash__);
-    return CAST(i64, ret);
+
+    PyObject* self;
+    PyObject* f = get_unbound_method(obj, __hash__, &self, false);
+    if(f != nullptr){
+        PyObject* ret = call_method(self, f);
+        return CAST(i64, ret);
+    }
+    // it flow reaches here, obj must not be the trivial `object` type
+    bool has_custom_eq = false;
+    if(ti->m__eq__) has_custom_eq = true;
+    else{
+        f = get_unbound_method(obj, __eq__, &self, false);
+        has_custom_eq = f != _t(tp_object)->attr(__eq__);
+    }
+    if(has_custom_eq){
+        TypeError(fmt("unhashable type: ", ti->name.escape()));
+        return 0;
+    }else{
+        return PK_BITS(obj);
+    }
 }
 
 PyObject* VM::format(Str spec, PyObject* obj){

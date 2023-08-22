@@ -309,7 +309,6 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(_vm->tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return VAR(lhs == rhs); });
-    _vm->bind__hash__(_vm->tp_object, [](VM* vm, PyObject* obj) { return PK_BITS(obj); });
 
     _vm->cached_object__new__ = _vm->bind_constructor<1>("object", [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
@@ -754,11 +753,6 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("list", "copy", PK_LAMBDA(VAR(_CAST(List, args[0]))));
 
-    _vm->bind__hash__(_vm->tp_list, [](VM* vm, PyObject* obj) {
-        vm->TypeError("unhashable type: 'list'");
-        return (i64)0;
-    });
-
     _vm->bind__add__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const List& self = _CAST(List&, lhs);
         const List& other = CAST(List&, rhs);
@@ -997,9 +991,13 @@ void init_builtins(VM* _vm) {
         return (i64)_CAST(MappingProxy&, obj).attr().size();
     });
 
-    _vm->bind__hash__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
-        vm->TypeError("unhashable type: 'mappingproxy'");
-        return (i64)0;
+    _vm->bind__eq__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* other){
+        MappingProxy& a = _CAST(MappingProxy&, obj);
+        if(!is_non_tagged_type(other, vm->tp_mappingproxy)){
+            return vm->NotImplemented;
+        }
+        MappingProxy& b = _CAST(MappingProxy&, other);
+        return VAR(a.obj == b.obj);
     });
 
     _vm->bind__getitem__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* index) {
@@ -1056,11 +1054,6 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__len__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(Dict&, obj).size();
-    });
-    
-    _vm->bind__hash__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
-        vm->TypeError("unhashable type: 'dict'");
-        return (i64)0;
     });
 
     _vm->bind__getitem__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* index) {

@@ -16,7 +16,7 @@ Methods return a `bool` indicating if the operation succeeded or not.
 Special thanks for [@koltenpearson](https://github.com/koltenpearson)'s contribution.
 
 !!!
-**C-APIs are always stable and backward compatible** in order to support the second use case.
+C-APIs are always stable and backward compatible.
 !!!
 
 ### Basic functions
