@@ -311,7 +311,7 @@ assert result_mat == correct_result_mat
 # test matmul
 test_mat_copy = test_mat.copy()
 test_mat_copy_2 = test_mat.copy()
-result_mat = test_mat_copy.matmul(test_mat_copy_2)
+result_mat = test_mat_copy @ test_mat_copy_2
 correct_result_mat = mat3x3()
 for i in range(3):
     for j in range(3):
@@ -378,7 +378,6 @@ test_mat_copy = test_mat.copy()
 assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
 
 # test inverse
-assert static_test_mat_float.inverse() == static_test_mat_float_inv
 assert ~static_test_mat_float == static_test_mat_float_inv
 
 try:
