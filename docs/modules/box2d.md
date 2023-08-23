@@ -40,9 +40,9 @@ A `box2d.Body` in pkpy is an unified wrapper of Box2D's `b2Body`,
 It hides the details of Box2D's API and provides a high-level interface.
 !!!
 
-## API list
+## APIs
 
-...
+https://github.com/blueloveTH/pocketpy/blob/main/include/typings/box2d.pyi
 
 ## Example
 
