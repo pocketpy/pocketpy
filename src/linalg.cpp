@@ -83,6 +83,18 @@ namespace pkpy{
             return VAR(self);
         });
 
+        vm->bind_method<1>(type, "rotate_", [](VM* vm, ArgsView args){
+            Vec2& self = _CAST(PyVec2&, args[0]);
+            float radian = CAST(f64, args[1]);
+            float cr = cosf(radian);
+            float sr = sinf(radian);
+            Mat3x3 rotate(cr,   -sr,  0.0f,
+                          sr,   cr,   0.0f,
+                          0.0f, 0.0f, 1.0f);
+            self = rotate.transform_vector(self);
+            return vm->None;
+        });
+
         BIND_VEC_ADDR(2)
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
