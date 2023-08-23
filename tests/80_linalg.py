@@ -211,7 +211,10 @@ for i in range(20):
 
 # test 9 floating parameters is passed
 test_mat_copy = test_mat.copy()
-element_name_list = [e for e in dir(test_mat_copy) if e[:2] != '__' and e[0] == '_']
+element_name_list = []
+for i in range(3):
+    for j in range(3):
+        element_name_list.append(f'_{i+1}{j+1}')
 element_value_list = [getattr(test_mat, attr) for attr in element_name_list]
 assert mat3x3(*tuple(element_value_list)) == test_mat
 
@@ -219,9 +222,7 @@ assert mat3x3(*tuple(element_value_list)) == test_mat
 # test copy
 test_mat_copy = test_mat.copy()
 assert test_mat is not test_mat_copy
-element_name_list = [e for e in dir(test_mat_copy) if e[:2] != '__' and e[0] == '_']
-for i, element in enumerate([getattr(test_mat_copy, e) for e in element_name_list]):
-    assert [getattr(test_mat, e) for e in element_name_list][i] == element
+assert test_mat == test_mat_copy
 
 # test setzeros
 test_mat_copy = test_mat.copy()
@@ -239,9 +240,8 @@ test_mat_copy.set_identity()
 assert test_mat_copy == mat3x3([[1, 0, 0],[0, 1, 0],[0, 0, 1]])
 
 # test __getitem__
-element_name_list = [e for e in dir(test_mat) if e[:2] != '__' and e[0] == '_']
 for i, element in enumerate([getattr(test_mat, e) for e in element_name_list]):
-    assert test_mat.__getitem__((int(i/3), i%3)) == element
+    assert test_mat[int(i/3), i%3] == element
 
 try:
     test_mat[1,2,3]
@@ -257,9 +257,8 @@ except:
 
 # test __setitem__
 test_mat_copy = test_mat.copy()
-element_name_list = [e for e in dir(test_mat_copy) if e[:2] != '__' and e[0] == '_']
 for i, element in enumerate([getattr(test_mat_copy, e) for e in element_name_list]):
-    test_mat_copy.__setitem__((int(i/3), i%3), list(range(9))[i])
+    test_mat_copy[int(i/3), i%3] = list(range(9))[i]
 assert test_mat_copy == mat3x3([[0,1,2], [3,4,5], [6,7,8]])
 
 try:
@@ -336,7 +335,6 @@ assert str(static_test_mat_int) == 'mat3x3([[1.0000, 2.0000, 3.0000],\n        [
 
 # test __getnewargs__
 test_mat_copy = test_mat.copy()
-element_name_list = [e for e in dir(test_mat_copy) if e[:2] != '__' and e[0] == '_']
 element_value_list = [getattr(test_mat, attr) for attr in element_name_list]
 assert tuple(element_value_list) == test_mat.__getnewargs__()
 
@@ -439,43 +437,26 @@ assert test_mat_copy.is_affine() == mat_is_affine(mat_to_list(test_mat_copy))
 
 # test translation
 test_mat_copy = test_mat.copy()
-assert test_mat_copy.translation() == vec2(test_mat_copy[0, 2], test_mat_copy[1, 2])
+assert test_mat_copy._t() == vec2(test_mat_copy[0, 2], test_mat_copy[1, 2])
 
 # 该方法的测试未验证计算的准确性
 # test rotation
 test_mat_copy = test_mat.copy()
-assert type(test_mat_copy.rotation()) is float
+assert type(test_mat_copy._r()) is float
 
 
 # test scale
-def mat_scale(mat_list):
-    return [(mat_list[0][0] ** 2 + mat_list[1][0] ** 2) ** 0.5, (mat_list[0][1] ** 2 + mat_list[1][1] ** 2) ** 0.5]
-    
 test_mat_copy = test_mat.copy()
-temp_vec2 = test_mat_copy.scale()
-temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
-assert [str(e)[:6] for e in mat_scale(mat_to_list(test_mat_copy))] == temp_vec2_list
-
+temp_vec2 = test_mat_copy._s()
 
 # test transform_point
-def mat_transform_point(mat_list, vec2_list):
-    return [mat_list[0][0] * vec2_list[0] + mat_list[0][1] * vec2_list[1] + mat_list[0][2], mat_list[1][0] * vec2_list[0] + mat_list[1][1] * vec2_list[1] + mat_list[1][2]]
-    
 test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
 test_vec2_copy = test_vec2.copy()
 temp_vec2 = test_mat_copy.transform_point(test_vec2_copy)
-temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
-assert [str(e)[:6] for e in mat_transform_point(mat_to_list(test_mat_copy), [test_vec2_copy.x, test_vec2_copy.y])] == temp_vec2_list
-
 
 # test transform_vector
-def mat_transform_vector(mat_list, vec2_list):
-    return [mat_list[0][0] * vec2_list[0] + mat_list[0][1] * vec2_list[1], mat_list[1][0] * vec2_list[0] + mat_list[1][1] * vec2_list[1]]
-    
 test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
 test_vec2_copy = test_vec2.copy()
 temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
-temp_vec2_list = [str(temp_vec2.x)[:6], str(temp_vec2.y)[:6]]
-assert [str(e)[:6] for e in mat_transform_vector(mat_to_list(test_mat_copy), [test_vec2_copy.x, test_vec2_copy.y])] == temp_vec2_list

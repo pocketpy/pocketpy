@@ -212,7 +212,7 @@ namespace pkpy{
                 }
                 return VAR_T(PyMat3x3, mat);
             }
-            vm->TypeError("Mat3x3.__new__ takes 0 or 1 arguments");
+            vm->TypeError(fmt("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
             return vm->None;
         });
 
@@ -404,19 +404,19 @@ namespace pkpy{
             return VAR(self.is_affine());
         });
 
-        vm->bind_method<0>(type, "translation", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "_t", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR_T(PyVec2, self.translation());
+            return VAR_T(PyVec2, self._t());
         });
 
-        vm->bind_method<0>(type, "rotation", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "_r", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR(self.rotation());
+            return VAR(self._r());
         });
 
-        vm->bind_method<0>(type, "scale", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "_s", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR_T(PyVec2, self.scale());
+            return VAR_T(PyVec2, self._s());
         });
 
         vm->bind_method<1>(type, "transform_point", [](VM* vm, ArgsView args){

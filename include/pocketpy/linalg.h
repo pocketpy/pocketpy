@@ -237,9 +237,9 @@ struct Mat3x3{
         return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 
-    Vec2 translation() const { return Vec2(_13, _23); }
-    float rotation() const { return atan2f(_21, _11); }
-    Vec2 scale() const {
+    Vec2 _t() const { return Vec2(_13, _23); }
+    float _r() const { return atan2f(_21, _11); }
+    Vec2 _s() const {
         return Vec2(
             sqrtf(_11 * _11 + _21 * _21),
             sqrtf(_12 * _12 + _22 * _22)
