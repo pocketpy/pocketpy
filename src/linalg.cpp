@@ -267,21 +267,20 @@ namespace pkpy{
             return VAR(self.m[i][j]);
         });
 
-        vm->bind_method<2>(type, "__setitem__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            Tuple& t = CAST(Tuple&, args[1]);
+        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index, PyObject* value){
+            PyMat3x3& self = _CAST(PyMat3x3&, obj);
+            Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
                 vm->TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers");
-                return vm->None;
+                return;
             }
             i64 i = CAST(i64, t[0]);
             i64 j = CAST(i64, t[1]);
             if(i < 0 || i >= 3 || j < 0 || j >= 3){
                 vm->IndexError("index out of range");
-                return vm->None;
+                return;
             }
-            self.m[i][j] = CAST_F(args[2]);
-            return vm->None;
+            self.m[i][j] = CAST_F(value);
         });
 
 #define PROPERTY_FIELD(field) \
@@ -307,56 +306,53 @@ namespace pkpy{
 
 #undef PROPERTY_FIELD
 
-        vm->bind_method<1>(type, "__add__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
+        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            PyMat3x3& other = CAST(PyMat3x3&, _1);
             return VAR_T(PyMat3x3, self + other);
         });
 
-        vm->bind_method<1>(type, "__sub__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyMat3x3& other = CAST(PyMat3x3&, args[1]);
+        vm->bind__sub__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            PyMat3x3& other = CAST(PyMat3x3&, _1);
             return VAR_T(PyMat3x3, self - other);
         });
 
-        vm->bind_method<1>(type, "__mul__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            f64 other = CAST_F(args[1]);
+        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            f64 other = CAST_F(_1);
             return VAR_T(PyMat3x3, self * other);
         });
+
         vm->bind_method<1>(type, "__rmul__", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             f64 other = CAST_F(args[1]);
             return VAR_T(PyMat3x3, self * other);
         });
 
-        vm->bind_method<1>(type, "__truediv__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            f64 other = CAST_F(args[1]);
+        vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            f64 other = CAST_F(_1);
             return VAR_T(PyMat3x3, self / other);
         });
 
-        auto f_mm = [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            if(is_non_tagged_type(args[1], PyMat3x3::_type(vm))){
-                PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+        vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            if(is_non_tagged_type(_1, PyMat3x3::_type(vm))){
+                PyMat3x3& other = _CAST(PyMat3x3&, _1);
                 return VAR_T(PyMat3x3, self.matmul(other));
             }
-            if(is_non_tagged_type(args[1], PyVec3::_type(vm))){
-                PyVec3& other = _CAST(PyVec3&, args[1]);
+            if(is_non_tagged_type(_1, PyVec3::_type(vm))){
+                PyVec3& other = _CAST(PyVec3&, _1);
                 return VAR_T(PyVec3, self.matmul(other));
             }
-            vm->BinaryOptError("@");
-            return vm->None;
-        };
+            return vm->NotImplemented;
+        });
 
-        vm->bind_method<1>(type, "__matmul__", f_mm);
-        vm->bind_method<1>(type, "matmul", f_mm);
-
-        vm->bind_method<1>(type, "__eq__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            if(is_non_tagged_type(args[1], PyMat3x3::_type(vm))){
-                PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
+            PyMat3x3& self = _CAST(PyMat3x3&, _0);
+            if(is_non_tagged_type(_1, PyMat3x3::_type(vm))){
+                PyMat3x3& other = _CAST(PyMat3x3&, _1);
                 return VAR(self == other);
             }
             return vm->NotImplemented;
@@ -370,14 +366,6 @@ namespace pkpy{
         vm->bind_method<0>(type, "transpose", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             return VAR_T(PyMat3x3, self.transpose());
-        });
-
-        vm->bind_method<0>(type, "inverse", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            Mat3x3 ret;
-            bool ok = self.inverse(ret);
-            if(!ok) vm->ValueError("matrix is not invertible");
-            return VAR_T(PyMat3x3, ret);
         });
 
         vm->bind__invert__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
