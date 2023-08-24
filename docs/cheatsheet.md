@@ -163,13 +163,15 @@ def add(a, b):
   return a + b 
 ```
 
+Call a function
+
 ```cpp
 PyObject* f_add = vm->eval("add");
 PyObject* ret = vm->call(f_add, VAR(1), VAR(2));
 std::cout << CAST(i64, ret);	// 3
 ```
 
-## Call python methods
+Call a method
 
 ```cpp
 PyObject* obj = vm->exec("MyClass(1, 2)");
@@ -177,7 +179,7 @@ PyObject* ret = vm->call_method(obj, "sum");
 std::cout << CAST(i64, ret);	// 3
 ```
 
-## Cache python names
+Cache the name of a function or method to avoid string-based lookup
 
 ```cpp
 // cache the name "add" to avoid string-based lookup
@@ -187,6 +189,8 @@ PyObject* ret = vm->call_method(obj, m_sum);
 
 ## Bind native functions
 
+Bind a native function
+
 ```cpp
 vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
     int a = CAST(int, args[0]);
@@ -194,7 +198,8 @@ vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
     return VAR(a + b);
 });
 
-// or you can provide a docstring
+Bind a native function with docstring
+
 vm->bind(obj,
     "add(a: int, b: int) -> int",
     "add two integers", [](VM* vm, ArgsView args){
@@ -204,7 +209,7 @@ vm->bind(obj,
 });
 ```
 
-## Bind native properties
+Bind a property
 
 ```cpp
     // getter and setter of property `x`
@@ -219,3 +224,21 @@ vm->bind(obj,
           return vm->None;
       });
 ```
+
+## Modules
+
+Create a source module
+
+```cpp
+vm->_lazy_modules["test"] = "pi = 3.14";
+// import test
+// print(test.pi) # 3.14
+```
+
+Create a native module
+
+```cpp
+PyObject* mod = vm->new_module("test");
+vm->setattr(mod, "pi", VAR(3.14));
+```
+
