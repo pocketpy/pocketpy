@@ -114,8 +114,12 @@ namespace pkpy{
         return nullptr;
     }
 
-    PyObject* VM::eval(Str source, PyObject* _module){
-        return exec(source, "<eval>", EVAL_MODE, _module);
+    void VM::exec(Str source){
+        exec(source, "main.py", EXEC_MODE);
+    }
+
+    PyObject* VM::eval(Str source){
+        return exec(source, "<eval>", EVAL_MODE);
     }
 
     PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){

@@ -168,7 +168,8 @@ public:
     PyObject* find_name_in_mro(PyObject* cls, StrName name);
     bool isinstance(PyObject* obj, Type cls_t);
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr);
-    PyObject* eval(Str source, PyObject* _module=nullptr);
+    void exec(Str source);
+    PyObject* eval(Str source);
 
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
