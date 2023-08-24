@@ -4,13 +4,35 @@ label: 'Installation'
 order: 100
 ---
 
+You have two options to integrate pkpy into your project.
+
+#### Use the single header file
+
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
 
-You can also use cmake to build it from source. See CMakeLists.txt for details.
+#### Use CMake
+
+Clone the whole repository as a submodule in your project,
+You need **Python 3** installed on your system because CMakeLists.txt
+requires it to generate some files.
+
+In your CMakelists.txt, add the following lines:
+
+```cmake
+option(PK_BUILD_STATIC_LIB "Build static library" ON)
+add_subdirectory(pocketpy)
+target_link_libraries(your_target pocketpy)
+```
+
 These variables can be set to control the build process:
 + `PK_BUILD_STATIC_LIB` - Build the static library
 + `PK_BUILD_SHARED_LIB` - Build the shared library
++ `PK_USE_BOX2D` - Build with Box2D module
+
+See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
+
+#### Unity plugin
 
 If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
 
@@ -56,7 +78,7 @@ A process can have multiple `VM` instances. Each `VM` instance is independent fr
 
 !!!
 Always use C++ `new` operator to create a `VM` instance.
-Do not declare it on the stack.
+DO NOT declare it on the stack.
 !!!
 
 ```cpp
@@ -83,5 +105,5 @@ You can redirect them to your own buffer by setting `vm->_stdout` and `vm->_stde
 These two fields are C function pointers `PrintFunc` with the following signature:
 
 ```cpp
-typedef void(*PrintFunc)(VM*, const Str&);
+typedef void(*PrintFunc)(VM*, const char*, int)
 ```
