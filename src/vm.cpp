@@ -114,6 +114,10 @@ namespace pkpy{
         return nullptr;
     }
 
+    PyObject* VM::eval(Str source, PyObject* _module){
+        return exec(source, "<eval>", EVAL_MODE, _module);
+    }
+
     PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         const PyTypeInfo& base_info = _all_types[base];
