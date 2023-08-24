@@ -129,6 +129,28 @@ Access extended python types
 PyObject* voidp_t = VoidP::_type(vm);
 ```
 
+Check if an object is a python type
+
+```cpp
+PyObject* obj;
+bool ok = is_type(obj, vm->tp_int); // check if obj is an int
+```
+
+Get the type of a python object
+
+```cpp
+PyObject* obj = VAR(1);
+PyObject* t = vm->_t(obj);      // <class 'int'>
+```
+
+Convert a type object into a type index
+
+```cpp
+PyObject* int_t = vm->_t(vm->tp_int);
+Type t = PK_OBJ_GET(Type, int_t);
+// t == vm->tp_int
+```
+
 ## Access attributes
 
 Check an object supports attribute access
@@ -187,7 +209,68 @@ const static StrName m_sum("sum");
 PyObject* ret = vm->call_method(obj, m_sum);
 ```
 
-## Bind native functions
+## Special operations
+
+Compare two python objects
+
+```cpp
+PyObject* obj1 = VAR(1);
+PyObject* obj2 = VAR(2);
+bool ok = vm->py_equals(obj1, obj2);
+```
+
+Convert a python object to string
+
+```cpp
+PyObject* obj = VAR("123");
+PyObject* s = vm->py_str(obj);  // 123
+```
+
+Get the string representation of a python object
+
+```cpp
+PyObject* obj = VAR("123");
+std::cout << vm->py_repr(obj);  // '123'
+```
+
+Get the JSON representation of a python object
+
+```cpp
+PyObject* obj = VAR("123");
+std::cout << vm->py_json(obj);  // "123"
+```
+
+Get the hash value of a python object
+
+```cpp
+PyObject* obj = VAR(1);
+i64 h = vm->py_hash(obj);       // 1
+```
+
+Get the iterator of a python object
+
+```cpp
+PyObject* obj = vm->eval("range(3)");
+PyObject* iter = vm->py_iter(obj);
+```
+
+Get the next item of an iterator
+
+```cpp
+PyObject* obj = vm->py_next(iter);
+if(obj == vm->StopIteration){
+    // end of iteration
+}
+```
+
+Convert a python iterable to a list
+  
+```cpp
+PyObject* obj = vm->eval("range(3)");
+PyObject* list = vm->py_list(obj);
+```
+
+## Bindings
 
 Bind a native function
 
