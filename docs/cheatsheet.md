@@ -10,6 +10,7 @@ Setup pocketpy
 
 ```cpp
 #include "pocketpy.h"
+using namespace pkpy;
 ```
 
 Create a python virtual machine
