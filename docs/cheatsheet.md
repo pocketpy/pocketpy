@@ -1,6 +1,6 @@
 ---
 icon: log
-title: 'Cheat Sheet'
+title: 'Cheat sheet'
 order: 22
 ---
 
@@ -138,14 +138,17 @@ PyObject* obj;
 bool ok = !is_tagged(obj) && obj->is_attr_valid();
 ```
 
-Get and set attributes
-
 ```python
 class MyClass:
   def __init__(self, x, y):
     self.x = x
     self.y = y
+
+  def sum(self):
+    return self.x + self.y
 ```
+
+Get and set attributes
 
 ```cpp
 PyObject* obj = vm->exec("MyClass(1, 2)");
@@ -164,4 +167,55 @@ def add(a, b):
 PyObject* f_add = vm->eval("add");
 PyObject* ret = vm->call(f_add, VAR(1), VAR(2));
 std::cout << CAST(i64, ret);	// 3
+```
+
+## Call python methods
+
+```cpp
+PyObject* obj = vm->exec("MyClass(1, 2)");
+PyObject* ret = vm->call_method(obj, "sum");
+std::cout << CAST(i64, ret);	// 3
+```
+
+## Cache python names
+
+```cpp
+// cache the name "add" to avoid string-based lookup
+const static StrName m_sum("sum");
+PyObject* ret = vm->call_method(obj, m_sum);
+```
+
+## Bind native functions
+
+```cpp
+vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
+    int a = CAST(int, args[0]);
+    int b = CAST(int, args[1]);
+    return VAR(a + b);
+});
+
+// or you can provide a docstring
+vm->bind(obj,
+    "add(a: int, b: int) -> int",
+    "add two integers", [](VM* vm, ArgsView args){
+    int a = CAST(int, args[0]);
+    int b = CAST(int, args[1]);
+    return VAR(a + b);
+});
+```
+
+## Bind native properties
+
+```cpp
+    // getter and setter of property `x`
+    vm->bind_property(type, "x: int",
+      [](VM* vm, ArgsView args){
+          Point& self = CAST(Point&, args[0]);
+          return VAR(self.x);
+      },
+      [](VM* vm, ArgsView args){
+          Point& self = CAST(Point&, args[0]);
+          self.x = CAST(int, args[1]);
+          return vm->None;
+      });
 ```
