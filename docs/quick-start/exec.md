@@ -21,11 +21,11 @@ the return value will be `nullptr`.
 
 ### Compile mode
 
-The `mode` parameter controls how the source code is compiled. There are 4 possible values:
+The `mode` parameter controls how the source code is compiled. There are 5 possible values:
 + `EXEC_MODE`, this is the default mode. Just do normal execution.
 + `EVAL_MODE`, this mode is used for evaluating a single expression. The `source` should be a single expression. It cannot contain any statements.
 + `REPL_MODE`, this mode is used for REPL. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
-+ `CELL_MODE`, this mode is designed for Jupyter like execution.
++ `CELL_MODE`, this mode is designed for Jupyter like execution. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
 + `JSON_MODE`, this mode is used for JSON parsing. It is similar to `EVAL_MODE`, but uses a lexing rule designed for JSON.
 
 
@@ -37,7 +37,19 @@ These two methods are provided for this purpose:
 + `CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope)`
 + `PyObject* _exec(CodeObject_ co, PyObject* _module)`
 
-`compile` compiles the source code into a `CodeObject_` instance.
-`_exec` executes the `CodeObject_` instance. Leave `unknown_global_scope` to `false` if you are not sure.
+1. `compile` compiles the source code into a `CodeObject_` instance. Leave `unknown_global_scope` to `false` if you don't know what it means.
+2. `_exec` executes the `CodeObject_` instance.
 
-It does not handle exceptions, you need to use `try..catch` manually.
+!!!
+`_exec` does not handle exceptions, you need to use `try..catch` manually.
+!!!
+
+```cpp
+try{
+    PyObject* result = vm->exec("123", "<eval>", EVAL_MODE);
+    std::cout << CAST(int, result);   // 123
+}catch(Exception& e){
+    // use e.summary() to get a summary of the exception
+    std::cerr << e.summary() << std::endl;
+}
+```
