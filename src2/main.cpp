@@ -47,6 +47,12 @@ std::string f_input(){
 }
 
 static int f_input(pkpy_vm* vm){
+    if(!pkpy_is_none(vm, -1)){
+        pkpy_CString prompt;
+        bool ok = pkpy_to_string(vm, -1, &prompt);
+        if(!ok) return 0;
+        std::cout << std::string_view(prompt.data, prompt.size) << std::flush;
+    }
     bool eof;
     std::string output = pkpy_platform_getline(&eof);
     pkpy_push_string(vm, pkpy_string(output.c_str()));
@@ -56,7 +62,7 @@ static int f_input(pkpy_vm* vm){
 int main(int argc, char** argv){
     pkpy_vm* vm = pkpy_new_vm(true);
 
-    pkpy_push_function(vm, "input() -> str", f_input);
+    pkpy_push_function(vm, "input(prompt=None) -> str", f_input);
     pkpy_eval(vm, "__import__('builtins')");
     pkpy_setattr(vm, pkpy_name("input"));
 
