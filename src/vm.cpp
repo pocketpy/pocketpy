@@ -397,9 +397,12 @@ PyObject* VM::format(Str spec, PyObject* obj){
     }
 
     char pad_c = ' ';
-    if(spec[0] == '0'){
-        pad_c = '0';
-        spec = spec.substr(1);
+    for(char c: std::string_view("0-=*#@!~")){
+        if(spec[0] == c){
+            pad_c = c;
+            spec = spec.substr(1);
+            break;
+        }
     }
     char align;
     if(spec[0] == '>'){
