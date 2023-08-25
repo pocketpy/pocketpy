@@ -405,7 +405,10 @@ PyObject* VM::format(Str spec, PyObject* obj){
         }
     }
     char align;
-    if(spec[0] == '>'){
+    if(spec[0] == '^'){
+        align = '^';
+        spec = spec.substr(1);
+    }else if(spec[0] == '>'){
         align = '>';
         spec = spec.substr(1);
     }else if(spec[0] == '<'){
@@ -452,9 +455,17 @@ PyObject* VM::format(Str spec, PyObject* obj){
     }
     if(width != -1 && width > ret.length()){
         int pad = width - ret.length();
-        std::string padding(pad, pad_c);
-        if(align == '>') ret = padding.c_str() + ret;
-        else ret = ret + padding.c_str();
+        if(align == '>' || align == '<'){
+            std::string padding(pad, pad_c);
+            if(align == '>') ret = padding.c_str() + ret;
+            else ret = ret + padding.c_str();
+        }else{  // ^
+            int pad_left = pad / 2;
+            int pad_right = pad - pad_left;
+            std::string padding_left(pad_left, pad_c);
+            std::string padding_right(pad_right, pad_c);
+            ret = padding_left.c_str() + ret + padding_right.c_str();
+        }
     }
     return VAR(ret);
 }

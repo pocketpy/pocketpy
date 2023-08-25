@@ -35,6 +35,10 @@ assert f'{a:>10}' == '        10'
 assert f'{a:<10}' == '10        '
 assert f'{a:<10.2f}' == '10.00     '
 assert f'{a:>10.2f}' == '     10.00'
+
+assert f'{a:^10}' == '    10    '
+assert f'{a:^10.2f}' == '  10.00   '
+
 assert f'{a:3d}' == ' 10'
 assert f'{a:10d}' == '        10'
 assert f'{a:1d}' == '10'
@@ -61,3 +65,10 @@ assert f'{obj.b:10s}' == '123       '
 a = [(1,2), 3, obj]
 assert f'{a[0][1]}' == '2'
 assert f'abc{a[-1].b:10}==={1234}' == 'abc123       ===1234'
+
+assert f'{"text":10}' == 'text      '
+assert f'{"test":*>10}' == '******test'
+assert f'{"test":*<10}' == 'test******'
+assert f'{"test":*^10}' == '***test***'
+assert f'{"test":*^11}' == '***test****'
+assert f'{12345:0>10}' == '0000012345'
