@@ -590,13 +590,9 @@ __NEXT_STEP:;
         }
         DISPATCH();
     /*****************************************/
-    TARGET(IMPORT_NAME)
+    TARGET(IMPORT_PATH)
         _0 = co_consts[byte.arg];
-        PUSH(py_import(CAST(Str&, _0)));
-        DISPATCH();
-    TARGET(IMPORT_NAME_REL)
-        _0 = co_consts[byte.arg];
-        PUSH(py_import(CAST(Str&, _0), true));
+        PUSH(py_import(CAST(Str&, _0), frame->_module));
         DISPATCH();
     TARGET(POP_IMPORT_STAR) {
         _0 = POPX();        // pop the module
@@ -606,7 +602,7 @@ __NEXT_STEP:;
                 _name = StrName::get(CAST(Str&, key).sv());
                 PyObject* value = _0->attr().try_get(_name);
                 if(value == nullptr){
-                    _error("ImportError", fmt("cannot import name ", _name.escape()));
+                    ImportError(fmt("cannot import name ", _name.escape()));
                 }else{
                     frame->f_globals().set(_name, value);
                 }

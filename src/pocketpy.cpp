@@ -171,18 +171,18 @@ void init_builtins(VM* _vm) {
             if(ext == ".so" || ext == ".dll" || ext == ".dylib"){
                 dylib_entry_t entry = load_dylib(name.c_str());
                 if(!entry){
-                    vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
+                    vm->ImportError("cannot load dynamic library: " + name.escape());
                 }
                 vm->_c.s_view.push(ArgsView(vm->s_data.end(), vm->s_data.end()));
                 const char* name = entry(vm, PK_VERSION);
                 vm->_c.s_view.pop();
                 if(name == nullptr){
-                    vm->_error("ImportError", "module initialization failed: " + Str(name).escape());
+                    vm->ImportError("module initialization failed: " + Str(name).escape());
                 }
                 return vm->_modules[name];
             }
         }
-        return vm->py_import(name);
+        return vm->py_import(name, vm->top_frame()->_module);
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
@@ -560,7 +560,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(_vm->tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]));
+        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]), false);
         List ret(parts.size());
         for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
@@ -1225,6 +1225,16 @@ void init_builtins(VM* _vm) {
         }
         return vm->True;
     });
+
+    _vm->bind__repr__(_vm->tp_module, [](VM* vm, PyObject* obj) {
+        const Str& package = CAST(Str&, obj->attr(__package__));
+        Str name = CAST(Str&, obj->attr(__name__));
+        if(!package.empty()){
+            name = package + "." + name;
+        }
+        return VAR(fmt("<module ", name.escape(), ">"));
+    });
+
     /************ property ************/
     _vm->bind_constructor<-1>("property", [](VM* vm, ArgsView args) {
         if(args.size() == 1+1){

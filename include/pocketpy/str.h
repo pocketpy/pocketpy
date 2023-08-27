@@ -72,8 +72,9 @@ struct Str{
     Str upper() const;
     Str escape(bool single_quote=true) const;
     int index(const Str& sub, int start=0) const;
+    Str replace(char old, char new_) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
-    std::vector<std::string_view> split(const Str& sep) const;
+    std::vector<std::string_view> split(const Str& sep, bool remove_empty) const;
 
     /*************unicode*************/
     int _unicode_index_to_byte(int i) const;
@@ -186,6 +187,7 @@ const StrName __enter__ = StrName::get("__enter__");
 const StrName __exit__ = StrName::get("__exit__");
 const StrName __name__ = StrName::get("__name__");
 const StrName __all__ = StrName::get("__all__");
+const StrName __package__ = StrName::get("__package__");
 
 const StrName pk_id_add = StrName::get("add");
 const StrName pk_id_set = StrName::get("set");

@@ -368,6 +368,7 @@ public:
     void UnboundLocalError(StrName name){ _error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
     void KeyError(PyObject* obj){ _error("KeyError", PK_OBJ_GET(Str, py_repr(obj))); }
     void BinaryOptError(const char* op) { TypeError(fmt("unsupported operand type(s) for ", op)); }
+    void ImportError(const Str& msg){ _error("ImportError", msg); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
@@ -409,31 +410,21 @@ public:
     }
 
     struct ImportContext{
-        // 0: normal; 1: __init__.py; 2: relative
-        std::vector<std::pair<StrName, int>> pending;
-
+        std::vector<StrName> pending;
         struct Temp{
-            VM* vm;
+            ImportContext* ctx;
             StrName name;
-
-            Temp(VM* vm, StrName name, int type): vm(vm), name(name){
-                ImportContext* ctx = &vm->_import_context;
-                ctx->pending.emplace_back(name, type);
+            Temp(ImportContext* ctx, StrName name) : ctx(ctx), name(name){
+                ctx->pending.push_back(name);
             }
-
-            ~Temp(){
-                ImportContext* ctx = &vm->_import_context;
-                ctx->pending.pop_back();
-            }
+            ~Temp(){ ctx->pending.pop_back(); }
         };
 
-        Temp temp(VM* vm, StrName name, int type){
-            return Temp(vm, name, type);
-        }
+        Temp scope(StrName name){ return {this, name}; }
     };
 
     ImportContext _import_context;
-    PyObject* py_import(Str path, bool relative=false);
+    PyObject* py_import(Str path, PyObject* _module);
     ~VM();
 
 #if PK_DEBUG_CEVAL_STEP
@@ -447,7 +438,7 @@ public:
     bool py_bool(PyObject* obj);
     i64 py_hash(PyObject* obj);
     PyObject* py_list(PyObject*);
-    PyObject* new_module(StrName name);
+    PyObject* new_module(Str name, Str package="");
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);

@@ -215,57 +215,73 @@ namespace pkpy{
         return call_method(obj, __next__);
     }
 
-    PyObject* VM::py_import(Str name, bool relative){
-        // path is '.' separated
-        Str filename;
-        int type;
-        if(relative){
-            ImportContext* ctx = &_import_context;
-            type = 2;
-            for(auto it=ctx->pending.rbegin(); it!=ctx->pending.rend(); ++it){
-                if(it->second == 2) continue;
-                if(it->second == 1){
-                    filename = fmt(it->first, kPlatformSep, name, ".py");
-                    name = fmt(it->first, '.', name).c_str();
-                    break;
-                }
+    PyObject* VM::py_import(Str path, PyObject* _module){
+        if(path.empty()) vm->ValueError("empty module name");
+
+        auto f_join = [](const std::vector<std::string_view>& cpnts){
+            std::stringstream ss;
+            for(int i=0; i<cpnts.size(); i++){
+                if(i != 0) ss << ".";
+                ss << cpnts[i];
             }
-            if(filename.length() == 0) _error("ImportError", "relative import outside of package");
-        }else{
-            type = 0;
-            filename = fmt(name, ".py");
-        }
-        for(auto& [k, v]: _import_context.pending){
-            if(k == name){
-                vm->_error("ImportError", fmt("circular import ", name.escape()));
+            return Str(ss.str());
+        };
+
+        if(path[0] == '.'){
+            Str _mod_name = CAST(Str&, _module->attr(__name__));
+            Str _mod_package = CAST(Str&, _module->attr(__package__));
+            // get _module's fullname
+            if(!_mod_package.empty()) _mod_name = _mod_package + "." + _mod_name;
+            // convert relative path to absolute path
+            std::vector<std::string_view> cpnts = _mod_name.split(".", true);
+            int prefix = 0;     // how many dots in the prefix
+            for(int i=0; i<path.length(); i++){
+                if(path[i] == '.') prefix++;
+                else break;
             }
+            if(prefix > cpnts.size()) ImportError("attempted relative import beyond top-level package");
+            path = path.substr(prefix);     // remove prefix
+            for(int i=1; i<prefix; i++) cpnts.pop_back();
+            cpnts.push_back(path.sv());
+            path = f_join(cpnts);
         }
+
+        StrName name(path);     // path to StrName
+
+        // check circular import
+        for(StrName pending_name: _import_context.pending){
+            if(pending_name == name) ImportError(fmt("circular import ", name.escape()));
+        }
+
         PyObject* ext_mod = _modules.try_get(name);
-        if(ext_mod == nullptr){
-            Str source;
-            auto it = _lazy_modules.find(name);
-            if(it == _lazy_modules.end()){
-                Bytes b = _import_handler(filename);
-                if(!relative && !b){
-                    filename = fmt(name, kPlatformSep, "__init__.py");
-                    b = _import_handler(filename);
-                    if(b) type = 1;
-                }
-                if(!b) _error("ImportError", fmt("module ", name.escape(), " not found"));
-                source = Str(b.str());
-            }else{
-                source = it->second;
-                _lazy_modules.erase(it);
+        if(ext_mod != nullptr) return ext_mod;
+
+        // try import
+        Str filename = path.replace('.', kPlatformSep) + ".py";
+        Str source;
+        auto it = _lazy_modules.find(name);
+        if(it == _lazy_modules.end()){
+            Bytes b = _import_handler(filename);
+            if(!b){
+                filename = path.replace('.', kPlatformSep).str() + kPlatformSep + "__init__.py";
+                b = _import_handler(filename);
             }
-            auto _ = _import_context.temp(this, name, type);
-            CodeObject_ code = compile(source, filename, EXEC_MODE);
-            PyObject* new_mod = new_module(name);
-            _exec(code, new_mod);
-            new_mod->attr()._try_perfect_rehash();
-            return new_mod;
+            if(!b) ImportError(fmt("module ", path.escape(), " not found"));
+            source = Str(b.str());
         }else{
-            return ext_mod;
+            source = it->second;
+            _lazy_modules.erase(it);
         }
+        auto _ = _import_context.scope(name);
+        CodeObject_ code = compile(source, filename, EXEC_MODE);
+
+        auto all_cpnts = path.split(".", true);
+        Str name_cpnt = all_cpnts.back();
+        all_cpnts.pop_back();
+        PyObject* new_mod = new_module(name_cpnt, f_join(all_cpnts));
+        _exec(code, new_mod);
+        new_mod->attr()._try_perfect_rehash();
+        return new_mod;
     }
 
     VM::~VM() {
@@ -471,12 +487,15 @@ PyObject* VM::format(Str spec, PyObject* obj){
     return VAR(ret);
 }
 
-PyObject* VM::new_module(StrName name) {
+PyObject* VM::new_module(Str name, Str package) {
     PyObject* obj = heap._new<DummyModule>(tp_module);
-    obj->attr().set("__name__", VAR(name.sv()));
+    obj->attr().set(__name__, VAR(name));
+    obj->attr().set(__package__, VAR(package));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     if(_modules.contains(name)) throw std::runtime_error("module already exists");
+    // convert to fullname and set it into _modules
+    if(!package.empty()) name = package + "." + name;
     _modules.set(name, obj);
     return obj;
 }
@@ -484,14 +503,14 @@ PyObject* VM::new_module(StrName name) {
 static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
     switch(byte.op){
-        case OP_LOAD_CONST: case OP_FORMAT_STRING:
+        case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){
                 argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")");
             }
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
         case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
-        case OP_IMPORT_NAME: case OP_BEGIN_CLASS: case OP_RAISE:
+        case OP_BEGIN_CLASS: case OP_RAISE:
         case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR:
             argStr += fmt(" (", StrName(byte.arg).sv(), ")");
             break;
@@ -884,10 +903,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     return nullptr;
 }
 
-
-
-
-
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* objtype;
@@ -919,6 +934,11 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
         }
         return cls_var;
     }
+    
+    if(is_non_tagged_type(obj, tp_module)){
+        // try import and cache it!
+    }
+
     if(throw_err) AttributeError(obj, name);
     return nullptr;
 }

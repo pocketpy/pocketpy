@@ -254,6 +254,14 @@ int utf8len(unsigned char c, bool suppress){
         return p - data;
     }
 
+    Str Str::replace(char old, char new_) const{
+        Str copied = *this;
+        for(int i=0; i<copied.size; i++){
+            if(copied.data[i] == old) copied.data[i] = new_;
+        }
+        return copied;
+    }
+
     Str Str::replace(const Str& old, const Str& new_, int count) const {
         std::stringstream ss;
         int start = 0;
@@ -308,16 +316,19 @@ int utf8len(unsigned char c, bool suppress){
         return _byte_index_to_unicode(size);
     }
 
-    std::vector<std::string_view> Str::split(const Str& sep) const{
+    std::vector<std::string_view> Str::split(const Str& sep, bool remove_empty) const{
         std::vector<std::string_view> result;
+        std::string_view tmp;
         int start = 0;
         while(true){
             int i = index(sep, start);
             if(i == -1) break;
-            result.push_back(sv().substr(start, i - start));
+            tmp = sv().substr(start, i - start);
+            if(!remove_empty || !tmp.empty()) result.push_back(tmp);
             start = i + sep.size;
         }
-        result.push_back(sv().substr(start, size - start));
+        tmp = sv().substr(start, size - start);
+        if(!remove_empty || !tmp.empty()) result.push_back(tmp);
         return result;
     }
 
