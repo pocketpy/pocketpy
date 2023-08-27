@@ -308,7 +308,7 @@ int utf8len(unsigned char c, bool suppress){
         return _byte_index_to_unicode(size);
     }
 
-    std::vector<std::string_view> Str::split(Str sep) const{
+    std::vector<std::string_view> Str::split(const Str& sep) const{
         std::vector<std::string_view> result;
         int start = 0;
         while(true){

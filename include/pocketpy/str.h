@@ -73,7 +73,7 @@ struct Str{
     Str escape(bool single_quote=true) const;
     int index(const Str& sub, int start=0) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
-    std::vector<std::string_view> split(Str sep) const;
+    std::vector<std::string_view> split(const Str& sep) const;
 
     /*************unicode*************/
     int _unicode_index_to_byte(int i) const;
