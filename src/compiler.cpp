@@ -472,20 +472,14 @@ __SUBSCR_END:
         consume(TK("@dedent"));
     }
 
-    Str Compiler::_compile_import() {
-        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
-        Opcode op = OP_IMPORT_NAME;
-        if(match(TK("."))) op = OP_IMPORT_NAME_REL;
-        consume(TK("@id"));
-        Str name = prev().str();
-        ctx()->emit(op, StrName(name).index, prev().line);
-        return name;
-    }
-
-    // import a as b
+    // import a [as b]
+    // import a [as b], c [as d]
     void Compiler::compile_normal_import() {
+        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
         do {
-            Str name = _compile_import();
+            consume(TK("@id"));
+            Str name = prev().str();
+            ctx()->emit(OP_IMPORT_NAME, ctx()->add_const(VAR(name)), prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
@@ -495,19 +489,55 @@ __SUBSCR_END:
         consume_end_stmt();
     }
 
-    // from a import b as c, d as e
+    // from a import b [as c], d [as e]
+    // from a.b import c [as d]
+    // from . import a [as b]
+    // from .a import b [as c]
+    // from .a.b import c [as d]
+    // from xxx import *
     void Compiler::compile_from_import() {
-        _compile_import();
+        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
+        Opcode op = OP_IMPORT_NAME;
+        if(match(TK("."))) op = OP_IMPORT_NAME_REL;
+        std::vector<Str> parts;
+
+        if(op == OP_IMPORT_NAME_REL){
+            if(match(TK("@id"))){
+                parts.push_back(prev().str());
+                while (match(TK("."))) {
+                    consume(TK("@id"));
+                    parts.push_back(prev().str());
+                }
+            }
+        }else{
+            consume(TK("@id"));
+            parts.push_back(prev().str());
+            while (match(TK("."))) {
+                consume(TK("@id"));
+                parts.push_back(prev().str());
+            }
+        }
+
+        FastStrStream ss;
+        for (int i=0; i<parts.size(); i++) {
+            if(i > 0) ss << ".";
+            ss << parts[i];
+        }
+        ctx()->emit(op, ctx()->add_const(VAR(ss.str())), prev().line);
         consume(TK("import"));
+
         if (match(TK("*"))) {
-            ctx()->emit(OP_IMPORT_STAR, BC_NOARG, prev().line);
+            // pop the module and import __all__
+            ctx()->emit(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
             consume_end_stmt();
             return;
         }
+
         do {
             ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
             Str name = prev().str();
+            // module's __getattr__ should be customized or use a new opcode...
             ctx()->emit(OP_LOAD_ATTR, StrName(name).index, prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));

@@ -215,7 +215,8 @@ namespace pkpy{
         return call_method(obj, __next__);
     }
 
-    PyObject* VM::py_import(StrName name, bool relative){
+    PyObject* VM::py_import(Str name, bool relative){
+        // path is '.' separated
         Str filename;
         int type;
         if(relative){

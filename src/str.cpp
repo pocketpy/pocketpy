@@ -308,6 +308,19 @@ int utf8len(unsigned char c, bool suppress){
         return _byte_index_to_unicode(size);
     }
 
+    std::vector<std::string_view> Str::split(Str sep) const{
+        std::vector<std::string_view> result;
+        int start = 0;
+        while(true){
+            int i = index(sep, start);
+            if(i == -1) break;
+            result.push_back(sv().substr(start, i - start));
+            start = i + sep.size;
+        }
+        result.push_back(sv().substr(start, size - start));
+        return result;
+    }
+
     std::ostream& operator<<(std::ostream& os, const StrName& sn){
         return os << sn.sv();
     }

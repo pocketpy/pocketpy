@@ -549,14 +549,21 @@ void init_builtins(VM* _vm) {
         return VAR(self.u8_getitem(i));
     });
 
-    _vm->bind_method<-1>("str", "replace", [](VM* vm, ArgsView args) {
-        if(args.size() != 1+2 && args.size() != 1+3) vm->TypeError("replace() takes 2 or 3 arguments");
+    _vm->bind(_vm->_t(_vm->tp_str), "replace(self, old, new, count=-1)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& old = CAST(Str&, args[1]);
         if(old.empty()) vm->ValueError("empty substring");
         const Str& new_ = CAST(Str&, args[2]);
-        int count = args.size()==1+3 ? CAST(int, args[3]) : -1;
+        int count = CAST(int, args[3]);
         return VAR(self.replace(old, new_, count));
+    });
+
+    _vm->bind(_vm->_t(_vm->tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]));
+        List ret(parts.size());
+        for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
+        return VAR(std::move(ret));
     });
 
     _vm->bind_method<1>("str", "index", [](VM* vm, ArgsView args) {

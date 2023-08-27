@@ -591,15 +591,15 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(IMPORT_NAME)
-        _name = StrName(byte.arg);
-        PUSH(py_import(_name));
+        _0 = co_consts[byte.arg];
+        PUSH(py_import(CAST(Str&, _0)));
         DISPATCH();
     TARGET(IMPORT_NAME_REL)
-        _name = StrName(byte.arg);
-        PUSH(py_import(_name, true));
+        _0 = co_consts[byte.arg];
+        PUSH(py_import(CAST(Str&, _0), true));
         DISPATCH();
-    TARGET(IMPORT_STAR) {
-        _0 = POPX();
+    TARGET(POP_IMPORT_STAR) {
+        _0 = POPX();        // pop the module
         _1 = _0->attr().try_get(__all__);
         if(_1 != nullptr){
             for(PyObject* key: CAST(List&, _1)){

@@ -105,7 +105,6 @@ class Compiler {
     void exprLiteral0();
 
     void compile_block_body();
-    Str _compile_import();
     void compile_normal_import();
     void compile_from_import();
     bool is_expression();
