@@ -247,7 +247,7 @@ namespace pkpy{
             path = f_join(cpnts);
         }
 
-        std::cout << "py_import(" << path.escape() << ")" << std::endl;
+        // std::cout << "py_import(" << path.escape() << ")" << std::endl;
 
         StrName name(path);     // path to StrName
 
@@ -940,9 +940,8 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
         return cls_var;
     }
     
-    if(is_non_tagged_type(obj, tp_module)){
-        // try import and cache it!
-    }
+    // if(is_non_tagged_type(obj, tp_module)){
+    // }
 
     if(throw_err) AttributeError(obj, name);
     return nullptr;
