@@ -345,7 +345,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                         if(matchchar('.')) {
                             add_token(TK("..."));
                         } else {
-                            SyntaxError("invalid token '..'");
+                            add_token(TK(".."));
                         }
                     } else {
                         add_token(TK("."));

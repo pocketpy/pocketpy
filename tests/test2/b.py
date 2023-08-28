@@ -1,7 +1,7 @@
 D = 10
 
 try:
-    import test
+    import abc  # does not exist
     exit(1)
 except ImportError:
     pass

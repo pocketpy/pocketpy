@@ -1,1 +1,1 @@
-from ._a import D
+from .a import D

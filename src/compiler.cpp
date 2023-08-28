@@ -502,7 +502,8 @@ __SUBSCR_END:
 
         while(true){
             switch(curr().type){
-                case TK("."): dots++; break;
+                case TK("."): dots+=1; break;
+                case TK(".."): dots+=2; break;
                 case TK("..."): dots+=3; break;
                 default: goto __EAT_DOTS_END;
             }

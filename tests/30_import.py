@@ -6,3 +6,12 @@ except ImportError:
 import test1
 
 assert test1.add(1, 2) == 13
+
+from test2.a.g import get_value
+assert get_value() == '123'
+
+import test2
+assert test2.a.g.get_value() == '123'
+
+from test2.utils import get_value_2
+assert get_value_2() == '123'
