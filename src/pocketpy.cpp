@@ -1229,9 +1229,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_module, [](VM* vm, PyObject* obj) {
         const Str& package = CAST(Str&, obj->attr(__package__));
         Str name = CAST(Str&, obj->attr(__name__));
-        if(!package.empty()){
-            name = package + "." + name;
-        }
+        if(!package.empty()) name = package + "." + name;
         return VAR(fmt("<module ", name.escape(), ">"));
     });
 

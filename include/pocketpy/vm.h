@@ -410,17 +410,23 @@ public:
     }
 
     struct ImportContext{
-        std::vector<StrName> pending;
+        std::vector<Str> pending;
+        std::vector<bool> pending_is_init;   // a.k.a __init__.py
         struct Temp{
             ImportContext* ctx;
-            StrName name;
-            Temp(ImportContext* ctx, StrName name) : ctx(ctx), name(name){
+            Temp(ImportContext* ctx, Str name, bool is_init) : ctx(ctx){
                 ctx->pending.push_back(name);
+                ctx->pending_is_init.push_back(is_init);
             }
-            ~Temp(){ ctx->pending.pop_back(); }
+            ~Temp(){
+                ctx->pending.pop_back();
+                ctx->pending_is_init.pop_back();
+            }
         };
 
-        Temp scope(StrName name){ return {this, name}; }
+        Temp scope(Str name, bool is_init){
+            return {this, name, is_init};
+        }
     };
 
     ImportContext _import_context;
