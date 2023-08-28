@@ -182,7 +182,7 @@ void init_builtins(VM* _vm) {
                 return vm->_modules[name];
             }
         }
-        return vm->py_import(name, vm->top_frame()->_module);
+        return vm->py_import(name);
     });
 
     _vm->bind_builtin_func<2>("divmod", [](VM* vm, ArgsView args) {
@@ -1227,10 +1227,8 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(_vm->tp_module, [](VM* vm, PyObject* obj) {
-        const Str& package = CAST(Str&, obj->attr(__package__));
-        Str name = CAST(Str&, obj->attr(__name__));
-        if(!package.empty()) name = package + "." + name;
-        return VAR(fmt("<module ", name.escape(), ">"));
+        const Str& path = CAST(Str&, obj->attr(__path__));
+        return VAR(fmt("<module ", path.escape(), ">"));
     });
 
     /************ property ************/

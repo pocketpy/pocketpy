@@ -592,7 +592,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(IMPORT_PATH)
         _0 = co_consts[byte.arg];
-        PUSH(py_import(CAST(Str&, _0), frame->_module));
+        PUSH(py_import(CAST(Str&, _0)));
         DISPATCH();
     TARGET(POP_IMPORT_STAR) {
         _0 = POPX();        // pop the module

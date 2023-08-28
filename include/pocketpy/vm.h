@@ -430,7 +430,7 @@ public:
     };
 
     ImportContext _import_context;
-    PyObject* py_import(Str path, PyObject* _module);
+    PyObject* py_import(Str path, bool throw_err=true);
     ~VM();
 
 #if PK_DEBUG_CEVAL_STEP

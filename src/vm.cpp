@@ -215,9 +215,9 @@ namespace pkpy{
         return call_method(obj, __next__);
     }
 
-    PyObject* VM::py_import(Str path, PyObject* _module){
+    PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
-
+        
         auto f_join = [](const std::vector<std::string_view>& cpnts){
             std::stringstream ss;
             for(int i=0; i<cpnts.size(); i++){
@@ -271,7 +271,10 @@ namespace pkpy{
                 is_init = true;
                 b = _import_handler(filename);
             }
-            if(!b) ImportError(fmt("module ", path.escape(), " not found"));
+            if(!b){
+                if(throw_err) ImportError(fmt("module ", path.escape(), " not found"));
+                else return nullptr;
+            }
             source = Str(b.str());
         }else{
             source = it->second;
@@ -501,6 +504,7 @@ PyObject* VM::new_module(Str name, Str package) {
     if(_modules.contains(name)) throw std::runtime_error("module already exists");
     // convert to fullname and set it into _modules
     if(!package.empty()) name = package + "." + name;
+    obj->attr().set(__path__, VAR(name));
     _modules.set(name, obj);
     return obj;
 }
@@ -940,8 +944,15 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
         return cls_var;
     }
     
-    // if(is_non_tagged_type(obj, tp_module)){
-    // }
+    if(is_non_tagged_type(obj, tp_module)){
+        Str path = CAST(Str&, obj->attr(__path__));
+        path = path + "." + name.sv();
+        PyObject* mod = py_import(path, false);
+        if(mod != nullptr){
+            obj->attr().set(name, mod);
+            return mod;
+        }
+    }
 
     if(throw_err) AttributeError(obj, name);
     return nullptr;
