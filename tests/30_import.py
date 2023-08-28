@@ -15,3 +15,7 @@ assert test2.a.g.get_value() == '123'
 
 from test2.utils import get_value_2
 assert get_value_2() == '123'
+
+from test3.a.b import value
+# should test3
+assert value == 1
