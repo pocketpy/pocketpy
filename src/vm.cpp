@@ -217,6 +217,8 @@ namespace pkpy{
 
     PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
+
+        // std::cout << ">> py_import(" << path.escape() << ")" << std::endl;
         
         auto f_join = [](const std::vector<std::string_view>& cpnts){
             std::stringstream ss;
@@ -243,18 +245,21 @@ namespace pkpy{
             if(prefix > cpnts.size()) ImportError("attempted relative import beyond top-level package");
             path = path.substr(prefix);     // remove prefix
             for(int i=(int)curr_is_init; i<prefix; i++) cpnts.pop_back();
-            cpnts.push_back(path.sv());
+            if(!path.empty()) cpnts.push_back(path.sv());
             path = f_join(cpnts);
         }
 
-        // std::cout << "py_import(" << path.escape() << ")" << std::endl;
+        // std::cout << ".. py_import(" << path.escape() << ")" << std::endl;
+
+        PK_ASSERT(path.begin()[0] != '.');
+        PK_ASSERT(path.end()[-1] != '.');
 
         StrName name(path);     // path to StrName
 
         // check circular import
-        for(Str pending_name: _import_context.pending){
-            if(pending_name == path) ImportError(fmt("circular import ", name.escape()));
-        }
+        // for(Str pending_name: _import_context.pending){
+        //     if(pending_name == path) ImportError(fmt("circular import ", name.escape()));
+        // }
 
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod != nullptr) return ext_mod;
@@ -501,7 +506,9 @@ PyObject* VM::new_module(Str name, Str package) {
     obj->attr().set(__package__, VAR(package));
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
-    if(_modules.contains(name)) throw std::runtime_error("module already exists");
+    if(_modules.contains(name)){
+        throw std::runtime_error(fmt("module ", name.escape(), " already exists"));
+    }
     // convert to fullname and set it into _modules
     if(!package.empty()) name = package + "." + name;
     obj->attr().set(__path__, VAR(name));
