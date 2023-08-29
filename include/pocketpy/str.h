@@ -74,7 +74,8 @@ struct Str{
     int index(const Str& sub, int start=0) const;
     Str replace(char old, char new_) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
-    std::vector<std::string_view> split(const Str& sep, bool remove_empty) const;
+    std::vector<std::string_view> split(const Str& sep) const;
+    int count(const Str& sub) const;
 
     /*************unicode*************/
     int _unicode_index_to_byte(int i) const;

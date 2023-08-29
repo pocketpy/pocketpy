@@ -42,10 +42,10 @@ assert t.startswith('this') == True;
 
 assert t.split('w') == ['this is string example....', 'o', '!!!']
 assert "a,b,c".split(',') == ['a', 'b', 'c']
-assert 'a,'.split(',') == ['a', '']
+assert 'a,'.split(',') == ['a']
 assert 'foo!!bar!!baz'.split('!!') == ['foo', 'bar', 'baz']
 assert ' 4 3 '.split() == ['4', '3']
-assert '  4 3  '.split(' ') == ['', '', '4', '3', '', '']
+assert '  4 3  '.split(' ') == ['4', '3']
 
 assert '111'.count('1') == 3
 assert '111'.count('11') == 1

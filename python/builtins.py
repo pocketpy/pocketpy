@@ -7,7 +7,9 @@ def print(*args, sep=' ', end='\n'):
 def abs(x):
     return -x if x < 0 else x
 
-def max(*args):
+def max(*args, key=None):
+    if key is None:
+        key = lambda x: x
     if len(args) == 0:
         raise TypeError('max expected 1 arguments, got 0')
     if len(args) == 1:
@@ -20,11 +22,13 @@ def max(*args):
         i = next(args)
         if i is StopIteration:
             break
-        if i > res:
+        if key(i) > key(res):
             res = i
     return res
 
-def min(*args):
+def min(*args, key=None):
+    if key is None:
+        key = lambda x: x
     if len(args) == 0:
         raise TypeError('min expected 1 arguments, got 0')
     if len(args) == 1:
@@ -37,7 +41,7 @@ def min(*args):
         i = next(args)
         if i is StopIteration:
             break
-        if i < res:
+        if key(i) < key(res):
             res = i
     return res
 
@@ -95,42 +99,6 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def __f(self, sep=None):
-    flag = sep is None
-    sep = sep or ' '
-    if sep == "":
-        return list(self)
-    res = []
-    i = 0
-    while i < len(self):
-        if self[i:i+len(sep)] == sep:
-            res.append(self[:i])
-            self = self[i+len(sep):]
-            i = 0
-        else:
-            ++i
-    res.append(self)
-    if flag:
-        return [i for i in res if i != '']
-    return res
-str.split = __f
-
-def __f(self, s: str):
-    if type(s) is not str:
-        raise TypeError('must be str, not ' + type(s).__name__)
-    if s == '':
-        return len(self) + 1
-    res = 0
-    i = 0
-    while i < len(self):
-        if self[i:i+len(s)] == s:
-            ++res
-            i += len(s)
-        else:
-            ++i
-    return res
-str.count = __f
-
 def __f(self, *args):
     if '{}' in self:
         for i in range(len(args)):

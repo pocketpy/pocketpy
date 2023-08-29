@@ -316,7 +316,7 @@ int utf8len(unsigned char c, bool suppress){
         return _byte_index_to_unicode(size);
     }
 
-    std::vector<std::string_view> Str::split(const Str& sep, bool remove_empty) const{
+    std::vector<std::string_view> Str::split(const Str& sep) const{
         std::vector<std::string_view> result;
         std::string_view tmp;
         int start = 0;
@@ -324,12 +324,25 @@ int utf8len(unsigned char c, bool suppress){
             int i = index(sep, start);
             if(i == -1) break;
             tmp = sv().substr(start, i - start);
-            if(!remove_empty || !tmp.empty()) result.push_back(tmp);
+            if(!tmp.empty()) result.push_back(tmp);
             start = i + sep.size;
         }
         tmp = sv().substr(start, size - start);
-        if(!remove_empty || !tmp.empty()) result.push_back(tmp);
+        if(!tmp.empty()) result.push_back(tmp);
         return result;
+    }
+
+    int Str::count(const Str& sub) const{
+        if(sub.empty()) return size + 1;
+        int cnt = 0;
+        int start = 0;
+        while(true){
+            int i = index(sub, start);
+            if(i == -1) break;
+            cnt++;
+            start = i + sub.size;
+        }
+        return cnt;
     }
 
     std::ostream& operator<<(std::ostream& os, const StrName& sn){

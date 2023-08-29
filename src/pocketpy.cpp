@@ -560,10 +560,16 @@ void init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(_vm->tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]), false);
+        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]));
         List ret(parts.size());
         for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
+    });
+
+    _vm->bind(_vm->_t(_vm->tp_str), "count(self, s: str)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        const Str& s = CAST(Str&, args[1]);
+        return VAR(self.count(s));
     });
 
     _vm->bind_method<1>("str", "index", [](VM* vm, ArgsView args) {

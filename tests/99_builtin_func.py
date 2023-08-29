@@ -1120,3 +1120,20 @@ import dis
 def aaa():
     pass
 assert dis.dis(aaa) is None
+
+# test min/max
+assert min(1, 2) == 1
+assert min(1, 2, 3) == 1
+assert min([1, 2]) == 1
+assert min([1, 2], key=lambda x: -x) == 2
+
+assert max(1, 2) == 2
+assert max(1, 2, 3) == 3
+assert max([1, 2]) == 2
+assert max([1, 2], key=lambda x: -x) == 1
+
+assert min([
+    (1, 2),
+    (1, 3),
+    (1, 4),
+]) == (1, 2)
