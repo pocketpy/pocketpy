@@ -1,4 +1,4 @@
-class Placeholder:
+class _Placeholder:
     def __init__(self, *args, **kwargs):
         pass
     def __getitem__(self, *args, **kwargs):
@@ -7,7 +7,7 @@ class Placeholder:
         return self
     
 
-_PLACEHOLDER = Placeholder()
+_PLACEHOLDER = _Placeholder()
 
 List = _PLACEHOLDER
 Dict = _PLACEHOLDER
