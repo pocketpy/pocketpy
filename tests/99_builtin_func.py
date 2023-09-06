@@ -1118,7 +1118,7 @@ time.sleep(0.1)
 #     #####: 1293:    });
 #        58: 1294:}
 # test time.localtime
-assert type(time.localtime()) is dict
+assert type(time.localtime()) is time.struct_time
 
 # /************ module dis ************/
 import dis
