@@ -372,7 +372,11 @@ public:
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
-        _error("AttributeError", fmt("type ", OBJ_NAME(_t(obj)).escape(), " has no attribute ", name.escape()));
+        if(isinstance(obj, vm->tp_type)){
+            _error("AttributeError", fmt("type object ", OBJ_NAME(obj).escape(), " has no attribute ", name.escape()));
+        }else{
+            _error("AttributeError", fmt(OBJ_NAME(_t(obj)).escape(), " object has no attribute ", name.escape()));
+        }
     }
 
     void AttributeError(Str msg){ _error("AttributeError", msg); }
