@@ -1074,6 +1074,17 @@ import time
 # test time.time
 assert type(time.time()) is float
 
+local_t = time.localtime()
+assert type(local_t.tm_year) is int
+assert type(local_t.tm_mon) is int
+assert type(local_t.tm_mday) is int
+assert type(local_t.tm_hour) is int
+assert type(local_t.tm_min) is int
+assert type(local_t.tm_sec) is int
+assert type(local_t.tm_wday) is int
+assert type(local_t.tm_yday) is int
+assert type(local_t.tm_isdst) is int
+
 # 未完全测试准确性-----------------------------------------------
 #       116: 1267:    vm->bind_func<1>(mod, "sleep", [](VM* vm, ArgsView args) {
 #     #####: 1268:        f64 seconds = CAST_F(args[0]);

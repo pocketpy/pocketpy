@@ -13,4 +13,4 @@ Suspend execution of the calling thread for the given number of seconds.
 
 ### `time.localtime()`
 
-Returns the current struct time as a `dict` object.
+Returns the current struct time as a `struct_time` object.

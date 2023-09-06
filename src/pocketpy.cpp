@@ -1297,8 +1297,52 @@ void add_module_timeit(VM* vm){
     });
 }
 
+struct PyStructTime{
+    PY_CLASS(PyStructTime, time, struct_time)
+
+    int tm_year;
+    int tm_mon;
+    int tm_mday;
+    int tm_hour;
+    int tm_min;
+    int tm_sec;
+    int tm_wday;
+    int tm_yday;
+    int tm_isdst;
+
+    PyStructTime(std::time_t t){
+        std::tm* tm = std::localtime(&t);
+        tm_year = tm->tm_year + 1900;
+        tm_mon = tm->tm_mon + 1;
+        tm_mday = tm->tm_mday;
+        tm_hour = tm->tm_hour;
+        tm_min = tm->tm_min;
+        tm_sec = tm->tm_sec + 1;
+        tm_wday = (tm->tm_wday + 6) % 7;
+        tm_yday = tm->tm_yday + 1;
+        tm_isdst = tm->tm_isdst;
+    }
+
+    PyStructTime& _() { return *this; }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind_notimplemented_constructor<PyStructTime>(type);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_year", _, tm_year);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_mon", _, tm_mon);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_mday", _, tm_mday);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_hour", _, tm_hour);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_min", _, tm_min);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_sec", _, tm_sec);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_wday", _, tm_wday);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_yday", _, tm_yday);
+        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_isdst", _, tm_isdst);
+    }
+};
+
 void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
+    PyStructTime::register_class(vm, mod);
+
     vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
         return VAR(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000.0);
@@ -1318,18 +1362,7 @@ void add_module_time(VM* vm){
     vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
         std::time_t t = std::chrono::system_clock::to_time_t(now);
-        std::tm* tm = std::localtime(&t);
-        Dict d(vm);
-        d.set(VAR("tm_year"), VAR(tm->tm_year + 1900));
-        d.set(VAR("tm_mon"), VAR(tm->tm_mon + 1));
-        d.set(VAR("tm_mday"), VAR(tm->tm_mday));
-        d.set(VAR("tm_hour"), VAR(tm->tm_hour));
-        d.set(VAR("tm_min"), VAR(tm->tm_min));
-        d.set(VAR("tm_sec"), VAR(tm->tm_sec + 1));
-        d.set(VAR("tm_wday"), VAR((tm->tm_wday + 6) % 7));
-        d.set(VAR("tm_yday"), VAR(tm->tm_yday + 1));
-        d.set(VAR("tm_isdst"), VAR(tm->tm_isdst));
-        return VAR(std::move(d));
+        return VAR_T(PyStructTime, t);
     });
 }
 
@@ -1548,7 +1581,7 @@ void VM::post_init(){
     add_module_base64(this);
     add_module_timeit(this);
 
-    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle", "_long", "colorsys", "typing"}){
+    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 
