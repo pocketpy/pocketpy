@@ -49,7 +49,15 @@ namespace pkpy{
         for(PyObject* obj: s_backup) frame._s->push(obj);
         s_backup.clear();
         vm->callstack.push(std::move(frame));
-        PyObject* ret = vm->_run_top_frame();
+
+        PyObject* ret;
+        try{
+            ret = vm->_run_top_frame();
+        }catch(...){
+            state = 2;      // end this generator immediately when an exception is thrown
+            throw;
+        }
+        
         if(ret == PY_OP_YIELD){
             // backup the context
             frame = std::move(vm->callstack.top());

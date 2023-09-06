@@ -46,3 +46,22 @@ def f(n):
 
 t = f(3)
 assert list(t) == [0, 1, 0, 2, 0, 1]
+
+def f(n):
+    for i in range(n):
+        if i == n-1:
+            raise ValueError
+        yield i
+
+t = f(3)
+t = iter(t)
+assert next(t) == 0
+assert next(t) == 1
+
+try:
+    next(t)
+    exit(1)
+except ValueError:
+    pass
+
+assert next(t) == StopIteration
