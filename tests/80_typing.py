@@ -72,3 +72,23 @@ def is_success(value) -> bool:
 
 resp = {'code': 0, 'message': 'OK', 'data': []}
 successed: bool = converter(resp['message'], mapper=is_success, default=False)
+
+
+class A:
+    x: List[Callable[[int], Any]]
+    y: Dict[str, int]
+
+a = A()
+assert not hasattr(a, 'x')
+assert not hasattr(a, 'y')
+
+class B:
+    x: List[Callable[[int], Any]] = []
+    y: Dict[str, int] = {}
+
+b = B()
+assert hasattr(b, 'x')
+assert hasattr(b, 'y')
+
+abc123: int
+assert 'abc123' not in globals()

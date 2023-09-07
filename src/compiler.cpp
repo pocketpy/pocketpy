@@ -862,17 +862,29 @@ __EAT_DOTS_END:
             default: {
                 advance(-1);    // do revert since we have pre-called advance() at the beginning
                 EXPR_TUPLE();
-                // eat variable's type hint
-                if(match(TK(":"))) consume_type_hints();
+
+                bool is_typed_name = false;     // e.g. x: int
+                // eat variable's type hint if it is a single name
+                if(ctx()->s_expr.top()->is_name()){
+                    if(match(TK(":"))){
+                        consume_type_hints();
+                        is_typed_name = true;
+                    }
+                }
                 if(!try_compile_assignment()){
                     if(!ctx()->s_expr.empty() && ctx()->s_expr.top()->is_starred()){
                         SyntaxError();
                     }
-                    ctx()->emit_expr();
-                    if((mode()==CELL_MODE || mode()==REPL_MODE) && name_scope()==NAME_GLOBAL){
-                        ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                    if(!is_typed_name){
+                        ctx()->emit_expr();
+                        if((mode()==CELL_MODE || mode()==REPL_MODE) && name_scope()==NAME_GLOBAL){
+                            ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                        }else{
+                            ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                        }
                     }else{
-                        ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                        PK_ASSERT(ctx()->s_expr.size() == 1)
+                        ctx()->s_expr.pop();
                     }
                 }
                 consume_end_stmt();

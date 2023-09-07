@@ -22,6 +22,7 @@ struct Expr{
     virtual bool is_compare() const { return false; }
     virtual int star_level() const { return 0; }
     virtual bool is_tuple() const { return false; }
+    virtual bool is_name() const { return false; }
     bool is_starred() const { return star_level() > 0; }
 
     std::string str() const { PK_ASSERT(false); }
@@ -73,6 +74,7 @@ struct NameExpr: Expr{
     void emit(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
+    bool is_name() const override { return true; }
 };
 
 struct InvertExpr: Expr{
