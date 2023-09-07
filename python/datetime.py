@@ -12,7 +12,7 @@ class date:
         return date(t.tm_year, t.tm_mon, t.tm_mday)
     
     def __str__(self):
-        return f"{self.year}-{self.month}-{self.day}"
+        return f"{self.year}-{self.month:02}-{self.day:02}"
     
     def __repr__(self):
         return f"datetime.date({self.year}, {self.month}, {self.day})"
@@ -30,7 +30,7 @@ class datetime(date):
         return datetime(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
 
     def __str__(self):
-        return f"{self.year}-{self.month}-{self.day} {self.hour}:{self.minute}:{self.second}"
+        return f"{self.year}-{self.month:02}-{self.day:02} {self.hour:02}:{self.minute:02}:{self.second:02}"
 
     def __repr__(self):
         return f"datetime.datetime({self.year}, {self.month}, {self.day}, {self.hour}, {self.minute}, {self.second})"
