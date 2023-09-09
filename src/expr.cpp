@@ -351,6 +351,14 @@ namespace pkpy{
 
 
     void FStringExpr::_load_simple_expr(CodeEmitContext* ctx, Str expr){
+        bool repr = false;
+        if(expr.size>=2 && expr.end()[-2]=='!'){
+            switch(expr.end()[-1]){
+                case 'r': repr = true; expr = expr.substr(0, expr.size-2); break;
+                case 's': repr = false; expr = expr.substr(0, expr.size-2); break;
+                default: break;     // nothing happens
+            }
+        }
         // name or name.name
         std::regex pattern(R"(^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*){0,1}$)");
         if(std::regex_match(expr.str(), pattern)){
@@ -367,6 +375,9 @@ namespace pkpy{
             int index = ctx->add_const(py_var(ctx->vm, expr));
             ctx->emit(OP_LOAD_CONST, index, line);
             ctx->emit(OP_EVAL, BC_NOARG, line);
+        }
+        if(repr){
+            ctx->emit(OP_REPR, BC_NOARG, line);
         }
     }
 

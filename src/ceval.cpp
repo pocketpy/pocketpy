@@ -498,6 +498,9 @@ __NEXT_STEP:;
         _0 = builtins->attr(pk_id_eval);
         TOP() = call(_0, TOP());
         DISPATCH();
+    TARGET(REPR)
+        TOP() = py_repr(TOP());
+        DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
             byte.arg & 0xFFFF,          // ARGC

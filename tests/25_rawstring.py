@@ -72,3 +72,30 @@ assert f'{"test":*<10}' == 'test******'
 assert f'{"test":*^10}' == '***test***'
 assert f'{"test":*^11}' == '***test****'
 assert f'{12345:0>10}' == '0000012345'
+
+assert f'{obj.b!r:10}' == "'123'     "
+assert f'{obj.b!r:*>10}' == "*****'123'"
+assert f'{obj.b!r:1}' == "'123'"
+assert f'{obj.b!r:10s}' == "'123'     "
+
+assert f'{"text"!r:10}' == "'text'    "
+assert f'{"test"!r:*>10}' == "****'test'"
+assert f'{"test"!r:*<10}' == "'test'****"
+assert f'{"test"!r:*^10}' == "**'test'**"
+assert f'{"test"!r:*^11}' == "**'test'***"
+assert f'{12345!r:0>10}' == "0000012345"
+
+class A:
+    def __repr__(self):
+        return 'A()'
+    def __str__(self):
+        return 'A'
+
+a = A()
+assert f'{a!r:10}' == 'A()       '
+assert f'{a!s:10}' == 'A         '
+assert f'{a:10}' == 'A         '
+
+assert f'{A()!r:10}' == 'A()       '
+assert f'{A()!s:10}' == 'A         '
+assert f'{A():10}' == 'A         '
