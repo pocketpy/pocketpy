@@ -34,7 +34,7 @@ struct SourceData {
 
     SourceData(const Str& source, const Str& filename, CompileMode mode);
     std::pair<const char*,const char*> get_line(int lineno) const;
-    Str snapshot(int lineno, const char* cursor=nullptr);
+    Str snapshot(int lineno, const char* cursor=nullptr, std::string_view name="");
 };
 
 struct Exception {

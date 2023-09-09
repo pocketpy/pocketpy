@@ -23,11 +23,6 @@ namespace pkpy{
         return fn._closure->try_get(name);
     }
 
-    Str Frame::snapshot(){
-        int line = co->lines[_ip];
-        return co->src->snapshot(line);
-    }
-
     bool Frame::jump_to_exception_handler(){
         // try to find a parent try block
         int block = co->codes[_ip].block;

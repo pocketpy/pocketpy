@@ -750,7 +750,10 @@ __NEXT_STEP:;
             PK_UNUSED(e);
             PyObject* obj = POPX();
             Exception& _e = CAST(Exception&, obj);
-            _e.st_push(frame->snapshot());
+            int current_line = frame->co->lines[frame->_ip];        // current line
+            auto current_f_name = frame->co->name.sv();             // current function name
+            if(frame->_callable == nullptr) current_f_name = "";    // not in a function
+            _e.st_push(frame->co->src->snapshot(current_line, nullptr, current_f_name));
             _pop_frame();
             if(callstack.empty()){
 #if PK_DEBUG_FULL_EXCEPTION

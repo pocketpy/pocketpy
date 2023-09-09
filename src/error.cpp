@@ -30,9 +30,11 @@ namespace pkpy{
         return {_start, i};
     }
 
-    Str SourceData::snapshot(int lineno, const char* cursor){
+    Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name){
         std::stringstream ss;
-        ss << "  " << "File \"" << filename << "\", line " << lineno << '\n';
+        ss << "  " << "File \"" << filename << "\", line " << lineno;
+        if(!name.empty()) ss << ", in " << name;
+        ss << '\n';
         std::pair<const char*,const char*> pair = get_line(lineno);
         Str line = "<?>";
         int removed_spaces = 0;

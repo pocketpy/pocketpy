@@ -110,8 +110,6 @@ struct Frame {
         return co->codes[_ip];
     }
 
-    Str snapshot();
-
     PyObject** actual_sp_base() const { return _locals.a; }
     int stack_size() const { return _s->_sp - actual_sp_base(); }
     ArgsView stack_view() const { return ArgsView(actual_sp_base(), _s->_sp); }
