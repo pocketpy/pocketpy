@@ -352,8 +352,14 @@ public:
         _error(Exception(name, msg));
     }
 
-    void _raise(){
-        bool ok = top_frame()->jump_to_exception_handler();
+    void _raise(bool re_raise=false){
+        Frame* top = top_frame().get();
+        if(!re_raise){
+            Exception& e = PK_OBJ_GET(Exception, s_data.top());
+            e._ip_on_error = top->_ip;
+            e._code_on_error = (void*)top->co;
+        }
+        bool ok = top->jump_to_exception_handler();
         if(ok) throw HandledException();
         else throw UnhandledException();
     }

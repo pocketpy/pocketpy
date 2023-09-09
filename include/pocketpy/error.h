@@ -44,8 +44,9 @@ struct Exception {
     stack<Str> stacktrace;
 
     int _ip_on_error;
+    void* _code_on_error;
 
-    Exception(StrName type, Str msg): type(type), msg(msg), is_re(true), _ip_on_error(-1) {}
+    Exception(StrName type, Str msg): type(type), msg(msg), is_re(true), _ip_on_error(-1), _code_on_error(nullptr) {}
     bool match_type(StrName t) const { return this->type == t;}
     void st_push(Str&& snapshot);
     Str summary() const;

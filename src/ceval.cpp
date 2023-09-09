@@ -695,7 +695,7 @@ __NEXT_STEP:;
         Str msg = _0 == None ? "" : CAST(Str, py_str(_0));
         _error(StrName(byte.arg), msg);
     } DISPATCH();
-    TARGET(RE_RAISE) _raise(); DISPATCH();
+    TARGET(RE_RAISE) _raise(true); DISPATCH();
     TARGET(POP_EXCEPTION) _last_exception = POPX(); DISPATCH();
     /*****************************************/
     TARGET(FORMAT_STRING) {
@@ -751,8 +751,8 @@ __NEXT_STEP:;
             PyObject* obj = POPX();
             Exception& _e = CAST(Exception&, obj);
             int actual_ip = frame->_ip;
-            if(_e._ip_on_error >= 0) actual_ip = _e._ip_on_error;
-            int current_line = frame->co->lines[actual_ip];        // current line
+            if(_e._ip_on_error >= 0 && _e._code_on_error == (void*)frame->co) actual_ip = _e._ip_on_error;
+            int current_line = frame->co->lines[actual_ip];         // current line
             auto current_f_name = frame->co->name.sv();             // current function name
             if(frame->_callable == nullptr) current_f_name = "";    // not in a function
             _e.st_push(frame->co->src->snapshot(current_line, nullptr, current_f_name));
