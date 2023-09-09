@@ -234,4 +234,6 @@ def help(obj):
 
 del __f
 
+class Exception: pass
+
 from _long import long
