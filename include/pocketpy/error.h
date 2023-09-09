@@ -43,9 +43,11 @@ struct Exception {
     bool is_re;
     stack<Str> stacktrace;
 
-    Exception(StrName type, Str msg): type(type), msg(msg), is_re(true) {}
+    int _ip_on_error;
+
+    Exception(StrName type, Str msg): type(type), msg(msg), is_re(true), _ip_on_error(-1) {}
     bool match_type(StrName t) const { return this->type == t;}
-    void st_push(Str snapshot);
+    void st_push(Str&& snapshot);
     Str summary() const;
 };
 

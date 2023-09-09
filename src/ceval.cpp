@@ -750,7 +750,9 @@ __NEXT_STEP:;
             PK_UNUSED(e);
             PyObject* obj = POPX();
             Exception& _e = CAST(Exception&, obj);
-            int current_line = frame->co->lines[frame->_ip];        // current line
+            int actual_ip = frame->_ip;
+            if(_e._ip_on_error >= 0) actual_ip = _e._ip_on_error;
+            int current_line = frame->co->lines[actual_ip];        // current line
             auto current_f_name = frame->co->name.sv();             // current function name
             if(frame->_callable == nullptr) current_f_name = "";    // not in a function
             _e.st_push(frame->co->src->snapshot(current_line, nullptr, current_f_name));

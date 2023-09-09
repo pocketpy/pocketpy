@@ -1069,11 +1069,12 @@ PyObject* VM::bind_property(PyObject* obj, Str name, NativeFuncC fget, NativeFun
 }
 
 void VM::_error(Exception e){
+    e._ip_on_error = top_frame()->_ip;
     if(callstack.empty()){
         e.is_re = false;
         throw e;
     }
-    PUSH(VAR(e));
+    PUSH(VAR(std::move(e)));
     _raise();
 }
 

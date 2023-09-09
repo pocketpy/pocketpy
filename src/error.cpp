@@ -51,9 +51,9 @@ namespace pkpy{
         return ss.str();
     }
 
-    void Exception::st_push(Str snapshot){
+    void Exception::st_push(Str&& snapshot){
         if(stacktrace.size() >= 8) return;
-        stacktrace.push(snapshot);
+        stacktrace.push(std::move(snapshot));
     }
 
     Str Exception::summary() const {
