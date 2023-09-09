@@ -131,7 +131,8 @@ namespace pkpy{
         PyTypeInfo info{
             obj,
             base,
-            (mod!=nullptr && mod!=builtins) ? Str(OBJ_NAME(mod)+"."+name.sv()): name.sv(),
+            mod,
+            name.sv(),
             subclass_enabled,
         };
         if(mod != nullptr) mod->attr().set(name, obj);
@@ -636,8 +637,8 @@ void VM::_log_s_data(const char* title) {
 #endif
 
 void VM::init_builtin_types(){
-    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, "object", true});
-    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, "type", false});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, nullptr, "object", true});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, nullptr, "type", false});
     tp_object = 0; tp_type = 1;
 
     tp_int = _new_type_object("int");

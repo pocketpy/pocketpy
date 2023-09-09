@@ -1,7 +1,9 @@
 from pickle import dumps, loads, _wrap, _unwrap
 
 def test(x):
-    ok = x == loads(dumps(x))
+    y = dumps(x)
+    # print(y.decode())
+    ok = x == loads(y)
     if not ok:
         _0 = _wrap(x)
         _1 = _unwrap(_0)

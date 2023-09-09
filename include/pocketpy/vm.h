@@ -51,6 +51,7 @@ typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
 struct PyTypeInfo{
     PyObject* obj;
     Type base;
+    PyObject* mod;
     Str name;
     bool subclass_enabled;
 

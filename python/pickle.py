@@ -2,15 +2,13 @@ import json
 import builtins
 
 _BASIC_TYPES = [int, float, str, bool, type(None)]
+_MOD_T_SEP = "@"
 
 def _find_class(path: str):
-    if "." not in path:
-        g = globals()
-        if path in g:
-            return g[path]
+    if _MOD_T_SEP not in path:
         return builtins.__dict__[path]
-    modname, name = path.split(".")
-    return __import__(modname).__dict__[name]
+    modpath, name = path.split(_MOD_T_SEP)
+    return __import__(modpath).__dict__[name]
 
 def _find__new__(cls):
     while cls is not None:
@@ -26,11 +24,19 @@ class _Pickler:
         self.raw_memo = {}  # id -> int
         self.memo = []      # int -> object
 
+    def _type_id(self, o: type):
+        assert type(o) is type
+        name = o.__name__
+        mod = o.__module__
+        if mod is not None:
+            name = mod.__path__ + _MOD_T_SEP + name
+        return name
+
     def wrap(self, o):
         if type(o) in _BASIC_TYPES:
             return o
         if type(o) is type:
-            return ["type", o.__name__]
+            return ["type", self._type_id(o)]
 
         index = self.raw_memo.get(id(o), None)
         if index is not None:
@@ -59,7 +65,7 @@ class _Pickler:
             ret.append([[self.wrap(k), self.wrap(v)] for k,v in o.items()])
             return [index]
         
-        _0 = o.__class__.__name__
+        _0 = self._type_id(type(o))
 
         if hasattr(o, "__getnewargs__"):
             _1 = o.__getnewargs__()     # an iterable

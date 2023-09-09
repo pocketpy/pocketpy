@@ -1540,6 +1540,11 @@ void VM::post_init(){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return VAR(info.name);
     });
+    bind_property(_t(tp_type), "__module__", [](VM* vm, ArgsView args){
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
+        if(info.mod == nullptr) return vm->None;
+        return info.mod;
+    });
     bind_property(_t(tp_bound_method), "__self__", [](VM* vm, ArgsView args){
         return CAST(BoundMethod&, args[0]).self;
     });
