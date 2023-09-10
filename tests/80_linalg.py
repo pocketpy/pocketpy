@@ -332,7 +332,7 @@ for i in range(3):
     for j in range(3):
         list_mat[i][j] = test_mat[i, j]
 determinant = list_mat[0][0]*(list_mat[1][1]*list_mat[2][2] - list_mat[1][2]*list_mat[2][1]) - list_mat[0][1]*(list_mat[1][0]*list_mat[2][2] - list_mat[1][2]*list_mat[2][0]) + list_mat[0][2]*(list_mat[1][0]*list_mat[2][1] - list_mat[1][1]*list_mat[2][0])
-assert str(determinant)[:6] == str(test_mat_copy.determinant())[:6]
+assert round(determinant, 3) == round(test_mat_copy.determinant(), 3)
 
 
 
