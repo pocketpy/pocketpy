@@ -83,7 +83,7 @@ Create a list object
 // obj = [1, 1.0, '123']
 List t;
 t.push_back(VAR(1));
-t.push_bask(VAR(1.0));
+t.push_back(VAR(1.0));
 t.push_back(VAR("123"));
 PyObject* obj = VAR(std::move(t));
 ```
@@ -282,7 +282,7 @@ vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
     return VAR(a + b);
 });
 
-Bind a native function with docstring
+// Bind a native function with docstring
 
 vm->bind(obj,
     "add(a: int, b: int) -> int",
