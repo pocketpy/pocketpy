@@ -1078,6 +1078,18 @@ void VM::_error(Exception e){
     _raise();
 }
 
+void VM::_raise(bool re_raise){
+    Frame* top = top_frame().get();
+    if(!re_raise){
+        Exception& e = PK_OBJ_GET(Exception, s_data.top());
+        e._ip_on_error = top->_ip;
+        e._code_on_error = (void*)top->co;
+    }
+    bool ok = top->jump_to_exception_handler();
+    if(ok) throw HandledException();
+    else throw UnhandledException();
+}
+
 void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) PK_OBJ_MARK(obj);
     for(auto& frame : vm->callstack.data()) frame._gc_mark();
