@@ -162,6 +162,17 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
         return args[0];
     });
+    
+    _vm->bind_builtin_func<1>("callable", [](VM* vm, ArgsView args) {
+        PyObject* cls = vm->_t(args[0]);
+        Type t = PK_OBJ_GET(Type, cls);
+        if(t == vm->tp_function) return vm->True;
+        if(t == vm->tp_native_func) return vm->True;
+        if(t == vm->tp_bound_method) return vm->True;
+        if(t == vm->tp_type) return vm->True;
+        bool ok = vm->find_name_in_mro(cls, __call__) != nullptr;
+        return VAR(ok);
+    });
 
     _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
         const Str& name = CAST(Str&, args[0]);
@@ -1271,11 +1282,19 @@ void init_builtins(VM* _vm) {
         return VAR(func.decl->signature);
     });
 
+    // _vm->bind_property(_vm->_t(_vm->tp_function), "__call__", [](VM* vm, ArgsView args) {
+    //     return args[0];
+    // });
+
     _vm->bind_property(_vm->_t(_vm->tp_native_func), "__signature__", [](VM* vm, ArgsView args) {
         NativeFunc& func = _CAST(NativeFunc&, args[0]);
         if(func.decl != nullptr) return VAR(func.decl->signature);
         return VAR("");
     });
+
+    // _vm->bind_property(_vm->_t(_vm->tp_native_func), "__call__", [](VM* vm, ArgsView args) {
+    //     return args[0];
+    // });
 
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);

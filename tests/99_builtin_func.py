@@ -1148,3 +1148,26 @@ assert min([
     (1, 3),
     (1, 4),
 ]) == (1, 2)
+
+
+# test callable
+assert callable(lambda: 1) is True          # function
+assert callable(1) is False                 # int
+assert callable(object) is True             # type
+assert callable(object()) is False
+assert callable([].append) is True      # bound method
+assert callable([].__getitem__) is True # bound method
+
+class A:
+    def __init__(self):
+        pass
+
+    def __call__(self):
+        pass
+
+assert callable(A) is True      # type
+assert callable(A()) is True    # instance with __call__
+assert callable(A.__call__) is True  # bound method
+assert callable(A.__init__) is True  # bound method
+assert callable(print) is True  # builtin function
+assert callable(isinstance) is True  # builtin function
