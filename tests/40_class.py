@@ -77,6 +77,24 @@ assert isinstance(d, A)
 assert isinstance(object, object)
 assert isinstance(type, object)
 
+assert isinstance(1, (float, int))
+assert isinstance(1, (float, object))
+assert not isinstance(1, (float, str))
+assert isinstance(object, (int, type, float))
+assert not isinstance(object, (int, float, str))
+
+try:
+    isinstance(1, (1, 2))
+    exit(1)
+except TypeError:
+    pass
+
+try:
+    isinstance(1, 1)
+    exit(1)
+except TypeError:
+    pass
+
 class A:
     a = 1
     b = 2

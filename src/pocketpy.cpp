@@ -121,6 +121,14 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
+        if(is_non_tagged_type(args[1], vm->tp_tuple)){
+            Tuple& types = _CAST(Tuple&, args[1]);
+            for(PyObject* type : types){
+                vm->check_non_tagged_type(type, vm->tp_type);
+                if(vm->isinstance(args[0], PK_OBJ_GET(Type, type))) return vm->True;
+            }
+            return vm->False;
+        }
         vm->check_non_tagged_type(args[1], vm->tp_type);
         Type type = PK_OBJ_GET(Type, args[1]);
         return VAR(vm->isinstance(args[0], type));
