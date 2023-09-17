@@ -222,6 +222,7 @@ tuple.__ge__ = __f
 list.__ge__ = __f
 
 type.__repr__ = lambda self: "<class '" + self.__name__ + "'>"
+type.__getitem__ = lambda self, T: self     # for generics
 
 def help(obj):
     if hasattr(obj, '__func__'):

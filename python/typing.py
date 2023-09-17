@@ -21,3 +21,7 @@ Type = _PLACEHOLDER
 
 TypeVar = _PLACEHOLDER
 Self = _PLACEHOLDER
+
+class Generic:
+    def __getitem__(self, T):
+        return object
