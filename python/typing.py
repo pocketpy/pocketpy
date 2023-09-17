@@ -1,7 +1,7 @@
 class _Placeholder:
     def __init__(self, *args, **kwargs):
         pass
-    def __getitem__(self, *args, **kwargs):
+    def __getitem__(self, *args):
         return self
     def __call__(self, *args, **kwargs):
         return self
@@ -23,5 +23,4 @@ TypeVar = _PLACEHOLDER
 Self = _PLACEHOLDER
 
 class Generic:
-    def __getitem__(self, *args, **kwargs):
-        return object
+    pass
