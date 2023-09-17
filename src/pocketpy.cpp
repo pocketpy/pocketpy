@@ -139,14 +139,6 @@ void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
-    // def round(x, ndigits=0):
-    //     assert ndigits >= 0
-    //     if ndigits == 0:
-    //         return int(x + 0.5) if x >= 0 else int(x - 0.5)
-    //     if x >= 0:
-    //         return int(x * 10**ndigits + 0.5) / 10**ndigits
-    //     else:
-    //         return int(x * 10**ndigits - 0.5) / 10**ndigits
     _vm->bind(_vm->builtins, "round(x, ndigits=0)", [](VM* vm, ArgsView args) {
         f64 x = CAST(f64, args[0]);
         int ndigits = CAST(int, args[1]);
@@ -159,6 +151,13 @@ void init_builtins(VM* _vm) {
         }else{
             return VAR((i64)(x * std::pow(10, ndigits) - 0.5) / std::pow(10, ndigits));
         }
+    });
+
+    _vm->bind_builtin_func<1>("abs", [](VM* vm, ArgsView args) {
+        if(is_int(args[0])) return VAR(std::abs(_CAST(i64, args[0])));
+        if(is_float(args[0])) return VAR(std::abs(_CAST(f64, args[0])));
+        vm->TypeError("bad operand type for abs()");
+        return vm->None;
     });
 
     _vm->bind_builtin_func<1>("id", [](VM* vm, ArgsView args) {

@@ -4,9 +4,6 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     _sys.stdout.write(s + end)
 
-def abs(x):
-    return -x if x < 0 else x
-
 def max(*args, key=None):
     if key is None:
         key = lambda x: x
