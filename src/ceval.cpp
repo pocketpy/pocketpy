@@ -659,11 +659,14 @@ __NEXT_STEP:;
         _0 = POPX();
         _0->attr()._try_perfect_rehash();
         DISPATCH();
-    TARGET(STORE_CLASS_ATTR)
+    TARGET(STORE_CLASS_ATTR){
         _name = StrName(byte.arg);
         _0 = POPX();
+        if(is_non_tagged_type(_0, tp_function)){
+            _0->attr().set(__class__, TOP());
+        }
         TOP()->attr().set(_name, _0);
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(WITH_ENTER)
         call_method(POPX(), __enter__);

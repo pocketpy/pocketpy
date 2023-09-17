@@ -108,16 +108,32 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
 
-    _vm->bind_builtin_func<2>("super", [](VM* vm, ArgsView args) {
-        vm->check_non_tagged_type(args[0], vm->tp_type);
-        Type type = PK_OBJ_GET(Type, args[0]);
-        if(!vm->isinstance(args[1], type)){
-            Str _0 = obj_type_name(vm, PK_OBJ_GET(Type, vm->_t(args[1])));
+    _vm->bind_builtin_func<-1>("super", [](VM* vm, ArgsView args) {
+        PyObject* class_arg = nullptr;
+        PyObject* self_arg = nullptr;
+        if(args.size() == 2){
+            class_arg = args[0];
+            self_arg = args[1];
+        }else if(args.size() == 0){
+            FrameId frame = vm->top_frame();
+            if(frame->_callable != nullptr){
+                class_arg = frame->_callable->attr().try_get(__class__);
+                if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
+            }
+            if(class_arg == nullptr || self_arg == nullptr){
+                vm->TypeError("super(): unable to determine the class context, use super(class, self) instead");
+            }
+        }else{
+            vm->TypeError("super() takes 0 or 2 arguments");
+        }
+        vm->check_non_tagged_type(class_arg, vm->tp_type);
+        Type type = PK_OBJ_GET(Type, class_arg);
+        if(!vm->isinstance(self_arg, type)){
+            Str _0 = obj_type_name(vm, PK_OBJ_GET(Type, vm->_t(self_arg)));
             Str _1 = obj_type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
-        Type base = vm->_all_types[type].base;
-        return vm->heap.gcnew<Super>(vm->tp_super, args[1], base);
+        return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
     });
 
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
