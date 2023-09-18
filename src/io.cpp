@@ -58,6 +58,9 @@ Bytes _default_import_handler(const Str& name){
             std::vector<char> buffer(ftell(io.fp));
             fseek(io.fp, 0, SEEK_SET);
             size_t sz = io_fread(buffer.data(), 1, buffer.size(), io.fp);
+            PK_ASSERT(sz <= buffer.size());
+            // in text mode, CR may be dropped, which may cause `sz < buffer.size()`
+            if(sz < buffer.size()) buffer.resize(sz);
             PK_UNUSED(sz);
             Bytes b(std::move(buffer));
             if(io.is_text()) return VAR(b.str());

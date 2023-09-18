@@ -1,3 +1,6 @@
+if (Test-Path build) {
+    Remove-Item -Recurse -Force build
+}
 mkdir build
 cd build
 cmake ..
