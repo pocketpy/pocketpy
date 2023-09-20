@@ -140,7 +140,12 @@ Check our [Coding Style Guide](https://pocketpy.dev/coding_style_guide/) if you 
   The world's best 2D physics engine, written by Erin Catto. `box2d` now becomes a built-in module in pkpy `v1.1.3` and later.
 
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=blueloveth/pocketpy&type=Date)](https://star-history.com/#blueloveth/pocketpy&Date)
+
+
+
 ## License
 
-pkpy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
-
+[MIT License](http://opensource.org/licenses/MIT)
