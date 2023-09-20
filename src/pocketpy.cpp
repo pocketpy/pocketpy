@@ -682,7 +682,7 @@ void init_builtins(VM* _vm) {
         std::stringstream ss;
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
-            ss << vm->py_repr(iterable[i]);
+            ss << CAST(Str&, vm->py_repr(iterable[i]));
             if(i != iterable.size()) ss << ',';
         }
         ss << ']';
@@ -694,7 +694,7 @@ void init_builtins(VM* _vm) {
         std::stringstream ss;
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
-            ss << vm->py_json(iterable[i]);
+            ss << CAST(Str&, vm->py_json(iterable[i]));
             if(i != iterable.size()) ss << ',';
         }
         ss << ']';
@@ -705,8 +705,14 @@ void init_builtins(VM* _vm) {
         Tuple& iterable = _CAST(Tuple&, _0);
         std::stringstream ss;
         ss << '(';
-        for(int i=0; i<iterable.size(); i++){
-            ss << vm->py_repr(iterable[i]);
+        if(iterable.size() == 1){
+            ss << CAST(Str&, vm->py_repr(iterable[0]));
+            ss << ',';
+        }else{
+            for(int i=0; i<iterable.size(); i++){
+                ss << vm->py_repr(iterable[i]);
+                if(i != iterable.size()) ss << ',';
+            }
         }
         ss << ')';
         return VAR(ss.str());
@@ -717,7 +723,7 @@ void init_builtins(VM* _vm) {
         std::stringstream ss;
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
-            ss << vm->py_json(iterable[i]);
+            ss << CAST(Str&, vm->py_json(iterable[i]));
             if(i != iterable.size()) ss << ',';
         }
         ss << ']';
