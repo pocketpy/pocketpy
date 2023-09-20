@@ -157,16 +157,6 @@ def __f(self, width: int, fillchar=' '):
 str.ljust = __f
 
 ##### list #####
-list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
-list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
-tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
-
-def __f(self):
-    if len(self) == 1:
-        return '(' + repr(self[0]) + ',)'
-    return '(' + ', '.join([repr(i) for i in self]) + ')'
-tuple.__repr__ = __f
-
 def __qsort(a: list, L: int, R: int, key):
     if L >= R: return;
     mid = a[(R+L)//2];

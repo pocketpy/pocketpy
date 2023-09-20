@@ -667,6 +667,63 @@ void init_builtins(VM* _vm) {
     });
 
     /************ list ************/
+    // list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
+    // list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
+    // tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
+
+    // def __f(self):
+    //     if len(self) == 1:
+    //         return '(' + repr(self[0]) + ',)'
+    //     return '(' + ', '.join([repr(i) for i in self]) + ')'
+    // tuple.__repr__ = __f
+
+    _vm->bind__repr__(_vm->tp_list, [](VM* vm, PyObject* _0){
+        List& iterable = _CAST(List&, _0);
+        std::stringstream ss;
+        ss << '[';
+        for(int i=0; i<iterable.size(); i++){
+            ss << vm->py_repr(iterable[i]);
+            if(i != iterable.size()) ss << ',';
+        }
+        ss << ']';
+        return VAR(ss.str());
+    });
+
+    _vm->bind__json__(_vm->tp_list, [](VM* vm, PyObject* _0){
+        List& iterable = _CAST(List&, _0);
+        std::stringstream ss;
+        ss << '[';
+        for(int i=0; i<iterable.size(); i++){
+            ss << vm->py_json(iterable[i]);
+            if(i != iterable.size()) ss << ',';
+        }
+        ss << ']';
+        return VAR(ss.str());
+    });
+
+    _vm->bind__repr__(_vm->tp_tuple, [](VM* vm, PyObject* _0){
+        Tuple& iterable = _CAST(Tuple&, _0);
+        std::stringstream ss;
+        ss << '(';
+        for(int i=0; i<iterable.size(); i++){
+            ss << vm->py_repr(iterable[i]);
+        }
+        ss << ')';
+        return VAR(ss.str());
+    });
+
+    _vm->bind__json__(_vm->tp_tuple, [](VM* vm, PyObject* _0){
+        Tuple& iterable = _CAST(Tuple&, _0);
+        std::stringstream ss;
+        ss << '[';
+        for(int i=0; i<iterable.size(); i++){
+            ss << vm->py_json(iterable[i]);
+            if(i != iterable.size()) ss << ',';
+        }
+        ss << ']';
+        return VAR(ss.str());
+    });
+
     _vm->bind_constructor<-1>("list", [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(List());
         if(args.size() == 1+1){
