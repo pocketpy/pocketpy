@@ -683,7 +683,7 @@ void init_builtins(VM* _vm) {
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
             ss << CAST(Str&, vm->py_repr(iterable[i]));
-            if(i != iterable.size()) ss << ',';
+            if(i != iterable.size()-1) ss << ", ";
         }
         ss << ']';
         return VAR(ss.str());
@@ -695,7 +695,7 @@ void init_builtins(VM* _vm) {
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
             ss << CAST(Str&, vm->py_json(iterable[i]));
-            if(i != iterable.size()) ss << ',';
+            if(i != iterable.size()-1) ss << ", ";
         }
         ss << ']';
         return VAR(ss.str());
@@ -710,8 +710,8 @@ void init_builtins(VM* _vm) {
             ss << ',';
         }else{
             for(int i=0; i<iterable.size(); i++){
-                ss << vm->py_repr(iterable[i]);
-                if(i != iterable.size()) ss << ',';
+                ss << CAST(Str&, vm->py_repr(iterable[i]));
+                if(i != iterable.size()-1) ss << ", ";
             }
         }
         ss << ')';
@@ -724,7 +724,7 @@ void init_builtins(VM* _vm) {
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
             ss << CAST(Str&, vm->py_json(iterable[i]));
-            if(i != iterable.size()) ss << ',';
+            if(i != iterable.size()-1) ss << ", ";
         }
         ss << ']';
         return VAR(ss.str());

@@ -41,3 +41,18 @@ d = True
 _j = json.dumps(d)
 _d = json.loads(_j)
 assert d == _d
+
+
+assert repr((1,)) == '(1,)'
+assert repr((1, 2, 3)) == '(1, 2, 3)'
+assert repr(tuple()) == '()'
+assert json.dumps((1,)) == '[1]'
+assert json.dumps((1, 2, 3)) == '[1, 2, 3]'
+assert json.dumps(tuple()) == '[]'
+
+assert repr([]) == '[]'
+assert repr([1, 2, 3]) == '[1, 2, 3]'
+assert repr([1]) == '[1]'
+assert json.dumps([]) == '[]'
+assert json.dumps([1, 2, 3]) == '[1, 2, 3]'
+assert json.dumps([1]) == '[1]'
