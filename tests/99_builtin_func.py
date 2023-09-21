@@ -320,33 +320,6 @@ except:
     pass
 
 # /************ int ************/
-# 未完全测试准确性-----------------------------------------------
-#       172:  367:    _vm->bind_constructor<-1>("int", [](VM* vm, ArgsView args) {
-#        28:  368:        if(args.size() == 1+0) return VAR(0);
-#        28:  369:        if(args.size() == 1+1){
-#        26:  370:            if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
-#         2:  371:            if (is_type(args[1], vm->tp_int)) return args[1];
-#         1:  372:            if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
-#         -:  373:        }
-#         3:  374:        if(args.size() > 1+2) vm->TypeError("int() takes at most 2 arguments");
-#         3:  375:        if (is_type(args[1], vm->tp_str)) {
-#         3:  376:            int base = 10;
-#         3:  377:            if(args.size() == 1+2) base = CAST(i64, args[2]);
-#         3:  378:            const Str& s = CAST(Str&, args[1]);
-#         -:  379:            try{
-#         3:  380:                size_t parsed = 0;
-#         3:  381:                i64 val = Number::stoi(s.str(), &parsed, base);
-#         3:  382:                PK_ASSERT(parsed == s.length());
-#         3:  383:                return VAR(val);
-#         3:  384:            }catch(...){
-#     #####:  385:                vm->ValueError("invalid literal for int(): " + s.escape());
-#     #####:  386:            }
-#         3:  387:        }
-#     #####:  388:        vm->TypeError("invalid arguments for int()");
-#     #####:  389:        return vm->None;
-#        28:  390:    });
-# test int:
-
 try:
     int('asad')
     print('未能拦截错误, 在测试 int')

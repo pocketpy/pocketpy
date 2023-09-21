@@ -3,9 +3,7 @@ icon: dot
 title: Arbitrary Sized Integers
 ---
 
-Unlike cpython, pkpy's `int` is of limited precision.
-In 32 bit platforms, it is 30 bit;
-in 64 bit platforms, it is 62 bit.
+Unlike cpython, pkpy's `int` is of limited precision (64-bit).
 
 For arbitrary sized integers, we provide a builtin `long` type, just like python2's `long`.
 `long` is implemented via pure python in [_long.py](https://github.com/blueloveTH/pocketpy/blob/main/python/_long.py).

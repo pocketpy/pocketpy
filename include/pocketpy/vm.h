@@ -393,13 +393,6 @@ public:
         TypeError("expected " + OBJ_NAME(_t(type)).escape() + ", got " + OBJ_NAME(_t(obj)).escape());
     }
 
-    void check_int(PyObject* obj){
-        if(is_int(obj)) return;
-        check_type(obj, tp_int);    // if failed, redirect to check_type to raise TypeError
-    }
-
-    void check_int_or_float(PyObject* obj);
-
     PyObject* _t(Type t){
         return _all_types[t.index].obj;
     }
@@ -487,12 +480,15 @@ DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
 
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
-    vm->check_int(obj);                                 \
-    return (T)(PK_BITS(obj) >> 2);                         \
-}                                                       \
-template<> inline T _py_cast<T>(VM* vm, PyObject* obj){ \
-    PK_UNUSED(vm);                                      \
-    return (T)(PK_BITS(obj) >> 2);                         \
+    if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
+    if(is_heap_int(obj)) return (T)PK_OBJ_GET(i64, obj);    \
+    vm->check_type(obj, vm->tp_int);                        \
+    return 0;                                               \
+}                                                           \
+template<> inline T _py_cast<T>(VM* vm, PyObject* obj){     \
+    PK_UNUSED(vm);                                          \
+    if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
+    return (T)PK_OBJ_GET(i64, obj);                         \
 }
 
 PY_CAST_INT(char)
@@ -507,43 +503,44 @@ PY_CAST_INT(unsigned long)
 PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
+    i64 bits;
     if(is_float(obj)){
-        i64 bits = PK_BITS(obj) & Number::c1;
+        bits = PK_BITS(obj) & Number::c1;
         return BitsCvt(bits)._float;
     }
-    if(is_int(obj)){
-        return (float)_py_cast<i64>(vm, obj);
-    }
-    vm->check_int_or_float(obj);       // error!
+    if(try_cast_int(obj, &bits)) return (float)bits;
+    vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
     return 0;
 }
 template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
     return py_cast<float>(vm, obj);
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
+    i64 bits;
     if(is_float(obj)){
-        i64 bits = PK_BITS(obj) & Number::c1;
+        bits = PK_BITS(obj) & Number::c1;
         return BitsCvt(bits)._float;
     }
-    if(is_int(obj)){
-        return (float)_py_cast<i64>(vm, obj);
-    }
-    vm->check_int_or_float(obj);       // error!
+    if(try_cast_int(obj, &bits)) return (float)bits;
+    vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
     return 0;
 }
 template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
     return py_cast<double>(vm, obj);
 }
 
+const i64 kMaxSmallInt = (1ll << 28) - 1;
+const i64 kMinSmallInt = -(1ll << 28);
 
 #define PY_VAR_INT(T)                                       \
     inline PyObject* py_var(VM* vm, T _val){                \
         i64 val = static_cast<i64>(_val);                   \
-        if(((val << 2) >> 2) != val){                       \
-            vm->_error("OverflowError", std::to_string(val) + " is out of range");  \
-        }                                                                           \
-        val = (val << 2) | 0b01;                                                    \
-        return reinterpret_cast<PyObject*>(val);                                    \
+        if(val >= kMinSmallInt && val <= kMaxSmallInt){     \
+            val = (val << 2) | 0b01;                        \
+            return reinterpret_cast<PyObject*>(val);        \
+        }else{                                              \
+            return vm->heap.gcnew<i64>(vm->tp_int, val);    \
+        }                                                   \
     }
 
 PY_VAR_INT(char)

@@ -230,7 +230,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                         size_t parsed;
                         char code;
                         try{
-                            code = (char)Number::stoi(hex, &parsed, 16);
+                            code = (char)std::stoi(hex, &parsed, 16);
                         }catch(...){
                             SyntaxError("invalid hex char");
                         }
@@ -289,7 +289,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 PK_ASSERT(base == 10);
                 add_token(TK("@num"), Number::stof(m[0], &size));
             } else {
-                add_token(TK("@num"), Number::stoi(m[0], &size, base));
+                add_token(TK("@num"), std::stoll(m[0], &size, base));
             }
             PK_ASSERT((int)size == (int)m.length());
         }catch(...){

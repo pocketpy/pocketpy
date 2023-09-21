@@ -123,6 +123,44 @@ struct PyObject{
     }
 };
 
+const int kTpIntIndex = 2;
+const int kTpFloatIndex = 3;
+
+inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
+inline bool is_small_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b01; }
+inline bool is_heap_int(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpIntIndex; }
+inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
+inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
+inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
+
+inline bool is_both_int_or_float(PyObject* a, PyObject* b) noexcept {
+    return is_tagged(a) && is_tagged(b);
+}
+
+inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
+	return is_float(a) && is_float(b);
+}
+
+inline bool is_type(PyObject* obj, Type type) {
+#if PK_DEBUG_EXTRA_CHECK
+    if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
+    if(is_special(obj)) throw std::runtime_error("is_type() called with special object");
+#endif
+    switch(type.index){
+        case kTpIntIndex: return is_int(obj);
+        case kTpFloatIndex: return is_float(obj);
+        default: return !is_tagged(obj) && obj->type == type;
+    }
+}
+
+inline bool is_non_tagged_type(PyObject* obj, Type type) {
+#if PK_DEBUG_EXTRA_CHECK
+    if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
+    if(is_special(obj)) throw std::runtime_error("is_non_tagged_type() called with special object");
+#endif
+    return !is_tagged(obj) && obj->type == type;
+}
+
 template <typename, typename=void> struct has_gc_marker : std::false_type {};
 template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {};
 
@@ -169,29 +207,6 @@ Str obj_type_name(VM* vm, Type type);
 #else
 #define OBJ_NAME(obj) PK_OBJ_GET(Str, vm->getattr(obj, __name__))
 #endif
-
-const int kTpIntIndex = 2;
-const int kTpFloatIndex = 3;
-
-inline bool is_type(PyObject* obj, Type type) {
-#if PK_DEBUG_EXTRA_CHECK
-    if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
-    if(is_special(obj)) throw std::runtime_error("is_type() called with special object");
-#endif
-    switch(type.index){
-        case kTpIntIndex: return is_int(obj);
-        case kTpFloatIndex: return is_float(obj);
-        default: return !is_tagged(obj) && obj->type == type;
-    }
-}
-
-inline bool is_non_tagged_type(PyObject* obj, Type type) {
-#if PK_DEBUG_EXTRA_CHECK
-    if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
-    if(is_special(obj)) throw std::runtime_error("is_non_tagged_type() called with special object");
-#endif
-    return !is_tagged(obj) && obj->type == type;
-}
 
 union BitsCvt {
     i64 _int;
@@ -247,6 +262,25 @@ __T _py_cast(VM* vm, PyObject* obj) {
 #define CAST_DEFAULT(T, x, default_value) (x != vm->None) ? py_cast<T>(vm, x) : (default_value)
 
 /*****************************************************************/
+template<>
+struct Py_<i64> final: PyObject {
+    i64 _value;
+    Py_(Type type, i64 val): PyObject(type), _value(val) {}
+    void _obj_gc_mark() override {}
+};
+
+inline bool try_cast_int(PyObject* obj, i64* val) noexcept {
+    if(is_small_int(obj)){
+        *val = PK_BITS(obj) >> 2;
+        return true;
+    }else if(is_heap_int(obj)){
+        *val = PK_OBJ_GET(i64, obj);
+        return true;
+    }else{
+        return false;
+    }
+}
+
 template<>
 struct Py_<List> final: PyObject {
     List _value;

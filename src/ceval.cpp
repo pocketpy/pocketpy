@@ -2,6 +2,10 @@
 
 namespace pkpy{
 
+static i64 _py_sint(PyObject* obj) noexcept {
+    return (i64)(PK_BITS(obj) >> 2);
+}
+
 PyObject* VM::_run_top_frame(){
     FrameId frame = top_frame();
     const int base_id = frame.index;
@@ -323,10 +327,10 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
 #define PREDICT_INT_OP(op)                              \
-    if(is_both_int(TOP(), SECOND())){                   \
+    if(is_small_int(TOP()) && is_small_int(SECOND())){  \
         _1 = POPX();                                    \
         _0 = TOP();                                     \
-        TOP() = VAR(_CAST(i64, _0) op _CAST(i64, _1));  \
+        TOP() = VAR(_py_sint(_0) op _py_sint(_1));      \
         DISPATCH();                                     \
     }
 

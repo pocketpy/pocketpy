@@ -309,12 +309,6 @@ PyObject* VM::py_negate(PyObject* obj){
     return call_method(obj, __neg__);
 }
 
-void VM::check_int_or_float(PyObject *obj){
-    if(!is_tagged(obj)){
-        TypeError("expected 'int' or 'float', got " + OBJ_NAME(_t(obj)).escape());
-    }
-}
-
 bool VM::py_bool(PyObject* obj){
     if(is_non_tagged_type(obj, tp_bool)) return obj == True;
     if(obj == None) return false;
@@ -454,11 +448,11 @@ PyObject* VM::format(Str spec, PyObject* obj){
             if(dot == 0){
                 width = -1;
             }else{
-                width = Number::stoi(spec.substr(0, dot).str());
+                width = std::stoi(spec.substr(0, dot).str());
             }
-            precision = Number::stoi(spec.substr(dot+1).str());
+            precision = std::stoi(spec.substr(dot+1).str());
         }else{
-            width = Number::stoi(spec.str());
+            width = std::stoi(spec.str());
             precision = -1;
         }
     }catch(...){

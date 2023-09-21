@@ -379,7 +379,7 @@ void init_builtins(VM* _vm) {
     });
 
     auto py_number_pow = [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
-        if(is_both_int(lhs_, rhs_)){
+        if(is_int(lhs_) && is_int(rhs_)){
             i64 lhs = _CAST(i64, lhs_);
             i64 rhs = _CAST(i64, rhs_);
             bool flag = false;
@@ -417,7 +417,7 @@ void init_builtins(VM* _vm) {
             const Str& s = CAST(Str&, args[1]);
             try{
                 size_t parsed = 0;
-                i64 val = Number::stoi(s.str(), &parsed, base);
+                i64 val = std::stoll(s.str(), &parsed, base);
                 PK_ASSERT(parsed == s.length());
                 return VAR(val);
             }catch(...){
