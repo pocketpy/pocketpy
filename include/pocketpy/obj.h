@@ -133,10 +133,6 @@ inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10;
 inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
 inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
 
-inline bool is_both_float(PyObject* a, PyObject* b) noexcept {
-	return is_float(a) && is_float(b);
-}
-
 inline bool is_type(PyObject* obj, Type type) {
 #if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
