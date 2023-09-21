@@ -114,8 +114,8 @@ namespace pkpy{
         return nullptr;
     }
 
-    void VM::exec(Str source){
-        exec(source, "main.py", EXEC_MODE);
+    PyObject* VM::exec(Str source){
+        return exec(source, "main.py", EXEC_MODE);
     }
 
     PyObject* VM::eval(Str source){
