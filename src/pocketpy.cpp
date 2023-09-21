@@ -88,13 +88,15 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 
 #define BIND_NUM_LOGICAL_OPT(name, op)   \
-    _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
-        if(is_int(rhs))     return VAR(_CAST(i64, lhs) op _CAST(i64, rhs)); \
-        if(is_float(rhs))   return VAR(_CAST(i64, lhs) op _CAST(f64, rhs)); \
-        return vm->NotImplemented;                                          \
-    });                                                                     \
+    _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {     \
+        i64 val;                                                                \
+        if(try_cast_int(rhs, &val)) return VAR(_CAST(i64, lhs) op val);         \
+        if(is_float(rhs))   return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));     \
+        return vm->NotImplemented;                                              \
+    });                                                                         \
     _vm->bind##name(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {   \
-        if(is_int(rhs))     return VAR(_CAST(f64, lhs) op _CAST(i64, rhs));     \
+        i64 val;                                                                \
+        if(try_cast_int(rhs, &val)) return VAR(_CAST(f64, lhs) op val);         \
         if(is_float(rhs))   return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));     \
         return vm->NotImplemented;                                              \
     });
@@ -378,9 +380,8 @@ void init_builtins(VM* _vm) {
     });
 
     auto py_number_pow = [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
-        if(is_int(lhs_) && is_int(rhs_)){
-            i64 lhs = _CAST(i64, lhs_);
-            i64 rhs = _CAST(i64, rhs_);
+        i64 lhs, rhs;
+        if(try_cast_int(lhs_, &lhs) && try_cast_int(rhs_, &rhs)){
             bool flag = false;
             if(rhs < 0) {flag = true; rhs = -rhs;}
             i64 ret = 1;
