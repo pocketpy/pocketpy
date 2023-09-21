@@ -383,7 +383,11 @@ void init_builtins(VM* _vm) {
         i64 lhs, rhs;
         if(try_cast_int(lhs_, &lhs) && try_cast_int(rhs_, &rhs)){
             bool flag = false;
-            if(rhs < 0) {flag = true; rhs = -rhs;}
+            if(rhs < 0) {
+                if(lhs == 0) vm->ZeroDivisionError("0.0 cannot be raised to a negative power");
+                flag = true;
+                rhs = -rhs;
+            }
             i64 ret = 1;
             while(rhs){
                 if(rhs & 1) ret *= lhs;

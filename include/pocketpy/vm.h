@@ -361,6 +361,8 @@ public:
     void TypeError(const Str& msg){ _error("TypeError", msg); }
     void IndexError(const Str& msg){ _error("IndexError", msg); }
     void ValueError(const Str& msg){ _error("ValueError", msg); }
+    void ZeroDivisionError(const Str& msg){ _error("ZeroDivisionError", msg); }
+    void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
     void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
     void UnboundLocalError(StrName name){ _error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
     void KeyError(PyObject* obj){ _error("KeyError", PK_OBJ_GET(Str, py_repr(obj))); }
