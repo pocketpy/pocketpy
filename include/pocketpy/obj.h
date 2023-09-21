@@ -201,9 +201,9 @@ Str obj_type_name(VM* vm, Type type);
 #endif
 
 union BitsCvt {
-    i64 _int;
+    Number::int_t _int;
     f64 _float;
-    BitsCvt(i64 val) : _int(val) {}
+    BitsCvt(Number::int_t val) : _int(val) {}
     BitsCvt(f64 val) : _float(val) {}
 };
 

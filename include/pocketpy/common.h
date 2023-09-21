@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <random>
 
-#define PK_VERSION				"1.2.1"
+#define PK_VERSION				"1.2.2"
 
 #include "config.h"
 #include "export.h"
@@ -131,7 +131,7 @@ struct Type {
 #define PK_ASSERT(x) if(!(x)) FATAL_ERROR();
 
 struct PyObject;
-#define PK_BITS(p) (reinterpret_cast<i64>(p))
+#define PK_BITS(p) (reinterpret_cast<Number::int_t>(p))
 
 // special singals, is_tagged() for them is true
 inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
