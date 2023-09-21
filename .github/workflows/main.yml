@@ -72,6 +72,8 @@ jobs:
         run: |
           bash build.sh
           python3 scripts/run_tests.py
+      - name: Benchmark
+        run: python3 scripts/run_tests.py benchmark
       - run: |
           python3 amalgamate.py
           cd plugins/macos/pocketpy
