@@ -505,11 +505,8 @@ PY_CAST_INT(unsigned long)
 PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
+    if(is_float(obj)) return BitsCvt(PK_BITS(obj) & Number::c1)._float;
     i64 bits;
-    if(is_float(obj)){
-        bits = PK_BITS(obj) & Number::c1;
-        return BitsCvt(bits)._float;
-    }
     if(try_cast_int(obj, &bits)) return (float)bits;
     vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
     return 0;
@@ -518,11 +515,8 @@ template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
     return py_cast<float>(vm, obj);
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
+    if(is_float(obj)) return BitsCvt(PK_BITS(obj) & Number::c1)._float;
     i64 bits;
-    if(is_float(obj)){
-        bits = PK_BITS(obj) & Number::c1;
-        return BitsCvt(bits)._float;
-    }
     if(try_cast_int(obj, &bits)) return (float)bits;
     vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
     return 0;
