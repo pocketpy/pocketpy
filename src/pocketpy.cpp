@@ -225,6 +225,7 @@ void init_builtins(VM* _vm) {
         if(is_int(args[0])){
             i64 lhs = _CAST(i64, args[0]);
             i64 rhs = CAST(i64, args[1]);
+            if(rhs == 0) vm->ZeroDivisionError();
             auto res = std::div(lhs, rhs);
             return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
         }else{
@@ -442,11 +443,13 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__floordiv__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 rhs = CAST(i64, rhs_);
+        if(rhs == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, lhs_) / rhs);
     });
 
     _vm->bind__mod__(_vm->tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 rhs = CAST(i64, rhs_);
+        if(rhs == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, lhs_) % rhs);
     });
 

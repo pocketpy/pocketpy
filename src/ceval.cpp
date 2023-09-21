@@ -330,6 +330,9 @@ __NEXT_STEP:;
     if(is_small_int(TOP()) && is_small_int(SECOND())){  \
         _1 = POPX();                                    \
         _0 = TOP();                                     \
+        if constexpr(#op[0] == '/' || #op[0] == '%'){   \
+            if(_py_sint(_1) == 0) ZeroDivisionError();  \
+        }                                               \
         TOP() = VAR(_py_sint(_0) op _py_sint(_1));      \
         DISPATCH();                                     \
     }

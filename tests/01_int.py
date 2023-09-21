@@ -63,3 +63,39 @@ assert (-4)**13 == -67108864
 assert ~3 == -4
 assert ~-3 == 2
 assert ~0 == -1
+
+try:
+    1 // 0
+    exit(1)
+except ZeroDivisionError:
+    pass
+
+try:
+    1 % 0
+    exit(1)
+except ZeroDivisionError:
+    pass
+
+try:
+    2**60 // 0
+    exit(1)
+except ZeroDivisionError:
+    pass
+
+try:
+    2**60 % 0
+    exit(1)
+except ZeroDivisionError:
+    pass
+
+try:
+    divmod(1, 0)
+    exit(1)
+except ZeroDivisionError:
+    pass
+
+try:
+    divmod(2**60, 0)
+    exit(1)
+except ZeroDivisionError:
+    pass
