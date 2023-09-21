@@ -179,7 +179,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_builtin_func<1>("id", [](VM* vm, ArgsView args) {
         PyObject* obj = args[0];
         if(is_tagged(obj)) return vm->None;
-        return VAR_T(VoidP, obj);
+        return VAR(PK_BITS(obj));
     });
 
     _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
@@ -260,7 +260,6 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
         i64 value = vm->py_hash(args[0]);
-        if(((value << 2) >> 2) != value) value >>= 2;
         return VAR(value);
     });
 

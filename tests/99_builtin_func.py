@@ -156,21 +156,6 @@ assert A.static_method(123) == 123
 #        67:  211:        return vm->py_import(name);
 #        67:  212:    });
 
-
-# 无法测试 -----------------------------------------------
-#       114:  238:    _vm->bind_builtin_func<-1>("exit", [](VM* vm, ArgsView args) {
-#     #####:  239:        if(args.size() == 0) std::exit(0);
-#     #####:  240:        else if(args.size() == 1) std::exit(CAST(int, args[0]));
-#     #####:  241:        else vm->TypeError("exit() takes at most 1 argument");
-#     #####:  242:        return vm->None;
-#     #####:  243:    });
-
-# -----------------------------------------------
-#       114:  253:    _vm->bind_builtin_func<1>("hash", [](VM* vm, ArgsView args){
-#     #####:  254:        i64 value = vm->py_hash(args[0]);
-#     #####:  255:        if(((value << 2) >> 2) != value) value >>= 2;
-#     #####:  256:        return VAR(value);
-#         -:  257:    });
 # test hash:
 # 测试整数类型的输入
 assert hash(0) == 0
@@ -1144,3 +1129,7 @@ assert callable(A.__call__) is True  # bound method
 assert callable(A.__init__) is True  # bound method
 assert callable(print) is True  # builtin function
 assert callable(isinstance) is True  # builtin function
+
+
+assert id(0) is None
+assert id(2**62) is not None
