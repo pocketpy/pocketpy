@@ -1,7 +1,7 @@
 # test int literals
 assert 0xffff == 65535
 assert 0xAAFFFF == 11206655
-assert 0x7fffffff == 2147483647     # will fail on 32-bit systems
+assert 0x7fffffff == 2147483647
 
 # test == != >= <= < >
 assert -1 == -1

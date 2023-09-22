@@ -101,11 +101,12 @@ union BitsCvtImpl<4>{
 	NumberTraits<4>::float_t _float;
 
 	// 1 + 8 + 23
-	unsigned int sign() const noexcept { return _int >> 31; }
+	int sign() const noexcept { return _int >> 31; }
 	unsigned int exp() const noexcept { return (_int >> 23) & 0b1111'1111; }
 	uint64_t mantissa() const noexcept { return _int & 0x7fffff; }
 
-	void set_exp(uint64_t exp) noexcept { _int = (_int & 0x807f'ffff) | (exp << 23); }
+	void set_exp(int exp) noexcept { _int = (_int & 0x807f'ffff) | (exp << 23); }
+	void set_sign(int sign) noexcept { _int = (_int & 0x7fff'ffff) | (sign << 31); }
 	void zero_mantissa() noexcept { _int &= 0xff80'0000; }
 
 	static constexpr int C0 = 127;	// 2^7 - 1
@@ -130,11 +131,12 @@ union BitsCvtImpl<8>{
 	NumberTraits<8>::float_t _float;
 
 	// 1 + 11 + 52
-	unsigned int sign() const noexcept { return _int >> 63; }
+	int sign() const noexcept { return _int >> 63; }
 	unsigned int exp() const noexcept { return (_int >> 52) & 0b0111'1111'1111; }
 	uint64_t mantissa() const noexcept { return _int & 0xfffffffffffff; }
 
 	void set_exp(uint64_t exp) noexcept { _int = (_int & 0x800f'ffff'ffff'ffff) | (exp << 52); }
+	void set_sign(uint64_t sign) noexcept { _int = (_int & 0x7fff'ffff'ffff'ffff) | (sign << 63); }
 	void zero_mantissa() noexcept { _int &= 0xfff0'0000'0000'0000; }
 
 	static constexpr int C0 = 1023;	// 2^10 - 1
@@ -195,9 +197,8 @@ inline PyObject* tag_float(f64 val){
 	BitsCvt decomposed(val);
 	// std::cout << "tagging: " << val << std::endl;
 	// decomposed.print();
-	// std::cout << "exp: " << decomposed.exp() << std::endl;
+	int sign = decomposed.sign();
 	int exp_7b = decomposed.exp() - BitsCvt::C0;
-	// std::cout << "exp_7b: " << exp_7b << std::endl;
 	if(exp_7b < BitsCvt::C1){
 		exp_7b = BitsCvt::C1 - 1;	// -63 + 63 = 0
 		decomposed.zero_mantissa();
@@ -208,6 +209,7 @@ inline PyObject* tag_float(f64 val){
 	decomposed.set_exp(exp_7b + BitsCvt::C2);
 	// decomposed.print();
 	decomposed._int = (decomposed._int << 1) | 0b01;
+	decomposed.set_sign(sign);
 	// decomposed.print();
 	return reinterpret_cast<PyObject*>(decomposed._int);
 }

@@ -45,3 +45,13 @@ assert eq(float(1.5), 1.5)
 assert eq(float(-1.5), -1.5)
 assert eq(float("123"), 123.0)
 assert eq(float("123.456"), 123.456)
+
+
+import math
+
+inf = float("inf")
+assert 1/0 == inf
+assert -1/0 == -inf
+assert 1/inf == 0
+assert -1/inf == 0
+assert math.isnan(0/0)

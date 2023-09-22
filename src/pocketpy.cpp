@@ -383,11 +383,9 @@ void init_builtins(VM* _vm) {
     auto py_number_pow = [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 lhs, rhs;
         if(try_cast_int(lhs_, &lhs) && try_cast_int(rhs_, &rhs)){
-            bool flag = false;
             if(rhs < 0) {
                 if(lhs == 0) vm->ZeroDivisionError("0.0 cannot be raised to a negative power");
-                flag = true;
-                rhs = -rhs;
+                return VAR((f64)std::pow(lhs, rhs));
             }
             i64 ret = 1;
             while(rhs){
@@ -395,7 +393,6 @@ void init_builtins(VM* _vm) {
                 lhs *= lhs;
                 rhs >>= 1;
             }
-            if(flag) return VAR((f64)(1.0 / ret));
             return VAR(ret);
         }else{
             return VAR((f64)std::pow(CAST_F(lhs_), CAST_F(rhs_)));
