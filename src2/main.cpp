@@ -61,8 +61,8 @@ static int f_input(pkpy_vm* vm){
 
 int main(int argc, char** argv){
 #if _WIN32
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
 #endif
     pkpy_vm* vm = pkpy_new_vm(true);
 
