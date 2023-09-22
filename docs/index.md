@@ -28,9 +28,17 @@ print(primes)
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
 
-## Unity plugin
+## Supported Platforms
 
-If you are working with [Unity Engine](https://unity.com/), you can download our plugin [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120) on the Asset Store.
+pkpy should work on any platform with a C++17 compiler.
+These platforms are officially tested.
+
++ Windows 64-bit
++ Linux 64-bit / 32-bit
++ macOS 64-bit
++ Android 64-bit / 32-bit
++ iOS 64-bit
++ Emscripten 32-bit
 
 ## Sponsor me
 
