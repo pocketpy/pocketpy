@@ -64,6 +64,28 @@ jobs:
       run: python3 scripts/run_tests.py benchmark
     - name: C Binding Test
       run: bash run_c_binding_test.sh
+  build_linux_x86:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Alpine Linux v3.15 for aarch64
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: x86
+          packages: gcc g++ make cmake libc-dev linux-headers python3
+          branch: v3.15
+      - name: Build and Test
+        run: |
+          uname -m
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+          cp main ../
+          cp libpocketpy.so ../
+          cd ..
+          python3 scripts/run_tests.py
+          python3 scripts/run_tests.py benchmark
+        shell: alpine.sh {0}
   build_macos:
       runs-on: macos-latest
       steps:
