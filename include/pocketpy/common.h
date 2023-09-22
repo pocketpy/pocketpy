@@ -20,6 +20,7 @@
 #include <variant>
 #include <type_traits>
 #include <random>
+#include <bitset>
 
 #define PK_VERSION				"1.2.2"
 
@@ -99,11 +100,13 @@ union BitsCvtImpl<4>{
 	NumberTraits<4>::int_t _int;
 	NumberTraits<4>::float_t _float;
 
-	struct{
-		unsigned int sign: 1;
-		unsigned int exp: 8;
-		uint64_t mantissa: 23;
-	} _float_bits;
+	// 1 + 8 + 23
+	unsigned int sign() const noexcept { return _int >> 31; }
+	unsigned int exp() const noexcept { return (_int >> 23) & 0b1111'1111; }
+	uint64_t mantissa() const noexcept { return _int & 0x7fffff; }
+
+	void set_exp(uint64_t exp) noexcept { _int = (_int & 0x807f'ffff) | (exp << 23); }
+	void zero_mantissa() noexcept { _int &= 0xff80'0000; }
 
 	static constexpr int C0 = 127;	// 2^7 - 1
 	static constexpr int C1 = -62;	// 2 - 2^6
@@ -112,6 +115,13 @@ union BitsCvtImpl<4>{
 
 	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
+
+	void print(){
+		std::string s = std::bitset<32>(_int).to_string();
+		std::cout << s.substr(0, 1) << '|';
+		std::cout << s.substr(1, 8) << '|';
+		std::cout << s.substr(9) << std::endl;
+	}
 };
 
 template<>
@@ -119,11 +129,13 @@ union BitsCvtImpl<8>{
 	NumberTraits<8>::int_t _int;
 	NumberTraits<8>::float_t _float;
 
-	struct{
-		unsigned int sign: 1;
-		unsigned int exp: 11;
-		uint64_t mantissa: 52;
-	} _float_bits;
+	// 1 + 11 + 52
+	unsigned int sign() const noexcept { return _int >> 63; }
+	unsigned int exp() const noexcept { return (_int >> 52) & 0b0111'1111'1111; }
+	uint64_t mantissa() const noexcept { return _int & 0xfffffffffffff; }
+
+	void set_exp(uint64_t exp) noexcept { _int = (_int & 0x800f'ffff'ffff'ffff) | (exp << 52); }
+	void zero_mantissa() noexcept { _int &= 0xfff0'0000'0000'0000; }
 
 	static constexpr int C0 = 1023;	// 2^10 - 1
 	static constexpr int C1 = -510;	// 2 - 2^9
@@ -132,6 +144,13 @@ union BitsCvtImpl<8>{
 
 	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
+
+	void print(){
+		std::string s = std::bitset<64>(_int).to_string();
+		std::cout << s.substr(0, 1) << '|';
+		std::cout << s.substr(1, 11) << '|';
+		std::cout << s.substr(12) << std::endl;
+	}
 };
 
 using BitsCvt = BitsCvtImpl<sizeof(void*)>;
@@ -174,29 +193,35 @@ struct PyObject;
 
 inline PyObject* tag_float(f64 val){
 	BitsCvt decomposed(val);
-	int exp_7b = decomposed._float_bits.exp - BitsCvt::C0;
+	// std::cout << "tagging: " << val << std::endl;
+	// decomposed.print();
+	// std::cout << "exp: " << decomposed.exp() << std::endl;
+	int exp_7b = decomposed.exp() - BitsCvt::C0;
+	std::cout << "exp_7b: " << exp_7b << std::endl;
 	if(exp_7b < BitsCvt::C1){
 		exp_7b = BitsCvt::C1 - 1;	// -63 + 63 = 0
-		decomposed._float_bits.mantissa = 0;
+		decomposed.zero_mantissa();
 	}else if(exp_7b > BitsCvt::C2){
 		exp_7b = BitsCvt::C2 + 1;	// 64 + 63 = 127
-		if(!std::isnan(val)) decomposed._float_bits.mantissa = 0;
+		if(!std::isnan(val)) decomposed.zero_mantissa();
 	}
-	decomposed._float_bits.exp = exp_7b + BitsCvt::C2;
+	decomposed.set_exp(exp_7b + BitsCvt::C2);
+	// decomposed.print();
 	decomposed._int = (decomposed._int << 1) | 0b01;
+	// decomposed.print();
 	return reinterpret_cast<PyObject*>(decomposed._int);
 }
 
 inline f64 untag_float(PyObject* val){
 	BitsCvt decomposed(reinterpret_cast<Number::int_t>(val));
 	decomposed._int = (decomposed._int >> 1) & BitsCvt::C3;
-	unsigned int exp_7b = decomposed._float_bits.exp;
+	unsigned int exp_7b = decomposed.exp();
 	if(exp_7b == 0) return 0.0f;
 	if(exp_7b == BitsCvt::C0){
-		decomposed._float_bits.exp = -1;
+		decomposed.set_exp(-1);
 		return decomposed._float;
 	}
-	decomposed._float_bits.exp = exp_7b - BitsCvt::C2 + BitsCvt::C0;
+	decomposed.set_exp(exp_7b - BitsCvt::C2 + BitsCvt::C0);
 	return decomposed._float;
 }
 
