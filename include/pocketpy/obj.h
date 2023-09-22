@@ -123,20 +123,29 @@ struct PyObject{
     }
 };
 
+struct PySignalObject: PyObject {
+    PySignalObject() : PyObject(0) {
+        gc.enabled = false;
+    }
+    void _obj_gc_mark() override {}
+};
+
+inline PyObject* const PY_NULL = new PySignalObject();
+inline PyObject* const PY_OP_CALL = new PySignalObject();
+inline PyObject* const PY_OP_YIELD = new PySignalObject();
+
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
 inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
-inline bool is_small_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b01; }
+inline bool is_small_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
 inline bool is_heap_int(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpIntIndex; }
-inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
-inline bool is_special(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b11; }
+inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 1) == 1; }    // 01 or 11
 inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
 
 inline bool is_type(PyObject* obj, Type type) {
 #if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
-    if(is_special(obj)) throw std::runtime_error("is_type() called with special object");
 #endif
     switch(type.index){
         case kTpIntIndex: return is_int(obj);
@@ -148,7 +157,6 @@ inline bool is_type(PyObject* obj, Type type) {
 inline bool is_non_tagged_type(PyObject* obj, Type type) {
 #if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
-    if(is_special(obj)) throw std::runtime_error("is_non_tagged_type() called with special object");
 #endif
     return !is_tagged(obj) && obj->type == type;
 }
@@ -199,13 +207,6 @@ Str obj_type_name(VM* vm, Type type);
 #else
 #define OBJ_NAME(obj) PK_OBJ_GET(Str, vm->getattr(obj, __name__))
 #endif
-
-union BitsCvt {
-    Number::int_t _int;
-    f64 _float;
-    BitsCvt(Number::int_t val) : _int(val) {}
-    BitsCvt(f64 val) : _float(val) {}
-};
 
 template <typename, typename=void> struct is_py_class : std::false_type {};
 template <typename T> struct is_py_class<T, std::void_t<decltype(T::_type)>> : std::true_type {};

@@ -76,10 +76,6 @@ struct NumberTraits<4> {
 
 	template<typename... Args>
 	static float_t stof(Args&&... args) { return std::stof(std::forward<Args>(args)...); }
-
-	static constexpr int_t c0 = 0b00000000011111111111111111111100;
-	static constexpr int_t c1 = 0b11111111111111111111111111111100;
-	static constexpr int_t c2 = 0b00000000000000000000000000000011;
 };
 
 template <>
@@ -89,18 +85,59 @@ struct NumberTraits<8> {
 
 	template<typename... Args>
 	static float_t stof(Args&&... args) { return std::stod(std::forward<Args>(args)...); }
-
-	static constexpr int_t c0 = 0b0000000000001111111111111111111111111111111111111111111111111100;
-	static constexpr int_t c1 = 0b1111111111111111111111111111111111111111111111111111111111111100;
-	static constexpr int_t c2 = 0b0000000000000000000000000000000000000000000000000000000000000011;
 };
 
 using Number = NumberTraits<sizeof(void*)>;
-using i64 = int64_t;
+using i64 = int64_t;		// always 64-bit
 using f64 = Number::float_t;
 
+template<size_t T>
+union BitsCvtImpl;
+
+template<>
+union BitsCvtImpl<4>{
+	NumberTraits<4>::int_t _int;
+	NumberTraits<4>::float_t _float;
+
+	struct{
+		unsigned int sign: 1;
+		unsigned int exp: 8;
+		uint64_t mantissa: 23;
+	} _float_bits;
+
+	static constexpr int C0 = 127;	// 2^7 - 1
+	static constexpr int C1 = -62;	// 2 - 2^6
+	static constexpr int C2 = 63;	// 2^6 - 1
+
+	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
+	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
+};
+
+template<>
+union BitsCvtImpl<8>{
+	NumberTraits<8>::int_t _int;
+	NumberTraits<8>::float_t _float;
+
+	struct{
+		unsigned int sign: 1;
+		unsigned int exp: 11;
+		uint64_t mantissa: 52;
+	} _float_bits;
+
+	static constexpr int C0 = 1023;	// 2^10 - 1
+	static constexpr int C1 = -510;	// 2 - 2^9
+	static constexpr int C2 = 511;	// 2^9 - 1
+
+	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
+	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
+};
+
+using BitsCvt = BitsCvtImpl<sizeof(void*)>;
+
 static_assert(sizeof(i64) == 8);
-static_assert(sizeof(f64) == sizeof(void*));
+static_assert(sizeof(Number::float_t) == sizeof(void*));
+static_assert(sizeof(Number::int_t) == sizeof(void*));
+static_assert(sizeof(BitsCvt) == sizeof(void*));
 static_assert(std::numeric_limits<f64>::is_iec559);
 
 struct Dummy { };
@@ -133,10 +170,33 @@ struct Type {
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<Number::int_t>(p))
 
-// special singals, is_tagged() for them is true
-inline PyObject* const PY_NULL = (PyObject*)0b000011;		// tagged null
-inline PyObject* const PY_OP_CALL = (PyObject*)0b100011;
-inline PyObject* const PY_OP_YIELD = (PyObject*)0b110011;
+inline PyObject* tag_float(f64 val){
+	BitsCvt decomposed(val);
+	unsigned int exp_7b = decomposed._float_bits.exp;
+	if(exp_7b - BitsCvt::C0 < BitsCvt::C1){
+		exp_7b = 0;
+		decomposed._float_bits.mantissa = 0;
+	}else if(exp_7b - BitsCvt::C0 > BitsCvt::C2){
+		exp_7b = BitsCvt::C0;
+		if(!std::isnan(val)) decomposed._float_bits.mantissa = 0;
+	}
+	decomposed._float_bits.exp = exp_7b - BitsCvt::C0 + BitsCvt::C2;
+	decomposed._int = (decomposed._int << 1) | 0b01;
+	return reinterpret_cast<PyObject*>(decomposed._int);
+}
+
+inline f64 untag_float(PyObject* val){
+	BitsCvt decomposed(reinterpret_cast<Number::int_t>(val));
+	decomposed._int >>= 1;
+	unsigned int exp_7b = decomposed._float_bits.exp;
+	if(exp_7b == 0) return 0.0f;
+	if(exp_7b == BitsCvt::C0){
+		decomposed._float_bits.exp = -1;
+		return decomposed._float;
+	}
+	decomposed._float_bits.exp = exp_7b - BitsCvt::C2 + BitsCvt::C0;
+	return decomposed._float;
+}
 
 // is_pod<> for c++17 and c++20
 template<typename T>

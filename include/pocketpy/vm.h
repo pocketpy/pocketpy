@@ -505,7 +505,7 @@ PY_CAST_INT(unsigned long)
 PY_CAST_INT(unsigned long long)
 
 template<> inline float py_cast<float>(VM* vm, PyObject* obj){
-    if(is_float(obj)) return BitsCvt(PK_BITS(obj) & Number::c1)._float;
+    if(is_float(obj)) return untag_float(obj);
     i64 bits;
     if(try_cast_int(obj, &bits)) return (float)bits;
     vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
@@ -515,7 +515,7 @@ template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
     return py_cast<float>(vm, obj);
 }
 template<> inline double py_cast<double>(VM* vm, PyObject* obj){
-    if(is_float(obj)) return BitsCvt(PK_BITS(obj) & Number::c1)._float;
+    if(is_float(obj)) return untag_float(obj);
     i64 bits;
     if(try_cast_int(obj, &bits)) return (float)bits;
     vm->TypeError("expected 'int' or 'float', got " + OBJ_NAME(vm->_t(obj)).escape());
@@ -532,7 +532,7 @@ const i64 kMinSmallInt = -(1ll << 28);
     inline PyObject* py_var(VM* vm, T _val){                \
         i64 val = static_cast<i64>(_val);                   \
         if(val >= kMinSmallInt && val <= kMaxSmallInt){     \
-            val = (val << 2) | 0b01;                        \
+            val = (val << 2) | 0b10;                        \
             return reinterpret_cast<PyObject*>(val);        \
         }else{                                              \
             return vm->heap.gcnew<i64>(vm->tp_int, val);    \
@@ -554,16 +554,7 @@ PY_VAR_INT(unsigned long long)
 #define PY_VAR_FLOAT(T)                             \
     inline PyObject* py_var(VM* vm, T _val){        \
         PK_UNUSED(vm);                              \
-        BitsCvt val(static_cast<f64>(_val));        \
-        i64 bits = val._int & Number::c1;           \
-        i64 tail = val._int & Number::c2;           \
-        if(tail == 0b10){                           \
-            if(bits&0b100) bits += 0b100;           \
-        }else if(tail == 0b11){                     \
-            bits += 0b100;                          \
-        }                                           \
-        bits |= 0b10;                               \
-        return reinterpret_cast<PyObject*>(bits);   \
+        return tag_float(static_cast<f64>(_val));   \
     }
 
 PY_VAR_FLOAT(float)
