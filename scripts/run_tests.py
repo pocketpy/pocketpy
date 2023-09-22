@@ -34,6 +34,8 @@ def test_dir(path):
                 print("TEST FAILED! Press any key to continue...")
                 input()
 
+print('CPython:', str(sys.version).replace('\n', ''))
+print('System:', '64-bit' if sys.maxsize > 2**32 else '32-bit')
 
 if len(sys.argv) == 2:
     assert 'benchmark' in sys.argv[1]
