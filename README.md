@@ -25,6 +25,18 @@ pkpy is extremely easy to embed via a single header file `pocketpy.h`, without e
 
 Please see https://pocketpy.dev for details or try [Live Demo](https://pocketpy.dev/static/web/).
 
+## Supported Platforms
+
+pkpy should work on any platform with a C++17 compiler.
+These platforms are officially tested.
+
++ Windows 64-bit
++ Linux 64-bit / 32-bit
++ macOS 64-bit
++ Android 64-bit / 32-bit
++ iOS 64-bit
++ WASM 32-bit
+
 ## Quick Start
 
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
