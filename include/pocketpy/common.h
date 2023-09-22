@@ -172,15 +172,15 @@ struct PyObject;
 
 inline PyObject* tag_float(f64 val){
 	BitsCvt decomposed(val);
-	unsigned int exp_7b = decomposed._float_bits.exp;
-	if(exp_7b - BitsCvt::C0 < BitsCvt::C1){
-		exp_7b = 0;
+	int exp_7b = decomposed._float_bits.exp - BitsCvt::C0;
+	if(exp_7b < BitsCvt::C1){
+		exp_7b = BitsCvt::C1 - 1;	// -63 + 63 = 0
 		decomposed._float_bits.mantissa = 0;
-	}else if(exp_7b - BitsCvt::C0 > BitsCvt::C2){
-		exp_7b = BitsCvt::C0;
+	}else if(exp_7b > BitsCvt::C2){
+		exp_7b = BitsCvt::C2 + 1;	// 64 + 63 = 127
 		if(!std::isnan(val)) decomposed._float_bits.mantissa = 0;
 	}
-	decomposed._float_bits.exp = exp_7b - BitsCvt::C0 + BitsCvt::C2;
+	decomposed._float_bits.exp = exp_7b + BitsCvt::C2;
 	decomposed._int = (decomposed._int << 1) | 0b01;
 	return reinterpret_cast<PyObject*>(decomposed._int);
 }
