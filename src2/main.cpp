@@ -60,6 +60,10 @@ static int f_input(pkpy_vm* vm){
 }
 
 int main(int argc, char** argv){
+#if _WIN32
+        SetConsoleCP(CP_UTF8);
+        SetConsoleOutputCP(CP_UTF8);
+#endif
     pkpy_vm* vm = pkpy_new_vm(true);
 
     pkpy_push_function(vm, "input(prompt=None) -> str", f_input);
@@ -68,12 +72,6 @@ int main(int argc, char** argv){
 
     if(argc == 1){
         void* repl = pkpy_new_repl(vm);
-
-#if _WIN32
-        SetConsoleCP(CP_UTF8);
-        SetConsoleOutputCP(CP_UTF8);
-#endif
-
         bool need_more_lines = false;
         while(true){
             std::cout << (need_more_lines ? "... " : ">>> ");
