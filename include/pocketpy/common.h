@@ -197,7 +197,7 @@ inline PyObject* tag_float(f64 val){
 	// decomposed.print();
 	// std::cout << "exp: " << decomposed.exp() << std::endl;
 	int exp_7b = decomposed.exp() - BitsCvt::C0;
-	std::cout << "exp_7b: " << exp_7b << std::endl;
+	// std::cout << "exp_7b: " << exp_7b << std::endl;
 	if(exp_7b < BitsCvt::C1){
 		exp_7b = BitsCvt::C1 - 1;	// -63 + 63 = 0
 		decomposed.zero_mantissa();
