@@ -55,3 +55,7 @@ assert -1/0 == -inf
 assert 1/inf == 0
 assert -1/inf == 0
 assert math.isnan(0/0)
+
+assert 2**-600 == 0.0
+assert 2.0 ** 600 == inf
+assert (-2.0) ** 601 == -inf

@@ -101,18 +101,19 @@ union BitsCvtImpl<4>{
 	NumberTraits<4>::float_t _float;
 
 	// 1 + 8 + 23
-	int sign() const noexcept { return _int >> 31; }
-	unsigned int exp() const noexcept { return (_int >> 23) & 0b1111'1111; }
-	uint64_t mantissa() const noexcept { return _int & 0x7fffff; }
+	int sign() const { return _int >> 31; }
+	unsigned int exp() const { return (_int >> 23) & 0b1111'1111; }
+	uint64_t mantissa() const { return _int & 0x7fffff; }
 
-	void set_exp(int exp) noexcept { _int = (_int & 0x807f'ffff) | (exp << 23); }
-	void set_sign(int sign) noexcept { _int = (_int & 0x7fff'ffff) | (sign << 31); }
-	void zero_mantissa() noexcept { _int &= 0xff80'0000; }
+	void set_exp(int exp) { _int = (_int & 0x807f'ffff) | (exp << 23); }
+	void set_sign(int sign) { _int = (_int & 0x7fff'ffff) | (sign << 31); }
+	void zero_mantissa() { _int &= 0xff80'0000; }
 
 	static constexpr int C0 = 127;	// 2^7 - 1
 	static constexpr int C1 = -62;	// 2 - 2^6
 	static constexpr int C2 = 63;	// 2^6 - 1
 	static constexpr NumberTraits<4>::int_t C3 = 0b1011'1111'1111'1111'1111'1111'1111'1111;
+	static constexpr int C4 = 0b11111111;
 
 	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
@@ -131,18 +132,19 @@ union BitsCvtImpl<8>{
 	NumberTraits<8>::float_t _float;
 
 	// 1 + 11 + 52
-	int sign() const noexcept { return _int >> 63; }
-	unsigned int exp() const noexcept { return (_int >> 52) & 0b0111'1111'1111; }
-	uint64_t mantissa() const noexcept { return _int & 0xfffffffffffff; }
+	int sign() const { return _int >> 63; }
+	unsigned int exp() const { return (_int >> 52) & 0b0111'1111'1111; }
+	uint64_t mantissa() const { return _int & 0xfffffffffffff; }
 
-	void set_exp(uint64_t exp) noexcept { _int = (_int & 0x800f'ffff'ffff'ffff) | (exp << 52); }
-	void set_sign(uint64_t sign) noexcept { _int = (_int & 0x7fff'ffff'ffff'ffff) | (sign << 63); }
-	void zero_mantissa() noexcept { _int &= 0xfff0'0000'0000'0000; }
+	void set_exp(uint64_t exp) { _int = (_int & 0x800f'ffff'ffff'ffff) | (exp << 52); }
+	void set_sign(uint64_t sign) { _int = (_int & 0x7fff'ffff'ffff'ffff) | (sign << 63); }
+	void zero_mantissa() { _int &= 0xfff0'0000'0000'0000; }
 
 	static constexpr int C0 = 1023;	// 2^10 - 1
 	static constexpr int C1 = -510;	// 2 - 2^9
 	static constexpr int C2 = 511;	// 2^9 - 1
 	static constexpr NumberTraits<8>::int_t C3 = 0b1011'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111;
+	static constexpr int C4 = 0b11111111111;
 
 	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
@@ -173,9 +175,9 @@ struct Type {
 	int index;
 	Type(): index(-1) {}
 	Type(int index): index(index) {}
-	bool operator==(Type other) const noexcept { return this->index == other.index; }
-	bool operator!=(Type other) const noexcept { return this->index != other.index; }
-	operator int() const noexcept { return this->index; }
+	bool operator==(Type other) const { return this->index == other.index; }
+	bool operator!=(Type other) const { return this->index != other.index; }
+	operator int() const { return this->index; }
 };
 
 #define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
@@ -196,7 +198,6 @@ struct PyObject;
 inline PyObject* tag_float(f64 val){
 	BitsCvt decomposed(val);
 	// std::cout << "tagging: " << val << std::endl;
-	// decomposed.print();
 	int sign = decomposed.sign();
 	int exp_7b = decomposed.exp() - BitsCvt::C0;
 	if(exp_7b < BitsCvt::C1){
@@ -207,20 +208,19 @@ inline PyObject* tag_float(f64 val){
 		if(!std::isnan(val)) decomposed.zero_mantissa();
 	}
 	decomposed.set_exp(exp_7b + BitsCvt::C2);
-	// decomposed.print();
 	decomposed._int = (decomposed._int << 1) | 0b01;
 	decomposed.set_sign(sign);
-	// decomposed.print();
 	return reinterpret_cast<PyObject*>(decomposed._int);
 }
 
 inline f64 untag_float(PyObject* val){
 	BitsCvt decomposed(reinterpret_cast<Number::int_t>(val));
+	// std::cout << "untagging: " << val << std::endl;
 	decomposed._int = (decomposed._int >> 1) & BitsCvt::C3;
 	unsigned int exp_7b = decomposed.exp();
 	if(exp_7b == 0) return 0.0f;
 	if(exp_7b == BitsCvt::C0){
-		decomposed.set_exp(-1);
+		decomposed.set_exp(BitsCvt::C4);
 		return decomposed._float;
 	}
 	decomposed.set_exp(exp_7b - BitsCvt::C2 + BitsCvt::C0);
