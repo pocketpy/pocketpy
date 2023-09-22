@@ -108,6 +108,7 @@ union BitsCvtImpl<4>{
 	static constexpr int C0 = 127;	// 2^7 - 1
 	static constexpr int C1 = -62;	// 2 - 2^6
 	static constexpr int C2 = 63;	// 2^6 - 1
+	static constexpr NumberTraits<4>::int_t C3 = 0b1011'1111'1111'1111'1111'1111'1111'1111;
 
 	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
@@ -127,6 +128,7 @@ union BitsCvtImpl<8>{
 	static constexpr int C0 = 1023;	// 2^10 - 1
 	static constexpr int C1 = -510;	// 2 - 2^9
 	static constexpr int C2 = 511;	// 2^9 - 1
+	static constexpr NumberTraits<8>::int_t C3 = 0b1011'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111'1111;
 
 	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
@@ -187,7 +189,7 @@ inline PyObject* tag_float(f64 val){
 
 inline f64 untag_float(PyObject* val){
 	BitsCvt decomposed(reinterpret_cast<Number::int_t>(val));
-	decomposed._int >>= 1;
+	decomposed._int = (decomposed._int >> 1) & BitsCvt::C3;
 	unsigned int exp_7b = decomposed._float_bits.exp;
 	if(exp_7b == 0) return 0.0f;
 	if(exp_7b == BitsCvt::C0){
