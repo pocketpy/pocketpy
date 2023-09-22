@@ -10,18 +10,28 @@
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 </p>
-pocketpy是一个轻量级的Python解释器，为嵌入至游戏引擎而设计，基于C++17和STL。
+pocketpy 是一个轻量级的 Python 解释器，为嵌入至游戏引擎而设计，基于 C++17 和 STL。
 
-它包含一个编译器和基于字节码的虚拟机，以及交互式命令窗的实现。所有功能均集成在单个头文件`pocketpy.h`中，不包含外部依赖项，能很方便地嵌入至你的应用。
+它包含一个编译器和基于字节码的虚拟机，以及交互式命令窗的实现。所有功能均集成在单个头文件 `pocketpy.h` 中，不包含外部依赖项，能很方便地嵌入至你的应用。
 
-你可以 [在浏览器中体验](https://pocketpy.dev/static/web/) pocketpy的交互式界面（REPL）。
+你可以 [在浏览器中体验](https://pocketpy.dev/static/web/) pocketpy 的交互式界面（REPL）。
+
+## 支持的平台
+
+pkpy 支持任何拥有 C++17 编译器的平台。
+以下平台由官方测试通过。
+
++ Windows 64-bit
++ Linux 64-bit / 32-bit
++ macOS 64-bit
++ Android 64-bit / 32-bit
++ iOS 64-bit
++ Emscripten 32-bit
 
 ## 快速上手
 
-你可以在 [Github Release](https://github.com/blueloveTH/pocketpy/releases) 页面下载`pocketpy.h`，
+你可以在 [Github Release](https://github.com/blueloveTH/pocketpy/releases) 页面下载 `pocketpy.h`，
 并加入到你的工程中。请参阅 https://pocketpy.dev 以获取更详细的文档。
-
-如果你使用 [Unity引擎](https://unity.com/)，你可以在Asset Store下载我们的插件 [PocketPython](https://assetstore.unity.com/packages/tools/visual-scripting/pocketpy-241120)。
 
 ```cpp
 #include "pocketpy.h"
