@@ -14,6 +14,8 @@
 <!-- docs -->
 <a href="https://pocketpy.dev">
 <img alt="Website" src="https://img.shields.io/website/https/pocketpy.dev.svg?down_color=red&down_message=offline&up_color=blue&up_message=online"></a>
+<a title="Discord" href="https://discord.gg/WWaq72GzXv" >
+<img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
 </p>
 
 **English |** [**简体中文**](README_zh.md)
