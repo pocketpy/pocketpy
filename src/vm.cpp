@@ -543,6 +543,11 @@ Str VM::disassemble(CodeObject_ co){
         if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP){
             jumpTargets.push_back(byte.arg);
         }
+        if(byte.op == OP_GOTO){
+            // TODO: pre-compute jump targets for OP_GOTO
+            int* target = co->labels.try_get_2(StrName(byte.arg));
+            if(target != nullptr) jumpTargets.push_back(*target);
+        }
     }
     std::stringstream ss;
     int prev_line = -1;
