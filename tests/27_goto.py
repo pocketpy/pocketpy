@@ -20,3 +20,14 @@ for i in range(10):         # [1]
         b = True
 == out ==
 assert not b
+
+sum = 0
+i = 1
+
+== loop ==
+sum += i
+i += 1
+if i <= 100:
+    -> loop
+
+assert sum == 5050
