@@ -24,3 +24,5 @@ Self = _PLACEHOLDER
 
 class Generic:
     pass
+
+TYPE_CHECKING = False
