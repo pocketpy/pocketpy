@@ -84,3 +84,14 @@ assert b == [1, 2, 3, 4, 5]
 a = []
 b = [*a, 1, 2, 3, *a, *a]
 assert b == [1, 2, 3]
+
+assert b[
+    1
+] == 2
+
+assert b[0
+] == 1
+
+assert b[0] == 1
+assert b[
+    0] == 1

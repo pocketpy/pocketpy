@@ -392,6 +392,7 @@ namespace pkpy{
         // a[<0> <state:1> : state<3> : state<5>]
         int state = 0;
         do{
+            match_newlines_repl();
             switch(state){
                 case 0:
                     if(match(TK(":"))){
@@ -439,6 +440,7 @@ namespace pkpy{
                     break;
                 case 5: consume(TK("]")); goto __SUBSCR_END;
             }
+            match_newlines_repl();
         }while(true);
 __SUBSCR_END:
         if(is_slice){
