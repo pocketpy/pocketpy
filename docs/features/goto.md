@@ -3,13 +3,18 @@ icon: dot
 title: Goto Statement
 ---
 
-pkpy supports `goto` and `label` just like C. You are allowed to change the control flow unconditionally.
+pkpy supports goto/label just like C. You are allowed to **change the control flow unconditionally**.
 
-## Syntax
+## Define a label
 
 ```
-$goto <identifier>
-$label <identifier>
+== <identifier> ==
+```
+
+## Goto a label
+
+```
+-> <identifier>
 ```
 
 ## Example
@@ -18,7 +23,8 @@ $label <identifier>
 for i in range(10):
   for j in range(10):
     for k in range(10):
-      $goto exit
+      -> exit
 
-$label exit
+== exit ==
+print('exit')
 ```

@@ -22,8 +22,6 @@ constexpr const char* kTokens[] = {
     ".", ",", ":", ";", "#", "(", ")", "[", "]", "{", "}",
     "**", "=", ">", "<", "..", "...", "->", "?", "@", "==", "!=", ">=", "<=",
     "++", "--", "~",
-    /** SPEC_BEGIN **/
-    "$goto", "$label",
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",

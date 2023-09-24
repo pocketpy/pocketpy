@@ -844,16 +844,17 @@ __EAT_DOTS_END:
                 ctx()->emit(OP_WITH_EXIT, BC_NOARG, prev().line);
             } break;
             /*************************************************/
-            case TK("$label"): {
-                if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
+            case TK("=="): {
                 consume(TK("@id"));
+                if(mode()!=EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
                 bool ok = ctx()->add_label(prev().str());
+                consume(TK("=="));
                 if(!ok) SyntaxError("label " + prev().str().escape() + " already exists");
                 consume_end_stmt();
             } break;
-            case TK("$goto"):
-                if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
+            case TK("->"):
                 consume(TK("@id"));
+                if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
                 ctx()->emit(OP_GOTO, StrName(prev().str()).index, prev().line);
                 consume_end_stmt();
                 break;

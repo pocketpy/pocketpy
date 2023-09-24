@@ -325,16 +325,6 @@ static bool is_unicode_Lo_char(uint32_t c) {
                     eat_spaces();
                     return true;
                 }
-                case '$': {
-                    for(int i=TK("$goto"); i<=TK("$label"); i++){
-                        // +1 to skip the '$'
-                        if(match_string(TK_STR(i) + 1)){
-                            add_token((TokenIndex)i);
-                            return true;
-                        }
-                    }
-                    SyntaxError("invalid special token");
-                } return false;
                 case '%': add_token_2('=', TK("%"), TK("%=")); return true;
                 case '&': add_token_2('=', TK("&"), TK("&=")); return true;
                 case '|': add_token_2('=', TK("|"), TK("|=")); return true;
