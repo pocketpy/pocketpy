@@ -1188,10 +1188,19 @@ void init_builtins(VM* _vm) {
         if(!ok) vm->KeyError(key);
     });
 
-    _vm->bind_method<1>("dict", "pop", [](VM* vm, ArgsView args) {
+    _vm->bind_method<-1>("dict", "pop", [](VM* vm, ArgsView args) {
+        if(args.size() != 2 && args.size() != 3){
+            vm->TypeError("pop() expected 1 or 2 arguments");
+            return vm->None;
+        }
         Dict& self = _CAST(Dict&, args[0]);
         PyObject* value = self.try_get(args[1]);
-        if(value == nullptr) vm->KeyError(args[1]);
+        if(value == nullptr){
+            if(args.size() == 2) vm->KeyError(args[1]);
+            if(args.size() == 3){
+                return args[2];
+            }
+        }
         self.erase(args[1]);
         return value;
     });

@@ -126,3 +126,19 @@ for i in range(len(data)):
     if i % 3 == 0:
         y = b.pop()
         del a[y]
+
+a = {1: 2, 3: 4}
+assert a.pop(1) == 2
+try:
+    a.pop(1)
+    exit(1)
+except KeyError:
+    pass
+
+assert a.pop(1, None) is None
+
+try:
+    a.pop(1, 2, 3)
+    exit(1)
+except TypeError:
+    pass
