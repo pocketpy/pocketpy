@@ -14,8 +14,3 @@ It is supported by the `eval()` function.
 Encode a python object into a JSON string.
 
 It is supported by the compiler with `JSON_MODE` enabled.
-
-!!!
-There is a special method `__json__`.
-If defined, it will be called when `json.dumps()` is called.
-!!!
