@@ -1,12 +1,5 @@
-from c import sizeof
-
-# https://www.cnblogs.com/liuchanglc/p/14203783.html
-if sizeof('void_p') == 4:
-    PyLong_SHIFT = 28//2 - 1
-elif sizeof('void_p') == 8:
-    PyLong_SHIFT = 60//2 - 1
-else:
-    raise NotImplementedError
+# after v1.2.2, int is always 64-bit
+PyLong_SHIFT = 60//2 - 1
 
 PyLong_BASE = 2 ** PyLong_SHIFT
 PyLong_MASK = PyLong_BASE - 1
