@@ -27,6 +27,7 @@ pkpy 支持任何拥有 C++17 编译器的平台。
 + Android 64-bit / 32-bit
 + iOS 64-bit
 + Emscripten 32-bit
++ Raspberry Pi 64-bit
 
 ## 快速上手
 
