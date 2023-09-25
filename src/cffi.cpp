@@ -125,18 +125,19 @@ namespace pkpy{
 
     void C99Struct::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
+            Type cls = PK_OBJ_GET(Type, args[0]);
             if(args.size() == 1+1){
                 if(is_int(args[1])){
                     int size = _CAST(int, args[1]);
-                    return VAR_T(C99Struct, size);
+                    return vm->heap.gcnew<C99Struct>(cls, size);
                 }
                 if(is_non_tagged_type(args[1], vm->tp_str)){
                     const Str& s = _CAST(Str&, args[1]);
-                    return VAR_T(C99Struct, (void*)s.data, s.size);
+                    return vm->heap.gcnew<C99Struct>(cls, (void*)s.data, s.size);
                 }
                 if(is_non_tagged_type(args[1], vm->tp_bytes)){
                     const Bytes& b = _CAST(Bytes&, args[1]);
-                    return VAR_T(C99Struct, (void*)b.data(), b.size());
+                    return vm->heap.gcnew<C99Struct>(cls, (void*)b.data(), b.size());
                 }
                 vm->TypeError("expected int, str or bytes");
                 return vm->None;
@@ -144,7 +145,7 @@ namespace pkpy{
             if(args.size() == 1+2){
                 void* p = CAST(void*, args[1]);
                 int size = CAST(int, args[2]);
-                return VAR_T(C99Struct, p, size);
+                return vm->heap.gcnew<C99Struct>(cls, p, size);
             }
             vm->TypeError("expected 1 or 2 arguments");
             return vm->None;
