@@ -37,7 +37,6 @@ struct VoidP{
 
     void* ptr;
     VoidP(void* ptr): ptr(ptr){}
-    VoidP(): ptr(nullptr){}
 
     bool operator==(const VoidP& other) const {
         return ptr == other.ptr;

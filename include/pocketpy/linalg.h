@@ -234,7 +234,7 @@ struct Mat3x3{
 
     bool is_affine() const{
         float det = _11 * _22 - _12 * _21;
-        if(!isclose(det, 0)) return false;
+        if(isclose(det, 0)) return false;
         return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 

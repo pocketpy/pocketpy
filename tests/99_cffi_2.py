@@ -1,38 +1,6 @@
 import c
 
-assert c.void_p.from_hex('0x2568b60').hex() == '0x2568b60'
-
-# ------------------------------------------------
-class HexAddress:
-    def __init__(self, address):
-        if not address.startswith("0x"):  # 确保地址以0x开头
-            raise ValueError("Address should start with '0x'.")
-        self.address = address[2:]  # 去除0x前缀，并保存十六进制字符串
-
-    def __str__(self):
-        return "0x" + self.address  
-
-    def __add__(self, other):
-        if isinstance(other, int):
-            return HexAddress(hex(int(self.address, 16) + other))  # 将字符串地址转为整数进行运算
-        elif isinstance(other, HexAddress):
-            return HexAddress(hex(int(self.address, 16) + int(other.address, 16)))  # 将字符串地址转为整数进行运算
-        else:
-            raise TypeError("Unsupported operand type for +: HexAddress and {}".format(type(other)))
-
-    def __sub__(self, other):
-        if isinstance(other, int):
-            return HexAddress(hex(int(self.address, 16) - other))  # 将字符串地址转为整数进行运算
-        elif isinstance(other, HexAddress):
-            return HexAddress(hex(int(self.address, 16) - int(other.address, 16)))  # 将字符串地址转为整数进行运算
-        else:
-            raise TypeError("Unsupported operand type for -: HexAddress and {}".format(type(other)))
-
-c_void_1 = c.malloc(8)
-
-assert (c_void_1 + 8).hex() == c.void_p.from_hex(str(HexAddress(c_void_1.hex()) + 8)).hex()
-assert (c_void_1 - 8).hex() == c.void_p.from_hex(str(HexAddress(c_void_1.hex()) - 8)).hex()
-
+assert c.NULL == c.void_p(0)
 # ------------------------------------------------
 # 此处测试并不完全
 c_void_1 = c.malloc(8)

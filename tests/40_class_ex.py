@@ -115,5 +115,5 @@ import c
 class A(c.void_p):
     pass
     
-a = A()
+a = A(0)
 assert repr(a).startswith('<void* at')

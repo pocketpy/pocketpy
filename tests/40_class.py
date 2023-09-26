@@ -109,11 +109,3 @@ class B(A):
 # assert B.a == 1  ...bug here
 assert B.b == 3
 assert B.c == 4
-
-import c
-
-class A(c.void_p):
-    pass
-    
-a = A()
-assert repr(a).startswith('<void* at')

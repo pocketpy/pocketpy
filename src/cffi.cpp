@@ -3,15 +3,12 @@
 namespace pkpy{
 
     void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<VoidP>(type);
-
-        vm->bind_func<1>(type, "from_hex", [](VM* vm, ArgsView args){
-            std::string s = CAST(Str&, args[0]).str();
-            size_t size;
-            intptr_t ptr = std::stoll(s, &size, 16);
-            if(size != s.size()) vm->ValueError("invalid literal for void_p(): " + s);
-            return VAR_T(VoidP, (void*)ptr);
+        vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){
+            Type cls = PK_OBJ_GET(Type, args[0]);
+            i64 addr = CAST(i64, args[1]);
+            return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));
         });
+
         vm->bind_method<0>(type, "hex", [](VM* vm, ArgsView args){
             VoidP& self = _CAST(VoidP&, args[0]);
             return VAR(self.hex());
