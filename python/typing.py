@@ -26,3 +26,7 @@ class Generic:
     pass
 
 TYPE_CHECKING = False
+
+# decorators
+overload = lambda x: x
+final = lambda x: x
