@@ -68,11 +68,6 @@ try:
    raise Exception('c.struct 的构造方法未能触发 TypeError("expected 1 or 2 arguments")')
 except TypeError:
    pass
-
-try:
-   x = c.refl("int")['a']
-except KeyError:
-   pass
 # ------------------------------------------------
 my_struct1 = c.struct(16)
 assert my_struct1.size() == 16

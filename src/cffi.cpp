@@ -20,9 +20,7 @@ namespace pkpy{
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
             std::stringstream ss;
-            ss << "<void* at " << self.hex();
-            if(self.base_offset != 1) ss << ", base_offset=" << self.base_offset;
-            ss << ">";
+            ss << "<void* at " << self.hex() << ">";
             return VAR(ss.str());
         });
 
@@ -43,28 +41,6 @@ namespace pkpy{
         vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = _CAST(VoidP&, obj);
             return reinterpret_cast<i64>(self.ptr);
-        });
-
-        vm->bind_method<1>(type, "set_base_offset", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            if(is_non_tagged_type(args[1], vm->tp_str)){
-                const Str& type = _CAST(Str&, args[1]);
-                self.base_offset = c99_sizeof(vm, type);
-            }else{
-                self.base_offset = CAST(int, args[1]);
-            }
-            return vm->None;
-        });
-
-        vm->bind_method<0>(type, "get_base_offset", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            return VAR(self.base_offset);
-        });
-
-        vm->bind_method<1>(type, "offset", [](VM* vm, ArgsView args){
-            VoidP& self = _CAST(VoidP&, args[0]);
-            i64 offset = CAST(i64, args[1]);
-            return VAR_T(VoidP, (char*)self.ptr + offset * self.base_offset);
         });
 
         vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
@@ -257,17 +233,6 @@ namespace pkpy{
             C99ReflType& self = _CAST(C99ReflType&, args[0]);
             return VAR(self.size);
         });
-
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* key){
-            C99ReflType& self = _CAST(C99ReflType&, obj);
-            const Str& name = CAST(Str&, key);
-            auto it = std::lower_bound(self.fields.begin(), self.fields.end(), name.sv());
-            if(it == self.fields.end() || it->name != name.sv()){
-                vm->KeyError(key);
-                return vm->None;
-            }
-            return VAR(it->offset);
-        });
     }
 
 void add_module_c(VM* vm){
@@ -319,20 +284,20 @@ void add_module_c(VM* vm){
     C99ReflType::register_class(vm, mod);
     mod->attr().set("NULL", VAR_T(VoidP, nullptr));
 
-    add_refl_type("char", sizeof(char), {});
-    add_refl_type("uchar", sizeof(unsigned char), {});
-    add_refl_type("short", sizeof(short), {});
-    add_refl_type("ushort", sizeof(unsigned short), {});
-    add_refl_type("int", sizeof(int), {});
-    add_refl_type("uint", sizeof(unsigned int), {});
-    add_refl_type("long", sizeof(long), {});
-    add_refl_type("ulong", sizeof(unsigned long), {});
-    add_refl_type("longlong", sizeof(long long), {});
-    add_refl_type("ulonglong", sizeof(unsigned long long), {});
-    add_refl_type("float", sizeof(float), {});
-    add_refl_type("double", sizeof(double), {});
-    add_refl_type("bool", sizeof(bool), {});
-    add_refl_type("void_p", sizeof(void*), {});
+    add_refl_type("char", sizeof(char));
+    add_refl_type("uchar", sizeof(unsigned char));
+    add_refl_type("short", sizeof(short));
+    add_refl_type("ushort", sizeof(unsigned short));
+    add_refl_type("int", sizeof(int));
+    add_refl_type("uint", sizeof(unsigned int));
+    add_refl_type("long", sizeof(long));
+    add_refl_type("ulong", sizeof(unsigned long));
+    add_refl_type("longlong", sizeof(long long));
+    add_refl_type("ulonglong", sizeof(unsigned long long));
+    add_refl_type("float", sizeof(float));
+    add_refl_type("double", sizeof(double));
+    add_refl_type("bool", sizeof(bool));
+    add_refl_type("void_p", sizeof(void*));
 
     PyObject* void_p_t = mod->attr("void_p");
     for(const char* t: {"char", "uchar", "short", "ushort", "int", "uint", "long", "ulong", "longlong", "ulonglong", "float", "double", "bool"}){

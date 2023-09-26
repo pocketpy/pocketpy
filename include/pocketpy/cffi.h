@@ -38,15 +38,14 @@ struct VoidP{
     PY_CLASS(VoidP, c, void_p)
 
     void* ptr;
-    int base_offset;
-    VoidP(void* ptr): ptr(ptr), base_offset(1){}
-    VoidP(): ptr(nullptr), base_offset(1){}
+    VoidP(void* ptr): ptr(ptr){}
+    VoidP(): ptr(nullptr){}
 
     bool operator==(const VoidP& other) const {
-        return ptr == other.ptr && base_offset == other.base_offset;
+        return ptr == other.ptr;
     }
     bool operator!=(const VoidP& other) const {
-        return ptr != other.ptr || base_offset != other.base_offset;
+        return ptr != other.ptr;
     }
     bool operator<(const VoidP& other) const { return ptr < other.ptr; }
     bool operator<=(const VoidP& other) const { return ptr <= other.ptr; }
@@ -113,13 +112,11 @@ struct ReflField{
 struct ReflType{
     std::string_view name;
     size_t size;
-    std::vector<ReflField> fields;
 };
 inline static std::map<std::string_view, ReflType> _refl_types;
 
-inline void add_refl_type(std::string_view name, size_t size, std::vector<ReflField> fields){
-    ReflType type{name, size, std::move(fields)};
-    std::sort(type.fields.begin(), type.fields.end());
+inline void add_refl_type(std::string_view name, size_t size){
+    ReflType type{name, size};
     _refl_types[name] = std::move(type);
 }
 
@@ -129,7 +126,6 @@ struct C99ReflType final: ReflType{
     C99ReflType(const ReflType& type){
         this->name = type.name;
         this->size = type.size;
-        this->fields = type.fields;
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
