@@ -3,7 +3,7 @@
 namespace pkpy{
 // https://easings.net/
 
-static const double PI = 3.1415926545;
+const double PI = 3.1415926545;
 
 static double easeLinear( double x ) {
     return x;
