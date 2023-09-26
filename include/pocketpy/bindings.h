@@ -113,4 +113,18 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return VAR(self.REF().FGET());          \
             });
 
+#define PY_STRUCT_LIKE_OBJECT(T)   \
+        static_assert(std::is_trivially_copyable<T>::value);                  \
+        vm->bind_func<1>(type, "__from_struct__", [](VM* vm, ArgsView args){  \
+            C99Struct& s = CAST(C99Struct&, args[0]);                   \
+            if(s.size != sizeof(T)) vm->ValueError("size mismatch");    \
+            PyObject* obj = vm->heap.gcnew<T>(T::_type(vm));    \
+            memcpy(&_CAST(T&, obj), s.p, sizeof(T));            \
+            return obj;                                         \
+        });                                                     \
+        vm->bind_method<0>(type, "__to_struct__", [](VM* vm, ArgsView args){    \
+            T& self = _CAST(T&, args[0]);                       \
+            return VAR_T(C99Struct, &self, sizeof(T));          \
+        });
+
 }   // namespace pkpy

@@ -1,4 +1,5 @@
 #include "pocketpy/cffi.h"
+#include "pocketpy/str.h"
 
 namespace pkpy{
 
@@ -136,7 +137,7 @@ namespace pkpy{
 
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
             const C99Struct& self = _CAST(C99Struct&, args[0]);
-            return VAR_T(C99Struct, self);
+            return vm->heap.gcnew<C99Struct>(vm->_tp(args[0]), self);
         });
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
@@ -231,6 +232,15 @@ void add_module_c(VM* vm){
         if(it != _refl_types.end()) return VAR(it->second.size);
         vm->ValueError("not a valid c99 type");
         return vm->None;
+    });
+
+    vm->bind_func<1>(mod, "to_struct", [](VM* vm, ArgsView args){
+        return vm->call_method(args[0], __to_struct__);
+    });
+
+    vm->bind_func<2>(mod, "from_struct", [](VM* vm, ArgsView args){
+        PyObject* f = vm->getattr(args[0], __from_struct__);
+        return vm->call(f, args[1]);
     });
 
     VoidP::register_class(vm, mod);

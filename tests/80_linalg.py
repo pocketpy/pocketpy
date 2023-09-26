@@ -471,3 +471,9 @@ test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
 test_vec2_copy = test_vec2.copy()
 temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
+
+import c
+a = vec2(1, 2)
+b = c.to_struct(a)
+assert b.size() == 8
+assert c.from_struct(vec2, b) == a

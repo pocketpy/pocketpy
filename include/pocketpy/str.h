@@ -192,6 +192,9 @@ const StrName __package__ = StrName::get("__package__");
 const StrName __path__ = StrName::get("__path__");
 const StrName __class__ = StrName::get("__class__");
 
+const StrName __to_struct__ = StrName::get("__to_struct__");
+const StrName __from_struct__ = StrName::get("__from_struct__");
+
 const StrName pk_id_add = StrName::get("add");
 const StrName pk_id_set = StrName::get("set");
 const StrName pk_id_eval = StrName::get("eval");

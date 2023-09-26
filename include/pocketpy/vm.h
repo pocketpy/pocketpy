@@ -399,10 +399,14 @@ public:
         return _all_types[t.index].obj;
     }
 
+    Type _tp(PyObject* obj){
+        if(is_int(obj)) return tp_int;
+        if(is_float(obj)) return tp_float;
+        return obj->type;
+    }
+
     PyObject* _t(PyObject* obj){
-        if(is_int(obj)) return _t(tp_int);
-        if(is_float(obj)) return _t(tp_float);
-        return _all_types[obj->type].obj;
+        return _all_types[_tp(obj).index].obj;
     }
 
     struct ImportContext{
