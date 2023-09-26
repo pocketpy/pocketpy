@@ -586,7 +586,7 @@ template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
 }
 
-inline PyObject* py_var(VM* vm, const char val[]){
+inline PyObject* py_var(VM* vm, const char* val){
     return VAR(Str(val));
 }
 
