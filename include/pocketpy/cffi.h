@@ -153,18 +153,6 @@ T to_void_p(VM* vm, PyObject* var){
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<T>(p.ptr);
 }
-
-template<typename T>
-T to_c99_struct(VM* vm, PyObject* var){
-    static_assert(is_pod<T>::value);
-    C99Struct& pod = CAST(C99Struct&, var);
-    return *reinterpret_cast<T*>(pod.p);
-}
-
-template<typename T>
-std::enable_if_t<is_pod<T>::value && !std::is_pointer_v<T>, PyObject*> py_var(VM* vm, const T& data){
-    return VAR_T(C99Struct, std::monostate(), data);
-}
 /*****************************************************************/
 void add_module_c(VM* vm);
 
