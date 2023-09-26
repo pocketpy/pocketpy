@@ -4,14 +4,13 @@
 
 namespace pkpy{
 
-static constexpr float kEpsilon = 1e-4f;
-inline static bool isclose(float a, float b){ return fabsf(a - b) < kEpsilon; }
+inline bool isclose(float a, float b){ return fabsf(a - b) < 1e-4f; }
 
 struct Vec2{
     float x, y;
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float x, float y) : x(x), y(y) {}
-    Vec2(const Vec2& v) : x(v.x), y(v.y) {}
+    Vec2(const Vec2& v) = default;
 
     Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
     Vec2& operator+=(const Vec2& v) { x += v.x; y += v.y; return *this; }
@@ -35,7 +34,7 @@ struct Vec3{
     float x, y, z;
     Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
     Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-    Vec3(const Vec3& v) : x(v.x), y(v.y), z(v.z) {}
+    Vec3(const Vec3& v) = default;
 
     Vec3 operator+(const Vec3& v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
     Vec3& operator+=(const Vec3& v) { x += v.x; y += v.y; z += v.z; return *this; }
@@ -59,7 +58,7 @@ struct Vec4{
     float x, y, z, w;
     Vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
     Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-    Vec4(const Vec4& v) : x(v.x), y(v.y), z(v.z), w(v.w) {}
+    Vec4(const Vec4& v) = default;
 
     Vec4 operator+(const Vec4& v) const { return Vec4(x + v.x, y + v.y, z + v.z, w + v.w); }
     Vec4& operator+=(const Vec4& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
@@ -96,6 +95,8 @@ struct Mat3x3{
         : _11(_11), _12(_12), _13(_13)
         , _21(_21), _22(_22), _23(_23)
         , _31(_31), _32(_32), _33(_33) {}
+    
+    Mat3x3(const Mat3x3& other) = default;
 
     void set_zeros(){ for (int i=0; i<9; ++i) v[i] = 0.0f; }
     void set_ones(){ for (int i=0; i<9; ++i) v[i] = 1.0f; }
@@ -208,7 +209,7 @@ struct Mat3x3{
 
     bool inverse(Mat3x3& ret) const{
         float det = determinant();
-        if (fabsf(det) < kEpsilon) return false;
+        if (isclose(det, 0)) return false;
         float inv_det = 1.0f / det;
         ret._11 = (_22 * _33 - _23 * _32) * inv_det;
         ret._12 = (_13 * _32 - _12 * _33) * inv_det;
@@ -233,7 +234,7 @@ struct Mat3x3{
 
     bool is_affine() const{
         float det = _11 * _22 - _12 * _21;
-        if(fabsf(det) < kEpsilon) return false;
+        if(!isclose(det, 0)) return false;
         return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
     }
 
@@ -274,7 +275,7 @@ struct PyVec2: Vec2 {
 
     PyVec2() : Vec2() {}
     PyVec2(const Vec2& v) : Vec2(v) {}
-    PyVec2(const PyVec2& v) : Vec2(v) {}
+    PyVec2(const PyVec2& v) = default;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -284,7 +285,7 @@ struct PyVec3: Vec3 {
 
     PyVec3() : Vec3() {}
     PyVec3(const Vec3& v) : Vec3(v) {}
-    PyVec3(const PyVec3& v) : Vec3(v) {}
+    PyVec3(const PyVec3& v) = default;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -294,7 +295,7 @@ struct PyVec4: Vec4{
 
     PyVec4(): Vec4(){}
     PyVec4(const Vec4& v): Vec4(v){}
-    PyVec4(const PyVec4& v): Vec4(v){}
+    PyVec4(const PyVec4& v) = default;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -304,7 +305,7 @@ struct PyMat3x3: Mat3x3{
 
     PyMat3x3(): Mat3x3(){}
     PyMat3x3(const Mat3x3& other): Mat3x3(other){}
-    PyMat3x3(const PyMat3x3& other): Mat3x3(other){}
+    PyMat3x3(const PyMat3x3& other) = default;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -340,5 +341,9 @@ inline void add_module_linalg(VM* vm){
 }
 
 static_assert(sizeof(Py_<PyMat3x3>) <= 64);
+static_assert(std::is_trivially_copyable<PyVec2>::value);
+static_assert(std::is_trivially_copyable<PyVec3>::value);
+static_assert(std::is_trivially_copyable<PyVec4>::value);
+static_assert(std::is_trivially_copyable<PyMat3x3>::value);
 
 }   // namespace pkpy

@@ -1,23 +1,18 @@
 import c
 
-c_int = c.refl("int")
-assert c_int.size() == c.sizeof("int")
 array = c.malloc(c.sizeof("int") * 10)
 
 for i in range(10):
     off = c.sizeof("int") * i
     (array+off).write_int(i)
 
-x = c_int()
-x.addr().write_int(0)
+x = c.int_(0)
 for i in range(10):
     off = c.sizeof("int") * i
     i = (array+off).read_int()
-    x.addr().write_int(
-        x.addr().read_int() + i
-    )
+    x.write_int(x.read_int() + i)
 
-assert x.addr().read_int() == (0+9)*10//2
+assert x.read_int() == (0+9)*10//2
 
 c.memset(array, 0, c.sizeof("int") * 10)
 

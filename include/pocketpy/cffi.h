@@ -29,8 +29,6 @@ namespace pkpy {
 
 #define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), __VA_ARGS__)
 
-int c99_sizeof(VM*, const Str&);
-
 inline PyObject* py_var(VM* vm, void* p);
 inline PyObject* py_var(VM* vm, char* p);
 
@@ -80,13 +78,6 @@ struct C99Struct{
         }
     }
 
-    template<typename T>
-    C99Struct(std::monostate _, const T& data): C99Struct(sizeof(T)){
-        static_assert(is_pod<T>::value);
-        static_assert(!std::is_pointer_v<T>);
-        memcpy(p, &data, this->size);
-    }
-
     C99Struct(void* p, int size): C99Struct(size){
         if(p != nullptr) memcpy(this->p, p, size);
     }
@@ -119,17 +110,6 @@ inline void add_refl_type(std::string_view name, size_t size){
     ReflType type{name, size};
     _refl_types[name] = std::move(type);
 }
-
-struct C99ReflType final: ReflType{
-    PY_CLASS(C99ReflType, c, _refl)
-
-    C99ReflType(const ReflType& type){
-        this->name = type.name;
-        this->size = type.size;
-    }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
 
 static_assert(sizeof(Py_<C99Struct>) <= 64);
 static_assert(sizeof(Py_<Tuple>) <= 64);

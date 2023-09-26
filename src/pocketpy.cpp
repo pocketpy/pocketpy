@@ -352,6 +352,18 @@ void init_builtins(VM* _vm) {
         return vm->heap.gcnew<DummyInstance>(t);
     });
 
+    _vm->bind_method<0>("object", "_enable_instance_dict", [](VM* vm, ArgsView args){
+        PyObject* self = args[0];
+        if(is_tagged(self)){
+            vm->TypeError("object: tagged object cannot enable instance dict");
+        }
+        if(self->is_attr_valid()){
+            vm->TypeError("object: instance dict is already enabled");
+        }
+        self->enable_instance_dict();
+        return vm->None;
+    });
+
     _vm->bind_constructor<2>("type", PK_LAMBDA(vm->_t(args[1])));
 
     _vm->bind_constructor<-1>("range", [](VM* vm, ArgsView args) {
