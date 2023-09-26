@@ -3,22 +3,22 @@
 namespace pkpy{
 // https://easings.net/
 
-const double PI = 3.1415926545;
+const double kPi = 3.1415926545;
 
 static double easeLinear( double x ) {
     return x;
 }
 
 static double easeInSine( double x ) {
-    return 1.0 - std::cos( x * PI / 2 );
+    return 1.0 - std::cos( x * kPi / 2 );
 }
 
 static double easeOutSine( double x ) {
-	return std::sin( x * PI / 2 );
+	return std::sin( x * kPi / 2 );
 }
 
 static double easeInOutSine( double x ) {
-	return -( std::cos( PI * x ) - 1 ) / 2;
+	return -( std::cos( kPi * x ) - 1 ) / 2;
 }
 
 static double easeInQuad( double x ) {
@@ -144,7 +144,7 @@ static double easeInOutBack( double x ) {
 }
 
 static double easeInElastic( double x ) {
-    const double c4 = (2 * PI) / 3;
+    const double c4 = (2 * kPi) / 3;
     if( x == 0 ) {
         return 0;
     } else if( x == 1 ) {
@@ -155,7 +155,7 @@ static double easeInElastic( double x ) {
 }
 
 static double easeOutElastic( double x ) {
-    const double c4 = (2 * PI) / 3;
+    const double c4 = (2 * kPi) / 3;
     if( x == 0 ) {
         return 0;
     } else if( x == 1 ) {
@@ -166,7 +166,7 @@ static double easeOutElastic( double x ) {
 }
 
 inline double easeInOutElastic( double x ) {
-    const double c5 = (2 * PI) / 4.5;
+    const double c5 = (2 * kPi) / 4.5;
     if( x == 0 ) {
         return 0;
     } else if( x == 1 ) {
