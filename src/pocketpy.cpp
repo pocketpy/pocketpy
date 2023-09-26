@@ -1445,15 +1445,15 @@ struct PyStructTime{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyStructTime>(type);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_year", _, tm_year);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_mon", _, tm_mon);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_mday", _, tm_mday);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_hour", _, tm_hour);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_min", _, tm_min);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_sec", _, tm_sec);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_wday", _, tm_wday);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_yday", _, tm_yday);
-        PK_REGISTER_READONLY_FIELD(PyStructTime, "tm_isdst", _, tm_isdst);
+        PY_READONLY_FIELD(PyStructTime, "tm_year", _, tm_year);
+        PY_READONLY_FIELD(PyStructTime, "tm_mon", _, tm_mon);
+        PY_READONLY_FIELD(PyStructTime, "tm_mday", _, tm_mday);
+        PY_READONLY_FIELD(PyStructTime, "tm_hour", _, tm_hour);
+        PY_READONLY_FIELD(PyStructTime, "tm_min", _, tm_min);
+        PY_READONLY_FIELD(PyStructTime, "tm_sec", _, tm_sec);
+        PY_READONLY_FIELD(PyStructTime, "tm_wday", _, tm_wday);
+        PY_READONLY_FIELD(PyStructTime, "tm_yday", _, tm_yday);
+        PY_READONLY_FIELD(PyStructTime, "tm_isdst", _, tm_isdst);
     }
 };
 

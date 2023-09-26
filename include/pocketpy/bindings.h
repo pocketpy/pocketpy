@@ -74,7 +74,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
     vm->bind(obj, sig, proxy_wrapper, proxy);
 }
 /*****************************************************************/
-#define PK_REGISTER_FIELD(T, NAME, REF, EXPR)       \
+#define PY_FIELD(T, NAME, REF, EXPR)       \
         vm->bind_property(type, NAME,               \
             [](VM* vm, ArgsView args){              \
                 T& self = _CAST(T&, args[0]);       \
@@ -86,14 +86,14 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return vm->None;                                                \
             });
 
-#define PK_REGISTER_READONLY_FIELD(T, NAME, REF, EXPR)          \
+#define PY_READONLY_FIELD(T, NAME, REF, EXPR)          \
         vm->bind_property(type, NAME,                           \
             [](VM* vm, ArgsView args){              \
                 T& self = _CAST(T&, args[0]);       \
                 return VAR(self.REF().EXPR);        \
             });
 
-#define PK_REGISTER_PROPERTY(T, NAME, REF, FGET, FSET)  \
+#define PY_PROPERTY(T, NAME, REF, FGET, FSET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
                 T& self = _CAST(T&, args[0]);           \
@@ -106,7 +106,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return vm->None;                            \
             });
 
-#define PK_REGISTER_READONLY_PROPERTY(T, NAME, REF, FGET)  \
+#define PY_READONLY_PROPERTY(T, NAME, REF, FGET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
                 T& self = _CAST(T&, args[0]);           \
