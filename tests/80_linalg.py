@@ -474,6 +474,7 @@ temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
 
 import c
 a = vec2(1, 2)
-b = c.to_struct(a)
-assert b.size() == 8
-assert c.from_struct(vec2, b) == a
+b = a.to_struct()
+assert a.sizeof() == 8
+assert b.sizeof() == 8
+assert vec2.from_struct(b) == a

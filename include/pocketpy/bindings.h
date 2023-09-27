@@ -114,17 +114,36 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             });
 
 #define PY_STRUCT_LIKE_OBJECT(T)   \
-        static_assert(std::is_trivially_copyable<T>::value);                  \
-        vm->bind_func<1>(type, "__from_struct__", [](VM* vm, ArgsView args){  \
-            C99Struct& s = CAST(C99Struct&, args[0]);                   \
-            if(s.size != sizeof(T)) vm->ValueError("size mismatch");    \
+        static_assert(std::is_trivially_copyable<T>::value);                \
+        vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){    \
+            C99Struct& s = CAST(C99Struct&, args[0]);                       \
+            if(s.size != sizeof(T)) vm->ValueError("size mismatch");        \
             PyObject* obj = vm->heap.gcnew<T>(T::_type(vm));    \
             memcpy(&_CAST(T&, obj), s.p, sizeof(T));            \
             return obj;                                         \
         });                                                     \
-        vm->bind_method<0>(type, "__to_struct__", [](VM* vm, ArgsView args){    \
+        vm->bind_method<0>(type, "to_struct", [](VM* vm, ArgsView args){    \
             T& self = _CAST(T&, args[0]);                       \
             return VAR_T(C99Struct, &self, sizeof(T));          \
-        });
+        });                                                     \
+        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){         \
+            T& self = _CAST(T&, args[0]);                       \
+            return VAR_T(VoidP, &self);                         \
+        });                                                     \
+        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){         \
+            T& self = _CAST(T&, args[0]);                       \
+            return VAR_T(T, self);                              \
+        });                                                     \
+        vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){       \
+            return VAR(sizeof(T));                              \
+        });                                                     \
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){ \
+            T& self = _CAST(T&, _0);                            \
+            if(!vm->isinstance(_1, T::_type(vm))){              \
+                return vm->NotImplemented;                      \
+            }                                                   \
+            T& other = _CAST(T&, _1);                           \
+            return VAR(self == other);                          \
+        });                                                     \
 
 }   // namespace pkpy

@@ -18,8 +18,8 @@ class array(struct):
     def __setitem__(self, index: int, value: struct) -> None:
         if index < 0 or index >= self.item_count:
             raise IndexError("array index out of range")
-        if value.size() != self.item_size:
-            raise ValueError(f"array item size mismatch: {value.size()} != {self.item_size}")
+        if value.sizeof() != self.item_size:
+            raise ValueError(f"array item size mismatch: {value.sizeof()} != {self.item_size}")
         p = self.addr() + self.item_size * index
         p.write_struct(value)
 

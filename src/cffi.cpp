@@ -130,7 +130,7 @@ namespace pkpy{
             return VAR_T(VoidP, self.p);
         });
 
-        vm->bind_method<0>(type, "size", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){
             C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR(self.size);
         });
@@ -232,15 +232,6 @@ void add_module_c(VM* vm){
         if(it != _refl_types.end()) return VAR(it->second.size);
         vm->ValueError("not a valid c99 type");
         return vm->None;
-    });
-
-    vm->bind_func<1>(mod, "to_struct", [](VM* vm, ArgsView args){
-        return vm->call_method(args[0], __to_struct__);
-    });
-
-    vm->bind_func<2>(mod, "from_struct", [](VM* vm, ArgsView args){
-        PyObject* f = vm->getattr(args[0], __from_struct__);
-        return vm->call(f, args[1]);
     });
 
     VoidP::register_class(vm, mod);

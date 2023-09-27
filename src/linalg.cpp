@@ -2,12 +2,6 @@
 
 namespace pkpy{
 
-#define BIND_VEC_ADDR(D)   \
-        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){         \
-            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            return VAR_T(VoidP, &self.x);                                   \
-        });
-
 #define BIND_VEC_VEC_OP(D, name, op)                                        \
         vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
@@ -68,11 +62,6 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR_T(PyVec2, self);
-        });
-
         vm->bind_method<1>(type, "rotate", [](VM* vm, ArgsView args){
             Vec2 self = _CAST(PyVec2&, args[0]);
             float radian = CAST(f64, args[1]);
@@ -97,13 +86,11 @@ namespace pkpy{
             return vm->None;
         });
 
-        BIND_VEC_ADDR(2)
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_FLOAT_OP(2, __mul__, *)
         BIND_VEC_FLOAT_OP(2, __rmul__, *)
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
-        BIND_VEC_VEC_OP(2, __eq__, ==)
         BIND_VEC_FIELD(2, x)
         BIND_VEC_FIELD(2, y)
         BIND_VEC_FUNCTION_1(2, dot)
@@ -135,18 +122,11 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
-            PyVec3& self = _CAST(PyVec3&, args[0]);
-            return VAR_T(PyVec3, self);
-        });
-
-        BIND_VEC_ADDR(3)
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
         BIND_VEC_FLOAT_OP(3, __mul__, *)
         BIND_VEC_FLOAT_OP(3, __rmul__, *)
         BIND_VEC_FLOAT_OP(3, __truediv__, /)
-        BIND_VEC_VEC_OP(3, __eq__, ==)
         BIND_VEC_FIELD(3, x)
         BIND_VEC_FIELD(3, y)
         BIND_VEC_FIELD(3, z)
@@ -180,18 +160,11 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
-            PyVec4& self = _CAST(PyVec4&, args[0]);
-            return VAR_T(PyVec4, self);
-        });
-
-        BIND_VEC_ADDR(4)
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
         BIND_VEC_FLOAT_OP(4, __mul__, *)
         BIND_VEC_FLOAT_OP(4, __rmul__, *)
         BIND_VEC_FLOAT_OP(4, __truediv__, /)
-        BIND_VEC_VEC_OP(4, __eq__, ==)
         BIND_VEC_FIELD(4, x)
         BIND_VEC_FIELD(4, y)
         BIND_VEC_FIELD(4, z)
@@ -264,11 +237,6 @@ namespace pkpy{
             ss << "        [" << self._21 << ", " << self._22 << ", " << self._23 << "],\n";
             ss << "        [" << self._31 << ", " << self._32 << ", " << self._33 << "]])";
             return VAR(ss.str());
-        });
-
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            return VAR_T(PyMat3x3, self);
         });
 
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){
@@ -365,15 +333,6 @@ namespace pkpy{
             if(is_non_tagged_type(_1, PyVec3::_type(vm))){
                 PyVec3& other = _CAST(PyVec3&, _1);
                 return VAR_T(PyVec3, self.matmul(other));
-            }
-            return vm->NotImplemented;
-        });
-
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
-            PyMat3x3& self = _CAST(PyMat3x3&, _0);
-            if(is_non_tagged_type(_1, PyMat3x3::_type(vm))){
-                PyMat3x3& other = _CAST(PyMat3x3&, _1);
-                return VAR(self == other);
             }
             return vm->NotImplemented;
         });

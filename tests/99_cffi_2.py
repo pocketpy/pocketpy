@@ -9,7 +9,7 @@ c_void_1.write_bytes(c_void_1.read_bytes(5))
 # ------------------------------------------------
 c_void_1 = c.malloc(32)
 my_struct2 = c_void_1.read_struct(32)
-assert my_struct2.size() == 32
+assert my_struct2.sizeof() == 32
 
 data_bytes = bytes([1,2,3])
 my_struct4 = c.struct(data_bytes)
@@ -27,15 +27,15 @@ except TypeError:
    pass
 # ------------------------------------------------
 my_struct1 = c.struct(16)
-assert my_struct1.size() == 16
+assert my_struct1.sizeof() == 16
 
 # 对 c.struct 的 copy 方法的测试不完全
-assert my_struct1.copy().size() == 16
+assert my_struct1.copy().sizeof() == 16
 
 data_bytes = bytes([1,2,3])
 my_struct4 = c.struct(data_bytes)
 assert my_struct4.addr().read_bytes(
-    my_struct4.size()
+    my_struct4.sizeof()
 ) == data_bytes
 
 
