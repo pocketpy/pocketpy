@@ -132,7 +132,7 @@ from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
-class StructLike(Generic[T]):
+class _StructLike(Generic[T]):
     def to_struct(self) -> struct: ...
     @classmethod
     def from_struct(cls, s: struct) -> T: ...
@@ -143,3 +143,5 @@ class StructLike(Generic[T]):
     def __eq__(self, other: T) -> bool: ...
     def __ne__(self, other: T) -> bool: ...
 
+class _Pointer(Generic[T]):
+    pass

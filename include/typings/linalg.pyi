@@ -1,7 +1,7 @@
 from typing import overload
-from c import StructLike
+from c import _StructLike
 
-class vec2(StructLike['vec2']):
+class vec2(_StructLike['vec2']):
     x: float
     y: float
 
@@ -18,7 +18,7 @@ class vec2(StructLike['vec2']):
     def rotate(self, radians: float) -> vec2: ...
     def rotate_(self, radians: float) -> None: ...
 
-class vec3(StructLike['vec3']):
+class vec3(_StructLike['vec3']):
     x: float
     y: float
     z: float
@@ -34,7 +34,7 @@ class vec3(StructLike['vec3']):
     def length_squared(self) -> float: ...
     def normalize(self) -> vec3: ...
 
-class vec4(StructLike['vec4']):
+class vec4(_StructLike['vec4']):
     x: float
     y: float
     z: float
@@ -50,7 +50,7 @@ class vec4(StructLike['vec4']):
     def length_squared(self) -> float: ...
     def normalize(self) -> vec4: ...
 
-class mat3x3(StructLike['mat3x3']):
+class mat3x3(_StructLike['mat3x3']):
     _11: float
     _12: float
     _13: float
