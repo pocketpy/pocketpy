@@ -289,7 +289,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 PK_ASSERT(base == 10);
                 add_token(TK("@num"), Number::stof(m[0], &size));
             } else {
-                add_token(TK("@num"), std::stoll(m[0], &size, base));
+                add_token(TK("@num"), (i64)std::stoll(m[0], &size, base));
             }
             PK_ASSERT((int)size == (int)m.length());
         }catch(...){
