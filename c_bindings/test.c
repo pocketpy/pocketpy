@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     fail(pkpy_is_voidp(vm, -1));
 
     PRINT_TITLE("test float methods");
-    float r_float;
+    double r_float;
     check(pkpy_push_float(vm, 11.125));
     pkpy_CName m_elevenf = pkpy_name("elevenf");
     check(pkpy_setglobal(vm, m_elevenf));
@@ -395,7 +395,7 @@ int main(int argc, char** argv) {
     check(pkpy_getglobal(vm, pkpy_name("math")));
     check(pkpy_getattr(vm, pkpy_name("pi")));
     check(pkpy_to_float(vm, -1, &r_float));
-    printf("pi: %.2f\n", r_float);
+    printf("pi: %.2f\n", (float)r_float);
     check(pkpy_pop(vm, 1));
 
     // math.pi = 2
@@ -407,7 +407,7 @@ int main(int argc, char** argv) {
     PRINT_TITLE("test eval");
     check(pkpy_eval(vm, "math.pi"));
     check(pkpy_to_float(vm, -1, &r_float));
-    printf("pi: %.2f\n", r_float);
+    printf("pi: %.2f\n", (float)r_float);
     check(pkpy_pop(vm, 1));
     check(pkpy_stack_size(vm) == 0);
 
