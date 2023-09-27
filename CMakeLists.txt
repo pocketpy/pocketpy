@@ -35,8 +35,17 @@ if(PK_USE_BOX2D)
     add_definitions(-DPK_USE_BOX2D)
 endif()
 
-option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
-option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+# PK_IS_MAIN determines whether the project is being used from root
+# or if it is added as a dependency (through add_subdirectory for example).
+if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+  set(PK_IS_MAIN TRUE)
+  option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+  option(PK_BUILD_STATIC_LIB "Build static library" OFF)
+else()
+  set(PK_IS_MAIN FALSE)
+  option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
+  option(PK_BUILD_STATIC_LIB "Build static library" ON)
+endif()
 
 option(PK_EXPORT_CXX_SYMBOLS "Export C++ symbols" OFF)
 
