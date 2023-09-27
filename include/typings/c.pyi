@@ -132,7 +132,7 @@ from typing import Generic, TypeVar
 
 T = TypeVar('T')
 
-class _struct_like(Generic[T]):
+class StructLike(Generic[T]):
     def to_struct(self) -> struct: ...
     @classmethod
     def from_struct(cls, s: struct) -> T: ...
