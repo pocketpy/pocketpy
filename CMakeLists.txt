@@ -21,17 +21,14 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
-
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
-option(PK_USE_BOX2D "Use Box2D" ON)
+option(PK_USE_BOX2D "Use Box2D" OFF)
+
 if(PK_USE_BOX2D)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d)
     include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d/include)

@@ -7,11 +7,8 @@ label: box2d
 
 ## Setup
 
-`box2d` module will be enabled **by default** for CMake users.
+You can set option `PK_USE_BOX2D` to `ON` in CMakeLists.txt to enable `box2d` module.
 All platforms are supported, including desktop, mobile and web.
-
-You can set option `PK_USE_BOX2D` to `OFF` in CMakeLists.txt
-if you don't want to use it.
 
 ## Overview
 
