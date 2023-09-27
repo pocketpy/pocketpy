@@ -190,12 +190,12 @@ bool pkpy_is_float(pkpy_vm* vm_handle, int i){
     )
 }
 
-bool pkpy_to_float(pkpy_vm* vm_handle, int i, float* out){
+bool pkpy_to_float(pkpy_vm* vm_handle, int i, double* out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
-        *out = py_cast<float>(vm, item);
+        *out = py_cast<double>(vm, item);
     )
     return true;
 }
