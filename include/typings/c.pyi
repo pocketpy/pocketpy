@@ -143,5 +143,5 @@ class _StructLike(Generic[T]):
     def __eq__(self, other: T) -> bool: ...
     def __ne__(self, other: T) -> bool: ...
 
-class _Pointer(Generic[T]):
+class _Pointer(Generic[T], void_p):
     pass
