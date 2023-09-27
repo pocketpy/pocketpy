@@ -194,6 +194,11 @@ bool pkpy_py_repr(pkpy_vm* vm) {
     return returnValue;
 }
 
+bool pkpy_py_str(pkpy_vm* vm) {
+    bool returnValue;
+    return returnValue;
+}
+
 bool pkpy_error(pkpy_vm* vm, const char* name, pkpy_CString msg) {
     bool returnValue;
     return returnValue;

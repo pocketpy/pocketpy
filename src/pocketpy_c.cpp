@@ -483,6 +483,18 @@ bool pkpy_py_repr(pkpy_vm* vm_handle) {
     return true;
 }
 
+bool pkpy_py_str(pkpy_vm* vm_handle) {
+    VM* vm = (VM*) vm_handle;
+    PK_ASSERT_NO_ERROR()
+    PK_ASSERT_N_EXTRA_ELEMENTS(1)
+    PyObject* item = vm->s_data.top();
+    PK_PROTECTED(
+        item = vm->py_str(item);
+    )
+    vm->s_data.top() = item;
+    return true;
+}
+
 /* Error Handling */
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
