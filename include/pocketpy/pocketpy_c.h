@@ -41,9 +41,9 @@ PK_EXPORT bool pkpy_is_int(pkpy_vm*, int i);
 PK_EXPORT bool pkpy_to_int(pkpy_vm*, int i, int* out);
 
 // float
-PK_EXPORT bool pkpy_push_float(pkpy_vm*, float val);
+PK_EXPORT bool pkpy_push_float(pkpy_vm*, double val);
 PK_EXPORT bool pkpy_is_float(pkpy_vm*, int i);
-PK_EXPORT bool pkpy_to_float(pkpy_vm*, int i, float* out);
+PK_EXPORT bool pkpy_to_float(pkpy_vm*, int i, double* out);
 
 // bool
 PK_EXPORT bool pkpy_push_bool(pkpy_vm*, bool val);

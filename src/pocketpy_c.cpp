@@ -173,7 +173,7 @@ bool pkpy_to_int(pkpy_vm* vm_handle, int i, int* out){
 }
 
 // float
-bool pkpy_push_float(pkpy_vm* vm_handle, float value) {
+bool pkpy_push_float(pkpy_vm* vm_handle, double value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PyObject* res = py_var(vm, value);

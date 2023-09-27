@@ -69,7 +69,7 @@ bool pkpy_to_int(pkpy_vm* vm, int i, int* out) {
     return returnValue;
 }
 
-bool pkpy_push_float(pkpy_vm* vm, float val) {
+bool pkpy_push_float(pkpy_vm* vm, double val) {
     bool returnValue;
     return returnValue;
 }
@@ -79,7 +79,7 @@ bool pkpy_is_float(pkpy_vm* vm, int i) {
     return returnValue;
 }
 
-bool pkpy_to_float(pkpy_vm* vm, int i, float* out) {
+bool pkpy_to_float(pkpy_vm* vm, int i, double* out) {
     bool returnValue;
     return returnValue;
 }
