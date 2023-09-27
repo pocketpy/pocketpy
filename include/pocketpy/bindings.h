@@ -113,7 +113,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return VAR(self.REF().FGET());          \
             });
 
-#define PY_STRUCT_LIKE_OBJECT(T)   \
+#define PY_STRUCT_LIKE(T)   \
         static_assert(std::is_trivially_copyable<T>::value);                \
         vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){    \
             C99Struct& s = CAST(C99Struct&, args[0]);                       \

@@ -42,7 +42,7 @@ namespace pkpy{
 
 
     void PyVec2::_register(VM* vm, PyObject* mod, PyObject* type){
-        PY_STRUCT_LIKE_OBJECT(PyVec2)
+        PY_STRUCT_LIKE(PyVec2)
 
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
@@ -101,7 +101,7 @@ namespace pkpy{
     }
 
     void PyVec3::_register(VM* vm, PyObject* mod, PyObject* type){
-        PY_STRUCT_LIKE_OBJECT(PyVec3)
+        PY_STRUCT_LIKE(PyVec3)
 
         vm->bind_constructor<4>(type, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
@@ -138,7 +138,7 @@ namespace pkpy{
     }
 
     void PyVec4::_register(VM* vm, PyObject* mod, PyObject* type){
-        PY_STRUCT_LIKE_OBJECT(PyVec4)
+        PY_STRUCT_LIKE(PyVec4)
 
         vm->bind_constructor<1+4>(type, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
@@ -183,7 +183,7 @@ namespace pkpy{
 #undef BIND_VEC_FUNCTION_1
 
     void PyMat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
-        PY_STRUCT_LIKE_OBJECT(PyMat3x3)
+        PY_STRUCT_LIKE(PyMat3x3)
 
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
             if(args.size() == 1+0) return VAR_T(PyMat3x3, Mat3x3::zeros());
