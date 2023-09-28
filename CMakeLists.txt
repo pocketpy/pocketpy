@@ -67,6 +67,7 @@ else()
 endif()
 
 if(PK_USE_DYLIB)
+    add_definitions(-DPK_USE_DYLIB)
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 endif()
 
