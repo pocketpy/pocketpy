@@ -208,13 +208,19 @@ int utf8len(unsigned char c, bool suppress){
 
     Str Str::lower() const{
         std::string copy(data, size);
-        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){ return std::tolower(c); });
+        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){
+            if('A' <= c && c <= 'Z') return c + ('a' - 'A');
+            return (int)c;
+        });
         return Str(copy);
     }
 
     Str Str::upper() const{
         std::string copy(data, size);
-        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){ return std::toupper(c); });
+        std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c){
+            if('a' <= c && c <= 'z') return c - ('a' - 'A');
+            return (int)c;
+        });
         return Str(copy);
     }
 
