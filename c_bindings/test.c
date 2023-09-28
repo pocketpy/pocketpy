@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 
     PRINT_TITLE("test basic exec");
     check(pkpy_exec(vm, "print('hello world!')"));
-    error(pkpy_getglobal(vm, pkpy_name("nonexistatn")));
+    fail(pkpy_getglobal(vm, pkpy_name("nonexistatn")));
 
     // test int methods
     PRINT_TITLE("test int methods");
@@ -367,7 +367,7 @@ int main(int argc, char** argv) {
     PRINT_TITLE("test other errors");
     check(pkpy_getglobal(vm, pkpy_name("test_error_propagate")));
     check(pkpy_pop_top(vm));
-    error(pkpy_getglobal(vm, pkpy_name("nonexistant")));
+    fail(pkpy_getglobal(vm, pkpy_name("nonexistant")));
     error(pkpy_exec(vm, "raise NameError('testing error throwing from python')"));
 
     PRINT_TITLE("test TypeError");

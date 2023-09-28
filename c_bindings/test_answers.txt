@@ -1,9 +1,6 @@
 
 ====== test basic exec ======
 hello world!
-successfully errored with this message: 
-Traceback (most recent call last):
-NameError: nonexistatn
 
 ====== test int methods ======
 11
@@ -78,9 +75,6 @@ Traceback (most recent call last):
 NameError: catch me
 
 ====== test other errors ======
-successfully errored with this message: 
-Traceback (most recent call last):
-NameError: nonexistant
 successfully errored with this message: 
 Traceback (most recent call last):
   File "main.py", line 1
