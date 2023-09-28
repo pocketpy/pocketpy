@@ -102,20 +102,32 @@ typedef struct tagBITMAPINFOHEADER {
         #define PK_SUPPORT_DYLIB    4
     #elif TARGET_OS_MAC
         #define PK_SYS_PLATFORM     "darwin"
-        #include <dlfcn.h>
-        #define PK_SUPPORT_DYLIB    2
+        #ifdef PK_USE_DYLIB
+            #include <dlfcn.h>
+            #define PK_SUPPORT_DYLIB    2
+        #else
+            #define PK_SUPPORT_DYLIB    0
+        #endif
     #else
     #   error "Unknown Apple platform"
     #endif
     #define PK_EXPORT __attribute__((visibility("default")))
 #elif __ANDROID__
-    #include <dlfcn.h>
-    #define PK_SUPPORT_DYLIB    3
+    #ifdef PK_USE_DYLIB
+        #include <dlfcn.h>
+        #define PK_SUPPORT_DYLIB    3
+    #else
+        #define PK_SUPPORT_DYLIB    0
+    #endif
     #define PK_EXPORT __attribute__((visibility("default")))
     #define PK_SYS_PLATFORM     "android"
 #elif __linux__
-    #include <dlfcn.h>
-    #define PK_SUPPORT_DYLIB    2
+    #ifdef PK_USE_DYLIB
+        #include <dlfcn.h>
+        #define PK_SUPPORT_DYLIB    2
+    #else
+        #define PK_SUPPORT_DYLIB    0
+    #endif
     #define PK_EXPORT __attribute__((visibility("default")))
     #define PK_SYS_PLATFORM     "linux"
 #else

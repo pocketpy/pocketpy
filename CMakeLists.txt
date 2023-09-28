@@ -32,6 +32,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
 option(PK_USE_BOX2D "Use Box2D" OFF)
+option(PK_USE_DYLIB "Use dylib" OFF)
 
 if(PK_USE_BOX2D)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d)
@@ -65,7 +66,7 @@ else()
     target_link_libraries(${PROJECT_EXE_NAME} ${CMAKE_DL_LIBS})
 endif()
 
-if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+if(PK_USE_DYLIB)
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 endif()
 
