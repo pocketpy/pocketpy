@@ -82,7 +82,7 @@ struct PyVec2: Vec2 {
             return VAR_T(PyVec2, self + other_);
         });
 
-        vm->bind(type, "dot(other: vec2) -> float", [](VM* vm, ArgsView args){
+        vm->bind(type, "dot(self, other: vec2) -> float", [](VM* vm, ArgsView args){
             PyVec2& self = _CAST(PyVec2&, args[0]);
             PyVec2& other = CAST(PyVec2&, args[1]);
             return VAR(self.dot(other));
