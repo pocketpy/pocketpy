@@ -384,9 +384,8 @@ bool pkpy_getattr(pkpy_vm* vm_handle, pkpy_CName name) {
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
     PyObject* o = vm->s_data.top();
-    PK_PROTECTED(
-        o = vm->getattr(o, StrName(name));
-    )
+    o = vm->getattr(o, StrName(name), false);
+    if(o == nullptr) return false;
     vm->s_data.top() = o;
     return true;
 }
@@ -411,10 +410,7 @@ bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name) {
     PyObject* o = vm->_main->attr().try_get(StrName(name));
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(StrName(name));
-        if (o == nullptr){
-            pkpy_error(vm_handle, "NameError", pkpy_name_to_string(name));
-            return false;
-        }
+        if (o == nullptr) return false;
     }
     vm->s_data.push(o);
     return true;

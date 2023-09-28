@@ -88,7 +88,7 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
 + `bool pkpy_getattr(pkpy_vm*, pkpy_CName name)`
 
-    Push `b.<name>` onto the stack.
+    Push `b.<name>` onto the stack. Return false if the attribute is not found.
 
     ```
     [b] -> [b.<name>]
@@ -105,7 +105,7 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
 
 + `bool pkpy_getglobal(pkpy_vm*, pkpy_CName name)`
 
-    Push a global variable onto the stack.
+    Push a global/builtin variable onto the stack. Return false if the variable is not found.
 
     ```
     [] -> [value]
