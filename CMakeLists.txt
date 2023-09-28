@@ -25,7 +25,16 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+if(EMSCRIPTEN)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+elseif(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
