@@ -23,7 +23,7 @@ namespace pkpy{
         });
 
 #define BIND_VEC_FUNCTION_1(D, name)        \
-        vm->bind_method<0>(type, #name, [](VM* vm, ArgsView args){          \
+        vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
             PyVec##D& other = CAST(PyVec##D&, args[1]);                     \
             return VAR(self.name(other));                                   \
