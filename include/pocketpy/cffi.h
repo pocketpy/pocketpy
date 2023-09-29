@@ -55,7 +55,7 @@ struct VoidP{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-inline PyObject* py_var(VM* vm, void* p){
+inline PyObject* py_var(VM* vm, const void* p){
     return VAR_T(VoidP, p);
 }
 

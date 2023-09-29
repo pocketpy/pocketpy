@@ -608,11 +608,6 @@ inline PyObject* py_var(VM* vm, NoReturn val){
     return vm->None;
 }
 
-inline PyObject* py_var(VM* vm, PyObject* val){
-    PK_UNUSED(vm);
-    return val;
-}
-
 template<int ARGC>
 PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_non_tagged_type(obj, tp_type);
