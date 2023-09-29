@@ -86,16 +86,18 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return vm->None;                                                    \
             });
 
-#define PY_FIELD_VIRTUAL(T, NAME, REF, EXPR)        \
+#define PY_FIELD_P(T, NAME, EXPR)                   \
         vm->bind_property(type, NAME,               \
             [](VM* vm, ArgsView args){              \
-                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
-                return VAR(self.REF()->EXPR);       \
+                VoidP& self = PK_OBJ_GET(VoidP, args[0]);   \
+                T* tgt = reinterpret_cast<T*>(self.ptr);    \
+                return VAR(tgt->EXPR);                      \
             },                                      \
             [](VM* vm, ArgsView args){              \
-                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
-                self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);       \
-                return vm->None;                                                    \
+                VoidP& self = PK_OBJ_GET(VoidP, args[0]);   \
+                T* tgt = reinterpret_cast<T*>(self.ptr);    \
+                tgt->EXPR = CAST(decltype(tgt->EXPR), args[1]);       \
+                return vm->None;                                      \
             });
 
 #define PY_READONLY_FIELD(T, NAME, REF, EXPR)          \
@@ -105,11 +107,12 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return VAR(self.REF()->EXPR);       \
             });
 
-#define PY_READONLY_FIELD_VIRTUAL(T, NAME, REF, EXPR)          \
+#define PY_READONLY_FIELD_P(T, NAME, EXPR)          \
         vm->bind_property(type, NAME,                  \
             [](VM* vm, ArgsView args){              \
-                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
-                return VAR(self.REF()->EXPR);       \
+                VoidP& self = PK_OBJ_GET(VoidP, args[0]);   \
+                T* tgt = reinterpret_cast<T*>(self.ptr);    \
+                return VAR(tgt->EXPR);                      \
             });
 
 #define PY_PROPERTY(T, NAME, REF, FGET, FSET)  \

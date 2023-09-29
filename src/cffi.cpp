@@ -10,19 +10,21 @@ namespace pkpy{
         });
 
         vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            VoidP& self = _CAST(VoidP&, obj);
+            VoidP& self = PK_OBJ_GET(VoidP, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            VoidP& self = _CAST(VoidP&, obj);
+            VoidP& self = PK_OBJ_GET(VoidP, obj);
             return VAR(fmt("<void* at ", self.hex(), ">"));
         });
 
 #define BIND_CMP(name, op)  \
         vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){        \
             if(!vm->isinstance(rhs, VoidP::_type(vm))) return vm->NotImplemented;               \
-            return VAR(_CAST(VoidP&, lhs) op _CAST(VoidP&, rhs));                               \
+            void* _0 = PK_OBJ_GET(VoidP, lhs).ptr;                                              \
+            void* _1 = PK_OBJ_GET(VoidP, rhs).ptr;                                              \
+            return VAR(_0 op _1);                                                               \
         });
 
         BIND_CMP(__eq__, ==)
