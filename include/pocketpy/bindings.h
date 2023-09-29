@@ -142,7 +142,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             wT& self = _CAST(wT&, _0);                                              \
             if(!vm->isinstance(_1, wT::_type(vm))) return vm->NotImplemented;       \
             wT& other = _CAST(wT&, _1);                                             \
-            return VAR(*self._() == *other._());                                    \
+            return VAR(self == other);                                              \
         });                                                                         \
 
 }   // namespace pkpy
