@@ -276,6 +276,7 @@ struct PyVec2: Vec2 {
     PyVec2() : Vec2() {}
     PyVec2(const Vec2& v) : Vec2(v) {}
     PyVec2(const PyVec2& v) = default;
+    Vec2* _() { return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -286,6 +287,7 @@ struct PyVec3: Vec3 {
     PyVec3() : Vec3() {}
     PyVec3(const Vec3& v) : Vec3(v) {}
     PyVec3(const PyVec3& v) = default;
+    Vec3* _() { return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -296,6 +298,7 @@ struct PyVec4: Vec4{
     PyVec4(): Vec4(){}
     PyVec4(const Vec4& v): Vec4(v){}
     PyVec4(const PyVec4& v) = default;
+    Vec4* _(){ return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
@@ -306,6 +309,7 @@ struct PyMat3x3: Mat3x3{
     PyMat3x3(): Mat3x3(){}
     PyMat3x3(const Mat3x3& other): Mat3x3(other){}
     PyMat3x3(const PyMat3x3& other) = default;
+    Mat3x3* _(){ return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
