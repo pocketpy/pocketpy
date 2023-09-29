@@ -228,8 +228,9 @@ __T py_cast(VM* vm, PyObject* obj) {
     }else if constexpr(is_py_class<T>::value){
         T::_check_type(vm, obj);
         return PK_OBJ_GET(T, obj);
+    }else {
+        return Discarded();
     }
-    return Discarded();
 }
 
 template<typename __T>
@@ -241,8 +242,9 @@ __T _py_cast(VM* vm, PyObject* obj) {
         return to_void_p<__T>(vm, obj);
     }else if constexpr(is_py_class<T>::value){
         return PK_OBJ_GET(T, obj);
+    }else {
+        return Discarded();
     }
-    return Discarded();
 }
 
 #define VAR(x) py_var(vm, x)
@@ -268,8 +270,9 @@ inline bool try_cast_int(PyObject* obj, i64* val) noexcept {
     }else if(is_heap_int(obj)){
         *val = PK_OBJ_GET(i64, obj);
         return true;
+    }else{
+        return false;
     }
-    return false;
 }
 
 template<>
