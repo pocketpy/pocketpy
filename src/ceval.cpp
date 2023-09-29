@@ -342,7 +342,7 @@ __NEXT_STEP:;
         _0 = TOP();                                     \
         _ti = _inst_type_info(_0);                      \
         if(_ti->m##func){                               \
-            TOP() = VAR(_ti->m##func(this, _0, _1));    \
+            TOP() = _ti->m##func(this, _0, _1);         \
         }else{                                          \
             PyObject* self;                                         \
             _2 = get_unbound_method(_0, func, &self, false);        \
@@ -459,7 +459,7 @@ __NEXT_STEP:;
         // a in b -> b __contains__ a
         _ti = _inst_type_info(TOP());
         if(_ti->m__contains__){
-            _0 = VAR(_ti->m__contains__(this, TOP(), SECOND()));
+            _0 = _ti->m__contains__(this, TOP(), SECOND());
         }else{
             _0 = call_method(TOP(), __contains__, SECOND());
         }
