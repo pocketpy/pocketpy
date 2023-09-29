@@ -77,27 +77,27 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 #define PY_FIELD(T, NAME, REF, EXPR)       \
         vm->bind_property(type, NAME,               \
             [](VM* vm, ArgsView args){              \
-                T& self = _CAST(T&, args[0]);       \
-                return VAR(self.REF()->EXPR);        \
+                T& self = PK_OBJ_GET(T, args[0]);   \
+                return VAR(self.REF()->EXPR);       \
             },                                      \
             [](VM* vm, ArgsView args){              \
-                T& self = _CAST(T&, args[0]);       \
+                T& self = PK_OBJ_GET(T, args[0]);   \
                 self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);     \
                 return vm->None;                                                \
             });
 
 #define PY_READONLY_FIELD(T, NAME, REF, EXPR)          \
-        vm->bind_property(type, NAME,                           \
+        vm->bind_property(type, NAME,                  \
             [](VM* vm, ArgsView args){              \
-                T& self = _CAST(T&, args[0]);       \
-                return VAR(self.REF()->EXPR);        \
+                T& self = PK_OBJ_GET(T, args[0]);   \
+                return VAR(self.REF()->EXPR);       \
             });
 
 #define PY_PROPERTY(T, NAME, REF, FGET, FSET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
-                T& self = _CAST(T&, args[0]);           \
-                return VAR(self.REF()->FGET());          \
+                T& self = PK_OBJ_GET(T, args[0]);       \
+                return VAR(self.REF()->FGET());         \
             },                                          \
             [](VM* vm, ArgsView args){                  \
                 T& self = _CAST(T&, args[0]);           \
@@ -109,8 +109,8 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 #define PY_READONLY_PROPERTY(T, NAME, REF, FGET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
-                T& self = _CAST(T&, args[0]);           \
-                return VAR(self.REF()->FGET());          \
+                T& self = PK_OBJ_GET(T, args[0]);       \
+                return VAR(self.REF()->FGET());         \
             });
 
 #define PY_STRUCT_LIKE(wT)   \
