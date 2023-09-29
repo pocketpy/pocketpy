@@ -1,5 +1,5 @@
 from typing import overload
-from c import _StructLike
+from c import _StructLike, float_p
 
 class vec2(_StructLike['vec2']):
     x: float
@@ -107,3 +107,8 @@ class mat3x3(_StructLike['mat3x3']):
 
     def transform_point(self, p: vec2) -> vec2: ...
     def transform_vector(self, v: vec2) -> vec2: ...
+
+vec2_p = float_p
+vec3_p = float_p
+vec4_p = float_p
+mat3x3_p = float_p

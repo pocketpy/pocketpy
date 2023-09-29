@@ -155,6 +155,10 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
         vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){         \
             wT& self = _CAST(wT&, obj);                                             \
             return reinterpret_cast<i64>(self._());                                 \
+        });                                                                         \
+        vm->bind_property(type, "_value: int", [](VM* vm, ArgsView args){           \
+            wT& self = _CAST(wT&, args[0]);                                         \
+            return VAR(reinterpret_cast<i64>(self._()));                            \
         });
 
 }   // namespace pkpy

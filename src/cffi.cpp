@@ -22,6 +22,11 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
+        vm->bind_property(type, "_value: int", [](VM* vm, ArgsView args){
+            VoidP& self = _CAST(VoidP&, args[0]);
+            return VAR(reinterpret_cast<i64>(self.ptr));
+        });
+
 #define BIND_CMP(name, op)  \
         vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){       \
             if(!is_non_tagged_type(rhs, VoidP::_type(vm))) return vm->NotImplemented;       \

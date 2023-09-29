@@ -46,7 +46,10 @@ my_struct1 = c.struct(16)
 c_void_1.write_struct(my_struct1)
 assert c_void_1.read_struct(16) == my_struct1
 
-from c import array, int_
+from c import array, int_, NULL
+
+assert NULL._value == 0
+
 a = array(10, item_size=4)
 assert a.item_count == 10
 assert a.item_size == 4
