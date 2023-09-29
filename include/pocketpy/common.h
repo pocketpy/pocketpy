@@ -22,7 +22,7 @@
 #include <random>
 #include <bitset>
 
-#define PK_VERSION				"1.2.3"
+#define PK_VERSION				"1.2.4"
 
 #include "config.h"
 #include "export.h"

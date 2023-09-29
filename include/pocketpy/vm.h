@@ -167,7 +167,8 @@ public:
     PyObject* py_iter(PyObject* obj);
 
     PyObject* find_name_in_mro(PyObject* cls, StrName name);
-    bool isinstance(PyObject* obj, Type cls_t);
+    bool isinstance(PyObject* obj, Type base);
+    bool issubclass(Type cls, Type base);
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr);
     PyObject* exec(Str source);
     PyObject* eval(Str source);

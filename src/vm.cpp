@@ -79,13 +79,17 @@ namespace pkpy{
         return nullptr;
     }
 
-    bool VM::isinstance(PyObject* obj, Type cls_t){
+    bool VM::isinstance(PyObject* obj, Type base){
         Type obj_t = PK_OBJ_GET(Type, _t(obj));
+        return issubclass(obj_t, base);
+    }
+
+    bool VM::issubclass(Type cls, Type base){
         do{
-            if(obj_t == cls_t) return true;
-            Type base = _all_types[obj_t].base;
-            if(base.index == -1) break;
-            obj_t = base;
+            if(cls == base) return true;
+            Type next = _all_types[cls].base;
+            if(next.index == -1) break;
+            cls = next;
         }while(true);
         return false;
     }

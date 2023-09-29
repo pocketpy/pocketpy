@@ -1,33 +1,32 @@
 import c
 
-array = c.malloc(c.sizeof("int") * 10)
+a = c.malloc(100)
+c.free(a)
+
+a = c.malloc(100)
+c.memset(a, 0, 100)
+b = c.malloc(100)
+b = c.memcpy(b, a, 100)
+
+bp = c.p_cast(a, c.int_p)
+
+assert c.p_value(c.NULL) == 0
+assert c.NULL == c.NULL
+assert c.NULL != a
 
 for i in range(10):
-    off = c.sizeof("int") * i
-    (array+off).write_int(i)
+    bp[i] = i
+    assert bp[i] == i
+    (bp+i).write(i)
+    assert (bp+i).read() == i
 
-x = c.int_(0)
-for i in range(10):
-    off = c.sizeof("int") * i
-    i = (array+off).read_int()
-    x.write_int(x.read_int() + i)
+i = c.float_(10)
+assert i.sizeof() == 4
+j = i.copy()
+assert i == j
+assert i is not j
 
-assert x.read_int() == (0+9)*10//2
-
-c.memset(array, 0, c.sizeof("int") * 10)
-
-for i in range(10):
-    off = c.sizeof("int") * i
-    assert (array+off).read_char() == 0
-
-array2 = c.malloc(c.sizeof("int") * 10)
-c.memcpy(array2, array, c.sizeof("int") * 10)
-for i in range(10):
-    off = c.sizeof("int") * i
-    assert (array+off).read_char() == 0
-
-c.free(array)
-c.free(array2)
+####################
 
 class Vec2(c.struct):
     def __new__(cls, x: float, y: float):

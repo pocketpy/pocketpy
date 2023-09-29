@@ -29,9 +29,6 @@ namespace pkpy {
 
 #define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), __VA_ARGS__)
 
-inline PyObject* py_var(VM* vm, void* p);
-inline PyObject* py_var(VM* vm, char* p);
-
 struct VoidP{
     PY_CLASS(VoidP, c, void_p)
 
@@ -58,6 +55,10 @@ struct VoidP{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
+inline PyObject* py_var(VM* vm, void* p){
+    return VAR_T(VoidP, p);
+}
+
 struct C99Struct{
     PY_CLASS(C99Struct, c, struct)
 
@@ -81,33 +82,14 @@ struct C99Struct{
     }
 
     C99Struct(const C99Struct& other): C99Struct(other.p, other.size){}
-
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-struct ReflType{
-    std::string_view name;
-    size_t size;
-};
-inline static std::map<std::string_view, ReflType> _refl_types;
-
-inline void add_refl_type(std::string_view name, size_t size){
-    ReflType type{name, size};
-    _refl_types[name] = std::move(type);
-}
-
 static_assert(sizeof(Py_<C99Struct>) <= 64);
 static_assert(sizeof(Py_<Tuple>) <= 64);
 
-inline PyObject* py_var(VM* vm, void* p){
-    return VAR_T(VoidP, p);
-}
-
-inline PyObject* py_var(VM* vm, char* p){
-    return VAR_T(VoidP, p);
-}
 /***********************************************/
 template<typename T>
 T to_void_p(VM* vm, PyObject* var){

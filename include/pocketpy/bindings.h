@@ -164,20 +164,18 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             return VAR(self == other);                                              \
         });                                                                         \
 
-#define PY_POINTER_LIKE(wT) \
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
+#define PY_POINTER_SETGETITEM(wT) \
+        using vT = std::remove_pointer_t<decltype(std::declval<wT>()._())>;         \
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
             wT& self = _CAST(wT&, _0);                                              \
-            if(!vm->isinstance(_1, wT::_type(vm))) return vm->NotImplemented;       \
-            wT& other = _CAST(wT&, _1);                                             \
-            return VAR(self._() == other._());                                      \
+            i64 i = CAST(i64, _1);                                                  \
+            return VAR(self._()[i]);                                                \
         });                                                                         \
-        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){         \
-            wT& self = _CAST(wT&, obj);                                             \
-            return reinterpret_cast<i64>(self._());                                 \
+        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){  \
+            wT& self = _CAST(wT&, _0);                                              \
+            i64 i = CAST(i64, _1);                                                  \
+            self._()[i] = CAST(vT, _2);                                             \
+            return vm->None;                                                        \
         });                                                                         \
-        vm->bind_property(type, "_value: int", [](VM* vm, ArgsView args){           \
-            wT& self = _CAST(wT&, args[0]);                                         \
-            return VAR(reinterpret_cast<i64>(self._()));                            \
-        });
 
 }   // namespace pkpy
