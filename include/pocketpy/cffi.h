@@ -59,6 +59,31 @@ inline PyObject* py_var(VM* vm, const void* p){
     return VAR_T(VoidP, p);
 }
 
+#define POINTER_VAR(Tp, NAME)    \
+    inline PyObject* py_var(VM* vm, Tp val){    \
+        const static std::pair<StrName, StrName> P("c", NAME);      \
+        PyObject* type = vm->_modules[P.first]->attr(P.second);     \
+        return vm->heap.gcnew<VoidP>(PK_OBJ_GET(Type, type), val);  \
+    }
+
+// POINTER_VAR(char*, "char_p")
+// const char* is special, need to rethink about it
+POINTER_VAR(const unsigned char*, "uchar_p")
+POINTER_VAR(const short*, "short_p")
+POINTER_VAR(const unsigned short*, "ushort_p")
+POINTER_VAR(const int*, "int_p")
+POINTER_VAR(const unsigned int*, "uint_p")
+POINTER_VAR(const long*, "long_p")
+POINTER_VAR(const unsigned long*, "ulong_p")
+POINTER_VAR(const long long*, "longlong_p")
+POINTER_VAR(const unsigned long long*, "ulonglong_p")
+POINTER_VAR(const float*, "float_p")
+POINTER_VAR(const double*, "double_p")
+POINTER_VAR(const bool*, "bool_p")
+
+#undef POINTER_VAR
+
+
 struct C99Struct{
     PY_CLASS(C99Struct, c, struct)
 
