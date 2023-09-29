@@ -33,6 +33,7 @@ struct VoidP{
     PY_CLASS(VoidP, c, void_p)
 
     void* ptr;
+    VoidP(const void* ptr): ptr(const_cast<void*>(ptr)){}
     VoidP(void* ptr): ptr(ptr){}
 
     bool operator==(const VoidP& other) const {
