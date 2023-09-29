@@ -167,18 +167,18 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             return VAR(self == other);                                              \
         });                                                                         \
 
-#define PY_POINTER_SETGETITEM(wT) \
-        using vT = std::remove_pointer_t<decltype(std::declval<wT>()._())>;         \
+#define PY_POINTER_SETGETITEM(T) \
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
-            wT& self = _CAST(wT&, _0);                                              \
-            i64 i = CAST(i64, _1);                                                  \
-            return VAR(self._()[i]);                                                \
-        });                                                                         \
+            VoidP& self = PK_OBJ_GET(VoidP&, _0);                                       \
+            i64 i = CAST(i64, _1);                                                      \
+            T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
+            return VAR(tgt[i]);                                                         \
+        });                                                                             \
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){  \
-            wT& self = _CAST(wT&, _0);                                              \
-            i64 i = CAST(i64, _1);                                                  \
-            self._()[i] = CAST(vT, _2);                                             \
-            return vm->None;                                                        \
+            VoidP& self = PK_OBJ_GET(VoidP&, _0);                                       \
+            i64 i = CAST(i64, _1);                                                      \
+            T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
+            tgt[i] = CAST(T, _2);                                                       \
         });                                                                         \
 
 }   // namespace pkpy
