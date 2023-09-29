@@ -51,6 +51,5 @@ a = array(10, item_size=4)
 assert a.item_count == 10
 assert a.item_size == 4
 
-_ = hash(a)
 a[4] = int_(123)
 assert a[4] == int_(123)

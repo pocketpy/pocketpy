@@ -49,7 +49,6 @@ struct VoidP{
     bool operator>(const VoidP& other) const { return ptr > other.ptr; }
     bool operator>=(const VoidP& other) const { return ptr >= other.ptr; }
 
-
     Str hex() const{
         std::stringstream ss;
         ss << std::hex << reinterpret_cast<intptr_t>(ptr);
@@ -86,17 +85,6 @@ struct C99Struct{
     ~C99Struct(){ if(p!=_inlined) free(p); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-struct ReflField{
-    std::string_view name;
-    int offset;
-    bool operator<(const ReflField& other) const{ return name < other.name; }
-    bool operator==(const ReflField& other) const{ return name == other.name; }
-    bool operator!=(const ReflField& other) const{ return name != other.name; }
-    bool operator<(std::string_view other) const{ return name < other; }
-    bool operator==(std::string_view other) const{ return name == other; }
-    bool operator!=(std::string_view other) const{ return name != other; }
 };
 
 struct ReflType{

@@ -119,12 +119,6 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
-        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            C99Struct& self = _CAST(C99Struct&, obj);
-            std::string_view view((char*)self.p, self.size);
-            return (i64)std::hash<std::string_view>()(view);
-        });
-
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){
             C99Struct& self = _CAST(C99Struct&, args[0]);
             return VAR_T(VoidP, self.p);

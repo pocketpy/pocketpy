@@ -145,4 +145,16 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             return VAR(self == other);                                              \
         });                                                                         \
 
+#define PY_POINTER_LIKE(wT) \
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
+            wT& self = _CAST(wT&, _0);                                              \
+            if(!vm->isinstance(_1, wT::_type(vm))) return vm->NotImplemented;       \
+            wT& other = _CAST(wT&, _1);                                             \
+            return VAR(self._() == other._());                                      \
+        });                                                                         \
+        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){         \
+            wT& self = _CAST(wT&, obj);                                             \
+            return reinterpret_cast<i64>(self._());                                 \
+        });
+
 }   // namespace pkpy
