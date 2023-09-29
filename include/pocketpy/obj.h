@@ -112,7 +112,9 @@ struct PyObject{
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
+
     virtual void _obj_gc_mark() = 0;
+    virtual void* _value_ptr() = 0;
 
     PyObject(Type type) : type(type), _attr(nullptr) {}
 
@@ -128,6 +130,7 @@ struct PySignalObject: PyObject {
         gc.enabled = false;
     }
     void _obj_gc_mark() override {}
+    void* _value_ptr() override { return nullptr; }
 };
 
 inline PyObject* const PY_NULL = new PySignalObject();
@@ -172,6 +175,8 @@ struct Py_ final: PyObject {
             _value._gc_mark();
         }
     }
+
+    void* _value_ptr() override { return &_value; }
     
     template <typename... Args>
     Py_(Type type, Args&&... args) : PyObject(type), _value(std::forward<Args>(args)...) { }
@@ -255,6 +260,7 @@ struct Py_<i64> final: PyObject {
     i64 _value;
     Py_(Type type, i64 val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {}
+    void* _value_ptr() override { return &_value; }
 };
 
 inline bool try_cast_int(PyObject* obj, i64* val) noexcept {
@@ -278,6 +284,7 @@ struct Py_<List> final: PyObject {
     void _obj_gc_mark() override {
         for(PyObject* obj: _value) PK_OBJ_MARK(obj);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -289,6 +296,7 @@ struct Py_<Tuple> final: PyObject {
     void _obj_gc_mark() override {
         for(PyObject* obj: _value) PK_OBJ_MARK(obj);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -298,6 +306,7 @@ struct Py_<MappingProxy> final: PyObject {
     void _obj_gc_mark() override {
         PK_OBJ_MARK(_value.obj);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -308,6 +317,7 @@ struct Py_<BoundMethod> final: PyObject {
         PK_OBJ_MARK(_value.self);
         PK_OBJ_MARK(_value.func);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -317,6 +327,7 @@ struct Py_<StarWrapper> final: PyObject {
     void _obj_gc_mark() override {
         PK_OBJ_MARK(_value.obj);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -327,6 +338,7 @@ struct Py_<Property> final: PyObject {
         PK_OBJ_MARK(_value.getter);
         PK_OBJ_MARK(_value.setter);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -338,6 +350,7 @@ struct Py_<Slice> final: PyObject {
         PK_OBJ_MARK(_value.stop);
         PK_OBJ_MARK(_value.step);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -348,6 +361,7 @@ struct Py_<Super> final: PyObject {
     void _obj_gc_mark() override {
         PK_OBJ_MARK(_value.first);
     }
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -356,6 +370,7 @@ struct Py_<DummyInstance> final: PyObject {
         enable_instance_dict();
     }
     void _obj_gc_mark() override {}
+    void* _value_ptr() override { return nullptr; }
 };
 
 template<>
@@ -365,6 +380,7 @@ struct Py_<Type> final: PyObject {
         enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}
+    void* _value_ptr() override { return &_value; }
 };
 
 template<>
@@ -373,6 +389,7 @@ struct Py_<DummyModule> final: PyObject {
         enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}
+    void* _value_ptr() override { return nullptr; }
 };
 
 }   // namespace pkpy

@@ -82,14 +82,33 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             },                                      \
             [](VM* vm, ArgsView args){              \
                 T& self = PK_OBJ_GET(T, args[0]);   \
-                self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);     \
-                return vm->None;                                                \
+                self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);       \
+                return vm->None;                                                    \
+            });
+
+#define PY_FIELD_VIRTUAL(T, NAME, REF, EXPR)        \
+        vm->bind_property(type, NAME,               \
+            [](VM* vm, ArgsView args){              \
+                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
+                return VAR(self.REF()->EXPR);       \
+            },                                      \
+            [](VM* vm, ArgsView args){              \
+                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
+                self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);       \
+                return vm->None;                                                    \
             });
 
 #define PY_READONLY_FIELD(T, NAME, REF, EXPR)          \
         vm->bind_property(type, NAME,                  \
             [](VM* vm, ArgsView args){              \
                 T& self = PK_OBJ_GET(T, args[0]);   \
+                return VAR(self.REF()->EXPR);       \
+            });
+
+#define PY_READONLY_FIELD_VIRTUAL(T, NAME, REF, EXPR)          \
+        vm->bind_property(type, NAME,                  \
+            [](VM* vm, ArgsView args){              \
+                T& self = *(reinterpret_cast<T*>(args[0]->_value_ptr()));   \
                 return VAR(self.REF()->EXPR);       \
             });
 
