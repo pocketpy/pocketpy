@@ -66,7 +66,7 @@ inline PyObject* py_var(VM* vm, const void* p){
         return vm->heap.gcnew<VoidP>(PK_OBJ_GET(Type, type), val);  \
     }
 
-// POINTER_VAR(char*, "char_p")
+POINTER_VAR(char*, "char_p")
 // const char* is special, need to rethink about it
 POINTER_VAR(const unsigned char*, "uchar_p")
 POINTER_VAR(const short*, "short_p")
