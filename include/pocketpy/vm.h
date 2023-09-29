@@ -595,6 +595,17 @@ inline PyObject* py_var(VM* vm, const char* val){
     return VAR(Str(val));
 }
 
+template<>
+inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
+    vm->check_non_tagged_type(obj, vm->tp_str);
+    return PK_OBJ_GET(Str, obj).c_str();
+}
+
+template<>
+inline const char* _py_cast<const char*>(VM* vm, PyObject* obj){
+    return PK_OBJ_GET(Str, obj).c_str();
+}
+
 inline PyObject* py_var(VM* vm, std::string val){
     return VAR(Str(std::move(val)));
 }
