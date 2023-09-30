@@ -4,7 +4,7 @@ label: 'Advanced config'
 order: -2
 ---
 
-## Disable os-related features
+### Disable os-related features
 
 If you want to disable os-related features, you can do this before including `pocketpy.h`.
 
@@ -13,7 +13,17 @@ If you want to disable os-related features, you can do this before including `po
 #include <pocketpy.h>
 ```
 
-## Full config
+### Working with multiple threads
+
+pkpy does not support multi-threading. But you can create multiple `VM` instances and run them in different threads.
+You can do the following to ensure thread safety for `VM` instances:
+
+```cpp
+#define PK_ENABLE_THREAD 1
+#include <pocketpy.h>
+```
+
+### Full config
 
 You can create a `user_config.h` in the same directory as `pocketpy.h` to override some default settings.
 

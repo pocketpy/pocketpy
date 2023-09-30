@@ -19,6 +19,10 @@ Once you have a `VM` instance, you can execute python code by calling `exec` met
 If the execution is not successful, e.g. a syntax error or a runtime exception,
 the return value will be `nullptr`.
 
+There are also overloaded versions of `exec` and `eval`, which is useful for simple execution:
++ `PyObject* exec(Str source)`
++ `PyObject* eval(Str source)`
+
 ### Compile mode
 
 The `mode` parameter controls how the source code is compiled. There are 5 possible values:
@@ -47,7 +51,7 @@ These two methods are provided for this purpose:
 ```cpp
 try{
     PyObject* result = vm->exec("123", "<eval>", EVAL_MODE);
-    std::cout << CAST(int, result);   // 123
+    std::cout << py_cast<int>(vm, result);   // 123
 }catch(Exception& e){
     // use e.summary() to get a summary of the exception
     std::cerr << e.summary() << std::endl;

@@ -4,7 +4,7 @@ label: os
 ---
 
 !!!
-This module is optional to be compiled.
+This module is optional. Set `PK_ENABLE_OS` to `1` to enable it.
 !!!
 
 ### `os.getcwd()`

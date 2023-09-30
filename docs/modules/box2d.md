@@ -3,11 +3,11 @@ icon: package
 label: box2d
 ---
 
+!!!
+This module is optional. Set `PK_USE_BOX2D` to `1` to enable it.
+!!!
+
 [Box2D](https://box2d.org/) by Erin Catto, the world's best 2D physics engine now becomes a built-in module in pkpy `v1.1.3` and later.
-
-## Setup
-
-You can set option `PK_USE_BOX2D` to `ON` in CMakeLists.txt to enable `box2d` module.
 All platforms are supported, including desktop, mobile and web.
 
 ## Overview

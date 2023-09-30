@@ -4,6 +4,10 @@ label: 'Use dynamic library'
 order: 45
 ---
 
+!!!
+This feature is optional. Set `PK_USE_DYLIB` to `1` to enable it.
+!!!
+
 You can import a native module from a dynamic library at runtime.
 This feature is supported on Windows, Linux, macOS, and Android.
 
