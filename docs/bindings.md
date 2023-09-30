@@ -15,20 +15,14 @@ It takes a C header file and generates a python module stub (`*.pyi`) and a C++ 
 
 ## Manual bindings
 
-!!!
-This document is working in progress.
-!!!
-
-pkpy allows to wrap a function pointer as a python function or method that can be called in python code.
-This function pointer has the following signature:
+pkpy uses an universal signature to wrap a function pointer as a python function or method that can be called in python code, i.e `NativeFuncC`.
 
 ```cpp
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 ```
 + The first argument is the pointer of `VM` instance.
-+ The second argument is an array-like object indicates the arguments list. You can use `[]` operator to get the element.
++ The second argument is an array-like object indicates the arguments list. You can use `[]` operator to get the element and call `size()` to get the length of the array.
 + The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
-
 
 ### Bind a function or method
 
@@ -40,20 +34,24 @@ Use `vm->bind` to bind a function or method.
 ```cpp
 
 vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
-    int a = CAST(int, args[0]);
-    int b = CAST(int, args[1]);
-    return VAR(a + b);
+    int a = py_cast<int>(vm, args[0]);
+    int b = py_cast<int>(vm, args[1]);
+    return py_var(vm, a + b);
 });
 
 // or you can provide a docstring
 vm->bind(obj,
     "add(a: int, b: int) -> int",
     "add two integers", [](VM* vm, ArgsView args){
-    int a = CAST(int, args[0]);
-    int b = CAST(int, args[1]);
-    return VAR(a + b);
+    int a = py_cast<int>(vm, args[0]);
+    int b = py_cast<int>(vm, args[1]);
+    return py_var(vm, a + b);
 });
 ```
+
+!!!
+Other documents are working in progress.
+!!!
 
 ### Bind a property
 
