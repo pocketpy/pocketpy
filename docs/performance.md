@@ -6,13 +6,11 @@ label: Performance
 
 # Performance
 
-Currently, pkpy is completely faster than cpython 3.8.
-Here is a benchmark result of the current commit.
+Currently, pkpy is as fast as cpython 3.8.
+**Performance results for cpython 3.8 are applicable to for pkpy.**
 
-Benchmark files are located in `benchmarks/`.
-
-See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/5113363233/jobs/9192476164).
-
+Here is a benchmark result of `v1.0.0`.
+Files are located in `benchmarks/`.
 
 ```
 Testing directory: benchmarks/
@@ -48,3 +46,5 @@ Testing directory: benchmarks/
   pocketpy: 0.004495s (22.29%)
 ALL TESTS PASSED
 ```
+
+See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/5113363233/jobs/9192476164).
