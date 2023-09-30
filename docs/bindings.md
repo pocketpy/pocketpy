@@ -1,5 +1,5 @@
 ---
-icon: star
+icon: cpu
 title: Write bindings
 order: 18
 ---
@@ -7,6 +7,9 @@ order: 18
 !!!
 This document is working in progress.
 !!!
+
+
+## Old documents (deprecated)
 
 pkpy allows to wrap a function pointer as a python function or method that can be called in python code.
 This function pointer has the following signature:
@@ -19,7 +22,7 @@ typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 + The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
 
 
-## Bind a function or method
+### Bind a function or method
 
 Use `vm->bind` to bind a function or method.
 
@@ -44,7 +47,7 @@ vm->bind(obj,
 });
 ```
 
-## Bind a property
+### Bind a property
 
 a property is a python's `property` that attached to a type instance with a getter and an optional setter. It is a data descriptor. A property redirects attribute access to specific functions.
 
@@ -81,7 +84,7 @@ struct Point {
 };
 ```
 
-## Others
+### Others
 
 You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
 They are old style binding functions and are deprecated.
@@ -117,7 +120,7 @@ PY_CLASS(T, mod, name)
 // name is the class name in python
 ```
 
-## Example
+### Example
 
 In this example, we will create a `linalg` module
 and implement a `vec2` type with some methods.
@@ -141,7 +144,7 @@ print(a)        # vec2(8.0, 2.0)
 print(a.dot(b)) # -2.0
 ```
 
-### Implement `Vec2` struct in cpp
+#### Implement `Vec2` struct in cpp
 
 ```cpp
 struct Vec2{
@@ -154,7 +157,7 @@ struct Vec2{
 };
 ```
 
-### Create `PyVec2` wrapper
+#### Create `PyVec2` wrapper
 
 ```cpp
 struct PyVec2: Vec2 {
@@ -193,7 +196,7 @@ struct PyVec2: Vec2 {
 };
 ```
 
-### Create `linalg` module
+#### Create `linalg` module
 
 ```cpp
 void add_module_linalg(VM* vm){
@@ -203,6 +206,6 @@ void add_module_linalg(VM* vm){
 }
 ```
 
-### Further reading
+#### Further reading
 
 See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for the complete implementation.
