@@ -35,7 +35,7 @@ Evaluate a source string
 
 ```cpp
 PyObject* obj = vm->eval("123");
-std::cout << CAST(i64, obj);  // 123
+std::cout << py_cast<int>(vm, obj);  // 123
 ```
 
 Compile a source string into a code object
@@ -60,10 +60,10 @@ Create primitive objects
 
 ```cpp
 PyObject* obj;
-obj = VAR(1);			// create a int
-obj = VAR(1.0);		// create a float
-obj = VAR("123");	// create a string
-obj = VAR(true);	// create a bool
+obj = py_var(vm, 1);		// create a int
+obj = py_var(vm, 1.0);		// create a float
+obj = py_var(vm, "123");	// create a string
+obj = py_var(vm, true); 	// create a bool
 ```
 
 Create a tuple object
@@ -71,10 +71,10 @@ Create a tuple object
 ```cpp
 // obj = (1, 1.0, '123')
 Tuple t(3);
-t[0] = VAR(1);
-t[1] = VAR(1.0);
-t[2] = VAR("123");
-PyObject* obj = VAR(std::move(t));
+t[0] = py_var(vm, 1);
+t[1] = py_var(vm, 1.0);
+t[2] = py_var(vm, "123");
+PyObject* obj = py_var(vm, std::move(t));
 ```
 
 Create a list object
@@ -82,10 +82,10 @@ Create a list object
 ```cpp
 // obj = [1, 1.0, '123']
 List t;
-t.push_back(VAR(1));
-t.push_back(VAR(1.0));
-t.push_back(VAR("123"));
-PyObject* obj = VAR(std::move(t));
+t.push_back(py_var(vm, 1));
+t.push_back(py_var(vm, 1.0));
+t.push_back(py_var(vm, "123"));
+PyObject* obj = py_var(vm, std::move(t));
 ```
 
 Create a dict object
@@ -93,23 +93,36 @@ Create a dict object
 ```cpp
 // obj = {'x': 1, 'y': '123'}
 Dict d(vm);
-d.set(VAR('x'), VAR(1));
-d.set(VAR('y'), VAR('123'));
-PyObject* obj = VAR(std::move(d));
+d.set(py_var(vm, "x"), py_var(vm, 1));
+d.set(py_var(vm, "y"), py_var(vm, "123"));
+PyObject* obj = py_var(vm, std::move(d));
 ```
 
 Get native types from python objects
 
 ```cpp
 PyObject* obj;
-i64 a = CAST(i64, obj);
-f64 b = CAST(f64, obj);
-Str& c = CAST(Str&, obj);			// reference cast
-bool d = CAST(bool, obj);
+i64 a = py_cast<i64>(vm, obj);
+f64 b = py_cast<f64>(vm, obj);
+Str& c = py_cast<Str&>(vm, obj);    // reference cast
+bool d = py_cast<bool>(vm, obj);
 
-Tuple& e = CAST(Tuple&, obj);	// reference cast
-List& f = CAST(List&, obj);		// reference cast
-Dict& g = CAST(Dict&, obj);		// reference cast
+Tuple& e = py_cast<Tuple&>(vm, obj);    // reference cast
+List& f = py_cast<List&>(vm, obj);      // reference cast
+Dict& g = py_cast<Dict&>(vm, obj);      // reference cast
+```
+
+Get native types without type checking
+
+```cpp
+// unsafe version 1 (for int and float you must use `_py_cast`)
+i64 a = _py_cast<i64>(vm, obj);
+Str& c = _py_cast<Str&>(vm, obj);
+Tuple& e = _py_cast<Tuple&>(vm, obj);
+// unsafe version 2 (for others, you can use both versions)
+i64 a_ = PK_OBJ_GET(i64, obj);
+Str& c_ = PK_OBJ_GET(Str, obj);
+Tuple& e_ = PK_OBJ_GET(Tuple, obj);
 ```
 
 ## Access python types
@@ -127,6 +140,7 @@ PyObject* list_t = vm->_t(vm->tp_list);
 Access extended python types
 
 ```cpp
+// VoidP was defined by `PY_CLASS` macro
 PyObject* voidp_t = VoidP::_type(vm);
 ```
 
@@ -140,7 +154,7 @@ bool ok = is_type(obj, vm->tp_int); // check if obj is an int
 Get the type of a python object
 
 ```cpp
-PyObject* obj = VAR(1);
+PyObject* obj = py_var(vm, 1);
 PyObject* t = vm->_t(obj);      // <class 'int'>
 ```
 
@@ -176,7 +190,7 @@ Get and set attributes
 ```cpp
 PyObject* obj = vm->exec("MyClass(1, 2)");
 PyObject* x = vm->getattr(obj, "x");	// obj.x
-vm->setattr(obj, "x", VAR(3));				// obj.x = 3
+vm->setattr(obj, "x", py_var(vm, 3));	// obj.x = 3
 ```
 
 ## Call python functions
@@ -190,8 +204,8 @@ Call a function
 
 ```cpp
 PyObject* f_add = vm->eval("add");
-PyObject* ret = vm->call(f_add, VAR(1), VAR(2));
-std::cout << CAST(i64, ret);	// 3
+PyObject* ret = vm->call(f_add, py_var(vm, 1), py_var(vm, 2));
+std::cout << py_cast<int>(vm, ret);	// 3
 ```
 
 Call a method
@@ -199,7 +213,7 @@ Call a method
 ```cpp
 PyObject* obj = vm->exec("MyClass(1, 2)");
 PyObject* ret = vm->call_method(obj, "sum");
-std::cout << CAST(i64, ret);	// 3
+std::cout << CAST(i64, ret);    // 3
 ```
 
 Cache the name of a function or method to avoid string-based lookup
@@ -215,36 +229,36 @@ PyObject* ret = vm->call_method(obj, m_sum);
 Compare two python objects
 
 ```cpp
-PyObject* obj1 = VAR(1);
-PyObject* obj2 = VAR(2);
+PyObject* obj1 = py_var(vm, 1);
+PyObject* obj2 = py_var(vm, 2);
 bool ok = vm->py_equals(obj1, obj2);
 ```
 
 Convert a python object to string
 
 ```cpp
-PyObject* obj = VAR("123");
+PyObject* obj = py_var(vm, 123);
 PyObject* s = vm->py_str(obj);  // 123
 ```
 
 Get the string representation of a python object
 
 ```cpp
-PyObject* obj = VAR("123");
+PyObject* obj = py_var(vm, "123");
 std::cout << vm->py_repr(obj);  // '123'
 ```
 
 Get the JSON representation of a python object
 
 ```cpp
-PyObject* obj = VAR("123");
+PyObject* obj = py_var(vm, 123);
 std::cout << vm->py_json(obj);  // "123"
 ```
 
 Get the hash value of a python object
 
 ```cpp
-PyObject* obj = VAR(1);
+PyObject* obj = py_var(vm, 1);
 i64 h = vm->py_hash(obj);       // 1
 ```
 
@@ -277,9 +291,9 @@ Bind a native function
 
 ```cpp
 vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
-    int a = CAST(int, args[0]);
-    int b = CAST(int, args[1]);
-    return VAR(a + b);
+    int a = py_cast<int>(vm, args[0]);
+    int b = py_cast<int>(vm, args[1]);
+    return py_var(vm, a + b);
 });
 
 // Bind a native function with docstring
@@ -287,9 +301,9 @@ vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
 vm->bind(obj,
     "add(a: int, b: int) -> int",
     "add two integers", [](VM* vm, ArgsView args){
-    int a = CAST(int, args[0]);
-    int b = CAST(int, args[1]);
-    return VAR(a + b);
+    int a = py_cast<int>(vm, args[0]);
+    int b = py_cast<int>(vm, args[1]);
+    return py_var(vm, a + b);
 });
 ```
 
@@ -299,12 +313,12 @@ Bind a property
     // getter and setter of property `x`
     vm->bind_property(type, "x: int",
       [](VM* vm, ArgsView args){
-          Point& self = CAST(Point&, args[0]);
+          Point& self = PK_OBJ_GET(Point, args[0]);
           return VAR(self.x);
       },
       [](VM* vm, ArgsView args){
-          Point& self = CAST(Point&, args[0]);
-          self.x = CAST(int, args[1]);
+          Point& self = PK_OBJ_GET(Point, args[0]);
+          self.x = py_cast<int>(vm, args[1]);
           return vm->None;
       });
 ```
@@ -323,6 +337,6 @@ Create a native module
 
 ```cpp
 PyObject* mod = vm->new_module("test");
-vm->setattr(mod, "pi", VAR(3.14));
+vm->setattr(mod, "pi", py_var(vm, 3.14));
 ```
 

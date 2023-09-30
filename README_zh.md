@@ -37,21 +37,37 @@ pkpy 支持任何拥有 C++17 编译器的平台。
 ```cpp
 #include "pocketpy.h"
 
+using namespace pkpy;
+
 int main(){
-    // 创建一个虚拟机
-    auto vm = pkpy_new_vm();
-    
+    // 建立一个虚拟机
+    VM* vm = new VM();
+
     // Hello world!
-    pkpy_vm_exec(vm, "print('Hello world!')");
+    vm->exec("print('Hello world!')");
 
-    // 构建一个列表
-    pkpy_vm_exec(vm, "a = [1, 2, 3]");
+    // 构造一个列表
+    vm->exec("a = [1, 2, 3]");
 
-    // 对列表进行求和
-    pkpy_vm_exec(vm, "print(sum(a))");
+    // 计算列表元素之和
+    PyObject* result = vm->eval("sum(a)");
+    std::cout << py_cast<int>(vm, result);   // 6
 
-    // 释放资源
-    pkpy_delete_vm(vm);
+    // 绑定一个函数
+    vm->bind(vm->_main, "add(a: int, b: int)",
+      [](VM* vm, ArgsView args){
+        int a = py_cast<int>(vm, args[0]);
+        int b = py_cast<int>(vm, args[1]);
+        return py_var(vm, a + b);
+      });
+
+    // 调用函数
+    PyObject* f_add = vm->_main->attr("add");
+    result = vm->call(f_add, py_var(vm, 3), py_var(vm, 7));
+    std::cout << py_cast<int>(vm, result);   // 10
+
+    // 释放虚拟机
+    delete vm;
     return 0;
 }
 ```
