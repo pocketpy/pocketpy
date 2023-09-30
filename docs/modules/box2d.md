@@ -1,5 +1,5 @@
 ---
-icon: package
+icon: package-dependencies
 label: box2d
 ---
 

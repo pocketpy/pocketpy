@@ -34,12 +34,14 @@ PyObject* obj = vm->call(tp);	// this is a `dict`
 And set a key-value pair,
 
 ```cpp
-vm->call_method(obj, "__setitem__", VAR("a"), VAR(5));
+PyObject* _0 = py_var(vm, "a");
+PyObject* _1 = py_var(vm, 5);
+vm->call_method(obj, "__setitem__", _0, _1);
 ```
 
 And get the value,
 
 ```cpp
-PyObject* ret = vm->call_method(obj, "__getitem__", VAR("a"));
-std::cout << CAST(i64, ret) << std::endl;
+PyObject* ret = vm->call_method(obj, "__getitem__", _0);
+std::cout << py_cast<int>(vm, i64);
 ```
