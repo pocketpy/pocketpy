@@ -4,12 +4,20 @@ title: Write bindings
 order: 18
 ---
 
+In order to use a C/C++ library in python, you need to write bindings for it.
+
+## Automatic bindings
+
+pkpy supports automatic binding generation **only for C libraries**.
+See [pkpy-bindings](https://github.com/blueloveTH/pkpy-bindings) for details.
+
+It takes a C header file and generates a python module stub (`*.pyi`) and a C++ binding file (`*.cpp`).
+
+## Manual bindings
+
 !!!
 This document is working in progress.
 !!!
-
-
-## Old documents (deprecated)
 
 pkpy allows to wrap a function pointer as a python function or method that can be called in python code.
 This function pointer has the following signature:
