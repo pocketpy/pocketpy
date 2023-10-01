@@ -336,13 +336,7 @@ template<> inline Vec3 _py_cast<Vec3>(VM* vm, PyObject* obj) { return _CAST(PyVe
 template<> inline Vec4 _py_cast<Vec4>(VM* vm, PyObject* obj) { return _CAST(PyVec4&, obj); }
 template<> inline Mat3x3 _py_cast<Mat3x3>(VM* vm, PyObject* obj) { return _CAST(PyMat3x3&, obj); }
 
-inline void add_module_linalg(VM* vm){
-    PyObject* linalg = vm->new_module("linalg");
-    PyVec2::register_class(vm, linalg);
-    PyVec3::register_class(vm, linalg);
-    PyVec4::register_class(vm, linalg);
-    PyMat3x3::register_class(vm, linalg);
-}
+void add_module_linalg(VM* vm);
 
 static_assert(sizeof(Py_<PyMat3x3>) <= 64);
 static_assert(std::is_trivially_copyable<PyVec2>::value);

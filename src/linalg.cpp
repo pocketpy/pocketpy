@@ -411,4 +411,19 @@ namespace pkpy{
         });
     }
 
+
+void add_module_linalg(VM* vm){
+    PyObject* linalg = vm->new_module("linalg");
+    PyVec2::register_class(vm, linalg);
+    PyVec3::register_class(vm, linalg);
+    PyVec4::register_class(vm, linalg);
+    PyMat3x3::register_class(vm, linalg);
+
+    PyObject* float_p = vm->_modules["c"]->attr("float_p");
+    linalg->attr().set("vec2_p", float_p);
+    linalg->attr().set("vec3_p", float_p);
+    linalg->attr().set("vec4_p", float_p);
+    linalg->attr().set("mat3x3_p", float_p);
+}
+
 }   // namespace pkpy
