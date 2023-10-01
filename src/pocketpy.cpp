@@ -653,9 +653,9 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("str", "encode", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        std::vector<char> buffer(self.length());
-        memcpy(buffer.data(), self.data, self.length());
-        return VAR(Bytes(std::move(buffer)));
+        unsigned char* buffer = new unsigned char[self.length()];
+        memcpy(buffer, self.data, self.length());
+        return VAR(Bytes(buffer, self.length()));
     });
 
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
@@ -1027,13 +1027,13 @@ void init_builtins(VM* _vm) {
     /************ bytes ************/
     _vm->bind_constructor<2>("bytes", [](VM* vm, ArgsView args){
         List& list = CAST(List&, args[1]);
-        std::vector<char> buffer(list.size());
+        std::vector<unsigned char> buffer(list.size());
         for(int i=0; i<list.size(); i++){
             i64 b = CAST(i64, list[i]);
             if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
             buffer[i] = (char)b;
         }
-        return VAR(Bytes(std::move(buffer)));
+        return VAR(Bytes(buffer));
     });
 
     _vm->bind__getitem__(_vm->tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {
@@ -1045,7 +1045,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__hash__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
         const Bytes& self = _CAST(Bytes&, obj);
-        std::string_view view(self.data(), self.size());
+        std::string_view view((char*)self.data(), self.size());
         return (i64)std::hash<std::string_view>()(view);
     });
 

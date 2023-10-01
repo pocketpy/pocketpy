@@ -248,9 +248,9 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(BUILD_BYTES) {
         const Str& s = CAST(Str&, TOP());
-        std::vector<char> buffer(s.size);
-        memcpy(buffer.data(), s.data, s.size);
-        TOP() = VAR(Bytes(std::move(buffer)));
+        unsigned char* p = new unsigned char[s.size];
+        memcpy(p, s.data, s.size);
+        TOP() = VAR(Bytes(p, s.size));
     } DISPATCH();
     TARGET(BUILD_TUPLE)
         _0 = VAR(STACK_VIEW(byte.arg).to_tuple());

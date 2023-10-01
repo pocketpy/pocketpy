@@ -48,41 +48,72 @@ struct StarWrapper{
 };
 
 struct Bytes{
-    std::vector<char> _v;
-    bool valid;
+    unsigned char* _data;
+    int _size;
 
-    int size() const noexcept { return (int)_v.size(); }
-    int operator[](int i) const noexcept { return (int)(uint8_t)_v[i]; }
-    const char* data() const noexcept { return _v.data(); }
+    int size() const noexcept { return _size; }
+    int operator[](int i) const noexcept { return (int)_data[i]; }
+    const unsigned char* data() const noexcept { return _data; }
 
-    bool operator==(const Bytes& rhs) const{ return _v == rhs._v && valid == rhs.valid; }
-    bool operator!=(const Bytes& rhs) const{ return _v != rhs._v || valid != rhs.valid; }
+    bool operator==(const Bytes& rhs) const{
+        if(_size != rhs._size) return false;
+        for(int i=0; i<_size; i++) if(_data[i] != rhs._data[i]) return false;
+        return true;
+    }
+    bool operator!=(const Bytes& rhs) const{ return !(*this == rhs); }
 
-    Str str() const noexcept { return Str(_v.data(), _v.size()); }
-    std::string_view sv() const noexcept { return std::string_view(_v.data(), _v.size()); }
+    Str str() const noexcept { return Str((char*)_data, _size); }
+    std::string_view sv() const noexcept { return std::string_view((char*)_data, _size); }
 
-    Bytes() : valid(false) {}
-    Bytes(std::vector<char>&& v): _v(std::move(v)), valid(true) {}
-    Bytes(std::string_view sv): valid(true) {
-        _v.resize(sv.size());
-        for(int i=0; i<sv.size(); i++) _v[i] = sv[i];
+    Bytes() : _data(nullptr), _size(0) {}
+    Bytes(unsigned char* p, int size): _data(p), _size(size) {}
+    Bytes(const std::vector<unsigned char>& v){
+        _data = new unsigned char[v.size()];
+        _size = v.size();
+        for(int i=0; i<_size; i++) _data[i] = v[i];
+    }
+    Bytes(std::string_view sv){
+        _data = new unsigned char[sv.size()];
+        _size = sv.size();
+        for(int i=0; i<_size; i++) _data[i] = sv[i];
     }
     Bytes(const Str& str): Bytes(str.sv()) {}
-    operator bool() const noexcept { return valid; }
+    operator bool() const noexcept { return _data != nullptr; }
 
     // copy constructor
-    Bytes(const Bytes& rhs) : _v(rhs._v), valid(rhs.valid) {}
+    Bytes(const Bytes& rhs){
+        _data = new unsigned char[rhs._size];
+        _size = rhs._size;
+        for(int i=0; i<_size; i++) _data[i] = rhs._data[i];
+    }
 
     // move constructor
-    Bytes(Bytes&& rhs) noexcept : _v(std::move(rhs._v)), valid(rhs.valid) {
-        rhs.valid = false;
+    Bytes(Bytes&& rhs) noexcept {
+        _data = rhs._data;
+        _size = rhs._size;
+        rhs._data = nullptr;
+        rhs._size = 0;
     }
 
     Bytes& operator=(Bytes&& rhs) noexcept {
-        _v = std::move(rhs._v);
-        valid = rhs.valid;
-        rhs.valid = false;
+        delete[] _data;
+        _data = rhs._data;
+        _size = rhs._size;
+        rhs._data = nullptr;
+        rhs._size = 0;
         return *this;
+    }
+
+    std::pair<unsigned char*, int> detach() noexcept {
+        unsigned char* p = _data;
+        int size = _size;
+        _data = nullptr;
+        _size = 0;
+        return {p, size};
+    }
+
+    ~Bytes(){
+        delete[] _data;
     }
 
     // delete copy assignment

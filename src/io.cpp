@@ -32,12 +32,13 @@ Bytes _default_import_handler(const Str& name){
     FILE* fp = io_fopen(cname.c_str(), "rb");
     if(!fp) return Bytes();
     fseek(fp, 0, SEEK_END);
-    std::vector<char> buffer(ftell(fp));
+    int buffer_size = ftell(fp);
+    unsigned char* buffer = new unsigned char[buffer_size];
     fseek(fp, 0, SEEK_SET);
-    size_t sz = io_fread(buffer.data(), 1, buffer.size(), fp);
+    size_t sz = io_fread(buffer, 1, buffer_size, fp);
     PK_UNUSED(sz);
     fclose(fp);
-    return Bytes(std::move(buffer));
+    return Bytes(buffer, buffer_size);
 #else
     return Bytes();
 #endif
@@ -55,14 +56,13 @@ Bytes _default_import_handler(const Str& name){
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
             fseek(io.fp, 0, SEEK_END);
-            std::vector<char> buffer(ftell(io.fp));
+            int buffer_size = ftell(io.fp);
+            unsigned char* buffer = new unsigned char[buffer_size];
             fseek(io.fp, 0, SEEK_SET);
-            size_t sz = io_fread(buffer.data(), 1, buffer.size(), io.fp);
-            PK_ASSERT(sz <= buffer.size());
-            // in text mode, CR may be dropped, which may cause `sz < buffer.size()`
-            if(sz < buffer.size()) buffer.resize(sz);
-            PK_UNUSED(sz);
-            Bytes b(std::move(buffer));
+            size_t actual_size = io_fread(buffer, 1, buffer_size, io.fp);
+            PK_ASSERT(actual_size <= buffer_size);
+            // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
+            Bytes b(buffer, actual_size);
             if(io.is_text()) return VAR(b.str());
             return VAR(std::move(b));
         });
