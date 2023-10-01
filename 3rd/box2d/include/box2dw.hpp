@@ -79,9 +79,9 @@ struct PyBody{
         }
     }
 
-    PyBody& _() { return *this; }
-    b2Body& _b2Body() { return *body; }
-    b2Fixture& _b2Fixture() { return *fixture; }
+    PyBody* _() { return this; }
+    b2Body* _b2Body() { return body; }
+    b2Fixture* _b2Fixture() { return fixture; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 

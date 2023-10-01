@@ -1,7 +1,7 @@
 #include "pocketpy/pocketpy.h"
 
 #ifdef PK_USE_BOX2D
-#include "box2d_bindings.hpp"
+#include "box2dw.hpp"
 #endif
 
 namespace pkpy{

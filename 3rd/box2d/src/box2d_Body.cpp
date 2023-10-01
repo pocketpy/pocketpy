@@ -1,4 +1,4 @@
-#include "box2d_bindings.hpp"
+#include "box2dw.hpp"
 
 namespace pkpy{
 
