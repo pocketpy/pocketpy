@@ -51,8 +51,8 @@ jobs:
         mkdir -p output/linux/x86_64
         mkdir build
         cd build
-        cmake ..
-        cmake --build . --config Release -DPK_USE_BOX2D=ON
+        cmake .. -DPK_USE_BOX2D=ON
+        cmake --build . --config Release
         cp main ../output/linux/x86_64
         cp libpocketpy.so ../output/linux/x86_64
         cp main ../
