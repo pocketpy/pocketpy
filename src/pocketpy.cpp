@@ -4,6 +4,11 @@
 #include "box2dw.hpp"
 #endif
 
+#if defined (_WIN32) && PK_SUPPORT_DYLIB == 1
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 namespace pkpy{
 
 using dylib_entry_t = const char* (*)(void*, const char*);

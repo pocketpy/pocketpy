@@ -11,6 +11,8 @@
 
 #ifdef _WIN32
 
+#include <windows.h>
+
 std::string pkpy_platform_getline(bool* eof){
     HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
     std::wstringstream wss;
