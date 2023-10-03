@@ -57,6 +57,16 @@ To compile it with your project, these flags must be set:
 + `--std=c++17` flag must be set
 + Exception must be enabled
 
+For development build on Linux, use this snippet.
+```bash
+# prerequisites
+sudo apt-get install libc++-dev libc++abi-dev clang++
+# build the repo
+bash build.sh
+# unittest
+python scripts/run_tests.py
+```
+
 ### Example
 
 ```cpp
