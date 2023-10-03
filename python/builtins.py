@@ -96,13 +96,20 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def __f(self, *args):
+def __f(self, *args, **kwargs):
     if '{}' in self:
         for i in range(len(args)):
             self = self.replace('{}', str(args[i]), 1)
     else:
-        for i in range(len(args)):
-            self = self.replace('{'+str(i)+'}', str(args[i]))
+        # Positional arguments will be followed by keyword arguments
+        # 1. Replace the positional arguments
+        for i,a in enumerate(args):
+            self = self.replace('{'+str(i)+'}', str(a))
+        
+        # 2. Replace the keyword arguments
+        for k,v in kwargs.items():
+            self = self.replace('{'+k+'}', str(v))
+    
     return self
 str.format = __f
 
