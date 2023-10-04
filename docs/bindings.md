@@ -49,10 +49,6 @@ vm->bind(obj,
 });
 ```
 
-!!!
-Other documents are working in progress.
-!!!
-
 ### Bind a struct
 
 Assume you have a struct `Point` declared as follows.
@@ -113,7 +109,7 @@ struct wrapped__Point{
             wrapped__Point& self = _py_cast<wrapped__Point>(vm, args[0]);
             self.value.x = py_cast<int>(vm, args[1]);
             self.value.y = py_cast<int>(vm, args[2]);
-            return vm->None
+            return vm->None;
         });
 
         // other custom methods
@@ -162,6 +158,6 @@ This specialized binding function has optimizations and result in better perform
 For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
 
 
-#### Further reading
+### Further reading
 
-See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for the complete implementation.
+See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for a complete example used by `linalg` module.
