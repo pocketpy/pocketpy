@@ -53,70 +53,20 @@ vm->bind(obj,
 Other documents are working in progress.
 !!!
 
-### Bind a property
+### Bind a struct
 
-a property is a python's `property` that attached to a type instance with a getter and an optional setter. It is a data descriptor. A property redirects attribute access to specific functions.
-
-Use `vm->bind_property()` to bind a getter and an optional setter to a property.
+Assume you have a struct `Point` declared as follows.
 
 ```cpp
-struct Point {
-  PY_CLASS(Point, test, Point);
-
-  int x;
-  int y;
-
-  Point(int x, int y) : x(x), y(y) {}
-
-  static void _register(VM *vm, auto mod, auto type) {
-    vm->bind(type, "__new__(cls, x, y)", [](VM *vm, ArgsView args) {
-      auto x = CAST(i64, args[1]);
-      auto y = CAST(i64, args[2]);
-      return VAR_T(Point, x, y);
-    });
-
-    // getter and setter of property `x`
-    vm->bind_property(type, "x: int",
-      [](VM* vm, ArgsView args){
-          Point& self = CAST(Point&, args[0]);
-          return VAR(self.x);
-      },
-      [](VM* vm, ArgsView args){
-          Point& self = CAST(Point&, args[0]);
-          self.x = CAST(int, args[1]);
-          return vm->None;
-      });
-  }
-};
-```
-
-### Others
-
-You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
-They are old style binding functions and are deprecated.
-You should use `vm->bind` instead.
-
-For some magic methods, we provide specialized binding function.
-They do not take universal function pointer as argument.
-You need to provide the detailed `Type` object and the corresponding function pointer.
-
-```cpp
-PyObject* __add__(PyObject* lhs, PyObject* rhs){
-    int a = CAST(int, lhs);
-    int b = CAST(int, rhs);
-    return VAR(a + b);
+struct Point{
+    int x;
+    int y;
 }
-
-Type type = vm->tp_int;
-vm->bind__add__(type, __add__);
 ```
 
-This specialized binding function has optimizations and result in better performance when calling from python code.
+You can write a wrapper class `wrapped__Point`. Add `PY_CLASS` macro into your wrapper class and implement a static function `_register`.
 
-For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
-
-Add `PY_CLASS` macro into your `struct` and implement a static function `_register`.
-Inside the `_register` function, you can bind methods and properties to the class.
+Inside the `_register` function, do bind methods and properties.
 
 ```cpp
 PY_CLASS(T, mod, name)
@@ -128,89 +78,89 @@ PY_CLASS(T, mod, name)
 
 ### Example
 
-In this example, we will create a `linalg` module
-and implement a `vec2` type with some methods.
-And make them available in python just like this.
-
-```python
-from linalg import vec2
-
-# construct a vec2
-a = vec2(1.0, 2.0)
-b = vec2(0.0, -1.0)
-
-# add two vec2
-print(a + b)    # vec2(1.0, 1.0)
-
-# set x component
-a.x = 8.0
-print(a)        # vec2(8.0, 2.0)
-
-# use dot method
-print(a.dot(b)) # -2.0
-```
-
-#### Implement `Vec2` struct in cpp
-
 ```cpp
-struct Vec2{
-    float x, y;
-    Vec2() : x(0.0f), y(0.0f) {}
-    Vec2(float x, float y) : x(x), y(y) {}
-    Vec2(const Vec2& v) : x(v.x), y(v.y) {}
-    Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
-    float dot(const Vec2& v) const { return x * v.x + y * v.y; }
-};
-```
+struct wrapped__Point{
+    // special macro for wrapper class
+    PY_CLASS(wrapped__Point, builtins, Point)
+    //       ^T              ^module   ^name
 
-#### Create `PyVec2` wrapper
+    // wrapped value
+    Point value;
 
-```cpp
-struct PyVec2: Vec2 {
-    PY_CLASS(PyVec2, linalg, vec2)
+    // special method _ returns a pointer of the wrapped value
+    Point* _() { return &value; }
 
-    PyVec2() : Vec2() {}
-    PyVec2(const Vec2& v) : Vec2(v) {}
-    PyVec2(const PyVec2& v) : Vec2(v) {}
+    // define default constructors
+    wrapped__Point() = default;
+    wrapped__Point(const wrapped__Point&) = default;
+
+    // define wrapped constructor
+    wrapped__Point(Point value){
+        this->value = value;
+    }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            float x = CAST_F(args[1]);
-            float y = CAST_F(args[2]);
-            return VAR(Vec2(x, y));
+        // optional macro to enable struct-like methods
+        PY_STRUCT_LIKE(wrapped__Point)
+
+        // wrap field x
+        PY_FIELD(wrapped__Point, "x", _, x)
+        // wrap field y
+        PY_FIELD(wrapped__Point, "y", _, y)
+
+        // __init__ method
+        vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){
+            wrapped__Point& self = _py_cast<wrapped__Point>(vm, args[0]);
+            self.value.x = py_cast<int>(vm, args[1]);
+            self.value.y = py_cast<int>(vm, args[2]);
+            return vm->None
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            PyVec2& self = _CAST(PyVec2&, obj);
-            std::stringstream ss;
-            ss << "vec2(" << self.x << ", " << self.y << ")";
-            return VAR(ss.str());
-        });
-
-        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* other){
-            PyVec2& self = _CAST(PyVec2&, obj);
-            PyVec2& other_ = CAST(PyVec2&, other);
-            return VAR_T(PyVec2, self + other_);
-        });
-
-        vm->bind(type, "dot(self, other: vec2) -> float", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            PyVec2& other = CAST(PyVec2&, args[1]);
-            return VAR(self.dot(other));
-        });
+        // other custom methods
+        // ...
     }
-};
-```
+}
 
-#### Create `linalg` module
+int main(){
+    VM* vm = new VM();
+    // register the wrapper class somewhere
+    wrapped__Point::register_class(vm, vm->builtins);
 
-```cpp
-void add_module_linalg(VM* vm){
-    PyObject* linalg = vm->new_module("linalg");
-    // register PyVec2
-    PyVec2::register_class(vm, linalg);
+    // use the Point class
+    vm->exec("a = Point(1, 2)");
+    vm->exec("print(a.x)");         // 1
+    vm->exec("print(a.y)");         // 2
+
+    delete vm;
+    return 0;
 }
 ```
+
+
+### Others
+
+You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
+They are old style binding functions and are deprecated.
+It is recommended to use `vm->bind`.
+
+For some magic methods, we provide specialized binding function.
+They do not take universal function pointer as argument.
+You need to provide the detailed `Type` object and the corresponding function pointer.
+
+```cpp
+PyObject* f_add(PyObject* lhs, PyObject* rhs){
+    int a = py_cast<int>(vm, lhs);
+    int b = py_cast<int>(vm, rhs);
+    return py_var(vm, a + b);
+}
+
+vm->bind__add__(vm->tp_int, f_add);
+```
+
+This specialized binding function has optimizations and result in better performance when calling from python code.
+
+For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
+
 
 #### Further reading
 
