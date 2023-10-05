@@ -21,13 +21,11 @@ echo "> Running prebuild.py... "
 
 python3 prebuild.py
 
-# echo -n "Finding source files... "
 SRC=$(find src/ -name "*.cpp")
-# echo "Done"
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c++17 -O2 -stdlib=libc++ -Wfatal-errors -Iinclude"
+FLAGS="-std=c++17 -O1 -stdlib=libc++ -Wfatal-errors -Iinclude"
 if [[ "$OSTYPE" == "darwin"* ]]; then
     LIB_EXTENSION=".dylib"
     FLAGS="$FLAGS -undefined dynamic_lookup"
@@ -42,7 +40,7 @@ clang++ $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared -ldl
 # compile main.cpp and link to libpocketpy.so
 echo "> Compiling main.cpp and linking to libpocketpy$LIB_EXTENSION..."
 
-clang++ $FLAGS -o main src2/main.cpp -L. -lpocketpy $LINK_FLAGS
+clang++ $FLAGS -o main -O1 src2/main.cpp -L. -lpocketpy $LINK_FLAGS
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."
