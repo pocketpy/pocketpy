@@ -1712,6 +1712,7 @@ void VM::post_init(){
     add_module_traceback(this);
     add_module_time(this);
     add_module_json(this);
+    add_module_cjson(this);
     add_module_math(this);
     add_module_re(this);
     add_module_dis(this);
