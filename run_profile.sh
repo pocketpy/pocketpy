@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 python3 prebuild.py
 SRC=$(find src/ -name "*.cpp")
 clang++ -pg -O1 -std=c++17 -stdlib=libc++ -Wfatal-errors -o main $SRC -Iinclude -ldl

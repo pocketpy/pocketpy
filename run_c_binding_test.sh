@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 cd c_bindings
 rm -rf build
 mkdir build

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 python3 prebuild.py
 
 rm -rf web/lib
