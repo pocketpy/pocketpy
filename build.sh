@@ -45,7 +45,7 @@ echo "> Compiling main.cpp and linking to libpocketpy$LIB_EXTENSION..."
 clang++ $FLAGS -o main src2/main.cpp -L. -lpocketpy $LINK_FLAGS
 
 if [ $? -eq 0 ]; then
-    echo "Build completed successfully. To use pocketpy, run : ./main"
+    echo "Build completed. Type \"./main\" to enter REPL."
 else
     echo "Build failed."
     exit 1
