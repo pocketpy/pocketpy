@@ -49,6 +49,9 @@ if(PK_USE_BOX2D)
     add_definitions(-DPK_USE_BOX2D)
 endif()
 
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson/include)
+
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -83,6 +86,8 @@ endif()
 if(PK_USE_BOX2D)
     target_link_libraries(${PROJECT_NAME} box2d)
 endif()
+
+target_link_libraries(${PROJECT_NAME} cjson)
 
 if(PK_EXPORT_CXX_SYMBOLS AND MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
