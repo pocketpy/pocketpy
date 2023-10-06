@@ -96,21 +96,112 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def __f(self, *args, **kwargs):
-    if '{}' in self:
-        for i in range(len(args)):
-            self = self.replace('{}', str(args[i]), 1)
-    else:
-        # Positional arguments will be followed by keyword arguments
-        # 1. Replace the positional arguments
-        for i,a in enumerate(args):
-            self = self.replace('{'+str(i)+'}', str(a))
-        
-        # 2. Replace the keyword arguments
-        for k,v in kwargs.items():
-            self = self.replace('{'+k+'}', str(v))
+def tokenize(s:str) -> list:
+    tokens = []
+    L, R = 0,0
     
-    return self
+    mode = None
+    curPos = 0
+    lookingForKword = False
+    
+    while(R<len(s) and not lookingForKword):
+        curChar = s[R]
+        nextChar = s[R+1] if R+1<len(s) else ''
+        
+        # Escaping case
+        if (curChar == '{' and nextChar == '{') or (curChar == '}' and nextChar == '}'):
+            tokens.append(curChar)
+            L = R+2
+            R = R+2
+            continue
+        
+        # Regular command line arg case
+        if curChar == '{' and nextChar == '}':
+            
+            if mode is not None and mode != 'auto':
+                raise ValueError("Cannot switch from manual field numbering to automatic field specification")
+            
+            mode = 'auto'
+            # best case {}, just for normal args
+            if(L<R):
+                tokens.append(s[L:R])
+            tokens.append("{"+str(curPos)+"}")
+            curPos+=1
+            L = R+2
+            R = R+2
+            continue
+        
+        # Kwarg case
+        elif (curChar == '{'):
+            
+            if mode is not None and mode != 'manual':
+                raise ValueError("Cannot switch from automatic field specification to manual field numbering")
+            
+            mode = 'manual'
+            
+            if(L<R):
+                tokens.append(s[L:R])
+            
+            lookingForKword = True
+            kwL = R+1
+            kwR = R+1
+            while(kwR<len(s) and s[kwR]!='}'):
+                kwR += 1
+            tokens.append(s[R:kwR+1])
+            
+            if kwR<len(s) and s[kwR] == '}':
+                lookingForKword = False
+                L = kwR+1
+                R = kwR+1
+            continue
+        
+        R = R+1
+    
+    if lookingForKword:
+        raise ValueError("Expected '}' before end of string")
+    
+    if(not lookingForKword and L<R):
+        tokens.append(s[L:R])
+
+    # print("Looking for kword: ", lookingForKword)
+    return tokens
+def __f(self:str, *args, **kwargs) -> str:
+    tokens = tokenize(self)
+    argMap = {}
+    for i, a in enumerate(args):
+        argMap[str(i)] = a
+    final_tokens = []
+    for t in tokens:
+        if t[0] == '{' and t[-1] == '}':
+            key = t[1:-1]
+            argMapVal = argMap.get(key, None)
+            kwargsVal = kwargs.get(key, None)
+            
+            if argMapVal is None and kwargsVal is None:
+                raise ValueError("No arg found for token: "+t)
+            elif argMapVal is not None:
+                final_tokens.append(str(argMapVal))
+            else:
+                final_tokens.append(str(kwargsVal))
+        else:
+            final_tokens.append(t)
+    
+    return ''.join(final_tokens)
+ 
+    # if '{}' in self:
+    #     for i in range(len(args)):
+    #         self = self.replace('{}', str(args[i]), 1)
+    # else:
+    #     # Positional arguments will be followed by keyword arguments
+    #     # 1. Replace the positional arguments
+    #     for i,a in enumerate(args):
+    #         self = self.replace('{'+str(i)+'}', str(a))
+        
+    #     # 2. Replace the keyword arguments
+    #     for k,v in kwargs.items():
+    #         self = self.replace('{'+k+'}', str(v))
+    
+    # return self
 str.format = __f
 
 def __f(self, chars=None):
