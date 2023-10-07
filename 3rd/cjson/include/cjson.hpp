@@ -54,10 +54,10 @@ static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
                     output.set(VAR(Str(child->string)), VAR(child_value->valueint));
                 }
                 else if (cJSON_IsBool(child_value)){
-                    output.set(VAR(Str(child->string)), VAR(child_value->valueint == 0?false:true));
+                    output.set(VAR(Str(child->string)), child_value->valueint!=0 ? vm->True : vm->False);
                 }
                 else if (cJSON_IsNull(child_value)){
-                    output.set(VAR(Str(child->string)), VAR(vm->None)); //Todo: Covert to python None
+                    output.set(VAR(Str(child->string)), vm->None);
                 }
                 else if (cJSON_IsArray(child_value)){
                     cJSON *array_child = child_value->child;
@@ -70,10 +70,10 @@ static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
                             list.push_back(VAR(array_child->valueint));
                         }
                         else if (cJSON_IsBool(array_child)){
-                            list.push_back(VAR(array_child->valueint == 0?false:true));
+                            list.push_back(child_value->valueint!=0 ? vm->True : vm->False);
                         }
                         else if (cJSON_IsNull(array_child)){
-                            list.push_back(VAR(vm->None));
+                            list.push_back(vm->None);
                         }
                         array_child = array_child->next;
                     }
