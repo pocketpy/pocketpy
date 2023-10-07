@@ -4,34 +4,84 @@
 
 namespace pkpy{
 
+static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
+{
+
+    Dict output(vm);
+    List list;
+
+    if ((item == NULL))
+    {
+        return NULL;
+    }
+
+    if (((item->type) & 0xFF) == cJSON_Object){
+            cJSON *child = item->child;
+            while(child != NULL){
+                const cJSON *child_value = cJSON_GetObjectItemCaseSensitive(item, child->string);
+           
+                if (cJSON_IsString(child_value))
+                {
+                    output.set(VAR(Str(child->string)), VAR(Str(child_value->valuestring)));
+                }
+                else if (cJSON_IsNumber(child_value)){
+                    output.set(VAR(Str(child->string)), VAR(child_value->valueint));
+                }
+                else if (cJSON_IsBool(child_value)){
+                    output.set(VAR(Str(child->string)), VAR(child_value->valueint)); //Todo: Covert to python boolean
+                }
+                else if (cJSON_IsNull(child_value)){
+                    output.set(VAR(Str(child->string)), VAR(vm->None)); //Todo: Covert to python None
+                }
+                else if (cJSON_IsArray(child_value)){
+                    printf("array\n");
+                    cJSON *array_child = child_value->child;
+                    while(array_child != NULL){
+                        printf("array_child: %s\n", cJSON_Print(array_child));
+                        if (cJSON_IsString(array_child)) /*&& (child_value->valuestring != NULL*/
+                        {
+                            list.push_back(VAR(Str(array_child->valuestring)));
+                        }
+                        else if (cJSON_IsNumber(array_child)){
+                            list.push_back(VAR(array_child->valueint));
+                        }
+                        else if (cJSON_IsBool(array_child)){
+                            list.push_back(VAR(array_child->valueint));
+                        }
+                        else if (cJSON_IsNull(array_child)){
+                            list.push_back(VAR(vm->None));
+                        }
+                        array_child = array_child->next;
+                    }
+                    output.set(VAR(Str(child->string)), VAR(list));
+                }
+                else if (cJSON_IsObject(child_value)){
+                    Dict child_object = convert_cjson_to_dict(child_value, vm);
+                    output.set(VAR(Str(child->string)), VAR(child_object));
+                }
+                child = child->next;
+            }
+
+    }
+    return output;
+}
+
 inline void add_module_cjson(VM* vm){
     PyObject* mod = vm->new_module("cjson");
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args) {
-    
+
         const Str& expr = CAST(Str&, args[0]);
-
         cJSON *json = cJSON_Parse(expr.c_str());
-        /*
-        Plan:
-        Create dictionary from cJSON object
-        Return dictionary
-        */
 
-        //Following is an example dictionary that we will return
-        Dict d(vm);
-        d.set(py_var(vm, "x"), py_var(vm, 1));
-        d.set(py_var(vm, "y"), py_var(vm, "123"));
-        return VAR(d);
+        Dict output = convert_cjson_to_dict(json, vm);
+        return VAR(output);
     });
 
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
-        /*
-        Plan:
-        Create cJSON object from dictionary
-        Return string
-        */
+
         const Dict& dict = CAST(Dict&, args[0]);
 
+        //TODO: Convert dict to cJSON object
         char* out = "This will be created from the dictionary";
         return VAR(Str(out));
         
