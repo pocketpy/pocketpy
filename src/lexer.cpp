@@ -260,7 +260,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     void Lexer::eat_number() {
-        PK_LOCAL_STATIC const std::regex pattern("^(0x)?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
+        PK_LOCAL_STATIC const std::regex pattern("^(0[xo])?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
         std::smatch m;
 
         const char* i = token_start;
@@ -278,20 +278,28 @@ static bool is_unicode_Lo_char(uint32_t c) {
         }
 
         if(m[1].matched && m[2].matched){
-            SyntaxError("hex literal should not contain a dot");
+            SyntaxError("hex/octal literal should not contain a dot");
         }
 
         try{
             int base = 10;
             size_t size;
-            if (m[1].matched) base = 16;
+            if (m[1].matched) {
+                if (m[1].str() == "0o") base=8;
+                else base = 16;
+            }
             if (m[2].matched) {
                 PK_ASSERT(base == 10);
                 add_token(TK("@num"), Number::stof(m[0], &size));
             } else {
-                add_token(TK("@num"), (i64)std::stoll(m[0], &size, base));
+                // If we're base 8, chop off the "o"
+                std::string match = m[0].str();
+                if (base == 8) match.erase(1, 1);
+                add_token(TK("@num"), (i64)std::stoll(match, &size, base));
             }
-            PK_ASSERT((int)size == (int)m.length());
+            // HACK: We need to check length-1 for octal since python octals are "0o..." and c/c++ octals are "0..."
+            if (base == 8) {PK_ASSERT((int)size == (int)m.length()-1);}
+            else {PK_ASSERT((int)size == (int)m.length());}
         }catch(...){
             SyntaxError("invalid number literal");
         }
