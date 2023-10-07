@@ -39,7 +39,7 @@ These platforms are officially tested.
 + Android 64-bit / 32-bit
 + iOS 64-bit
 + Emscripten 32-bit
-+ Raspberry Pi 64-bit
++ Raspberry Pi OS 64-bit
 
 ## Sponsor me
 
