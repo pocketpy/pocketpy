@@ -96,8 +96,8 @@ def sorted(iterable, reverse=False, key=None):
     return a
 
 ##### str #####
-def __f(self:str, *args, **kwargs) -> str:
-    def tokenizeString(s:str):
+def __f(self: str, *args, **kwargs) -> str:
+    def tokenizeString(s: str):
         tokens = []
         L, R = 0,0
         
@@ -205,20 +205,6 @@ def __f(self:str, *args, **kwargs) -> str:
     
     return ''.join(final_tokens)
 
-    # if '{}' in self:
-    #     for i in range(len(args)):
-    #         self = self.replace('{}', str(args[i]), 1)
-    # else:
-    #     # Positional arguments will be followed by keyword arguments
-    #     # 1. Replace the positional arguments
-    #     for i,a in enumerate(args):
-    #         self = self.replace('{'+str(i)+'}', str(a))
-        
-    #     # 2. Replace the keyword arguments
-    #     for k,v in kwargs.items():
-    #         self = self.replace('{'+k+'}', str(v))
-    
-    # return self
 str.format = __f
 
 def __f(self, chars=None):
