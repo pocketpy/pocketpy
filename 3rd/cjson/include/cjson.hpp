@@ -28,17 +28,15 @@ static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
                     output.set(VAR(Str(child->string)), VAR(child_value->valueint));
                 }
                 else if (cJSON_IsBool(child_value)){
-                    output.set(VAR(Str(child->string)), VAR(child_value->valueint)); //Todo: Covert to python boolean
+                    output.set(VAR(Str(child->string)), VAR(child_value->valueint == 0?false:true));
                 }
                 else if (cJSON_IsNull(child_value)){
                     output.set(VAR(Str(child->string)), VAR(vm->None)); //Todo: Covert to python None
                 }
                 else if (cJSON_IsArray(child_value)){
-                    printf("array\n");
                     cJSON *array_child = child_value->child;
                     while(array_child != NULL){
-                        printf("array_child: %s\n", cJSON_Print(array_child));
-                        if (cJSON_IsString(array_child)) /*&& (child_value->valuestring != NULL*/
+                        if (cJSON_IsString(array_child))
                         {
                             list.push_back(VAR(Str(array_child->valuestring)));
                         }
@@ -46,7 +44,7 @@ static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
                             list.push_back(VAR(array_child->valueint));
                         }
                         else if (cJSON_IsBool(array_child)){
-                            list.push_back(VAR(array_child->valueint));
+                            list.push_back(VAR(array_child->valueint == 0?false:true));
                         }
                         else if (cJSON_IsNull(array_child)){
                             list.push_back(VAR(vm->None));
