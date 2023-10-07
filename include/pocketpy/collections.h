@@ -18,6 +18,8 @@ namespace pkpy
         PyDeque() = default;
         void printHelloWorld();
         static void _register(VM *vm, PyObject *mod, PyObject *type);
+
+        void _gc_mark() const;  // needed for container types
     };
 
     void add_module_mycollections(VM *vm);
