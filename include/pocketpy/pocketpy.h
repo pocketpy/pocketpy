@@ -7,12 +7,14 @@
 #include "base64.h"
 #include "cffi.h"
 #include "linalg.h"
+#include "collections.h"
 #include "easing.h"
 #include "io.h"
 #include "vm.h"
 #include "re.h"
 #include "random.h"
 #include "bindings.h"
+
 
 namespace pkpy {
 

@@ -1744,6 +1744,7 @@ void VM::post_init(){
 
     add_module_linalg(this);
     add_module_easing(this);
+    add_module_mycollections(this);
 
 #ifdef PK_USE_BOX2D
     add_module_box2d(this);
