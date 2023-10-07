@@ -1,6 +1,4 @@
-#include "cjson/cJSON.h"
-#include "pocketpy/pocketpy.h"
-
+#include "cJSONw.hpp"
 
 namespace pkpy{
 
@@ -90,7 +88,7 @@ static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
     return output;
 }
 
-inline void add_module_cjson(VM* vm){
+void add_module_cjson(VM* vm){
     PyObject* mod = vm->new_module("cjson");
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args) {
 

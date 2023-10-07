@@ -41,6 +41,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
 option(PK_USE_BOX2D "Use Box2D" OFF)
+option(PK_USE_CJSON "Use cJSON" ON)
 option(PK_USE_DYLIB "Use dylib" OFF)
 
 if(PK_USE_BOX2D)
@@ -49,8 +50,11 @@ if(PK_USE_BOX2D)
     add_definitions(-DPK_USE_BOX2D)
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson/include)
+if(PK_USE_CJSON)
+    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
+    include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson/include)
+    add_definitions(-DPK_USE_CJSON)
+endif()
 
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).

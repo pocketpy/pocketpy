@@ -4,11 +4,14 @@
 #include "box2dw.hpp"
 #endif
 
+#ifdef PK_USE_CJSON
+#include "cJSONw.hpp"
+#endif
+
 #if defined (_WIN32) && PK_SUPPORT_DYLIB == 1
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-#include "cjson.hpp"
 
 namespace pkpy{
 
@@ -1713,7 +1716,6 @@ void VM::post_init(){
     add_module_traceback(this);
     add_module_time(this);
     add_module_json(this);
-    add_module_cjson(this);
     add_module_math(this);
     add_module_re(this);
     add_module_dis(this);
@@ -1750,6 +1752,10 @@ void VM::post_init(){
 #ifdef PK_USE_BOX2D
     add_module_box2d(this);
 #endif
+#ifdef PK_USE_CJSON
+    add_module_cjson(this);
+#endif
+
 #endif
 }
 

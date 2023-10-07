@@ -2,14 +2,18 @@ cmake_minimum_required(VERSION 3.10)
 
 project(cjson)
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../pocketpy/include)
 
+set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(
     cjson
-    ${CMAKE_CURRENT_LIST_DIR}/src/cJSON.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/cJSON.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/cJSONw.cpp
 )
