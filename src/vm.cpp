@@ -1082,13 +1082,21 @@ void VM::_error(Exception e){
 }
 
 void VM::_raise(bool re_raise){
-    Frame* top = top_frame().get();
+    Frame* frame = top_frame().get();
+    Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
-        Exception& e = PK_OBJ_GET(Exception, s_data.top());
-        e._ip_on_error = top->_ip;
-        e._code_on_error = (void*)top->co;
+        e._ip_on_error = frame->_ip;
+        e._code_on_error = (void*)frame->co;
     }
-    bool ok = top->jump_to_exception_handler();
+    bool ok = frame->jump_to_exception_handler();
+
+    int actual_ip = frame->_ip;
+    if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
+    int current_line = frame->co->lines[actual_ip];         // current line
+    auto current_f_name = frame->co->name.sv();             // current function name
+    if(frame->_callable == nullptr) current_f_name = "";    // not in a function
+    e.st_push(frame->co->src->snapshot(current_line, nullptr, current_f_name));
+
     if(ok) throw HandledException();
     else throw UnhandledException();
 }
