@@ -4,6 +4,32 @@
 
 namespace pkpy{
 
+static std::string covert_dict_to_string(const Dict& dict, VM* vm){
+    std::string output = "{";
+    dict.apply([&](PyObject* key, PyObject* val){
+        output = output + "\"" + CAST(Str&, key).c_str() + "\":";
+        try{
+            Dict child_dict = CAST(Dict&, val);
+            std::string chilld_str = covert_dict_to_string(child_dict, vm);
+            output = output + chilld_str + ",";
+        }
+        catch(...) {       
+            if (is_float(val)){
+                output = output + std::to_string(CAST(f64, val)) + ",";
+            }
+            else if(is_int(val)){
+                output = output + std::to_string(CAST(i64, val)) + ",";
+            }
+            else{
+                output = output + "\"" + CAST(Str&, val).c_str() + "\",";
+            }
+        }
+        
+    });
+    output.pop_back();
+    return output + "}";
+}
+
 static Dict convert_cjson_to_dict(const cJSON * const item, VM* vm)
 {
 
@@ -78,11 +104,10 @@ inline void add_module_cjson(VM* vm){
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
 
         const Dict& dict = CAST(Dict&, args[0]);
-
-        //TODO: Convert dict to cJSON object
-        char* out = "This will be created from the dictionary";
-        return VAR(Str(out));
         
+        std::string str = covert_dict_to_string(dict, vm);
+        return VAR(str);
+
     });
 }
 
