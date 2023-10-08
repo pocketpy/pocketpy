@@ -61,7 +61,7 @@ To compile it with your project, these flags must be set:
 For development build on Linux, use this snippet.
 ```bash
 # prerequisites
-sudo apt-get install libc++-dev libc++abi-dev clang++
+sudo apt-get install libc++-dev libc++abi-dev clang
 # build the repo
 bash build.sh
 # unittest
