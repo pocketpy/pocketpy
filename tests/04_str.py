@@ -97,6 +97,19 @@ assert "{0} {1} {2}".format("I", "love", "Python") == "I love Python"
 assert "{2} {1} {0}".format("I", "love", "Python") == "Python love I"
 assert "{0}{1}{0}".format("abra", "cad") == "abracadabra"
 
+assert "{k}={v}".format(k="key", v="value") == "key=value"
+assert "{k}={k}".format(k="key") == "key=key"
+assert "{0}={1}".format('{0}', '{1}') == "{0}={1}"
+assert "{{{0}}}".format(1) == "{1}"
+assert "{0}{1}{1}".format(1, 2, 3) == "122"
+try:
+    "{0}={1}}".format(1, 2)
+    exit(1)
+except ValueError:
+    pass
+assert "{{{}xxx{}x}}".format(1, 2) == "{1xxx2x}"
+assert "{{abc}}".format() == "{abc}"
+
 # 3rd slice
 a = "Hello, World!"
 assert a[::-1] == "!dlroW ,olleH"

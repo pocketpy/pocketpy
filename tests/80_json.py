@@ -16,6 +16,15 @@ a = {
 
 import json
 
+assert json.loads("1") == 1
+assert json.loads('"1"') == "1"
+assert json.loads("0.0") == 0.0
+assert json.loads("[1, 2]") == [1, 2]
+assert json.loads("null") == None
+assert json.loads("true") == True
+assert json.loads("false") == False
+assert json.loads("{}") == {}
+
 _j = json.dumps(a)
 _a = json.loads(_j)
 

@@ -10,7 +10,7 @@ fi
 # Check if clang++ is installed
 if ! type -P clang++ >/dev/null 2>&1; then
     echo "clang++ is required and not installed. Kindly install it."
-    echo "Run: sudo apt-get install libc++-dev libc++abi-dev clang++"
+    echo "Run: sudo apt-get install libc++-dev libc++abi-dev clang"
     exit 1
 fi
 

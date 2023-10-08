@@ -43,6 +43,7 @@ To compile it with your project, these flags must be set:
 
 + `--std=c++17` flag must be set
 + Exception must be enabled
++ For MSVC, `/utf-8` flag must be set
 
 For emscripten, you must enable exceptions to make pocketpy work properly.
 See https://emscripten.org/docs/porting/exceptions.html.

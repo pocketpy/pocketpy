@@ -1,5 +1,15 @@
 name: build
-on: [push, pull_request]
+on:
+   push:
+     paths-ignore:
+       - 'docs/**'
+       - 'web/**'
+       - '**.md'
+   pull_request:
+     paths-ignore:
+       - 'docs/**'
+       - 'web/**'
+       - '**.md'
 jobs:
   build_win:
     runs-on: windows-latest
