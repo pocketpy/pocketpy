@@ -191,6 +191,41 @@ int main(){
 }
 ```
 
+#### Handle gc for container types
+
+If your custom type stores `PyObject*` in its fields, you need to handle gc for them.
+
+```cpp
+struct Container{
+    PY_CLASS(Container, builtins, Container)
+
+    PyObject* a;
+    std::vector<PyObject*> b;
+    // ...
+}
+```
+
+Add a magic method `_gc_mark() const` to your custom type.
+
+```cpp
+struct Container{
+    PY_CLASS(Container, builtins, Container)
+
+    PyObject* a;
+    std::vector<PyObject*> b;
+    // ...
+
+    void _gc_mark() const{
+        // mark a
+        if(a) PK_OBJ_MARK(a);
+
+        // mark elements in b
+        for(PyObject* obj : b){
+            if(obj) PK_OBJ_MARK(obj);
+        }
+    }
+}
+```
 
 ### Others
 
@@ -203,7 +238,7 @@ They do not take universal function pointer as argument.
 You need to provide the detailed `Type` object and the corresponding function pointer.
 
 ```cpp
-PyObject* f_add(PyObject* lhs, PyObject* rhs){
+PyObject* f_add(VM* vm, PyObject* lhs, PyObject* rhs){
     int a = py_cast<int>(vm, lhs);
     int b = py_cast<int>(vm, rhs);
     return py_var(vm, a + b);
