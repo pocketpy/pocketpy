@@ -260,7 +260,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     void Lexer::eat_number() {
-        PK_LOCAL_STATIC const std::regex pattern("^(0[xo])?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
+        PK_LOCAL_STATIC const std::regex pattern("^(0[xob])?[0-9a-fA-F]+(\\.[0-9]+)?(L)?");
         std::smatch m;
 
         const char* i = token_start;
@@ -278,14 +278,15 @@ static bool is_unicode_Lo_char(uint32_t c) {
         }
 
         if(m[1].matched && m[2].matched){
-            SyntaxError("hex/octal literal should not contain a dot");
+            SyntaxError("binary/hex/octal literal should not contain a dot");
         }
 
         try{
             int base = 10;
             size_t size;
             if (m[1].matched) {
-                if (m[1].str() == "0o") base=8;
+                if (m[1].str() == "0b") base = 2;
+                else if (m[1].str() == "0o") base = 8;
                 else base = 16;
             }
             if (m[2].matched) {

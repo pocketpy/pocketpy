@@ -9,6 +9,10 @@ assert 2**60-1 + 546 - 0xfffffffffffff == 1148417904979477026
 assert 0o1234 == 668
 assert 0o17777777777 == 2147483647
 
+# test binary literals
+assert 0b10010 == 18
+assert 0b11111111111111111111111111111111 == 4294967295
+
 # test == != >= <= < >
 assert -1 == -1
 assert -1 != 1
