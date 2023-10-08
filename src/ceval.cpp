@@ -473,6 +473,9 @@ __NEXT_STEP:;
     TARGET(POP_JUMP_IF_FALSE)
         if(!py_bool(POPX())) frame->jump_abs(byte.arg);
         DISPATCH();
+    TARGET(POP_JUMP_IF_TRUE)
+        if(py_bool(POPX())) frame->jump_abs(byte.arg);
+        DISPATCH();
     TARGET(JUMP_IF_TRUE_OR_POP)
         if(py_bool(TOP()) == true) frame->jump_abs(byte.arg);
         else POP();
@@ -682,19 +685,6 @@ __NEXT_STEP:;
         call_method(POPX(), __exit__);
         DISPATCH();
     /*****************************************/
-    TARGET(ASSERT) {
-        _0 = TOP();
-        Str msg;
-        if(is_type(_0, tp_tuple)){
-            auto& t = CAST(Tuple&, _0);
-            if(t.size() != 2) ValueError("assert tuple must have 2 elements");
-            _0 = t[0];
-            msg = CAST(Str&, py_str(t[1]));
-        }
-        bool ok = py_bool(_0);
-        POP();
-        if(!ok) _error("AssertionError", msg);
-    } DISPATCH();
     TARGET(EXCEPTION_MATCH) {
         const auto& e = CAST(Exception&, TOP());
         _name = StrName(byte.arg);
@@ -705,6 +695,14 @@ __NEXT_STEP:;
         Str msg = _0 == None ? "" : CAST(Str, py_str(_0));
         _error(StrName(byte.arg), msg);
     } DISPATCH();
+    TARGET(RAISE_ASSERT)
+        if(byte.arg){
+            _0 = py_str(POPX());
+            _error("AssertionError", CAST(Str, _0));
+        }else{
+            _error("AssertionError", "");
+        }
+        DISPATCH();
     TARGET(RE_RAISE) _raise(true); DISPATCH();
     TARGET(POP_EXCEPTION) _last_exception = POPX(); DISPATCH();
     /*****************************************/

@@ -802,11 +802,19 @@ __EAT_DOTS_END:
                 consume_end_stmt();
                 break;
             }
-            case TK("assert"):
-                EXPR_TUPLE(false);
-                ctx()->emit(OP_ASSERT, BC_NOARG, kw_line);
+            case TK("assert"):{
+                EXPR(false);    // condition
+                int index = ctx()->emit(OP_POP_JUMP_IF_TRUE, BC_NOARG, kw_line);
+                int has_msg = 0;
+                if(match(TK(","))){
+                    EXPR(false);    // message
+                    has_msg = 1;
+                }
+                ctx()->emit(OP_RAISE_ASSERT, has_msg, kw_line);
+                ctx()->patch_jump(index);
                 consume_end_stmt();
                 break;
+            }
             case TK("global"):
                 do {
                     consume(TK("@id"));
