@@ -293,13 +293,13 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 PK_ASSERT(base == 10);
                 add_token(TK("@num"), Number::stof(m[0], &size));
             } else {
-                // If we're base 8, chop off the "o"
+                // If we're base 8/2, chop off the "o"
                 std::string match = m[0].str();
-                if (base == 8) match.erase(1, 1);
+                if (base == 8 || base == 2) match.erase(1, 1);
                 add_token(TK("@num"), (i64)std::stoll(match, &size, base));
             }
             // HACK: We need to check length-1 for octal since python octals are "0o..." and c/c++ octals are "0..."
-            if (base == 8) {PK_ASSERT((int)size == (int)m.length()-1);}
+            if (base == 8 || base == 2) {PK_ASSERT((int)size == (int)m.length()-1);}
             else {PK_ASSERT((int)size == (int)m.length());}
         }catch(...){
             SyntaxError("invalid number literal");
