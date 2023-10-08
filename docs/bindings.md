@@ -227,6 +227,12 @@ struct Container{
 }
 ```
 
+For global objects, use the callback in `vm->heap`.
+```cpp
+void (*_gc_marker_ex)(VM*) = nullptr;
+```
+It will be invoked before a GC starts. So you can mark objects inside the callback to keep them alive.
+
 ### Others
 
 You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.

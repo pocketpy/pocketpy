@@ -14,7 +14,7 @@ if ! type -P clang++ >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Requirements satisfied: python3 and clang++ are installed."
+echo "Requirements satisfied: python3 and clang are installed."
 echo "It takes a moment to finish building."
 echo ""
 echo "> Running prebuild.py... "

@@ -50,3 +50,15 @@ a = Vec2(1, 2)
 assert isinstance(a, c.struct)
 assert type(a) is Vec2
 assert repr(a) == "Vec2(1.0, 2.0)"
+
+a = c.struct(10)
+p = c.p_cast(a.addr(), c.char_p)
+p.write_string("Hello!")
+assert p[0] == ord("H")
+assert p[1] == ord("e")
+assert p[2] == ord("l")
+assert p[3] == ord("l")
+assert p[4] == ord("o")
+assert p[5] == ord("!")
+assert p[6] == 0
+assert p.read_string() == "Hello!"
