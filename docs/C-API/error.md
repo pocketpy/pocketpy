@@ -3,7 +3,7 @@ title: Error Handling
 icon: dot
 order: 5
 ---
-
+**#flow of this method**
 #### `bool pkpy_clear_error(pkpy_vm*, char** message)`
 
 + If a method returns false, call the `pkpy_clear_error` method to check the error and clear it
