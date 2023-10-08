@@ -254,4 +254,4 @@ For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__ad
 
 ### Further reading
 
-See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/random.cpp) for a complete example used by `random` module.
+See [random.cpp](https://github.com/blueloveTH/pocketpy/blob/main/src/random.cpp) for an example used by `random` module.
