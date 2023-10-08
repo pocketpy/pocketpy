@@ -775,7 +775,10 @@ __EAT_DOTS_END:
             case TK("++"):{
                 consume(TK("@id"));
                 StrName name(prev().sv());
-                switch(name_scope()){
+                NameScope scope = name_scope();
+                bool is_global = ctx()->global_names.count(name.sv());
+                if(is_global) scope = NAME_GLOBAL;
+                switch(scope){
                     case NAME_LOCAL:
                         ctx()->emit(OP_INC_FAST, ctx()->add_varname(name), prev().line);
                         break;
