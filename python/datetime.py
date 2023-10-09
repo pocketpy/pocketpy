@@ -11,8 +11,8 @@ class timedelta:
         return f"datetime.timedelta({self.days}, {self.seconds})"
 
     def check(self, other, class_type):
-        if not isinstance(other, class_type):
-            raise NotImplementedError("incompatible types / not implemented")
+        if type(other) is not class_type:
+            return NotImplemented
 
     def __eq__(self, other: 'timedelta') -> bool:
         self.check(other, timedelta)
@@ -55,8 +55,8 @@ class date:
         return date(t.tm_year, t.tm_mon, t.tm_mday)
 
     def check(self, other, class_type):
-        if not isinstance(other, class_type):
-            raise NotImplementedError("incompatible types / not implemented")
+        if type(other) is not class_type:
+            return NotImplemented
 
     def __eq__(self, other: 'date') -> bool:
         self.check(other, date)
@@ -106,8 +106,8 @@ class datetime(date):
         return datetime(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
 
     def check(self, other, class_type):
-        if not isinstance(other, class_type):
-            raise NotImplementedError("incompatible types / not implemented")
+        if type(other) is not class_type:
+            return NotImplemented
 
     def __str__(self):
         return f"{self.year}-{self.month:02}-{self.day:02} {self.hour:02}:{self.minute:02}:{self.second:02}"
