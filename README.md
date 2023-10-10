@@ -136,6 +136,17 @@ for a quick overview of the supported features.
 | Generator       | `yield i`                       | ✅       |
 | Decorator       | `@cache`                        | ✅       |
 
+## Used By
+
+|                                                              | Description                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [TIC-80](https://github.com/nesbox/TIC-80)                   | TIC-80 is a fantasy computer for making, playing and sharing tiny games. |
+| [ct-py](https://github.com/blueloveTH/ct-py)                 | Ct.py🥕 is cross-platform 2D game framework built on raylib and imgui. |
+| [MiniPythonIDE](https://github.com/CU-Production/MiniPythonIDE) | A python ide base on pocketpy                                |
+| [py-js](https://github.com/shakfu/py-js)                     | Python3 externals for Max / MSP                              |
+
+Submit a pull request to add your project here.
+
 ## Contribution
 
 All kinds of contributions are welcome.
