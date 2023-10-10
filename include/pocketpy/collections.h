@@ -108,19 +108,6 @@ namespace pkpy
             return false;
         }
 
-        int count(VM *vm, PyObject *obj)
-        {
-            int cnt = 0;
-            DequeNode *p = this->head->next;
-            while (p != this->tail)
-            {
-                if (vm->py_equals(p->obj, obj))
-                    cnt++;
-                p = p->next;
-            }
-            return cnt;
-        }
-
         int size() const
         {
             return this->len;
@@ -136,19 +123,24 @@ namespace pkpy
 
         void reverse()
         {
-            DequeNode *p = this->head->next;
-            while (p != this->tail)
-            {
+            if (this->empty())
+                return;
+            // Go through each node, including the dummy nodes
+            // and swap the prev and next pointers
+            DequeNode *p = this->head;
+            while (p!=nullptr){
                 DequeNode *tmp = p->next;
                 p->next = p->prev;
                 p->prev = tmp;
                 p = tmp;
             }
-            DequeNode *tmp = this->head->next;
-            this->head->next = this->tail->prev;
-            this->tail->prev = tmp;
-        }
 
+            // swap the head and tail pointers
+            DequeNode *tmp = this->head;
+            this->head = this->tail;
+            this->tail = tmp;
+        }
+        
     };
 
     // STARTING HERE
@@ -165,10 +157,11 @@ namespace pkpy
         PyObject *pop();
         std::stringstream getRepr(VM *vm);
         void reverse();
+        int findIndex(PyObject *obj, int startPos, int endPos); // vm is needed for the py_equals
 
         int count(VM *vm, PyObject *obj); // vm is needed for the py_equals
         void clear();
-
+        
         PyDeque() : dequeItems(new MyDoublyLinkedList()) {}
         static void _register(VM *vm, PyObject *mod, PyObject *type);
 

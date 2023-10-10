@@ -5,6 +5,19 @@ namespace pkpy
     void PyDeque::_register(VM *vm, PyObject *mod, PyObject *type)
     {
         vm->bind_default_constructor<PyDeque>(type);
+        
+        vm->bind(type, "__init__(self) -> None",
+                    [](VM *vm, ArgsView args)
+                    {
+                        PyDeque &self = _CAST(PyDeque &, args[0]);
+                        PyObject *maxlen = args[1];
+                        if (maxlen != vm->None)
+                        {
+                            // printf("TODO: implement deque.__init__(maxlen) -> None: %d\n", CAST(int, maxlen));
+                        }
+
+                        return vm->None;
+                    });
 
         vm->bind(type, "__len__(self) -> int",
                  [](VM *vm, ArgsView args)
@@ -42,12 +55,15 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                     // followed implementation of dict.copy()
-                    //  PyDeque &self = _CAST(PyDeque &, args[0]);
-                    //  return VAR(self);
-                    //todo: implement
-                    printf("TODO: implement deque.copy()");
-                    return vm->None;
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyDeque *newDeque = new PyDeque();
+                     DequeNode *p = self.dequeItems->head->next;
+                     while (p != self.dequeItems->tail)
+                     {
+                         newDeque->append(p->obj);
+                         p = p->next;
+                     }
+                     return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
                  });
 
         vm->bind(type, "count(self, obj) -> int",
@@ -89,12 +105,20 @@ namespace pkpy
                      return vm->None;
                  });
 
-        vm->bind(type, "index(self, obj, start=0, stop=None) -> int",
+        vm->bind(type, "index(self, obj, start=-1, stop=-1) -> int",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: implement and validate
-                     printf("TODO: implement deque.index()");
-                     return vm->None;
+                     // Return the position of x in the deque (at or after index start and before index stop). Returns the first match or raises ValueError if not found.
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *obj = args[1];
+                     int start = CAST(int, args[2]);
+                     int stop = CAST(int, args[3]);
+                     int idx = self.findIndex(obj, start, stop);
+
+                     if (idx == -1)
+                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
+
+                     return VAR(idx);
                  });
 
         vm->bind(type, "insert(self, index, obj) -> None",
@@ -143,14 +167,14 @@ namespace pkpy
                      self.reverse();
                      return vm->None;
                  });
-        vm->bind(type,"rotate(self, n=1) -> None",
+        vm->bind(type, "rotate(self, n=1) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                    //TODO: implement and validate
-                    printf("TODO: implement deque.rotate()");
-                    return vm->None;
+                     // TODO: implement and validate
+                     printf("TODO: implement deque.rotate()");
+                     return vm->None;
                  });
-        
+
         // vm->bind(type,"maxlen",
         //          [](VM *vm, ArgsView args)
         //          {
@@ -160,7 +184,12 @@ namespace pkpy
 
     void PyDeque::_gc_mark() const
     {
-        // TODO: implement
+        DequeNode *p = this->dequeItems->head->next;
+        while (p != this->dequeItems->tail)
+        {
+            PK_OBJ_MARK(p->obj); // PK_OBJ_MARK is a macro that calls _gc_mark on the PK_OBJ
+            p = p->next;
+        }
     }
     std::stringstream PyDeque::getRepr(VM *vm)
     {
@@ -178,6 +207,37 @@ namespace pkpy
         return ss;
     }
 
+    int PyDeque::findIndex(PyObject *obj, int startPos = -1, int endPos = -1)
+    {
+
+        if (startPos == -1)
+            startPos = 0;
+        if (endPos == -1)
+            endPos = this->dequeItems->size();
+        
+        if (!(startPos <= endPos))
+        {
+            throw std::runtime_error("startPos<=endPos");
+        }
+        int cnt = 0;
+        DequeNode *p = this->dequeItems->head->next;
+        while (p != this->dequeItems->tail)
+        {
+            if (p->obj == obj)
+            {
+                if (startPos == -1 || cnt >= startPos)
+                {
+                    if (endPos == -1 || cnt < endPos)
+                    {
+                        return cnt;
+                    }
+                }
+            }
+            cnt++;
+            p = p->next;
+        }
+        return -1;
+    }
     void PyDeque::reverse()
     {
         this->dequeItems->reverse();
@@ -216,7 +276,15 @@ namespace pkpy
 
     int PyDeque::count(VM *vm, PyObject *obj)
     {
-        return this->dequeItems->count(vm, obj);
+        int cnt = 0;
+        DequeNode *p = this->dequeItems->head->next;
+        while (p != this->dequeItems->tail)
+        {
+            if (vm->py_equals(p->obj, obj))
+                cnt++;
+            p = p->next;
+        }
+        return cnt;
     }
     void PyDeque::clear()
     {
