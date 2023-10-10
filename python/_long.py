@@ -99,12 +99,129 @@ def ulong_divmodi(a: list, b: int):
     ulong_unpad_(res)
     return res, carry
 
-def ulong_divmod(a: list, b: list):
-    q = [0]
-    while ulong_cmp(a, b) >= 0:
-        ulong_inc_(q)
-        a = ulong_sub(a, b)
-    return q, a
+def ulong_divmod(a: list, b: list) -> tuple:
+    # defined a new data structure binary list for fast division
+    # binary list is just a list of binary representation of a number
+    def bl_fromint(number) -> list:
+        binary_string = bin(number)[2:]
+        binary_list = (PyLong_SHIFT - len(binary_string)) * [0] + [
+            int(bit) for bit in binary_string
+        ]
+        return binary_list
+
+    def bl_add(a: list, b: list) -> list:
+        len_a = len(a)
+        len_b = len(b)
+        max_len = max(len_a, len_b)
+        a = (max_len - len_a) * [0] + a
+        b = (max_len - len_b) * [0] + b
+        res = [0] * max_len
+        carry = 0
+        for i in range(max_len - 1, -1, -1):
+            carry = a[i] + b[i] + carry
+            res[i] = carry & 1
+            carry = carry >> 1
+        if carry:
+            res.insert(0, 1)
+        return res
+
+    def bl_subtract(a: list, b: list) -> tuple:
+        max_len = max(len(a), len(b))
+        a = (max_len - len(a)) * [0] + a
+        b = (max_len - len(b)) * [0] + b
+        sign = 0
+        for i in range(len(b)):
+            b[i] = 1 - b[i]
+        res = bl_add(a, b)
+        if len(res) > max_len:
+            sign = 1
+            res.pop(0)
+            res = bl_add(res, [1])
+        else:
+            sign = -1
+            for i in range(len(res)):
+                res[i] = 1 - res[i]
+
+        return sign, res
+
+    def bl_compare(a: list, b: list) -> int:
+        if len(a) != len(b):
+            return 1 if len(a) > len(b) else -1
+        max_len = max(len(a), len(b))
+        for i in range(max_len):
+            if a[i] != b[i]:
+                return 1 if a[i] > b[i] else -1
+        return 0
+
+    def bl_unpad(a: list) -> list:
+        while len(a) > 0 and a[0] == 0:
+            a.pop(0)
+        if len(a) == 0:
+            a = []
+        return a
+
+    def print_bl(a: list):
+        for elem in a:
+            print(elem, end="")
+        print()
+
+    def bl_divide(a: list, b: list) -> tuple:  # returns quotient, remainder
+        if len(b) == 1 and b[0] == 0:
+            return ZeroDivisionError
+        elif len(b) == 1 and b[0] == 1:
+            return a, 0
+        flag = bl_compare(a, b)
+        if flag == -1:
+            return 0, b
+        elif flag == 0:
+            return 1, 0
+        r = []
+        q = []
+        for i in range(0, len(b) - 1):
+            r.append(a[i])
+        for i in range(len(b) - 1, len(a)):
+            if len(r) == 1 and r[0] == 0 and a[i] == 0:
+                pass
+            else:
+                r.append(a[i])
+            if bl_compare(r, b) >= 0:
+                r = bl_subtract(r, b)[1]
+                r = bl_unpad(r)
+                q.append(1)
+            else:
+                q.append(0)
+        q = bl_unpad(q)
+        r = bl_unpad(r)
+        if r == []:
+            r = [0]
+        return q, r
+
+    def bl_from_ulong(a: list):
+        a = a[::-1]
+        res = []
+        for i in a:
+            res.extend(bl_fromint(i))
+        bl_unpad(res)
+        return res
+
+    def ulong_frombl(a: list) -> tuple:
+        length = len(a)
+        # print(length)
+        res = []
+        t = 0
+        while length > 0:
+            for i in range(min(length, PyLong_SHIFT)):
+                t = t << 1
+                t += a[length - min(length, PyLong_SHIFT) + i]
+            res.append(t)  # t is the decimal representation of last min(29, length) digits
+            length -= PyLong_SHIFT
+            t = 0
+        return res, 1
+    
+    li_a = bl_from_ulong(a)
+    li_b = bl_from_ulong(b)
+    q, r = bl_divide(li_a, li_b)
+    return ulong_frombl(q), ulong_frombl(r)
 
 def ulong_floordivi(a: list, b: int):
     # b > 0
