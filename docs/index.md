@@ -41,6 +41,10 @@ These platforms are officially tested.
 + Emscripten 32-bit
 + Raspberry Pi OS 64-bit
 
+## Star the repo
+
+If you find pocketpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy) (●'◡'●)
+
 ## Sponsor me
 
-You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH).
+You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH). Your sponsorship will help me develop this project continuously.

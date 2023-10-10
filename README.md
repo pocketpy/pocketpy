@@ -158,7 +158,11 @@ All kinds of contributions are welcome.
   - any suggestions
   - any questions
 
-If you find this project useful, consider star this repository (●'◡'●)
+If you find pocketpy useful, consider star this repository (●'◡'●)
+
+## Sponsor me
+
+You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH). Your sponsorship will help me develop this project continuously.
 
 ## Reference
 
