@@ -49,6 +49,65 @@ vm->bind(obj,
 });
 ```
 
+#### How to capture something
+
+By default, the lambda being bound is a C function pointer,
+you cannot capture anything! The following example does not compile.
+
+```cpp
+int x = 1;
+vm->bind(obj, "f() -> int", [x](VM* vm, ArgsView args){
+    // error: cannot capture 'x'
+    return py_var(vm, x);
+});
+```
+
+I do not encourage you to capture something in a lambda being bound
+because:
+1. Captured lambda runs slower and causes "code-bloat".
+2. Captured values are unsafe, especially for `PyObject*` as they could leak by accident.
+
+However, there are 3 ways to capture something when you really need to.
+The most safe and elegant way is to subclass `VM` and add a member variable.
+
+```cpp
+class YourVM : public VM{
+public:
+    int x;
+    YourVM() : VM() {}
+};
+
+int main(){
+    YourVM* vm = new YourVM();
+    vm->x = 1;
+    vm->bind(obj, "f() -> int", [](VM* _vm, ArgsView args){
+        // do a static_cast and you can get any extra members of YourVM
+        YourVM* vm = static_cast<YourVM*>(_vm);
+        return py_var(vm, vm->x);
+    });
+    return 0;
+}
+```
+
+The 2nd way is to use `vm->bind`'s last parameter `userdata`, you can store a POD type smaller than 8 bytes.
+And use `lambda_get_userdata<T>(args.begin())` to get it inside the lambda body.
+
+```cpp
+int x = 1;
+vm->bind(obj, "f() -> int", [](VM* vm, ArgsView args){
+    // get the userdata
+    int x = lambda_get_userdata<int>(args.begin());
+    return py_var(vm, x);
+}, x);  // capture x
+```
+
+The 3rd way is to change the macro `PK_ENABLE_STD_FUNCTION` in `config.h`:
+```cpp
+#define PK_ENABLE_STD_FUNCTION 0   // => 1
+```
+
+Then you can use standard capture list in lambda.
+
 ### Bind a struct
 
 Assume you have a struct `Point` declared as follows.
@@ -132,6 +191,47 @@ int main(){
 }
 ```
 
+#### Handle gc for container types
+
+If your custom type stores `PyObject*` in its fields, you need to handle gc for them.
+
+```cpp
+struct Container{
+    PY_CLASS(Container, builtins, Container)
+
+    PyObject* a;
+    std::vector<PyObject*> b;
+    // ...
+}
+```
+
+Add a magic method `_gc_mark() const` to your custom type.
+
+```cpp
+struct Container{
+    PY_CLASS(Container, builtins, Container)
+
+    PyObject* a;
+    std::vector<PyObject*> b;
+    // ...
+
+    void _gc_mark() const{
+        // mark a
+        if(a) PK_OBJ_MARK(a);
+
+        // mark elements in b
+        for(PyObject* obj : b){
+            if(obj) PK_OBJ_MARK(obj);
+        }
+    }
+}
+```
+
+For global objects, use the callback in `vm->heap`.
+```cpp
+void (*_gc_marker_ex)(VM*) = nullptr;
+```
+It will be invoked before a GC starts. So you can mark objects inside the callback to keep them alive.
 
 ### Others
 
@@ -144,7 +244,7 @@ They do not take universal function pointer as argument.
 You need to provide the detailed `Type` object and the corresponding function pointer.
 
 ```cpp
-PyObject* f_add(PyObject* lhs, PyObject* rhs){
+PyObject* f_add(VM* vm, PyObject* lhs, PyObject* rhs){
     int a = py_cast<int>(vm, lhs);
     int b = py_cast<int>(vm, rhs);
     return py_var(vm, a + b);
@@ -160,4 +260,4 @@ For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__ad
 
 ### Further reading
 
-See [linalg.h](https://github.com/blueloveTH/pocketpy/blob/main/src/linalg.h) for a complete example used by `linalg` module.
+See [random.cpp](https://github.com/blueloveTH/pocketpy/blob/main/src/random.cpp) for an example used by `random` module.

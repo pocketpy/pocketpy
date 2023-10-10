@@ -27,7 +27,7 @@ pkpy 支持任何拥有 C++17 编译器的平台。
 + Android 64-bit / 32-bit
 + iOS 64-bit
 + Emscripten 32-bit
-+ Raspberry Pi 64-bit
++ Raspberry Pi OS 64-bit
 
 ## 快速上手
 
@@ -76,25 +76,25 @@ int main(){
 
 | 特性         | 示例                            | 支持 |
 | ------------ | ------------------------------- | ---- |
-| 分支         | `if..else..elif`                | YES  |
-| 循环         | `for/while/break/continue`      | YES  |
-| 函数         | `def f(x,*args,y=1):`           | YES  |
-| 类与继承     | `class A(B):`                   | YES  |
-| 列表         | `[1, 2, 'a']`                   | YES  |
-| 列表生成式   | `[i for i in range(5)]`         | YES  |
-| 切片         | `a[1:2], a[:2], a[1:]`          | YES  |
-| 元组         | `(1, 2, 'a')`                   | YES  |
-| 字典         | `{'a': 1, 'b': 2}`              | YES  |
-| 格式化字符串 | `f'value is {x}'`               | YES  |
-| 序列解包     | `a, b = 1, 2`                   | YES  |
-| 异常         | `raise/try..catch`              | YES  |
-| 动态分发     | `eval()/exec()`                 | YES  |
-| 反射         | `hasattr()/getattr()/setattr()` | YES  |
-| 导入模块     | `import/from..import`           | YES  |
-| 上下文管理器 | `with <expr> as <id>:`          | YES  |
-| 类型标注 | `def  f(a:int, b:float=1)`      | YES       |
-| 生成器       | `yield i`                       | YES       |
-| 装饰器 | `@cache` | YES |
+| 分支         | `if..else..elif`                | ✅ |
+| 循环         | `for/while/break/continue`      | ✅ |
+| 函数         | `def f(x,*args,y=1):`           | ✅ |
+| 类与继承     | `class A(B):`                   | ✅ |
+| 列表         | `[1, 2, 'a']`                   | ✅ |
+| 列表生成式   | `[i for i in range(5)]`         | ✅ |
+| 切片         | `a[1:2], a[:2], a[1:]`          | ✅ |
+| 元组         | `(1, 2, 'a')`                   | ✅ |
+| 字典         | `{'a': 1, 'b': 2}`              | ✅ |
+| 格式化字符串 | `f'value is {x}'`               | ✅ |
+| 序列解包     | `a, b = 1, 2`                   | ✅ |
+| 异常         | `raise/try..catch`              | ✅ |
+| 动态分发     | `eval()/exec()`                 | ✅ |
+| 反射         | `hasattr()/getattr()/setattr()` | ✅ |
+| 导入模块     | `import/from..import`           | ✅ |
+| 上下文管理器 | `with <expr> as <id>:`          | ✅ |
+| 类型标注     | `def  f(a:int, b:float=1)`      | ✅ |
+| 生成器       | `yield i`                       | ✅ |
+| 装饰器       | `@cache`                        | ✅ |
 
 ## 参考
 

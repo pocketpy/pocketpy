@@ -6,5 +6,9 @@ try:
 except KeyError:
     s = traceback.format_exc()
 
-assert s == r'''Traceback (most recent call last):
+ok = s == '''Traceback (most recent call last):
+  File "80_traceback.py", line 5
+    b = a[6]
 KeyError: 6'''
+
+assert ok, s

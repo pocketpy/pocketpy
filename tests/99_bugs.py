@@ -70,3 +70,12 @@ try:
     exit(1)
 except UnboundLocalError:
     pass
+
+
+g = 1
+def f():
+    global g
+    ++g
+
+f(); f()
+assert g == 3

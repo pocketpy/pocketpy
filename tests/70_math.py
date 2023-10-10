@@ -26,3 +26,33 @@ assert ceil(1.2) == 2
 assert ceil(-1.2) == -1
 
 assert isclose(sqrt(4), 2.0)
+
+import math
+
+# test fsum
+assert math.fsum([0.1] * 10) == 1.0
+
+# test gcd
+assert math.gcd(10, 5) == 5
+assert math.gcd(10, 6) == 2
+assert math.gcd(10, 7) == 1
+assert math.gcd(10, 10) == 10
+assert math.gcd(-10, 10) == 10
+
+# test modf
+x, y = math.modf(1.5)
+assert isclose(x, 0.5)
+assert isclose(y, 1.0)
+
+x, y = math.modf(-1.5)
+assert isclose(x, -0.5)
+assert isclose(y, -1.0)
+
+# test factorial
+assert math.factorial(0) == 1
+assert math.factorial(1) == 1
+assert math.factorial(2) == 2
+assert math.factorial(3) == 6
+assert math.factorial(4) == 24
+assert math.factorial(5) == 120
+

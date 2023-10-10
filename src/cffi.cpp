@@ -226,6 +226,22 @@ void add_module_c(VM* vm){
     BIND_PRIMITIVE(bool, "bool")
 
 #undef BIND_PRIMITIVE
+
+    PyObject* char_p_t = mod->attr("char_p");
+    vm->bind(char_p_t, "read_string(self) -> str", [](VM* vm, ArgsView args){
+        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);
+        const char* target = (const char*)voidp.ptr;
+        return VAR(target);
+    });
+
+    vm->bind(char_p_t, "write_string(self, value: str)", [](VM* vm, ArgsView args){
+        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);
+        std::string_view sv = CAST(Str&, args[1]).sv();
+        char* target = (char*)voidp.ptr;
+        memcpy(target, sv.data(), sv.size());
+        target[sv.size()] = '\0';
+        return vm->None;
+    });
 }
 
 }   // namespace pkpy
