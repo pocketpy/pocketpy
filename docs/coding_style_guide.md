@@ -6,7 +6,14 @@ label: Coding style guide
 
 # Coding Style Guide
 
-## Naming rules
+
+## For Python
+
+Use [PEP-8](https://www.python.org/dev/peps/pep-0008/) as the coding style guide.
+
+## For C++
+
+### Naming rules
 
 For class names, always use **PascalCase**
 
@@ -53,7 +60,7 @@ For macros, use **SNAKE_CASE**
 #define TEST(x) x+1
 ```
 
-## Access control
+### Access control
 
 Please use python style access control.
 
@@ -74,7 +81,7 @@ public:
 
 It does not forbid users to access internal members.
 
-## Use compact style
+### Use compact style
 
 Try to make the code compact if it does not affect readability.
 
@@ -88,7 +95,7 @@ if(x == 1){
 }
 ```
 
-## For `std::shared_ptr<T>`
+### For `std::shared_ptr<T>`
 
 Use a `_` suffix to indicate a type is a shared pointer.
 
