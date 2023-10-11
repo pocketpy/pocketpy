@@ -283,7 +283,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
 
         int base = 10;
         if (m[1].matched) {
-            char tag = m[1].first.base()[1];
+            char tag = m[1].first[1];
             switch (tag) {
                 case 'x': base = 16; break;
                 case 'o': base = 8; break;
@@ -303,7 +303,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
             }
             add_token(TK("@num"), out);
         } else {
-            std::string_view text(m[0].first.base(), m[0].length());
+            std::string_view text(&m[0].first[0], m[0].length());
             i64 out;
             bool ok = parse_int(text, &out, base);
             if(!ok){

@@ -80,3 +80,11 @@ endif()
 if(PK_EXPORT_CXX_SYMBOLS AND MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
+
+# enable link time optimization
+include(CheckIPOSupported)
+check_ipo_supported(RESULT result)
+if(result)
+    message(STATUS "LTO enabled")
+    set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
