@@ -93,7 +93,7 @@ struct C99Struct{
     char* p;
     int size;
 
-    C99Struct(int new_size, bool zero_init){
+    C99Struct(int new_size, bool zero_init=true){
         this->size = new_size;
         if(size <= INLINE_SIZE){
             p = _inlined;
