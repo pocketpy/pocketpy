@@ -2,6 +2,15 @@ name: build dylib
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - 'web/**'
+      - '**.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'web/**'
+      - '**.md'
 
 jobs:
   build_win:
