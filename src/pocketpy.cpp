@@ -434,14 +434,11 @@ void init_builtins(VM* _vm) {
             int base = 10;
             if(args.size() == 1+2) base = CAST(i64, args[2]);
             const Str& s = CAST(Str&, args[1]);
-            try{
-                size_t parsed = 0;
-                i64 val = std::stoll(s.str(), &parsed, base);
-                PK_ASSERT(parsed == s.length());
-                return VAR(val);
-            }catch(...){
+            i64 val;
+            if(!parse_int(s.sv(), &val, base)){
                 vm->ValueError("invalid literal for int(): " + s.escape());
             }
+            return VAR(val);
         }
         vm->TypeError("invalid arguments for int()");
         return vm->None;

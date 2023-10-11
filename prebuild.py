@@ -4,7 +4,8 @@ from datetime import datetime
 def generate_python_sources():
     sources = {}
     for file in os.listdir("python"):
-        assert file.endswith(".py")
+        if not file.endswith(".py"):
+            continue
         key = file.split(".")[0]
         with open("python/" + file) as f:
             value = f.read()

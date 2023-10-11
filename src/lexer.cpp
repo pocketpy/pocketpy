@@ -281,28 +281,35 @@ static bool is_unicode_Lo_char(uint32_t c) {
             SyntaxError("binary/hex/octal literal should not contain a dot");
         }
 
-        try{
-            int base = 10;
+        int base = 10;
+        if (m[1].matched) {
+            char tag = m[1].first.base()[1];
+            switch (tag) {
+                case 'x': base = 16; break;
+                case 'o': base = 8; break;
+                case 'b': base = 2; break;
+                default: FATAL_ERROR();
+            }
+        }
+        if (m[2].matched) {
+            // float point number
+            f64 out;
             size_t size;
-            if (m[1].matched) {
-                if (m[1].str() == "0b") base = 2;
-                else if (m[1].str() == "0o") base = 8;
-                else base = 16;
+            try{
+                out = Number::stof(m[0], &size);
+                PK_ASSERT((int)size == (int)m[0].length());
+            }catch(...){
+                SyntaxError("invalid number literal");
             }
-            if (m[2].matched) {
-                PK_ASSERT(base == 10);
-                add_token(TK("@num"), Number::stof(m[0], &size));
-            } else {
-                // If we're base 8/2, chop off the "o"
-                std::string match = m[0].str();
-                if (base == 8 || base == 2) match.erase(1, 1);
-                add_token(TK("@num"), (i64)std::stoll(match, &size, base));
+            add_token(TK("@num"), out);
+        } else {
+            std::string_view text(m[0].first.base(), m[0].length());
+            i64 out;
+            bool ok = parse_int(text, &out, base);
+            if(!ok){
+                SyntaxError("invalid number literal for base " + std::to_string(base));
             }
-            // HACK: We need to check length-1 for octal since python octals are "0o..." and c/c++ octals are "0..."
-            if (base == 8 || base == 2) {PK_ASSERT((int)size == (int)m.length()-1);}
-            else {PK_ASSERT((int)size == (int)m.length());}
-        }catch(...){
-            SyntaxError("invalid number literal");
+            add_token(TK("@num"), out);
         }
     }
 
@@ -474,5 +481,69 @@ static bool is_unicode_Lo_char(uint32_t c) {
         while (lex_one_token());
         return std::move(nexts);
     }
+
+bool parse_int(std::string_view text, i64* out, int base){
+  // TODO: detect overflow
+  *out = 0;
+
+  const auto f_startswith_2 = [](std::string_view t, const char* prefix) -> bool{
+    if(t.length() < 2) return false;
+    return t[0] == prefix[0] && t[1] == prefix[1];
+  };
+
+  if(base == 10){
+    // 10-base  12334
+    if(text.length() == 0) return false;
+    for(char c : text){
+      if(c >= '0' && c <= '9'){
+        *out = (*out * 10) + (c - '0');
+      }else{
+        return false;
+      }
+    }
+    return true;
+  }else if(base == 2){
+    // 2-base   0b101010
+    if(f_startswith_2(text, "0b")) text.remove_prefix(2);
+    if(text.length() == 0) return false;
+    for(char c : text){
+      if(c == '0' || c == '1'){
+        *out = (*out << 1) | (c - '0');
+      }else{
+        return false;
+      }
+    }
+    return true;
+  }else if(base == 8){
+    // 8-base   0o123
+    if(f_startswith_2(text, "0o")) text.remove_prefix(2);
+    if(text.length() == 0) return false;
+    for(char c : text){
+      if(c >= '0' && c <= '7'){
+        *out = (*out << 3) | (c - '0');
+      }else{
+        return false;
+      }
+    }
+    return true;
+  }else if(base == 16){
+    // 16-base  0x123
+    if(f_startswith_2(text, "0x")) text.remove_prefix(2);
+    if(text.length() == 0) return false;
+    for(char c : text){
+      if(c >= '0' && c <= '9'){
+        *out = (*out << 4) | (c - '0');
+      }else if(c >= 'a' && c <= 'f'){
+        *out = (*out << 4) | (c - 'a' + 10);
+      }else if(c >= 'A' && c <= 'F'){
+        *out = (*out << 4) | (c - 'A' + 10);
+      }else{
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
 
 }   // namespace pkpy
