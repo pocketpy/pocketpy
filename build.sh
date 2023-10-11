@@ -21,6 +21,11 @@ echo "> Running prebuild.py... "
 
 python3 prebuild.py
 
+if [ $? -ne 0 ]; then
+    echo "prebuild.py failed."
+    exit 1
+fi
+
 SRC=$(find src/ -name "*.cpp")
 
 echo "> Compiling and linking source files... "

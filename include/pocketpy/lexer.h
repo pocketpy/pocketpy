@@ -48,7 +48,6 @@ const std::map<std::string_view, TokenIndex> kTokenKwMap = [](){
     return map;
 }();
 
-
 struct Token{
   TokenIndex type;
   const char* start;
@@ -138,5 +137,7 @@ struct Lexer {
     Lexer(std::shared_ptr<SourceData> src);
     std::vector<Token> run();
 };
+
+bool parse_int(std::string_view text, i64* out, int base=10);
 
 } // namespace pkpy
