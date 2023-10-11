@@ -557,56 +557,6 @@ assert repr(True) == 'True'
 assert repr(False) == 'False'
 
 
-
-# 未完全测试准确性-----------------------------------------------
-#        58:  851:    const PK_LOCAL_STATIC auto f_bool_add = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
-#     #####:  852:        int x = (int)_CAST(bool, lhs);
-#     #####:  853:        if(is_int(rhs)) return VAR(x + _CAST(int, rhs));
-#     #####:  854:        if(rhs == vm->True) return VAR(x + 1);
-#     #####:  855:        if(rhs == vm->False) return VAR(x);
-#     #####:  856:        return vm->NotImplemented;
-#     #####:  857:    };
-#
-#        58:  867:    _vm->bind__add__(_vm->tp_bool, f_bool_add);
-# test bool.__add__:
-assert type(True + 1) is int
-assert type(True + False) is int
-assert type(True + True) is int
-
-
-
-# 未完全测试准确性-----------------------------------------------
-#        58:  859:    const PK_LOCAL_STATIC auto f_bool_mul = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
-#     #####:  860:        int x = (int)_CAST(bool, lhs);
-#     #####:  861:        if(is_int(rhs)) return VAR(x * _CAST(int, rhs));
-#     #####:  862:        if(rhs == vm->True) return VAR(x);
-#     #####:  863:        if(rhs == vm->False) return VAR(0);
-#     #####:  864:        return vm->NotImplemented;
-#     #####:  865:    };
-# 
-#        58:  872:    _vm->bind__mul__(_vm->tp_bool, f_bool_mul);
-# test bool.__mul__:
-assert type(True * 1) is int
-assert type(True * False) is int
-assert type(True * True) is int
-
-
-# 未完全测试准确性-----------------------------------------------
-#       116:  873:    _vm->bind_method<1>("bool", "__radd__", [](VM* vm, ArgsView args){
-#     #####:  874:        return f_bool_add(vm, args[0], args[1]);
-#         -:  875:    });
-# test bool.__radd__:
-assert type(1 + True) is int
-
-
-# 未完全测试准确性-----------------------------------------------
-#       116:  878:    _vm->bind_method<1>("bool", "__rmul__", [](VM* vm, ArgsView args){
-#     #####:  879:        return f_bool_mul(vm, args[0], args[1]);
-#         -:  880:    });
-# test bool.__rmul__:
-assert type(1 * True) is int
-
-
 # 未完全测试准确性-----------------------------------------------
 #       116:  882:    _vm->bind__and__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
 #     #####:  883:        return VAR(_CAST(bool, lhs) && CAST(bool, rhs));

@@ -30,3 +30,12 @@ def f():
         "exec('b = eval(\"3 + 5\")')"
     )
     assert b == 8
+
+class G: pass
+
+def abc():
+    g = G()
+    exec('a=1', g.__dict__)
+    return g.a
+
+assert abc() == 1

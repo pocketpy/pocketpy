@@ -72,7 +72,6 @@ static dylib_entry_t load_dylib(const char* path){
 }
 #endif
 
-
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(_vm->tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                             \
@@ -238,16 +237,29 @@ void init_builtins(VM* _vm) {
         }
     });
 
-    _vm->bind_builtin_func<1>("eval", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->builtins, "eval(__source, __globals=None)", [](VM* vm, ArgsView args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
-        FrameId frame = vm->top_frame();
-        return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        PyObject* globals = args[1];
+        if(globals == vm->None){
+            FrameId frame = vm->top_frame();
+            return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        }
+        vm->check_non_tagged_type(globals, vm->tp_mappingproxy);
+        PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
+        return vm->_exec(code, obj);
     });
 
-    _vm->bind_builtin_func<1>("exec", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->builtins, "exec(__source, __globals=None)", [](VM* vm, ArgsView args) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
-        FrameId frame = vm->top_frame();
-        vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        PyObject* globals = args[1];
+        if(globals == vm->None){
+            FrameId frame = vm->top_frame();
+            vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+            return vm->None;
+        }
+        vm->check_non_tagged_type(globals, vm->tp_mappingproxy);
+        PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
+        vm->_exec(code, obj);
         return vm->None;
     });
 
@@ -981,32 +993,6 @@ void init_builtins(VM* _vm) {
     _vm->bind__json__(_vm->tp_bool, [](VM* vm, PyObject* self) {
         bool val = _CAST(bool, self);
         return VAR(val ? "true" : "false");
-    });
-
-    const PK_LOCAL_STATIC auto f_bool_add = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
-        int x = (int)_CAST(bool, lhs);
-        if(is_int(rhs)) return VAR(x + _CAST(int, rhs));
-        if(rhs == vm->True) return VAR(x + 1);
-        if(rhs == vm->False) return VAR(x);
-        return vm->NotImplemented;
-    };
-
-    const PK_LOCAL_STATIC auto f_bool_mul = [](VM* vm, PyObject* lhs, PyObject* rhs) -> PyObject* {
-        int x = (int)_CAST(bool, lhs);
-        if(is_int(rhs)) return VAR(x * _CAST(int, rhs));
-        if(rhs == vm->True) return VAR(x);
-        if(rhs == vm->False) return VAR(0);
-        return vm->NotImplemented;
-    };
-
-    _vm->bind__add__(_vm->tp_bool, f_bool_add);
-    _vm->bind_method<1>("bool", "__radd__", [](VM* vm, ArgsView args){
-        return f_bool_add(vm, args[0], args[1]);
-    });
-
-    _vm->bind__mul__(_vm->tp_bool, f_bool_mul);
-    _vm->bind_method<1>("bool", "__rmul__", [](VM* vm, ArgsView args){
-        return f_bool_mul(vm, args[0], args[1]);
     });
 
     _vm->bind__and__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
