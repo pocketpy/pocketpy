@@ -17,5 +17,13 @@ from test2.utils import get_value_2
 assert get_value_2() == '123'
 
 from test3.a.b import value
-# should test3
 assert value == 1
+
+def f():
+    import math as m
+    assert m.pi > 3
+
+    from test3.a.b import value
+    assert value == 1
+
+f()

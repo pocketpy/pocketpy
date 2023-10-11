@@ -65,6 +65,7 @@ struct CodeEmitContext{
     int add_varname(StrName name);
     int add_const(PyObject* v);
     int add_func_decl(FuncDecl_ decl);
+    void emit_store_name(NameScope scope, StrName name, int line);
 };
 
 struct NameExpr: Expr{

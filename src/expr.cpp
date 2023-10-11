@@ -1,4 +1,5 @@
 #include "pocketpy/expr.h"
+#include "pocketpy/codeobject.h"
 
 namespace pkpy{
 
@@ -96,6 +97,21 @@ namespace pkpy{
         return co->func_decls.size() - 1;
     }
 
+    void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line){
+        switch(scope){
+            case NAME_LOCAL:
+                emit(OP_STORE_FAST, add_varname(name), line);
+                break;
+            case NAME_GLOBAL:
+                emit(OP_STORE_GLOBAL, StrName(name).index, line);
+                break;
+            case NAME_GLOBAL_UNKNOWN:
+                emit(OP_STORE_NAME, StrName(name).index, line);
+                break;
+            default: FATAL_ERROR(); break;
+        }
+    }
+
 
     void NameExpr::emit(CodeEmitContext* ctx) {
         int index = ctx->co->varnames_inv.try_get(name);
@@ -127,22 +143,11 @@ namespace pkpy{
 
     bool NameExpr::emit_store(CodeEmitContext* ctx) {
         if(ctx->is_compiling_class){
-            int index = StrName(name).index;
+            int index = name.index;
             ctx->emit(OP_STORE_CLASS_ATTR, index, line);
             return true;
         }
-        switch(scope){
-            case NAME_LOCAL:
-                ctx->emit(OP_STORE_FAST, ctx->add_varname(name), line);
-                break;
-            case NAME_GLOBAL:
-                ctx->emit(OP_STORE_GLOBAL, StrName(name).index, line);
-                break;
-            case NAME_GLOBAL_UNKNOWN:
-                ctx->emit(OP_STORE_NAME, StrName(name).index, line);
-                break;
-            default: FATAL_ERROR(); break;
-        }
+        ctx->emit_store_name(scope, name, line);
         return true;
     }
 

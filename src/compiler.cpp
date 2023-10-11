@@ -477,7 +477,6 @@ __SUBSCR_END:
     // import a [as b]
     // import a [as b], c [as d]
     void Compiler::compile_normal_import() {
-        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
         do {
             consume(TK("@id"));
             Str name = prev().str();
@@ -486,7 +485,7 @@ __SUBSCR_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            ctx()->emit(OP_STORE_GLOBAL, StrName(name).index, prev().line);
+            ctx()->emit_store_name(name_scope(), StrName(name), prev().line);
         } while (match(TK(",")));
         consume_end_stmt();
     }
@@ -499,7 +498,6 @@ __SUBSCR_END:
     // from .a.b import c [as d]
     // from xxx import *
     void Compiler::compile_from_import() {
-        if(name_scope() != NAME_GLOBAL) SyntaxError("import statement should be used in global scope");
         int dots = 0;
 
         while(true){
@@ -538,6 +536,7 @@ __EAT_DOTS_END:
         consume(TK("import"));
 
         if (match(TK("*"))) {
+            if(name_scope() != NAME_GLOBAL) SyntaxError("from <module> import * can only be used in global scope");
             // pop the module and import __all__
             ctx()->emit(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
             consume_end_stmt();
@@ -553,7 +552,7 @@ __EAT_DOTS_END:
                 consume(TK("@id"));
                 name = prev().str();
             }
-            ctx()->emit(OP_STORE_GLOBAL, StrName(name).index, prev().line);
+            ctx()->emit_store_name(name_scope(), StrName(name), prev().line);
         } while (match(TK(",")));
         ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
