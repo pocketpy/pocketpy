@@ -346,28 +346,6 @@ assert type(10//11) is int
 # test int.__mod__:
 assert type(11%2) is int
 
-
-# /************ float ************/
-#       136:  433:    _vm->bind_constructor<2>("float", [](VM* vm, ArgsView args) {
-#        10:  434:        if (is_type(args[1], vm->tp_int)) return VAR((f64)CAST(i64, args[1]));
-#         9:  435:        if (is_type(args[1], vm->tp_float)) return args[1];
-#         3:  436:        if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1.0 : 0.0);
-#         3:  437:        if (is_type(args[1], vm->tp_str)) {
-#         3:  438:            const Str& s = CAST(Str&, args[1]);
-#         3:  439:            if(s == "inf") return VAR(INFINITY);
-#         2:  440:            if(s == "-inf") return VAR(-INFINITY);
-#         -:  441:            try{
-#         2:  442:                f64 val = Number::stof(s.str());
-#         2:  443:                return VAR(val);
-#     #####:  444:            }catch(...){
-#     #####:  445:                vm->ValueError("invalid literal for float(): " + s.escape());
-#     #####:  446:            }
-#     #####:  447:        }
-#     #####:  448:        vm->TypeError("float() argument must be a int, float, bool or str");
-#     #####:  449:        return vm->None;
-#        10:  450:    });
-# test float:
-
 try:
     float('asad')
     print('未能拦截错误, 在测试 float')

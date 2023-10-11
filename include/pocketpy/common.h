@@ -74,18 +74,12 @@ template <>
 struct NumberTraits<4> {
 	using int_t = int32_t;
 	using float_t = float;
-
-	template<typename... Args>
-	static float_t stof(Args&&... args) { return std::stof(std::forward<Args>(args)...); }
 };
 
 template <>
 struct NumberTraits<8> {
 	using int_t = int64_t;
 	using float_t = double;
-
-	template<typename... Args>
-	static float_t stof(Args&&... args) { return std::stod(std::forward<Args>(args)...); }
 };
 
 using Number = NumberTraits<sizeof(void*)>;

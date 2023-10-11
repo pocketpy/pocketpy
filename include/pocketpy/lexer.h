@@ -138,6 +138,6 @@ struct Lexer {
     std::vector<Token> run();
 };
 
-bool parse_int(std::string_view text, i64* out, int base=10);
+bool parse_int(std::string_view text, i64* out, int base);
 
 } // namespace pkpy

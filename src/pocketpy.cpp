@@ -498,12 +498,16 @@ void init_builtins(VM* _vm) {
             const Str& s = CAST(Str&, args[1]);
             if(s == "inf") return VAR(INFINITY);
             if(s == "-inf") return VAR(-INFINITY);
+
+            double float_out;
+            char* p_end;
             try{
-                f64 val = Number::stof(s.str());
-                return VAR(val);
+                float_out = std::strtod(s.begin(), &p_end);
+                PK_ASSERT(p_end == s.end());
             }catch(...){
                 vm->ValueError("invalid literal for float(): " + s.escape());
             }
+            return VAR(float_out);
         }
         vm->TypeError("invalid arguments for float()");
         return vm->None;
