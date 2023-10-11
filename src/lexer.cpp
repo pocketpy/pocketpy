@@ -483,7 +483,6 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
 bool parse_int(std::string_view text, i64* out, int base){
-  // TODO: detect overflow
   *out = 0;
 
   const auto f_startswith_2 = [](std::string_view t, const char* prefix) -> bool{
@@ -497,6 +496,7 @@ bool parse_int(std::string_view text, i64* out, int base){
     for(char c : text){
       if(c >= '0' && c <= '9'){
         *out = (*out * 10) + (c - '0');
+        if(*out < 0) return false;      // overflow
       }else{
         return false;
       }
@@ -509,6 +509,7 @@ bool parse_int(std::string_view text, i64* out, int base){
     for(char c : text){
       if(c == '0' || c == '1'){
         *out = (*out << 1) | (c - '0');
+        if(*out < 0) return false;      // overflow
       }else{
         return false;
       }
@@ -521,6 +522,7 @@ bool parse_int(std::string_view text, i64* out, int base){
     for(char c : text){
       if(c >= '0' && c <= '7'){
         *out = (*out << 3) | (c - '0');
+        if(*out < 0) return false;      // overflow
       }else{
         return false;
       }
@@ -533,10 +535,13 @@ bool parse_int(std::string_view text, i64* out, int base){
     for(char c : text){
       if(c >= '0' && c <= '9'){
         *out = (*out << 4) | (c - '0');
+        if(*out < 0) return false;      // overflow
       }else if(c >= 'a' && c <= 'f'){
         *out = (*out << 4) | (c - 'a' + 10);
+        if(*out < 0) return false;      // overflow
       }else if(c >= 'A' && c <= 'F'){
         *out = (*out << 4) | (c - 'A' + 10);
+        if(*out < 0) return false;      // overflow
       }else{
         return false;
       }
