@@ -93,16 +93,17 @@ struct C99Struct{
     char* p;
     int size;
 
-    C99Struct(int new_size){
+    C99Struct(int new_size, bool zero_init){
         this->size = new_size;
         if(size <= INLINE_SIZE){
             p = _inlined;
         }else{
             p = (char*)malloc(size);
         }
+        if(zero_init) memset(p, 0, size);
     }
 
-    C99Struct(void* p, int size): C99Struct(size){
+    C99Struct(void* p, int size): C99Struct(size, false){
         if(p != nullptr) memcpy(this->p, p, size);
     }
 
