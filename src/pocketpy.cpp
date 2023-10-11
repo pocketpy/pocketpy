@@ -502,7 +502,7 @@ void init_builtins(VM* _vm) {
             double float_out;
             char* p_end;
             try{
-                float_out = std::strtod(s.begin(), &p_end);
+                float_out = std::strtod(s.data, &p_end);
                 PK_ASSERT(p_end == s.end());
             }catch(...){
                 vm->ValueError("invalid literal for float(): " + s.escape());

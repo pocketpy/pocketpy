@@ -292,12 +292,12 @@ static bool is_unicode_Lo_char(uint32_t c) {
         char* p_end;
 
         try{
-            float_out = std::strtod(text.begin(), &p_end);
+            float_out = std::strtod(text.data(), &p_end);
         }catch(...){
             SyntaxError("invalid number literal");
         }
         
-        if(p_end == text.end()){
+        if(p_end == text.data() + text.size()){
             add_token(TK("@num"), (f64)float_out);
             return;
         }
