@@ -28,7 +28,7 @@ print(primes)
 # [2, 3, 5, 7, 11, 13, 17, 19]
 ```
 
-## Supported Platforms
+## Supported platforms
 
 pkpy should work on any platform with a C++17 compiler.
 These platforms are officially tested.
