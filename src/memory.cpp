@@ -226,8 +226,8 @@ struct MemoryPool{
         PK_GLOBAL_SCOPE_LOCK();
         _arenas.apply([this](Arena* arena){
             if(arena->full()){
-                delete arena;
                 _arenas.erase(arena);
+                delete arena;
             }
         });
     }
