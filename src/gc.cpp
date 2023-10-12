@@ -25,6 +25,8 @@ namespace pkpy{
         // std::cout << "GC: " << alive.size() << "/" << gen.size() << " (" << freed << " freed)" << std::endl;
         gen.clear();
         gen.swap(alive);
+        // clean up pools
+        pools_shrink_to_fit();
         return freed;
     }
 

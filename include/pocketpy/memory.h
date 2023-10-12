@@ -20,4 +20,6 @@ void* pool128_alloc(){
     return pool128_alloc(sizeof(T));
 }
 
+void pools_shrink_to_fit();
+
 };  // namespace pkpy

@@ -133,9 +133,8 @@ struct MemoryPool{
         Block _blocks[__MaxBlocks];
         Block* _free_list[__MaxBlocks];
         int _free_list_size;
-        bool dirty;
         
-        Arena(): _free_list_size(__MaxBlocks), dirty(false){
+        Arena(): _free_list_size(__MaxBlocks) {
             for(int i=0; i<__MaxBlocks; i++){
                 _blocks[i].arena = this;
                 _free_list[i] = &_blocks[i];
@@ -194,7 +193,6 @@ struct MemoryPool{
         void* p = arena->alloc()->data;
         if(arena->empty()){
             _arenas.pop_back();
-            arena->dirty = true;
             _empty_arenas.push_back(arena);
         }
         return p;
@@ -220,20 +218,19 @@ struct MemoryPool{
                 arena->dealloc(block);
             }else{
                 arena->dealloc(block);
-                if(arena->full() && arena->dirty){
-                    _arenas.erase(arena);
-                    delete arena;
-                }
             }
         }
     }
 
-    // size_t allocated_size() {
-    //     size_t n = 0;
-    //     _arenas.apply([&n](Arena* arena){ n += arena->allocated_size(); });
-    //     _empty_arenas.apply([&n](Arena* arena){ n += arena->allocated_size(); });
-    //     return n;
-    // }
+    void shrink_to_fit(){
+        PK_GLOBAL_SCOPE_LOCK();
+        _arenas.apply([this](Arena* arena){
+            if(arena->full()){
+                delete arena;
+                _arenas.erase(arena);
+            }
+        });
+    }
 
     ~MemoryPool(){
         _arenas.apply([](Arena* arena){ delete arena; });
@@ -249,5 +246,10 @@ void pool64_dealloc(void* p){ pool64.dealloc(p); }
 
 void* pool128_alloc(size_t size){ return pool128.alloc(size); }
 void pool128_dealloc(void* p){ pool128.dealloc(p); }
+
+void pools_shrink_to_fit(){
+    pool64.shrink_to_fit();
+    pool128.shrink_to_fit();
+}
 
 }
