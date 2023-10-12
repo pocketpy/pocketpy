@@ -144,7 +144,7 @@ while(!_items[i].first.empty()) {           \
     _items = (Item*)malloc(_capacity * sizeof(Item));    \
     memset(_items, 0, _capacity * sizeof(Item));                \
 
-    LargeNameDict(float load_factor=0.67f):
+    LargeNameDict(float load_factor=kInstAttrLoadFactor):
         _is_small(false),
         _load_factor(load_factor), _capacity(__Capacity), _size(0), 
         _hash_seed(kHashSeeds[0]), _mask(__Capacity-1) {
