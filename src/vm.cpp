@@ -1095,7 +1095,7 @@ void VM::_raise(bool re_raise){
     int current_line = frame->co->lines[actual_ip];         // current line
     auto current_f_name = frame->co->name.sv();             // current function name
     if(frame->_callable == nullptr) current_f_name = "";    // not in a function
-    e.st_push(frame->co->src->snapshot(current_line, nullptr, current_f_name));
+    e.st_push(frame->co->src, current_line, nullptr, current_f_name);
 
     if(ok) throw HandledException();
     else throw UnhandledException();

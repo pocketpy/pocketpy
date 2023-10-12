@@ -454,8 +454,8 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     void Lexer::throw_err(Str type, Str msg, int lineno, const char* cursor){
-        auto e = Exception(type, msg);
-        e.st_push(src->snapshot(lineno, cursor));
+        Exception e(type, msg);
+        e.st_push(src, lineno, cursor, "");
         throw e;
     }
 

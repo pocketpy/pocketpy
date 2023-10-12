@@ -29,7 +29,7 @@ namespace pkpy{
         return {_start, i};
     }
 
-    Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name){
+    Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) const{
         std::stringstream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno;
         if(!name.empty()) ss << ", in " << name;
@@ -50,16 +50,14 @@ namespace pkpy{
         return ss.str();
     }
 
-    void Exception::st_push(Str&& snapshot){
-        if(stacktrace.size() >= 8) return;
-        stacktrace.push(std::move(snapshot));
-    }
-
     Str Exception::summary() const {
-        stack<Str> st(stacktrace);
+        stack<ExceptionLine> st(stacktrace);
         std::stringstream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
-        while(!st.empty()) { ss << st.top() << '\n'; st.pop(); }
+        while(!st.empty()) {
+            ss << st.top().snapshot() << '\n';
+            st.pop();
+        }
         if (!msg.empty()) ss << type.sv() << ": " << msg;
         else ss << type.sv();
         return ss.str();
