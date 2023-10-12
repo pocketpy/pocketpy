@@ -40,7 +40,7 @@ else
     LINK_FLAGS="-Wl,-rpath=."
 fi
 
-clang++ $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared -ldl
+clang++ $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared
 
 # compile main.cpp and link to libpocketpy.so
 echo "> Compiling main.cpp and linking to libpocketpy$LIB_EXTENSION..."

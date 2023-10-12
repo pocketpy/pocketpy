@@ -103,7 +103,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Compile and Test
         run: |
-          bash build.sh
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --config Release
+          cp main ../
+          cp libpocketpy.dylib ../
+          cd ..
           python3 scripts/run_tests.py
       - name: Benchmark
         run: python3 scripts/run_tests.py benchmark
