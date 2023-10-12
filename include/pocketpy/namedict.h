@@ -13,7 +13,8 @@ constexpr T default_invalid_value(){
     else return Discarded();
 }
 
-#define PK_LOOP_K(B) for(int i=0; i<kCapacity; i++) { B(i) }
+// #define PK_LOOP_K(B) for(int i=0; i<kCapacity; i++) { B(i) }
+#define PK_LOOP_K(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7)
 
 template<typename V>
 struct SmallNameDict{
