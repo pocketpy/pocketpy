@@ -210,24 +210,18 @@ __NEXT_STEP:;
             if(slot == nullptr) vm->UnboundLocalError(_name);
             *slot = PY_NULL;
         }else{
-            if(!frame->f_globals().contains(_name)) vm->NameError(_name);
-            frame->f_globals().erase(_name);
+            if(!frame->f_globals().del(_name)) vm->NameError(_name);
         }
         DISPATCH();
     TARGET(DELETE_GLOBAL)
         _name = StrName(byte.arg);
-        if(frame->f_globals().contains(_name)){
-            frame->f_globals().erase(_name);
-        }else{
-            NameError(_name);
-        }
+        if(!frame->f_globals().del(_name)) vm->NameError(_name);
         DISPATCH();
     TARGET(DELETE_ATTR)
         _0 = POPX();
         _name = StrName(byte.arg);
         if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
-        if(!_0->attr().contains(_name)) AttributeError(_0, _name);
-        _0->attr().erase(_name);
+        if(!_0->attr().del(_name)) AttributeError(_0, _name);
         DISPATCH();
     TARGET(DELETE_SUBSCR)
         _1 = POPX();

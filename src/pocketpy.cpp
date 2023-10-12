@@ -377,7 +377,7 @@ void init_builtins(VM* _vm) {
         if(self->is_attr_valid()){
             vm->TypeError("object: instance dict is already enabled");
         }
-        self->enable_instance_dict();
+        self->_enable_instance_dict();
         return vm->None;
     });
 

@@ -151,8 +151,12 @@ struct PyObject{
 
     virtual ~PyObject();
 
-    void enable_instance_dict(float lf=kInstAttrLoadFactor) {
-        _attr = new(pool64_alloc<NameDict>()) NameDict(lf);
+    void _enable_instance_dict() {
+        _attr = new(pool128_alloc<NameDict>()) NameDict();
+    }
+
+    void _enable_instance_dict(float lf){
+        _attr = new(pool128_alloc<NameDict>()) NameDict(lf);
     }
 };
 
@@ -230,10 +234,9 @@ struct MappingProxy{
 
 inline void gc_mark_namedict(NameDict& t){
     if(t.size() == 0) return;
-    for(uint16_t i=0; i<t._capacity; i++){
-        if(t._items[i].first.empty()) continue;
-        PK_OBJ_MARK(t._items[i].second);
-    }
+    t.apply([](StrName name, PyObject* obj){
+        PK_OBJ_MARK(obj);
+    });
 }
 
 Str obj_type_name(VM* vm, Type type);
@@ -398,7 +401,7 @@ struct Py_<Super> final: PyObject {
 template<>
 struct Py_<DummyInstance> final: PyObject {
     Py_(Type type): PyObject(type) {
-        enable_instance_dict();
+        _enable_instance_dict();
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return nullptr; }
@@ -408,7 +411,7 @@ template<>
 struct Py_<Type> final: PyObject {
     Type _value;
     Py_(Type type, Type val): PyObject(type), _value(val) {
-        enable_instance_dict(kTypeAttrLoadFactor);
+        _enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return &_value; }
@@ -417,7 +420,7 @@ struct Py_<Type> final: PyObject {
 template<>
 struct Py_<DummyModule> final: PyObject {
     Py_(Type type): PyObject(type) {
-        enable_instance_dict(kTypeAttrLoadFactor);
+        _enable_instance_dict(kTypeAttrLoadFactor);
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return nullptr; }
