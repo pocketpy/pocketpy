@@ -11,6 +11,9 @@ def max(*args, key=None):
         raise TypeError('max expected 1 arguments, got 0')
     if len(args) == 1:
         args = args[0]
+    if len(args) == 2:
+        a, b = args
+        return a if key(a) > key(b) else b
     args = iter(args)
     res = next(args)
     if res is StopIteration:
@@ -30,6 +33,9 @@ def min(*args, key=None):
         raise TypeError('min expected 1 arguments, got 0')
     if len(args) == 1:
         args = args[0]
+    if len(args) == 2:
+        a, b = args
+        return a if key(a) < key(b) else b
     args = iter(args)
     res = next(args)
     if res is StopIteration:
