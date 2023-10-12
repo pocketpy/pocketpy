@@ -13,14 +13,14 @@ constexpr T default_invalid_value(){
     else return Discarded();
 }
 
-#define PK_LOOP_12(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11)
+#define PK_LOOP_K(B) for(int i=0; i<kCapacity; i++) { B(i) }
 
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
     static_assert(std::is_pod_v<V>);
 
-    static const int kCapacity = 12;
+    static const int kCapacity = 8;
 
     bool _is_small;
     uint16_t _size;
@@ -36,7 +36,7 @@ struct SmallNameDict{
         if(_keys[i] == key){ _values[i] = val; return true; }   \
         if(_keys[i].empty()) slot = i;  \
 
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
 
         if(slot == -1) return false;
@@ -48,28 +48,28 @@ struct SmallNameDict{
 
     V try_get(K key) const {
 #define BLOCK(i) if(_keys[i] == key) return _values[i];
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
         return default_invalid_value<V>();
     }
 
     V* try_get_2(K key) {
 #define BLOCK(i) if(_keys[i] == key) return &_values[i];
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
         return nullptr;
     }
 
     bool contains(K key) const {
 #define BLOCK(i) if(_keys[i] == key) return true;
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
         return false;
     }
 
     bool del(K key){
 #define BLOCK(i) if(_keys[i] == key){ _keys[i] = StrName(); _size--; return true; }
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
         return false;
     }
@@ -77,13 +77,13 @@ struct SmallNameDict{
     template<typename Func>
     void apply(Func func) const {
 #define BLOCK(i) if(!_keys[i].empty()) func(_keys[i], _values[i]);
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
     }
 
     void clear(){
 #define BLOCK(i) _keys[i] = StrName();
-        PK_LOOP_12(BLOCK)
+        PK_LOOP_K(BLOCK)
 #undef BLOCK
         _size = 0;
     }
