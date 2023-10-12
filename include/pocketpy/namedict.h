@@ -28,15 +28,17 @@ struct SmallNameDict{
     SmallNameDict(): _is_small(true), _size(0) {}
 
     bool try_set(K key, V val){
+        int slot = -1;
         for(int i=0; i<kCapacity; i++){
             if(_keys[i] == key){
                 _values[i] = val;
                 return true;
             }
+            if(_keys[i].empty()) slot = i;
         }
-        if(_size == kCapacity) return false;
-        _keys[_size] = key;
-        _values[_size] = val;
+        if(slot == -1) return false;
+        _keys[slot] = key;
+        _values[slot] = val;
         _size++;
         return true;
     }
@@ -45,7 +47,7 @@ struct SmallNameDict{
         for(int i=0; i<kCapacity; i++){
             if(_keys[i] == key) return _values[i];
         }
-        throw std::out_of_range(fmt("SmallDict key not found: ", key));
+        throw std::out_of_range(fmt("SmallNameDict key not found: ", key));
     }
 
     V try_get(K key) const {
@@ -108,16 +110,21 @@ uint16_t _find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& 
 
 template<typename T>
 struct LargeNameDict {
+    PK_ALWAYS_PASS_BY_POINTER(LargeNameDict)
+
     using Item = std::pair<StrName, T>;
-    static constexpr uint16_t __Capacity = 32;
+    static constexpr uint16_t kInitialCapacity = 32;
     static_assert(is_pod<T>::value);
 
     bool _is_small;
     float _load_factor;
-    uint16_t _capacity;
     uint16_t _size;
     uint16_t _hash_seed;
+
+    uint16_t _capacity;
+    uint16_t _critical_size;
     uint16_t _mask;
+
     Item* _items;
 
 #define HASH_PROBE_0(key, ok, i)            \
@@ -144,38 +151,26 @@ while(!_items[i].first.empty()) {           \
     _items = (Item*)malloc(_capacity * sizeof(Item));    \
     memset(_items, 0, _capacity * sizeof(Item));                \
 
-    LargeNameDict(float load_factor=kInstAttrLoadFactor):
-        _is_small(false),
-        _load_factor(load_factor), _capacity(__Capacity), _size(0), 
-        _hash_seed(kHashSeeds[0]), _mask(__Capacity-1) {
+    LargeNameDict(float load_factor=kInstAttrLoadFactor): _is_small(false), _load_factor(load_factor), _size(0), _hash_seed(kHashSeeds[0]) {
+        _set_capacity(kInitialCapacity);
         NAMEDICT_ALLOC()
     }
 
-    LargeNameDict(const LargeNameDict& other) {
-        memcpy(this, &other, sizeof(LargeNameDict));
-        NAMEDICT_ALLOC()
-        for(int i=0; i<_capacity; i++) _items[i] = other._items[i];
-    }
-
-    LargeNameDict& operator=(const LargeNameDict& other) {
-        free(_items);
-        memcpy(this, &other, sizeof(LargeNameDict));
-        NAMEDICT_ALLOC()
-        for(int i=0; i<_capacity; i++) _items[i] = other._items[i];
-        return *this;
-    }
-    
     ~LargeNameDict(){ free(_items); }
 
-    LargeNameDict(LargeNameDict&&) = delete;
-    LargeNameDict& operator=(LargeNameDict&&) = delete;
     uint16_t size() const { return _size; }
     uint16_t capacity() const { return _capacity; }
+
+    void _set_capacity(uint16_t val){
+        _capacity = val;
+        _critical_size = val * _load_factor;
+        _mask = val - 1;
+    }
 
     T operator[](StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE_0(key, ok, i);
-        if(!ok) throw std::out_of_range(fmt("NameDict key not found: ", key));
+        if(!ok) throw std::out_of_range(fmt("LargeNameDict key not found: ", key));
         return _items[i].second;
     }
 
@@ -184,7 +179,7 @@ while(!_items[i].first.empty()) {           \
         HASH_PROBE_1(key, ok, i);
         if(!ok) {
             _size++;
-            if(_size > _capacity*_load_factor){
+            if(_size > _critical_size){
                 _rehash(true);
                 HASH_PROBE_1(key, ok, i);
             }
@@ -197,8 +192,7 @@ while(!_items[i].first.empty()) {           \
         Item* old_items = _items;
         uint16_t old_capacity = _capacity;
         if(resize){
-            _capacity *= 2;
-            _mask = _capacity - 1;
+            _set_capacity(_capacity * 2);
         }
         NAMEDICT_ALLOC()
         for(uint16_t i=0; i<old_capacity; i++){
