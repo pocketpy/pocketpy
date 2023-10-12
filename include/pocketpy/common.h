@@ -74,12 +74,18 @@ template <>
 struct NumberTraits<4> {
 	using int_t = int32_t;
 	using float_t = float;
+
+	static constexpr int_t kMaxSmallInt = (1 << 28) - 1;
+	static constexpr int_t kMinSmallInt = - (1 << 28);
 };
 
 template <>
 struct NumberTraits<8> {
 	using int_t = int64_t;
 	using float_t = double;
+
+	static constexpr int_t kMaxSmallInt = (1ll << 60) - 1;
+	static constexpr int_t kMinSmallInt = - (1ll << 60);
 };
 
 using Number = NumberTraits<sizeof(void*)>;

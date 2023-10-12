@@ -530,13 +530,10 @@ template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
     return py_cast<double>(vm, obj);
 }
 
-const i64 kMaxSmallInt = (1ll << 28) - 1;
-const i64 kMinSmallInt = -(1ll << 28);
-
 #define PY_VAR_INT(T)                                       \
     inline PyObject* py_var(VM* vm, T _val){                \
         i64 val = static_cast<i64>(_val);                   \
-        if(val >= kMinSmallInt && val <= kMaxSmallInt){     \
+        if(val >= Number::kMinSmallInt && val <= Number::kMaxSmallInt){     \
             val = (val << 2) | 0b10;                        \
             return reinterpret_cast<PyObject*>(val);        \
         }else{                                              \

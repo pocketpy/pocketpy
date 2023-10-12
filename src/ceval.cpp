@@ -627,7 +627,6 @@ __NEXT_STEP:;
                 frame->f_globals().set(name, value);
             }
         }
-        frame->f_globals()._try_perfect_rehash();
     } DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE){
