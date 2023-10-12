@@ -13,6 +13,8 @@ constexpr T default_invalid_value(){
     else return Discarded();
 }
 
+#define PK_LOOP_12(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11)
+
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
@@ -29,13 +31,14 @@ struct SmallNameDict{
 
     bool try_set(K key, V val){
         int slot = -1;
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key){
-                _values[i] = val;
-                return true;
-            }
-            if(_keys[i].empty()) slot = i;
-        }
+
+#define BLOCK(i)    \
+        if(_keys[i] == key){ _values[i] = val; return true; }   \
+        if(_keys[i].empty()) slot = i;  \
+
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
+
         if(slot == -1) return false;
         _keys[slot] = key;
         _values[slot] = val;
@@ -43,56 +46,45 @@ struct SmallNameDict{
         return true;
     }
 
-    V operator[](K key) const {
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key) return _values[i];
-        }
-        throw std::out_of_range(fmt("SmallNameDict key not found: ", key));
-    }
-
     V try_get(K key) const {
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key) return _values[i];
-        }
+#define BLOCK(i) if(_keys[i] == key) return _values[i];
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
         return default_invalid_value<V>();
     }
 
     V* try_get_2(K key) {
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key) return &_values[i];
-        }
+#define BLOCK(i) if(_keys[i] == key) return &_values[i];
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
         return nullptr;
     }
 
     bool contains(K key) const {
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key) return true;
-        }
+#define BLOCK(i) if(_keys[i] == key) return true;
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
         return false;
     }
 
     bool del(K key){
-        for(int i=0; i<kCapacity; i++){
-            if(_keys[i] == key){
-                _keys[i] = StrName();
-                _size--;
-                return true;
-            }
-        }
+#define BLOCK(i) if(_keys[i] == key){ _keys[i] = StrName(); _size--; return true; }
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
         return false;
     }
 
     template<typename Func>
     void apply(Func func) const {
-        for(int i=0; i<kCapacity; i++){
-            if(!_keys[i].empty()) func(_keys[i], _values[i]);
-        }
+#define BLOCK(i) if(!_keys[i].empty()) func(_keys[i], _values[i]);
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
     }
 
     void clear(){
-        for(int i=0; i<kCapacity; i++){
-            _keys[i] = StrName();
-        }
+#define BLOCK(i) _keys[i] = StrName();
+        PK_LOOP_12(BLOCK)
+#undef BLOCK
         _size = 0;
     }
 
@@ -165,13 +157,6 @@ while(!_items[i].first.empty()) {           \
         _capacity = val;
         _critical_size = val * _load_factor;
         _mask = val - 1;
-    }
-
-    T operator[](StrName key) const {
-        bool ok; uint16_t i;
-        HASH_PROBE_0(key, ok, i);
-        if(!ok) throw std::out_of_range(fmt("LargeNameDict key not found: ", key));
-        return _items[i].second;
     }
 
     void set(StrName key, T val){
@@ -305,11 +290,18 @@ struct NameDictImpl{
 
     uint16_t size() const{ return is_small() ?_small.size() : _large.size(); }
     uint16_t capacity() const{ return is_small() ?_small.capacity() : _large.capacity(); }
-    V operator[](StrName key) const { return is_small() ?_small[key] : _large[key]; }
     V try_get(StrName key) const { return is_small() ?_small.try_get(key) : _large.try_get(key); }
     V* try_get_2(StrName key) { return is_small() ?_small.try_get_2(key) : _large.try_get_2(key); }
     bool contains(StrName key) const { return is_small() ?_small.contains(key) : _large.contains(key); }
     bool del(StrName key){ return is_small() ?_small.del(key) : _large.del(key); }
+
+    V operator[](StrName key) const {
+        V val = try_get(key);
+        if(val == default_invalid_value<V>()){
+            throw std::runtime_error(fmt("NameDict key not found: ", key.escape()));
+        }
+        return val;
+    }
 
     void clear(){
         if(is_small()) _small.clear();

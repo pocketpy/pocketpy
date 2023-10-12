@@ -25,3 +25,12 @@ assert a == 2
 
 a ^= 0xf0
 assert a == 242
+
+# incremental set
+class A: pass
+
+for i in range(ord('a'), ord('z')+1):
+    setattr(A, chr(i), i)
+
+assert A.a == ord('a')
+assert A.z == ord('z')
