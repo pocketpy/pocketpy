@@ -6,6 +6,100 @@
 
 namespace pkpy{
 
+template<typename T>
+constexpr T default_invalid_value(){
+    if constexpr(std::is_pointer_v<T>) return nullptr;
+    else if constexpr(std::is_same_v<int, T>) return -1;
+    else return Discarded();
+}
+
+template<typename V>
+struct SmallNameDict{
+    using K = StrName;
+    static_assert(std::is_pod_v<V>);
+
+    static const int kCapacity = 12;
+
+    int _size;
+    std::pair<K, V> _items[kCapacity];
+
+    SmallNameDict(): _size(0) {}
+
+    void set(K key, V val){
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key){
+                _items[i].second = val;
+                return;
+            }
+        }
+#if PK_DEBUG_EXTRA_CHECK
+        if(_size == kCapacity){
+            throw std::runtime_error("SmallDict: capacity exceeded");
+        }
+#endif
+        _items[_size++] = {key, val};
+    }
+
+    bool try_set(K key, V val){
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key){
+                _items[i].second = val;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    V operator[](K key) const {
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key) return _items[i].second; 
+        }
+        throw std::out_of_range(fmt("SmallDict key not found: ", key));
+    }
+
+    V get(K key) const {
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key) return _items[i].second; 
+        }
+        return default_invalid_value<V>();
+    }
+
+    bool contains(K key) const {
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key) return true; 
+        }
+        return false;
+    }
+
+    bool del(K key){
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first == key){
+                _items[i].first = StrName();
+                _size--;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template<typename Func>
+    void apply(Func func) const {
+        for(int i=0; i<kCapacity; i++){
+            if(_items[i].first) func(_items[i].first, _items[i].second);
+        }
+    }
+
+    void clear(){
+        for(int i=0; i<kCapacity; i++){
+            _items[i].first = StrName();
+        }
+        _size = 0;
+    }
+
+    int size() const { return _size; }
+    int capacity() const { return kCapacity; }
+};
+
 inline const uint16_t kHashSeeds[] = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
 
 inline uint16_t _hash(StrName key, uint16_t mask, uint16_t hash_seed){
