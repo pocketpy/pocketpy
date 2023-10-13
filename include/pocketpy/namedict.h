@@ -13,20 +13,18 @@ constexpr T default_invalid_value(){
     else return Discarded();
 }
 
-// #define PK_LOOP_K(B) for(int i=0; i<kCapacity; i++) { B(i) }
-#define PK_LOOP_K(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11)
+#define PK_SMALL_NAME_DICT_CAPACITY 12
+#define PK_LOOP_K(B) for(int i=0; i<PK_SMALL_NAME_DICT_CAPACITY; i++) { B(i) }
 
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
     static_assert(std::is_pod_v<V>);
 
-    static const int kCapacity = 12;
-
     bool _is_small;
     uint16_t _size;
-    K _keys[kCapacity];
-    V _values[kCapacity];
+    K _keys[PK_SMALL_NAME_DICT_CAPACITY];
+    V _values[PK_SMALL_NAME_DICT_CAPACITY];
 
     SmallNameDict(): _is_small(true), _size(0) {}
 
@@ -37,6 +35,7 @@ struct SmallNameDict{
         if(_keys[i] == key){ _values[i] = val; return true; }   \
         if(_keys[i].empty()) slot = i;  \
 
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
 
@@ -49,6 +48,7 @@ struct SmallNameDict{
 
     V try_get(K key) const {
 #define BLOCK(i) if(_keys[i] == key) return _values[i];
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
         return default_invalid_value<V>();
@@ -56,6 +56,7 @@ struct SmallNameDict{
 
     V* try_get_2(K key) {
 #define BLOCK(i) if(_keys[i] == key) return &_values[i];
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
         return nullptr;
@@ -63,6 +64,7 @@ struct SmallNameDict{
 
     bool contains(K key) const {
 #define BLOCK(i) if(_keys[i] == key) return true;
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
         return false;
@@ -70,6 +72,7 @@ struct SmallNameDict{
 
     bool del(K key){
 #define BLOCK(i) if(_keys[i] == key){ _keys[i] = StrName(); _size--; return true; }
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
         return false;
@@ -78,19 +81,21 @@ struct SmallNameDict{
     template<typename Func>
     void apply(Func func) const {
 #define BLOCK(i) if(!_keys[i].empty()) func(_keys[i], _values[i]);
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
     }
 
     void clear(){
 #define BLOCK(i) _keys[i] = StrName();
+        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_LOOP_K(BLOCK)
 #undef BLOCK
         _size = 0;
     }
 
     uint16_t size() const { return _size; }
-    uint16_t capacity() const { return kCapacity; }
+    uint16_t capacity() const { return PK_SMALL_NAME_DICT_CAPACITY; }
 };
 
 inline const uint16_t kHashSeeds[] = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
