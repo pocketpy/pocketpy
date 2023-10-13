@@ -660,7 +660,6 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(END_CLASS)
         _0 = POPX();
-        _0->attr()._try_perfect_rehash();
         DISPATCH();
     TARGET(STORE_CLASS_ATTR){
         _name = StrName(byte.arg);

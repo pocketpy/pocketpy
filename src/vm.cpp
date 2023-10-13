@@ -295,7 +295,6 @@ namespace pkpy{
         path_cpnts.pop_back();
         PyObject* new_mod = new_module(name_cpnt, f_join(path_cpnts));
         _exec(code, new_mod);
-        new_mod->attr()._try_perfect_rehash();
         return new_mod;
     }
 
@@ -693,10 +692,6 @@ void VM::init_builtin_types(){
     builtins->attr().set("slice", _t(tp_slice));
 
     post_init();
-    for(int i=0; i<_all_types.size(); i++){
-        _all_types[i].obj->attr()._try_perfect_rehash();
-    }
-    for(auto [k, v]: _modules.items()) v->attr()._try_perfect_rehash();
     this->_main = new_module("__main__");
 }
 

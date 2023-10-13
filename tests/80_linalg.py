@@ -83,14 +83,14 @@ assert str(static_test_vec4_float) == 'vec4(3.1887, -1.0984e+06, 9, 4.5654e+12)'
 assert str(static_test_vec4_int) == 'vec4(278, -1.39197e+13, 1.36422e+15, -37)'
 
 # test __getnewargs__
-element_name_list = [e for e in dir(test_vec4) if e in 'x,y,z,w']
+element_name_list = ['x', 'y', 'z', 'w']
 element_value_list = [getattr(test_vec4, attr) for attr in element_name_list]
 _0 = tuple(element_value_list)
 _1 = test_vec4.__getnewargs__()
 assert (_0 == _1), (_0, _1)
 
 # test copy
-element_name_list = [e for e in dir(test_vec4) if e in 'x,y,z,w']
+element_name_list = ['x', 'y', 'z', 'w']
 element_value_list = [getattr(test_vec4, attr) for attr in element_name_list]
 copy_element_value_list = [getattr(test_vec4.copy(), attr) for attr in element_name_list]
 assert element_value_list == copy_element_value_list

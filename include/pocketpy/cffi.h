@@ -23,7 +23,6 @@ namespace pkpy {
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \
         T::_register(vm, mod, type);                                        \
-        type->attr()._try_perfect_rehash();                                 \
         return type;                                                        \
     }                                                                       
 

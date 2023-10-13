@@ -96,14 +96,6 @@ struct SmallNameDict{
     uint16_t capacity() const { return PK_SMALL_NAME_DICT_CAPACITY; }
 };
 
-inline const uint16_t kHashSeeds[] = {9629, 43049, 13267, 59509, 39251, 1249, 27689, 9719, 19913};
-
-inline uint16_t _hash(StrName key, uint16_t mask, uint16_t hash_seed){
-    return ( (key).index * (hash_seed) >> 8 ) & (mask);
-}
-
-uint16_t _find_perfect_hash_seed(uint16_t capacity, const std::vector<StrName>& keys);
-
 template<typename T>
 struct LargeNameDict {
     PK_ALWAYS_PASS_BY_POINTER(LargeNameDict)
@@ -115,7 +107,6 @@ struct LargeNameDict {
     bool _is_small;
     float _load_factor;
     uint16_t _size;
-    uint16_t _hash_seed;
 
     uint16_t _capacity;
     uint16_t _critical_size;
@@ -125,7 +116,7 @@ struct LargeNameDict {
 
 #define HASH_PROBE_1(key, ok, i)            \
 ok = false;                                 \
-i = _hash(key, _mask, _hash_seed);          \
+i = key.index & _mask;                      \
 while(!_items[i].first.empty()) {           \
     if(_items[i].first == (key)) { ok = true; break; }  \
     i = (i + 1) & _mask;                                \
@@ -133,9 +124,8 @@ while(!_items[i].first.empty()) {           \
 
 #define HASH_PROBE_0 HASH_PROBE_1
 
-    LargeNameDict(float load_factor=kInstAttrLoadFactor): _is_small(false), _load_factor(load_factor), _size(0), _hash_seed(kHashSeeds[0]) {
-        _set_capacity(kInitialCapacity);
-        _alloc_items();
+    LargeNameDict(float load_factor=kInstAttrLoadFactor): _is_small(false), _load_factor(load_factor), _size(0) {
+        _set_capacity_and_alloc_items(kInitialCapacity);
     }
 
     ~LargeNameDict(){ free(_items); }
@@ -143,13 +133,11 @@ while(!_items[i].first.empty()) {           \
     uint16_t size() const { return _size; }
     uint16_t capacity() const { return _capacity; }
 
-    void _set_capacity(uint16_t val){
+    void _set_capacity_and_alloc_items(uint16_t val){
         _capacity = val;
         _critical_size = val * _load_factor;
         _mask = val - 1;
-    }
 
-    void _alloc_items(){
         _items = (Item*)malloc(_capacity * sizeof(Item));
         memset(_items, 0, _capacity * sizeof(Item));
     }
@@ -160,7 +148,7 @@ while(!_items[i].first.empty()) {           \
         if(!ok) {
             _size++;
             if(_size > _critical_size){
-                _rehash(true);
+                _rehash_2x();
                 HASH_PROBE_1(key, ok, i);
             }
             _items[i].first = key;
@@ -168,13 +156,10 @@ while(!_items[i].first.empty()) {           \
         _items[i].second = val;
     }
 
-    void _rehash(bool resize){
+    void _rehash_2x(){
         Item* old_items = _items;
         uint16_t old_capacity = _capacity;
-        if(resize){
-            _set_capacity(_capacity * 2);
-        }
-        _alloc_items();
+        _set_capacity_and_alloc_items(_capacity * 2);
         for(uint16_t i=0; i<old_capacity; i++){
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
@@ -183,11 +168,6 @@ while(!_items[i].first.empty()) {           \
             _items[j] = old_items[i];
         }
         free(old_items);
-    }
-
-    void _try_perfect_rehash(){
-        _hash_seed = _find_perfect_hash_seed(_capacity, keys());
-        _rehash(false); // do not resize
     }
 
     T try_get(StrName key) const{
@@ -221,7 +201,7 @@ while(!_items[i].first.empty()) {           \
         uint16_t pre_z = i;
         uint16_t z = (i + 1) & _mask;
         while(!_items[z].first.empty()){
-            uint16_t h = _hash(_items[z].first, _mask, _hash_seed);
+            uint16_t h = _items[z].first.index & _mask;
             if(h != i) break;
             std::swap(_items[pre_z], _items[z]);
             pre_z = z;
@@ -316,11 +296,6 @@ struct NameDictImpl{
     void apply(Func func) const {
         if(is_small()) _small.apply(func);
         else _large.apply(func);
-    }
-
-    void _try_perfect_rehash(){
-        if(is_small()) return;
-        _large._try_perfect_rehash();
     }
 
     std::vector<StrName> keys() const{
