@@ -123,18 +123,6 @@ struct LargeNameDict {
 
     Item* _items;
 
-#define HASH_PROBE_0(key, ok, i)            \
-ok = false;                                 \
-i = _hash(key, _mask, _hash_seed);          \
-for(int _j=0; _j<_capacity; _j++) {         \
-    if(!_items[i].first.empty()){           \
-        if(_items[i].first == (key)) { ok = true; break; }  \
-    }else{                                                  \
-        if(_items[i].second == 0) break;                    \
-    }                                                       \
-    i = (i + 1) & _mask;                                    \
-}
-
 #define HASH_PROBE_1(key, ok, i)            \
 ok = false;                                 \
 i = _hash(key, _mask, _hash_seed);          \
@@ -143,13 +131,11 @@ while(!_items[i].first.empty()) {           \
     i = (i + 1) & _mask;                                \
 }
 
-#define NAMEDICT_ALLOC()                \
-    _items = (Item*)malloc(_capacity * sizeof(Item));    \
-    memset(_items, 0, _capacity * sizeof(Item));                \
+#define HASH_PROBE_0 HASH_PROBE_1
 
     LargeNameDict(float load_factor=kInstAttrLoadFactor): _is_small(false), _load_factor(load_factor), _size(0), _hash_seed(kHashSeeds[0]) {
         _set_capacity(kInitialCapacity);
-        NAMEDICT_ALLOC()
+        _alloc_items();
     }
 
     ~LargeNameDict(){ free(_items); }
@@ -161,6 +147,11 @@ while(!_items[i].first.empty()) {           \
         _capacity = val;
         _critical_size = val * _load_factor;
         _mask = val - 1;
+    }
+
+    void _alloc_items(){
+        _items = (Item*)malloc(_capacity * sizeof(Item));
+        memset(_items, 0, _capacity * sizeof(Item));
     }
 
     void set(StrName key, T val){
@@ -183,7 +174,7 @@ while(!_items[i].first.empty()) {           \
         if(resize){
             _set_capacity(_capacity * 2);
         }
-        NAMEDICT_ALLOC()
+        _alloc_items();
         for(uint16_t i=0; i<old_capacity; i++){
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
@@ -224,8 +215,18 @@ while(!_items[i].first.empty()) {           \
         HASH_PROBE_0(key, ok, i);
         if(!ok) return false;
         _items[i].first = StrName();
-        // _items[i].second = PY_DELETED_SLOT;      // do not change .second if it is not zero, it means the slot is occupied by a deleted item
+        _items[i].second = nullptr;
         _size--;
+        // tidy
+        uint16_t pre_z = i;
+        uint16_t z = (i + 1) & _mask;
+        while(!_items[z].first.empty()){
+            uint16_t h = _hash(_items[z].first, _mask, _hash_seed);
+            if(h != i) break;
+            std::swap(_items[pre_z], _items[z]);
+            pre_z = z;
+            z = (z + 1) & _mask;
+        }
         return true;
     }
 
@@ -253,8 +254,8 @@ while(!_items[i].first.empty()) {           \
         }
         _size = 0;
     }
-#undef HASH_PROBE
-#undef NAMEDICT_ALLOC
+#undef HASH_PROBE_0
+#undef HASH_PROBE_1
 #undef _hash
 };
 
