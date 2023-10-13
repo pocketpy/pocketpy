@@ -3,7 +3,6 @@
 #include "common.h"
 #include "memory.h"
 #include "vector.h"
-#include <cstddef>
 
 namespace pkpy {
 
@@ -123,7 +122,8 @@ struct StrName {
     static bool is_valid(int index);
     static StrName get(std::string_view s);
     static std::map<std::string, uint16_t, std::less<>>& _interned();
-    static std::vector<std::string>& _r_interned();
+    static std::map<uint16_t, std::string>& _r_interned();
+    static uint32_t _pesudo_random_index;
 };
 
 struct FastStrStream{

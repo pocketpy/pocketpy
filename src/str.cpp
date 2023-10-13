@@ -1,4 +1,7 @@
 #include "pocketpy/str.h"
+#include <_types/_uint16_t.h>
+#include <_types/_uint32_t.h>
+#include <stdexcept>
 
 namespace pkpy {
 
@@ -360,18 +363,24 @@ int utf8len(unsigned char c, bool suppress){
         return interned;
     }
 
-    std::vector<std::string>& StrName::_r_interned(){
-        static std::vector<std::string> r_interned;
+    std::map<uint16_t, std::string>& StrName::_r_interned(){
+        static std::map<uint16_t, std::string> r_interned;
         return r_interned;
     }
+
+    uint32_t StrName::_pesudo_random_index = 0;
 
     StrName StrName::get(std::string_view s){
         auto it = _interned().find(s);
         if(it != _interned().end()) return StrName(it->second);
-        uint16_t index = (uint16_t)(_r_interned().size() + 1);
-        std::string str(s);
-        _interned()[str] = index;
-        _r_interned().push_back(str);
+        // generate new index
+        // https://github.com/python/cpython/blob/3.12/Objects/dictobject.c#L175
+        uint16_t index = ((_pesudo_random_index*5) + 1) & 65535;
+        if(index == 0) throw std::runtime_error("StrName index overflow");
+        _interned()[std::string(s)] = index;
+        if(is_valid(index)) throw std::runtime_error("StrName index conflict");
+        _r_interned()[index] = std::string(s);
+        _pesudo_random_index = index;
         return StrName(index);
     }
 
@@ -380,8 +389,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     bool StrName::is_valid(int index) {
-        // check _r_interned()[index-1] is valid
-        return index > 0 && index <= _r_interned().size();
+        return _r_interned().find(index) != _r_interned().end();
     }
 
     StrName::StrName(): index(0) {}
@@ -392,7 +400,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     std::string_view StrName::sv() const {
-        const std::string& str = _r_interned()[index-1];
+        const std::string& str = _r_interned()[index];
         return std::string_view(str);
     }
 

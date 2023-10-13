@@ -256,7 +256,6 @@ while(!_items[i].first.empty()) {           \
     }
 #undef HASH_PROBE_0
 #undef HASH_PROBE_1
-#undef _hash
 };
 
 template<typename V>
