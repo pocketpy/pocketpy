@@ -13,7 +13,7 @@ constexpr T default_invalid_value(){
     else return Discarded();
 }
 
-#define PK_SMALL_NAME_DICT_CAPACITY 12
+#define PK_SMALL_NAME_DICT_CAPACITY 8
 #define PK_SMALL_NAME_DICT_LOOP(B) for(int i=0; i<PK_SMALL_NAME_DICT_CAPACITY; i++) { B }
 
 template<typename V>
@@ -29,23 +29,30 @@ struct SmallNameDict{
     SmallNameDict(): _is_small(true), _size(0) {}
 
     bool try_set(K key, V val){
-        int slot = -1;
-
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             if(_keys[i] == key){ _values[i] = val; return true; }
-            if(_keys[i].empty()) slot = i;
         )
 
-        if(slot == -1) return false;
-        _keys[slot] = key;
-        _values[slot] = val;
-        _size++;
-        return true;
+        if(_size == PK_SMALL_NAME_DICT_CAPACITY) return false;
+        if(_keys[_size].empty()){
+            _keys[_size] = key;
+            _values[_size] = val;
+            _size++;
+            return true;
+        }
+
+        PK_SMALL_NAME_DICT_LOOP(
+            if(_keys[i].empty()){
+                _keys[i] = key;
+                _values[i] = val;
+                _size++;
+                return true;
+            }
+        )
+        UNREACHABLE();
     }
 
     V try_get(K key) const {
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             if(_keys[i] == key) return _values[i];
         )
@@ -53,23 +60,13 @@ struct SmallNameDict{
     }
 
     V* try_get_2(K key) {
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             if(_keys[i] == key) return &_values[i];
         )
         return nullptr;
     }
 
-    bool contains(K key) const {
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
-        PK_SMALL_NAME_DICT_LOOP(
-            if(_keys[i] == key) return true;
-        )
-        return false;
-    }
-
     bool del(K key){
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             if(_keys[i] == key){ _keys[i] = StrName(); _size--; return true; }
         )
@@ -78,14 +75,12 @@ struct SmallNameDict{
 
     template<typename Func>
     void apply(Func func) const {
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             if(!_keys[i].empty()) func(_keys[i], _values[i]);
         )
     }
 
     void clear(){
-        #pragma unroll (PK_SMALL_NAME_DICT_CAPACITY)
         PK_SMALL_NAME_DICT_LOOP(
             _keys[i] = StrName();
         )
@@ -200,12 +195,6 @@ while(!_items[i].first.empty()) {           \
         return try_get_2(key);
     }
 
-    bool contains(StrName key) const {
-        bool ok; uint16_t i;
-        HASH_PROBE_0(key, ok, i);
-        return ok;
-    }
-
     bool del(StrName key){
         bool ok; uint16_t i;
         HASH_PROBE_0(key, ok, i);
@@ -292,11 +281,12 @@ struct NameDictImpl{
     uint16_t capacity() const{ return is_small() ?_small.capacity() : _large.capacity(); }
     V try_get(StrName key) const { return is_small() ?_small.try_get(key) : _large.try_get(key); }
     V* try_get_2(StrName key) { return is_small() ?_small.try_get_2(key) : _large.try_get_2(key); }
-    bool contains(StrName key) const { return is_small() ?_small.contains(key) : _large.contains(key); }
     bool del(StrName key){ return is_small() ?_small.del(key) : _large.del(key); }
 
     V try_get_likely_found(StrName key) const { return is_small() ?_small.try_get(key) : _large.try_get_likely_found(key); }
     V* try_get_2_likely_found(StrName key) { return is_small() ?_small.try_get_2(key) : _large.try_get_2_likely_found(key); }
+
+    bool contains(StrName key) const { return try_get(key) != default_invalid_value<V>(); }
 
     V operator[](StrName key) const {
         V val = try_get_likely_found(key);
