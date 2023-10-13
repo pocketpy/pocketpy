@@ -577,7 +577,10 @@ __NEXT_STEP:;
         TOP() = py_negate(TOP());
         DISPATCH();
     TARGET(UNARY_NOT)
-        TOP() = VAR(!py_bool(TOP()));
+        _0 = TOP();
+        if(_0==True) TOP()=False;
+        else if(_0==False) TOP()=True;
+        else TOP() = VAR(!py_bool(_0));
         DISPATCH();
     TARGET(UNARY_STAR)
         TOP() = VAR(StarWrapper(byte.arg, TOP()));
