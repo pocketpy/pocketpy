@@ -7,7 +7,7 @@ label: Performance
 # Performance
 
 Currently, pkpy is as fast as cpython 3.9.
-**Performance results for cpython 3.9 are applicable to for pkpy.**
+Performance results for cpython 3.9 are applicable to for pkpy.
 
 Here is a benchmark result of `v1.2.6`.
 Files are located in `benchmarks/`.

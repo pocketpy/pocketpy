@@ -92,7 +92,7 @@ int main(){
 | 反射         | `hasattr()/getattr()/setattr()` | ✅ |
 | 导入模块     | `import/from..import`           | ✅ |
 | 上下文管理器 | `with <expr> as <id>:`          | ✅ |
-| 类型标注     | `def  f(a:int, b:float=1)`      | ✅ |
+| 类型标注     | `def f(a:int, b:float=1)`      | ✅ |
 | 生成器       | `yield i`                       | ✅ |
 | 装饰器       | `@cache`                        | ✅ |
 

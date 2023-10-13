@@ -132,7 +132,7 @@ for a quick overview of the supported features.
 | Reflection      | `hasattr()/getattr()/setattr()` | ✅       |
 | Import          | `import/from..import`           | ✅       |
 | Context Block   | `with <expr> as <id>:`          | ✅       |
-| Type Annotation | `def  f(a:int, b:float=1)`      | ✅       |
+| Type Annotation | `def f(a:int, b:float=1)`       | ✅       |
 | Generator       | `yield i`                       | ✅       |
 | Decorator       | `@cache`                        | ✅       |
 
