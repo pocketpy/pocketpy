@@ -189,15 +189,11 @@ while(!_items[i].first.empty()) {           \
         if(_items[i].first == key) return _items[i].second;
         i = (i + 1) & _mask;
         if(_items[i].first == key) return _items[i].second;
-        i = (i + 1) & _mask;
-        if(_items[i].first == key) return _items[i].second;
         return try_get(key);
     }
 
     T* try_get_2_likely_found(StrName key) {
         uint16_t i = key.index & _mask;
-        if(_items[i].first == key) return &_items[i].second;
-        i = (i + 1) & _mask;
         if(_items[i].first == key) return &_items[i].second;
         i = (i + 1) & _mask;
         if(_items[i].first == key) return &_items[i].second;
