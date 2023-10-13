@@ -50,7 +50,7 @@ retmany_x : 1
 retmany_x : 2
 retmany_x : 3
 successfully errored with this message: 
-TypeError: x() takes 0 positional arguments but 2 were given
+TypeError: x() takes 2 positional arguments but 0 were given
 ['hello']
 
 ====== test bindings ======
