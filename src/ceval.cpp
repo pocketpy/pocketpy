@@ -464,21 +464,26 @@ __NEXT_STEP:;
         frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(POP_JUMP_IF_FALSE)
-        if(!py_bool(POPX())) frame->jump_abs(byte.arg);
+        _0 = POPX();
+        if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(POP_JUMP_IF_TRUE)
-        if(py_bool(POPX())) frame->jump_abs(byte.arg);
+        _0 = POPX();
+        if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(JUMP_IF_TRUE_OR_POP)
-        if(py_bool(TOP()) == true) frame->jump_abs(byte.arg);
+        _0 = TOP();
+        if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
     TARGET(JUMP_IF_FALSE_OR_POP)
-        if(py_bool(TOP()) == false) frame->jump_abs(byte.arg);
+        _0 = TOP();
+        if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
         else POP();
         DISPATCH();
     TARGET(SHORTCUT_IF_FALSE_OR_POP)
-        if(py_bool(TOP()) == false){        // [b, False]
+        _0 = TOP();
+        if(_0==False || !py_bool(_0)){      // [b, False]
             STACK_SHRINK(2);                // []
             PUSH(vm->False);                // [False]
             frame->jump_abs(byte.arg);
