@@ -12,8 +12,46 @@ Currently, pkpy is as fast as cpython 3.8.
 Here is a benchmark result of `v1.2.6`.
 Files are located in `benchmarks/`.
 
+## win32 64-bit cpy39
 ```
-Run python3 scripts/run_tests.py benchmark
+CPython: 3.9.13 (tags/v3.9.13:6de2ca5, May 17 2022, 16:36:42) [MSC v.1929 64 bit (AMD64)]
+System: 64-bit
+Testing directory: benchmarks/
+> benchmarks/fib.py
+  cpython:  0.986091s (100%)
+  pocketpy: 0.985427s (99.93%)
+> benchmarks/loop_0.py
+  cpython:  0.515685s (100%)
+  pocketpy: 0.344132s (66.73%)
+> benchmarks/loop_1.py
+  cpython:  0.938407s (100%)
+  pocketpy: 0.595634s (63.47%)
+> benchmarks/loop_2.py
+  cpython:  1.188671s (100%)
+  pocketpy: 0.735259s (61.86%)
+> benchmarks/loop_3.py
+  cpython:  4.957218s (100%)
+  pocketpy: 2.314210s (46.68%)
+> benchmarks/primes.py
+  cpython:  9.146332s (100%)
+  pocketpy: 8.507227s (93.01%)
+> benchmarks/recursive.py
+  cpython:  0.044789s (100%)
+  pocketpy: 0.031252s (69.78%)
+> benchmarks/simple.py
+  cpython:  0.516624s (100%)
+  pocketpy: 0.453159s (87.72%)
+> benchmarks/sort.py
+  cpython:  0.929597s (100%)
+  pocketpy: 0.406802s (43.76%)
+> benchmarks/sum.py
+  cpython:  0.047151s (100%)
+  pocketpy: 0.031266s (66.31%)
+ALL TESTS PASSED
+```
+
+## linux 64-bit cpy38
+```
 CPython: 3.8.10 (default, May 26 2023, 14:05:08) [GCC 9.4.0]
 System: 64-bit
 Testing directory: benchmarks/
@@ -47,6 +85,44 @@ Testing directory: benchmarks/
 > benchmarks/sum.py
   cpython:  0.021242s (100%)
   pocketpy: 0.010113s (47.61%)
+ALL TESTS PASSED
+```
+
+## linux 32-bit cpy39
+```
+CPython: 3.9.18 (main, Aug 26 2023, 11:50:23) [GCC 10.3.1 20211027]
+System: 32-bit
+Testing directory: benchmarks/
+> benchmarks/fib.py
+  cpython:  1.967908s (100%)
+  pocketpy: 0.960947s (48.83%)
+> benchmarks/loop_0.py
+  cpython:  1.063461s (100%)
+  pocketpy: 0.396626s (37.30%)
+> benchmarks/loop_1.py
+  cpython:  1.563821s (100%)
+  pocketpy: 0.639663s (40.90%)
+> benchmarks/loop_2.py
+  cpython:  2.626848s (100%)
+  pocketpy: 0.757444s (28.83%)
+> benchmarks/loop_3.py
+  cpython:  13.428345s (100%)
+  pocketpy: 2.852351s (21.24%)
+> benchmarks/primes.py
+  cpython:  18.174904s (100%)
+  pocketpy: 8.423515s (46.35%)
+> benchmarks/recursive.py
+  cpython:  0.025673s (100%)
+  pocketpy: 0.012470s (48.57%)
+> benchmarks/simple.py
+  cpython:  1.042090s (100%)
+  pocketpy: 0.480013s (46.06%)
+> benchmarks/sort.py
+  cpython:  0.989279s (100%)
+  pocketpy: 0.379171s (38.33%)
+> benchmarks/sum.py
+  cpython:  0.024227s (100%)
+  pocketpy: 0.012477s (51.50%)
 ALL TESTS PASSED
 ```
 
