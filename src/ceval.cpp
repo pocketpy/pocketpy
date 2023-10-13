@@ -121,9 +121,9 @@ __NEXT_STEP:;
         }
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = frame->f_globals().try_get(_name);
+        _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = vm->builtins->attr().try_get(_name);
+        _0 = vm->builtins->attr().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
     } DISPATCH();
@@ -132,18 +132,18 @@ __NEXT_STEP:;
         _name = StrName(byte.arg);
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = frame->f_globals().try_get(_name);
+        _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = vm->builtins->attr().try_get(_name);
+        _0 = vm->builtins->attr().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
     } DISPATCH();
     TARGET(LOAD_GLOBAL)
         heap._auto_collect();
         _name = StrName(byte.arg);
-        _0 = frame->f_globals().try_get(_name);
+        _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
-        _0 = vm->builtins->attr().try_get(_name);
+        _0 = vm->builtins->attr().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
         DISPATCH();
@@ -236,7 +236,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(BUILD_LONG) {
         PK_LOCAL_STATIC const StrName m_long("long");
-        _0 = builtins->attr().try_get(m_long);
+        _0 = builtins->attr().try_get_likely_found(m_long);
         if(_0 == nullptr) AttributeError(builtins, m_long);
         TOP() = call(_0, TOP());
     } DISPATCH();
@@ -493,7 +493,7 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(GOTO) {
         _name = StrName(byte.arg);
-        int index = co->labels.try_get(_name);
+        int index = co->labels.try_get_likely_found(_name);
         if(index < 0) _error("KeyError", fmt("label ", _name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();
@@ -607,7 +607,7 @@ __NEXT_STEP:;
         if(_1 != nullptr){
             for(PyObject* key: CAST(List&, _1)){
                 _name = StrName::get(CAST(Str&, key).sv());
-                PyObject* value = _0->attr().try_get(_name);
+                PyObject* value = _0->attr().try_get_likely_found(_name);
                 if(value == nullptr){
                     ImportError(fmt("cannot import name ", _name.escape()));
                 }else{
@@ -716,13 +716,13 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(INC_GLOBAL){
         _name = StrName(byte.arg);
-        PyObject** p = frame->f_globals().try_get_2(_name);
+        PyObject** p = frame->f_globals().try_get_2_likely_found(_name);
         if(p == nullptr) vm->NameError(_name);
         *p = VAR(CAST(i64, *p) + 1);
     } DISPATCH();
     TARGET(DEC_GLOBAL){
         _name = StrName(byte.arg);
-        PyObject** p = frame->f_globals().try_get_2(_name);
+        PyObject** p = frame->f_globals().try_get_2_likely_found(_name);
         if(p == nullptr) vm->NameError(_name);
         *p = VAR(CAST(i64, *p) - 1);
     } DISPATCH();

@@ -150,7 +150,7 @@ namespace pkpy{
     }
 
     PyObject* VM::_find_type_object(const Str& type){
-        PyObject* obj = builtins->attr().try_get(type);
+        PyObject* obj = builtins->attr().try_get_likely_found(type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
             throw std::runtime_error(fmt("type not found: ", type));
@@ -166,7 +166,7 @@ namespace pkpy{
     }
 
     PyTypeInfo* VM::_type_info(const Str& type){
-        PyObject* obj = builtins->attr().try_get(type);
+        PyObject* obj = builtins->attr().try_get_likely_found(type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return &t;
             FATAL_ERROR();
@@ -548,7 +548,7 @@ Str VM::disassemble(CodeObject_ co){
         }
         if(byte.op == OP_GOTO){
             // TODO: pre-compute jump targets for OP_GOTO
-            int* target = co->labels.try_get_2(StrName(byte.arg));
+            int* target = co->labels.try_get_2_likely_found(StrName(byte.arg));
             if(target != nullptr) jumpTargets.push_back(*target);
         }
     }
@@ -776,7 +776,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
 
     for(int j=0; j<kwargs.size(); j+=2){
         StrName key(CAST(int, kwargs[j]));
-        int index = co->varnames_inv.try_get(key);
+        int index = co->varnames_inv.try_get_likely_found(key);
         if(index < 0){
             if(vkwargs == nullptr){
                 TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));

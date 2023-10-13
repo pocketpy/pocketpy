@@ -184,6 +184,26 @@ while(!_items[i].first.empty()) {           \
         return &_items[i].second;
     }
 
+    T try_get_likely_found(StrName key) const{
+        uint16_t i = key.index & _mask;
+        if(_items[i].first == key) return _items[i].second;
+        i = (i + 1) & _mask;
+        if(_items[i].first == key) return _items[i].second;
+        i = (i + 1) & _mask;
+        if(_items[i].first == key) return _items[i].second;
+        return try_get(key);
+    }
+
+    T* try_get_2_likely_found(StrName key) {
+        uint16_t i = key.index & _mask;
+        if(_items[i].first == key) return &_items[i].second;
+        i = (i + 1) & _mask;
+        if(_items[i].first == key) return &_items[i].second;
+        i = (i + 1) & _mask;
+        if(_items[i].first == key) return &_items[i].second;
+        return try_get_2(key);
+    }
+
     bool contains(StrName key) const {
         bool ok; uint16_t i;
         HASH_PROBE_0(key, ok, i);
@@ -279,8 +299,11 @@ struct NameDictImpl{
     bool contains(StrName key) const { return is_small() ?_small.contains(key) : _large.contains(key); }
     bool del(StrName key){ return is_small() ?_small.del(key) : _large.del(key); }
 
+    V try_get_likely_found(StrName key) const { return is_small() ?_small.try_get(key) : _large.try_get_likely_found(key); }
+    V* try_get_2_likely_found(StrName key) { return is_small() ?_small.try_get_2(key) : _large.try_get_2_likely_found(key); }
+
     V operator[](StrName key) const {
-        V val = try_get(key);
+        V val = try_get_likely_found(key);
         if(val == default_invalid_value<V>()){
             throw std::runtime_error(fmt("NameDict key not found: ", key.escape()));
         }
