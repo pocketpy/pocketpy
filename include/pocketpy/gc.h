@@ -63,6 +63,7 @@ struct ManagedHeap{
 
     int sweep();
     void _auto_collect();
+    bool _should_auto_collect() const { return gc_counter >= gc_threshold; }
     int collect();
     void mark();
     ~ManagedHeap();

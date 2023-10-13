@@ -82,7 +82,7 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(LOAD_CONST)
-        heap._auto_collect();
+        if(heap._should_auto_collect()) heap._auto_collect();
         PUSH(co_consts[byte.arg]);
         DISPATCH();
     TARGET(LOAD_NONE) PUSH(None); DISPATCH();
@@ -105,13 +105,13 @@ __NEXT_STEP:;
     TARGET(LOAD_NULL) PUSH(PY_NULL); DISPATCH();
     /*****************************************/
     TARGET(LOAD_FAST) {
-        heap._auto_collect();
+        if(heap._should_auto_collect()) heap._auto_collect();
         _0 = frame->_locals[byte.arg];
         if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PUSH(_0);
     } DISPATCH();
     TARGET(LOAD_NAME) {
-        heap._auto_collect();
+        if(heap._should_auto_collect()) heap._auto_collect();
         _name = StrName(byte.arg);
         PyObject** slot = frame->_locals.try_get_name(_name);
         if(slot != nullptr) {
@@ -128,7 +128,7 @@ __NEXT_STEP:;
         vm->NameError(_name);
     } DISPATCH();
     TARGET(LOAD_NONLOCAL) {
-        heap._auto_collect();
+        if(heap._should_auto_collect()) heap._auto_collect();
         _name = StrName(byte.arg);
         _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -139,7 +139,7 @@ __NEXT_STEP:;
         vm->NameError(_name);
     } DISPATCH();
     TARGET(LOAD_GLOBAL)
-        heap._auto_collect();
+        if(heap._should_auto_collect()) heap._auto_collect();
         _name = StrName(byte.arg);
         _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }

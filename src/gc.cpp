@@ -33,7 +33,6 @@ namespace pkpy{
     void ManagedHeap::_auto_collect(){
 #if !PK_DEBUG_NO_AUTO_GC
         if(_gc_lock_counter > 0) return;
-        if(gc_counter < gc_threshold) return;
         gc_counter = 0;
         collect();
         gc_threshold = gen.size() * 2;
