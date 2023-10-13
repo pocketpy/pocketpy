@@ -14,14 +14,14 @@ constexpr T default_invalid_value(){
 }
 
 // #define PK_LOOP_K(B) for(int i=0; i<kCapacity; i++) { B(i) }
-#define PK_LOOP_K(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7)
+#define PK_LOOP_K(B) B(0) B(1) B(2) B(3) B(4) B(5) B(6) B(7) B(8) B(9) B(10) B(11)
 
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
     static_assert(std::is_pod_v<V>);
 
-    static const int kCapacity = 8;
+    static const int kCapacity = 12;
 
     bool _is_small;
     uint16_t _size;
