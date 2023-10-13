@@ -313,7 +313,8 @@ PyObject* VM::py_negate(PyObject* obj){
 }
 
 bool VM::py_bool(PyObject* obj){
-    if(is_non_tagged_type(obj, tp_bool)) return obj == True;
+    if(obj == vm->True) return true;
+    if(obj == vm->False) return false;
     if(obj == None) return false;
     if(is_int(obj)) return _CAST(i64, obj) != 0;
     if(is_float(obj)) return _CAST(f64, obj) != 0.0;
