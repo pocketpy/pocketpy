@@ -1,7 +1,4 @@
 #include "pocketpy/str.h"
-#include <_types/_uint16_t.h>
-#include <_types/_uint32_t.h>
-#include <stdexcept>
 
 namespace pkpy {
 
