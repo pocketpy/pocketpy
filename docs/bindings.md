@@ -6,13 +6,6 @@ order: 18
 
 In order to use a C/C++ library in python, you need to write bindings for it.
 
-## Automatic bindings
-
-pkpy supports automatic binding generation **only for C libraries**.
-See [pkpy-bindings](https://github.com/blueloveTH/pkpy-bindings) for details.
-
-It takes a C header file and generates a python module stub (`*.pyi`) and a C++ binding file (`*.cpp`).
-
 ## Manual bindings
 
 pkpy uses an universal signature to wrap a function pointer as a python function or method that can be called in python code, i.e `NativeFuncC`.
@@ -258,6 +251,14 @@ This specialized binding function has optimizations and result in better perform
 For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
 
 
-### Further reading
+## Automatic bindings
+
+pkpy supports automatic binding generation **only for C libraries**.
+See [pkpy-bindings](https://github.com/blueloveTH/pkpy-bindings) for details.
+
+It takes a C header file and generates a python module stub (`*.pyi`) and a C++ binding file (`*.cpp`).
+
+
+## Further reading
 
 See [random.cpp](https://github.com/blueloveTH/pocketpy/blob/main/src/random.cpp) for an example used by `random` module.
