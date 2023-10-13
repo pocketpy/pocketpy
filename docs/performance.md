@@ -9,42 +9,45 @@ label: Performance
 Currently, pkpy is as fast as cpython 3.8.
 **Performance results for cpython 3.8 are applicable to for pkpy.**
 
-Here is a benchmark result of `v1.0.0`.
+Here is a benchmark result of `v1.2.6`.
 Files are located in `benchmarks/`.
 
 ```
+Run python3 scripts/run_tests.py benchmark
+CPython: 3.8.10 (default, May 26 2023, 14:05:08) [GCC 9.4.0]
+System: 64-bit
 Testing directory: benchmarks/
 > benchmarks/fib.py
-  cpython:  0.695462s (100%)
-  pocketpy: 0.606675s (87.23%)
+  cpython:  0.739547s (100%)
+  pocketpy: 0.613591s (82.97%)
 > benchmarks/loop_0.py
-  cpython:  0.315025s (100%)
-  pocketpy: 0.177018s (56.19%)
+  cpython:  0.356003s (100%)
+  pocketpy: 0.224396s (63.03%)
 > benchmarks/loop_1.py
-  cpython:  0.568521s (100%)
-  pocketpy: 0.319714s (56.24%)
+  cpython:  0.661924s (100%)
+  pocketpy: 0.446577s (67.47%)
 > benchmarks/loop_2.py
-  cpython:  0.802686s (100%)
-  pocketpy: 0.426311s (53.11%)
+  cpython:  0.937243s (100%)
+  pocketpy: 0.514324s (54.88%)
 > benchmarks/loop_3.py
-  cpython:  3.040100s (100%)
-  pocketpy: 1.748905s (57.53%)
+  cpython:  3.671752s (100%)
+  pocketpy: 1.876151s (51.10%)
 > benchmarks/primes.py
-  cpython:  6.566063s (100%)
-  pocketpy: 5.314596s (80.94%)
+  cpython:  7.293947s (100%)
+  pocketpy: 5.427518s (74.41%)
 > benchmarks/recursive.py
-  cpython:  0.020200s (100%)
-  pocketpy: 0.004595s (22.75%)
+  cpython:  0.021559s (100%)
+  pocketpy: 0.010227s (47.44%)
 > benchmarks/simple.py
-  cpython:  0.375262s (100%)
-  pocketpy: 0.283474s (75.54%)
+  cpython:  0.408654s (100%)
+  pocketpy: 0.265084s (64.87%)
 > benchmarks/sort.py
-  cpython:  0.327771s (100%)
-  pocketpy: 0.242722s (74.05%)
+  cpython:  0.372539s (100%)
+  pocketpy: 0.243566s (65.38%)
 > benchmarks/sum.py
-  cpython:  0.020165s (100%)
-  pocketpy: 0.004495s (22.29%)
+  cpython:  0.021242s (100%)
+  pocketpy: 0.010113s (47.61%)
 ALL TESTS PASSED
 ```
 
-See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/5113363233/jobs/9192476164).
+See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/6511071423/job/17686074263).
