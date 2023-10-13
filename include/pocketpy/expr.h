@@ -42,6 +42,7 @@ struct Expr{
 
 struct CodeEmitContext{
     VM* vm;
+    FuncDecl_ func;     // optional
     CodeObject_ co;
     // some bugs on MSVC (error C2280) when using std::vector<Expr_>
     // so we use stack_no_copy instead

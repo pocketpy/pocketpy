@@ -19,6 +19,7 @@ namespace pkpy{
         decl->code = std::make_shared<CodeObject>(lexer->src, name);
         decl->nested = name_scope() == NAME_LOCAL;
         contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
+        contexts.top().func = decl;
         return decl;
     }
 
@@ -35,11 +36,21 @@ namespace pkpy{
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
+        FuncDecl_ func = contexts.top().func;
+        if(func){
+            func->is_simple = true;
+            if(func->code->is_generator) func->is_simple = false;
+            if(func->kwargs.size() > 0) func->is_simple = false;
+            if(func->starred_arg >= 0) func->is_simple = false;
+            if(func->starred_kwarg >= 0) func->is_simple = false;
+        }
         contexts.pop();
     }
 
     void Compiler::init_pratt_rules(){
-        if(rules[TK(".")].precedence != PREC_NONE) return;
+        PK_LOCAL_STATIC unsigned int count = 0;
+        if(count > 0) return;
+        count += 1;
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define METHOD(name) &Compiler::name
 #define NO_INFIX nullptr, PREC_NONE

@@ -131,6 +131,7 @@ struct FuncDecl {
 
     Str signature;              // signature of this function
     Str docstring;              // docstring of this function
+    bool is_simple;
     void _gc_mark() const;
 };
 

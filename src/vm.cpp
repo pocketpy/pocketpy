@@ -739,15 +739,15 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
 
     if(args.size() < decl_argc){
         vm->TypeError(fmt(
-            "expected ", decl_argc, " positional arguments, got ", args.size(),
-            " (", co->name, ')'
+            co->name, "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"
         ));
+        UNREACHABLE();
     }
 
     int i = 0;
     // prepare args
     for(int index: decl->args) buffer[index] = args[i++];
-    // set extra varnames to nullptr
+    // set extra varnames to PY_NULL
     for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
     // prepare kwdefaults
     for(auto& kv: decl->kwargs) buffer[kv.key] = kv.value;
@@ -843,6 +843,28 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         const CodeObject* co = decl->code.get();
         int co_nlocals = co->varnames.size();
 
+        PyObject** _base = args.begin();
+
+        if(decl->is_simple){
+            if(args.size() != decl->args.size()){
+                TypeError(fmt(
+                    co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
+                ));
+                UNREACHABLE();
+            }
+            if(!kwargs.empty()){
+                TypeError(fmt(co->name, "() takes no keyword arguments"));
+                UNREACHABLE();
+            }
+            s_data.reset(_base + co_nlocals);
+            int i = 0;
+            // prepare args
+            for(int index: decl->args) _base[index] = args[i++];
+            // set extra varnames to PY_NULL
+            for(int j=i; j<co_nlocals; j++) _base[j] = PY_NULL;
+            goto __FAST_CALL;
+        }
+
         _prepare_py_call(buffer, args, kwargs, decl);
         
         if(co->is_generator){
@@ -854,8 +876,10 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         }
 
         // copy buffer back to stack
-        s_data.reset(args.begin());
-        for(int j=0; j<co_nlocals; j++) PUSH(buffer[j]);
+        s_data.reset(_base + co_nlocals);
+        for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+
+__FAST_CALL:
         callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
