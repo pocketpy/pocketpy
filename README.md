@@ -136,6 +136,13 @@ for a quick overview of the supported features.
 | Generator       | `yield i`                       | ✅       |
 | Decorator       | `@cache`                        | ✅       |
 
+## Performance
+
+Currently, pkpy is as fast as cpython 3.9.
+Performance results for cpython 3.9 are applicable to for pkpy.
+
+See https://pocketpy.dev/performance/ for details.
+
 ## Used By
 
 |                                                              | Description                                                  |
