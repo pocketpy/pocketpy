@@ -941,7 +941,7 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     }
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
-        PyObject* val = obj->attr().try_get(name);
+        PyObject* val = obj->attr().try_get_likely_found(name);
         if(val != nullptr) return val;
     }
     if(cls_var != nullptr){
