@@ -812,6 +812,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView args(p1 - ARGC - int(method_call), p1);
     ArgsView kwargs(p1, s_data._sp);
 
+    PyObject** _base = args.begin();
     PyObject* buffer[PK_MAX_CO_VARNAMES];
 
     if(is_non_tagged_type(callable, tp_native_func)){
@@ -821,8 +822,8 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             int co_nlocals = f.decl->code->varnames.size();
             _prepare_py_call(buffer, args, kwargs, f.decl);
             // copy buffer back to stack
-            s_data.reset(args.begin());
-            for(int j=0; j<co_nlocals; j++) PUSH(buffer[j]);
+            s_data.reset(_base + co_nlocals);
+            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
             ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
         }else{
             if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
@@ -842,9 +843,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         const FuncDecl_& decl = fn.decl;
         const CodeObject* co = decl->code.get();
         int co_nlocals = co->varnames.size();
-
-        PyObject** _base = args.begin();
-
         if(decl->is_simple){
             if(args.size() != decl->args.size()){
                 TypeError(fmt(
