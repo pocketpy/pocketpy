@@ -113,6 +113,7 @@ for i in range(2, 1000):
 a = {'0': 0, '1': 1}
 b = ['0', '1']
 
+# dict delete test
 data = []
 j = 6
 for i in range(65535):
@@ -126,6 +127,19 @@ for i in range(len(data)):
     if i % 3 == 0:
         y = b.pop()
         del a[y]
+
+# namedict delete test
+class A: pass
+a = A()
+b = ['0', '1']
+
+for i in range(len(data)):
+    z = data[i]
+    setattr(a, str(z), i)
+    b.append(z)
+    if i % 3 == 0:
+        y = b.pop()
+        delattr(a, y)
 
 a = {1: 2, 3: 4}
 assert a.pop(1) == 2

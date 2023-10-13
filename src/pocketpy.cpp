@@ -309,6 +309,11 @@ void init_builtins(VM* _vm) {
         return vm->getattr(args[0], name);
     });
 
+    _vm->bind_builtin_func<2>("delattr", [](VM* vm, ArgsView args) {
+        vm->delattr(args[0], CAST(Str&, args[1]));
+        return vm->None;
+    });
+
     _vm->bind_builtin_func<1>("hex", [](VM* vm, ArgsView args) {
         std::stringstream ss;
         ss << std::hex << CAST(i64, args[0]);

@@ -220,8 +220,7 @@ __NEXT_STEP:;
     TARGET(DELETE_ATTR)
         _0 = POPX();
         _name = StrName(byte.arg);
-        if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
-        if(!_0->attr().del(_name)) AttributeError(_0, _name);
+        delattr(_0, _name);
         DISPATCH();
     TARGET(DELETE_SUBSCR)
         _1 = POPX();

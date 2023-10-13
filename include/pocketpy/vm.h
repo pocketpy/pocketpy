@@ -449,6 +449,7 @@ public:
     Str disassemble(CodeObject_ co);
     void init_builtin_types();
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
+    void delattr(PyObject* obj, StrName name);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
     PyObject* format(Str, PyObject*);

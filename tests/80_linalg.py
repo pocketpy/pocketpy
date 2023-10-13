@@ -60,12 +60,12 @@ assert str(static_test_vec3_float) == 'vec3(3.1887, -1.0984e+06, 9)'
 assert str(static_test_vec3_int) == 'vec3(278, -1.39197e+13, 1.36422e+15)'
 
 # test __getnewargs__
-element_name_list = [e for e in dir(test_vec3) if e in 'x,y,z,w']
+element_name_list = ['x', 'y', 'z']
 element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
 assert tuple(element_value_list) == test_vec3.__getnewargs__()
 
 # test copy
-element_name_list = [e for e in dir(test_vec3) if e in 'x,y,z,w']
+element_name_list = ['x', 'y', 'z']
 element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
 copy_element_value_list = [getattr(test_vec3.copy(), attr) for attr in element_name_list]
 assert element_value_list == copy_element_value_list

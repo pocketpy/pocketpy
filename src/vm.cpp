@@ -915,6 +915,11 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     return nullptr;
 }
 
+void VM::delattr(PyObject *_0, StrName _name){
+    if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
+    if(!_0->attr().del(_name)) AttributeError(_0, _name);
+}
+
 // https://docs.python.org/3/howto/descriptor.html#invocation-from-an-instance
 PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* objtype;
