@@ -13,6 +13,91 @@ namespace pkpy
                      return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
                  });
 
+        vm->bind(type, "__add__(self, other) -> deque",
+                 [](VM *vm, ArgsView args)
+                 {
+                     auto _lock = vm->heap.gc_scope_lock();
+
+                     PyObject *newDequeObj = vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), vm, vm->None, vm->None); // create the new deque
+
+                     PyDeque &newDeque = _CAST(PyDeque &, newDequeObj);
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyDeque &other = _CAST(PyDeque &, args[1]);
+
+                     for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
+                     {
+                         newDeque.append(*it);
+                     }
+                     for (auto it = other.dequeItems.begin(); it != other.dequeItems.end(); ++it)
+                     {
+                         newDeque.append(*it);
+                     }
+                     return newDequeObj;
+                 });
+
+      vm->bind(type, "__bool__(self) -> bool",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     return VAR(!self.dequeItems.empty());
+                 });
+
+        vm->bind(type, "__class__(self) -> deque()", // creates a new empty deque
+                 [](VM *vm, ArgsView args)
+                 {
+                     return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), vm, vm->None, vm->None);
+                 });
+
+        vm->bind(type, "__contains__(self, obj) -> bool",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *obj = args[1];
+                     bool found = self.findIndex(vm, obj, -1, -1) != -1;
+                     return VAR(found);
+                 });
+
+        vm->bind(type, "__copy__(self)", // shallow copy
+                 [](VM *vm, ArgsView args)
+                 {
+                     auto _lock = vm->heap.gc_scope_lock(); // locking the heap
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *newDequeObj = vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), vm, vm->None, vm->None); // create the empty deque
+                     PyDeque &newDeque = _CAST(PyDeque &, newDequeObj);
+
+                     for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
+                     {
+                         newDeque.append(*it);
+                     }
+                     return newDequeObj;
+                 });
+        vm->bind(type, "__delitem__(self, index) -> None",
+                [](VM *vm, ArgsView args)
+                {
+                    // TODO
+                    return vm->None;
+                });
+        
+        vm->bind(type, "__eq__(self, other) -> bool", 
+            [](VM *vm, ArgsView args)
+            {
+                //TODO
+                return vm->None;
+            });
+        
+        vm->bind(type, "__getitem__(self, idx) -> PyObject*",
+            [](VM *vm, ArgsView args)
+            {
+                //TODO
+                return VM->None;
+            }
+        );
+
+        // TODO: __iadd__, __imul__, __reversed__, __str__, __mul__, __rmul__, __setitem__, 
+
+
+
+
         vm->bind(type, "__len__(self) -> int",
                  [](VM *vm, ArgsView args)
                  {
@@ -34,6 +119,7 @@ namespace pkpy
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      return vm->heap.gcnew<PyDequeIter>(PyDequeIter::_type(vm), args[0], self.dequeItems.begin(), self.dequeItems.end());
                  });
+        
 
         vm->bind(type, "append(self, item) -> None",
                  [](VM *vm, ArgsView args)
@@ -64,14 +150,17 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: FIX after implementing the __iter__ method
+                     auto _lock = vm->heap.gc_scope_lock(); // locking the heap
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyDeque *newDeque = new PyDeque(vm, vm->None, vm->None);
+                     // shallow copy
+                     PyObject *newDequeObj = vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), vm, vm->None, vm->None); // create the empty deque
+                     PyDeque &newDeque = _CAST(PyDeque &, newDequeObj);
+
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
                      {
-                         newDeque->append(*it);
+                         newDeque.append(*it);
                      }
-                     return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
+                     return newDequeObj;
                  });
 
         vm->bind(type, "count(self, obj) -> int",
@@ -202,6 +291,7 @@ namespace pkpy
                 vm->AttributeError("attribute 'maxlen' of 'collections.deque' objects is not writable");
                 return vm->None;
             });
+
     }
 
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
@@ -302,10 +392,9 @@ namespace pkpy
             }
         }
         if (this->bounded)
-        {
-            ss << ", maxlen=" << this->maxlen;
-        }
-        ss << "])";
+            ss << "], maxlen=" << this->maxlen << ")";
+        else
+            ss << "])";
         return ss;
     }
 
