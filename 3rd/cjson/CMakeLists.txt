@@ -14,6 +14,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(
     cjson
+    STATIC
     ${CMAKE_CURRENT_LIST_DIR}/src/cJSON.c
     ${CMAKE_CURRENT_LIST_DIR}/src/cJSONw.cpp
 )
