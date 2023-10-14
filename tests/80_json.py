@@ -14,7 +14,7 @@ a = {
     'h': False
 }
 
-import json
+import cjson as json
 
 _j = json.dumps(a)
 _a = json.loads(_j)
