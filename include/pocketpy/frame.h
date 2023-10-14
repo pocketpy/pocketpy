@@ -122,6 +122,8 @@ struct Frame {
     void _gc_mark() const {
         PK_OBJ_MARK(_module);
         co->_gc_mark();
+        // Frame could be stored in a generator, so mark _callable for safety
+        if(_callable != nullptr) PK_OBJ_MARK(_callable);
     }
 };
 
