@@ -563,8 +563,10 @@ void pkpy_compile_to_string(pkpy_vm* vm_handle, const char* source, const char* 
     pkpy_clear_error(vm_handle, NULL);
     try{
         CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
-        *out = code->serialize(vm).c_str_dup();
-        *ok = true;
+        // *out = code->serialize(vm).c_str_dup();
+        // *ok = true;
+        *out = strdup("OK!");
+        *ok = ok;
     }catch(Exception& e){
         *ok = false;
         *out = e.summary().c_str_dup();
