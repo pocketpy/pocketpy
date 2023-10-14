@@ -1414,6 +1414,7 @@ void init_builtins(VM* _vm) {
 
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);
+    PyDequeIter::register_class(_vm, _vm->builtins);
     StringIter::register_class(_vm, _vm->builtins);
     Generator::register_class(_vm, _vm->builtins);
 }

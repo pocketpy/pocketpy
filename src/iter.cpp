@@ -26,6 +26,21 @@ namespace pkpy{
         });
     }
 
+    void PyDequeIter::_register(VM* vm, PyObject* mod, PyObject* type){
+        // Iterator for the deque type
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->bind_notimplemented_constructor<PyDequeIter>(type);
+
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            PyDequeIter& self = _CAST(PyDequeIter&, obj);
+            if(self.current == self.end) return vm->StopIteration;
+            PyObject* ret = *self.current;
+            ++self.current;
+            return ret;
+        });
+    }
+
     void StringIter::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);

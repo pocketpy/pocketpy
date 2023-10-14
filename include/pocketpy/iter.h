@@ -29,6 +29,21 @@ struct ArrayIter{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
+struct PyDequeIter{
+    // Iterator for the deque type
+    PY_CLASS(PyDequeIter, builtins, "_deque_iterator")
+    PyObject* ref;
+    std::deque<PyObject*>::iterator begin;
+    std::deque<PyObject*>::iterator end;
+    std::deque<PyObject*>::iterator current;
+
+    PyDequeIter(PyObject* ref, std::deque<PyObject*>::iterator begin, std::deque<PyObject*>::iterator end)
+        : ref(ref), begin(begin), end(end), current(begin) {}
+
+    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+};
+
 struct StringIter{
     PY_CLASS(StringIter, builtins, "_string_iterator")
     PyObject* ref;

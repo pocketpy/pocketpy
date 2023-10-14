@@ -6,7 +6,6 @@
 #include "str.h"
 #include "iter.h"
 #include "cffi.h"
-#include <deque>
 
 namespace pkpy
 {

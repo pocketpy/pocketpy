@@ -20,6 +20,21 @@ namespace pkpy
                      return VAR(self.dequeItems.size());
                  });
 
+        vm->bind(type, "__repr__(self) -> str",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     std::stringstream ss = self.getRepr(vm);
+                     return VAR(ss.str());
+                 });
+
+        vm->bind(type, "__iter__(self) -> deque_iterator",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     return vm->heap.gcnew<PyDequeIter>(PyDequeIter::_type(vm), args[0], self.dequeItems.begin(), self.dequeItems.end());
+                 });
+
         vm->bind(type, "append(self, item) -> None",
                  [](VM *vm, ArgsView args)
                  {
@@ -127,14 +142,6 @@ namespace pkpy
                      return vm->None;
                  });
 
-        vm->bind(type, "__repr__(self) -> str",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     std::stringstream ss = self.getRepr(vm);
-                     return VAR(ss.str());
-                 });
-
         vm->bind(type, "pop(self) -> PyObject",
                  [](VM *vm, ArgsView args)
                  {
@@ -197,17 +204,21 @@ namespace pkpy
             });
     }
 
-    PyDeque::PyDeque(VM *vm, PyObject* iterable, PyObject* maxlen)
+    PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
-        if(maxlen!=vm->None){
+        if (maxlen != vm->None)
+        {
             this->maxlen = CAST(int, maxlen);
             this->bounded = true;
-        }else{
+        }
+        else
+        {
             this->bounded = false;
             this->maxlen = -1;
         }
 
-        if(iterable!=vm->None){
+        if (iterable != vm->None)
+        {
             auto _lock = vm->heap.gc_scope_lock();
             PyObject *it = vm->py_iter(iterable); // strong ref
             PyObject *obj = vm->py_next(it);
