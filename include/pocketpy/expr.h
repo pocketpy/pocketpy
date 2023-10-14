@@ -60,7 +60,7 @@ struct CodeEmitContext{
     void exit_block();
     void emit_expr();   // clear the expression stack and generate bytecode
     std::string _log_s_expr();
-    int emit(Opcode opcode, int arg, int line);
+    int emit(Opcode opcode, uint16_t arg, int line);
     void patch_jump(int index);
     bool add_label(StrName name);
     int add_varname(StrName name);

@@ -25,7 +25,7 @@ namespace pkpy{
 
     bool Frame::jump_to_exception_handler(){
         // try to find a parent try block
-        int block = co->codes[_ip].block;
+        int block = co->iblocks[_ip];
         while(block >= 0){
             if(co->blocks[block].type == TRY_EXCEPT) break;
             block = co->blocks[block].parent;
@@ -47,8 +47,7 @@ namespace pkpy{
     }
 
     void Frame::jump_abs_break(int target){
-        const Bytecode& prev = co->codes[_ip];
-        int i = prev.block;
+        int i = co->iblocks[_ip];
         _next_ip = target;
         if(_next_ip >= co->codes.size()){
             while(i>=0) i = _exit_block(i);
@@ -58,9 +57,9 @@ namespace pkpy{
             //     _ = 0
             // # if there is no op here, the block check will fail
             // while i: --i
-            const Bytecode& next = co->codes[target];
-            while(i>=0 && i!=next.block) i = _exit_block(i);
-            if(i!=next.block) throw std::runtime_error("invalid jump");
+            int next_block = co->iblocks[target];
+            while(i>=0 && i!=next_block) i = _exit_block(i);
+            if(i!=next_block) throw std::runtime_error("invalid jump");
         }
     }
 

@@ -52,7 +52,7 @@
 
 // This is the maximum number of arguments in a function declaration
 // including positional arguments, keyword-only arguments, and varargs
-// (not recommended to change this)
+// (not recommended to change this / it should be less than 200)
 #define PK_MAX_CO_VARNAMES          32
 
 namespace pkpy{

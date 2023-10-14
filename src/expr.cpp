@@ -50,10 +50,9 @@ namespace pkpy{
         return ss.str();
     }
 
-    int CodeEmitContext::emit(Opcode opcode, int arg, int line) {
-        co->codes.push_back(
-            Bytecode{(uint8_t)opcode, (uint16_t)curr_block_i, arg}
-        );
+    int CodeEmitContext::emit(Opcode opcode, uint16_t arg, int line) {
+        co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
+        co->iblocks.push_back(curr_block_i);
         co->lines.push_back(line);
         int i = co->codes.size() - 1;
         if(line==BC_KEEPLINE){
@@ -75,6 +74,7 @@ namespace pkpy{
     }
 
     int CodeEmitContext::add_varname(StrName name){
+        // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
         int index = co->varnames_inv.try_get(name);
         if(index >= 0) return index;
         co->varnames.push_back(name);
@@ -143,8 +143,7 @@ namespace pkpy{
 
     bool NameExpr::emit_store(CodeEmitContext* ctx) {
         if(ctx->is_compiling_class){
-            int index = name.index;
-            ctx->emit(OP_STORE_CLASS_ATTR, index, line);
+            ctx->emit(OP_STORE_CLASS_ATTR, name.index, line);
             return true;
         }
         ctx->emit_store_name(scope, name, line);
@@ -214,7 +213,7 @@ namespace pkpy{
         if(std::holds_alternative<i64>(value)){
             i64 _val = std::get<i64>(value);
             if(_val >= INT16_MIN && _val <= INT16_MAX){
-                ctx->emit(OP_LOAD_INTEGER, (int)_val, line);
+                ctx->emit(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 return;
             }
             obj = VAR(_val);
@@ -237,7 +236,7 @@ namespace pkpy{
             if(std::holds_alternative<i64>(lit->value)){
                 i64 _val = -std::get<i64>(lit->value);
                 if(_val >= INT16_MIN && _val <= INT16_MAX){
-                    ctx->emit(OP_LOAD_INTEGER, (int)_val, line);
+                    ctx->emit(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 }else{
                     ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
                 }
@@ -484,7 +483,7 @@ namespace pkpy{
 
         if(vargs || vkwargs){
             for(auto& item: args) item->emit(ctx);
-            ctx->emit(OP_BUILD_TUPLE_UNPACK, (int)args.size(), line);
+            ctx->emit(OP_BUILD_TUPLE_UNPACK, (uint16_t)args.size(), line);
 
             if(!kwargs.empty()){
                 for(auto& item: kwargs){
@@ -508,13 +507,13 @@ namespace pkpy{
             // vectorcall protocal
             for(auto& item: args) item->emit(ctx);
             for(auto& item: kwargs){
-                int index = StrName(item.first.sv()).index;
+                uint16_t index = StrName(item.first.sv()).index;
                 ctx->emit(OP_LOAD_INTEGER, index, line);
                 item.second->emit(ctx);
             }
-            int KWARGC = (int)kwargs.size();
-            int ARGC = (int)args.size();
-            ctx->emit(OP_CALL, (KWARGC<<16)|ARGC, line);
+            int KWARGC = kwargs.size();
+            int ARGC = args.size();
+            ctx->emit(OP_CALL, (KWARGC<<8)|ARGC, line);
         }
     }
 

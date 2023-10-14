@@ -88,7 +88,7 @@ __NEXT_STEP:;
     TARGET(LOAD_NONE) PUSH(None); DISPATCH();
     TARGET(LOAD_TRUE) PUSH(True); DISPATCH();
     TARGET(LOAD_FALSE) PUSH(False); DISPATCH();
-    TARGET(LOAD_INTEGER) PUSH(VAR(byte.arg)); DISPATCH();
+    TARGET(LOAD_INTEGER) PUSH(VAR((int16_t)byte.arg)); DISPATCH();
     TARGET(LOAD_ELLIPSIS) PUSH(Ellipsis); DISPATCH();
     TARGET(LOAD_FUNCTION) {
         FuncDecl_ decl = co->func_decls[byte.arg];
@@ -511,8 +511,8 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(CALL)
         _0 = vectorcall(
-            byte.arg & 0xFFFF,          // ARGC
-            (byte.arg>>16) & 0xFFFF,    // KWARGC
+            byte.arg & 0xFF,          // ARGC
+            (byte.arg>>8) & 0xFF,     // KWARGC
             true
         );
         if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
@@ -600,7 +600,8 @@ __NEXT_STEP:;
         if(_0 != StopIteration){
             PUSH(_0);
         }else{
-            frame->jump_abs_break(co_blocks[byte.block].end);
+            // TODO: optimize this
+            frame->jump_abs_break(co->_get_block_codei(frame->_ip).end);
         }
         DISPATCH();
     /*****************************************/

@@ -513,7 +513,7 @@ PyObject* VM::new_module(Str name, Str package) {
 }
 
 static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
-    std::string argStr = byte.arg == -1 ? "" : std::to_string(byte.arg);
+    std::string argStr = byte.arg == BC_NOARG ? "" : std::to_string(byte.arg);
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){

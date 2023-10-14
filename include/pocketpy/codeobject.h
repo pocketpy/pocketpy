@@ -21,8 +21,7 @@ inline const char* OP_NAMES[] = {
 
 struct Bytecode{
     uint8_t op;
-    uint16_t block;
-    int arg;
+    uint16_t arg;
 };
 
 enum CodeBlockType {
@@ -33,7 +32,7 @@ enum CodeBlockType {
     TRY_EXCEPT,
 };
 
-inline const int BC_NOARG = -1;
+inline const uint8_t BC_NOARG = 0;
 inline const int BC_KEEPLINE = -1;
 
 struct CodeBlock {
@@ -103,13 +102,18 @@ struct CodeObject {
     bool is_generator = false;
 
     std::vector<Bytecode> codes;
-    std::vector<int> lines; // line number for each bytecode
+    std::vector<int> iblocks;    // block index for each bytecode
+    std::vector<int> lines;     // line number for each bytecode
     List consts;
     std::vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
+
+    const CodeBlock& _get_block_codei(int codei) const{
+        return blocks[iblocks[codei]];
+    }
 
     CodeObject(std::shared_ptr<SourceData> src, const Str& name);
     void _gc_mark() const;
