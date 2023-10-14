@@ -1,4 +1,4 @@
-from dis import dis, _s
+from dis import dis
 
 def f(a):
     for i in range(100000):
