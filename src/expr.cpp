@@ -52,7 +52,7 @@ namespace pkpy{
 
     int CodeEmitContext::emit(Opcode opcode, int arg, int line) {
         co->codes.push_back(
-            Bytecode{(uint16_t)opcode, (uint16_t)curr_block_i, arg}
+            Bytecode{(uint8_t)opcode, (uint16_t)curr_block_i, arg}
         );
         co->lines.push_back(line);
         int i = co->codes.size() - 1;

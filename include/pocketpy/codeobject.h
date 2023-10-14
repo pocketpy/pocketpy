@@ -7,7 +7,7 @@ namespace pkpy{
 
 enum NameScope { NAME_LOCAL, NAME_GLOBAL, NAME_GLOBAL_UNKNOWN };
 
-enum Opcode {
+enum Opcode: uint8_t {
     #define OPCODE(name) OP_##name,
     #include "opcodes.h"
     #undef OPCODE
@@ -20,7 +20,7 @@ inline const char* OP_NAMES[] = {
 };
 
 struct Bytecode{
-    uint16_t op;
+    uint8_t op;
     uint16_t block;
     int arg;
 };
