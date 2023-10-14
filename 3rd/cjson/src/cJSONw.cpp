@@ -62,7 +62,8 @@ static std::string convert_python_object_to_string(PyObject* obj, VM* vm){
         }
     }
     else if (is_type(obj, vm->tp_str)){
-        return std::string("\"") + CAST(Str&, obj).c_str() + std::string("\"");
+        std::string str = CAST(Str&, obj).replace("\n", "\\n").replace("\"", "\\\"").c_str();
+        return std::string("\"") + str + std::string("\"");
     }
     else if (is_type(obj, vm->tp_dict)){
         return covert_dict_to_string(CAST(Dict&, obj), vm);
