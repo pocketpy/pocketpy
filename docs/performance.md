@@ -127,3 +127,31 @@ ALL TESTS PASSED
 ```
 
 See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/6511071423/job/17686074263).
+
+## Primes benchmarks
+
+These are the results of the primes benchmark.
+
+| name | version | time | file |
+| ---- | ---- | ---- | ---- |
+| lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.lua) |
+| pocketpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
+| cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
+
+```sh
+$ time lua benchmarks/primes.lua 
+
+real    0m1.576s
+user    0m1.514s
+sys     0m0.060s
+$ time ./main benchmarks/primes.py 
+
+real    0m2.385s
+user    0m2.247s
+sys     0m0.100s
+$ time python benchmarks/primes.py 
+
+real    0m2.871s
+user    0m2.798s
+sys     0m0.060s
+```

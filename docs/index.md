@@ -43,7 +43,7 @@ These platforms are officially tested.
 
 ## Star the repo
 
-If you find pocketpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy) (●'◡'●)
+If you find pkpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy) (●'◡'●)
 
 ## Sponsor me
 

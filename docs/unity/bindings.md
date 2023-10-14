@@ -182,4 +182,4 @@ delegate object NativeFuncC(VM vm, object[] args);
 
 + `CSharpLambda BindFunc(PyObject obj, string name, int argc, NativeFuncC f)`
 
-It is similar to `bind_func` in [C++ API](../quick-start/bind/).
+It is similar to `bind_func` in [C++ API](../bindings/).
