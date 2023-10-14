@@ -127,7 +127,7 @@ void add_module_cjson(VM* vm){
 
         const Str& expr = CAST(Str&, args[0]);
 
-        cJSON *json = cJSON_Parse(expr.c_str());
+        cJSON *json = cJSON_ParseWithLength(expr.data, expr.size);
 
         PyObject* output = convert_cjson_to_python_object(json, vm);
         cJSON_Delete(json);

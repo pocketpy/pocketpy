@@ -14,7 +14,11 @@ a = {
     'h': False
 }
 
-import cjson as json
+try:
+    import cjson as json
+    print('[INFO] cjson is used')
+except ImportError:
+    import json
 
 _j = json.dumps(a)
 _a = json.loads(_j)
