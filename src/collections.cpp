@@ -23,7 +23,7 @@ namespace pkpy
                  [](VM *vm, ArgsView args)
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     return VAR(self.dequeItems->size());
+                     return VAR(self.dequeItems.size());
                  });
 
         vm->bind(type, "append(self, item) -> None",
@@ -55,15 +55,17 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyDeque *newDeque = new PyDeque();
-                     DequeNode *p = self.dequeItems->head->next;
-                     while (p != self.dequeItems->tail)
-                     {
-                         newDeque->append(p->obj);
-                         p = p->next;
-                     }
-                     return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
+                    //TODO: implement and validate
+                    return vm->None;
+                    //  PyDeque &self = _CAST(PyDeque &, args[0]);
+                    //  PyDeque *newDeque = new PyDeque();
+                    //  DequeNode *p = self.dequeItems->head->next;
+                    //  while (p != self.dequeItems->tail)
+                    //  {
+                    //      newDeque->append(p->obj);
+                    //      p = p->next;
+                    //  }
+                    //  return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
                  });
 
         vm->bind(type, "count(self, obj) -> int",
@@ -113,7 +115,7 @@ namespace pkpy
                      PyObject *obj = args[1];
                      int start = CAST(int, args[2]);
                      int stop = CAST(int, args[3]);
-                     int idx = self.findIndex(obj, start, stop);
+                     int idx = self.findIndex(vm, obj, start, stop);
 
                      if (idx == -1)
                          vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
@@ -184,111 +186,111 @@ namespace pkpy
 
     void PyDeque::_gc_mark() const
     {
-        DequeNode *p = this->dequeItems->head->next;
-        while (p != this->dequeItems->tail)
-        {
-            PK_OBJ_MARK(p->obj); // PK_OBJ_MARK is a macro that calls _gc_mark on the PK_OBJ
-            p = p->next;
-        }
+        //TODO: HOW TO IMPLEMENT THIS?
     }
+
+
     std::stringstream PyDeque::getRepr(VM *vm)
     {
         std::stringstream ss;
+        int sz = this->dequeItems.size();
         ss << "deque([";
-        DequeNode *p = this->dequeItems->head->next;
-        while (p != this->dequeItems->tail)
+        for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
         {
-            ss << CAST(Str &, vm->py_repr(p->obj));
-            if (p->next != this->dequeItems->tail)
+            ss << CAST(Str &, vm->py_repr(*it));
+            if (it != this->dequeItems.end() - 1)
+            {
                 ss << ", ";
-            p = p->next;
+            }
         }
         ss << "])";
         return ss;
     }
 
-    int PyDeque::findIndex(PyObject *obj, int startPos = -1, int endPos = -1)
+    int PyDeque::findIndex(VM *vm, PyObject *obj, int startPos = -1, int endPos = -1)
     {
 
         if (startPos == -1)
             startPos = 0;
         if (endPos == -1)
-            endPos = this->dequeItems->size();
+            endPos = this->dequeItems.size();
         
         if (!(startPos <= endPos))
         {
             throw std::runtime_error("startPos<=endPos");
         }
-        int cnt = 0;
-        DequeNode *p = this->dequeItems->head->next;
-        while (p != this->dequeItems->tail)
+        int dequeSize = this->dequeItems.size();
+        
+        for (int i = startPos; i<dequeSize && i < endPos; i++)
         {
-            if (p->obj == obj)
+            if (vm->py_equals(this->dequeItems[i], obj))
             {
-                if (startPos == -1 || cnt >= startPos)
-                {
-                    if (endPos == -1 || cnt < endPos)
-                    {
-                        return cnt;
-                    }
-                }
+                return i;
             }
-            cnt++;
-            p = p->next;
         }
         return -1;
     }
+
+
     void PyDeque::reverse()
     {
-        this->dequeItems->reverse();
+        int sz = this->dequeItems.size();
+        for (int i = 0; i < sz / 2; i++)
+        {
+            PyObject *tmp = this->dequeItems[i];
+            this->dequeItems[i] = this->dequeItems[sz - i - 1];
+            this->dequeItems[sz - i - 1] = tmp;
+        }
     }
 
     void PyDeque::appendLeft(PyObject *item)
     {
-        DequeNode *node = new DequeNode(item);
-        this->dequeItems->push_front(node);
+        this->dequeItems.emplace_front(item);
     }
     void PyDeque::append(PyObject *item)
     {
-        DequeNode *node = new DequeNode(item);
-        this->dequeItems->push_back(node);
+        this->dequeItems.emplace_back(item);
     }
 
     PyObject *PyDeque::popLeft()
     {
-        if (this->dequeItems->empty())
+        if (this->dequeItems.empty())
         {
             throw std::runtime_error("pop from an empty deque");
         }
-        DequeNode *node = this->dequeItems->pop_front();
-        return node->obj;
+        PyObject *obj = this->dequeItems.front();
+        this->dequeItems.pop_front();
+        return obj;
     }
 
     PyObject *PyDeque::pop()
     {
-        if (this->dequeItems->empty())
+        if (this->dequeItems.empty())
         {
             throw std::runtime_error("pop from an empty deque");
         }
-        DequeNode *node = this->dequeItems->pop_back();
-        return node->obj;
+        PyObject *obj = this->dequeItems.back();
+        this->dequeItems.pop_back();
+        return obj;
     }
 
     int PyDeque::count(VM *vm, PyObject *obj)
     {
         int cnt = 0;
-        DequeNode *p = this->dequeItems->head->next;
-        while (p != this->dequeItems->tail)
+
+        for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
         {
-            if (vm->py_equals(p->obj, obj))
+            if (vm->py_equals((*it), obj))
+            {
                 cnt++;
-            p = p->next;
+            }
         }
         return cnt;
     }
+
     void PyDeque::clear()
     {
-        this->dequeItems->makeListEmpty();
+        this->dequeItems.clear();
     }
 
     void add_module_mycollections(VM *vm)
