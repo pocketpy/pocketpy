@@ -130,12 +130,12 @@ See [actions/runs](https://github.com/blueloveTH/pocketpy/actions/runs/651107142
 
 ## Primes benchmarks
 
-These are the results of the primes benchmark.
+These are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20.04 LTS).
 
 | name | version | time | file |
 | ---- | ---- | ---- | ---- |
 | lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.lua) |
-| pocketpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
+| pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
 | cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
 
 ```sh
