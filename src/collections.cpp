@@ -55,7 +55,7 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                    //TODO: STILL MEMORY LEAKING??
+                     // TODO: STILL MEMORY LEAKING??
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      PyDeque *newDeque = new PyDeque();
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
@@ -123,14 +123,14 @@ namespace pkpy
         vm->bind(type, "insert(self, index, obj) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                    PyDeque &self = _CAST(PyDeque &, args[0]);
-                    int index = CAST(int, args[1]);
-                    PyObject *obj = args[2];
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     int index = CAST(int, args[1]);
+                     PyObject *obj = args[2];
 
-                    //TODO: HANDLE MAX SIZE CASE LATER -> Throw IndexError
+                     // TODO: HANDLE MAX SIZE CASE LATER -> Throw IndexError
 
-                    self.insert(index, obj);
-                    return vm->None;
+                     self.insert(index, obj);
+                     return vm->None;
                  });
 
         vm->bind(type, "__repr__(self) -> str",
@@ -158,14 +158,14 @@ namespace pkpy
         vm->bind(type, "remove(self, obj) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                    PyDeque &self = _CAST(PyDeque &, args[0]);
-                    PyObject *obj = args[1];
-                    bool removed = self.remove(vm, obj);
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *obj = args[1];
+                     bool removed = self.remove(vm, obj);
 
-                    if(!removed)
-                        vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
+                     if (!removed)
+                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
 
-                    return vm->None;
+                     return vm->None;
                  });
 
         vm->bind(type, "reverse(self) -> None",
@@ -176,14 +176,13 @@ namespace pkpy
                      return vm->None;
                  });
 
-
         vm->bind(type, "rotate(self, n=1) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                    PyDeque &self = _CAST(PyDeque &, args[0]);
-                    int n = CAST(int, args[1]);
-                    self.rotate(n);
-                    return vm->None;
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     int n = CAST(int, args[1]);
+                     self.rotate(n);
+                     return vm->None;
                  });
 
         // vm->bind(type,"maxlen",
@@ -197,10 +196,10 @@ namespace pkpy
     {
         int direction = n > 0 ? 1 : -1;
         int sz = this->dequeItems.size();
-        
+
         n = abs(n);
         n = n % sz; // make sure n is in range
-        
+
         for (int i = 0; i < n; i++)
         {
             if (direction == 1)
@@ -234,12 +233,12 @@ namespace pkpy
     bool PyDeque::insert(int index, PyObject *item)
     {
         if (index < 0)
-            this->dequeItems.appendLeft(item);
-        else if(index >= this->dequeItems.size())
-            this->dequeItems.append(item);
+            this->dequeItems.push_front(item);
+        else if (index >= this->dequeItems.size())
+            this->dequeItems.push_back(item);
         else
             this->dequeItems.insert((this->dequeItems.begin() + index), item);
-        
+
         return true;
     }
 
