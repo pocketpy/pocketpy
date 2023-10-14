@@ -5,19 +5,19 @@ namespace pkpy
     void PyDeque::_register(VM *vm, PyObject *mod, PyObject *type)
     {
         vm->bind_default_constructor<PyDeque>(type);
-        
-        vm->bind(type, "__init__(self) -> None",
-                    [](VM *vm, ArgsView args)
-                    {
-                        PyDeque &self = _CAST(PyDeque &, args[0]);
-                        PyObject *maxlen = args[1];
-                        if (maxlen != vm->None)
-                        {
-                            // printf("TODO: implement deque.__init__(maxlen) -> None: %d\n", CAST(int, maxlen));
-                        }
 
-                        return vm->None;
-                    });
+        vm->bind(type, "__init__(self) -> None",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *maxlen = args[1];
+                     if (maxlen != vm->None)
+                     {
+                         // printf("TODO: implement deque.__init__(maxlen) -> None: %d\n", CAST(int, maxlen));
+                     }
+
+                     return vm->None;
+                 });
 
         vm->bind(type, "__len__(self) -> int",
                  [](VM *vm, ArgsView args)
@@ -55,17 +55,14 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                    //TODO: implement and validate
-                    return vm->None;
-                    //  PyDeque &self = _CAST(PyDeque &, args[0]);
-                    //  PyDeque *newDeque = new PyDeque();
-                    //  DequeNode *p = self.dequeItems->head->next;
-                    //  while (p != self.dequeItems->tail)
-                    //  {
-                    //      newDeque->append(p->obj);
-                    //      p = p->next;
-                    //  }
-                    //  return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
+                    //TODO: STILL MEMORY LEAKING??
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyDeque *newDeque = new PyDeque();
+                     for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
+                     {
+                         newDeque->append(*it);
+                     }
+                     return vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), *newDeque);
                  });
 
         vm->bind(type, "count(self, obj) -> int",
@@ -126,10 +123,14 @@ namespace pkpy
         vm->bind(type, "insert(self, index, obj) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: implement and validate
+                    PyDeque &self = _CAST(PyDeque &, args[0]);
+                    int index = CAST(int, args[1]);
+                    PyObject *obj = args[2];
 
-                     printf("TODO: implement deque.insert()");
-                     return vm->None;
+                    //TODO: HANDLE MAX SIZE CASE LATER -> Throw IndexError
+
+                    self.insert(index, obj);
+                    return vm->None;
                  });
 
         vm->bind(type, "__repr__(self) -> str",
@@ -157,9 +158,14 @@ namespace pkpy
         vm->bind(type, "remove(self, obj) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: implement and validate
-                     printf("TODO: implement deque.index()");
-                     return vm->None;
+                    PyDeque &self = _CAST(PyDeque &, args[0]);
+                    PyObject *obj = args[1];
+                    bool removed = self.remove(vm, obj);
+
+                    if(!removed)
+                        vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
+
+                    return vm->None;
                  });
 
         vm->bind(type, "reverse(self) -> None",
@@ -169,12 +175,15 @@ namespace pkpy
                      self.reverse();
                      return vm->None;
                  });
+
+
         vm->bind(type, "rotate(self, n=1) -> None",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: implement and validate
-                     printf("TODO: implement deque.rotate()");
-                     return vm->None;
+                    PyDeque &self = _CAST(PyDeque &, args[0]);
+                    int n = CAST(int, args[1]);
+                    self.rotate(n);
+                    return vm->None;
                  });
 
         // vm->bind(type,"maxlen",
@@ -184,11 +193,60 @@ namespace pkpy
         //          });
     }
 
-    void PyDeque::_gc_mark() const
+    void PyDeque::rotate(int n)
     {
-        //TODO: HOW TO IMPLEMENT THIS?
+        int direction = n > 0 ? 1 : -1;
+        int sz = this->dequeItems.size();
+        
+        n = abs(n);
+        n = n % sz; // make sure n is in range
+        
+        for (int i = 0; i < n; i++)
+        {
+            if (direction == 1)
+            {
+                PyObject *tmp = this->dequeItems.back();
+                this->dequeItems.pop_back();
+                this->dequeItems.push_front(tmp);
+            }
+            else
+            {
+                PyObject *tmp = this->dequeItems.front();
+                this->dequeItems.pop_front();
+                this->dequeItems.push_back(tmp);
+            }
+        }
     }
 
+    bool PyDeque::remove(VM *vm, PyObject *item)
+    {
+        for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
+        {
+            if (vm->py_equals((*it), item))
+            {
+                this->dequeItems.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool PyDeque::insert(int index, PyObject *item)
+    {
+        if (index < 0)
+            this->dequeItems.appendLeft(item);
+        else if(index >= this->dequeItems.size())
+            this->dequeItems.append(item);
+        else
+            this->dequeItems.insert((this->dequeItems.begin() + index), item);
+        
+        return true;
+    }
+
+    void PyDeque::_gc_mark() const
+    {
+        // TODO: HOW TO IMPLEMENT THIS?
+    }
 
     std::stringstream PyDeque::getRepr(VM *vm)
     {
@@ -214,14 +272,14 @@ namespace pkpy
             startPos = 0;
         if (endPos == -1)
             endPos = this->dequeItems.size();
-        
+
         if (!(startPos <= endPos))
         {
             throw std::runtime_error("startPos<=endPos");
         }
         int dequeSize = this->dequeItems.size();
-        
-        for (int i = startPos; i<dequeSize && i < endPos; i++)
+
+        for (int i = startPos; i < dequeSize && i < endPos; i++)
         {
             if (vm->py_equals(this->dequeItems[i], obj))
             {
@@ -230,7 +288,6 @@ namespace pkpy
         }
         return -1;
     }
-
 
     void PyDeque::reverse()
     {

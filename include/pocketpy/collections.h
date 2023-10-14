@@ -10,157 +10,25 @@
 
 namespace pkpy
 {
-    // struct DequeNode
-    // {
-    //     PyObject *obj;
-    //     DequeNode *prev;
-    //     DequeNode *next;
-    //     DequeNode()
-    //     {
-    //         this->obj = nullptr; // ignored value, sentinnel
-    //         this->prev = nullptr;
-    //         this->next = nullptr;
-    //     }
-    //     DequeNode(PyObject *obj)
-    //     {
-    //         this->obj = obj;
-    //         this->prev = nullptr;
-    //         this->next = nullptr;
-    //     }
-
-    //     ~DequeNode()
-    //     {
-    //     }
-    // };
-
-    // struct MyDoublyLinkedList
-    // {
-    //     int len;
-    //     DequeNode *head;
-    //     DequeNode *tail;
-
-    //     MyDoublyLinkedList()
-    //     { // creates an empty list
-    //         this->len = 0;
-    //         this->head = new DequeNode(); // dummy
-    //         this->tail = new DequeNode(); // dummy
-    //         this->head->next = this->tail;
-    //         this->tail->prev = this->head;
-    //     }
-
-    //     ~MyDoublyLinkedList()
-    //     {
-    //         if (this->head == nullptr)
-    //             return;
-    //         this->makeListEmpty();
-    //         delete this->head;
-    //         delete this->tail;
-    //     }
-
-    //     void push_back(DequeNode *node)
-    //     {
-    //         node->prev = this->tail->prev;
-    //         node->next = this->tail;
-    //         this->tail->prev->next = node;
-    //         this->tail->prev = node;
-    //         this->len++;
-    //     }
-    //     void push_front(DequeNode *node)
-    //     {
-    //         node->prev = this->head;
-    //         node->next = this->head->next;
-    //         this->head->next->prev = node;
-    //         this->head->next = node;
-    //         this->len++;
-    //     }
-
-    //     DequeNode *pop_back()
-    //     {
-    //         if (this->empty())
-    //             throw std::runtime_error("DoubleLinkedList::pop_back() called on empty list");
-    //         DequeNode *node = this->tail->prev;
-    //         this->tail->prev->prev->next = this->tail;
-    //         this->tail->prev = this->tail->prev->prev;
-    //         this->len--;
-    //         return node;
-    //     }
-
-    //     DequeNode *pop_front()
-    //     {
-    //         if (this->empty())
-    //             throw std::runtime_error("DoubleLinkedList::pop_front() called on empty list");
-    //         DequeNode *node = this->head->next;
-    //         this->head->next->next->prev = this->head;
-    //         this->head->next = this->head->next->next;
-    //         this->len--;
-    //         return node;
-    //     }
-
-    //     bool empty() const
-    //     {
-    //         if (this->len == 0)
-    //         {
-    //             if (this->head->next != this->tail || this->tail->prev != this->head)
-    //             {
-    //                 throw std::runtime_error("DoubleLinkedList::size() returned 0 but the list is not empty");
-    //             }
-    //             return true;
-    //         }
-    //         return false;
-    //     }
-
-    //     int size() const
-    //     {
-    //         return this->len;
-    //     }
-
-    //     void makeListEmpty()
-    //     {
-    //         while (!this->empty())
-    //         {
-    //             this->pop_back();
-    //         }
-    //     }
-
-    //     void reverse()
-    //     {
-    //         if (this->empty())
-    //             return;
-    //         // Go through each node, including the dummy nodes
-    //         // and swap the prev and next pointers
-    //         DequeNode *p = this->head;
-    //         while (p!=nullptr){
-    //             DequeNode *tmp = p->next;
-    //             p->next = p->prev;
-    //             p->prev = tmp;
-    //             p = tmp;
-    //         }
-
-    //         // swap the head and tail pointers
-    //         DequeNode *tmp = this->head;
-    //         this->head = this->tail;
-    //         this->tail = tmp;
-    //     }
-        
-    // };
-
     // STARTING HERE
     struct PyDeque
     {
         PY_CLASS(PyDeque, mycollections, deque);
 
-        // some fields can be defined here
-        
         std::deque<PyObject*>dequeItems;
 
         void appendLeft(PyObject *item);
         void append(PyObject *item);
         PyObject *popLeft();
         PyObject *pop();
+
+        bool insert(int index, PyObject *item);
+        bool remove(VM *vm, PyObject *item);
+        void rotate(int n);
+
         std::stringstream getRepr(VM *vm);
         void reverse();
         int findIndex(VM *vm, PyObject *obj, int startPos, int endPos); // vm is needed for the py_equals
-
         int count(VM *vm, PyObject *obj); // vm is needed for the py_equals
         void clear();
         
