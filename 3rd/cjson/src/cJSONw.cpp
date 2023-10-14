@@ -3,79 +3,58 @@
 namespace pkpy{
 
 
-static std::string convert_python_object_to_string(PyObject* obj, VM* vm);
+static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm);
 static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm);
 
 
-static std::string convert_list_to_string(const List& list, VM* vm){
-    bool extra_comma_flag = false;
-    std::string output = "[";
+static cJSON* convert_list_to_cjson(const List& list, VM* vm){
+    cJSON *cjson_list = cJSON_CreateArray();
     for(auto& element : list){
-        output = output + convert_python_object_to_string(element, vm) + ", ";
-        extra_comma_flag = true;
+        cJSON_AddItemToArray(cjson_list, convert_python_object_to_cjson(element, vm));
     }
-    if(extra_comma_flag){
-        output.pop_back();
-        output.pop_back();
-    }
-    return output + "]";
+    return cjson_list;
 }
 
-static std::string convert_tuple_to_string(const Tuple& tuple, VM* vm){
-    bool extra_comma_flag = false;
-    std::string output = "[";
-
+static cJSON* convert_tuple_to_cjson(const Tuple& tuple, VM* vm){
+    cJSON *cjson_list = cJSON_CreateArray();
     for(auto& element : tuple){
-        output = output + convert_python_object_to_string(element, vm) + ", ";
-        extra_comma_flag = true;
+        cJSON_AddItemToArray(cjson_list, convert_python_object_to_cjson(element, vm));
     }
-    if (extra_comma_flag){
-        output.pop_back();
-        output.pop_back();
-    }
-    return output + "]";
+    return cjson_list;
 }
 
-static std::string covert_dict_to_string(const Dict& dict, VM* vm){
-    std::string output = "{";
+static cJSON* covert_dict_to_cjson(const Dict& dict, VM* vm){
+    cJSON *cjson_object = cJSON_CreateObject();
     dict.apply([&](PyObject* key, PyObject* val){
-        output = output + "\"" + CAST(Str&, key).c_str() + "\":";
-        output = output + convert_python_object_to_string(val, vm) + ",";
+        cJSON_AddItemToObject(cjson_object, CAST(Str&, key).c_str(), convert_python_object_to_cjson(val, vm));
     });
-    output.pop_back();
-    return output + "}";
+    return cjson_object;
 }
 
-static std::string convert_python_object_to_string(PyObject* obj, VM* vm){
+static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
     if (is_type(obj, vm->tp_int)){
-        return std::to_string(CAST(i64, obj));
+        return cJSON_CreateNumber(CAST(i64, obj));
     }
     else if (is_type(obj, vm->tp_float)){
-        return std::to_string(CAST(f64, obj));
+        return cJSON_CreateNumber(CAST(f64, obj));
     }
     else if (is_type(obj, vm->tp_bool)){
-        if (obj == vm->True){
-            return "true";
-        }
-        else{
-            return "false";
-        }
+        return cJSON_CreateBool(obj == vm->True);
     }
     else if (is_type(obj, vm->tp_str)){
-        std::string str = CAST(Str&, obj).replace("\n", "\\n").replace("\"", "\\\"").c_str();
-        return std::string("\"") + str + std::string("\"");
+        return cJSON_CreateString(CAST(Str&, obj).c_str());
     }
     else if (is_type(obj, vm->tp_dict)){
-        return covert_dict_to_string(CAST(Dict&, obj), vm);
+        return covert_dict_to_cjson(CAST(Dict&, obj), vm);
        
     }
     else if (is_type(obj, vm->tp_list)){
-        return convert_list_to_string(CAST(List&, obj), vm);
+        return convert_list_to_cjson(CAST(List&, obj), vm);
     }
     else if(is_type(obj, vm->tp_tuple)){
-        return convert_tuple_to_string(CAST(Tuple&, obj), vm);
+        return convert_tuple_to_cjson(CAST(Tuple&, obj), vm);
     }
-    return "null";
+    return cJSON_CreateNull();
 }
 static PyObject* convert_cjson_to_list(const cJSON * const item, VM* vm){
     List list;
@@ -136,9 +115,9 @@ void add_module_cjson(VM* vm){
 
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
         
-        std::string str = convert_python_object_to_string(args[0], vm);
-        return VAR(str);
-
+        cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
+        char* str = cJSON_Print(cjson);
+        return VAR(Str(str));
     });
 }
 
