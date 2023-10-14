@@ -44,6 +44,22 @@ namespace pkpy{
             if(func->starred_arg >= 0) func->is_simple = false;
             if(func->starred_kwarg >= 0) func->is_simple = false;
         }
+        // pre-compute LOOP_BREAK and LOOP_CONTINUE and FOR_ITER
+        std::vector<Bytecode>& codes = ctx()->co->codes;
+        if(codes.size() > 65535 && ctx()->co->src->mode != JSON_MODE){
+            // json mode does not contain jump instructions, so it is safe to ignore this check
+            SyntaxError("maximum number of opcodes exceeded, please split your code into smaller functions");
+        }
+        for(int i=0; i<codes.size(); i++){
+            Bytecode& bc = codes[i];
+            if(bc.op == OP_LOOP_CONTINUE){
+                bc.arg = ctx()->co->blocks[bc.arg].start;
+            }else if(bc.op == OP_LOOP_BREAK){
+                bc.arg = ctx()->co->blocks[bc.arg].get_break_end();
+            }else if(bc.op == OP_FOR_ITER){
+                bc.arg = ctx()->co->_get_block_codei(i).end;
+            }
+        }
         contexts.pop();
     }
 

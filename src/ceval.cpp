@@ -11,11 +11,6 @@ PyObject* VM::_run_top_frame(){
     const int base_id = frame.index;
     bool need_raise = false;
 
-    // shared registers
-    PyObject *_0, *_1, *_2;
-    const PyTypeInfo* _ti;
-    StrName _name;
-
     while(true){
 #if PK_DEBUG_EXTRA_CHECK
         if(frame.index < base_id) FATAL_ERROR();
@@ -41,7 +36,6 @@ __NEXT_FRAME:
     // cache
     const CodeObject* co = frame->co;
     const auto& co_consts = co->consts;
-    const auto& co_blocks = co->blocks;
 
 #if PK_ENABLE_COMPUTED_GOTO
 static void* OP_LABELS[] = {
@@ -70,16 +64,16 @@ __NEXT_STEP:;
     TARGET(POP_TOP) POP(); DISPATCH();
     TARGET(DUP_TOP) PUSH(TOP()); DISPATCH();
     TARGET(ROT_TWO) std::swap(TOP(), SECOND()); DISPATCH();
-    TARGET(ROT_THREE)
-        _0 = TOP();
+    TARGET(ROT_THREE){
+        PyObject* _0 = TOP();
         TOP() = SECOND();
         SECOND() = THIRD();
         THIRD() = _0;
-        DISPATCH();
-    TARGET(PRINT_EXPR)
+    } DISPATCH();
+    TARGET(PRINT_EXPR){
         if(TOP() != None) stdout_write(CAST(Str&, py_repr(TOP())) + "\n");
         POP();
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(LOAD_CONST)
         if(heap._should_auto_collect()) heap._auto_collect();
@@ -106,20 +100,20 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_FAST) {
         if(heap._should_auto_collect()) heap._auto_collect();
-        _0 = frame->_locals[byte.arg];
+        PyObject* _0 = frame->_locals[byte.arg];
         if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PUSH(_0);
     } DISPATCH();
     TARGET(LOAD_NAME) {
         if(heap._should_auto_collect()) heap._auto_collect();
-        _name = StrName(byte.arg);
+        StrName _name(byte.arg);
         PyObject** slot = frame->_locals.try_get_name(_name);
         if(slot != nullptr) {
             if(*slot == PY_NULL) vm->UnboundLocalError(_name);
             PUSH(*slot);
             DISPATCH();
         }
-        _0 = frame->f_closure_try_get(_name);
+        PyObject* _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -129,8 +123,8 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(LOAD_NONLOCAL) {
         if(heap._should_auto_collect()) heap._auto_collect();
-        _name = StrName(byte.arg);
-        _0 = frame->f_closure_try_get(_name);
+        StrName _name(byte.arg);
+        PyObject* _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -138,38 +132,39 @@ __NEXT_STEP:;
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
     } DISPATCH();
-    TARGET(LOAD_GLOBAL)
+    TARGET(LOAD_GLOBAL){
         if(heap._should_auto_collect()) heap._auto_collect();
-        _name = StrName(byte.arg);
-        _0 = frame->f_globals().try_get_likely_found(_name);
+        StrName _name(byte.arg);
+        PyObject* _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         _0 = vm->builtins->attr().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         vm->NameError(_name);
-        DISPATCH();
+    }DISPATCH();
     TARGET(LOAD_ATTR)
         TOP() = getattr(TOP(), StrName(byte.arg));
         DISPATCH();
-    TARGET(LOAD_METHOD)
+    TARGET(LOAD_METHOD){
+        PyObject* _0;
         TOP() = get_unbound_method(TOP(), StrName(byte.arg), &_0, true, true);
         PUSH(_0);
-        DISPATCH();
-    TARGET(LOAD_SUBSCR)
-        _1 = POPX();    // b
-        _0 = TOP();     // a
-        _ti = _inst_type_info(_0);
+    }DISPATCH();
+    TARGET(LOAD_SUBSCR){
+        PyObject* _1 = POPX();    // b
+        PyObject* _0 = TOP();     // a
+        auto _ti = _inst_type_info(_0);
         if(_ti->m__getitem__){
             TOP() = _ti->m__getitem__(this, _0, _1);
         }else{
             TOP() = call_method(_0, __getitem__, _1);
         }
-        DISPATCH();
+    } DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
     TARGET(STORE_NAME){
-        _name = StrName(byte.arg);
-        _0 = POPX();
+        StrName _name(byte.arg);
+        PyObject* _0 = POPX();
         if(frame->_callable != nullptr){
             PyObject** slot = frame->_locals.try_get_name(_name);
             if(slot == nullptr) vm->UnboundLocalError(_name);
@@ -182,29 +177,29 @@ __NEXT_STEP:;
         frame->f_globals().set(StrName(byte.arg), POPX());
         DISPATCH();
     TARGET(STORE_ATTR) {
-        _0 = TOP();         // a
-        _1 = SECOND();      // val
+        PyObject* _0 = TOP();         // a
+        PyObject* _1 = SECOND();      // val
         setattr(_0, StrName(byte.arg), _1);
         STACK_SHRINK(2);
     } DISPATCH();
-    TARGET(STORE_SUBSCR)
-        _2 = POPX();        // b
-        _1 = POPX();        // a
-        _0 = POPX();        // val
-        _ti = _inst_type_info(_1);
+    TARGET(STORE_SUBSCR){
+        PyObject* _2 = POPX();        // b
+        PyObject* _1 = POPX();        // a
+        PyObject* _0 = POPX();        // val
+        auto _ti = _inst_type_info(_1);
         if(_ti->m__setitem__){
             _ti->m__setitem__(this, _1, _2, _0);
         }else{
             call_method(_1, __setitem__, _2, _0);
         }
-        DISPATCH();
-    TARGET(DELETE_FAST)
-        _0 = frame->_locals[byte.arg];
+    }DISPATCH();
+    TARGET(DELETE_FAST){
+        PyObject* _0 = frame->_locals[byte.arg];
         if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         frame->_locals[byte.arg] = PY_NULL;
-        DISPATCH();
-    TARGET(DELETE_NAME)
-        _name = StrName(byte.arg);
+    }DISPATCH();
+    TARGET(DELETE_NAME){
+        StrName _name(byte.arg);
         if(frame->_callable != nullptr){
             PyObject** slot = frame->_locals.try_get_name(_name);
             if(slot == nullptr) vm->UnboundLocalError(_name);
@@ -212,30 +207,29 @@ __NEXT_STEP:;
         }else{
             if(!frame->f_globals().del(_name)) vm->NameError(_name);
         }
-        DISPATCH();
-    TARGET(DELETE_GLOBAL)
-        _name = StrName(byte.arg);
+    } DISPATCH();
+    TARGET(DELETE_GLOBAL){
+        StrName _name(byte.arg);
         if(!frame->f_globals().del(_name)) vm->NameError(_name);
-        DISPATCH();
-    TARGET(DELETE_ATTR)
-        _0 = POPX();
-        _name = StrName(byte.arg);
-        delattr(_0, _name);
-        DISPATCH();
-    TARGET(DELETE_SUBSCR)
-        _1 = POPX();
-        _0 = POPX();
-        _ti = _inst_type_info(_0);
+    }DISPATCH();
+    TARGET(DELETE_ATTR){
+        PyObject* _0 = POPX();
+        delattr(_0, StrName(byte.arg));
+    } DISPATCH();
+    TARGET(DELETE_SUBSCR){
+        PyObject* _1 = POPX();
+        PyObject* _0 = POPX();
+        auto _ti = _inst_type_info(_0);
         if(_ti->m__delitem__){
             _ti->m__delitem__(this, _0, _1);
         }else{
             call_method(_0, __delitem__, _1);
         }
-        DISPATCH();
+    }DISPATCH();
     /*****************************************/
     TARGET(BUILD_LONG) {
         PK_LOCAL_STATIC const StrName m_long("long");
-        _0 = builtins->attr().try_get_likely_found(m_long);
+        PyObject* _0 = builtins->attr().try_get_likely_found(m_long);
         if(_0 == nullptr) AttributeError(builtins, m_long);
         TOP() = call(_0, TOP());
     } DISPATCH();
@@ -245,38 +239,38 @@ __NEXT_STEP:;
         memcpy(p, s.data, s.size);
         TOP() = VAR(Bytes(p, s.size));
     } DISPATCH();
-    TARGET(BUILD_TUPLE)
-        _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
+    TARGET(BUILD_TUPLE){
+        PyObject* _0 = VAR(STACK_VIEW(byte.arg).to_tuple());
         STACK_SHRINK(byte.arg);
         PUSH(_0);
-        DISPATCH();
-    TARGET(BUILD_LIST)
-        _0 = VAR(STACK_VIEW(byte.arg).to_list());
+    } DISPATCH();
+    TARGET(BUILD_LIST){
+        PyObject* _0 = VAR(STACK_VIEW(byte.arg).to_list());
         STACK_SHRINK(byte.arg);
         PUSH(_0);
-        DISPATCH();
-    TARGET(BUILD_DICT)
+    } DISPATCH();
+    TARGET(BUILD_DICT){
         if(byte.arg == 0){
             PUSH(VAR(Dict(this)));
             DISPATCH();
         }
-        _0 = VAR(STACK_VIEW(byte.arg).to_list());
+        PyObject* _0 = VAR(STACK_VIEW(byte.arg).to_list());
         _0 = call(_t(tp_dict), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
-        DISPATCH();
-    TARGET(BUILD_SET)
-        _0 = VAR(STACK_VIEW(byte.arg).to_list());
+    } DISPATCH();
+    TARGET(BUILD_SET){
+        PyObject* _0 = VAR(STACK_VIEW(byte.arg).to_list());
         _0 = call(builtins->attr(pk_id_set), _0);
         STACK_SHRINK(byte.arg);
         PUSH(_0);
-        DISPATCH();
-    TARGET(BUILD_SLICE)
-        _2 = POPX();    // step
-        _1 = POPX();    // stop
-        _0 = POPX();    // start
+    } DISPATCH();
+    TARGET(BUILD_SLICE){
+        PyObject* _2 = POPX();    // step
+        PyObject* _1 = POPX();    // stop
+        PyObject* _0 = POPX();    // start
         PUSH(VAR(Slice(_0, _1, _2)));
-        DISPATCH();
+    } DISPATCH();
     TARGET(BUILD_STRING) {
         std::stringstream ss;
         ArgsView view = STACK_VIEW(byte.arg);
@@ -290,7 +284,7 @@ __NEXT_STEP:;
         List list;
         _unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
-        _0 = VAR(Tuple(std::move(list)));
+        PyObject* _0 = VAR(Tuple(std::move(list)));
         PUSH(_0);
     } DISPATCH();
     TARGET(BUILD_LIST_UNPACK) {
@@ -298,7 +292,7 @@ __NEXT_STEP:;
         List list;
         _unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
-        _0 = VAR(std::move(list));
+        PyObject* _0 = VAR(std::move(list));
         PUSH(_0);
     } DISPATCH();
     TARGET(BUILD_DICT_UNPACK) {
@@ -306,7 +300,7 @@ __NEXT_STEP:;
         Dict dict(this);
         _unpack_as_dict(STACK_VIEW(byte.arg), dict);
         STACK_SHRINK(byte.arg);
-        _0 = VAR(std::move(dict));
+        PyObject* _0 = VAR(std::move(dict));
         PUSH(_0);
     } DISPATCH();
     TARGET(BUILD_SET_UNPACK) {
@@ -314,7 +308,7 @@ __NEXT_STEP:;
         List list;
         _unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
-        _0 = VAR(std::move(list));
+        PyObject* _0 = VAR(std::move(list));
         _0 = call(builtins->attr(pk_id_set), _0);
         PUSH(_0);
     } DISPATCH();
@@ -338,7 +332,7 @@ __NEXT_STEP:;
             TOP() = _ti->m##func(this, _0, _1);         \
         }else{                                          \
             PyObject* self;                                         \
-            _2 = get_unbound_method(_0, func, &self, false);        \
+            PyObject* _2 = get_unbound_method(_0, func, &self, false);        \
             if(_2 != nullptr) TOP() = call_method(self, _2, _1);    \
             else TOP() = NotImplemented;                            \
         }
@@ -346,111 +340,129 @@ __NEXT_STEP:;
 #define BINARY_OP_RSPECIAL(op, func)                                \
         if(TOP() == NotImplemented){                                \
             PyObject* self;                                         \
-            _2 = get_unbound_method(_1, func, &self, false);        \
+            PyObject* _2 = get_unbound_method(_1, func, &self, false);        \
             if(_2 != nullptr) TOP() = call_method(self, _2, _0);    \
             else BinaryOptError(op);                                \
             if(TOP() == NotImplemented) BinaryOptError(op);         \
         }
 
-    TARGET(BINARY_TRUEDIV)
+    TARGET(BINARY_TRUEDIV){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__truediv__);
         if(TOP() == NotImplemented) BinaryOptError("/");
-        DISPATCH();
-    TARGET(BINARY_POW)
+    } DISPATCH();
+    TARGET(BINARY_POW){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__pow__);
         if(TOP() == NotImplemented) BinaryOptError("**");
-        DISPATCH();
-    TARGET(BINARY_ADD)
+    } DISPATCH();
+    TARGET(BINARY_ADD){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(+);
         BINARY_OP_SPECIAL(__add__);
         BINARY_OP_RSPECIAL("+", __radd__);
-        DISPATCH()
-    TARGET(BINARY_SUB)
+    } DISPATCH()
+    TARGET(BINARY_SUB){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(-);
         BINARY_OP_SPECIAL(__sub__);
         BINARY_OP_RSPECIAL("-", __rsub__);
-        DISPATCH()
-    TARGET(BINARY_MUL)
+    } DISPATCH()
+    TARGET(BINARY_MUL){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mul__);
         BINARY_OP_RSPECIAL("*", __rmul__);
-        DISPATCH()
-    TARGET(BINARY_FLOORDIV)
+    } DISPATCH()
+    TARGET(BINARY_FLOORDIV){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(/);
         BINARY_OP_SPECIAL(__floordiv__);
         if(TOP() == NotImplemented) BinaryOptError("//");
-        DISPATCH()
-    TARGET(BINARY_MOD)
+    } DISPATCH()
+    TARGET(BINARY_MOD){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(%);
         BINARY_OP_SPECIAL(__mod__);
         if(TOP() == NotImplemented) BinaryOptError("%");
-        DISPATCH()
-    TARGET(COMPARE_LT)
+    } DISPATCH()
+    TARGET(COMPARE_LT){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__lt__);
         BINARY_OP_RSPECIAL("<", __gt__);
-        DISPATCH()
-    TARGET(COMPARE_LE)
+    } DISPATCH()
+    TARGET(COMPARE_LE){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__le__);
         BINARY_OP_RSPECIAL("<=", __ge__);
-        DISPATCH()
-    TARGET(COMPARE_EQ)
-        _1 = POPX();
-        _0 = TOP();
+    } DISPATCH()
+    TARGET(COMPARE_EQ){
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
         TOP() = VAR(py_equals(_0, _1));
-        DISPATCH()
-    TARGET(COMPARE_NE)
-        _1 = POPX();
-        _0 = TOP();
+    } DISPATCH()
+    TARGET(COMPARE_NE){
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
         TOP() = VAR(!py_equals(_0, _1));
-        DISPATCH()
-    TARGET(COMPARE_GT)
+    } DISPATCH()
+    TARGET(COMPARE_GT){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__gt__);
         BINARY_OP_RSPECIAL(">", __lt__);
-        DISPATCH()
-    TARGET(COMPARE_GE)
+    } DISPATCH()
+    TARGET(COMPARE_GE){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__ge__);
         BINARY_OP_RSPECIAL(">=", __le__);
-        DISPATCH()
-    TARGET(BITWISE_LSHIFT)
+    } DISPATCH()
+    TARGET(BITWISE_LSHIFT){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(<<);
         BINARY_OP_SPECIAL(__lshift__);
         if(TOP() == NotImplemented) BinaryOptError("<<");
-        DISPATCH()
-    TARGET(BITWISE_RSHIFT)
+    } DISPATCH()
+    TARGET(BITWISE_RSHIFT){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(>>);
         BINARY_OP_SPECIAL(__rshift__);
         if(TOP() == NotImplemented) BinaryOptError(">>");
-        DISPATCH()
-    TARGET(BITWISE_AND)
+    } DISPATCH()
+    TARGET(BITWISE_AND){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(&);
         BINARY_OP_SPECIAL(__and__);
         if(TOP() == NotImplemented) BinaryOptError("&");
-        DISPATCH()
-    TARGET(BITWISE_OR)
+    } DISPATCH()
+    TARGET(BITWISE_OR){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(|);
         BINARY_OP_SPECIAL(__or__);
         if(TOP() == NotImplemented) BinaryOptError("|");
-        DISPATCH()
-    TARGET(BITWISE_XOR)
+    } DISPATCH()
+    TARGET(BITWISE_XOR){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         PREDICT_INT_OP(^);
         BINARY_OP_SPECIAL(__xor__);
         if(TOP() == NotImplemented) BinaryOptError("^");
-        DISPATCH()
-    TARGET(BINARY_MATMUL)
+    } DISPATCH()
+    TARGET(BINARY_MATMUL){
+        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__matmul__);
         if(TOP() == NotImplemented) BinaryOptError("@");
-        DISPATCH();
+    } DISPATCH();
 
 #undef BINARY_OP_SPECIAL
 #undef PREDICT_INT_OP
 
-    TARGET(IS_OP)
-        _1 = POPX();    // rhs
-        _0 = TOP();     // lhs
+    TARGET(IS_OP){
+        PyObject* _1 = POPX();    // rhs
+        PyObject* _0 = TOP();     // lhs
         TOP() = VAR(static_cast<bool>((_0==_1) ^ byte.arg));
-        DISPATCH();
-    TARGET(CONTAINS_OP)
+    } DISPATCH();
+    TARGET(CONTAINS_OP){
         // a in b -> b __contains__ a
-        _ti = _inst_type_info(TOP());
+        auto _ti = _inst_type_info(TOP());
+        PyObject* _0;
         if(_ti->m__contains__){
             _0 = _ti->m__contains__(this, TOP(), SECOND());
         }else{
@@ -458,67 +470,70 @@ __NEXT_STEP:;
         }
         POP();
         TOP() = VAR(static_cast<bool>((int)CAST(bool, _0) ^ byte.arg));
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(JUMP_ABSOLUTE)
         frame->jump_abs(byte.arg);
         DISPATCH();
-    TARGET(POP_JUMP_IF_FALSE)
-        _0 = POPX();
+    TARGET(POP_JUMP_IF_FALSE){
+        PyObject* _0 = POPX();
         if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
-        DISPATCH();
-    TARGET(POP_JUMP_IF_TRUE)
-        _0 = POPX();
+    } DISPATCH();
+    TARGET(POP_JUMP_IF_TRUE){
+        PyObject* _0 = POPX();
         if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
-        DISPATCH();
-    TARGET(JUMP_IF_TRUE_OR_POP)
-        _0 = TOP();
+    } DISPATCH();
+    TARGET(JUMP_IF_TRUE_OR_POP){
+        PyObject* _0 = TOP();
         if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
         else POP();
-        DISPATCH();
-    TARGET(JUMP_IF_FALSE_OR_POP)
-        _0 = TOP();
+    } DISPATCH();
+    TARGET(JUMP_IF_FALSE_OR_POP){
+        PyObject* _0 = TOP();
         if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
         else POP();
-        DISPATCH();
-    TARGET(SHORTCUT_IF_FALSE_OR_POP)
-        _0 = TOP();
+    } DISPATCH();
+    TARGET(SHORTCUT_IF_FALSE_OR_POP){
+        PyObject* _0 = TOP();
         if(_0==False || !py_bool(_0)){      // [b, False]
             STACK_SHRINK(2);                // []
             PUSH(vm->False);                // [False]
             frame->jump_abs(byte.arg);
         } else POP();                       // [b]
-        DISPATCH();
+    } DISPATCH();
     TARGET(LOOP_CONTINUE)
-        frame->jump_abs(co_blocks[byte.arg].start);
+        frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(LOOP_BREAK)
-        frame->jump_abs_break(co_blocks[byte.arg].get_break_end());
+        frame->jump_abs_break(byte.arg);
         DISPATCH();
     TARGET(GOTO) {
-        _name = StrName(byte.arg);
+        StrName _name(byte.arg);
         int index = co->labels.try_get_likely_found(_name);
         if(index < 0) _error("KeyError", fmt("label ", _name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(EVAL)
-        _0 = builtins->attr(pk_id_eval);
+    TARGET(EVAL){
+        PyObject* _0 = builtins->attr(pk_id_eval);
         TOP() = call(_0, TOP());
-        DISPATCH();
+    } DISPATCH();
     TARGET(REPR)
         TOP() = py_repr(TOP());
         DISPATCH();
-    TARGET(CALL)
-        _0 = vectorcall(
+    TARGET(CALL){
+        PyObject* _0 = vectorcall(
             byte.arg & 0xFF,          // ARGC
             (byte.arg>>8) & 0xFF,     // KWARGC
             true
         );
         if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
         PUSH(_0);
-        DISPATCH();
-    TARGET(CALL_TP)
+    } DISPATCH();
+    TARGET(CALL_TP){
+        PyObject* _0;
+        PyObject* _1;
+        PyObject* _2;
         // [callable, <self>, args: tuple, kwargs: dict | NULL]
         if(byte.arg){
             _2 = POPX();
@@ -545,9 +560,9 @@ __NEXT_STEP:;
         }
         if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
         PUSH(_0);
-        DISPATCH();
-    TARGET(RETURN_VALUE)
-        _0 = POPX();
+    } DISPATCH();
+    TARGET(RETURN_VALUE){
+        PyObject* _0 = POPX();
         _pop_frame();
         if(frame.index == base_id){       // [ frameBase<- ]
             return _0;
@@ -556,62 +571,64 @@ __NEXT_STEP:;
             PUSH(_0);
             goto __NEXT_FRAME;
         }
+    } DISPATCH();
     TARGET(YIELD_VALUE)
         return PY_OP_YIELD;
     /*****************************************/
-    TARGET(LIST_APPEND)
-        _0 = POPX();
+    TARGET(LIST_APPEND){
+        PyObject* _0 = POPX();
         CAST(List&, SECOND()).push_back(_0);
-        DISPATCH();
+    } DISPATCH();
     TARGET(DICT_ADD) {
-        _0 = POPX();
+        PyObject* _0 = POPX();
         Tuple& t = CAST(Tuple&, _0);
         call_method(SECOND(), __setitem__, t[0], t[1]);
     } DISPATCH();
-    TARGET(SET_ADD)
-        _0 = POPX();
+    TARGET(SET_ADD){
+        PyObject* _0 = POPX();
         call_method(SECOND(), pk_id_add, _0);
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(UNARY_NEGATIVE)
         TOP() = py_negate(TOP());
         DISPATCH();
-    TARGET(UNARY_NOT)
-        _0 = TOP();
+    TARGET(UNARY_NOT){
+        PyObject* _0 = TOP();
         if(_0==True) TOP()=False;
         else if(_0==False) TOP()=True;
         else TOP() = VAR(!py_bool(_0));
-        DISPATCH();
+    } DISPATCH();
     TARGET(UNARY_STAR)
         TOP() = VAR(StarWrapper(byte.arg, TOP()));
         DISPATCH();
-    TARGET(UNARY_INVERT)
-        _ti = _inst_type_info(TOP());
+    TARGET(UNARY_INVERT){
+        PyObject* _0;
+        auto _ti = _inst_type_info(TOP());
         if(_ti->m__invert__) _0 = _ti->m__invert__(this, TOP());
         else _0 = call_method(TOP(), __invert__);
         TOP() = _0;
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
     TARGET(GET_ITER)
         TOP() = py_iter(TOP());
         DISPATCH();
-    TARGET(FOR_ITER)
-        _0 = py_next(TOP());
+    TARGET(FOR_ITER){
+        PyObject* _0 = py_next(TOP());
         if(_0 != StopIteration){
             PUSH(_0);
         }else{
-            // TODO: optimize this
-            frame->jump_abs_break(co->_get_block_codei(frame->_ip).end);
+            frame->jump_abs_break(byte.arg);
         }
-        DISPATCH();
+    } DISPATCH();
     /*****************************************/
-    TARGET(IMPORT_PATH)
-        _0 = co_consts[byte.arg];
+    TARGET(IMPORT_PATH){
+        PyObject* _0 = co_consts[byte.arg];
         PUSH(py_import(CAST(Str&, _0)));
-        DISPATCH();
+    } DISPATCH();
     TARGET(POP_IMPORT_STAR) {
-        _0 = POPX();        // pop the module
-        _1 = _0->attr().try_get(__all__);
+        PyObject* _0 = POPX();        // pop the module
+        PyObject* _1 = _0->attr().try_get(__all__);
+        StrName _name;
         if(_1 != nullptr){
             for(PyObject* key: CAST(List&, _1)){
                 _name = StrName::get(CAST(Str&, key).sv());
@@ -633,9 +650,9 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(UNPACK_SEQUENCE){
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        _0 = py_iter(POPX());
+        PyObject* _0 = py_iter(POPX());
         for(int i=0; i<byte.arg; i++){
-            _1 = py_next(_0);
+            PyObject* _1 = py_next(_0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
             PUSH(_1);
         }
@@ -643,7 +660,8 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        _0 = py_iter(POPX());
+        PyObject* _0 = py_iter(POPX());
+        PyObject* _1;
         for(int i=0; i<byte.arg; i++){
             _1 = py_next(_0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
@@ -658,20 +676,18 @@ __NEXT_STEP:;
         PUSH(VAR(extras));
     } DISPATCH();
     /*****************************************/
-    TARGET(BEGIN_CLASS)
-        _name = StrName(byte.arg);
-        _0 = POPX();   // super
+    TARGET(BEGIN_CLASS){
+        StrName _name(byte.arg);
+        PyObject* _0 = POPX();   // super
         if(_0 == None) _0 = _t(tp_object);
         check_non_tagged_type(_0, tp_type);
-        _1 = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
+        PyObject* _1 = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
         PUSH(_1);
-        DISPATCH();
-    TARGET(END_CLASS)
-        _0 = POPX();
-        DISPATCH();
+    } DISPATCH();
+    TARGET(END_CLASS) POP(); DISPATCH();
     TARGET(STORE_CLASS_ATTR){
-        _name = StrName(byte.arg);
-        _0 = POPX();
+        StrName _name(byte.arg);
+        PyObject* _0 = POPX();
         if(is_non_tagged_type(_0, tp_function)){
             _0->attr().set(__class__, TOP());
         }
@@ -687,17 +703,16 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(EXCEPTION_MATCH) {
         const auto& e = CAST(Exception&, TOP());
-        _name = StrName(byte.arg);
-        PUSH(VAR(e.match_type(_name)));
+        PUSH(VAR(e.match_type(StrName(byte.arg))));
     } DISPATCH();
     TARGET(RAISE) {
-        _0 = POPX();
+        PyObject* _0 = POPX();
         Str msg = _0 == None ? "" : CAST(Str, py_str(_0));
         _error(StrName(byte.arg), msg);
     } DISPATCH();
     TARGET(RAISE_ASSERT)
         if(byte.arg){
-            _0 = py_str(POPX());
+            PyObject* _0 = py_str(POPX());
             _error("AssertionError", CAST(Str, _0));
         }else{
             _error("AssertionError", "");
@@ -707,7 +722,7 @@ __NEXT_STEP:;
     TARGET(POP_EXCEPTION) _last_exception = POPX(); DISPATCH();
     /*****************************************/
     TARGET(FORMAT_STRING) {
-        _0 = POPX();
+        PyObject* _0 = POPX();
         const Str& spec = CAST(Str&, co_consts[byte.arg]);
         PUSH(format(spec, _0));
     } DISPATCH();
@@ -723,13 +738,13 @@ __NEXT_STEP:;
         *p = VAR(CAST(i64, *p) - 1);
     } DISPATCH();
     TARGET(INC_GLOBAL){
-        _name = StrName(byte.arg);
+        StrName _name(byte.arg);
         PyObject** p = frame->f_globals().try_get_2_likely_found(_name);
         if(p == nullptr) vm->NameError(_name);
         *p = VAR(CAST(i64, *p) + 1);
     } DISPATCH();
     TARGET(DEC_GLOBAL){
-        _name = StrName(byte.arg);
+        StrName _name(byte.arg);
         PyObject** p = frame->f_globals().try_get_2_likely_found(_name);
         if(p == nullptr) vm->NameError(_name);
         *p = VAR(CAST(i64, *p) - 1);
