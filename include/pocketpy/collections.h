@@ -14,27 +14,37 @@ namespace pkpy
     struct PyDeque
     {
         PY_CLASS(PyDeque, mycollections, deque);
+        
+        PyDeque(VM *vm, PyObject *iterable, PyObject* maxlen);
 
-        std::deque<PyObject*>dequeItems;
+        // PyDeque members
+        std::deque<PyObject *> dequeItems;
+        int maxlen=-1;
+        bool bounded=false;
 
+
+        // PyDeque methods: add, remove, insert, etc.
         void appendLeft(PyObject *item);
         void append(PyObject *item);
         PyObject *popLeft();
         PyObject *pop();
-
         bool insert(int index, PyObject *item);
         bool remove(VM *vm, PyObject *item);
+        
+        
         void rotate(int n);
-
-        std::stringstream getRepr(VM *vm);
         void reverse();
-        int findIndex(VM *vm, PyObject *obj, int startPos, int endPos); // vm is needed for the py_equals
-        int count(VM *vm, PyObject *obj); // vm is needed for the py_equals
         void clear();
         
-        PyDeque(){}
-        static void _register(VM *vm, PyObject *mod, PyObject *type);
 
+        int count(VM *vm, PyObject *obj);                               // vm is needed for the py_equals
+        int findIndex(VM *vm, PyObject *obj, int startPos, int endPos); // vm is needed for the py_equals
+
+
+        std::stringstream getRepr(VM *vm);
+
+        // Special methods
+        static void _register(VM *vm, PyObject *mod, PyObject *type);
         void _gc_mark() const; // needed for container types
     };
 

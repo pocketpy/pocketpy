@@ -4,19 +4,13 @@ namespace pkpy
 {
     void PyDeque::_register(VM *vm, PyObject *mod, PyObject *type)
     {
-        vm->bind_default_constructor<PyDeque>(type);
-
-        vm->bind(type, "__init__(self) -> None",
+        vm->bind(type, "__new__(cls, iterable=None, maxlen=None)",
                  [](VM *vm, ArgsView args)
                  {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyObject *maxlen = args[1];
-                     if (maxlen != vm->None)
-                     {
-                         // printf("TODO: implement deque.__init__(maxlen) -> None: %d\n", CAST(int, maxlen));
-                     }
-
-                     return vm->None;
+                     Type cls_t = PK_OBJ_GET(Type, args[0]);
+                     PyObject *iterable = args[1];
+                     PyObject *maxlen = args[2];
+                     return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
                  });
 
         vm->bind(type, "__len__(self) -> int",
@@ -55,9 +49,9 @@ namespace pkpy
         vm->bind(type, "copy(self) -> deque",
                  [](VM *vm, ArgsView args)
                  {
-                     // TODO: STILL MEMORY LEAKING??
+                     // TODO: FIX after implementing the __iter__ method
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyDeque *newDeque = new PyDeque();
+                     PyDeque *newDeque = new PyDeque(vm, vm->None, vm->None);
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
                      {
                          newDeque->append(*it);
@@ -77,8 +71,8 @@ namespace pkpy
         vm->bind(type, "extend(self, iterable) -> None",
                  [](VM *vm, ArgsView args)
                  {
+                     auto _lock = vm->heap.gc_scope_lock();
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-
                      PyObject *it = vm->py_iter(args[1]); // strong ref
                      PyObject *obj = vm->py_next(it);
                      while (obj != vm->StopIteration)
@@ -92,8 +86,8 @@ namespace pkpy
         vm->bind(type, "extendleft(self, iterable) -> None",
                  [](VM *vm, ArgsView args)
                  {
+                     auto _lock = vm->heap.gc_scope_lock();
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-
                      PyObject *it = vm->py_iter(args[1]); // strong ref
                      PyObject *obj = vm->py_next(it);
                      while (obj != vm->StopIteration)
@@ -185,11 +179,44 @@ namespace pkpy
                      return vm->None;
                  });
 
-        // vm->bind(type,"maxlen",
-        //          [](VM *vm, ArgsView args)
-        //          {
-        //             return VAR(-1);
-        //          });
+        // getter and setter of property `maxlen`
+        vm->bind_property(
+            type, "maxlen: int",
+            [](VM *vm, ArgsView args)
+            {
+                PyDeque &self = _CAST(PyDeque &, args[0]);
+                if (self.bounded)
+                    return VAR(self.maxlen);
+                else
+                    return vm->None;
+            },
+            [](VM *vm, ArgsView args)
+            {
+                vm->AttributeError("attribute 'maxlen' of 'collections.deque' objects is not writable");
+                return vm->None;
+            });
+    }
+
+    PyDeque::PyDeque(VM *vm, PyObject* iterable, PyObject* maxlen)
+    {
+        if(maxlen!=vm->None){
+            this->maxlen = CAST(int, maxlen);
+            this->bounded = true;
+        }else{
+            this->bounded = false;
+            this->maxlen = -1;
+        }
+
+        if(iterable!=vm->None){
+            auto _lock = vm->heap.gc_scope_lock();
+            PyObject *it = vm->py_iter(iterable); // strong ref
+            PyObject *obj = vm->py_next(it);
+            while (obj != vm->StopIteration)
+            {
+                this->append(obj);
+                obj = vm->py_next(it);
+            }
+        }
     }
 
     void PyDeque::rotate(int n)
@@ -244,7 +271,10 @@ namespace pkpy
 
     void PyDeque::_gc_mark() const
     {
-        // TODO: HOW TO IMPLEMENT THIS?
+        for (PyObject *obj : this->dequeItems)
+        {
+            PK_OBJ_MARK(obj);
+        }
     }
 
     std::stringstream PyDeque::getRepr(VM *vm)
@@ -259,6 +289,10 @@ namespace pkpy
             {
                 ss << ", ";
             }
+        }
+        if (this->bounded)
+        {
+            ss << ", maxlen=" << this->maxlen;
         }
         ss << "])";
         return ss;
