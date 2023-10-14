@@ -134,6 +134,7 @@ These are the results of the primes benchmark on Intel i5-12400F, WSL (Ubuntu 20
 
 | name | version | time | file |
 | ---- | ---- | ---- | ---- |
+| c++ | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.cpp) |
 | lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.lua) |
 | pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
 | cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/3d332a694f99ae2d327e732e7f3e3215bedcb069/benchmarks/primes.py) |
