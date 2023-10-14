@@ -190,8 +190,12 @@ struct NativeFunc {
 
 struct Function{
     FuncDecl_ decl;
-    PyObject* _module;
+    PyObject* _module;  // weak ref
+    PyObject* _class;   // weak ref
     NameDict_ _closure;
+
+    explicit Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict_ _closure):
+        decl(decl), _module(_module), _class(_class), _closure(_closure) {}
 };
 
 template<>
@@ -203,7 +207,6 @@ struct Py_<Function> final: PyObject {
     }
     void _obj_gc_mark() override {
         _value.decl->_gc_mark();
-        if(_value._module != nullptr) PK_OBJ_MARK(_value._module);
         if(_value._closure != nullptr) gc_mark_namedict(*_value._closure);
     }
 

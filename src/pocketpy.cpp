@@ -123,7 +123,7 @@ void init_builtins(VM* _vm) {
         }else if(args.size() == 0){
             FrameId frame = vm->top_frame();
             if(frame->_callable != nullptr){
-                class_arg = frame->_callable->attr().try_get_likely_found(__class__);
+                class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
                 if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
             }
             if(class_arg == nullptr || self_arg == nullptr){

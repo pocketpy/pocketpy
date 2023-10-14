@@ -89,10 +89,10 @@ __NEXT_STEP:;
         PyObject* obj;
         if(decl->nested){
             NameDict_ captured = frame->_locals.to_namedict();
-            obj = VAR(Function({decl, frame->_module, captured}));
+            obj = VAR(Function(decl, frame->_module, nullptr, captured));
             captured->set(decl->code->name, obj);
         }else{
-            obj = VAR(Function({decl, frame->_module}));
+            obj = VAR(Function(decl, frame->_module, nullptr, nullptr));
         }
         PUSH(obj);
     } DISPATCH();
@@ -689,7 +689,7 @@ __NEXT_STEP:;
         StrName _name(byte.arg);
         PyObject* _0 = POPX();
         if(is_non_tagged_type(_0, tp_function)){
-            _0->attr().set(__class__, TOP());
+            PK_OBJ_GET(Function, _0)._class = TOP();
         }
         TOP()->attr().set(_name, _0);
     } DISPATCH();
