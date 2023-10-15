@@ -33,10 +33,10 @@ _j = json.dumps(a)
 _a = json.loads(_j)
 
 for k, v in a.items():
-    assert a[k] == _a[k]
+    assert (a[k] == _a[k]), f'{a[k]} != {_a[k]}'
 
 for k, v in _a.items():
-    assert a[k] == _a[k]
+    assert (a[k] == _a[k]), f'{a[k]} != {_a[k]}'
 
 b = [1, 2, True, None, False]
 
