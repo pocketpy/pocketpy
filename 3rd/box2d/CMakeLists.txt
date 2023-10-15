@@ -14,7 +14,12 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src/rope BOX2D_SRC_3)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src BOX2D_BINDINGS_SRC)
 
-set(CMAKE_CXX_FLAGS "-O2")
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /O2")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -O2")
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(
