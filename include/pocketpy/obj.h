@@ -144,6 +144,8 @@ struct PyObject{
     NameDict& attr() noexcept { return *_attr; }
     PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
 
+    // PyObject* operator[](StrName name) const noexcept { return (*_attr)[name]; }
+
     virtual void _obj_gc_mark() = 0;
     virtual void* _value_ptr() = 0;
 

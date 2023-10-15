@@ -36,7 +36,4 @@ pypi/
 libpocketpy.dylib
 
 .xmake/
-tests/res/WorldMap_Free_layout.ldtk
-tests/res/WorldMap_GridVania_layout.ldtk
 
-*.gcda

@@ -14,7 +14,7 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src/rope BOX2D_SRC_3)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src BOX2D_BINDINGS_SRC)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS "-O2")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(

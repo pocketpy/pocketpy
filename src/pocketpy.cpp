@@ -139,7 +139,7 @@ void init_builtins(VM* _vm) {
         vm->check_non_tagged_type(class_arg, vm->tp_type);
         Type type = PK_OBJ_GET(Type, class_arg);
         if(!vm->isinstance(self_arg, type)){
-            Str _0 = obj_type_name(vm, PK_OBJ_GET(Type, vm->_t(self_arg)));
+            Str _0 = obj_type_name(vm, vm->_tp(self_arg));
             Str _1 = obj_type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
@@ -1331,7 +1331,11 @@ void init_builtins(VM* _vm) {
         self.apply([&](PyObject* k, PyObject* v){
             if(!first) ss << ", ";
             first = false;
-            Str key = CAST(Str&, k).escape(false);
+            if(!is_non_tagged_type(k, vm->tp_str)){
+                vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
+                UNREACHABLE();
+            }
+            Str key = _CAST(Str&, k).escape(false);
             Str value = CAST(Str&, vm->py_json(v));
             ss << key << ": " << value;
         });

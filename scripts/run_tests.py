@@ -2,9 +2,22 @@ import os
 import sys
 import time
 
+class WorkDir:
+    def __init__(self, next):
+        self.prev = os.getcwd()
+        self.next = next
+
+    def __enter__(self):
+        os.chdir(self.next)
+
+    def __exit__(self, *args, **kwargs):
+        os.chdir(self.prev)
+
 def test_file(filepath, cpython=False):
     if cpython:
-        return os.system("python3 " + filepath) == 0
+        x, y = os.path.split(filepath)
+        with WorkDir(x):
+            return os.system("python3 " + y) == 0
     if sys.platform == 'win32':
         return os.system("main.exe " + filepath) == 0
     else:

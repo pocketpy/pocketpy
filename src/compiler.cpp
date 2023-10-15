@@ -32,24 +32,27 @@ namespace pkpy{
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
         ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
         ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        // ctx()->co->optimize(vm);
+        // some check here
+        std::vector<Bytecode>& codes = ctx()->co->codes;
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
-        FuncDecl_ func = contexts.top().func;
-        if(func){
-            func->is_simple = true;
-            if(func->code->is_generator) func->is_simple = false;
-            if(func->kwargs.size() > 0) func->is_simple = false;
-            if(func->starred_arg >= 0) func->is_simple = false;
-            if(func->starred_kwarg >= 0) func->is_simple = false;
+        if(ctx()->co->consts.size() > 65535){
+            // std::map<std::string, int> counts;
+            // for(PyObject* c: ctx()->co->consts){
+            //     std::string key = obj_type_name(vm, vm->_tp(c)).str();
+            //     counts[key] += 1;
+            // }
+            // for(auto pair: counts){
+            //     std::cout << pair.first << ": " << pair.second << std::endl;
+            // }
+            SyntaxError("maximum number of constants exceeded");
         }
-        // pre-compute LOOP_BREAK and LOOP_CONTINUE and FOR_ITER
-        std::vector<Bytecode>& codes = ctx()->co->codes;
         if(codes.size() > 65535 && ctx()->co->src->mode != JSON_MODE){
             // json mode does not contain jump instructions, so it is safe to ignore this check
-            SyntaxError("maximum number of opcodes exceeded, please split your code into smaller functions");
+            SyntaxError("maximum number of opcodes exceeded");
         }
+        // pre-compute LOOP_BREAK and LOOP_CONTINUE and FOR_ITER
         for(int i=0; i<codes.size(); i++){
             Bytecode& bc = codes[i];
             if(bc.op == OP_LOOP_CONTINUE){
@@ -59,6 +62,14 @@ namespace pkpy{
             }else if(bc.op == OP_FOR_ITER){
                 bc.arg = ctx()->co->_get_block_codei(i).end;
             }
+        }
+        FuncDecl_ func = contexts.top().func;
+        if(func){
+            func->is_simple = true;
+            if(func->code->is_generator) func->is_simple = false;
+            if(func->kwargs.size() > 0) func->is_simple = false;
+            if(func->starred_arg >= 0) func->is_simple = false;
+            if(func->starred_kwarg >= 0) func->is_simple = false;
         }
         contexts.pop();
     }

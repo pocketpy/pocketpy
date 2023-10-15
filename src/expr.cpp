@@ -1,5 +1,4 @@
 #include "pocketpy/expr.h"
-#include "pocketpy/codeobject.h"
 
 namespace pkpy{
 
@@ -87,6 +86,15 @@ namespace pkpy{
         // simple deduplication, only works for int/float
         for(int i=0; i<co->consts.size(); i++){
             if(co->consts[i] == v) return i;
+        }
+        // string deduplication
+        if(is_non_tagged_type(v, vm->tp_str)){
+            const Str& v_str = PK_OBJ_GET(Str, v);
+            for(int i=0; i<co->consts.size(); i++){
+                if(is_non_tagged_type(co->consts[i], vm->tp_str)){
+                    if(PK_OBJ_GET(Str, co->consts[i]) == v_str) return i;
+                }
+            }
         }
         co->consts.push_back(v);
         return co->consts.size() - 1;

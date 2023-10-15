@@ -34,8 +34,12 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
 option(PK_USE_BOX2D "Use Box2D" OFF)
-option(PK_USE_CJSON "Use cJSON" ON)
+option(PK_USE_CJSON "Use cJSON" OFF)
 option(PK_USE_DYLIB "Use dylib" OFF)
+
+if(PK_USE_DYLIB)
+    add_definitions(-DPK_USE_DYLIB)
+endif()
 
 if(PK_USE_BOX2D)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d)
@@ -61,8 +65,6 @@ else()
   option(PK_BUILD_STATIC_LIB "Build static library" ON)
 endif()
 
-option(PK_EXPORT_CXX_SYMBOLS "Export C++ symbols" OFF)
-
 if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
@@ -76,7 +78,6 @@ else()
 endif()
 
 if(PK_USE_DYLIB)
-    add_definitions(-DPK_USE_DYLIB)
     target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 endif()
 
@@ -84,16 +85,6 @@ if(PK_USE_BOX2D)
     target_link_libraries(${PROJECT_NAME} box2d)
 endif()
 
-target_link_libraries(${PROJECT_NAME} cjson)
-
-if(PK_EXPORT_CXX_SYMBOLS AND MSVC)
-    set_target_properties(${PROJECT_NAME} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+if(PK_USE_CJSON)
+    target_link_libraries(${PROJECT_NAME} cjson)
 endif()
-
-# enable link time optimization
-# include(CheckIPOSupported)
-# check_ipo_supported(RESULT result)
-# if(result)
-#     message(STATUS "LTO enabled")
-#     set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-# endif()
