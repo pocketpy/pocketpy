@@ -541,12 +541,9 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_float, [](VM* vm, PyObject* obj) {
         f64 val = _CAST(f64, obj);
-        if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
-        std::stringstream ss; // float
-        ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
-        std::string s = ss.str();
-        if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
-        return VAR(s);
+        SStream ss;
+        ss << val;
+        return VAR(ss.str());
     });
 
     /************ str ************/

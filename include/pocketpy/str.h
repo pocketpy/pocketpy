@@ -183,6 +183,16 @@ struct SStream{
 
     template<typename T>
     SStream& operator<<(T val){
+        if constexpr(std::is_floating_point_v<T>){
+            if(std::isinf(val) || std::isnan(val)){
+                return (*this) << std::to_string(val);
+            }
+            std::stringstream ss; // float
+            ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
+            std::string s = ss.str();
+            if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
+            return (*this) << s;
+        }
         (*this) << std::to_string(val);
         return *this;
     }
