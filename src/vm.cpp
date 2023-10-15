@@ -5,7 +5,7 @@ namespace pkpy{
     struct JsonSerializer{
         VM* vm;
         PyObject* root;
-        std::stringstream ss;
+        SStream ss;
 
         JsonSerializer(VM* vm, PyObject* root) : vm(vm), root(root) {}
 
@@ -61,7 +61,7 @@ namespace pkpy{
             }
         }
 
-        std::string serialize(){
+        Str serialize(){
             auto _lock = vm->heap.gc_scope_lock();
             write_object(root);
             return ss.str();
@@ -218,7 +218,7 @@ namespace pkpy{
         PyObject* obj = builtins->attr().try_get_likely_found(type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return t.obj;
-            throw std::runtime_error(fmt("type not found: ", type));
+            throw std::runtime_error(fmt("type not found: ", type).str());
         }
         check_non_tagged_type(obj, tp_type);
         return obj;
@@ -288,7 +288,7 @@ namespace pkpy{
     PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
         auto f_join = [](const std::vector<std::string_view>& cpnts){
-            std::stringstream ss;
+            SStream ss;
             for(int i=0; i<cpnts.size(); i++){
                 if(i != 0) ss << ".";
                 ss << cpnts[i];
@@ -534,7 +534,7 @@ PyObject* VM::format(Str spec, PyObject* obj){
     if(type == 'f'){
         f64 val = CAST(f64, obj);
         if(precision < 0) precision = 6;
-        std::stringstream ss;
+        std::stringstream ss; // float
         ss << std::fixed << std::setprecision(precision) << val;
         ret = ss.str();
     }else if(type == 'd'){
@@ -568,7 +568,7 @@ PyObject* VM::new_module(Str name, Str package) {
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     if(_modules.contains(name)){
-        throw std::runtime_error(fmt("module ", name.escape(), " already exists"));
+        throw std::runtime_error(fmt("module ", name.escape(), " already exists").str());
     }
     // convert to fullname and set it into _modules
     if(!package.empty()) name = package + "." + name;
@@ -582,20 +582,20 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){
-                argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")");
+                argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")").sv();
             }
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
         case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
         case OP_BEGIN_CLASS: case OP_RAISE: case OP_GOTO:
         case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR:
-            argStr += fmt(" (", StrName(byte.arg).sv(), ")");
+            argStr += fmt(" (", StrName(byte.arg).sv(), ")").sv();
             break;
         case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST:
-            argStr += fmt(" (", co->varnames[byte.arg].sv(), ")");
+            argStr += fmt(" (", co->varnames[byte.arg].sv(), ")").sv();
             break;
         case OP_LOAD_FUNCTION:
-            argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")");
+            argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")").sv();
             break;
     }
     return argStr;
@@ -618,7 +618,7 @@ Str VM::disassemble(CodeObject_ co){
             if(target != nullptr) jumpTargets.push_back(*target);
         }
     }
-    std::stringstream ss;
+    SStream ss;
     int prev_line = -1;
     for(int i=0; i<co->codes.size(); i++){
         const Bytecode& byte = co->codes[i];
@@ -657,7 +657,7 @@ Str VM::disassemble(CodeObject_ co){
 void VM::_log_s_data(const char* title) {
     if(_main == nullptr) return;
     if(callstack.empty()) return;
-    std::stringstream ss;
+    SStream ss;
     if(title) ss << title << " | ";
     std::map<PyObject**, int> sp_bases;
     for(Frame& f: callstack.data()){

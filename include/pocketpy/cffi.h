@@ -46,7 +46,7 @@ struct VoidP{
     bool operator>=(const VoidP& other) const { return ptr >= other.ptr; }
 
     Str hex() const{
-        std::stringstream ss;
+        std::stringstream ss; // hex
         ss << std::hex << reinterpret_cast<intptr_t>(ptr);
         return "0x" + ss.str();
     }

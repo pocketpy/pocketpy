@@ -44,7 +44,7 @@ namespace pkpy{
     }
 
     std::string CodeEmitContext::_log_s_expr(){
-        std::stringstream ss;
+        std::stringstream ss; // debug
         for(auto& e: s_expr.data()) ss << e->str() << " ";
         return ss.str();
     }

@@ -7,15 +7,15 @@ namespace pkpy{
         // Skip utf8 BOM if there is any.
         if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
         // Drop all '\r'
-        std::stringstream ss;
+        SStream ss;
         while(index < source.length()){
             if(source[index] != '\r') ss << source[index];
             index++;
         }
 
         this->filename = filename;
-        this->source = ss.str();
-        line_starts.push_back(this->source.c_str());
+        this->source = std::move(ss.str());
+        line_starts.push_back(this->source.begin());
         this->mode = mode;
     }
 
@@ -31,7 +31,7 @@ namespace pkpy{
     }
 
     Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) const{
-        std::stringstream ss;
+        SStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno;
         if(!name.empty()) ss << ", in " << name;
         ss << '\n';
@@ -53,7 +53,7 @@ namespace pkpy{
 
     Str Exception::summary() const {
         stack<ExceptionLine> st(stacktrace);
-        std::stringstream ss;
+        SStream ss;
         if(is_re) ss << "Traceback (most recent call last):\n";
         while(!st.empty()) {
             ss << st.top().snapshot() << '\n';

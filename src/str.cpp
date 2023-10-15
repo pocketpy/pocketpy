@@ -225,12 +225,12 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str Str::escape(bool single_quote) const{
-        std::stringstream ss;
+        SStream ss;
         escape_(ss, single_quote);
         return ss.str();
     }
 
-    void Str::escape_(std::stringstream& ss, bool single_quote) const {
+    void Str::escape_(SStream& ss, bool single_quote) const {
         ss << (single_quote ? '\'' : '"');
         for (int i=0; i<length(); i++) {
             char c = this->operator[](i);
@@ -249,7 +249,9 @@ int utf8len(unsigned char c, bool suppress){
                 case '\t': ss << "\\t"; break;
                 default:
                     if ('\x00' <= c && c <= '\x1f') {
-                        ss << "\\x" << std::hex << std::setw(2) << std::setfill('0') << (int)c;
+                        ss << "\\x"; // << std::hex << std::setw(2) << std::setfill('0') << (int)c;
+                        ss << "0123456789abcdef"[c >> 4];
+                        ss << "0123456789abcdef"[c & 0xf];
                     } else {
                         ss << c;
                     }
@@ -273,7 +275,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str Str::replace(const Str& old, const Str& new_, int count) const {
-        std::stringstream ss;
+        SStream ss;
         int start = 0;
         while(true){
             int i = index(old, start);
@@ -313,7 +315,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str Str::u8_slice(int start, int stop, int step) const{
-        std::stringstream ss;
+        SStream ss;
         if(is_ascii){
             for(int i=start; step>0?i<stop:i>stop; i+=step) ss << data[i];
         }else{

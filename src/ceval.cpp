@@ -272,7 +272,7 @@ __NEXT_STEP:;
         PUSH(VAR(Slice(_0, _1, _2)));
     } DISPATCH();
     TARGET(BUILD_STRING) {
-        std::stringstream ss;
+        SStream ss;
         ArgsView view = STACK_VIEW(byte.arg);
         for(PyObject* obj : view) ss << CAST(Str&, py_str(obj));
         STACK_SHRINK(byte.arg);

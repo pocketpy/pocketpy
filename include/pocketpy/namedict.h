@@ -291,7 +291,7 @@ struct NameDictImpl{
     V operator[](StrName key) const {
         V val = try_get_likely_found(key);
         if(val == default_invalid_value<V>()){
-            throw std::runtime_error(fmt("NameDict key not found: ", key.escape()));
+            throw std::runtime_error(fmt("NameDict key not found: ", key.escape()).str());
         }
         return val;
     }

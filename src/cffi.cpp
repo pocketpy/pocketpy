@@ -46,7 +46,7 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             C99Struct& self = _CAST(C99Struct&, obj);
-            std::stringstream ss;
+            SStream ss;
             ss << "<struct object of " << self.size << " bytes>";
             return VAR(ss.str());
         });

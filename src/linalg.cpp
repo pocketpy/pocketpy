@@ -57,7 +57,7 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
-            std::stringstream ss;
+            SStream ss;
             ss << "vec2(" << self.x << ", " << self.y << ")";
             return VAR(ss.str());
         });
@@ -117,7 +117,7 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec3& self = _CAST(PyVec3&, obj);
-            std::stringstream ss;
+            SStream ss;
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
             return VAR(ss.str());
         });
@@ -155,7 +155,7 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec4& self = _CAST(PyVec4&, obj);
-            std::stringstream ss;
+            SStream ss;
             ss << "vec4(" << self.x << ", " << self.y << ", " << self.z << ", " << self.w << ")";
             return VAR(ss.str());
         });

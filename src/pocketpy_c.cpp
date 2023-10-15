@@ -8,7 +8,7 @@ typedef int (*LuaStyleFuncC)(VM*);
 #define PK_ASSERT_N_EXTRA_ELEMENTS(n) \
     int __ex_count = count_extra_elements(vm, n); \
     if(__ex_count < n){ \
-        std::string msg = fmt("expected at least ", n, " elements, got ", __ex_count); \
+        Str msg = fmt("expected at least ", n, " elements, got ", __ex_count); \
         pkpy_error(vm_handle, "StackError", pkpy_string(msg.c_str())); \
         return false; \
     }

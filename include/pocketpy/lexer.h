@@ -59,8 +59,8 @@ struct Token{
   Str str() const { return Str(start, length);}
   std::string_view sv() const { return std::string_view(start, length);}
 
-  std::string info() const {
-    std::stringstream ss;
+  Str info() const {
+    SStream ss;
     ss << line << ": " << TK_STR(type) << " '" << (
         sv()=="\n" ? "\\n" : sv()
     ) << "'";

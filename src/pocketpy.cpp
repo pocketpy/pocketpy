@@ -319,7 +319,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("hex", [](VM* vm, ArgsView args) {
-        std::stringstream ss;
+        std::stringstream ss; // hex
         ss << std::hex << CAST(i64, args[0]);
         return VAR("0x" + ss.str());
     });
@@ -333,7 +333,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_builtin_func<1>("bin", [](VM* vm, ArgsView args) {
-        std::stringstream ss;
+        SStream ss;
         i64 x = CAST(i64, args[0]);
         if(x < 0){ ss << "-"; x = -x; }
         ss << "0b";
@@ -364,7 +364,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* obj) {
         if(is_tagged(obj)) FATAL_ERROR();
-        std::stringstream ss;
+        std::stringstream ss; // hex
         ss << "<" << OBJ_NAME(vm->_t(obj)) << " object at 0x";
         ss << std::hex << reinterpret_cast<intptr_t>(obj) << ">";
         return VAR(ss.str());
@@ -542,7 +542,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_float, [](VM* vm, PyObject* obj) {
         f64 val = _CAST(f64, obj);
         if(std::isinf(val) || std::isnan(val)) return VAR(std::to_string(val));
-        std::stringstream ss;
+        std::stringstream ss; // float
         ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
         std::string s = ss.str();
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
@@ -565,7 +565,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__mul__(_vm->tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const Str& self = _CAST(Str&, lhs);
         i64 n = CAST(i64, rhs);
-        std::stringstream ss;
+        SStream ss;
         for(i64 i = 0; i < n; i++) ss << self.sv();
         return VAR(ss.str());
     });
@@ -573,7 +573,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "__rmul__", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         i64 n = CAST(i64, args[1]);
-        std::stringstream ss;
+        SStream ss;
         for(i64 i = 0; i < n; i++) ss << self.sv();
         return VAR(ss.str());
     });
@@ -701,7 +701,7 @@ void init_builtins(VM* _vm) {
     /************ list ************/
     _vm->bind__repr__(_vm->tp_list, [](VM* vm, PyObject* _0){
         List& iterable = _CAST(List&, _0);
-        std::stringstream ss;
+        SStream ss;
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
             ss << CAST(Str&, vm->py_repr(iterable[i]));
@@ -713,7 +713,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_tuple, [](VM* vm, PyObject* _0){
         Tuple& iterable = _CAST(Tuple&, _0);
-        std::stringstream ss;
+        SStream ss;
         ss << '(';
         if(iterable.size() == 1){
             ss << CAST(Str&, vm->py_repr(iterable[0]));
@@ -1003,10 +1003,12 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
         const Bytes& self = _CAST(Bytes&, obj);
-        std::stringstream ss;
+        SStream ss;
         ss << "b'";
         for(int i=0; i<self.size(); i++){
-            ss << "\\x" << std::hex << std::setw(2) << std::setfill('0') << self[i];
+            ss << "\\x"; // << std::hex << std::setw(2) << std::setfill('0') << self[i];
+            ss << "0123456789ABCDEF"[self[i] >> 4];
+            ss << "0123456789ABCDEF"[self[i] & 0xf];
         }
         ss << "'";
         return VAR(ss.str());
@@ -1032,7 +1034,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_slice, [](VM* vm, PyObject* obj) {
         const Slice& self = _CAST(Slice&, obj);
-        std::stringstream ss;
+        SStream ss;
         ss << "slice(";
         ss << CAST(Str, vm->py_repr(self.start)) << ", ";
         ss << CAST(Str, vm->py_repr(self.stop)) << ", ";
@@ -1088,7 +1090,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
         MappingProxy& self = _CAST(MappingProxy&, obj);
-        std::stringstream ss;
+        SStream ss;
         ss << "mappingproxy({";
         bool first = true;
         for(auto& item : self.attr().items()){
@@ -1171,7 +1173,7 @@ void init_builtins(VM* _vm) {
 
     // _vm->bind_method<0>("dict", "_data", [](VM* vm, ArgsView args) {
     //     Dict& self = _CAST(Dict&, args[0]);
-    //     std::stringstream ss;
+    //     SStream ss;
     //     ss << "[\n";
     //     for(int i=0; i<self._capacity; i++){
     //         auto item = self._items[i];
@@ -1257,7 +1259,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
         Dict& self = _CAST(Dict&, obj);
-        std::stringstream ss;
+        SStream ss;
         ss << "{";
         bool first = true;
 

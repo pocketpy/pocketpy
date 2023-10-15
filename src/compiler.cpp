@@ -548,25 +548,25 @@ __SUBSCR_END:
             advance();
         }
 __EAT_DOTS_END:
-        std::stringstream ss;
+        SStream ss;
         for(int i=0; i<dots; i++) ss << '.';
 
         if(dots > 0){
             // @id is optional if dots > 0
             if(match(TK("@id"))){
-                ss << prev().str();
+                ss << prev().sv();
                 while (match(TK("."))) {
                     consume(TK("@id"));
-                    ss << "." << prev().str();
+                    ss << "." << prev().sv();
                 }
             }
         }else{
             // @id is required if dots == 0
             consume(TK("@id"));
-            ss << prev().str();
+            ss << prev().sv();
             while (match(TK("."))) {
                 consume(TK("@id"));
-                ss << "." << prev().str();
+                ss << "." << prev().sv();
             }
         }
 
@@ -679,7 +679,7 @@ __EAT_DOTS_END:
         do {
             consume(TK("except"));
             if(match(TK("@id"))){
-                ctx()->emit(OP_EXCEPTION_MATCH, StrName(prev().str()).index, prev().line);
+                ctx()->emit(OP_EXCEPTION_MATCH, StrName(prev().sv()).index, prev().line);
             }else{
                 ctx()->emit(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
             }
@@ -864,7 +864,7 @@ __EAT_DOTS_END:
                 break;
             case TK("raise"): {
                 consume(TK("@id"));
-                int dummy_t = StrName(prev().str()).index;
+                int dummy_t = StrName(prev().sv()).index;
                 if(match(TK("(")) && !match(TK(")"))){
                     EXPR(false); consume(TK(")"));
                 }else{
@@ -905,7 +905,7 @@ __EAT_DOTS_END:
             case TK("->"):
                 consume(TK("@id"));
                 if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
-                ctx()->emit(OP_GOTO, StrName(prev().str()).index, prev().line);
+                ctx()->emit(OP_GOTO, StrName(prev().sv()).index, prev().line);
                 consume_end_stmt();
                 break;
             /*************************************************/
@@ -950,7 +950,7 @@ __EAT_DOTS_END:
 
     void Compiler::compile_class(){
         consume(TK("@id"));
-        int namei = StrName(prev().str()).index;
+        int namei = StrName(prev().sv()).index;
         Expr_ base = nullptr;
         if(match(TK("("))){
             if(is_expression()){
