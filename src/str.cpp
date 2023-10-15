@@ -404,25 +404,4 @@ int utf8len(unsigned char c, bool suppress){
         const std::string& str = _r_interned()[index];
         return std::string_view(str);
     }
-
-    FastStrStream& FastStrStream::operator<<(const Str& s){
-        parts.push_back(&s);
-        return *this;
-    }
-
-    Str FastStrStream::str() const{
-        int len = 0;
-        bool is_ascii = true;
-        for(auto& s: parts){
-            len += s->length();
-            is_ascii &= s->is_ascii;
-        }
-        Str result(len, is_ascii);
-        char* p = result.data;
-        for(auto& s: parts){
-            memcpy(p, s->data, s->length());
-            p += s->length();
-        }
-        return result;    
-    }
 } // namespace pkpy

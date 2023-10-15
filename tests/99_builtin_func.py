@@ -220,33 +220,6 @@ for i in range(128):
 assert l == ['0 \x00', '1 \x01', '2 \x02', '3 \x03', '4 \x04', '5 \x05', '6 \x06', '7 \x07', '8 \x08', '9 \t', '10 \n', '11 \x0b', '12 \x0c', '13 \r', '14 \x0e', '15 \x0f', '16 \x10', '17 \x11', '18 \x12', '19 \x13', '20 \x14', '21 \x15', '22 \x16', '23 \x17', '24 \x18', '25 \x19', '26 \x1a', '27 \x1b', '28 \x1c', '29 \x1d', '30 \x1e', '31 \x1f', '32  ', '33 !', '34 "', '35 #', '36 $', '37 %', '38 &', "39 '", '40 (', '41 )', '42 *', '43 +', '44 ,', '45 -', '46 .', '47 /', '48 0', '49 1', '50 2', '51 3', '52 4', '53 5', '54 6', '55 7', '56 8', '57 9', '58 :', '59 ;', '60 <', '61 =', '62 >', '63 ?', '64 @', '65 A', '66 B', '67 C', '68 D', '69 E', '70 F', '71 G', '72 H', '73 I', '74 J', '75 K', '76 L', '77 M', '78 N', '79 O', '80 P', '81 Q', '82 R', '83 S', '84 T', '85 U', '86 V', '87 W', '88 X', '89 Y', '90 Z', '91 [', '92 \\', '93 ]', '94 ^', '95 _', '96 `', '97 a', '98 b', '99 c', '100 d', '101 e', '102 f', '103 g', '104 h', '105 i', '106 j', '107 k', '108 l', '109 m', '110 n', '111 o', '112 p', '113 q', '114 r', '115 s', '116 t', '117 u', '118 v', '119 w', '120 x', '121 y', '122 z', '123 {', '124 |', '125 }', '126 ~', '127 \x7f']
 
 
-
-
-
-
-
-
-
-
-
-# 未完全测试准确性-----------------------------------------------
-#       116:  269:    _vm->bind_builtin_func<1>("bin", [](VM* vm, ArgsView args) {
-#     #####:  270:        std::stringstream ss;
-#     #####:  271:        i64 x = CAST(i64, args[0]);
-#     #####:  272:        if(x < 0){ ss << "-"; x = -x; }
-#     #####:  273:        ss << "0b";
-#     #####:  274:        std::string bits;
-#     #####:  275:        while(x){
-#     #####:  276:            bits += (x & 1) ? '1' : '0';
-#     #####:  277:            x >>= 1;
-#         -:  278:        }
-#     #####:  279:        std::reverse(bits.begin(), bits.end());
-#     #####:  280:        if(bits.empty()) bits = "0";
-#     #####:  281:        ss << bits;
-#     #####:  282:        return VAR(ss.str());
-#     #####:  283:    });
-# test bin:
-
 assert type(bin(1234)) is str
 
 # 无法测试, 不能覆盖-----------------------------------------------
@@ -265,15 +238,6 @@ assert type(bin(1234)) is str
 #        10:  297:    });
 # test dir:
 
-
-# 未完全测试准确性-----------------------------------------------
-#       116:  299:    _vm->bind__repr__(_vm->tp_object, [](VM* vm, PyObject* obj) {
-#     #####:  300:        if(is_tagged(obj)) FATAL_ERROR();
-#     #####:  301:        std::stringstream ss;
-#     #####:  302:        ss << "<" << OBJ_NAME(vm->_t(obj)) << " object at 0x";
-#     #####:  303:        ss << std::hex << reinterpret_cast<intptr_t>(obj) << ">";
-#     #####:  304:        return VAR(ss.str());
-#     #####:  305:    });
 # test __repr__:
 class A():
     def __init__(self):
@@ -361,14 +325,6 @@ except:
     pass
 
 # /************ str ************/
-# 未完全测试准确性-----------------------------------------------
-#       116:  495:    _vm->bind_method<1>("str", "__rmul__", [](VM* vm, ArgsView args) {
-#     #####:  496:        const Str& self = _CAST(Str&, args[0]);
-#     #####:  497:        i64 n = CAST(i64, args[1]);
-#     #####:  498:        std::stringstream ss;
-#     #####:  499:        for(i64 i = 0; i < n; i++) ss << self.sv();
-#     #####:  500:        return VAR(ss.str());
-#     #####:  501:    });
 # test str.__rmul__:
 assert type(12 * '12') is str
 
@@ -600,16 +556,6 @@ assert type(hash(bytes([0x41, 0x42, 0x43]))) is int
 
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  928:    _vm->bind__repr__(_vm->tp_bytes, [](VM* vm, PyObject* obj) {
-#     #####:  929:        const Bytes& self = _CAST(Bytes&, obj);
-#     #####:  930:        std::stringstream ss;
-#     #####:  931:        ss << "b'";
-#     #####:  932:        for(int i=0; i<self.size(); i++){
-#     #####:  933:            ss << "\\x" << std::hex << std::setw(2) << std::setfill('0') << self[i];
-#         -:  934:        }
-#     #####:  935:        ss << "'";
-#     #####:  936:        return VAR(ss.str());
-#     #####:  937:    });
 # test bytes.__repr__:
 assert type(repr(bytes([0x41, 0x42, 0x43]))) is str
 
@@ -641,15 +587,6 @@ assert s.step == 3
 assert slice.__dict__['start'].__signature__ == 'start'
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  957:    _vm->bind__repr__(_vm->tp_slice, [](VM* vm, PyObject* obj) {
-#     #####:  958:        const Slice& self = _CAST(Slice&, obj);
-#     #####:  959:        std::stringstream ss;
-#     #####:  960:        ss << "slice(";
-#     #####:  961:        ss << CAST(Str, vm->py_repr(self.start)) << ", ";
-#     #####:  962:        ss << CAST(Str, vm->py_repr(self.stop)) << ", ";
-#     #####:  963:        ss << CAST(Str, vm->py_repr(self.step)) << ")";
-#     #####:  964:        return VAR(ss.str());
-#     #####:  965:    });
 # test slice.__repr__
 assert type(repr(slice(1,1,1))) is str
 
@@ -744,19 +681,6 @@ except TypeError:
     pass
 
 # 未完全测试准确性-----------------------------------------------
-#       116: 1009:    _vm->bind__repr__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj) {
-#     #####: 1010:        MappingProxy& self = _CAST(MappingProxy&, obj);
-#     #####: 1011:        std::stringstream ss;
-#     #####: 1012:        ss << "mappingproxy({";
-#         -: 1013:        bool first = true;
-#     #####: 1014:        for(auto& item : self.attr().items()){
-#     #####: 1015:            if(!first) ss << ", ";
-#         -: 1016:            first = false;
-#     #####: 1017:            ss << item.first.escape() << ": " << CAST(Str, vm->py_repr(item.second));
-#         -: 1018:        }
-#     #####: 1019:        ss << "})";
-#     #####: 1020:        return VAR(ss.str());
-#     #####: 1021:    });
 # test mappingproxy.__repr__:
 class A():
     def __init__(self):
@@ -859,23 +783,6 @@ except:
     pass
 
 # 未完全测试准确性-----------------------------------------------
-#       116: 1151:    _vm->bind__repr__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
-#     #####: 1152:        Dict& self = _CAST(Dict&, obj);
-#     #####: 1153:        std::stringstream ss;
-#     #####: 1154:        ss << "{";
-#     #####: 1155:        bool first = true;
-#         -: 1156:
-#     #####: 1157:        self.apply([&](PyObject* k, PyObject* v){
-#     #####: 1158:            if(!first) ss << ", ";
-#     #####: 1159:            first = false;
-#     #####: 1160:            Str key = CAST(Str&, vm->py_repr(k));
-#     #####: 1161:            Str value = CAST(Str&, vm->py_repr(v));
-#     #####: 1162:            ss << key << ": " << value;
-#     #####: 1163:        });
-#         -: 1164:
-#     #####: 1165:        ss << "}";
-#     #####: 1166:        return VAR(ss.str());
-#     #####: 1167:    });
 # test dict.__repr__
 assert type(repr({1:2, 3:4})) is str
 

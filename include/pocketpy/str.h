@@ -85,13 +85,6 @@ struct Str{
     int u8_length() const;
 };
 
-template<typename... Args>
-std::string fmt(Args&&... args) {
-    std::stringstream ss;
-    (ss << ... << args);
-    return ss.str();
-}
-
 struct StrName {
     uint16_t index;
     StrName();
@@ -127,12 +120,59 @@ struct StrName {
     static uint32_t _pesudo_random_index;
 };
 
-struct FastStrStream{
-    pod_vector<const Str*> parts;
-    FastStrStream& operator<<(const Str& s);
-    bool empty() const { return parts.empty(); }
-    Str str() const;
+struct SStream{
+    PK_ALWAYS_PASS_BY_POINTER(SStream)
+    // pod_vector<T> is allocated by pool64 so the buffer can be moved into Str without a copy
+    pod_vector<char> buffer;
+    bool empty() const { return buffer.empty(); }
+
+    SStream(){}
+    SStream(int guess_size){ buffer.reserve(guess_size); }
+
+    Str str(){
+        // after this call, the buffer is no longer valid
+        auto detached = buffer.detach();
+        return Str(detached.first, detached.second);
+    }
+
+    SStream& operator<<(const Str& s){
+        buffer.extend(s.begin(), s.end());
+        return *this;
+    }
+
+    SStream& operator<<(const char* s){
+        buffer.extend(s, s + strlen(s));
+        return *this;
+    }
+
+    SStream& operator<<(const std::string& s){
+        buffer.extend(s.data(), s.data() + s.size());
+        return *this;
+    }
+
+    SStream& operator<<(std::string_view s){
+        buffer.extend(s.data(), s.data() + s.size());
+        return *this;
+    }
+
+    SStream& operator<<(char c){
+        buffer.push_back(c);
+        return *this;
+    }
+
+    template<typename T>
+    SStream& operator<<(T val){
+        (*this) << std::to_string(val);
+        return *this;
+    }
 };
+
+template<typename... Args>
+Str fmt(Args&&... args) {
+    SStream ss;
+    (ss << ... << args);
+    return ss.str();
+}
 
 struct CString{
 	const char* ptr;

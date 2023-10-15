@@ -18,8 +18,8 @@ namespace pkpy {
     }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
         if(OBJ_NAME(mod) != #mod) {                                         \
-            auto msg = fmt("register_class() failed: ", OBJ_NAME(mod), " != ", #mod); \
-            throw std::runtime_error(msg);                                  \
+            Str msg = fmt("register_class() failed: ", OBJ_NAME(mod), " != ", #mod); \
+            throw std::runtime_error(msg.str());                            \
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \
         T::_register(vm, mod, type);                                        \

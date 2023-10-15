@@ -677,7 +677,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<1>("str", "join", [](VM* vm, ArgsView args) {
         auto _lock = vm->heap.gc_scope_lock();
         const Str& self = _CAST(Str&, args[0]);
-        FastStrStream ss;
+        SStream ss;
         PyObject* it = vm->py_iter(args[1]);     // strong ref
         PyObject* obj = vm->py_next(it);
         while(obj != vm->StopIteration){

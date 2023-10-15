@@ -72,8 +72,13 @@ struct pod_vector{
 
     void pop_back() { _size--; }
     T popx_back() { T t = std::move(_data[_size-1]); _size--; return t; }
+    
     void extend(const pod_vector& other){
         for(int i=0; i<other.size(); i++) push_back(other[i]);
+    }
+
+    void extend(const T* begin, const T* end){
+        for(auto it=begin; it!=end; it++) push_back(*it);
     }
 
     T& operator[](int index) { return _data[index]; }
@@ -112,6 +117,14 @@ struct pod_vector{
     void resize(int size){
         if(size > _capacity) reserve(size);
         _size = size;
+    }
+
+    std::pair<T*, int> detach() noexcept {
+        T* p = _data;
+        int size = _size;
+        _data = nullptr;
+        _size = 0;
+        return {p, size};
     }
 
     ~pod_vector() {
