@@ -115,8 +115,12 @@ void add_module_cjson(VM* vm){
         const Str& string = CAST(Str&, args[0]);
         cJSON *json = cJSON_ParseWithLength(string.data, string.size);
         if(json == NULL){
-            const char* err = cJSON_GetErrorPtr();
-            vm->IOError(fmt("cjson: ", err));
+            const char* start = cJSON_GetErrorPtr();
+            const char* end = start;
+            while(*end != '\0' && *end != '\n'){
+                end++;
+            }
+            vm->IOError(fmt("cjson: ", std::string_view(start, end-start)));
             UNREACHABLE();
         }
         PyObject* output = convert_cjson_to_python_object(json, vm);
