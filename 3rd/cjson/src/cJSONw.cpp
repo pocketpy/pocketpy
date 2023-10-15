@@ -117,6 +117,7 @@ void add_module_cjson(VM* vm){
         
         cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
         char* str = cJSON_Print(cjson);
+        cJSON_Delete(cjson);
         return VAR(Str(str));
     });
 }
