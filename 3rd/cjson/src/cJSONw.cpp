@@ -6,18 +6,10 @@ namespace pkpy{
 static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm);
 static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm);
 
-
-static cJSON* convert_list_to_cjson(const List& list, VM* vm){
+template<typename T>
+static cJSON* convert_list_to_cjson(const T& list, VM* vm){
     cJSON *cjson_list = cJSON_CreateArray();
     for(auto& element : list){
-        cJSON_AddItemToArray(cjson_list, convert_python_object_to_cjson(element, vm));
-    }
-    return cjson_list;
-}
-
-static cJSON* convert_tuple_to_cjson(const Tuple& tuple, VM* vm){
-    cJSON *cjson_list = cJSON_CreateArray();
-    for(auto& element : tuple){
         cJSON_AddItemToArray(cjson_list, convert_python_object_to_cjson(element, vm));
     }
     return cjson_list;
@@ -49,10 +41,10 @@ static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
         return covert_dict_to_cjson(_CAST(Dict&, obj), vm);
     }
     else if (obj_t == vm->tp_list){
-        return convert_list_to_cjson(_CAST(List&, obj), vm);
+        return convert_list_to_cjson<List>(_CAST(List&, obj), vm);
     }
     else if(obj_t == vm->tp_tuple){
-        return convert_tuple_to_cjson(_CAST(Tuple&, obj), vm);
+        return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
     }else if(obj == vm->None){
         return cJSON_CreateNull();
     }else{
@@ -136,7 +128,9 @@ void add_module_cjson(VM* vm){
         cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
         char* str = cJSON_Print(cjson);
         cJSON_Delete(cjson);
-        return VAR(Str(str));
+        PyObject* ret = VAR((const char*)str);
+        hooks.free_fn(str);
+        return ret;
     });
 }
 
