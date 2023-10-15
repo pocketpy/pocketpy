@@ -1,4 +1,8 @@
-import json
+try:
+    import cjson as json
+    print('[INFO] cjson is used')
+except ImportError:
+    import json
 
 _2489KB = 'WorldMap_GridVania_layout.ldtk'
 _1093KB = 'WorldMap_Free_layout.ldtk'

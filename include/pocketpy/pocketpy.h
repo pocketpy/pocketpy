@@ -27,5 +27,4 @@ void add_module_math(VM* vm);
 void add_module_dis(VM* vm);
 void add_module_traceback(VM* vm);
 void add_module_gc(VM* vm);
-
 }   // namespace pkpy

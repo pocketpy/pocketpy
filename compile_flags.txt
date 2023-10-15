@@ -5,3 +5,4 @@
 -stdlib=libc++
 -Iinclude/
 -I3rd/box2d/include/
+-I3rd/cjson/include/

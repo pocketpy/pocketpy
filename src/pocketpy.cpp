@@ -4,6 +4,10 @@
 #include "box2dw.hpp"
 #endif
 
+#ifdef PK_USE_CJSON
+#include "cJSONw.hpp"
+#endif
+
 #if defined (_WIN32) && PK_SUPPORT_DYLIB == 1
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -1740,6 +1744,10 @@ void VM::post_init(){
 #ifdef PK_USE_BOX2D
     add_module_box2d(this);
 #endif
+#ifdef PK_USE_CJSON
+    add_module_cjson(this);
+#endif
+
 #endif
 }
 
