@@ -446,15 +446,6 @@ except:
 
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  721:    _vm->bind_method<1>("list", "__rmul__", [](VM* vm, ArgsView args) {
-#     #####:  722:        const List& self = _CAST(List&, args[0]);
-#     #####:  723:        if(!is_int(args[1])) return vm->NotImplemented;
-#     #####:  724:        int n = _CAST(int, args[1]);
-#     #####:  725:        List result;
-#     #####:  726:        result.reserve(self.size() * n);
-#     #####:  727:        for(int i = 0; i < n; i++) result.extend(self);
-#     #####:  728:        return VAR(std::move(result));
-#     #####:  729:    });
 # test list.__rmul__:
 assert type(12 * [12]) is list
 

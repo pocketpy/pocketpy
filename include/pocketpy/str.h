@@ -146,6 +146,26 @@ struct SStream{
         return *this;
     }
 
+    SStream& operator<<(i64 val){
+        // str(-2**64).__len__() == 21
+        buffer.reserve(buffer.size() + 24);
+        if(val == 0){
+            buffer.push_back('0');
+            return *this;
+        }
+        if(val < 0){
+            buffer.push_back('-');
+            val = -val;
+        }
+        char* begin = buffer.end();
+        while(val){
+            buffer.push_back('0' + val % 10);
+            val /= 10;
+        }
+        std::reverse(begin, buffer.end());
+        return *this;
+    }
+
     SStream& operator<<(const std::string& s){
         buffer.extend(s.data(), s.data() + s.size());
         return *this;
