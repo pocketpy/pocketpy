@@ -7,11 +7,9 @@ if not os.path.exists("build"):
 
 os.chdir("build")
 
-code = os.system(r"""
-cmake .. -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON
-cmake --build . --config Release
-""")
-
+code = os.system("cmake .. -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON")
+assert code == 0
+code = os.system("cmake --build . --config Release")
 assert code == 0
 
 if sys.platform == "win32":

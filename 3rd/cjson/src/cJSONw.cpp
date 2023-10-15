@@ -113,6 +113,12 @@ static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm
 
 void add_module_cjson(VM* vm){
     PyObject* mod = vm->new_module("cjson");
+
+    PK_LOCAL_STATIC cJSON_Hooks hooks;
+    hooks.malloc_fn = pool64_alloc;
+    hooks.free_fn = pool64_dealloc;
+    cJSON_InitHooks(&hooks);
+
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args){
         const Str& string = CAST(Str&, args[0]);
         cJSON *json = cJSON_ParseWithLength(string.data, string.size);
