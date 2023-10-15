@@ -48,7 +48,7 @@ static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
     }else if(obj == vm->None){
         return cJSON_CreateNull();
     }else{
-        vm->TypeError(fmt("cjson: unrecognized type ", obj_type_name(vm, obj_t)));
+        vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
     }
     UNREACHABLE();
 }
@@ -116,7 +116,7 @@ void add_module_cjson(VM* vm){
         cJSON *json = cJSON_ParseWithLength(string.data, string.size);
         if(json == NULL){
             const char* err = cJSON_GetErrorPtr();
-            vm->TypeError(fmt("cjson: ", err));
+            vm->IOError(fmt("cjson: ", err));
             UNREACHABLE();
         }
         PyObject* output = convert_cjson_to_python_object(json, vm);
