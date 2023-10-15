@@ -24,7 +24,7 @@ enum CompileMode {
 };
 
 struct SourceData {
-    Str source;
+    std::string source;  // assume '\0' terminated
     Str filename;
     std::vector<const char*> line_starts;
     CompileMode mode;

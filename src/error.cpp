@@ -14,8 +14,8 @@ namespace pkpy{
         }
 
         this->filename = filename;
-        this->source = std::move(ss.str());
-        line_starts.push_back(this->source.begin());
+        this->source = ss.str().str();
+        line_starts.push_back(this->source.c_str());
         this->mode = mode;
     }
 
