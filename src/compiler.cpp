@@ -38,14 +38,14 @@ namespace pkpy{
             SyntaxError("maximum number of local variables exceeded");
         }
         if(ctx()->co->consts.size() > 65535){
-            // std::map<std::string, int> counts;
-            // for(PyObject* c: ctx()->co->consts){
-            //     std::string key = obj_type_name(vm, vm->_tp(c)).str();
-            //     counts[key] += 1;
-            // }
-            // for(auto pair: counts){
-            //     std::cout << pair.first << ": " << pair.second << std::endl;
-            // }
+            std::map<std::string, int> counts;
+            for(PyObject* c: ctx()->co->consts){
+                std::string key = obj_type_name(vm, vm->_tp(c)).str();
+                counts[key] += 1;
+            }
+            for(auto pair: counts){
+                std::cout << pair.first << ": " << pair.second << std::endl;
+            }
             SyntaxError("maximum number of constants exceeded");
         }
         if(codes.size() > 65535 && ctx()->co->src->mode != JSON_MODE){

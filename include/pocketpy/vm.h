@@ -63,7 +63,6 @@ struct PyTypeInfo{
     i64 (*m__len__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__next__)(VM* vm, PyObject*) = nullptr;
-    PyObject* (*m__json__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__neg__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__bool__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__invert__)(VM* vm, PyObject*) = nullptr;
@@ -233,7 +232,6 @@ public:
     BIND_UNARY_SPECIAL(__str__)
     BIND_UNARY_SPECIAL(__iter__)
     BIND_UNARY_SPECIAL(__next__)
-    BIND_UNARY_SPECIAL(__json__)
     BIND_UNARY_SPECIAL(__neg__)
     BIND_UNARY_SPECIAL(__bool__)
     BIND_UNARY_SPECIAL(__invert__)

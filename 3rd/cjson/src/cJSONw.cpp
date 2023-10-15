@@ -117,9 +117,7 @@ void add_module_cjson(VM* vm){
         if(json == NULL){
             const char* start = cJSON_GetErrorPtr();
             const char* end = start;
-            while(*end != '\0' && *end != '\n'){
-                end++;
-            }
+            while(*end != '\0' && *end != '\n') end++;
             vm->IOError(fmt("cjson: ", std::string_view(start, end-start)));
             UNREACHABLE();
         }
@@ -129,12 +127,13 @@ void add_module_cjson(VM* vm){
     });
 
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
-        cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
-        char* str = cJSON_Print(cjson);
-        cJSON_Delete(cjson);
-        PyObject* ret = VAR((const char*)str);
-        hooks.free_fn(str);
-        return ret;
+        return vm->py_json(args[0]);
+        // cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
+        // char* str = cJSON_Print(cjson);
+        // cJSON_Delete(cjson);
+        // PyObject* ret = VAR((const char*)str);
+        // hooks.free_fn(str);
+        // return ret;
     });
 }
 

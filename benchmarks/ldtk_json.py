@@ -10,13 +10,14 @@ with open(f'res/{_2489KB}', 'r') as f:
 data: dict = json.loads(json_content)
 assert isinstance(data, dict)
 
-# dumped: str = json.dumps(data)
-# loaded: dict = json.loads(dumped)
-# assert len(data) == len(loaded)
-# assert data == loaded
+# serialize and deserialize
+dumped: str = json.dumps(data)
+loaded: dict = json.loads(dumped)
+assert len(data) == len(loaded)
+assert data == loaded
 
+#### very very slow!! DO NOT RUN IT
 # import pickle
-##### very very slow!! DO NOT RUN IT
 # data_pickled: bytes = pickle.dumps(data)
 # assert isinstance(data_pickled, bytes)
 # assert pickle.loads(data_pickled) == data

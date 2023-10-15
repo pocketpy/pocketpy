@@ -48,10 +48,9 @@ assert x == 6
 x //= 2
 assert x == 3
 
-# test __str__, __repr__, __json__
+# test __str__, __repr__
 assert str(1) == '1'
 assert repr(1) == '1'
-assert (1).__json__() == '1'
 
 # test int()
 assert int(1) == 1

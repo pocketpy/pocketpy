@@ -224,8 +224,13 @@ int utf8len(unsigned char c, bool suppress){
         return Str(copy);
     }
 
-    Str Str::escape(bool single_quote) const {
+    Str Str::escape(bool single_quote) const{
         std::stringstream ss;
+        escape_(ss, single_quote);
+        return ss.str();
+    }
+
+    void Str::escape_(std::stringstream& ss, bool single_quote) const {
         ss << (single_quote ? '\'' : '"');
         for (int i=0; i<length(); i++) {
             char c = this->operator[](i);
@@ -251,7 +256,6 @@ int utf8len(unsigned char c, bool suppress){
             }
         }
         ss << (single_quote ? '\'' : '"');
-        return ss.str();
     }
 
     int Str::index(const Str& sub, int start) const {

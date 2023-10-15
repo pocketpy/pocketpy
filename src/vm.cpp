@@ -2,6 +2,72 @@
 
 namespace pkpy{
 
+    struct JsonSerializer{
+        VM* vm;
+        PyObject* root;
+        std::stringstream ss;
+
+        JsonSerializer(VM* vm, PyObject* root) : vm(vm), root(root) {}
+
+        template<typename T>
+        void write_array(T& arr){
+            ss << '[';
+            for(int i=0; i<arr.size(); i++){
+                if(i != 0) ss << ", ";
+                write_object(arr[i]);
+            }
+            ss << ']';
+        }
+
+        void write_dict(Dict& dict){
+            ss << '{';
+            bool first = true;
+            dict.apply([&](PyObject* k, PyObject* v){
+                if(!first) ss << ", ";
+                first = false;
+                if(!is_non_tagged_type(k, vm->tp_str)){
+                    vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
+                    UNREACHABLE();
+                }
+                ss << _CAST(Str&, k).escape(false) << ": ";
+                write_object(v);
+            });
+            ss << '}';
+        }
+
+        void write_object(PyObject* obj){
+            Type obj_t = vm->_tp(obj);
+            if(obj == vm->None){
+                ss << "null";
+            }else if(obj_t == vm->tp_int){
+                ss << _CAST(i64, obj);
+            }else if(obj_t == vm->tp_float){
+                f64 val = _CAST(f64, obj);
+                if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
+                ss << val;
+            }else if(obj_t == vm->tp_bool){
+                ss << (obj == vm->True ? "true" : "false");
+            }else if(obj_t == vm->tp_str){
+                _CAST(Str&, obj).escape_(ss, false);
+            }else if(obj_t == vm->tp_list){
+                write_array<List>(_CAST(List&, obj));
+            }else if(obj_t == vm->tp_tuple){
+                write_array<Tuple>(_CAST(Tuple&, obj));
+            }else if(obj_t == vm->tp_dict){
+                write_dict(_CAST(Dict&, obj));
+            }else{
+                vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
+                UNREACHABLE();
+            }
+        }
+
+        std::string serialize(){
+            auto _lock = vm->heap.gc_scope_lock();
+            write_object(root);
+            return ss.str();
+        }
+    };
+
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_c.error = nullptr;
@@ -39,9 +105,8 @@ namespace pkpy{
     }
 
     PyObject* VM::py_json(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
-        if(ti->m__json__) return ti->m__json__(this, obj);
-        return call_method(obj, __json__);
+        auto j = JsonSerializer(this, obj);
+        return VAR(j.serialize());
     }
 
     PyObject* VM::py_iter(PyObject* obj){

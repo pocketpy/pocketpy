@@ -43,7 +43,6 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 + `__len__`
 + `__iter__`
 + `__next__`
-+ `__json__`
 + `__neg__`
 + `__bool__` (unused)
 

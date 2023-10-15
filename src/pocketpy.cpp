@@ -406,7 +406,6 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__iter__(_vm->tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
     _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("None"); });
-    _vm->bind__json__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("null"); });
 
     _vm->bind__truediv__(_vm->tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         f64 value = CAST_F(rhs);
@@ -486,7 +485,6 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
-    _vm->bind__json__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
 
     _vm->bind__neg__(_vm->tp_int, [](VM* vm, PyObject* obj) { return VAR(-_CAST(i64, obj)); });
 
@@ -550,11 +548,6 @@ void init_builtins(VM* _vm) {
         if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
         return VAR(s);
     });
-    _vm->bind__json__(_vm->tp_float, [](VM* vm, PyObject* obj) {
-        f64 val = _CAST(f64, obj);
-        if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
-        return VAR(std::to_string(val));
-    });
 
     /************ str ************/
     _vm->bind_constructor<2>("str", PK_LAMBDA(vm->py_str(args[1])));
@@ -594,10 +587,6 @@ void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_str, [](VM* vm, PyObject* obj) {
         const Str& self = _CAST(Str&, obj);
         return VAR(self.escape(true));
-    });
-    _vm->bind__json__(_vm->tp_str, [](VM* vm, PyObject* obj) {
-        const Str& self = _CAST(Str&, obj);
-        return VAR(self.escape(false));
     });
 
 #define BIND_CMP_STR(name, op) \
@@ -710,34 +699,12 @@ void init_builtins(VM* _vm) {
     });
 
     /************ list ************/
-    // list.__repr__ = lambda self: '[' + ', '.join([repr(i) for i in self]) + ']'
-    // list.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
-    // tuple.__json__ = lambda self: '[' + ', '.join([i.__json__() for i in self]) + ']'
-
-    // def __f(self):
-    //     if len(self) == 1:
-    //         return '(' + repr(self[0]) + ',)'
-    //     return '(' + ', '.join([repr(i) for i in self]) + ')'
-    // tuple.__repr__ = __f
-
     _vm->bind__repr__(_vm->tp_list, [](VM* vm, PyObject* _0){
         List& iterable = _CAST(List&, _0);
         std::stringstream ss;
         ss << '[';
         for(int i=0; i<iterable.size(); i++){
             ss << CAST(Str&, vm->py_repr(iterable[i]));
-            if(i != iterable.size()-1) ss << ", ";
-        }
-        ss << ']';
-        return VAR(ss.str());
-    });
-
-    _vm->bind__json__(_vm->tp_list, [](VM* vm, PyObject* _0){
-        List& iterable = _CAST(List&, _0);
-        std::stringstream ss;
-        ss << '[';
-        for(int i=0; i<iterable.size(); i++){
-            ss << CAST(Str&, vm->py_json(iterable[i]));
             if(i != iterable.size()-1) ss << ", ";
         }
         ss << ']';
@@ -758,18 +725,6 @@ void init_builtins(VM* _vm) {
             }
         }
         ss << ')';
-        return VAR(ss.str());
-    });
-
-    _vm->bind__json__(_vm->tp_tuple, [](VM* vm, PyObject* _0){
-        Tuple& iterable = _CAST(Tuple&, _0);
-        std::stringstream ss;
-        ss << '[';
-        for(int i=0; i<iterable.size(); i++){
-            ss << CAST(Str&, vm->py_json(iterable[i]));
-            if(i != iterable.size()-1) ss << ", ";
-        }
-        ss << ']';
         return VAR(ss.str());
     });
 
@@ -998,10 +953,6 @@ void init_builtins(VM* _vm) {
     _vm->bind__repr__(_vm->tp_bool, [](VM* vm, PyObject* self) {
         bool val = _CAST(bool, self);
         return VAR(val ? "True" : "False");
-    });
-    _vm->bind__json__(_vm->tp_bool, [](VM* vm, PyObject* self) {
-        bool val = _CAST(bool, self);
-        return VAR(val ? "true" : "false");
     });
 
     _vm->bind__and__(_vm->tp_bool, [](VM* vm, PyObject* lhs, PyObject* rhs) {
@@ -1315,28 +1266,6 @@ void init_builtins(VM* _vm) {
             first = false;
             Str key = CAST(Str&, vm->py_repr(k));
             Str value = CAST(Str&, vm->py_repr(v));
-            ss << key << ": " << value;
-        });
-
-        ss << "}";
-        return VAR(ss.str());
-    });
-
-    _vm->bind__json__(_vm->tp_dict, [](VM* vm, PyObject* obj) {
-        Dict& self = _CAST(Dict&, obj);
-        std::stringstream ss;
-        ss << "{";
-        bool first = true;
-
-        self.apply([&](PyObject* k, PyObject* v){
-            if(!first) ss << ", ";
-            first = false;
-            if(!is_non_tagged_type(k, vm->tp_str)){
-                vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
-                UNREACHABLE();
-            }
-            Str key = _CAST(Str&, k).escape(false);
-            Str value = CAST(Str&, vm->py_json(v));
             ss << key << ": " << value;
         });
 

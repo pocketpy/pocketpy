@@ -70,6 +70,7 @@ struct Str{
     Str lower() const;
     Str upper() const;
     Str escape(bool single_quote=true) const;
+    void escape_(std::stringstream& ss, bool single_quote=true) const;
     int index(const Str& sub, int start=0) const;
     Str replace(char old, char new_) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
@@ -146,7 +147,6 @@ const StrName __hash__ = StrName::get("__hash__");      // unused
 const StrName __len__ = StrName::get("__len__");
 const StrName __iter__ = StrName::get("__iter__");
 const StrName __next__ = StrName::get("__next__");      // unused
-const StrName __json__ = StrName::get("__json__");
 const StrName __neg__ = StrName::get("__neg__");        // unused
 const StrName __bool__ = StrName::get("__bool__");      // unused
 // logical operators
