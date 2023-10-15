@@ -81,10 +81,9 @@ with open("amalgamated/main.cpp", "wt", encoding='utf-8') as f:
 	f.write(text)
 
 if sys.platform in ['linux', 'darwin']:
-	ok = os.system("clang++ -o main amalgamated/main.cpp --std=c++17 -stdlib=libc++ -ldl")
+	ok = os.system("clang++ -o main amalgamated/main.cpp -O1 --std=c++17 -stdlib=libc++")
 	if ok == 0:
 		print("Test build success!")
-		os.remove("main")
 
 print("amalgamated/pocketpy.h")
 
