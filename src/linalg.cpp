@@ -57,7 +57,8 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
-            SStream ss;
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(3);
             ss << "vec2(" << self.x << ", " << self.y << ")";
             return VAR(ss.str());
         });
@@ -117,7 +118,8 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec3& self = _CAST(PyVec3&, obj);
-            SStream ss;
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(3);
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
             return VAR(ss.str());
         });
@@ -155,7 +157,8 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec4& self = _CAST(PyVec4&, obj);
-            SStream ss;
+            std::stringstream ss;
+            ss << std::fixed << std::setprecision(3);
             ss << "vec4(" << self.x << ", " << self.y << ", " << self.z << ", " << self.w << ")";
             return VAR(ss.str());
         });
@@ -232,7 +235,7 @@ namespace pkpy{
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyMat3x3& self = _CAST(PyMat3x3&, obj);
             std::stringstream ss;
-            ss << std::fixed << std::setprecision(4);
+            ss << std::fixed << std::setprecision(3);
             ss << "mat3x3([[" << self._11 << ", " << self._12 << ", " << self._13 << "],\n";
             ss << "        [" << self._21 << ", " << self._22 << ", " << self._23 << "],\n";
             ss << "        [" << self._31 << ", " << self._32 << ", " << self._33 << "]])";
