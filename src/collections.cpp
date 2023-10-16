@@ -323,6 +323,22 @@ namespace pkpy
                 vm->AttributeError("attribute 'maxlen' of 'collections.deque' objects is not writable");
                 return vm->None;
             });
+
+        // NEW: support pickle
+        vm->bind(type, "__getnewargs__(self) -> tuple[list, int]",
+            [](VM *vm, ArgsView args)
+            {
+                PyDeque &self = _CAST(PyDeque &, args[0]);
+                Tuple ret(2);
+                List list;
+                for(PyObject* obj: self.dequeItems){
+                    list.push_back(obj);
+                }
+                ret[0] = VAR(std::move(list));
+                if(self.bounded) ret[1] = VAR(self.maxlen);
+                else ret[1] = vm->None;
+                return VAR(ret);
+            });
     }
 
     /// @brief initializes a new PyDeque object
