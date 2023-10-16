@@ -30,8 +30,8 @@ namespace pkpy{
         // add a `return None` in the end as a guard
         // previously, we only do this if the last opcode is not a return
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
-        ctx()->emit(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
-        ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         // some check here
         std::vector<Bytecode>& codes = ctx()->co->codes;
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
@@ -215,7 +215,7 @@ namespace pkpy{
         }
         // https://github.com/blueloveTH/pocketpy/issues/37
         parse_expression(PREC_LAMBDA + 1, false);
-        ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
     }
@@ -518,7 +518,7 @@ __SUBSCR_END:
         do {
             consume(TK("@id"));
             Str name = prev().str();
-            ctx()->emit(OP_IMPORT_PATH, ctx()->add_const(VAR(name)), prev().line);
+            ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const(VAR(name)), prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
@@ -570,29 +570,29 @@ __EAT_DOTS_END:
             }
         }
 
-        ctx()->emit(OP_IMPORT_PATH, ctx()->add_const(VAR(ss.str())), prev().line);
+        ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const(VAR(ss.str())), prev().line);
         consume(TK("import"));
 
         if (match(TK("*"))) {
             if(name_scope() != NAME_GLOBAL) SyntaxError("from <module> import * can only be used in global scope");
             // pop the module and import __all__
-            ctx()->emit(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
+            ctx()->emit_(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
             consume_end_stmt();
             return;
         }
 
         do {
-            ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             consume(TK("@id"));
             Str name = prev().str();
-            ctx()->emit(OP_LOAD_ATTR, StrName(name).index, prev().line);
+            ctx()->emit_(OP_LOAD_ATTR, StrName(name).index, prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
             }
             ctx()->emit_store_name(name_scope(), StrName(name), prev().line);
         } while (match(TK(",")));
-        ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
         consume_end_stmt();
     }
 
@@ -618,15 +618,15 @@ __EAT_DOTS_END:
 
     void Compiler::compile_if_stmt() {
         EXPR(false);   // condition
-        int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
+        int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         if (match(TK("elif"))) {
-            int exit_patch = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            int exit_patch = ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
             ctx()->patch_jump(patch);
             compile_if_stmt();
             ctx()->patch_jump(exit_patch);
         } else if (match(TK("else"))) {
-            int exit_patch = ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            int exit_patch = ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
             ctx()->patch_jump(patch);
             compile_block_body();
             ctx()->patch_jump(exit_patch);
@@ -638,9 +638,9 @@ __EAT_DOTS_END:
     void Compiler::compile_while_loop() {
         CodeBlock* block = ctx()->enter_block(WHILE_LOOP);
         EXPR(false);   // condition
-        int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
+        int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
-        ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
         ctx()->patch_jump(patch);
         ctx()->exit_block();
         // optional else clause
@@ -654,13 +654,13 @@ __EAT_DOTS_END:
         Expr_ vars = EXPR_VARS();
         consume(TK("in"));
         EXPR_TUPLE(false);
-        ctx()->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         CodeBlock* block = ctx()->enter_block(FOR_LOOP);
-        ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
         compile_block_body();
-        ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
         ctx()->exit_block();
         // optional else clause
         if (match(TK("else"))) {
@@ -673,25 +673,25 @@ __EAT_DOTS_END:
         ctx()->enter_block(TRY_EXCEPT);
         compile_block_body();
         std::vector<int> patches = {
-            ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
+            ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
         };
         ctx()->exit_block();
         do {
             consume(TK("except"));
             if(match(TK("@id"))){
-                ctx()->emit(OP_EXCEPTION_MATCH, StrName(prev().sv()).index, prev().line);
+                ctx()->emit_(OP_EXCEPTION_MATCH, StrName(prev().sv()).index, prev().line);
             }else{
-                ctx()->emit(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit_(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
             }
-            int patch = ctx()->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+            int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
             // pop the exception on match
-            ctx()->emit(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit_(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             compile_block_body();
-            patches.push_back(ctx()->emit(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));
+            patches.push_back(ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));
             ctx()->patch_jump(patch);
         }while(curr().type == TK("except"));
         // no match, re-raise
-        ctx()->emit(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
         for (int patch : patches) ctx()->patch_jump(patch);
     }
 
@@ -720,7 +720,7 @@ __EAT_DOTS_END:
                 EXPR_TUPLE();
                 e->rhs = ctx()->s_expr.popx();
                 if(e->is_starred()) SyntaxError();
-                e->emit(ctx());
+                e->emit_(ctx());
                 bool ok = lhs_p->emit_store(ctx());
                 if(!ok) SyntaxError();
             } return true;
@@ -739,8 +739,8 @@ __EAT_DOTS_END:
                 }
                 // stack size is n+1
                 Expr_ val = ctx()->s_expr.popx();
-                val->emit(ctx());
-                for(int j=1; j<n; j++) ctx()->emit(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+                val->emit_(ctx());
+                for(int j=1; j<n; j++) ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
                 for(int j=0; j<n; j++){
                     auto e = ctx()->s_expr.popx();
                     if(e->is_starred()) SyntaxError();
@@ -759,12 +759,12 @@ __EAT_DOTS_END:
         switch(prev().type){
             case TK("break"):
                 if (curr_loop_block < 0) SyntaxError("'break' outside loop");
-                ctx()->emit(OP_LOOP_BREAK, curr_loop_block, kw_line);
+                ctx()->emit_(OP_LOOP_BREAK, curr_loop_block, kw_line);
                 consume_end_stmt();
                 break;
             case TK("continue"):
                 if (curr_loop_block < 0) SyntaxError("'continue' not properly in loop");
-                ctx()->emit(OP_LOOP_CONTINUE, curr_loop_block, kw_line);
+                ctx()->emit_(OP_LOOP_CONTINUE, curr_loop_block, kw_line);
                 consume_end_stmt();
                 break;
             case TK("yield"): 
@@ -772,7 +772,7 @@ __EAT_DOTS_END:
                 EXPR_TUPLE(false);
                 // if yield present, mark the function as generator
                 ctx()->co->is_generator = true;
-                ctx()->emit(OP_YIELD_VALUE, BC_NOARG, kw_line);
+                ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
             case TK("yield from"):
@@ -780,23 +780,23 @@ __EAT_DOTS_END:
                 EXPR_TUPLE(false);
                 // if yield from present, mark the function as generator
                 ctx()->co->is_generator = true;
-                ctx()->emit(OP_GET_ITER, BC_NOARG, kw_line);
+                ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
                 ctx()->enter_block(FOR_LOOP);
-                ctx()->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
-                ctx()->emit(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
-                ctx()->emit(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+                ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
                 ctx()->exit_block();
                 consume_end_stmt();
                 break;
             case TK("return"):
                 if (contexts.size() <= 1) SyntaxError("'return' outside function");
                 if(match_end_stmt()){
-                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
+                    ctx()->emit_(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }else{
                     EXPR_TUPLE(false);
                     consume_end_stmt();
                 }
-                ctx()->emit(OP_RETURN_VALUE, BC_NOARG, kw_line);
+                ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, kw_line);
                 break;
             /*************************************************/
             case TK("if"): compile_if_stmt(); break;
@@ -817,10 +817,10 @@ __EAT_DOTS_END:
                 if(is_global) scope = NAME_GLOBAL;
                 switch(scope){
                     case NAME_LOCAL:
-                        ctx()->emit(OP_INC_FAST, ctx()->add_varname(name), prev().line);
+                        ctx()->emit_(OP_INC_FAST, ctx()->add_varname(name), prev().line);
                         break;
                     case NAME_GLOBAL:
-                        ctx()->emit(OP_INC_GLOBAL, name.index, prev().line);
+                        ctx()->emit_(OP_INC_GLOBAL, name.index, prev().line);
                         break;
                     default: SyntaxError(); break;
                 }
@@ -832,10 +832,10 @@ __EAT_DOTS_END:
                 StrName name(prev().sv());
                 switch(name_scope()){
                     case NAME_LOCAL:
-                        ctx()->emit(OP_DEC_FAST, ctx()->add_varname(name), prev().line);
+                        ctx()->emit_(OP_DEC_FAST, ctx()->add_varname(name), prev().line);
                         break;
                     case NAME_GLOBAL:
-                        ctx()->emit(OP_DEC_GLOBAL, name.index, prev().line);
+                        ctx()->emit_(OP_DEC_GLOBAL, name.index, prev().line);
                         break;
                     default: SyntaxError(); break;
                 }
@@ -844,13 +844,13 @@ __EAT_DOTS_END:
             }
             case TK("assert"):{
                 EXPR(false);    // condition
-                int index = ctx()->emit(OP_POP_JUMP_IF_TRUE, BC_NOARG, kw_line);
+                int index = ctx()->emit_(OP_POP_JUMP_IF_TRUE, BC_NOARG, kw_line);
                 int has_msg = 0;
                 if(match(TK(","))){
                     EXPR(false);    // message
                     has_msg = 1;
                 }
-                ctx()->emit(OP_RAISE_ASSERT, has_msg, kw_line);
+                ctx()->emit_(OP_RAISE_ASSERT, has_msg, kw_line);
                 ctx()->patch_jump(index);
                 consume_end_stmt();
                 break;
@@ -868,9 +868,9 @@ __EAT_DOTS_END:
                 if(match(TK("(")) && !match(TK(")"))){
                     EXPR(false); consume(TK(")"));
                 }else{
-                    ctx()->emit(OP_LOAD_NONE, BC_NOARG, kw_line);
+                    ctx()->emit_(OP_LOAD_NONE, BC_NOARG, kw_line);
                 }
-                ctx()->emit(OP_RAISE, dummy_t, kw_line);
+                ctx()->emit_(OP_RAISE, dummy_t, kw_line);
                 consume_end_stmt();
             } break;
             case TK("del"): {
@@ -887,11 +887,11 @@ __EAT_DOTS_END:
                 Expr_ e = make_expr<NameExpr>(prev().str(), name_scope());
                 bool ok = e->emit_store(ctx());
                 if(!ok) SyntaxError();
-                e->emit(ctx());
-                ctx()->emit(OP_WITH_ENTER, BC_NOARG, prev().line);
+                e->emit_(ctx());
+                ctx()->emit_(OP_WITH_ENTER, BC_NOARG, prev().line);
                 compile_block_body();
-                e->emit(ctx());
-                ctx()->emit(OP_WITH_EXIT, BC_NOARG, prev().line);
+                e->emit_(ctx());
+                ctx()->emit_(OP_WITH_EXIT, BC_NOARG, prev().line);
             } break;
             /*************************************************/
             case TK("=="): {
@@ -905,7 +905,7 @@ __EAT_DOTS_END:
             case TK("->"):
                 consume(TK("@id"));
                 if(mode()!=EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
-                ctx()->emit(OP_GOTO, StrName(prev().sv()).index, prev().line);
+                ctx()->emit_(OP_GOTO, StrName(prev().sv()).index, prev().line);
                 consume_end_stmt();
                 break;
             /*************************************************/
@@ -929,9 +929,9 @@ __EAT_DOTS_END:
                     if(!is_typed_name){
                         ctx()->emit_expr();
                         if((mode()==CELL_MODE || mode()==REPL_MODE) && name_scope()==NAME_GLOBAL){
-                            ctx()->emit(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
+                            ctx()->emit_(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                         }else{
-                            ctx()->emit(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                            ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
                         }
                     }else{
                         PK_ASSERT(ctx()->s_expr.size() == 1)
@@ -960,15 +960,15 @@ __EAT_DOTS_END:
             consume(TK(")"));
         }
         if(base == nullptr){
-            ctx()->emit(OP_LOAD_NONE, BC_NOARG, prev().line);
+            ctx()->emit_(OP_LOAD_NONE, BC_NOARG, prev().line);
         }else {
-            base->emit(ctx());
+            base->emit_(ctx());
         }
-        ctx()->emit(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
+        ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
         ctx()->is_compiling_class = true;
         compile_block_body();
         ctx()->is_compiling_class = false;
-        ctx()->emit(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
     }
 
     void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints){
@@ -1062,22 +1062,22 @@ __EAT_DOTS_END:
         if(docstring != nullptr){
             decl->docstring = PK_OBJ_GET(Str, docstring);
         }
-        ctx()->emit(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
+        ctx()->emit_(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
 
         // add decorators
         for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
-            (*it)->emit(ctx());
-            ctx()->emit(OP_ROT_TWO, BC_NOARG, (*it)->line);
-            ctx()->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
-            ctx()->emit(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);
-            ctx()->emit(OP_CALL, 1, (*it)->line);
+            (*it)->emit_(ctx());
+            ctx()->emit_(OP_ROT_TWO, BC_NOARG, (*it)->line);
+            ctx()->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit_(OP_CALL, 1, (*it)->line);
         }
         if(!ctx()->is_compiling_class){
             auto e = make_expr<NameExpr>(decl_name, name_scope());
             e->emit_store(ctx());
         }else{
             int index = StrName(decl_name).index;
-            ctx()->emit(OP_STORE_CLASS_ATTR, index, prev().line);
+            ctx()->emit_(OP_STORE_CLASS_ATTR, index, prev().line);
         }
     }
 
@@ -1143,7 +1143,7 @@ __EAT_DOTS_END:
         if(mode()==EVAL_MODE) {
             EXPR_TUPLE(false);
             consume(TK("@eof"));
-            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+            ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
             return code;
         }else if(mode()==JSON_MODE){
@@ -1151,8 +1151,8 @@ __EAT_DOTS_END:
             Expr_ e = ctx()->s_expr.popx();
             if(!e->is_json_object()) SyntaxError("expect a JSON object, literal or array");
             consume(TK("@eof"));
-            e->emit(ctx());
-            ctx()->emit(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+            e->emit_(ctx());
+            ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
             pop_context();
             return code;
         }

@@ -30,7 +30,7 @@ namespace pkpy{
 
         if(curr_type == FOR_LOOP){
             // add a no op here to make block check work
-            emit(OP_NO_OP, BC_NOARG, BC_KEEPLINE);
+            emit_(OP_NO_OP, BC_NOARG, BC_KEEPLINE);
         }
     }
 
@@ -40,7 +40,7 @@ namespace pkpy{
             throw std::runtime_error("s_expr.size() != 1\n" + _log_s_expr());
         }
         Expr_ expr = s_expr.popx();
-        expr->emit(this);
+        expr->emit_(this);
     }
 
     std::string CodeEmitContext::_log_s_expr(){
@@ -49,7 +49,7 @@ namespace pkpy{
         return ss.str();
     }
 
-    int CodeEmitContext::emit(Opcode opcode, uint16_t arg, int line) {
+    int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line) {
         co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
         co->iblocks.push_back(curr_block_i);
         co->lines.push_back(line);
@@ -108,41 +108,41 @@ namespace pkpy{
     void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line){
         switch(scope){
             case NAME_LOCAL:
-                emit(OP_STORE_FAST, add_varname(name), line);
+                emit_(OP_STORE_FAST, add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                emit(OP_STORE_GLOBAL, StrName(name).index, line);
+                emit_(OP_STORE_GLOBAL, StrName(name).index, line);
                 break;
             case NAME_GLOBAL_UNKNOWN:
-                emit(OP_STORE_NAME, StrName(name).index, line);
+                emit_(OP_STORE_NAME, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }
     }
 
 
-    void NameExpr::emit(CodeEmitContext* ctx) {
+    void NameExpr::emit_(CodeEmitContext* ctx) {
         int index = ctx->co->varnames_inv.try_get(name);
         if(scope == NAME_LOCAL && index >= 0){
-            ctx->emit(OP_LOAD_FAST, index, line);
+            ctx->emit_(OP_LOAD_FAST, index, line);
         }else{
             Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
             // we cannot determine the scope when calling exec()/eval()
             if(scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
-            ctx->emit(op, StrName(name).index, line);
+            ctx->emit_(op, StrName(name).index, line);
         }
     }
 
     bool NameExpr::emit_del(CodeEmitContext* ctx) {
         switch(scope){
             case NAME_LOCAL:
-                ctx->emit(OP_DELETE_FAST, ctx->add_varname(name), line);
+                ctx->emit_(OP_DELETE_FAST, ctx->add_varname(name), line);
                 break;
             case NAME_GLOBAL:
-                ctx->emit(OP_DELETE_GLOBAL, StrName(name).index, line);
+                ctx->emit_(OP_DELETE_GLOBAL, StrName(name).index, line);
                 break;
             case NAME_GLOBAL_UNKNOWN:
-                ctx->emit(OP_DELETE_NAME, StrName(name).index, line);
+                ctx->emit_(OP_DELETE_NAME, StrName(name).index, line);
                 break;
             default: FATAL_ERROR(); break;
         }
@@ -151,21 +151,21 @@ namespace pkpy{
 
     bool NameExpr::emit_store(CodeEmitContext* ctx) {
         if(ctx->is_compiling_class){
-            ctx->emit(OP_STORE_CLASS_ATTR, name.index, line);
+            ctx->emit_(OP_STORE_CLASS_ATTR, name.index, line);
             return true;
         }
         ctx->emit_store_name(scope, name, line);
         return true;
     }
 
-    void InvertExpr::emit(CodeEmitContext* ctx) {
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_INVERT, BC_NOARG, line);
+    void InvertExpr::emit_(CodeEmitContext* ctx) {
+        child->emit_(ctx);
+        ctx->emit_(OP_UNARY_INVERT, BC_NOARG, line);
     }
 
-    void StarredExpr::emit(CodeEmitContext* ctx) {
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_STAR, level, line);
+    void StarredExpr::emit_(CodeEmitContext* ctx) {
+        child->emit_(ctx);
+        ctx->emit_(OP_UNARY_STAR, level, line);
     }
 
     bool StarredExpr::emit_store(CodeEmitContext* ctx) {
@@ -174,54 +174,54 @@ namespace pkpy{
         return child->emit_store(ctx);
     }
 
-    void NotExpr::emit(CodeEmitContext* ctx) {
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_NOT, BC_NOARG, line);
+    void NotExpr::emit_(CodeEmitContext* ctx) {
+        child->emit_(ctx);
+        ctx->emit_(OP_UNARY_NOT, BC_NOARG, line);
     }
 
-    void AndExpr::emit(CodeEmitContext* ctx) {
-        lhs->emit(ctx);
-        int patch = ctx->emit(OP_JUMP_IF_FALSE_OR_POP, BC_NOARG, line);
-        rhs->emit(ctx);
+    void AndExpr::emit_(CodeEmitContext* ctx) {
+        lhs->emit_(ctx);
+        int patch = ctx->emit_(OP_JUMP_IF_FALSE_OR_POP, BC_NOARG, line);
+        rhs->emit_(ctx);
         ctx->patch_jump(patch);
     }
 
-    void OrExpr::emit(CodeEmitContext* ctx) {
-        lhs->emit(ctx);
-        int patch = ctx->emit(OP_JUMP_IF_TRUE_OR_POP, BC_NOARG, line);
-        rhs->emit(ctx);
+    void OrExpr::emit_(CodeEmitContext* ctx) {
+        lhs->emit_(ctx);
+        int patch = ctx->emit_(OP_JUMP_IF_TRUE_OR_POP, BC_NOARG, line);
+        rhs->emit_(ctx);
         ctx->patch_jump(patch);
     }
 
-    void Literal0Expr::emit(CodeEmitContext* ctx){
+    void Literal0Expr::emit_(CodeEmitContext* ctx){
         switch (token) {
-            case TK("None"):    ctx->emit(OP_LOAD_NONE, BC_NOARG, line); break;
-            case TK("True"):    ctx->emit(OP_LOAD_TRUE, BC_NOARG, line); break;
-            case TK("False"):   ctx->emit(OP_LOAD_FALSE, BC_NOARG, line); break;
-            case TK("..."):     ctx->emit(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
+            case TK("None"):    ctx->emit_(OP_LOAD_NONE, BC_NOARG, line); break;
+            case TK("True"):    ctx->emit_(OP_LOAD_TRUE, BC_NOARG, line); break;
+            case TK("False"):   ctx->emit_(OP_LOAD_FALSE, BC_NOARG, line); break;
+            case TK("..."):     ctx->emit_(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
             default: FATAL_ERROR();
         }
     }
 
-    void LongExpr::emit(CodeEmitContext* ctx) {
+    void LongExpr::emit_(CodeEmitContext* ctx) {
         VM* vm = ctx->vm;
-        ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
-        ctx->emit(OP_BUILD_LONG, BC_NOARG, line);
+        ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
+        ctx->emit_(OP_BUILD_LONG, BC_NOARG, line);
     }
 
-    void BytesExpr::emit(CodeEmitContext* ctx) {
+    void BytesExpr::emit_(CodeEmitContext* ctx) {
         VM* vm = ctx->vm;
-        ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
-        ctx->emit(OP_BUILD_BYTES, BC_NOARG, line);
+        ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);
+        ctx->emit_(OP_BUILD_BYTES, BC_NOARG, line);
     }
 
-    void LiteralExpr::emit(CodeEmitContext* ctx) {
+    void LiteralExpr::emit_(CodeEmitContext* ctx) {
         VM* vm = ctx->vm;
         PyObject* obj = nullptr;
         if(std::holds_alternative<i64>(value)){
             i64 _val = std::get<i64>(value);
             if(_val >= INT16_MIN && _val <= INT16_MAX){
-                ctx->emit(OP_LOAD_INTEGER, (uint16_t)_val, line);
+                ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 return;
             }
             obj = VAR(_val);
@@ -233,10 +233,10 @@ namespace pkpy{
             obj = VAR(std::get<Str>(value));
         }
         if(obj == nullptr) FATAL_ERROR();
-        ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
+        ctx->emit_(OP_LOAD_CONST, ctx->add_const(obj), line);
     }
 
-    void NegatedExpr::emit(CodeEmitContext* ctx){
+    void NegatedExpr::emit_(CodeEmitContext* ctx){
         VM* vm = ctx->vm;
         // if child is a int of float, do constant folding
         if(child->is_literal()){
@@ -244,53 +244,53 @@ namespace pkpy{
             if(std::holds_alternative<i64>(lit->value)){
                 i64 _val = -std::get<i64>(lit->value);
                 if(_val >= INT16_MIN && _val <= INT16_MAX){
-                    ctx->emit(OP_LOAD_INTEGER, (uint16_t)_val, line);
+                    ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 }else{
-                    ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
+                    ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
                 }
                 return;
             }
             if(std::holds_alternative<f64>(lit->value)){
                 PyObject* obj = VAR(-std::get<f64>(lit->value));
-                ctx->emit(OP_LOAD_CONST, ctx->add_const(obj), line);
+                ctx->emit_(OP_LOAD_CONST, ctx->add_const(obj), line);
                 return;
             }
         }
-        child->emit(ctx);
-        ctx->emit(OP_UNARY_NEGATIVE, BC_NOARG, line);
+        child->emit_(ctx);
+        ctx->emit_(OP_UNARY_NEGATIVE, BC_NOARG, line);
     }
 
 
-    void SliceExpr::emit(CodeEmitContext* ctx){
+    void SliceExpr::emit_(CodeEmitContext* ctx){
         if(start){
-            start->emit(ctx);
+            start->emit_(ctx);
         }else{
-            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+            ctx->emit_(OP_LOAD_NONE, BC_NOARG, line);
         }
 
         if(stop){
-            stop->emit(ctx);
+            stop->emit_(ctx);
         }else{
-            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+            ctx->emit_(OP_LOAD_NONE, BC_NOARG, line);
         }
 
         if(step){
-            step->emit(ctx);
+            step->emit_(ctx);
         }else{
-            ctx->emit(OP_LOAD_NONE, BC_NOARG, line);
+            ctx->emit_(OP_LOAD_NONE, BC_NOARG, line);
         }
 
-        ctx->emit(OP_BUILD_SLICE, BC_NOARG, line);
+        ctx->emit_(OP_BUILD_SLICE, BC_NOARG, line);
     }
 
-    void DictItemExpr::emit(CodeEmitContext* ctx) {
+    void DictItemExpr::emit_(CodeEmitContext* ctx) {
         if(is_starred()){
             PK_ASSERT(key == nullptr);
-            value->emit(ctx);
+            value->emit_(ctx);
         }else{
-            value->emit(ctx);
-            key->emit(ctx);     // reverse order
-            ctx->emit(OP_BUILD_TUPLE, 2, line);
+            value->emit_(ctx);
+            key->emit_(ctx);     // reverse order
+            ctx->emit_(OP_BUILD_TUPLE, 2, line);
         }
     }
 
@@ -311,7 +311,7 @@ namespace pkpy{
                 prev.op = OP_NO_OP;
                 prev.arg = BC_NOARG;
             }else{
-                ctx->emit(OP_UNPACK_SEQUENCE, items.size(), line);
+                ctx->emit_(OP_UNPACK_SEQUENCE, items.size(), line);
             }
         }else{
             // starred assignment target must be in a tuple
@@ -320,7 +320,7 @@ namespace pkpy{
             if(starred_i != items.size()-1) return false;
             // a,*b = [1,2,3]
             // stack is [1,2,3] -> [1,[2,3]]
-            ctx->emit(OP_UNPACK_EX, items.size()-1, line);
+            ctx->emit_(OP_UNPACK_EX, items.size()-1, line);
         }
         // do reverse emit
         for(int i=items.size()-1; i>=0; i--){
@@ -338,26 +338,26 @@ namespace pkpy{
         return true;
     }
 
-    void CompExpr::emit(CodeEmitContext* ctx){
-        ctx->emit(op0(), 0, line);
-        iter->emit(ctx);
-        ctx->emit(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+    void CompExpr::emit_(CodeEmitContext* ctx){
+        ctx->emit_(op0(), 0, line);
+        iter->emit_(ctx);
+        ctx->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx->enter_block(FOR_LOOP);
-        ctx->emit(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        ctx->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
         PK_ASSERT(ok);  // TODO: raise a SyntaxError instead
         if(cond){
-            cond->emit(ctx);
-            int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
-            expr->emit(ctx);
-            ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
+            cond->emit_(ctx);
+            int patch = ctx->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
+            expr->emit_(ctx);
+            ctx->emit_(op1(), BC_NOARG, BC_KEEPLINE);
             ctx->patch_jump(patch);
         }else{
-            expr->emit(ctx);
-            ctx->emit(op1(), BC_NOARG, BC_KEEPLINE);
+            expr->emit_(ctx);
+            ctx->emit_(op1(), BC_NOARG, BC_KEEPLINE);
         }
-        ctx->emit(OP_LOOP_CONTINUE, ctx->get_loop(), BC_KEEPLINE);
+        ctx->emit_(OP_LOOP_CONTINUE, ctx->get_loop(), BC_KEEPLINE);
         ctx->exit_block();
     }
 
@@ -376,24 +376,24 @@ namespace pkpy{
         if(std::regex_match(expr.str(), pattern)){
             int dot = expr.index(".");
             if(dot < 0){
-                ctx->emit(OP_LOAD_NAME, StrName(expr.sv()).index, line);
+                ctx->emit_(OP_LOAD_NAME, StrName(expr.sv()).index, line);
             }else{
                 StrName name(expr.substr(0, dot).sv());
                 StrName attr(expr.substr(dot+1).sv());
-                ctx->emit(OP_LOAD_NAME, name.index, line);
-                ctx->emit(OP_LOAD_ATTR, attr.index, line);
+                ctx->emit_(OP_LOAD_NAME, name.index, line);
+                ctx->emit_(OP_LOAD_ATTR, attr.index, line);
             }
         }else{
             int index = ctx->add_const(py_var(ctx->vm, expr));
-            ctx->emit(OP_LOAD_CONST, index, line);
-            ctx->emit(OP_EVAL, BC_NOARG, line);
+            ctx->emit_(OP_LOAD_CONST, index, line);
+            ctx->emit_(OP_EVAL, BC_NOARG, line);
         }
         if(repr){
-            ctx->emit(OP_REPR, BC_NOARG, line);
+            ctx->emit_(OP_REPR, BC_NOARG, line);
         }
     }
 
-    void FStringExpr::emit(CodeEmitContext* ctx){
+    void FStringExpr::emit_(CodeEmitContext* ctx){
         VM* vm = ctx->vm;
         PK_LOCAL_STATIC const std::regex pattern(R"(\{(.*?)\})");
         std::cregex_iterator begin(src.begin(), src.end(), pattern);
@@ -404,7 +404,7 @@ namespace pkpy{
             std::cmatch m = *it;
             if (i < m.position()) {
                 Str literal = src.substr(i, m.position() - i);
-                ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
+                ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
                 size++;
             }
             Str expr = m[1].str();
@@ -412,7 +412,7 @@ namespace pkpy{
             if(conon >= 0){
                 _load_simple_expr(ctx, expr.substr(0, conon));
                 Str spec = expr.substr(conon+1);
-                ctx->emit(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+                ctx->emit_(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
             }else{
                 _load_simple_expr(ctx, expr);
             }
@@ -421,60 +421,60 @@ namespace pkpy{
         }
         if (i < src.length()) {
             Str literal = src.substr(i, src.length() - i);
-            ctx->emit(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
+            ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
             size++;
         }
-        ctx->emit(OP_BUILD_STRING, size, line);
+        ctx->emit_(OP_BUILD_STRING, size, line);
     }
 
 
-    void SubscrExpr::emit(CodeEmitContext* ctx){
-        a->emit(ctx);
-        b->emit(ctx);
-        ctx->emit(OP_LOAD_SUBSCR, BC_NOARG, line);
+    void SubscrExpr::emit_(CodeEmitContext* ctx){
+        a->emit_(ctx);
+        b->emit_(ctx);
+        ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
     }
 
     bool SubscrExpr::emit_del(CodeEmitContext* ctx){
-        a->emit(ctx);
-        b->emit(ctx);
-        ctx->emit(OP_DELETE_SUBSCR, BC_NOARG, line);
+        a->emit_(ctx);
+        b->emit_(ctx);
+        ctx->emit_(OP_DELETE_SUBSCR, BC_NOARG, line);
         return true;
     }
 
     bool SubscrExpr::emit_store(CodeEmitContext* ctx){
-        a->emit(ctx);
-        b->emit(ctx);
-        ctx->emit(OP_STORE_SUBSCR, BC_NOARG, line);
+        a->emit_(ctx);
+        b->emit_(ctx);
+        ctx->emit_(OP_STORE_SUBSCR, BC_NOARG, line);
         return true;
     }
 
-    void AttribExpr::emit(CodeEmitContext* ctx){
-        a->emit(ctx);
+    void AttribExpr::emit_(CodeEmitContext* ctx){
+        a->emit_(ctx);
         int index = StrName(b).index;
-        ctx->emit(OP_LOAD_ATTR, index, line);
+        ctx->emit_(OP_LOAD_ATTR, index, line);
     }
 
     bool AttribExpr::emit_del(CodeEmitContext* ctx) {
-        a->emit(ctx);
+        a->emit_(ctx);
         int index = StrName(b).index;
-        ctx->emit(OP_DELETE_ATTR, index, line);
+        ctx->emit_(OP_DELETE_ATTR, index, line);
         return true;
     }
 
     bool AttribExpr::emit_store(CodeEmitContext* ctx){
-        a->emit(ctx);
+        a->emit_(ctx);
         int index = StrName(b).index;
-        ctx->emit(OP_STORE_ATTR, index, line);
+        ctx->emit_(OP_STORE_ATTR, index, line);
         return true;
     }
 
     void AttribExpr::emit_method(CodeEmitContext* ctx) {
-        a->emit(ctx);
+        a->emit_(ctx);
         int index = StrName(b).index;
-        ctx->emit(OP_LOAD_METHOD, index, line);
+        ctx->emit_(OP_LOAD_METHOD, index, line);
     }
 
-    void CallExpr::emit(CodeEmitContext* ctx) {
+    void CallExpr::emit_(CodeEmitContext* ctx) {
         bool vargs = false;
         bool vkwargs = false;
         for(auto& arg: args) if(arg->is_starred()) vargs = true;
@@ -485,43 +485,43 @@ namespace pkpy{
             auto p = static_cast<AttribExpr*>(callable.get());
             p->emit_method(ctx);    // OP_LOAD_METHOD
         }else{
-            callable->emit(ctx);
-            ctx->emit(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
+            callable->emit_(ctx);
+            ctx->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
         }
 
         if(vargs || vkwargs){
-            for(auto& item: args) item->emit(ctx);
-            ctx->emit(OP_BUILD_TUPLE_UNPACK, (uint16_t)args.size(), line);
+            for(auto& item: args) item->emit_(ctx);
+            ctx->emit_(OP_BUILD_TUPLE_UNPACK, (uint16_t)args.size(), line);
 
             if(!kwargs.empty()){
                 for(auto& item: kwargs){
                     if(item.second->is_starred()){
                         if(item.second->star_level() != 2) FATAL_ERROR();
-                        item.second->emit(ctx);
+                        item.second->emit_(ctx);
                     }else{
                         // k=v
                         int index = ctx->add_const(py_var(ctx->vm, item.first));
-                        ctx->emit(OP_LOAD_CONST, index, line);
-                        item.second->emit(ctx);
-                        ctx->emit(OP_BUILD_TUPLE, 2, line);
+                        ctx->emit_(OP_LOAD_CONST, index, line);
+                        item.second->emit_(ctx);
+                        ctx->emit_(OP_BUILD_TUPLE, 2, line);
                     }
                 }
-                ctx->emit(OP_BUILD_DICT_UNPACK, (int)kwargs.size(), line);
-                ctx->emit(OP_CALL_TP, 1, line);
+                ctx->emit_(OP_BUILD_DICT_UNPACK, (int)kwargs.size(), line);
+                ctx->emit_(OP_CALL_TP, 1, line);
             }else{
-                ctx->emit(OP_CALL_TP, 0, line);
+                ctx->emit_(OP_CALL_TP, 0, line);
             }
         }else{
             // vectorcall protocal
-            for(auto& item: args) item->emit(ctx);
+            for(auto& item: args) item->emit_(ctx);
             for(auto& item: kwargs){
                 uint16_t index = StrName(item.first.sv()).index;
-                ctx->emit(OP_LOAD_INTEGER, index, line);
-                item.second->emit(ctx);
+                ctx->emit_(OP_LOAD_INTEGER, index, line);
+                item.second->emit_(ctx);
             }
             int KWARGC = kwargs.size();
             int ARGC = args.size();
-            ctx->emit(OP_CALL, (KWARGC<<8)|ARGC, line);
+            ctx->emit_(OP_CALL, (KWARGC<<8)|ARGC, line);
         }
     }
 
@@ -538,26 +538,26 @@ namespace pkpy{
         if(lhs->is_compare()){
             static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
         }else{
-            lhs->emit(ctx); // [a]
+            lhs->emit_(ctx); // [a]
         }
-        rhs->emit(ctx); // [a, b]
-        ctx->emit(OP_DUP_TOP, BC_NOARG, line);      // [a, b, b]
-        ctx->emit(OP_ROT_THREE, BC_NOARG, line);    // [b, a, b]
+        rhs->emit_(ctx); // [a, b]
+        ctx->emit_(OP_DUP_TOP, BC_NOARG, line);      // [a, b, b]
+        ctx->emit_(OP_ROT_THREE, BC_NOARG, line);    // [b, a, b]
         switch(op){
-            case TK("<"):   ctx->emit(OP_COMPARE_LT, BC_NOARG, line);  break;
-            case TK("<="):  ctx->emit(OP_COMPARE_LE, BC_NOARG, line);  break;
-            case TK("=="):  ctx->emit(OP_COMPARE_EQ, BC_NOARG, line);  break;
-            case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
-            case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
-            case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
+            case TK("<"):   ctx->emit_(OP_COMPARE_LT, BC_NOARG, line);  break;
+            case TK("<="):  ctx->emit_(OP_COMPARE_LE, BC_NOARG, line);  break;
+            case TK("=="):  ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line);  break;
+            case TK("!="):  ctx->emit_(OP_COMPARE_NE, BC_NOARG, line);  break;
+            case TK(">"):   ctx->emit_(OP_COMPARE_GT, BC_NOARG, line);  break;
+            case TK(">="):  ctx->emit_(OP_COMPARE_GE, BC_NOARG, line);  break;
             default: UNREACHABLE();
         }
         // [b, RES]
-        int index = ctx->emit(OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, line);
+        int index = ctx->emit_(OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, line);
         jmps.push_back(index);
     }
 
-    void BinaryExpr::emit(CodeEmitContext* ctx) {
+    void BinaryExpr::emit_(CodeEmitContext* ctx) {
         std::vector<int> jmps;
         if(is_compare() && lhs->is_compare()){
             // (a < b) < c
@@ -565,51 +565,51 @@ namespace pkpy{
             // [b, RES]
         }else{
             // (1 + 2) < c
-            lhs->emit(ctx);
+            lhs->emit_(ctx);
         }
 
-        rhs->emit(ctx);
+        rhs->emit_(ctx);
         switch (op) {
-            case TK("+"):   ctx->emit(OP_BINARY_ADD, BC_NOARG, line);  break;
-            case TK("-"):   ctx->emit(OP_BINARY_SUB, BC_NOARG, line);  break;
-            case TK("*"):   ctx->emit(OP_BINARY_MUL, BC_NOARG, line);  break;
-            case TK("/"):   ctx->emit(OP_BINARY_TRUEDIV, BC_NOARG, line);  break;
-            case TK("//"):  ctx->emit(OP_BINARY_FLOORDIV, BC_NOARG, line);  break;
-            case TK("%"):   ctx->emit(OP_BINARY_MOD, BC_NOARG, line);  break;
-            case TK("**"):  ctx->emit(OP_BINARY_POW, BC_NOARG, line);  break;
+            case TK("+"):   ctx->emit_(OP_BINARY_ADD, BC_NOARG, line);  break;
+            case TK("-"):   ctx->emit_(OP_BINARY_SUB, BC_NOARG, line);  break;
+            case TK("*"):   ctx->emit_(OP_BINARY_MUL, BC_NOARG, line);  break;
+            case TK("/"):   ctx->emit_(OP_BINARY_TRUEDIV, BC_NOARG, line);  break;
+            case TK("//"):  ctx->emit_(OP_BINARY_FLOORDIV, BC_NOARG, line);  break;
+            case TK("%"):   ctx->emit_(OP_BINARY_MOD, BC_NOARG, line);  break;
+            case TK("**"):  ctx->emit_(OP_BINARY_POW, BC_NOARG, line);  break;
 
-            case TK("<"):   ctx->emit(OP_COMPARE_LT, BC_NOARG, line);  break;
-            case TK("<="):  ctx->emit(OP_COMPARE_LE, BC_NOARG, line);  break;
-            case TK("=="):  ctx->emit(OP_COMPARE_EQ, BC_NOARG, line);  break;
-            case TK("!="):  ctx->emit(OP_COMPARE_NE, BC_NOARG, line);  break;
-            case TK(">"):   ctx->emit(OP_COMPARE_GT, BC_NOARG, line);  break;
-            case TK(">="):  ctx->emit(OP_COMPARE_GE, BC_NOARG, line);  break;
+            case TK("<"):   ctx->emit_(OP_COMPARE_LT, BC_NOARG, line);  break;
+            case TK("<="):  ctx->emit_(OP_COMPARE_LE, BC_NOARG, line);  break;
+            case TK("=="):  ctx->emit_(OP_COMPARE_EQ, BC_NOARG, line);  break;
+            case TK("!="):  ctx->emit_(OP_COMPARE_NE, BC_NOARG, line);  break;
+            case TK(">"):   ctx->emit_(OP_COMPARE_GT, BC_NOARG, line);  break;
+            case TK(">="):  ctx->emit_(OP_COMPARE_GE, BC_NOARG, line);  break;
 
-            case TK("in"):      ctx->emit(OP_CONTAINS_OP, 0, line);   break;
-            case TK("not in"):  ctx->emit(OP_CONTAINS_OP, 1, line);   break;
-            case TK("is"):      ctx->emit(OP_IS_OP, 0, line);         break;
-            case TK("is not"):  ctx->emit(OP_IS_OP, 1, line);         break;
+            case TK("in"):      ctx->emit_(OP_CONTAINS_OP, 0, line);   break;
+            case TK("not in"):  ctx->emit_(OP_CONTAINS_OP, 1, line);   break;
+            case TK("is"):      ctx->emit_(OP_IS_OP, 0, line);         break;
+            case TK("is not"):  ctx->emit_(OP_IS_OP, 1, line);         break;
 
-            case TK("<<"):  ctx->emit(OP_BITWISE_LSHIFT, BC_NOARG, line);  break;
-            case TK(">>"):  ctx->emit(OP_BITWISE_RSHIFT, BC_NOARG, line);  break;
-            case TK("&"):   ctx->emit(OP_BITWISE_AND, BC_NOARG, line);  break;
-            case TK("|"):   ctx->emit(OP_BITWISE_OR, BC_NOARG, line);  break;
-            case TK("^"):   ctx->emit(OP_BITWISE_XOR, BC_NOARG, line);  break;
+            case TK("<<"):  ctx->emit_(OP_BITWISE_LSHIFT, BC_NOARG, line);  break;
+            case TK(">>"):  ctx->emit_(OP_BITWISE_RSHIFT, BC_NOARG, line);  break;
+            case TK("&"):   ctx->emit_(OP_BITWISE_AND, BC_NOARG, line);  break;
+            case TK("|"):   ctx->emit_(OP_BITWISE_OR, BC_NOARG, line);  break;
+            case TK("^"):   ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line);  break;
 
-            case TK("@"):   ctx->emit(OP_BINARY_MATMUL, BC_NOARG, line);  break;
+            case TK("@"):   ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line);  break;
             default: FATAL_ERROR();
         }
 
         for(int i: jmps) ctx->patch_jump(i);
     }
 
-    void TernaryExpr::emit(CodeEmitContext* ctx){
-        cond->emit(ctx);
-        int patch = ctx->emit(OP_POP_JUMP_IF_FALSE, BC_NOARG, cond->line);
-        true_expr->emit(ctx);
-        int patch_2 = ctx->emit(OP_JUMP_ABSOLUTE, BC_NOARG, true_expr->line);
+    void TernaryExpr::emit_(CodeEmitContext* ctx){
+        cond->emit_(ctx);
+        int patch = ctx->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, cond->line);
+        true_expr->emit_(ctx);
+        int patch_2 = ctx->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, true_expr->line);
         ctx->patch_jump(patch);
-        false_expr->emit(ctx);
+        false_expr->emit_(ctx);
         ctx->patch_jump(patch_2);
     }
 
