@@ -574,9 +574,11 @@ namespace pkpy
     }
     /// @brief registers the PyDeque class
     /// @param vm is needed for the new_module and register_class
-    void add_module_mycollections(VM *vm)
+    void add_module_collections(VM *vm)
     {
-        PyObject *mycollections = vm->new_module("mycollections"); // TODO: change this to collections
-        PyDeque::register_class(vm, mycollections);
+        PyObject* mod = vm->new_module("collections");
+        PyDeque::register_class(vm, mod);
+        CodeObject_ code = vm->compile(kPythonLibs["collections"], "collections.py", EXEC_MODE);
+        vm->_exec(code, mod);
     }
 } // namespace pkpypkpy

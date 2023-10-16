@@ -1722,7 +1722,7 @@ void VM::post_init(){
     add_module_base64(this);
     add_module_timeit(this);
 
-    for(const char* name: {"this", "functools", "collections", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
+    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 
@@ -1745,7 +1745,7 @@ void VM::post_init(){
 
     add_module_linalg(this);
     add_module_easing(this);
-    add_module_mycollections(this);
+    add_module_collections(this);
 
 #ifdef PK_USE_BOX2D
     add_module_box2d(this);

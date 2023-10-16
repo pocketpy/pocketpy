@@ -12,7 +12,7 @@ namespace pkpy
     // STARTING HERE
     struct PyDeque
     {
-        PY_CLASS(PyDeque, mycollections, deque);
+        PY_CLASS(PyDeque, collections, deque);
         
         PyDeque(VM *vm, PyObject *iterable, PyObject* maxlen);
 
@@ -51,5 +51,5 @@ namespace pkpy
         void _gc_mark() const; // needed for container types, mark all objects in the deque for gc
     };
 
-    void add_module_mycollections(VM *vm);
+    void add_module_collections(VM *vm);
 } // namespace pkpy
