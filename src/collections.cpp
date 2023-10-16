@@ -473,7 +473,7 @@ namespace pkpy
             endPos = this->dequeItems.size();
         if (!(startPos <= endPos))
             return -1; // invalid range
-        int loopSize = min(this->dequeItems.size(), endPos);
+        int loopSize = std::min((int)this->dequeItems.size(), endPos);
         for (int i = startPos; i < loopSize; i++)
             if (vm->py_equals(this->dequeItems[i], obj))
                 return i;
