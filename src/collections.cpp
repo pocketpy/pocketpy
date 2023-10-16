@@ -302,8 +302,8 @@ namespace pkpy
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      int n = CAST(int, args[1]);
-
-                     self.rotate(n);
+                     if (n!=0) // handle trivial case
+                        self.rotate(n);
                      return vm->None;
                  });
 
