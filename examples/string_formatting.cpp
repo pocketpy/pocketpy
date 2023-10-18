@@ -33,24 +33,21 @@ int main(){
     vm->exec("print('{{{0}}}'.format(1))");
 
     vm->exec("print('{0}{1}{1}'.format(1, 2, 3))");
+    // vm->exec("\
+    // try: \
+    //     print('{0}={1}}'.format(1, 2)) \
+    // except ValueError: \
+    //     print('ValueError')"
+    // );
 
-    vm->exec("try:");
-    vm->exec("@indent print('{0}={1}}'.format(1, 2)')");
-    vm->exec("    exit(1)");
-    vm->exec("except ValueError:");
-    vm->exec("    print('ValueError')");
+    vm->exec("try:\n");
+    vm->exec("    print('{0}={1}}'.format(1, 2))\n");
+    vm->exec("    exit(1)\n");
+    vm->exec("except ValueError:\n");
+    vm->exec("    print('ValueError')\n");
+
     vm->exec("print('{{{}xxx{}x}}'.format(1, 2))");
     vm->exec("print('{{abc}}'.format())");
-
-// assert "{{{}xxx{}x}}".format(1, 2) == "{1xxx2x}"
-// assert "{{abc}}".format() == "{abc}"
-    // cjson loads and dumps!
-    // vm->exec("import cjson");
-    // vm->exec("dict = {'a': 1, 'b': [1, 3, 'Hello World'], 'c': {'a': 4}, 'd': None, 'd': True }");
-    // vm->exec("json_str = cjson.dumps(dict)");
-    // vm->exec("print(json_str)");
-    // vm->exec("loaded_dict = cjson.loads(json_str)");
-    // vm->exec("print(loaded_dict)");
 
     delete vm;
     return 0;
