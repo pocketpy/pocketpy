@@ -22,11 +22,49 @@ namespace pkpy
         vm->bind(type, "__new__(cls, iterable=None, maxlen=None)",
                  [](VM *vm, ArgsView args)
                  {
-                    printf("HELLO WORLD!!");
+                     //  printf("NEW CALLED!!\n");
                      Type cls_t = PK_OBJ_GET(Type, args[0]);
                      PyObject *iterable = args[1];
                      PyObject *maxlen = args[2];
                      return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
+                 });
+        vm->bind(type, "__init__(self, iterable=None, maxlen=None)",
+                 [](VM *vm, ArgsView args)
+                 {
+                     //  printf("INIT CALLED!!\n");
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *iterable = args[1];
+                     PyObject *maxlen = args[2];
+
+                     if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
+                     {
+                         int tmp = CAST(int, maxlen);
+                         if (tmp < 0)
+                             vm->ValueError("maxlen must be non-negative");
+                         else
+                         {
+                             self.maxlen = tmp;
+                             self.bounded = true;
+                         }
+                     }
+                     else
+                     {
+                         self.bounded = false;
+                         self.maxlen = -1;
+                     }
+                     if (!vm->py_equals(iterable, vm->None))
+                     {
+                         self.dequeItems.clear();               // clear the deque
+                         auto _lock = vm->heap.gc_scope_lock(); // locking the heap
+                         PyObject *it = vm->py_iter(args[1]);   // strong ref
+                         PyObject *obj = vm->py_next(it);
+                         while (obj != vm->StopIteration)
+                         {
+                             self.insertObj(false, true, -1, obj);
+                             obj = vm->py_next(it);
+                         }
+                     }
+                     return args[0];
                  });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
@@ -86,7 +124,10 @@ namespace pkpy
                      ss << "deque([";
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
                      {
-                         ss << CAST(Str &, vm->py_repr(*it));
+                         if (*it == args[0])
+                             ss << "[...]";
+                         else
+                             ss << CAST(Str &, vm->py_repr(*it));
                          if (it != self.dequeItems.end() - 1)
                              ss << ", ";
                      }
@@ -189,10 +230,14 @@ namespace pkpy
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      PyObject *obj = args[1];
-                     int cnt = 0;
+                     int cnt = 0, sz = self.dequeItems.size();
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
+                     {
                          if (vm->py_equals((*it), obj))
                              cnt++;
+                         if (sz != self.dequeItems.size()) // mutating the deque during iteration is not allowed
+                             vm->RuntimeError("deque mutated during iteration");//TODO replace this with RuntimeError
+                     }
                      return VAR(cnt);
                  });
         // NEW: extends the deque from the left
@@ -351,39 +396,9 @@ namespace pkpy
                      return VAR(ret);
                  });
     }
-    /// @brief initializes a new PyDeque object
-    /// @param vm required for the py_iter and max_len casting
-    /// @param iterable a list-like object to initialize the deque with
-    /// @param maxlen the maximum length of the deque, makes the deque bounded
+    /// @brief initializes a new PyDeque object, actual initialization is done in __init__
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
-        if (!vm->py_equals(maxlen, vm->None))
-        {
-            int tmp = CAST(int, maxlen);
-            if (tmp < 0)
-                vm->ValueError("maxlen must be non-negative");
-            else
-            {
-                this->maxlen = tmp;
-                this->bounded = true;
-            }
-        }
-        else
-        {
-            this->bounded = false;
-            this->maxlen = -1;
-        }
-        if (!vm->py_equals(iterable, vm->None))
-        {
-            auto _lock = vm->heap.gc_scope_lock(); // locking the heap
-            PyObject *it = vm->py_iter(iterable);  // strong ref
-            PyObject *obj = vm->py_next(it);
-            while (obj != vm->StopIteration)
-            {
-                this->insertObj(false, true, -1, obj);
-                obj = vm->py_next(it);
-            }
-        }
     }
     /// @brief pops or removes an item from the deque
     /// @param front  if true, pop from the front of the deque
@@ -463,7 +478,7 @@ namespace pkpy
             // front and back are not set, we care about index
             if (index < 0)
                 index = this->dequeItems.size() + index; // try fixing for negative indices
-            if (index < 0) // still negative means insert at the beginning
+            if (index < 0)                               // still negative means insert at the beginning
                 this->dequeItems.push_front(item);
             else if (index >= this->dequeItems.size()) // still out of range means insert at the end
                 this->dequeItems.push_back(item);
