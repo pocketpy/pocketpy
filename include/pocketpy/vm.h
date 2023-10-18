@@ -593,6 +593,7 @@ inline PyObject* py_var(VM* vm, const char* val){
 
 template<>
 inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
+    if(obj == vm->None) return nullptr;
     vm->check_non_tagged_type(obj, vm->tp_str);
     return PK_OBJ_GET(Str, obj).c_str();
 }
