@@ -12,6 +12,7 @@ namespace pkpy
         bool bounded = false;                                             // if true, maxlen is not -1
         void insertObj(bool front, bool back, int index, PyObject *item); // insert at index, used purely for internal purposes: append, appendleft, insert methods
         PyObject *popObj(bool front, bool back, PyObject *item, VM *vm);  // pop at index, used purely for internal purposes: pop, popleft, remove methods
+        int findIndex(VM *vm, PyObject *obj, int start, int stop);        // find the index of the given object in the deque
         std::stringstream getRepr(VM *vm);                                // get the string representation of the deque
         // Special methods
         static void _register(VM *vm, PyObject *mod, PyObject *type); // register the type
@@ -235,8 +236,8 @@ namespace pkpy
                      {
                          if (vm->py_equals((*it), obj))
                              cnt++;
-                         if (sz != self.dequeItems.size()) // mutating the deque during iteration is not allowed
-                             vm->RuntimeError("deque mutated during iteration");//TODO replace this with RuntimeError
+                         if (sz != self.dequeItems.size())                       // mutating the deque during iteration is not allowed
+                             vm->RuntimeError("deque mutated during iteration"); // TODO replace this with RuntimeError
                      }
                      return VAR(cnt);
                  });
@@ -267,30 +268,25 @@ namespace pkpy
                          start = CAST(int, args[2]);
                      if (!vm->py_equals(args[3], vm->None))
                          stop = CAST(int, args[3]);
-                     // the following code is special purpose normalization for this method, taken from CPython: _collectionsmodule.c file
-                     if (start < 0)
-                     {
-                         start = self.dequeItems.size() + start; // try to fix for negative indices
-                         if (start < 0)
-                             start = 0;
-                     }
-                     if (stop < 0)
-                     {
-                         stop = self.dequeItems.size() + stop; // try to fix for negative indices
-                         if (stop < 0)
-                             stop = 0;
-                     }
-                     if (stop > self.dequeItems.size())
-                         stop = self.dequeItems.size();
-                     if (start > stop)
-                         start = stop;                                                                                                         // end of normalization
-                     PK_ASSERT(start >= 0 && start <= self.dequeItems.size() && stop >= 0 && stop <= self.dequeItems.size() && start <= stop); // sanity check
-                     int loopSize = std::min((int)self.dequeItems.size(), stop);
-                     for (int i = start; i < loopSize; i++)
-                         if (vm->py_equals(self.dequeItems[i], obj))
-                             return VAR(i);
-                     vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
+                     int index = self.findIndex(vm, obj, start, stop);
+                     if (index != -1)
+                         return VAR(index);
+                     else
+                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
                      return vm->None;
+                 });
+        // NEW: returns the index of the given object in the deque
+        vm->bind(type, "__contains__(self, obj) -> bool",
+                 [](VM *vm, ArgsView args)
+                 {
+                     // Return the position of x in the deque (at or after index start and before index stop). Returns the first match or raises ValueError if not found.
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     PyObject *obj = args[1];
+                     int start = 0, stop = self.dequeItems.size(); // default values
+                     int index = self.findIndex(vm, obj, start, stop);
+                     if (index != -1)
+                         return VAR(true);
+                     return VAR(false);
                  });
         // NEW: inserts the given object at the given index
         vm->bind(type, "insert(self, index, obj) -> None",
@@ -300,7 +296,7 @@ namespace pkpy
                      int index = CAST(int, args[1]);
                      PyObject *obj = args[2];
                      if (self.bounded && self.dequeItems.size() == self.maxlen)
-                         vm->ValueError("deque already at its maximum size");
+                         vm->IndexError("deque already at its maximum size");
                      else
                          self.insertObj(false, false, index, obj); // this index shouldn't be fixed using vm->normalized_index, pass as is
                      return vm->None;
@@ -338,7 +334,8 @@ namespace pkpy
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      int n = CAST(int, args[1]);
-                     if (n != 0) // trivial case
+
+                     if (n != 0 && !self.dequeItems.empty()) // trivial case
                      {
                          PyObject *tmp; // holds the object to be rotated
                          int direction = n > 0 ? 1 : -1;
@@ -400,6 +397,39 @@ namespace pkpy
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
     }
+
+    int PyDeque::findIndex(VM *vm, PyObject *obj, int start, int stop)
+    {
+        // the following code is special purpose normalization for this method, taken from CPython: _collectionsmodule.c file
+        if (start < 0)
+        {
+            start = this->dequeItems.size() + start; // try to fix for negative indices
+            if (start < 0)
+                start = 0;
+        }
+        if (stop < 0)
+        {
+            stop = this->dequeItems.size() + stop; // try to fix for negative indices
+            if (stop < 0)
+                stop = 0;
+        }
+        if (stop > this->dequeItems.size())
+            stop = this->dequeItems.size();
+        if (start > stop)
+            start = stop;                                                                                                           // end of normalization
+        PK_ASSERT(start >= 0 && start <= this->dequeItems.size() && stop >= 0 && stop <= this->dequeItems.size() && start <= stop); // sanity check
+        int loopSize = std::min((int)(this->dequeItems.size()), stop);
+        int sz = this->dequeItems.size();
+        for (int i = start; i < loopSize; i++)
+        {
+            if (vm->py_equals(this->dequeItems[i], obj))
+                return i;
+            if (sz != this->dequeItems.size())                      // mutating the deque during iteration is not allowed
+                vm->RuntimeError("deque mutated during iteration"); // TODO replace this with RuntimeError
+        }
+        return -1;
+    }
+
     /// @brief pops or removes an item from the deque
     /// @param front  if true, pop from the front of the deque
     /// @param back if true, pop from the back of the deque
@@ -432,13 +462,19 @@ namespace pkpy
         else
         {
             // front and back are not set, we care about item, this is a remove operation and we return the removed item or nullptr
+            int sz = this->dequeItems.size();
             for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
-                if (vm->py_equals((*it), item))
+            {
+                bool found = vm->py_equals((*it), item);
+                if (sz != this->dequeItems.size()) // mutating the deque during iteration is not allowed
+                    vm->IndexError("deque mutated during iteration");
+                if (found)
                 {
                     PyObject *obj = *it; // keep a reference to the object for returning
                     this->dequeItems.erase(it);
                     return obj;
                 }
+            }
             return nullptr; // not found
         }
     }
