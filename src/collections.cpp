@@ -1,6 +1,57 @@
 #include "pocketpy/collections.h"
 namespace pkpy
 {
+    struct PyDequeIter
+    {
+        // Iterator for the deque type
+        PY_CLASS(PyDequeIter, builtins, "_deque_iterator")
+        PyObject *ref;
+        bool is_reversed;
+        std::deque<PyObject *>::iterator begin;
+        std::deque<PyObject *>::iterator end;
+        std::deque<PyObject *>::iterator current;
+        std::deque<PyObject *>::reverse_iterator rbegin;
+        std::deque<PyObject *>::reverse_iterator rend;
+        std::deque<PyObject *>::reverse_iterator rcurrent;
+
+        PyDequeIter(PyObject *ref, std::deque<PyObject *>::iterator begin, std::deque<PyObject *>::iterator end)
+            : ref(ref), begin(begin), end(end), current(begin)
+        {
+            this->is_reversed = false;
+        }
+        PyDequeIter(PyObject *ref, std::deque<PyObject *>::reverse_iterator rbegin, std::deque<PyObject *>::reverse_iterator rend)
+            : ref(ref), rbegin(rbegin), rend(rend), rcurrent(rbegin)
+        {
+            this->is_reversed = true;
+        }
+
+        void _gc_mark() const { PK_OBJ_MARK(ref); }
+        static void _register(VM *vm, PyObject *mod, PyObject *type);
+    };
+    void PyDequeIter::_register(VM *vm, PyObject *mod, PyObject *type)
+    {
+        // Iterator for the deque type
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->bind_notimplemented_constructor<PyDequeIter>(type);
+
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
+                         { return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
+                         {
+            PyDequeIter& self = _CAST(PyDequeIter&, obj);
+            if(self.is_reversed){
+                if(self.rcurrent == self.rend) return vm->StopIteration;
+                PyObject* ret = *self.rcurrent;
+                ++self.rcurrent;
+                return ret;
+            }
+            else{
+                if(self.current == self.end) return vm->StopIteration;
+                PyObject* ret = *self.current;
+                ++self.current;
+                return ret;
+            } });
+    }
     // STARTING HERE
     struct PyDeque
     {
@@ -415,9 +466,9 @@ namespace pkpy
         }
         if (!vm->py_equals(iterable, vm->None))
         {
-            this->dequeItems.clear();               // clear the deque
+            this->dequeItems.clear();              // clear the deque
             auto _lock = vm->heap.gc_scope_lock(); // locking the heap
-            PyObject *it = vm->py_iter(iterable);   // strong ref
+            PyObject *it = vm->py_iter(iterable);  // strong ref
             PyObject *obj = vm->py_next(it);
             while (obj != vm->StopIteration)
             {
@@ -563,6 +614,7 @@ namespace pkpy
     {
         PyObject *mod = vm->new_module("collections");
         PyDeque::register_class(vm, mod);
+        PyDequeIter::register_class(vm, vm->builtins);
         CodeObject_ code = vm->compile(kPythonLibs["collections"], "collections.py", EXEC_MODE);
         vm->_exec(code, mod);
     }

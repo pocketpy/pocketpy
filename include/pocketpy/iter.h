@@ -32,34 +32,6 @@ namespace pkpy
         static void _register(VM *vm, PyObject *mod, PyObject *type);
     };
 
-    struct PyDequeIter
-    {
-        // Iterator for the deque type
-        PY_CLASS(PyDequeIter, builtins, "_deque_iterator")
-        PyObject *ref;
-        bool is_reversed;
-        std::deque<PyObject *>::iterator begin;
-        std::deque<PyObject *>::iterator end;
-        std::deque<PyObject *>::iterator current;
-        std::deque<PyObject *>::reverse_iterator rbegin;
-        std::deque<PyObject *>::reverse_iterator rend;
-        std::deque<PyObject *>::reverse_iterator rcurrent;
-
-        PyDequeIter(PyObject *ref, std::deque<PyObject *>::iterator begin, std::deque<PyObject *>::iterator end)
-            : ref(ref), begin(begin), end(end), current(begin)
-        {
-            this->is_reversed = false;
-        }
-        PyDequeIter(PyObject *ref, std::deque<PyObject *>::reverse_iterator rbegin, std::deque<PyObject *>::reverse_iterator rend)
-            : ref(ref), rbegin(rbegin), rend(rend), rcurrent(rbegin)
-        {
-            this->is_reversed = true;
-        }
-
-        void _gc_mark() const { PK_OBJ_MARK(ref); }
-        static void _register(VM *vm, PyObject *mod, PyObject *type);
-    };
-
     struct StringIter
     {
         PY_CLASS(StringIter, builtins, "_string_iterator")
