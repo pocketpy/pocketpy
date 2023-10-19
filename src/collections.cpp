@@ -29,44 +29,44 @@ namespace pkpy
                      PyObject *maxlen = args[2];
                      return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
                  });
-        vm->bind(type, "__init__(self, iterable=None, maxlen=None)",
-                 [](VM *vm, ArgsView args)
-                 {
-                     //  printf("INIT CALLED!!\n");
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyObject *iterable = args[1];
-                     PyObject *maxlen = args[2];
+        // vm->bind(type, "__init__(self, iterable=None, maxlen=None)",
+        //          [](VM *vm, ArgsView args)
+        //          {
+        //              //  printf("INIT CALLED!!\n");
+        //              PyDeque &self = _CAST(PyDeque &, args[0]);
+        //              PyObject *iterable = args[1];
+        //              PyObject *maxlen = args[2];
 
-                     if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
-                     {
-                         int tmp = CAST(int, maxlen);
-                         if (tmp < 0)
-                             vm->ValueError("maxlen must be non-negative");
-                         else
-                         {
-                             self.maxlen = tmp;
-                             self.bounded = true;
-                         }
-                     }
-                     else
-                     {
-                         self.bounded = false;
-                         self.maxlen = -1;
-                     }
-                     if (!vm->py_equals(iterable, vm->None))
-                     {
-                         self.dequeItems.clear();               // clear the deque
-                         auto _lock = vm->heap.gc_scope_lock(); // locking the heap
-                         PyObject *it = vm->py_iter(args[1]);   // strong ref
-                         PyObject *obj = vm->py_next(it);
-                         while (obj != vm->StopIteration)
-                         {
-                             self.insertObj(false, true, -1, obj);
-                             obj = vm->py_next(it);
-                         }
-                     }
-                     return args[0];
-                 });
+        //              if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
+        //              {
+        //                  int tmp = CAST(int, maxlen);
+        //                  if (tmp < 0)
+        //                      vm->ValueError("maxlen must be non-negative");
+        //                  else
+        //                  {
+        //                      self.maxlen = tmp;
+        //                      self.bounded = true;
+        //                  }
+        //              }
+        //              else
+        //              {
+        //                  self.bounded = false;
+        //                  self.maxlen = -1;
+        //              }
+        //              if (!vm->py_equals(iterable, vm->None))
+        //              {
+        //                  self.dequeItems.clear();               // clear the deque
+        //                  auto _lock = vm->heap.gc_scope_lock(); // locking the heap
+        //                  PyObject *it = vm->py_iter(args[1]);   // strong ref
+        //                  PyObject *obj = vm->py_next(it);
+        //                  while (obj != vm->StopIteration)
+        //                  {
+        //                      self.insertObj(false, true, -1, obj);
+        //                      obj = vm->py_next(it);
+        //                  }
+        //              }
+        //              return args[0];
+        //          });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind(type, "__getitem__(self, index) -> PyObject",
@@ -396,6 +396,35 @@ namespace pkpy
     /// @brief initializes a new PyDeque object, actual initialization is done in __init__
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
+
+        if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
+        {
+            int tmp = CAST(int, maxlen);
+            if (tmp < 0)
+                vm->ValueError("maxlen must be non-negative");
+            else
+            {
+                this->maxlen = tmp;
+                this->bounded = true;
+            }
+        }
+        else
+        {
+            this->bounded = false;
+            this->maxlen = -1;
+        }
+        if (!vm->py_equals(iterable, vm->None))
+        {
+            this->dequeItems.clear();               // clear the deque
+            auto _lock = vm->heap.gc_scope_lock(); // locking the heap
+            PyObject *it = vm->py_iter(iterable);   // strong ref
+            PyObject *obj = vm->py_next(it);
+            while (obj != vm->StopIteration)
+            {
+                this->insertObj(false, true, -1, obj);
+                obj = vm->py_next(it);
+            }
+        }
     }
 
     int PyDeque::findIndex(VM *vm, PyObject *obj, int start, int stop)

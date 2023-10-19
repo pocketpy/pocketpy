@@ -152,13 +152,8 @@ class _Unpickler:
         if newargs is not None:
             newargs = [self.unwrap(i) for i in newargs]
             inst = new_f(cls, *newargs)
-            if inst.__init__ is not None: # should be called with args if exists
-                inst.__init__(*newargs)
         else:
             inst = new_f(cls)
-            if inst.__init__ is not None:
-                inst.__init__()    # no args
-
         self.tag(index, inst)
         # restore state
         if state is not None:

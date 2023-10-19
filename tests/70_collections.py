@@ -44,7 +44,8 @@ def fail():
 
 
 d = deque(range(-5125, -5000))
-d.__init__(range(200))
+# d.__init__(range(200)) # not supported
+d = deque(range(200))
 for i in range(200, 400):
     d.append(i)
 for i in reversed(range(-200, 0)):
