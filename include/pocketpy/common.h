@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <random>
 #include <bitset>
+#include <deque>
 
 #define PK_VERSION				"1.2.7"
 
