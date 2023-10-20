@@ -23,16 +23,10 @@ assert q == deque([1, 2])
 
 def assertEqual(a, b):
     assert a == b
-
-
 def assertNotEqual(a, b):
     assert a != b
-
-
-def assertRaises(callable, *args, **kwargs):
-    callable(*args, **kwargs)
-    print("X Failed Tests for {} for args: {} {}".format(
-        str(callable), str(args), str(kwargs)))
+def printFailed(function_name, *args, **kwargs):
+    print("X Failed Tests for {} for args: {} {}".format(str(function_name), str(args), str(kwargs)))
 
 
 BIG = 100000
@@ -67,12 +61,16 @@ assertEqual(list(d), list(range(50, 150)))
 try:
     dq = deque()
     dq.maxlen = -1
+    printFailed("deque.maxlen", -1)
+    exit(1)
 except AttributeError:
     pass
 
 try:
     dq = deque()
     dq.maxlen = -2
+    printFailed("deque.maxlen", -2)
+    exit(1)
 except AttributeError:
     pass
 
@@ -122,7 +120,7 @@ assertEqual(deque('abc', maxlen=0).maxlen, 0)
 try:
     d = deque('abc')
     d.maxlen = 10
-    print("X Failed Tests!!")
+    printFailed("deque.maxlen", 10)
     exit(1)
 except AttributeError:
     pass
@@ -135,14 +133,14 @@ for s in ('', 'abracadabra', 'simsalabim'*500+'abc'):
         assertEqual(s.count(letter), d.count(letter))
 try:
     d.count()
-    print("X Failed Tests!!")
+    printFailed("deque.count")
     exit(1)
 except TypeError:
     pass
 
 try:
     d.count(1, 2)
-    print("X Failed Tests!!")
+    printFailed("deque.count", 1, 2)
     exit(1)
 except TypeError:
     pass
@@ -157,7 +155,7 @@ d = deque([1, 2, BadCompare(), 3])
 
 try:
     d.count(2)
-    print("X Failed Tests!!")
+    printFailed("deque.count", 2)
     exit(1)
 except ArithmeticError:
     pass
@@ -165,7 +163,7 @@ except ArithmeticError:
 d = deque([1, 2, 3])
 try:
     d.count(BadCompare())
-    print("X Failed Tests!!")
+    printFailed("deque.count", "BadCompare()")
     exit(1)
 except ArithmeticError:
     pass
@@ -183,7 +181,7 @@ m.d = d
 
 try:
     d.count(3)
-    print("X Failed Tests!")
+    printFailed("deque.count", "MutatingCompare()")
     exit(1)
 except RuntimeError:
     pass
@@ -239,7 +237,7 @@ d = deque(range(n))
 d[n//2] = MutateCmp(d, False)
 try:
     n in d
-    print("X Failed Tests!")
+    printFailed("deque.__contains__", n)
     exit(1)
 except RuntimeError:
     pass
@@ -255,7 +253,7 @@ d = deque(range(n))
 d[n//2] = BadCmp()
 try:
     n in d
-    print("X Failed Tests!")
+    printFailed("deque.__contains__", n)
     exit(1)
 except RuntimeError:
     pass
@@ -273,7 +271,7 @@ d = deque([A(), A()])
 
 try:
     _ = 3 in d
-    print("X Failed Tests!")
+    printFailed("deque.__contains__", 3)
     exit(1)
 except RuntimeError:
     pass
@@ -281,7 +279,7 @@ except RuntimeError:
 d = deque([A(), A()])
 try:
     _ = d.count(3)
-    print("X Failed Tests!")
+    printFailed("deque.count", 3)
     exit(1)
 except RuntimeError:
     pass
@@ -293,7 +291,7 @@ except RuntimeError:
 d = deque('a')
 try:
     d.extend(1)
-    print("X Failed Tests!")
+    printFailed("deque.extend", 1)
     exit(1)
 except TypeError:
     pass
@@ -307,7 +305,7 @@ assertEqual(list(d), list('abcdabcd'))
 d = deque('a')
 try:
     d.extendleft(1)
-    print("X Failed Tests!")
+    printFailed("deque.extendleft", 1)
     exit(1)
 except TypeError:
     pass
@@ -320,7 +318,7 @@ d.extendleft(range(1000))
 assertEqual(list(d), list(reversed(range(1000))))
 try:
     d.extendleft(fail())
-    print("X Failed Tests!")
+    printFailed("deque.extendleft", fail())
     exit(1)
 except SyntaxError:
     pass
@@ -345,13 +343,13 @@ assertEqual(d[-1], 'n')
 d = deque()
 try:
     d.__getitem__(0)
-    print("X Failed Tests!")
+    printFailed("deque.__getitem__", 0)
     exit(1)
 except IndexError:
     pass
 try:
     d.__getitem__(-1)
-    print("X Failed Tests!")
+    printFailed("deque.__getitem__", -1)
     exit(1)
 except IndexError:
     pass
@@ -366,7 +364,7 @@ for n in 1, 2, 30, 40, 200:
 
     try:
         d.index(n+1)
-        print("X Failed Tests!")
+        printFailed("deque.index", n+1)
         exit(1)
     except ValueError:
         pass
@@ -377,7 +375,7 @@ for n in 1, 2, 30, 40, 200:
 
     try:
         d.index(n)
-        print("X Failed Tests!")
+        printFailed("deque.index", n)
         exit(1)
     except RuntimeError:
         pass
@@ -388,7 +386,7 @@ for n in 1, 2, 30, 40, 200:
 
     try:
         d.index(n)
-        print("X Failed Tests!")
+        printFailed("deque.index", n)
         exit(1)
     except RuntimeError:
         pass
@@ -430,7 +428,7 @@ for step in range(100):
 d = deque('A' * 3)
 try:
     d.index('A', 1, 0)
-    print("X Failed Tests!")
+    printFailed("deque.index", 'A', 1, 0)
     exit(1)
 except ValueError:
     pass
@@ -451,7 +449,7 @@ data = 'ABC'
 d = deque(data, maxlen=len(data))
 try:
     d.insert(0, 'Z')
-    print("X Failed Tests!")
+    printFailed("deque.insert", 0, 'Z')
     exit(1)
 except IndexError:
     pass
@@ -484,14 +482,14 @@ n = 500         # O(n**2) test, don't make this too big
 d = deque(range(n))
 try:
     d.__delitem__(-n-1)
-    print("X Failed Tests!")
+    printFailed("deque.__delitem__", -n-1)
     exit(1)
 except IndexError:
     pass
 
 try:
     d.__delitem__(n)
-    print("X Failed Tests!")
+    printFailed("deque.__delitem__", n)
     exit(1)
 except IndexError:
     pass
@@ -518,7 +516,7 @@ for i in range(n):
     assertEqual(list(d), data[:i])
 try:
     d.reverse(1)
-    print("X Failed Tests!")
+    printFailed("deque.reverse", 1)
     exit(1)
 except TypeError:
     pass
@@ -570,14 +568,14 @@ for i in range(BIG+17):
 assertEqual(tuple(d), tuple(e))
 try:
     d.rotate(1, 2)
-    print("X Failed Tests!")
+    printFailed("deque.rotate", 1, 2)
     exit(1)
 except TypeError:
     pass
 
 try:
     d.rotate(1, 10)
-    print("X Failed Tests!")
+    printFailed("deque.rotate", 1, 10)
     exit(1)
 except TypeError:
     pass
@@ -596,7 +594,7 @@ d.pop()
 assertEqual(len(d), 0)
 try:
     d.pop()
-    print("X Failed Tests!")
+    printFailed("deque.pop")
     exit(1)
 except IndexError:
     pass
@@ -613,13 +611,13 @@ assertEqual(len(d), 0)
 d = deque()
 try:
     d.pop()
-    print("X Failed Tests!")
+    printFailed("deque.pop")
     exit(1)
 except IndexError:
     pass
 try:
     d.popleft()
-    print("X Failed Tests!")
+    printFailed("deque.popleft")
     exit(1)
 except IndexError:
     pass
@@ -642,7 +640,7 @@ d.remove('c')
 assertEqual(d, deque('abdefghij'))
 try:
     d.remove('c')
-    print("X Failed Tests!")
+    printFailed("deque.remove", "c")
     exit(1)
 except ValueError:
     pass
@@ -654,7 +652,7 @@ e = deque(d)
 
 try:
     d.remove('c')
-    print("X Failed Tests!")
+    printFailed("deque.remove", "c")
     exit(1)
 except RuntimeError:
     pass
@@ -668,7 +666,7 @@ for match in (True, False):
     d.extend([MutateCmp(d, match), 'c'])
     try:
         d.remove('c')
-        print("X Failed Tests!")
+        printFailed("deque.remove", "c")
         exit(1)
     except IndexError:
         pass
@@ -687,13 +685,13 @@ assertEqual(repr(d)[-20:], '7, 198, 199, [...]])')
 
 try:
     deque('abc', 2, 3)
-    print("X Failed Tests!")
+    printFailed("deque", 'abc', 2, 3)
     exit(1)
 except TypeError:
     pass
 try:
     deque(1)
-    print("X Failed Tests!")
+    printFailed("deque", 1)
     exit(1)
 except TypeError:
     pass
@@ -701,7 +699,7 @@ except TypeError:
 
 ######### test hash #############
 try:
-    assertRaises(hash, deque('abc'))
+    hash(deque('abcd'))
 except TypeError:
     pass
 

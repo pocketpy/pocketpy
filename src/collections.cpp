@@ -1,19 +1,13 @@
 #include "pocketpy/collections.h"
 namespace pkpy
 {
-    struct PyDequeIter
+    struct PyDequeIter // Iterator for the deque type
     {
-        // Iterator for the deque type
         PY_CLASS(PyDequeIter, builtins, "_deque_iterator")
         PyObject *ref;
         bool is_reversed;
-        std::deque<PyObject *>::iterator begin;
-        std::deque<PyObject *>::iterator end;
-        std::deque<PyObject *>::iterator current;
-        std::deque<PyObject *>::reverse_iterator rbegin;
-        std::deque<PyObject *>::reverse_iterator rend;
-        std::deque<PyObject *>::reverse_iterator rcurrent;
-
+        std::deque<PyObject *>::iterator begin, end, current;
+        std::deque<PyObject *>::reverse_iterator rbegin, rend, rcurrent;
         PyDequeIter(PyObject *ref, std::deque<PyObject *>::iterator begin, std::deque<PyObject *>::iterator end)
             : ref(ref), begin(begin), end(end), current(begin)
         {
@@ -24,7 +18,6 @@ namespace pkpy
         {
             this->is_reversed = true;
         }
-
         void _gc_mark() const { PK_OBJ_MARK(ref); }
         static void _register(VM *vm, PyObject *mod, PyObject *type);
     };
@@ -52,7 +45,6 @@ namespace pkpy
                 return ret;
             } });
     }
-    // STARTING HERE
     struct PyDeque
     {
         PY_CLASS(PyDeque, collections, deque);
@@ -64,7 +56,7 @@ namespace pkpy
         void insertObj(bool front, bool back, int index, PyObject *item); // insert at index, used purely for internal purposes: append, appendleft, insert methods
         PyObject *popObj(bool front, bool back, PyObject *item, VM *vm);  // pop at index, used purely for internal purposes: pop, popleft, remove methods
         int findIndex(VM *vm, PyObject *obj, int start, int stop);        // find the index of the given object in the deque
-        std::stringstream getRepr(VM *vm);                                // get the string representation of the deque
+        std::stringstream getRepr(VM *vm, PyObject* thisObj);                                // get the string representation of the deque
         // Special methods
         static void _register(VM *vm, PyObject *mod, PyObject *type); // register the type
         void _gc_mark() const;                                        // needed for container types, mark all objects in the deque for gc
@@ -74,50 +66,11 @@ namespace pkpy
         vm->bind(type, "__new__(cls, iterable=None, maxlen=None)",
                  [](VM *vm, ArgsView args)
                  {
-                     //  printf("NEW CALLED!!\n");
                      Type cls_t = PK_OBJ_GET(Type, args[0]);
                      PyObject *iterable = args[1];
                      PyObject *maxlen = args[2];
                      return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
                  });
-        // vm->bind(type, "__init__(self, iterable=None, maxlen=None)",
-        //          [](VM *vm, ArgsView args)
-        //          {
-        //              //  printf("INIT CALLED!!\n");
-        //              PyDeque &self = _CAST(PyDeque &, args[0]);
-        //              PyObject *iterable = args[1];
-        //              PyObject *maxlen = args[2];
-
-        //              if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
-        //              {
-        //                  int tmp = CAST(int, maxlen);
-        //                  if (tmp < 0)
-        //                      vm->ValueError("maxlen must be non-negative");
-        //                  else
-        //                  {
-        //                      self.maxlen = tmp;
-        //                      self.bounded = true;
-        //                  }
-        //              }
-        //              else
-        //              {
-        //                  self.bounded = false;
-        //                  self.maxlen = -1;
-        //              }
-        //              if (!vm->py_equals(iterable, vm->None))
-        //              {
-        //                  self.dequeItems.clear();               // clear the deque
-        //                  auto _lock = vm->heap.gc_scope_lock(); // locking the heap
-        //                  PyObject *it = vm->py_iter(args[1]);   // strong ref
-        //                  PyObject *obj = vm->py_next(it);
-        //                  while (obj != vm->StopIteration)
-        //                  {
-        //                      self.insertObj(false, true, -1, obj);
-        //                      obj = vm->py_next(it);
-        //                  }
-        //              }
-        //              return args[0];
-        //          });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind(type, "__getitem__(self, index) -> PyObject",
@@ -172,18 +125,15 @@ namespace pkpy
                  [](VM *vm, ArgsView args)
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     std::stringstream ss;
-                     ss << "deque([";
-                     for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
-                     {
-                         if (*it == args[0])
-                             ss << "[...]";
-                         else
-                             ss << CAST(Str &, vm->py_repr(*it));
-                         if (it != self.dequeItems.end() - 1)
-                             ss << ", ";
-                     }
-                     self.bounded ? ss << "], maxlen=" << self.maxlen << ")" : ss << "])";
+                     std::stringstream ss = self.getRepr(vm, args[0]);
+                     return VAR(ss.str());
+                 });
+        // returns a string representation of the deque
+        vm->bind(type, "__str__(self) -> str",
+                 [](VM *vm, ArgsView args)
+                 {
+                     PyDeque &self = _CAST(PyDeque &, args[0]);
+                     std::stringstream ss = self.getRepr(vm, args[0]);
                      return VAR(ss.str());
                  });
         // enables comparison between two deques, == and != are supported
@@ -287,8 +237,8 @@ namespace pkpy
                      {
                          if (vm->py_equals((*it), obj))
                              cnt++;
-                         if (sz != self.dequeItems.size())                       // mutating the deque during iteration is not allowed
-                             vm->RuntimeError("deque mutated during iteration"); // TODO replace this with RuntimeError
+                         if (sz != self.dequeItems.size())// mutating the deque during iteration is not allowed
+                             vm->RuntimeError("deque mutated during iteration"); 
                      }
                      return VAR(cnt);
                  });
@@ -477,7 +427,22 @@ namespace pkpy
             }
         }
     }
-
+    std::stringstream PyDeque::getRepr(VM *vm, PyObject *thisObj)
+    {
+        std::stringstream ss;
+        ss << "deque([";
+        for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
+        {
+            if (*it == thisObj)
+                ss << "[...]";
+            else
+                ss << CAST(Str &, vm->py_repr(*it));
+            if (it != this->dequeItems.end() - 1)
+                ss << ", ";
+        }
+        this->bounded ? ss << "], maxlen=" << this->maxlen << ")" : ss << "])";
+        return ss;
+    }
     int PyDeque::findIndex(VM *vm, PyObject *obj, int start, int stop)
     {
         // the following code is special purpose normalization for this method, taken from CPython: _collectionsmodule.c file
@@ -504,8 +469,8 @@ namespace pkpy
         {
             if (vm->py_equals(this->dequeItems[i], obj))
                 return i;
-            if (sz != this->dequeItems.size())                      // mutating the deque during iteration is not allowed
-                vm->RuntimeError("deque mutated during iteration"); // TODO replace this with RuntimeError
+            if (sz != this->dequeItems.size())// mutating the deque during iteration is not allowed
+                vm->RuntimeError("deque mutated during iteration");
         }
         return -1;
     }
