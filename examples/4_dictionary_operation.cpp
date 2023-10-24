@@ -1,8 +1,8 @@
 
 /**
- * This example illustrate use of Dict and List in PocketPy.
+ * This example illustrate use of Dict in PocketPy.
  * It creates a python module named "employee" and bind four functions to it.
- * It exercises setting and getting elements in a Dict and List.
+ * It exercises setting and getting elements in a Dict.
 */
 
 

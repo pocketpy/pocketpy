@@ -1,9 +1,9 @@
 
 /**
- * Calculate average of a list of numbers.
- * This example illustrate the process of creating a python module and
- * bind a function to it, as well as the procedure for calling the function.
- * Additionally, it outlines the creating of a list.
+ * This example demonstrates how to build a List object and how to access its elements.
+ * It creates a python module named "math_utils" and bind a function named "average" to it.
+ * It exercises creating a List and accessing its elements.
+ * It also demonstrates how to cast a python object to a C++ type.
 */
 
 #include "pocketpy.h"
