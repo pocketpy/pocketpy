@@ -158,7 +158,7 @@ struct wrapped__Point{
 
         // __init__ method
         vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){
-            wrapped__Point& self = _py_cast<wrapped__Point>(vm, args[0]);
+            wrapped__Point& self = _py_cast<wrapped__Point&>(vm, args[0]);
             self.value.x = py_cast<int>(vm, args[1]);
             self.value.y = py_cast<int>(vm, args[2]);
             return vm->None;
