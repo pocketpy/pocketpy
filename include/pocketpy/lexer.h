@@ -59,13 +59,13 @@ struct Token{
   Str str() const { return Str(start, length);}
   std::string_view sv() const { return std::string_view(start, length);}
 
-  Str info() const {
-    SStream ss;
-    ss << line << ": " << TK_STR(type) << " '" << (
-        sv()=="\n" ? "\\n" : sv()
-    ) << "'";
-    return ss.str();
-  }
+  // Str info() const {
+  //   SStream ss;
+  //   ss << line << ": " << TK_STR(type) << " '" << (
+  //       sv()=="\n" ? "\\n" : sv()
+  //   ) << "'";
+  //   return ss.str();
+  // }
 };
 
 // https://docs.python.org/3/reference/expressions.html#operator-precedence

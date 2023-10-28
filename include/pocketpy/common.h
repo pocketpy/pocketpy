@@ -119,12 +119,12 @@ union BitsCvtImpl<4>{
 	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
 
-	void print(){
-		std::string s = std::bitset<32>(_int).to_string();
-		std::cout << s.substr(0, 1) << '|';
-		std::cout << s.substr(1, 8) << '|';
-		std::cout << s.substr(9) << std::endl;
-	}
+	// void print(){
+	// 	std::string s = std::bitset<32>(_int).to_string();
+	// 	std::cout << s.substr(0, 1) << '|';
+	// 	std::cout << s.substr(1, 8) << '|';
+	// 	std::cout << s.substr(9) << std::endl;
+	// }
 };
 
 template<>
