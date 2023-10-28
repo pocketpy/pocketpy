@@ -304,7 +304,12 @@ public:
         PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
-    bool py_equals(PyObject* lhs, PyObject* rhs);
+    bool py_eq(PyObject* lhs, PyObject* rhs);
+    // new in v1.2.9
+    bool py_lt(PyObject* lhs, PyObject* rhs);
+    bool py_le(PyObject* lhs, PyObject* rhs);
+    bool py_gt(PyObject* lhs, PyObject* rhs);
+    bool py_ge(PyObject* lhs, PyObject* rhs);
 
     template<int ARGC>
     PyObject* bind_func(Str type, Str name, NativeFuncC fn) {

@@ -145,7 +145,7 @@ namespace pkpy
                      if (self.dequeItems.size() != other.dequeItems.size()) // trivial case
                          return VAR(false);
                      for (int i = 0; i < self.dequeItems.size(); i++)
-                         if (!vm->py_equals(self.dequeItems[i], other.dequeItems[i]))
+                         if (!vm->py_eq(self.dequeItems[i], other.dequeItems[i]))
                              return VAR(false);
                      return VAR(true);
                  });
@@ -235,7 +235,7 @@ namespace pkpy
                      int cnt = 0, sz = self.dequeItems.size();
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
                      {
-                         if (vm->py_equals((*it), obj))
+                         if (vm->py_eq((*it), obj))
                              cnt++;
                          if (sz != self.dequeItems.size())// mutating the deque during iteration is not allowed
                              vm->RuntimeError("deque mutated during iteration"); 
@@ -265,9 +265,9 @@ namespace pkpy
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      PyObject *obj = args[1];
                      int start = 0, stop = self.dequeItems.size(); // default values
-                     if (!vm->py_equals(args[2], vm->None))
+                     if (!vm->py_eq(args[2], vm->None))
                          start = CAST(int, args[2]);
-                     if (!vm->py_equals(args[3], vm->None))
+                     if (!vm->py_eq(args[3], vm->None))
                          stop = CAST(int, args[3]);
                      int index = self.findIndex(vm, obj, start, stop);
                      if (index != -1)
@@ -398,7 +398,7 @@ namespace pkpy
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
 
-        if (!vm->py_equals(maxlen, vm->None)) // fix the maxlen first
+        if (!vm->py_eq(maxlen, vm->None)) // fix the maxlen first
         {
             int tmp = CAST(int, maxlen);
             if (tmp < 0)
@@ -414,7 +414,7 @@ namespace pkpy
             this->bounded = false;
             this->maxlen = -1;
         }
-        if (!vm->py_equals(iterable, vm->None))
+        if (!vm->py_eq(iterable, vm->None))
         {
             this->dequeItems.clear();              // clear the deque
             auto _lock = vm->heap.gc_scope_lock(); // locking the heap
@@ -467,7 +467,7 @@ namespace pkpy
         int sz = this->dequeItems.size();
         for (int i = start; i < loopSize; i++)
         {
-            if (vm->py_equals(this->dequeItems[i], obj))
+            if (vm->py_eq(this->dequeItems[i], obj))
                 return i;
             if (sz != this->dequeItems.size())// mutating the deque during iteration is not allowed
                 vm->RuntimeError("deque mutated during iteration");
@@ -479,7 +479,7 @@ namespace pkpy
     /// @param front  if true, pop from the front of the deque
     /// @param back if true, pop from the back of the deque
     /// @param item if front and back is not set, remove the first occurence of item from the deque
-    /// @param vm is needed for the py_equals
+    /// @param vm is needed for the py_eq
     /// @return PyObject* if front or back is set, this is a pop operation and we return a PyObject*, if front and back are not set, this is a remove operation and we return the removed item or nullptr
     PyObject *PyDeque::popObj(bool front, bool back, PyObject *item, VM *vm)
     {
@@ -510,7 +510,7 @@ namespace pkpy
             int sz = this->dequeItems.size();
             for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
             {
-                bool found = vm->py_equals((*it), item);
+                bool found = vm->py_eq((*it), item);
                 if (sz != this->dequeItems.size()) // mutating the deque during iteration is not allowed
                     vm->IndexError("deque mutated during iteration");
                 if (found)

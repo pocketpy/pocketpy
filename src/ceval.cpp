@@ -2,6 +2,48 @@
 
 namespace pkpy{
 
+#define BINARY_F_COMPARE(func, op, rfunc)                           \
+        PyObject* ret;                                              \
+        const PyTypeInfo* _ti = _inst_type_info(_0);                \
+        if(_ti->m##func){                               \
+            ret = _ti->m##func(this, _0, _1);           \
+        }else{                                          \
+            PyObject* self;                                                     \
+            PyObject* _2 = get_unbound_method(_0, func, &self, false);          \
+            if(_2 != nullptr) ret = call_method(self, _2, _1);                  \
+            else ret = NotImplemented;                                          \
+        }                                                                       \
+        if(ret == NotImplemented){                                              \
+            PyObject* self;                                                     \
+            PyObject* _2 = get_unbound_method(_1, rfunc, &self, false);         \
+            if(_2 != nullptr) ret = call_method(self, _2, _0);                  \
+            else BinaryOptError(op);                                            \
+            if(ret == NotImplemented) BinaryOptError(op);                       \
+        }
+
+
+bool VM::py_lt(PyObject* _0, PyObject* _1){
+    BINARY_F_COMPARE(__lt__, "<", __gt__);
+    return CAST(bool, ret);
+}
+
+bool VM::py_le(PyObject* _0, PyObject* _1){
+    BINARY_F_COMPARE(__le__, "<=", __ge__);
+    return CAST(bool, ret);
+}
+
+bool VM::py_gt(PyObject* _0, PyObject* _1){
+    BINARY_F_COMPARE(__gt__, ">", __lt__);
+    return CAST(bool, ret);
+}
+
+bool VM::py_ge(PyObject* _0, PyObject* _1){
+    BINARY_F_COMPARE(__ge__, ">=", __le__);
+    return CAST(bool, ret);
+}
+
+#undef BINARY_F_COMPARE
+
 static i64 _py_sint(PyObject* obj) noexcept {
     return (i64)(PK_BITS(obj) >> 2);
 }
@@ -386,34 +428,34 @@ __NEXT_STEP:;
         if(TOP() == NotImplemented) BinaryOptError("%");
     } DISPATCH()
     TARGET(COMPARE_LT){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        BINARY_OP_SPECIAL(__lt__);
-        BINARY_OP_RSPECIAL("<", __gt__);
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        TOP() = VAR(py_lt(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_LE){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        BINARY_OP_SPECIAL(__le__);
-        BINARY_OP_RSPECIAL("<=", __ge__);
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        TOP() = VAR(py_le(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_EQ){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
-        TOP() = VAR(py_equals(_0, _1));
+        TOP() = VAR(py_eq(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_NE){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
-        TOP() = VAR(!py_equals(_0, _1));
+        TOP() = VAR(!py_eq(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_GT){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        BINARY_OP_SPECIAL(__gt__);
-        BINARY_OP_RSPECIAL(">", __lt__);
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        TOP() = VAR(py_gt(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_GE){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        BINARY_OP_SPECIAL(__ge__);
-        BINARY_OP_RSPECIAL(">=", __le__);
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        TOP() = VAR(py_ge(_0, _1));
     } DISPATCH()
     TARGET(BITWISE_LSHIFT){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;

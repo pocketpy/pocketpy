@@ -826,6 +826,3 @@ d = deque()
 for i in range(100):
     d.append(1)
     gc.collect()
-
-
-print('✓', "ALL TEST PASSED!!")

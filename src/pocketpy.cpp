@@ -736,14 +736,14 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__contains__(_vm->tp_list, [](VM* vm, PyObject* obj, PyObject* item) {
         List& self = _CAST(List&, obj);
-        for(PyObject* i: self) if(vm->py_equals(i, item)) return vm->True;
+        for(PyObject* i: self) if(vm->py_eq(i, item)) return vm->True;
         return vm->False;
     });
 
     _vm->bind_method<1>("list", "count", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         int count = 0;
-        for(PyObject* i: self) if(vm->py_equals(i, args[1])) count++;
+        for(PyObject* i: self) if(vm->py_eq(i, args[1])) count++;
         return VAR(count);
     });
 
@@ -753,7 +753,7 @@ void init_builtins(VM* _vm) {
         List& b = _CAST(List&, rhs);
         if(a.size() != b.size()) return vm->False;
         for(int i=0; i<a.size(); i++){
-            if(!vm->py_equals(a[i], b[i])) return vm->False;
+            if(!vm->py_eq(a[i], b[i])) return vm->False;
         }
         return vm->True;
     });
@@ -762,7 +762,7 @@ void init_builtins(VM* _vm) {
         List& self = _CAST(List&, args[0]);
         PyObject* obj = args[1];
         for(int i=0; i<self.size(); i++){
-            if(vm->py_equals(self[i], obj)) return VAR(i);
+            if(vm->py_eq(self[i], obj)) return VAR(i);
         }
         vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
         return vm->None;
@@ -772,7 +772,7 @@ void init_builtins(VM* _vm) {
         List& self = _CAST(List&, args[0]);
         PyObject* obj = args[1];
         for(int i=0; i<self.size(); i++){
-            if(vm->py_equals(self[i], obj)){
+            if(vm->py_eq(self[i], obj)){
                 self.erase(i);
                 return vm->None;
             }
@@ -858,6 +858,30 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_method<0>("list", "copy", PK_LAMBDA(VAR(_CAST(List, args[0]))));
 
+#define BIND_RICH_CMP(name, op, _t, _T)    \
+    _vm->bind__##name##__(_vm->_t, [](VM* vm, PyObject* lhs, PyObject* rhs){        \
+        if(!is_non_tagged_type(rhs, vm->_t)) return vm->NotImplemented;             \
+        auto& a = _CAST(_T&, lhs);                                                  \
+        auto& b = _CAST(_T&, rhs);                                                  \
+        for(int i=0; i<a.size() && i<b.size(); i++){                                \
+            if(vm->py_eq(a[i], b[i])) continue;                                     \
+            return VAR(vm->py_##name(a[i], b[i]));                                  \
+        }                                                                           \
+        return VAR(a.size() op b.size());                                           \
+    });
+
+    BIND_RICH_CMP(lt, <, tp_list, List)
+    BIND_RICH_CMP(le, <=, tp_list, List)
+    BIND_RICH_CMP(gt, >, tp_list, List)
+    BIND_RICH_CMP(ge, >=, tp_list, List)
+    
+    BIND_RICH_CMP(lt, <, tp_tuple, Tuple)
+    BIND_RICH_CMP(le, <=, tp_tuple, Tuple)
+    BIND_RICH_CMP(gt, >, tp_tuple, Tuple)
+    BIND_RICH_CMP(ge, >=, tp_tuple, Tuple)
+
+#undef BIND_RICH_CMP
+
     _vm->bind__add__(_vm->tp_list, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const List& self = _CAST(List&, lhs);
         const List& other = CAST(List&, rhs);
@@ -900,14 +924,14 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__contains__(_vm->tp_tuple, [](VM* vm, PyObject* obj, PyObject* item) {
         Tuple& self = _CAST(Tuple&, obj);
-        for(PyObject* i: self) if(vm->py_equals(i, item)) return vm->True;
+        for(PyObject* i: self) if(vm->py_eq(i, item)) return vm->True;
         return vm->False;
     });
 
     _vm->bind_method<1>("tuple", "count", [](VM* vm, ArgsView args) {
         Tuple& self = _CAST(Tuple&, args[0]);
         int count = 0;
-        for(PyObject* i: self) if(vm->py_equals(i, args[1])) count++;
+        for(PyObject* i: self) if(vm->py_eq(i, args[1])) count++;
         return VAR(count);
     });
 
@@ -917,7 +941,7 @@ void init_builtins(VM* _vm) {
         const Tuple& other = _CAST(Tuple&, rhs);
         if(self.size() != other.size()) return vm->False;
         for(int i = 0; i < self.size(); i++) {
-            if(!vm->py_equals(self[i], other[i])) return vm->False;
+            if(!vm->py_eq(self[i], other[i])) return vm->False;
         }
         return vm->True;
     });
@@ -1282,7 +1306,7 @@ void init_builtins(VM* _vm) {
             if(item.first == nullptr) continue;
             PyObject* value = other.try_get(item.first);
             if(value == nullptr) return vm->False;
-            if(!vm->py_equals(item.second, value)) return vm->False;
+            if(!vm->py_eq(item.second, value)) return vm->False;
         }
         return vm->True;
     });

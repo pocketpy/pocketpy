@@ -286,38 +286,6 @@ def __f(self, reverse=False, key=None):
         self.reverse()
 list.sort = __f
 
-def __f(self, other):
-    for i, j in zip(self, other):
-        if i != j:
-            return i < j
-    return len(self) < len(other)
-tuple.__lt__ = __f
-list.__lt__ = __f
-
-def __f(self, other):
-    for i, j in zip(self, other):
-        if i != j:
-            return i > j
-    return len(self) > len(other)
-tuple.__gt__ = __f
-list.__gt__ = __f
-
-def __f(self, other):
-    for i, j in zip(self, other):
-        if i != j:
-            return i <= j
-    return len(self) <= len(other)
-tuple.__le__ = __f
-list.__le__ = __f
-
-def __f(self, other):
-    for i, j in zip(self, other):
-        if i != j:
-            return i >= j
-    return len(self) >= len(other)
-tuple.__ge__ = __f
-list.__ge__ = __f
-
 type.__repr__ = lambda self: "<class '" + self.__name__ + "'>"
 type.__getitem__ = lambda self, *args: self     # for generics
 

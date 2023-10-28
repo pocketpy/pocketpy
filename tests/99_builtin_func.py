@@ -380,7 +380,7 @@ except:
 #     #####:  649:        List& self = _CAST(List&, args[0]);
 #     #####:  650:        PyObject* obj = args[1];
 #     #####:  651:        for(int i=0; i<self.size(); i++){
-#     #####:  652:            if(vm->py_equals(self[i], obj)) return VAR(i);
+#     #####:  652:            if(vm->py_eq(self[i], obj)) return VAR(i);
 #         -:  653:        }
 #     #####:  654:        vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
 #     #####:  655:        return vm->None;
@@ -401,7 +401,7 @@ except:
 #         1:  659:        List& self = _CAST(List&, args[0]);
 #         1:  660:        PyObject* obj = args[1];
 #         2:  661:        for(int i=0; i<self.size(); i++){
-#         2:  662:            if(vm->py_equals(self[i], obj)){
+#         2:  662:            if(vm->py_eq(self[i], obj)){
 #         1:  663:                self.erase(i);
 #         1:  664:                return vm->None;
 #         -:  665:            }
@@ -474,7 +474,7 @@ except:
 # 未完全测试准确性-----------------------------------------------
 #       118:  793:    _vm->bind__contains__(_vm->tp_tuple, [](VM* vm, PyObject* obj, PyObject* item) {
 #         1:  794:        Tuple& self = _CAST(Tuple&, obj);
-#         3:  795:        for(PyObject* i: self) if(vm->py_equals(i, item)) return vm->True;
+#         3:  795:        for(PyObject* i: self) if(vm->py_eq(i, item)) return vm->True;
 #     #####:  796:        return vm->False;
 #         1:  797:    });
 # test tuple.__contains__:
@@ -485,7 +485,7 @@ assert (1,2,3).__contains__(5) == False
 #       116:  799:    _vm->bind_method<1>("tuple", "count", [](VM* vm, ArgsView args) {
 #     #####:  800:        Tuple& self = _CAST(Tuple&, args[0]);
 #         -:  801:        int count = 0;
-#     #####:  802:        for(PyObject* i: self) if(vm->py_equals(i, args[1])) count++;
+#     #####:  802:        for(PyObject* i: self) if(vm->py_eq(i, args[1])) count++;
 #     #####:  803:        return VAR(count);
 #         -:  804:    });
 # test tuple.count:

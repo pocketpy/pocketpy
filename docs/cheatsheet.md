@@ -231,7 +231,7 @@ Compare two python objects
 ```cpp
 PyObject* obj1 = py_var(vm, 1);
 PyObject* obj2 = py_var(vm, 2);
-bool ok = vm->py_equals(obj1, obj2);
+bool ok = vm->py_eq(obj1, obj2);
 ```
 
 Convert a python object to string

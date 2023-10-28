@@ -249,7 +249,7 @@ namespace pkpy{
         return &_all_types[obj->type];
     }
 
-    bool VM::py_equals(PyObject* lhs, PyObject* rhs){
+    bool VM::py_eq(PyObject* lhs, PyObject* rhs){
         if(lhs == rhs) return true;
         const PyTypeInfo* ti = _inst_type_info(lhs);
         PyObject* res;
@@ -1230,7 +1230,7 @@ void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
     // std::cout << CAST(Str, vm->py_repr(key)) << " " << hash << " " << i << std::endl;
     for(int j=0; j<_capacity; j++) {
         if(_items[i].first != nullptr){
-            if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+            if(vm->py_eq(_items[i].first, key)) { ok = true; break; }
         }else{
             if(_items[i].second == nullptr) break;
         }
@@ -1244,7 +1244,7 @@ void Dict::_probe_1(PyObject *key, bool &ok, int &i) const{
     ok = false;
     i = vm->py_hash(key) & _mask;
     while(_items[i].first != nullptr) {
-        if(vm->py_equals(_items[i].first, key)) { ok = true; break; }
+        if(vm->py_eq(_items[i].first, key)) { ok = true; break; }
         // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
         i = ((5*i) + 1) & _mask;
     }
