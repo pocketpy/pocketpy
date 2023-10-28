@@ -696,6 +696,23 @@ void init_builtins(VM* _vm) {
     });
 
     /************ list ************/
+    _vm->bind(_vm->_t(_vm->tp_list), "sort(self, key=None, reverse=False)", [](VM* vm, ArgsView args) {
+        List& self = _CAST(List&, args[0]);
+        PyObject* key = args[1];
+        if(key == vm->None){
+            std::stable_sort(self.begin(), self.end(), [vm](PyObject* a, PyObject* b){
+                return vm->py_lt(a, b);
+            });
+        }else{
+            std::stable_sort(self.begin(), self.end(), [vm, key](PyObject* a, PyObject* b){
+                return vm->py_lt(vm->call(key, a), vm->call(key, b));
+            });
+        }
+        bool reverse = CAST(bool, args[2]);
+        if(reverse) self.reverse();
+        return vm->None;
+    });
+
     _vm->bind__repr__(_vm->tp_list, [](VM* vm, PyObject* _0){
         List& iterable = _CAST(List&, _0);
         SStream ss;
@@ -874,7 +891,7 @@ void init_builtins(VM* _vm) {
     BIND_RICH_CMP(le, <=, tp_list, List)
     BIND_RICH_CMP(gt, >, tp_list, List)
     BIND_RICH_CMP(ge, >=, tp_list, List)
-    
+
     BIND_RICH_CMP(lt, <, tp_tuple, Tuple)
     BIND_RICH_CMP(le, <=, tp_tuple, Tuple)
     BIND_RICH_CMP(gt, >, tp_tuple, Tuple)
@@ -1617,6 +1634,19 @@ void add_module_gc(VM* vm){
 
 void VM::post_init(){
     init_builtins(this);
+
+    // type
+    bind__getitem__(tp_type, [](VM* vm, PyObject* self, PyObject* _){
+        PK_UNUSED(_);
+        return self;        // for generics
+    });
+
+    bind__repr__(tp_type, [](VM* vm, PyObject* self){
+        SStream ss;
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, self)];
+        ss << "<class '" << info.name << "'>";
+        return VAR(ss.str());
+    });
 
     bind_property(_t(tp_object), "__class__", PK_LAMBDA(vm->_t(args[0])));
     bind_property(_t(tp_type), "__base__", [](VM* vm, ArgsView args){

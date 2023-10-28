@@ -263,39 +263,14 @@ def __f(self, width: int, fillchar=' '):
     return self + fillchar * delta
 str.ljust = __f
 
-##### list #####
-def __qsort(a: list, L: int, R: int, key):
-    if L >= R: return;
-    mid = a[(R+L)//2];
-    mid = key(mid)
-    i, j = L, R
-    while i<=j:
-        while key(a[i])<mid: ++i;
-        while key(a[j])>mid: --j;
-        if i<=j:
-            a[i], a[j] = a[j], a[i]
-            ++i; --j;
-    __qsort(a, L, j, key)
-    __qsort(a, i, R, key)
+del __f
 
-def __f(self, reverse=False, key=None):
-    if key is None:
-        key = lambda x:x
-    __qsort(self, 0, len(self)-1, key)
-    if reverse:
-        self.reverse()
-list.sort = __f
-
-type.__repr__ = lambda self: "<class '" + self.__name__ + "'>"
-type.__getitem__ = lambda self, *args: self     # for generics
 
 def help(obj):
     if hasattr(obj, '__func__'):
         obj = obj.__func__
     print(obj.__signature__)
     print(obj.__doc__)
-
-del __f
 
 class Exception: pass
 
