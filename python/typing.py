@@ -19,6 +19,9 @@ Optional = _PLACEHOLDER
 Callable = _PLACEHOLDER
 Type = _PLACEHOLDER
 
+Iterable = _PLACEHOLDER
+Generator = _PLACEHOLDER
+
 TypeVar = _PLACEHOLDER
 Self = _PLACEHOLDER
 
