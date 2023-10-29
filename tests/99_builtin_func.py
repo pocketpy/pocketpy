@@ -118,20 +118,20 @@ except:
     pass
 
 
-# -----------------------------------------------
-#       114:  188:    _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
-#     #####:  189:        return args[0];
-#         -:  190:    });
-# test staticmethod:
 class A():
     def __init__(self):
         self.a = 1
         
-    @ staticmethod
+    @staticmethod
     def static_method(txt):
         return txt
+    
+    # @classmethod
+    # def class_method(cls, txt):
+    #     return cls.__name__ + txt
 
 assert A.static_method(123) == 123
+# assert A.class_method(123) == 'A123'
 
 # 无法测试 -----------------------------------------------
 #       248:  192:    _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {

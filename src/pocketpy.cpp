@@ -192,10 +192,6 @@ void init_builtins(VM* _vm) {
         return VAR(PK_BITS(obj));
     });
 
-    _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
-        return args[0];
-    });
-    
     _vm->bind_builtin_func<1>("callable", [](VM* vm, ArgsView args) {
         PyObject* cls = vm->_t(args[0]);
         Type t = PK_OBJ_GET(Type, cls);
