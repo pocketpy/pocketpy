@@ -623,7 +623,14 @@ void init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(_vm->tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        std::vector<std::string_view> parts = self.split(CAST(Str&, args[1]));
+        const Str& sep = CAST(Str&, args[1]);
+        if(sep.empty()) vm->ValueError("empty separator");
+        std::vector<std::string_view> parts;
+        if(sep.size == 1){
+            parts = self.split(sep[0]);
+        }else{
+            parts = self.split(sep);
+        }
         List ret(parts.size());
         for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
@@ -1401,6 +1408,16 @@ void add_module_timeit(VM* vm){
     });
 }
 
+void add_module_operator(VM* vm){
+    PyObject* mod = vm->new_module("operator");
+    vm->bind_func<2>(mod, "lt", [](VM* vm, ArgsView args) { return VAR(vm->py_lt(args[0], args[1]));});
+    vm->bind_func<2>(mod, "le", [](VM* vm, ArgsView args) { return VAR(vm->py_le(args[0], args[1]));});
+    vm->bind_func<2>(mod, "eq", [](VM* vm, ArgsView args) { return VAR(vm->py_eq(args[0], args[1]));});
+    vm->bind_func<2>(mod, "ne", [](VM* vm, ArgsView args) { return VAR(vm->py_ne(args[0], args[1]));});
+    vm->bind_func<2>(mod, "ge", [](VM* vm, ArgsView args) { return VAR(vm->py_ge(args[0], args[1]));});
+    vm->bind_func<2>(mod, "gt", [](VM* vm, ArgsView args) { return VAR(vm->py_gt(args[0], args[1]));});
+}
+
 struct PyStructTime{
     PY_CLASS(PyStructTime, time, struct_time)
 
@@ -1702,6 +1719,7 @@ void VM::post_init(){
     add_module_random(this);
     add_module_base64(this);
     add_module_timeit(this);
+    add_module_operator(this);
 
     for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
         _lazy_modules[name] = kPythonLibs[name];

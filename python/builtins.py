@@ -4,49 +4,34 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     _sys.stdout.write(s + end)
 
-def max(*args, key=None):
-    if key is None:
+def _minmax_reduce(op, args, key):
+    if key is None: 
+        if len(args) == 2:
+            return args[0] if op(args[0], args[1]) else args[1]
         key = lambda x: x
     if len(args) == 0:
-        raise TypeError('max expected 1 arguments, got 0')
+        raise TypeError('expected 1 arguments, got 0')
     if len(args) == 1:
         args = args[0]
-    if len(args) == 2:
-        a, b = args
-        return a if key(a) > key(b) else b
     args = iter(args)
     res = next(args)
     if res is StopIteration:
-        raise ValueError('max() arg is an empty sequence')
+        raise ValueError('args is an empty sequence')
     while True:
         i = next(args)
         if i is StopIteration:
             break
-        if key(i) > key(res):
+        if op(key(i), key(res)):
             res = i
     return res
 
 def min(*args, key=None):
-    if key is None:
-        key = lambda x: x
-    if len(args) == 0:
-        raise TypeError('min expected 1 arguments, got 0')
-    if len(args) == 1:
-        args = args[0]
-    if len(args) == 2:
-        a, b = args
-        return a if key(a) < key(b) else b
-    args = iter(args)
-    res = next(args)
-    if res is StopIteration:
-        raise ValueError('min() arg is an empty sequence')
-    while True:
-        i = next(args)
-        if i is StopIteration:
-            break
-        if key(i) < key(res):
-            res = i
-    return res
+    from operator import lt
+    return _minmax_reduce(lt, args, key)
+
+def max(*args, key=None):
+    from operator import gt
+    return _minmax_reduce(gt, args, key)
 
 def all(iterable):
     for i in iterable:
@@ -96,9 +81,9 @@ def reversed(iterable):
     a.reverse()
     return a
 
-def sorted(iterable, reverse=False, key=None):
+def sorted(iterable, key=None, reverse=False):
     a = list(iterable)
-    a.sort(reverse=reverse, key=key)
+    a.sort(key=key, reverse=reverse)
     return a
 
 ##### str #####

@@ -47,6 +47,9 @@ assert 'foo!!bar!!baz'.split('!!') == ['foo', 'bar', 'baz']
 assert ' 4 3 '.split() == ['4', '3']
 assert '  4 3  '.split(' ') == ['4', '3']
 
+x = 'aa bb cccc'
+assert x.split('cc') == ['aa bb ']
+
 assert '111'.count('1') == 3
 assert '111'.count('11') == 1
 assert '1111'.count('11') == 2

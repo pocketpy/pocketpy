@@ -310,6 +310,7 @@ public:
     bool py_le(PyObject* lhs, PyObject* rhs);
     bool py_gt(PyObject* lhs, PyObject* rhs);
     bool py_ge(PyObject* lhs, PyObject* rhs);
+    bool py_ne(PyObject* lhs, PyObject* rhs) { return !py_eq(lhs, rhs); }
 
     template<int ARGC>
     PyObject* bind_func(Str type, Str name, NativeFuncC fn) {

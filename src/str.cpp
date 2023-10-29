@@ -344,6 +344,20 @@ int utf8len(unsigned char c, bool suppress){
         return result;
     }
 
+    std::vector<std::string_view> Str::split(char sep) const{
+        std::vector<std::string_view> result;
+        int i = 0;
+        for(int j = 0; j < size; j++){
+            if(data[j] == sep){
+                if(j > i) result.emplace_back(data+i, j-i);
+                i = j + 1;
+                continue;
+            }
+        }
+        if(size > i) result.emplace_back(data+i, size-i);
+        return result;
+    }
+
     int Str::count(const Str& sub) const{
         if(sub.empty()) return size + 1;
         int cnt = 0;

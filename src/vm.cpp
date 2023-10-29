@@ -287,7 +287,7 @@ namespace pkpy{
 
     PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
-        auto f_join = [](const std::vector<std::string_view>& cpnts){
+        static auto f_join = [](const std::vector<std::string_view>& cpnts){
             SStream ss;
             for(int i=0; i<cpnts.size(); i++){
                 if(i != 0) ss << ".";
@@ -303,7 +303,7 @@ namespace pkpy{
             Str curr_path = _import_context.pending.back();
             bool curr_is_init = _import_context.pending_is_init.back();
             // convert relative path to absolute path
-            std::vector<std::string_view> cpnts = curr_path.split(".");
+            std::vector<std::string_view> cpnts = curr_path.split('.');
             int prefix = 0;     // how many dots in the prefix
             for(int i=0; i<path.length(); i++){
                 if(path[i] == '.') prefix++;
@@ -316,21 +316,18 @@ namespace pkpy{
             path = f_join(cpnts);
         }
 
-        // std::cout << "py_import(" << path.escape() << ")" << std::endl;
+        PK_ASSERT(path.begin()[0] != '.' && path.end()[-1] != '.');
 
-        PK_ASSERT(path.begin()[0] != '.');
-        PK_ASSERT(path.end()[-1] != '.');
+        // check existing module
+        StrName name(path);
+        PyObject* ext_mod = _modules.try_get(name);
+        if(ext_mod != nullptr) return ext_mod;
 
-        auto path_cpnts = path.split(".");
-
+        std::vector<std::string_view> path_cpnts = path.split('.');
         // check circular import
         if(_import_context.pending.size() > 128){
             ImportError("maximum recursion depth exceeded while importing");
         }
-
-        StrName name(path);     // path to StrName
-        PyObject* ext_mod = _modules.try_get(name);
-        if(ext_mod != nullptr) return ext_mod;
 
         // try import
         Str filename = path.replace('.', kPlatformSep) + ".py";

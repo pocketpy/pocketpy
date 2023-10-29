@@ -58,12 +58,12 @@ To compile it with your project, these flags must be set:
 + Exception must be enabled
 + For MSVC, `/utf-8` flag must be set
 
-For development build on Linux, use this snippet.
+For development build, use this snippet.
 ```bash
 # prerequisites
-sudo apt-get install libc++-dev libc++abi-dev clang
+pip install cmake
 # build the repo
-bash build.sh
+python cmake_build.py
 # unittest
 python scripts/run_tests.py
 ```
