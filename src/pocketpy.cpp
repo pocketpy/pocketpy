@@ -1434,7 +1434,7 @@ struct PyStructTime{
         tm_mday = tm->tm_mday;
         tm_hour = tm->tm_hour;
         tm_min = tm->tm_min;
-        tm_sec = tm->tm_sec + 1;
+        tm_sec = tm->tm_sec;
         tm_wday = (tm->tm_wday + 6) % 7;
         tm_yday = tm->tm_yday + 1;
         tm_isdst = tm->tm_isdst;

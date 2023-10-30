@@ -94,7 +94,10 @@ class datetime(date):
     @staticmethod
     def now():
         t = localtime()
-        return datetime(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec)
+        tm_sec = t.tm_sec
+        if tm_sec == 60:
+            tm_sec = 59
+        return datetime(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, tm_sec)
 
     def __str__(self):
         return f"{self.year}-{self.month:02}-{self.day:02} {self.hour:02}:{self.minute:02}:{self.second:02}"
