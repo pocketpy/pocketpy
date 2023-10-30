@@ -35,7 +35,7 @@ class timedelta:
 
 
 class date:
-    def __init__(self, year: int, month: int = None, day: int = None):
+    def __init__(self, year: int, month: int, day: int):
         self.year = year
         self.month = month
         self.day = day
@@ -78,16 +78,16 @@ class date:
 
 
 class datetime(date):
-    def __init__(self, year: int, month: int = None, day: int = None, hour: int = None, minute: int = None, second: int = None):
+    def __init__(self, year: int, month: int, day: int, hour: int, minute: int, second: int):
         super().__init__(year, month, day)
         # Validate and set hour, minute, and second
-        if hour is not None and not 0 <= hour <= 23:
+        if not 0 <= hour <= 23:
             raise ValueError("Hour must be between 0 and 23")
         self.hour = hour
-        if minute is not None and not 0 <= minute <= 59:
+        if not 0 <= minute <= 59:
             raise ValueError("Minute must be between 0 and 59")
         self.minute = minute
-        if second is not None and not 0 <= second <= 59:
+        if not 0 <= second <= 59:
             raise ValueError("Second must be between 0 and 59")
         self.second = second
 
