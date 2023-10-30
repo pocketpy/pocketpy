@@ -20,6 +20,9 @@ class defaultdict:
     def __setitem__(self, key, value):
         self._a[key] = value
 
+    def __delitem__(self, key):
+        del self._a[key]
+
     def __repr__(self) -> str:
         return f"defaultdict({self.default_factory}, {self._a})"
     
@@ -50,3 +53,17 @@ class defaultdict:
 
     def pop(self, *args):
         return self._a.pop(*args)
+
+    def clear(self):
+        self._a.clear()
+
+    def copy(self):
+        new_dd = defaultdict(self.default_factory)
+        new_dd._a = self._a.copy()
+        return new_dd
+    
+    def get(self, key, default):
+        return self._a.get(key, default)
+    
+    def update(self, other):
+        self._a.update(other)
