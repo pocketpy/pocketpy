@@ -29,6 +29,8 @@ assert json.loads("true") == True
 assert json.loads("false") == False
 assert json.loads("{}") == {}
 
+assert json.loads(b"false") == False
+
 _j = json.dumps(a)
 _a = json.loads(_j)
 

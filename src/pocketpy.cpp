@@ -1509,8 +1509,13 @@ void add_module_sys(VM* vm){
 void add_module_json(VM* vm){
     PyObject* mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args) {
-        const Str& expr = CAST(Str&, args[0]);
-        CodeObject_ code = vm->compile(expr, "<json>", JSON_MODE);
+        std::string_view sv;
+        if(is_non_tagged_type(args[0], vm->tp_bytes)){
+            sv = PK_OBJ_GET(Bytes, args[0]).sv();
+        }else{
+            sv = CAST(Str&, args[0]).sv();
+        }
+        CodeObject_ code = vm->compile(sv, "<json>", JSON_MODE);
         return vm->_exec(code, vm->top_frame()->_module);
     });
 

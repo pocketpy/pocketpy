@@ -9,11 +9,11 @@ pkpy has two JSON modules.
 
 **Their interfaces are the same.** `cjson` is faster while the built-in `json` is more stable since it was developed earlier.
 
-### `json.loads(s)`
+### `json.loads(data: str | bytes)`
 
 Decode a JSON string into a python object.
 
-### `json.dumps(obj)`
+### `json.dumps(obj) -> str`
 
 Encode a python object into a JSON string.
 

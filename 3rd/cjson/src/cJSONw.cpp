@@ -112,8 +112,13 @@ void add_module_cjson(VM* vm){
     cJSON_InitHooks(&hooks);
 
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args){
-        const Str& string = CAST(Str&, args[0]);
-        cJSON *json = cJSON_ParseWithLength(string.data, string.size);
+        std::string_view sv;
+        if(is_non_tagged_type(args[0], vm->tp_bytes)){
+            sv = PK_OBJ_GET(Bytes, args[0]).sv();
+        }else{
+            sv = CAST(Str&, args[0]).sv();
+        }
+        cJSON *json = cJSON_ParseWithLength(sv.data(), sv.size());
         if(json == NULL){
             const char* start = cJSON_GetErrorPtr();
             const char* end = start;
