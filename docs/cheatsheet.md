@@ -117,12 +117,12 @@ Get native types without type checking
 ```cpp
 // unsafe version 1 (for int and float you must use `_py_cast`)
 i64 a = _py_cast<i64>(vm, obj);
-Str& c = _py_cast<Str&>(vm, obj);
-Tuple& e = _py_cast<Tuple&>(vm, obj);
+f64 b = _py_cast<f64>(vm, obj);
+Tuple& c = _py_cast<Tuple&>(vm, obj);
 // unsafe version 2 (for others, you can use both versions)
-i64 a_ = PK_OBJ_GET(i64, obj);
-Str& c_ = PK_OBJ_GET(Str, obj);
-Tuple& e_ = PK_OBJ_GET(Tuple, obj);
+Str& a_ = PK_OBJ_GET(Str, obj);
+List& b_ = PK_OBJ_GET(List, obj);
+Tuple& c_ = PK_OBJ_GET(Tuple, obj);
 ```
 
 ## Access python types
