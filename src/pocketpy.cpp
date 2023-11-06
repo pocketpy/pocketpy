@@ -1655,6 +1655,8 @@ void VM::post_init(){
 
     bind_method<1>("property", "setter", [](VM* vm, ArgsView args) {
         Property& self = _CAST(Property&, args[0]);
+        // The setter's name is not necessary to be the same as the property's name
+        // However, for cpython compatibility, we recommend to use the same name
         self.setter = args[1];
         return args[0];
     });
