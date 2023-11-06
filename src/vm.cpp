@@ -1192,6 +1192,7 @@ void ManagedHeap::mark() {
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     if(_gc_marker_ex) _gc_marker_ex(vm);
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);
+    if(vm->_curr_class) PK_OBJ_MARK(vm->_curr_class);
     if(vm->_c.error != nullptr) PK_OBJ_MARK(vm->_c.error);
 }
 

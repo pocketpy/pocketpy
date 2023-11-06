@@ -1653,6 +1653,12 @@ void add_module_gc(VM* vm){
 void VM::post_init(){
     init_builtins(this);
 
+    bind_method<1>("property", "setter", [](VM* vm, ArgsView args) {
+        Property& self = _CAST(Property&, args[0]);
+        self.setter = args[1];
+        return args[0];
+    });
+
     // type
     bind__getitem__(tp_type, [](VM* vm, PyObject* self, PyObject* _){
         PK_UNUSED(_);

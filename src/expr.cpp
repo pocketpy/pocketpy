@@ -127,8 +127,15 @@ namespace pkpy{
             ctx->emit_(OP_LOAD_FAST, index, line);
         }else{
             Opcode op = ctx->level <= 1 ? OP_LOAD_GLOBAL : OP_LOAD_NONLOCAL;
-            // we cannot determine the scope when calling exec()/eval()
-            if(scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
+            if(ctx->is_compiling_class && scope == NAME_GLOBAL){
+                // if we are compiling a class, we should use OP_LOAD_ATTR_GLOBAL instead of OP_LOAD_GLOBAL
+                // this supports @property.setter
+                op = OP_LOAD_CLASS_GLOBAL;
+                // exec()/eval() won't work with OP_LOAD_ATTR_GLOBAL in class body
+            }else{
+                // we cannot determine the scope when calling exec()/eval()
+                if(scope == NAME_GLOBAL_UNKNOWN) op = OP_LOAD_NAME;
+            }
             ctx->emit_(op, StrName(name).index, line);
         }
     }

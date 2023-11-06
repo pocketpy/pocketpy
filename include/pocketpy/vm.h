@@ -133,7 +133,8 @@ public:
     PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
-    PyObject* _last_exception;
+    PyObject* _last_exception;  // last exception
+    PyObject* _curr_class;      // current class being defined
 
 #if PK_ENABLE_CEVAL_CALLBACK
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;

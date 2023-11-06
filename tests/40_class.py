@@ -109,3 +109,13 @@ class B(A):
 # assert B.a == 1  ...bug here
 assert B.b == 3
 assert B.c == 4
+
+class A:
+    x = 1
+    x = x + 1
+    y = 1
+    z = x + y
+
+assert A.x == 2
+assert A.y == 1
+assert A.z == 3

@@ -810,12 +810,29 @@ try:
 except:
     pass
 
+class Vector2:
+    def __init__(self) -> None:
+        self._x = 0
+
+    @property
+    def x(self):
+        return self._x
+    
+    @x.setter
+    def x(self, val):
+        self._x = val
+
+v = Vector2()
+assert v.x == 0
+v.x = 10
+assert v.x == 10
+
 # /************ module timeit ************/
 import timeit
 
 def aaa():
-    for i in range(100):
-        for j in range(100):
+    for i in range(10):
+        for j in range(10):
             pass
     
 assert type(timeit.timeit(aaa, 2)) is float
