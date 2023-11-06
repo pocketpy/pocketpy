@@ -748,7 +748,7 @@ __NEXT_STEP:;
         if(is_non_tagged_type(_0, tp_function)){
             PK_OBJ_GET(Function, _0)._class = _curr_class;
         }
-        TOP()->attr().set(_name, _0);
+        _curr_class->attr().set(_name, _0);
     } DISPATCH();
     /*****************************************/
     TARGET(WITH_ENTER)
