@@ -55,69 +55,26 @@ struct Bytes{
     int operator[](int i) const noexcept { return (int)_data[i]; }
     const unsigned char* data() const noexcept { return _data; }
 
-    bool operator==(const Bytes& rhs) const{
-        if(_size != rhs._size) return false;
-        for(int i=0; i<_size; i++) if(_data[i] != rhs._data[i]) return false;
-        return true;
-    }
-    bool operator!=(const Bytes& rhs) const{ return !(*this == rhs); }
+    bool operator==(const Bytes& rhs) const;
+    bool operator!=(const Bytes& rhs) const;
 
     Str str() const noexcept { return Str((char*)_data, _size); }
     std::string_view sv() const noexcept { return std::string_view((char*)_data, _size); }
 
     Bytes() : _data(nullptr), _size(0) {}
     Bytes(unsigned char* p, int size): _data(p), _size(size) {}
-    Bytes(const std::vector<unsigned char>& v){
-        _data = new unsigned char[v.size()];
-        _size = v.size();
-        for(int i=0; i<_size; i++) _data[i] = v[i];
-    }
-    Bytes(std::string_view sv){
-        _data = new unsigned char[sv.size()];
-        _size = sv.size();
-        for(int i=0; i<_size; i++) _data[i] = sv[i];
-    }
     Bytes(const Str& str): Bytes(str.sv()) {}
     operator bool() const noexcept { return _data != nullptr; }
 
-    // copy constructor
-    Bytes(const Bytes& rhs){
-        _data = new unsigned char[rhs._size];
-        _size = rhs._size;
-        for(int i=0; i<_size; i++) _data[i] = rhs._data[i];
-    }
-
-    // move constructor
-    Bytes(Bytes&& rhs) noexcept {
-        _data = rhs._data;
-        _size = rhs._size;
-        rhs._data = nullptr;
-        rhs._size = 0;
-    }
-
-    Bytes& operator=(Bytes&& rhs) noexcept {
-        delete[] _data;
-        _data = rhs._data;
-        _size = rhs._size;
-        rhs._data = nullptr;
-        rhs._size = 0;
-        return *this;
-    }
-
-    std::pair<unsigned char*, int> detach() noexcept {
-        unsigned char* p = _data;
-        int size = _size;
-        _data = nullptr;
-        _size = 0;
-        return {p, size};
-    }
-
-    ~Bytes(){
-        delete[] _data;
-    }
-
-    // delete copy assignment
+    Bytes(const std::vector<unsigned char>& v);
+    Bytes(std::string_view sv);
+    Bytes(const Bytes& rhs);
+    Bytes(Bytes&& rhs) noexcept;
+    Bytes& operator=(Bytes&& rhs) noexcept;
     Bytes& operator=(const Bytes& rhs) = delete;
+    std::pair<unsigned char*, int> detach() noexcept;
+
+    ~Bytes(){ delete[] _data;}
 };
 
 using Super = std::pair<PyObject*, Type>;

@@ -420,4 +420,55 @@ int utf8len(unsigned char c, bool suppress){
         const std::string& str = _r_interned()[index];
         return std::string_view(str);
     }
+
+    Str SStream::str(){
+        // after this call, the buffer is no longer valid
+        auto detached = buffer.detach();
+        return Str(detached.first, detached.second);
+    }
+
+    SStream& SStream::operator<<(const Str& s){
+        buffer.extend(s.begin(), s.end());
+        return *this;
+    }
+
+    SStream& SStream::operator<<(const char* s){
+        buffer.extend(s, s + strlen(s));
+        return *this;
+    }
+
+    SStream& SStream::operator<<(const std::string& s){
+        buffer.extend(s.data(), s.data() + s.size());
+        return *this;
+    }
+
+    SStream& SStream::operator<<(std::string_view s){
+        buffer.extend(s.data(), s.data() + s.size());
+        return *this;
+    }
+
+    SStream& SStream::operator<<(char c){
+        buffer.push_back(c);
+        return *this;
+    }
+
+    SStream& SStream::operator<<(i64 val){
+        // str(-2**64).__len__() == 21
+        buffer.reserve(buffer.size() + 24);
+        if(val == 0){
+            buffer.push_back('0');
+            return *this;
+        }
+        if(val < 0){
+            buffer.push_back('-');
+            val = -val;
+        }
+        char* begin = buffer.end();
+        while(val){
+            buffer.push_back('0' + val % 10);
+            val /= 10;
+        }
+        std::reverse(begin, buffer.end());
+        return *this;
+    }
 } // namespace pkpy
