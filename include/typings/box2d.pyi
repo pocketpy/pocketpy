@@ -28,6 +28,9 @@ class World:
     def box_cast(self, lower: vec2, upper: vec2) -> list['Body']:
         """query bodies in the AABB region."""
 
+    def point_cast(self, point: vec2) -> list['Body']:
+        """query bodies that contain the point."""
+
     def step(self, dt: float, velocity_iterations: int, position_iterations: int) -> None:
         """step the simulation, e.g. world.step(1/60, 8, 3)"""
 

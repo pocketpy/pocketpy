@@ -98,6 +98,17 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
         return VAR(std::move(callback.result));
     });
 
+    vm->bind(type, "point_cast(self, point: vec2) -> list[Body]", [](VM* vm, ArgsView args){
+        auto _lock = vm->heap.gc_scope_lock();
+        PyWorld& self = _CAST(PyWorld&, args[0]);
+        b2AABB aabb;
+        aabb.lowerBound = CAST(b2Vec2, args[1]);
+        aabb.upperBound = CAST(b2Vec2, args[1]);
+        MyBoxCastCallback callback(vm);
+        self.world.QueryAABB(&callback, aabb);
+        return VAR(std::move(callback.result));
+    });
+
     vm->bind(type, "step(self, dt: float, velocity_iterations: int, position_iterations: int)",
         [](VM* vm, ArgsView args){
             // disable gc during step for safety
