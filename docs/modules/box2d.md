@@ -45,7 +45,53 @@ https://github.com/blueloveTH/pocketpy/blob/main/include/typings/box2d.pyi
 
 ```python
 import box2d
+from linalg import vec2
 
+# create a world
 world = box2d.World()
+
+# create a body with a box shape
 body = box2d.Body(world)
+body.set_box_shape(1, 1)
+
+# give it a velocity
+body.velocity = vec2(1, 0)
+
+# step the simulation
+for i in range(30):
+    world.step(1/30, 8, 3)
+    print(i, body.position)
+```
+
+```
+0 vec2(0.033, 0.000)
+1 vec2(0.067, 0.000)
+2 vec2(0.100, 0.000)
+3 vec2(0.133, 0.000)
+4 vec2(0.167, 0.000)
+5 vec2(0.200, 0.000)
+6 vec2(0.233, 0.000)
+7 vec2(0.267, 0.000)
+8 vec2(0.300, 0.000)
+9 vec2(0.333, 0.000)
+10 vec2(0.367, 0.000)
+11 vec2(0.400, 0.000)
+12 vec2(0.433, 0.000)
+13 vec2(0.467, 0.000)
+14 vec2(0.500, 0.000)
+15 vec2(0.533, 0.000)
+16 vec2(0.567, 0.000)
+17 vec2(0.600, 0.000)
+18 vec2(0.633, 0.000)
+19 vec2(0.667, 0.000)
+20 vec2(0.700, 0.000)
+21 vec2(0.733, 0.000)
+22 vec2(0.767, 0.000)
+23 vec2(0.800, 0.000)
+24 vec2(0.833, 0.000)
+25 vec2(0.867, 0.000)
+26 vec2(0.900, 0.000)
+27 vec2(0.933, 0.000)
+28 vec2(0.967, 0.000)
+29 vec2(1.000, 0.000)
 ```
