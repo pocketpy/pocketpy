@@ -106,8 +106,16 @@ from linalg import vec2
 
 world = box2d.World()
 
-# body_a is a static body with a box shape at (1, 0)
+"""
+   12/s
+B ----->          A
+-|-|-|-|-|-|-|-|-|-
+0 1 2 3 4 5 6 7 8 9
+"""
+
+# body_a is a static body with a box shape at (9, 0)
 body_a = box2d.Body(world)
+body_a.type = 0     # static type
 body_a.set_box_shape(0.5, 0.5)
 body_a.position = vec2(9, 0)
 
@@ -120,12 +128,6 @@ class Node:
 
     def on_box2d_post_step(self):
         pass
-
-"""
-B                 A
--|-|-|-|-|-|-|-|-|-
-0 1 2 3 4 5 6 7 8 9
-"""
 
 # body_b is a dynamic body with a circle shape at (0, 0)
 body_b = box2d.Body(world, Node())
