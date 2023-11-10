@@ -67,11 +67,11 @@ struct PyBody{
     PK_ALWAYS_PASS_BY_POINTER(PyBody)
 
     b2Body* body;
-    b2Fixture* fixture;
+    b2Fixture* _fixture;
     PyObject* node_like;
 
     bool _is_destroyed;
-    PyBody(): body(nullptr), fixture(nullptr), node_like(nullptr), _is_destroyed(false){}
+    PyBody(): body(nullptr), _fixture(nullptr), node_like(nullptr), _is_destroyed(false){}
 
     void _gc_mark() {
         if(node_like != nullptr){
@@ -81,7 +81,18 @@ struct PyBody{
 
     PyBody* _() { return this; }
     b2Body* _b2Body() { return body; }
-    b2Fixture* _b2Fixture() { return fixture; }
+
+    b2Fixture* _b2Fixture() {
+        if(_fixture == nullptr) throw std::runtime_error("`_fixture == nullptr` in PyBody::_b2Fixture()");
+        return _fixture;
+    }
+
+    void _set_b2Fixture(b2Fixture* fixture){
+        if(_fixture != nullptr){
+            body->DestroyFixture(_fixture);
+        }
+        _fixture = fixture;
+    }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 

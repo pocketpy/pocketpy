@@ -135,7 +135,7 @@ void PyWorld::_register(VM* vm, PyObject* mod, PyObject* type){
                 if(body._is_destroyed){
                     body.body->GetWorld()->DestroyBody(body.body);
                     body.body = nullptr;
-                    body.fixture = nullptr;
+                    body._fixture = nullptr;
                     body.node_like = nullptr;
                 }
                 p = next;

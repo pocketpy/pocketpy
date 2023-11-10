@@ -14,9 +14,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
             // a weak reference to this object
             def.userData.pointer = reinterpret_cast<uintptr_t>(obj);
             body.body = world.world.CreateBody(&def);
-            body.fixture = nullptr;
             body.node_like = node;
-            body._is_destroyed = false;
             return obj;
         });
 
@@ -49,7 +47,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
             float hy = CAST(float, args[2]);
             b2PolygonShape shape;
             shape.SetAsBox(hx, hy);
-            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            body._set_b2Fixture(body.body->CreateFixture(&shape, 1.0f));
             return vm->None;
         });
 
@@ -59,7 +57,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
             float radius = CAST(float, args[1]);
             b2CircleShape shape;
             shape.m_radius = radius;
-            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            body._set_b2Fixture(body.body->CreateFixture(&shape, 1.0f));
             return vm->None;
         });
 
@@ -77,7 +75,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
                 vertices.push_back(b2Vec2(vec.x, vec.y));
             }
             shape.Set(vertices.data(), vertices.size());
-            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            body._set_b2Fixture(body.body->CreateFixture(&shape, 1.0f));
             return vm->None;
         });
 
@@ -95,7 +93,7 @@ void PyBody::_register(VM* vm, PyObject* mod, PyObject* type){
                 vertices.push_back(b2Vec2(vec.x, vec.y));
             }
             shape.CreateLoop(vertices.data(), vertices.size());
-            body.fixture = body.body->CreateFixture(&shape, 1.0f);
+            body._set_b2Fixture(body.body->CreateFixture(&shape, 1.0f));
             return vm->None;
         });
 
