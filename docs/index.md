@@ -47,4 +47,9 @@ If you find pkpy useful, consider [star this repository](https://github.com/blue
 
 ## Sponsor me
 
-You can sponsor me via [Github Sponsors](https://github.com/sponsors/blueloveTH). Your sponsorship will help me develop this project continuously.
+You can sponsor me via these ways.
+
++ [Github Sponsors](https://github.com/sponsors/blueloveTH)
++ [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
+
+Your sponsorship will help me develop this project continuously.
