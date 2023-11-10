@@ -52,13 +52,13 @@ struct PyContactListener: b2ContactListener{
     void _contact_f(b2Contact* contact, StrName name);
 
 	void BeginContact(b2Contact* contact) override {
-        DEF_SNAME(on_contact_begin);
-        _contact_f(contact, on_contact_begin);
+        DEF_SNAME(on_box2d_contact_begin);
+        _contact_f(contact, on_box2d_contact_begin);
     }
 
     void EndContact(b2Contact* contact) override {
-        DEF_SNAME(on_contact_end);
-        _contact_f(contact, on_contact_end);
+        DEF_SNAME(on_box2d_contact_end);
+        _contact_f(contact, on_box2d_contact_end);
     }
 };
 

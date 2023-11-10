@@ -43,6 +43,8 @@ https://github.com/blueloveTH/pocketpy/blob/main/include/typings/box2d.pyi
 
 ## Example
 
+### Simple simulation
+
 ```python
 import box2d
 from linalg import vec2
@@ -94,4 +96,80 @@ for i in range(30):
 27 vec2(0.933, 0.000)
 28 vec2(0.967, 0.000)
 29 vec2(1.000, 0.000)
+```
+
+### Two bodies with collision
+
+```python
+import box2d
+from linalg import vec2
+
+world = box2d.World()
+
+# body_a is a static body with a box shape at (1, 0)
+body_a = box2d.Body(world)
+body_a.set_box_shape(0.5, 0.5)
+body_a.position = vec2(9, 0)
+
+class Node:
+    def on_box2d_contact_begin(self, other):
+        print('body_a collides with body_b!!')
+
+    def on_box2d_pre_step(self):
+        pass
+
+    def on_box2d_post_step(self):
+        pass
+
+"""
+B                 A
+-|-|-|-|-|-|-|-|-|-
+0 1 2 3 4 5 6 7 8 9
+"""
+
+# body_b is a dynamic body with a circle shape at (0, 0)
+body_b = box2d.Body(world, Node())
+body_b.set_circle_shape(0.5)
+body_b.position = vec2(0, 0)
+
+# give body_b a velocity and it will collide with body_a at some point
+body_b.velocity = vec2(12, 0)
+
+for i in range(30):
+    world.step(1/30, 8, 3)
+    print(i, body_b.position)
+```
+
+```
+0 vec2(0.400, 0.000)
+1 vec2(0.800, 0.000)
+2 vec2(1.200, 0.000)
+3 vec2(1.600, 0.000)
+4 vec2(2.000, 0.000)
+5 vec2(2.400, 0.000)
+6 vec2(2.800, 0.000)
+7 vec2(3.200, 0.000)
+8 vec2(3.600, 0.000)
+9 vec2(4.000, 0.000)
+10 vec2(4.400, 0.000)
+11 vec2(4.800, 0.000)
+12 vec2(5.200, 0.000)
+13 vec2(5.600, 0.000)
+14 vec2(6.000, 0.000)
+15 vec2(6.400, 0.000)
+16 vec2(6.800, 0.000)
+17 vec2(7.200, 0.000)
+18 vec2(7.600, 0.000)
+19 vec2(8.000, 0.000)
+body_a collides with body_b!!
+20 vec2(8.175, 0.000)
+21 vec2(8.351, 0.000)
+22 vec2(8.527, 0.000)
+23 vec2(8.702, 0.000)
+24 vec2(8.878, 0.000)
+25 vec2(9.054, 0.000)
+26 vec2(9.230, 0.000)
+27 vec2(9.405, 0.000)
+28 vec2(9.581, 0.000)
+29 vec2(9.757, 0.000)
 ```
