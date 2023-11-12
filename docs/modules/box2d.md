@@ -175,3 +175,34 @@ body_a collides with body_b!!
 28 vec2(7.996, 0.000)
 29 vec2(7.996, 0.000)
 ```
+
+## Caveats
+
+You should set the shape of the body first before accessing fixture properties.
+```python
+class Body:
+    ...
+
+    # fixture settings
+    density: float
+    friction: float
+    restitution: float
+    restitution_threshold: float
+    is_sensor: bool
+```
+
+```python
+import box2d
+world = box2d.World()
+body = box2d.Body(world)
+
+body.is_sensor = True       # this will raise an error
+```
+
+The correct usage is:
+```python
+body = box2d.Body(world)
+body.set_box_shape(1, 1)    # set shape first
+
+body.is_sensor = True       # OK
+```
