@@ -16,8 +16,6 @@ else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -O2")
 endif()
 
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 add_library(
     cjson
     STATIC

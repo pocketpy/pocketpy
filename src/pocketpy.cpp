@@ -8,73 +8,7 @@
 #include "cJSONw.hpp"
 #endif
 
-#if defined (_WIN32) && PK_SUPPORT_DYLIB == 1
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 namespace pkpy{
-
-using dylib_entry_t = const char* (*)(void*, const char*);
-
-#if PK_ENABLE_OS
-
-#if PK_SUPPORT_DYLIB == 1
-// win32
-static dylib_entry_t load_dylib(const char* path){
-    std::error_code ec;
-    auto p = std::filesystem::absolute(path, ec);
-    if(ec) return nullptr;
-    HMODULE handle = LoadLibraryA(p.string().c_str());
-    if(!handle){
-        DWORD errorCode = GetLastError();
-        // Convert the error code to text
-        LPSTR errorMessage = nullptr;
-        FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            nullptr,
-            errorCode,
-            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
-            (LPSTR)&errorMessage,
-            0,
-            nullptr
-        );
-        printf("%lu: %s\n", errorCode, errorMessage);
-        LocalFree(errorMessage);
-        return nullptr;
-    }
-    return (dylib_entry_t)GetProcAddress(handle, "pkpy_module__init__");
-}
-#elif PK_SUPPORT_DYLIB == 2
-// linux/darwin
-static dylib_entry_t load_dylib(const char* path){
-    std::error_code ec;
-    auto p = std::filesystem::absolute(path, ec);
-    if(ec) return nullptr;
-    void* handle = dlopen(p.c_str(), RTLD_LAZY);
-    if(!handle) return nullptr;
-    return (dylib_entry_t)dlsym(handle, "pkpy_module__init__");
-}
-
-#elif PK_SUPPORT_DYLIB == 3
-// android
-static dylib_entry_t load_dylib(const char* path){
-    void* handle = dlopen(path, RTLD_LAZY);
-    if(!handle) return nullptr;
-    return (dylib_entry_t)dlsym(handle, "pkpy_module__init__");
-}
-
-#else
-static dylib_entry_t load_dylib(const char* path){
-    return nullptr;
-}
-#endif
-
-#else
-static dylib_entry_t load_dylib(const char* path){
-    return nullptr;
-}
-#endif
 
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
@@ -205,23 +139,6 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
         const Str& name = CAST(Str&, args[0]);
-        auto dot = name.sv().find_last_of(".");
-        if(dot != std::string_view::npos){
-            auto ext = name.sv().substr(dot);
-            if(ext == ".so" || ext == ".dll" || ext == ".dylib"){
-                dylib_entry_t entry = load_dylib(name.c_str());
-                if(!entry){
-                    vm->ImportError("cannot load dynamic library: " + name.escape());
-                }
-                vm->_c.s_view.push(ArgsView(vm->s_data.end(), vm->s_data.end()));
-                const char* name = entry(vm, PK_VERSION);
-                vm->_c.s_view.pop();
-                if(name == nullptr){
-                    vm->ImportError("module initialization failed: " + Str(name).escape());
-                }
-                return vm->_modules[name];
-            }
-        }
         return vm->py_import(name);
     });
 
