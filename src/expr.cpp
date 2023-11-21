@@ -379,7 +379,7 @@ namespace pkpy{
             }
         }
         // name or name.name
-        std::regex pattern(R"(^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*){0,1}$)");
+        PK_LOCAL_STATIC const std::regex pattern(R"(^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*){0,1}$)");
         if(std::regex_match(expr.str(), pattern)){
             int dot = expr.index(".");
             if(dot < 0){
@@ -402,36 +402,73 @@ namespace pkpy{
 
     void FStringExpr::emit_(CodeEmitContext* ctx){
         VM* vm = ctx->vm;
-        PK_LOCAL_STATIC const std::regex pattern(R"(\{(.*?)\})");
-        std::cregex_iterator begin(src.begin(), src.end(), pattern);
-        std::cregex_iterator end;
-        int size = 0;
-        int i = 0;
-        for(auto it = begin; it != end; it++) {
-            std::cmatch m = *it;
-            if (i < m.position()) {
-                Str literal = src.substr(i, m.position() - i);
-                ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
-                size++;
-            }
-            Str expr = m[1].str();
-            int conon = expr.index(":");
-            if(conon >= 0){
-                _load_simple_expr(ctx, expr.substr(0, conon));
-                Str spec = expr.substr(conon+1);
-                ctx->emit_(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+        int i = 0;              // left index
+        int j = 0;              // right index
+        int count = 0;          // how many string parts
+        bool flag = false;      // true if we are in a expression
+
+        while(j < src.size){
+            if(flag){
+                if(src[j] == '}'){
+                    // add expression
+                    Str expr = src.substr(i, j-i);
+                    int conon = expr.index(":");
+                    if(conon >= 0){
+                        _load_simple_expr(ctx, expr.substr(0, conon));
+                        Str spec = expr.substr(conon+1);
+                        ctx->emit_(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+                    }else{
+                        _load_simple_expr(ctx, expr);
+                    }
+                    flag = false;
+                    count++;
+                }
             }else{
-                _load_simple_expr(ctx, expr);
+                if(src[j] == '{'){
+                    // look at next char
+                    if(j+1 < src.size && src[j+1] == '{'){
+                        // {{ -> {
+                        j++;
+                        ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR("{")), line);
+                        count++;
+                    }else{
+                        // { -> }
+                        flag = true;
+                        i = j+1;
+                    }
+                }else if(src[j] == '}'){
+                    // look at next char
+                    if(j+1 < src.size && src[j+1] == '}'){
+                        // }} -> }
+                        j++;
+                        ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR("}")), line);
+                        count++;
+                    }else{
+                        // } -> error
+                        // throw std::runtime_error("f-string: unexpected }");
+                        // just ignore
+                    }
+                }else{
+                    // literal
+                    i = j;
+                    while(j < src.size && src[j] != '{' && src[j] != '}') j++;
+                    Str literal = src.substr(i, j-i);
+                    ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
+                    count++;
+                    continue;   // skip j++
+                }
             }
-            size++;
-            i = (int)(m.position() + m.length());
+            j++;
         }
-        if (i < src.length()) {
-            Str literal = src.substr(i, src.length() - i);
+
+        if(flag){
+            // literal
+            Str literal = src.substr(i, src.size-i);
             ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(literal)), line);
-            size++;
+            count++;
         }
-        ctx->emit_(OP_BUILD_STRING, size, line);
+
+        ctx->emit_(OP_BUILD_STRING, count, line);
     }
 
 

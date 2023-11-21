@@ -27,6 +27,10 @@ s = f'''->->{s}<-<-
 
 assert s == '->->asdasd\nasds1321321321测试\\测试<-<-\n123\n'
 
+x = 1, 2, 3
+assert f"""
+a = {{{x[0]}, {x[1]}, {x[2]}}}""" == '\na = {1, 2, 3}'
+
 assert r''' ' ''' == " ' "
 
 a = 10
@@ -84,6 +88,27 @@ assert f'{"test"!r:*<10}' == "'test'****"
 assert f'{"test"!r:*^10}' == "**'test'**"
 assert f'{"test"!r:*^11}' == "**'test'***"
 assert f'{12345!r:0>10}' == "0000012345"
+
+# test {{ and }}
+assert f'' == ''
+assert f'{{}}' == '{}'
+assert f'{{{{}}}}' == '{{}}'
+assert f'{{' == '{'
+assert f'}}' == '}'
+assert f'{{{{' == '{{'
+assert f'}}}}' == '}}'
+a = 123
+assert f'={a}' == '=123'
+assert f'{a}=' == '123='
+assert f'--{a}--' == '--123--'
+assert f'{{a}}' == '{a}'
+assert f'{{{a}}}' == '{123}'
+
+assert f'{{=}}{a}' == '{=}123'
+assert f'{a}{{=}}' == '123{=}'
+
+# assert f'}123' == '123'     # ignore '}'
+# assert f'{{{' == '{'        # ignore '{'
 
 class A:
     def __repr__(self):
