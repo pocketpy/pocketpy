@@ -3,7 +3,7 @@ namespace pkpy
 {
     struct PyDequeIter // Iterator for the deque type
     {
-        PY_CLASS(PyDequeIter, builtins, "_deque_iterator")
+        PY_CLASS(PyDequeIter, builtins, _deque_iterator)
         PyObject *ref;
         bool is_reversed;
         std::deque<PyObject *>::iterator begin, end, current;
