@@ -262,3 +262,5 @@ It takes a C header file and generates a python module stub (`*.pyi`) and a C++ 
 ## Further reading
 
 See [random.cpp](https://github.com/blueloveTH/pocketpy/blob/main/src/random.cpp) for an example used by `random` module.
+
+See [collections.cpp](https://github.com/blueloveTH/pocketpy/blob/main/src/collections.cpp) for a modern implementation of `collections.deque`.

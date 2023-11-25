@@ -56,7 +56,7 @@ namespace pkpy
         void insertObj(bool front, bool back, int index, PyObject *item); // insert at index, used purely for internal purposes: append, appendleft, insert methods
         PyObject *popObj(bool front, bool back, PyObject *item, VM *vm);  // pop at index, used purely for internal purposes: pop, popleft, remove methods
         int findIndex(VM *vm, PyObject *obj, int start, int stop);        // find the index of the given object in the deque
-        std::stringstream getRepr(VM *vm, PyObject* thisObj);                                // get the string representation of the deque
+        std::string getRepr(VM *vm, PyObject* thisObj);                                // get the string representation of the deque
         // Special methods
         static void _register(VM *vm, PyObject *mod, PyObject *type); // register the type
         void _gc_mark() const;                                        // needed for container types, mark all objects in the deque for gc
@@ -125,16 +125,14 @@ namespace pkpy
                  [](VM *vm, ArgsView args)
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     std::stringstream ss = self.getRepr(vm, args[0]);
-                     return VAR(ss.str());
+                     return VAR(self.getRepr(vm, args[0]));
                  });
         // returns a string representation of the deque
         vm->bind(type, "__str__(self) -> str",
                  [](VM *vm, ArgsView args)
                  {
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     std::stringstream ss = self.getRepr(vm, args[0]);
-                     return VAR(ss.str());
+                     return VAR(self.getRepr(vm, args[0]));
                  });
         // enables comparison between two deques, == and != are supported
         vm->bind(type, "__eq__(self, other) -> bool",
@@ -427,7 +425,7 @@ namespace pkpy
             }
         }
     }
-    std::stringstream PyDeque::getRepr(VM *vm, PyObject *thisObj)
+    std::string PyDeque::getRepr(VM *vm, PyObject *thisObj)
     {
         std::stringstream ss;
         ss << "deque([";
@@ -441,7 +439,7 @@ namespace pkpy
                 ss << ", ";
         }
         this->bounded ? ss << "], maxlen=" << this->maxlen << ")" : ss << "])";
-        return ss;
+        return ss.str();
     }
     int PyDeque::findIndex(VM *vm, PyObject *obj, int start, int stop)
     {
