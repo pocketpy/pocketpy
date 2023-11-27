@@ -246,6 +246,10 @@ void pkpy_set_output_handler(pkpy_vm* vm, pkpy_COutputHandler handler) {
 
 }
 
+void pkpy_set_import_handler(pkpy_vm* vm, pkpy_CImportHandler handler) {
+
+}
+
 void* pkpy_new_repl(pkpy_vm* vm) {
     void* returnValue;
     return returnValue;

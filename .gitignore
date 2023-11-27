@@ -3,6 +3,7 @@ __pycache__/
 .ipynb_checkpoints
 .DS_Store
 .coverage
+.idea
 
 src/main
 gmon.out
@@ -34,6 +35,8 @@ main
 
 pypi/
 libpocketpy.dylib
+
+cmake-build-*
 
 .xmake/
 
