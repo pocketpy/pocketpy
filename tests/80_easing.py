@@ -5,7 +5,7 @@ def validate(val):
     assert isinstance(val, float)
 
 for k, f in easing.__dict__.items():
-    if k.startswith("Ease"):
+    if callable(f):
         validate(f(0.2))
         validate(f(0.5))
         validate(f(0.8))
