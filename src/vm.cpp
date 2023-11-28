@@ -82,9 +82,11 @@ namespace pkpy{
         callstack.reserve(8);
         _main = nullptr;
         _last_exception = nullptr;
-        _import_handler = [](const Str& name) {
-            PK_UNUSED(name);
-            return Bytes();
+        _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{
+            PK_UNUSED(name_p);
+            PK_UNUSED(name_size);
+            PK_UNUSED(out_size);
+            return nullptr;
         };
         init_builtin_types();
     }
@@ -335,17 +337,20 @@ namespace pkpy{
         bool is_init = false;
         auto it = _lazy_modules.find(name);
         if(it == _lazy_modules.end()){
-            Bytes b = _import_handler(filename);
-            if(!b){
+            int out_size;
+            unsigned char* out = _import_handler(filename.data, filename.size, &out_size);
+            if(out == nullptr){
                 filename = path.replace('.', kPlatformSep).str() + kPlatformSep + "__init__.py";
                 is_init = true;
-                b = _import_handler(filename);
+                out = _import_handler(filename.data, filename.size, &out_size);
             }
-            if(!b){
+            if(out == nullptr){
                 if(throw_err) ImportError(fmt("module ", path.escape(), " not found"));
                 else return nullptr;
             }
-            source = Str(b.str());
+            PK_ASSERT(out_size >= 0)
+            source = Str(std::string_view((char*)out, out_size));
+            free(out);
         }else{
             source = it->second;
             _lazy_modules.erase(it);

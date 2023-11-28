@@ -3,7 +3,7 @@
 #include "cffi.h"
 
 namespace pkpy{
-    Bytes _default_import_handler(const Str& name);
+    unsigned char* _default_import_handler(const char*, int, int*);
     void add_module_os(VM* vm);
     void add_module_io(VM* vm);
 }

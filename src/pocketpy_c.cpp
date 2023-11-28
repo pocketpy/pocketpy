@@ -586,12 +586,7 @@ void pkpy_set_output_handler(pkpy_vm* vm_handle, pkpy_COutputHandler handler){
 
 void pkpy_set_import_handler(pkpy_vm* vm_handle, pkpy_CImportHandler handler){
     VM* vm = (VM*) vm_handle;
-    static pkpy_CImportHandler activeHandler;
-    activeHandler = handler;
-    vm->_import_handler = [](const Str& str) -> pkpy::Bytes {
-        const char* returnString = activeHandler(str.c_str());
-        return { Str(returnString) };
-    };
+    vm->_import_handler = handler;
 }
 
 void* pkpy_new_repl(pkpy_vm* vm_handle){

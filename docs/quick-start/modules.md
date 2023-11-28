@@ -60,24 +60,6 @@ When you do `import` a module, the VM will try to find it in the following order
 ### Customized import handler
 
 You can use `vm->_import_handler` to provide a custom import handler for the 3rd step.
-if both `enable_os` and `PK_ENABLE_OS` are `true`, the default `import_handler` is as follows:
-
-```cpp
-inline Bytes _default_import_handler(const Str& name){
-    std::filesystem::path path(name.sv());
-    bool exists = std::filesystem::exists(path);
-    if(!exists) return Bytes();
-    std::string cname = name.str();
-    FILE* fp = fopen(cname.c_str(), "rb");
-    if(!fp) return Bytes();
-    fseek(fp, 0, SEEK_END);
-    std::vector<char> buffer(ftell(fp));
-    fseek(fp, 0, SEEK_SET);
-    fread(buffer.data(), 1, buffer.size(), fp);
-    fclose(fp);
-    return Bytes(std::move(buffer));
-};
-```
 
 ### Import module via cpp
 

@@ -142,7 +142,7 @@ public:
 
     PrintFunc _stdout;
     PrintFunc _stderr;
-    Bytes (*_import_handler)(const Str& name);
+    unsigned char* (*_import_handler)(const char*, int, int*);
 
     // for quick access
     Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;

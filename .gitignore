@@ -36,7 +36,5 @@ main
 pypi/
 libpocketpy.dylib
 
-cmake-build-*
-
 .xmake/
 

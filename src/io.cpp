@@ -23,14 +23,13 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
 }
 
 
-Bytes _default_import_handler(const Str& name){
+unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
 #if PK_ENABLE_OS
-    std::filesystem::path path(name.sv());
-    bool exists = std::filesystem::exists(path);
-    if(!exists) return Bytes();
-    std::string cname = name.str();
-    FILE* fp = io_fopen(cname.c_str(), "rb");
-    if(!fp) return Bytes();
+    std::string name(name_p, name_size);
+    bool exists = std::filesystem::exists(std::filesystem::path(name));
+    if(!exists) return nullptr;
+    FILE* fp = io_fopen(name.c_str(), "rb");
+    if(!fp) return nullptr;
     fseek(fp, 0, SEEK_END);
     int buffer_size = ftell(fp);
     unsigned char* buffer = new unsigned char[buffer_size];
@@ -38,9 +37,10 @@ Bytes _default_import_handler(const Str& name){
     size_t sz = io_fread(buffer, 1, buffer_size, fp);
     PK_UNUSED(sz);
     fclose(fp);
-    return Bytes(buffer, buffer_size);
+    *out_size = buffer_size;
+    return buffer;
 #else
-    return Bytes();
+    return nullptr;
 #endif
 };
 
