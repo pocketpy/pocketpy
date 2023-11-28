@@ -11,6 +11,10 @@ void add_module_csv(VM *vm){
         List ret;
         for(int i=0; i<csvfile.size(); i++){
             std::string_view line = CAST(Str&, csvfile[i]).sv();
+            if(i == 0){
+                // Skip utf8 BOM if there is any.
+                if (strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) line = line.substr(3);
+            }
             List row;
             int j = 0;
             bool in_quote = false;
@@ -37,6 +41,8 @@ void add_module_csv(VM *vm){
                             buffer.clear();
                         }
                         break;
+                    case '\r':
+                        break;  // ignore
                     default:
                         buffer += line[j];
                         break;
