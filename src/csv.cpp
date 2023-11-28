@@ -6,7 +6,7 @@ namespace pkpy{
 void add_module_csv(VM *vm){
     PyObject* mod = vm->new_module("csv");
 
-    vm->bind(mod, "reader(csvfile: list[str]) -> list", [](VM* vm, ArgsView args){
+    vm->bind(mod, "reader(csvfile: list[str]) -> list[list]", [](VM* vm, ArgsView args){
         const List& csvfile = CAST(List&, args[0]);
         List ret;
         for(int i=0; i<csvfile.size(); i++){
@@ -56,6 +56,29 @@ void add_module_csv(VM *vm){
             ret.push_back(VAR(std::move(row)));
         }
         return VAR(std::move(ret));
+    });
+
+    vm->bind(mod, "DictReader(csvfile: list[str]) -> list[dict]", [](VM* vm, ArgsView args){
+        PyObject* csv_reader = vm->_modules["csv"]->attr("reader");
+        PyObject* ret_obj = vm->call(csv_reader, args[0]);
+        const List& ret = CAST(List&, ret_obj);
+        if(ret.size() == 0){
+            vm->ValueError("empty csvfile");
+        }
+        List header = CAST(List&, ret[0]);
+        List new_ret;
+        for(int i=1; i<ret.size(); i++){
+            const List& row = CAST(List&, ret[i]);
+            if(row.size() != header.size()){
+                vm->ValueError("row.size() != header.size()");
+            }
+            Dict row_dict(vm);
+            for(int j=0; j<header.size(); j++){
+                row_dict.set(header[j], row[j]);
+            }
+            new_ret.push_back(VAR(std::move(row_dict)));
+        }
+        return VAR(std::move(new_ret));
     });
 }
 
