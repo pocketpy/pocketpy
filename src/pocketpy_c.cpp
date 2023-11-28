@@ -584,6 +584,11 @@ void pkpy_set_output_handler(pkpy_vm* vm_handle, pkpy_COutputHandler handler){
     vm->_stdout = reinterpret_cast<PrintFunc>(handler);
 }
 
+void pkpy_set_import_handler(pkpy_vm* vm_handle, pkpy_CImportHandler handler){
+    VM* vm = (VM*) vm_handle;
+    vm->_import_handler = handler;
+}
+
 void* pkpy_new_repl(pkpy_vm* vm_handle){
     return new REPL((VM*)vm_handle);
 }
