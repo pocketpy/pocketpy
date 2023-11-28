@@ -74,12 +74,7 @@ struct Bytes{
     Bytes& operator=(const Bytes& rhs) = delete;
     std::pair<unsigned char*, int> detach() noexcept;
 
-    ~Bytes(){
-        if(_data != nullptr){
-            free(_data);
-            _data = nullptr;
-        }
-    }
+    ~Bytes(){ delete[] _data;}
 };
 
 using Super = std::pair<PyObject*, Type>;
