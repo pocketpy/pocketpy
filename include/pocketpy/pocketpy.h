@@ -14,6 +14,7 @@
 #include "random.h"
 #include "bindings.h"
 #include "collections.h"
+#include "csv.h"
 
 namespace pkpy {
 

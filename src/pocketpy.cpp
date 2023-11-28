@@ -549,6 +549,15 @@ void init_builtins(VM* _vm) {
         return VAR(std::move(ret));
     });
 
+    _vm->bind(_vm->_t(_vm->tp_str), "splitlines(self)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        std::vector<std::string_view> parts;
+        parts = self.split('\n');
+        List ret(parts.size());
+        for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
+        return VAR(std::move(ret));
+    });
+
     _vm->bind(_vm->_t(_vm->tp_str), "count(self, s: str)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& s = CAST(Str&, args[1]);
@@ -1646,6 +1655,7 @@ void VM::post_init(){
     add_module_base64(this);
     add_module_timeit(this);
     add_module_operator(this);
+    add_module_csv(this);
 
     for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
         _lazy_modules[name] = kPythonLibs[name];
