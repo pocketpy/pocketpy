@@ -1,4 +1,5 @@
 import sys as _sys
+import operator as _operator
 
 def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
@@ -26,12 +27,10 @@ def _minmax_reduce(op, args, key):
     return res
 
 def min(*args, key=None):
-    from operator import lt
-    return _minmax_reduce(lt, args, key)
+    return _minmax_reduce(_operator.lt, args, key)
 
 def max(*args, key=None):
-    from operator import gt
-    return _minmax_reduce(gt, args, key)
+    return _minmax_reduce(_operator.gt, args, key)
 
 def all(iterable):
     for i in iterable:
