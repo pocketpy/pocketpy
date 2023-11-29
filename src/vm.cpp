@@ -71,12 +71,10 @@ namespace pkpy{
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_c.error = nullptr;
-        _stdout = [](VM* vm, const char* buf, int size) {
-            PK_UNUSED(vm);
+        _stdout = [](const char* buf, int size) {
             std::cout.write(buf, size);
         };
-        _stderr = [](VM* vm, const char* buf, int size) {
-            PK_UNUSED(vm);
+        _stderr = [](const char* buf, int size) {
             std::cerr.write(buf, size);
         };
         callstack.reserve(8);
@@ -171,13 +169,13 @@ namespace pkpy{
             return _exec(code, _module);
         }catch (const Exception& e){
             Str sum = e.summary() + "\n";
-            _stderr(this, sum.data, sum.size);
+            _stderr(sum.data, sum.size);
         }
 #if !PK_DEBUG_FULL_EXCEPTION
         catch (const std::exception& e) {
             Str msg = "An std::exception occurred! It could be a bug.\n";
             msg = msg + e.what() + "\n";
-            _stderr(this, msg.data, msg.size);
+            _stderr(msg.data, msg.size);
         }
 #endif
         callstack.clear();

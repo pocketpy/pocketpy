@@ -125,5 +125,5 @@ You can redirect them to your own buffer by setting `vm->_stdout` and `vm->_stde
 These two fields are C function pointers `PrintFunc` with the following signature:
 
 ```cpp
-typedef void(*PrintFunc)(VM*, const char*, int)
+typedef void(*PrintFunc)(const char*, int)
 ```

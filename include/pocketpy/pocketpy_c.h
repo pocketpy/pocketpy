@@ -12,7 +12,7 @@ extern "C" {
 
 typedef struct pkpy_vm_handle pkpy_vm;
 typedef int (*pkpy_CFunction)(pkpy_vm*);
-typedef void (*pkpy_COutputHandler)(pkpy_vm*, const char*, int);
+typedef void (*pkpy_COutputHandler)(const char*, int);
 typedef unsigned char* (*pkpy_CImportHandler)(const char*, int, int*);
 typedef int pkpy_CName;
 typedef int pkpy_CType;

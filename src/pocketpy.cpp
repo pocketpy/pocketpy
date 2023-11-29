@@ -1421,13 +1421,13 @@ void add_module_sys(VM* vm){
 
     vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
         Str& s = CAST(Str&, args[0]);
-        vm->_stdout(vm, s.data, s.size);
+        vm->stdout_write(s);
         return vm->None;
     });
 
     vm->bind_func<1>(stderr_, "write", [](VM* vm, ArgsView args) {
         Str& s = CAST(Str&, args[0]);
-        vm->_stderr(vm, s.data, s.size);
+        vm->_stderr(s.data, s.size);
         return vm->None;
     });
 }
@@ -1532,8 +1532,7 @@ void add_module_traceback(VM* vm){
     vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = CAST(Exception&, vm->_last_exception);
-        Str sum = e.summary();
-        vm->_stdout(vm, sum.data, sum.size);
+        vm->stdout_write(e.summary());
         return vm->None;
     });
 
@@ -1559,8 +1558,7 @@ void add_module_dis(VM* vm){
 
     vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
         CodeObject_ code = get_code(vm, args[0]);
-        Str msg = vm->disassemble(code);
-        vm->_stdout(vm, msg.data, msg.size);
+        vm->stdout_write(vm->disassemble(code));
         return vm->None;
     });
 
