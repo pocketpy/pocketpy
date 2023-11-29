@@ -16,9 +16,11 @@ void add_module_csv(VM *vm){
                 if (strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) line = line.substr(3);
             }
             List row;
-            int j = 0;
+            int j;
             bool in_quote = false;
             std::string buffer;
+__NEXT_LINE:
+            j = 0;
             while(j < line.size()){
                 switch(line[j]){
                     case '"':
@@ -50,7 +52,14 @@ void add_module_csv(VM *vm){
                 j++;
             }
             if(in_quote){
-                vm->ValueError("unterminated quote");
+                if(i == csvfile.size()-1){
+                    vm->ValueError("unterminated quote");
+                }else{
+                    buffer += '\n';
+                    i++;
+                    line = CAST(Str&, csvfile[i]).sv();
+                    goto __NEXT_LINE;
+                }
             }
             row.push_back(VAR(buffer));
             ret.push_back(VAR(std::move(row)));
