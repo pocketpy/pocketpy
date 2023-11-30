@@ -41,3 +41,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 8. In a starred unpacked assignment, e.g. `a, b, *c = x`, the starred variable can only be presented in the last position. `a, *b, c = x` is not supported.
 9. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
 10. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
+11. `str.split` and `str.splitlines` will remove all empty entries.

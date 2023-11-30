@@ -728,14 +728,7 @@ __EAT_DOTS_END:
                 int n = 0;
                 while(match(TK("="))){
                     EXPR_TUPLE();
-                    Expr* _tp = ctx()->s_expr.top().get();
-                    if(ctx()->is_compiling_class && _tp->is_tuple()){
-                        SyntaxError("can't use unpack tuple in class definition");
-                    }
                     n += 1;
-                }
-                if(ctx()->is_compiling_class && n>1){
-                    SyntaxError("can't assign to multiple targets in class definition");
                 }
                 // stack size is n+1
                 Expr_ val = ctx()->s_expr.popx();

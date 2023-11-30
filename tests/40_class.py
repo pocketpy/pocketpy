@@ -119,3 +119,13 @@ class A:
 assert A.x == 2
 assert A.y == 1
 assert A.z == 3
+
+class MyClass:
+    a = 1,2,3
+    b, c = 1, 2
+    d = b + c
+
+assert MyClass.a == (1, 2, 3)
+assert MyClass.b == 1
+assert MyClass.c == 2
+assert MyClass.d == 3
