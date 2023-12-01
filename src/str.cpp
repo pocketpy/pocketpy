@@ -42,6 +42,19 @@ int utf8len(unsigned char c, bool suppress){
 
 #undef STR_INIT
 
+    Str::Str(std::pair<char *, int> detached) {
+        this->size = detached.second;
+        this->data = detached.first;
+        this->is_ascii = true;
+        // check is_ascii
+        for(int i=0; i<size; i++){
+            if(!isascii(data[i])){
+                is_ascii = false;
+                break;
+            }
+        }
+    }
+
     Str::Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
         _alloc();
         memcpy(data, other.data, size);
@@ -423,8 +436,7 @@ int utf8len(unsigned char c, bool suppress){
 
     Str SStream::str(){
         // after this call, the buffer is no longer valid
-        auto detached = buffer.detach();
-        return Str(detached.first, detached.second);
+        return Str(buffer.detach());
     }
 
     SStream& SStream::operator<<(const Str& s){

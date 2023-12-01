@@ -26,6 +26,7 @@ struct Str{
     Str(std::nullptr_t) { FATAL_ERROR(); }
     Str(const char* s);
     Str(const char* s, int len);
+    Str(std::pair<char *, int>);
     Str(const Str& other);
     Str(Str&& other);
 
