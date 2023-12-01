@@ -148,7 +148,8 @@ struct wrapped__Point{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        // optional macro to enable struct-like methods
+        // enable default constructor and struct-like methods
+        // if you don't use this, you must bind a `__new__` method as constructor
         PY_STRUCT_LIKE(wrapped__Point)
 
         // wrap field x
