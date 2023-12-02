@@ -19,6 +19,16 @@ class vec2(_StructLike['vec2']):
     def rotate(self, radians: float) -> vec2: ...
     def rotate_(self, radians: float) -> None: ...
 
+    @staticmethod
+    def angle(__from: vec2, __to: vec2) -> float:
+        """Returns the angle in radians between vectors `from` and `to`.
+
+        The result range is `[-pi, pi]`.
+        
+        + if y axis is top to bottom, positive value means clockwise
+        + if y axis is bottom to top, positive value means counter-clockwise
+        """
+
 class vec3(_StructLike['vec3']):
     x: float
     y: float

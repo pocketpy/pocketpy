@@ -55,6 +55,16 @@ namespace pkpy{
             return VAR(Tuple({ VAR(self.x), VAR(self.y) }));
         });
 
+        vm->bind(type, "angle(__from: vec2, __to: vec2) -> float", [](VM* vm, ArgsView args){
+            PyVec2 __from = CAST(PyVec2, args[0]);
+            PyVec2 __to = CAST(PyVec2, args[1]);
+            float val = atan2f(__to.y, __to.x) - atan2f(__from.y, __from.x);
+            const float PI = 3.1415926535897932384f;
+            if(val > PI) val -= 2*PI;
+            if(val < -PI) val += 2*PI;
+            return VAR(val);
+        });
+
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
             std::stringstream ss;
