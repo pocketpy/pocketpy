@@ -1050,8 +1050,16 @@ void init_builtins(VM* _vm) {
     _vm->bind__getitem__(_vm->tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* index) {
         MappingProxy& self = _CAST(MappingProxy&, obj);
         StrName key = CAST(Str&, index);
+        PyObject* ret = self.attr().try_get_likely_found(key);
+        if(ret == nullptr) vm->KeyError(index);
+        return ret;
+    });
+
+    _vm->bind(_vm->_t(_vm->tp_mappingproxy), "get(self, key, default=None)", [](VM* vm, ArgsView args) {
+        MappingProxy& self = _CAST(MappingProxy&, args[0]);
+        StrName key = CAST(Str&, args[1]);
         PyObject* ret = self.attr().try_get(key);
-        if(ret == nullptr) vm->AttributeError(key.sv());
+        if(ret == nullptr) return args[2];
         return ret;
     });
 
