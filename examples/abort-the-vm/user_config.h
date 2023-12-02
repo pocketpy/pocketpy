@@ -3,15 +3,11 @@
 /*************** feature settings ***************/
 
 // Whether to compile os-related modules or not
-#ifndef PK_ENABLE_OS                // can be overrided by cmake
 #define PK_ENABLE_OS                1
-#endif
 
 // Enable this if you are working with multi-threading (experimental)
 // This triggers necessary locks to make the VM thread-safe
-#ifndef PK_ENABLE_THREAD            // can be overrided by cmake
-#define PK_ENABLE_THREAD            0
-#endif
+#define PK_ENABLE_THREAD            1
 
 // Enable this for `vm->_ceval_on_step`
 #define PK_ENABLE_CEVAL_CALLBACK    1

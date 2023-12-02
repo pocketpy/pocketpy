@@ -11,6 +11,7 @@ using namespace pkpy;
 
 class MyVM: public VM{
 public:
+    // use atomic to protect the flag
     std::atomic<bool> _flag = false;
 
     MyVM(): VM(){
@@ -43,12 +44,15 @@ int main(){
         std::cout << (need_more_lines ? "... " : ">>> ");
         std::string line;
         std::getline(std::cin, line);
+
         vm->_flag = false;  // reset the flag before each input
 
         // here I use linux signal to interrupt the vm
         // you can run this line in a thread for more flexibility
         need_more_lines = repl->input(line);
     }
+
+    delete repl;
     delete vm;
     return 0;
 }
