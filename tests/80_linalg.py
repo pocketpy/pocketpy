@@ -469,3 +469,6 @@ b = a.to_struct()
 assert a.sizeof() == 8
 assert b.sizeof() == 8
 assert vec2.from_struct(b) == a
+
+val = vec2.angle(vec2(-1, 0), vec2(0, -1))
+assert 1.57 < val < 1.58
