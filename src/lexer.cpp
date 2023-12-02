@@ -273,24 +273,25 @@ static bool is_unicode_Lo_char(uint32_t c) {
         const char* i = token_start;
         while(kValidChars.count(*i)) i++;
         std::string_view text(token_start, i - token_start);
-        curr_char = i;
+        this->curr_char = i;
 
-        if(i[-1] == 'L'){
-            add_token(TK("@long"));
-            return;
+        if(text[0] != '.'){
+            // try long
+            if(i[-1] == 'L'){
+                add_token(TK("@long"));
+                return;
+            }
+            // try integer
+            i64 int_out;
+            if(parse_int(text, &int_out, -1)){
+                add_token(TK("@num"), int_out);
+                return;
+            }
         }
 
-        // try integer
-        i64 int_out;
-        bool ok = parse_int(text, &int_out, -1);
-        if(ok){
-            add_token(TK("@num"), int_out);
-            return;
-        }
         // try float
         double float_out;
         char* p_end;
-
         try{
             float_out = std::strtod(text.data(), &p_end);
         }catch(...){
@@ -346,7 +347,12 @@ static bool is_unicode_Lo_char(uint32_t c) {
                             add_token(TK(".."));
                         }
                     } else {
-                        add_token(TK("."));
+                        char next_char = peekchar();
+                        if(next_char >= '0' && next_char <= '9'){
+                            eat_number();
+                        }else{
+                            add_token(TK("."));
+                        }
                     }
                     return true;
                 }

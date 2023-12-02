@@ -59,3 +59,11 @@ assert math.isnan(0/0)
 assert 2**-600 == 0.0
 assert 2.0 ** 600 == inf
 assert (-2.0) ** 601 == -inf
+
+# test .123 forms
+assert float(".123") == 0.123
+assert .123 == 0.123
+assert eq(.5 *2, 1.0)
+assert eq(2 * .5, 1.0)
+assert eq(2 * (.5), 1.0)
+assert eq(2 * (.5 + 1), 3.0)
