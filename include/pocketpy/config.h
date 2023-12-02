@@ -20,7 +20,9 @@
 #endif
 
 // Enable this for `vm->_ceval_on_step`
+#ifndef PK_ENABLE_CEVAL_CALLBACK    // can be overrided by cmake
 #define PK_ENABLE_CEVAL_CALLBACK    0
+#endif
 
 // Whether to use `std::function` to do bindings or not
 // By default, functions to be binded must be a C function pointer without capture
