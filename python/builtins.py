@@ -256,7 +256,9 @@ def help(obj):
     print(obj.__signature__)
     print(obj.__doc__)
 
+
 class Exception: pass
+
 
 class classmethod:
     def __init__(self, f):
