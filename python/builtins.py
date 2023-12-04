@@ -258,7 +258,6 @@ def help(obj):
 
 class Exception: pass
 
-
 class classmethod:
     def __init__(self, f):
         self.f = f

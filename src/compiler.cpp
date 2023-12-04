@@ -677,14 +677,24 @@ __EAT_DOTS_END:
         };
         ctx()->exit_block();
         do {
+            StrName as_name;
             consume(TK("except"));
             if(match(TK("@id"))){
                 ctx()->emit_(OP_EXCEPTION_MATCH, StrName(prev().sv()).index, prev().line);
+                if(match(TK("as"))){
+                    consume(TK("@id"));
+                    as_name = StrName(prev().sv());
+                }
             }else{
                 ctx()->emit_(OP_LOAD_TRUE, BC_NOARG, BC_KEEPLINE);
             }
             int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
-            // pop the exception on match
+            // on match
+            if(!as_name.empty()){
+                ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
+                ctx()->emit_store_name(name_scope(), as_name, BC_KEEPLINE);
+            }
+            // pop the exception 
             ctx()->emit_(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
             compile_block_body();
             patches.push_back(ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));

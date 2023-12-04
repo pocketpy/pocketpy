@@ -724,7 +724,7 @@ void VM::init_builtin_types(){
     tp_native_func = _new_type_object("native_func");
     tp_bound_method = _new_type_object("bound_method");
     tp_super = _new_type_object("super");
-    tp_exception = _new_type_object("Exception");
+    tp_exception = _new_type_object("_Exception");
     tp_bytes = _new_type_object("bytes");
     tp_mappingproxy = _new_type_object("mappingproxy");
     tp_dict = _new_type_object("dict");

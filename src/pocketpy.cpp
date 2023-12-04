@@ -1318,6 +1318,17 @@ void init_builtins(VM* _vm) {
     //     return args[0];
     // });
 
+    // Exception
+    _vm->bind__repr__(_vm->tp_exception, [](VM* vm, PyObject* obj) {
+        Exception& self = _CAST(Exception&, obj);
+        return VAR(fmt(self.type.sv(), '(', self.msg.escape(), ')'));
+    });
+
+    _vm->bind__str__(_vm->tp_exception, [](VM* vm, PyObject* obj) {
+        Exception& self = _CAST(Exception&, obj);
+        return VAR(self.msg);
+    });
+
     RangeIter::register_class(_vm, _vm->builtins);
     ArrayIter::register_class(_vm, _vm->builtins);
     StringIter::register_class(_vm, _vm->builtins);

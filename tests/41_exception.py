@@ -82,3 +82,19 @@ def f(a: list):
 a = [0]
 f(a)
 assert a == [1]
+
+try:
+    a = [][3]
+except IndexError as e:
+    assert str(e) == '3 not in [0, 0)'
+    assert repr(e).startswith('IndexError(')
+
+try:
+    a = {}[2]
+except IndexError as e:
+    exit(1)
+except Exception as e:
+    assert str(e) == '2'
+    assert repr(e).startswith('KeyError(')
+except:
+    exit(1)
