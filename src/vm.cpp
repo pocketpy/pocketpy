@@ -565,14 +565,16 @@ PyObject* VM::new_module(Str name, Str package) {
     PyObject* obj = heap._new<DummyModule>(tp_module);
     obj->attr().set(__name__, VAR(name));
     obj->attr().set(__package__, VAR(package));
+    // convert to fullname
+    if(!package.empty()) name = package + "." + name;
+    obj->attr().set(__path__, VAR(name));
+
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     if(_modules.contains(name)){
         throw std::runtime_error(fmt("module ", name.escape(), " already exists").str());
     }
-    // convert to fullname and set it into _modules
-    if(!package.empty()) name = package + "." + name;
-    obj->attr().set(__path__, VAR(name));
+    // set it into _modules
     _modules.set(name, obj);
     return obj;
 }
