@@ -45,3 +45,27 @@ And get the value,
 PyObject* ret = vm->call_method(obj, "__getitem__", _0);
 std::cout << py_cast<int>(vm, i64);
 ```
+
+If you want to call with dynamic number of arguments,
+you should use `vm->vectorcall`. This is a low-level, stack-based API.
+
+1. First push the callable object to the stack.
+2. Push the `self` object to the stack. If there is no `self`, push `PY_NULL`.
+3. Push the arguments to the stack.
+4. Call `vm->vectorcall` with the number of arguments.
+
+```cpp
+PyObject* f_sum = vm->builtins->attr("sum");
+
+List args(N);   // a list of N arguments
+
+vm->s_data.push_back(f_print);
+vm->s_data.push_back(PY_NULL);  // self
+
+for(PyObject* arg : args) {
+    vm->s_data.push_back(arg);
+}
+
+PyObject* ret = vm->vectorcall(args.size());
+```
+
