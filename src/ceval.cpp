@@ -568,10 +568,19 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(EVAL_CONST){
-        PyObject* _0 = builtins->attr(pk_id_eval);
-        PyObject* _1 = co_consts[byte.arg];
-        PUSH(call(_0, _1));
+    TARGET(FSTRING_EVAL){
+        PyObject* _0 = co_consts[byte.arg];
+        std::string_view string = CAST(Str&, _0).sv();
+        auto it = _cached_codes.find(string);
+        CodeObject_ code;
+        if(it == _cached_codes.end()){
+            code = vm->compile(string, "<eval>", EVAL_MODE, true);
+            _cached_codes[string] = code;
+        }else{
+            code = it->second;
+        }
+        _0 = vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        PUSH(_0);
     } DISPATCH();
     TARGET(REPR)
         TOP() = py_repr(TOP());

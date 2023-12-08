@@ -136,6 +136,9 @@ public:
     PyObject* _last_exception;  // last exception
     PyObject* _curr_class;      // current class being defined
 
+    // cached code objects for FSTRING_EVAL
+    std::map<std::string_view, CodeObject_> _cached_codes;
+
 #if PK_ENABLE_CEVAL_CALLBACK
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 #endif

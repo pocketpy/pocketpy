@@ -225,7 +225,6 @@ const StrName __class__ = StrName::get("__class__");
 
 const StrName pk_id_add = StrName::get("add");
 const StrName pk_id_set = StrName::get("set");
-const StrName pk_id_eval = StrName::get("eval");
 
 #define DEF_SNAME(name) const static StrName name(#name)
 
