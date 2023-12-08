@@ -392,8 +392,7 @@ namespace pkpy{
             }
         }else{
             int index = ctx->add_const(py_var(ctx->vm, expr));
-            ctx->emit_(OP_LOAD_CONST, index, line);
-            ctx->emit_(OP_EVAL, BC_NOARG, line);
+            ctx->emit_(OP_EVAL_CONST, index, line);
         }
         if(repr){
             ctx->emit_(OP_REPR, BC_NOARG, line);

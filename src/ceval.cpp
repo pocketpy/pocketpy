@@ -568,9 +568,10 @@ __NEXT_STEP:;
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
-    TARGET(EVAL){
+    TARGET(EVAL_CONST){
         PyObject* _0 = builtins->attr(pk_id_eval);
-        TOP() = call(_0, TOP());
+        PyObject* _1 = co_consts[byte.arg];
+        PUSH(call(_0, _1));
     } DISPATCH();
     TARGET(REPR)
         TOP() = py_repr(TOP());
