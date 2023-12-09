@@ -104,8 +104,6 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v3
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
       - uses: nttld/setup-ndk@v1
         with:
           ndk-version: r21e
