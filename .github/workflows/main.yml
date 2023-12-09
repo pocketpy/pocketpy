@@ -109,7 +109,7 @@ jobs:
         id: setup-ndk
         with:
           ndk-version: r23
-          local-cache: true
+          local-cache: false
           add-to-path: false
       - name: Compile Shared Library
         run: |
