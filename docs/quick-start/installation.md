@@ -48,6 +48,39 @@ To compile it with your project, these flags must be set:
 For emscripten, you must enable exceptions to make pocketpy work properly.
 See https://emscripten.org/docs/porting/exceptions.html.
 
+### Get prebuilt binaries
+
+We have prebuilt binaries,
+check them out on our [GitHub Actions](https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml).
+
+You can download an artifact there which contains the following files.
+
+```
+├── android
+│   ├── arm64-v8a
+│   │   └── libpocketpy.so
+│   ├── armeabi-v7a
+│   │   └── libpocketpy.so
+│   └── x86_64
+│       └── libpocketpy.so
+├── ios
+│   └── libpocketpy.a
+├── linux
+│   └── x86_64
+│       ├── libpocketpy.so
+│       └── main
+├── macos
+│   └── pocketpy.bundle
+│       └── Contents
+│           ├── Info.plist
+│           └── MacOS
+│               └── pocketpy
+└── windows
+    └── x86_64
+        ├── main.exe
+        └── pocketpy.dll
+```
+
 ### Example
 
 ```cpp
