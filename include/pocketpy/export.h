@@ -1,6 +1,6 @@
 #pragma once
 
-inline const char* kPlatformStrings[] = {
+const char* kPlatformStrings[] = {
     "win32",        // 0
     "emscripten",   // 1
     "ios",          // 2
