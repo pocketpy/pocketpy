@@ -143,7 +143,6 @@ jobs:
           cd build
           cmake -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios.toolchain.cmake -DPLATFORM=OS64 .. -DPK_BUILD_STATIC_LIB=ON -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON
           cmake --build . --config Release
-          ls -l
           cd ..
           mkdir -p output/ios
           cp build/Release-iphoneos/libpocketpy.a output/ios/libpocketpy.a
