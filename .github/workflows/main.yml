@@ -51,12 +51,13 @@ jobs:
       if: github.ref == 'refs/heads/main'
     - name: Compile
       run: |
-        export CXX=clang++
-        export CC=clang
         mkdir -p output/linux/x86_64
         python3 cmake_build.py
         cp main output/linux/x86_64
         cp libpocketpy.so output/linux/x86_64
+      env:
+        CXX: clang++
+        CC: clang
     - uses: actions/upload-artifact@v3
       with:
         path: output
@@ -125,6 +126,8 @@ jobs:
           cp build/android/x86_64/libpocketpy.so output/android/x86_64
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CXX: clang++
+          CC: clang
       - uses: actions/upload-artifact@v3
         with:
           path: output
