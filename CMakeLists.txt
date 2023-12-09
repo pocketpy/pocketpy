@@ -28,9 +28,9 @@ elseif(MSVC)
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -O2")
 
-    # -Wshorten-64-to-32 for apple
+    # disable -Wshorten-64-to-32 for apple
     if(APPLE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshorten-64-to-32")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shorten-64-to-32")
     endif()
 endif()
 

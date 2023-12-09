@@ -104,38 +104,36 @@ jobs:
       runs-on: ubuntu-latest
       steps:
       - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - uses: nttld/setup-ndk@v1
         with:
-          flutter-version: '3.3.0'
-          channel: 'stable'
-          cache: true
-      - run: flutter --version
-      - name: Compile
+          ndk-version: r21e
+          local-cache: true
+          add-to-path: false
+      - name: Compile Shared Library
         run: |
-          python3 amalgamate.py
-          cd plugins/flutter/example
-          flutter build apk --split-debug-info=.debug-info --split-per-abi
-          cd build/app/outputs/flutter-apk
+          bash build_android.sh arm64-v8a
+          bash build_android.sh armeabi-v7a
+          bash build_android.sh x86_64
+
           mkdir -p output/android/arm64-v8a
           mkdir -p output/android/armeabi-v7a
           mkdir -p output/android/x86_64
-          unzip -q app-arm64-v8a-release.apk -d tmp
-          mv tmp/lib/arm64-v8a/libpocketpy.so output/android/arm64-v8a/libpocketpy.so
-          rm -rf tmp
-          unzip -q app-armeabi-v7a-release.apk -d tmp
-          mv tmp/lib/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a/libpocketpy.so
-          rm -rf tmp
-          unzip -q app-x86_64-release.apk -d tmp
-          mv tmp/lib/x86_64/libpocketpy.so output/android/x86_64/libpocketpy.so
-          rm -rf tmp
+
+          cp build/android/arm64-v8a/libpocketpy.so output/android/arm64-v8a
+          cp build/android/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a
+          cp build/android/x86_64/libpocketpy.so output/android/x86_64
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
       - uses: actions/upload-artifact@v3
         with:
-          path: plugins/flutter/example/build/app/outputs/flutter-apk/output
+          path: output
   build_ios:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v3
-      - name: Compile and Test
+      - name: Compile Static Library
         run: |
           git clone https://github.com/leetal/ios-cmake --depth 1
           cp ios-cmake/ios.toolchain.cmake .
