@@ -26,18 +26,11 @@ if(EMSCRIPTEN)
 elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /O2")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -O2")
 
     # disable -Wshorten-64-to-32 for apple
     if(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shorten-64-to-32")
-    endif()
-
-    # if android, use -Os
-    if(ANDROID)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
-    else()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
     endif()
 endif()
 
