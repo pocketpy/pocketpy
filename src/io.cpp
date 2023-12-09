@@ -136,12 +136,14 @@ void add_module_os(VM* vm){
         return vm->None;
     });
 
+#if PK_SYS_PLATFORM != 2
     // system
     vm->bind_func<1>(mod, "system", [](VM* vm, ArgsView args){
         std::string cmd = CAST(Str&, args[0]).str();
         int ret = system(cmd.c_str());
         return VAR(ret);
     });
+#endif
 
     vm->bind_func<1>(mod, "listdir", [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());

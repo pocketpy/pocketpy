@@ -1431,7 +1431,7 @@ void add_module_time(VM* vm){
 void add_module_sys(VM* vm){
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
-    vm->setattr(mod, "platform", VAR(PK_SYS_PLATFORM));
+    vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
 
     PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
