@@ -11,7 +11,6 @@ cmake \
     -DANDROID_ABI=$1 \
     -DANDROID_PLATFORM=android-22 \
     ../../.. \
-    -DPK_BUILD_SHARED_LIB=ON -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON \
-    -DCMAKE_BUILD_TYPE=Release
+    -DPK_BUILD_SHARED_LIB=ON -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON
 
 cmake --build . --config Release

@@ -126,8 +126,6 @@ jobs:
           cp build/android/x86_64/libpocketpy.so output/android/x86_64
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-          CXX: clang++
-          CC: clang
       - uses: actions/upload-artifact@v3
         with:
           path: output
