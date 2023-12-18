@@ -1596,6 +1596,11 @@ void add_module_gc(VM* vm){
 void VM::post_init(){
     init_builtins(this);
 
+    bind_method<-1>("module", "__init__", [](VM* vm, ArgsView args) {
+        vm->NotImplementedError();
+        return vm->None;
+    });
+
     bind_method<1>("property", "setter", [](VM* vm, ArgsView args) {
         Property& self = _CAST(Property&, args[0]);
         // The setter's name is not necessary to be the same as the property's name
