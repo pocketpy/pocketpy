@@ -756,6 +756,10 @@ __EAT_DOTS_END:
     }
 
     void Compiler::compile_stmt() {
+        if(match(TK("class"))){
+            compile_class();
+            return;
+        }
         advance();
         int kw_line = prev().line;  // backup line number
         int curr_loop_block = ctx()->get_loop();
@@ -968,6 +972,12 @@ __EAT_DOTS_END:
             base->emit_(ctx());
         }
         ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
+
+        for(auto& c: this->contexts.data()){
+            if(c.is_compiling_class){
+                SyntaxError("nested class is not allowed");
+            }
+        }
         ctx()->is_compiling_class = true;
         compile_block_body();
         ctx()->is_compiling_class = false;
@@ -1134,10 +1144,6 @@ __EAT_DOTS_END:
         used = true;
 
         tokens = lexer->run();
-        // if(lexer->src->filename == "<stdin>"){
-        //     for(auto& t: tokens) std::cout << t.info() << std::endl;
-        // }
-
         CodeObject_ code = push_global_context();
 
         advance();          // skip @sof, so prev() is always valid
@@ -1161,11 +1167,7 @@ __EAT_DOTS_END:
         }
 
         while (!match(TK("@eof"))) {
-            if (match(TK("class"))) {
-                compile_class();
-            } else {
-                compile_stmt();
-            }
+            compile_stmt();
             match_newlines();
         }
         pop_context();

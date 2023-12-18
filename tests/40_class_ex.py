@@ -117,3 +117,12 @@ class A(c.void_p):
     
 a = A(0)
 assert repr(a).startswith('<void* at')
+
+if 1:
+    class TrueClass:
+        pass
+else:
+    class FalseClass:
+        pass
+
+assert TrueClass
