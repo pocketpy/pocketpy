@@ -128,8 +128,8 @@ struct FuncDecl {
         PyObject* value;        // default value
     };
     CodeObject_ code;           // code object of this function
-    pod_vector<int> args;       // indices in co->varnames
-    pod_vector<KwArg> kwargs;   // indices in co->varnames
+    std::vector<int> args;       // indices in co->varnames
+    std::vector<KwArg> kwargs;   // indices in co->varnames
     int starred_arg;            // index in co->varnames, -1 if no *arg
     int starred_kwarg;          // index in co->varnames, -1 if no **kwarg
     bool nested;                // whether this function is nested
