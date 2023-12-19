@@ -153,3 +153,6 @@ a = 'b'
 assert list(a) == ['b']
 a = '测'
 assert list(a) == ['测']
+
+assert '\b\b\b' == '\x08\x08\x08'
+stack=[1,2,3,4]; assert f"{stack[2:]}" == '[3, 4]'

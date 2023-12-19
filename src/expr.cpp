@@ -406,16 +406,28 @@ namespace pkpy{
         int count = 0;          // how many string parts
         bool flag = false;      // true if we are in a expression
 
+        const char* fmt_valid_chars = "0-=*#@!~" "<>^" ".fds" "0123456789";
+        PK_LOCAL_STATIC const std::set<char> fmt_valid_char_set(fmt_valid_chars, fmt_valid_chars + strlen(fmt_valid_chars));
+
         while(j < src.size){
             if(flag){
                 if(src[j] == '}'){
                     // add expression
                     Str expr = src.substr(i, j-i);
+                    // BUG: ':' is not a format specifier in f"{stack[2:]}"
                     int conon = expr.index(":");
                     if(conon >= 0){
-                        _load_simple_expr(ctx, expr.substr(0, conon));
                         Str spec = expr.substr(conon+1);
-                        ctx->emit_(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+                        // filter some invalid spec
+                        bool ok = true;
+                        for(char c: spec) if(!fmt_valid_char_set.count(c)){ ok = false; break; }
+                        if(ok){
+                            _load_simple_expr(ctx, expr.substr(0, conon));
+                            ctx->emit_(OP_FORMAT_STRING, ctx->add_const(VAR(spec)), line);
+                        }else{
+                            // ':' is not a spec indicator
+                            _load_simple_expr(ctx, expr);
+                        }
                     }else{
                         _load_simple_expr(ctx, expr);
                     }
