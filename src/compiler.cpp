@@ -1037,7 +1037,7 @@ __EAT_DOTS_END:
                     if(value == nullptr){
                         SyntaxError(Str("default argument must be a literal"));
                     }
-                    decl->add_kwarg_item(index, name, value);
+                    decl->kwargs.push_back(FuncDecl::KwArg{index, name, value});
                 } break;
                 case 3:
                     decl->starred_kwarg = index;
