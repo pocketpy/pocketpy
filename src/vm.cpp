@@ -580,7 +580,7 @@ PyObject* VM::new_module(Str name, Str package) {
 }
 
 static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
-    std::string argStr = byte.arg == BC_NOARG ? "" : std::to_string(byte.arg);
+    std::string argStr = std::to_string(byte.arg);
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){
@@ -818,7 +818,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
     // set extra varnames to PY_NULL
     for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
     // prepare kwdefaults
-    for(auto& kv: decl->kwargs) buffer[kv.key] = kv.value;
+    for(auto& kv: decl->kwargs) buffer[kv.index] = kv.value;
     
     // handle *args
     if(decl->starred_arg != -1){
@@ -829,7 +829,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
         // kwdefaults override
         for(auto& kv: decl->kwargs){
             if(i >= args.size()) break;
-            buffer[kv.key] = args[i++];
+            buffer[kv.index] = args[i++];
         }
         if(i < args.size()) TypeError(fmt("too many arguments", " (", decl->code->name, ')'));
     }
@@ -844,16 +844,18 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
 
     for(int j=0; j<kwargs.size(); j+=2){
         StrName key(CAST(int, kwargs[j]));
-        int index = co->varnames_inv.try_get_likely_found(key);
-        if(index < 0){
+        int index = decl->keyword_to_index(key);
+        // if key is an explicit key, set as local variable
+        if(index != -1){
+            buffer[index] = kwargs[j+1];
+        }else{
+            // otherwise, set as **kwargs if possible
             if(vkwargs == nullptr){
                 TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             }else{
                 Dict& dict = _CAST(Dict&, vkwargs);
                 dict.set(VAR(key.sv()), kwargs[j+1]);
             }
-        }else{
-            buffer[index] = kwargs[j+1];
         }
     }
 }
