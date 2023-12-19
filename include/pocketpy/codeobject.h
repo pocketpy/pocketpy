@@ -123,19 +123,43 @@ struct CodeObject {
 
 struct FuncDecl {
     struct KwArg {
-        int key;                // index in co->varnames
+        int index;              // index in co->varnames
+        StrName key;            // name of this argument
         PyObject* value;        // default value
     };
     CodeObject_ code;           // code object of this function
     pod_vector<int> args;       // indices in co->varnames
     pod_vector<KwArg> kwargs;   // indices in co->varnames
-    int starred_arg = -1;       // index in co->varnames, -1 if no *arg
-    int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
-    bool nested = false;        // whether this function is nested
+    int starred_arg;            // index in co->varnames, -1 if no *arg
+    int starred_kwarg;          // index in co->varnames, -1 if no **kwarg
+    bool nested;                // whether this function is nested
+
+    static const int MAX_K2I_CACHE = 16;
+
+    int _keyword_to_index[MAX_K2I_CACHE];   // map from `kwargs[i].key` to `kwargs[i].index`
 
     Str signature;              // signature of this function
     Str docstring;              // docstring of this function
     bool is_simple;
+
+    FuncDecl(){
+        starred_arg = -1;
+        starred_kwarg = -1;
+        nested = false;
+        for(int i=0; i<MAX_K2I_CACHE; i++) _keyword_to_index[i] = -1;
+        is_simple = false;
+    }
+
+    void add_kwarg_item(int index, StrName key, PyObject* value){
+        kwargs.push_back(KwArg{index, key, value});
+        if(key.index < MAX_K2I_CACHE) _keyword_to_index[key.index] = index;
+    }
+
+    int keyword_to_index(StrName key) const{
+        if(key.index < MAX_K2I_CACHE) return _keyword_to_index[key.index];
+        for(const KwArg& item: kwargs) if(item.key == key) return item.index;
+        return -1;
+    }
     void _gc_mark() const;
 };
 

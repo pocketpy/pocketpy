@@ -1007,7 +1007,7 @@ __EAT_DOTS_END:
                 }
             }
             for(auto& kv: decl->kwargs){
-                if(decl->code->varnames[kv.key] == name){
+                if(decl->code->varnames[kv.index] == name){
                     SyntaxError("duplicate argument name");
                 }
             }
@@ -1037,7 +1037,7 @@ __EAT_DOTS_END:
                     if(value == nullptr){
                         SyntaxError(Str("default argument must be a literal"));
                     }
-                    decl->kwargs.push_back(FuncDecl::KwArg{index, value});
+                    decl->add_kwarg_item(index, name, value);
                 } break;
                 case 3:
                     decl->starred_kwarg = index;
