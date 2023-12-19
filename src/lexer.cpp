@@ -235,6 +235,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                     case 'n':  buff.push_back('\n'); break;
                     case 'r':  buff.push_back('\r'); break;
                     case 't':  buff.push_back('\t'); break;
+                    case 'b':  buff.push_back('\b'); break;
                     case 'x': {
                         char hex[3] = {eatchar(), eatchar(), '\0'};
                         size_t parsed;

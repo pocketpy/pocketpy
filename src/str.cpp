@@ -260,6 +260,7 @@ int utf8len(unsigned char c, bool suppress){
                 case '\n': ss << "\\n"; break;
                 case '\r': ss << "\\r"; break;
                 case '\t': ss << "\\t"; break;
+                case '\b': ss << "\\b"; break;
                 default:
                     if ('\x00' <= c && c <= '\x1f') {
                         ss << "\\x"; // << std::hex << std::setw(2) << std::setfill('0') << (int)c;
