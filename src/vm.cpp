@@ -844,9 +844,9 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
 
     for(int j=0; j<kwargs.size(); j+=2){
         StrName key(CAST(int, kwargs[j]));
-        int index = decl->keyword_to_index(key);
+        int index = decl->kw_to_index.try_get_likely_found(key);
         // if key is an explicit key, set as local variable
-        if(index != -1){
+        if(index >= 0){
             buffer[index] = kwargs[j+1];
         }else{
             // otherwise, set as **kwargs if possible

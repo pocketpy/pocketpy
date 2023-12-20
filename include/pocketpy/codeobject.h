@@ -138,10 +138,13 @@ struct FuncDecl {
     Str docstring;              // docstring of this function
     bool is_simple;
 
-    int keyword_to_index(StrName key) const{
-        for(const KwArg& item: kwargs) if(item.key == key) return item.index;
-        return -1;
+    NameDictInt kw_to_index;
+
+    void add_kwarg(int index, StrName key, PyObject* value){
+        kw_to_index.set(key, index);
+        kwargs.push_back({index, key, value});
     }
+    
     void _gc_mark() const;
 };
 
