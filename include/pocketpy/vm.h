@@ -55,6 +55,8 @@ struct PyTypeInfo{
     Str name;
     bool subclass_enabled;
 
+    std::vector<StrName> annotated_fields;
+
     // cached special methods
     // unary operators
     PyObject* (*m__repr__)(VM* vm, PyObject*) = nullptr;

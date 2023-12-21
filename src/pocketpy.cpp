@@ -1146,29 +1146,6 @@ void init_builtins(VM* _vm) {
         return value;
     });
 
-    // _vm->bind_method<0>("dict", "_data", [](VM* vm, ArgsView args) {
-    //     Dict& self = _CAST(Dict&, args[0]);
-    //     SStream ss;
-    //     ss << "[\n";
-    //     for(int i=0; i<self._capacity; i++){
-    //         auto item = self._items[i];
-    //         Str key("None");
-    //         Str value("None");
-    //         if(item.first != nullptr){
-    //             key = CAST(Str&, vm->py_repr(item.first));
-    //         }
-    //         if(item.second != nullptr){
-    //             value = CAST(Str&, vm->py_repr(item.second));
-    //         }
-    //         int prev = self._nodes[i].prev;
-    //         int next = self._nodes[i].next;
-    //         ss << "  [" << key << ", " << value << ", " << prev << ", " << next << "],\n";
-    //     }
-    //     ss << "]\n";
-    //     vm->stdout_write(ss.str());
-    //     return vm->None;
-    // });
-
     _vm->bind__contains__(_vm->tp_dict, [](VM* vm, PyObject* obj, PyObject* key) {
         Dict& self = _CAST(Dict&, obj);
         return VAR(self.contains(key));
@@ -1615,6 +1592,15 @@ void VM::post_init(){
         return self;        // for generics
     });
 
+    bind_property(_t(tp_type), "__annotations__", [](VM* vm, ArgsView args){
+        PyTypeInfo* ti = vm->_type_info(PK_OBJ_GET(Type, args[0]));
+        Tuple t(ti->annotated_fields.size());
+        for(int i=0; i<ti->annotated_fields.size(); i++){
+            t[i] = VAR(ti->annotated_fields[i].sv());
+        }
+        return VAR(std::move(t));
+    });
+
     bind__repr__(tp_type, [](VM* vm, PyObject* self){
         SStream ss;
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, self)];
@@ -1679,7 +1665,7 @@ void VM::post_init(){
     add_module_operator(this);
     add_module_csv(this);
 
-    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime"}){
+    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "dataclasses"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 

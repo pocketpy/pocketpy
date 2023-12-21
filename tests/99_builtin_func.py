@@ -979,3 +979,12 @@ assert callable(isinstance) is True  # builtin function
 
 assert id(0) is None
 assert id(2**62) is not None
+
+# test issubclass
+assert issubclass(int, int) is True
+assert issubclass(int, object) is True
+assert issubclass(object, int) is False
+assert issubclass(object, object) is True
+assert issubclass(int, type) is False
+assert issubclass(type, type) is True
+assert issubclass(float, int) is False

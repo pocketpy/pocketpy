@@ -22,6 +22,7 @@ namespace pkpy {
             throw std::runtime_error(msg.str());                            \
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \
+        mod->attr().set(#name, type);                                       \
         T::_register(vm, mod, type);                                        \
         return type;                                                        \
     }                                                                       

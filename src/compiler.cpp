@@ -712,8 +712,13 @@ __EAT_DOTS_END:
             decorators.push_back(ctx()->s_expr.popx());
             if(!match_newlines_repl()) SyntaxError();
         }while(match(TK("@")));
-        consume(TK("def"));
-        compile_function(decorators);
+
+        if(match(TK("class"))){
+            compile_class(decorators);
+        }else{
+            consume(TK("def"));
+            compile_function(decorators);
+        }
     }
 
     bool Compiler::try_compile_assignment(){
@@ -927,6 +932,12 @@ __EAT_DOTS_END:
                     if(match(TK(":"))){
                         consume_type_hints();
                         is_typed_name = true;
+
+                        if(ctx()->is_compiling_class){
+                            // add to __annotations__
+                            NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.top().get());
+                            ctx()->emit_(OP_ADD_CLASS_ANNOTATION, ne->name.index, BC_KEEPLINE);
+                        }
                     }
                 }
                 if(!try_compile_assignment()){
@@ -955,7 +966,18 @@ __EAT_DOTS_END:
         ctx()->s_expr.pop();
     }
 
-    void Compiler::compile_class(){
+    void Compiler::_add_decorators(const std::vector<Expr_>& decorators){
+        // [obj]
+        for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
+            (*it)->emit_(ctx());                                    // [obj, f]
+            ctx()->emit_(OP_ROT_TWO, BC_NOARG, (*it)->line);        // [f, obj]
+            ctx()->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);      // [f, obj, NULL]
+            ctx()->emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);        // [obj, NULL, f]
+            ctx()->emit_(OP_CALL, 1, (*it)->line);                  // [obj]
+        }
+    }
+
+    void Compiler::compile_class(const std::vector<Expr_>& decorators){
         consume(TK("@id"));
         int namei = StrName(prev().sv()).index;
         Expr_ base = nullptr;
@@ -981,7 +1003,14 @@ __EAT_DOTS_END:
         ctx()->is_compiling_class = true;
         compile_block_body();
         ctx()->is_compiling_class = false;
-        ctx()->emit_(OP_END_CLASS, BC_NOARG, BC_KEEPLINE);
+
+        if(!decorators.empty()){
+            ctx()->emit_(OP_BEGIN_CLASS_DECORATION, BC_NOARG, BC_KEEPLINE);
+            _add_decorators(decorators);
+            ctx()->emit_(OP_END_CLASS_DECORATION, BC_NOARG, BC_KEEPLINE);
+        }
+
+        ctx()->emit_(OP_END_CLASS, namei, BC_KEEPLINE);
     }
 
     void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints){
@@ -1077,14 +1106,8 @@ __EAT_DOTS_END:
         }
         ctx()->emit_(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
 
-        // add decorators
-        for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
-            (*it)->emit_(ctx());
-            ctx()->emit_(OP_ROT_TWO, BC_NOARG, (*it)->line);
-            ctx()->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);
-            ctx()->emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);
-            ctx()->emit_(OP_CALL, 1, (*it)->line);
-        }
+        _add_decorators(decorators);
+
         if(!ctx()->is_compiling_class){
             auto e = make_expr<NameExpr>(decl_name, name_scope());
             e->emit_store(ctx());

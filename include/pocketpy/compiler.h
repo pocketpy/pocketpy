@@ -118,7 +118,8 @@ class Compiler {
     bool try_compile_assignment();
     void compile_stmt();
     void consume_type_hints();
-    void compile_class();
+    void _add_decorators(const std::vector<Expr_>& decorators);
+    void compile_class(const std::vector<Expr_>& decorators={});
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints);
     void compile_function(const std::vector<Expr_>& decorators={});
 

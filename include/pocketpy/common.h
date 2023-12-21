@@ -23,7 +23,7 @@
 #include <bitset>
 #include <deque>
 
-#define PK_VERSION				"1.3.3"
+#define PK_VERSION				"1.3.5"
 
 #include "config.h"
 #include "export.h"
@@ -166,7 +166,7 @@ static_assert(sizeof(Number::int_t) == sizeof(void*));
 static_assert(sizeof(BitsCvt) == sizeof(void*));
 static_assert(std::numeric_limits<f64>::is_iec559);
 
-struct Dummy { };
+struct Dummy { }; // for special objects: True, False, None, Ellipsis, etc.
 struct DummyInstance { };
 struct DummyModule { };
 struct NoReturn { };

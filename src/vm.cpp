@@ -204,7 +204,6 @@ namespace pkpy{
             name.sv(),
             subclass_enabled,
         };
-        if(mod != nullptr) mod->attr().set(name, obj);
         _all_types.push_back(info);
         return obj;
     }

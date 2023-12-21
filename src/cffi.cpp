@@ -164,11 +164,12 @@ void add_module_c(VM* vm){
     Type type_t;
 
 #define BIND_PRIMITIVE(T, CNAME) \
-    vm->bind_func<1>(mod, CNAME "_", [](VM* vm, ArgsView args){        \
+    vm->bind_func<1>(mod, CNAME "_", [](VM* vm, ArgsView args){         \
         T val = CAST(T, args[0]);                                       \
         return VAR_T(C99Struct, &val, sizeof(T));                       \
     });                                                                 \
-    type = vm->new_type_object(mod, CNAME "_p", VoidP::_type(vm));     \
+    type = vm->new_type_object(mod, CNAME "_p", VoidP::_type(vm));      \
+    mod->attr().set(CNAME "_p", type);                                  \
     type_t = PK_OBJ_GET(Type, type);                                    \
     vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){         \
         VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);                      \
