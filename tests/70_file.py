@@ -41,9 +41,17 @@ os.remove('123.bin')
 assert not os.path.exists('123.bin')
 
 f = open("123.txt","w+")
+# read 0 sized file
+assert( f.read() == "")
+
+# write, rewind() and read whole back
 f.write("123456")
 f.seek(0)
 assert ( f.read() == "123456" )
+
+f.seek(3)
+assert ( f.read() == "456" )
+
 # cannot test seek(>0) then read() for now
 f.close()
 

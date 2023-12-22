@@ -48,17 +48,18 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
 #if PK_ENABLE_OS
     void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            return VAR_T(FileIO, 
+            return VAR_T(FileIO,
                 vm, CAST(Str&, args[1]).str(), CAST(Str&, args[2]).str()
             );
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
+            int cur_pos = ftell(io.fp);
             fseek(io.fp, 0, SEEK_END);
             int buffer_size = ftell(io.fp);
             unsigned char* buffer = new unsigned char[buffer_size];
-            fseek(io.fp, 0, SEEK_SET);
+            fseek(io.fp, cur_pos, SEEK_SET);
             size_t actual_size = io_fread(buffer, 1, buffer_size, io.fp);
             PK_ASSERT(actual_size <= buffer_size);
             // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
@@ -132,7 +133,7 @@ void add_module_os(VM* vm){
     PyObject* mod = vm->new_module("os");
     PyObject* path_obj = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     mod->attr().set("path", path_obj);
-    
+
     // Working directory is shared by all VMs!!
     vm->bind_func<0>(mod, "getcwd", [](VM* vm, ArgsView args){
         return VAR(std::filesystem::current_path().string());
