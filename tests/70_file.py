@@ -52,7 +52,5 @@ assert ( f.read() == "123456" )
 f.seek(3)
 assert ( f.read() == "456" )
 
-# cannot test seek(>0) then read() for now
 f.close()
-
 os.remove('123.txt')
