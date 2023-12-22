@@ -67,6 +67,14 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
             return VAR(std::move(b));
         });
 
+        vm->bind_method<1>(type, "seek", [](VM* vm, ArgsView args){
+            FileIO& io = CAST(FileIO&, args[0]);
+            size_t newpos = CAST(size_t, args[1]);
+            if (!fseek(io.fp, newpos, SEEK_SET))
+                return vm->True;
+            return vm->False;
+        });
+
         vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
             FileIO& io = CAST(FileIO&, args[0]);
             if(io.is_text()){
