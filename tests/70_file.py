@@ -52,5 +52,8 @@ assert ( f.read() == "123456" )
 f.seek(3)
 assert ( f.read() == "456" )
 
+# nothing more to read (eof)
+assert( f.read() == "")
+
 f.close()
 os.remove('123.txt')
