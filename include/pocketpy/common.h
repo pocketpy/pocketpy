@@ -174,8 +174,7 @@ struct Discarded { };
 
 struct Type {
 	int index;
-	Type(): index(-1) {}
-	Type(int index): index(index) {}
+	constexpr Type(int index): index(index) {}
 	bool operator==(Type other) const { return this->index == other.index; }
 	bool operator!=(Type other) const { return this->index != other.index; }
 	operator int() const { return this->index; }

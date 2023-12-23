@@ -150,12 +150,14 @@ public:
     unsigned char* (*_import_handler)(const char*, int, int*);
 
     // for quick access
-    Type tp_object, tp_type, tp_int, tp_float, tp_bool, tp_str;
-    Type tp_list, tp_tuple;
-    Type tp_function, tp_native_func, tp_bound_method;
-    Type tp_slice, tp_range, tp_module;
-    Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
-    Type tp_dict, tp_property, tp_star_wrapper;
+    static constexpr Type tp_object=0, tp_type=1;
+    static constexpr Type tp_int=kTpIntIndex, tp_float=kTpFloatIndex, tp_bool=4, tp_str=5;
+    static constexpr Type tp_list=6, tp_tuple=7;
+    static constexpr Type tp_slice=8, tp_range=9, tp_module=10;
+    static constexpr Type tp_function=11, tp_native_func=12, tp_bound_method=13;
+    
+    static constexpr Type tp_super=14, tp_exception=15, tp_bytes=16, tp_mappingproxy=17;
+    static constexpr Type tp_dict=18, tp_property=19, tp_star_wrapper=20;
 
     PyObject* cached_object__new__;
 
