@@ -161,7 +161,7 @@ void add_module_c(VM* vm){
     });
 
     PyObject* type;
-    Type type_t;
+    Type type_t = -1;
 
 #define BIND_PRIMITIVE(T, CNAME) \
     vm->bind_func<1>(mod, CNAME "_", [](VM* vm, ArgsView args){         \
