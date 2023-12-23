@@ -1,5 +1,4 @@
 #include "pocketpy/io.h"
-#include "pocketpy/common.h"
 
 namespace pkpy{
 
