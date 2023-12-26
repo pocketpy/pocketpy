@@ -805,7 +805,7 @@ __NEXT_STEP:;
     TARGET(FORMAT_STRING) {
         PyObject* _0 = POPX();
         const Str& spec = CAST(Str&, co_consts[byte.arg]);
-        PUSH(format(spec, _0));
+        PUSH(_format_string(spec, _0));
     } DISPATCH();
     /*****************************************/
     TARGET(INC_FAST){

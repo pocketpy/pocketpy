@@ -475,7 +475,7 @@ i64 VM::py_hash(PyObject* obj){
     }
 }
 
-PyObject* VM::format(Str spec, PyObject* obj){
+PyObject* VM::_format_string(Str spec, PyObject* obj){
     if(spec.empty()) return py_str(obj);
     char type;
     switch(spec.end()[-1]){
