@@ -15,9 +15,6 @@ web/lib
 *.so
 *.dll
 plugins/unity/
-plugins/flutter/example/web/lib/pocketpy.js
-plugins/flutter/example/web/lib/pocketpy.wasm
-plugins/flutter/src/pocketpy.*
 plugins/macos/pocketpy/pocketpy.*
 include/pocketpy/_generated.h
 profile.sh

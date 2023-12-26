@@ -92,12 +92,4 @@ def sync(path):
 	with open(os.path.join(path, "pocketpy.cpp"), "wt", encoding='utf-8') as f:
 		f.write("#include \"pocketpy.h\"\n")
 
-sync("plugins/flutter/src")
 sync("plugins/macos/pocketpy")
-
-# unity plugin
-unity_ios_root = 'plugins/unity/PocketPyUnityPlugin/Assets/PocketPython/Plugins/iOS'
-if os.path.exists(unity_ios_root):
-	sync(unity_ios_root)
-
-
