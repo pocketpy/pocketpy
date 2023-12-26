@@ -558,27 +558,6 @@ pkpy_CString pkpy_name_to_string(pkpy_CName name){
     return s;
 }
 
-void pkpy_compile_to_string(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, bool* ok, char** out){
-    VM* vm = (VM*) vm_handle;
-    pkpy_clear_error(vm_handle, NULL);
-    try{
-        CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
-        // *out = code->serialize(vm).c_str_dup();
-        // *ok = true;
-        *out = strdup("OK!");
-        *ok = ok;
-    }catch(Exception& e){
-        *ok = false;
-        *out = e.summary().c_str_dup();
-    }catch(std::exception& e){
-        *ok = false;
-        *out = strdup(e.what());
-    }catch(...){
-        *ok = false;
-        *out = strdup("unknown error");
-    }
-}
-
 void pkpy_set_output_handler(pkpy_vm* vm_handle, pkpy_COutputHandler handler){
     VM* vm = (VM*) vm_handle;
     vm->_stdout = handler;

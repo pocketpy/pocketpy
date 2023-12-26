@@ -94,7 +94,6 @@ PK_EXPORT void pkpy_free(void* p);
 PK_EXPORT pkpy_CString pkpy_string(const char* s);
 PK_EXPORT pkpy_CName pkpy_name(const char* s);
 PK_EXPORT pkpy_CString pkpy_name_to_string(pkpy_CName name);
-PK_EXPORT void pkpy_compile_to_string(pkpy_vm*, const char* source, const char* filename, int mode, bool* ok, char** out);
 PK_EXPORT void pkpy_set_output_handler(pkpy_vm*, pkpy_COutputHandler handler);
 PK_EXPORT void pkpy_set_import_handler(pkpy_vm*, pkpy_CImportHandler handler);
 

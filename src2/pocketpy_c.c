@@ -238,10 +238,6 @@ pkpy_CString pkpy_name_to_string(pkpy_CName name) {
     return returnValue;
 }
 
-void pkpy_compile_to_string(pkpy_vm* vm, const char* source, const char* filename, int mode, bool* ok, char** out) {
-
-}
-
 void pkpy_set_output_handler(pkpy_vm* vm, pkpy_COutputHandler handler) {
 
 }
