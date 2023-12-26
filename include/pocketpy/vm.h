@@ -565,19 +565,17 @@ PY_VAR_INT(unsigned short)
 PY_VAR_INT(unsigned int)
 PY_VAR_INT(unsigned long)
 PY_VAR_INT(unsigned long long)
-
-
-#define PY_VAR_FLOAT(T)                             \
-    inline PyObject* py_var(VM* vm, T _val){        \
-        PK_UNUSED(vm);                              \
-        return tag_float(static_cast<f64>(_val));   \
-    }
-
-PY_VAR_FLOAT(float)
-PY_VAR_FLOAT(double)
-
 #undef PY_VAR_INT
-#undef PY_VAR_FLOAT
+
+inline PyObject* py_var(VM* vm, float _val){
+    PK_UNUSED(vm);
+    return tag_float(static_cast<f64>(_val));
+}
+
+inline PyObject* py_var(VM* vm, double _val){
+    PK_UNUSED(vm);
+    return tag_float(static_cast<f64>(_val));
+}
 
 inline PyObject* py_var(VM* vm, bool val){
     return val ? vm->True : vm->False;
