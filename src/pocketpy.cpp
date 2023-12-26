@@ -1557,11 +1557,6 @@ void add_module_dis(VM* vm){
         vm->stdout_write(vm->disassemble(code));
         return vm->None;
     });
-
-    // vm->bind_func<1>(mod, "_s", [](VM* vm, ArgsView args) {
-    //     CodeObject_ code = get_code(vm, args[0]);
-    //     return VAR(code->serialize(vm));
-    // });
 }
 
 void add_module_gc(VM* vm){
