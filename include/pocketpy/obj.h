@@ -370,7 +370,7 @@ template<>
 struct Py_<Type> final: PyObject {
     Type _value;
     Py_(Type type, Type val): PyObject(type), _value(val) {
-        _enable_instance_dict(kTypeAttrLoadFactor);
+        _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return &_value; }
@@ -379,7 +379,7 @@ struct Py_<Type> final: PyObject {
 template<>
 struct Py_<DummyModule> final: PyObject {
     Py_(Type type): PyObject(type) {
-        _enable_instance_dict(kTypeAttrLoadFactor);
+        _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return nullptr; }

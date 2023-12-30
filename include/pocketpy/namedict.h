@@ -119,7 +119,7 @@ while(!_items[i].first.empty()) {           \
 
 #define HASH_PROBE_0 HASH_PROBE_1
 
-    LargeNameDict(float load_factor=kInstAttrLoadFactor): _is_small(false), _load_factor(load_factor), _size(0) {
+    LargeNameDict(float load_factor=PK_INST_ATTR_LOAD_FACTOR): _is_small(false), _load_factor(load_factor), _size(0) {
         _set_capacity_and_alloc_items(kInitialCapacity);
     }
 

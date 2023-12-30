@@ -329,7 +329,7 @@ namespace pkpy{
         }
 
         // try import
-        Str filename = path.replace('.', kPlatformSep) + ".py";
+        Str filename = path.replace('.', PK_PLATFORM_SEP) + ".py";
         Str source;
         bool is_init = false;
         auto it = _lazy_modules.find(name);
@@ -337,7 +337,7 @@ namespace pkpy{
             int out_size;
             unsigned char* out = _import_handler(filename.data, filename.size, &out_size);
             if(out == nullptr){
-                filename = path.replace('.', kPlatformSep).str() + kPlatformSep + "__init__.py";
+                filename = path.replace('.', PK_PLATFORM_SEP).str() + PK_PLATFORM_SEP + "__init__.py";
                 is_init = true;
                 out = _import_handler(filename.data, filename.size, &out_size);
             }
