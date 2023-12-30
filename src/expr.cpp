@@ -216,6 +216,12 @@ namespace pkpy{
         ctx->emit_(OP_BUILD_LONG, BC_NOARG, line);
     }
 
+    void ImagExpr::emit_(CodeEmitContext* ctx) {
+        VM* vm = ctx->vm;
+        ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(value)), line);
+        ctx->emit_(OP_BUILD_IMAG, BC_NOARG, line);
+    }
+
     void BytesExpr::emit_(CodeEmitContext* ctx) {
         VM* vm = ctx->vm;
         ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(s)), line);

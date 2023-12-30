@@ -85,6 +85,7 @@ class Compiler {
 
     void exprLiteral();
     void exprLong();
+    void exprImag();
     void exprBytes();
     void exprFString();
     void exprLambda();

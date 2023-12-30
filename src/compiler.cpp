@@ -125,6 +125,7 @@ namespace pkpy{
         rules[TK("@str")] =     { PK_METHOD(exprLiteral),   PK_NO_INFIX };
         rules[TK("@fstr")] =    { PK_METHOD(exprFString),   PK_NO_INFIX };
         rules[TK("@long")] =    { PK_METHOD(exprLong),      PK_NO_INFIX };
+        rules[TK("@imag")] =    { PK_METHOD(exprImag),      PK_NO_INFIX };
         rules[TK("@bytes")] =   { PK_METHOD(exprBytes),     PK_NO_INFIX };
 #undef PK_METHOD
 #undef PK_NO_INFIX
@@ -196,6 +197,10 @@ namespace pkpy{
 
     void Compiler::exprLong(){
         ctx()->s_expr.push(make_expr<LongExpr>(prev().str()));
+    }
+
+    void Compiler::exprImag(){
+        ctx()->s_expr.push(make_expr<ImagExpr>(std::get<f64>(prev().value)));
     }
 
     void Compiler::exprBytes(){

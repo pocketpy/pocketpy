@@ -11,7 +11,7 @@ typedef uint8_t TokenIndex;
 constexpr const char* kTokens[] = {
     "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
-    "@id", "@num", "@str", "@fstr", "@long", "@bytes",
+    "@id", "@num", "@str", "@fstr", "@long", "@bytes", "@imag",
     "@indent", "@dedent",
     /*****************************************/
     "+", "+=", "-", "-=",   // (INPLACE_OP - 1) can get '=' removed

@@ -133,6 +133,12 @@ struct BytesExpr: Expr{
     void emit_(CodeEmitContext* ctx) override;
 };
 
+struct ImagExpr: Expr{
+    f64 value;
+    ImagExpr(f64 value): value(value) {}
+    void emit_(CodeEmitContext* ctx) override;
+};
+
 // @num, @str which needs to invoke OP_LOAD_CONST
 struct LiteralExpr: Expr{
     TokenValue value;

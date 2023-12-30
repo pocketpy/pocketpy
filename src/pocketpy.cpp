@@ -1660,7 +1660,7 @@ void VM::post_init(){
     add_module_operator(this);
     add_module_csv(this);
 
-    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "dataclasses"}){
+    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "dataclasses", "cmath"}){
         _lazy_modules[name] = kPythonLibs[name];
     }
 

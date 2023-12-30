@@ -13,7 +13,7 @@ std::set<char> kValidChars = {
     // A-Z
     'A','B','C','D','E','F',
     // other valid chars
-    '.', 'L', 'x', 'b', 'o',
+    '.', 'L', 'x', 'b', 'o', 'j'
 };
 
 static bool is_unicode_Lo_char(uint32_t c) {
@@ -301,6 +301,11 @@ static bool is_unicode_Lo_char(uint32_t c) {
         
         if(p_end == text.data() + text.size()){
             add_token(TK("@num"), (f64)float_out);
+            return;
+        }
+
+        if(i[-1] == 'j' && p_end == text.data() + text.size() - 1){
+            add_token(TK("@imag"), (f64)float_out);
             return;
         }
 
