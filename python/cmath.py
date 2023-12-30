@@ -21,9 +21,9 @@ class complex:
     
     def __eq__(self, other):
         if type(other) is complex:
-            return math.isclose(self.real, other.real) and math.isclose(self.imag, other.imag)
+            return self.real == other.real and self.imag == other.imag
         if type(other) in (int, float):
-            return math.isclose(self.real, other) and self.imag == 0
+            return self.real == other and self.imag == 0
         return NotImplemented
     
     def __add__(self, other):
@@ -69,6 +69,9 @@ class complex:
     
     def __abs__(self) -> float:
         return math.sqrt(self.real ** 2 + self.imag ** 2)
+    
+    def __hash__(self):
+        return hash((self.real, self.imag))
 
 
 # Conversions to and from polar coordinates
@@ -146,6 +149,9 @@ def isinf(z: complex):
 
 def isnan(z: complex):
     return math.isnan(z.real) or math.isnan(z.imag)
+
+def isclose(a: complex, b: complex):
+    return math.isclose(a.real, b.real) and math.isclose(a.imag, b.imag)
 
 # Constants
 
