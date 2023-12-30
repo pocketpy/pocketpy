@@ -12,6 +12,9 @@ assert (1+2j)*3 == 3+6j
 
 import cmath
 
+assert (1+2j)**2 == -3+4j
+
+assert (1+2j).conjugate() == 1-2j
+
 res = cmath.sqrt(1+2j)
-assert round(res.real, 3) == 1.272, res.real
-assert round(res.imag, 3) == 0.786, res.imag
+assert res == 1.272019649514069+0.7861513777574233j

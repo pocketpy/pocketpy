@@ -59,6 +59,10 @@ Return `True` if `x` is a positive or negative infinity, and `False` otherwise.
 
 Return `True` if `x` is a NaN (not a number), and `False` otherwise.
 
+### `math.isclose(a, b)`
+
+Return `True` if the values `a` and `b` are close to each other and `False` otherwise.
+
 ### `math.exp(x)`
 
 Return `e` raised to the power of `x`.

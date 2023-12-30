@@ -13,14 +13,17 @@ class complex:
     def imag(self):
         return self._imag
     
+    def conjugate(self):
+        return complex(self.real, -self.imag)
+    
     def __repr__(self):
         return f"({self.real}+{self.imag}j)"
     
     def __eq__(self, other):
         if type(other) is complex:
-            return self.real == other.real and self.imag == other.imag
+            return math.isclose(self.real, other.real) and math.isclose(self.imag, other.imag)
         if type(other) in (int, float):
-            return self.real == other and self.imag == 0
+            return math.isclose(self.real, other) and self.imag == 0
         return NotImplemented
     
     def __add__(self, other):
@@ -143,9 +146,6 @@ def isinf(z: complex):
 
 def isnan(z: complex):
     return math.isnan(z.real) or math.isnan(z.imag)
-
-def isclose(*args, **kwargs):
-    raise NotImplementedError
 
 # Constants
 

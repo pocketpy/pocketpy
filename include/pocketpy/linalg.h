@@ -4,7 +4,7 @@
 
 namespace pkpy{
 
-inline bool isclose(float a, float b){ return fabsf(a - b) < 1e-4f; }
+inline bool isclose(float a, float b){ return std::fabsf(a - b) <= NumberTraits<4>::kEpsilon; }
 
 struct Vec2{
     float x, y;
