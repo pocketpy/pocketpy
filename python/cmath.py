@@ -17,7 +17,12 @@ class complex:
         return complex(self.real, -self.imag)
     
     def __repr__(self):
-        return f"({self.real}+{self.imag}j)"
+        s = ['(', str(self.real)]
+        if self.imag >= 0:
+            s.append('+')
+        s.append(str(self.imag))
+        s.append('j)')
+        return ''.join(s)
     
     def __eq__(self, other):
         if type(other) is complex:

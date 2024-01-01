@@ -20,3 +20,8 @@ res = sqrt(1+2j)
 assert isclose(res, 1.272019649514069+0.7861513777574233j)
 
 assert {1+2j: 1}[1+2j] == 1
+
+assert repr(1+2j) == '(1.0+2.0j)'
+assert repr(1+0j) == '(1.0+0.0j)'
+assert repr(-1-3j) == '(-1.0-3.0j)'
+assert repr(1-3j) == '(1.0-3.0j)'
