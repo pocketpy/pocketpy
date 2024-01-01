@@ -69,6 +69,9 @@ class complex:
     
     def __abs__(self) -> float:
         return math.sqrt(self.real ** 2 + self.imag ** 2)
+
+    def __neg__(self):
+        return complex(-self.real, -self.imag)
     
     def __hash__(self):
         return hash((self.real, self.imag))
