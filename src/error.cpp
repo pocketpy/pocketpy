@@ -59,6 +59,7 @@ namespace pkpy{
             ss << st.top().snapshot() << '\n';
             st.pop();
         }
+        // TODO: allow users to override the behavior
         if (!msg.empty()) ss << type.sv() << ": " << msg;
         else ss << type.sv();
         return ss.str();
