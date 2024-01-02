@@ -50,7 +50,6 @@ static PyObject* stack_item(VM* vm, int index){
     } catch(const std::exception& re){ \
         PyObject* e_t = vm->_t(vm->tp_exception); \
         vm->_c.error = vm->call(e_t, VAR(re.what())); \
-        PK_OBJ_GET(Exception, vm->_c.error)._self = vm->_c.error; \
         return false; \
     }
 
@@ -505,7 +504,6 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
         }
     }
     vm->_c.error = vm->call(e_t, VAR(std::string_view(message.data, message.size)));
-    PK_OBJ_GET(Exception, vm->_c.error)._self = vm->_c.error;
     return false;
 }
 

@@ -1176,7 +1176,6 @@ void VM::_builtin_error(StrName type, const Str& msg){ _builtin_error(type, VAR(
 void VM::_error(PyObject* e_obj){
     PK_ASSERT(isinstance(e_obj, tp_exception))
     Exception& e = PK_OBJ_GET(Exception, e_obj);
-    e._self = e_obj;
     if(callstack.empty()){
         e.is_re = false;
         throw e;

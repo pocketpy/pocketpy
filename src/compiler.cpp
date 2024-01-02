@@ -1202,7 +1202,6 @@ __EAT_DOTS_END:
         PyObject* e_obj = vm->call(vm->builtins->attr(type), VAR(msg));
         Exception& e = PK_OBJ_GET(Exception, e_obj);
         e.st_push(src, lineno, cursor, "");
-        e._self = e_obj;
         throw e;
     }
 }   // namespace pkpy
