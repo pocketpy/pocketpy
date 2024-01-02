@@ -30,7 +30,7 @@ namespace pkpy {
         
         try{
             vm->exec(line, "<stdin>", mode);
-        }catch(NeedMoreLines& ne){
+        }catch(NeedMoreLines ne){
             buffer += line;
             buffer += '\n';
             need_more_lines = ne.is_compiling_class ? 3 : 2;

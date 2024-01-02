@@ -178,6 +178,9 @@ namespace pkpy{
             msg = msg + e.what() + "\n";
             _stderr(msg.data, msg.size);
         }
+        catch(NeedMoreLines){
+            throw;
+        }
         catch(...) {
             Str msg = "An unknown exception occurred! It could be a bug. Please report it to @blueloveTH on GitHub.\n";
             _stderr(msg.data, msg.size);

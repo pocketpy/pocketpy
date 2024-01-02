@@ -856,11 +856,9 @@ __NEXT_STEP:;
 #undef CEVAL_STEP
 /**********************************************************************/
             UNREACHABLE();
-        }catch(HandledException& e){
-            PK_UNUSED(e);
+        }catch(HandledException){
             continue;
-        }catch(UnhandledException& e){
-            PK_UNUSED(e);
+        }catch(UnhandledException){
             PyObject* e_obj = POPX();
             Exception& _e = PK_OBJ_GET(Exception, e_obj);
             _pop_frame();
@@ -874,8 +872,7 @@ __NEXT_STEP:;
             PUSH(e_obj);
             if(frame.index < base_id) throw ToBeRaisedException();
             need_raise = true;
-        }catch(ToBeRaisedException& e){
-            PK_UNUSED(e);
+        }catch(ToBeRaisedException){
             need_raise = true;
         }
     }
