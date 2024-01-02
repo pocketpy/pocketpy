@@ -45,11 +45,12 @@ static PyObject* stack_item(VM* vm, int index){
 #define PK_PROTECTED(__B) \
     try{ __B }  \
     catch(const Exception& e ) { \
-        vm->_c.error = e._self; \
+        vm->_c.error = e.self(); \
         return false; \
     } catch(const std::exception& re){ \
         PyObject* e_t = vm->_t(vm->tp_exception); \
         vm->_c.error = vm->call(e_t, VAR(re.what())); \
+        PK_OBJ_GET(Exception, vm->_c.error)._self = vm->_c.error; \
         return false; \
     }
 
@@ -338,7 +339,7 @@ static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
 
     // propagate_if_errored
     if (vm->_c.error != nullptr){
-        PyObject* e_obj = PK_OBJ_GET(Exception, vm->_c.error)._self;
+        PyObject* e_obj = PK_OBJ_GET(Exception, vm->_c.error).self();
         vm->_c.error = nullptr;
         vm->_error(e_obj);
         return nullptr;
@@ -495,8 +496,13 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* e_t = vm->_t(vm->tp_exception);
+    PyObject* e_t = vm->builtins->attr().try_get_likely_found(name);
+    if(e_t == nullptr){
+        e_t = vm->_t(vm->tp_exception);
+        std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
+    }
     vm->_c.error = vm->call(e_t, VAR(std::string_view(message.data, message.size)));
+    PK_OBJ_GET(Exception, vm->_c.error)._self = vm->_c.error;
     return false;
 }
 

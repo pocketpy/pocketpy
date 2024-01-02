@@ -62,6 +62,11 @@ struct Exception {
     stack<ExceptionLine> stacktrace;
     Exception(StrName type): type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
+    PyObject* self(){
+        PK_ASSERT(_self != nullptr);
+        return _self;
+    }
+
     template<typename... Args>
     void st_push(Args&&... args){
         if(stacktrace.size() >= 8) return;

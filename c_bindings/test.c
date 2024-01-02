@@ -381,7 +381,7 @@ int main(int argc, char** argv) {
 
     //this should be catchable
     check(pkpy_exec(vm, "try : test_error_propagate(); except NameError : pass"));
-    error(pkpy_error(vm, "_", pkpy_string("test direct error mechanism")));
+    error(pkpy_error(vm, "Exception", pkpy_string("test direct error mechanism")));
 
     //more complicated error handling
     check(pkpy_exec(vm, "def error_from_python() : raise NotImplementedError()"));

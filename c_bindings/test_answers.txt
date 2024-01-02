@@ -92,7 +92,7 @@ Traceback (most recent call last):
 NameError: catch me
 successfully errored with this message: 
 Traceback (most recent call last):
-_: test direct error mechanism
+Exception: test direct error mechanism
 successfully errored with this message: 
 Traceback (most recent call last):
   File "main.py", line 1

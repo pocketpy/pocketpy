@@ -1727,7 +1727,7 @@ CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool unknown
 #if PK_DEBUG_FULL_EXCEPTION
         std::cerr << e.summary() << std::endl;
 #endif
-        _error(e._self);
+        _error(e.self());
         return nullptr;
     }
 }
