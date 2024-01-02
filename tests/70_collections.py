@@ -153,6 +153,7 @@ try:
 except TypeError:
     pass
 
+class ArithmeticError(Exception): pass
 
 class BadCompare:
     def __eq__(self, other):

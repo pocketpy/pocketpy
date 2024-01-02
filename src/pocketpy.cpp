@@ -1551,14 +1551,14 @@ void add_module_traceback(VM* vm){
     PyObject* mod = vm->new_module("traceback");
     vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
-        Exception& e = CAST(Exception&, vm->_last_exception);
+        Exception& e = _CAST(Exception&, vm->_last_exception);
         vm->stdout_write(e.summary());
         return vm->None;
     });
 
     vm->bind_func<0>(mod, "format_exc", [](VM* vm, ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
-        Exception& e = CAST(Exception&, vm->_last_exception);
+        Exception& e = _CAST(Exception&, vm->_last_exception);
         return VAR(e.summary());
     });
 }

@@ -38,7 +38,7 @@ assert True
 def f():
     try:
         raise KeyError('foo')
-    except A:   # will fail to catch
+    except IndexError:   # will fail to catch
         exit(1)
     except:
         pass
@@ -52,9 +52,9 @@ def f1():
         try:
             a = {1: 2, 3: 4}
             x = a[0]
-        except A:
+        except RuntimeError:
             exit(1)
-    except B:
+    except IndexError:
         exit(1)
     exit(1)
 
@@ -94,8 +94,24 @@ try:
 except IndexError as e:
     exit(1)
 except Exception as e:
+    assert type(e) is KeyError
     assert str(e) == '2'
     assert repr(e).startswith('KeyError(')
 except:
     exit(1)
 
+
+class MyException(Exception):
+    pass
+
+class MyException2(MyException):
+    pass
+
+try:
+    raise MyException2
+except MyException as e:
+    ok = True
+except Exception:
+    exit(1)
+
+assert ok
