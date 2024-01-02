@@ -62,7 +62,7 @@ struct Exception {
     stack<ExceptionLine> stacktrace;
     Exception(StrName type): type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
-    PyObject* self(){
+    PyObject* self() const{
         PK_ASSERT(_self != nullptr);
         return _self;
     }

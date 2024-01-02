@@ -496,10 +496,13 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* e_t = vm->builtins->attr().try_get_likely_found(name);
+    PyObject* e_t = vm->_main->attr().try_get_likely_found(name);
     if(e_t == nullptr){
-        e_t = vm->_t(vm->tp_exception);
-        std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
+        e_t = vm->builtins->attr().try_get_likely_found(name);
+        if(e_t == nullptr){
+            e_t = vm->_t(vm->tp_exception);
+            std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
+        }
     }
     vm->_c.error = vm->call(e_t, VAR(std::string_view(message.data, message.size)));
     PK_OBJ_GET(Exception, vm->_c.error)._self = vm->_c.error;
