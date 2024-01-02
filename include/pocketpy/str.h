@@ -140,6 +140,7 @@ struct SStream{
     SStream& operator<<(const std::string& s);
     SStream& operator<<(std::string_view s);
     SStream& operator<<(char c);
+    SStream& operator<<(StrName sn);
 
     template<typename T>
     SStream& operator<<(T val){

@@ -23,7 +23,7 @@
 #include <bitset>
 #include <deque>
 
-#define PK_VERSION				"1.3.5"
+#define PK_VERSION				"1.3.6"
 
 #include "config.h"
 #include "export.h"

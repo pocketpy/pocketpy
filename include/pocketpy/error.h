@@ -56,14 +56,11 @@ struct Exception {
 
     int _ip_on_error;
     void* _code_on_error;
+
+    PyObject* _self;    // weak reference
     
     stack<ExceptionLine> stacktrace;
-
-    Exception(StrName type, Str msg): 
-        type(type), msg(msg), is_re(true), _ip_on_error(-1), _code_on_error(nullptr) {}
-    bool match_type(StrName t) const {
-        return this->type==t || t.sv()=="Exception";
-    }
+    Exception(StrName type): type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
     template<typename... Args>
     void st_push(Args&&... args){

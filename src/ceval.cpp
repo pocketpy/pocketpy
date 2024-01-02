@@ -568,7 +568,7 @@ __NEXT_STEP:;
     TARGET(GOTO) {
         StrName _name(byte.arg);
         int index = co->labels.try_get_likely_found(_name);
-        if(index < 0) _error("KeyError", fmt("label ", _name.escape(), " not found"));
+        if(index < 0) RuntimeError(fmt("label ", _name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
@@ -787,20 +787,28 @@ __NEXT_STEP:;
         DISPATCH();
     /*****************************************/
     TARGET(EXCEPTION_MATCH) {
-        const auto& e = CAST(Exception&, TOP());
-        PUSH(VAR(e.match_type(StrName(byte.arg))));
+        PyObject* assumed_type = POPX();
+        check_non_tagged_type(assumed_type, tp_type);
+        PyObject* e_obj = TOP();
+        bool ok = isinstance(e_obj, PK_OBJ_GET(Type, assumed_type));
+        PUSH(VAR(ok));
     } DISPATCH();
     TARGET(RAISE) {
-        PyObject* _0 = POPX();
-        Str msg = _0 == None ? "" : CAST(Str, py_str(_0));
-        _error(StrName(byte.arg), msg);
+        if(is_non_tagged_type(TOP(), tp_type)){
+            TOP() = call(TOP());
+        }
+        if(!isinstance(TOP(), tp_exception)){
+            _builtin_error("TypeError", "exceptions must derive from Exception");
+            UNREACHABLE();
+        }
+        _error(POPX());
     } DISPATCH();
     TARGET(RAISE_ASSERT)
         if(byte.arg){
             PyObject* _0 = py_str(POPX());
-            _error("AssertionError", CAST(Str, _0));
+            _builtin_error("AssertionError", CAST(Str, _0));
         }else{
-            _error("AssertionError", "");
+            _builtin_error("AssertionError");
         }
         DISPATCH();
     TARGET(RE_RAISE) _raise(true); DISPATCH();
@@ -853,8 +861,8 @@ __NEXT_STEP:;
             continue;
         }catch(UnhandledException& e){
             PK_UNUSED(e);
-            PyObject* obj = POPX();
-            Exception& _e = CAST(Exception&, obj);
+            PyObject* e_obj = POPX();
+            Exception& _e = PK_OBJ_GET(Exception, e_obj);
             _pop_frame();
             if(callstack.empty()){
 #if PK_DEBUG_FULL_EXCEPTION
@@ -863,7 +871,7 @@ __NEXT_STEP:;
                 throw _e;
             }
             frame = top_frame();
-            PUSH(obj);
+            PUSH(e_obj);
             if(frame.index < base_id) throw ToBeRaisedException();
             need_raise = true;
         }catch(ToBeRaisedException& e){

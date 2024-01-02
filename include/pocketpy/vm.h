@@ -52,7 +52,7 @@ struct PyTypeInfo{
     PyObject* obj;      // never be garbage collected
     Type base;
     PyObject* mod;      // never be garbage collected
-    Str name;
+    StrName name;
     bool subclass_enabled;
 
     std::vector<StrName> annotated_fields;
@@ -219,7 +219,7 @@ public:
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
-    Type _new_type_object(StrName name, Type base=0);
+    Type _new_type_object(StrName name, Type base=0, bool subclass_enabled=false);
     PyObject* _find_type_object(const Str& type);
 
     Type _type(const Str& type);
@@ -362,37 +362,36 @@ public:
     PyObject* py_next(PyObject* obj);
     
     /***** Error Reporter *****/
-    void _error(StrName name, const Str& msg){
-        _error(Exception(name, msg));
-    }
-
     void _raise(bool re_raise=false);
 
-    void StackOverflowError() { _error("StackOverflowError", ""); }
-    void IOError(const Str& msg) { _error("IOError", msg); }
-    void NotImplementedError(){ _error("NotImplementedError", ""); }
-    void TypeError(const Str& msg){ _error("TypeError", msg); }
-    void IndexError(const Str& msg){ _error("IndexError", msg); }
-    void ValueError(const Str& msg){ _error("ValueError", msg); }
-    void RuntimeError(const Str& msg){ _error("RuntimeError", msg); }
-    void ZeroDivisionError(const Str& msg){ _error("ZeroDivisionError", msg); }
-    void ZeroDivisionError(){ _error("ZeroDivisionError", "division by zero"); }
-    void NameError(StrName name){ _error("NameError", fmt("name ", name.escape() + " is not defined")); }
-    void UnboundLocalError(StrName name){ _error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
-    void KeyError(PyObject* obj){ _error("KeyError", PK_OBJ_GET(Str, py_repr(obj))); }
+    void _builtin_error(StrName type);
+    void _builtin_error(StrName type, PyObject* arg);
+    void _builtin_error(StrName type, const Str& msg);
+
+    void StackOverflowError() { _builtin_error("StackOverflowError"); }
+    void IOError(const Str& msg) { _builtin_error("IOError", msg); }
+    void NotImplementedError(){ _builtin_error("NotImplementedError"); }
+    void TypeError(const Str& msg){ _builtin_error("TypeError", msg); }
+    void IndexError(const Str& msg){ _builtin_error("IndexError", msg); }
+    void ValueError(const Str& msg){ _builtin_error("ValueError", msg); }
+    void RuntimeError(const Str& msg){ _builtin_error("RuntimeError", msg); }
+    void ZeroDivisionError(const Str& msg){ _builtin_error("ZeroDivisionError", msg); }
+    void ZeroDivisionError(){ _builtin_error("ZeroDivisionError", "division by zero"); }
+    void NameError(StrName name){ _builtin_error("NameError", fmt("name ", name.escape() + " is not defined")); }
+    void UnboundLocalError(StrName name){ _builtin_error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
+    void KeyError(PyObject* obj){ _builtin_error("KeyError", obj); }
     void BinaryOptError(const char* op) { TypeError(fmt("unsupported operand type(s) for ", op)); }
-    void ImportError(const Str& msg){ _error("ImportError", msg); }
+    void ImportError(const Str& msg){ _builtin_error("ImportError", msg); }
 
     void AttributeError(PyObject* obj, StrName name){
         // OBJ_NAME calls getattr, which may lead to a infinite recursion
         if(isinstance(obj, vm->tp_type)){
-            _error("AttributeError", fmt("type object ", OBJ_NAME(obj).escape(), " has no attribute ", name.escape()));
+            _builtin_error("AttributeError", fmt("type object ", OBJ_NAME(obj).escape(), " has no attribute ", name.escape()));
         }else{
-            _error("AttributeError", fmt(OBJ_NAME(_t(obj)).escape(), " object has no attribute ", name.escape()));
+            _builtin_error("AttributeError", fmt(OBJ_NAME(_t(obj)).escape(), " object has no attribute ", name.escape()));
         }
     }
-
-    void AttributeError(Str msg){ _error("AttributeError", msg); }
+    void AttributeError(const Str& msg){ _builtin_error("AttributeError", msg); }
 
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
@@ -471,7 +470,7 @@ public:
     PyObject* bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
     PyObject* bind_func(PyObject*, Str, NativeFuncC);
-    void _error(Exception);
+    void _error(PyObject*);
     PyObject* _run_top_frame();
     void post_init();
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);

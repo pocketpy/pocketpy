@@ -198,7 +198,7 @@ inline void gc_mark_namedict(NameDict& t){
     });
 }
 
-Str obj_type_name(VM* vm, Type type);
+StrName obj_type_name(VM* vm, Type type);
 
 #if PK_DEBUG_NO_BUILTINS
 #define OBJ_NAME(obj) Str("<?>")

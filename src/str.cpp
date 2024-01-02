@@ -465,6 +465,10 @@ int utf8len(unsigned char c, bool suppress){
         return *this;
     }
 
+    SStream& SStream::operator<<(StrName sn){
+        return *this << sn.sv();
+    }
+
     SStream& SStream::operator<<(i64 val){
         // str(-2**64).__len__() == 21
         buffer.reserve(buffer.size() + 24);

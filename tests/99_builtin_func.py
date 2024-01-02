@@ -1,25 +1,3 @@
-# 无法测试 -----------------------------------------------
-#     #####:   41:static dylib_entry_t load_dylib(const char* path){
-#     #####:   42:    std::error_code ec;
-#     #####:   43:    auto p = std::filesystem::absolute(path, ec);
-#     #####:   44:    if(ec) return nullptr;
-#     #####:   45:    void* handle = dlopen(p.c_str(), RTLD_LAZY);
-#     #####:   46:    if(!handle) return nullptr;
-#     #####:   47:    return (dylib_entry_t)dlsym(handle, "pkpy_module__init__");
-#     #####:   48:}
-
-# -----------------------------------------------
-#       128:  107:    _vm->bind_builtin_func<2>("super", [](VM* vm, ArgsView args) {
-#         8:  108:        vm->check_non_tagged_type(args[0], vm->tp_type);
-#         8:  109:        Type type = PK_OBJ_GET(Type, args[0]);
-#         8:  110:        if(!vm->isinstance(args[1], type)){
-#     #####:  111:            Str _0 = obj_type_name(vm, PK_OBJ_GET(Type, vm->_t(args[1])));
-#     #####:  112:            Str _1 = obj_type_name(vm, type);
-#     #####:  113:            vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
-#     #####:  114:        }
-#         8:  115:        Type base = vm->_all_types[type].base;
-#        16:  116:        return vm->heap.gcnew(vm->tp_super, Super(args[1], base));
-#         8:  117:    });
 # test super:
 class TestSuperBase():
     def __init__(self):
@@ -29,7 +7,7 @@ class TestSuperBase():
         return self.base_attr
     
     def error(self):
-        raise Expection('未能拦截错误')
+        raise Exception('未能拦截错误')
     
 
 class TestSuperChild1(TestSuperBase):

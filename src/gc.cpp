@@ -52,7 +52,7 @@ namespace pkpy{
         for(PyObject* obj: gen) { obj->~PyObject(); pool64_dealloc(obj); }
 #if PK_DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
-            std::cout << "GC: " << obj_type_name(vm, type) << "=" << count << std::endl;
+            std::cout << "GC: " << obj_type_name(vm, type).sv() << "=" << count << std::endl;
         }
 #endif
     }

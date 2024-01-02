@@ -44,12 +44,12 @@ static PyObject* stack_item(VM* vm, int index){
 
 #define PK_PROTECTED(__B) \
     try{ __B }  \
-    catch(Exception& e ) { \
-        vm->_c.error = py_var(vm, e); \
+    catch(const Exception& e ) { \
+        vm->_c.error = e._self; \
         return false; \
     } catch(const std::exception& re){ \
-        auto e = Exception("std::exception", re.what()); \
-        vm->_c.error = py_var(vm, e); \
+        PyObject* e_t = vm->_t(vm->tp_exception); \
+        vm->_c.error = vm->call(e_t, VAR(re.what())); \
         return false; \
     }
 
@@ -338,9 +338,9 @@ static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
 
     // propagate_if_errored
     if (vm->_c.error != nullptr){
-        Exception e = _py_cast<Exception&>(vm, vm->_c.error);
+        PyObject* e_obj = PK_OBJ_GET(Exception, vm->_c.error)._self;
         vm->_c.error = nullptr;
-        vm->_error(e);
+        vm->_error(e_obj);
         return nullptr;
     }
     PK_ASSERT(retc == vm->s_data._sp-curr_sp);
@@ -495,7 +495,8 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    vm->_c.error = py_var(vm, Exception(name, Str(message.data, message.size)));
+    PyObject* e_t = vm->_t(vm->tp_exception);
+    vm->_c.error = vm->call(e_t, VAR(std::string_view(message.data, message.size)));
     return false;
 }
 
@@ -508,7 +509,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     VM* vm = (VM*) vm_handle;
     // no error
     if (vm->_c.error == nullptr) return false;
-    Exception& e = _py_cast<Exception&>(vm, vm->_c.error);
+    Exception& e = PK_OBJ_GET(Exception, vm->_c.error);
     if (message != nullptr)
         *message = e.summary().c_str_dup();
     else

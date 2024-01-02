@@ -268,9 +268,6 @@ def help(obj):
     print(obj.__doc__)
 
 
-class Exception: pass
-
-
 class classmethod:
     def __init__(self, f):
         self.f = f
@@ -287,3 +284,40 @@ def complex(*args, **kwargs):
 def long(*args, **kwargs):
     import _long
     return _long.long(*args, **kwargs)
+
+
+# builtin exceptions
+class SyntaxError(Exception): pass
+class IndentationError(SyntaxError): pass
+
+class StackOverflowError(Exception): pass
+class IOError(Exception): pass
+class NotImplementedError(Exception): pass
+class TypeError(Exception): pass
+class IndexError(Exception): pass
+class ValueError(Exception): pass
+class RuntimeError(Exception): pass
+class ZeroDivisionError(Exception): pass
+class NameError(Exception): pass
+class UnboundLocalError(Exception): pass
+class AttributeError(Exception): pass
+class ImportError(Exception): pass
+class AssertionError(Exception): pass
+
+class KeyError(Exception):
+    def __init__(self, key=...):
+        self.key = key
+        if key is ...:
+            super().__init__()
+        else:
+            super().__init__(repr(key))
+
+    def __str__(self):
+        if self.key is ...:
+            return ''
+        return str(self.key)
+    
+    def __repr__(self):
+        if self.key is ...:
+            return 'KeyError()'
+        return f'KeyError({self.key!r})'

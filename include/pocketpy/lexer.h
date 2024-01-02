@@ -3,6 +3,7 @@
 #include "common.h"
 #include "error.h"
 #include "str.h"
+#include "obj.h"
 
 namespace pkpy{
 
@@ -100,6 +101,7 @@ enum Precedence {
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
+    VM* vm;
     std::shared_ptr<SourceData> src;
     const char* token_start;
     const char* curr_char;
@@ -129,12 +131,12 @@ struct Lexer {
     bool lex_one_token();
 
     /***** Error Reporter *****/
-    void throw_err(Str type, Str msg);
-    void throw_err(Str type, Str msg, int lineno, const char* cursor);
+    void throw_err(StrName type, Str msg);
+    void throw_err(StrName type, Str msg, int lineno, const char* cursor);
     void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
     void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
     void IndentationError(Str msg){ throw_err("IndentationError", msg); }
-    Lexer(std::shared_ptr<SourceData> src);
+    Lexer(VM* vm, std::shared_ptr<SourceData> src);
     std::vector<Token> run();
 };
 

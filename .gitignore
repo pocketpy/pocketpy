@@ -35,3 +35,5 @@ libpocketpy.dylib
 
 .xmake/
 
+libpocketpy.dylib.dSYM/
+main.dSYM/
