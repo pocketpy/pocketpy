@@ -24,16 +24,17 @@ enum CompileMode {
 };
 
 struct SourceData {
-    std::string source;  // assume '\0' terminated
+    PK_ALWAYS_PASS_BY_POINTER(SourceData)
+
     Str filename;
-    std::vector<const char*> line_starts;
     CompileMode mode;
 
-    SourceData(const SourceData&) = delete;
-    SourceData& operator=(const SourceData&) = delete;
-
+    std::string source;  // assume '\0' terminated
+    std::vector<const char*> line_starts;
+    
     SourceData(const Str& source, const Str& filename, CompileMode mode);
-    std::pair<const char*,const char*> get_line(int lineno) const;
+    SourceData(const Str& filename, CompileMode mode);
+    std::pair<const char*,const char*> _get_line(int lineno) const;
     Str snapshot(int lineno, const char* cursor, std::string_view name) const;
 };
 

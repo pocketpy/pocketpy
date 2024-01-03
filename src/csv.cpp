@@ -1,5 +1,4 @@
 #include "pocketpy/csv.h"
-#include "pocketpy/config.h"
 
 namespace pkpy{
 

@@ -452,7 +452,7 @@ public:
     void _unpack_as_list(ArgsView args, List& list);
     void _unpack_as_dict(ArgsView args, Dict& dict);
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
-    CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope=false);
+    CodeObject_ compile(const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* py_negate(PyObject* obj);
     bool py_bool(PyObject* obj);
     i64 py_hash(PyObject* obj);

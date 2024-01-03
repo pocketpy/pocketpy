@@ -1,5 +1,4 @@
 #include "pocketpy/vm.h"
-#include "pocketpy/error.h"
 
 namespace pkpy{
 

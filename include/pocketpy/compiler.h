@@ -17,6 +17,8 @@ struct PrattRule{
 };
 
 class Compiler {
+    PK_ALWAYS_PASS_BY_POINTER(Compiler)
+
     inline static PrattRule rules[kTokenCount];
     std::unique_ptr<Lexer> lexer;
     stack<CodeEmitContext> contexts;
@@ -134,9 +136,6 @@ class Compiler {
 public:
     Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     CodeObject_ compile();
-
-    Compiler(const Compiler&) = delete;
-    Compiler& operator=(const Compiler&) = delete;
 };
 
 } // namespace pkpy

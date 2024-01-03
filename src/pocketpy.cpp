@@ -1720,8 +1720,8 @@ void VM::post_init(){
 #endif
 }
 
-CodeObject_ VM::compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope) {
-    Compiler compiler(this, std::move(source), filename, mode, unknown_global_scope);
+CodeObject_ VM::compile(const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
+    Compiler compiler(this, source, filename, mode, unknown_global_scope);
     try{
         return compiler.compile();
     }catch(const Exception& e){
