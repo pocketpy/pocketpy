@@ -41,7 +41,7 @@ namespace pkpy{
     }
 
     int ManagedHeap::collect(){
-        if(_gc_lock_counter > 0) FATAL_ERROR();
+        PK_ASSERT(_gc_lock_counter == 0)
         mark();
         int freed = sweep();
         return freed;

@@ -159,7 +159,7 @@ while(!_items[i].first.empty()) {           \
             if(old_items[i].first.empty()) continue;
             bool ok; uint16_t j;
             HASH_PROBE_1(old_items[i].first, ok, j);
-            if(ok) FATAL_ERROR();
+            if(ok) PK_FATAL_ERROR();
             _items[j] = old_items[i];
         }
         free(old_items);

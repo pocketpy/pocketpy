@@ -59,7 +59,7 @@ struct ValueStackImpl {
     PyObject** end() { return _sp; }
     void reset(PyObject** sp) {
 #if PK_DEBUG_EXTRA_CHECK
-        if(sp < _begin || sp > _begin + MAX_SIZE) FATAL_ERROR();
+        if(sp < _begin || sp > _begin + MAX_SIZE) PK_FATAL_ERROR();
 #endif
         _sp = sp;
     }
@@ -105,7 +105,7 @@ struct Frame {
     Bytecode next_bytecode() {
         _ip = _next_ip++;
 #if PK_DEBUG_EXTRA_CHECK
-        if(_ip >= co->codes.size()) FATAL_ERROR();
+        if(_ip >= co->codes.size()) PK_FATAL_ERROR();
 #endif
         return co->codes[_ip];
     }

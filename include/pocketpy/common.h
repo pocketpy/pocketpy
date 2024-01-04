@@ -187,12 +187,12 @@ struct Type {
 #define PK_ACTION(x) ([](VM* vm, ArgsView args) { x; return vm->None; })
 
 #ifdef POCKETPY_H
-#define FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");
+#define PK_FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #else
-#define FATAL_ERROR() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " FATAL_ERROR()!");
+#define PK_FATAL_ERROR() throw std::runtime_error( __FILE__ + std::string(":") + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #endif
 
-#define PK_ASSERT(x) if(!(x)) FATAL_ERROR();
+#define PK_ASSERT(x) if(!(x)) PK_FATAL_ERROR();
 
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<Number::int_t>(p))

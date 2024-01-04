@@ -299,7 +299,7 @@ namespace pkpy{
             case TK("**"):
                 ctx()->s_expr.push(make_expr<StarredExpr>(2, ctx()->s_expr.popx()));
                 break;
-            default: FATAL_ERROR();
+            default: PK_FATAL_ERROR();
         }
     }
 
@@ -489,7 +489,7 @@ __SUBSCR_END:
         if(is_slice){
             e->b = std::move(slice);
         }else{
-            if(state != 1) FATAL_ERROR();
+            PK_ASSERT(state == 1)
             e->b = std::move(slice->start);
         }
         ctx()->s_expr.push(std::move(e));
@@ -1128,7 +1128,7 @@ __EAT_DOTS_END:
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
         }
-        if(obj == nullptr) FATAL_ERROR();
+        PK_ASSERT(obj != nullptr)
         return obj;
     }
 
@@ -1163,7 +1163,7 @@ __EAT_DOTS_END:
 
 
     CodeObject_ Compiler::compile(){
-        if(used) FATAL_ERROR();
+        PK_ASSERT(!used)
         used = true;
 
         tokens = lexer->run();

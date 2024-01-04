@@ -121,7 +121,7 @@ namespace pkpy{
 
     FrameId VM::top_frame(){
 #if PK_DEBUG_EXTRA_CHECK
-        if(callstack.empty()) FATAL_ERROR();
+        if(callstack.empty()) PK_FATAL_ERROR();
 #endif
         return FrameId(&callstack.data(), callstack.size()-1);
     }
@@ -240,7 +240,7 @@ namespace pkpy{
         PyObject* obj = builtins->attr().try_get_likely_found(type);
         if(obj == nullptr){
             for(auto& t: _all_types) if(t.name == type) return &t;
-            FATAL_ERROR();
+            PK_FATAL_ERROR();
         }
         return &_all_types[PK_OBJ_GET(Type, obj)];
     }
@@ -669,7 +669,7 @@ void VM::_log_s_data(const char* title) {
     if(title) ss << title << " | ";
     std::map<PyObject**, int> sp_bases;
     for(Frame& f: callstack.data()){
-        if(f._sp_base == nullptr) FATAL_ERROR();
+        if(f._sp_base == nullptr) PK_FATAL_ERROR();
         sp_bases[f._sp_base] += 1;
     }
     FrameId frame = top_frame();
@@ -877,7 +877,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     // handle boundmethod, do a patch
     if(is_non_tagged_type(callable, tp_bound_method)){
-        if(method_call) FATAL_ERROR();
+        if(method_call) PK_FATAL_ERROR();
         auto& bm = CAST(BoundMethod&, callable);
         callable = bm.func;      // get unbound method
         p1[-(ARGC + 2)] = bm.func;
@@ -962,7 +962,7 @@ __FAST_CALL:
     }
 
     if(is_non_tagged_type(callable, tp_type)){
-        if(method_call) FATAL_ERROR();
+        if(method_call) PK_FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
         PyObject* new_f = find_name_in_mro(callable, __new__);
         PyObject* obj;

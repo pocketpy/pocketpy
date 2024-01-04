@@ -438,7 +438,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                         case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c)); break;
                         case 3: SyntaxError("@id contains invalid char"); break;
                         case 4: SyntaxError("invalid JSON token"); break;
-                        default: FATAL_ERROR();
+                        default: PK_FATAL_ERROR();
                     }
                     return true;
                 }
@@ -473,7 +473,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     std::vector<Token> Lexer::run() {
-        if(used) FATAL_ERROR();
+        PK_ASSERT(!used)
         used = true;
         while (lex_one_token());
         return std::move(nexts);

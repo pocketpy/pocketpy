@@ -26,7 +26,7 @@ namespace pkpy{
         if(curr_type == FOR_LOOP) for_loop_depth--;
         co->blocks[curr_block_i].end = co->codes.size();
         curr_block_i = co->blocks[curr_block_i].parent;
-        if(curr_block_i < 0) FATAL_ERROR();
+        if(curr_block_i < 0) PK_FATAL_ERROR();
 
         if(curr_type == FOR_LOOP){
             // add a no op here to make block check work
@@ -116,7 +116,7 @@ namespace pkpy{
             case NAME_GLOBAL_UNKNOWN:
                 emit_(OP_STORE_NAME, StrName(name).index, line);
                 break;
-            default: FATAL_ERROR(); break;
+            default: PK_FATAL_ERROR(); break;
         }
     }
 
@@ -151,7 +151,7 @@ namespace pkpy{
             case NAME_GLOBAL_UNKNOWN:
                 ctx->emit_(OP_DELETE_NAME, StrName(name).index, line);
                 break;
-            default: FATAL_ERROR(); break;
+            default: PK_FATAL_ERROR(); break;
         }
         return true;
     }
@@ -206,7 +206,7 @@ namespace pkpy{
             case TK("True"):    ctx->emit_(OP_LOAD_TRUE, BC_NOARG, line); break;
             case TK("False"):   ctx->emit_(OP_LOAD_FALSE, BC_NOARG, line); break;
             case TK("..."):     ctx->emit_(OP_LOAD_ELLIPSIS, BC_NOARG, line); break;
-            default: FATAL_ERROR();
+            default: PK_FATAL_ERROR();
         }
     }
 
@@ -245,7 +245,7 @@ namespace pkpy{
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
         }
-        if(obj == nullptr) FATAL_ERROR();
+        PK_ASSERT(obj != nullptr)
         ctx->emit_(OP_LOAD_CONST, ctx->add_const(obj), line);
     }
 
@@ -557,7 +557,7 @@ namespace pkpy{
             if(!kwargs.empty()){
                 for(auto& item: kwargs){
                     if(item.second->is_starred()){
-                        if(item.second->star_level() != 2) FATAL_ERROR();
+                        PK_ASSERT(item.second->star_level() == 2)
                         item.second->emit_(ctx);
                     }else{
                         // k=v
@@ -658,7 +658,7 @@ namespace pkpy{
             case TK("^"):   ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line);  break;
 
             case TK("@"):   ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line);  break;
-            default: FATAL_ERROR();
+            default: PK_FATAL_ERROR();
         }
 
         for(int i: jmps) ctx->patch_jump(i);
