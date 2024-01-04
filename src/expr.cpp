@@ -611,7 +611,7 @@ namespace pkpy{
             case TK("!="):  ctx->emit_(OP_COMPARE_NE, BC_NOARG, line);  break;
             case TK(">"):   ctx->emit_(OP_COMPARE_GT, BC_NOARG, line);  break;
             case TK(">="):  ctx->emit_(OP_COMPARE_GE, BC_NOARG, line);  break;
-            default: UNREACHABLE();
+            default: PK_UNREACHABLE();
         }
         // [b, RES]
         int index = ctx->emit_(OP_SHORTCUT_IF_FALSE_OR_POP, BC_NOARG, line);

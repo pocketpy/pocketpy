@@ -223,7 +223,6 @@ public:
     PyObject* _find_type_object(const Str& type);
 
     Type _type(const Str& type);
-    PyTypeInfo* _type_info(const Str& type);
     PyTypeInfo* _type_info(Type type);
     const PyTypeInfo* _inst_type_info(PyObject* obj);
 

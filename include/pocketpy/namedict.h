@@ -49,7 +49,7 @@ struct SmallNameDict{
                 return true;
             }
         )
-        UNREACHABLE();
+        PK_UNREACHABLE();
     }
 
     V try_get(K key) const {

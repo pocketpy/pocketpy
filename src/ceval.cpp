@@ -799,7 +799,7 @@ __NEXT_STEP:;
         }
         if(!isinstance(TOP(), tp_exception)){
             _builtin_error("TypeError", "exceptions must derive from Exception");
-            UNREACHABLE();
+            PK_UNREACHABLE();
         }
         _error(POPX());
     } DISPATCH();
@@ -855,7 +855,7 @@ __NEXT_STEP:;
 #undef DISPATCH_OP_CALL
 #undef CEVAL_STEP
 /**********************************************************************/
-            UNREACHABLE();
+            PK_UNREACHABLE();
         }catch(HandledException){
             continue;
         }catch(UnhandledException){

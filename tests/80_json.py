@@ -71,3 +71,15 @@ assert repr([1]) == '[1]'
 assert json.dumps([]) == '[]'
 assert json.dumps([1, 2, 3]) == '[1, 2, 3]'
 assert json.dumps([1]) == '[1]'
+
+try:
+    json.dumps({1: 2})
+    assert False
+except TypeError:
+    assert True
+
+try:
+    json.dumps(type)
+    assert False
+except TypeError:
+    assert True

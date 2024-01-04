@@ -1,11 +1,15 @@
 assert 'testing' == 'test' + 'ing'
 assert 'testing' != 'test' + 'ing2'
 assert 'testing' < 'test' + 'ing2'
+assert 'testing' <= 'test' + 'ing2'
 assert 'testing5' > 'test' + 'ing1'
+assert 'testing5' >= 'test' + 'ing1'
 
 # test + *=
 assert 'abc' + 'def' == 'abcdef'
 assert 'abc' * 3 == 'abcabcabc'
+
+assert repr('\\\n\t\'\r\b\x48') == r"'\\\n\t\'\r\bH'"
 
 a = ''
 b = 'test'

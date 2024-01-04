@@ -1,4 +1,5 @@
 #include "pocketpy/vm.h"
+#include "pocketpy/config.h"
 
 namespace pkpy{
 
@@ -27,7 +28,7 @@ namespace pkpy{
                 first = false;
                 if(!is_non_tagged_type(k, vm->tp_str)){
                     vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
-                    UNREACHABLE();
+                    PK_UNREACHABLE();
                 }
                 ss << _CAST(Str&, k).escape(false) << ": ";
                 write_object(v);
@@ -57,7 +58,7 @@ namespace pkpy{
                 write_dict(_CAST(Dict&, obj));
             }else{
                 vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
-                UNREACHABLE();
+                PK_UNREACHABLE();
             }
         }
 
@@ -234,15 +235,6 @@ namespace pkpy{
     Type VM::_type(const Str& type){
         PyObject* obj = _find_type_object(type);
         return PK_OBJ_GET(Type, obj);
-    }
-
-    PyTypeInfo* VM::_type_info(const Str& type){
-        PyObject* obj = builtins->attr().try_get_likely_found(type);
-        if(obj == nullptr){
-            for(auto& t: _all_types) if(t.name == type) return &t;
-            PK_FATAL_ERROR();
-        }
-        return &_all_types[PK_OBJ_GET(Type, obj)];
     }
 
     PyTypeInfo* VM::_type_info(Type type){
@@ -476,7 +468,7 @@ i64 VM::py_hash(PyObject* obj){
     }
     if(has_custom_eq){
         TypeError(fmt("unhashable type: ", ti->name.escape()));
-        return 0;
+        PK_UNREACHABLE();
     }else{
         return PK_BITS(obj);
     }
@@ -532,7 +524,7 @@ PyObject* VM::_format_string(Str spec, PyObject* obj){
         }
     }catch(...){
         ValueError("invalid format specifer");
-        UNREACHABLE();
+        PK_UNREACHABLE();
     }
 
     if(type != 'f' && dot >= 0) ValueError("precision not allowed in the format specifier");
@@ -816,7 +808,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
         vm->TypeError(fmt(
             co->name, "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"
         ));
-        UNREACHABLE();
+        PK_UNREACHABLE();
     }
 
     int i = 0;
@@ -925,11 +917,11 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 TypeError(fmt(
                     co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
                 ));
-                UNREACHABLE();
+                PK_UNREACHABLE();
             }
             if(!kwargs.empty()){
                 TypeError(fmt(co->name, "() takes no keyword arguments"));
-                UNREACHABLE();
+                PK_UNREACHABLE();
             }
             s_data.reset(_base + co_nlocals);
             int i = 0;

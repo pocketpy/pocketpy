@@ -50,7 +50,7 @@ static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
     }else{
         vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
     }
-    UNREACHABLE();
+    PK_UNREACHABLE();
 }
 
 
@@ -124,7 +124,7 @@ void add_module_cjson(VM* vm){
             const char* end = start;
             while(*end != '\0' && *end != '\n') end++;
             vm->IOError(fmt("cjson: ", std::string_view(start, end-start)));
-            UNREACHABLE();
+            PK_UNREACHABLE();
         }
         PyObject* output = convert_cjson_to_python_object(json, vm);
         cJSON_Delete(json);
