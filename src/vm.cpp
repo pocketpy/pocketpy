@@ -28,7 +28,6 @@ namespace pkpy{
                 first = false;
                 if(!is_non_tagged_type(k, vm->tp_str)){
                     vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
-                    PK_UNREACHABLE();
                 }
                 ss << _CAST(Str&, k).escape(false) << ": ";
                 write_object(v);
@@ -58,7 +57,6 @@ namespace pkpy{
                 write_dict(_CAST(Dict&, obj));
             }else{
                 vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
-                PK_UNREACHABLE();
             }
         }
 
@@ -524,7 +522,6 @@ PyObject* VM::_format_string(Str spec, PyObject* obj){
         }
     }catch(...){
         ValueError("invalid format specifer");
-        PK_UNREACHABLE();
     }
 
     if(type != 'f' && dot >= 0) ValueError("precision not allowed in the format specifier");
@@ -808,7 +805,6 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
         vm->TypeError(fmt(
             co->name, "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"
         ));
-        PK_UNREACHABLE();
     }
 
     int i = 0;
@@ -917,11 +913,9 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 TypeError(fmt(
                     co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
                 ));
-                PK_UNREACHABLE();
             }
             if(!kwargs.empty()){
                 TypeError(fmt(co->name, "() takes no keyword arguments"));
-                PK_UNREACHABLE();
             }
             s_data.reset(_base + co_nlocals);
             int i = 0;

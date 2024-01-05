@@ -2,6 +2,10 @@
 
 namespace pkpy{
 
+    inline bool is_imm_int(i64 v){
+        return v >= INT16_MIN && v <= INT16_MAX;
+    }
+
     int CodeEmitContext::get_loop() const {
         int index = curr_block_i;
         while(index >= 0){
@@ -243,14 +247,15 @@ namespace pkpy{
         PyObject* obj = nullptr;
         if(std::holds_alternative<i64>(value)){
             i64 _val = std::get<i64>(value);
-            if(_val >= INT16_MIN && _val <= INT16_MAX){
+            if(is_imm_int(_val)){
                 ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 return;
             }
             obj = VAR(_val);
         }
         if(std::holds_alternative<f64>(value)){
-            obj = VAR(std::get<f64>(value));
+            f64 _val = std::get<f64>(value);
+            obj = VAR(_val);
         }
         if(std::holds_alternative<Str>(value)){
             obj = VAR(std::get<Str>(value));
@@ -266,7 +271,7 @@ namespace pkpy{
             LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
             if(std::holds_alternative<i64>(lit->value)){
                 i64 _val = -std::get<i64>(lit->value);
-                if(_val >= INT16_MIN && _val <= INT16_MAX){
+                if(is_imm_int(_val)){
                     ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
                 }else{
                     ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
@@ -274,8 +279,8 @@ namespace pkpy{
                 return;
             }
             if(std::holds_alternative<f64>(lit->value)){
-                PyObject* obj = VAR(-std::get<f64>(lit->value));
-                ctx->emit_(OP_LOAD_CONST, ctx->add_const(obj), line);
+                f64 _val = -std::get<f64>(lit->value);
+                ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
                 return;
             }
         }
