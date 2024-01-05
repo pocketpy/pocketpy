@@ -466,7 +466,7 @@ i64 VM::py_hash(PyObject* obj){
     }
     if(has_custom_eq){
         TypeError(fmt("unhashable type: ", ti->name.escape()));
-        PK_UNREACHABLE();
+        PK_UNREACHABLE()
     }else{
         return PK_BITS(obj);
     }

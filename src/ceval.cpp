@@ -854,7 +854,7 @@ __NEXT_STEP:;
 #undef DISPATCH_OP_CALL
 #undef CEVAL_STEP
 /**********************************************************************/
-            PK_UNREACHABLE();
+            PK_UNREACHABLE()
         }catch(HandledException){
             continue;
         }catch(UnhandledException){

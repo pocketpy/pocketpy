@@ -66,10 +66,10 @@
 
 #ifdef _MSC_VER
 #define PK_ENABLE_COMPUTED_GOTO		0
-#define PK_UNREACHABLE()				__assume(0)
+#define PK_UNREACHABLE()			__assume(0);
 #else
 #define PK_ENABLE_COMPUTED_GOTO		1
-#define PK_UNREACHABLE()				__builtin_unreachable()
+#define PK_UNREACHABLE()			__builtin_unreachable();
 #endif
 
 
