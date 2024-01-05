@@ -630,7 +630,7 @@ __NEXT_STEP:;
         PUSH(_0);
     } DISPATCH();
     TARGET(RETURN_VALUE){
-        PyObject* _0 = POPX();
+        PyObject* _0 = byte.arg == BC_NOARG ? POPX() : None;
         _pop_frame();
         if(frame.index == base_id){       // [ frameBase<- ]
             return _0;

@@ -899,18 +899,6 @@ time.sleep(0.1)
 # test time.localtime
 assert type(time.localtime()) is time.struct_time
 
-# /************ module dis ************/
-import dis
-#       116: 1487:    vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
-#     #####: 1488:        CodeObject_ code = get_code(vm, args[0]);
-#     #####: 1489:        vm->_stdout(vm, vm->disassemble(code));
-#     #####: 1490:        return vm->None;
-#     #####: 1491:    });
-# test dis.dis
-def aaa():
-    pass
-assert dis.dis(aaa) is None
-
 # test min/max
 assert min(1, 2) == 1
 assert min(1, 2, 3) == 1

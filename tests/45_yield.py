@@ -65,3 +65,25 @@ except ValueError:
     pass
 
 assert next(t) == StopIteration
+
+def f():
+    yield 1
+    yield 2
+    return
+    yield 3
+
+assert list(f()) == [1, 2]
+
+src = '''
+def g():
+    yield 1
+    yield 2
+    return 3
+    yield 4
+'''
+
+try:
+    exec(src)
+    exit(1)
+except SyntaxError:
+    pass

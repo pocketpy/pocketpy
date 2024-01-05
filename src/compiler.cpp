@@ -30,22 +30,13 @@ namespace pkpy{
         // add a `return None` in the end as a guard
         // previously, we only do this if the last opcode is not a return
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
-        ctx()->emit_(OP_LOAD_NONE, BC_NOARG, BC_KEEPLINE);
-        ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE);
         // some check here
         std::vector<Bytecode>& codes = ctx()->co->codes;
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
         if(ctx()->co->consts.size() > 65535){
-            // std::map<std::string_view, int> counts;
-            // for(PyObject* c: ctx()->co->consts){
-            //     std::string_view key = obj_type_name(vm, vm->_tp(c)).sv();
-            //     counts[key] += 1;
-            // }
-            // for(auto pair: counts){
-            //     std::cout << pair.first << ": " << pair.second << std::endl;
-            // }
             SyntaxError("maximum number of constants exceeded");
         }
         if(codes.size() > 65535 && ctx()->co->src->mode != JSON_MODE){
@@ -63,6 +54,7 @@ namespace pkpy{
                 bc.arg = ctx()->co->_get_block_codei(i).end;
             }
         }
+        // pre-compute func->is_simple
         FuncDecl_ func = contexts.top().func;
         if(func){
             func->is_simple = true;
@@ -809,12 +801,14 @@ __EAT_DOTS_END:
             case TK("return"):
                 if (contexts.size() <= 1) SyntaxError("'return' outside function");
                 if(match_end_stmt()){
-                    ctx()->emit_(OP_LOAD_NONE, BC_NOARG, kw_line);
+                    ctx()->emit_(OP_RETURN_VALUE, 1, kw_line);
                 }else{
                     EXPR_TUPLE(false);
+                    // check if it is a generator
+                    if(ctx()->co->is_generator) SyntaxError("'return' with argument inside generator function");
                     consume_end_stmt();
+                    ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, kw_line);
                 }
-                ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, kw_line);
                 break;
             /*************************************************/
             case TK("if"): compile_if_stmt(); break;

@@ -13,5 +13,4 @@ def f(a):
 def g(a):
     return f([1,2,3] + a)
 
-# x = _s(g)
-# assert type(x) is str
+assert dis(g) is None

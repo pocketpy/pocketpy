@@ -43,7 +43,7 @@ struct Expr{
 struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;     // optional
-    CodeObject_ co;
+    CodeObject_ co;     // 1 CodeEmitContext <=> 1 CodeObject_
     // some bugs on MSVC (error C2280) when using std::vector<Expr_>
     // so we use stack_no_copy instead
     stack_no_copy<Expr_> s_expr;
@@ -54,6 +54,9 @@ struct CodeEmitContext{
     int curr_block_i = 0;
     bool is_compiling_class = false;
     int for_loop_depth = 0;
+
+    std::map<void*, int> _co_consts_nonstring_dedup_map;
+    std::map<std::string_view, int> _co_consts_string_dedup_map;
 
     int get_loop() const;
     CodeBlock* enter_block(CodeBlockType type);

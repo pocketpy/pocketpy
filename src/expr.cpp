@@ -83,21 +83,31 @@ namespace pkpy{
     }
 
     int CodeEmitContext::add_const(PyObject* v){
-        // simple deduplication, only works for int/float
-        for(int i=0; i<co->consts.size(); i++){
-            if(co->consts[i] == v) return i;
-        }
-        // string deduplication
         if(is_non_tagged_type(v, vm->tp_str)){
-            const Str& v_str = PK_OBJ_GET(Str, v);
-            for(int i=0; i<co->consts.size(); i++){
-                if(is_non_tagged_type(co->consts[i], vm->tp_str)){
-                    if(PK_OBJ_GET(Str, co->consts[i]) == v_str) return i;
-                }
+            // string deduplication
+            std::string_view key = PK_OBJ_GET(Str, v).sv();
+            auto it = _co_consts_string_dedup_map.find(key);
+            if(it != _co_consts_string_dedup_map.end()){
+                return it->second;
+            }else{
+                co->consts.push_back(v);
+                int index = co->consts.size() - 1;
+                _co_consts_string_dedup_map[key] = index;
+                return index;
+            }
+        }else{
+            // non-string deduplication
+            auto it = _co_consts_nonstring_dedup_map.find(v);
+            if(it != _co_consts_nonstring_dedup_map.end()){
+                return it->second;
+            }else{
+                co->consts.push_back(v);
+                int index = co->consts.size() - 1;
+                _co_consts_nonstring_dedup_map[v] = index;
+                return index;
             }
         }
-        co->consts.push_back(v);
-        return co->consts.size() - 1;
+        PK_UNREACHABLE();
     }
 
     int CodeEmitContext::add_func_decl(FuncDecl_ decl){
