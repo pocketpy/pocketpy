@@ -56,7 +56,7 @@ struct CodeEmitContext{
     int for_loop_depth = 0;
 
     std::map<void*, int> _co_consts_nonstring_dedup_map;
-    std::map<std::string_view, int> _co_consts_string_dedup_map;
+    std::map<std::string, int> _co_consts_string_dedup_map;
 
     int get_loop() const;
     CodeBlock* enter_block(CodeBlockType type);

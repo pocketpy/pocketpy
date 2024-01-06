@@ -89,7 +89,7 @@ namespace pkpy{
     int CodeEmitContext::add_const(PyObject* v){
         if(is_non_tagged_type(v, vm->tp_str)){
             // string deduplication
-            std::string_view key = PK_OBJ_GET(Str, v).sv();
+            std::string key = PK_OBJ_GET(Str, v).str();
             auto it = _co_consts_string_dedup_map.find(key);
             if(it != _co_consts_string_dedup_map.end()){
                 return it->second;
