@@ -515,7 +515,7 @@ __SUBSCR_END:
         do {
             consume(TK("@id"));
             Str name = prev().str();
-            ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const(VAR(name)), prev().line);
+            ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const_string(name.sv()), prev().line);
             if (match(TK("as"))) {
                 consume(TK("@id"));
                 name = prev().str();
@@ -567,7 +567,7 @@ __EAT_DOTS_END:
             }
         }
 
-        ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const(VAR(ss.str())), prev().line);
+        ctx()->emit_(OP_IMPORT_PATH, ctx()->add_const_string(ss.str().sv()), prev().line);
         consume(TK("import"));
 
         if (match(TK("*"))) {
