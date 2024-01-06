@@ -18,6 +18,7 @@ Union = _PLACEHOLDER
 Optional = _PLACEHOLDER
 Callable = _PLACEHOLDER
 Type = _PLACEHOLDER
+Protocol = _PLACEHOLDER
 
 Iterable = _PLACEHOLDER
 Generator = _PLACEHOLDER
