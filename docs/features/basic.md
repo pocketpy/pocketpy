@@ -24,7 +24,7 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 | F-String        | `f'value is {x}'`               | YES       |
 | Unpacking       | `a, b = 1, 2`                   | YES       |
 | Star Unpacking  | `a, *b = [1, 2, 3]`             | YES       |
-| Exception       | `raise/try..catch`              | YES       |
+| Exception       | `raise/try..catch..finally`     | YES       |
 | Dynamic Code    | `eval()/exec()`                 | YES       |
 | Reflection      | `hasattr()/getattr()/setattr()` | YES       |
 | Import          | `import/from..import`           | YES       |

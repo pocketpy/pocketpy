@@ -127,7 +127,7 @@ for a quick overview of the supported features.
 | F-String        | `f'value is {x}'`               | ✅       |
 | Unpacking       | `a, b = 1, 2`                   | ✅       |
 | Star Unpacking  | `a, *b = [1, 2, 3]`             | ✅       |
-| Exception       | `raise/try..catch`              | ✅       |
+| Exception       | `raise/try..catch..finally`     | ✅       |
 | Dynamic Code    | `eval()/exec()`                 | ✅       |
 | Reflection      | `hasattr()/getattr()/setattr()` | ✅       |
 | Import          | `import/from..import`           | ✅       |

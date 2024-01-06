@@ -122,3 +122,65 @@ except SyntaxError as e:
     assert type(e) is SyntaxError
     ok = True
 assert ok
+
+# finally, only
+def finally_only():
+    try:
+        raise KeyError
+    finally:
+        return True
+    
+assert finally_only() is True
+
+def finally_only_2():
+    try:
+        pass
+    finally:
+        return True
+    
+assert finally_only_2() is True
+    
+# finally, no exception
+def finally_no_exception():
+    ok = False
+    try:
+        pass
+    except KeyError:
+        exit(1)
+    finally:
+        ok = True
+    return ok
+
+assert finally_no_exception()
+
+# finally, match
+def finally_match():
+    ok = False
+    try:
+        raise KeyError
+    except KeyError:
+        pass
+    finally:
+        ok = True
+    return ok
+
+assert finally_match()
+
+# finally, no match
+ok = False
+def finally_no_match():
+    global ok
+    try:
+        raise KeyError
+    except IndexError:
+        exit(1)
+    finally:
+        ok = True
+
+try:
+    finally_no_match()
+except KeyError:
+    assert ok
+    exit(0)
+
+exit(1)
