@@ -157,7 +157,6 @@ And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubunt
 |                                                                 | Description                                                              |
 |-----------------------------------------------------------------|--------------------------------------------------------------------------|
 | [TIC-80](https://github.com/nesbox/TIC-80)                      | TIC-80 is a fantasy computer for making, playing and sharing tiny games. |
-| [ct-py](https://github.com/blueloveTH/ct-py)                    | Ct.py🥕 is cross-platform 2D game framework built on raylib and imgui.   |
 | [MiniPythonIDE](https://github.com/CU-Production/MiniPythonIDE) | A python ide base on pocketpy                                            |
 | [py-js](https://github.com/shakfu/py-js)                        | Python3 externals for Max / MSP                                          |
 | [crescent](https://github.com/chukobyte/crescent)               | Crescent is a cross-platform 2D fighting and beat-em-up game engine.     |
