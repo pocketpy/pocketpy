@@ -4,7 +4,6 @@
 #include <cstring>
 
 #include <sstream>
-#include <regex>
 #include <stdexcept>
 #include <vector>
 #include <string>
@@ -20,7 +19,6 @@
 #include <variant>
 #include <type_traits>
 #include <random>
-#include <bitset>
 #include <deque>
 
 #define PK_VERSION				"1.3.7"
