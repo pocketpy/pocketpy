@@ -150,12 +150,12 @@ union BitsCvtImpl<8>{
 	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
 
-	void print(){
-		std::string s = std::bitset<64>(_int).to_string();
-		std::cout << s.substr(0, 1) << '|';
-		std::cout << s.substr(1, 11) << '|';
-		std::cout << s.substr(12) << std::endl;
-	}
+	// void print(){
+	// 	std::string s = std::bitset<64>(_int).to_string();
+	// 	std::cout << s.substr(0, 1) << '|';
+	// 	std::cout << s.substr(1, 11) << '|';
+	// 	std::cout << s.substr(12) << std::endl;
+	// }
 };
 
 using BitsCvt = BitsCvtImpl<sizeof(void*)>;
