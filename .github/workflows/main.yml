@@ -138,7 +138,7 @@ jobs:
           git clone https://github.com/leetal/ios-cmake --depth 1
           mkdir build
           cd build
-          cmake -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64 .. -DPK_BUILD_STATIC_LIB=ON -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON -DCMAKE_BUILD_TYPE=Release
+          cmake -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64 .. -DPK_BUILD_STATIC_LIB=ON -DPK_USE_CJSON=ON -DCMAKE_BUILD_TYPE=Release
           cmake --build . --config Release
           cd ..
           mkdir -p output/ios

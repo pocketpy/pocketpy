@@ -4,10 +4,10 @@ label: box2d
 ---
 
 !!!
-This module is optional. Set `PK_USE_BOX2D` to `1` to enable it.
+This module was moved to `carrotlib`, i.e. not a builtin module anymore.
 !!!
 
-[Box2D](https://box2d.org/) by Erin Catto, the world's best 2D physics engine now becomes a built-in module in pkpy `v1.1.3` and later.
+[Box2D](https://box2d.org/) by Erin Catto, the world's best 2D physics engine.
 All platforms are supported, including desktop, mobile and web.
 
 ## Overview

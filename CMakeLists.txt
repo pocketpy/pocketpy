@@ -38,15 +38,7 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
-option(PK_USE_BOX2D "Use Box2D" OFF)
 option(PK_USE_CJSON "Use cJSON" OFF)
-
-if(PK_USE_BOX2D)
-    add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d)
-    include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/box2d/include)
-    add_definitions(-DPK_USE_BOX2D)
-endif()
-
 if(PK_USE_CJSON)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
     include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson/include)
@@ -75,10 +67,6 @@ else()
     add_executable(${PROJECT_EXE_NAME} src2/main.cpp)
     target_link_libraries(${PROJECT_EXE_NAME} ${PROJECT_NAME})
     target_link_libraries(${PROJECT_EXE_NAME} ${CMAKE_DL_LIBS})
-endif()
-
-if(PK_USE_BOX2D)
-    target_link_libraries(${PROJECT_NAME} box2d)
 endif()
 
 if(PK_USE_CJSON)

@@ -33,7 +33,6 @@ endif()
 These variables can be set to control the build process:
 + `PK_BUILD_STATIC_LIB` - Build the static library
 + `PK_BUILD_SHARED_LIB` - Build the shared library
-+ `PK_USE_BOX2D` - Build with Box2D module
 
 See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
 

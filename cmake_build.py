@@ -7,7 +7,7 @@ if not os.path.exists("build"):
 
 os.chdir("build")
 
-code = os.system("cmake .. -DPK_USE_CJSON=ON -DPK_USE_BOX2D=ON -DCMAKE_BUILD_TYPE=Release")
+code = os.system("cmake .. -DPK_USE_CJSON=ON -DCMAKE_BUILD_TYPE=Release")
 assert code == 0
 code = os.system("cmake --build . --config Release")
 assert code == 0
