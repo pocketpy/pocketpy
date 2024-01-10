@@ -40,12 +40,9 @@ radians = random.uniform(-10*math.pi, 10*math.pi)
 test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
 assert test_vec2.rotate(radians).__dict__ == test_vec2_copy.__dict__
 
-# test rotate_
-a = test_vec2.rotate(0.7)
-assert a is not test_vec2
-b = test_vec2.rotate_(0.7)
-assert b is None
-assert a == test_vec2
+# test smooth_damp
+ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vec2(5, 6), 7, 8, 9)
+assert isinstance(ret, vec2)
 
 # test vec3--------------------------------------------------------------------
 # 生成随机测试目标

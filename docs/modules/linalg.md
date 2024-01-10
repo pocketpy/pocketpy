@@ -27,7 +27,6 @@ class vec2(_StructLike['vec2']):
     def length_squared(self) -> float: ...
     def normalize(self) -> vec2: ...
     def rotate(self, radians: float) -> vec2: ...
-    def rotate_(self, radians: float) -> None: ...
 
     @staticmethod
     def angle(__from: vec2, __to: vec2) -> float:
@@ -38,6 +37,10 @@ class vec2(_StructLike['vec2']):
         + if y axis is top to bottom, positive value means clockwise
         + if y axis is bottom to top, positive value means counter-clockwise
         """
+
+    @staticmethod
+    def smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> vec2:
+        ...
 
 class vec3(_StructLike['vec3']):
     x: float
