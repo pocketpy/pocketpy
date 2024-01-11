@@ -16,8 +16,7 @@ struct ManagedHeap{
 
     ManagedHeap(VM* vm): vm(vm) {}
     
-    static const int kMinGCThreshold = 3072;
-    int gc_threshold = kMinGCThreshold;
+    int gc_threshold = PK_GC_MIN_THRESHOLD;
     int gc_counter = 0;
 
     /********************/

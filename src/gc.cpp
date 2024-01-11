@@ -36,7 +36,7 @@ namespace pkpy{
         gc_counter = 0;
         collect();
         gc_threshold = gen.size() * 2;
-        if(gc_threshold < kMinGCThreshold) gc_threshold = kMinGCThreshold;
+        if(gc_threshold < PK_GC_MIN_THRESHOLD) gc_threshold = PK_GC_MIN_THRESHOLD;
 #endif
     }
 

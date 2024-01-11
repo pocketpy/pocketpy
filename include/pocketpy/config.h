@@ -24,6 +24,11 @@
 #define PK_ENABLE_CEVAL_CALLBACK    0
 #endif
 
+// GC min threshold
+#ifndef PK_GC_MIN_THRESHOLD         // can be overrided by cmake
+#define PK_GC_MIN_THRESHOLD         32768
+#endif
+
 // Whether to use `std::function` to do bindings or not
 // By default, functions to be binded must be a C function pointer without capture
 // However, someone thinks it's not convenient.
