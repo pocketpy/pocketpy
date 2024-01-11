@@ -41,8 +41,8 @@ namespace pkpy{
         });
 
 
-// https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Mathf.cs#L309
-static float SmoothDamp(float current, float target, float& currentVelocity, float smoothTime, float maxSpeed, float deltaTime)
+// https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
+static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float smoothTime, float maxSpeed, float deltaTime)
 {
     // Based on Game Programming Gems 4 Chapter 1.10
     smoothTime = std::max(0.0001F, smoothTime);
@@ -50,26 +50,50 @@ static float SmoothDamp(float current, float target, float& currentVelocity, flo
 
     float x = omega * deltaTime;
     float exp = 1.0F / (1.0F + x + 0.48F * x * x + 0.235F * x * x * x);
-    float change = current - target;
-    float originalTo = target;
+
+    float change_x = current.x - target.x;
+    float change_y = current.y - target.y;
+    Vec2 originalTo = target;
 
     // Clamp maximum speed
     float maxChange = maxSpeed * smoothTime;
-    change = std::clamp(change, -maxChange, maxChange);
-    target = current - change;
 
-    float temp = (currentVelocity + omega * change) * deltaTime;
-    currentVelocity = (currentVelocity - omega * temp) * exp;
-    float output = target + (change + temp) * exp;
-
-    // Prevent overshooting
-    if (originalTo - current > 0.0F == output > originalTo)
+    float maxChangeSq = maxChange * maxChange;
+    float sqDist = change_x * change_x + change_y * change_y;
+    if (sqDist > maxChangeSq)
     {
-        output = originalTo;
-        currentVelocity = (output - originalTo) / deltaTime;
+        float mag = std::sqrt(sqDist);
+        change_x = change_x / mag * maxChange;
+        change_y = change_y / mag * maxChange;
     }
 
-    return output;
+    target.x = current.x - change_x;
+    target.y = current.y - change_y;
+
+    float temp_x = (currentVelocity.x + omega * change_x) * deltaTime;
+    float temp_y = (currentVelocity.y + omega * change_y) * deltaTime;
+
+    currentVelocity.x = (currentVelocity.x - omega * temp_x) * exp;
+    currentVelocity.y = (currentVelocity.y - omega * temp_y) * exp;
+
+    float output_x = target.x + (change_x + temp_x) * exp;
+    float output_y = target.y + (change_y + temp_y) * exp;
+
+    // Prevent overshooting
+    float origMinusCurrent_x = originalTo.x - current.x;
+    float origMinusCurrent_y = originalTo.y - current.y;
+    float outMinusOrig_x = output_x - originalTo.x;
+    float outMinusOrig_y = output_y - originalTo.y;
+
+    if (origMinusCurrent_x * outMinusOrig_x + origMinusCurrent_y * outMinusOrig_y > 0)
+    {
+        output_x = originalTo.x;
+        output_y = originalTo.y;
+
+        currentVelocity.x = (output_x - originalTo.x) / deltaTime;
+        currentVelocity.y = (output_y - originalTo.y) / deltaTime;
+    }
+    return Vec2(output_x, output_y);
 }
 
     void PyVec2::_register(VM* vm, PyObject* mod, PyObject* type){
@@ -94,9 +118,8 @@ static float SmoothDamp(float current, float target, float& currentVelocity, flo
             float smooth_time = CAST_F(args[3]);
             float max_speed = CAST_F(args[4]);
             float delta_time = CAST_F(args[5]);
-            float x = SmoothDamp(current.x, target.x, current_velocity.x, smooth_time, max_speed, delta_time);
-            float y = SmoothDamp(current.y, target.y, current_velocity.y, smooth_time, max_speed, delta_time);
-            return VAR(Vec2(x, y));
+            Vec2 ret = SmoothDamp(current, target, current_velocity, smooth_time, max_speed, delta_time);
+            return VAR(ret);
         });
 
         // @staticmethod
