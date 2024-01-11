@@ -124,6 +124,8 @@ struct DoubleLinkedList{
 template<int __BlockSize=128>
 struct MemoryPool{
     static const size_t __MaxBlocks = 256*1024 / __BlockSize;
+    static const size_t __MinArenaCount = PK_GC_MIN_THRESHOLD*100 / (256*1024);
+
     struct Block{
         void* arena;
         char data[__BlockSize];
@@ -224,6 +226,7 @@ struct MemoryPool{
 
     void shrink_to_fit(){
         PK_GLOBAL_SCOPE_LOCK();
+        if(_arenas.size() < __MinArenaCount) return;
         _arenas.apply([this](Arena* arena){
             if(arena->full()){
                 _arenas.erase(arena);
