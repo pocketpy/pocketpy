@@ -147,7 +147,6 @@ __NEXT_STEP:;
         PUSH(_0);
     } DISPATCH();
     TARGET(LOAD_NAME) {
-        if(heap._should_auto_collect()) heap._auto_collect();
         StrName _name(byte.arg);
         PyObject** slot = frame->_locals.try_get_name(_name);
         if(slot != nullptr) {
