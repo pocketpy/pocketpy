@@ -41,8 +41,10 @@ test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
 assert test_vec2.rotate(radians).__dict__ == test_vec2_copy.__dict__
 
 # test smooth_damp
-ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vec2(5, 6), 7, 8, 9)
+vel = vec2(0, 0)
+ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vel, 7, 8, 9)
 assert isinstance(ret, vec2)
+assert vel.length() > 0
 
 # test vec3--------------------------------------------------------------------
 # 生成随机测试目标

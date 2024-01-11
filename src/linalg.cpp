@@ -112,8 +112,8 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         // @staticmethod
         vm->bind(type, "smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> vec2", [](VM* vm, ArgsView args){
-            PyVec2 current = CAST(PyVec2, args[0]);
-            PyVec2 target = CAST(PyVec2, args[1]);
+            Vec2 current = CAST(Vec2, args[0]);
+            Vec2 target = CAST(Vec2, args[1]);
             PyVec2& current_velocity = CAST(PyVec2&, args[2]);
             float smooth_time = CAST_F(args[3]);
             float max_speed = CAST_F(args[4]);
