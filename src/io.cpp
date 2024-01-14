@@ -47,9 +47,10 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
 #if PK_ENABLE_OS
     void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            return VAR_T(FileIO, 
-                vm, CAST(Str&, args[1]).str(), CAST(Str&, args[2]).str()
-            );
+            Type cls = PK_OBJ_GET(Type, args[0]);
+            return vm->heap.gcnew<FileIO>(cls, vm,
+                       py_cast<Str&>(vm, args[1]).str(),
+                       py_cast<Str&>(vm, args[2]).str());
         });
 
         vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){

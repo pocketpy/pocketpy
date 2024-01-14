@@ -251,12 +251,11 @@ public:
 
 #define BIND_BINARY_SPECIAL(name)                                                       \
     void bind##name(Type type, BinaryFuncC f){                                          \
-        PyObject* obj = _t(type);                                                       \
         _all_types[type].m##name = f;                                                   \
-        PyObject* nf = bind_method<1>(obj, #name, [](VM* vm, ArgsView args){            \
-            return lambda_get_userdata<BinaryFuncC>(args.begin())(vm, args[0], args[1]); \
+        PyObject* nf = bind_method<1>(type, #name, [](VM* vm, ArgsView args){           \
+            return lambda_get_userdata<BinaryFuncC>(args.begin())(vm, args[0], args[1]);\
         });                                                                             \
-        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                     \
     }
 
     BIND_BINARY_SPECIAL(__eq__)
@@ -284,18 +283,16 @@ public:
 #undef BIND_BINARY_SPECIAL
 
     void bind__getitem__(Type type, PyObject* (*f)(VM*, PyObject*, PyObject*)){
-        PyObject* obj = _t(type);
         _all_types[type].m__getitem__ = f;
-        PyObject* nf = bind_method<1>(obj, "__getitem__", [](VM* vm, ArgsView args){
+        PyObject* nf = bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
             return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
         });
         PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
     }
 
     void bind__setitem__(Type type, void (*f)(VM*, PyObject*, PyObject*, PyObject*)){
-        PyObject* obj = _t(type);
         _all_types[type].m__setitem__ = f;
-        PyObject* nf = bind_method<2>(obj, "__setitem__", [](VM* vm, ArgsView args){
+        PyObject* nf = bind_method<2>(type, "__setitem__", [](VM* vm, ArgsView args){
             lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1], args[2]);
             return vm->None;
         });
@@ -303,9 +300,8 @@ public:
     }
 
     void bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
-        PyObject* obj = _t(type);
         _all_types[type].m__delitem__ = f;
-        PyObject* nf = bind_method<1>(obj, "__delitem__", [](VM* vm, ArgsView args){
+        PyObject* nf = bind_method<1>(type, "__delitem__", [](VM* vm, ArgsView args){
             lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
             return vm->None;
         });
@@ -319,16 +315,6 @@ public:
     bool py_gt(PyObject* lhs, PyObject* rhs);
     bool py_ge(PyObject* lhs, PyObject* rhs);
     bool py_ne(PyObject* lhs, PyObject* rhs) { return !py_eq(lhs, rhs); }
-
-    template<int ARGC>
-    PyObject* bind_func(Str type, Str name, NativeFuncC fn) {
-        return bind_func<ARGC>(_find_type_object(type), name, fn);
-    }
-
-    template<int ARGC>
-    PyObject* bind_method(Str type, Str name, NativeFuncC fn) {
-        return bind_method<ARGC>(_find_type_object(type), name, fn);
-    }
 
     template<int ARGC, typename __T>
     PyObject* bind_constructor(__T&& type, NativeFuncC fn) {
@@ -461,6 +447,8 @@ public:
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
     PyObject* _format_string(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
+    template<int ARGC>
+    PyObject* bind_method(Type, Str, NativeFuncC);
     template<int ARGC>
     PyObject* bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
@@ -626,11 +614,16 @@ inline PyObject* py_var(VM* vm, NoReturn val){
 }
 
 template<int ARGC>
+PyObject* VM::bind_method(Type type, Str name, NativeFuncC fn) {
+    PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
+    _t(type)->attr().set(name, nf);
+    return nf;
+}
+
+template<int ARGC>
 PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
     check_non_tagged_type(obj, tp_type);
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
-    obj->attr().set(name, nf);
-    return nf;
+    return bind_method<ARGC>(PK_OBJ_GET(Type, obj), name, fn);
 }
 
 template<int ARGC>
