@@ -25,7 +25,7 @@ namespace pkpy{
 
     void Compiler::pop_context(){
         if(!ctx()->s_expr.empty()){
-            throw std::runtime_error("!ctx()->s_expr.empty()\n" + ctx()->_log_s_expr());
+            throw std::runtime_error("!ctx()->s_expr.empty()");
         }
         // add a `return None` in the end as a guard
         // previously, we only do this if the last opcode is not a return
@@ -491,7 +491,8 @@ __SUBSCR_END:
         ctx()->s_expr.push(make_expr<Literal0Expr>(prev().type));
     }
 
-    void Compiler::compile_block_body() {
+    void Compiler::compile_block_body(void (Compiler::*callback)()) {
+        if(callback == nullptr) callback = &Compiler::compile_stmt;
         consume(TK(":"));
         if(curr().type!=TK("@eol") && curr().type!=TK("@eof")){
             compile_stmt();     // inline block
@@ -503,7 +504,7 @@ __SUBSCR_END:
         consume(TK("@indent"));
         while (curr().type != TK("@dedent")) {
             match_newlines();
-            compile_stmt();
+            (this->*callback)();
             match_newlines();
         }
         consume(TK("@dedent"));
@@ -633,7 +634,7 @@ __EAT_DOTS_END:
     }
 
     void Compiler::compile_while_loop() {
-        CodeBlock* block = ctx()->enter_block(WHILE_LOOP);
+        CodeBlock* block = ctx()->enter_block(CodeBlockType::WHILE_LOOP);
         EXPR(false);   // condition
         int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
@@ -652,7 +653,7 @@ __EAT_DOTS_END:
         consume(TK("in"));
         EXPR_TUPLE(false);
         ctx()->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
-        CodeBlock* block = ctx()->enter_block(FOR_LOOP);
+        CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
         ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
@@ -667,7 +668,7 @@ __EAT_DOTS_END:
     }
 
     void Compiler::compile_try_except() {
-        ctx()->enter_block(TRY_EXCEPT);
+        ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
         compile_block_body();
         std::vector<int> patches = {
             ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
@@ -813,7 +814,7 @@ __EAT_DOTS_END:
                 // if yield from present, mark the function as generator
                 ctx()->co->is_generator = true;
                 ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
-                ctx()->enter_block(FOR_LOOP);
+                ctx()->enter_block(CodeBlockType::FOR_LOOP);
                 ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
                 ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
                 ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
@@ -909,17 +910,24 @@ __EAT_DOTS_END:
                 consume_end_stmt();
             } break;
             case TK("with"): {
-                EXPR(false);
-                consume(TK("as"));
-                consume(TK("@id"));
-                Expr_ e = make_expr<NameExpr>(prev().str(), name_scope());
-                bool ok = e->emit_store(ctx());
-                if(!ok) SyntaxError();
-                e->emit_(ctx());
+                EXPR(false);    // [ <expr> ]
+                ctx()->enter_block(CodeBlockType::CONTEXT_MANAGER);
+                Expr_ as_name;
+                if(match(TK("as"))){
+                    consume(TK("@id"));
+                    as_name = make_expr<NameExpr>(prev().str(), name_scope());
+                }
                 ctx()->emit_(OP_WITH_ENTER, BC_NOARG, prev().line);
+                // [ <expr> <expr>.__enter__() ]
+                if(as_name){
+                    bool ok = as_name->emit_store(ctx());
+                    if(!ok) SyntaxError();
+                }else{
+                    ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
+                }
                 compile_block_body();
-                e->emit_(ctx());
                 ctx()->emit_(OP_WITH_EXIT, BC_NOARG, prev().line);
+                ctx()->exit_block();
             } break;
             /*************************************************/
             case TK("=="): {

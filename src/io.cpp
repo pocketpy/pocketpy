@@ -91,7 +91,7 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
             return vm->None;
         });
 
-        vm->bind_method<0>(type, "__enter__", PK_LAMBDA(vm->None));
+        vm->bind_method<0>(type, "__enter__", PK_LAMBDA(args[0]));
     }
 
     FileIO::FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {

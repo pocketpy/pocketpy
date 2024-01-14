@@ -27,14 +27,14 @@ namespace pkpy{
         // try to find a parent try block
         int block = co->iblocks[_ip];
         while(block >= 0){
-            if(co->blocks[block].type == TRY_EXCEPT) break;
+            if(co->blocks[block].type == CodeBlockType::TRY_EXCEPT) break;
             block = co->blocks[block].parent;
         }
         if(block < 0) return false;
         PyObject* obj = _s->popx();         // pop exception object
-        // get the stack size of the try block (depth of for loops)
-        int _stack_size = co->blocks[block].for_loop_depth;
-        if(stack_size() < _stack_size) throw std::runtime_error("invalid stack size");
+        // get the stack size of the try block
+        int _stack_size = co->blocks[block].base_stack_size;
+        if(stack_size() < _stack_size) throw std::runtime_error(fmt("invalid state: ", stack_size(), '<', _stack_size).str());
         _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
         _s->push(obj);                                      // push exception object
         _next_ip = co->blocks[block].end;
@@ -42,7 +42,8 @@ namespace pkpy{
     }
 
     int Frame::_exit_block(int i){
-        if(co->blocks[i].type == FOR_LOOP) _s->pop();
+        auto type = co->blocks[i].type;
+        if(type==CodeBlockType::FOR_LOOP || type==CodeBlockType::CONTEXT_MANAGER) _s->pop();
         return co->blocks[i].parent;
     }
 

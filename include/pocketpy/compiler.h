@@ -107,7 +107,7 @@ class Compiler {
     void exprSubscr();
     void exprLiteral0();
 
-    void compile_block_body();
+    void compile_block_body(void (Compiler::*callback)()=nullptr);
     void compile_normal_import();
     void compile_from_import();
     bool is_expression();

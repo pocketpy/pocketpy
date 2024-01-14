@@ -25,8 +25,6 @@ struct Expr{
     virtual bool is_name() const { return false; }
     bool is_starred() const { return star_level() > 0; }
 
-    std::string str() const { PK_ASSERT(false); }
-
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) {
         PK_UNUSED(ctx);
@@ -53,7 +51,7 @@ struct CodeEmitContext{
 
     int curr_block_i = 0;
     bool is_compiling_class = false;
-    int for_loop_depth = 0;
+    int base_stack_size = 0;
 
     std::map<void*, int> _co_consts_nonstring_dedup_map;
     std::map<std::string, int, std::less<>> _co_consts_string_dedup_map;
@@ -62,7 +60,6 @@ struct CodeEmitContext{
     CodeBlock* enter_block(CodeBlockType type);
     void exit_block();
     void emit_expr();   // clear the expression stack and generate bytecode
-    std::string _log_s_expr();
     int emit_(Opcode opcode, uint16_t arg, int line);
     void patch_jump(int index);
     bool add_label(StrName name);

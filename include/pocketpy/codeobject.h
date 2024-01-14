@@ -24,7 +24,7 @@ struct Bytecode{
     uint16_t arg;
 };
 
-enum CodeBlockType {
+enum class CodeBlockType {
     NO_BLOCK,
     FOR_LOOP,
     WHILE_LOOP,
@@ -38,13 +38,13 @@ inline const int BC_KEEPLINE = -1;
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
-    int for_loop_depth; // this is used for exception handling
+    int base_stack_size; // this is used for exception handling
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
     int end2;           // ...
 
-    CodeBlock(CodeBlockType type, int parent, int for_loop_depth, int start):
-        type(type), parent(parent), for_loop_depth(for_loop_depth), start(start), end(-1), end2(-1) {}
+    CodeBlock(CodeBlockType type, int parent, int base_stack_size, int start):
+        type(type), parent(parent), base_stack_size(base_stack_size), start(start), end(-1), end2(-1) {}
 
     int get_break_end() const{
         if(end2 != -1) return end2;
@@ -68,7 +68,7 @@ struct CodeObject {
     List consts;
     std::vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
-    std::vector<CodeBlock> blocks = { CodeBlock(NO_BLOCK, -1, 0, 0) };
+    std::vector<CodeBlock> blocks = { CodeBlock(CodeBlockType::NO_BLOCK, -1, 0, 0) };
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 

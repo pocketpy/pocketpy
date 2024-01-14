@@ -782,10 +782,11 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(WITH_ENTER)
-        call_method(POPX(), __enter__);
+        PUSH(call_method(TOP(), __enter__));
         DISPATCH();
     TARGET(WITH_EXIT)
-        call_method(POPX(), __exit__);
+        call_method(TOP(), __exit__);
+        POP();
         DISPATCH();
     /*****************************************/
     TARGET(EXCEPTION_MATCH) {

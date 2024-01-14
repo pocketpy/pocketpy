@@ -31,3 +31,8 @@ if i <= 100:
     -> loop
 
 assert sum == 5050
+
+for i in range(4):
+    _ = 0
+# if there is no op here, the block check will fail
+while i: --i
