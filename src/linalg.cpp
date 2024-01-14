@@ -279,26 +279,17 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR(std::move(t));
         });
 
-#define METHOD_PROXY_NONE(name)  \
-        vm->bind_method<0>(type, #name, [](VM* vm, ArgsView args){    \
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);               \
-            self.name();                                              \
-            return vm->None;                                          \
-        });
-
-        METHOD_PROXY_NONE(set_zeros)
-        METHOD_PROXY_NONE(set_ones)
-        METHOD_PROXY_NONE(set_identity)
-
-#undef METHOD_PROXY_NONE
+        vm->bind_method<0>(type, "set_zeros", PK_ACTION(PK_OBJ_GET(PyMat3x3, args[0]).set_zeros()));
+        vm->bind_method<0>(type, "set_ones", PK_ACTION(PK_OBJ_GET(PyMat3x3, args[0]).set_ones()));
+        vm->bind_method<0>(type, "set_identity", PK_ACTION(PK_OBJ_GET(PyMat3x3, args[0]).set_identity()));
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyMat3x3& self = _CAST(PyMat3x3&, obj);
             std::stringstream ss;
             ss << std::fixed << std::setprecision(3);
-            ss << "mat3x3([[" << self._11 << ", " << self._12 << ", " << self._13 << "],\n";
-            ss << "        [" << self._21 << ", " << self._22 << ", " << self._23 << "],\n";
-            ss << "        [" << self._31 << ", " << self._32 << ", " << self._33 << "]])";
+            ss << "mat3x3([" << self._11 << ", " << self._12 << ", " << self._13 << ",\n";
+            ss << "        " << self._21 << ", " << self._22 << ", " << self._23 << ",\n";
+            ss << "        " << self._31 << ", " << self._32 << ", " << self._33 << "])";
             return VAR(ss.str());
         });
 
@@ -390,14 +381,28 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             PyMat3x3& self = _CAST(PyMat3x3&, _0);
             if(is_non_tagged_type(_1, PyMat3x3::_type(vm))){
-                PyMat3x3& other = _CAST(PyMat3x3&, _1);
-                return VAR_T(PyMat3x3, self.matmul(other));
+                const PyMat3x3& other = _CAST(PyMat3x3&, _1);
+                Mat3x3 out;
+                self.matmul(other, out);
+                return VAR_T(PyMat3x3, out);
             }
             if(is_non_tagged_type(_1, PyVec3::_type(vm))){
-                PyVec3& other = _CAST(PyVec3&, _1);
-                return VAR_T(PyVec3, self.matmul(other));
+                const PyVec3& other = _CAST(PyVec3&, _1);
+                Vec3 out;
+                self.matmul(other, out);
+                return VAR_T(PyVec3, out);
             }
             return vm->NotImplemented;
+        });
+
+        vm->bind_method<1>(type, "__imatmul__", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            vm->check_non_tagged_type(args[1], PyMat3x3::_type(vm));
+            const PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
+            Mat3x3 out;
+            self.matmul(other, out);
+            self = out;
+            return vm->None;
         });
 
         vm->bind_method<0>(type, "determinant", [](VM* vm, ArgsView args){
@@ -416,6 +421,15 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             bool ok = self.inverse(ret);
             if(!ok) vm->ValueError("matrix is not invertible");
             return VAR_T(PyMat3x3, ret);
+        });
+
+        vm->bind_method<0>(type, "invert_", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Mat3x3 ret;
+            bool ok = self.inverse(ret);
+            if(!ok) vm->ValueError("matrix is not invertible");
+            self = ret;
+            return vm->None;
         });
 
         // @staticmethod

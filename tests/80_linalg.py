@@ -330,6 +330,9 @@ for i in range(3):
         correct_result_mat[i, j] = sum([e1*e2 for e1, e2 in zip(get_row(test_mat_copy, i), get_col(test_mat_copy_2, j))])
 assert result_mat == correct_result_mat
 
+test_mat_copy.__imatmul__(test_mat_copy_2)
+assert test_mat_copy == correct_result_mat
+
 # test determinant
 test_mat_copy = test_mat.copy()
 test_mat_copy.determinant()
@@ -382,6 +385,8 @@ assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transp
 
 # test inverse
 assert ~static_test_mat_float == static_test_mat_float_inv
+assert static_test_mat_float.invert_() is None
+assert static_test_mat_float == static_test_mat_float_inv
 
 try:
     ~mat3x3([1, 2, 3, 2, 4, 6, 3, 6, 9])

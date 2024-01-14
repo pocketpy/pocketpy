@@ -158,26 +158,22 @@ struct Mat3x3{
         return *this;
     }
 
-    Mat3x3 matmul(const Mat3x3& other) const{
-        Mat3x3 ret;
-        ret._11 = _11 * other._11 + _12 * other._21 + _13 * other._31;
-        ret._12 = _11 * other._12 + _12 * other._22 + _13 * other._32;
-        ret._13 = _11 * other._13 + _12 * other._23 + _13 * other._33;
-        ret._21 = _21 * other._11 + _22 * other._21 + _23 * other._31;
-        ret._22 = _21 * other._12 + _22 * other._22 + _23 * other._32;
-        ret._23 = _21 * other._13 + _22 * other._23 + _23 * other._33;
-        ret._31 = _31 * other._11 + _32 * other._21 + _33 * other._31;
-        ret._32 = _31 * other._12 + _32 * other._22 + _33 * other._32;
-        ret._33 = _31 * other._13 + _32 * other._23 + _33 * other._33;
-        return ret;
+    void matmul(const Mat3x3& other, Mat3x3& out) const{
+        out._11 = _11 * other._11 + _12 * other._21 + _13 * other._31;
+        out._12 = _11 * other._12 + _12 * other._22 + _13 * other._32;
+        out._13 = _11 * other._13 + _12 * other._23 + _13 * other._33;
+        out._21 = _21 * other._11 + _22 * other._21 + _23 * other._31;
+        out._22 = _21 * other._12 + _22 * other._22 + _23 * other._32;
+        out._23 = _21 * other._13 + _22 * other._23 + _23 * other._33;
+        out._31 = _31 * other._11 + _32 * other._21 + _33 * other._31;
+        out._32 = _31 * other._12 + _32 * other._22 + _33 * other._32;
+        out._33 = _31 * other._13 + _32 * other._23 + _33 * other._33;
     }
 
-    Vec3 matmul(const Vec3& other) const{
-        Vec3 ret;
-        ret.x = _11 * other.x + _12 * other.y + _13 * other.z;
-        ret.y = _21 * other.x + _22 * other.y + _23 * other.z;
-        ret.z = _31 * other.x + _32 * other.y + _33 * other.z;
-        return ret;
+    void matmul(const Vec3& other, Vec3& out) const{
+        out.x = _11 * other.x + _12 * other.y + _13 * other.z;
+        out.y = _21 * other.x + _22 * other.y + _23 * other.z;
+        out.z = _31 * other.x + _32 * other.y + _33 * other.z;
     }
 
     bool operator==(const Mat3x3& other) const{
@@ -207,19 +203,19 @@ struct Mat3x3{
         return ret;
     }
 
-    bool inverse(Mat3x3& ret) const{
+    bool inverse(Mat3x3& out) const{
         float det = determinant();
         if (isclose(det, 0)) return false;
         float inv_det = 1.0f / det;
-        ret._11 = (_22 * _33 - _23 * _32) * inv_det;
-        ret._12 = (_13 * _32 - _12 * _33) * inv_det;
-        ret._13 = (_12 * _23 - _13 * _22) * inv_det;
-        ret._21 = (_23 * _31 - _21 * _33) * inv_det;
-        ret._22 = (_11 * _33 - _13 * _31) * inv_det;
-        ret._23 = (_13 * _21 - _11 * _23) * inv_det;
-        ret._31 = (_21 * _32 - _22 * _31) * inv_det;
-        ret._32 = (_12 * _31 - _11 * _32) * inv_det;
-        ret._33 = (_11 * _22 - _12 * _21) * inv_det;
+        out._11 = (_22 * _33 - _23 * _32) * inv_det;
+        out._12 = (_13 * _32 - _12 * _33) * inv_det;
+        out._13 = (_12 * _23 - _13 * _22) * inv_det;
+        out._21 = (_23 * _31 - _21 * _33) * inv_det;
+        out._22 = (_11 * _33 - _13 * _31) * inv_det;
+        out._23 = (_13 * _21 - _11 * _23) * inv_det;
+        out._31 = (_21 * _32 - _22 * _31) * inv_det;
+        out._32 = (_12 * _31 - _11 * _32) * inv_det;
+        out._33 = (_11 * _22 - _12 * _21) * inv_det;
         return true;
     }
 
