@@ -424,6 +424,9 @@ radian = random.uniform(-10*math.pi, 10*math.pi)
 
 assert mat_to_str_list(mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)) == mat_list_to_str_list(trs(test_vec2_list, radian, test_vec2_2_list))
 
+a = mat3x3.zeros()
+a.set_trs(test_vec2_copy, radian, test_vec2_2_copy)
+assert a == mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)
 
 # test is_affine
 def mat_is_affine(mat_list):

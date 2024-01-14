@@ -453,11 +453,20 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         /*************** affine transformations ***************/
         // @staticmethod
         vm->bind(type, "trs(t: vec2, r: float, s: vec2)", [](VM* vm, ArgsView args){
-            PyVec2& t = CAST(PyVec2&, args[0]);
+            Vec2 t = CAST(Vec2, args[0]);
             f64 r = CAST_F(args[1]);
-            PyVec2& s = CAST(PyVec2&, args[2]);
+            Vec2 s = CAST(Vec2, args[2]);
             return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
         }, {}, BindType::STATICMETHOD);
+
+        vm->bind(type, "set_trs(self, t: vec2, r: float, s: vec2)", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Vec2 t = CAST(Vec2, args[1]);
+            f64 r = CAST_F(args[2]);
+            Vec2 s = CAST(Vec2, args[3]);
+            self = Mat3x3::trs(t, r, s);
+            return vm->None;
+        });
 
         vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
