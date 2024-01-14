@@ -36,6 +36,8 @@ These variables can be set to control the build process:
 
 See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
 
+It is safe to use `main` branch in production.
+
 ### Compile flags
 
 To compile it with your project, these flags must be set:

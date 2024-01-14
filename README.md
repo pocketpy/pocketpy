@@ -45,10 +45,12 @@ These platforms are officially tested.
 Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
 And `#include` it in your project.
 
-You can also use cmake to build it from source. See CMakeLists.txt for details.
+You can also use cmake to build it from source. See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
 These variables can be set to control the build process:
-+ `PK_BUILD_STATIC_LIB` - Build the static library
++ `PK_BUILD_STATIC_LIB` - Build the static library (default, recommended)
 + `PK_BUILD_SHARED_LIB` - Build the shared library
+
+It is safe to use `main` branch in production.
 
 ### Compile Flags
 
