@@ -21,7 +21,7 @@
 #include <random>
 #include <deque>
 
-#define PK_VERSION				"1.3.7"
+#define PK_VERSION				"1.3.8"
 
 #include "config.h"
 #include "export.h"

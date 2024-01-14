@@ -14,3 +14,11 @@ a = object()
 setattr(a, 'b', 1)
 assert a.b == 1
 assert getattr(a, 'b') == 1
+
+try:
+    getattr(a, 'xxx')
+    exit(1)
+except AttributeError:
+    pass
+
+assert getattr(a, 'xxx', 1) == 1

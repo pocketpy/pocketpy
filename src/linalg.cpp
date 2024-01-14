@@ -102,7 +102,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
-            return VAR(Vec2(x, y));
+            return vm->heap.gcnew<PyVec2>(PK_OBJ_GET(Type, args[0]), Vec2(x, y));
         });
 
         vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
@@ -120,7 +120,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             float delta_time = CAST_F(args[5]);
             Vec2 ret = SmoothDamp(current, target, current_velocity, smooth_time, max_speed, delta_time);
             return VAR(ret);
-        });
+        }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
         vm->bind(type, "angle(__from: vec2, __to: vec2) -> float", [](VM* vm, ArgsView args){
@@ -131,7 +131,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             if(val > PI) val -= 2*PI;
             if(val < -PI) val += 2*PI;
             return VAR(val);
-        });
+        }, {}, BindType::STATICMETHOD);
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec2& self = _CAST(PyVec2&, obj);
@@ -174,7 +174,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
-            return VAR(Vec3(x, y, z));
+            return vm->heap.gcnew<PyVec3>(PK_OBJ_GET(Type, args[0]), Vec3(x, y, z));
         });
 
         vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
@@ -213,7 +213,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
             float w = CAST_F(args[4]);
-            return VAR(Vec4(x, y, z, w));
+            return vm->heap.gcnew<PyVec4>(PK_OBJ_GET(Type, args[0]), Vec4(x, y, z, w));
         });
 
         vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
@@ -255,24 +255,18 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         PY_STRUCT_LIKE(PyMat3x3)
 
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
-            if(args.size() == 1+0) return VAR_T(PyMat3x3, Mat3x3::zeros());
+            if(args.size() == 1+0) return vm->heap.gcnew<PyMat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
+            if(args.size() == 1+1){
+                const List& list = CAST(List&, args[1]);
+                if(list.size() != 9) vm->TypeError("Mat3x3.__new__ takes a list of 9 floats");
+                Mat3x3 mat;
+                for(int i=0; i<9; i++) mat.v[i] = CAST_F(list[i]);
+                return vm->heap.gcnew<PyMat3x3>(PK_OBJ_GET(Type, args[0]), mat);
+            }
             if(args.size() == 1+9){
                 Mat3x3 mat;
                 for(int i=0; i<9; i++) mat.v[i] = CAST_F(args[1+i]);
-                return VAR_T(PyMat3x3, mat);
-            }
-            if(args.size() == 1+1){
-                List& a = CAST(List&, args[1]);
-                if(a.size() != 3) vm->ValueError("Mat3x3.__new__ takes 3x3 list");
-                Mat3x3 mat;
-                for(int i=0; i<3; i++){
-                    List& b = CAST(List&, a[i]);
-                    if(b.size() != 3) vm->ValueError("Mat3x3.__new__ takes 3x3 list");
-                    for(int j=0; j<3; j++){
-                        mat.m[i][j] = CAST_F(b[j]);
-                    }
-                }
-                return VAR_T(PyMat3x3, mat);
+                return vm->heap.gcnew<PyMat3x3>(PK_OBJ_GET(Type, args[0]), mat);
             }
             vm->TypeError(fmt("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
             return vm->None;
@@ -424,28 +418,32 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR_T(PyMat3x3, ret);
         });
 
-        vm->bind_func<0>(type, "zeros", [](VM* vm, ArgsView args){
+        // @staticmethod
+        vm->bind(type, "zeros()", [](VM* vm, ArgsView args){
             PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::zeros());
-        });
+        }, {}, BindType::STATICMETHOD);
 
-        vm->bind_func<0>(type, "ones", [](VM* vm, ArgsView args){
+        // @staticmethod
+        vm->bind(type, "ones()", [](VM* vm, ArgsView args){
             PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::ones());
-        });
+        }, {}, BindType::STATICMETHOD);
 
-        vm->bind_func<0>(type, "identity", [](VM* vm, ArgsView args){
+        // @staticmethod
+        vm->bind(type, "identity()", [](VM* vm, ArgsView args){
             PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::identity());
-        });
+        }, {}, BindType::STATICMETHOD);
 
         /*************** affine transformations ***************/
-        vm->bind_func<3>(type, "trs", [](VM* vm, ArgsView args){
+        // @staticmethod
+        vm->bind(type, "trs(t: vec2, r: float, s: vec2)", [](VM* vm, ArgsView args){
             PyVec2& t = CAST(PyVec2&, args[0]);
             f64 r = CAST_F(args[1]);
             PyVec2& s = CAST(PyVec2&, args[2]);
             return VAR_T(PyMat3x3, Mat3x3::trs(t, r, s));
-        });
+        }, {}, BindType::STATICMETHOD);
 
         vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);

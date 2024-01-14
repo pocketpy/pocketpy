@@ -95,22 +95,6 @@ try:
 except:
     pass
 
-
-class A():
-    def __init__(self):
-        self.a = 1
-        
-    @staticmethod
-    def static_method(txt):
-        return txt
-    
-    # @classmethod
-    # def class_method(cls, txt):
-    #     return cls.__name__ + txt
-
-assert A.static_method(123) == 123
-# assert A.class_method(123) == 'A123'
-
 # 无法测试 -----------------------------------------------
 #       248:  192:    _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
 #        67:  193:        const Str& name = CAST(Str&, args[0]);

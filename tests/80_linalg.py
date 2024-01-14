@@ -185,21 +185,21 @@ def row_operation(matrix, target_row, source_row, scale):
 # 生成随机测试目标
 min_num = -10.0
 max_num = 10.0
-test_mat = mat3x3([[random.uniform(min_num, max_num) for _ in range(3)] for _ in range(3)])
-static_test_mat_float= mat3x3([
-    [7.264189733952545, -5.432187523625671, 1.8765304152872613],
-    [-2.4910524352374734, 8.989660807513068, -0.7168824333280513],
-    [9.558042327611506, -3.336280256662496, 4.951381528057387]]
-    )
+test_mat = mat3x3([random.uniform(min_num, max_num) for _ in range(9)])
+static_test_mat_float= mat3x3(
+    7.264189733952545, -5.432187523625671, 1.8765304152872613,
+    -2.4910524352374734, 8.989660807513068, -0.7168824333280513,
+    9.558042327611506, -3.336280256662496, 4.951381528057387
+)
 
-static_test_mat_float_inv = mat3x3([[ 0.32265243,  0.15808159, -0.09939472],
-       [ 0.04199553,  0.13813096,  0.00408326],
-       [-0.59454451, -0.21208362,  0.39658464]])
+static_test_mat_float_inv = mat3x3( 0.32265243,  0.15808159, -0.09939472,
+        0.04199553,  0.13813096,  0.00408326,
+       -0.59454451, -0.21208362,  0.39658464)
 
 static_test_mat_int = mat3x3([
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]]
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9]
     )
 
 # test incorrect number of parameters is passed
@@ -236,17 +236,19 @@ assert test_mat == test_mat_copy
 # test setzeros
 test_mat_copy = test_mat.copy()
 test_mat_copy.set_zeros()
-assert test_mat_copy == mat3x3([[0,0,0],[0,0,0],[0,0,0]])
+assert test_mat_copy == mat3x3.zeros()
 
 # test set_ones
 test_mat_copy = test_mat.copy()
 test_mat_copy.set_ones()
-assert test_mat_copy == mat3x3([[1,1,1],[1,1,1],[1,1,1]])
+assert test_mat_copy == mat3x3.ones()
 
 # test set_identity
 test_mat_copy = test_mat.copy()
 test_mat_copy.set_identity()
-assert test_mat_copy == mat3x3([[1, 0, 0],[0, 1, 0],[0, 0, 1]])
+assert test_mat_copy == mat3x3([1, 0, 0,
+                                0, 1, 0,
+                                0, 0, 1])
 
 # test __getitem__
 for i, element in enumerate([getattr(test_mat, e) for e in element_name_list]):
@@ -268,7 +270,9 @@ except:
 test_mat_copy = test_mat.copy()
 for i, element in enumerate([getattr(test_mat_copy, e) for e in element_name_list]):
     test_mat_copy[int(i/3), i%3] = list(range(9))[i]
-assert test_mat_copy == mat3x3([[0,1,2], [3,4,5], [6,7,8]])
+assert test_mat_copy == mat3x3([0,1,2,
+                                3,4,5,
+                                6,7,8])
 
 try:
     test_mat[1,2,3] = 1
@@ -380,25 +384,19 @@ assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transp
 assert ~static_test_mat_float == static_test_mat_float_inv
 
 try:
-    mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]]).inverse()
+    ~mat3x3([1, 2, 3, 2, 4, 6, 3, 6, 9])
     raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
-except:
-    pass
-
-try:
-    ~mat3x3([[1, 2, 3], [2, 4, 6], [3, 6, 9]])
-    raise Exception('未能拦截错误 ValueError("matrix is not invertible") 在 test_mat_copy 的行列式为0')
-except:
+except ValueError:
     pass
 
 # test zeros
-assert mat3x3([[0 for _ in range(3)] for _ in range(3)]) == mat3x3.zeros()
+assert mat3x3([0 for _ in range(9)]) == mat3x3.zeros()
 
 # test ones
-assert mat3x3([[1 for _ in range(3)] for _ in range(3)]) == mat3x3.ones()
+assert mat3x3([1 for _ in range(9)]) == mat3x3.ones()
 
 # test identity
-assert mat3x3([[1,0,0],[0,1,0],[0,0,1]]) == mat3x3.identity()
+assert mat3x3([1,0,0,0,1,0,0,0,1]) == mat3x3.identity()
 
 
 # test affine transformations-----------------------------------------------
@@ -471,3 +469,13 @@ assert vec2.from_struct(b) == a
 
 val = vec2.angle(vec2(-1, 0), vec2(0, -1))
 assert 1.57 < val < 1.58
+
+# test about staticmethod
+class mymat3x3(mat3x3):
+    def f(self):
+        _0 = self.zeros()
+        _1 = super().zeros()
+        _2 = mat3x3.zeros()
+        return _0 == _1 == _2
+    
+assert mymat3x3().f()

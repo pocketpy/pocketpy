@@ -158,6 +158,7 @@ public:
     
     static constexpr Type tp_super=14, tp_exception=15, tp_bytes=16, tp_mappingproxy=17;
     static constexpr Type tp_dict=18, tp_property=19, tp_star_wrapper=20;
+    static constexpr Type tp_staticmethod=21, tp_classmethod=22;
 
     PyObject* cached_object__new__;
 
@@ -475,8 +476,8 @@ public:
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
     void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
     // new style binding api
-    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={});
-    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={});
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_property(PyObject*, Str, NativeFuncC fget, NativeFuncC fset=nullptr);
 };
 
@@ -494,6 +495,8 @@ DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
 DEF_NATIVE_2(Dict, tp_dict)
 DEF_NATIVE_2(Property, tp_property)
 DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
+DEF_NATIVE_2(StaticMethod, tp_staticmethod)
+DEF_NATIVE_2(ClassMethod, tp_classmethod)
 
 #undef DEF_NATIVE_2
 

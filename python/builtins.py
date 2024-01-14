@@ -5,17 +5,6 @@ def print(*args, sep=' ', end='\n'):
     s = sep.join([str(i) for i in args])
     _sys.stdout.write(s + end)
 
-def issubclass(cls, base):
-    if type(cls) is not type:
-        raise TypeError('issubclass() arg 1 must be a class')
-    if type(base) is not type:
-        raise TypeError('issubclass() arg 2 must be a class')
-    while cls is not None:
-        if cls is base:
-            return True
-        cls = cls.__base__
-    return False
-
 def _minmax_reduce(op, args, key):
     if key is None: 
         if len(args) == 2:
@@ -266,16 +255,6 @@ def help(obj):
         obj = obj.__func__
     print(obj.__signature__)
     print(obj.__doc__)
-
-
-class classmethod:
-    def __init__(self, f):
-        self.f = f
-        raise NotImplementedError
-
-def staticmethod(f):
-    return f
-
 
 def complex(*args, **kwargs):
     import cmath

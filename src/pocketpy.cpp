@@ -76,6 +76,18 @@ void init_builtins(VM* _vm) {
         return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
     });
 
+    _vm->bind_builtin_func<1>("staticmethod", [](VM* vm, ArgsView args) {
+        PyObject* func = args[0];
+        vm->check_non_tagged_type(func, vm->tp_function);
+        return vm->heap.gcnew<StaticMethod>(vm->tp_staticmethod, args[0]);
+    });
+
+    _vm->bind_builtin_func<1>("classmethod", [](VM* vm, ArgsView args) {
+        PyObject* func = args[0];
+        vm->check_non_tagged_type(func, vm->tp_function);
+        return vm->heap.gcnew<ClassMethod>(vm->tp_classmethod, args[0]);
+    });
+
     _vm->bind_builtin_func<2>("isinstance", [](VM* vm, ArgsView args) {
         if(is_non_tagged_type(args[1], vm->tp_tuple)){
             Tuple& types = _CAST(Tuple&, args[1]);
@@ -88,6 +100,12 @@ void init_builtins(VM* _vm) {
         vm->check_non_tagged_type(args[1], vm->tp_type);
         Type type = PK_OBJ_GET(Type, args[1]);
         return VAR(vm->isinstance(args[0], type));
+    });
+
+    _vm->bind_builtin_func<2>("issubclass", [](VM* vm, ArgsView args) {
+        vm->check_non_tagged_type(args[0], vm->tp_type);
+        vm->check_non_tagged_type(args[1], vm->tp_type);
+        return VAR(vm->issubclass(PK_OBJ_GET(Type, args[0]), PK_OBJ_GET(Type, args[1])));
     });
 
     _vm->bind_builtin_func<0>("globals", [](VM* vm, ArgsView args) {
@@ -124,11 +142,12 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_builtin_func<1>("callable", [](VM* vm, ArgsView args) {
         PyObject* cls = vm->_t(args[0]);
-        Type t = PK_OBJ_GET(Type, cls);
-        if(t == vm->tp_function) return vm->True;
-        if(t == vm->tp_native_func) return vm->True;
-        if(t == vm->tp_bound_method) return vm->True;
-        if(t == vm->tp_type) return vm->True;
+        switch(PK_OBJ_GET(Type, cls).index){
+            case VM::tp_function.index: return vm->True;
+            case VM::tp_native_func.index: return vm->True;
+            case VM::tp_bound_method.index: return vm->True;
+            case VM::tp_type.index: return vm->True;
+        }
         bool ok = vm->find_name_in_mro(cls, __call__) != nullptr;
         return VAR(ok);
     });
@@ -217,9 +236,15 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_builtin_func<2>("getattr", [](VM* vm, ArgsView args) {
-        const Str& name = CAST(Str&, args[1]);
-        return vm->getattr(args[0], name);
+    _vm->bind_builtin_func<-1>("getattr", [](VM* vm, ArgsView args) {
+        if(args.size()!=2 && args.size()!=3) vm->TypeError("getattr() takes 2 or 3 arguments");
+        StrName name = CAST(Str&, args[1]);
+        PyObject* val = vm->getattr(args[0], name, false);
+        if(val == nullptr){
+            if(args.size()==2) vm->AttributeError(args[0], name);
+            return args[2];
+        }
+        return val;
     });
 
     _vm->bind_builtin_func<2>("delattr", [](VM* vm, ArgsView args) {
@@ -1277,19 +1302,11 @@ void init_builtins(VM* _vm) {
         return VAR(func.decl->signature);
     });
 
-    // _vm->bind_property(_vm->_t(_vm->tp_function), "__call__", [](VM* vm, ArgsView args) {
-    //     return args[0];
-    // });
-
     _vm->bind_property(_vm->_t(_vm->tp_native_func), "__signature__", [](VM* vm, ArgsView args) {
         NativeFunc& func = _CAST(NativeFunc&, args[0]);
         if(func.decl != nullptr) return VAR(func.decl->signature);
         return VAR("");
     });
-
-    // _vm->bind_property(_vm->_t(_vm->tp_native_func), "__call__", [](VM* vm, ArgsView args) {
-    //     return args[0];
-    // });
 
     // Exception
     _vm->bind_constructor<-1>("Exception", [](VM* vm, ArgsView args){
@@ -1647,7 +1664,9 @@ void VM::post_init(){
 
     bind__eq__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
         if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return vm->NotImplemented;
-        return VAR(_CAST(BoundMethod&, lhs) == _CAST(BoundMethod&, rhs));
+        const BoundMethod& _0 = PK_OBJ_GET(BoundMethod, lhs);
+        const BoundMethod& _1 = PK_OBJ_GET(BoundMethod, rhs);
+        return VAR(_0.self == _1.self && _0.func == _1.func);
     });
 
     bind_property(_t(tp_slice), "start", [](VM* vm, ArgsView args){

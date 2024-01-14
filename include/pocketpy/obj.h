@@ -15,17 +15,26 @@ using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
 typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 #endif
 
+enum class BindType{
+    DEFAULT,
+    STATICMETHOD,
+    CLASSMETHOD,
+};
+
 struct BoundMethod {
     PyObject* self;
     PyObject* func;
     BoundMethod(PyObject* self, PyObject* func) : self(self), func(func) {}
-    
-    bool operator==(const BoundMethod& rhs) const noexcept {
-        return self == rhs.self && func == rhs.func;
-    }
-    bool operator!=(const BoundMethod& rhs) const noexcept {
-        return self != rhs.self || func != rhs.func;
-    }
+};
+
+struct StaticMethod{
+    PyObject* func;
+    StaticMethod(PyObject* func) : func(func) {}
+};
+
+struct ClassMethod{
+    PyObject* func;
+    ClassMethod(PyObject* func) : func(func) {}
 };
 
 struct Property{
@@ -319,6 +328,26 @@ struct Py_<StarWrapper> final: PyObject {
     Py_(Type type, StarWrapper val): PyObject(type), _value(val) {}
     void _obj_gc_mark() override {
         PK_OBJ_MARK(_value.obj);
+    }
+    void* _value_ptr() override { return &_value; }
+};
+
+template<>
+struct Py_<StaticMethod> final: PyObject {
+    StaticMethod _value;
+    Py_(Type type, StaticMethod val): PyObject(type), _value(val) {}
+    void _obj_gc_mark() override {
+        PK_OBJ_MARK(_value.func);
+    }
+    void* _value_ptr() override { return &_value; }
+};
+
+template<>
+struct Py_<ClassMethod> final: PyObject {
+    ClassMethod _value;
+    Py_(Type type, ClassMethod val): PyObject(type), _value(val) {}
+    void _obj_gc_mark() override {
+        PK_OBJ_MARK(_value.func);
     }
     void* _value_ptr() override { return &_value; }
 };

@@ -126,3 +126,35 @@ else:
         pass
 
 assert TrueClass
+
+# staticmethod and classmethod
+class A():
+    dd = 2
+
+    def __init__(self):
+        self.a = 1
+        
+    @staticmethod
+    def static_method(txt):
+        return txt
+    
+    @classmethod
+    def class_method(cls, txt):
+        return cls.__name__ + txt
+
+assert A.static_method(123) == 123
+assert A.class_method('123') == 'A123'
+assert A().static_method(123) == 123
+assert A().class_method('123') == 'A123'
+assert A.dd == 2
+assert A().dd == 2
+
+class B(A): pass
+
+assert B.dd == 2
+assert B().dd == 2
+
+assert B.static_method(123) == 123
+assert B.class_method('123') == 'B123'
+assert B().static_method(123) == 123
+assert B().class_method('123') == 'B123'

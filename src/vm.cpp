@@ -705,28 +705,31 @@ void VM::init_builtin_types(){
     _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, nullptr, "object", true});
     _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, nullptr, "type", false});
 
-    PK_ASSERT(tp_int == _new_type_object("int"));
-    PK_ASSERT(tp_float == _new_type_object("float"));
+    if(tp_int != _new_type_object("int")) exit(-3);
+    if((tp_float != _new_type_object("float"))) exit(-3);
 
-    PK_ASSERT(tp_bool == _new_type_object("bool"));
-    PK_ASSERT(tp_str == _new_type_object("str"));
-    PK_ASSERT(tp_list == _new_type_object("list"));
-    PK_ASSERT(tp_tuple == _new_type_object("tuple"));
+    if(tp_bool != _new_type_object("bool")) exit(-3);
+    if(tp_str != _new_type_object("str")) exit(-3);
+    if(tp_list != _new_type_object("list")) exit(-3);
+    if(tp_tuple != _new_type_object("tuple")) exit(-3);
 
-    PK_ASSERT(tp_slice == _new_type_object("slice"));
-    PK_ASSERT(tp_range == _new_type_object("range"));
-    PK_ASSERT(tp_module == _new_type_object("module"));
-    PK_ASSERT(tp_function == _new_type_object("function"));
-    PK_ASSERT(tp_native_func == _new_type_object("native_func"));
-    PK_ASSERT(tp_bound_method == _new_type_object("bound_method"));
+    if(tp_slice != _new_type_object("slice")) exit(-3);
+    if(tp_range != _new_type_object("range")) exit(-3);
+    if(tp_module != _new_type_object("module")) exit(-3);
+    if(tp_function != _new_type_object("function")) exit(-3);
+    if(tp_native_func != _new_type_object("native_func")) exit(-3);
+    if(tp_bound_method != _new_type_object("bound_method")) exit(-3);
 
-    PK_ASSERT(tp_super == _new_type_object("super"));
-    PK_ASSERT(tp_exception == _new_type_object("Exception", 0, true));
-    PK_ASSERT(tp_bytes == _new_type_object("bytes"));
-    PK_ASSERT(tp_mappingproxy == _new_type_object("mappingproxy"));
-    PK_ASSERT(tp_dict == _new_type_object("dict"));
-    PK_ASSERT(tp_property == _new_type_object("property"));
-    PK_ASSERT(tp_star_wrapper == _new_type_object("_star_wrapper"));
+    if(tp_super != _new_type_object("super")) exit(-3);
+    if(tp_exception != _new_type_object("Exception", 0, true)) exit(-3);
+    if(tp_bytes != _new_type_object("bytes")) exit(-3);
+    if(tp_mappingproxy != _new_type_object("mappingproxy")) exit(-3);
+    if(tp_dict != _new_type_object("dict")) exit(-3);
+    if(tp_property != _new_type_object("property")) exit(-3);
+    if(tp_star_wrapper != _new_type_object("_star_wrapper")) exit(-3);
+
+    if(tp_staticmethod != _new_type_object("staticmethod")) exit(-3);
+    if(tp_classmethod != _new_type_object("classmethod")) exit(-3);
 
     this->None = heap._new<Dummy>(_new_type_object("NoneType"));
     this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"));
@@ -866,7 +869,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     // handle boundmethod, do a patch
     if(is_non_tagged_type(callable, tp_bound_method)){
         if(method_call) PK_FATAL_ERROR();
-        auto& bm = CAST(BoundMethod&, callable);
+        BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;      // get unbound method
         p1[-(ARGC + 2)] = bm.func;
         p1[-(ARGC + 1)] = bm.self;
@@ -997,7 +1000,7 @@ __FAST_CALL:
         return vectorcall(ARGC, KWARGC, false);
     }
     TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
-    return nullptr;
+    PK_UNREACHABLE()
 }
 
 void VM::delattr(PyObject *_0, StrName _name){
@@ -1020,19 +1023,38 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     if(cls_var != nullptr){
         // handle descriptor
         if(is_non_tagged_type(cls_var, tp_property)){
-            const Property& prop = _CAST(Property&, cls_var);
+            const Property& prop = PK_OBJ_GET(Property, cls_var);
             return call(prop.getter, obj);
         }
     }
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
-        PyObject* val = obj->attr().try_get_likely_found(name);
-        if(val != nullptr) return val;
+        PyObject* val;
+        if(obj->type == tp_type){
+            val = find_name_in_mro(obj, name);
+        }else{
+            val = obj->attr().try_get_likely_found(name);
+        }
+        if(val != nullptr){
+            if(is_tagged(val)) return val;
+            if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+            if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+            return val;
+        }
     }
     if(cls_var != nullptr){
         // bound method is non-data descriptor
-        if(is_non_tagged_type(cls_var, tp_function) || is_non_tagged_type(cls_var, tp_native_func)){
-            return VAR(BoundMethod(obj, cls_var));
+        if(!is_tagged(cls_var)){
+            switch(cls_var->type){
+                case tp_function.index:
+                    return VAR(BoundMethod(obj, cls_var));
+                case tp_native_func.index:
+                    return VAR(BoundMethod(obj, cls_var));
+                case tp_staticmethod.index:
+                    return PK_OBJ_GET(StaticMethod, cls_var).func;
+                case tp_classmethod.index:
+                    return VAR(BoundMethod(objtype, PK_OBJ_GET(ClassMethod, cls_var).func));
+            }
         }
         return cls_var;
     }
@@ -1070,20 +1092,43 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
         if(cls_var != nullptr){
             // handle descriptor
             if(is_non_tagged_type(cls_var, tp_property)){
-                const Property& prop = _CAST(Property&, cls_var);
+                const Property& prop = PK_OBJ_GET(Property, cls_var);
                 return call(prop.getter, obj);
             }
         }
         // handle instance __dict__
         if(!is_tagged(obj) && obj->is_attr_valid()){
-            PyObject* val = obj->attr().try_get(name);
-            if(val != nullptr) return val;
+            PyObject* val;
+            if(obj->type == tp_type){
+                val = find_name_in_mro(obj, name);
+            }else{
+                val = obj->attr().try_get_likely_found(name);
+            }
+            if(val != nullptr){
+                if(is_tagged(val)) return val;
+                if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+                if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+                return val;
+            }
         }
     }
 
     if(cls_var != nullptr){
-        if(is_non_tagged_type(cls_var, tp_function) || is_non_tagged_type(cls_var, tp_native_func)){
-            *self = obj;
+        if(!is_tagged(cls_var)){
+            switch(cls_var->type){
+                case tp_function.index:
+                    *self = obj;
+                    break;
+                case tp_native_func.index:
+                    *self = obj;
+                    break;
+                case tp_staticmethod.index:
+                    *self = PY_NULL;
+                    return PK_OBJ_GET(StaticMethod, cls_var).func;
+                case tp_classmethod.index:
+                    *self = objtype;
+                    return PK_OBJ_GET(ClassMethod, cls_var).func;
+            }
         }
         return cls_var;
     }
@@ -1119,11 +1164,11 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     obj->attr().set(name, value);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, UserData userdata){
-    return bind(obj, sig, nullptr, fn, userdata);
+PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, UserData userdata, BindType bt){
+    return bind(obj, sig, nullptr, fn, userdata, bt);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, UserData userdata){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, UserData userdata, BindType bt){
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
@@ -1141,6 +1186,17 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     }
     PyObject* f_obj = VAR(NativeFunc(fn, decl));
     PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
+
+    switch(bt){
+        case BindType::STATICMETHOD:
+            f_obj = VAR(StaticMethod(f_obj));
+            break;
+        case BindType::CLASSMETHOD:
+            f_obj = VAR(ClassMethod(f_obj));
+            break;
+        case BindType::DEFAULT:
+            break;
+    }
     if(obj != nullptr) obj->attr().set(decl->code->name, f_obj);
     return f_obj;
 }

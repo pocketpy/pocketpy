@@ -10,14 +10,6 @@ def _find_class(path: str):
     modpath, name = path.split(_MOD_T_SEP)
     return __import__(modpath).__dict__[name]
 
-def _find__new__(cls):
-    while cls is not None:
-        d = cls.__dict__
-        if "__new__" in d:
-            return d["__new__"]
-        cls = cls.__base__
-    assert False
-
 class _Pickler:
     def __init__(self, obj) -> None:
         self.obj = obj
@@ -148,7 +140,7 @@ class _Unpickler:
         cls, newargs, state = o
         cls = _find_class(o[0])
         # create uninitialized instance
-        new_f = _find__new__(cls)
+        new_f = getattr(cls, "__new__")
         if newargs is not None:
             newargs = [self.unwrap(i) for i in newargs]
             inst = new_f(cls, *newargs)

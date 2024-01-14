@@ -108,7 +108,7 @@ struct FuncDecl {
 };
 
 struct UserData{
-    char data[15];
+    char data[12];
     bool empty;
 
     UserData(): empty(true) {}
