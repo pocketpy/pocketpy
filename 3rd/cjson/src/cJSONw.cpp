@@ -24,29 +24,17 @@ static cJSON* covert_dict_to_cjson(const Dict& dict, VM* vm){
 }
 
 static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
+    if(obj == vm->None) return cJSON_CreateNull();
     Type obj_t = vm->_tp(obj);
-    if (obj_t == vm->tp_int){
-        return cJSON_CreateNumber(_CAST(i64, obj));
-    }
-    else if (obj_t == vm->tp_float){
-        return cJSON_CreateNumber(_CAST(f64, obj));
-    }
-    else if (obj_t == vm->tp_bool){
-        return cJSON_CreateBool(obj == vm->True);
-    }
-    else if (obj_t == vm->tp_str){
-        return cJSON_CreateString(_CAST(Str&, obj).c_str());
-    }
-    else if (obj_t == vm->tp_dict){
-        return covert_dict_to_cjson(_CAST(Dict&, obj), vm);
-    }
-    else if (obj_t == vm->tp_list){
-        return convert_list_to_cjson<List>(_CAST(List&, obj), vm);
-    }
-    else if(obj_t == vm->tp_tuple){
-        return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
-    }else if(obj == vm->None){
-        return cJSON_CreateNull();
+    switch(obj_t){
+        case VM::tp_int.index: cJSON_CreateNumber(_CAST(i64, obj));
+        case VM::tp_float.index: cJSON_CreateNumber(_CAST(f64, obj));
+        case VM::tp_bool.index: cJSON_CreateBool(obj == vm->True);
+        case VM::tp_str.index: cJSON_CreateString(_CAST(Str&, obj).c_str());
+        case VM::tp_dict.index: return covert_dict_to_cjson(_CAST(Dict&, obj), vm);
+        case VM::tp_list.index: return convert_list_to_cjson<List>(_CAST(List&, obj), vm);
+        case VM::tp_tuple.index: return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
+        default: break;
     }
     vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
     PK_UNREACHABLE()
