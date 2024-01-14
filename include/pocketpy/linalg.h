@@ -28,6 +28,7 @@ struct Vec2{
     float length() const { return sqrtf(x * x + y * y); }
     float length_squared() const { return x * x + y * y; }
     Vec2 normalize() const { float l = length(); return Vec2(x / l, y / l); }
+    NoReturn assign(const Vec2& v) { x = v.x; y = v.y; return {}; }
 };
 
 struct Vec3{
@@ -52,6 +53,7 @@ struct Vec3{
     float length() const { return sqrtf(x * x + y * y + z * z); }
     float length_squared() const { return x * x + y * y + z * z; }
     Vec3 normalize() const { float l = length(); return Vec3(x / l, y / l, z / l); }
+    NoReturn assign(const Vec3& v) { x = v.x; y = v.y; z = v.z; return {}; }
 };
 
 struct Vec4{
@@ -75,6 +77,7 @@ struct Vec4{
     float length() const { return sqrtf(x * x + y * y + z * z + w * w); }
     float length_squared() const { return x * x + y * y + z * z + w * w; }
     Vec4 normalize() const { float l = length(); return Vec4(x / l, y / l, z / l, w / l); }
+    NoReturn assign(const Vec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; return {}; }
 };
 
 struct Mat3x3{    

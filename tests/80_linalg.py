@@ -487,3 +487,22 @@ class mymat3x3(mat3x3):
         return _0 == _1 == _2
     
 assert mymat3x3().f()
+
+
+# test assign
+a = vec2(1, 2)
+assert a.assign(vec2(3, 4)) is None
+assert a == vec2(3, 4)
+
+b = vec3(1, 2, 3)
+assert b.assign(vec3(4, 5, 6)) is None
+assert b == vec3(4, 5, 6)
+
+c = vec4(1, 2, 3, 4)
+assert c.assign(vec4(5, 6, 7, 8)) is None
+assert c == vec4(5, 6, 7, 8)
+
+d = mat3x3.identity()
+assert d.assign(mat3x3.zeros()) is None
+assert d == mat3x3.zeros()
+
