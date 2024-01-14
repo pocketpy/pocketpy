@@ -95,29 +95,6 @@ try:
 except:
     pass
 
-# 无法测试 -----------------------------------------------
-#       248:  192:    _vm->bind_builtin_func<1>("__import__", [](VM* vm, ArgsView args) {
-#        67:  193:        const Str& name = CAST(Str&, args[0]);
-#        67:  194:        auto dot = name.sv().find_last_of(".");
-#        67:  195:        if(dot != std::string_view::npos){
-#     #####:  196:            auto ext = name.sv().substr(dot);
-#     #####:  197:            if(ext == ".so" || ext == ".dll" || ext == ".dylib"){
-#     #####:  198:                dylib_entry_t entry = load_dylib(name.c_str());
-#     #####:  199:                if(!entry){
-#     #####:  200:                    vm->_error("ImportError", "cannot load dynamic library: " + name.escape());
-#     #####:  201:                }
-#     #####:  202:                vm->_c.s_view.push(ArgsView(vm->s_data.end(), vm->s_data.end()));
-#     #####:  203:                const char* name = entry(vm, PK_VERSION);
-#     #####:  204:                vm->_c.s_view.pop();
-#     #####:  205:                if(name == nullptr){
-#     #####:  206:                    vm->_error("ImportError", "module initialization failed: " + Str(name).escape());
-#     #####:  207:                }
-#     #####:  208:                return vm->_modules[name];
-#     #####:  209:            }
-#     #####:  210:        }
-#        67:  211:        return vm->py_import(name);
-#        67:  212:    });
-
 # test hash:
 # 测试整数类型的输入
 assert hash(0) == 0
@@ -168,37 +145,13 @@ try:
 except:
     pass
 
-
-# -----------------------------------------------
-#       114:  259:    _vm->bind_builtin_func<1>("chr", [](VM* vm, ArgsView args) {
-#     #####:  260:        i64 i = CAST(i64, args[0]);
-#     #####:  261:        if (i < 0 || i > 128) vm->ValueError("chr() arg not in range(128)");
-#     #####:  262:        return VAR(std::string(1, (char)i));
-#     #####:  263:    });
 # test chr
 l = []
 for i in range(128):
     l.append(f'{i} {chr(i)}')
 assert l == ['0 \x00', '1 \x01', '2 \x02', '3 \x03', '4 \x04', '5 \x05', '6 \x06', '7 \x07', '8 \x08', '9 \t', '10 \n', '11 \x0b', '12 \x0c', '13 \r', '14 \x0e', '15 \x0f', '16 \x10', '17 \x11', '18 \x12', '19 \x13', '20 \x14', '21 \x15', '22 \x16', '23 \x17', '24 \x18', '25 \x19', '26 \x1a', '27 \x1b', '28 \x1c', '29 \x1d', '30 \x1e', '31 \x1f', '32  ', '33 !', '34 "', '35 #', '36 $', '37 %', '38 &', "39 '", '40 (', '41 )', '42 *', '43 +', '44 ,', '45 -', '46 .', '47 /', '48 0', '49 1', '50 2', '51 3', '52 4', '53 5', '54 6', '55 7', '56 8', '57 9', '58 :', '59 ;', '60 <', '61 =', '62 >', '63 ?', '64 @', '65 A', '66 B', '67 C', '68 D', '69 E', '70 F', '71 G', '72 H', '73 I', '74 J', '75 K', '76 L', '77 M', '78 N', '79 O', '80 P', '81 Q', '82 R', '83 S', '84 T', '85 U', '86 V', '87 W', '88 X', '89 Y', '90 Z', '91 [', '92 \\', '93 ]', '94 ^', '95 _', '96 `', '97 a', '98 b', '99 c', '100 d', '101 e', '102 f', '103 g', '104 h', '105 i', '106 j', '107 k', '108 l', '109 m', '110 n', '111 o', '112 p', '113 q', '114 r', '115 s', '116 t', '117 u', '118 v', '119 w', '120 x', '121 y', '122 z', '123 {', '124 |', '125 }', '126 ~', '127 \x7f']
 
-
 assert type(bin(1234)) is str
-
-# 无法测试, 不能覆盖-----------------------------------------------
-#       136:  285:    _vm->bind_builtin_func<1>("dir", [](VM* vm, ArgsView args) {
-#        10:  286:        std::set<StrName> names;
-#        10:  287:        if(!is_tagged(args[0]) && args[0]->is_attr_valid()){
-#     #####:  288:            std::vector<StrName> keys = args[0]->attr().keys();
-#     #####:  289:            names.insert(keys.begin(), keys.end());
-#     #####:  290:        }
-#        10:  291:        const NameDict& t_attr = vm->_t(args[0])->attr();
-#        10:  292:        std::vector<StrName> keys = t_attr.keys();
-#        10:  293:        names.insert(keys.begin(), keys.end());
-#        10:  294:        List ret;
-#       305:  295:        for (StrName name : names) ret.push_back(VAR(name.sv()));
-#        10:  296:        return VAR(std::move(ret));
-#        10:  297:    });
-# test dir:
 
 # test __repr__:
 class A():

@@ -353,11 +353,6 @@ public:
         });
     }
 
-    template<int ARGC>
-    PyObject* bind_builtin_func(Str name, NativeFuncC fn) {
-        return bind_func<ARGC>(builtins, name, fn);
-    }
-
     int normalized_index(int index, int size);
     PyObject* py_next(PyObject* obj);
     
