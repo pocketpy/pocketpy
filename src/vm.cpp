@@ -1032,14 +1032,15 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
         PyObject* val;
         if(obj->type == tp_type){
             val = find_name_in_mro(obj, name);
+            if(val != nullptr){
+                if(is_tagged(val)) return val;
+                if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+                if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+                return val;
+            }
         }else{
             val = obj->attr().try_get_likely_found(name);
-        }
-        if(val != nullptr){
-            if(is_tagged(val)) return val;
-            if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-            if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
-            return val;
+            if(val != nullptr) return val;
         }
     }
     if(cls_var != nullptr){
@@ -1101,14 +1102,15 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
             PyObject* val;
             if(obj->type == tp_type){
                 val = find_name_in_mro(obj, name);
+                if(val != nullptr){
+                    if(is_tagged(val)) return val;
+                    if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+                    if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+                    return val;
+                }
             }else{
                 val = obj->attr().try_get_likely_found(name);
-            }
-            if(val != nullptr){
-                if(is_tagged(val)) return val;
-                if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-                if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
-                return val;
+                if(val != nullptr) return val;
             }
         }
     }
