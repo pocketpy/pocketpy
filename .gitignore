@@ -12,6 +12,7 @@ gprof.txt
 amalgamated
 web/lib
 
+*.a
 *.so
 *.dll
 plugins/unity/

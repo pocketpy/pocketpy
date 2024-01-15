@@ -1,19 +1,6 @@
-#pragma once
-
-#include "pocketpy.h"
-
-extern "C"{
-    #include "lua.h"
-    #include "lauxlib.h"
-}
+#include "lua_bridge.hpp"
 
 namespace pkpy{
-
-/******************************************************************/
-
-void initialize_lua_bridge(VM* vm, lua_State* newL);
-
-/******************************************************************/
 
 static lua_State* _L;
 static void lua_push_from_python(VM*, PyObject*);
