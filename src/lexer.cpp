@@ -344,7 +344,6 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 case '&': add_token_2('=', TK("&"), TK("&=")); return true;
                 case '|': add_token_2('=', TK("|"), TK("|=")); return true;
                 case '^': add_token_2('=', TK("^"), TK("^=")); return true;
-                case '?': add_token(TK("?")); return true;
                 case '.': {
                     if(matchchar('.')) {
                         if(matchchar('.')) {
