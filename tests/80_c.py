@@ -68,7 +68,7 @@ for i in range(67):
     s.write_char(i, i)
 
 s_hex = s.hex()
-s_r = c.struct.from_hex(s_hex)
+s_r = c.struct.fromhex(s_hex)
 assert (s == s_r and s is not s_r), (s_hex, s_r.hex())
 assert s_hex == s_r.hex()
 

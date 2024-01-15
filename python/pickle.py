@@ -143,7 +143,7 @@ class _Unpickler:
         # generic object
         cls = _find_class(o[0])
         if getattr(cls, '__struct__', False):
-            inst = cls.from_struct(struct.from_hex(o[1]))
+            inst = cls.from_struct(struct.fromhex(o[1]))
             self.tag(index, inst)
             return inst
         else:
