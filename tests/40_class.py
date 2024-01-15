@@ -106,9 +106,10 @@ class B(A):
     b = 3
     c = 4
 
-# assert B.a == 1  ...bug here
 assert B.b == 3
 assert B.c == 4
+
+assert B.a == 1
 
 class A:
     x = 1
