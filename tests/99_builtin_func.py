@@ -198,17 +198,6 @@ try:
 except:
     pass
 
-# 未完全测试准确性-----------------------------------------------
-#       116:  392:    _vm->bind_method<0>("int", "bit_length", [](VM* vm, ArgsView args) {
-#     #####:  393:        i64 x = _CAST(i64, args[0]);
-#     #####:  394:        if(x < 0) x = -x;
-#         -:  395:        int bits = 0;
-#     #####:  396:        while(x){ x >>= 1; bits++; }
-#     #####:  397:        return VAR(bits);
-#         -:  398:    });
-# test int.bit_length:
-assert type(int.bit_length(100)) is int
-
 assert type(10//11) is int
 
 assert type(11%2) is int

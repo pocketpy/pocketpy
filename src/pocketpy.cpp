@@ -48,6 +48,7 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 #undef BIND_NUM_LOGICAL_OPT
 
+    // builtin functions
     _vm->bind_func<-1>(_vm->builtins, "super", [](VM* vm, ArgsView args) {
         PyObject* class_arg = nullptr;
         PyObject* self_arg = nullptr;
@@ -195,14 +196,14 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_func<-1>(_vm->builtins, "exit", [](VM* vm, ArgsView args) {
-        if(args.size() == 0) std::exit(0);
-        else if(args.size() == 1) std::exit(CAST(int, args[0]));
-        else vm->TypeError("exit() takes at most 1 argument");
+    _vm->bind(_vm->builtins, "exit(code=0)", [](VM* vm, ArgsView args) {
+        std::exit(CAST(int, args[0]));
         return vm->None;
     });
 
-    _vm->bind_func<1>(_vm->builtins, "repr", PK_LAMBDA(vm->py_repr(args[0])));
+    _vm->bind_func<1>(_vm->builtins, "repr", [](VM* vm, ArgsView args){
+        return vm->py_repr(args[0]);
+    });
 
     _vm->bind_func<1>(_vm->builtins, "len", [](VM* vm, ArgsView args){
         const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
@@ -217,7 +218,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_func<1>(_vm->builtins, "chr", [](VM* vm, ArgsView args) {
         i64 i = CAST(i64, args[0]);
-        if (i < 0 || i > 128) vm->ValueError("chr() arg not in range(128)");
+        if (i < 0 || i >= 128) vm->ValueError("chr() arg not in [0, 128)");
         return VAR(std::string(1, (char)i));
     });
 
@@ -296,6 +297,7 @@ void init_builtins(VM* _vm) {
         return VAR(std::move(ret));
     });
 
+    // tp_object
     _vm->bind__repr__(VM::tp_object, [](VM* vm, PyObject* obj) {
         if(is_tagged(obj)) PK_FATAL_ERROR();
         std::stringstream ss; // hex
@@ -304,7 +306,9 @@ void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    _vm->bind__eq__(VM::tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) { return VAR(lhs == rhs); });
+    _vm->bind__eq__(VM::tp_object, [](VM* vm, PyObject* lhs, PyObject* rhs) {
+        return VAR(lhs == rhs); 
+    });
 
     _vm->cached_object__new__ = _vm->bind_constructor<1>(_vm->_t(VM::tp_object), [](VM* vm, ArgsView args) {
         vm->check_non_tagged_type(args[0], vm->tp_type);
@@ -324,8 +328,10 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
+    // tp_type
     _vm->bind_constructor<2>(_vm->_t(VM::tp_type), PK_LAMBDA(vm->_t(args[1])));
 
+    // tp_range
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_range), [](VM* vm, ArgsView args) {
         args._begin += 1;   // skip cls
         Range r;
@@ -339,13 +345,17 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__iter__(VM::tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
-    _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) { return VAR("None"); });
+    
+    // tp_nonetype
+    _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) {
+        return VAR("None"); 
+    });
 
+    // tp_float / tp_float
     _vm->bind__truediv__(VM::tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         f64 value = CAST_F(rhs);
         return VAR(_CAST(f64, lhs) / value);
     });
-
     _vm->bind__truediv__(VM::tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         f64 value = CAST_F(rhs);
         return VAR(_CAST(i64, lhs) / value);
@@ -373,7 +383,6 @@ void init_builtins(VM* _vm) {
     _vm->bind__pow__(VM::tp_int, py_number_pow);
     _vm->bind__pow__(VM::tp_float, py_number_pow);
 
-    /************ int ************/
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_int), [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(0);
         // 1 arg
@@ -398,14 +407,6 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_method<0>(VM::tp_int, "bit_length", [](VM* vm, ArgsView args) {
-        i64 x = _CAST(i64, args[0]);
-        if(x < 0) x = -x;
-        int bits = 0;
-        while(x){ x >>= 1; bits++; }
-        return VAR(bits);
-    });
-
     _vm->bind__floordiv__(VM::tp_int, [](VM* vm, PyObject* lhs_, PyObject* rhs_) {
         i64 rhs = CAST(i64, rhs_);
         if(rhs == 0) vm->ZeroDivisionError();
@@ -419,11 +420,8 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
-
     _vm->bind__neg__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(-_CAST(i64, obj)); });
-
     _vm->bind__hash__(VM::tp_int, [](VM* vm, PyObject* obj) { return _CAST(i64, obj); });
-
     _vm->bind__invert__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(~_CAST(i64, obj)); });
 
 #define INT_BITWISE_OP(name, op) \
@@ -439,7 +437,6 @@ void init_builtins(VM* _vm) {
 
 #undef INT_BITWISE_OP
 
-    /************ float ************/
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_float), [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(0.0);
         if(args.size() > 1+1) vm->TypeError("float() takes at most 1 argument");
@@ -480,7 +477,7 @@ void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    /************ str ************/
+    // tp_str
     _vm->bind_constructor<2>(_vm->_t(VM::tp_str), PK_LAMBDA(vm->py_str(args[1])));
 
     _vm->bind__hash__(VM::tp_str, [](VM* vm, PyObject* obj) {
@@ -500,7 +497,6 @@ void init_builtins(VM* _vm) {
         for(i64 i = 0; i < n; i++) ss << self.sv();
         return VAR(ss.str());
     });
-
     _vm->bind_method<1>(VM::tp_str, "__rmul__", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         i64 n = CAST(i64, args[1]);
@@ -508,7 +504,6 @@ void init_builtins(VM* _vm) {
         for(i64 i = 0; i < n; i++) ss << self.sv();
         return VAR(ss.str());
     });
-
     _vm->bind__contains__(VM::tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) {
         const Str& self = _CAST(Str&, lhs);
         return VAR(self.index(CAST(Str&, rhs)) != -1);
@@ -645,7 +640,7 @@ void init_builtins(VM* _vm) {
         return VAR(self.upper());
     });
 
-    /************ list ************/
+    // tp_list / tp_tuple
     _vm->bind(_vm->_t(VM::tp_list), "sort(self, key=None, reverse=False)", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         PyObject* key = args[1];
@@ -694,9 +689,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_list), [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(List());
-        if(args.size() == 1+1){
-            return vm->py_list(args[1]);
-        }
+        if(args.size() == 1+1) return vm->py_list(args[1]);
         vm->TypeError("list() takes 0 or 1 arguments");
         return vm->None;
     });
@@ -878,7 +871,6 @@ void init_builtins(VM* _vm) {
         self.erase(i);
     });
 
-    /************ tuple ************/
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_tuple), [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(Tuple(0));
         if(args.size() == 1+1){
@@ -933,7 +925,7 @@ void init_builtins(VM* _vm) {
         return (i64)_CAST(Tuple&, obj).size();
     });
 
-    /************ bool ************/
+    // tp_bool
     _vm->bind_constructor<2>(_vm->_t(VM::tp_bool), PK_LAMBDA(VAR(vm->py_bool(args[1]))));
     _vm->bind__hash__(VM::tp_bool, [](VM* vm, PyObject* obj) {
         return (i64)_CAST(bool, obj);
@@ -957,6 +949,8 @@ void init_builtins(VM* _vm) {
         if(is_int(rhs)) return VAR(_CAST(bool, lhs) == (bool)CAST(i64, rhs));
         return vm->NotImplemented;
     });
+
+    // tp_ellipsis / tp_NotImplementedType
     _vm->bind__repr__(_vm->_type("ellipsis"), [](VM* vm, PyObject* self) {
         return VAR("...");
     });
@@ -964,7 +958,7 @@ void init_builtins(VM* _vm) {
         return VAR("NotImplemented");
     });
 
-    /************ bytes ************/
+    // tp_bytes
     _vm->bind_constructor<2>(_vm->_t(VM::tp_bytes), [](VM* vm, ArgsView args){
         List& list = CAST(List&, args[1]);
         std::vector<unsigned char> buffer(list.size());
@@ -1015,7 +1009,8 @@ void init_builtins(VM* _vm) {
         if(!is_non_tagged_type(rhs, vm->tp_bytes)) return vm->NotImplemented;
         return VAR(_CAST(Bytes&, lhs) == _CAST(Bytes&, rhs));
     });
-    /************ slice ************/
+    
+    // tp_slice
     _vm->bind_constructor<4>(_vm->_t(VM::tp_slice), [](VM* vm, ArgsView args) {
         return VAR(Slice(args[1], args[2], args[3]));
     });
@@ -1030,7 +1025,7 @@ void init_builtins(VM* _vm) {
         return VAR(ss.str());
     });
 
-    /************ mappingproxy ************/
+    // tp_mappingproxy
     _vm->bind_method<0>(VM::tp_mappingproxy, "keys", [](VM* vm, ArgsView args) {
         MappingProxy& self = _CAST(MappingProxy&, args[0]);
         List keys;
@@ -1060,11 +1055,9 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(VM::tp_mappingproxy, [](VM* vm, PyObject* obj, PyObject* other){
-        MappingProxy& a = _CAST(MappingProxy&, obj);
-        if(!is_non_tagged_type(other, vm->tp_mappingproxy)){
-            return vm->NotImplemented;
-        }
-        MappingProxy& b = _CAST(MappingProxy&, other);
+        const MappingProxy& a = _CAST(MappingProxy&, obj);
+        if(!is_non_tagged_type(other, vm->tp_mappingproxy)) return vm->NotImplemented;
+        const MappingProxy& b = _CAST(MappingProxy&, other);
         return VAR(a.obj == b.obj);
     });
 
@@ -1103,7 +1096,7 @@ void init_builtins(VM* _vm) {
         return VAR(self.attr().contains(CAST(Str&, key)));
     });
 
-    /************ dict ************/
+    // tp_dict
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_dict), [](VM* vm, ArgsView args){
         return VAR(Dict(vm));
     });
@@ -1268,7 +1261,7 @@ void init_builtins(VM* _vm) {
         return VAR(fmt("<module ", path.escape(), ">"));
     });
 
-    /************ property ************/
+    // tp_property
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_property), [](VM* vm, ArgsView args) {
         if(args.size() == 1+1){
             return VAR(Property(args[1], vm->None, ""));
@@ -1281,6 +1274,7 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
+    // properties
     _vm->bind_property(_vm->_t(VM::tp_property), "__signature__", [](VM* vm, ArgsView args){
         Property& self = _CAST(Property&, args[0]);
         return VAR(self.signature);
@@ -1308,7 +1302,7 @@ void init_builtins(VM* _vm) {
         return VAR("");
     });
 
-    // Exception
+    // tp_exception
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_exception), [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = obj_type_name(vm, cls);
