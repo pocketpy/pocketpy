@@ -488,4 +488,10 @@ int utf8len(unsigned char c, bool suppress){
         std::reverse(begin, buffer.end());
         return *this;
     }
+
+    void SStream::write_hex(unsigned char c){
+        *this << "0123456789ABCDEF"[c >> 4];
+        *this << "0123456789ABCDEF"[c & 0xf];
+    }
+
 } // namespace pkpy

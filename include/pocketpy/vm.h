@@ -449,7 +449,7 @@ public:
     template<int ARGC>
     PyObject* bind_method(PyObject*, Str, NativeFuncC);
     template<int ARGC>
-    PyObject* bind_func(PyObject*, Str, NativeFuncC);
+    PyObject* bind_func(PyObject*, Str, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     void _error(PyObject*);
     PyObject* _run_top_frame();
     void post_init();
@@ -624,8 +624,14 @@ PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
 }
 
 template<int ARGC>
-PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn) {
+PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn, UserData userdata, BindType bt) {
     PyObject* nf = VAR(NativeFunc(fn, ARGC, false));
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(userdata);
+    switch(bt){
+        case BindType::DEFAULT: break;
+        case BindType::STATICMETHOD: nf = VAR(StaticMethod(nf)); break;
+        case BindType::CLASSMETHOD: nf = VAR(ClassMethod(nf)); break;
+    }
     obj->attr().set(name, nf);
     return nf;
 }

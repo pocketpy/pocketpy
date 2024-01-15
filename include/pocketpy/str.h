@@ -141,6 +141,7 @@ struct SStream{
     SStream& operator<<(std::string_view s);
     SStream& operator<<(char c);
     SStream& operator<<(StrName sn);
+    void write_hex(unsigned char c);
 
     template<typename T>
     SStream& operator<<(T val){

@@ -1,4 +1,5 @@
 import json
+from c import struct
 import builtins
 
 _BASIC_TYPES = [int, float, str, bool, type(None)]
@@ -16,18 +17,20 @@ class _Pickler:
         self.raw_memo = {}  # id -> int
         self.memo = []      # int -> object
 
-    def _type_id(self, o: type):
-        assert type(o) is type
-        name = o.__name__
-        mod = o.__module__
+    @staticmethod
+    def _type_id(t: type):
+        assert type(t) is type
+        name = t.__name__
+        mod = t.__module__
         if mod is not None:
             name = mod.__path__ + _MOD_T_SEP + name
         return name
 
     def wrap(self, o):
-        if type(o) in _BASIC_TYPES:
+        o_t = type(o)
+        if o_t in _BASIC_TYPES:
             return o
-        if type(o) is type:
+        if o_t is type:
             return ["type", self._type_id(o)]
 
         index = self.raw_memo.get(id(o), None)
@@ -39,25 +42,29 @@ class _Pickler:
         self.memo.append(ret)
         self.raw_memo[id(o)] = index
 
-        if type(o) is tuple:
+        if o_t is tuple:
             ret.append("tuple")
             ret.append([self.wrap(i) for i in o])
             return [index]
-        if type(o) is bytes:
+        if o_t is bytes:
             ret.append("bytes")
             ret.append([o[j] for j in range(len(o))])
             return [index]
-
-        if type(o) is list:
+        if o_t is list:
             ret.append("list")
             ret.append([self.wrap(i) for i in o])
             return [index]
-        if type(o) is dict:
+        if o_t is dict:
             ret.append("dict")
             ret.append([[self.wrap(k), self.wrap(v)] for k,v in o.items()])
             return [index]
         
-        _0 = self._type_id(type(o))
+        _0 = self._type_id(o_t)
+
+        if getattr(o_t, '__struct__', False):
+            ret.append(_0)
+            ret.append(o.to_struct().hex())
+            return [index]
 
         if hasattr(o, "__getnewargs__"):
             _1 = o.__getnewargs__()     # an iterable
@@ -68,13 +75,11 @@ class _Pickler:
         if o.__dict__ is None:
             _2 = None
         else:
-            _2 = {}
-            for k,v in o.__dict__.items():
-                _2[k] = self.wrap(v)
+            _2 = {k: self.wrap(v) for k,v in o.__dict__.items()}
 
-        ret.append(_0)
-        ret.append(_1)
-        ret.append(_2)
+        ret.append(_0)  # type id
+        ret.append(_1)  # newargs
+        ret.append(_2)  # state
         return [index]
     
     def run_pipe(self):
@@ -122,7 +127,6 @@ class _Unpickler:
             ret = bytes(o[1])
             self.tag(index, ret)
             return ret
-
         if o[0] == "list":
             ret = []
             self.tag(index, ret)
@@ -137,21 +141,26 @@ class _Unpickler:
             return ret
         
         # generic object
-        cls, newargs, state = o
         cls = _find_class(o[0])
-        # create uninitialized instance
-        new_f = getattr(cls, "__new__")
-        if newargs is not None:
-            newargs = [self.unwrap(i) for i in newargs]
-            inst = new_f(cls, *newargs)
+        if getattr(cls, '__struct__', False):
+            inst = cls.from_struct(struct.from_hex(o[1]))
+            self.tag(index, inst)
+            return inst
         else:
-            inst = new_f(cls)
-        self.tag(index, inst)
-        # restore state
-        if state is not None:
-            for k,v in state.items():
-                setattr(inst, k, self.unwrap(v))
-        return inst
+            _, newargs, state = o
+            # create uninitialized instance
+            new_f = getattr(cls, "__new__")
+            if newargs is not None:
+                newargs = [self.unwrap(i) for i in newargs]
+                inst = new_f(cls, *newargs)
+            else:
+                inst = new_f(cls)
+            self.tag(index, inst)
+            # restore state
+            if state is not None:
+                for k,v in state.items():
+                    setattr(inst, k, self.unwrap(v))
+            return inst
 
     def run_pipe(self):
         return self.unwrap(self.obj)

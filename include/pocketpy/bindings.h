@@ -138,13 +138,14 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 #define PY_STRUCT_LIKE(wT)   \
         using vT = std::remove_pointer_t<decltype(std::declval<wT>()._())>;         \
         static_assert(std::is_trivially_copyable<vT>::value);                       \
+        type->attr().set("__struct__", vm->True);                                   \
         vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){            \
             C99Struct& s = CAST(C99Struct&, args[0]);                               \
             if(s.size != sizeof(vT)) vm->ValueError("size mismatch");               \
             PyObject* obj = vm->heap.gcnew<wT>(wT::_type(vm));                      \
             memcpy(_CAST(wT&, obj)._(), s.p, sizeof(vT));                           \
             return obj;                                                             \
-        });                                                                         \
+        }, {}, BindType::STATICMETHOD);                                             \
         vm->bind_method<0>(type, "to_struct", [](VM* vm, ArgsView args){            \
             wT& self = _CAST(wT&, args[0]);                                         \
             return VAR_T(C99Struct, self._(), sizeof(vT));                          \

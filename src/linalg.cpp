@@ -105,11 +105,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return vm->heap.gcnew<PyVec2>(PK_OBJ_GET(Type, args[0]), Vec2(x, y));
         });
 
-        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
-            PyVec2& self = _CAST(PyVec2&, args[0]);
-            return VAR(Tuple({ VAR(self.x), VAR(self.y) }));
-        });
-
         // @staticmethod
         vm->bind(type, "smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> vec2", [](VM* vm, ArgsView args){
             Vec2 current = CAST(Vec2, args[0]);
@@ -178,11 +173,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return vm->heap.gcnew<PyVec3>(PK_OBJ_GET(Type, args[0]), Vec3(x, y, z));
         });
 
-        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
-            PyVec3& self = _CAST(PyVec3&, args[0]);
-            return VAR(Tuple({ VAR(self.x), VAR(self.y), VAR(self.z) }));
-        });
-
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             PyVec3& self = _CAST(PyVec3&, obj);
             std::stringstream ss;
@@ -216,11 +206,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             float z = CAST_F(args[3]);
             float w = CAST_F(args[4]);
             return vm->heap.gcnew<PyVec4>(PK_OBJ_GET(Type, args[0]), Vec4(x, y, z, w));
-        });
-
-        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
-            PyVec4& self = _CAST(PyVec4&, args[0]);
-            return VAR(Tuple({ VAR(self.x), VAR(self.y), VAR(self.z), VAR(self.w) }));
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
@@ -273,13 +258,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             }
             vm->TypeError(fmt("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
             return vm->None;
-        });
-
-        vm->bind_method<0>(type, "__getnewargs__", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            Tuple t(9);
-            for(int i=0; i<9; i++) t[i] = VAR(self.v[i]);
-            return VAR(std::move(t));
         });
 
         vm->bind_method<1>(type, "assign", [](VM* vm, ArgsView args){

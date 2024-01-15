@@ -988,9 +988,8 @@ void init_builtins(VM* _vm) {
         SStream ss;
         ss << "b'";
         for(int i=0; i<self.size(); i++){
-            ss << "\\x"; // << std::hex << std::setw(2) << std::setfill('0') << self[i];
-            ss << "0123456789ABCDEF"[self[i] >> 4];
-            ss << "0123456789ABCDEF"[self[i] & 0xf];
+            ss << "\\x";
+            ss.write_hex((unsigned char)self[i]);
         }
         ss << "'";
         return VAR(ss.str());
