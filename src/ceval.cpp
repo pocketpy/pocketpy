@@ -24,22 +24,22 @@ namespace pkpy{
 
 bool VM::py_lt(PyObject* _0, PyObject* _1){
     BINARY_F_COMPARE(__lt__, "<", __gt__);
-    return CAST(bool, ret);
+    return ret == True;
 }
 
 bool VM::py_le(PyObject* _0, PyObject* _1){
     BINARY_F_COMPARE(__le__, "<=", __ge__);
-    return CAST(bool, ret);
+    return ret == True;
 }
 
 bool VM::py_gt(PyObject* _0, PyObject* _1){
     BINARY_F_COMPARE(__gt__, ">", __lt__);
-    return CAST(bool, ret);
+    return ret == True;
 }
 
 bool VM::py_ge(PyObject* _0, PyObject* _1){
     BINARY_F_COMPARE(__ge__, ">=", __le__);
-    return CAST(bool, ret);
+    return ret == True;
 }
 
 #undef BINARY_F_COMPARE
