@@ -41,7 +41,6 @@ aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 option(PK_USE_CJSON "Use cJSON" OFF)
 if(PK_USE_CJSON)
     add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson)
-    include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd/cjson/include)
     add_definitions(-DPK_USE_CJSON)
 endif()
 

@@ -1,10 +1,10 @@
 #include "pocketpy/pocketpy.h"
 
-#ifdef PK_USE_CJSON
-#include "cJSONw.hpp"
-#endif
-
 namespace pkpy{
+
+#ifdef PK_USE_CJSON
+void add_module_cjson(VM* vm);
+#endif
 
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
@@ -142,8 +142,8 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<1>(_vm->builtins, "callable", [](VM* vm, ArgsView args) {
-        PyObject* cls = vm->_t(args[0]);
-        switch(PK_OBJ_GET(Type, cls).index){
+        Type cls = vm->_tp(args[0]);
+        switch(cls.index){
             case VM::tp_function.index: return vm->True;
             case VM::tp_native_func.index: return vm->True;
             case VM::tp_bound_method.index: return vm->True;
@@ -1619,7 +1619,7 @@ void VM::post_init(){
     });
 
     bind_property(_t(tp_type), "__annotations__", [](VM* vm, ArgsView args){
-        PyTypeInfo* ti = vm->_type_info(PK_OBJ_GET(Type, args[0]));
+        const PyTypeInfo* ti = &vm->_all_types[(PK_OBJ_GET(Type, args[0]))];
         Tuple t(ti->annotated_fields.size());
         for(int i=0; i<ti->annotated_fields.size(); i++){
             t[i] = VAR(ti->annotated_fields[i].sv());
@@ -1677,7 +1677,6 @@ void VM::post_init(){
         return VAR(MappingProxy(args[0]));
     });
 
-#if !PK_DEBUG_NO_BUILTINS
     add_module_sys(this);
     add_module_traceback(this);
     add_module_time(this);
@@ -1720,8 +1719,6 @@ void VM::post_init(){
 
 #ifdef PK_USE_CJSON
     add_module_cjson(this);
-#endif
-
 #endif
 }
 

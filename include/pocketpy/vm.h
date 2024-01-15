@@ -96,6 +96,10 @@ struct PyTypeInfo{
     PyObject* (*m__getitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
     void (*m__setitem__)(VM* vm, PyObject*, PyObject*, PyObject*) = nullptr;
     void (*m__delitem__)(VM* vm, PyObject*, PyObject*) = nullptr;
+
+    // attributes
+    void (*m__setattr__)(VM* vm, PyObject*, StrName, PyObject*) = nullptr;
+    PyObject* (*m__getattr__)(VM* vm, PyObject*, StrName) = nullptr;
 };
 
 struct FrameId{
@@ -174,7 +178,7 @@ public:
     PyObject* py_json(PyObject* obj);
     PyObject* py_iter(PyObject* obj);
 
-    PyObject* find_name_in_mro(PyObject* cls, StrName name);
+    PyObject* find_name_in_mro(Type cls, StrName name);
     bool isinstance(PyObject* obj, Type base);
     bool issubclass(Type cls, Type base);
     PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr);
@@ -221,7 +225,6 @@ public:
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
     Type _new_type_object(StrName name, Type base=0, bool subclass_enabled=false);
-    PyTypeInfo* _type_info(Type type);
     const PyTypeInfo* _inst_type_info(PyObject* obj);
 
 #define BIND_UNARY_SPECIAL(name)                                                        \

@@ -778,7 +778,7 @@ __NEXT_STEP:;
         PK_ASSERT(_curr_class != nullptr);
         StrName _name(byte.arg);
         Type type = PK_OBJ_GET(Type, _curr_class);
-        _type_info(type)->annotated_fields.push_back(_name);
+        _all_types[type].annotated_fields.push_back(_name);
     } DISPATCH();
     /*****************************************/
     TARGET(WITH_ENTER)
