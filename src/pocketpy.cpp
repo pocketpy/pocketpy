@@ -347,7 +347,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__iter__(VM::tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
     
     // tp_nonetype
-    _vm->bind__repr__(_vm->_type("NoneType"), [](VM* vm, PyObject* obj) {
+    _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, PyObject* obj) {
         return VAR("None"); 
     });
 
@@ -951,10 +951,10 @@ void init_builtins(VM* _vm) {
     });
 
     // tp_ellipsis / tp_NotImplementedType
-    _vm->bind__repr__(_vm->_type("ellipsis"), [](VM* vm, PyObject* self) {
+    _vm->bind__repr__(_vm->_tp(_vm->Ellipsis), [](VM* vm, PyObject* self) {
         return VAR("...");
     });
-    _vm->bind__repr__(_vm->_type("NotImplementedType"), [](VM* vm, PyObject* self) {
+    _vm->bind__repr__(_vm->_tp(_vm->NotImplemented), [](VM* vm, PyObject* self) {
         return VAR("NotImplemented");
     });
 

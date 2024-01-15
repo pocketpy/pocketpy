@@ -221,9 +221,6 @@ public:
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
     Type _new_type_object(StrName name, Type base=0, bool subclass_enabled=false);
-    PyObject* _find_type_object(const Str& type);
-
-    Type _type(const Str& type);
     PyTypeInfo* _type_info(Type type);
     const PyTypeInfo* _inst_type_info(PyObject* obj);
 

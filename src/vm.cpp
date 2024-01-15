@@ -219,22 +219,6 @@ namespace pkpy{
         return PK_OBJ_GET(Type, obj);
     }
 
-    PyObject* VM::_find_type_object(const Str& type){
-        PyObject* obj = builtins->attr().try_get_likely_found(type);
-        if(obj == nullptr){
-            for(auto& t: _all_types) if(t.name == type) return t.obj;
-            throw std::runtime_error(fmt("type not found: ", type).str());
-        }
-        check_non_tagged_type(obj, tp_type);
-        return obj;
-    }
-
-
-    Type VM::_type(const Str& type){
-        PyObject* obj = _find_type_object(type);
-        return PK_OBJ_GET(Type, obj);
-    }
-
     PyTypeInfo* VM::_type_info(Type type){
         return &_all_types[type];
     }
