@@ -23,6 +23,7 @@ The following types can be pickled:
 - [ ] functions (built-in and user-defined) accessible from the top level of a module (using def, not lambda);
 - [x] classes accessible from the top level of a module;
 - [x] instances of such classes
+- [x] `PY_STRUCT_LIKE` objects
 
 The following magic methods are available:
 
