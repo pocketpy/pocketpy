@@ -15,9 +15,9 @@ void initialize_lua_bridge(VM* vm, lua_State* newL);
 
 /******************************************************************/
 
-lua_State* _L;
-void lua_push_from_python(VM*, PyObject*);
-PyObject* lua_popx_to_python(VM*);
+static lua_State* _L;
+static void lua_push_from_python(VM*, PyObject*);
+static PyObject* lua_popx_to_python(VM*);
 
 template<typename T>
 static void table_apply(VM* vm, T f){
