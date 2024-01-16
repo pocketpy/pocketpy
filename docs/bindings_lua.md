@@ -4,9 +4,13 @@ title: Reuse Lua Bindings
 order: 17
 ---
 
+!!!
+This feature is available in `v1.4.0` or higher.
+!!!
+
 pkpy provides a lua bridge to reuse lua bindings.
 It allows you to run lua code and call lua functions in python
-by embed a lua virtual machine.
+by embedding a lua virtual machine.
 
 Add `lua_bridge.hpp` and `lua_bridge.cpp` in [3rd/lua_bridge](https://github.com/blueloveTH/pocketpy/tree/main/3rd/lua_bridge) to your project.
 Make sure `lua.h`, `lualib.h` and `lauxlib.h` are in your include path
