@@ -1606,12 +1606,7 @@ void VM::post_init(){
 
     _all_types[tp_module].m__getattr__ = [](VM* vm, PyObject* obj, StrName name) -> PyObject*{
         const Str& path = CAST(Str&, obj->attr(__path__));
-        PyObject* mod = vm->py_import(fmt(path, ".", name.sv()), false);
-        if(mod != nullptr){
-            obj->attr().set(name, mod);
-            return mod;
-        }
-        return nullptr;
+        return vm->py_import(fmt(path, ".", name.sv()), false);
     };
 
     bind_method<1>(tp_property, "setter", [](VM* vm, ArgsView args) {
