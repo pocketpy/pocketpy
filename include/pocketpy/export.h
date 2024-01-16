@@ -5,8 +5,7 @@
     #define PK_EXPORT __declspec(dllexport)
     #define PK_SYS_PLATFORM     0
 #elif __EMSCRIPTEN__
-    #include <emscripten.h>
-    #define PK_EXPORT EMSCRIPTEN_KEEPALIVE
+    #define PK_EXPORT
     #define PK_SYS_PLATFORM     1
 #elif __APPLE__
     #include <TargetConditionals.h>
@@ -32,3 +31,4 @@
     #define PK_EXPORT
     #define PK_SYS_PLATFORM     6
 #endif
+
