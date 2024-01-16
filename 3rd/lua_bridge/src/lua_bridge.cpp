@@ -43,6 +43,7 @@ struct PyLuaTable: PyLuaObject{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         Type t = PK_OBJ_GET(Type, type);
         PyTypeInfo* ti = &vm->_all_types[t];
+        ti->subclass_enabled = false;
         ti->m__getattr__ = [](VM* vm, PyObject* obj, StrName name){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
@@ -68,7 +69,7 @@ struct PyLuaTable: PyLuaObject{
 
         vm->bind_constructor<1>(type, [](VM* vm, ArgsView args){
             lua_newtable(_L);    // push an empty table onto the stack
-            PyObject* obj = vm->heap.gcnew<PyLuaTable>(PyLuaTable::_type(vm));
+            PyObject* obj = vm->heap.gcnew<PyLuaTable>(PK_OBJ_GET(Type, args[0]));
             return obj;
         });
 
@@ -186,6 +187,7 @@ struct PyLuaFunction: PyLuaObject{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyLuaFunction>(type);
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
 
         vm->bind_method<-1>(type, "__call__", [](VM* vm, ArgsView args){
             if(args.size() < 1) vm->TypeError("__call__ takes at least 1 argument");

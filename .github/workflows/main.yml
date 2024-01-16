@@ -65,6 +65,11 @@ jobs:
       run: python3 scripts/run_tests.py benchmark
     - name: C Binding Test
       run: bash run_c_binding_test.sh
+    - name: Lua Bridge Test
+      run: |
+        cd examples/python-call-lua
+        bash build.sh
+        ./main
   build_linux_x86:
     runs-on: ubuntu-latest
     steps:
