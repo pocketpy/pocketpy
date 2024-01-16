@@ -390,7 +390,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             Mat3x3 out;
             self.matmul(other, out);
             self = out;
-            return vm->None;
+            return args[0];
         });
 
         vm->bind_method<0>(type, "determinant", [](VM* vm, ArgsView args){
