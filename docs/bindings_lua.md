@@ -5,7 +5,8 @@ order: 17
 ---
 
 pkpy provides a lua bridge to reuse lua bindings.
-It allows you to run lua code and call lua functions in python.
+It allows you to run lua code and call lua functions in python
+by embed a lua virtual machine.
 
 Add `lua_bridge.hpp` and `lua_bridge.cpp` in [3rd/lua_bridge](https://github.com/blueloveTH/pocketpy/tree/main/3rd/lua_bridge) to your project.
 Make sure `lua.h`, `lualib.h` and `lauxlib.h` are in your include path
@@ -46,6 +47,20 @@ class Table:
     def __getattr__(self, key): ...
     def __setattr__(self, key, value): ...
 ```
+
+Only basic types can be passed between python and lua.
+The following table shows the type mapping.
+If you pass an unsupported type, an exception will be raised.
+
+| Python Type | Lua Type |
+| ----------- | -------- |
+| None        | nil      |
+| bool        | boolean  |
+| int         | number   |
+| float       | number   |
+| str         | string   |
+| lua.Table   | table    |
+| lua.Function| function |
 
 ### Example
 ```cpp
