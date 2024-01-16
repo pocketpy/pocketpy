@@ -23,10 +23,6 @@ Returns a list of files and directories in the given path.
 
 Removes the file at the given path.
 
-### `os.system(command: str) -> int`
-
-Executes the given command in the system shell.
-
 ### `os.mkdir(path: str)`
 
 Creates a directory at the given path.
