@@ -226,6 +226,33 @@ void lua_push_from_python(VM* vm, PyObject* val){
         case VM::tp_str.index:
             lua_pushstring(_L, _CAST(CString, val));
             return;
+        case VM::tp_tuple.index: {
+            lua_newtable(_L);
+            int i = 1;
+            for(PyObject* obj: PK_OBJ_GET(Tuple, val)){
+                lua_push_from_python(vm, obj);
+                lua_rawseti(_L, -2, i++);
+            }
+            return;
+        }
+        case VM::tp_list.index: {
+            lua_newtable(_L);
+            int i = 1;
+            for(PyObject* obj: PK_OBJ_GET(List, val)){
+                lua_push_from_python(vm, obj);
+                lua_rawseti(_L, -2, i++);
+            }
+            return;
+        }
+        case VM::tp_dict.index: {
+            lua_newtable(_L);
+            PK_OBJ_GET(Dict, val).apply([&](PyObject* key, PyObject* val){
+                lua_push_from_python(vm, key);
+                lua_push_from_python(vm, val);
+                lua_settable(_L, -3);
+            });
+            return;
+        }
     }
 
     if(is_non_tagged_type(val, PyLuaTable::_type(vm))){

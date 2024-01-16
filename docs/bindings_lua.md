@@ -63,6 +63,9 @@ If you pass an unsupported type, an exception will be raised.
 | `int`         | `number`  | YES                    |
 | `float`       | `number`  | YES                    |
 | `str`         | `string`  | YES                    |
+| `tuple`       | `table`   | YES                    |
+| `list`        | `table`   | YES                    |
+| `dict`        | `table`   | YES                    |
 | `lua.Table`   | `table`   | YES                    |
 | `lua.Function`| `function`| NO                     |
 
