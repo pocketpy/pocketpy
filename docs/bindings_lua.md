@@ -52,15 +52,15 @@ Only basic types can be passed between python and lua.
 The following table shows the type mapping.
 If you pass an unsupported type, an exception will be raised.
 
-| Python Type | Lua Type |
-| ----------- | -------- |
-| None        | nil      |
-| bool        | boolean  |
-| int         | number   |
-| float       | number   |
-| str         | string   |
-| lua.Table   | table    |
-| lua.Function| function |
+| Python type   | Lua type  | Allow create in Python? |
+| -----------   | --------  | ---------------------- |
+| `None`        | `nil`     | YES                    |
+| `bool`        | `boolean` | YES                    |
+| `int`         | `number`  | YES                    |
+| `float`       | `number`  | YES                    |
+| `str`         | `string`  | YES                    |
+| `lua.Table`   | `table`   | YES                    |
+| `lua.Function`| `function`| NO                     |
 
 ### Example
 ```cpp
