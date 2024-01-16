@@ -1,6 +1,6 @@
 ---
 icon: log
-title: 'Cheat sheet'
+title: 'Cheatsheet'
 order: 22
 ---
 

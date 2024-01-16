@@ -1,6 +1,6 @@
 ---
 icon: cpu
-title: Write bindings
+title: Write Bindings
 order: 18
 ---
 
