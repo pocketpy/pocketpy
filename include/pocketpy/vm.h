@@ -100,6 +100,8 @@ struct PyTypeInfo{
     // attributes
     void (*m__setattr__)(VM* vm, PyObject*, StrName, PyObject*) = nullptr;
     PyObject* (*m__getattr__)(VM* vm, PyObject*, StrName) = nullptr;
+    bool (*m__delattr__)(VM* vm, PyObject*, StrName) = nullptr;
+
 };
 
 struct FrameId{

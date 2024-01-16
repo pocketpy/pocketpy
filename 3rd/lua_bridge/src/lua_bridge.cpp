@@ -67,6 +67,18 @@ struct PyLuaTable: PyLuaObject{
             )
         };
 
+        ti->m__delattr__ = [](VM* vm, PyObject* obj, StrName name){
+            const PyLuaTable& self = _CAST(PyLuaTable&, obj);
+            LUA_PROTECTED(
+                lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
+                lua_pushstring(_L, std::string(name.sv()).c_str());
+                lua_pushnil(_L);
+                lua_settable(_L, -3);
+                lua_pop(_L, 1);
+            )
+            return true;
+        };
+
         vm->bind_constructor<1>(type, [](VM* vm, ArgsView args){
             lua_newtable(_L);    // push an empty table onto the stack
             PyObject* obj = vm->heap.gcnew<PyLuaTable>(PK_OBJ_GET(Type, args[0]));

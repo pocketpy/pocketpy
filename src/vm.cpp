@@ -983,6 +983,8 @@ __FAST_CALL:
 }
 
 void VM::delattr(PyObject *_0, StrName _name){
+    const PyTypeInfo* ti = _inst_type_info(_0);
+    if(ti->m__delattr__ && ti->m__delattr__(this, _0, _name)) return;
     if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
     if(!_0->attr().del(_name)) AttributeError(_0, _name);
 }

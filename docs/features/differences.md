@@ -40,4 +40,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 9. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
 10. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
 11. `str.split` and `str.splitlines` will remove all empty entries.
-12. `__getattr__` and `__setattr__` can only be set in cpp.
+12. `__getattr__`, `__setattr__` and `__delattr__` can only be set in cpp.
