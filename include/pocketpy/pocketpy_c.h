@@ -2,9 +2,6 @@
 #define POCKETPY_C_H
 
 #ifdef __cplusplus
-#if __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
 extern "C" {
 #endif
 
