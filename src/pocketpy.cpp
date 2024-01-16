@@ -1604,6 +1604,16 @@ void VM::post_init(){
         return vm->None;
     });
 
+    _all_types[tp_module].m__getattr__ = [](VM* vm, PyObject* obj, StrName name) -> PyObject*{
+        const Str& path = CAST(Str&, obj->attr(__path__));
+        PyObject* mod = vm->py_import(fmt(path, ".", name.sv()), false);
+        if(mod != nullptr){
+            obj->attr().set(name, mod);
+            return mod;
+        }
+        return nullptr;
+    };
+
     bind_method<1>(tp_property, "setter", [](VM* vm, ArgsView args) {
         Property& self = _CAST(Property&, args[0]);
         // The setter's name is not necessary to be the same as the property's name

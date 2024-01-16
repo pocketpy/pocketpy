@@ -1041,17 +1041,8 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
 
     const PyTypeInfo* ti = &_all_types[objtype];
     if(ti->m__getattr__){
-        return ti->m__getattr__(this, obj, name);
-    }
-    
-    if(is_non_tagged_type(obj, tp_module)){
-        Str path = CAST(Str&, obj->attr(__path__));
-        path = path + "." + name.sv();
-        PyObject* mod = py_import(path, false);
-        if(mod != nullptr){
-            obj->attr().set(name, mod);
-            return mod;
-        }
+        PyObject* ret = ti->m__getattr__(this, obj, name);
+        if(ret) return ret;
     }
 
     if(throw_err) AttributeError(obj, name);
@@ -1120,8 +1111,9 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
     }
 
     const PyTypeInfo* ti = &_all_types[objtype];
-    if(fallback && ti->m__getattr__){
-        return ti->m__getattr__(this, obj, name);
+    if(ti->m__getattr__){
+        PyObject* ret = ti->m__getattr__(this, obj, name);
+        if(ret) return ret;
     }
 
     if(throw_err) AttributeError(obj, name);

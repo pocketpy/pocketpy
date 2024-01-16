@@ -20,14 +20,12 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 
 ## Unimplemented features
 
-1. `__getattr__` and `__setattr__`.
-2. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
-3. `__slots__` in class definition.
-4. Access the exception object in try..except.
-5.  `else` clause in try..except.
-6.  Inplace methods like `__iadd__` and `__imul__`.
-7. `__del__` in class definition.
-8. Multiple inheritance.
+1. Descriptor protocol `__get__` and `__set__`. However, `@property` is implemented.
+2. `__slots__` in class definition.
+3. `else` clause in try..except.
+4.  Inplace methods like `__iadd__` and `__imul__`.
+5. `__del__` in class definition.
+6. Multiple inheritance.
 
 ## Different behaviors
 
@@ -42,3 +40,4 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 9. A `Tab` is equivalent to 4 spaces. You can mix `Tab` and spaces in indentation, but it is not recommended.
 10. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
 11. `str.split` and `str.splitlines` will remove all empty entries.
+12. `__getattr__` and `__setattr__` can only be set in cpp.
