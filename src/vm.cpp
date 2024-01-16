@@ -1111,7 +1111,7 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
     }
 
     const PyTypeInfo* ti = &_all_types[objtype];
-    if(ti->m__getattr__){
+    if(fallback && ti->m__getattr__){
         PyObject* ret = ti->m__getattr__(this, obj, name);
         if(ret) return ret;
     }
