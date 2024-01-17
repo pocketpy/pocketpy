@@ -245,21 +245,11 @@ except:
 #     #####:  565:        return VAR(self.index(sub));
 #         -:  566:    });
 # test str.find:
-assert type('25363546'.find('63')) is int
-assert type('25363546'.find('err')) is int
+assert '25363546'.find('63') == 3
+assert '25363546'.find('err') == -1
 
 
 # /************ list ************/
-# 未完全测试准确性-----------------------------------------------
-#       174:  615:    _vm->bind_constructor<-1>("list", [](VM* vm, ArgsView args) {
-#        29:  616:        if(args.size() == 1+0) return VAR(List());
-#        29:  617:        if(args.size() == 1+1){
-#        29:  618:            return vm->py_list(args[1]);
-#         -:  619:        }
-#     #####:  620:        vm->TypeError("list() takes 0 or 1 arguments");
-#     #####:  621:        return vm->None;
-#        29:  622:    });
-# test list:
 try:
     list(1,2)
     print('未能拦截错误, 在测试 list')

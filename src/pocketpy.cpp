@@ -878,7 +878,7 @@ void init_builtins(VM* _vm) {
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_tuple), [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(Tuple(0));
         if(args.size() == 1+1){
-            List list = CAST(List, vm->py_list(args[1]));
+            List list(CAST(List, vm->py_list(args[1])));
             return VAR(Tuple(std::move(list)));
         }
         vm->TypeError("tuple() takes at most 1 argument");
