@@ -48,7 +48,8 @@ struct PyLuaTable: PyLuaObject{
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
-                lua_pushstring(_L, std::string(name.sv()).c_str());
+                std::string_view name_sv = name.sv();
+                lua_pushlstring(_L, name_sv.data(), name_sv.size());
                 lua_gettable(_L, -2);
                 PyObject* ret = lua_popx_to_python(vm);
                 lua_pop(_L, 1);
@@ -60,7 +61,8 @@ struct PyLuaTable: PyLuaObject{
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
-                lua_pushstring(_L, std::string(name.sv()).c_str());
+                std::string_view name_sv = name.sv();
+                lua_pushlstring(_L, name_sv.data(), name_sv.size());
                 lua_push_from_python(vm, val);
                 lua_settable(_L, -3);
                 lua_pop(_L, 1);
@@ -71,7 +73,8 @@ struct PyLuaTable: PyLuaObject{
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
-                lua_pushstring(_L, std::string(name.sv()).c_str());
+                std::string_view name_sv = name.sv();
+                lua_pushlstring(_L, name_sv.data(), name_sv.size());
                 lua_pushnil(_L);
                 lua_settable(_L, -3);
                 lua_pop(_L, 1);
@@ -237,9 +240,11 @@ void lua_push_from_python(VM* vm, PyObject* val){
         case VM::tp_float.index:
             lua_pushnumber(_L, _CAST(f64, val));
             return;
-        case VM::tp_str.index:
-            lua_pushstring(_L, _CAST(CString, val));
+        case VM::tp_str.index: {
+            std::string_view sv = _CAST(Str, val).sv();
+            lua_pushlstring(_L, sv.data(), sv.size());
             return;
+        }
         case VM::tp_tuple.index: {
             lua_newtable(_L);
             int i = 1;
