@@ -156,3 +156,7 @@ try:
     exit(1)
 except TypeError:
     pass
+
+a = {1: 2, 3: 4}
+a['a'] = a
+assert repr(a) == "{1: 2, 3: 4, 'a': {...}}"

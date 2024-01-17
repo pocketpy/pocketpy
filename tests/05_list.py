@@ -95,3 +95,9 @@ assert b[0
 assert b[0] == 1
 assert b[
     0] == 1
+
+a = []
+a.append(1)
+a.append(a)
+
+assert repr(a) == '[1, [...]]'
