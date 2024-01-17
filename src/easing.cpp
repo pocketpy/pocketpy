@@ -93,7 +93,7 @@ static double easeOutExpo( double x ) {
     return x == 1 ? 1 : 1 - std::pow( 2, -10 * x );
 }
 
-inline double easeInOutExpo( double x ) {
+static double easeInOutExpo( double x ) {
     if( x == 0 ) {
         return 0;
     } else if( x == 1 ) {
@@ -165,7 +165,7 @@ static double easeOutElastic( double x ) {
     }
 }
 
-inline double easeInOutElastic( double x ) {
+static double easeInOutElastic( double x ) {
     const double c5 = (2 * kPi) / 4.5;
     if( x == 0 ) {
         return 0;
