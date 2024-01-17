@@ -70,8 +70,8 @@ void init_builtins(VM* _vm) {
         vm->check_non_tagged_type(class_arg, vm->tp_type);
         Type type = PK_OBJ_GET(Type, class_arg);
         if(!vm->isinstance(self_arg, type)){
-            StrName _0 = obj_type_name(vm, vm->_tp(self_arg));
-            StrName _1 = obj_type_name(vm, type);
+            StrName _0 = _type_name(vm, vm->_tp(self_arg));
+            StrName _1 = _type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
         return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
@@ -1304,7 +1304,7 @@ void init_builtins(VM* _vm) {
     // tp_exception
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_exception), [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
-        StrName cls_name = obj_type_name(vm, cls);
+        StrName cls_name = _type_name(vm, cls);
         PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name);
         e_obj->_enable_instance_dict();
         PK_OBJ_GET(Exception, e_obj)._self = e_obj;
@@ -1323,7 +1323,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(VM::tp_exception, [](VM* vm, PyObject* obj) {
         Exception& self = _CAST(Exception&, obj);
-        return VAR(fmt(obj_type_name(vm, obj->type), '(', self.msg.escape(), ')'));
+        return VAR(fmt(_type_name(vm, obj->type), '(', self.msg.escape(), ')'));
     });
 
     _vm->bind__str__(VM::tp_exception, [](VM* vm, PyObject* obj) {

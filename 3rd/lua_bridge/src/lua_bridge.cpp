@@ -280,7 +280,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
         lua_rawgeti(_L, LUA_REGISTRYINDEX, func.r);
         return;
     }
-    vm->RuntimeError(fmt("unsupported python type: ", obj_type_name(vm, t).escape()));
+    vm->RuntimeError(fmt("unsupported python type: ", _type_name(vm, t).escape()));
 }
 
 PyObject* lua_popx_to_python(VM* vm) {

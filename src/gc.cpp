@@ -25,7 +25,7 @@ namespace pkpy{
 
 #if PK_DEBUG_GC_STATS
         for(auto& [type, count]: deleted){
-            std::cout << "GC: " << obj_type_name(vm, type).sv() << "=" << count << std::endl;
+            std::cout << "GC: " << _type_name(vm, type).sv() << "=" << count << std::endl;
         }
         std::cout << "GC: " << alive.size() << "/" << gen.size() << " (" << freed << " freed)" << std::endl;
         deleted.clear();

@@ -27,7 +27,7 @@ namespace pkpy{
                 if(!first) ss << ", ";
                 first = false;
                 if(!is_non_tagged_type(k, vm->tp_str)){
-                    vm->TypeError(fmt("json keys must be string, got ", obj_type_name(vm, vm->_tp(k))));
+                    vm->TypeError(fmt("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
                 }
                 ss << _CAST(Str&, k).escape(false) << ": ";
                 write_object(v);
@@ -56,7 +56,7 @@ namespace pkpy{
             }else if(obj_t == vm->tp_dict){
                 write_dict(_CAST(Dict&, obj));
             }else{
-                vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
+                vm->TypeError(fmt("unrecognized type ", _type_name(vm, obj_t).escape()));
             }
         }
 
@@ -667,7 +667,7 @@ void VM::_log_s_data(const char* title) {
         } else if(is_type(obj, tp_tuple)){
             auto& t = CAST(Tuple&, obj);
             ss << "tuple(size=" << t.size() << ")";
-        } else ss << "(" << obj_type_name(this, obj->type) << ")";
+        } else ss << "(" << _type_name(this, obj->type) << ")";
         ss << ", ";
     }
     std::string output = ss.str();
@@ -1252,7 +1252,7 @@ void ManagedHeap::mark() {
     if(_gc_marker_ex) _gc_marker_ex(vm);
 }
 
-StrName obj_type_name(VM *vm, Type type){
+StrName _type_name(VM *vm, Type type){
     return vm->_all_types[type].name;
 }
 

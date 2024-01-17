@@ -36,7 +36,7 @@ static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
         case VM::tp_tuple.index: return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
         default: break;
     }
-    vm->TypeError(fmt("unrecognized type ", obj_type_name(vm, obj_t).escape()));
+    vm->TypeError(fmt("unrecognized type ", _type_name(vm, obj_t).escape()));
     PK_UNREACHABLE()
 }
 
