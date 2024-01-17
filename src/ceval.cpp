@@ -370,17 +370,6 @@ __NEXT_STEP:;
         PUSH(_0);
     } DISPATCH();
     /*****************************************/
-#define PREDICT_INT_OP(op)                              \
-    if(is_small_int(TOP()) && is_small_int(SECOND())){  \
-        _1 = POPX();                                    \
-        _0 = TOP();                                     \
-        if constexpr(#op[0] == '/' || #op[0] == '%'){   \
-            if(_py_sint(_1) == 0) ZeroDivisionError();  \
-        }                                               \
-        TOP() = VAR(_py_sint(_0) op _py_sint(_1));      \
-        DISPATCH();                                     \
-    }
-
 #define BINARY_OP_SPECIAL(func)                         \
         _1 = POPX();                                    \
         _0 = TOP();                                     \
@@ -415,13 +404,11 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(BINARY_ADD){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(+);
         BINARY_OP_SPECIAL(__add__);
         BINARY_OP_RSPECIAL("+", __radd__);
     } DISPATCH()
     TARGET(BINARY_SUB){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(-);
         BINARY_OP_SPECIAL(__sub__);
         BINARY_OP_RSPECIAL("-", __rsub__);
     } DISPATCH()
@@ -432,13 +419,11 @@ __NEXT_STEP:;
     } DISPATCH()
     TARGET(BINARY_FLOORDIV){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(/);
         BINARY_OP_SPECIAL(__floordiv__);
         if(TOP() == NotImplemented) BinaryOptError("//");
     } DISPATCH()
     TARGET(BINARY_MOD){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(%);
         BINARY_OP_SPECIAL(__mod__);
         if(TOP() == NotImplemented) BinaryOptError("%");
     } DISPATCH()
@@ -474,31 +459,26 @@ __NEXT_STEP:;
     } DISPATCH()
     TARGET(BITWISE_LSHIFT){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(<<);
         BINARY_OP_SPECIAL(__lshift__);
         if(TOP() == NotImplemented) BinaryOptError("<<");
     } DISPATCH()
     TARGET(BITWISE_RSHIFT){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(>>);
         BINARY_OP_SPECIAL(__rshift__);
         if(TOP() == NotImplemented) BinaryOptError(">>");
     } DISPATCH()
     TARGET(BITWISE_AND){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(&);
         BINARY_OP_SPECIAL(__and__);
         if(TOP() == NotImplemented) BinaryOptError("&");
     } DISPATCH()
     TARGET(BITWISE_OR){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(|);
         BINARY_OP_SPECIAL(__or__);
         if(TOP() == NotImplemented) BinaryOptError("|");
     } DISPATCH()
     TARGET(BITWISE_XOR){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
-        PREDICT_INT_OP(^);
         BINARY_OP_SPECIAL(__xor__);
         if(TOP() == NotImplemented) BinaryOptError("^");
     } DISPATCH()
@@ -509,7 +489,6 @@ __NEXT_STEP:;
     } DISPATCH();
 
 #undef BINARY_OP_SPECIAL
-#undef PREDICT_INT_OP
 
     TARGET(IS_OP){
         PyObject* _1 = POPX();    // rhs
@@ -536,26 +515,23 @@ __NEXT_STEP:;
         frame->jump_abs(_CAST(uint16_t, POPX()));
         DISPATCH();
     TARGET(POP_JUMP_IF_FALSE){
-        PyObject* _0 = POPX();
-        if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
+        if(!py_bool(TOP())) frame->jump_abs(byte.arg);
+        POP();
     } DISPATCH();
     TARGET(POP_JUMP_IF_TRUE){
-        PyObject* _0 = POPX();
-        if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
+        if(py_bool(TOP())) frame->jump_abs(byte.arg);
+        POP();
     } DISPATCH();
     TARGET(JUMP_IF_TRUE_OR_POP){
-        PyObject* _0 = TOP();
-        if(_0==True || py_bool(_0)) frame->jump_abs(byte.arg);
+        if(py_bool(TOP())) frame->jump_abs(byte.arg);
         else POP();
     } DISPATCH();
     TARGET(JUMP_IF_FALSE_OR_POP){
-        PyObject* _0 = TOP();
-        if(_0==False || !py_bool(_0)) frame->jump_abs(byte.arg);
+        if(!py_bool(TOP())) frame->jump_abs(byte.arg);
         else POP();
     } DISPATCH();
     TARGET(SHORTCUT_IF_FALSE_OR_POP){
-        PyObject* _0 = TOP();
-        if(_0==False || !py_bool(_0)){      // [b, False]
+        if(!py_bool(TOP())){                // [b, False]
             STACK_SHRINK(2);                // []
             PUSH(vm->False);                // [False]
             frame->jump_abs(byte.arg);
