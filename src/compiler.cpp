@@ -74,9 +74,9 @@ namespace pkpy{
 #define PK_METHOD(name) &Compiler::name
 #define PK_NO_INFIX nullptr, PREC_NONE
         for(TokenIndex i=0; i<kTokenCount; i++) rules[i] = { nullptr, PK_NO_INFIX };
-        rules[TK(".")] =        { nullptr,                  PK_METHOD(exprAttrib),         PREC_ATTRIB };
-        rules[TK("(")] =        { PK_METHOD(exprGroup),     PK_METHOD(exprCall),           PREC_CALL };
-        rules[TK("[")] =        { PK_METHOD(exprList),      PK_METHOD(exprSubscr),         PREC_SUBSCRIPT };
+        rules[TK(".")] =        { nullptr,                  PK_METHOD(exprAttrib),         PREC_PRIMARY };
+        rules[TK("(")] =        { PK_METHOD(exprGroup),     PK_METHOD(exprCall),           PREC_PRIMARY };
+        rules[TK("[")] =        { PK_METHOD(exprList),      PK_METHOD(exprSubscr),         PREC_PRIMARY };
         rules[TK("{")] =        { PK_METHOD(exprMap),       PK_NO_INFIX };
         rules[TK("%")] =        { nullptr,                  PK_METHOD(exprBinaryOp),       PREC_FACTOR };
         rules[TK("+")] =        { nullptr,                  PK_METHOD(exprBinaryOp),       PREC_TERM };
@@ -421,7 +421,7 @@ namespace pkpy{
     
     void Compiler::exprSubscr() {
         auto e = make_expr<SubscrExpr>();
-        e->a = ctx()->s_expr.popx();
+        e->a = ctx()->s_expr.popx();        // a[...]
         auto slice = make_expr<SliceExpr>();
         bool is_slice = false;
         // a[<0> <state:1> : state<3> : state<5>]

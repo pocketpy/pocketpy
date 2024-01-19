@@ -92,10 +92,8 @@ enum Precedence {
   PREC_FACTOR,        // * / % // @
   PREC_UNARY,         // - not ~
   PREC_EXPONENT,      // **
-  PREC_CALL,          // ()
-  PREC_SUBSCRIPT,     // []
-  PREC_ATTRIB,        // .index
-  PREC_PRIMARY,
+  PREC_PRIMARY,       // f() x[] a.b 1:2
+  PREC_HIGHEST,pyth
 };
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
