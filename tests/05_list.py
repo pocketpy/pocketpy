@@ -97,7 +97,7 @@ assert b[
     0] == 1
 
 a = []
-a.append(1)
-a.append(a)
+a.append(0)
+a.append([1, 2, a])
 
-assert repr(a) == '[1, [...]]'
+assert repr(a) == "[0, [1, 2, [...]]]"

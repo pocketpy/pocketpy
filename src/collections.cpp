@@ -57,7 +57,6 @@ namespace pkpy
         void insertObj(bool front, bool back, int index, PyObject *item); // insert at index, used purely for internal purposes: append, appendleft, insert methods
         PyObject *popObj(bool front, bool back, PyObject *item, VM *vm);  // pop at index, used purely for internal purposes: pop, popleft, remove methods
         int findIndex(VM *vm, PyObject *obj, int start, int stop);        // find the index of the given object in the deque
-        std::string getRepr(VM *vm, PyObject* thisObj);                                // get the string representation of the deque
         // Special methods
         static void _register(VM *vm, PyObject *mod, PyObject *type); // register the type
         void _gc_mark() const;                                        // needed for container types, mark all objects in the deque for gc
@@ -74,80 +73,76 @@ namespace pkpy
                  });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind(type, "__getitem__(self, index) -> PyObject",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     int index = CAST(int, args[1]);
-                     index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-                     return self.dequeItems.at(index);
-                 });
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        {
+            PyDeque &self = _CAST(PyDeque &, _0);
+            int index = CAST(int, _1);
+            index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
+            return self.dequeItems.at(index);
+        });
         // sets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind(type, "__setitem__(self, index, newValue) -> None",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     int index = CAST(int, args[1]);
-                     PyObject *newValue = args[2];
-                     index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-                     self.dequeItems.at(index) = newValue;
-                     return vm->None;
-                 });
+        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1, PyObject* _2)
+        {
+            PyDeque &self = _CAST(PyDeque&, _0);
+            int index = CAST(int, _1);
+            index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
+            self.dequeItems.at(index) = _2;
+        });
         // erases the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind(type, "__delitem__(self, index) -> None",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     int index = CAST(int, args[1]);
-                     index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-                     self.dequeItems.erase(self.dequeItems.begin() + index);
-                     return vm->None;
-                 });
-        // returns the length of the deque
-        vm->bind(type, "__len__(self) -> int",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     return VAR(self.dequeItems.size());
-                 });
-        // returns an iterator for the deque
-        vm->bind(type, "__iter__(self) -> deque_iterator",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     return vm->heap.gcnew<PyDequeIter>(
-                         PyDequeIter::_type(vm), args[0],
-                         self.dequeItems.begin(), self.dequeItems.end());
-                 });
-        // returns a string representation of the deque
-        vm->bind(type, "__repr__(self) -> str",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     return VAR(self.getRepr(vm, args[0]));
-                 });
-        // returns a string representation of the deque
-        vm->bind(type, "__str__(self) -> str",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     return VAR(self.getRepr(vm, args[0]));
-                 });
+        vm->bind__delitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        {
+            PyDeque &self = _CAST(PyDeque&, _0);
+            int index = CAST(int, _1);
+            index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
+            self.dequeItems.erase(self.dequeItems.begin() + index);
+        });
+
+        vm->bind__len__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        {
+            PyDeque &self = _CAST(PyDeque&, _0);
+            return (i64)self.dequeItems.size();
+        });
+
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        {
+            PyDeque &self = _CAST(PyDeque &, _0);
+            return vm->heap.gcnew<PyDequeIter>(
+                PyDequeIter::_type(vm), _0,
+                self.dequeItems.begin(), self.dequeItems.end());
+        });
+
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        {
+            if(vm->_repr_recursion_set.count(_0)) return VAR("[...]");
+            const PyDeque &self = _CAST(PyDeque&, _0);
+            SStream ss;
+            ss << "deque([";
+            vm->_repr_recursion_set.insert(_0);
+            for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
+            {
+                ss << CAST(Str&, vm->py_repr(*it));
+                if (it != self.dequeItems.end() - 1) ss << ", ";
+            }
+            vm->_repr_recursion_set.erase(_0);
+            self.bounded ? ss << "], maxlen=" << self.maxlen << ")" : ss << "])";
+            return VAR(ss.str());
+        });
+
         // enables comparison between two deques, == and != are supported
-        vm->bind(type, "__eq__(self, other) -> bool",
-                 [](VM *vm, ArgsView args)
-                 {
-                     PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyDeque &other = _CAST(PyDeque &, args[1]);
-                     if (self.dequeItems.size() != other.dequeItems.size()) // trivial case
-                         return VAR(false);
-                     for (int i = 0; i < self.dequeItems.size(); i++)
-                         if (!vm->py_eq(self.dequeItems[i], other.dequeItems[i]))
-                             return VAR(false);
-                     return VAR(true);
-                 });
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        {
+            const PyDeque &self = _CAST(PyDeque&, _0);
+            if(!is_non_tagged_type(_0, PyDeque::_type(vm))) return vm->NotImplemented;
+            const PyDeque &other = _CAST(PyDeque&, _1);
+            if (self.dequeItems.size() != other.dequeItems.size()) return vm->False;
+            for (int i = 0; i < self.dequeItems.size(); i++){
+                if (vm->py_ne(self.dequeItems[i], other.dequeItems[i])) return vm->False;
+            }
+            return vm->True;
+        });
+
         // clear the deque
         vm->bind(type, "clear(self) -> None",
                  [](VM *vm, ArgsView args)
@@ -425,22 +420,6 @@ namespace pkpy
                 obj = vm->py_next(it);
             }
         }
-    }
-    std::string PyDeque::getRepr(VM *vm, PyObject *thisObj)
-    {
-        std::stringstream ss;
-        ss << "deque([";
-        for (auto it = this->dequeItems.begin(); it != this->dequeItems.end(); ++it)
-        {
-            if (*it == thisObj)
-                ss << "[...]";
-            else
-                ss << CAST(Str &, vm->py_repr(*it));
-            if (it != this->dequeItems.end() - 1)
-                ss << ", ";
-        }
-        this->bounded ? ss << "], maxlen=" << this->maxlen << ")" : ss << "])";
-        return ss.str();
     }
     int PyDeque::findIndex(VM *vm, PyObject *obj, int start, int stop)
     {

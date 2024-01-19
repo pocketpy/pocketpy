@@ -144,6 +144,9 @@ public:
     PyObject* _last_exception;  // last exception
     PyObject* _curr_class;      // current class being defined
 
+    // this is for repr() recursion detection (no need to mark)
+    std::set<PyObject*> _repr_recursion_set;
+
     // cached code objects for FSTRING_EVAL
     std::map<std::string_view, CodeObject_> _cached_codes;
 

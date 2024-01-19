@@ -659,17 +659,16 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_list, [](VM* vm, PyObject* _0){
+        if(vm->_repr_recursion_set.count(_0)) return VAR("[...]");
         List& iterable = _CAST(List&, _0);
         SStream ss;
         ss << '[';
+        vm->_repr_recursion_set.insert(_0);
         for(int i=0; i<iterable.size(); i++){
-            if(iterable[i] == _0){
-                ss << "[...]";
-            }else{
-                ss << CAST(Str&, vm->py_repr(iterable[i]));
-            }
+            ss << CAST(Str&, vm->py_repr(iterable[i]));
             if(i != iterable.size()-1) ss << ", ";
         }
+        vm->_repr_recursion_set.erase(_0);
         ss << ']';
         return VAR(ss.str());
     });
@@ -1080,16 +1079,19 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_mappingproxy, [](VM* vm, PyObject* _0) {
+        if(vm->_repr_recursion_set.count(_0)) return VAR("{...}");
         MappingProxy& self = _CAST(MappingProxy&, _0);
         SStream ss;
         ss << "mappingproxy({";
         bool first = true;
+        vm->_repr_recursion_set.insert(_0);
         for(auto& item : self.attr().items()){
             if(!first) ss << ", ";
             first = false;
             ss << item.first.escape() << ": ";
             ss << CAST(Str, vm->py_repr(item.second));
         }
+        vm->_repr_recursion_set.erase(_0);
         ss << "})";
         return VAR(ss.str());
     });
@@ -1227,20 +1229,18 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_dict, [](VM* vm, PyObject* _0) {
+        if(vm->_repr_recursion_set.count(_0)) return VAR("{...}");
         Dict& self = _CAST(Dict&, _0);
         SStream ss;
         ss << "{";
         bool first = true;
+        vm->_repr_recursion_set.insert(_0);
         self.apply([&](PyObject* k, PyObject* v){
             if(!first) ss << ", ";
             first = false;
-            ss << CAST(Str&, vm->py_repr(k)) << ": ";
-            if(v == _0){
-                ss << "{...}";
-            }else{
-                ss << CAST(Str&, vm->py_repr(v));
-            }
+            ss << CAST(Str&, vm->py_repr(k)) << ": " << CAST(Str&, vm->py_repr(v));
         });
+        vm->_repr_recursion_set.erase(_0);
         ss << "}";
         return VAR(ss.str());
     });
