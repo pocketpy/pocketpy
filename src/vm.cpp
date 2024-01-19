@@ -143,8 +143,7 @@ namespace pkpy{
     }
 
     bool VM::isinstance(PyObject* obj, Type base){
-        Type obj_t = PK_OBJ_GET(Type, _t(obj));
-        return issubclass(obj_t, base);
+        return issubclass(_tp(obj), base);
     }
 
     bool VM::issubclass(Type cls, Type base){
