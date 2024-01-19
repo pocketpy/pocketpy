@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import subprocess
 
 class WorkDir:
     def __init__(self, next):
@@ -52,8 +53,29 @@ print('System:', '64-bit' if sys.maxsize > 2**32 else '32-bit')
 
 if len(sys.argv) == 2:
     assert 'benchmark' in sys.argv[1]
-    d = 'benchmarks/'
+    test_dir('benchmarks/')
 else:
-    d = 'tests/'
-test_dir(d)
+    test_dir('tests/')
+
+    # test interactive mode
+    print("[REPL Test Enabled]")
+    if sys.platform in ['linux', 'darwin']:
+        res = subprocess.run(['./main'], encoding='utf-8', input=r'''
+def add(a, b):
+    return a + b
+
+class A:
+    def __init__(self, x):
+        self.x = x
+   
+    def get(self):
+        return self.x
+
+
+print(add(1, 2))
+print(A('abc').get())
+''', capture_output=True, check=True)
+    res.check_returncode()
+    assert res.stdout.endswith('>>> 3\n>>> abc\n>>> ')
+
 print("ALL TESTS PASSED")
