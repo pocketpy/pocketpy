@@ -13,12 +13,13 @@ namespace pkpy {
     }                                                                       \
     static void _check_type(VM* vm, PyObject* val){                         \
         if(!vm->isinstance(val, T::_type(vm))){                             \
-            vm->TypeError("expected '" #mod "." #name "', got " + OBJ_NAME(vm->_t(val)).escape());  \
+            vm->TypeError("expected '" #mod "." #name "', got " + _type_name(vm, vm->_tp(val)).escape());  \
         }                                                                   \
     }                                                                       \
     static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
-        if(OBJ_NAME(mod) != #mod) {                                         \
-            Str msg = fmt("register_class() failed: ", OBJ_NAME(mod), " != ", #mod); \
+        std::string_view mod_name = PK_OBJ_GET(Str, mod->attr("__name__")).sv();   \
+        if(mod_name != #mod) {                                                     \
+            Str msg = fmt("register_class() failed: ", mod_name, " != ", #mod);    \
             throw std::runtime_error(msg.str());                            \
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \

@@ -114,7 +114,7 @@ namespace pkpy{
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
         if(self != PY_NULL) return call_method(self, iter_f);
-        TypeError(OBJ_NAME(_t(obj)).escape() + " object is not iterable");
+        TypeError(_type_name(vm, _tp(obj)).escape() + " object is not iterable");
         return nullptr;
     }
 
@@ -978,7 +978,7 @@ __FAST_CALL:
         // [call_f, self, args..., kwargs...]
         return vectorcall(ARGC, KWARGC, false);
     }
-    TypeError(OBJ_NAME(_t(callable)).escape() + " object is not callable");
+    TypeError(_type_name(vm, _tp(callable)).escape() + " object is not callable");
     PK_UNREACHABLE()
 }
 
@@ -1256,6 +1256,32 @@ StrName _type_name(VM *vm, Type type){
     return vm->_all_types[type].name;
 }
 
+
+void VM::bind__getitem__(Type type, PyObject* (*f)(VM*, PyObject*, PyObject*)){
+    _all_types[type].m__getitem__ = f;
+    PyObject* nf = bind_method<1>(type, "__getitem__", [](VM* vm, ArgsView args){
+        return lambda_get_userdata<PyObject*(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
+    });
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
+}
+
+void VM::bind__setitem__(Type type, void (*f)(VM*, PyObject*, PyObject*, PyObject*)){
+    _all_types[type].m__setitem__ = f;
+    PyObject* nf = bind_method<2>(type, "__setitem__", [](VM* vm, ArgsView args){
+        lambda_get_userdata<void(*)(VM* vm, PyObject*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1], args[2]);
+        return vm->None;
+    });
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
+}
+
+void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
+    _all_types[type].m__delitem__ = f;
+    PyObject* nf = bind_method<1>(type, "__delitem__", [](VM* vm, ArgsView args){
+        lambda_get_userdata<void(*)(VM*, PyObject*, PyObject*)>(args.begin())(vm, args[0], args[1]);
+        return vm->None;
+    });
+    PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
+}
 
 void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);

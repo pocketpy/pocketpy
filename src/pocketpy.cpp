@@ -301,7 +301,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__repr__(VM::tp_object, [](VM* vm, PyObject* obj) {
         if(is_tagged(obj)) PK_FATAL_ERROR();
         std::stringstream ss; // hex
-        ss << "<" << OBJ_NAME(vm->_t(obj)) << " object at 0x";
+        ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at 0x";
         ss << std::hex << reinterpret_cast<intptr_t>(obj) << ">";
         return VAR(ss.str());
     });
