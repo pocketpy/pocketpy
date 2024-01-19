@@ -130,7 +130,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR_T(PyVec2, self.rotate(radian));
         });
 
-        vm->bind_method<0>(type, "rotate_", [](VM* vm, ArgsView args){
+        vm->bind_method<1>(type, "rotate_", [](VM* vm, ArgsView args){
             PyVec2& self = _CAST(PyVec2&, args[0]);
             float radian = CAST(f64, args[1]);
             self = self.rotate(radian);
@@ -250,7 +250,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
                 return vm->heap.gcnew<PyMat3x3>(PK_OBJ_GET(Type, args[0]), mat);
             }
             vm->TypeError(fmt("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
-            return vm->None;
+            PK_UNREACHABLE();
         });
 
         vm->bind_method<1>(type, "copy_", [](VM* vm, ArgsView args){
@@ -275,13 +275,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
                 vm->TypeError("Mat3x3.__getitem__ takes a tuple of 2 integers");
-                return vm->None;
             }
             i64 i = CAST(i64, t[0]);
             i64 j = CAST(i64, t[1]);
             if(i < 0 || i >= 3 || j < 0 || j >= 3){
                 vm->IndexError("index out of range");
-                return vm->None;
             }
             return VAR(self.m[i][j]);
         });
@@ -291,13 +289,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             const Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
                 vm->TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers");
-                return;
             }
             i64 i = CAST(i64, t[0]);
             i64 j = CAST(i64, t[1]);
             if(i < 0 || i >= 3 || j < 0 || j >= 3){
                 vm->IndexError("index out of range");
-                return;
             }
             self.m[i][j] = CAST_F(value);
         });
@@ -361,7 +357,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             if(args[2] == vm->None){
                 return VAR_T(PyMat3x3, self.matmul(other));
             }else{
-                PyMat3x3& out = _CAST(PyMat3x3&, args[2]);
+                PyMat3x3& out = CAST(PyMat3x3&, args[2]);
                 out = self.matmul(other);
                 return vm->None;
             }

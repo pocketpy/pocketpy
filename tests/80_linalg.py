@@ -38,11 +38,13 @@ assert element_value_list == copy_element_value_list
 test_vec2_copy = test_vec2.copy()
 radians = random.uniform(-10*math.pi, 10*math.pi)
 test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
-assert test_vec2.rotate(radians).__dict__ == test_vec2_copy.__dict__
+assert test_vec2.rotate(radians) == test_vec2_copy
+test_vec2.rotate_(radians)
+assert test_vec2 == test_vec2_copy
 
 # test smooth_damp
 vel = vec2(0, 0)
-ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vel, 7, 8, 9)
+ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vel, 0.2, 0.001, 0.05)
 assert isinstance(ret, vec2)
 assert vel.length() > 0
 
@@ -342,10 +344,12 @@ except:
 
 # test transpose
 test_mat_copy = test_mat.copy()
+assert test_mat_copy.transpose_() is None
+assert test_mat_copy == test_mat.transpose()
 assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
 
 # test inverse
-assert ~static_test_mat_float == static_test_mat_float_inv
+assert ~static_test_mat_float == static_test_mat_float_inv == static_test_mat_float.invert()
 assert static_test_mat_float.invert_() is None
 assert static_test_mat_float == static_test_mat_float_inv
 
@@ -467,3 +471,14 @@ d = mat3x3.identity()
 assert d.copy_(mat3x3.zeros()) is None
 assert d == mat3x3.zeros()
 
+d = mat3x3.identity()
+assert d.matmul(mat3x3.zeros()) == mat3x3.zeros()
+assert d == mat3x3.identity()
+assert d.matmul(mat3x3.zeros(), out=d) is None
+assert d == mat3x3.zeros()
+
+try:
+    assert d[6, 6]
+    exit(1)
+except IndexError:
+    pass
