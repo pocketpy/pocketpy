@@ -415,7 +415,7 @@ namespace pkpy{
     void Compiler::exprAttrib() {
         consume(TK("@id"));
         ctx()->s_expr.push(
-            make_expr<AttribExpr>(ctx()->s_expr.popx(), prev().str())
+            make_expr<AttribExpr>(ctx()->s_expr.popx(), StrName::get(prev().sv()))
         );
     }
     

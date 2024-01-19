@@ -276,9 +276,8 @@ struct SubscrExpr: Expr{
 
 struct AttribExpr: Expr{
     Expr_ a;
-    Str b;
-    AttribExpr(Expr_ a, const Str& b): a(std::move(a)), b(b) {}
-    AttribExpr(Expr_ a, Str&& b): a(std::move(a)), b(std::move(b)) {}
+    StrName b;
+    AttribExpr(Expr_ a, StrName b): a(std::move(a)), b(b) {}
 
     void emit_(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
