@@ -141,26 +141,6 @@ struct Mat3x3{
         return ret;
     }
 
-    Mat3x3& operator+=(const Mat3x3& other){ 
-        for (int i=0; i<9; ++i) v[i] += other.v[i];
-        return *this;
-    }
-
-    Mat3x3& operator-=(const Mat3x3& other){ 
-        for (int i=0; i<9; ++i) v[i] -= other.v[i];
-        return *this;
-    }
-
-    Mat3x3& operator*=(float scalar){ 
-        for (int i=0; i<9; ++i) v[i] *= scalar;
-        return *this;
-    }
-
-    Mat3x3& operator/=(float scalar){ 
-        for (int i=0; i<9; ++i) v[i] /= scalar;
-        return *this;
-    }
-
     void matmul(const Mat3x3& other, Mat3x3& out) const{
         out._11 = _11 * other._11 + _12 * other._21 + _13 * other._31;
         out._12 = _11 * other._12 + _12 * other._22 + _13 * other._32;
@@ -254,20 +234,6 @@ struct Mat3x3{
         return Vec2(_11 * vec.x + _12 * vec.y, _21 * vec.x + _22 * vec.y);
     }
 };
-
-struct PyVec2;
-struct PyVec3;
-struct PyVec4;
-struct PyMat3x3;
-PyObject* py_var(VM*, Vec2);
-PyObject* py_var(VM*, const PyVec2&);
-PyObject* py_var(VM*, Vec3);
-PyObject* py_var(VM*, const PyVec3&);
-PyObject* py_var(VM*, Vec4);
-PyObject* py_var(VM*, const PyVec4&);
-PyObject* py_var(VM*, const Mat3x3&);
-PyObject* py_var(VM*, const PyMat3x3&);
-
 
 struct PyVec2: Vec2 {
     PY_CLASS(PyVec2, linalg, vec2)

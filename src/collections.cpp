@@ -4,7 +4,7 @@ namespace pkpy
 {
     struct PyDequeIter // Iterator for the deque type
     {
-        PY_CLASS(PyDequeIter, builtins, _deque_iterator)
+        PY_CLASS(PyDequeIter, collections, _deque_iterator)
         PyObject *ref;
         bool is_reversed;
         std::deque<PyObject *>::iterator begin, end, current;
@@ -578,7 +578,7 @@ namespace pkpy
     {
         PyObject *mod = vm->new_module("collections");
         PyDeque::register_class(vm, mod);
-        PyDequeIter::register_class(vm, vm->builtins);
+        PyDequeIter::register_class(vm, mod);
         CodeObject_ code = vm->compile(kPythonLibs["collections"], "collections.py", EXEC_MODE);
         vm->_exec(code, mod);
     }

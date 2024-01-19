@@ -29,18 +29,6 @@ namespace pkpy{
             return VAR(self.name(other));                                   \
         });
 
-#define BIND_VEC_FIELD(D, name)  \
-        vm->bind_property(type, #name,                                      \
-        [](VM* vm, ArgsView args){                                          \
-            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            return VAR(self.name);                                          \
-        }, [](VM* vm, ArgsView args){                                       \
-            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            self.name = CAST(f64, args[1]);                                 \
-            return vm->None;                                                \
-        });
-
-
 // https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
 static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float smoothTime, float maxSpeed, float deltaTime)
 {
@@ -148,13 +136,14 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR(self);
         });
 
+        PY_FIELD(PyVec2, "x", _, x)
+        PY_FIELD(PyVec2, "y", _, y)
+
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_FLOAT_OP(2, __mul__, *)
         BIND_VEC_FLOAT_OP(2, __rmul__, *)
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
-        BIND_VEC_FIELD(2, x)
-        BIND_VEC_FIELD(2, y)
         BIND_VEC_FUNCTION_1(2, dot)
         BIND_VEC_FUNCTION_1(2, cross)
         BIND_VEC_FUNCTION_1(2, assign)
@@ -181,14 +170,15 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR(ss.str());
         });
 
+        PY_FIELD(PyVec3, "x", _, x)
+        PY_FIELD(PyVec3, "y", _, y)
+        PY_FIELD(PyVec3, "z", _, z)
+
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
         BIND_VEC_FLOAT_OP(3, __mul__, *)
         BIND_VEC_FLOAT_OP(3, __rmul__, *)
         BIND_VEC_FLOAT_OP(3, __truediv__, /)
-        BIND_VEC_FIELD(3, x)
-        BIND_VEC_FIELD(3, y)
-        BIND_VEC_FIELD(3, z)
         BIND_VEC_FUNCTION_1(3, dot)
         BIND_VEC_FUNCTION_1(3, cross)
         BIND_VEC_FUNCTION_1(3, assign)
@@ -216,15 +206,16 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return VAR(ss.str());
         });
 
+        PY_FIELD(PyVec4, "x", _, x)
+        PY_FIELD(PyVec4, "y", _, y)
+        PY_FIELD(PyVec4, "z", _, z)
+        PY_FIELD(PyVec4, "w", _, w)
+
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
         BIND_VEC_FLOAT_OP(4, __mul__, *)
         BIND_VEC_FLOAT_OP(4, __rmul__, *)
         BIND_VEC_FLOAT_OP(4, __truediv__, /)
-        BIND_VEC_FIELD(4, x)
-        BIND_VEC_FIELD(4, y)
-        BIND_VEC_FIELD(4, z)
-        BIND_VEC_FIELD(4, w)
         BIND_VEC_FUNCTION_1(4, dot)
         BIND_VEC_FUNCTION_1(4, assign)
         BIND_VEC_FUNCTION_0(4, length)
@@ -232,10 +223,8 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         BIND_VEC_FUNCTION_0(4, normalize)
     }
 
-#undef BIND_VEC_ADDR
 #undef BIND_VEC_VEC_OP
 #undef BIND_VEC_FLOAT_OP
-#undef BIND_VEC_FIELD
 #undef BIND_VEC_FUNCTION_0
 #undef BIND_VEC_FUNCTION_1
 
@@ -299,7 +288,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index, PyObject* value){
             PyMat3x3& self = _CAST(PyMat3x3&, obj);
-            Tuple& t = CAST(Tuple&, index);
+            const Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
                 vm->TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers");
                 return;
@@ -313,28 +302,15 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             self.m[i][j] = CAST_F(value);
         });
 
-#define PROPERTY_FIELD(field) \
-        vm->bind_property(type, #field ": float", \
-        [](VM* vm, ArgsView args){      \
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);                     \
-            return VAR(self.field);                                         \
-        }, [](VM* vm, ArgsView args){                                       \
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);                     \
-            self.field = CAST(f64, args[1]);                                \
-            return vm->None;                                                \
-        });
-
-        PROPERTY_FIELD(_11)
-        PROPERTY_FIELD(_12)
-        PROPERTY_FIELD(_13)
-        PROPERTY_FIELD(_21)
-        PROPERTY_FIELD(_22)
-        PROPERTY_FIELD(_23)
-        PROPERTY_FIELD(_31)
-        PROPERTY_FIELD(_32)
-        PROPERTY_FIELD(_33)
-
-#undef PROPERTY_FIELD
+        PY_FIELD(PyMat3x3, "_11", _, _11)
+        PY_FIELD(PyMat3x3, "_12", _, _12)
+        PY_FIELD(PyMat3x3, "_13", _, _13)
+        PY_FIELD(PyMat3x3, "_21", _, _21)
+        PY_FIELD(PyMat3x3, "_22", _, _22)
+        PY_FIELD(PyMat3x3, "_23", _, _23)
+        PY_FIELD(PyMat3x3, "_31", _, _31)
+        PY_FIELD(PyMat3x3, "_32", _, _32)
+        PY_FIELD(PyMat3x3, "_33", _, _33)
 
         vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             PyMat3x3& self = _CAST(PyMat3x3&, _0);
