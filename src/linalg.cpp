@@ -129,11 +129,8 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             float radian = CAST(f64, args[1]);
             float cr = cosf(radian);
             float sr = sinf(radian);
-            Mat3x3 rotate(cr,   -sr,  0.0f,
-                          sr,   cr,   0.0f,
-                          0.0f, 0.0f, 1.0f);
-            self = rotate.transform_vector(self);
-            return VAR(self);
+            Vec2 res(self.x * cr - self.y * sr, self.x * sr + self.y * cr);
+            return VAR_T(PyVec2, res);
         });
 
         PY_FIELD(PyVec2, "x", _, x)
@@ -346,15 +343,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             PyMat3x3& self = _CAST(PyMat3x3&, _0);
             if(is_non_tagged_type(_1, PyMat3x3::_type(vm))){
                 const PyMat3x3& other = _CAST(PyMat3x3&, _1);
-                Mat3x3 out;
-                self.matmul(other, out);
-                return VAR_T(PyMat3x3, out);
+                return VAR_T(PyMat3x3, self.matmul(other));
             }
             if(is_non_tagged_type(_1, PyVec3::_type(vm))){
                 const PyVec3& other = _CAST(PyVec3&, _1);
-                Vec3 out;
-                self.matmul(other, out);
-                return VAR_T(PyVec3, out);
+                return VAR_T(PyVec3, self.matmul(other));
             }
             return vm->NotImplemented;
         });
@@ -363,9 +356,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             vm->check_non_tagged_type(args[1], PyMat3x3::_type(vm));
             const PyMat3x3& other = _CAST(PyMat3x3&, args[1]);
-            Mat3x3 out;
-            self.matmul(other, out);
-            self = out;
+            self = self.matmul(other);
             return args[0];
         });
 
@@ -453,15 +444,17 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         });
 
         vm->bind_method<1>(type, "transform_point", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyVec2& v = CAST(PyVec2&, args[1]);
-            return VAR_T(PyVec2, self.transform_point(v));
+            const PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Vec2 v = CAST(Vec2, args[1]);
+            Vec2 res = Vec2(self._11 * v.x + self._12 * v.y + self._13, self._21 * v.x + self._22 * v.y + self._23);
+            return VAR_T(PyVec2, res);
         });
 
         vm->bind_method<1>(type, "transform_vector", [](VM* vm, ArgsView args){
-            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
-            PyVec2& v = CAST(PyVec2&, args[1]);
-            return VAR_T(PyVec2, self.transform_vector(v));
+            const PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Vec2 v = CAST(Vec2, args[1]);
+            Vec2 res = Vec2(self._11 * v.x + self._12 * v.y, self._21 * v.x + self._22 * v.y);
+            return VAR_T(PyVec2, res);
         });
     }
 
@@ -479,5 +472,143 @@ void add_module_linalg(VM* vm){
     linalg->attr().set("vec4_p", float_p);
     linalg->attr().set("mat3x3_p", float_p);
 }
+
+
+    /////////////// mat3x3 ///////////////
+    Mat3x3::Mat3x3() {}
+    Mat3x3::Mat3x3(float _11, float _12, float _13,
+           float _21, float _22, float _23,
+           float _31, float _32, float _33)
+        : _11(_11), _12(_12), _13(_13)
+        , _21(_21), _22(_22), _23(_23)
+        , _31(_31), _32(_32), _33(_33) {}
+
+    void Mat3x3::set_zeros(){ for (int i=0; i<9; ++i) v[i] = 0.0f; }
+    void Mat3x3::set_ones(){ for (int i=0; i<9; ++i) v[i] = 1.0f; }
+    void Mat3x3::set_identity(){ set_zeros(); _11 = _22 = _33 = 1.0f; }
+
+    Mat3x3 Mat3x3::zeros(){
+        return Mat3x3(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    Mat3x3 Mat3x3::ones(){
+        return Mat3x3(1, 1, 1, 1, 1, 1, 1, 1, 1);
+    }
+
+    Mat3x3 Mat3x3::identity(){
+        return Mat3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    }
+
+    Mat3x3 Mat3x3::operator+(const Mat3x3& other) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] + other.v[i];
+        return ret;
+    }
+
+    Mat3x3 Mat3x3::operator-(const Mat3x3& other) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] - other.v[i];
+        return ret;
+    }
+
+    Mat3x3 Mat3x3::operator*(float scalar) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] * scalar;
+        return ret;
+    }
+
+    Mat3x3 Mat3x3::operator/(float scalar) const{ 
+        Mat3x3 ret;
+        for (int i=0; i<9; ++i) ret.v[i] = v[i] / scalar;
+        return ret;
+    }
+
+    bool Mat3x3::operator==(const Mat3x3& other) const{
+        for (int i=0; i<9; ++i){
+            if (!isclose(v[i], other.v[i])) return false;
+        }
+        return true;
+    }
+
+    bool Mat3x3::operator!=(const Mat3x3& other) const{
+        for (int i=0; i<9; ++i){
+            if (!isclose(v[i], other.v[i])) return true;
+        }
+        return false;
+    }
+
+    Mat3x3 Mat3x3::matmul(const Mat3x3& other) const{
+        Mat3x3 out;
+        out._11 = _11 * other._11 + _12 * other._21 + _13 * other._31;
+        out._12 = _11 * other._12 + _12 * other._22 + _13 * other._32;
+        out._13 = _11 * other._13 + _12 * other._23 + _13 * other._33;
+        out._21 = _21 * other._11 + _22 * other._21 + _23 * other._31;
+        out._22 = _21 * other._12 + _22 * other._22 + _23 * other._32;
+        out._23 = _21 * other._13 + _22 * other._23 + _23 * other._33;
+        out._31 = _31 * other._11 + _32 * other._21 + _33 * other._31;
+        out._32 = _31 * other._12 + _32 * other._22 + _33 * other._32;
+        out._33 = _31 * other._13 + _32 * other._23 + _33 * other._33;
+        return out;
+    }
+
+    Vec3 Mat3x3::matmul(const Vec3& other) const{
+        Vec3 out;
+        out.x = _11 * other.x + _12 * other.y + _13 * other.z;
+        out.y = _21 * other.x + _22 * other.y + _23 * other.z;
+        out.z = _31 * other.x + _32 * other.y + _33 * other.z;
+        return out;
+    }
+
+    float Mat3x3::determinant() const{
+        return _11 * _22 * _33 + _12 * _23 * _31 + _13 * _21 * _32
+             - _11 * _23 * _32 - _12 * _21 * _33 - _13 * _22 * _31;
+    }
+
+    Mat3x3 Mat3x3::transpose() const{
+        Mat3x3 ret;
+        ret._11 = _11;  ret._12 = _21;  ret._13 = _31;
+        ret._21 = _12;  ret._22 = _22;  ret._23 = _32;
+        ret._31 = _13;  ret._32 = _23;  ret._33 = _33;
+        return ret;
+    }
+
+    bool Mat3x3::inverse(Mat3x3& out) const{
+        float det = determinant();
+        if (isclose(det, 0)) return false;
+        float inv_det = 1.0f / det;
+        out._11 = (_22 * _33 - _23 * _32) * inv_det;
+        out._12 = (_13 * _32 - _12 * _33) * inv_det;
+        out._13 = (_12 * _23 - _13 * _22) * inv_det;
+        out._21 = (_23 * _31 - _21 * _33) * inv_det;
+        out._22 = (_11 * _33 - _13 * _31) * inv_det;
+        out._23 = (_13 * _21 - _11 * _23) * inv_det;
+        out._31 = (_21 * _32 - _22 * _31) * inv_det;
+        out._32 = (_12 * _31 - _11 * _32) * inv_det;
+        out._33 = (_11 * _22 - _12 * _21) * inv_det;
+        return true;
+    }
+
+    Mat3x3 Mat3x3::trs(Vec2 t, float radian, Vec2 s){
+        float cr = cosf(radian);
+        float sr = sinf(radian);
+        return Mat3x3(s.x * cr,   -s.y * sr,  t.x,
+                      s.x * sr,   s.y * cr,   t.y,
+                      0.0f,       0.0f,       1.0f);
+    }
+
+    bool Mat3x3::is_affine() const{
+        float det = _11 * _22 - _12 * _21;
+        if(isclose(det, 0)) return false;
+        return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
+    }
+
+    Vec2 Mat3x3::_t() const { return Vec2(_13, _23); }
+    float Mat3x3::_r() const { return atan2f(_21, _11); }
+    Vec2 Mat3x3::_s() const {
+        return Vec2(
+            sqrtf(_11 * _11 + _21 * _21),
+            sqrtf(_12 * _12 + _22 * _22)
+        );
+    }
 
 }   // namespace pkpy
