@@ -221,13 +221,6 @@ except:
 assert type(12 * '12') is str
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  554:    _vm->bind_method<1>("str", "index", [](VM* vm, ArgsView args) {
-#     #####:  555:        const Str& self = _CAST(Str&, args[0]);
-#     #####:  556:        const Str& sub = CAST(Str&, args[1]);
-#     #####:  557:        int index = self.index(sub);
-#     #####:  558:        if(index == -1) vm->ValueError("substring not found");
-#     #####:  559:        return VAR(index);
-#     #####:  560:    });
 # test str.index:
 assert type('25363546'.index('63')) is int
 try:
@@ -239,11 +232,6 @@ except:
 
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  562:    _vm->bind_method<1>("str", "find", [](VM* vm, ArgsView args) {
-#     #####:  563:        const Str& self = _CAST(Str&, args[0]);
-#     #####:  564:        const Str& sub = CAST(Str&, args[1]);
-#     #####:  565:        return VAR(self.index(sub));
-#         -:  566:    });
 # test str.find:
 assert '25363546'.find('63') == 3
 assert '25363546'.find('err') == -1
@@ -258,15 +246,6 @@ except:
     pass
 
 # 未完全测试准确性----------------------------------------------
-#       116:  648:    _vm->bind_method<1>("list", "index", [](VM* vm, ArgsView args) {
-#     #####:  649:        List& self = _CAST(List&, args[0]);
-#     #####:  650:        PyObject* obj = args[1];
-#     #####:  651:        for(int i=0; i<self.size(); i++){
-#     #####:  652:            if(vm->py_eq(self[i], obj)) return VAR(i);
-#         -:  653:        }
-#     #####:  654:        vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
-#     #####:  655:        return vm->None;
-#     #####:  656:    });
 # test list.index:
 assert type([1,2,3,4,5].index(4)) is int
 try:
@@ -279,18 +258,6 @@ except:
 
 
 # 未完全测试准确性----------------------------------------------
-#       118:  658:    _vm->bind_method<1>("list", "remove", [](VM* vm, ArgsView args) {
-#         1:  659:        List& self = _CAST(List&, args[0]);
-#         1:  660:        PyObject* obj = args[1];
-#         2:  661:        for(int i=0; i<self.size(); i++){
-#         2:  662:            if(vm->py_eq(self[i], obj)){
-#         1:  663:                self.erase(i);
-#         1:  664:                return vm->None;
-#         -:  665:            }
-#         -:  666:        }
-#     #####:  667:        vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");
-#     #####:  668:        return vm->None;
-#         1:  669:    });
 # test list.remove:
 try:
     [1,2,3,4,5].remove(6)
@@ -301,22 +268,6 @@ except:
 
 
 # 未完全测试准确性----------------------------------------------
-#      2536:  671:    _vm->bind_method<-1>("list", "pop", [](VM* vm, ArgsView args) {
-#      1210:  672:        List& self = _CAST(List&, args[0]);
-#      1210:  673:        if(args.size() == 1+0){
-#      1208:  674:            if(self.empty()) vm->IndexError("pop from empty list");
-#      1208:  675:            return self.popx_back();
-#         -:  676:        }
-#         2:  677:        if(args.size() == 1+1){
-#         2:  678:            int index = CAST(int, args[1]);
-#         2:  679:            index = vm->normalized_index(index, self.size());
-#         2:  680:            PyObject* ret = self[index];
-#         2:  681:            self.erase(index);
-#         -:  682:            return ret;
-#         -:  683:        }
-#     #####:  684:        vm->TypeError("pop() takes at most 1 argument");
-#     #####:  685:        return vm->None;
-#      1210:  686:    });
 # test list.pop:
 try:
     [1,2,3,4,5].pop(1,2,3,4)
@@ -407,13 +358,6 @@ assert slice.__dict__['start'].__signature__ == 'start'
 assert type(repr(slice(1,1,1))) is str
 
 # /************ mappingproxy ************/
-# 未完全测试准确性-----------------------------------------------
-#       116:  968:    _vm->bind_method<0>("mappingproxy", "keys", [](VM* vm, ArgsView args) {
-#     #####:  969:        MappingProxy& self = _CAST(MappingProxy&, args[0]);
-#     #####:  970:        List keys;
-#     #####:  971:        for(StrName name : self.attr().keys()) keys.push_back(VAR(name.sv()));
-#     #####:  972:        return VAR(std::move(keys));
-#     #####:  973:    });
 # test mappingproxy.keys:
 class A():
     def __init__(self):
@@ -427,12 +371,6 @@ assert type(my_mappingproxy.keys()) is list
 
 
 # 未完全测试准确性-----------------------------------------------
-#       116:  975:    _vm->bind_method<0>("mappingproxy", "values", [](VM* vm, ArgsView args) {
-#     #####:  976:        MappingProxy& self = _CAST(MappingProxy&, args[0]);
-#     #####:  977:        List values;
-#     #####:  978:        for(auto& item : self.attr().items()) values.push_back(item.second);
-#     #####:  979:        return VAR(std::move(values));
-#     #####:  980:    });
 # test mappingproxy.values:
 class A():
     def __init__(self):
@@ -499,25 +437,6 @@ assert type(repr(my_mappingproxy)) is str
 
 # /************ dict ************/
 # 未完全测试准确性-----------------------------------------------
-#       202: 1033:    _vm->bind_method<-1>("dict", "__init__", [](VM* vm, ArgsView args){
-#        43: 1034:        if(args.size() == 1+0) return vm->None;
-#        42: 1035:        if(args.size() == 1+1){
-#        42: 1036:            auto _lock = vm->heap.gc_scope_lock();
-#        42: 1037:            Dict& self = _CAST(Dict&, args[0]);
-#        42: 1038:            List& list = CAST(List&, args[1]);
-#       165: 1039:            for(PyObject* item : list){
-#       123: 1040:                Tuple& t = CAST(Tuple&, item);
-#       123: 1041:                if(t.size() != 2){
-#     #####: 1042:                    vm->ValueError("dict() takes an iterable of tuples (key, value)");
-#     #####: 1043:                    return vm->None;
-#         -: 1044:                }
-#       123: 1045:                self.set(t[0], t[1]);
-#       246: 1046:            }
-#        42: 1047:            return vm->None;
-#        42: 1048:        }
-#     #####: 1049:        vm->TypeError("dict() takes at most 1 argument");
-#     #####: 1050:        return vm->None;
-#        43: 1051:    });
 # test dict:
 assert type(dict([(1,2)])) is dict
 
@@ -546,22 +465,7 @@ except:
 for k in {1:2, 2:3, 3:4}:
     assert k in [1,2,3]
 
-
 # 未完全测试准确性-----------------------------------------------
-#       166: 1098:    _vm->bind_method<-1>("dict", "get", [](VM* vm, ArgsView args) {
-#        25: 1099:        Dict& self = _CAST(Dict&, args[0]);
-#        25: 1100:        if(args.size() == 1+1){
-#     #####: 1101:            PyObject* ret = self.try_get(args[1]);
-#     #####: 1102:            if(ret != nullptr) return ret;
-#     #####: 1103:            return vm->None;
-#        25: 1104:        }else if(args.size() == 1+2){
-#        25: 1105:            PyObject* ret = self.try_get(args[1]);
-#        25: 1106:            if(ret != nullptr) return ret;
-#        19: 1107:            return args[2];
-#         -: 1108:        }
-#     #####: 1109:        vm->TypeError("get() takes at most 2 arguments");
-#     #####: 1110:        return vm->None;
-#        25: 1111:    });
 # test dict.get
 
 assert {1:2, 3:4}.get(1) == 2
