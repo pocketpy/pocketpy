@@ -221,23 +221,6 @@ test_mat_copy = test_mat.copy()
 assert test_mat is not test_mat_copy
 assert test_mat == test_mat_copy
 
-# test setzeros
-test_mat_copy = test_mat.copy()
-test_mat_copy.set_zeros()
-assert test_mat_copy == mat3x3.zeros()
-
-# test set_ones
-test_mat_copy = test_mat.copy()
-test_mat_copy.set_ones()
-assert test_mat_copy == mat3x3.ones()
-
-# test set_identity
-test_mat_copy = test_mat.copy()
-test_mat_copy.set_identity()
-assert test_mat_copy == mat3x3([1, 0, 0,
-                                0, 1, 0,
-                                0, 0, 1])
-
 # test __getitem__
 for i, element in enumerate([getattr(test_mat, e) for e in element_name_list]):
     assert test_mat[int(i/3), i%3] == element
@@ -276,8 +259,7 @@ except:
 
 # test __add__
 test_mat_copy = test_mat.copy()
-ones = mat3x3()
-ones.set_ones()
+ones = mat3x3.ones()
 result_mat = test_mat_copy.__add__(ones)
 correct_result_mat = test_mat_copy.copy()
 for i in range(3):
@@ -287,8 +269,7 @@ assert result_mat == correct_result_mat
 
 # test __sub__
 test_mat_copy = test_mat.copy()
-ones = mat3x3()
-ones.set_ones()
+ones = mat3x3.ones()
 result_mat = test_mat_copy.__sub__(ones)
 correct_result_mat = test_mat_copy.copy()
 for i in range(3):
@@ -317,9 +298,6 @@ for i in range(3):
     for j in range(3):
         correct_result_mat[i, j] = sum([e1*e2 for e1, e2 in zip(get_row(test_mat_copy, i), get_col(test_mat_copy_2, j))])
 assert result_mat == correct_result_mat
-
-test_mat_copy.__imatmul__(test_mat_copy_2)
-assert test_mat_copy == correct_result_mat
 
 # test determinant
 test_mat_copy = test_mat.copy()
@@ -408,7 +386,7 @@ radian = random.uniform(-10*math.pi, 10*math.pi)
 assert mat_to_str_list(mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)) == mat_list_to_str_list(trs(test_vec2_list, radian, test_vec2_2_list))
 
 a = mat3x3.zeros()
-a.set_trs(test_vec2_copy, radian, test_vec2_2_copy)
+a.copy_trs_(test_vec2_copy, radian, test_vec2_2_copy)
 assert a == mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)
 
 # test is_affine
@@ -474,18 +452,18 @@ assert mymat3x3().f()
 
 # test assign
 a = vec2(1, 2)
-assert a.assign(vec2(3, 4)) is None
+assert a.copy_(vec2(3, 4)) is None
 assert a == vec2(3, 4)
 
 b = vec3(1, 2, 3)
-assert b.assign(vec3(4, 5, 6)) is None
+assert b.copy_(vec3(4, 5, 6)) is None
 assert b == vec3(4, 5, 6)
 
 c = vec4(1, 2, 3, 4)
-assert c.assign(vec4(5, 6, 7, 8)) is None
+assert c.copy_(vec4(5, 6, 7, 8)) is None
 assert c == vec4(5, 6, 7, 8)
 
 d = mat3x3.identity()
-assert d.assign(mat3x3.zeros()) is None
+assert d.copy_(mat3x3.zeros()) is None
 assert d == mat3x3.zeros()
 

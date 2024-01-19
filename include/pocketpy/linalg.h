@@ -28,7 +28,9 @@ struct Vec2{
     float length() const { return sqrtf(x * x + y * y); }
     float length_squared() const { return x * x + y * y; }
     Vec2 normalize() const { float l = length(); return Vec2(x / l, y / l); }
-    NoReturn assign(const Vec2& v) { x = v.x; y = v.y; return {}; }
+    Vec2 rotate(float radian) const { float cr = cosf(radian), sr = sinf(radian); return Vec2(x * cr - y * sr, x * sr + y * cr); }
+    NoReturn normalize_() { float l = length(); x /= l; y /= l; return {}; }
+    NoReturn copy_(const Vec2& v) { x = v.x; y = v.y; return {}; }
 };
 
 struct Vec3{
@@ -53,7 +55,8 @@ struct Vec3{
     float length() const { return sqrtf(x * x + y * y + z * z); }
     float length_squared() const { return x * x + y * y + z * z; }
     Vec3 normalize() const { float l = length(); return Vec3(x / l, y / l, z / l); }
-    NoReturn assign(const Vec3& v) { x = v.x; y = v.y; z = v.z; return {}; }
+    NoReturn normalize_() { float l = length(); x /= l; y /= l; z /= l; return {}; }
+    NoReturn copy_(const Vec3& v) { x = v.x; y = v.y; z = v.z; return {}; }
 };
 
 struct Vec4{
@@ -77,7 +80,8 @@ struct Vec4{
     float length() const { return sqrtf(x * x + y * y + z * z + w * w); }
     float length_squared() const { return x * x + y * y + z * z + w * w; }
     Vec4 normalize() const { float l = length(); return Vec4(x / l, y / l, z / l, w / l); }
-    NoReturn assign(const Vec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; return {}; }
+    NoReturn normalize_() { float l = length(); x /= l; y /= l; z /= l; w /= l; return {}; }
+    NoReturn copy_(const Vec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; return {}; }
 };
 
 struct Mat3x3{    
@@ -94,10 +98,6 @@ struct Mat3x3{
     Mat3x3();
     Mat3x3(float, float, float, float, float, float, float, float, float);
     Mat3x3(const Mat3x3& other) = default;
-
-    void set_zeros();
-    void set_ones();
-    void set_identity();
 
     static Mat3x3 zeros();
     static Mat3x3 ones();
