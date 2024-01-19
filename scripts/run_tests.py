@@ -68,10 +68,10 @@ else:
 
     if cmd is not None:
         res = subprocess.run([cmd], encoding='utf-8', input=r'''
-    def add(a, b):
+def add(a, b):
     return a + b
 
-    class A:
+class A:
     def __init__(self, x):
         self.x = x
 
@@ -79,9 +79,12 @@ else:
         return self.x
 
 
-    print(add(1, 2))
-    print(A('abc').get())''', capture_output=True, check=True)
+    print('ans_1:', add(1, 2))
+    print('ans_2:', A('abc').get())
+    exit()
+''', capture_output=True, check=True)
         res.check_returncode()
-        assert res.stdout.endswith('>>> 3\n>>> abc\n>>> '), res.stdout
+        assert 'ans_1: 3' in res.stdout
+        assert 'ans_2: abc' in res.stdout
 
 print("ALL TESTS PASSED")
