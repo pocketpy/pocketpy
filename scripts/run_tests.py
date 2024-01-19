@@ -62,7 +62,7 @@ else:
     if sys.platform in ['linux', 'darwin']:
         cmd = './main'
     elif sys.platform == 'win32':
-        cmd = 'main.exe'
+        cmd = '.\main.exe'
     else:
         cmd = None
 
@@ -80,9 +80,8 @@ else:
 
 
     print(add(1, 2))
-    print(A('abc').get())
-    ''', capture_output=True, check=True)
+    print(A('abc').get())''', capture_output=True, check=True)
         res.check_returncode()
-        assert res.stdout.endswith('>>> 3\n>>> abc\n>>> ')
+        assert res.stdout.endswith('>>> 3\n>>> abc\n>>> '), res.stdout
 
 print("ALL TESTS PASSED")

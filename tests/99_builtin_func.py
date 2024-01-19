@@ -674,3 +674,11 @@ assert issubclass(object, object) is True
 assert issubclass(int, type) is False
 assert issubclass(type, type) is True
 assert issubclass(float, int) is False
+
+
+def f(a, b):
+    c = a
+    del a
+    return sum([b, c])
+
+assert f(1, 2) == 3

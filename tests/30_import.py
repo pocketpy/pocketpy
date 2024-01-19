@@ -27,3 +27,6 @@ def f():
     assert value == 1
 
 f()
+
+from math import *
+assert pi > 3

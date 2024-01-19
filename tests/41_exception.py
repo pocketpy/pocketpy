@@ -1,4 +1,15 @@
 try:
+    raise 1
+except TypeError:
+    pass
+
+try:
+    assert False
+    exit(1)
+except AssertionError:
+    pass
+
+try:
     for i in range(5):
         raise KeyError(i)
     exit(1)

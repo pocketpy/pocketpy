@@ -115,3 +115,5 @@ try:
     exit(1)
 except ZeroDivisionError:
     pass
+
+assert not 1 < 2 > 3
