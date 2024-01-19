@@ -11,7 +11,7 @@ on:
        - 'web/**'
        - '**.md'
 jobs:
-  build_win:
+  build_win32:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
@@ -87,7 +87,7 @@ jobs:
           python3 scripts/run_tests.py
           python3 scripts/run_tests.py benchmark
         shell: alpine.sh {0}
-  build_macos:
+  build_darwin:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v3

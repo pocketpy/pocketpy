@@ -61,8 +61,6 @@ else:
     print("[REPL Test Enabled]")
     if sys.platform in ['linux', 'darwin']:
         cmd = './main'
-    elif sys.platform == 'win32':
-        cmd = '.\main.exe'
     else:
         cmd = None
 
