@@ -57,7 +57,7 @@ class Compiler {
 
     /*************************************************/
     void EXPR();
-    void EXPR_TUPLE();
+    void EXPR_TUPLE(bool allow_slice=false);
     Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
@@ -111,8 +111,8 @@ class Compiler {
     void compile_block_body(void (Compiler::*callback)()=nullptr);
     void compile_normal_import();
     void compile_from_import();
-    bool is_expression();
-    void parse_expression(int precedence, bool push_stack=true);
+    bool is_expression(bool allow_slice=false);
+    void parse_expression(int precedence, bool allow_slice=false);
     void compile_if_stmt();
     void compile_while_loop();
     void compile_for_loop();

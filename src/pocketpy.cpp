@@ -1016,6 +1016,16 @@ void init_builtins(VM* _vm) {
         return VAR(Slice(args[1], args[2], args[3]));
     });
 
+    _vm->bind__eq__(VM::tp_slice, [](VM* vm, PyObject* _0, PyObject* _1){
+        const Slice& self = _CAST(Slice&, _0);
+        if(!is_non_tagged_type(_1, vm->tp_slice)) return vm->NotImplemented;
+        const Slice& other = _CAST(Slice&, _1);
+        if(vm->py_ne(self.start, other.start)) return vm->False;
+        if(vm->py_ne(self.stop, other.stop)) return vm->False;
+        if(vm->py_ne(self.step, other.step)) return vm->False;
+        return vm->True;
+    });
+
     _vm->bind__repr__(VM::tp_slice, [](VM* vm, PyObject* _0) {
         const Slice& self = _CAST(Slice&, _0);
         SStream ss;

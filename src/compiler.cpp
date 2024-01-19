@@ -169,16 +169,17 @@ namespace pkpy{
         parse_expression(PREC_LOWEST+1);
     }
 
-    void Compiler::EXPR_TUPLE() {
-        EXPR();
+    void Compiler::EXPR_TUPLE(bool allow_slice) {
+        parse_expression(PREC_LOWEST+1, allow_slice);
         if(!match(TK(","))) return;
         // tuple expression
         std::vector<Expr_> items;
         items.push_back(ctx()->s_expr.popx());
         do {
             if(curr().brackets_level) match_newlines_repl();
-            if(!is_expression()) break;
-            EXPR(); items.push_back(ctx()->s_expr.popx());
+            if(!is_expression(allow_slice)) break;
+            parse_expression(PREC_LOWEST+1, allow_slice);
+            items.push_back(ctx()->s_expr.popx());
             if(curr().brackets_level) match_newlines_repl();
         } while(match(TK(",")));
         ctx()->s_expr.push(make_expr<TupleExpr>(std::move(items)));
@@ -223,7 +224,8 @@ namespace pkpy{
             consume(TK(":"));
         }
         // https://github.com/blueloveTH/pocketpy/issues/37
-        parse_expression(PREC_LAMBDA + 1, false);
+        parse_expression(PREC_LAMBDA + 1);
+        ctx()->emit_expr();
         ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
         pop_context();
         ctx()->s_expr.push(std::move(e));
@@ -418,38 +420,48 @@ namespace pkpy{
 
     void Compiler::exprSlice0() {
         auto slice = make_expr<SliceExpr>();
-        if(is_expression()){    // :<expr>
+        if(is_expression()){        // :<stop>
             EXPR();
             slice->stop = ctx()->s_expr.popx();
             // try optional step
-            if(match(TK(":"))){
+            if(match(TK(":"))){     // :<stop>:<step>
                 EXPR();
                 slice->step = ctx()->s_expr.popx();
             }
-        }
+        }else if(match(TK(":"))){
+            if(is_expression()){    // ::<step>
+                EXPR();
+                slice->step = ctx()->s_expr.popx();
+            }   // else ::
+        }   // else :
         ctx()->s_expr.push(std::move(slice));
     }
 
     void Compiler::exprSlice1() {
         auto slice = make_expr<SliceExpr>();
         slice->start = ctx()->s_expr.popx();
-        if(is_expression()){    // <expr>:<expr>
+        if(is_expression()){        // <start>:<stop>
             EXPR();
             slice->stop = ctx()->s_expr.popx();
             // try optional step
-            if(match(TK(":"))){
+            if(match(TK(":"))){     // <start>:<stop>:<step>
                 EXPR();
                 slice->step = ctx()->s_expr.popx();
             }
-        }
+        }else if(match(TK(":"))){   // <start>::<step>
+            EXPR();
+            slice->step = ctx()->s_expr.popx();
+        }   // else <start>:
         ctx()->s_expr.push(std::move(slice));
     }
     
     void Compiler::exprSubscr() {
         auto e = make_expr<SubscrExpr>();
-        e->a = ctx()->s_expr.popx();        // a[...]
-        EXPR_TUPLE();                       // a[<expr>]
-        e->b = ctx()->s_expr.popx();
+        match_newlines_repl();
+        e->a = ctx()->s_expr.popx();        // a
+        EXPR_TUPLE(true);
+        e->b = ctx()->s_expr.popx();        // a[<expr>]
+        match_newlines_repl();
         consume(TK("]"));
         ctx()->s_expr.push(std::move(e));
     }
@@ -561,27 +573,25 @@ __EAT_DOTS_END:
         consume_end_stmt();
     }
 
-    bool Compiler::is_expression(){
+    bool Compiler::is_expression(bool allow_slice){
         PrattCallback prefix = rules[curr().type].prefix;
-        // slice expression is restricted to be used in subscript
-        return prefix != nullptr && curr().type != TK(":");
+        return prefix != nullptr && (allow_slice || curr().type!=TK(":"));
     }
 
-    void Compiler::parse_expression(int precedence, bool push_stack) {
+    void Compiler::parse_expression(int precedence, bool allow_slice) {
         PrattCallback prefix = rules[curr().type].prefix;
-        if (prefix == nullptr || curr().type == TK(":")){
+        if (prefix==nullptr || (curr().type==TK(":") && !allow_slice)){
             SyntaxError(Str("expected an expression, got ") + TK_STR(curr().type));
         }
         advance();
         (this->*prefix)();
-        while (rules[curr().type].precedence >= precedence && curr().type != TK(":")) {
+        while (rules[curr().type].precedence >= precedence && (allow_slice || curr().type!=TK(":"))) {
             TokenIndex op = curr().type;
             advance();
             PrattCallback infix = rules[op].infix;
             PK_ASSERT(infix != nullptr);
             (this->*infix)();
         }
-        if(!push_stack) ctx()->emit_expr();
     }
 
     void Compiler::compile_if_stmt() {
