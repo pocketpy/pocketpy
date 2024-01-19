@@ -60,22 +60,29 @@ else:
     # test interactive mode
     print("[REPL Test Enabled]")
     if sys.platform in ['linux', 'darwin']:
-        res = subprocess.run(['./main'], encoding='utf-8', input=r'''
-def add(a, b):
+        cmd = './main'
+    elif sys.platform == 'win32':
+        cmd = 'main.exe'
+    else:
+        cmd = None
+
+    if cmd is not None:
+        res = subprocess.run([cmd], encoding='utf-8', input=r'''
+    def add(a, b):
     return a + b
 
-class A:
+    class A:
     def __init__(self, x):
         self.x = x
-   
+
     def get(self):
         return self.x
 
 
-print(add(1, 2))
-print(A('abc').get())
-''', capture_output=True, check=True)
-    res.check_returncode()
-    assert res.stdout.endswith('>>> 3\n>>> abc\n>>> ')
+    print(add(1, 2))
+    print(A('abc').get())
+    ''', capture_output=True, check=True)
+        res.check_returncode()
+        assert res.stdout.endswith('>>> 3\n>>> abc\n>>> ')
 
 print("ALL TESTS PASSED")
