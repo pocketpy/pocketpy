@@ -71,8 +71,7 @@ struct Token{
 
 // https://docs.python.org/3/reference/expressions.html#operator-precedence
 enum Precedence {
-  PREC_NONE,
-  PREC_TUPLE,         // ,
+  PREC_LOWEST,
   PREC_LAMBDA,        // lambda
   PREC_TERNARY,       // ?:
   PREC_LOGICAL_OR,    // or
@@ -93,7 +92,7 @@ enum Precedence {
   PREC_UNARY,         // - not ~
   PREC_EXPONENT,      // **
   PREC_PRIMARY,       // f() x[] a.b 1:2
-  PREC_HIGHEST,pyth
+  PREC_HIGHEST,
 };
 
 enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };

@@ -56,8 +56,8 @@ class Compiler {
     void consume_end_stmt();
 
     /*************************************************/
-    void EXPR(bool push_stack=true);
-    void EXPR_TUPLE(bool push_stack=true);
+    void EXPR();
+    void EXPR_TUPLE();
     Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
@@ -91,7 +91,6 @@ class Compiler {
     void exprBytes();
     void exprFString();
     void exprLambda();
-    void exprTuple();
     void exprOr();
     void exprAnd();
     void exprTernary();
@@ -104,6 +103,8 @@ class Compiler {
     void exprCall();
     void exprName();
     void exprAttrib();
+    void exprSlice0();
+    void exprSlice1();
     void exprSubscr();
     void exprLiteral0();
 

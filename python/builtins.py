@@ -266,9 +266,6 @@ def long(*args, **kwargs):
 
 
 # builtin exceptions
-class SyntaxError(Exception): pass
-class IndentationError(SyntaxError): pass
-
 class StackOverflowError(Exception): pass
 class IOError(Exception): pass
 class NotImplementedError(Exception): pass

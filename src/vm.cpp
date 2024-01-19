@@ -709,6 +709,10 @@ void VM::init_builtin_types(){
     if(tp_staticmethod != _new_type_object("staticmethod")) exit(-3);
     if(tp_classmethod != _new_type_object("classmethod")) exit(-3);
 
+    // SyntaxError and IndentationError must be created here
+    Type tp_syntax_error = _new_type_object("SyntaxError", tp_exception, true);
+    Type tp_indentation_error = _new_type_object("IndentationError", tp_syntax_error, true);
+
     this->None = heap._new<Dummy>(_new_type_object("NoneType"));
     this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"));
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"));
@@ -735,6 +739,8 @@ void VM::init_builtin_types(){
     builtins->attr().set("NotImplemented", NotImplemented);
     builtins->attr().set("slice", _t(tp_slice));
     builtins->attr().set("Exception", _t(tp_exception));
+    builtins->attr().set("SyntaxError", _t(tp_syntax_error));
+    builtins->attr().set("IndentationError", _t(tp_indentation_error));
 
     post_init();
     this->_main = new_module("__main__");
@@ -1164,7 +1170,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
-        co = compile("def " + Str(sig) + " : pass", "<bind>", EXEC_MODE);
+        co = compile(fmt("def ", sig, " : pass"), "<bind>", EXEC_MODE);
     }catch(const Exception&){
         throw std::runtime_error("invalid signature: " + std::string(sig));
     }
