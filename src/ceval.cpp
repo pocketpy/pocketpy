@@ -17,8 +17,8 @@ namespace pkpy{
             PyObject* self;                                                     \
             PyObject* _2 = get_unbound_method(_1, rfunc, &self, false);         \
             if(_2 != nullptr) ret = call_method(self, _2, _0);                  \
-            else BinaryOptError(op);                                            \
-            if(ret == NotImplemented) BinaryOptError(op);                       \
+            else BinaryOptError(op, _0, _1);                                    \
+            if(ret == NotImplemented) BinaryOptError(op, _0, _1);               \
         }
 
 
@@ -44,9 +44,9 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 
 #undef BINARY_F_COMPARE
 
-static i64 _py_sint(PyObject* obj) noexcept {
-    return (i64)(PK_BITS(obj) >> 2);
-}
+// static i64 _py_sint(PyObject* obj) noexcept {
+//     return (i64)(PK_BITS(obj) >> 2);
+// }
 
 PyObject* VM::_run_top_frame(){
     FrameId frame = top_frame();
@@ -388,19 +388,19 @@ __NEXT_STEP:;
             PyObject* self;                                         \
             PyObject* _2 = get_unbound_method(_1, func, &self, false);        \
             if(_2 != nullptr) TOP() = call_method(self, _2, _0);    \
-            else BinaryOptError(op);                                \
-            if(TOP() == NotImplemented) BinaryOptError(op);         \
+            else BinaryOptError(op, _0, _1);                        \
+            if(TOP() == NotImplemented) BinaryOptError(op, _0, _1); \
         }
 
     TARGET(BINARY_TRUEDIV){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__truediv__);
-        if(TOP() == NotImplemented) BinaryOptError("/");
+        if(TOP() == NotImplemented) BinaryOptError("/", _0, _1);
     } DISPATCH();
     TARGET(BINARY_POW){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__pow__);
-        if(TOP() == NotImplemented) BinaryOptError("**");
+        if(TOP() == NotImplemented) BinaryOptError("**", _0, _1);
     } DISPATCH();
     TARGET(BINARY_ADD){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
@@ -420,12 +420,12 @@ __NEXT_STEP:;
     TARGET(BINARY_FLOORDIV){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__floordiv__);
-        if(TOP() == NotImplemented) BinaryOptError("//");
+        if(TOP() == NotImplemented) BinaryOptError("//", _0, _1);
     } DISPATCH()
     TARGET(BINARY_MOD){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mod__);
-        if(TOP() == NotImplemented) BinaryOptError("%");
+        if(TOP() == NotImplemented) BinaryOptError("%", _0, _1);
     } DISPATCH()
     TARGET(COMPARE_LT){
         PyObject* _1 = POPX();
@@ -460,32 +460,32 @@ __NEXT_STEP:;
     TARGET(BITWISE_LSHIFT){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__lshift__);
-        if(TOP() == NotImplemented) BinaryOptError("<<");
+        if(TOP() == NotImplemented) BinaryOptError("<<", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_RSHIFT){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__rshift__);
-        if(TOP() == NotImplemented) BinaryOptError(">>");
+        if(TOP() == NotImplemented) BinaryOptError(">>", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_AND){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__and__);
-        if(TOP() == NotImplemented) BinaryOptError("&");
+        if(TOP() == NotImplemented) BinaryOptError("&", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_OR){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__or__);
-        if(TOP() == NotImplemented) BinaryOptError("|");
+        if(TOP() == NotImplemented) BinaryOptError("|", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_XOR){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__xor__);
-        if(TOP() == NotImplemented) BinaryOptError("^");
+        if(TOP() == NotImplemented) BinaryOptError("^", _0, _1);
     } DISPATCH()
     TARGET(BINARY_MATMUL){
         PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__matmul__);
-        if(TOP() == NotImplemented) BinaryOptError("@");
+        if(TOP() == NotImplemented) BinaryOptError("@", _0, _1);
     } DISPATCH();
 
 #undef BINARY_OP_SPECIAL

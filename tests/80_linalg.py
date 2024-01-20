@@ -337,8 +337,8 @@ test_mat_copy = test_mat.copy()
 test_mat_copy @ vec3(83,-9.12, 0.2983)
 try:
     test_mat_copy @ 12345
-    raise Exception('未能拦截错误 BinaryOptError("@") 在处理表达式 test_mat_copy @ 12345')
-except:
+    exit(1)
+except TypeError:
     pass
 
 

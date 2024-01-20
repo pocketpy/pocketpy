@@ -343,8 +343,13 @@ public:
     void NameError(StrName name){ _builtin_error("NameError", fmt("name ", name.escape() + " is not defined")); }
     void UnboundLocalError(StrName name){ _builtin_error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
     void KeyError(PyObject* obj){ _builtin_error("KeyError", obj); }
-    void BinaryOptError(const char* op) { TypeError(fmt("unsupported operand type(s) for ", op)); }
     void ImportError(const Str& msg){ _builtin_error("ImportError", msg); }
+
+    void BinaryOptError(const char* op, PyObject* _0, PyObject* _1) {
+        StrName name_0 = _type_name(vm, _tp(_0));
+        StrName name_1 = _type_name(vm, _tp(_1));
+        TypeError(fmt("unsupported operand type(s) for ", op, ": ", name_0.escape(), " and ", name_1.escape()));
+    }
 
     void AttributeError(PyObject* obj, StrName name){
         if(isinstance(obj, vm->tp_type)){
