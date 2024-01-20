@@ -140,8 +140,7 @@ struct SStream{
     SStream& operator<<(const Str&);
     SStream& operator<<(const char*);
     SStream& operator<<(int);
-    SStream& operator<<(unsigned int);
-    SStream& operator<<(uint64_t);
+    SStream& operator<<(size_t);
     SStream& operator<<(i64);
     SStream& operator<<(f64);
     SStream& operator<<(const std::string&);
