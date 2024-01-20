@@ -1,5 +1,4 @@
 #include "pocketpy/vm.h"
-#include "pocketpy/config.h"
 
 namespace pkpy{
 
@@ -507,8 +506,9 @@ PyObject* VM::_format_string(Str spec, PyObject* obj){
     if(type == 'f'){
         f64 val = CAST(f64, obj);
         if(precision < 0) precision = 6;
-        std::stringstream ss; // float
-        ss << std::fixed << std::setprecision(precision) << val;
+        SStream ss;
+        ss.setprecision(precision);
+        ss << val;
         ret = ss.str();
     }else if(type == 'd'){
         ret = std::to_string(CAST(i64, obj));

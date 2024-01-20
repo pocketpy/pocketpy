@@ -127,37 +127,31 @@ struct SStream{
     PK_ALWAYS_PASS_BY_POINTER(SStream)
     // pod_vector<T> is allocated by pool64 so the buffer can be moved into Str without a copy
     pod_vector<char> buffer;
+    int _precision = -1;
+
     bool empty() const { return buffer.empty(); }
+    void setprecision(int precision) { _precision = precision; }
 
     SStream(){}
     SStream(int guess_size){ buffer.reserve(guess_size); }
 
     Str str();
 
-    SStream& operator<<(const Str& s);
-    SStream& operator<<(const char* s);
-    SStream& operator<<(i64 val);
-    SStream& operator<<(const std::string& s);
-    SStream& operator<<(std::string_view s);
-    SStream& operator<<(char c);
-    SStream& operator<<(StrName sn);
-    void write_hex(unsigned char c);
+    SStream& operator<<(const Str&);
+    SStream& operator<<(const char*);
+    SStream& operator<<(int);
+    SStream& operator<<(unsigned int);
+    SStream& operator<<(unsigned long);
+    SStream& operator<<(i64);
+    SStream& operator<<(f64);
+    SStream& operator<<(const std::string&);
+    SStream& operator<<(std::string_view);
+    SStream& operator<<(char);
+    SStream& operator<<(StrName);
 
-    template<typename T>
-    SStream& operator<<(T val){
-        if constexpr(std::is_floating_point_v<T>){
-            if(std::isinf(val) || std::isnan(val)){
-                return (*this) << std::to_string(val);
-            }
-            std::stringstream ss; // float
-            ss << std::setprecision(std::numeric_limits<f64>::max_digits10-1) << val;
-            std::string s = ss.str();
-            if(std::all_of(s.begin()+1, s.end(), isdigit)) s += ".0";
-            return (*this) << s;
-        }
-        (*this) << std::to_string(val);
-        return *this;
-    }
+    void write_hex(unsigned char);
+    void write_hex(void*);
+    void write_hex(i64);
 };
 
 template<typename... Args>

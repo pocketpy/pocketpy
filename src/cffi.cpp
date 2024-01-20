@@ -60,10 +60,12 @@ namespace pkpy{
                 char c = 0;
                 if(s[i]>='0' && s[i]<='9') c += s[i]-'0';
                 else if(s[i]>='A' && s[i]<='F') c += s[i]-'A'+10;
+                else if(s[i]>='a' && s[i]<='f') c += s[i]-'a'+10;
                 else vm->ValueError(fmt("invalid hex char: '", s[i], "'"));
                 c <<= 4;
                 if(s[i+1]>='0' && s[i+1]<='9') c += s[i+1]-'0';
                 else if(s[i+1]>='A' && s[i+1]<='F') c += s[i+1]-'A'+10;
+                else if(s[i+1]>='a' && s[i+1]<='f') c += s[i+1]-'a'+10;
                 else vm->ValueError(fmt("invalid hex char: '", s[i+1], "'"));
                 buffer.p[i/2] = c;
             }

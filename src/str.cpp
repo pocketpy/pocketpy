@@ -469,6 +469,19 @@ int utf8len(unsigned char c, bool suppress){
         return *this << sn.sv();
     }
 
+    SStream& SStream::operator<<(unsigned int val){
+        return (*this) << static_cast<i64>(val);
+    }
+
+    SStream& SStream::operator<<(unsigned long val){
+        // unsigned long could be out of range of `i64`, use `std::to_string` instead
+        return (*this) << std::to_string(val);
+    }
+
+    SStream& SStream::operator<<(int val){
+        return (*this) << static_cast<i64>(val);
+    }
+
     SStream& SStream::operator<<(i64 val){
         // str(-2**64).__len__() == 21
         buffer.reserve(buffer.size() + 24);
@@ -489,9 +502,53 @@ int utf8len(unsigned char c, bool suppress){
         return *this;
     }
 
+    SStream& SStream::operator<<(f64 val){
+        if(std::isinf(val) || std::isnan(val)){
+            return (*this) << std::to_string(val);
+        }
+        char b[32];
+        if(_precision == -1){
+            int prec = std::numeric_limits<f64>::max_digits10-1;
+            sprintf(b, "%.*g", prec, val);
+        }else{
+            int prec = _precision;
+            sprintf(b, "%.*f", prec, val);
+        }
+        (*this) << b;
+        if(std::all_of(b+1, b+strlen(b), isdigit)){
+            (*this) << ".0";
+        }
+        return *this;
+    }
+
     void SStream::write_hex(unsigned char c){
         *this << "0123456789ABCDEF"[c >> 4];
         *this << "0123456789ABCDEF"[c & 0xf];
+    }
+
+    void SStream::write_hex(void* p){
+        (*this) << "0x";
+        uintptr_t p_t = reinterpret_cast<uintptr_t>(p);
+        for(int i=sizeof(void*)-1; i>=0; i--){
+            unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
+            write_hex(cpnt);
+        }
+    }
+
+    void SStream::write_hex(i64 val){
+        if(val < 0){
+            (*this) << "-";
+            val = -val;
+        }
+        (*this) << "0x";
+        if(val == 0){
+            (*this) << "0";
+            return;
+        }
+        for(int i=56; i>=0; i-=8){
+            unsigned char cpnt = (val >> i) & 0xff;
+            if(cpnt != 0) write_hex(cpnt);
+        }
     }
 
 } // namespace pkpy

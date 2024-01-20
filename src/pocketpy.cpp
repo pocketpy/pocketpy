@@ -254,9 +254,9 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<1>(_vm->builtins, "hex", [](VM* vm, ArgsView args) {
-        std::stringstream ss; // hex
-        ss << std::hex << CAST(i64, args[0]);
-        return VAR("0x" + ss.str());
+        SStream ss;
+        ss.write_hex(CAST(i64, args[0]));
+        return VAR(ss.str());
     });
 
     _vm->bind_func<1>(_vm->builtins, "iter", [](VM* vm, ArgsView args) {
@@ -300,9 +300,10 @@ void init_builtins(VM* _vm) {
     // tp_object
     _vm->bind__repr__(VM::tp_object, [](VM* vm, PyObject* obj) {
         if(is_tagged(obj)) PK_FATAL_ERROR();
-        std::stringstream ss; // hex
-        ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at 0x";
-        ss << std::hex << reinterpret_cast<intptr_t>(obj) << ">";
+        SStream ss;
+        ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at ";
+        ss.write_hex(obj);
+        ss << ">";
         return VAR(ss.str());
     });
 

@@ -48,9 +48,9 @@ struct VoidP{
     bool operator>=(const VoidP& other) const { return ptr >= other.ptr; }
 
     Str hex() const{
-        std::stringstream ss; // hex
-        ss << std::hex << reinterpret_cast<intptr_t>(ptr);
-        return "0x" + ss.str();
+        SStream ss;
+        ss.write_hex(ptr);
+        return ss.str();
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
