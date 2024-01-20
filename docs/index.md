@@ -45,11 +45,11 @@ These platforms are officially tested.
 
 If you find pkpy useful, consider [star this repository](https://github.com/blueloveth/pocketpy) (●'◡'●)
 
-## Sponsor me
+## Sponsor this project
 
-You can sponsor me via these ways.
+You can sponsor this project via these ways.
 
 + [Github Sponsors](https://github.com/sponsors/blueloveTH)
 + [Buy me a coffee](https://www.buymeacoffee.com/blueloveth)
 
-Your sponsorship will help me develop this project continuously.
+Your sponsorship will help us develop pkpy continuously.
