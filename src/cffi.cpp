@@ -136,7 +136,6 @@ namespace pkpy{
 void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
     
-#if PK_ENABLE_OS
     vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
         return VAR(malloc(size));
@@ -161,7 +160,6 @@ void add_module_c(VM* vm){
         memcpy(dst, src, size);
         return vm->None;
     });
-#endif
 
     VoidP::register_class(vm, mod);
     C99Struct::register_class(vm, mod);
