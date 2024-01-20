@@ -1,3 +1,8 @@
+try:
+    import os
+except ImportError:
+    exit(0)
+
 import json
 
 _2489KB = 'WorldMap_GridVania_layout.ldtk'

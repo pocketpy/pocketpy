@@ -3,6 +3,8 @@ name: website
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   deploy:
@@ -33,3 +35,4 @@ jobs:
         build_dir: docs/.retype
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: github.ref == 'refs/heads/main'

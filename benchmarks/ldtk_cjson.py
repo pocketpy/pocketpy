@@ -1,3 +1,8 @@
+try:
+    import os
+except ImportError:
+    exit(0)
+
 import sys
 is_pkpy = not hasattr(sys, 'getrefcount')
 
