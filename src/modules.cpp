@@ -205,7 +205,7 @@ void add_module_math(VM* vm){
     vm->bind_func<1>(mod, "modf", [](VM* vm, ArgsView args) {
         f64 i;
         f64 f = std::modf(CAST_F(args[0]), &i);
-        return VAR(Tuple({VAR(f), VAR(i)}));
+        return VAR(Tuple(VAR(f), VAR(i)));
     });
 
     vm->bind_func<1>(mod, "factorial", [](VM* vm, ArgsView args) {

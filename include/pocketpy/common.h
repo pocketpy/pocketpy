@@ -13,7 +13,6 @@
 #include <map>
 #include <set>
 #include <algorithm>
-#include <initializer_list>
 #include <variant>
 #include <type_traits>
 #include <random>

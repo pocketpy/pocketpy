@@ -172,7 +172,7 @@ struct PyLuaTable: PyLuaObject{
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 List ret;
                 table_apply(vm, [&](PyObject* key, PyObject* val){
-                    PyObject* item = VAR(Tuple({key, val}));
+                    PyObject* item = VAR(Tuple(key, val));
                     ret.push_back(item);
                 });
                 lua_pop(_L, 1);

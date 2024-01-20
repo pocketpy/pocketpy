@@ -15,11 +15,13 @@ struct Tuple {
     int _size;
 
     Tuple(int n);
-    Tuple(std::initializer_list<PyObject*> list);
     Tuple(const Tuple& other);
     Tuple(Tuple&& other) noexcept;
     Tuple(List&& other) noexcept;
     ~Tuple();
+
+    Tuple(PyObject*, PyObject*);
+    Tuple(PyObject*, PyObject*, PyObject*);
 
     bool is_inlined() const { return _args == _inlined; }
     PyObject*& operator[](int i){ return _args[i]; }

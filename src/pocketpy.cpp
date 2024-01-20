@@ -164,7 +164,7 @@ void init_builtins(VM* _vm) {
             i64 rhs = CAST(i64, args[1]);
             if(rhs == 0) vm->ZeroDivisionError();
             auto res = std::div(lhs, rhs);
-            return VAR(Tuple({VAR(res.quot), VAR(res.rem)}));
+            return VAR(Tuple(VAR(res.quot), VAR(res.rem)));
         }else{
             return vm->call_method(args[0], __divmod__, args[1]);
         }
@@ -1056,7 +1056,7 @@ void init_builtins(VM* _vm) {
         MappingProxy& self = _CAST(MappingProxy&, args[0]);
         List items;
         for(auto& item : self.attr().items()){
-            PyObject* t = VAR(Tuple({VAR(item.first.sv()), item.second}));
+            PyObject* t = VAR(Tuple(VAR(item.first.sv()), item.second));
             items.push_back(std::move(t));
         }
         return VAR(std::move(items));
@@ -1216,7 +1216,7 @@ void init_builtins(VM* _vm) {
         Tuple items(self.size());
         int j = 0;
         self.apply([&](PyObject* k, PyObject* v){
-            items[j++] = VAR(Tuple({k, v}));
+            items[j++] = VAR(Tuple(k, v));
         });
         return VAR(std::move(items));
     });
