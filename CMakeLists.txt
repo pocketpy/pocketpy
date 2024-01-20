@@ -1,15 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(pocketpy)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (${CMAKE_VERSION} VERSION_LESS "3.12.0") 
-    set(Python3_EXECUTABLE "python3")
-else()
-    find_package(Python3 COMPONENTS Interpreter)
-endif()
+find_package(Python3 COMPONENTS Interpreter)
 
 execute_process(
     COMMAND ${Python3_EXECUTABLE} prebuild.py
