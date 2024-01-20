@@ -2,19 +2,6 @@
 
 namespace pkpy{
 
-void add_module_timeit(VM* vm){
-    PyObject* mod = vm->new_module("timeit");
-    vm->bind_func<2>(mod, "timeit", [](VM* vm, ArgsView args) {
-        PyObject* f = args[0];
-        i64 iters = CAST(i64, args[1]);
-        auto now = std::chrono::system_clock::now();
-        for(i64 i=0; i<iters; i++) vm->call(f);
-        auto end = std::chrono::system_clock::now();
-        f64 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - now).count() / 1000.0;
-        return VAR(elapsed);
-    });
-}
-
 void add_module_operator(VM* vm){
     PyObject* mod = vm->new_module("operator");
     vm->bind_func<2>(mod, "lt", [](VM* vm, ArgsView args) { return VAR(vm->py_lt(args[0], args[1]));});

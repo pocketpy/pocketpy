@@ -1450,7 +1450,6 @@ void VM::post_init(){
     add_module_gc(this);
     add_module_random(this);
     add_module_base64(this);
-    add_module_timeit(this);
     add_module_operator(this);
     add_module_csv(this);
 

@@ -533,17 +533,6 @@ assert v.x == 0
 v.x = 10
 assert v.x == 10
 
-# /************ module timeit ************/
-import timeit
-
-def aaa():
-    for i in range(10):
-        for j in range(10):
-            pass
-    
-assert type(timeit.timeit(aaa, 2)) is float
-
-
 # function.__doc__
 def aaa():
     '12345'
