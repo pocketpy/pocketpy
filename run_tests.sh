@@ -11,8 +11,10 @@ fi
 rm -rf .coverage
 mkdir .coverage
 rm pocketpy_c.gcno
+
 UNITS=$(find ./ -name "*.gcno")
 llvm-cov-15 gcov ${UNITS} -r -s include/ -r -s src/ >> .coverage/coverage.txt
+
 mv *.gcov .coverage
 rm *.gcda
 rm *.gcno
