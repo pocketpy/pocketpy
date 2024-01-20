@@ -23,7 +23,7 @@ hello!
 None
 
 ====== test voidp methods ======
-<void* at 0x7b>
+<void* at 0x000000000000007B>
 123
 
 ====== test sizing and indexing ======

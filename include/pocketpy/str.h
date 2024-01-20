@@ -141,7 +141,7 @@ struct SStream{
     SStream& operator<<(const char*);
     SStream& operator<<(int);
     SStream& operator<<(unsigned int);
-    SStream& operator<<(unsigned long);
+    SStream& operator<<(uint64_t);
     SStream& operator<<(i64);
     SStream& operator<<(f64);
     SStream& operator<<(const std::string&);

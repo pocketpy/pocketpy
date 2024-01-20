@@ -473,8 +473,8 @@ int utf8len(unsigned char c, bool suppress){
         return (*this) << static_cast<i64>(val);
     }
 
-    SStream& SStream::operator<<(unsigned long val){
-        // unsigned long could be out of range of `i64`, use `std::to_string` instead
+    SStream& SStream::operator<<(uint64_t val){
+        // uint64_t could be out of range of `i64`, use `std::to_string` instead
         return (*this) << std::to_string(val);
     }
 
