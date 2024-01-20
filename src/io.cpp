@@ -2,6 +2,7 @@
 
 namespace pkpy{
 
+#if PK_ENABLE_OS
 static FILE* io_fopen(const char* name, const char* mode){
 #if _MSC_VER
     FILE* fp;
@@ -20,6 +21,7 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
     return fread(buffer, size, count, fp);
 #endif
 }
+#endif
 
 
 unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){

@@ -4,12 +4,12 @@ label: 'Advanced config'
 order: -2
 ---
 
-### Disable os-related features
+### Enable os-related features
 
-If you want to disable os-related features, you can do this before including `pocketpy.h`.
+If you want to enable os-related features, you can do this before including `pocketpy.h`.
 
 ```cpp
-#define PK_ENABLE_OS 0
+#define PK_ENABLE_OS 1
 #include <pocketpy.h>
 ```
 

@@ -10,7 +10,7 @@
 
 // Whether to compile os-related modules or not
 #ifndef PK_ENABLE_OS                // can be overrided by cmake
-#define PK_ENABLE_OS                1
+#define PK_ENABLE_OS                0
 #endif
 
 // Enable this if you are working with multi-threading (experimental)
