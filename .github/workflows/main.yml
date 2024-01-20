@@ -11,6 +11,20 @@ on:
        - 'web/**'
        - '**.md'
 jobs:
+  build_win32_amalgamated:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Compile
+      shell: bash
+      run: |
+        python3 amalgamate.py
+        cd amalgamated
+        cl.exe /std:c++17 /EHsc /utf-8 /O2 /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
+    - uses: actions/upload-artifact@v3
+      with:
+        path: amalgamated/pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
