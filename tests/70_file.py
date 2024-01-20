@@ -1,6 +1,7 @@
 try:
     import os
     import io
+    print("[`os` Test Enabled]")
 except ImportError:
     exit(0)
 
