@@ -505,15 +505,13 @@ int utf8len(unsigned char c, bool suppress){
         char b[32];
         if(_precision == -1){
             int prec = std::numeric_limits<f64>::max_digits10-1;
-            sprintf(b, "%.*g", prec, val);
+            snprintf(b, sizeof(b), "%.*g", prec, val);
         }else{
             int prec = _precision;
-            sprintf(b, "%.*f", prec, val);
+            snprintf(b, sizeof(b), "%.*f", prec, val);
         }
         (*this) << b;
-        if(std::all_of(b+1, b+strlen(b), isdigit)){
-            (*this) << ".0";
-        }
+        if(std::all_of(b+1, b+strlen(b), isdigit)) (*this) << ".0";
         return *this;
     }
 
