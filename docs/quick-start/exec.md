@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Execute Python code'
+label: 'Execute Python Code'
 order: 93
 ---
 

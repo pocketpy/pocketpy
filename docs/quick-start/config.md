@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Advanced config'
+label: 'Advanced Config'
 order: -2
 ---
 

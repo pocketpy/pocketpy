@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Create modules'
+label: 'Create Modules'
 order: 50
 ---
 

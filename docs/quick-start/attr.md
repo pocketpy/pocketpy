@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Access attributes'
+label: 'Access Attributes'
 order: 80
 ---
 
