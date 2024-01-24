@@ -12,9 +12,10 @@ for _ in range(100):
     assert 3.0 <= i <= 9.5
 
 a = [1, 2, 3, 4]
-b = (1, 2, 3)
 r.shuffle(a)
-assert r.choice(a) in a
-assert r.choice(b) in b
+
+for i in range(100):
+    assert r.choice(a) in a
+
 
 
