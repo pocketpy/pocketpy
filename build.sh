@@ -30,7 +30,7 @@ SRC=$(find src/ -name "*.cpp")
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c++17 -O1 -stdlib=libc++ -Wfatal-errors -Iinclude"
+FLAGS="-std=c++17 -s -O1 -stdlib=libc++ -Wfatal-errors -Iinclude"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     LIB_EXTENSION=".dylib"
@@ -46,7 +46,7 @@ clang++ $FLAGS -o libpocketpy$LIB_EXTENSION $SRC -fPIC -shared
 # compile main.cpp and link to libpocketpy.so
 echo "> Compiling main.cpp and linking to libpocketpy$LIB_EXTENSION..."
 
-clang++ $FLAGS -o main -O1 src2/main.cpp -L. -lpocketpy $LINK_FLAGS
+clang++ $FLAGS -o main -s -O1 src2/main.cpp -L. -lpocketpy $LINK_FLAGS
 
 if [ $? -eq 0 ]; then
     echo "Build completed. Type \"./main\" to enter REPL."
