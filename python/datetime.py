@@ -91,6 +91,9 @@ class datetime(date):
             raise ValueError("Second must be between 0 and 59")
         self.second = second
 
+    def date(self) -> date:
+        return date(self.year, self.month, self.day)
+
     @staticmethod
     def now():
         t = localtime()
