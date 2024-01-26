@@ -19,7 +19,7 @@ constexpr T default_invalid_value(){
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
-    static_assert(std::is_pod_v<V>);
+    static_assert(is_pod<V>::value);
 
     bool _is_small;
     uint16_t _size;
