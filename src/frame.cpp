@@ -34,7 +34,7 @@ namespace pkpy{
         PyObject* obj = _s->popx();         // pop exception object
         // get the stack size of the try block
         int _stack_size = co->blocks[block].base_stack_size;
-        if(stack_size() < _stack_size) throw std::runtime_error(fmt("invalid state: ", stack_size(), '<', _stack_size).str());
+        if(stack_size() < _stack_size) throw std::runtime_error(_S("invalid state: ", stack_size(), '<', _stack_size).str());
         _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
         _s->push(obj);                                      // push exception object
         _next_ip = co->blocks[block].end;

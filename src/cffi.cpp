@@ -16,7 +16,7 @@ namespace pkpy{
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             VoidP& self = PK_OBJ_GET(VoidP, obj);
-            return VAR(fmt("<void* at ", self.hex(), ">"));
+            return VAR(_S("<void* at ", self.hex(), ">"));
         });
 
 #define BIND_CMP(name, op)  \
@@ -61,12 +61,12 @@ namespace pkpy{
                 if(s[i]>='0' && s[i]<='9') c += s[i]-'0';
                 else if(s[i]>='A' && s[i]<='F') c += s[i]-'A'+10;
                 else if(s[i]>='a' && s[i]<='f') c += s[i]-'a'+10;
-                else vm->ValueError(fmt("invalid hex char: '", s[i], "'"));
+                else vm->ValueError(_S("invalid hex char: '", s[i], "'"));
                 c <<= 4;
                 if(s[i+1]>='0' && s[i+1]<='9') c += s[i+1]-'0';
                 else if(s[i+1]>='A' && s[i+1]<='F') c += s[i+1]-'A'+10;
                 else if(s[i+1]>='a' && s[i+1]<='f') c += s[i+1]-'a'+10;
-                else vm->ValueError(fmt("invalid hex char: '", s[i+1], "'"));
+                else vm->ValueError(_S("invalid hex char: '", s[i+1], "'"));
                 buffer.p[i/2] = c;
             }
             return VAR_T(C99Struct, std::move(buffer));
@@ -235,7 +235,7 @@ void add_module_c(VM* vm){
     });                                                                 \
     vm->bind__repr__(type_t, [](VM* vm, PyObject* obj){                 \
         VoidP& self = _CAST(VoidP&, obj);                               \
-        return VAR(fmt("<", CNAME, "* at ", self.hex(), ">"));         \
+        return VAR(_S("<", CNAME, "* at ", self.hex(), ">"));         \
     });                                                                 \
 
     BIND_PRIMITIVE(char, "char")

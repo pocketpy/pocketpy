@@ -285,7 +285,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
         lua_rawgeti(_L, LUA_REGISTRYINDEX, func.r);
         return;
     }
-    vm->RuntimeError(fmt("unsupported python type: ", _type_name(vm, t).escape()));
+    vm->RuntimeError(_S("unsupported python type: ", _type_name(vm, t).escape()));
 }
 
 PyObject* lua_popx_to_python(VM* vm) {
@@ -321,7 +321,7 @@ PyObject* lua_popx_to_python(VM* vm) {
         default: {
             const char* type_name = lua_typename(_L, type);
             lua_pop(_L, 1);
-            vm->RuntimeError(fmt("unsupported lua type: '", type_name, "'"));
+            vm->RuntimeError(_S("unsupported lua type: '", type_name, "'"));
         }
     }
     PK_UNREACHABLE()

@@ -154,7 +154,7 @@ struct SStream{
 };
 
 template<typename... Args>
-Str fmt(Args&&... args) {
+Str _S(Args&&... args) {
     SStream ss;
     (ss << ... << args);
     return ss.str();

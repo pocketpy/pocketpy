@@ -546,7 +546,7 @@ __NEXT_STEP:;
     TARGET(GOTO) {
         StrName _name(byte.arg);
         int index = co->labels.try_get_likely_found(_name);
-        if(index < 0) RuntimeError(fmt("label ", _name.escape(), " not found"));
+        if(index < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
         frame->jump_abs_break(index);
     } DISPATCH();
     /*****************************************/
@@ -680,7 +680,7 @@ __NEXT_STEP:;
                 _name = StrName::get(CAST(Str&, key).sv());
                 PyObject* value = _0->attr().try_get_likely_found(_name);
                 if(value == nullptr){
-                    ImportError(fmt("cannot import name ", _name.escape()));
+                    ImportError(_S("cannot import name ", _name.escape()));
                 }else{
                     frame->f_globals().set(_name, value);
                 }

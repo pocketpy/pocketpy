@@ -249,7 +249,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
                 for(int i=0; i<9; i++) mat.v[i] = CAST_F(args[1+i]);
                 return vm->heap.gcnew<PyMat3x3>(PK_OBJ_GET(Type, args[0]), mat);
             }
-            vm->TypeError(fmt("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
+            vm->TypeError(_S("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
             return vm->None;
         });
 

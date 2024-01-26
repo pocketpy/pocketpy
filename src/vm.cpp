@@ -26,7 +26,7 @@ namespace pkpy{
                 if(!first) ss << ", ";
                 first = false;
                 if(!is_non_tagged_type(k, vm->tp_str)){
-                    vm->TypeError(fmt("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
+                    vm->TypeError(_S("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
                 }
                 ss << _CAST(Str&, k).escape(false) << ": ";
                 write_object(v);
@@ -55,7 +55,7 @@ namespace pkpy{
             }else if(obj_t == vm->tp_dict){
                 write_dict(_CAST(Dict&, obj));
             }else{
-                vm->TypeError(fmt("unrecognized type ", _type_name(vm, obj_t).escape()));
+                vm->TypeError(_S("unrecognized type ", _type_name(vm, obj_t).escape()));
             }
         }
 
@@ -198,7 +198,7 @@ namespace pkpy{
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
-            TypeError(fmt("type ", base_info.name.escape(), " is not `subclass_enabled`"));
+            TypeError(_S("type ", base_info.name.escape(), " is not `subclass_enabled`"));
         }
         PyTypeInfo info{
             obj,
@@ -316,7 +316,7 @@ namespace pkpy{
                 out = _import_handler(filename.data, filename.size, &out_size);
             }
             if(out == nullptr){
-                if(throw_err) ImportError(fmt("module ", path.escape(), " not found"));
+                if(throw_err) ImportError(_S("module ", path.escape(), " not found"));
                 else return nullptr;
             }
             PK_ASSERT(out_size >= 0)
@@ -442,7 +442,7 @@ i64 VM::py_hash(PyObject* obj){
         has_custom_eq = f != _t(tp_object)->attr(__eq__);
     }
     if(has_custom_eq){
-        TypeError(fmt("unhashable type: ", ti->name.escape()));
+        TypeError(_S("unhashable type: ", ti->name.escape()));
         PK_UNREACHABLE()
     }else{
         return PK_BITS(obj);
@@ -545,7 +545,7 @@ PyObject* VM::new_module(Str name, Str package) {
     // we do not allow override in order to avoid memory leak
     // it is because Module objects are not garbage collected
     if(_modules.contains(name)){
-        throw std::runtime_error(fmt("module ", name.escape(), " already exists").str());
+        throw std::runtime_error(_S("module ", name.escape(), " already exists").str());
     }
     // set it into _modules
     _modules.set(name, obj);
@@ -557,20 +557,20 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){
-                argStr += fmt(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")").sv();
+                argStr += _S(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")").sv();
             }
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
         case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
         case OP_BEGIN_CLASS: case OP_GOTO:
         case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR:
-            argStr += fmt(" (", StrName(byte.arg).sv(), ")").sv();
+            argStr += _S(" (", StrName(byte.arg).sv(), ")").sv();
             break;
         case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST:
-            argStr += fmt(" (", co->varnames[byte.arg].sv(), ")").sv();
+            argStr += _S(" (", co->varnames[byte.arg].sv(), ")").sv();
             break;
         case OP_LOAD_FUNCTION:
-            argStr += fmt(" (", co->func_decls[byte.arg]->code->name, ")").sv();
+            argStr += _S(" (", co->func_decls[byte.arg]->code->name, ")").sv();
             break;
     }
     return argStr;
@@ -789,7 +789,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
     int decl_argc = decl->args.size();
 
     if(args.size() < decl_argc){
-        vm->TypeError(fmt(
+        vm->TypeError(_S(
             co->name, "() takes ", decl_argc, " positional arguments but ", args.size(), " were given"
         ));
     }
@@ -813,7 +813,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
             if(i >= args.size()) break;
             buffer[kv.index] = args[i++];
         }
-        if(i < args.size()) TypeError(fmt("too many arguments", " (", decl->code->name, ')'));
+        if(i < args.size()) TypeError(_S("too many arguments", " (", decl->code->name, ')'));
     }
     
     PyObject* vkwargs;
@@ -833,7 +833,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
         }else{
             // otherwise, set as **kwargs if possible
             if(vkwargs == nullptr){
-                TypeError(fmt(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
+                TypeError(_S(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             }else{
                 Dict& dict = _CAST(Dict&, vkwargs);
                 dict.set(VAR(key.sv()), kwargs[j+1]);
@@ -897,12 +897,12 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         int co_nlocals = co->varnames.size();
         if(decl->is_simple){
             if(args.size() != decl->args.size()){
-                TypeError(fmt(
+                TypeError(_S(
                     co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
                 ));
             }
             if(!kwargs.empty()){
-                TypeError(fmt(co->name, "() takes no keyword arguments"));
+                TypeError(_S(co->name, "() takes no keyword arguments"));
             }
             s_data.reset(_base + co_nlocals);
             int i = 0;
@@ -1145,7 +1145,7 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
             if(prop.setter != vm->None){
                 call(prop.setter, obj, value);
             }else{
-                TypeError(fmt("readonly attribute: ", name.escape()));
+                TypeError(_S("readonly attribute: ", name.escape()));
             }
             return;
         }
@@ -1170,7 +1170,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None
-        co = compile(fmt("def ", sig, " : pass"), "<bind>", EXEC_MODE);
+        co = compile(_S("def ", sig, " : pass"), "<bind>", EXEC_MODE);
     }catch(const Exception&){
         throw std::runtime_error("invalid signature: " + std::string(sig));
     }
@@ -1337,7 +1337,7 @@ void Dict::_probe_1(PyObject *key, bool &ok, int &i) const{
 
 void NativeFunc::check_size(VM* vm, ArgsView args) const{
     if(args.size() != argc && argc != -1) {
-        vm->TypeError(fmt("expected ", argc, " arguments, got ", args.size()));
+        vm->TypeError(_S("expected ", argc, " arguments, got ", args.size()));
     }
 }
 

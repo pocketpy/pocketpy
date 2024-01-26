@@ -1273,7 +1273,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(VM::tp_module, [](VM* vm, PyObject* _0) {
         const Str& path = CAST(Str&, _0->attr(__path__));
-        return VAR(fmt("<module ", path.escape(), ">"));
+        return VAR(_S("<module ", path.escape(), ">"));
     });
 
     // tp_property
@@ -1339,7 +1339,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__repr__(VM::tp_exception, [](VM* vm, PyObject* _0) {
         Exception& self = _CAST(Exception&, _0);
-        return VAR(fmt(_type_name(vm, _0->type), '(', self.msg.escape(), ')'));
+        return VAR(_S(_type_name(vm, _0->type), '(', self.msg.escape(), ')'));
     });
 
     _vm->bind__str__(VM::tp_exception, [](VM* vm, PyObject* _0) {
@@ -1363,7 +1363,7 @@ void VM::post_init(){
 
     _all_types[tp_module].m__getattr__ = [](VM* vm, PyObject* obj, StrName name) -> PyObject*{
         const Str& path = CAST(Str&, obj->attr(__path__));
-        return vm->py_import(fmt(path, ".", name.sv()), false);
+        return vm->py_import(_S(path, ".", name.sv()), false);
     };
 
     bind_method<1>(tp_property, "setter", [](VM* vm, ArgsView args) {

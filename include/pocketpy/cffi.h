@@ -19,7 +19,7 @@ namespace pkpy {
     static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
         std::string_view mod_name = PK_OBJ_GET(Str, mod->attr("__name__")).sv();   \
         if(mod_name != #mod) {                                                     \
-            Str msg = fmt("register_class() failed: ", mod_name, " != ", #mod);    \
+            Str msg = _S("register_class() failed: ", mod_name, " != ", #mod);    \
             throw std::runtime_error(msg.str());                            \
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \

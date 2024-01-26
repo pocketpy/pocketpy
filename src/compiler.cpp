@@ -133,7 +133,7 @@ namespace pkpy{
     void Compiler::consume(TokenIndex expected) {
         if (!match(expected)){
             SyntaxError(
-                fmt("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")
+                _S("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")
             );
         }
     }

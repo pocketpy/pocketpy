@@ -340,22 +340,22 @@ public:
     void RuntimeError(const Str& msg){ _builtin_error("RuntimeError", msg); }
     void ZeroDivisionError(const Str& msg){ _builtin_error("ZeroDivisionError", msg); }
     void ZeroDivisionError(){ _builtin_error("ZeroDivisionError", "division by zero"); }
-    void NameError(StrName name){ _builtin_error("NameError", fmt("name ", name.escape() + " is not defined")); }
-    void UnboundLocalError(StrName name){ _builtin_error("UnboundLocalError", fmt("local variable ", name.escape() + " referenced before assignment")); }
+    void NameError(StrName name){ _builtin_error("NameError", _S("name ", name.escape() + " is not defined")); }
+    void UnboundLocalError(StrName name){ _builtin_error("UnboundLocalError", _S("local variable ", name.escape() + " referenced before assignment")); }
     void KeyError(PyObject* obj){ _builtin_error("KeyError", obj); }
     void ImportError(const Str& msg){ _builtin_error("ImportError", msg); }
 
     void BinaryOptError(const char* op, PyObject* _0, PyObject* _1) {
         StrName name_0 = _type_name(vm, _tp(_0));
         StrName name_1 = _type_name(vm, _tp(_1));
-        TypeError(fmt("unsupported operand type(s) for ", op, ": ", name_0.escape(), " and ", name_1.escape()));
+        TypeError(_S("unsupported operand type(s) for ", op, ": ", name_0.escape(), " and ", name_1.escape()));
     }
 
     void AttributeError(PyObject* obj, StrName name){
         if(isinstance(obj, vm->tp_type)){
-            _builtin_error("AttributeError", fmt("type object ", _type_name(vm, PK_OBJ_GET(Type, obj)).escape(), " has no attribute ", name.escape()));
+            _builtin_error("AttributeError", _S("type object ", _type_name(vm, PK_OBJ_GET(Type, obj)).escape(), " has no attribute ", name.escape()));
         }else{
-            _builtin_error("AttributeError", fmt(_type_name(vm, _tp(obj)).escape(), " object has no attribute ", name.escape()));
+            _builtin_error("AttributeError", _S(_type_name(vm, _tp(obj)).escape(), " object has no attribute ", name.escape()));
         }
     }
     void AttributeError(const Str& msg){ _builtin_error("AttributeError", msg); }
