@@ -186,7 +186,6 @@ int main(int argc, char** argv) {
     check(pkpy_to_string(vm, -1, &r_string));
     
     puts(r_string);
-    putchar('\n');
 
     fail(pkpy_is_int(vm, -1));
     fail(pkpy_is_float(vm, -1));
@@ -415,7 +414,6 @@ int main(int argc, char** argv) {
     check(pkpy_to_string(vm, -1, &r_string));
     
     puts(r_string);
-    putchar('\n');
     check(pkpy_pop_top(vm));
     check(pkpy_stack_size(vm) == 0);
     return 0;
