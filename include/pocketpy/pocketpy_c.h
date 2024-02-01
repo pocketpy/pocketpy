@@ -16,11 +16,7 @@ typedef void (*pkpy_COutputHandler)(const char*, int);
 typedef unsigned char* (*pkpy_CImportHandler)(const char*, int, int*);
 typedef int pkpy_CName;
 typedef int pkpy_CType;
-
-typedef struct{
-    const char* data;
-    int size;
-}pkpy_CString;
+typedef const char* pkpy_CString;
 
 /* Basic Functions */
 PK_EXPORT pkpy_vm* pkpy_new_vm(bool enable_os);

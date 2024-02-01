@@ -231,7 +231,7 @@ bool pkpy_to_bool(pkpy_vm* vm_handle, int i, bool* out){
 bool pkpy_push_string(pkpy_vm* vm_handle, pkpy_CString value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res = py_var(vm, std::string_view(value.data, value.size));
+    PyObject* res = py_var(vm, value);
     vm->s_data.push(res);
     return true;
 }
@@ -251,8 +251,7 @@ bool pkpy_to_string(pkpy_vm* vm_handle, int i, pkpy_CString* out){
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
         const Str& s = py_cast<Str&>(vm, item);
-        out->data = s.data;
-        out->size = s.size;
+        *out = s.c_str();
     )
     return true;
 }
@@ -503,7 +502,7 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
             std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
         }
     }
-    vm->_c.error = vm->call(e_t, VAR(std::string_view(message.data, message.size)));
+    vm->_c.error = vm->call(e_t, VAR(message));
     return false;
 }
 
@@ -518,7 +517,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     if (vm->_c.error == nullptr) return false;
     Exception& e = PK_OBJ_GET(Exception, vm->_c.error);
     if (message != nullptr)
-        *message = e.summary().c_str_dup();
+        *message = strdup(e.summary().c_str());
     else
         std::cout << e.summary() << std::endl;
     vm->_c.error = nullptr;
@@ -548,10 +547,7 @@ void pkpy_free(void* p){
 }
 
 pkpy_CString pkpy_string(const char* value){
-    pkpy_CString s;
-    s.data = value;
-    s.size = strlen(value);
-    return s;
+    return value;
 }
 
 pkpy_CName pkpy_name(const char* name){
@@ -559,11 +555,7 @@ pkpy_CName pkpy_name(const char* name){
 }
 
 pkpy_CString pkpy_name_to_string(pkpy_CName name){
-    std::string_view sv = StrName(name).sv();
-    pkpy_CString s;
-    s.data = sv.data();
-    s.size = sv.size();
-    return s;
+    return StrName(name).c_str();
 }
 
 void pkpy_set_output_handler(pkpy_vm* vm_handle, pkpy_COutputHandler handler){

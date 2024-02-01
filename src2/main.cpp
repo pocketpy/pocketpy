@@ -53,7 +53,7 @@ static int f_input(pkpy_vm* vm){
         pkpy_CString prompt;
         bool ok = pkpy_to_string(vm, -1, &prompt);
         if(!ok) return 0;
-        std::cout << std::string_view(prompt.data, prompt.size) << std::flush;
+        std::cout << prompt << std::flush;
     }
     bool eof;
     std::string output = pkpy_platform_getline(&eof);
