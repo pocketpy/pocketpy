@@ -60,7 +60,7 @@ int utf8len(unsigned char c, bool suppress){
         for(int i=0; i<size; i++){
             if(!isascii(data[i])){ is_ascii = false; break; }
         }
-        data[size] = '\0';
+        PK_ASSERT(data[size] == '\0');
     }
 
     Str::Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
@@ -438,6 +438,7 @@ int utf8len(unsigned char c, bool suppress){
     Str SStream::str(){
         // after this call, the buffer is no longer valid
         buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'
+        buffer[buffer.size()] = '\0';       // set '\0'
         return Str(buffer.detach());
     }
 
