@@ -5,10 +5,10 @@ namespace pkpy{
     SourceData::SourceData(std::string_view source, const Str& filename, CompileMode mode): filename(filename), mode(mode) {
         int index = 0;
         // Skip utf8 BOM if there is any.
-        if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
+        if (strncmp(source.data(), "\xEF\xBB\xBF", 3) == 0) index += 3;
         // Drop all '\r'
         SStream ss;
-        while(index < source.length()){
+        while(index < source.size()){
             if(source[index] != '\r') ss << source[index];
             index++;
         }
