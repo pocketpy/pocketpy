@@ -14,7 +14,7 @@ jobs:
   build_win32_amalgamated:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: powershell
@@ -22,13 +22,13 @@ jobs:
         python3 amalgamate.py
         cd amalgamated
         cl.exe /std:c++17 /EHsc /utf-8 /O2 /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         path: amalgamated/pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ilammy/msvc-dev-cmd@v1
     - name: Compile
       shell: bash
@@ -37,7 +37,7 @@ jobs:
         python3 cmake_build.py
         cp main.exe output/windows/x86_64
         cp pocketpy.dll output/windows/x86_64
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         path: output
     - name: Unit Test
@@ -47,7 +47,7 @@ jobs:
   build_linux:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup Clang
       uses: egor-tensin/setup-clang@v1
       with:
@@ -72,7 +72,7 @@ jobs:
       env:
         CXX: clang++
         CC: clang
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         path: output
     - name: Benchmark
@@ -82,7 +82,7 @@ jobs:
   build_linux_x86:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Alpine Linux v3.15 for aarch64
         uses: jirutka/setup-alpine@v1
         with:
@@ -99,7 +99,7 @@ jobs:
   build_darwin:
       runs-on: macos-latest
       steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Compile and Test
         run: |
           python3 cmake_build.py
@@ -112,13 +112,13 @@ jobs:
           mkdir -p output/macos
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           cp -r build/Release/pocketpy.bundle output/macos
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: plugins/macos/pocketpy/output
   build_android:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -140,13 +140,13 @@ jobs:
           cp build/android/x86_64/libpocketpy.so output/android/x86_64
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: output
   build_ios:
       runs-on: macos-latest
       steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Compile Static Library
         run: |
           git clone https://github.com/leetal/ios-cmake --depth 1
@@ -157,6 +157,6 @@ jobs:
           cd ..
           mkdir -p output/ios
           cp build/Release-iphoneos/libpocketpy.a output/ios/libpocketpy.a
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: output
