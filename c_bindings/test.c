@@ -185,9 +185,7 @@ int main(int argc, char** argv) {
     check(pkpy_is_string(vm, -1));
     check(pkpy_to_string(vm, -1, &r_string));
     
-    for(int i=0; i<r_string.size; i++) {
-        putchar(r_string.data[i]);
-    }
+    puts(r_string);
     putchar('\n');
 
     fail(pkpy_is_int(vm, -1));
@@ -415,7 +413,8 @@ int main(int argc, char** argv) {
     check(pkpy_eval(vm, "['1', 2, (3, '4')]"));
     check(pkpy_py_repr(vm));
     check(pkpy_to_string(vm, -1, &r_string));
-    for(int i = 0; i < r_string.size; i++) putchar(r_string.data[i]);
+    
+    puts(r_string);
     putchar('\n');
     check(pkpy_pop_top(vm));
     check(pkpy_stack_size(vm) == 0);
