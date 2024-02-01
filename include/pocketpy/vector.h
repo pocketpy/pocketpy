@@ -128,7 +128,7 @@ struct pod_vector{
     }
 
     ~pod_vector() {
-        if(_data!=nullptr) pool64_dealloc(_data);
+        if(_data != nullptr) pool64_dealloc(_data);
     }
 };
 
