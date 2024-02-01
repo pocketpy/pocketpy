@@ -186,9 +186,11 @@ public:
     PyObject* find_name_in_mro(Type cls, StrName name);
     bool isinstance(PyObject* obj, Type base);
     bool issubclass(Type cls, Type base);
-    PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr);
-    PyObject* exec(Str source);
-    PyObject* eval(Str source);
+
+    CodeObject_ compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    PyObject* exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module=nullptr);
+    PyObject* exec(std::string_view source);
+    PyObject* eval(std::string_view source);
 
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
@@ -414,7 +416,6 @@ public:
     void _unpack_as_list(ArgsView args, List& list);
     void _unpack_as_dict(ArgsView args, Dict& dict);
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
-    CodeObject_ compile(const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     PyObject* py_negate(PyObject* obj);
     bool py_bool(PyObject* obj);
     i64 py_hash(PyObject* obj);

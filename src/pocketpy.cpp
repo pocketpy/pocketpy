@@ -1482,7 +1482,7 @@ void VM::post_init(){
 #endif
 }
 
-CodeObject_ VM::compile(const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
+CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
     try{
         return compiler.compile();

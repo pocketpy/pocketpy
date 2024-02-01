@@ -1161,7 +1161,7 @@ __EAT_DOTS_END:
         return nullptr;
     }
 
-    Compiler::Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope){
+    Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope){
         this->vm = vm;
         this->used = false;
         this->unknown_global_scope = unknown_global_scope;

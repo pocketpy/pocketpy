@@ -135,7 +135,7 @@ class Compiler {
     void IndentationError(Str msg){ lexer->throw_err("IndentationError", msg, err().line, err().start); }
 
 public:
-    Compiler(VM* vm, const Str& source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     CodeObject_ compile();
 };
 

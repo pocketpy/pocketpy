@@ -27,6 +27,8 @@ struct Str{
     Str(const Str& other);
     Str(Str&& other);
 
+    operator std::string_view() const { return sv(); }
+
     const char* begin() const { return data; }
     const char* end() const { return data + size; }
     char operator[](int idx) const { return data[idx]; }

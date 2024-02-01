@@ -155,7 +155,7 @@ namespace pkpy{
         return false;
     }
 
-    PyObject* VM::exec(Str source, Str filename, CompileMode mode, PyObject* _module){
+    PyObject* VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module){
         if(_module == nullptr) _module = _main;
         try {
             CodeObject_ code = compile(source, filename, mode);
@@ -186,11 +186,11 @@ namespace pkpy{
         return nullptr;
     }
 
-    PyObject* VM::exec(Str source){
+    PyObject* VM::exec(std::string_view source){
         return exec(source, "main.py", EXEC_MODE);
     }
 
-    PyObject* VM::eval(Str source){
+    PyObject* VM::eval(std::string_view source){
         return exec(source, "<eval>", EVAL_MODE);
     }
 

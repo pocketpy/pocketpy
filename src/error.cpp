@@ -2,7 +2,7 @@
 
 namespace pkpy{
 
-    SourceData::SourceData(const Str& source, const Str& filename, CompileMode mode): filename(filename), mode(mode) {
+    SourceData::SourceData(std::string_view source, const Str& filename, CompileMode mode): filename(filename), mode(mode) {
         int index = 0;
         // Skip utf8 BOM if there is any.
         if (strncmp(source.begin(), "\xEF\xBB\xBF", 3) == 0) index += 3;
