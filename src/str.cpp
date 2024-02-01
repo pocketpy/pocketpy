@@ -437,6 +437,7 @@ int utf8len(unsigned char c, bool suppress){
 
     Str SStream::str(){
         // after this call, the buffer is no longer valid
+        buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'
         return Str(buffer.detach());
     }
 
