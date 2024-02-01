@@ -7,7 +7,11 @@ import sys
 is_pkpy = not hasattr(sys, 'getrefcount')
 
 if is_pkpy:
-    import cjson as json
+    try:
+        import cjson as json
+    except ImportError:
+        print('[cJSON not Enabled]')
+        exit(0)
 else:
     import json
 
