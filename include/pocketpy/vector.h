@@ -64,7 +64,7 @@ struct pod_vector{
         _capacity = cap;
         T* old_data = _data;
         _data = (T*)pool64_alloc(_capacity * sizeof(T));
-        if(old_data!=nullptr){
+        if(old_data != nullptr){
             memcpy(_data, old_data, sizeof(T) * _size);
             pool64_dealloc(old_data);
         }
