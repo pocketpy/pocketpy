@@ -24,7 +24,8 @@ int utf8len(unsigned char c, bool suppress){
         for(int i=0; i<this->size; i++){                    \
             this->data[i] = __s[i];                         \
             if(!isascii(__s[i])) is_ascii = false;          \
-        }
+        }                                                   \
+        this->data[this->size] = '\0';
 
     Str::Str(): size(0), is_ascii(true), data(_inlined) {
         _inlined[0] = '\0';
@@ -71,6 +72,7 @@ int utf8len(unsigned char c, bool suppress){
         if(other.is_inlined()){
             data = _inlined;
             for(int i=0; i<size; i++) _inlined[i] = other._inlined[i];
+            data[size] = '\0';
         }else{
             data = other.data;
             // zero out `other`
@@ -430,6 +432,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str SStream::str(){
+        buffer.push_back('\0');
         // after this call, the buffer is no longer valid
         return Str(buffer.detach());
     }
