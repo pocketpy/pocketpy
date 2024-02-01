@@ -22,7 +22,7 @@ jobs:
         python3 amalgamate.py
         cd amalgamated
         cl.exe /std:c++17 /EHsc /utf-8 /O2 /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v3
       with:
         path: amalgamated/pkpy.exe
   build_win32:
@@ -37,7 +37,7 @@ jobs:
         python3 cmake_build.py
         cp main.exe output/windows/x86_64
         cp pocketpy.dll output/windows/x86_64
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v3
       with:
         path: output
     - name: Unit Test
@@ -72,7 +72,7 @@ jobs:
       env:
         CXX: clang++
         CC: clang
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v3
       with:
         path: output
     - name: Benchmark
@@ -112,7 +112,7 @@ jobs:
           mkdir -p output/macos
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           cp -r build/Release/pocketpy.bundle output/macos
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           path: plugins/macos/pocketpy/output
   build_android:
@@ -140,7 +140,7 @@ jobs:
           cp build/android/x86_64/libpocketpy.so output/android/x86_64
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           path: output
   build_ios:
@@ -157,6 +157,6 @@ jobs:
           cd ..
           mkdir -p output/ios
           cp build/Release-iphoneos/libpocketpy.a output/ios/libpocketpy.a
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           path: output
