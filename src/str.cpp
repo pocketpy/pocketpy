@@ -60,6 +60,7 @@ int utf8len(unsigned char c, bool suppress){
         for(int i=0; i<size; i++){
             if(!isascii(data[i])){ is_ascii = false; break; }
         }
+        data[size] = '\0';
     }
 
     Str::Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
@@ -101,6 +102,7 @@ int utf8len(unsigned char c, bool suppress){
         is_ascii = other.is_ascii;
         PK_STR_ALLOCATE()
         memcpy(data, other.data, size);
+        data[size] = '\0';
         return *this;
     }
 
@@ -108,6 +110,7 @@ int utf8len(unsigned char c, bool suppress){
         Str ret(size + other.size, is_ascii && other.is_ascii);
         memcpy(ret.data, data, size);
         memcpy(ret.data + size, other.data, other.size);
+        ret.data[ret.size] = '\0';
         return ret;
     }
 
@@ -171,6 +174,7 @@ int utf8len(unsigned char c, bool suppress){
     Str Str::substr(int start, int len) const {
         Str ret(len, is_ascii);
         memcpy(ret.data, data + start, len);
+        ret.data[len] = '\0';
         return ret;
     }
 
@@ -432,7 +436,6 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str SStream::str(){
-        buffer.push_back('\0');
         // after this call, the buffer is no longer valid
         return Str(buffer.detach());
     }

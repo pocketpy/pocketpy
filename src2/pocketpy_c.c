@@ -223,11 +223,6 @@ void pkpy_free(void* p) {
 
 }
 
-pkpy_CString pkpy_string(const char* s) {
-    pkpy_CString returnValue;
-    return returnValue;
-}
-
 pkpy_CName pkpy_name(const char* s) {
     pkpy_CName returnValue;
     return returnValue;

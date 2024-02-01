@@ -12,8 +12,7 @@ namespace pkpy{
             if(source[index] != '\r') ss << source[index];
             index++;
         }
-        this->source = ss.str().str();
-        
+        this->source = ss.str();
         line_starts.push_back(this->source.c_str());
     }
 

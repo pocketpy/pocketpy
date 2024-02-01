@@ -29,7 +29,7 @@ struct SourceData {
     Str filename;
     CompileMode mode;
 
-    std::string source;  // assume '\0' terminated
+    Str source;
     std::vector<const char*> line_starts;
     
     SourceData(const Str& source, const Str& filename, CompileMode mode);

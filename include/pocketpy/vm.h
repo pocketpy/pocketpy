@@ -582,7 +582,7 @@ inline const char* _py_cast<const char*>(VM* vm, PyObject* obj){
 }
 
 inline PyObject* py_var(VM* vm, std::string val){
-    return VAR(Str(std::move(val)));
+    return VAR(Str(val));
 }
 
 inline PyObject* py_var(VM* vm, std::string_view val){

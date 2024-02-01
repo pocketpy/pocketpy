@@ -18,7 +18,7 @@
 #include <random>
 #include <deque>
 
-#define PK_VERSION				"1.4.0"
+#define PK_VERSION				"1.4.1"
 
 #include "config.h"
 #include "export.h"
@@ -115,13 +115,6 @@ union BitsCvtImpl<4>{
 
 	BitsCvtImpl(NumberTraits<4>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<4>::int_t val): _int(val) {}
-
-	// void print(){
-	// 	std::string s = std::bitset<32>(_int).to_string();
-	// 	std::cout << s.substr(0, 1) << '|';
-	// 	std::cout << s.substr(1, 8) << '|';
-	// 	std::cout << s.substr(9) << std::endl;
-	// }
 };
 
 template<>
@@ -146,13 +139,6 @@ union BitsCvtImpl<8>{
 
 	BitsCvtImpl(NumberTraits<8>::float_t val): _float(val) {}
 	BitsCvtImpl(NumberTraits<8>::int_t val): _int(val) {}
-
-	// void print(){
-	// 	std::string s = std::bitset<64>(_int).to_string();
-	// 	std::cout << s.substr(0, 1) << '|';
-	// 	std::cout << s.substr(1, 11) << '|';
-	// 	std::cout << s.substr(12) << std::endl;
-	// }
 };
 
 using BitsCvt = BitsCvtImpl<sizeof(void*)>;

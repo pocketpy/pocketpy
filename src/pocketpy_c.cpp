@@ -546,10 +546,6 @@ void pkpy_free(void* p){
     free(p);
 }
 
-pkpy_CString pkpy_string(const char* value){
-    return value;
-}
-
 pkpy_CName pkpy_name(const char* name){
     return StrName(name).index;
 }
