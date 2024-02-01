@@ -1,7 +1,9 @@
 python3 prebuild.py
 SRC=$(find src/ -name "*.cpp")
 clang++ -std=c++17 --coverage -O1 -stdlib=libc++ -Wfatal-errors -o main src2/main.cpp $SRC -Iinclude -DPK_ENABLE_OS=1
+
 python3 scripts/run_tests.py
+python3 scripts/run_tests.py benchmarks/
 
 # if prev error exit
 if [ $? -ne 0 ]; then
