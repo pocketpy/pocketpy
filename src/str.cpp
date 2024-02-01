@@ -17,7 +17,7 @@ int utf8len(unsigned char c, bool suppress){
         if(this->size < sizeof(this->_inlined)){            \
             this->data = this->_inlined;                    \
         }else{                                              \
-            this->data = (char*)pool64_alloc(this->size);   \
+            this->data = (char*)pool64_alloc(this->size+1); \
         }
 
 #define PK_STR_COPY_INIT(__s)  \
