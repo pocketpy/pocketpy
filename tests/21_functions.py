@@ -92,3 +92,30 @@ S, kwargs = g(1, 2, 3, 4, 5, c=4, e=5, f=6)
 
 assert S == 21
 assert kwargs == {'e': 5, 'f': 6}
+
+# test tuple defaults
+
+def f(a=(1,)):
+    return a
+assert f() == (1,)
+
+def f(a=(1,2)):
+    return a
+assert f() == (1,2)
+
+def f(a=(1,2,3)):
+    return a
+assert f() == (1,2,3)
+
+def f(a=(1,2,3,)):
+    return a
+assert f() == (1,2,3)
+
+def f(a=(1,(2,3))):
+    return a
+assert f() == (1,(2,3))
+
+def f(a=((1,2),3), b=(4,)):
+    return a, b
+
+assert f() == (((1,2),3), (4,))

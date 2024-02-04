@@ -1155,6 +1155,17 @@ __EAT_DOTS_END:
             case TK("False"): return VAR(false);
             case TK("None"): return vm->None;
             case TK("..."): return vm->Ellipsis;
+            case TK("("): {
+                List cpnts;
+                while(true) {
+                    cpnts.push_back(read_literal());
+                    if(curr().type == TK(")")) break;
+                    consume(TK(","));
+                    if(curr().type == TK(")")) break;
+                }
+                consume(TK(")"));
+                return VAR(Tuple(std::move(cpnts)));
+            }
             default: break;
         }
         return nullptr;
