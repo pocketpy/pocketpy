@@ -1380,15 +1380,6 @@ void VM::post_init(){
         return self;        // for generics
     });
 
-    bind_property(_t(tp_type), "__annotations__", [](VM* vm, ArgsView args){
-        const PyTypeInfo* ti = &vm->_all_types[(PK_OBJ_GET(Type, args[0]))];
-        Tuple t(ti->annotated_fields.size());
-        for(int i=0; i<ti->annotated_fields.size(); i++){
-            t[i] = VAR(ti->annotated_fields[i].sv());
-        }
-        return VAR(std::move(t));
-    });
-
     bind__repr__(tp_type, [](VM* vm, PyObject* self){
         SStream ss;
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, self)];
@@ -1451,6 +1442,7 @@ void VM::post_init(){
     add_module_base64(this);
     add_module_operator(this);
     add_module_csv(this);
+    add_module_dataclasses(this);
 
     for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "dataclasses", "cmath"}){
         _lazy_modules[name] = kPythonLibs[name];

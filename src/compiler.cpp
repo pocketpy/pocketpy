@@ -944,7 +944,6 @@ __EAT_DOTS_END:
                         is_typed_name = true;
 
                         if(ctx()->is_compiling_class){
-                            // add to __annotations__
                             NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.top().get());
                             ctx()->emit_(OP_ADD_CLASS_ANNOTATION, ne->name.index, BC_KEEPLINE);
                         }
