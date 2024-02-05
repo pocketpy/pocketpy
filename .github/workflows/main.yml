@@ -62,7 +62,6 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: .coverage
-        fail_ci_if_error: true
       if: github.ref == 'refs/heads/main'
     - name: Compile
       run: |
