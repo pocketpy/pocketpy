@@ -521,33 +521,48 @@ int utf8len(unsigned char c, bool suppress){
         return *this;
     }
 
-    void SStream::write_hex(unsigned char c){
-        *this << "0123456789ABCDEF"[c >> 4];
-        *this << "0123456789ABCDEF"[c & 0xf];
+    void SStream::write_hex(unsigned char c, bool non_zero){
+        unsigned char high = c >> 4;
+        unsigned char low = c & 0xf;
+        if(non_zero){
+            if(high) (*this) << "0123456789abcdef"[high];
+            if(high || low) (*this) << "0123456789abcdef"[low];
+        }else{
+            (*this) << "0123456789abcdef"[high];
+            (*this) << "0123456789abcdef"[low];
+        }
     }
 
     void SStream::write_hex(void* p){
+        if(p == nullptr){
+            (*this) << "0x0";
+            return;
+        }
         (*this) << "0x";
         uintptr_t p_t = reinterpret_cast<uintptr_t>(p);
+        bool non_zero = true;
         for(int i=sizeof(void*)-1; i>=0; i--){
             unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
-            write_hex(cpnt);
+            write_hex(cpnt, non_zero);
+            if(cpnt != 0) non_zero = false;
         }
     }
 
     void SStream::write_hex(i64 val){
+        if(val == 0){
+            (*this) << "0x0";
+            return;
+        }
         if(val < 0){
             (*this) << "-";
             val = -val;
         }
         (*this) << "0x";
-        if(val == 0){
-            (*this) << "0";
-            return;
-        }
+        bool non_zero = true;
         for(int i=56; i>=0; i-=8){
             unsigned char cpnt = (val >> i) & 0xff;
-            if(cpnt != 0) write_hex(cpnt);
+            write_hex(cpnt, non_zero);
+            if(cpnt != 0) non_zero = false;
         }
     }
 

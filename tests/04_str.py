@@ -183,5 +183,25 @@ stack=[1,2,3,4]; assert f"{stack[2:]}" == '[3, 4]'
 
 assert repr('\x1f\x1e\x1f') == '\'\\x1f\\x1e\\x1f\''
 
-assert hex(255) == '0xFF'
-assert hex(-42) == '-0x2A'
+
+assert hex(-42) == '-0x2a'
+assert hex(42) == '0x2a'
+
+assert hex(0) == '0x0'
+assert hex(1) == '0x1'
+assert hex(15) == '0xf'
+assert hex(16) == '0x10'
+assert hex(255) == '0xff'
+assert hex(256) == '0x100'
+assert hex(257) == '0x101'
+assert hex(17) == '0x11'
+
+import c
+assert repr(c.NULL) == '<void* at 0x0>'
+assert repr(c.void_p(1)) == '<void* at 0x1>'
+assert repr(c.void_p(15)) == '<void* at 0xf>'
+assert repr(c.void_p(16)) == '<void* at 0x10>'
+assert repr(c.void_p(255)) == '<void* at 0xff>'
+assert repr(c.void_p(256)) == '<void* at 0x100>'
+assert repr(c.void_p(257)) == '<void* at 0x101>'
+assert repr(c.void_p(17)) == '<void* at 0x11>'

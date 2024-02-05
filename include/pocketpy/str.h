@@ -148,7 +148,7 @@ struct SStream{
     SStream& operator<<(char);
     SStream& operator<<(StrName);
 
-    void write_hex(unsigned char);
+    void write_hex(unsigned char, bool non_zero=false);
     void write_hex(void*);
     void write_hex(i64);
 };
