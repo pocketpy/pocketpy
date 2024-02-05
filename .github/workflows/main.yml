@@ -58,7 +58,7 @@ jobs:
     - name: Unit Test with Coverage
       run: bash run_tests.sh
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         directory: .coverage
