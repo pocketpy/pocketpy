@@ -20,12 +20,12 @@ You cannot use it to run NumPy, OpenCV, or any other CPython extension modules.
 
 ### Python 3.x Syntax
 
-PocketPython uses [pocketpy](https://github.com/blueloveTH/pocketpy)
+PocketPython uses [pocketpy](https://github.com/pocketpy/pocketpy)
 as frontend to parse and compile Python source code.
 It supports most of the Python 3.x syntax.
 
 The following table shows a feature comparison of PocketPython
-with respect to the original [pocketpy](https://github.com/blueloveTH/pocketpy).
+with respect to the original [pocketpy](https://github.com/pocketpy/pocketpy).
 The features marked with `YES` are supported, and the features marked with `NO` are not supported.
 
 | Name            | Example                         | Cpp | Unity |

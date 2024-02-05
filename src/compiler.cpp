@@ -223,7 +223,7 @@ namespace pkpy{
             _compile_f_args(e->decl, false);
             consume(TK(":"));
         }
-        // https://github.com/blueloveTH/pocketpy/issues/37
+        // https://github.com/pocketpy/pocketpy/issues/37
         parse_expression(PREC_LAMBDA + 1);
         ctx()->emit_expr();
         ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);

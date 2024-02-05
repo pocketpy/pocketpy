@@ -8,7 +8,7 @@ You have two options to integrate pkpy into your project.
 
 #### Use the single header file
 
-Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
+Download the `pocketpy.h` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
 And `#include` it in your project. It is recommended to use the latest dev version.
 
 #### Use CMake
@@ -34,7 +34,7 @@ These variables can be set to control the build process:
 + `PK_BUILD_STATIC_LIB` - Build the static library
 + `PK_BUILD_SHARED_LIB` - Build the shared library
 
-See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
+See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
 
 It is safe to use `main` branch in production.
 
@@ -52,7 +52,7 @@ See https://emscripten.org/docs/porting/exceptions.html.
 ### Get prebuilt binaries
 
 We have prebuilt binaries,
-check them out on our [GitHub Actions](https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml).
+check them out on our [GitHub Actions](https://github.com/pocketpy/pocketpy/actions/workflows/main.yml).
 
 You can download an artifact there which contains the following files.
 

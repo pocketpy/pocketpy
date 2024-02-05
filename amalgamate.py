@@ -65,7 +65,7 @@ with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
 r'''/*
  *  Copyright (c) 2023 blueloveTH
  *  Distributed Under The MIT License
- *  https://github.com/blueloveTH/pocketpy
+ *  https://github.com/pocketpy/pocketpy
  */
 
 #ifndef POCKETPY_H

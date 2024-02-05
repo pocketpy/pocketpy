@@ -1,9 +1,9 @@
 # pocketpy: python interpreter in 1 file
 
 <p>
-<a title="Build" href="https://github.com/blueloveTH/pocketpy/actions/workflows" ><img src="https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
-<a href="https://codecov.io/gh/blueloveTH/pocketpy" > 
- <img src="https://codecov.io/gh/blueloveTH/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
+<a title="Build" href="https://github.com/pocketpy/pocketpy/actions/workflows" ><img src="https://github.com/pocketpy/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<a href="https://codecov.io/gh/pocketpy/pocketpy" > 
+ <img src="https://codecov.io/gh/pocketpy/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
  </a>
 <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization">
 <img alt="C++17" src="https://img.shields.io/badge/C%2B%2B-17-blue.svg"></a>
@@ -42,10 +42,10 @@ These platforms are officially tested.
 
 ## Quick Start
 
-Download the `pocketpy.h` on our [GitHub Release](https://github.com/blueloveTH/pocketpy/releases) page.
+Download the `pocketpy.h` on our [GitHub Release](https://github.com/pocketpy/pocketpy/releases) page.
 And `#include` it in your project.
 
-You can also use cmake to build it from source. See [CMakeLists.txt](https://github.com/blueloveTH/pocketpy/blob/main/CMakeLists.txt) for details.
+You can also use cmake to build it from source. See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
 These variables can be set to control the build process:
 + `PK_BUILD_STATIC_LIB` - Build the static library (default, recommended)
 + `PK_BUILD_SHARED_LIB` - Build the shared library
@@ -149,10 +149,10 @@ And these are the results of the primes benchmark on Intel i5-12400F, WSL (Ubunt
 
 | name | version | time | file |
 | ---- | ---- | ---- | ---- |
-| c++ | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/blueloveTH/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.cpp) |
-| lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/blueloveTH/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.lua) |
-| pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
-| cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/blueloveTH/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
+| c++ | gnu++11 | `0.104s ■□□□□□□□□□□□□□□□` | [benchmarks/primes.cpp](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.cpp) |
+| lua | 5.3.3 | `1.576s ■■■■■■■■■□□□□□□□` | [benchmarks/primes.lua](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.lua) |
+| pkpy | 1.2.7 | `2.385s ■■■■■■■■■■■■■□□□` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
+| cpython | 3.8.10 | `2.871s ■■■■■■■■■■■■■■■■` | [benchmarks/primes.py](https://github.com/pocketpy/pocketpy/blob/9481d653b60b81f4590a4d48f2be496f6962261e/benchmarks/primes.py) |
 
 ## Used By
 

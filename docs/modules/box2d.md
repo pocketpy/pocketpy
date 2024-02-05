@@ -39,7 +39,7 @@ It hides the details of Box2D's API and provides a high-level interface.
 
 ## APIs
 
-https://github.com/blueloveTH/pocketpy/blob/main/include/typings/box2d.pyi
+https://github.com/pocketpy/pocketpy/blob/main/include/typings/box2d.pyi
 
 ## Example
 

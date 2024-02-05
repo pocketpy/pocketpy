@@ -12,7 +12,7 @@ pkpy provides a lua bridge to reuse lua bindings.
 It allows you to run lua code and call lua functions in python
 by embedding a lua virtual machine.
 
-Add `lua_bridge.hpp` and `lua_bridge.cpp` in [3rd/lua_bridge](https://github.com/blueloveTH/pocketpy/tree/main/3rd/lua_bridge) to your project.
+Add `lua_bridge.hpp` and `lua_bridge.cpp` in [3rd/lua_bridge](https://github.com/pocketpy/pocketpy/tree/main/3rd/lua_bridge) to your project.
 Make sure `lua.h`, `lualib.h` and `lauxlib.h` are in your include path
 because `lua_bridge.hpp` needs them.
 

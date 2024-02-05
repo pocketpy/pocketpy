@@ -1,9 +1,9 @@
 # pocketpy: python interpreter in 1 file
 
 <p>
-<a title="Build" href="https://github.com/blueloveTH/pocketpy/actions/workflows" ><img src="https://github.com/blueloveTH/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
-<a href="https://codecov.io/gh/blueloveTH/pocketpy" > 
- <img src="https://codecov.io/gh/blueloveTH/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
+<a title="Build" href="https://github.com/pocketpy/pocketpy/actions/workflows" ><img src="https://github.com/pocketpy/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<a href="https://codecov.io/gh/pocketpy/pocketpy" > 
+ <img src="https://codecov.io/gh/pocketpy/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
  </a>
 <a href="https://github.com/blueloveth/pocketpy/blob/main/LICENSE">
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
@@ -31,7 +31,7 @@ pkpy 支持任何拥有 C++17 编译器的平台。
 
 ## 快速上手
 
-你可以在 [Github Release](https://github.com/blueloveTH/pocketpy/releases) 页面下载 `pocketpy.h`，
+你可以在 [Github Release](https://github.com/pocketpy/pocketpy/releases) 页面下载 `pocketpy.h`，
 并加入到你的工程中。请参阅 https://pocketpy.dev 以获取更详细的文档。
 
 ```cpp
