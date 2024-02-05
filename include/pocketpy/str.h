@@ -65,8 +65,10 @@ struct Str{
     const char* c_str() const;
     std::string_view sv() const;
     std::string str() const;
-    Str lstrip() const;
-    Str strip() const;
+    Str strip(bool left, bool right, const Str& chars) const;
+    Str strip(bool left=true, bool right=true) const;
+    Str lstrip() const { return strip(true, false); }
+    Str rstrip() const { return strip(false, true); }
     Str lower() const;
     Str upper() const;
     Str escape(bool single_quote=true) const;

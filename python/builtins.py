@@ -86,7 +86,7 @@ def sorted(iterable, key=None, reverse=False):
     return a
 
 ##### str #####
-def __f(self: str, *args, **kwargs) -> str:
+def __format_string(self: str, *args, **kwargs) -> str:
     def tokenizeString(s: str):
         tokens = []
         L, R = 0,0
@@ -195,59 +195,8 @@ def __f(self: str, *args, **kwargs) -> str:
     
     return ''.join(final_tokens)
 
-str.format = __f
-
-def __f(self, chars=None):
-    chars = chars or ' \t\n\r'
-    i = 0
-    while i < len(self) and self[i] in chars:
-        ++i
-    return self[i:]
-str.lstrip = __f
-
-def __f(self, chars=None):
-    chars = chars or ' \t\n\r'
-    j = len(self) - 1
-    while j >= 0 and self[j] in chars:
-        --j
-    return self[:j+1]
-str.rstrip = __f
-
-def __f(self, chars=None):
-    chars = chars or ' \t\n\r'
-    i = 0
-    while i < len(self) and self[i] in chars:
-        ++i
-    j = len(self) - 1
-    while j >= 0 and self[j] in chars:
-        --j
-    return self[i:j+1]
-str.strip = __f
-
-def __f(self, width: int):
-    delta = width - len(self)
-    if delta <= 0:
-        return self
-    return '0' * delta + self
-str.zfill = __f
-
-def __f(self, width: int, fillchar=' '):
-    delta = width - len(self)
-    if delta <= 0:
-        return self
-    assert len(fillchar) == 1
-    return fillchar * delta + self
-str.rjust = __f
-
-def __f(self, width: int, fillchar=' '):
-    delta = width - len(self)
-    if delta <= 0:
-        return self
-    assert len(fillchar) == 1
-    return self + fillchar * delta
-str.ljust = __f
-
-del __f
+str.format = __format_string
+del __format_string
 
 
 def help(obj):

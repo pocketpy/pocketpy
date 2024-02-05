@@ -194,24 +194,32 @@ int utf8len(unsigned char c, bool suppress){
         return std::string(data, size);
     }
 
-    Str Str::lstrip() const {
-        std::string copy(data, size);
-        copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
-            // std::isspace(c) does not working on windows (Debug)
-            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
-        }));
-        return Str(copy);
+    Str Str::strip(bool left, bool right, const Str& chars) const {
+        int L = 0;
+        int R = u8_length();
+        if(left){
+            while(L < R && chars.index(u8_getitem(L)) != -1) L++;
+        }
+        if(right){
+            while(L < R && chars.index(u8_getitem(R-1)) != -1) R--;
+        }
+        return u8_slice(L, R, 1);
     }
 
-    Str Str::strip() const {
-        std::string copy(data, size);
-        copy.erase(copy.begin(), std::find_if(copy.begin(), copy.end(), [](char c) {
-            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
-        }));
-        copy.erase(std::find_if(copy.rbegin(), copy.rend(), [](char c) {
-            return c != ' ' && c != '\t' && c != '\r' && c != '\n';
-        }).base(), copy.end());
-        return Str(copy);
+    Str Str::strip(bool left, bool right) const {
+        if(is_ascii){
+            int L = 0;
+            int R = size;
+            if(left){
+                while(L < R && (data[L] == ' ' || data[L] == '\t' || data[L] == '\n' || data[L] == '\r')) L++;
+            }
+            if(right){
+                while(L < R && (data[R-1] == ' ' || data[R-1] == '\t' || data[R-1] == '\n' || data[R-1] == '\r')) R--;
+            }
+            return substr(L, R - L);
+        }else{
+            return strip(left, right, " \t\n\r");
+        }
     }
 
     Str Str::lower() const{

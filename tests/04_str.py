@@ -69,6 +69,26 @@ assert s.strip( '12' ) == "3abcrunoob3"
 assert t.strip( '*' ) == "this is **string** example....wow!!!"
 assert s.strip( '12' ) == "3abcrunoob3"
 
+assert '测试123'.strip('测试') == '123'
+assert '测试123测试'.strip('测试') == '123'
+assert '123测试'.strip('2') == '123测试'
+assert '测试123'.strip('测') == '试123'
+assert '测试123'.strip('试') == '测试123'
+
+assert '测试123测试'.lstrip('测试') == '123测试'
+assert '测试123测试'.rstrip('测试') == '测试123'
+
+assert 'abc'.lstrip('a') == 'bc'
+assert 'abc'.lstrip('b') == 'abc'
+assert 'abc'.lstrip('c') == 'abc'
+assert 'abc'.rstrip('a') == 'abc'
+assert 'abc'.rstrip('b') == 'abc'
+assert 'abc'.rstrip('c') == 'ab'
+
+assert 'abc'.lstrip('abc') == ''
+assert 'abc'.rstrip('abc') == ''
+assert 'abc'.strip('abc') == ''
+
 s = ' asd\n  asd \n'
 assert s.strip() == 'asd\n  asd'
 

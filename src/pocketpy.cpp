@@ -641,6 +641,74 @@ void init_builtins(VM* _vm) {
         return VAR(self.upper());
     });
 
+    _vm->bind(_vm->_t(VM::tp_str), "strip(self, chars=None)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        if(args[1] == vm->None){
+            return VAR(self.strip());
+        }else{
+            const Str& chars = CAST(Str&, args[1]);
+            return VAR(self.strip(true, true, chars));
+        }
+    });
+
+    _vm->bind(_vm->_t(VM::tp_str), "lstrip(self, chars=None)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        if(args[1] == vm->None){
+            return VAR(self.lstrip());
+        }else{
+            const Str& chars = CAST(Str&, args[1]);
+            return VAR(self.strip(true, false, chars));
+        }
+    });
+
+    _vm->bind(_vm->_t(VM::tp_str), "rstrip(self, chars=None)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        if(args[1] == vm->None){
+            return VAR(self.rstrip());
+        }else{
+            const Str& chars = CAST(Str&, args[1]);
+            return VAR(self.strip(false, true, chars));
+        }
+    });
+
+    // zfill
+    _vm->bind(_vm->_t(VM::tp_str), "zfill(self, width)", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        int width = CAST(int, args[1]);
+        int delta = width - self.u8_length();
+        if(delta <= 0) return args[0];
+        SStream ss;
+        for(int i=0; i<delta; i++) ss << '0';
+        ss << self;
+        return VAR(ss.str());
+    });
+
+    // ljust
+    _vm->bind(_vm->_t(VM::tp_str), "ljust(self, width, fillchar=' ')", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        int width = CAST(int, args[1]);
+        int delta = width - self.u8_length();
+        if(delta <= 0) return args[0];
+        const Str& fillchar = CAST(Str&, args[2]);
+        SStream ss;
+        ss << self;
+        for(int i=0; i<delta; i++) ss << fillchar;
+        return VAR(ss.str());
+    });
+
+    // rjust
+    _vm->bind(_vm->_t(VM::tp_str), "rjust(self, width, fillchar=' ')", [](VM* vm, ArgsView args) {
+        const Str& self = _CAST(Str&, args[0]);
+        int width = CAST(int, args[1]);
+        int delta = width - self.u8_length();
+        if(delta <= 0) return args[0];
+        const Str& fillchar = CAST(Str&, args[2]);
+        SStream ss;
+        for(int i=0; i<delta; i++) ss << fillchar;
+        ss << self;
+        return VAR(ss.str());
+    });
+
     // tp_list / tp_tuple
     _vm->bind(_vm->_t(VM::tp_list), "sort(self, key=None, reverse=False)", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
