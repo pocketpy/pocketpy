@@ -205,3 +205,21 @@ assert repr(c.void_p(255)) == '<void* at 0xff>'
 assert repr(c.void_p(256)) == '<void* at 0x100>'
 assert repr(c.void_p(257)) == '<void* at 0x101>'
 assert repr(c.void_p(17)) == '<void* at 0x11>'
+
+# random hex test
+import random
+
+
+def test(__min, __max):
+    for _ in range(100):
+        num = random.randint(__min, __max)
+        hex_num = hex(num)
+        assert eval(hex_num) == num
+        if num >= 0:
+            assert repr(c.void_p(num)) == f'<void* at 0x{hex_num[2:]}>'
+
+test(0, 100)
+test(0, 100000)
+test(-100, 100)
+test(-100000, 100000)
+test(-2**60, 2**60)
