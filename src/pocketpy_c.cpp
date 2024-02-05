@@ -1,3 +1,5 @@
+#ifndef PK_NO_EXPORT_C_API
+
 #include "pocketpy.h"
 #include "pocketpy_c.h"
 
@@ -575,3 +577,5 @@ bool pkpy_repl_input(void* r, const char* line){
 void pkpy_delete_repl(void* repl){
     delete (REPL*)repl;
 }
+
+#endif // PK_NO_EXPORT_C_API
