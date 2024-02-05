@@ -388,10 +388,6 @@ int utf8len(unsigned char c, bool suppress){
         return cnt;
     }
 
-    std::ostream& operator<<(std::ostream& os, const StrName& sn){
-        return os << sn.sv();
-    }
-
     std::map<std::string, uint16_t, std::less<>>& StrName::_interned(){
         static std::map<std::string, uint16_t, std::less<>> interned;
         return interned;

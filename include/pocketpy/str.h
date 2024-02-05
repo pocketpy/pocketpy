@@ -98,7 +98,6 @@ struct StrName {
     const char* c_str() const;
     bool empty() const { return index == 0; }
 
-    friend std::ostream& operator<<(std::ostream& os, const StrName& sn);
     Str escape() const;
 
     bool operator==(const StrName& other) const noexcept {
