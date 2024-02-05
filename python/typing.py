@@ -20,6 +20,9 @@ Callable = _PLACEHOLDER
 Type = _PLACEHOLDER
 Protocol = _PLACEHOLDER
 
+Literal = _PLACEHOLDER
+LiteralString = _PLACEHOLDER
+
 Iterable = _PLACEHOLDER
 Generator = _PLACEHOLDER
 
