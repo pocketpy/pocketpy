@@ -31,6 +31,14 @@ struct Array2d{
         return 0 <= col && col < n_cols && 0 <= row && row < n_rows;
     }
 
+    PyObject* _get(int col, int row){
+        return data[row * n_cols + col];
+    }
+
+    void _set(int col, int row, PyObject* value){
+        data[row * n_cols + col] = value;
+    }
+
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind(type, "__new__(cls, *args, **kwargs)", [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
@@ -71,7 +79,7 @@ struct Array2d{
             int col = CAST(int, args[1]);
             int row = CAST(int, args[2]);
             if(!self.is_valid(col, row)) return args[3];
-            return self.data[row * self.n_cols + col];
+            return self._get(col, row);
         });
 
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
@@ -82,7 +90,7 @@ struct Array2d{
             if(!self.is_valid(col, row)){
                 vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
             }
-            return self.data[row * self.n_cols + col];
+            return self._get(col, row);
         });
 
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){
@@ -93,18 +101,16 @@ struct Array2d{
             if(!self.is_valid(col, row)){
                 vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
             }
-            self.data[row * self.n_cols + col] = _2;
+            self._set(col, row, _2);
         });
 
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             List t(self.n_rows);
             List row(self.n_cols);
-            for(int i = 0; i < self.n_rows; i++){
-                for(int j = 0; j < self.n_cols; j++){
-                    row[j] = self.data[i * self.n_cols + j];
-                }
-                t[i] = VAR(row);    // copy
+            for(int j = 0; j < self.n_rows; j++){
+                for(int i = 0; i < self.n_cols; i++) row[i] = self._get(i, j);
+                t[j] = VAR(row);    // copy
             }
             return vm->py_iter(VAR(std::move(t)));
         });
@@ -179,6 +185,30 @@ struct Array2d{
                 if(vm->py_ne(self.data[i], other.data[i])) return vm->False;
             }
             return vm->True;
+        });
+
+        // for cellular automata
+        vm->bind(type, "count_neighbors(self, value) -> array2d[int]", [](VM* vm, ArgsView args){
+            Array2d& self = PK_OBJ_GET(Array2d, args[0]);
+            PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+            Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
+            new_array.init(self.n_cols, self.n_rows);
+            PyObject* value = args[1];
+            for(int j = 0; j < new_array.n_rows; j++){
+                for(int i = 0; i < new_array.n_cols; i++){
+                    int count = 0;
+                    count += self.is_valid(i-1, j-1) && vm->py_eq(self._get(i-1, j-1), value);
+                    count += self.is_valid(i, j-1) && vm->py_eq(self._get(i, j-1), value);
+                    count += self.is_valid(i+1, j-1) && vm->py_eq(self._get(i+1, j-1), value);
+                    count += self.is_valid(i-1, j) && vm->py_eq(self._get(i-1, j), value);
+                    count += self.is_valid(i+1, j) && vm->py_eq(self._get(i+1, j), value);
+                    count += self.is_valid(i-1, j+1) && vm->py_eq(self._get(i-1, j+1), value);
+                    count += self.is_valid(i, j+1) && vm->py_eq(self._get(i, j+1), value);
+                    count += self.is_valid(i+1, j+1) && vm->py_eq(self._get(i+1, j+1), value);
+                    new_array._set(i, j, VAR(count));
+                }
+            }
+            return new_array_obj; 
         });
     }
 

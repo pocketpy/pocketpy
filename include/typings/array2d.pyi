@@ -89,3 +89,21 @@ class array2d(Generic[T]):
         self.n_cols = other.n_cols
         self.n_rows = other.n_rows
         self.data = other.data.copy()
+
+    # for cellular automata
+    def count_neighbors(self, value) -> array2d[int]:
+        new_a: array2d[int] = array2d(self.n_cols, self.n_rows)
+        for j in range(self.n_rows):
+            for i in range(self.n_cols):
+                count = 0
+                count += int(self.is_valid(i-1, j-1) and self[i-1, j-1] == value)
+                count += int(self.is_valid(i, j-1) and self[i, j-1] == value)
+                count += int(self.is_valid(i+1, j-1) and self[i+1, j-1] == value)
+                count += int(self.is_valid(i-1, j) and self[i-1, j] == value)
+                count += int(self.is_valid(i+1, j) and self[i+1, j] == value)
+                count += int(self.is_valid(i-1, j+1) and self[i-1, j+1] == value)
+                count += int(self.is_valid(i, j+1) and self[i, j+1] == value)
+                count += int(self.is_valid(i+1, j+1) and self[i+1, j+1] == value)
+                new_a[i, j] = count
+        return new_a
+

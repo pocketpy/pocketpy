@@ -99,3 +99,8 @@ assert A().width == 2
 assert A().height == 4
 assert A().numel == 8
 assert A().get(0, 0, default=2) == 0
+
+# test alive_neighbors
+a = array2d(3, 3, default=0)
+a.count_neighbors(0) == a
+
