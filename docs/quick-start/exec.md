@@ -50,8 +50,8 @@ These two methods are provided for this purpose:
 
 ```cpp
 try{
-    PyObject* result = vm->exec("123", "<eval>", EVAL_MODE);
-    std::cout << py_cast<int>(vm, result);   // 123
+    CodeObject_ code = vm->compile("a[0]", "main.py", EXEC_MODE, false);
+    vm->_exec(code, vm->_main);
 }catch(Exception& e){
     // use e.summary() to get a summary of the exception
     std::cerr << e.summary() << std::endl;
