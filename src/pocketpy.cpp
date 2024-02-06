@@ -142,15 +142,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<1>(_vm->builtins, "callable", [](VM* vm, ArgsView args) {
-        Type cls = vm->_tp(args[0]);
-        switch(cls.index){
-            case VM::tp_function.index: return vm->True;
-            case VM::tp_native_func.index: return vm->True;
-            case VM::tp_bound_method.index: return vm->True;
-            case VM::tp_type.index: return vm->True;
-        }
-        bool ok = vm->find_name_in_mro(cls, __call__) != nullptr;
-        return VAR(ok);
+        return VAR(vm->py_callable(args[0]));
     });
 
     _vm->bind_func<1>(_vm->builtins, "__import__", [](VM* vm, ArgsView args) {
@@ -1509,8 +1501,6 @@ void VM::post_init(){
     add_module_random(this);
     add_module_base64(this);
     add_module_operator(this);
-    add_module_csv(this);
-    add_module_dataclasses(this);
 
     for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "cmath"}){
         _lazy_modules[name] = kPythonLibs[name];
@@ -1533,9 +1523,12 @@ void VM::post_init(){
         _import_handler = _default_import_handler;
     }
 
+    add_module_csv(this);
+    add_module_dataclasses(this);
     add_module_linalg(this);
     add_module_easing(this);
     add_module_collections(this);
+    add_module_array2d(this);
 
 #ifdef PK_USE_CJSON
     add_module_cjson(this);

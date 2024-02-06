@@ -243,7 +243,6 @@ namespace pkpy{
         return false;
     }
 
-
     int VM::normalized_index(int index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
@@ -256,6 +255,17 @@ namespace pkpy{
         const PyTypeInfo* ti = _inst_type_info(obj);
         if(ti->m__next__) return ti->m__next__(this, obj);
         return call_method(obj, __next__);
+    }
+
+    bool VM::py_callable(PyObject* obj){
+        Type cls = vm->_tp(obj);
+        switch(cls.index){
+            case VM::tp_function.index: return vm->True;
+            case VM::tp_native_func.index: return vm->True;
+            case VM::tp_bound_method.index: return vm->True;
+            case VM::tp_type.index: return vm->True;
+        }
+        return vm->find_name_in_mro(cls, __call__) != nullptr;
     }
 
     PyObject* VM::py_import(Str path, bool throw_err){

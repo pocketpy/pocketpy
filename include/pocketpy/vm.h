@@ -325,6 +325,7 @@ public:
 
     int normalized_index(int index, int size);
     PyObject* py_next(PyObject* obj);
+    bool py_callable(PyObject* obj);
     
     /***** Error Reporter *****/
     void _raise(bool re_raise=false);
