@@ -8,7 +8,6 @@ label: "Project Ideas"
 
 + Difficulty Level: 5/5 (Hard)
 + Skill: Advanced C++ with metaprogramming; Python
-+ Mentor: [blueloveTH](https://github.com/blueloveTH)
 + Project Length: Medium (~180 hours)
 
 pocketpy has provided a low-level API for creating bindings. It is fast, lightweight and easy to debug.
@@ -26,7 +25,6 @@ You can use C\+\+17 features to implement it, instead of C++11 used in pybind11.
 
 + Difficulty Level: 4/5 (Intermediate)
 + Skill: Intermediate C++; Python; Linear Algebra
-+ Mentor: [zhs628](https://github.com/zhs628)
 + Project Length: Small (~120 hours)
 
 Though pocketpy is designed for game scripting,
@@ -41,7 +39,6 @@ You can mix C++ and Python code to simplify the overall workloads.
 
 + Difficulty Level: 5/5 (Hard)
 + Skill: Advanced C++; Regular Expression; Algorithm; CPython Details
-+ Mentor: TBA
 + Project Length: Medium (~180 hours)
 
 pocketpy does not have `re` module yet.
