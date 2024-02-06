@@ -91,8 +91,8 @@ class array2d(Generic[T]):
         self.data = other.data.copy()
 
     # for cellular automata
-    def count_neighbors(self, value) -> array2d[int]:
-        new_a: array2d[int] = array2d(self.n_cols, self.n_rows)
+    def count_neighbors(self, value) -> 'array2d[int]':
+        new_a = array2d(self.n_cols, self.n_rows)
         for j in range(self.n_rows):
             for i in range(self.n_cols):
                 count = 0
