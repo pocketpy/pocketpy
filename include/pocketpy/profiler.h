@@ -11,9 +11,10 @@ struct LineRecord{
     i64 hits;
     clock_t time;
 
-    LineRecord(int line, SourceData* src): line(line), src(src), hits(0), time(0) {}
+    LineRecord(): line(-1), src(nullptr), hits(0), time(0) {}
 
     std::string_view line_content() const;
+    bool is_valid() const { return src != nullptr; }
 };
 
 struct LineProfiler{
@@ -22,7 +23,7 @@ struct LineProfiler{
     int prev_line;
 
     // filename -> records
-    std::map<std::string_view, std::map<int, LineRecord>> records;
+    std::map<std::string_view, std::vector<LineRecord>> records;
 
     void begin();
     void _step(Frame* frame);

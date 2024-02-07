@@ -37,9 +37,14 @@ void LineProfiler::_step(Frame *frame){
         _step_end();
     }
 
-    std::map<int, LineRecord>& file_records = records[filename];
-    auto [it, ok] = file_records.insert({line, LineRecord(line, frame->co->src.get())});
-    prev_record = &(it->second);
+    std::vector<LineRecord>& file_records = records[filename];
+    if(file_records.empty()) file_records.resize(frame->co->src->line_starts.size() + 10);
+
+    prev_record = &file_records[line];
+    if(!prev_record->is_valid()){
+        prev_record->line = line;
+        prev_record->src = frame->co->src.get();
+    }
 }
 
 void LineProfiler::_step_end(){
@@ -61,15 +66,17 @@ Str LineProfiler::stats(){
     SStream ss;
     for(auto& [filename, file_records] : records){
         clock_t total_time = 0;
-        for(auto& [line, record] : file_records){
-            total_time += record.time;
+        for(auto& record: file_records){
+            if(record.is_valid()) total_time += record.time;
         }
         ss << "Total time: " << (f64)total_time / CLOCKS_PER_SEC << "s\n";
         ss << "File: " << filename << "\n";
         // ss << "Function: " << "<?>" << "at line " << -1 << "\n";
         ss << "Line #      Hits         Time  Per Hit   % Time  Line Contents\n";
         ss << "==============================================================\n";
-        for(auto& [line, record]: file_records){
+        for(int line = 1; line < file_records.size(); line++){
+            LineRecord& record = file_records[line];
+            if(!record.is_valid()) continue;
             ss << left_pad(std::to_string(line), 6);
             ss << left_pad(std::to_string(record.hits), 10);
             ss << left_pad(std::to_string(record.time), 13);
