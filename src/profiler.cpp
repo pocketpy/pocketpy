@@ -38,13 +38,15 @@ void LineProfiler::_step(Frame *frame){
     }
 
     std::vector<LineRecord>& file_records = records[filename];
-    if(file_records.empty()) file_records.resize(frame->co->src->line_starts.size() + 10);
-
-    prev_record = &file_records[line];
-    if(!prev_record->is_valid()){
-        prev_record->line = line;
-        prev_record->src = frame->co->src.get();
+    if(file_records.empty()){
+        int total_lines = frame->co->src->line_starts.size();
+        file_records.resize(total_lines + 1);
+        for(int i=1; i<=total_lines; i++){
+            file_records[i].line = i;
+            file_records[i].src = frame->co->src.get();
+        }
     }
+    prev_record = &file_records.at(line);
 }
 
 void LineProfiler::_step_end(){
@@ -76,7 +78,7 @@ Str LineProfiler::stats(){
         ss << "==============================================================\n";
         for(int line = 1; line < file_records.size(); line++){
             LineRecord& record = file_records[line];
-            if(!record.is_valid()) continue;
+            if(!record.is_valid() || record.hits == 0) continue;
             ss << left_pad(std::to_string(line), 6);
             ss << left_pad(std::to_string(record.hits), 10);
             ss << left_pad(std::to_string(record.time), 13);
