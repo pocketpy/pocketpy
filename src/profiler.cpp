@@ -8,7 +8,7 @@ static std::string left_pad(std::string s, int width){
     return std::string(n, ' ') + s;
 }
 
-static std::string to_string_1f(double x){
+static std::string to_string_1f(f64 x){
     char buf[32];
     snprintf(buf, 32, "%.1f", x);
     return buf;
@@ -64,7 +64,7 @@ Str LineProfiler::stats(){
         for(auto& [line, record] : file_records){
             total_time += record.time;
         }
-        ss << "Total time: " << (double)total_time / CLOCKS_PER_SEC << "s\n";
+        ss << "Total time: " << (f64)total_time / CLOCKS_PER_SEC << "s\n";
         ss << "File: " << filename << "\n";
         // ss << "Function: " << "<?>" << "at line " << -1 << "\n";
         ss << "Line #      Hits         Time  Per Hit   % Time  Line Contents\n";
@@ -74,7 +74,7 @@ Str LineProfiler::stats(){
             ss << left_pad(std::to_string(record.hits), 10);
             ss << left_pad(std::to_string(record.time), 13);
             ss << left_pad(std::to_string(record.time_per_hit()), 9);
-            ss << left_pad(to_string_1f(record.time * 100.0 / total_time), 9);
+            ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
             ss << "  " << record.line_content() << "\n";
         }
         ss << "\n";
