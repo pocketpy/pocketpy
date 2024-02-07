@@ -167,6 +167,16 @@ struct Array2d{
 
         vm->bind(type, "copy_(self, other)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
+            if(is_non_tagged_type(args[1], VM::tp_list)){
+                const List& list = PK_OBJ_GET(List, args[1]);
+                if(list.size() != self.numel){
+                    vm->ValueError("list size must be equal to the number of elements in the array2d");
+                }
+                for(int i = 0; i < self.numel; i++){
+                    self.data[i] = list[i];
+                }
+                return vm->None;
+            }
             Array2d& other = CAST(Array2d&, args[1]);
             // if self and other have different sizes, re-initialize self
             if(self.n_cols != other.n_cols || self.n_rows != other.n_rows){

@@ -78,14 +78,18 @@ class array2d(Generic[T]):
         return new_a
 
     def fill_(self, value: T) -> None:
-        for i in range(self.n_cols * self.n_rows):
+        for i in range(self.numel):
             self.data[i] = value
 
     def apply_(self, f: Callable[[T], T]) -> None:
-        for i in range(self.n_cols * self.n_rows):
+        for i in range(self.numel):
             self.data[i] = f(self.data[i])
 
-    def copy_(self, other: 'array2d[T]') -> None:
+    def copy_(self, other: 'array2d[T]' | list['T']) -> None:
+        if isinstance(other, list):
+            assert len(other) == self.numel
+            self.data = other.copy()
+            return
         self.n_cols = other.n_cols
         self.n_rows = other.n_rows
         self.data = other.data.copy()
@@ -106,4 +110,3 @@ class array2d(Generic[T]):
                 count += int(self.is_valid(i+1, j+1) and self[i+1, j+1] == value)
                 new_a[i, j] = count
         return new_a
-
