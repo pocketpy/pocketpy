@@ -3,7 +3,7 @@
 namespace pkpy{
 
     CodeObject::CodeObject(std::shared_ptr<SourceData> src, const Str& name):
-        src(src), name(name) {}
+        src(src), name(name), start_line(-1), end_line(-1) {}
 
     void CodeObject::_gc_mark() const {
         for(PyObject* v : consts) PK_OBJ_MARK(v);

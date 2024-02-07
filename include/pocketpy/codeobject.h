@@ -72,6 +72,9 @@ struct CodeObject {
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
+    int start_line;
+    int end_line;
+
     const CodeBlock& _get_block_codei(int codei) const{
         return blocks[iblocks[codei]];
     }
