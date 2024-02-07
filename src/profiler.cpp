@@ -80,10 +80,14 @@ Str LineProfiler::stats(){
             const LineRecord& record = file_records.at(line);
             if(!record.is_valid()) continue;
             ss << left_pad(std::to_string(line), 6);
-            ss << left_pad(std::to_string(record.hits), 10);
-            ss << left_pad(std::to_string(record.time / CLOCKS_PER_SEC), 13);
-            ss << left_pad(std::to_string(record.time / record.hits), 9);
-            ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
+            if(record.hits == 0){
+                ss << std::string(10 + 13 + 9 + 9, ' ');
+            }else{
+                ss << left_pad(std::to_string(record.hits), 10);
+                ss << left_pad(std::to_string(record.time), 13);
+                ss << left_pad(std::to_string(record.time / record.hits), 9);
+                ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
+            }
             // line_content
             auto [_0, _1] = decl->code->src->_get_line(line);
             ss << "  " << std::string_view(_0, _1-_0) << "\n";
