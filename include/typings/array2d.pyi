@@ -85,7 +85,7 @@ class array2d(Generic[T]):
         for i in range(self.numel):
             self.data[i] = f(self.data[i])
 
-    def copy_(self, other: 'array2d[T]' | list['T']) -> None:
+    def copy_(self, other: 'array2d[T] | list[T]') -> None:
         if isinstance(other, list):
             assert len(other) == self.numel
             self.data = other.copy()
