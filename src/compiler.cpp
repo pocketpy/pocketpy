@@ -33,7 +33,10 @@ namespace pkpy{
         // previously, we only do this if the last opcode is not a return
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
         ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE);
-        ctx()->co->end_line = prev().line;
+        // find the last valid token
+        int j = i-1;
+        while(tokens[j].type == TK("@eol") || tokens[j].type == TK("@dedent") || tokens[j].type == TK("@eof")) j--;
+        ctx()->co->end_line = tokens[j].line;
 
         // some check here
         std::vector<Bytecode>& codes = ctx()->co->codes;
