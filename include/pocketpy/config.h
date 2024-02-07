@@ -19,11 +19,6 @@
 #define PK_ENABLE_THREAD            0
 #endif
 
-// Enable this for `vm->_ceval_on_step`
-#ifndef PK_ENABLE_CEVAL_CALLBACK    // can be overrided by cmake
-#define PK_ENABLE_CEVAL_CALLBACK    0
-#endif
-
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overrided by cmake
 #define PK_GC_MIN_THRESHOLD         32768

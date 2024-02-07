@@ -15,9 +15,16 @@ struct LineProfiler{
             return vm->None;
         });
 
-        vm->bind(type, "runcall(self, func, *args, **kw)", [](VM* vm, ArgsView args){
-            // ...
-            return vm->None;
+        vm->bind(type, "runcall(self, func, *args)", [](VM* vm, ArgsView view){
+            LineProfiler& self = PK_OBJ_GET(LineProfiler, view[0]);
+            // enable_by_count
+            PyObject* func = view[1];
+            const Tuple& args = CAST(Tuple&, view[2]);
+            for(PyObject* arg : args) vm->s_data.push(arg);
+            vm->s_data.push(func);
+            PyObject* ret = vm->vectorcall(args.size());
+            // disable_by_count
+            return ret;
         });
 
         vm->bind(type, "print_stats(self)", [](VM* vm, ArgsView args){

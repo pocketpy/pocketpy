@@ -66,15 +66,15 @@ PyObject* VM::_run_top_frame(){
  */
 {
 
-#if PK_ENABLE_CEVAL_CALLBACK
-#define CEVAL_STEP() byte = frame->next_bytecode(); if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte)
-#else
-#define CEVAL_STEP() byte = frame->next_bytecode()
-#endif
+#define CEVAL_STEP_CALLBACK() \
+    if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte); \
+    if(_ceval_on_step_profile) _ceval_on_step_profile(this, frame.get(), byte);
 
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
-    Bytecode CEVAL_STEP();
+    Bytecode byte = frame->next_bytecode();
+    CEVAL_STEP_CALLBACK();
+
     // cache
     const CodeObject* co = frame->co;
     const auto& co_consts = co->consts;
@@ -86,13 +86,13 @@ static void* OP_LABELS[] = {
     #undef OPCODE
 };
 
-#define DISPATCH() { CEVAL_STEP(); goto *OP_LABELS[byte.op];}
+#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); goto *OP_LABELS[byte.op];}
 #define TARGET(op) CASE_OP_##op:
 goto *OP_LABELS[byte.op];
 
 #else
 #define TARGET(op) case OP_##op:
-#define DISPATCH() { CEVAL_STEP(); goto __NEXT_STEP;}
+#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); goto __NEXT_STEP;}
 
 __NEXT_STEP:;
 #if PK_DEBUG_CEVAL_STEP
@@ -831,7 +831,7 @@ __NEXT_STEP:;
 #undef DISPATCH
 #undef TARGET
 #undef DISPATCH_OP_CALL
-#undef CEVAL_STEP
+#undef CEVAL_STEP_CALLBACK
 /**********************************************************************/
             PK_UNREACHABLE()
         }catch(HandledException){
