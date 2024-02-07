@@ -43,11 +43,6 @@ std::string pkpy_platform_getline(bool* eof){
 
 #endif
 
-std::string f_input(){
-    bool eof;
-    return pkpy_platform_getline(&eof);
-}
-
 static int f_input(pkpy_vm* vm){
     if(!pkpy_is_none(vm, -1)){
         pkpy_CString prompt;
