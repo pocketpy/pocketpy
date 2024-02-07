@@ -262,7 +262,10 @@ struct LineProfilerW{
         vm->bind_default_constructor<LineProfilerW>(type);
 
         vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){
-            // ...
+            LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
+            vm->check_non_tagged_type(args[1], VM::tp_function);
+            auto decl = PK_OBJ_GET(Function, args[1]).decl.get();
+            self.profiler.functions.insert(decl);
             return vm->None;
         });
 

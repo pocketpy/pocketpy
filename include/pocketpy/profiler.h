@@ -6,15 +6,11 @@ namespace pkpy {
 
 struct LineRecord{
     int line;
-    SourceData* src;
-
     i64 hits;
     clock_t time;
 
-    LineRecord(): line(-1), src(nullptr), hits(0), time(0) {}
-
-    std::string_view line_content() const;
-    bool is_valid() const { return src != nullptr; }
+    LineRecord(): line(-1), hits(0), time(0) {}
+    bool is_valid() const { return line != -1; }
 };
 
 struct LineProfiler{
@@ -24,6 +20,8 @@ struct LineProfiler{
 
     // filename -> records
     std::map<std::string_view, std::vector<LineRecord>> records;
+
+    std::set<FuncDecl*> functions;
 
     void begin();
     void _step(Frame* frame);
