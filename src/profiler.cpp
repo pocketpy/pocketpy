@@ -73,7 +73,7 @@ Str LineProfiler::stats(){
             ss << left_pad(std::to_string(line), 6);
             ss << left_pad(std::to_string(record.hits), 10);
             ss << left_pad(std::to_string(record.time), 13);
-            ss << left_pad(std::to_string(record.time_per_hit()), 9);
+            ss << left_pad(std::to_string(record.time / record.hits), 9);
             ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
             ss << "  " << record.line_content() << "\n";
         }

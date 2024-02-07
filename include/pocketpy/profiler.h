@@ -11,10 +11,6 @@ struct LineRecord{
     i64 hits;
     clock_t time;
 
-    clock_t time_per_hit() const {
-        return time / hits;
-    }
-
     LineRecord(int line, SourceData* src): line(line), src(src), hits(0), time(0) {}
 
     std::string_view line_content() const;
