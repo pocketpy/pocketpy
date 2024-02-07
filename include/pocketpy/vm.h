@@ -10,6 +10,7 @@
 #include "str.h"
 #include "tuplelist.h"
 #include "dict.h"
+#include "profiler.h"
 
 namespace pkpy{
 
@@ -151,6 +152,8 @@ public:
     std::map<std::string_view, CodeObject_> _cached_codes;
 
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
+
+    LineProfiler* _profiler = nullptr;
 
     PrintFunc _stdout;
     PrintFunc _stderr;
