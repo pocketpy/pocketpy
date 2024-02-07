@@ -254,10 +254,12 @@ struct LineProfilerW{
             vm->ValueError("only one profiler can be enabled at a time");
         }
         vm->_profiler = &profiler;
+        profiler.begin();
     }
 
     void disable_by_count(VM* vm){
         vm->_profiler = nullptr;
+        profiler.end();
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
@@ -273,15 +275,17 @@ struct LineProfilerW{
             self.enable_by_count(vm);
             PyObject* func = view[1];
             const Tuple& args = CAST(Tuple&, view[2]);
-            for(PyObject* arg : args) vm->s_data.push(arg);
             vm->s_data.push(func);
+            vm->s_data.push(PY_NULL);
+            for(PyObject* arg : args) vm->s_data.push(arg);
             PyObject* ret = vm->vectorcall(args.size());
             self.disable_by_count(vm);
             return ret;
         });
 
         vm->bind(type, "print_stats(self)", [](VM* vm, ArgsView args){
-            // ...
+            LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
+            vm->stdout_write(self.profiler.stats());
             return vm->None;
         });
     }
