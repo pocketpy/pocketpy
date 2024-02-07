@@ -16,4 +16,5 @@
 #include "csv.h"
 #include "dataclasses.h"
 #include "array2d.h"
+#include "line_profiler.h"
 #include "modules.h"

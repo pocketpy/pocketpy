@@ -168,8 +168,11 @@ struct Array2d{
         vm->bind(type, "copy_(self, other)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             Array2d& other = CAST(Array2d&, args[1]);
-            delete self.data;
-            self.init(other.n_cols, other.n_rows);
+            // if self and other have different sizes, re-initialize self
+            if(self.n_cols != other.n_cols || self.n_rows != other.n_rows){
+                delete self.data;
+                self.init(other.n_cols, other.n_rows);
+            }
             for(int i = 0; i < self.numel; i++){
                 self.data[i] = other.data[i];
             }

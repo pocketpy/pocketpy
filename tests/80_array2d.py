@@ -89,6 +89,9 @@ assert d == array2d(2, 4, default=0)
 # test copy_
 a.copy_(d)
 assert a == d and a is not d
+x = array2d(4, 4, default=0)
+x.copy_(d)
+assert x == d and x is not d
 
 # test subclass array2d
 class A(array2d):
