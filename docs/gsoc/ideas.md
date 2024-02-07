@@ -8,7 +8,7 @@ label: "Project Ideas"
 
 + Difficulty Level: 5/5 (Hard)
 + Skill: Advanced C++ with metaprogramming; Python
-+ Project Length: Medium (~180 hours)
++ Project Length: Medium (~200 hours)
 
 pocketpy has provided a low-level API for creating bindings. It is fast, lightweight and easy to debug.
 However, it still requires a lot of boilerplate code to create bindings for complex C++ classes.
@@ -25,7 +25,7 @@ You can use C\+\+17 features to implement it, instead of C++11 used in pybind11.
 
 + Difficulty Level: 4/5 (Intermediate)
 + Skill: Intermediate C++; Python; Linear Algebra
-+ Project Length: Small (~120 hours)
++ Project Length: Medium (~180 hours)
 
 Though pocketpy is designed for game scripting,
 some people are using it for scientific computing.
@@ -35,15 +35,3 @@ We know `numpy` is a huge project.
 Our goal is to implement a most commonly used subset of `numpy` in pocketpy.
 You can mix C++ and Python code to simplify the overall workloads.
 
-### Port secret labs' regex engine to pocketpy
-
-+ Difficulty Level: 5/5 (Hard)
-+ Skill: Advanced C++; Regular Expression; Algorithm; CPython Details
-+ Project Length: Medium (~180 hours)
-
-pocketpy does not have `re` module yet.
-We have considered other regex engines, such as [PCRE](https://www.pcre.org/), [RE2](https://github.com/google/re2) and `<regex>` in C++11. However, none of them is compatible with CPython's regex syntax.
-Because CPython uses its special regex engine, a.k.a. [Secret Labs' Regular Expression Engine](https://github.com/python/cpython/tree/main/Modules/_sre).
-
-In order to make pocketpy compatible with CPython in `re` module,
-we need to port this engine into pocketpy.
