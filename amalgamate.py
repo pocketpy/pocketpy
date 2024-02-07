@@ -8,8 +8,8 @@ with open("include/pocketpy/opcodes.h", "rt", encoding='utf-8') as f:
 pipeline = [
 	["config.h", "export.h", "common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h"],
 	["obj.h", "dict.h", "codeobject.h", "frame.h"],
-	["gc.h", "vm.h", "ceval.h", "lexer.h", "expr.h", "compiler.h", "repl.h"],
-	["_generated.h", "cffi.h", "bindings.h", "iter.h", "base64.h", "csv.h", "collections.h", "line_profiler.h", "array2d.h", "dataclasses.h", "random.h", "linalg.h", "easing.h", "io.h", "modules.h"],
+	["gc.h", "vm.h", "ceval.h", "lexer.h", "expr.h", "compiler.h", "repl.h", "profiler.h"],
+	["_generated.h", "cffi.h", "bindings.h", "iter.h", "base64.h", "csv.h", "collections.h", "array2d.h", "dataclasses.h", "random.h", "linalg.h", "easing.h", "io.h", "modules.h"],
 	["pocketpy.h", "pocketpy_c.h"]
 ]
 

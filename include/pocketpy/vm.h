@@ -150,10 +150,7 @@ public:
     // cached code objects for FSTRING_EVAL
     std::map<std::string_view, CodeObject_> _cached_codes;
 
-    // for user defined logic
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
-    // for line_profiler (users not to use this)
-    void (*_ceval_on_step_profile)(VM*, Frame*, Bytecode bc) = nullptr;
 
     PrintFunc _stdout;
     PrintFunc _stderr;

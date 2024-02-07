@@ -67,8 +67,7 @@ PyObject* VM::_run_top_frame(){
 {
 
 #define CEVAL_STEP_CALLBACK() \
-    if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte); \
-    if(_ceval_on_step_profile) _ceval_on_step_profile(this, frame.get(), byte);
+    if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte);
 
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
