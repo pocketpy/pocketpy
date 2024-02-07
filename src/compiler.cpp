@@ -10,7 +10,7 @@ namespace pkpy{
 
     CodeObject_ Compiler::push_global_context(){
         CodeObject_ co = std::make_shared<CodeObject>(lexer->src, lexer->src->filename);
-        co->start_line = prev().line;
+        co->start_line = i==0 ? 1 : prev().line;
         contexts.push(CodeEmitContext(vm, co, contexts.size()));
         return co;
     }
@@ -18,7 +18,7 @@ namespace pkpy{
     FuncDecl_ Compiler::push_f_context(Str name){
         FuncDecl_ decl = std::make_shared<FuncDecl>();
         decl->code = std::make_shared<CodeObject>(lexer->src, name);
-        decl->code->start_line = prev().line;
+        decl->code->start_line = i==0 ? 1 : prev().line;
         decl->nested = name_scope() == NAME_LOCAL;
         contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
         contexts.top().func = decl;
@@ -34,7 +34,7 @@ namespace pkpy{
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
         ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE);
         ctx()->co->end_line = prev().line;
-        
+
         // some check here
         std::vector<Bytecode>& codes = ctx()->co->codes;
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
