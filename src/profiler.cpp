@@ -86,7 +86,11 @@ Str LineProfiler::stats(){
                 ss << left_pad(std::to_string(record.hits), 10);
                 ss << left_pad(std::to_string(record.time), 13);
                 ss << left_pad(std::to_string(record.time / record.hits), 9);
-                ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
+                if(total_time == 0){
+                    ss << left_pad("0.0", 9);
+                }else{
+                    ss << left_pad(to_string_1f(record.time * (f64)100 / total_time), 9);
+                }
             }
             // line_content
             auto [_0, _1] = decl->code->src->_get_line(line);
