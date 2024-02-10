@@ -161,3 +161,14 @@ These two fields are C function pointers `PrintFunc` with the following signatur
 ```cpp
 typedef void(*PrintFunc)(const char*, int)
 ```
+
+Or you can override these two virtual functions:
+```cpp
+    virtual void stdout_write(const Str& s){
+        _stdout(s.data, s.size);
+    }
+
+    virtual void stderr_write(const Str& s){
+        _stderr(s.data, s.size);
+    }
+```

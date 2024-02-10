@@ -205,8 +205,12 @@ public:
     void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
     void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
 
-    void stdout_write(const Str& s){
+    virtual void stdout_write(const Str& s){
         _stdout(s.data, s.size);
+    }
+
+    virtual void stderr_write(const Str& s){
+        _stderr(s.data, s.size);
     }
 
     template<typename... Args>

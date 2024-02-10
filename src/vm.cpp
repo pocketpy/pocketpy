@@ -164,21 +164,20 @@ namespace pkpy{
 #endif
             return _exec(code, _module);
         }catch (const Exception& e){
-            Str sum = e.summary() + "\n";
-            _stderr(sum.data, sum.size);
+            stderr_write(e.summary() + "\n");
         }
 #if !PK_DEBUG_FULL_EXCEPTION
         catch(const std::exception& e) {
             Str msg = "An std::exception occurred! It could be a bug.\n";
             msg = msg + e.what() + "\n";
-            _stderr(msg.data, msg.size);
+            stderr_write(msg);
         }
         catch(NeedMoreLines){
             throw;
         }
         catch(...) {
             Str msg = "An unknown exception occurred! It could be a bug. Please report it to @blueloveTH on GitHub.\n";
-            _stderr(msg.data, msg.size);
+            stderr_write(msg);
         }
 #endif
         callstack.clear();
