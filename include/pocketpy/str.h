@@ -153,6 +153,10 @@ struct SStream{
     void write_hex(i64);
 };
 
+#ifdef _S
+#undef _S
+#endif
+
 template<typename... Args>
 Str _S(Args&&... args) {
     SStream ss;

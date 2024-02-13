@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <ctime>
 
 #include <stdexcept>
 #include <vector>
