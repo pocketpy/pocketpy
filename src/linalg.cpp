@@ -456,6 +456,27 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
             return vm->None;
         });
 
+        vm->bind(type, "copy_t_(self, t: vec2)", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Vec2 t = CAST(Vec2, args[1]);
+            self = Mat3x3::trs(t, self._r(), self._s());
+            return vm->None;
+        });
+
+        vm->bind(type, "copy_r_(self, r: float)", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            f64 r = CAST_F(args[1]);
+            self = Mat3x3::trs(self._t(), r, self._s());
+            return vm->None;
+        });
+
+        vm->bind(type, "copy_s_(self, s: vec2)", [](VM* vm, ArgsView args){
+            PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
+            Vec2 s = CAST(Vec2, args[1]);
+            self = Mat3x3::trs(self._t(), self._r(), s);
+            return vm->None;
+        });
+
         vm->bind_method<0>(type, "is_affine", [](VM* vm, ArgsView args){
             PyMat3x3& self = _CAST(PyMat3x3&, args[0]);
             return VAR(self.is_affine());
