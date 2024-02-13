@@ -10,6 +10,7 @@ if (CMAKE_VERSION VERSION_LESS 3.12)
     set(Python3_EXECUTABLE python3)
 else()
     find_package(Python3 COMPONENTS Interpreter)
+endif()
 
 execute_process(
     COMMAND ${Python3_EXECUTABLE} prebuild.py
