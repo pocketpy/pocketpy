@@ -2,18 +2,18 @@
 
 namespace pkpy{
 
-#define BIND_VEC_VEC_OP(D, name, op)                                        \
-        vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
-            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            PyVec##D& other = CAST(PyVec##D&, args[1]);                     \
-            return VAR(self op other);                                      \
+#define BIND_VEC_VEC_OP(D, name, op)                                                    \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
+            PyVec##D& self = _CAST(PyVec##D&, _0);                                      \
+            PyVec##D& other = CAST(PyVec##D&, _1);                                      \
+            return VAR(self op other);                                                  \
         });
 
 #define BIND_VEC_FLOAT_OP(D, name, op)  \
-        vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
-            PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
-            f64 other = CAST(f64, args[1]);                                 \
-            return VAR(self op other);                                      \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
+            PyVec##D& self = _CAST(PyVec##D&, _0);                                      \
+            f64 other = CAST(f64, _1);                                                  \
+            return VAR(self op other);                                                  \
         });
 
 #define BIND_VEC_FUNCTION_0(D, name)        \
@@ -27,6 +27,27 @@ namespace pkpy{
             PyVec##D& self = _CAST(PyVec##D&, args[0]);                     \
             PyVec##D& other = CAST(PyVec##D&, args[1]);                     \
             return VAR(self.name(other));                                   \
+        });
+
+#define BIND_VEC_MUL_OP(D)                                                                \
+        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){     \
+            PyVec##D& self = _CAST(PyVec##D&, _0);                                          \
+            if(is_non_tagged_type(_1, PyVec##D::_type(vm))){                                \
+                PyVec##D& other = _CAST(PyVec##D&, _1);                                     \
+                return VAR(self * other);                                                   \
+            }                                                                               \
+            f64 other = CAST(f64, _1);                                                      \
+            return VAR(self * other);                                                       \
+        });                                                                                 \
+        vm->bind_method<1>(type, "__rmul__", [](VM* vm, ArgsView args){                     \
+            PyVec##D& self = _CAST(PyVec##D&, args[0]);                                     \
+            f64 other = CAST(f64, args[1]);                                                 \
+            return VAR(self * other);                                                       \
+        });                                                                                 \
+        vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){ \
+            PyVec##D& self = _CAST(PyVec##D&, _0);                                          \
+            f64 other = CAST(f64, _1);                                                      \
+            return VAR(self / other);                                                       \
         });
 
 // https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
@@ -142,8 +163,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
-        BIND_VEC_FLOAT_OP(2, __mul__, *)
-        BIND_VEC_FLOAT_OP(2, __rmul__, *)
+        BIND_VEC_MUL_OP(2)
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
         BIND_VEC_FUNCTION_1(2, dot)
         BIND_VEC_FUNCTION_1(2, cross)
@@ -178,9 +198,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
-        BIND_VEC_FLOAT_OP(3, __mul__, *)
-        BIND_VEC_FLOAT_OP(3, __rmul__, *)
-        BIND_VEC_FLOAT_OP(3, __truediv__, /)
+        BIND_VEC_MUL_OP(3)
         BIND_VEC_FUNCTION_1(3, dot)
         BIND_VEC_FUNCTION_1(3, cross)
         BIND_VEC_FUNCTION_1(3, copy_)
@@ -216,9 +234,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
-        BIND_VEC_FLOAT_OP(4, __mul__, *)
-        BIND_VEC_FLOAT_OP(4, __rmul__, *)
-        BIND_VEC_FLOAT_OP(4, __truediv__, /)
+        BIND_VEC_MUL_OP(4)
         BIND_VEC_FUNCTION_1(4, dot)
         BIND_VEC_FUNCTION_1(4, copy_)
         BIND_VEC_FUNCTION_0(4, length)
@@ -228,7 +244,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
     }
 
 #undef BIND_VEC_VEC_OP
-#undef BIND_VEC_FLOAT_OP
+#undef BIND_VEC_MUL_OP
 #undef BIND_VEC_FUNCTION_0
 #undef BIND_VEC_FUNCTION_1
 

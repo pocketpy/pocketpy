@@ -13,13 +13,10 @@ struct Vec2{
     Vec2(const Vec2& v) = default;
 
     Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
-    Vec2& operator+=(const Vec2& v) { x += v.x; y += v.y; return *this; }
     Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
-    Vec2& operator-=(const Vec2& v) { x -= v.x; y -= v.y; return *this; }
     Vec2 operator*(float s) const { return Vec2(x * s, y * s); }
-    Vec2& operator*=(float s) { x *= s; y *= s; return *this; }
+    Vec2 operator*(const Vec2& v) const { return Vec2(x * v.x, y * v.y); }
     Vec2 operator/(float s) const { return Vec2(x / s, y / s); }
-    Vec2& operator/=(float s) { x /= s; y /= s; return *this; }
     Vec2 operator-() const { return Vec2(-x, -y); }
     bool operator==(const Vec2& v) const { return isclose(x, v.x) && isclose(y, v.y); }
     bool operator!=(const Vec2& v) const { return !isclose(x, v.x) || !isclose(y, v.y); }
@@ -40,13 +37,10 @@ struct Vec3{
     Vec3(const Vec3& v) = default;
 
     Vec3 operator+(const Vec3& v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
-    Vec3& operator+=(const Vec3& v) { x += v.x; y += v.y; z += v.z; return *this; }
     Vec3 operator-(const Vec3& v) const { return Vec3(x - v.x, y - v.y, z - v.z); }
-    Vec3& operator-=(const Vec3& v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
     Vec3 operator*(float s) const { return Vec3(x * s, y * s, z * s); }
-    Vec3& operator*=(float s) { x *= s; y *= s; z *= s; return *this; }
+    Vec3 operator*(const Vec3& v) const { return Vec3(x * v.x, y * v.y, z * v.z); }
     Vec3 operator/(float s) const { return Vec3(x / s, y / s, z / s); }
-    Vec3& operator/=(float s) { x /= s; y /= s; z /= s; return *this; }
     Vec3 operator-() const { return Vec3(-x, -y, -z); }
     bool operator==(const Vec3& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z); }
     bool operator!=(const Vec3& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z); }
@@ -66,13 +60,10 @@ struct Vec4{
     Vec4(const Vec4& v) = default;
 
     Vec4 operator+(const Vec4& v) const { return Vec4(x + v.x, y + v.y, z + v.z, w + v.w); }
-    Vec4& operator+=(const Vec4& v) { x += v.x; y += v.y; z += v.z; w += v.w; return *this; }
     Vec4 operator-(const Vec4& v) const { return Vec4(x - v.x, y - v.y, z - v.z, w - v.w); }
-    Vec4& operator-=(const Vec4& v) { x -= v.x; y -= v.y; z -= v.z; w -= v.w; return *this; }
     Vec4 operator*(float s) const { return Vec4(x * s, y * s, z * s, w * s); }
-    Vec4& operator*=(float s) { x *= s; y *= s; z *= s; w *= s; return *this; }
+    Vec4 operator*(const Vec4& v) const { return Vec4(x * v.x, y * v.y, z * v.z, w * v.w); }
     Vec4 operator/(float s) const { return Vec4(x / s, y / s, z / s, w / s); }
-    Vec4& operator/=(float s) { x /= s; y /= s; z /= s; w /= s; return *this; }
     Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
     bool operator==(const Vec4& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z) && isclose(w, v.w); }
     bool operator!=(const Vec4& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z) || !isclose(w, v.w); }

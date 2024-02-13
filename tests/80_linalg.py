@@ -482,3 +482,8 @@ try:
     exit(1)
 except IndexError:
     pass
+
+# test vec * vec
+assert vec2(1, 2) * vec2(3, 4) == vec2(3, 8)
+assert vec3(1, 2, 3) * vec3(4, 5, 6) == vec3(4, 10, 18)
+assert vec4(1, 2, 3, 4) * vec4(5, 6, 7, 8) == vec4(5, 12, 21, 32)
