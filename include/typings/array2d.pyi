@@ -45,7 +45,7 @@ class array2d(Generic[T]):
             raise IndexError(f'({col}, {row}) is not a valid index for {self!r}')
         self.data[row * self.n_cols + col] = value
 
-    def __iter__(self) -> list[list['T']]:
+    def __iter__(self):
         for row in range(self.n_rows):
             yield [self[col, row] for col in range(self.n_cols)]
     
