@@ -42,3 +42,17 @@ try:
     exit(1)
 except IndexError:
     pass
+
+seq = [1, 2, 3, 4]
+weights = [0.1, 0.2, 0.2, 0.5]
+k = 1000
+res = r.choices(seq, weights, k=k)
+assert len(res) == k and isinstance(res, list)
+
+max_error = 0.03
+for i in range(len(seq)):
+    actual_w = res.count(seq[i]) / k
+    assert abs(actual_w - weights[i]) < max_error
+
+
+
