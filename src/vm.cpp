@@ -117,6 +117,18 @@ namespace pkpy{
         return nullptr;
     }
 
+    std::pair<PyObject**, int> VM::_cast_array(PyObject* obj){
+        if(is_non_tagged_type(obj, VM::tp_list)){
+            List& list = PK_OBJ_GET(List, obj);
+            return {list.data(), list.size()};
+        }else if(is_non_tagged_type(obj, VM::tp_tuple)){
+            Tuple& tuple = PK_OBJ_GET(Tuple, obj);
+            return {tuple.data(), tuple.size()};
+        }
+        TypeError(_S("expected list or tuple, got ", _type_name(this, _tp(obj)).escape()));
+        PK_UNREACHABLE();
+    }
+
     FrameId VM::top_frame(){
 #if PK_DEBUG_EXTRA_CHECK
         if(callstack.empty()) PK_FATAL_ERROR();

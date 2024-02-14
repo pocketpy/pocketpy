@@ -31,6 +31,7 @@ struct Tuple {
 
     PyObject** begin() const { return _args; }
     PyObject** end() const { return _args + _size; }
+    PyObject** data() const { return _args; }
 };
 
 // a lightweight view for function args, it does not own the memory
