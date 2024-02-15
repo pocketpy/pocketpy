@@ -202,7 +202,7 @@ struct MappingProxy{
 
 inline void gc_mark_namedict(NameDict& t){
     if(t.size() == 0) return;
-    t.apply([](StrName name, PyObject* obj){
+    t.apply([]([[maybe_unused]]StrName name, PyObject* obj){
         PK_OBJ_MARK(obj);
     });
 }
@@ -230,7 +230,7 @@ __T py_cast(VM* vm, PyObject* obj) {
 }
 
 template<typename __T>
-__T _py_cast(VM* vm, PyObject* obj) {
+__T _py_cast([[maybe_unused]]VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
     if constexpr(std::is_enum_v<T>){
         return (__T)_py_cast<i64>(vm, obj);

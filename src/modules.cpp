@@ -40,7 +40,7 @@ struct PyStructTime{
 
     PyStructTime* _() { return this; }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyStructTime>(type);
         PY_READONLY_FIELD(PyStructTime, "tm_year", _, tm_year);
         PY_READONLY_FIELD(PyStructTime, "tm_mon", _, tm_mon);
@@ -58,7 +58,7 @@ void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
     PyStructTime::register_class(vm, mod);
 
-    vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
+    vm->bind_func<0>(mod, "time", [](VM* vm, [[maybe_unused]] ArgsView args) {
         auto now = std::chrono::system_clock::now();
         return VAR(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000.0);
     });
@@ -74,7 +74,7 @@ void add_module_time(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
+    vm->bind_func<0>(mod, "localtime", [](VM* vm, [[maybe_unused]] ArgsView args) {
         auto now = std::chrono::system_clock::now();
         std::time_t t = std::chrono::system_clock::to_time_t(now);
         return VAR_T(PyStructTime, t);
@@ -206,14 +206,14 @@ void add_module_math(VM* vm){
 
 void add_module_traceback(VM* vm){
     PyObject* mod = vm->new_module("traceback");
-    vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
+    vm->bind_func<0>(mod, "print_exc", [](VM* vm, [[maybe_unused]] ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->_last_exception);
         vm->stdout_write(e.summary());
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "format_exc", [](VM* vm, ArgsView args) {
+    vm->bind_func<0>(mod, "format_exc", [](VM* vm, [[maybe_unused]] ArgsView args) {
         if(vm->_last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->_last_exception);
         return VAR(e.summary());
@@ -258,7 +258,7 @@ struct LineProfilerW{
 
     LineProfiler profiler;
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind_default_constructor<LineProfilerW>(type);
 
         vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){

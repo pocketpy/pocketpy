@@ -15,7 +15,7 @@ namespace pkpy {
             buffer += '\n';
             int n = buffer.size();
             if(n>=need_more_lines){
-                for(int i=buffer.size()-need_more_lines; i<buffer.size(); i++){
+                for(int i=buffer.size()-need_more_lines; i< static_cast<int>(buffer.size()); i++){
                     // no enough lines
                     if(buffer[i] != '\n') return true;
                 }

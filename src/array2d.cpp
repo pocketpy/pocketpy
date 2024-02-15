@@ -39,7 +39,7 @@ struct Array2d{
         data[row * n_cols + col] = value;
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm,[[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind(type, "__new__(cls, *args, **kwargs)", [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<Array2d>(cls);
@@ -115,7 +115,7 @@ struct Array2d{
             return vm->py_iter(VAR(std::move(t)));
         });
 
-        vm->bind__len__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__len__(PK_OBJ_GET(Type, type), []([[maybe_unused]]VM* vm, PyObject* _0){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             return (i64)self.n_rows;
         });

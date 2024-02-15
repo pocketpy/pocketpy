@@ -416,7 +416,7 @@ public:
 
     ImportContext _import_context;
     PyObject* py_import(Str path, bool throw_err=true);
-    ~VM();
+    virtual ~VM();
 
 #if PK_DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
@@ -570,7 +570,7 @@ template<> inline CString py_cast<CString>(VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
 }
 
-template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
+template<> inline CString _py_cast<CString>([[maybe_unused]]VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
 }
 
@@ -586,7 +586,7 @@ inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
 }
 
 template<>
-inline const char* _py_cast<const char*>(VM* vm, PyObject* obj){
+inline const char* _py_cast<const char*>([[maybe_unused]]VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
 }
 

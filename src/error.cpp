@@ -8,7 +8,7 @@ namespace pkpy{
         if (strncmp(source.data(), "\xEF\xBB\xBF", 3) == 0) index += 3;
         // Drop all '\r'
         SStream ss(source.size() + 1);
-        while(index < source.size()){
+        while(index < static_cast<int>(source.size())){
             if(source[index] != '\r') ss << source[index];
             index++;
         }

@@ -109,7 +109,7 @@ void init_builtins(VM* _vm) {
         return VAR(vm->issubclass(PK_OBJ_GET(Type, args[0]), PK_OBJ_GET(Type, args[1])));
     });
 
-    _vm->bind_func<0>(_vm->builtins, "globals", [](VM* vm, ArgsView args) {
+    _vm->bind_func<0>(_vm->builtins, "globals", [](VM* vm, [[maybe_unused]] ArgsView args) {
         PyObject* mod = vm->top_frame()->_module;
         return VAR(MappingProxy(mod));
     });
@@ -340,7 +340,7 @@ void init_builtins(VM* _vm) {
     _vm->bind__iter__(VM::tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
     
     // tp_nonetype
-    _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, PyObject* _0) {
+    _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, [[maybe_unused]] PyObject* _0) {
         return VAR("None"); 
     });
 
@@ -501,7 +501,7 @@ void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, _0);
         return VAR(self.index(CAST(Str&, _1)) != -1);
     });
-    _vm->bind__str__(VM::tp_str, [](VM* vm, PyObject* _0) { return _0; });
+    _vm->bind__str__(VM::tp_str, []([[maybe_unused]] VM* vm, PyObject* _0) { return _0; });
     _vm->bind__iter__(VM::tp_str, [](VM* vm, PyObject* _0) { return VAR_T(StringIter, _0); });
     _vm->bind__repr__(VM::tp_str, [](VM* vm, PyObject* _0) {
         const Str& self = _CAST(Str&, _0);
@@ -554,7 +554,7 @@ void init_builtins(VM* _vm) {
             parts = self.split(sep);
         }
         List ret(parts.size());
-        for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
+        for(int i=0; i< static_cast<int>(parts.size()); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
     });
 
@@ -563,7 +563,7 @@ void init_builtins(VM* _vm) {
         std::vector<std::string_view> parts;
         parts = self.split('\n');
         List ret(parts.size());
-        for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
+        for(int i=0; i < static_cast<int>(parts.size()); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
     });
 
@@ -1014,10 +1014,10 @@ void init_builtins(VM* _vm) {
     });
 
     // tp_ellipsis / tp_NotImplementedType
-    _vm->bind__repr__(_vm->_tp(_vm->Ellipsis), [](VM* vm, PyObject* _0) {
+    _vm->bind__repr__(_vm->_tp(_vm->Ellipsis), [](VM* vm, [[maybe_unused]] PyObject* _0) {
         return VAR("...");
     });
-    _vm->bind__repr__(_vm->_tp(_vm->NotImplemented), [](VM* vm, PyObject* _0) {
+    _vm->bind__repr__(_vm->_tp(_vm->NotImplemented), [](VM* vm, [[maybe_unused]] PyObject* _0) {
         return VAR("NotImplemented");
     });
 
@@ -1173,7 +1173,7 @@ void init_builtins(VM* _vm) {
     });
 
     // tp_dict
-    _vm->bind_constructor<-1>(_vm->_t(VM::tp_dict), [](VM* vm, ArgsView args){
+    _vm->bind_constructor<-1>(_vm->_t(VM::tp_dict), [](VM* vm, [[maybe_unused]] ArgsView args){
         return VAR(Dict(vm));
     });
 
@@ -1416,7 +1416,7 @@ void init_builtins(VM* _vm) {
 void VM::post_init(){
     init_builtins(this);
 
-    bind_method<-1>(tp_module, "__init__", [](VM* vm, ArgsView args) {
+    bind_method<-1>(tp_module, "__init__", [](VM* vm, [[maybe_unused]] ArgsView args) {
         vm->NotImplementedError();
         return vm->None;
     });
@@ -1435,7 +1435,7 @@ void VM::post_init(){
     });
 
     // type
-    bind__getitem__(tp_type, [](VM* vm, PyObject* self, PyObject* _){
+    bind__getitem__(tp_type, []([[maybe_unused]] VM* vm, PyObject* self, PyObject* _){
         PK_UNUSED(_);
         return self;        // for generics
     });

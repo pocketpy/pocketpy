@@ -10,7 +10,7 @@ struct Random{
         gen.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind_default_constructor<Random>(type);
 
         vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {

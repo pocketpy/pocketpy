@@ -105,7 +105,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
     return Vec2(output_x, output_y);
 }
 
-    void PyVec2::_register(VM* vm, PyObject* mod, PyObject* type){
+    void PyVec2::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(PyVec2)
 
         vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
@@ -174,7 +174,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         BIND_VEC_FUNCTION_0(2, normalize_)
     }
 
-    void PyVec3::_register(VM* vm, PyObject* mod, PyObject* type){
+    void PyVec3::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(PyVec3)
 
         vm->bind_constructor<4>(type, [](VM* vm, ArgsView args){
@@ -208,7 +208,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
         BIND_VEC_FUNCTION_0(3, normalize_)
     }
 
-    void PyVec4::_register(VM* vm, PyObject* mod, PyObject* type){
+    void PyVec4::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(PyVec4)
 
         vm->bind_constructor<1+4>(type, [](VM* vm, ArgsView args){
@@ -248,7 +248,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 #undef BIND_VEC_FUNCTION_0
 #undef BIND_VEC_FUNCTION_1
 
-    void PyMat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
+    void PyMat3x3::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(PyMat3x3)
 
         vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){

@@ -19,7 +19,7 @@ typedef int (*LuaStyleFuncC)(VM*);
     if(vm->_c.error != nullptr) \
         return false;
 
-static int count_extra_elements(VM* vm, int n){
+static int count_extra_elements(VM* vm, [[maybe_unused]] int n){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }

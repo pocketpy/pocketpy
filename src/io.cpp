@@ -24,7 +24,7 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
 #endif
 
 
-unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
+unsigned char* _default_import_handler([[maybe_unused]] const char* name_p, [[maybe_unused]] int name_size,[[maybe_unused]]  int* out_size){
 #if PK_ENABLE_OS
     std::string name(name_p, name_size);
     bool exists = std::filesystem::exists(std::filesystem::path(name));
@@ -109,7 +109,7 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
 
 #endif
 
-void add_module_io(VM* vm){
+void add_module_io([[maybe_unused]] VM* vm){
 #if PK_ENABLE_OS
     PyObject* mod = vm->new_module("io");
     FileIO::register_class(vm, mod);
@@ -121,7 +121,7 @@ void add_module_io(VM* vm){
 #endif
 }
 
-void add_module_os(VM* vm){
+void add_module_os([[maybe_unused]] VM* vm){
 #if PK_ENABLE_OS
     PyObject* mod = vm->new_module("os");
     PyObject* path_obj = vm->heap.gcnew<DummyInstance>(vm->tp_object);

@@ -309,7 +309,7 @@ struct NameDictImpl{
 
     std::vector<StrName> keys() const{
         std::vector<StrName> v;
-        apply([&](StrName key, V val){
+        apply([&](StrName key,[[maybe_unused]] V val){
             v.push_back(key);
         });
         return v;

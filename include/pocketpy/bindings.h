@@ -158,7 +158,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             wT& self = _CAST(wT&, args[0]);                                         \
             return VAR_T(wT, *self._());                                            \
         });                                                                         \
-        vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){               \
+        vm->bind_method<0>(type, "sizeof", [](VM* vm,[[maybe_unused]] ArgsView args){               \
             return VAR(sizeof(vT));                                                 \
         });                                                                         \
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \

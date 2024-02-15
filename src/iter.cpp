@@ -2,10 +2,10 @@
 
 namespace pkpy{
 
-    void RangeIter::_register(VM* vm, PyObject* mod, PyObject* type){
+    void RangeIter::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<RangeIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__iter__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             RangeIter& self = _CAST(RangeIter&, obj);
             bool has_next = self.r.step > 0 ? self.current < self.r.stop : self.current > self.r.stop;
@@ -15,10 +15,10 @@ namespace pkpy{
         });
     }
 
-    void ArrayIter::_register(VM* vm, PyObject* mod, PyObject* type){
+    void ArrayIter::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<ArrayIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__iter__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             ArrayIter& self = _CAST(ArrayIter&, obj);
             if(self.current == self.end) return vm->StopIteration;
@@ -26,10 +26,10 @@ namespace pkpy{
         });
     }
 
-    void StringIter::_register(VM* vm, PyObject* mod, PyObject* type){
+    void StringIter::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__iter__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             StringIter& self = _CAST(StringIter&, obj);
             if(self.index == self.str->size) return vm->StopIteration;
@@ -73,10 +73,10 @@ namespace pkpy{
         }
     }
 
-    void Generator::_register(VM* vm, PyObject* mod, PyObject* type){
+    void Generator::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Generator>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__iter__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             Generator& self = _CAST(Generator&, obj);
             return self.next(vm);

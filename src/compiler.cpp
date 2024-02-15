@@ -51,7 +51,7 @@ namespace pkpy{
             SyntaxError("maximum number of opcodes exceeded");
         }
         // pre-compute LOOP_BREAK and LOOP_CONTINUE and FOR_ITER
-        for(int i=0; i<codes.size(); i++){
+        for(int i=0; i< static_cast<int>(codes.size()); i++){
             Bytecode& bc = codes[i];
             if(bc.op == OP_LOOP_CONTINUE){
                 bc.arg = ctx()->co->blocks[bc.arg].start;

@@ -62,7 +62,7 @@ namespace pkpy{
 
 void FuncDecl::_gc_mark() const{
     code->_gc_mark();
-    for(int i=0; i<kwargs.size(); i++) PK_OBJ_MARK(kwargs[i].value);
+    for(int i=0; i< static_cast<int>(kwargs.size()); i++) PK_OBJ_MARK(kwargs[i].value);
 }
 
 }   // namespace pkpy

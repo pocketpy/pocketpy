@@ -164,7 +164,7 @@ struct Type {
 	operator int() const { return this->index; }
 };
 
-#define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
+#define PK_LAMBDA(x) ([](VM* vm, [[maybe_unused]] ArgsView args) { return x; })
 #define PK_VAR_LAMBDA(x) ([](VM* vm, ArgsView args) { return VAR(x); })
 #define PK_ACTION(x) ([](VM* vm, ArgsView args) { x; return vm->None; })
 

@@ -20,11 +20,11 @@ void add_module_csv(VM *vm){
             std::string buffer;
 __NEXT_LINE:
             j = 0;
-            while(j < line.size()){
+            while(j < static_cast<int>(line.size())){
                 switch(line[j]){
                     case '"':
                         if(in_quote){
-                            if(j+1 < line.size() && line[j+1] == '"'){
+                            if(j+1 < static_cast<int>(line.size()) && line[j+1] == '"'){
                                 buffer += '"';
                                 j++;
                             }else{

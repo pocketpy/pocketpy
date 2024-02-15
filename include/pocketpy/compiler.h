@@ -33,7 +33,7 @@ class Compiler {
     const Token& curr() const{ return tokens.at(i); }
     const Token& next() const{ return tokens.at(i+1); }
     const Token& err() const{
-        if(i >= tokens.size()) return prev();
+        if(i >= static_cast<int>(tokens.size())) return prev();
         return curr();
     }
     void advance(int delta=1) { i += delta; }

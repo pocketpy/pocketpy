@@ -2,14 +2,14 @@
 
 namespace pkpy{
 
-    void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
+    void VoidP::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
             return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));
         });
 
-        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__hash__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM* vm, PyObject* obj){
             VoidP& self = PK_OBJ_GET(VoidP, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
@@ -37,7 +37,7 @@ namespace pkpy{
     }
 
 
-    void C99Struct::_register(VM* vm, PyObject* mod, PyObject* type){
+    void C99Struct::_register(VM* vm, [[maybe_unused]] PyObject* mod, PyObject* type){
         vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             int size = CAST(int, args[1]);

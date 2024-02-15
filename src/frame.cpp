@@ -50,7 +50,7 @@ namespace pkpy{
     void Frame::jump_abs_break(int target){
         int i = co->iblocks[_ip];
         _next_ip = target;
-        if(_next_ip >= co->codes.size()){
+        if(_next_ip >= static_cast<int>(co->codes.size())){
             while(i>=0) i = _exit_block(i);
         }else{
             // BUG (solved)

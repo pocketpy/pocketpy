@@ -22,13 +22,13 @@ namespace pkpy
         void _gc_mark() const { PK_OBJ_MARK(ref); }
         static void _register(VM *vm, PyObject *mod, PyObject *type);
     };
-    void PyDequeIter::_register(VM *vm, PyObject *mod, PyObject *type)
+    void PyDequeIter::_register(VM *vm, [[maybe_unused]] PyObject *mod, PyObject *type)
     {
         // Iterator for the deque type
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<PyDequeIter>(type);
 
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
+        vm->bind__iter__(PK_OBJ_GET(Type, type), []([[maybe_unused]] VM *vm, PyObject *obj)
                          { return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
                          {
@@ -61,7 +61,7 @@ namespace pkpy
         static void _register(VM *vm, PyObject *mod, PyObject *type); // register the type
         void _gc_mark() const;                                        // needed for container types, mark all objects in the deque for gc
     };
-    void PyDeque::_register(VM *vm, PyObject *mod, PyObject *type)
+    void PyDeque::_register(VM *vm, [[maybe_unused]] PyObject *mod, PyObject *type)
     {
         vm->bind(type, "__new__(cls, iterable=None, maxlen=None)",
                  [](VM *vm, ArgsView args)
@@ -137,7 +137,7 @@ namespace pkpy
             if(!is_non_tagged_type(_0, PyDeque::_type(vm))) return vm->NotImplemented;
             const PyDeque &other = _CAST(PyDeque&, _1);
             if (self.dequeItems.size() != other.dequeItems.size()) return vm->False;
-            for (int i = 0; i < self.dequeItems.size(); i++){
+            for (int i = 0; i < static_cast<int>(self.dequeItems.size()); i++){
                 if (vm->py_ne(self.dequeItems[i], other.dequeItems[i])) return vm->False;
             }
             return vm->True;
@@ -231,7 +231,7 @@ namespace pkpy
                      {
                          if (vm->py_eq((*it), obj))
                              cnt++;
-                         if (sz != self.dequeItems.size())// mutating the deque during iteration is not allowed
+                         if (sz != static_cast<int>(self.dequeItems.size()))// mutating the deque during iteration is not allowed
                              vm->RuntimeError("deque mutated during iteration"); 
                      }
                      return VAR(cnt);
@@ -290,7 +290,7 @@ namespace pkpy
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      int index = CAST(int, args[1]);
                      PyObject *obj = args[2];
-                     if (self.bounded && self.dequeItems.size() == self.maxlen)
+                     if (self.bounded && static_cast<int>(self.dequeItems.size()) == self.maxlen)
                          vm->IndexError("deque already at its maximum size");
                      else
                          self.insertObj(false, false, index, obj); // this index shouldn't be fixed using vm->normalized_index, pass as is
@@ -364,7 +364,7 @@ namespace pkpy
                     return VAR(self.maxlen);
                 return vm->None;
             },
-            [](VM *vm, ArgsView args)
+            [](VM *vm, [[maybe_unused]] ArgsView args)
             {
                 vm->AttributeError("attribute 'maxlen' of 'collections.deque' objects is not writable");
                 return vm->None;

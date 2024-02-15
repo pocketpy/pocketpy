@@ -327,7 +327,7 @@ namespace pkpy{
         // TOS is an iterable
         // items may contain StarredExpr, we should check it
         int starred_i = -1;
-        for(int i=0; i<items.size(); i++){
+        for(int i=0; i< static_cast<int>(items.size()); i++){
             if(!items[i]->is_starred()) continue;
             if(starred_i == -1) starred_i = i;
             else return false;  // multiple StarredExpr not allowed
@@ -346,7 +346,7 @@ namespace pkpy{
             // starred assignment target must be in a tuple
             if(items.size() == 1) return false;
             // starred assignment target must be the last one (differ from cpython)
-            if(starred_i != items.size()-1) return false;
+            if(starred_i != static_cast<int>(items.size()-1)) return false;
             // a,*b = [1,2,3]
             // stack is [1,2,3] -> [1,[2,3]]
             ctx->emit_(OP_UNPACK_EX, items.size()-1, line);
