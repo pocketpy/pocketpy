@@ -35,3 +35,4 @@ We know `numpy` is a huge project.
 Our goal is to implement a most commonly used subset of `numpy` in pocketpy.
 You can mix C++ and Python code to simplify the overall workloads.
 
+https://github.com/pocketpy/pocketpy/issues/202
