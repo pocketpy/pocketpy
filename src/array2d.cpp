@@ -82,37 +82,82 @@ struct Array2d{
             return self._get(col, row);
         });
 
+        #define HANDLE_SLICE()                              \
+                int start_col, stop_col, step_col;          \
+                int start_row, stop_row, step_row;          \
+                vm->parse_int_slice(PK_OBJ_GET(Slice, xy[0]), self.n_cols, start_col, stop_col, step_col);  \
+                vm->parse_int_slice(PK_OBJ_GET(Slice, xy[1]), self.n_rows, start_row, stop_row, step_row);  \
+                if(step_col != 1 || step_row != 1) vm->ValueError("slice step must be 1");  \
+                int slice_width = stop_col - start_col; \
+                int slice_height = stop_row - start_row;    \
+                if(slice_width <= 0 || slice_height <= 0) vm->ValueError("slice width and height must be positive");
+
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             const Tuple& xy = CAST(Tuple&, _1);
-            int col = CAST(int, xy[0]);
-            int row = CAST(int, xy[1]);
-            if(!self.is_valid(col, row)){
-                vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
+            i64 col, row;
+            if(try_cast_int(xy[0], &col) && try_cast_int(xy[1], &row)){
+                if(!self.is_valid(col, row)){
+                    vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
+                }
+                return self._get(col, row);
             }
-            return self._get(col, row);
+
+            if(is_non_tagged_type(xy[0], VM::tp_slice) && is_non_tagged_type(xy[1], VM::tp_slice)){
+                HANDLE_SLICE();
+                PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+                Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
+                new_array.init(stop_col - start_col, stop_row - start_row);
+                for(int j = start_row; j < stop_row; j++){
+                    for(int i = start_col; i < stop_col; i++){
+                        new_array._set(i - start_col, j - start_row, self._get(i, j));
+                    }
+                }
+                return new_array_obj;
+            }
+            vm->TypeError("expected `tuple[int, int]` or `tuple[slice, slice]` as index");
+            PK_UNREACHABLE();
         });
 
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             const Tuple& xy = CAST(Tuple&, _1);
-            int col = CAST(int, xy[0]);
-            int row = CAST(int, xy[1]);
-            if(!self.is_valid(col, row)){
-                vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
+            i64 col, row;
+            if(try_cast_int(xy[0], &col) && try_cast_int(xy[1], &row)){
+                if(!self.is_valid(col, row)){
+                    vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", self.n_cols, ", ", self.n_rows, ')'));
+                }
+                self._set(col, row, _2);
+                return;
             }
-            self._set(col, row, _2);
+
+            if(is_non_tagged_type(xy[0], VM::tp_slice) && is_non_tagged_type(xy[1], VM::tp_slice)){
+                HANDLE_SLICE();
+                Array2d& other = CAST(Array2d&, _2);        // _2 must be an array2d
+                if(slice_width != other.n_cols || slice_height != other.n_rows){
+                    vm->ValueError("array2d size does not match the slice size");
+                }
+                for(int j = 0; j < slice_height; j++){
+                    for(int i = 0; i < slice_width; i++){
+                        self._set(i + start_col, j + start_row, other._get(i, j));
+                    }
+                }
+                return;
+            }
+            vm->TypeError("expected `tuple[int, int]` or `tuple[slice, slice]` as index");
         });
 
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
-            Array2d& self = PK_OBJ_GET(Array2d, _0);
+        #undef HANDLE_SLICE
+
+        vm->bind(type, "tolist(self)", [](VM* vm, ArgsView args){
+            Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             List t(self.n_rows);
-            List row(self.n_cols);
             for(int j = 0; j < self.n_rows; j++){
+                List row(self.n_cols);
                 for(int i = 0; i < self.n_cols; i++) row[i] = self._get(i, j);
-                t[j] = VAR(row);    // copy
+                t[j] = VAR(std::move(row));
             }
-            return vm->py_iter(VAR(std::move(t)));
+            return VAR(std::move(t));
         });
 
         vm->bind__len__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
@@ -200,28 +245,74 @@ struct Array2d{
             return vm->True;
         });
 
-        // for cellular automata
-        vm->bind(type, "count_neighbors(self, value) -> array2d[int]", [](VM* vm, ArgsView args){
+        vm->bind(type, "count_neighbors(self, value, neighborhood='moore') -> array2d[int]", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
             Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
             new_array.init(self.n_cols, self.n_rows);
             PyObject* value = args[1];
-            for(int j = 0; j < new_array.n_rows; j++){
-                for(int i = 0; i < new_array.n_cols; i++){
-                    int count = 0;
-                    count += self.is_valid(i-1, j-1) && vm->py_eq(self._get(i-1, j-1), value);
-                    count += self.is_valid(i, j-1) && vm->py_eq(self._get(i, j-1), value);
-                    count += self.is_valid(i+1, j-1) && vm->py_eq(self._get(i+1, j-1), value);
-                    count += self.is_valid(i-1, j) && vm->py_eq(self._get(i-1, j), value);
-                    count += self.is_valid(i+1, j) && vm->py_eq(self._get(i+1, j), value);
-                    count += self.is_valid(i-1, j+1) && vm->py_eq(self._get(i-1, j+1), value);
-                    count += self.is_valid(i, j+1) && vm->py_eq(self._get(i, j+1), value);
-                    count += self.is_valid(i+1, j+1) && vm->py_eq(self._get(i+1, j+1), value);
-                    new_array._set(i, j, VAR(count));
+            const Str& neighborhood = CAST(Str&, args[2]);
+            if(neighborhood == "moore"){
+                for(int j = 0; j < new_array.n_rows; j++){
+                    for(int i = 0; i < new_array.n_cols; i++){
+                        int count = 0;
+                        count += self.is_valid(i-1, j-1) && vm->py_eq(self._get(i-1, j-1), value);
+                        count += self.is_valid(i, j-1) && vm->py_eq(self._get(i, j-1), value);
+                        count += self.is_valid(i+1, j-1) && vm->py_eq(self._get(i+1, j-1), value);
+                        count += self.is_valid(i-1, j) && vm->py_eq(self._get(i-1, j), value);
+                        count += self.is_valid(i+1, j) && vm->py_eq(self._get(i+1, j), value);
+                        count += self.is_valid(i-1, j+1) && vm->py_eq(self._get(i-1, j+1), value);
+                        count += self.is_valid(i, j+1) && vm->py_eq(self._get(i, j+1), value);
+                        count += self.is_valid(i+1, j+1) && vm->py_eq(self._get(i+1, j+1), value);
+                        new_array._set(i, j, VAR(count));
+                    }
                 }
+            }else if(neighborhood == "von_neumann"){
+                for(int j = 0; j < new_array.n_rows; j++){
+                    for(int i = 0; i < new_array.n_cols; i++){
+                        int count = 0;
+                        count += self.is_valid(i, j-1) && vm->py_eq(self._get(i, j-1), value);
+                        count += self.is_valid(i-1, j) && vm->py_eq(self._get(i-1, j), value);
+                        count += self.is_valid(i+1, j) && vm->py_eq(self._get(i+1, j), value);
+                        count += self.is_valid(i, j+1) && vm->py_eq(self._get(i, j+1), value);
+                        new_array._set(i, j, VAR(count));
+                    }
+                }
+            }else{
+                vm->ValueError("neighborhood must be 'moore' or 'von_neumann'");
             }
             return new_array_obj; 
+        });
+
+        vm->bind(type, "count(self, value) -> int", [](VM* vm, ArgsView args){
+            Array2d& self = PK_OBJ_GET(Array2d, args[0]);
+            PyObject* value = args[1];
+            int count = 0;
+            for(int i = 0; i < self.numel; i++) count += vm->py_eq(self.data[i], value);
+            return VAR(count);
+        });
+
+        vm->bind(type, "find_bounding_rect(self, value)", [](VM* vm, ArgsView args){
+            Array2d& self = PK_OBJ_GET(Array2d, args[0]);
+            PyObject* value = args[1];
+            int left = self.n_cols;
+            int top = self.n_rows;
+            int right = 0;
+            int bottom = 0;
+            for(int j = 0; j < self.n_rows; j++){
+                for(int i = 0; i < self.n_cols; i++){
+                    if(vm->py_eq(self._get(i, j), value)){
+                        left = std::min(left, i);
+                        top = std::min(top, j);
+                        right = std::max(right, i);
+                        bottom = std::max(bottom, j);
+                    }
+                }
+            }
+            int width = right - left + 1;
+            int height = bottom - top + 1;
+            if(width <= 0 || height <= 0) return vm->None;
+            return VAR(Tuple(VAR(left), VAR(top), VAR(width), VAR(height)));
         });
     }
 

@@ -1,112 +1,54 @@
-from typing import Callable, Any, Generic, TypeVar
+from typing import Callable, Any, Generic, TypeVar, Literal, overload
 
 T = TypeVar('T')
 
+Neighborhood = Literal['moore', 'von_neumann']
+
 class array2d(Generic[T]):
-    data: list[T]       # not available in native module
-
-    def __init__(self, n_cols: int, n_rows: int, default=None):
-        self.n_cols = n_cols
-        self.n_rows = n_rows
-        if callable(default):
-            self.data = [default() for _ in range(n_cols * n_rows)]
-        else:
-            self.data = [default] * n_cols * n_rows
-    
+    def __init__(self, n_cols: int, n_rows: int, default=None): ...
     @property
-    def width(self) -> int:
-        return self.n_cols
-    
+    def width(self) -> int: ...
     @property
-    def height(self) -> int:
-        return self.n_rows
-    
+    def height(self) -> int: ...
     @property
-    def numel(self) -> int:
-        return self.n_cols * self.n_rows
+    def numel(self) -> int: ...
 
-    def is_valid(self, col: int, row: int) -> bool:
-        return 0 <= col < self.n_cols and 0 <= row < self.n_rows
+    def is_valid(self, col: int, row: int) -> bool: ...
 
-    def get(self, col: int, row: int, default=None):
-        if not self.is_valid(col, row):
-            return default
-        return self.data[row * self.n_cols + col]
+    def get(self, col: int, row: int, default=None): ...
 
-    def __getitem__(self, index: tuple[int, int]):
-        col, row = index
-        if not self.is_valid(col, row):
-            raise IndexError(f'({col}, {row}) is not a valid index for {self!r}')
-        return self.data[row * self.n_cols + col]
+    @overload
+    def __getitem__(self, index: tuple[int, int]): ...
+    @overload
+    def __getitem__(self, index: tuple[slice, slice]) -> 'array2d[T]': ...
+    @overload
+    def __setitem__(self, index: tuple[int, int], value: T): ...
+    @overload
+    def __setitem__(self, index: tuple[slice, slice], value: 'array2d[T]'): ...
 
-    def __setitem__(self, index: tuple[int, int], value: T):
-        col, row = index
-        if not self.is_valid(col, row):
-            raise IndexError(f'({col}, {row}) is not a valid index for {self!r}')
-        self.data[row * self.n_cols + col] = value
+    def __len__(self) -> int: ...
+    def __eq__(self, other: 'array2d') -> bool: ...
+    def __ne__(self, other: 'array2d') -> bool: ...
+    def __repr__(self): ...
 
-    def __iter__(self):
-        for row in range(self.n_rows):
-            yield [self[col, row] for col in range(self.n_cols)]
-    
-    def __len__(self):
-        return self.n_rows
-    
-    def __eq__(self, other: 'array2d') -> bool:
-        if not isinstance(other, array2d):
-            return NotImplemented
-        for i in range(self.numel):
-            if self.data[i] != other.data[i]:
-                return False
-        return True
-    
-    def __ne__(self, other: 'array2d') -> bool:
-        return not self.__eq__(other)
+    def tolist(self) -> list[list[T]]: ...
 
-    def __repr__(self):
-        return f'array2d({self.n_cols}, {self.n_rows})'
+    def map(self, f: Callable[[T], Any]) -> 'array2d': ...
+    def copy(self) -> 'array2d[T]': ...
 
-    def map(self, f: Callable[[T], Any]) -> 'array2d':
-        new_a: array2d = array2d(self.n_cols, self.n_rows)
-        for i in range(self.n_cols * self.n_rows):
-            new_a.data[i] = f(self.data[i])
-        return new_a
-    
-    def copy(self) -> 'array2d[T]':
-        new_a: array2d[T] = array2d(self.n_cols, self.n_rows)
-        new_a.data = self.data.copy()
-        return new_a
+    def fill_(self, value: T) -> None: ...
+    def apply_(self, f: Callable[[T], T]) -> None: ...
+    def copy_(self, other: 'array2d[T] | list[T]') -> None: ...
 
-    def fill_(self, value: T) -> None:
-        for i in range(self.numel):
-            self.data[i] = value
+    # algorithms
+    def count_neighbors(self, value: T, neighborhood: Neighborhood = 'moore') -> 'array2d[int]':
+        """Counts the number of neighbors with the given value for each cell."""
 
-    def apply_(self, f: Callable[[T], T]) -> None:
-        for i in range(self.numel):
-            self.data[i] = f(self.data[i])
+    def count(self, value: T) -> int:
+        """Counts the number of cells with the given value."""
 
-    def copy_(self, other: 'array2d[T] | list[T]') -> None:
-        if isinstance(other, list):
-            assert len(other) == self.numel
-            self.data = other.copy()
-            return
-        self.n_cols = other.n_cols
-        self.n_rows = other.n_rows
-        self.data = other.data.copy()
-
-    # for cellular automata
-    def count_neighbors(self, value) -> 'array2d[int]':
-        new_a = array2d(self.n_cols, self.n_rows)
-        for j in range(self.n_rows):
-            for i in range(self.n_cols):
-                count = 0
-                count += int(self.is_valid(i-1, j-1) and self[i-1, j-1] == value)
-                count += int(self.is_valid(i, j-1) and self[i, j-1] == value)
-                count += int(self.is_valid(i+1, j-1) and self[i+1, j-1] == value)
-                count += int(self.is_valid(i-1, j) and self[i-1, j] == value)
-                count += int(self.is_valid(i+1, j) and self[i+1, j] == value)
-                count += int(self.is_valid(i-1, j+1) and self[i-1, j+1] == value)
-                count += int(self.is_valid(i, j+1) and self[i, j+1] == value)
-                count += int(self.is_valid(i+1, j+1) and self[i+1, j+1] == value)
-                new_a[i, j] = count
-        return new_a
+    def find_bounding_rect(self, value: T) -> tuple[int, int, int, int] | None:
+        """Finds the bounding rectangle of the given value.
+        
+        Returns a tuple `(x, y, width, height)` or `None` if the value is not found.
+        """

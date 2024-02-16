@@ -44,6 +44,13 @@ Tuple::Tuple(PyObject* _0, PyObject* _1, PyObject* _2): Tuple(3){
     _args[2] = _2;
 }
 
+Tuple::Tuple(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3): Tuple(4){
+    _args[0] = _0;
+    _args[1] = _1;
+    _args[2] = _2;
+    _args[3] = _3;
+}
+
 Tuple::~Tuple(){ if(!is_inlined()) pool64_dealloc(_args); }
 
 List ArgsView::to_list() const{

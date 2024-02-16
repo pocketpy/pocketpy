@@ -22,6 +22,7 @@ struct Tuple {
 
     Tuple(PyObject*, PyObject*);
     Tuple(PyObject*, PyObject*, PyObject*);
+    Tuple(PyObject*, PyObject*, PyObject*, PyObject*);
 
     bool is_inlined() const { return _args == _inlined; }
     PyObject*& operator[](int i){ return _args[i]; }
