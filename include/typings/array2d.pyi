@@ -41,11 +41,11 @@ class array2d(Generic[T]):
     def copy_(self, other: 'array2d[T] | list[T]') -> None: ...
 
     # algorithms
-    def count_neighbors(self, value: T, neighborhood: Neighborhood = 'moore') -> 'array2d[int]':
-        """Counts the number of neighbors with the given value for each cell."""
-
     def count(self, value: T) -> int:
         """Counts the number of cells with the given value."""
+
+    def count_neighbors(self, value: T, neighborhood: Neighborhood = 'moore') -> 'array2d[int]':
+        """Counts the number of neighbors with the given value for each cell."""
 
     def find_bounding_rect(self, value: T) -> tuple[int, int, int, int] | None:
         """Finds the bounding rectangle of the given value.
