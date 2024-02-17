@@ -416,7 +416,7 @@ public:
 
     ImportContext _import_context;
     PyObject* py_import(Str path, bool throw_err=true);
-    ~VM();
+    virtual ~VM();
 
 #if PK_DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
