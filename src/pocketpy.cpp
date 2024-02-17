@@ -803,10 +803,11 @@ void init_builtins(VM* _vm) {
         return vm->True;
     });
 
-    _vm->bind_method<1>(VM::tp_list, "index", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->_t(VM::tp_list), "index(self, value, __start=0)", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         PyObject* obj = args[1];
-        for(int i=0; i<self.size(); i++){
+        int start = CAST(int, args[2]);
+        for(int i=start; i<self.size(); i++){
             if(vm->py_eq(self[i], obj)) return VAR(i);
         }
         vm->ValueError(_CAST(Str&, vm->py_repr(obj)) + " is not in list");

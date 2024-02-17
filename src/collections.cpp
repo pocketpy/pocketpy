@@ -258,17 +258,11 @@ namespace pkpy
                      // Return the position of x in the deque (at or after index start and before index stop). Returns the first match or raises ValueError if not found.
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      PyObject *obj = args[1];
-                     int start = 0, stop = self.dequeItems.size(); // default values
-                     if (!vm->py_eq(args[2], vm->None))
-                         start = CAST(int, args[2]);
-                     if (!vm->py_eq(args[3], vm->None))
-                         stop = CAST(int, args[3]);
+                     int start = CAST_DEFAULT(int, args[2], 0);
+                     int stop = CAST_DEFAULT(int, args[3], self.dequeItems.size());
                      int index = self.findIndex(vm, obj, start, stop);
-                     if (index != -1)
-                         return VAR(index);
-                     else
-                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
-                     return vm->None;
+                     if (index < 0) vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
+                     return VAR(index);
                  });
         // NEW: returns the index of the given object in the deque
         vm->bind(type, "__contains__(self, obj) -> bool",
