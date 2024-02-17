@@ -594,18 +594,20 @@ void init_builtins(VM* _vm) {
         return VAR(self.count(s));
     });
 
-    _vm->bind_method<1>(VM::tp_str, "index", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->_t(VM::tp_str), "index(self, value, __start=0)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        const Str& sub = CAST(Str&, args[1]);
-        int index = self.index(sub);
-        if(index == -1) vm->ValueError("substring not found");
+        const Str& value = CAST(Str&, args[1]);
+        int start = CAST(int, args[2]);
+        int index = self.index(value, start);
+        if(index < 0) vm->ValueError("substring not found");
         return VAR(index);
     });
 
-    _vm->bind_method<1>(VM::tp_str, "find", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->_t(VM::tp_str), "find(self, value, __start=0)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        const Str& sub = CAST(Str&, args[1]);
-        return VAR(self.index(sub));
+        const Str& value = CAST(Str&, args[1]);
+        int start = CAST(int, args[2]);
+        return VAR(self.index(value, start));
     });
 
     _vm->bind_method<1>(VM::tp_str, "startswith", [](VM* vm, ArgsView args) {
