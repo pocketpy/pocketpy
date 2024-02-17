@@ -107,7 +107,19 @@ assert A().get(0, 0, default=2) == 0
 
 # test alive_neighbors
 a = array2d(3, 3, default=0)
-a.count_neighbors(0) == a
+a[1, 1] = 1
+"""     moore    von_neumann
+0 0 0   1 1 1    0 1 0
+0 1 0   1 0 1    1 0 1
+0 0 0   1 1 1    0 1 0
+"""
+moore_result = array2d(3, 3, default=1)
+moore_result[1, 1] = 0
+
+von_neumann_result = array2d(3, 3, default=0)
+von_neumann_result[0, 1] = von_neumann_result[1, 0] = von_neumann_result[1, 2] = von_neumann_result[2, 1] = 1
+a.count_neighbors(0, 'moore') == moore_result
+a.count_neighbors(0, 'von_neumann') == von_neumann_result
 
 # test slice get
 a = array2d(5, 5, default=0)
