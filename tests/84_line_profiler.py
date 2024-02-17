@@ -15,8 +15,8 @@ lp = LineProfiler()
 
 lp.add_function(f2)
 
-lp.runcall(f2, 1000000)
-lp.print_stats()
+# lp.runcall(f2, 1000000)
+# lp.print_stats()
 ###############################
 
 lp.add_function(f1)

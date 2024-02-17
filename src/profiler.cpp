@@ -49,16 +49,16 @@ void LineProfiler::_step_end(FrameId frame, int line){
     FrameRecord& top_frame_record = frames.top();
     LineRecord* prev_record = top_frame_record.prev_record;
 
+    int id_delta = frame.index - top_frame_record.frame.index;
+    PK_ASSERT(id_delta >= -1 && id_delta <= 1);
+
     // current line is about to change
     if(prev_record->line != line){
         clock_t delta = now - top_frame_record.prev_time;
         top_frame_record.prev_time = now;
-        prev_record->hits++;
+        if(id_delta != 1) prev_record->hits++;
         prev_record->time += delta;
     }
-
-    int id_delta = frame.index - top_frame_record.frame.index;
-    PK_ASSERT(id_delta >= -1 && id_delta <= 1);
     
     if(id_delta == 1){
         frames.push({frame, now, nullptr});
