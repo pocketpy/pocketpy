@@ -76,25 +76,25 @@ namespace pkpy
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             PyDeque &self = _CAST(PyDeque &, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-            return self.dequeItems.at(index);
+            return self.dequeItems[index];
         });
         // sets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1, PyObject* _2)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-            self.dequeItems.at(index) = _2;
+            self.dequeItems[index] = _2;
         });
         // erases the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind__delitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
             self.dequeItems.erase(self.dequeItems.begin() + index);
         });

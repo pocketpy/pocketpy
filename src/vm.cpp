@@ -254,7 +254,7 @@ namespace pkpy{
         return false;
     }
 
-    int VM::normalized_index(int index, int size){
+    i64 VM::normalized_index(i64 index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){
             IndexError(std::to_string(index) + " not in [0, " + std::to_string(size) + ")");

@@ -330,7 +330,7 @@ public:
         });
     }
 
-    int normalized_index(int index, int size);
+    i64 normalized_index(i64 index, int size);
     PyObject* py_next(PyObject* obj);
     bool py_callable(PyObject* obj);
     
@@ -629,24 +629,4 @@ PyObject* VM::bind_func(PyObject* obj, Str name, NativeFuncC fn, UserData userda
     return nf;
 }
 
-/***************************************************/
-
-template<typename T>
-PyObject* PyArrayGetItem(VM* vm, PyObject* obj, PyObject* index){
-    static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
-    const T& self = _CAST(T&, obj);
-
-    if(is_non_tagged_type(index, vm->tp_slice)){
-        const Slice& s = _CAST(Slice&, index);
-        int start, stop, step;
-        vm->parse_int_slice(s, self.size(), start, stop, step);
-        List new_list;
-        for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
-        return VAR(T(std::move(new_list)));
-    }
-
-    int i = CAST(int, index);
-    i = vm->normalized_index(i, self.size());
-    return self[i];
-}
 }   // namespace pkpy

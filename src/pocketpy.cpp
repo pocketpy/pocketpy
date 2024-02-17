@@ -6,6 +6,27 @@ namespace pkpy{
 void add_module_cjson(VM* vm);
 #endif
 
+template<typename T>
+PyObject* PyArrayGetItem(VM* vm, PyObject* _0, PyObject* _1){
+    static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
+    const T& self = _CAST(T&, _0);
+    i64 index;
+    if(try_cast_int(_1, &index)){
+        index = vm->normalized_index(index, self.size());
+        return self[index];
+    }
+    if(is_non_tagged_type(_1, vm->tp_slice)){
+        const Slice& s = _CAST(Slice&, _1);
+        int start, stop, step;
+        vm->parse_int_slice(s, self.size(), start, stop, step);
+        List new_list;
+        for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
+        return VAR(T(std::move(new_list)));
+    }
+    vm->TypeError("indices must be integers or slices");
+    PK_UNREACHABLE()
+}
+
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(VM::tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                              \
@@ -529,7 +550,7 @@ void init_builtins(VM* _vm) {
             vm->parse_int_slice(s, self.u8_length(), start, stop, step);
             return VAR(self.u8_slice(start, stop, step));
         }
-        int i = CAST(int, _1);
+        i64 i = CAST(i64, _1);
         i = vm->normalized_index(i, self.u8_length());
         return VAR(self.u8_getitem(i));
     });
@@ -812,7 +833,7 @@ void init_builtins(VM* _vm) {
             return self.popx_back();
         }
         if(args.size() == 1+1){
-            int index = CAST(int, args[1]);
+            i64 index = CAST(i64, args[1]);
             index = vm->normalized_index(index, self.size());
             PyObject* ret = self[index];
             self.erase(index);
@@ -924,13 +945,13 @@ void init_builtins(VM* _vm) {
     _vm->bind__getitem__(VM::tp_list, PyArrayGetItem<List>);
     _vm->bind__setitem__(VM::tp_list, [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){
         List& self = _CAST(List&, _0);
-        int i = CAST(int, _1);
+        i64 i = CAST(i64, _1);
         i = vm->normalized_index(i, self.size());
         self[i] = _2;
     });
     _vm->bind__delitem__(VM::tp_list, [](VM* vm, PyObject* _0, PyObject* _1){
         List& self = _CAST(List&, _0);
-        int i = CAST(int, _1);
+        i64 i = CAST(i64, _1);
         i = vm->normalized_index(i, self.size());
         self.erase(i);
     });
@@ -1035,7 +1056,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {
         const Bytes& self = _CAST(Bytes&, obj);
-        int i = CAST(int, index);
+        i64 i = CAST(i64, index);
         i = vm->normalized_index(i, self.size());
         return VAR(self[i]);
     });
