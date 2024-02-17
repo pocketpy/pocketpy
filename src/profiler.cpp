@@ -47,8 +47,11 @@ void LineProfiler::_step_end(FrameId frame){
     LineRecord* prev_record = top_frame_record.prev_record;
 
     if(prev_record->line != top_frame_record.prev_line){
-        prev_record->hits++;
         top_frame_record.prev_line = prev_record->line;
+        clock_t delta = now - top_frame_record.prev_time;
+        top_frame_record.prev_time = now;
+        prev_record->hits++;
+        prev_record->time += delta;
     }
 
     int id_delta = frame.index - top_frame_record.frame.index;
@@ -57,17 +60,7 @@ void LineProfiler::_step_end(FrameId frame){
     if(id_delta == 1){
         frames.push({frame, now, nullptr, -1});
     }else{
-        clock_t delta = now - top_frame_record.prev_time;
-        top_frame_record.prev_time = now;
-        prev_record->time += delta;
-        if(id_delta == -1){
-            frames.pop();
-            top_frame_record = frames.top();
-            prev_record = top_frame_record.prev_record;
-            clock_t delta = now - top_frame_record.prev_time;
-            top_frame_record.prev_time = now;
-            prev_record->time += delta;
-        }
+        if(id_delta == -1) frames.pop();
     }
 }
 
@@ -77,13 +70,12 @@ void LineProfiler::end(){
     LineRecord* prev_record = top_frame_record.prev_record;
 
     if(prev_record->line != top_frame_record.prev_line){
-        prev_record->hits++;
         top_frame_record.prev_line = prev_record->line;
+        clock_t delta = now - top_frame_record.prev_time;
+        top_frame_record.prev_time = now;
+        prev_record->hits++;
+        prev_record->time += delta;
     }
-
-    clock_t delta = now - top_frame_record.prev_time;
-    top_frame_record.prev_time = now;
-    prev_record->time += delta;
 
     frames.pop();
     PK_ASSERT(frames.empty());
