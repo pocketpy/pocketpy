@@ -33,8 +33,6 @@ else()
     endif()
 endif()
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
 
 option(PK_USE_CJSON "" OFF)
@@ -77,6 +75,35 @@ else()
     target_link_libraries(${PROJECT_EXE_NAME} ${CMAKE_DL_LIBS})
 endif()
 
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 if(PK_USE_CJSON)
     target_link_libraries(${PROJECT_NAME} cjson)
+endif()
+
+option(PK_INSTALL "Generate the install target" ON)
+if (PK_INSTALL)
+    install(
+        TARGETS ${PROJECT_NAME}
+        EXPORT ${PROJECT_NAME}_target
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+    )
+
+    install(
+        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
+        DESTINATION include 
+        FILES_MATCHING PATTERN "*.h"
+    )
+    
+    # generate config.cmake
+    install(
+        EXPORT ${PROJECT_NAME}_target
+        FILE ${PROJECT_NAME}-config.cmake
+        DESTINATION "share/${PROJECT_NAME}"
+    )
 endif()
