@@ -62,8 +62,11 @@ void LineProfiler::_step_end(FrameId frame){
         prev_record->time += delta;
         if(id_delta == -1){
             frames.pop();
-            prev_record = frames.top().prev_record;
-            prev_record->time += (now - frames.top().prev_time);
+            top_frame_record = frames.top();
+            prev_record = top_frame_record.prev_record;
+            clock_t delta = now - top_frame_record.prev_time;
+            top_frame_record.prev_time = now;
+            prev_record->time += delta;
         }
     }
 }
