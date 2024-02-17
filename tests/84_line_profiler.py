@@ -3,7 +3,8 @@ from line_profiler import LineProfiler
 def f2(x):
     a = 0
     for i in range(x):
-        a += i
+        if i % 5 == 0:
+            a += i
     return a
 
 def f1(x):

@@ -19,13 +19,16 @@ void LineProfiler::begin(){
 }
 
 void LineProfiler::_step(FrameId frame){
+    bool is_virtual = frame->co->is_virtual[frame->_ip];
+    if(is_virtual) return;
+
     std::string_view filename = frame->co->src->filename.sv();
     int line = frame->co->lines[frame->_ip];
 
     if(frames.empty()){
-        frames.push({frame, clock(), nullptr, -1});
+        frames.push({frame, clock(), nullptr});
     }else{
-        _step_end(frame);
+        _step_end(frame, line);
     }
 
     std::vector<LineRecord>& file_records = records[filename];
@@ -41,13 +44,13 @@ void LineProfiler::_step(FrameId frame){
     frames.top().prev_record = &file_records.at(line);
 }
 
-void LineProfiler::_step_end(FrameId frame){
+void LineProfiler::_step_end(FrameId frame, int line){
     clock_t now = clock();
     FrameRecord& top_frame_record = frames.top();
     LineRecord* prev_record = top_frame_record.prev_record;
 
-    if(prev_record->line != top_frame_record.prev_line){
-        top_frame_record.prev_line = prev_record->line;
+    // current line is about to change
+    if(prev_record->line != line){
         clock_t delta = now - top_frame_record.prev_time;
         top_frame_record.prev_time = now;
         prev_record->hits++;
@@ -58,7 +61,7 @@ void LineProfiler::_step_end(FrameId frame){
     PK_ASSERT(id_delta >= -1 && id_delta <= 1);
     
     if(id_delta == 1){
-        frames.push({frame, now, nullptr, -1});
+        frames.push({frame, now, nullptr});
     }else{
         if(id_delta == -1) frames.pop();
     }
@@ -69,13 +72,10 @@ void LineProfiler::end(){
     FrameRecord& top_frame_record = frames.top();
     LineRecord* prev_record = top_frame_record.prev_record;
 
-    if(prev_record->line != top_frame_record.prev_line){
-        top_frame_record.prev_line = prev_record->line;
-        clock_t delta = now - top_frame_record.prev_time;
-        top_frame_record.prev_time = now;
-        prev_record->hits++;
-        prev_record->time += delta;
-    }
+    clock_t delta = now - top_frame_record.prev_time;
+    top_frame_record.prev_time = now;
+    prev_record->hits++;
+    prev_record->time += delta;
 
     frames.pop();
     PK_ASSERT(frames.empty());

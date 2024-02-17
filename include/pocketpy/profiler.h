@@ -17,7 +17,6 @@ struct FrameRecord{
     FrameId frame;
     clock_t prev_time;
     LineRecord* prev_record;
-    int prev_line;
 };
 
 struct LineProfiler{
@@ -28,7 +27,7 @@ struct LineProfiler{
 
     void begin();
     void _step(FrameId frame);
-    void _step_end(FrameId frame);
+    void _step_end(FrameId frame, int line);
     void end();
     Str stats();
 };

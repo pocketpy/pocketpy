@@ -632,7 +632,9 @@ Str VM::disassemble(CodeObject_ co){
             pointer = "   ";
         }
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
-        ss << " " << pad(OP_NAMES[byte.op], 25) << " ";
+        std::string bc_name(OP_NAMES[byte.op]);
+        if(co->is_virtual[i]) bc_name += '*';
+        ss << " " << pad(bc_name, 25) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
         std::string argStr = _opcode_argstr(this, byte, co.get());
         ss << argStr;

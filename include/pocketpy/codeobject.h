@@ -63,8 +63,9 @@ struct CodeObject {
     bool is_generator = false;
 
     std::vector<Bytecode> codes;
-    std::vector<int> iblocks;    // block index for each bytecode
-    std::vector<int> lines;     // line number for each bytecode
+    std::vector<int> iblocks;       // block index for each bytecode
+    std::vector<int> lines;         // line number for each bytecode
+    std::vector<char> is_virtual;   // whether this bytecode is virtual (not in source code)
     List consts;
     std::vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;

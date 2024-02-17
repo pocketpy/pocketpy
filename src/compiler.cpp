@@ -32,7 +32,7 @@ namespace pkpy{
         // add a `return None` in the end as a guard
         // previously, we only do this if the last opcode is not a return
         // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
-        ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE);
+        ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE, true);
         // find the last valid token
         int j = i-1;
         while(tokens[j].type == TK("@eol") || tokens[j].type == TK("@dedent") || tokens[j].type == TK("@eof")) j--;
@@ -627,7 +627,7 @@ __EAT_DOTS_END:
         ctx()->emit_expr();
         int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
-        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE, true);
         ctx()->patch_jump(patch);
         ctx()->exit_block();
         // optional else clause
@@ -647,7 +647,7 @@ __EAT_DOTS_END:
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
         compile_block_body();
-        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+        ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE, true);
         ctx()->exit_block();
         // optional else clause
         if (match(TK("else"))) {
@@ -805,9 +805,9 @@ __EAT_DOTS_END:
                 ctx()->co->is_generator = true;
                 ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
                 ctx()->enter_block(CodeBlockType::FOR_LOOP);
-                ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
-                ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, BC_KEEPLINE);
-                ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE);
+                ctx()->emit_(OP_FOR_ITER, BC_NOARG, kw_line);
+                ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
+                ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), kw_line);
                 ctx()->exit_block();
                 consume_end_stmt();
                 break;
