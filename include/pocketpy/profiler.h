@@ -13,19 +13,22 @@ struct LineRecord{
     bool is_valid() const { return line != -1; }
 };
 
-struct LineProfiler{
+struct FrameRecord{
+    FrameId frame;
     clock_t prev_time;
     LineRecord* prev_record;
     int prev_line;
+};
 
+struct LineProfiler{
     // filename -> records
     std::map<std::string_view, std::vector<LineRecord>> records;
-
+    stack<FrameRecord> frames;
     std::set<FuncDecl*> functions;
 
     void begin();
-    void _step(Frame* frame);
-    void _step_end();
+    void _step(FrameId frame);
+    void _step_end(FrameId frame);
     void end();
     Str stats();
 };

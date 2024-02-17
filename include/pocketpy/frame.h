@@ -127,4 +127,12 @@ struct Frame {
     }
 };
 
+struct FrameId{
+    std::vector<pkpy::Frame>* data;
+    int index;
+    FrameId(std::vector<pkpy::Frame>* data, int index) : data(data), index(index) {}
+    Frame* operator->() const { return &data->operator[](index); }
+    Frame* get() const { return &data->operator[](index); }
+};
+
 }; // namespace pkpy

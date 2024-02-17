@@ -25,7 +25,8 @@ for line in lines:
         ret + ' ' + body + ' {\n' + mock_string + '\n}\n'
     )
 
-with open('src2/pocketpy_c.c', 'w') as f:
+# use LF line endings instead of CRLF
+with open('src2/pocketpy_c.c', 'wt', encoding='utf-8', newline='\n') as f:
     f.write('''
 #include "pocketpy_c.h"
 
