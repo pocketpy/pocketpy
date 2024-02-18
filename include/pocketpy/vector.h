@@ -191,17 +191,7 @@ namespace pkpy {
             TriviallyRelocatable<T>::value;
 
     template<typename T>
-    struct TriviallyRelocatable<std::unique_ptr<T>>{
-        constexpr static bool value = true;
-    };
-
-    template<typename T>
     struct TriviallyRelocatable<std::shared_ptr<T>>{
-        constexpr static bool value = true;
-    };
-
-    template<typename T>
-    struct TriviallyRelocatable<std::weak_ptr<T>>{
         constexpr static bool value = true;
     };
 

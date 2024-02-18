@@ -21,7 +21,7 @@ public:
     unique_ptr_128(T* ptr): ptr(ptr) {}
     T* operator->() const { return ptr; }
     T* get() const { return ptr; }
-    T* release() { T* p = ptr; ptr = nullptr; return p; }
+    T* detach() { T* p = ptr; ptr = nullptr; return p; }
 
     unique_ptr_128(const unique_ptr_128&) = delete;
     unique_ptr_128& operator=(const unique_ptr_128&) = delete;
@@ -32,14 +32,14 @@ public:
     ~unique_ptr_128(){ PK_POOL128_DELETE(ptr) }
 
     template<typename U>
-    unique_ptr_128(unique_ptr_128<U>&& other): ptr(other.release()) {}
+    unique_ptr_128(unique_ptr_128<U>&& other): ptr(other.detach()) {}
 
     operator bool() const { return ptr != nullptr; }
 
     template<typename U>
     unique_ptr_128& operator=(unique_ptr_128<U>&& other) {
         PK_POOL128_DELETE(ptr)
-        ptr = other.release();
+        ptr = other.detach();
         return *this;
     }
 
@@ -52,6 +52,11 @@ public:
 
 typedef unique_ptr_128<Expr> Expr_;
 typedef small_vector<Expr_, 6> Expr_vector;
+
+template<>
+struct TriviallyRelocatable<Expr_>{
+    constexpr static bool value = true;
+};
 
 struct Expr{
     int line = 0;
