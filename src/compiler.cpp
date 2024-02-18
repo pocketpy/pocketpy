@@ -9,7 +9,7 @@ namespace pkpy{
     }
 
     CodeObject_ Compiler::push_global_context(){
-        CodeObject_ co = std::make_shared<CodeObject>(lexer->src, lexer->src->filename);
+        CodeObject_ co = std::make_shared<CodeObject>(lexer.src, lexer.src->filename);
         co->start_line = i==0 ? 1 : prev().line;
         contexts.push(CodeEmitContext(vm, co, contexts.size()));
         return co;
@@ -17,7 +17,7 @@ namespace pkpy{
 
     FuncDecl_ Compiler::push_f_context(Str name){
         FuncDecl_ decl = std::make_shared<FuncDecl>();
-        decl->code = std::make_shared<CodeObject>(lexer->src, name);
+        decl->code = std::make_shared<CodeObject>(lexer.src, name);
         decl->code->start_line = i==0 ? 1 : prev().line;
         decl->nested = name_scope() == NAME_LOCAL;
         contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
@@ -912,7 +912,7 @@ __EAT_DOTS_END:
                 }
                 ctx()->emit_(OP_WITH_ENTER, BC_NOARG, prev().line);
                 // [ <expr> <expr>.__enter__() ]
-                if(as_name){
+                if(as_name != nullptr){
                     bool ok = as_name->emit_store(ctx());
                     if(!ok) SyntaxError();
                 }else{
@@ -1178,13 +1178,11 @@ __EAT_DOTS_END:
         return nullptr;
     }
 
-    Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope){
+    Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope)
+            :lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
         this->vm = vm;
         this->used = false;
         this->unknown_global_scope = unknown_global_scope;
-        this->lexer = std::make_unique<Lexer>(
-            vm, std::make_shared<SourceData>(source, filename, mode)
-        );
         init_pratt_rules();
     }
 
@@ -1193,7 +1191,7 @@ __EAT_DOTS_END:
         PK_ASSERT(!used)
         used = true;
 
-        tokens = lexer->run();
+        tokens = lexer.run();
         CodeObject_ code = push_global_context();
 
         advance();          // skip @sof, so prev() is always valid
