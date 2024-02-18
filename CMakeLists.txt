@@ -81,7 +81,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 if(PK_USE_CJSON)
-    target_link_libraries(${PROJECT_NAME} cjson)
+    target_link_libraries(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:cjson>)
 endif()
 
 option(PK_INSTALL "Generate the install target" ON)
