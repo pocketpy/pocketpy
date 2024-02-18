@@ -62,9 +62,9 @@ class Compiler {
     Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
-    unique_ptr_64<T> make_expr(Args&&... args) {
-        void* p = pool64_alloc(sizeof(T));
-        unique_ptr_64<T> expr(new (p) T(std::forward<Args>(args)...));
+    unique_ptr_128<T> make_expr(Args&&... args) {
+        void* p = pool128_alloc(sizeof(T));
+        unique_ptr_128<T> expr(new (p) T(std::forward<Args>(args)...));
         expr->line = prev().line;
         return expr;
     }
@@ -72,7 +72,7 @@ class Compiler {
     template<typename T>
     void _consume_comp(Expr_ expr){
         static_assert(std::is_base_of<CompExpr, T>::value);
-        unique_ptr_64<CompExpr> ce = make_expr<T>();
+        unique_ptr_128<CompExpr> ce = make_expr<T>();
         ce->expr = std::move(expr);
         ce->vars = EXPR_VARS();
         consume(TK("in"));

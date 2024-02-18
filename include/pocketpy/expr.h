@@ -11,46 +11,46 @@ namespace pkpy{
 struct CodeEmitContext;
 struct Expr;
 
-#define PK_POOL64_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool64_dealloc(ptr); ptr = nullptr; }
+#define PK_POOL128_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool128_dealloc(ptr); ptr = nullptr; }
 
 template<typename T>
-class unique_ptr_64{
+class unique_ptr_128{
     T* ptr;
 public:
-    unique_ptr_64(): ptr(nullptr) {}
-    unique_ptr_64(T* ptr): ptr(ptr) {}
+    unique_ptr_128(): ptr(nullptr) {}
+    unique_ptr_128(T* ptr): ptr(ptr) {}
     T* operator->() const { return ptr; }
     T* get() const { return ptr; }
     T* release() { T* p = ptr; ptr = nullptr; return p; }
 
-    unique_ptr_64(const unique_ptr_64&) = delete;
-    unique_ptr_64& operator=(const unique_ptr_64&) = delete;
+    unique_ptr_128(const unique_ptr_128&) = delete;
+    unique_ptr_128& operator=(const unique_ptr_128&) = delete;
 
     bool operator==(std::nullptr_t) const { return ptr == nullptr; }
     bool operator!=(std::nullptr_t) const { return ptr != nullptr; }
 
-    ~unique_ptr_64(){ PK_POOL64_DELETE(ptr) }
+    ~unique_ptr_128(){ PK_POOL128_DELETE(ptr) }
 
     template<typename U>
-    unique_ptr_64(unique_ptr_64<U>&& other): ptr(other.release()) {}
+    unique_ptr_128(unique_ptr_128<U>&& other): ptr(other.release()) {}
 
     operator bool() const { return ptr != nullptr; }
 
     template<typename U>
-    unique_ptr_64& operator=(unique_ptr_64<U>&& other) {
-        PK_POOL64_DELETE(ptr)
+    unique_ptr_128& operator=(unique_ptr_128<U>&& other) {
+        PK_POOL128_DELETE(ptr)
         ptr = other.release();
         return *this;
     }
 
-    unique_ptr_64& operator=(std::nullptr_t) {
-        PK_POOL64_DELETE(ptr)
+    unique_ptr_128& operator=(std::nullptr_t) {
+        PK_POOL128_DELETE(ptr)
         ptr = nullptr;
         return *this;
     }
 };
 
-typedef unique_ptr_64<Expr> Expr_;
+typedef unique_ptr_128<Expr> Expr_;
 typedef small_vector<Expr_, 6> Expr_vector;
 
 struct Expr{
