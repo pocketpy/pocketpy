@@ -190,6 +190,26 @@ namespace pkpy {
     constexpr inline bool is_trivially_relocatable_v =
             TriviallyRelocatable<T>::value;
 
+    template<typename T>
+    struct TriviallyRelocatable<std::unique_ptr<T>>{
+        constexpr static bool value = true;
+    };
+
+    template<typename T>
+    struct TriviallyRelocatable<std::shared_ptr<T>>{
+        constexpr static bool value = true;
+    };
+
+    template<typename T>
+    struct TriviallyRelocatable<std::weak_ptr<T>>{
+        constexpr static bool value = true;
+    };
+
+    template<typename T>
+    struct TriviallyRelocatable<std::vector<T>>{
+        constexpr static bool value = true;
+    };
+
 // the implementation of small_vector
     template <typename T, std::size_t N> class small_vector {
     public:
