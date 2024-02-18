@@ -75,7 +75,6 @@ namespace pkpy{
         _stderr = [](const char* buf, int size) {
             std::cerr.write(buf, size);
         };
-        callstack.reserve(8);
         _main = nullptr;
         _last_exception = nullptr;
         _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{

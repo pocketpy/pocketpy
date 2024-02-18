@@ -259,6 +259,8 @@ namespace pkpy {
 
         reverse_iterator rbegin() { return reverse_iterator(end()); }
 
+        void clear() { while (m_size > 0) pop_back(); }
+
         const_reverse_iterator rbegin() const {
             return const_reverse_iterator(end());
         }

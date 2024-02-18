@@ -112,7 +112,7 @@ class VM {
 public:
     ManagedHeap heap;
     ValueStack s_data;
-    stack< Frame > callstack;
+    stack_no_copy<Frame, CallstackContainer> callstack;
     std::vector<PyTypeInfo> _all_types;
     
     NameDict _modules;                                 // loaded modules
