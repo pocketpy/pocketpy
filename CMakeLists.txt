@@ -98,6 +98,7 @@ if (PK_INSTALL)
         DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ 
         DESTINATION include 
         FILES_MATCHING PATTERN "*.h"
+        PATTERN "typings" EXCLUDE
     )
     
     # generate config.cmake
