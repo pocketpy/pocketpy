@@ -7,31 +7,34 @@ namespace pkpy{
 
 template<typename T>
 struct pod_vector{
-    static_assert(64 % sizeof(T) == 0);
+    static constexpr int SizeT = sizeof(T);
+    static constexpr int N = 64 / SizeT;
+
+    // static_assert(64 % SizeT == 0);
     static_assert(is_pod<T>::value);
-    static constexpr int N = 64 / sizeof(T);
     static_assert(N >= 4);
+
     int _size;
     int _capacity;
     T* _data;
 
     pod_vector(): _size(0), _capacity(N) {
-        _data = (T*)pool64_alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * SizeT);
     }
 
     // support initializer list
     pod_vector(std::initializer_list<T> il): _size(il.size()), _capacity(std::max(N, _size)) {
-        _data = (T*)pool64_alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * SizeT);
         for(int i=0; i<_size; i++) _data[i] = *(il.begin() + i);
     }
 
     pod_vector(int size): _size(size), _capacity(std::max(N, size)) {
-        _data = (T*)pool64_alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * SizeT);
     }
 
     pod_vector(const pod_vector& other): _size(other._size), _capacity(other._capacity) {
-        _data = (T*)pool64_alloc(_capacity * sizeof(T));
-        memcpy(_data, other._data, sizeof(T) * _size);
+        _data = (T*)pool64_alloc(_capacity * SizeT);
+        memcpy(_data, other._data, SizeT * _size);
     }
 
     pod_vector(pod_vector&& other) noexcept {
@@ -69,9 +72,9 @@ struct pod_vector{
         if(cap <= _capacity) return;
         _capacity = cap;
         T* old_data = _data;
-        _data = (T*)pool64_alloc(_capacity * sizeof(T));
+        _data = (T*)pool64_alloc(_capacity * SizeT);
         if(old_data != nullptr){
-            memcpy(_data, old_data, sizeof(T) * _size);
+            memcpy(_data, old_data, SizeT * _size);
             pool64_dealloc(old_data);
         }
     }
