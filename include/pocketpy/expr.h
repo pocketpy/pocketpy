@@ -10,7 +10,47 @@ namespace pkpy{
 
 struct CodeEmitContext;
 struct Expr;
-typedef std::unique_ptr<Expr> Expr_;
+
+#define PK_POOL64_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool64_dealloc(ptr); ptr = nullptr; }
+
+template<typename T>
+class unique_ptr_64{
+    T* ptr;
+public:
+    unique_ptr_64(): ptr(nullptr) {}
+    unique_ptr_64(T* ptr): ptr(ptr) {}
+    T* operator->() const { return ptr; }
+    T* get() const { return ptr; }
+    T* release() { T* p = ptr; ptr = nullptr; return p; }
+
+    unique_ptr_64(const unique_ptr_64&) = delete;
+    unique_ptr_64& operator=(const unique_ptr_64&) = delete;
+
+    bool operator==(std::nullptr_t) const { return ptr == nullptr; }
+    bool operator!=(std::nullptr_t) const { return ptr != nullptr; }
+
+    ~unique_ptr_64(){ PK_POOL64_DELETE(ptr) }
+
+    template<typename U>
+    unique_ptr_64(unique_ptr_64<U>&& other): ptr(other.release()) {}
+
+    operator bool() const { return ptr != nullptr; }
+
+    template<typename U>
+    unique_ptr_64& operator=(unique_ptr_64<U>&& other) {
+        PK_POOL64_DELETE(ptr)
+        ptr = other.release();
+        return *this;
+    }
+
+    unique_ptr_64& operator=(std::nullptr_t) {
+        PK_POOL64_DELETE(ptr)
+        ptr = nullptr;
+        return *this;
+    }
+};
+
+typedef unique_ptr_64<Expr> Expr_;
 
 struct Expr{
     int line = 0;
