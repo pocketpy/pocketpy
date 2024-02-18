@@ -314,7 +314,7 @@ struct BinaryExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     bool is_compare() const override;
-    void _emit_compare(CodeEmitContext* ctx, std::vector<int>& jmps);
+    void _emit_compare(CodeEmitContext* ctx, pod_vector<int>& jmps);
     void emit_(CodeEmitContext* ctx) override;
 };
 

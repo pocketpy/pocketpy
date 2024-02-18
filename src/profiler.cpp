@@ -30,7 +30,7 @@ void LineProfiler::_step(FrameId frame){
         _step_end(frame, line);
     }
 
-    std::vector<_LineRecord>& file_records = records[filename];
+    auto& file_records = records[filename];
     if(file_records.empty()){
         // initialize file_records
         int total_lines = frame->co->src->line_starts.size();

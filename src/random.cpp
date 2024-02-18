@@ -61,7 +61,7 @@ struct Random{
             Random& self = _CAST(Random&, args[0]);
             auto [data, size] = vm->_cast_array(args[1]);
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
-            std::vector<f64> cum_weights(size);
+            pod_vector<f64> cum_weights(size);
             if(args[2] == vm->None){
                 for(int i = 0; i < size; i++) cum_weights[i] = i + 1;
             }else{

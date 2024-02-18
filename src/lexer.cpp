@@ -109,8 +109,8 @@ static bool is_unicode_Lo_char(uint32_t c) {
                 }
             }
             // handle multibyte char
-            std::string u8str(curr_char, u8bytes);
-            if(u8str.size() != u8bytes) return 2;
+            Str u8str(curr_char, u8bytes);
+            if(u8str.size != u8bytes) return 2;
             uint32_t value = 0;
             for(int k=0; k < u8bytes; k++){
                 uint8_t b = u8str[k];
@@ -204,7 +204,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
 
     Str Lexer::eat_string_until(char quote, bool raw) {
         bool quote3 = match_n_chars(2, quote);
-        std::vector<char> buff;
+        pod_vector<char> buff;
         while (true) {
             char c = eatchar_include_newline();
             if (c == quote){

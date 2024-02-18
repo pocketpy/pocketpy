@@ -71,7 +71,7 @@ struct CodeObject {
     std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     List consts;
-    std::vector<StrName> varnames;      // local variables
+    pod_vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks = { CodeBlock(CodeBlockType::NO_BLOCK, -1, 0, 0) };
     NameDictInt labels;
@@ -95,8 +95,8 @@ struct FuncDecl {
         PyObject* value;        // default value
     };
     CodeObject_ code;           // code object of this function
-    std::vector<int> args;      // indices in co->varnames
-    std::vector<KwArg> kwargs;  // indices in co->varnames
+    pod_vector<int> args;      // indices in co->varnames
+    pod_vector<KwArg> kwargs;  // indices in co->varnames
     int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
     bool nested = false;        // whether this function is nested
@@ -109,7 +109,7 @@ struct FuncDecl {
 
     void add_kwarg(int index, StrName key, PyObject* value){
         kw_to_index.set(key, index);
-        kwargs.push_back({index, key, value});
+        kwargs.push_back(KwArg{index, key, value});
     }
     
     void _gc_mark() const;

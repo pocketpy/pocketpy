@@ -299,11 +299,11 @@ void init_builtins(VM* _vm) {
     _vm->bind_func<1>(_vm->builtins, "dir", [](VM* vm, ArgsView args) {
         std::set<StrName> names;
         if(!is_tagged(args[0]) && args[0]->is_attr_valid()){
-            std::vector<StrName> keys = args[0]->attr().keys();
+            auto keys = args[0]->attr().keys();
             names.insert(keys.begin(), keys.end());
         }
         const NameDict& t_attr = vm->_t(args[0])->attr();
-        std::vector<StrName> keys = t_attr.keys();
+        auto keys = t_attr.keys();
         names.insert(keys.begin(), keys.end());
         List ret;
         for (StrName name : names) ret.push_back(VAR(name.sv()));
@@ -568,7 +568,7 @@ void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& sep = CAST(Str&, args[1]);
         if(sep.empty()) vm->ValueError("empty separator");
-        std::vector<std::string_view> parts;
+        pod_vector<std::string_view> parts;
         if(sep.size == 1){
             parts = self.split(sep[0]);
         }else{
@@ -581,7 +581,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_str), "splitlines(self)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        std::vector<std::string_view> parts;
+        pod_vector<std::string_view> parts;
         parts = self.split('\n');
         List ret(parts.size());
         for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
@@ -1048,13 +1048,14 @@ void init_builtins(VM* _vm) {
     // tp_bytes
     _vm->bind_constructor<2>(_vm->_t(VM::tp_bytes), [](VM* vm, ArgsView args){
         List& list = CAST(List&, args[1]);
-        std::vector<unsigned char> buffer(list.size());
+        pod_vector<unsigned char> buffer(list.size());
         for(int i=0; i<list.size(); i++){
             i64 b = CAST(i64, list[i]);
             if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
             buffer[i] = (char)b;
         }
-        return VAR(Bytes(buffer));
+        auto detached = buffer.detach();
+        return VAR(Bytes(detached.first, detached.second));
     });
 
     _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {

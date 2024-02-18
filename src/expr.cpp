@@ -55,7 +55,7 @@ namespace pkpy{
     int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
         co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
         co->iblocks.push_back(curr_block_i);
-        co->lines.push_back({line, is_virtual});
+        co->lines.push_back(CodeObject::LineInfo{line, is_virtual});
         int i = co->codes.size() - 1;
         if(line == BC_KEEPLINE){
             if(i >= 1) co->lines[i].lineno = co->lines[i-1].lineno;
@@ -613,7 +613,7 @@ namespace pkpy{
         }
     }
 
-    void BinaryExpr::_emit_compare(CodeEmitContext* ctx, std::vector<int>& jmps){
+    void BinaryExpr::_emit_compare(CodeEmitContext* ctx, pod_vector<int>& jmps){
         if(lhs->is_compare()){
             static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
         }else{
@@ -637,7 +637,7 @@ namespace pkpy{
     }
 
     void BinaryExpr::emit_(CodeEmitContext* ctx) {
-        std::vector<int> jmps;
+        pod_vector<int> jmps;
         if(is_compare() && lhs->is_compare()){
             // (a < b) < c
             static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);

@@ -75,7 +75,6 @@ struct Bytes{
     Bytes(const Str& str): Bytes(str.sv()) {}
     operator bool() const noexcept { return _data != nullptr; }
 
-    Bytes(const std::vector<unsigned char>& v);
     Bytes(std::string_view sv);
     Bytes(const Bytes& rhs);
     Bytes(Bytes&& rhs) noexcept;

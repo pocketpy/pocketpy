@@ -278,7 +278,7 @@ namespace pkpy{
 
     PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
-        static auto f_join = [](const std::vector<std::string_view>& cpnts){
+        static auto f_join = [](const pod_vector<std::string_view>& cpnts){
             SStream ss;
             for(int i=0; i<cpnts.size(); i++){
                 if(i != 0) ss << ".";
@@ -294,7 +294,7 @@ namespace pkpy{
             Str curr_path = _import_context.pending.back();
             bool curr_is_init = _import_context.pending_is_init.back();
             // convert relative path to absolute path
-            std::vector<std::string_view> cpnts = curr_path.split('.');
+            pod_vector<std::string_view> cpnts = curr_path.split('.');
             int prefix = 0;     // how many dots in the prefix
             for(int i=0; i<path.length(); i++){
                 if(path[i] == '.') prefix++;
@@ -314,7 +314,7 @@ namespace pkpy{
         PyObject* ext_mod = _modules.try_get(name);
         if(ext_mod != nullptr) return ext_mod;
 
-        std::vector<std::string_view> path_cpnts = path.split('.');
+        pod_vector<std::string_view> path_cpnts = path.split('.');
         // check circular import
         if(_import_context.pending.size() > 128){
             ImportError("maximum recursion depth exceeded while importing");
@@ -600,7 +600,7 @@ Str VM::disassemble(CodeObject_ co){
         return s + std::string(n - s.length(), ' ');
     };
 
-    std::vector<int> jumpTargets;
+    pod_vector<int> jumpTargets;
     for(auto byte : co->codes){
         if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP || byte.op == OP_FOR_ITER){
             jumpTargets.push_back(byte.arg);

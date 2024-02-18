@@ -54,7 +54,7 @@ struct PyTypeInfo{
     StrName name;
     bool subclass_enabled;
 
-    std::vector<StrName> annotated_fields = {};
+    pod_vector<StrName> annotated_fields = {};
 
     // cached special methods
     // unary operators
@@ -385,7 +385,7 @@ public:
 
     struct ImportContext{
         std::vector<Str> pending;
-        std::vector<bool> pending_is_init;   // a.k.a __init__.py
+        pod_vector<bool> pending_is_init;   // a.k.a __init__.py
         struct Temp{
             ImportContext* ctx;
             Temp(ImportContext* ctx, Str name, bool is_init) : ctx(ctx){

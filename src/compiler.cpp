@@ -39,7 +39,7 @@ namespace pkpy{
         ctx()->co->end_line = tokens[j].line;
 
         // some check here
-        std::vector<Bytecode>& codes = ctx()->co->codes;
+        auto& codes = ctx()->co->codes;
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
@@ -659,7 +659,7 @@ __EAT_DOTS_END:
     void Compiler::compile_try_except() {
         ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
         compile_block_body();
-        std::vector<int> patches = {
+        pod_vector<int> patches = {
             ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
         };
         ctx()->exit_block();

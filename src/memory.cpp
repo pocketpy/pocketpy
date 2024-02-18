@@ -123,8 +123,8 @@ struct DoubleLinkedList{
 
 template<int __BlockSize=128>
 struct MemoryPool{
-    static const size_t __MaxBlocks = 256*1024 / __BlockSize;
-    static const size_t __MinArenaCount = PK_GC_MIN_THRESHOLD*100 / (256*1024);
+    static const int __MaxBlocks = 256*1024 / __BlockSize;
+    static const int __MinArenaCount = PK_GC_MIN_THRESHOLD*100 / (256*1024);
 
     struct Block{
         void* arena;
