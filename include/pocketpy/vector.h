@@ -362,6 +362,13 @@ namespace pkpy {
             return *this;
         }
 
+        ~small_vector() {
+            std::destroy_n(data(), m_size);
+            if (!is_small()) {
+                std::free(m_internal.begin);
+            }
+        }
+
         template <typename... Args> void emplace_back(Args &&...args) noexcept {
             if (m_size == m_capacity) {
                 auto new_capacity = m_capacity * 2;
@@ -395,6 +402,11 @@ namespace pkpy {
             if constexpr (!std::is_trivially_destructible_v<T>) {
                 (data() + m_size)->~T();
             }
+        }
+
+        void clear() {
+            std::destroy_n(data(), m_size);
+            m_size = 0;
         }
     };
 } // namespace pkpy
