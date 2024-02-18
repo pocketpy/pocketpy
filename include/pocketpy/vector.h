@@ -194,11 +194,7 @@ namespace pkpy {
     template <typename T, std::size_t N> class small_vector {
     public:
         union Internal {
-            struct {
-                T *begin;
-
-            } data;
-
+            T *begin;
             alignas(T) char buffer[sizeof(T) * N];
 
         } m_internal;
@@ -229,12 +225,12 @@ namespace pkpy {
 
         pointer data() {
             return is_small() ? reinterpret_cast<T *>(m_internal.buffer)
-                              : m_internal.data.begin;
+                              : m_internal.begin;
         }
 
         const_pointer data() const {
             return is_small() ? reinterpret_cast<const T *>(m_internal.buffer)
-                              : m_internal.data.begin;
+                              : m_internal.begin;
         }
 
         reference operator[](size_type index) { return data()[index]; }
@@ -312,9 +308,9 @@ namespace pkpy {
                 uninitialized_copy_n(other.m_internal.buffer, other.m_size,
                                      m_internal.buffer);
             } else {
-                m_internal.data.begin = (pointer)std::malloc(sizeof(T) * m_capacity);
-                uninitialized_copy_n(other.m_internal.data.begin, other.m_size,
-                                     m_internal.data.begin);
+                m_internal.begin = (pointer)std::malloc(sizeof(T) * m_capacity);
+                uninitialized_copy_n(other.m_internal.begin, other.m_size,
+                                     m_internal.begin);
             }
         }
 
@@ -324,7 +320,7 @@ namespace pkpy {
                 uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
                                          m_internal.buffer);
             } else {
-                m_internal.data.begin = other.m_internal.data.begin;
+                m_internal.begin = other.m_internal.begin;
                 other.m_capacity = N;
             }
             other.m_size = 0;
@@ -337,9 +333,9 @@ namespace pkpy {
                     uninitialized_copy_n(other.m_internal.buffer, other.m_size,
                                          m_internal.buffer);
                 } else {
-                    m_internal.data.begin = (pointer)std::malloc(sizeof(T) * other.m_capacity);
-                    uninitialized_copy_n(other.m_internal.data.begin, other.m_size,
-                                         m_internal.data.begin);
+                    m_internal.begin = (pointer)std::malloc(sizeof(T) * other.m_capacity);
+                    uninitialized_copy_n(other.m_internal.begin, other.m_size,
+                                         m_internal.begin);
                 }
                 m_capacity = other.m_capacity;
                 m_size = other.m_size;
@@ -354,7 +350,7 @@ namespace pkpy {
                     uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
                                              m_internal.buffer);
                 } else {
-                    m_internal.data.begin = other.m_internal.data.begin;
+                    m_internal.begin = other.m_internal.begin;
                 }
                 m_capacity = other.m_capacity;
                 m_size = other.m_size;
@@ -366,22 +362,23 @@ namespace pkpy {
 
         template <typename... Args> void emplace_back(Args &&...args) noexcept {
             if (m_size == m_capacity) {
-                m_capacity *= 2;
+                auto new_capacity = m_capacity * 2;
                 if (!is_small()) {
                     if constexpr (is_trivially_relocatable_v<T>) {
-                        m_internal.data.begin =
-                                (pointer)std::realloc(m_internal.data.begin, sizeof(T) * m_capacity);
+                        m_internal.begin =
+                                (pointer)std::realloc(m_internal.begin, sizeof(T) * new_capacity);
                     } else {
-                        auto new_data = (pointer)std::malloc(sizeof(T) * m_capacity);
-                        uninitialized_relocate_n(m_internal.data.begin, m_size, new_data);
-                        std::free(m_internal.data.begin);
-                        m_internal.data.begin = new_data;
+                        auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
+                        uninitialized_relocate_n(m_internal.begin, m_size, new_data);
+                        std::free(m_internal.begin);
+                        m_internal.begin = new_data;
                     }
                 } else {
-                    auto new_data = (pointer)std::malloc(sizeof(T) * m_capacity);
+                    auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
                     uninitialized_relocate_n(m_internal.buffer, m_size, new_data);
-                    m_internal.data.begin = new_data;
+                    m_internal.begin = new_data;
                 }
+                m_capacity = new_capacity;
             }
             ::new (data() + m_size) T(std::forward<Args>(args)...);
             m_size++;
