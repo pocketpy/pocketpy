@@ -4,25 +4,25 @@
 
 namespace pkpy {
 
-struct LineRecord{
+struct _LineRecord{
     int line;
     i64 hits;
     clock_t time;
 
-    LineRecord(): line(-1), hits(0), time(0) {}
+    _LineRecord(): line(-1), hits(0), time(0) {}
     bool is_valid() const { return line != -1; }
 };
 
-struct FrameRecord{
+struct _FrameRecord{
     FrameId frame;
     clock_t prev_time;
-    LineRecord* prev_record;
+    _LineRecord* prev_record;
 };
 
 struct LineProfiler{
     // filename -> records
-    std::map<std::string_view, std::vector<LineRecord>> records;
-    stack<FrameRecord> frames;
+    std::map<std::string_view, std::vector<_LineRecord>> records;
+    stack<_FrameRecord> frames;
     std::set<FuncDecl*> functions;
 
     void begin();

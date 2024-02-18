@@ -2,7 +2,7 @@ import os
 
 def generate_python_sources():
     sources = {}
-    for file in os.listdir("python"):
+    for file in sorted(os.listdir("python")):
         if not file.endswith(".py"):
             continue
         key = file.split(".")[0]

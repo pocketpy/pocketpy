@@ -618,11 +618,11 @@ Str VM::disassemble(CodeObject_ co){
     int prev_line = -1;
     for(int i=0; i<co->codes.size(); i++){
         const Bytecode& byte = co->codes[i];
-        Str line = std::to_string(co->lines[i]);
-        if(co->lines[i] == prev_line) line = "";
+        Str line = std::to_string(co->lines[i].lineno);
+        if(co->lines[i].lineno == prev_line) line = "";
         else{
             if(prev_line != -1) ss << "\n";
-            prev_line = co->lines[i];
+            prev_line = co->lines[i].lineno;
         }
 
         std::string pointer;
@@ -633,7 +633,7 @@ Str VM::disassemble(CodeObject_ co){
         }
         ss << pad(line, 8) << pointer << pad(std::to_string(i), 3);
         std::string bc_name(OP_NAMES[byte.op]);
-        if(co->is_virtual[i]) bc_name += '*';
+        if(co->lines[i].is_virtual) bc_name += '*';
         ss << " " << pad(bc_name, 25) << " ";
         // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
         std::string argStr = _opcode_argstr(this, byte, co.get());
@@ -1260,7 +1260,7 @@ void VM::_raise(bool re_raise){
 
     int actual_ip = frame->_ip;
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
-    int current_line = frame->co->lines[actual_ip];         // current line
+    int current_line = frame->co->lines[actual_ip].lineno;         // current line
     auto current_f_name = frame->co->name.sv();             // current function name
     if(frame->_callable == nullptr) current_f_name = "";    // not in a function
     e.st_push(frame->co->src, current_line, nullptr, current_f_name);

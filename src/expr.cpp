@@ -55,12 +55,11 @@ namespace pkpy{
     int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
         co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
         co->iblocks.push_back(curr_block_i);
-        co->lines.push_back(line);
-        co->is_virtual.push_back(is_virtual);
+        co->lines.push_back({line, is_virtual});
         int i = co->codes.size() - 1;
         if(line == BC_KEEPLINE){
-            if(i >= 1) co->lines[i] = co->lines[i-1];
-            else co->lines[i] = 1;
+            if(i >= 1) co->lines[i].lineno = co->lines[i-1].lineno;
+            else co->lines[i].lineno = 1;
         }
         return i;
     }

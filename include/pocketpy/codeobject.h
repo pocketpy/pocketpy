@@ -58,14 +58,18 @@ using CodeObject_ = std::shared_ptr<CodeObject>;
 using FuncDecl_ = std::shared_ptr<FuncDecl>;
 
 struct CodeObject {
+    struct LineInfo{
+        int lineno;             // line number for each bytecode
+        bool is_virtual;        // whether this bytecode is virtual (not in source code)
+    };
+
     std::shared_ptr<SourceData> src;
     Str name;
     bool is_generator = false;
 
     std::vector<Bytecode> codes;
     std::vector<int> iblocks;       // block index for each bytecode
-    std::vector<int> lines;         // line number for each bytecode
-    std::vector<char> is_virtual;   // whether this bytecode is virtual (not in source code)
+    std::vector<LineInfo> lines;
     List consts;
     std::vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
