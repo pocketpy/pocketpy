@@ -51,7 +51,7 @@ public:
 };
 
 typedef unique_ptr_128<Expr> Expr_;
-typedef small_vector<Expr_, 6> Expr_vector;
+typedef small_vector<Expr_, 4> Expr_vector;
 
 template<>
 struct TriviallyRelocatable<Expr_>{
