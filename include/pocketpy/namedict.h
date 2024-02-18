@@ -92,10 +92,16 @@ struct SmallNameDict{
 };
 
 template<typename T>
+struct NameDictItem{
+    StrName first;
+    T second;
+};
+
+template<typename T>
 struct LargeNameDict {
     PK_ALWAYS_PASS_BY_POINTER(LargeNameDict)
 
-    using Item = std::pair<StrName, T>;
+    using Item = NameDictItem<T>;
     static constexpr uint16_t kInitialCapacity = 32;
     static_assert(is_pod<T>::value);
 
@@ -223,8 +229,8 @@ while(!_items[i].first.empty()) {           \
         }
     }
 
-    std::vector<StrName> keys() const {
-        std::vector<StrName> v;
+    pod_vector<StrName> keys() const {
+        pod_vector<StrName> v;
         for(uint16_t i=0; i<_capacity; i++){
             if(_items[i].first.empty()) continue;
             v.push_back(_items[i].first);
@@ -307,18 +313,18 @@ struct NameDictImpl{
         else _large.apply(func);
     }
 
-    std::vector<StrName> keys() const{
-        std::vector<StrName> v;
+    pod_vector<StrName> keys() const{
+        pod_vector<StrName> v;
         apply([&](StrName key, V val){
             v.push_back(key);
         });
         return v;
     }
 
-    std::vector<std::pair<StrName, V>> items() const{
-        std::vector<std::pair<StrName, V>> v;
+    pod_vector<NameDictItem<V>> items() const{
+        pod_vector<NameDictItem<V>> v;
         apply([&](StrName key, V val){
-            v.push_back({key, val});
+            v.push_back(NameDictItem<V>{key, val});
         });
         return v;
     }

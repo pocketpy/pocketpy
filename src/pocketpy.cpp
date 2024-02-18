@@ -1132,15 +1132,15 @@ void init_builtins(VM* _vm) {
     _vm->bind_method<0>(VM::tp_mappingproxy, "values", [](VM* vm, ArgsView args) {
         MappingProxy& self = _CAST(MappingProxy&, args[0]);
         List values;
-        for(auto& item : self.attr().items()) values.push_back(item.second);
+        for(auto [k, v] : self.attr().items()) values.push_back(v);
         return VAR(std::move(values));
     });
 
     _vm->bind_method<0>(VM::tp_mappingproxy, "items", [](VM* vm, ArgsView args) {
         MappingProxy& self = _CAST(MappingProxy&, args[0]);
         List items;
-        for(auto& item : self.attr().items()){
-            PyObject* t = VAR(Tuple(VAR(item.first.sv()), item.second));
+        for(auto [k, v] : self.attr().items()){
+            PyObject* t = VAR(Tuple(VAR(k.sv()), v));
             items.push_back(std::move(t));
         }
         return VAR(std::move(items));
@@ -1180,11 +1180,11 @@ void init_builtins(VM* _vm) {
         ss << "mappingproxy({";
         bool first = true;
         vm->_repr_recursion_set.insert(_0);
-        for(auto& item : self.attr().items()){
+        for(auto [k, v] : self.attr().items()){
             if(!first) ss << ", ";
             first = false;
-            ss << item.first.escape() << ": ";
-            ss << CAST(Str, vm->py_repr(item.second));
+            ss << k.escape() << ": ";
+            ss << CAST(Str, vm->py_repr(v));
         }
         vm->_repr_recursion_set.erase(_0);
         ss << "})";
