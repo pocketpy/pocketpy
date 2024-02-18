@@ -18,6 +18,8 @@ struct pod_vector{
     int _capacity;
     T* _data;
 
+    using size_type = int;
+
     pod_vector(): _size(0), _capacity(N) {
         _data = (T*)pool64_alloc(_capacity * SizeT);
     }
@@ -155,7 +157,7 @@ public:
 	void pop(){ vec.pop_back(); }
 	void clear(){ vec.clear(); }
 	bool empty() const { return vec.empty(); }
-	size_t size() const { return vec.size(); }
+	typename Container::size_type size() const { return vec.size(); }
 	T& top(){ return vec.back(); }
 	const T& top() const { return vec.back(); }
 	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
