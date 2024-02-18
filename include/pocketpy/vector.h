@@ -178,243 +178,256 @@ public:
 } // namespace pkpy
 
 
-namespace pkpy {
+namespace pkpy
+{
 
 // explicitly mark a type as trivially relocatable for better performance
-    template <typename T> struct TriviallyRelocatable {
+    template<typename T>
+    struct TriviallyRelocatable
+    {
         constexpr static bool value =
                 std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
     };
 
-    template <typename T>
+    template<typename T>
     constexpr inline bool is_trivially_relocatable_v =
             TriviallyRelocatable<T>::value;
 
     template<typename T>
-    struct TriviallyRelocatable<std::shared_ptr<T>>{
+    struct TriviallyRelocatable<std::shared_ptr<T>>
+    {
         constexpr static bool value = true;
     };
 
-    template<typename T>
-    struct TriviallyRelocatable<std::vector<T>>{
-        constexpr static bool value = true;
-    };
 
 // the implementation of small_vector
-    template <typename T, std::size_t N> class small_vector {
+    template<typename T, std::size_t N>
+    class small_vector
+    {
     public:
-        union Internal {
-            T *begin;
-            alignas(T) char buffer[sizeof(T) * N];
-
-        } m_internal;
-
-        int m_capacity;
-        int m_size;
+        alignas(T) char m_buffer[sizeof(T) * N];
+        T* m_begin;
+        T* m_end;
+        T* m_max;
 
     public:
         using value_type = T;
         using size_type = int;
         using difference_type = int;
-        using reference = T &;
-        using const_reference = const T &;
-        using pointer = T *;
-        using const_pointer = const T *;
-        using iterator = T *;
-        using const_iterator = const T *;
+        using reference = T&;
+        using const_reference = const T&;
+        using pointer = T*;
+        using const_pointer = const T*;
+        using iterator = T*;
+        using const_iterator = const T*;
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-        bool is_small() const { return m_capacity == N; }
+        [[nodiscard]] bool is_small() const { return m_begin == reinterpret_cast<const T*>(m_buffer); }
 
-        size_type size() const { return m_size; }
+        [[nodiscard]] size_type size() const { return m_end - m_begin; }
 
-        size_type capacity() const { return m_capacity; }
+        [[nodiscard]] size_type capacity() const { return m_max - m_begin; }
 
-        bool empty() const { return m_size == 0; }
+        [[nodiscard]] bool empty() const { return m_begin == m_end; }
 
-        pointer data() {
-            return is_small() ? reinterpret_cast<T *>(m_internal.buffer)
-                              : m_internal.begin;
-        }
+        pointer data() { return m_begin; }
 
-        const_pointer data() const {
-            return is_small() ? reinterpret_cast<const T *>(m_internal.buffer)
-                              : m_internal.begin;
-        }
+        const_pointer data() const { return m_begin; }
 
         reference operator[](size_type index) { return data()[index]; }
 
         const_reference operator[](size_type index) const { return data()[index]; }
 
-        reference front() { return data()[0]; }
+        iterator begin() { return m_begin; }
 
-        const_reference front() const { return data()[0]; }
+        const_iterator begin() const { return m_begin; }
 
-        reference back() { return data()[m_size - 1]; }
+        const_iterator cbegin() const { return m_begin; }
 
-        const_reference back() const { return data()[m_size - 1]; }
+        iterator end() { return m_end; }
 
-        iterator begin() { return data(); }
+        const_iterator end() const { return m_end; }
 
-        const_iterator begin() const { return data(); }
+        const_iterator cend() const { return m_end; }
 
-        const_iterator cbegin() const { return data(); }
+        reference front() { return *begin(); }
 
-        iterator end() { return data() + m_size; }
+        const_reference front() const { return *begin(); }
 
-        const_iterator end() const { return data() + m_size; }
+        reference back() { return *(end() - 1); }
 
-        const_iterator cend() const { return data() + m_size; }
+        const_reference back() const { return *(end() - 1); }
 
         reverse_iterator rbegin() { return reverse_iterator(end()); }
 
-        const_reverse_iterator rbegin() const {
+        const_reverse_iterator rbegin() const
+        {
             return const_reverse_iterator(end());
         }
 
-        const_reverse_iterator crbegin() const {
+        const_reverse_iterator crbegin() const
+        {
             return const_reverse_iterator(end());
         }
 
         reverse_iterator rend() { return reverse_iterator(begin()); }
 
-        const_reverse_iterator rend() const {
+        const_reverse_iterator rend() const
+        {
             return const_reverse_iterator(begin());
         }
 
-        const_reverse_iterator crend() const {
+        const_reverse_iterator crend() const
+        {
             return const_reverse_iterator(begin());
         }
 
     private:
-        static void uninitialized_copy_n(const void *src, size_type n, void *dest) {
-            if constexpr (std::is_trivially_copyable_v<T>) {
+        static void uninitialized_copy_n(const void* src, size_type n, void* dest)
+        {
+            if constexpr (std::is_trivially_copyable_v<T>)
+            {
                 std::memcpy(dest, src, sizeof(T) * n);
-            } else {
-                for (size_type i = 0; i < n; i++) {
-                    ::new ((T *)dest + i) T(*((const T *)src + i));
+            }
+            else
+            {
+                for (size_type i = 0; i < n; i++)
+                {
+                    ::new((T*) dest + i) T(*((const T*) src + i));
                 }
             }
         }
 
-        static void uninitialized_relocate_n(void *src, size_type n, void *dest) {
-            if constexpr (is_trivially_relocatable_v<T>) {
+        static void uninitialized_relocate_n(void* src, size_type n, void* dest)
+        {
+            if constexpr (is_trivially_relocatable_v<T>)
+            {
                 std::memcpy(dest, src, sizeof(T) * n);
-            } else {
-                for (size_type i = 0; i < n; i++) {
-                    ::new ((T *)dest + i) T(std::move(*((T *)src + i)));
-                    ((T *)src + i)->~T();
+            }
+            else
+            {
+                for (size_type i = 0; i < n; i++)
+                {
+                    ::new((T*) dest + i) T(std::move(*((T*) src + i)));
+                    ((T*) src + i)->~T();
                 }
             }
         }
 
     public:
-        small_vector() : m_capacity(N), m_size(0) {}
+        small_vector() : m_begin(reinterpret_cast<T*>(m_buffer)), m_end(m_begin), m_max(m_begin + N) {}
 
-        small_vector(const small_vector &other) noexcept
-                : m_capacity(other.m_capacity), m_size(other.m_size) {
-            if (other.is_small()) {
-                uninitialized_copy_n(other.m_internal.buffer, other.m_size,
-                                     m_internal.buffer);
-            } else {
-                m_internal.begin = (pointer)std::malloc(sizeof(T) * m_capacity);
-                uninitialized_copy_n(other.m_internal.begin, other.m_size,
-                                     m_internal.begin);
-            }
+        small_vector(const small_vector& other) noexcept
+        {
+            const auto size = other.size();
+            const auto capacity = other.capacity();
+            m_begin = reinterpret_cast<T*>(other.is_small() ? m_buffer : std::malloc(sizeof(T) * capacity));
+            uninitialized_copy_n(other.begin, size, this->m_begin);
+            m_end = m_begin + size;
+            m_max = m_begin + capacity;
         }
 
-        small_vector(small_vector &&other) noexcept
-                : m_capacity(other.m_capacity), m_size(other.m_size) {
-            if (other.is_small()) {
-                uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
-                                         m_internal.buffer);
-            } else {
-                m_internal.begin = other.m_internal.begin;
-                other.m_capacity = N;
+        small_vector(small_vector&& other) noexcept
+        {
+            if(other.is_small())
+            {
+                m_begin = reinterpret_cast<T*>(m_buffer);
+                uninitialized_relocate_n(other.m_buffer, other.size(), m_buffer);
+                m_end = m_begin + other.size();
+                m_max = m_begin + N;
             }
-            other.m_size = 0;
+            else
+            {
+                m_begin = other.m_begin;
+                m_end = other.m_end;
+                m_max = other.m_max;
+            }
+            other.m_begin = reinterpret_cast<T*>(other.m_buffer);
+            other.m_end = other.m_begin;
+            other.m_max = other.m_begin + N;
         }
 
-        small_vector &operator=(const small_vector &other) noexcept {
-            if (this != &other) {
+        small_vector& operator=(const small_vector& other) noexcept
+        {
+            if (this != &other)
+            {
                 ~small_vector();
-                if (other.is_small()) {
-                    uninitialized_copy_n(other.m_internal.buffer, other.m_size,
-                                         m_internal.buffer);
-                } else {
-                    m_internal.begin = (pointer)std::malloc(sizeof(T) * other.m_capacity);
-                    uninitialized_copy_n(other.m_internal.begin, other.m_size,
-                                         m_internal.begin);
-                }
-                m_capacity = other.m_capacity;
-                m_size = other.m_size;
+                ::new (this) small_vector(other);
             }
             return *this;
         }
 
-        small_vector &operator=(small_vector &&other) noexcept {
-            if (this != &other) {
+        small_vector& operator=(small_vector&& other) noexcept
+        {
+            if (this != &other)
+            {
                 ~small_vector();
-                if (other.is_small()) {
-                    uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
-                                             m_internal.buffer);
-                } else {
-                    m_internal.begin = other.m_internal.begin;
-                }
-                m_capacity = other.m_capacity;
-                m_size = other.m_size;
-                other.m_capacity = N;
-                other.m_size = 0;
+                :: new (this) small_vector(std::move(other));
             }
             return *this;
         }
 
-        ~small_vector() {
-            std::destroy_n(data(), m_size);
-            if (!is_small()) {
-                std::free(m_internal.begin);
+        ~small_vector()
+        {
+            std::destroy(m_begin, m_end);
+            if (!is_small())
+            {
+                std::free(m_begin);
             }
         }
 
-        template <typename... Args> void emplace_back(Args &&...args) noexcept {
-            if (m_size == m_capacity) {
-                auto new_capacity = m_capacity * 2;
-                if (!is_small()) {
-                    if constexpr (is_trivially_relocatable_v<T>) {
-                        m_internal.begin =
-                                (pointer)std::realloc(m_internal.begin, sizeof(T) * new_capacity);
-                    } else {
-                        auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
-                        uninitialized_relocate_n(m_internal.begin, m_size, new_data);
-                        std::free(m_internal.begin);
-                        m_internal.begin = new_data;
+        template<typename... Args>
+        void emplace_back(Args&& ...args) noexcept
+        {
+            if (m_end == m_max)
+            {
+                const auto new_capacity = capacity() * 2;
+                const auto size = this->size();
+                if (!is_small())
+                {
+                    if constexpr (is_trivially_relocatable_v<T>)
+                    {
+                        m_begin = (pointer)std::realloc(m_begin, sizeof(T) * new_capacity);
                     }
-                } else {
-                    auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
-                    uninitialized_relocate_n(m_internal.buffer, m_size, new_data);
-                    m_internal.begin = new_data;
+                    else
+                    {
+                        auto new_data = (pointer) std::malloc(sizeof(T) * new_capacity);
+                        uninitialized_relocate_n(m_begin, size, new_data);
+                        std::free(m_begin);
+                        m_begin = new_data;
+                    }
                 }
-                m_capacity = new_capacity;
+                else
+                {
+                    auto new_data = (pointer) std::malloc(sizeof(T) * new_capacity);
+                    uninitialized_relocate_n(m_buffer, size, new_data);
+                    m_begin = new_data;
+                }
+                m_end = m_begin + size;
+                m_max = m_begin + new_capacity;
             }
-            ::new (data() + m_size) T(std::forward<Args>(args)...);
-            m_size++;
+            ::new(m_end) T(std::forward<Args>(args)...);
+            m_end++;
         }
 
-        void push_back(const T &value) { emplace_back(value); }
+        void push_back(const T& value) { emplace_back(value); }
 
-        void push_back(T &&value) { emplace_back(std::move(value)); }
+        void push_back(T&& value) { emplace_back(std::move(value)); }
 
-        void pop_back() {
-            m_size--;
-            if constexpr (!std::is_trivially_destructible_v<T>) {
-                (data() + m_size)->~T();
+        void pop_back()
+        {
+            m_end--;
+            if constexpr (!std::is_trivially_destructible_v<T>)
+            {
+                m_end->~T();
             }
         }
 
-        void clear() {
-            std::destroy_n(data(), m_size);
-            m_size = 0;
+        void clear()
+        {
+            std::destroy(m_begin, m_end);
+            m_end = m_begin;
         }
     };
 } // namespace pkpy
