@@ -176,3 +176,230 @@ public:
 };
 
 } // namespace pkpy
+
+
+namespace pkpy {
+
+// explicitly mark a type as trivially relocatable for better performance
+    template <typename T> struct TriviallyRelocatable {
+        constexpr static bool value =
+                std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
+    };
+
+    template <typename T>
+    constexpr inline bool is_trivially_relocatable_v =
+            TriviallyRelocatable<T>::value;
+
+// the implementation of small_vector
+    template <typename T, std::size_t N> class small_vector {
+    public:
+        union Internal {
+            struct {
+                T *begin;
+
+            } data;
+
+            alignas(T) char buffer[sizeof(T) * N];
+
+        } m_internal;
+
+        int m_capacity;
+        int m_size;
+
+    public:
+        using value_type = T;
+        using size_type = int;
+        using difference_type = int;
+        using reference = T &;
+        using const_reference = const T &;
+        using pointer = T *;
+        using const_pointer = const T *;
+        using iterator = T *;
+        using const_iterator = const T *;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+        bool is_small() const { return m_capacity == N; }
+
+        size_type size() const { return m_size; }
+
+        size_type capacity() const { return m_capacity; }
+
+        bool empty() const { return m_size == 0; }
+
+        pointer data() {
+            return is_small() ? reinterpret_cast<T *>(m_internal.buffer)
+                              : m_internal.data.begin;
+        }
+
+        const_pointer data() const {
+            return is_small() ? reinterpret_cast<const T *>(m_internal.buffer)
+                              : m_internal.data.begin;
+        }
+
+        reference operator[](size_type index) { return data()[index]; }
+
+        const_reference operator[](size_type index) const { return data()[index]; }
+
+        reference front() { return data()[0]; }
+
+        const_reference front() const { return data()[0]; }
+
+        reference back() { return data()[m_size - 1]; }
+
+        const_reference back() const { return data()[m_size - 1]; }
+
+        iterator begin() { return data(); }
+
+        const_iterator begin() const { return data(); }
+
+        const_iterator cbegin() const { return data(); }
+
+        iterator end() { return data() + m_size; }
+
+        const_iterator end() const { return data() + m_size; }
+
+        const_iterator cend() const { return data() + m_size; }
+
+        reverse_iterator rbegin() { return reverse_iterator(end()); }
+
+        const_reverse_iterator rbegin() const {
+            return const_reverse_iterator(end());
+        }
+
+        const_reverse_iterator crbegin() const {
+            return const_reverse_iterator(end());
+        }
+
+        reverse_iterator rend() { return reverse_iterator(begin()); }
+
+        const_reverse_iterator rend() const {
+            return const_reverse_iterator(begin());
+        }
+
+        const_reverse_iterator crend() const {
+            return const_reverse_iterator(begin());
+        }
+
+    private:
+        static void uninitialized_copy_n(const void *src, size_type n, void *dest) {
+            if constexpr (std::is_trivially_copyable_v<T>) {
+                std::memcpy(dest, src, sizeof(T) * n);
+            } else {
+                for (size_type i = 0; i < n; i++) {
+                    ::new ((T *)dest + i) T(*((const T *)src + i));
+                }
+            }
+        }
+
+        static void uninitialized_relocate_n(void *src, size_type n, void *dest) {
+            if constexpr (is_trivially_relocatable_v<T>) {
+                std::memcpy(dest, src, sizeof(T) * n);
+            } else {
+                std::uninitialized_move_n((T *)src, n, (T *)dest);
+                std::destroy_n(src, n);
+            }
+        }
+
+    public:
+        small_vector() : m_capacity(N), m_size(0) {}
+
+        small_vector(const small_vector &other) noexcept
+                : m_capacity(other.m_capacity), m_size(other.m_size) {
+            if (other.is_small()) {
+                uninitialized_copy_n(other.m_internal.buffer, other.m_size,
+                                     m_internal.buffer);
+            } else {
+                m_internal.data.begin = std::malloc(sizeof(T) * m_capacity);
+                uninitialized_copy_n(other.m_internal.data.begin, other.m_size,
+                                     m_internal.data.begin);
+            }
+        }
+
+        small_vector(small_vector &&other) noexcept
+                : m_capacity(other.m_capacity), m_size(other.m_size) {
+            if (other.is_small()) {
+                uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
+                                         m_internal.buffer);
+            } else {
+                m_internal.data.begin = other.m_internal.data.begin;
+                other.m_capacity = N;
+            }
+            other.m_size = 0;
+        }
+
+        small_vector &operator=(const small_vector &other) noexcept {
+            if (this != &other) {
+                std::destroy_n(data(), m_size);
+                if (!is_small()) {
+                    std::free(m_internal.data.begin);
+                }
+                if (other.is_small()) {
+                    uninitialized_copy_n(other.m_internal.buffer, other.m_size,
+                                         m_internal.buffer);
+                } else {
+                    m_internal.data.begin = std::malloc(sizeof(T) * other.m_capacity);
+                    uninitialized_copy_n(other.m_internal.data.begin, other.m_size,
+                                         m_internal.data.begin);
+                }
+                m_capacity = other.m_capacity;
+                m_size = other.m_size;
+            }
+            return *this;
+        }
+
+        small_vector &operator=(small_vector &&other) noexcept {
+            if (this != &other) {
+                std::destroy_n(data(), m_size);
+                if (!is_small()) {
+                    std::free(m_internal.data.begin);
+                }
+                if (other.is_small()) {
+                    uninitialized_relocate_n(other.m_internal.buffer, other.m_size,
+                                             m_internal.buffer);
+                } else {
+                    m_internal.data.begin = other.m_internal.data.begin;
+                }
+                m_capacity = other.m_capacity;
+                m_size = other.m_size;
+                other.m_capacity = N;
+                other.m_size = 0;
+            }
+            return *this;
+        }
+
+        template <typename... Args> void emplace_back(Args &&...args) noexcept {
+            if (m_size == m_capacity) {
+                m_capacity *= 2;
+                if (!is_small()) {
+                    if constexpr (is_trivially_relocatable_v<T>) {
+                        m_internal.data.begin =
+                                std::realloc(m_internal.data.begin, sizeof(T) * m_capacity);
+                    } else {
+                        auto new_data = std::malloc(sizeof(T) * m_capacity);
+                        uninitialized_relocate_n(m_internal.data.begin, m_size, new_data);
+                        std::free(m_internal.data.begin);
+                        m_internal.data.begin = new_data;
+                    }
+                } else {
+                    auto new_data = std::malloc(sizeof(T) * m_capacity);
+                    uninitialized_relocate_n(m_internal.buffer, m_size, new_data);
+                    m_internal.data.begin = new_data;
+                }
+            }
+            ::new (data() + m_size) T(std::forward<Args>(args)...);
+            m_size++;
+        }
+
+        void push_back(const T &value) { emplace_back(value); }
+
+        void push_back(T &&value) { emplace_back(std::move(value)); }
+
+        void pop_back() {
+            m_size--;
+            if constexpr (!std::is_trivially_destructible_v<T>) {
+                (data() + m_size)->~T();
+            }
+        }
+    };
+} // namespace pkpy
