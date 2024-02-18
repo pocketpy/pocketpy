@@ -124,10 +124,10 @@ class Compiler {
     bool try_compile_assignment();
     void compile_stmt();
     void consume_type_hints();
-    void _add_decorators(const std::vector<Expr_>& decorators);
-    void compile_class(const std::vector<Expr_>& decorators={});
+    void _add_decorators(const Expr_vector& decorators);
+    void compile_class(const Expr_vector& decorators={});
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints);
-    void compile_function(const std::vector<Expr_>& decorators={});
+    void compile_function(const Expr_vector& decorators={});
 
     PyObject* to_object(const TokenValue& value);
     PyObject* read_literal();

@@ -51,6 +51,7 @@ public:
 };
 
 typedef unique_ptr_64<Expr> Expr_;
+typedef small_vector<Expr_, 6> Expr_vector;
 
 struct Expr{
     int line = 0;
@@ -80,7 +81,7 @@ struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;     // optional
     CodeObject_ co;     // 1 CodeEmitContext <=> 1 CodeObject_
-    // some bugs on MSVC (error C2280) when using std::vector<Expr_>
+    // some bugs on MSVC (error C2280) when using Expr_vector
     // so we use stack_no_copy instead
     stack_no_copy<Expr_> s_expr;
     int level;
@@ -209,8 +210,8 @@ struct DictItemExpr: Expr{
 };
 
 struct SequenceExpr: Expr{
-    std::vector<Expr_> items;
-    SequenceExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
+    Expr_vector items;
+    SequenceExpr(Expr_vector&& items): items(std::move(items)) {}
     virtual Opcode opcode() const = 0;
 
     void emit_(CodeEmitContext* ctx) override {
@@ -326,7 +327,7 @@ struct AttribExpr: Expr{
 
 struct CallExpr: Expr{
     Expr_ callable;
-    std::vector<Expr_> args;
+    Expr_vector args;
     // **a will be interpreted as a special keyword argument: {"**": a}
     std::vector<std::pair<Str, Expr_>> kwargs;
     void emit_(CodeEmitContext* ctx) override;
