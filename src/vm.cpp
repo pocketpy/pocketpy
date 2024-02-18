@@ -69,17 +69,12 @@ namespace pkpy{
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_c.error = nullptr;
-        _stdout = [](const char* buf, int size) {
-            std::cout.write(buf, size);
-        };
-        _stderr = [](const char* buf, int size) {
-            std::cerr.write(buf, size);
-        };
+        this->callstack.reserve(8);
+        _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };
+        _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;
         _last_exception = nullptr;
-        _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{
-            return nullptr;
-        };
+        _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{ return nullptr; };
         init_builtin_types();
     }
 

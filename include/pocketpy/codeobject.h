@@ -72,9 +72,9 @@ struct CodeObject {
     std::vector<LineInfo> lines;
     
     List consts;
-    small_vector<StrName, 16> varnames;      // local variables
+    pod_vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
-    small_vector<CodeBlock, 4> blocks;
+    std::vector<CodeBlock> blocks;
     NameDictInt labels;
     std::vector<FuncDecl_> func_decls;
 
@@ -96,8 +96,8 @@ struct FuncDecl {
         PyObject* value;        // default value
     };
     CodeObject_ code;           // code object of this function
-    small_vector<int, 4> args;      // indices in co->varnames
-    small_vector<KwArg, 4> kwargs;  // indices in co->varnames
+    pod_vector<int> args;      // indices in co->varnames
+    pod_vector<KwArg> kwargs;  // indices in co->varnames
     int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
     bool nested = false;        // whether this function is nested

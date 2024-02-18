@@ -104,7 +104,7 @@ struct Lexer {
     const char* curr_char;
     int current_line = 1;
     std::vector<Token> nexts;
-    stack_no_copy<int, small_vector<int, 6>> indents;
+    stack_no_copy<int, pod_vector<int>> indents;
     int brackets_level = 0;
     bool used = false;
 
