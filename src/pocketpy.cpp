@@ -1048,14 +1048,13 @@ void init_builtins(VM* _vm) {
     // tp_bytes
     _vm->bind_constructor<2>(_vm->_t(VM::tp_bytes), [](VM* vm, ArgsView args){
         List& list = CAST(List&, args[1]);
-        pod_vector<unsigned char> buffer(list.size());
+        unsigned char* buffer = new unsigned char[list.size()];
         for(int i=0; i<list.size(); i++){
             i64 b = CAST(i64, list[i]);
             if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
             buffer[i] = (char)b;
         }
-        auto detached = buffer.detach();
-        return VAR(Bytes(detached.first, detached.second));
+        return VAR(Bytes(buffer, list.size()));
     });
 
     _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {

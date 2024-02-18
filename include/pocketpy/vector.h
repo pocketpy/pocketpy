@@ -19,6 +19,12 @@ struct pod_vector{
         _data = (T*)pool64_alloc(_capacity * sizeof(T));
     }
 
+    // support initializer list
+    pod_vector(std::initializer_list<T> il): _size(il.size()), _capacity(std::max(N, _size)) {
+        _data = (T*)pool64_alloc(_capacity * sizeof(T));
+        for(int i=0; i<_size; i++) _data[i] = *(il.begin() + i);
+    }
+
     pod_vector(int size): _size(size), _capacity(std::max(N, size)) {
         _data = (T*)pool64_alloc(_capacity * sizeof(T));
     }
