@@ -27,13 +27,11 @@ struct Expr{
 
     // for OP_DELETE_XXX
     [[nodiscard]] virtual bool emit_del(CodeEmitContext* ctx) {
-        PK_UNUSED(ctx);
         return false;
     }
 
     // for OP_STORE_XXX
     [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) {
-        PK_UNUSED(ctx);
         return false;
     }
 };

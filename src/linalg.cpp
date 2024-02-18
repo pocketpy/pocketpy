@@ -422,19 +422,16 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, PyVec2& currentVelocity, float
 
         // @staticmethod
         vm->bind(type, "zeros()", [](VM* vm, ArgsView args){
-            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::zeros());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
         vm->bind(type, "ones()", [](VM* vm, ArgsView args){
-            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::ones());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
         vm->bind(type, "identity()", [](VM* vm, ArgsView args){
-            PK_UNUSED(args);
             return VAR_T(PyMat3x3, Mat3x3::identity());
         }, {}, BindType::STATICMETHOD);
 

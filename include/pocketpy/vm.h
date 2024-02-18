@@ -29,19 +29,17 @@ namespace pkpy{
 #define DEF_NATIVE_2(ctype, ptype)                                      \
     template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return PK_OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                  \
     }                                                                   \
     template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
-        PK_UNUSED(vm);                                                  \
-        return PK_OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                  \
     }                                                                   \
     template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
         vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return PK_OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                  \
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
-        PK_UNUSED(vm);                                                  \
-        return PK_OBJ_GET(ctype, obj);                                     \
+        return PK_OBJ_GET(ctype, obj);                                  \
     }                                                                   \
     inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew<ctype>(vm->ptype, value);}     \
     inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew<ctype>(vm->ptype, std::move(value));}
@@ -56,7 +54,7 @@ struct PyTypeInfo{
     StrName name;
     bool subclass_enabled;
 
-    std::vector<StrName> annotated_fields;
+    std::vector<StrName> annotated_fields = {};
 
     // cached special methods
     // unary operators
@@ -316,7 +314,6 @@ public:
     template<typename T, typename __T>
     PyObject* bind_notimplemented_constructor(__T&& type) {
         return bind_constructor<-1>(std::forward<__T>(type), [](VM* vm, ArgsView args){
-            PK_UNUSED(args);
             vm->NotImplementedError();
             return vm->None;
         });
@@ -473,7 +470,6 @@ template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
     return 0;                                               \
 }                                                           \
 template<> inline T _py_cast<T>(VM* vm, PyObject* obj){     \
-    PK_UNUSED(vm);                                          \
     if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
     return (T)PK_OBJ_GET(i64, obj);                         \
 }
@@ -534,12 +530,10 @@ PY_VAR_INT(unsigned long long)
 #undef PY_VAR_INT
 
 inline PyObject* py_var(VM* vm, float _val){
-    PK_UNUSED(vm);
     return tag_float(static_cast<f64>(_val));
 }
 
 inline PyObject* py_var(VM* vm, double _val){
-    PK_UNUSED(vm);
     return tag_float(static_cast<f64>(_val));
 }
 
@@ -591,7 +585,6 @@ inline PyObject* py_var(VM* vm, std::string_view val){
 }
 
 inline PyObject* py_var(VM* vm, NoReturn val){
-    PK_UNUSED(val);
     return vm->None;
 }
 

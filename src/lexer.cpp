@@ -64,11 +64,11 @@ static bool is_unicode_Lo_char(uint32_t c) {
         // https://docs.python.org/3/reference/lexical_analysis.html#indentation
         if(spaces > indents.top()){
             indents.push(spaces);
-            nexts.push_back(Token{TK("@indent"), token_start, 0, current_line, brackets_level});
+            nexts.push_back(Token{TK("@indent"), token_start, 0, current_line, brackets_level, {}});
         } else if(spaces < indents.top()){
             while(spaces < indents.top()){
                 indents.pop();
-                nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line, brackets_level});
+                nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line, brackets_level, {}});
             }
             if(spaces != indents.top()){
                 return false;
@@ -467,7 +467,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) : vm(vm), src(src) {
         this->token_start = src->source.c_str();
         this->curr_char = src->source.c_str();
-        this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level});
+        this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
         this->indents.push(0);
     }
 

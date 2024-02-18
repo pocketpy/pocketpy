@@ -1460,7 +1460,6 @@ void VM::post_init(){
 
     // type
     bind__getitem__(tp_type, [](VM* vm, PyObject* self, PyObject* _){
-        PK_UNUSED(_);
         return self;        // for generics
     });
 

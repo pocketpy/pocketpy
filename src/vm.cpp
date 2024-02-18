@@ -79,9 +79,6 @@ namespace pkpy{
         _main = nullptr;
         _last_exception = nullptr;
         _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{
-            PK_UNUSED(name_p);
-            PK_UNUSED(name_size);
-            PK_UNUSED(out_size);
             return nullptr;
         };
         init_builtin_types();
