@@ -65,7 +65,7 @@ struct CodeObject {
 
     std::shared_ptr<SourceData> src;
     Str name;
-    bool is_generator = false;
+    bool is_generator;
 
     std::vector<Bytecode> codes;
     std::vector<int> iblocks;       // block index for each bytecode
