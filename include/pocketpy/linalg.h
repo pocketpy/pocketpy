@@ -10,7 +10,6 @@ struct Vec2{
     float x, y;
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float x, float y) : x(x), y(y) {}
-    Vec2(const Vec2& v) = default;
 
     Vec2 operator+(const Vec2& v) const { return Vec2(x + v.x, y + v.y); }
     Vec2 operator-(const Vec2& v) const { return Vec2(x - v.x, y - v.y); }
@@ -34,7 +33,6 @@ struct Vec3{
     float x, y, z;
     Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
     Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-    Vec3(const Vec3& v) = default;
 
     Vec3 operator+(const Vec3& v) const { return Vec3(x + v.x, y + v.y, z + v.z); }
     Vec3 operator-(const Vec3& v) const { return Vec3(x - v.x, y - v.y, z - v.z); }
@@ -57,7 +55,6 @@ struct Vec4{
     float x, y, z, w;
     Vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
     Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-    Vec4(const Vec4& v) = default;
 
     Vec4 operator+(const Vec4& v) const { return Vec4(x + v.x, y + v.y, z + v.z, w + v.w); }
     Vec4 operator-(const Vec4& v) const { return Vec4(x - v.x, y - v.y, z - v.z, w - v.w); }
@@ -88,7 +85,6 @@ struct Mat3x3{
 
     Mat3x3();
     Mat3x3(float, float, float, float, float, float, float, float, float);
-    Mat3x3(const Mat3x3& other) = default;
 
     static Mat3x3 zeros();
     static Mat3x3 ones();
@@ -122,7 +118,6 @@ struct PyVec2: Vec2 {
 
     PyVec2() : Vec2() {}
     PyVec2(const Vec2& v) : Vec2(v) {}
-    PyVec2(const PyVec2& v) = default;
     Vec2* _() { return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
@@ -133,7 +128,6 @@ struct PyVec3: Vec3 {
 
     PyVec3() : Vec3() {}
     PyVec3(const Vec3& v) : Vec3(v) {}
-    PyVec3(const PyVec3& v) = default;
     Vec3* _() { return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
@@ -144,7 +138,6 @@ struct PyVec4: Vec4{
 
     PyVec4(): Vec4(){}
     PyVec4(const Vec4& v): Vec4(v){}
-    PyVec4(const PyVec4& v) = default;
     Vec4* _(){ return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
@@ -155,7 +148,6 @@ struct PyMat3x3: Mat3x3{
 
     PyMat3x3(): Mat3x3(){}
     PyMat3x3(const Mat3x3& other): Mat3x3(other){}
-    PyMat3x3(const PyMat3x3& other) = default;
     Mat3x3* _(){ return this; }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);

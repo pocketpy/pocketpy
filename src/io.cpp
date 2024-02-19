@@ -36,7 +36,6 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
     unsigned char* buffer = new unsigned char[buffer_size];
     fseek(fp, 0, SEEK_SET);
     size_t sz = io_fread(buffer, 1, buffer_size, fp);
-    PK_UNUSED(sz);
     fclose(fp);
     *out_size = buffer_size;
     return buffer;

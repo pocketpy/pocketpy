@@ -76,25 +76,25 @@ namespace pkpy
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             PyDeque &self = _CAST(PyDeque &, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-            return self.dequeItems.at(index);
+            return self.dequeItems[index];
         });
         // sets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1, PyObject* _2)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
-            self.dequeItems.at(index) = _2;
+            self.dequeItems[index] = _2;
         });
         // erases the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
         vm->bind__delitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
-            int index = CAST(int, _1);
+            i64 index = CAST(i64, _1);
             index = vm->normalized_index(index, self.dequeItems.size()); // error is handled by the vm->normalized_index
             self.dequeItems.erase(self.dequeItems.begin() + index);
         });
@@ -258,17 +258,11 @@ namespace pkpy
                      // Return the position of x in the deque (at or after index start and before index stop). Returns the first match or raises ValueError if not found.
                      PyDeque &self = _CAST(PyDeque &, args[0]);
                      PyObject *obj = args[1];
-                     int start = 0, stop = self.dequeItems.size(); // default values
-                     if (!vm->py_eq(args[2], vm->None))
-                         start = CAST(int, args[2]);
-                     if (!vm->py_eq(args[3], vm->None))
-                         stop = CAST(int, args[3]);
+                     int start = CAST_DEFAULT(int, args[2], 0);
+                     int stop = CAST_DEFAULT(int, args[3], self.dequeItems.size());
                      int index = self.findIndex(vm, obj, start, stop);
-                     if (index != -1)
-                         return VAR(index);
-                     else
-                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
-                     return vm->None;
+                     if (index < 0) vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
+                     return VAR(index);
                  });
         // NEW: returns the index of the given object in the deque
         vm->bind(type, "__contains__(self, obj) -> bool",

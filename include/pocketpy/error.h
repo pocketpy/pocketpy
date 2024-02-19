@@ -30,7 +30,7 @@ struct SourceData {
     CompileMode mode;
 
     Str source;
-    std::vector<const char*> line_starts;
+    pod_vector<const char*> line_starts;
     
     SourceData(std::string_view source, const Str& filename, CompileMode mode);
     SourceData(const Str& filename, CompileMode mode);

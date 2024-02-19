@@ -15,47 +15,69 @@ static std::string to_string_1f(f64 x){
 }
 
 void LineProfiler::begin(){
-    prev_time = 0;
-    prev_record = nullptr;
-    prev_line = -1;
-    records.clear();
+    frames.clear();
 }
 
-void LineProfiler::_step(Frame *frame){
+void LineProfiler::_step(FrameId frame){
+    auto line_info = frame->co->lines[frame->_ip];
+    if(line_info.is_virtual) return;
     std::string_view filename = frame->co->src->filename.sv();
-    int line = frame->co->lines[frame->_ip];
-    // std::string_view function = frame->co->name.sv();
+    int line = line_info.lineno;
 
-    if(prev_record == nullptr){
-        prev_time = clock();
+    if(frames.empty()){
+        frames.push({frame, clock(), nullptr});
     }else{
-        _step_end();
+        _step_end(frame, line);
     }
 
-    std::vector<LineRecord>& file_records = records[filename];
+    auto& file_records = records[filename];
     if(file_records.empty()){
+        // initialize file_records
         int total_lines = frame->co->src->line_starts.size();
         file_records.resize(total_lines + 1);
         for(int i=1; i<=total_lines; i++){
             file_records[i].line = i;
         }
     }
-    prev_record = &file_records.at(line);
+
+    frames.top().prev_record = &file_records.at(line);
 }
 
-void LineProfiler::_step_end(){
+void LineProfiler::_step_end(FrameId frame, int line){
     clock_t now = clock();
-    clock_t delta = now - prev_time;
-    prev_time = now;
-    if(prev_record->line != prev_line){
-        prev_record->hits++;
-        prev_line = prev_record->line;
+    _FrameRecord& top_frame_record = frames.top();
+    _LineRecord* prev_record = top_frame_record.prev_record;
+
+    int id_delta = frame.index - top_frame_record.frame.index;
+    PK_ASSERT(id_delta >= -1 && id_delta <= 1);
+
+    // current line is about to change
+    if(prev_record->line != line){
+        clock_t delta = now - top_frame_record.prev_time;
+        top_frame_record.prev_time = now;
+        if(id_delta != 1) prev_record->hits++;
+        prev_record->time += delta;
     }
-    prev_record->time += delta;
+    
+    if(id_delta == 1){
+        frames.push({frame, now, nullptr});
+    }else{
+        if(id_delta == -1) frames.pop();
+    }
 }
 
 void LineProfiler::end(){
-    _step_end();
+    clock_t now = clock();
+    _FrameRecord& top_frame_record = frames.top();
+    _LineRecord* prev_record = top_frame_record.prev_record;
+
+    clock_t delta = now - top_frame_record.prev_time;
+    top_frame_record.prev_time = now;
+    prev_record->hits++;
+    prev_record->time += delta;
+
+    frames.pop();
+    PK_ASSERT(frames.empty());
 }
 
 Str LineProfiler::stats(){
@@ -65,7 +87,7 @@ Str LineProfiler::stats(){
         int end_line = decl->code->end_line;
         if(start_line == -1 || end_line == -1) continue;
         std::string_view filename = decl->code->src->filename.sv();
-        std::vector<LineRecord>& file_records = records[filename];
+        std::vector<_LineRecord>& file_records = records[filename];
         if(file_records.empty()) continue;
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++){
@@ -77,7 +99,7 @@ Str LineProfiler::stats(){
         ss << "Line #      Hits         Time  Per Hit   % Time  Line Contents\n";
         ss << "==============================================================\n";
         for(int line = start_line; line <= end_line; line++){
-            const LineRecord& record = file_records.at(line);
+            const _LineRecord& record = file_records.at(line);
             if(!record.is_valid()) continue;
             ss << left_pad(std::to_string(line), 6);
             if(record.hits == 0){

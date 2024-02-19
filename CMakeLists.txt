@@ -5,23 +5,6 @@ project(pocketpy)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# if cmake < 3.12, find_package(Python3) will not work, we directly use python3
-if (CMAKE_VERSION VERSION_LESS 3.12)
-    set(Python3_EXECUTABLE python3)
-else()
-    find_package(Python3 COMPONENTS Interpreter)
-endif()
-
-execute_process(
-    COMMAND ${Python3_EXECUTABLE} prebuild.py
-    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-    RESULT_VARIABLE PREBUILD_RESULT
-)
-
-if(NOT ${PREBUILD_RESULT} EQUAL 0)
-    message(FATAL_ERROR "prebuild.py: ${PREBUILD_RESULT}")
-endif()
-
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /O2")
 else()

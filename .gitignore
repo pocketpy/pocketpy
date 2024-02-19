@@ -17,7 +17,6 @@ web/lib
 
 plugins/unity/
 plugins/macos/pocketpy/pocketpy.*
-include/pocketpy/_generated.h
 main.exe
 main.obj
 pocketpy.exp

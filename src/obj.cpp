@@ -14,11 +14,6 @@ namespace pkpy{
     }
     bool Bytes::operator!=(const Bytes& rhs) const{ return !(*this == rhs); }
 
-    Bytes::Bytes(const std::vector<unsigned char>& v){
-        _data = new unsigned char[v.size()];
-        _size = v.size();
-        for(int i=0; i<_size; i++) _data[i] = v[i];
-    }
     Bytes::Bytes(std::string_view sv){
         _data = new unsigned char[sv.size()];
         _size = sv.size();

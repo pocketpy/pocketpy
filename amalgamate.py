@@ -60,7 +60,8 @@ for seq in pipeline:
 				text += remove_copied_include(f.read()) + '\n'
 				copied.add(j)
 
-with open("amalgamated/pocketpy.h", "wt", encoding='utf-8') as f:
+# use LF line endings instead of CRLF
+with open("amalgamated/pocketpy.h", "wt", encoding='utf-8', newline='\n') as f:
 	final_text = \
 r'''/*
  *  Copyright (c) 2023 blueloveTH
@@ -77,7 +78,7 @@ shutil.copy("src2/main.cpp", "amalgamated/main.cpp")
 with open("amalgamated/main.cpp", "rt", encoding='utf-8') as f:
 	text = f.read()
 text = text.replace('#include "pocketpy/pocketpy.h"', '#include "pocketpy.h"')
-with open("amalgamated/main.cpp", "wt", encoding='utf-8') as f:
+with open("amalgamated/main.cpp", "wt", encoding='utf-8', newline='\n') as f:
 	f.write(text)
 
 if sys.platform in ['linux', 'darwin']:
@@ -89,7 +90,7 @@ print("amalgamated/pocketpy.h")
 
 def sync(path):
 	shutil.copy("amalgamated/pocketpy.h", os.path.join(path, "pocketpy.h"))
-	with open(os.path.join(path, "pocketpy.cpp"), "wt", encoding='utf-8') as f:
+	with open(os.path.join(path, "pocketpy.cpp"), "wt", encoding='utf-8', newline='\n') as f:
 		f.write("#include \"pocketpy.h\"\n")
 
 sync("plugins/macos/pocketpy")

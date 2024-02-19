@@ -76,8 +76,8 @@ struct Str{
     int index(const Str& sub, int start=0) const;
     Str replace(char old, char new_) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
-    std::vector<std::string_view> split(const Str& sep) const;
-    std::vector<std::string_view> split(char sep) const;
+    pod_vector<std::string_view> split(const Str& sep) const;
+    pod_vector<std::string_view> split(char sep) const;
     int count(const Str& sub) const;
 
     /*************unicode*************/

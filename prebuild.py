@@ -2,7 +2,7 @@ import os
 
 def generate_python_sources():
     sources = {}
-    for file in os.listdir("python"):
+    for file in sorted(os.listdir("python")):
         if not file.endswith(".py"):
             continue
         key = file.split(".")[0]
@@ -36,5 +36,6 @@ namespace pkpy{
 '''
     return header
 
-with open("include/pocketpy/_generated.h", "w", encoding='utf-8') as f:
+# use LF line endings instead of CRLF
+with open("include/pocketpy/_generated.h", "wt", encoding='utf-8', newline='\n') as f:
     f.write(generate_python_sources())

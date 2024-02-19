@@ -24,7 +24,7 @@ namespace pkpy{
         if(lineno == -1) return {nullptr, nullptr};
         lineno -= 1;
         if(lineno < 0) lineno = 0;
-        const char* _start = line_starts.at(lineno);
+        const char* _start = line_starts[lineno];
         const char* i = _start;
         // max 300 chars
         while(*i != '\n' && *i != '\0' && i-_start < 300) i++;

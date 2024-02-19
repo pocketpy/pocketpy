@@ -116,3 +116,16 @@ assert A()[::, :2] == (slice(None, None, None), slice(None, 2, None))
 assert A()['b':'c':1, :] == (slice('b', 'c', 1), slice(None, None, None))
 assert A()[1:2, :A()[3:4, ::-1]] == (slice(1, 2, None), slice(None, (slice(3, 4, None), slice(None, None, -1)), None))
 
+a = [1, 2, 3]
+assert a.index(2) == 1
+assert a.index(1) == 0
+assert a.index(3) == 2
+
+assert a.index(2, 1) == 1
+assert a.index(1, 0) == 0
+
+try:
+    a.index(1, 1)
+    exit(1)
+except ValueError:
+    pass

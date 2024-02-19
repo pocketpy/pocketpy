@@ -223,3 +223,22 @@ test(0, 100000)
 test(-100, 100)
 test(-100000, 100000)
 test(-2**30, 2**30)
+
+
+a = '123'
+assert a.index('2') == 1
+assert a.index('1') == 0
+assert a.index('3') == 2
+
+assert a.index('2', 1) == 1
+assert a.index('1', 0) == 0
+
+try:
+    a.index('1', 1)
+    exit(1)
+except ValueError:
+    pass
+
+assert a.find('1') == 0
+assert a.find('1', 1) == -1
+
