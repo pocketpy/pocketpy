@@ -112,7 +112,7 @@ class VM {
 public:
     ManagedHeap heap;
     ValueStack s_data;
-    stack< Frame > callstack;
+    stack_no_copy<Frame, CallstackContainer> callstack;
     std::vector<PyTypeInfo> _all_types;
     
     NameDict _modules;                                 // loaded modules
@@ -120,7 +120,7 @@ public:
 
     struct{
         PyObject* error;
-        stack<ArgsView> s_view;
+        stack_no_copy<ArgsView> s_view;
     } _c;
 
     PyObject* None;

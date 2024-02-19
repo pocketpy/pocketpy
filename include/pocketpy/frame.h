@@ -126,10 +126,12 @@ struct Frame {
     }
 };
 
+using CallstackContainer = small_vector_no_copy_and_move<Frame, 16>;
+
 struct FrameId{
-    std::vector<pkpy::Frame>* data;
+    CallstackContainer* data;
     int index;
-    FrameId(std::vector<pkpy::Frame>* data, int index) : data(data), index(index) {}
+    FrameId(CallstackContainer* data, int index) : data(data), index(index) {}
     Frame* operator->() const { return &data->operator[](index); }
     Frame* get() const { return &data->operator[](index); }
 };

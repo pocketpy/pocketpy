@@ -22,7 +22,7 @@ class Compiler {
     inline static PrattRule rules[kTokenCount];
 
     Lexer lexer;
-    stack<CodeEmitContext> contexts;
+    stack_no_copy<CodeEmitContext> contexts;
     VM* vm;
     bool unknown_global_scope;     // for eval/exec() call
     bool used;
@@ -62,9 +62,9 @@ class Compiler {
     Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
-    unique_ptr_64<T> make_expr(Args&&... args) {
-        void* p = pool64_alloc(sizeof(T));
-        unique_ptr_64<T> expr(new (p) T(std::forward<Args>(args)...));
+    unique_ptr_128<T> make_expr(Args&&... args) {
+        void* p = pool128_alloc(sizeof(T));
+        unique_ptr_128<T> expr(new (p) T(std::forward<Args>(args)...));
         expr->line = prev().line;
         return expr;
     }
@@ -72,7 +72,7 @@ class Compiler {
     template<typename T>
     void _consume_comp(Expr_ expr){
         static_assert(std::is_base_of<CompExpr, T>::value);
-        unique_ptr_64<CompExpr> ce = make_expr<T>();
+        unique_ptr_128<CompExpr> ce = make_expr<T>();
         ce->expr = std::move(expr);
         ce->vars = EXPR_VARS();
         consume(TK("in"));
@@ -124,10 +124,10 @@ class Compiler {
     bool try_compile_assignment();
     void compile_stmt();
     void consume_type_hints();
-    void _add_decorators(const std::vector<Expr_>& decorators);
-    void compile_class(const std::vector<Expr_>& decorators={});
+    void _add_decorators(const Expr_vector& decorators);
+    void compile_class(const Expr_vector& decorators={});
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints);
-    void compile_function(const std::vector<Expr_>& decorators={});
+    void compile_function(const Expr_vector& decorators={});
 
     PyObject* to_object(const TokenValue& value);
     PyObject* read_literal();

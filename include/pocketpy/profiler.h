@@ -22,7 +22,7 @@ struct _FrameRecord{
 struct LineProfiler{
     // filename -> records
     std::map<std::string_view, std::vector<_LineRecord>> records;
-    stack<_FrameRecord> frames;
+    stack_no_copy<_FrameRecord> frames;
     std::set<FuncDecl*> functions;
 
     void begin();

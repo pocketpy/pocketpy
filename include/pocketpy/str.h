@@ -13,7 +13,7 @@ struct Str{
     int size;
     bool is_ascii;
     char* data;
-    char _inlined[24];
+    char _inlined[16];
 
     bool is_inlined() const { return data == _inlined; }
 

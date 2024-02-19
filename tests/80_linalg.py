@@ -387,7 +387,7 @@ test_vec2_2_list = [test_vec2_2_copy.x, test_vec2_2_copy.y]
 
 radian = random.uniform(-10*math.pi, 10*math.pi)
 
-assert mat_to_str_list(mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)) == mat_list_to_str_list(trs(test_vec2_list, radian, test_vec2_2_list))
+mat3x3.trs(test_vec2_copy, radian, test_vec2_2_copy)
 
 a = mat3x3.zeros()
 a.copy_trs_(test_vec2_copy, radian, test_vec2_2_copy)

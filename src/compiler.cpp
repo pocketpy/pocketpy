@@ -180,7 +180,7 @@ namespace pkpy{
         parse_expression(PREC_LOWEST+1, allow_slice);
         if(!match(TK(","))) return;
         // tuple expression
-        std::vector<Expr_> items;
+        Expr_vector items;
         items.push_back(ctx()->s_expr.popx());
         do {
             if(curr().brackets_level) match_newlines_repl();
@@ -194,7 +194,7 @@ namespace pkpy{
 
     // special case for `for loop` and `comp`
     Expr_ Compiler::EXPR_VARS(){
-        std::vector<Expr_> items;
+        Expr_vector items;
         do {
             consume(TK("@id"));
             items.push_back(make_expr<NameExpr>(prev().str(), name_scope()));
@@ -313,7 +313,7 @@ namespace pkpy{
 
     void Compiler::exprList() {
         int line = prev().line;
-        std::vector<Expr_> items;
+        Expr_vector items;
         do {
             match_newlines_repl();
             if (curr().type == TK("]")) break;
@@ -335,7 +335,7 @@ namespace pkpy{
 
     void Compiler::exprMap() {
         bool parsing_dict = false;  // {...} may be dict or set
-        std::vector<Expr_> items;
+        Expr_vector items;
         do {
             match_newlines_repl();
             if (curr().type == TK("}")) break;
@@ -717,7 +717,7 @@ __EAT_DOTS_END:
     }
 
     void Compiler::compile_decorated(){
-        std::vector<Expr_> decorators;
+        Expr_vector decorators;
         do{
             EXPR();
             decorators.push_back(ctx()->s_expr.popx());
@@ -982,7 +982,7 @@ __EAT_DOTS_END:
         ctx()->s_expr.pop();
     }
 
-    void Compiler::_add_decorators(const std::vector<Expr_>& decorators){
+    void Compiler::_add_decorators(const Expr_vector& decorators){
         // [obj]
         for(auto it=decorators.rbegin(); it!=decorators.rend(); ++it){
             (*it)->emit_(ctx());                                    // [obj, f]
@@ -993,7 +993,7 @@ __EAT_DOTS_END:
         }
     }
 
-    void Compiler::compile_class(const std::vector<Expr_>& decorators){
+    void Compiler::compile_class(const Expr_vector& decorators){
         consume(TK("@id"));
         int namei = StrName(prev().sv()).index;
         Expr_ base = nullptr;
@@ -1011,7 +1011,7 @@ __EAT_DOTS_END:
         }
         ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
-        for(auto& c: this->contexts.data()){
+        for(auto& c: this->contexts.container()){
             if(c.is_compiling_class){
                 SyntaxError("nested class is not allowed");
             }
@@ -1092,7 +1092,7 @@ __EAT_DOTS_END:
         } while (match(TK(",")));
     }
 
-    void Compiler::compile_function(const std::vector<Expr_>& decorators){
+    void Compiler::compile_function(const Expr_vector& decorators){
         const char* _start = curr().start;
         consume(TK("@id"));
         Str decl_name = prev().str();

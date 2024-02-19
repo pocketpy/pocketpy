@@ -11,46 +11,52 @@ namespace pkpy{
 struct CodeEmitContext;
 struct Expr;
 
-#define PK_POOL64_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool64_dealloc(ptr); ptr = nullptr; }
+#define PK_POOL128_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool128_dealloc(ptr); ptr = nullptr; }
 
 template<typename T>
-class unique_ptr_64{
+class unique_ptr_128{
     T* ptr;
 public:
-    unique_ptr_64(): ptr(nullptr) {}
-    unique_ptr_64(T* ptr): ptr(ptr) {}
+    unique_ptr_128(): ptr(nullptr) {}
+    unique_ptr_128(T* ptr): ptr(ptr) {}
     T* operator->() const { return ptr; }
     T* get() const { return ptr; }
-    T* release() { T* p = ptr; ptr = nullptr; return p; }
+    T* detach() { T* p = ptr; ptr = nullptr; return p; }
 
-    unique_ptr_64(const unique_ptr_64&) = delete;
-    unique_ptr_64& operator=(const unique_ptr_64&) = delete;
+    unique_ptr_128(const unique_ptr_128&) = delete;
+    unique_ptr_128& operator=(const unique_ptr_128&) = delete;
 
     bool operator==(std::nullptr_t) const { return ptr == nullptr; }
     bool operator!=(std::nullptr_t) const { return ptr != nullptr; }
 
-    ~unique_ptr_64(){ PK_POOL64_DELETE(ptr) }
+    ~unique_ptr_128(){ PK_POOL128_DELETE(ptr) }
 
     template<typename U>
-    unique_ptr_64(unique_ptr_64<U>&& other): ptr(other.release()) {}
+    unique_ptr_128(unique_ptr_128<U>&& other): ptr(other.detach()) {}
 
     operator bool() const { return ptr != nullptr; }
 
     template<typename U>
-    unique_ptr_64& operator=(unique_ptr_64<U>&& other) {
-        PK_POOL64_DELETE(ptr)
-        ptr = other.release();
+    unique_ptr_128& operator=(unique_ptr_128<U>&& other) {
+        PK_POOL128_DELETE(ptr)
+        ptr = other.detach();
         return *this;
     }
 
-    unique_ptr_64& operator=(std::nullptr_t) {
-        PK_POOL64_DELETE(ptr)
+    unique_ptr_128& operator=(std::nullptr_t) {
+        PK_POOL128_DELETE(ptr)
         ptr = nullptr;
         return *this;
     }
 };
 
-typedef unique_ptr_64<Expr> Expr_;
+typedef unique_ptr_128<Expr> Expr_;
+typedef small_vector<Expr_, 4> Expr_vector;
+
+template<>
+struct TriviallyRelocatable<Expr_>{
+    constexpr static bool value = true;
+};
 
 struct Expr{
     int line = 0;
@@ -80,7 +86,7 @@ struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;     // optional
     CodeObject_ co;     // 1 CodeEmitContext <=> 1 CodeObject_
-    // some bugs on MSVC (error C2280) when using std::vector<Expr_>
+    // some bugs on MSVC (error C2280) when using Expr_vector
     // so we use stack_no_copy instead
     stack_no_copy<Expr_> s_expr;
     int level;
@@ -209,8 +215,8 @@ struct DictItemExpr: Expr{
 };
 
 struct SequenceExpr: Expr{
-    std::vector<Expr_> items;
-    SequenceExpr(std::vector<Expr_>&& items): items(std::move(items)) {}
+    Expr_vector items;
+    SequenceExpr(Expr_vector&& items): items(std::move(items)) {}
     virtual Opcode opcode() const = 0;
 
     void emit_(CodeEmitContext* ctx) override {
@@ -326,7 +332,7 @@ struct AttribExpr: Expr{
 
 struct CallExpr: Expr{
     Expr_ callable;
-    std::vector<Expr_> args;
+    Expr_vector args;
     // **a will be interpreted as a special keyword argument: {"**": a}
     std::vector<std::pair<Str, Expr_>> kwargs;
     void emit_(CodeEmitContext* ctx) override;
