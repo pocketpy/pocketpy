@@ -133,15 +133,34 @@ struct Array2d{
 
             if(is_non_tagged_type(xy[0], VM::tp_slice) && is_non_tagged_type(xy[1], VM::tp_slice)){
                 HANDLE_SLICE();
-                Array2d& other = CAST(Array2d&, _2);        // _2 must be an array2d
+
+                bool is_basic_type = false;
+                switch(vm->_tp(_2).index){
+                    case VM::tp_int.index: is_basic_type = true; break;
+                    case VM::tp_float.index: is_basic_type = true; break;
+                    case VM::tp_str.index: is_basic_type = true; break;
+                    case VM::tp_bool.index: is_basic_type = true; break;
+                    default: is_basic_type = _2 == vm->None;
+                }
+
+                if(is_basic_type){
+                    for(int j = 0; j < slice_height; j++)
+                        for(int i = 0; i < slice_width; i++)
+                            self._set(i + start_col, j + start_row, _2);
+                    return;
+                }
+
+                if(!is_non_tagged_type(_2, Array2d::_type(vm))){
+                    vm->TypeError(_S("expected int/float/str/bool/None or an array2d instance"));
+                }
+
+                Array2d& other = PK_OBJ_GET(Array2d, _2);
                 if(slice_width != other.n_cols || slice_height != other.n_rows){
                     vm->ValueError("array2d size does not match the slice size");
                 }
-                for(int j = 0; j < slice_height; j++){
-                    for(int i = 0; i < slice_width; i++){
+                for(int j = 0; j < slice_height; j++)
+                    for(int i = 0; i < slice_width; i++)
                         self._set(i + start_col, j + start_row, other._get(i, j));
-                    }
-                }
                 return;
             }
             vm->TypeError("expected `tuple[int, int]` or `tuple[slice, slice]` as index");

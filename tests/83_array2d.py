@@ -144,3 +144,25 @@ assert a.find_bounding_rect(0) == (0, 0, 5, 5)
 assert a.find_bounding_rect(2) == None
 
 
+a = array2d(3, 2, default='?')
+# int/float/str/bool/None
+
+for value in [0, 0.0, '0', False, None]:
+    a[0:2, 0:1] = value
+    assert a[2, 1] == '?'
+    assert a[0, 0] == value
+
+a[:, :] = 3
+assert a == array2d(3, 2, default=3)
+
+try:
+    a[:, :] = array2d(1, 1)
+    exit(1)
+except ValueError:
+    pass
+
+try:
+    a[:, :] = []
+    exit(1)
+except TypeError:
+    pass
