@@ -31,8 +31,7 @@ Though pocketpy is designed for game scripting,
 some people are using it for scientific computing.
 It would be nice to have a `numpy` module in pocketpy.
 
-We know `numpy` is a huge project.
+`numpy` is a huge project.
 Our goal is to implement a most commonly used subset of `numpy` in pocketpy.
 You can mix C++ and Python code to simplify the overall workloads.
-
-https://github.com/pocketpy/pocketpy/issues/202
+See https://github.com/pocketpy/pocketpy/issues/202 for more details.
