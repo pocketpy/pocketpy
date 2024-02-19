@@ -1011,7 +1011,7 @@ __EAT_DOTS_END:
         }
         ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
-        for(auto& c: this->contexts.data()){
+        for(auto& c: this->contexts.container()){
             if(c.is_compiling_class){
                 SyntaxError("nested class is not allowed");
             }

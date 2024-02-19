@@ -69,7 +69,6 @@ namespace pkpy{
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->_c.error = nullptr;
-        this->callstack.reserve(8);
         _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };
         _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;
@@ -124,7 +123,7 @@ namespace pkpy{
 #if PK_DEBUG_EXTRA_CHECK
         if(callstack.empty()) PK_FATAL_ERROR();
 #endif
-        return FrameId(&callstack.data(), callstack.size()-1);
+        return FrameId(&callstack.container(), callstack.size()-1);
     }
 
     void VM::_pop_frame(){
@@ -1262,7 +1261,7 @@ void VM::_raise(bool re_raise){
 
 void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) PK_OBJ_MARK(obj);
-    for(auto& frame : vm->callstack.data()) frame._gc_mark();
+    for(auto& frame : vm->callstack.container()) frame._gc_mark();
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->_cached_codes) co->_gc_mark();
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);

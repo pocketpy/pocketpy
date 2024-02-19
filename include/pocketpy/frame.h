@@ -126,7 +126,7 @@ struct Frame {
     }
 };
 
-using CallstackContainer = std::vector<Frame>;
+using CallstackContainer = small_vector<Frame, 16>;
 
 struct FrameId{
     CallstackContainer* data;

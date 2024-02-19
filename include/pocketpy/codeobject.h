@@ -71,7 +71,8 @@ struct CodeObject {
     std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     
-    List consts;
+    small_vector<PyObject*, 8> consts;
+
     pod_vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks;

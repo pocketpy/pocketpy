@@ -162,7 +162,8 @@ public:
 	const T& top() const { return vec.back(); }
 	T popx(){ T t = std::move(vec.back()); vec.pop_back(); return t; }
     void reserve(int n){ vec.reserve(n); }
-	Container& data() { return vec; }
+	Container& container() { return vec; }
+    const Container& container() const { return vec; }
 };
 
 template <typename T, typename Container=std::vector<T>>
@@ -229,8 +230,8 @@ namespace pkpy
 
         pointer data() { return m_begin; }
         const_pointer data() const { return m_begin; }
-        reference operator[](size_type index) { return data()[index]; }
-        const_reference operator[](size_type index) const { return data()[index]; }
+        reference operator[](size_type index) { return m_begin[index]; }
+        const_reference operator[](size_type index) const { return m_begin[index]; }
         iterator begin() { return m_begin; }
         const_iterator begin() const { return m_begin; }
         iterator end() { return m_end; }
