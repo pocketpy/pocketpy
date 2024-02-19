@@ -20,7 +20,7 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* _0, PyObject* _1){
         int start, stop, step;
         vm->parse_int_slice(s, self.size(), start, stop, step);
         List new_list;
-        for(int i=start; step>0?i<stop:i>stop; i+=step) new_list.push_back(self[i]);
+        PK_SLICE_LOOP(i, start, stop, step) new_list.push_back(self[i]);
         return VAR(T(std::move(new_list)));
     }
     vm->TypeError("indices must be integers or slices");

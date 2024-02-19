@@ -234,4 +234,6 @@ inline const char* kPlatformStrings[] = {
     "unknown"       // 6
 };
 
+#define PK_SLICE_LOOP(i, start, stop, step) for(int i=start; step>0?i<stop:i>stop; i+=step)
+
 } // namespace pkpy

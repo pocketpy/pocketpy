@@ -334,9 +334,9 @@ int utf8len(unsigned char c, bool suppress){
     Str Str::u8_slice(int start, int stop, int step) const{
         SStream ss;
         if(is_ascii){
-            for(int i=start; step>0?i<stop:i>stop; i+=step) ss << data[i];
+            PK_SLICE_LOOP(i, start, stop, step) ss << data[i];
         }else{
-            for(int i=start; step>0?i<stop:i>stop; i+=step) ss << u8_getitem(i);
+            PK_SLICE_LOOP(i, start, stop, step) ss << u8_getitem(i);
         }
         return ss.str();
     }
