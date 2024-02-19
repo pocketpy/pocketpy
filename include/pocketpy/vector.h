@@ -204,7 +204,6 @@ namespace pkpy
     template<typename T, std::size_t N>
     class small_vector
     {
-    public:
         alignas(T) char m_buffer[sizeof(T) * N];
         T* m_begin;
         T* m_end;
@@ -224,65 +223,32 @@ namespace pkpy
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
         [[nodiscard]] bool is_small() const { return m_begin == reinterpret_cast<const T*>(m_buffer); }
-
         [[nodiscard]] size_type size() const { return m_end - m_begin; }
-
         [[nodiscard]] size_type capacity() const { return m_max - m_begin; }
-
         [[nodiscard]] bool empty() const { return m_begin == m_end; }
 
         pointer data() { return m_begin; }
-
         const_pointer data() const { return m_begin; }
-
         reference operator[](size_type index) { return data()[index]; }
-
         const_reference operator[](size_type index) const { return data()[index]; }
-
         iterator begin() { return m_begin; }
-
         const_iterator begin() const { return m_begin; }
-
-        const_iterator cbegin() const { return m_begin; }
-
         iterator end() { return m_end; }
-
         const_iterator end() const { return m_end; }
-
-        const_iterator cend() const { return m_end; }
-
         reference front() { return *begin(); }
-
         const_reference front() const { return *begin(); }
-
         reference back() { return *(end() - 1); }
-
         const_reference back() const { return *(end() - 1); }
-
         reverse_iterator rbegin() { return reverse_iterator(end()); }
-
         const_reverse_iterator rbegin() const
         {
             return const_reverse_iterator(end());
         }
-
-        const_reverse_iterator crbegin() const
-        {
-            return const_reverse_iterator(end());
-        }
-
         reverse_iterator rend() { return reverse_iterator(begin()); }
-
         const_reverse_iterator rend() const
         {
             return const_reverse_iterator(begin());
         }
-
-        const_reverse_iterator crend() const
-        {
-            return const_reverse_iterator(begin());
-        }
-
     private:
         static void uninitialized_copy_n(const void* src, size_type n, void* dest)
         {
@@ -371,10 +337,7 @@ namespace pkpy
         ~small_vector()
         {
             std::destroy(m_begin, m_end);
-            if (!is_small())
-            {
-                std::free(m_begin);
-            }
+            if (!is_small()) std::free(m_begin);
         }
 
         template<typename... Args>
@@ -412,7 +375,6 @@ namespace pkpy
         }
 
         void push_back(const T& value) { emplace_back(value); }
-
         void push_back(T&& value) { emplace_back(std::move(value)); }
 
         void pop_back()
