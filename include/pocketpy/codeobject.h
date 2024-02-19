@@ -71,7 +71,7 @@ struct CodeObject {
     std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     
-    small_vector<PyObject*, 8> consts;
+    small_vector_no_copy_and_move<PyObject*, 8> consts;
 
     pod_vector<StrName> varnames;      // local variables
     NameDictInt varnames_inv;
@@ -97,8 +97,10 @@ struct FuncDecl {
         PyObject* value;        // default value
     };
     CodeObject_ code;           // code object of this function
-    pod_vector<int> args;      // indices in co->varnames
-    pod_vector<KwArg> kwargs;  // indices in co->varnames
+
+    small_vector_no_copy_and_move<int, 6> args;      // indices in co->varnames
+    small_vector_no_copy_and_move<KwArg, 6> kwargs;  // indices in co->varnames
+
     int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg
     bool nested = false;        // whether this function is nested

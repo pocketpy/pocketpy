@@ -126,7 +126,7 @@ struct Frame {
     }
 };
 
-using CallstackContainer = small_vector<Frame, 16>;
+using CallstackContainer = small_vector_no_copy_and_move<Frame, 16>;
 
 struct FrameId{
     CallstackContainer* data;

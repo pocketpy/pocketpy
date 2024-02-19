@@ -22,7 +22,7 @@ class Compiler {
     inline static PrattRule rules[kTokenCount];
 
     Lexer lexer;
-    stack<CodeEmitContext> contexts;
+    stack_no_copy<CodeEmitContext> contexts;
     VM* vm;
     bool unknown_global_scope;     // for eval/exec() call
     bool used;

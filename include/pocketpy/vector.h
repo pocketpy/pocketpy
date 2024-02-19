@@ -393,4 +393,17 @@ namespace pkpy
             m_end = m_begin;
         }
     };
+
+// small_vector_no_copy_and_move
+
+    template<typename T, std::size_t N>
+    class small_vector_no_copy_and_move: public small_vector<T, N>
+    {
+    public:
+        small_vector_no_copy_and_move() = default;
+        small_vector_no_copy_and_move(const small_vector_no_copy_and_move& other) = delete;
+        small_vector_no_copy_and_move& operator=(const small_vector_no_copy_and_move& other) = delete;
+        small_vector_no_copy_and_move(small_vector_no_copy_and_move&& other) = delete;
+        small_vector_no_copy_and_move& operator=(small_vector_no_copy_and_move&& other) = delete;
+    };
 } // namespace pkpy

@@ -120,7 +120,7 @@ public:
 
     struct{
         PyObject* error;
-        stack<ArgsView> s_view;
+        stack_no_copy<ArgsView> s_view;
     } _c;
 
     PyObject* None;
