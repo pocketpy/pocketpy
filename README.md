@@ -46,9 +46,10 @@ Download the `pocketpy.h` on our [GitHub Release](https://github.com/pocketpy/po
 And `#include` it in your project.
 
 You can also use cmake to build it from source. See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
-These variables can be set to control the build process:
+Some variables can be set to control the build process:
 + `PK_BUILD_STATIC_LIB` - Build the static library (default, recommended)
-+ `PK_BUILD_SHARED_LIB` - Build the shared library
++ `PK_BUILD_SHARED_LIB` - Build the shared  (for C-APIs only)
++ `PK_ENABLE_OS` - Enable OS related features (default mode is sandboxed)
 
 It is safe to use `main` branch in production.
 
