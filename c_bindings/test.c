@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
     PRINT_TITLE("test other errors");
     check(pkpy_getglobal(vm, pkpy_name("test_error_propagate")));
     check(pkpy_pop_top(vm));
-    fail(pkpy_getglobal(vm, pkpy_name("nonexistent")));
+    fail(pkpy_getglobal(vm, pkpy_name("nonexistant")));
     error(pkpy_exec(vm, "raise NameError('testing error throwing from python')"));
 
     PRINT_TITLE("test TypeError");
