@@ -220,7 +220,7 @@ namespace pkpy
                          newDeque.insertObj(false, true, -1, *it);
                      return newDequeObj;
                  });
-        // NEW: counts the number of occurences of the given object in the deque
+        // NEW: counts the number of occurrences of the given object in the deque
         vm->bind(type, "count(self, obj) -> int",
                  [](VM *vm, ArgsView args)
                  {
@@ -290,7 +290,7 @@ namespace pkpy
                          self.insertObj(false, false, index, obj); // this index shouldn't be fixed using vm->normalized_index, pass as is
                      return vm->None;
                  });
-        // NEW: removes the first occurence of the given object from the deque
+        // NEW: removes the first occurrence of the given object from the deque
         vm->bind(type, "remove(self, obj) -> None",
                  [](VM *vm, ArgsView args)
                  {
@@ -450,7 +450,7 @@ namespace pkpy
     /// @brief pops or removes an item from the deque
     /// @param front  if true, pop from the front of the deque
     /// @param back if true, pop from the back of the deque
-    /// @param item if front and back is not set, remove the first occurence of item from the deque
+    /// @param item if front and back is not set, remove the first occurrence of item from the deque
     /// @param vm is needed for the py_eq
     /// @return PyObject* if front or back is set, this is a pop operation and we return a PyObject*, if front and back are not set, this is a remove operation and we return the removed item or nullptr
     PyObject *PyDeque::popObj(bool front, bool back, PyObject *item, VM *vm)

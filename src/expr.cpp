@@ -591,7 +591,7 @@ namespace pkpy{
                 ctx->emit_(OP_CALL_TP, 0, line);
             }
         }else{
-            // vectorcall protocal
+            // vectorcall protocol
             for(auto& item: args) item->emit_(ctx);
             for(auto& item: kwargs){
                 uint16_t index = StrName(item.first.sv()).index;

@@ -9,18 +9,18 @@
 /*************** feature settings ***************/
 
 // Whether to compile os-related modules or not
-#ifndef PK_ENABLE_OS                // can be overrided by cmake
+#ifndef PK_ENABLE_OS                // can be overridden by cmake
 #define PK_ENABLE_OS                0
 #endif
 
 // Enable this if you are working with multi-threading (experimental)
 // This triggers necessary locks to make the VM thread-safe
-#ifndef PK_ENABLE_THREAD            // can be overrided by cmake
+#ifndef PK_ENABLE_THREAD            // can be overridden by cmake
 #define PK_ENABLE_THREAD            0
 #endif
 
 // GC min threshold
-#ifndef PK_GC_MIN_THRESHOLD         // can be overrided by cmake
+#ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
 #define PK_GC_MIN_THRESHOLD         32768
 #endif
 
