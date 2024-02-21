@@ -13,7 +13,7 @@ For methods, `call_method` can be used.
 + `PyObject* call(PyObject* obj, ...)`
 + `PyObject* call_method(PyObject* obj, StrName name, ...)`
 
-### Exmaple
+### Example
 
 Let's create a `dict` object and set a key-value pair,
 which equals to the following python snippet.

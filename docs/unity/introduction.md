@@ -57,7 +57,7 @@ PocketPython provides a sandboxed Python environment.
 All python code is executed in a C# virtual machine.
 The user cannot access the file system, network, or any other resources of the host machine.
 
-### Seemless Interop with C#
+### Seamless Interop with C#
 
 PocketPython uses `object` in C# to represent dynamic typed Python objects.
 Most of the basic Python types correspond to a C# type,

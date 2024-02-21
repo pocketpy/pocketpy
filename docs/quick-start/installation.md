@@ -143,7 +143,7 @@ The constructor can take 1 extra parameters.
 
 #### `VM(bool enable_os=true)`
 
-+ `enable_os`, whether to enable OS-related features or not. This setting controls the availability of priviledged modules such os `io` and `os` as well as builtin function `open`. **It is designed for sandboxing.**
++ `enable_os`, whether to enable OS-related features or not. This setting controls the availability of privileged modules such os `io` and `os` as well as builtin function `open`. **It is designed for sandboxing.**
 
 When you are done with the `VM` instance, use `delete` operator to dispose it.
 
