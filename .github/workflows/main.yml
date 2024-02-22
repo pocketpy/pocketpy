@@ -19,7 +19,7 @@ jobs:
     - name: Compile
       shell: powershell
       run: |
-        python3 amalgamate.py
+        python amalgamate.py
         cd amalgamated
         cl.exe /std:c++17 /EHsc /utf-8 /O2 /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
     - uses: actions/upload-artifact@v3
@@ -34,16 +34,16 @@ jobs:
       shell: bash
       run: |
         mkdir -p output/windows/x86_64
-        python3 cmake_build.py
+        python cmake_build.py
         cp main.exe output/windows/x86_64
         cp pocketpy.dll output/windows/x86_64
     - uses: actions/upload-artifact@v3
       with:
         path: output
     - name: Unit Test
-      run: python3 scripts/run_tests.py
+      run: python scripts/run_tests.py
     - name: Benchmark
-      run: python3 scripts/run_tests.py benchmark
+      run: python scripts/run_tests.py benchmark
   build_linux:
     runs-on: ubuntu-20.04
     steps:
@@ -66,7 +66,7 @@ jobs:
     - name: Compile
       run: |
         mkdir -p output/linux/x86_64
-        python3 cmake_build.py
+        python cmake_build.py
         cp main output/linux/x86_64
         cp libpocketpy.so output/linux/x86_64
       env:
@@ -76,7 +76,7 @@ jobs:
       with:
         path: output
     - name: Benchmark
-      run: python3 scripts/run_tests.py benchmark
+      run: python scripts/run_tests.py benchmark
     - name: C Binding Test
       run: bash run_c_binding_test.sh
   build_linux_x86:
@@ -91,23 +91,24 @@ jobs:
           branch: v3.15
       - name: Build and Test
         run: |
+          ln -s /usr/bin/python3 /usr/bin/python
           uname -m
-          python3 cmake_build.py
-          python3 scripts/run_tests.py
-          python3 scripts/run_tests.py benchmark
-        shell: alpine.sh {0}
+          python cmake_build.py
+          python scripts/run_tests.py
+          python scripts/run_tests.py benchmark
+        shell: alpine.sh --root {0}
   build_darwin:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v4
       - name: Compile and Test
         run: |
-          python3 cmake_build.py
-          python3 scripts/run_tests.py
+          python cmake_build.py
+          python scripts/run_tests.py
       - name: Benchmark
-        run: python3 scripts/run_tests.py benchmark
+        run: python scripts/run_tests.py benchmark
       - run: |
-          python3 amalgamate.py
+          python amalgamate.py
           cd plugins/macos/pocketpy
           mkdir -p output/macos
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO

@@ -18,7 +18,7 @@ def test_file(filepath, cpython=False):
     if cpython:
         x, y = os.path.split(filepath)
         with WorkDir(x):
-            return os.system("python3 " + y) == 0
+            return os.system("python " + y) == 0
     if sys.platform == 'win32':
         return os.system("main.exe " + filepath) == 0
     else:

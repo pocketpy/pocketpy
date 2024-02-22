@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# Check if python3 is installed
-if ! type -P python3 >/dev/null 2>&1; then
-    echo "python3 is required and not installed. Kindly install it."
-    echo "Run: sudo apt install python3"
-    exit 1
-fi
-
 # Check if clang++ is installed
 if ! type -P clang++ >/dev/null 2>&1; then
     echo "clang++ is required and not installed. Kindly install it."
@@ -14,12 +7,11 @@ if ! type -P clang++ >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "Requirements satisfied: python3 and clang are installed."
 echo "It takes a moment to finish building."
 echo ""
 echo "> Running prebuild.py... "
 
-python3 prebuild.py
+python prebuild.py
 
 if [ $? -ne 0 ]; then
     echo "prebuild.py failed."

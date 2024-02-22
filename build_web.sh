@@ -1,4 +1,4 @@
-python3 prebuild.py
+python prebuild.py
 
 rm -rf web/lib
 mkdir web/lib
