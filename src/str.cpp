@@ -505,8 +505,11 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     SStream& SStream::operator<<(f64 val){
-        if(std::isinf(val) || std::isnan(val)){
-            return (*this) << std::to_string(val);
+        if(std::isinf(val)){
+            return (*this) << (val > 0 ? "inf" : "-inf");
+        }
+        if(std::isnan(val)){
+            return (*this) << "nan";
         }
         char b[32];
         if(_precision == -1){

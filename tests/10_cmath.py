@@ -1,4 +1,5 @@
-from cmath import isclose, sqrt
+from cmath import isclose, sqrt, nan, inf, nanj, infj
+import math
 
 assert 1+2j == complex(1, 2) == 2j+1
 
@@ -25,3 +26,13 @@ assert repr(1+2j) == '(1.0+2.0j)'
 assert repr(1+0j) == '(1.0+0.0j)'
 assert repr(-1-3j) == '(-1.0-3.0j)'
 assert repr(1-3j) == '(1.0-3.0j)'
+
+
+assert repr(math.nan) == repr(nan) == 'nan'
+assert repr(-math.nan) == repr(-nan) == 'nan'
+assert repr(math.inf) == repr(inf) == 'inf'
+assert repr(-math.inf) == repr(-inf) == '-inf'
+assert repr(nanj) == '(0.0+nanj)', nanj
+assert repr(-nanj) == '(0.0+nanj)', -nanj
+assert repr(infj) == '(0.0+infj)', infj
+assert repr(-infj) == '(0.0-infj)', -infj

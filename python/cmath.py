@@ -12,15 +12,14 @@ class complex:
     @property
     def imag(self):
         return self._imag
-    
+
     def conjugate(self):
         return complex(self.real, -self.imag)
     
     def __repr__(self):
         s = ['(', str(self.real)]
-        if self.imag >= 0:
-            s.append('+')
-        s.append(str(self.imag))
+        s.append('-' if self.imag < 0 else '+')
+        s.append(str(abs(self.imag)))
         s.append('j)')
         return ''.join(s)
     
