@@ -170,7 +170,14 @@ void add_module_math(VM* vm){
     });
 
     vm->bind_func<1>(mod, "exp", PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "log", PK_LAMBDA(VAR(std::log(CAST_F(args[0])))));
+    // vm->bind_func<1>(mod, "log", PK_LAMBDA(VAR(std::log(CAST_F(args[0])))));
+
+    vm->bind(mod, "log(x, base=2.718281828459045)", [](VM* vm, ArgsView args){
+        f64 x = CAST_F(args[0]);
+        f64 base = CAST_F(args[1]);
+        return VAR(std::log(x) / std::log(base));
+    });
+
     vm->bind_func<1>(mod, "log2", PK_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
     vm->bind_func<1>(mod, "log10", PK_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
 

@@ -1,4 +1,4 @@
-from cmath import isclose, sqrt, nan, inf, nanj, infj
+from cmath import isclose, sqrt, nan, inf, nanj, infj, log
 import math
 
 assert 1+2j == complex(1, 2) == 2j+1
@@ -36,3 +36,6 @@ assert repr(nanj) == '(0.0+nanj)', nanj
 assert repr(-nanj) == '(0.0+nanj)', -nanj
 assert repr(infj) == '(0.0+infj)', infj
 assert repr(-infj) == '(0.0-infj)', -infj
+
+assert math.log(1) == 0.0
+assert isclose(log(10+5j), 2.4141568686511508+0.4636476090008061j)
