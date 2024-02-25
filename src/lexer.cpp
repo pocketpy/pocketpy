@@ -472,8 +472,6 @@ static bool is_unicode_Lo_char(uint32_t c) {
     }
 
     std::vector<Token> Lexer::run() {
-        PK_ASSERT(!used)
-        used = true;
         while (lex_one_token());
         return std::move(nexts);
     }

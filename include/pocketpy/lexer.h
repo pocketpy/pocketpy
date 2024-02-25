@@ -106,7 +106,6 @@ struct Lexer {
     std::vector<Token> nexts;
     stack_no_copy<int, small_vector_no_copy_and_move<int, 8>> indents;
     int brackets_level = 0;
-    bool used = false;
 
     char peekchar() const{ return *curr_char; }
     bool match_n_chars(int n, char c0);

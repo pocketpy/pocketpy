@@ -25,7 +25,6 @@ class Compiler {
     stack_no_copy<CodeEmitContext> contexts;
     VM* vm;
     bool unknown_global_scope;     // for eval/exec() call
-    bool used;
     // for parsing token stream
     int i = 0;
     std::vector<Token> tokens;

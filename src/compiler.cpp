@@ -1196,15 +1196,13 @@ __EAT_DOTS_END:
     Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope)
             :lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
         this->vm = vm;
-        this->used = false;
         this->unknown_global_scope = unknown_global_scope;
         init_pratt_rules();
     }
 
 
     CodeObject_ Compiler::compile(){
-        PK_ASSERT(!used)
-        used = true;
+        PK_ASSERT(i == 0)       // make sure it is the first time to compile
 
         tokens = lexer.run();
         CodeObject_ code = push_global_context();
