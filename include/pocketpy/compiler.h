@@ -69,23 +69,7 @@ class Compiler {
         return expr;
     }
 
-    template<typename T>
-    void _consume_comp(Expr_ expr){
-        static_assert(std::is_base_of<CompExpr, T>::value);
-        unique_ptr_128<CompExpr> ce = make_expr<T>();
-        ce->expr = std::move(expr);
-        ce->vars = EXPR_VARS();
-        consume(TK("in"));
-        parse_expression(PREC_TERNARY + 1);
-        ce->iter = ctx()->s_expr.popx();
-        match_newlines_repl();
-        if(match(TK("if"))){
-            parse_expression(PREC_TERNARY + 1);
-            ce->cond = ctx()->s_expr.popx();
-        }
-        ctx()->s_expr.push(std::move(ce));
-        match_newlines_repl();
-    }
+    void consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr);
 
     void exprLiteral();
     void exprLong();

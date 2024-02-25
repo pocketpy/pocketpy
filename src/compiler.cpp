@@ -311,6 +311,21 @@ namespace pkpy{
         ctx()->s_expr.push(std::move(g));
     }
 
+    void Compiler::consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr){
+        ce->expr = std::move(expr);
+        ce->vars = EXPR_VARS();
+        consume(TK("in"));
+        parse_expression(PREC_TERNARY + 1);
+        ce->iter = ctx()->s_expr.popx();
+        match_newlines_repl();
+        if(match(TK("if"))){
+            parse_expression(PREC_TERNARY + 1);
+            ce->cond = ctx()->s_expr.popx();
+        }
+        ctx()->s_expr.push(std::move(ce));
+        match_newlines_repl();
+    }
+
     void Compiler::exprList() {
         int line = prev().line;
         Expr_vector items;
@@ -321,7 +336,7 @@ namespace pkpy{
             items.push_back(ctx()->s_expr.popx());
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
-                _consume_comp<ListCompExpr>(std::move(items[0]));
+                consume_comp(make_expr<ListCompExpr>(), std::move(items[0]));
                 consume(TK("]"));
                 return;
             }
@@ -361,8 +376,8 @@ namespace pkpy{
             }
             match_newlines_repl();
             if(items.size()==1 && match(TK("for"))){
-                if(parsing_dict) _consume_comp<DictCompExpr>(std::move(items[0]));
-                else _consume_comp<SetCompExpr>(std::move(items[0]));
+                if(parsing_dict) consume_comp(make_expr<DictCompExpr>(), std::move(items[0]));
+                else consume_comp(make_expr<SetCompExpr>(), std::move(items[0]));
                 consume(TK("}"));
                 return;
             }
