@@ -21,6 +21,8 @@ Our goal is to introduce a pybind11 compatible solution to pocketpy as an altern
 for functions and classes.
 You can use C\+\+17 features to implement it, instead of C++11 used in pybind11.
 
+See https://github.com/pocketpy/pocketpy/issues/216 for more details.
+
 ### Add `numpy` module
 
 + Difficulty Level: 4/5 (Intermediate)
