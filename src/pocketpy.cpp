@@ -411,10 +411,17 @@ void init_builtins(VM* _vm) {
             int base = 10;
             if(args.size() == 1+2) base = CAST(i64, args[2]);
             const Str& s = CAST(Str&, args[1]);
-            i64 val;
-            if(!parse_int(s.sv(), &val, base)){
-                vm->ValueError("invalid literal for int(): " + s.escape());
+            std::string_view sv = s.sv();
+            bool negative = false;
+            if(!sv.empty() && (sv[0] == '+' || sv[0] == '-')){
+                negative = sv[0] == '-';
+                sv.remove_prefix(1);
             }
+            i64 val;
+            if(!parse_int(sv, &val, base)){
+                vm->ValueError(_S("invalid literal for int() with base ", base, ": ", s.escape()));
+            }
+            if(negative) val = -val;
             return VAR(val);
         }
         vm->TypeError("invalid arguments for int()");

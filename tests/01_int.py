@@ -62,6 +62,13 @@ assert int(1.5) == 1
 assert int(-1.5) == -1
 assert int("123") == 123
 
+assert int("0x123", 16) == 291
+assert int("0o123", 8) == 83
+assert int("-0x123", 16) == -291
+assert int("-0o123", 8) == -83
+assert int("-123") == -123
+assert int("+123") == 123
+
 # test >> << & | ^
 assert 12 >> 1 == 6
 assert 12 << 1 == 24
