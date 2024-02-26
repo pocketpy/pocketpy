@@ -24,7 +24,13 @@ pocketpy.lib
 APPS
 build
 
+venv
+include/pocketpy/ndarray.h
+include/typings/ndarray.pyi
+src/ndarray.cpp
 main
+
+mains
 pocketpy.dSYM
 libpocketpy.dylib.dSYM/
 main.dSYM/
