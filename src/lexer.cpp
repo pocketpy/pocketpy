@@ -1,4 +1,5 @@
 #include "pocketpy/lexer.h"
+#include <bits/stdc++.h>
 
 namespace pkpy{
 
@@ -484,30 +485,63 @@ bool parse_int(std::string_view text, i64* out, int base){
     return t[0] == prefix[0] && t[1] == prefix[1];
   };
 
+    int startPos = 0;
+
+    bool isNegative = false;
+
+    if (text[startPos] == '-' || text[startPos] == '+') {
+        startPos++;
+
+        if(text[startPos] == '-')
+            isNegative = true;
+    }
+
   if(base == -1){
-    if(f_startswith_2(text, "0b")) base = 2;
-    else if(f_startswith_2(text, "0o")) base = 8;
-    else if(f_startswith_2(text, "0x")) base = 16;
+    if(f_startswith_2(text.data() + startPos, "0b")) base = 2;
+    else if(f_startswith_2(text.data() + startPos, "0o")) base = 8;
+    else if(f_startswith_2(text.data() + startPos, "0x")) base = 16;
     else base = 10;
   }
 
+    if (text[startPos] == '0') {
+        // Move past '0' that could indicate a special base
+        startPos++;
+        if (base == 16 && (text[startPos] == 'x' || text[startPos] == 'X')) {
+            startPos++; // Skip 'x' for hex
+        } else if (base == 2 && (text[startPos] == 'b' || text[startPos] == 'B')) {
+            startPos++; // Skip 'b' for binary
+        } else if (base == 8 && (text[startPos] == 'o' || text[startPos] == 'O')) {
+            startPos++; // Skip 'o' for octal
+        } else {
+            startPos--; // Rollback if it's just a zero
+        }
+    }
+
+
+  int txt_len = text.length();
   if(base == 10){
     // 10-base  12334
-    if(text.length() == 0) return false;
-    for(char c : text){
-      if(c >= '0' && c <= '9'){
-        *out = (*out * 10) + (c - '0');
-        if(*out < 0) return false;      // overflow
-      }else{
-        return false;
-      }
+    if(txt_len == 0) return false;
+    for (int i = startPos; i < txt_len; i++){
+            char c = text[i];
+        if (c >= '0' && c <= '9')
+        {
+            *out = (*out * 10) + (c - '0');
+            if (*out < 0)
+                return false; // overflow
+        }
+        else
+        {
+            return false;
+        }
     }
     return true;
   }else if(base == 2){
     // 2-base   0b101010
-    if(f_startswith_2(text, "0b")) text.remove_prefix(2);
-    if(text.length() == 0) return false;
-    for(char c : text){
+    //if(f_startswith_2(text, "0b")) text.remove_prefix(2);
+    if(txt_len == 0) return false;
+    for (int i = startPos; i < txt_len; i++){
+        char c = text[i];
       if(c == '0' || c == '1'){
         *out = (*out << 1) | (c - '0');
         if(*out < 0) return false;      // overflow
@@ -518,9 +552,10 @@ bool parse_int(std::string_view text, i64* out, int base){
     return true;
   }else if(base == 8){
     // 8-base   0o123
-    if(f_startswith_2(text, "0o")) text.remove_prefix(2);
-    if(text.length() == 0) return false;
-    for(char c : text){
+    //if(f_startswith_2(text, "0o")) text.remove_prefix(2);
+    if(txt_len == 0) return false;
+    for (int i = startPos; i < txt_len; i++){
+        char c = text[i];
       if(c >= '0' && c <= '7'){
         *out = (*out << 3) | (c - '0');
         if(*out < 0) return false;      // overflow
@@ -531,9 +566,10 @@ bool parse_int(std::string_view text, i64* out, int base){
     return true;
   }else if(base == 16){
     // 16-base  0x123
-    if(f_startswith_2(text, "0x")) text.remove_prefix(2);
-    if(text.length() == 0) return false;
-    for(char c : text){
+    //if(f_startswith_2(text, "0x")) text.remove_prefix(2);
+    if(txt_len == 0) return false;
+    for (int i = startPos; i < txt_len; i++){
+        char c = text[i];
       if(c >= '0' && c <= '9'){
         *out = (*out << 4) | (c - '0');
         if(*out < 0) return false;      // overflow
@@ -547,6 +583,11 @@ bool parse_int(std::string_view text, i64* out, int base){
         return false;
       }
     }
+
+    if (isNegative) {
+        *out = -*out;
+    }
+
     return true;
   }
   return false;
