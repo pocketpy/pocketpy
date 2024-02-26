@@ -135,11 +135,13 @@ void init_builtins(VM* _vm) {
         return VAR(MappingProxy(mod));
     });
 
-    _vm->bind(_vm->builtins, "round(x, ndigits=0)", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->builtins, "round(x, ndigits=None)", [](VM* vm, ArgsView args) {
         f64 x = CAST(f64, args[0]);
+        if(args[1] == vm->None) return x >= 0 ? VAR((i64)(x + 0.5)) : VAR((i64)(x - 0.5));
         int ndigits = CAST(int, args[1]);
         if(ndigits == 0){
-            return x >= 0 ? VAR((i64)(x + 0.5)) : VAR((i64)(x - 0.5));
+            if(is_int(args[0])) return x >= 0 ? VAR((i64)(x + 0.5)) : VAR((i64)(x - 0.5));
+            else return x >= 0 ? VAR(f64((i64)(x + 0.5))) : VAR(f64((i64)(x - 0.5)));
         }
         if(ndigits < 0) vm->ValueError("ndigits should be non-negative");
         if(x >= 0){

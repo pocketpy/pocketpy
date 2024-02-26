@@ -2,6 +2,10 @@ assert round(23.2) == 23
 assert round(23.8) == 24
 assert round(-23.2) == -23
 assert round(-23.8) == -24
+assert round(23.2, 0) == 23.0
+assert round(23.8, 0) == 24.0
+assert round(-23.2, 0) == -23.0
+assert round(-23.8, 0) == -24.0
 # round with precision
 assert round(23.2, 1) == 23.2
 assert round(23.8, 1) == 23.8
