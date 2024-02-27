@@ -136,17 +136,14 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind(_vm->builtins, "round(x, ndigits=None)", [](VM* vm, ArgsView args) {
+        if(is_int(args[0])) return args[0];
         f64 x = CAST(f64, args[0]);
-        if(is_int(args[0])) return VAR(i64(x));
-        if(args[1] == vm->None) return x >= 0 ? VAR((i64)(x + 0.5)) : VAR((i64)(x - 0.5));
+        f64 offset = x >= 0 ? 0.5 : -0.5;
+        if(args[1] == vm->None) return VAR((i64)(x + offset));
         int ndigits = CAST(int, args[1]);
-        if(ndigits == 0) return x >= 0 ? VAR(f64((i64)(x + 0.5))) : VAR(f64((i64)(x - 0.5)));
         if(ndigits < 0) vm->ValueError("ndigits should be non-negative");
-        if(x >= 0){
-            return VAR((i64)(x * std::pow(10, ndigits) + 0.5) / std::pow(10, ndigits));
-        }else{
-            return VAR((i64)(x * std::pow(10, ndigits) - 0.5) / std::pow(10, ndigits));
-        }
+        // ndigits > 0
+        return VAR((i64)(x * std::pow(10, ndigits) + offset) / std::pow(10, ndigits));
     });
 
     _vm->bind_func<1>(_vm->builtins, "abs", [](VM* vm, ArgsView args) {
