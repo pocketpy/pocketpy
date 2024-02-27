@@ -14,7 +14,7 @@ First, you need to install these tools:
 
 1. Python(>= 3.8), I am sure you already have it.
 2. A C++ compiler, such as GCC, Clang or MSVC. If you are on Linux, `gcc` and `g++` are already installed. If you are on Windows, you can install Visual Studio with C++ development tools.
-3. CMake(>= 3.15), a cross-platform build tool. You can use `pip install cmake` to install it.
+3. CMake(>= 3.10), a cross-platform build tool. You can use `pip install cmake` to install it.
 
 Then, clone pocketpy sources from github and try to build:
 ```bash
@@ -37,7 +37,7 @@ Type "exit()" to exit.
 
 ### Application guide
 
-Your application should include the following:
+**Your need to send an email to `blueloveth@foxmail.com` with the following information:**
 
 1. A brief introduction about yourself, including the most related open sourced project you have worked on before. It is highly recommended to attach your Github profile link.
 2. A technical proposal for the project you are interested in working on, including:
@@ -54,5 +54,5 @@ See [Coding Style Guide](../coding_style_guide.md).
 ### Contact us
 
 If you have any questions, you can join our [Discord](https://discord.gg/WWaq72GzXv)
-or send an email to blueloveth@foxmail.com.
+or contact me via email.
 We are glad to help you with your application.
