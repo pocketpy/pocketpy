@@ -7,10 +7,7 @@
 namespace pkpy {
 
 #define PY_CLASS(T, mod, name)                  \
-    static Type _type(VM* vm) {                 \
-        PK_LOCAL_STATIC const std::pair<StrName, StrName> _path(#mod, #name); \
-        return PK_OBJ_GET(Type, vm->_modules[_path.first]->attr(_path.second)); \
-    }                                                                       \
+    static Type _type(VM* vm) { return vm->_cxx_typeid_map[typeid(T)]; }    \
     static void _check_type(VM* vm, PyObject* val){                         \
         if(!vm->isinstance(val, T::_type(vm))){                             \
             vm->TypeError("expected '" #mod "." #name "', got " + _type_name(vm, vm->_tp(val)).escape());  \
@@ -24,6 +21,7 @@ namespace pkpy {
         }                                                                   \
         PyObject* type = vm->new_type_object(mod, #name, base);             \
         mod->attr().set(#name, type);                                       \
+        vm->_cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);            \
         T::_register(vm, mod, type);                                        \
         return type;                                                        \
     }                                                                       

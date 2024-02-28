@@ -141,6 +141,9 @@ public:
     // cached code objects for FSTRING_EVAL
     std::map<std::string_view, CodeObject_> _cached_codes;
 
+    // typeid -> Type
+    std::map<std::type_index, Type> _cxx_typeid_map;
+
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
     LineProfiler* _profiler = nullptr;
@@ -191,7 +194,7 @@ public:
         return _run_top_frame();
     }
 
-    void _push_varargs(){ }
+    void _push_varargs(){}
     void _push_varargs(PyObject* _0){ PUSH(_0); }
     void _push_varargs(PyObject* _0, PyObject* _1){ PUSH(_0); PUSH(_1); }
     void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
