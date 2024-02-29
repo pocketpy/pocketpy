@@ -43,6 +43,7 @@ It is safe to use `main` branch in production.
 To compile it with your project, these flags must be set:
 
 + `--std=c++17` flag must be set
++ RTTI must be enabled
 + Exception must be enabled
 + For MSVC, `/utf-8` flag must be set
 

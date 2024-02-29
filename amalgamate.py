@@ -82,7 +82,7 @@ with open("amalgamated/main.cpp", "wt", encoding='utf-8', newline='\n') as f:
 	f.write(text)
 
 if sys.platform in ['linux', 'darwin']:
-	ok = os.system("clang++ -o main amalgamated/main.cpp -O1 --std=c++17 -stdlib=libc++")
+	ok = os.system("clang++ -o main amalgamated/main.cpp -O1 --std=c++17 -frtti -stdlib=libc++")
 	if ok == 0:
 		print("Test build success!")
 

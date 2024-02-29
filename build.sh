@@ -22,7 +22,7 @@ SRC=$(find src/ -name "*.cpp")
 
 echo "> Compiling and linking source files... "
 
-FLAGS="-std=c++17 -O1 -stdlib=libc++ -Wfatal-errors -Iinclude"
+FLAGS="-std=c++17 -O1 -stdlib=libc++ -frtti -Wfatal-errors -Iinclude"
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     LIB_EXTENSION=".dylib"
