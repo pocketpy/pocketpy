@@ -170,13 +170,13 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 
 #define PY_POINTER_SETGETITEM(T) \
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
-            VoidP& self = PK_OBJ_GET(VoidP&, _0);                                       \
+            VoidP& self = PK_OBJ_GET(VoidP, _0);                                       \
             i64 i = CAST(i64, _1);                                                      \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
             return VAR(tgt[i]);                                                         \
         });                                                                             \
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){  \
-            VoidP& self = PK_OBJ_GET(VoidP&, _0);                                       \
+            VoidP& self = PK_OBJ_GET(VoidP, _0);                                       \
             i64 i = CAST(i64, _1);                                                      \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
             tgt[i] = CAST(T, _2);                                                       \
