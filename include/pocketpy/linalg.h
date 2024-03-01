@@ -7,6 +7,11 @@ namespace pkpy{
 inline bool isclose(float a, float b){ return std::fabs(a - b) <= NumberTraits<4>::kEpsilon; }
 
 struct Vec2{
+    PY_CLASS(Vec2, linalg, vec2)
+
+    Vec2* _() { return this; }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+
     float x, y;
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float x, float y) : x(x), y(y) {}
@@ -30,6 +35,11 @@ struct Vec2{
 };
 
 struct Vec3{
+    PY_CLASS(Vec3, linalg, vec3)
+
+    Vec3* _() { return this; }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+
     float x, y, z;
     Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
     Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
@@ -52,6 +62,11 @@ struct Vec3{
 };
 
 struct Vec4{
+    PY_CLASS(Vec4, linalg, vec4)
+
+    Vec4* _() { return this; }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+
     float x, y, z, w;
     Vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
     Vec4(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
@@ -72,7 +87,12 @@ struct Vec4{
     NoReturn copy_(const Vec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; return {}; }
 };
 
-struct Mat3x3{    
+struct Mat3x3{
+    PY_CLASS(Mat3x3, linalg, mat3x3)
+
+    Mat3x3* _(){ return this; }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+
     union {
         struct {
             float        _11, _12, _13;
@@ -113,74 +133,18 @@ struct Mat3x3{
     Vec2 _s() const;
 };
 
-struct PyVec2: Vec2 {
-    PY_CLASS(PyVec2, linalg, vec2)
 
-    PyVec2() : Vec2() {}
-    PyVec2(const Vec2& v) : Vec2(v) {}
-    Vec2* _() { return this; }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-struct PyVec3: Vec3 {
-    PY_CLASS(PyVec3, linalg, vec3)
-
-    PyVec3() : Vec3() {}
-    PyVec3(const Vec3& v) : Vec3(v) {}
-    Vec3* _() { return this; }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-struct PyVec4: Vec4{
-    PY_CLASS(PyVec4, linalg, vec4)
-
-    PyVec4(): Vec4(){}
-    PyVec4(const Vec4& v): Vec4(v){}
-    Vec4* _(){ return this; }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-struct PyMat3x3: Mat3x3{
-    PY_CLASS(PyMat3x3, linalg, mat3x3)
-
-    PyMat3x3(): Mat3x3(){}
-    PyMat3x3(const Mat3x3& other): Mat3x3(other){}
-    Mat3x3* _(){ return this; }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
-};
-
-inline PyObject* py_var(VM* vm, Vec2 obj){ return VAR_T(PyVec2, obj); }
-inline PyObject* py_var(VM* vm, const PyVec2& obj){ return VAR_T(PyVec2, obj);}
-
-inline PyObject* py_var(VM* vm, Vec3 obj){ return VAR_T(PyVec3, obj); }
-inline PyObject* py_var(VM* vm, const PyVec3& obj){ return VAR_T(PyVec3, obj);}
-
-inline PyObject* py_var(VM* vm, Vec4 obj){ return VAR_T(PyVec4, obj); }
-inline PyObject* py_var(VM* vm, const PyVec4& obj){ return VAR_T(PyVec4, obj);}
-
-inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(PyMat3x3, obj); }
-inline PyObject* py_var(VM* vm, const PyMat3x3& obj){ return VAR_T(PyMat3x3, obj); }
-
-template<> inline Vec2 py_cast<Vec2>(VM* vm, PyObject* obj) { return CAST(PyVec2&, obj); }
-template<> inline Vec3 py_cast<Vec3>(VM* vm, PyObject* obj) { return CAST(PyVec3&, obj); }
-template<> inline Vec4 py_cast<Vec4>(VM* vm, PyObject* obj) { return CAST(PyVec4&, obj); }
-template<> inline Mat3x3 py_cast<Mat3x3>(VM* vm, PyObject* obj) { return CAST(PyMat3x3&, obj); }
-
-template<> inline Vec2 _py_cast<Vec2>(VM* vm, PyObject* obj) { return _CAST(PyVec2&, obj); }
-template<> inline Vec3 _py_cast<Vec3>(VM* vm, PyObject* obj) { return _CAST(PyVec3&, obj); }
-template<> inline Vec4 _py_cast<Vec4>(VM* vm, PyObject* obj) { return _CAST(PyVec4&, obj); }
-template<> inline Mat3x3 _py_cast<Mat3x3>(VM* vm, PyObject* obj) { return _CAST(PyMat3x3&, obj); }
+inline PyObject* py_var(VM* vm, Vec2 obj){ return VAR_T(Vec2, obj); }
+inline PyObject* py_var(VM* vm, Vec3 obj){ return VAR_T(Vec3, obj); }
+inline PyObject* py_var(VM* vm, Vec4 obj){ return VAR_T(Vec4, obj); }
+inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(Mat3x3, obj); }
 
 void add_module_linalg(VM* vm);
 
-static_assert(sizeof(Py_<PyMat3x3>) <= 64);
-static_assert(std::is_trivially_copyable<PyVec2>::value);
-static_assert(std::is_trivially_copyable<PyVec3>::value);
-static_assert(std::is_trivially_copyable<PyVec4>::value);
-static_assert(std::is_trivially_copyable<PyMat3x3>::value);
+static_assert(sizeof(Py_<Mat3x3>) <= 64);
+static_assert(std::is_trivially_copyable<Vec2>::value);
+static_assert(std::is_trivially_copyable<Vec3>::value);
+static_assert(std::is_trivially_copyable<Vec4>::value);
+static_assert(std::is_trivially_copyable<Mat3x3>::value);
 
 }   // namespace pkpy
