@@ -83,15 +83,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Alpine Linux v3.15 for aarch64
+      - name: Setup Alpine Linux for aarch64
         uses: jirutka/setup-alpine@v1
         with:
           arch: x86
           packages: gcc g++ make cmake libc-dev linux-headers python3
-          branch: v3.15
       - name: Build and Test
         run: |
-          ln -s /usr/bin/python3 /usr/bin/python
           uname -m
           python cmake_build.py
           python scripts/run_tests.py

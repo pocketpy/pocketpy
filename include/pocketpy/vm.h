@@ -354,6 +354,11 @@ public:
         TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
     }
 
+    void check_compatible_type(PyObject* obj, Type type){
+        if(isinstance(obj, type)) return;
+        TypeError(_S(_type_name(vm, _tp(obj)).escape(), " is not compatible with ", _type_name(vm, type).escape()));
+    }
+
     PyObject* _t(Type t){
         return _all_types[t.index].obj;
     }
@@ -371,7 +376,10 @@ public:
     struct ImportContext{
         std::vector<Str> pending;
         pod_vector<bool> pending_is_init;   // a.k.a __init__.py
+
         struct Temp{
+            PK_ALWAYS_PASS_BY_POINTER(Temp)
+
             ImportContext* ctx;
             Temp(ImportContext* ctx, Str name, bool is_init) : ctx(ctx){
                 ctx->pending.push_back(name);
@@ -436,7 +444,7 @@ public:
     #elif _MSC_VER
             throw std::runtime_error(__FUNCSIG__ + std::string(" failed: T not found"));
     #else
-            throw std::runtime_error("py_var() failed: T not found");
+            throw std::runtime_error("_find_type_in_cxx_typeid_map() failed: T not found");
     #endif
         }
         return it->second;
@@ -556,7 +564,7 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
         }
     }
     Type type = vm->_find_type_in_cxx_typeid_map<T>();
-    if constexpr(with_check) vm->check_non_tagged_type(obj, type);
+    if constexpr(with_check) vm->check_compatible_type(obj, type);
     return PK_OBJ_GET(T, obj);
 }
 
