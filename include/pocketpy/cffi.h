@@ -46,14 +46,6 @@ struct VoidP{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-inline PyObject* py_var(VM* vm, void* p){
-    return VAR_T(VoidP, p);
-}
-
-inline PyObject* py_var(VM* vm, const void* p){
-    return VAR_T(VoidP, p);
-}
-
 #define POINTER_VAR(Tp, NAME)    \
     inline PyObject* py_var(VM* vm, Tp val){    \
         const static std::pair<StrName, StrName> P("c", NAME);      \

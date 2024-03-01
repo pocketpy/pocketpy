@@ -133,12 +133,6 @@ struct Mat3x3{
     Vec2 _s() const;
 };
 
-
-inline PyObject* py_var(VM* vm, Vec2 obj){ return VAR_T(Vec2, obj); }
-inline PyObject* py_var(VM* vm, Vec3 obj){ return VAR_T(Vec3, obj); }
-inline PyObject* py_var(VM* vm, Vec4 obj){ return VAR_T(Vec4, obj); }
-inline PyObject* py_var(VM* vm, const Mat3x3& obj){ return VAR_T(Mat3x3, obj); }
-
 void add_module_linalg(VM* vm);
 
 static_assert(sizeof(Py_<Mat3x3>) <= 64);

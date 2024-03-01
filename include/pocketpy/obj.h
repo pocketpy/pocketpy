@@ -210,6 +210,7 @@ inline void gc_mark_namedict(NameDict& t){
 
 StrName _type_name(VM* vm, Type type);
 template<typename T> T to_void_p(VM*, PyObject*);
+PyObject* from_void_p(VM*, void*);
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)

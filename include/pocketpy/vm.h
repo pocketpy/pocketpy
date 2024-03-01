@@ -504,6 +504,8 @@ PyObject* py_var(VM* vm, __T&& value){
     }else if constexpr(is_floating_point_v<T>){
         // float
         return tag_float(static_cast<f64>(std::forward<__T>(value)));
+    }else if constexpr(std::is_pointer_v<T>){
+        return from_void_p(vm, (void*)value);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
         if constexpr(const_type.index >= 0){

@@ -271,4 +271,8 @@ void add_module_c(VM* vm){
     });
 }
 
+PyObject* from_void_p(VM* vm, void* p){
+    return VAR_T(VoidP, p);
+}
+
 }   // namespace pkpy
