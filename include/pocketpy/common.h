@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <random>
 #include <deque>
-#include <typeindex>
+#include <typeinfo>
 #include <initializer_list>
 
 #define PK_VERSION				"1.4.2"
@@ -237,5 +237,20 @@ inline const char* kPlatformStrings[] = {
 };
 
 #define PK_SLICE_LOOP(i, start, stop, step) for(int i=start; step>0?i<stop:i>stop; i+=step)
+
+template<typename T>
+inline constexpr bool is_integral_v = std::is_same_v<T, char>
+        || std::is_same_v<T, short>
+        || std::is_same_v<T, int>
+        || std::is_same_v<T, long>
+        || std::is_same_v<T, long long>
+        || std::is_same_v<T, unsigned char>
+        || std::is_same_v<T, unsigned short>
+        || std::is_same_v<T, unsigned int>
+        || std::is_same_v<T, unsigned long>
+        || std::is_same_v<T, unsigned long long>;
+
+template<typename T>
+inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
 } // namespace pkpy

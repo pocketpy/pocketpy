@@ -12,6 +12,7 @@
 #include "dict.h"
 #include "profiler.h"
 
+
 namespace pkpy{
 
 /* Stack manipulation macros */
@@ -40,9 +41,7 @@ namespace pkpy{
     }                                                                   \
     template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
         return PK_OBJ_GET(ctype, obj);                                  \
-    }                                                                   \
-    inline PyObject* py_var(VM* vm, const ctype& value) { return vm->heap.gcnew<ctype>(vm->ptype, value);}     \
-    inline PyObject* py_var(VM* vm, ctype&& value) { return vm->heap.gcnew<ctype>(vm->ptype, std::move(value));}
+    }
 
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
@@ -142,7 +141,7 @@ public:
     std::map<std::string_view, CodeObject_> _cached_codes;
 
     // typeid -> Type
-    std::map<std::type_index, Type> _cxx_typeid_map;
+    std::map<const std::type_info*, Type> _cxx_typeid_map;
 
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
@@ -465,6 +464,83 @@ DEF_NATIVE_2(ClassMethod, tp_classmethod)
 
 #undef DEF_NATIVE_2
 
+constexpr std::pair<const std::type_info*, Type> _const_cxx_typeid_map[] = {
+    {&typeid(Str), VM::tp_str},
+    {&typeid(List), VM::tp_list},
+    {&typeid(Tuple), VM::tp_tuple},
+    {&typeid(Function), VM::tp_function},
+    {&typeid(NativeFunc), VM::tp_native_func},
+    {&typeid(BoundMethod), VM::tp_bound_method},
+    {&typeid(Range), VM::tp_range},
+    {&typeid(Slice), VM::tp_slice},
+    {&typeid(Exception), VM::tp_exception},
+    {&typeid(Bytes), VM::tp_bytes},
+    {&typeid(MappingProxy), VM::tp_mappingproxy},
+    {&typeid(Dict), VM::tp_dict},
+    {&typeid(Property), VM::tp_property},
+    {&typeid(StarWrapper), VM::tp_star_wrapper},
+    {&typeid(StaticMethod), VM::tp_staticmethod},
+    {&typeid(ClassMethod), VM::tp_classmethod},
+    /***************************************/
+};
+
+template<typename T>
+constexpr Type _find_type_in_const_cxx_typeid_map(){
+    for(auto& p : _const_cxx_typeid_map) if(p.first == &typeid(T)) return p.second;
+    return -1;
+}
+
+template<typename __T>
+PyObject* py_var(VM* vm, __T&& value){
+    using T = std::decay_t<__T>;
+
+    static_assert(!std::is_same_v<T, PyObject*>, "py_var(VM*, PyObject*) is not allowed");
+
+    if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>){
+        // str (shortcuts)
+        return VAR(Str(std::forward<__T>(value)));
+    }else if constexpr(std::is_same_v<T, NoReturn>){
+        // NoneType
+        return vm->None;
+    }else if constexpr(std::is_same_v<T, bool>){
+        // bool
+        return value ? vm->True : vm->False;
+    }else if constexpr(is_integral_v<T>){
+        // int
+        i64 val = static_cast<i64>(std::forward<__T>(value));
+        if(val >= Number::kMinSmallInt && val <= Number::kMaxSmallInt){
+            val = (val << 2) | 0b10;
+            return reinterpret_cast<PyObject*>(val);
+        }else{
+            return vm->heap.gcnew<i64>(vm->tp_int, val);
+        }
+    }else if constexpr(is_floating_point_v<T>){
+        // float
+        return tag_float(static_cast<f64>(std::forward<__T>(value)));
+    }else{
+        constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
+        if constexpr(const_type.index >= 0){
+            return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
+        }
+    }
+    // dynamic type
+    auto it = vm->_cxx_typeid_map.find(&typeid(T));
+    if(it == vm->_cxx_typeid_map.end()){
+#if __GNUC__ || __clang__
+        throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));
+#elif _MSC_VER
+        throw std::runtime_error(__FUNCSIG__ + std::string(" failed: T not found"));
+#else
+        throw std::runtime_error("py_var() failed: T not found");
+#endif
+    }
+    return vm->heap.gcnew<T>(it->second, std::forward<__T>(value));
+}
+
+
+
+
+
 #define PY_CAST_INT(T)                                  \
 template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
     if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
@@ -509,41 +585,6 @@ template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
     return py_cast<double>(vm, obj);
 }
 
-#define PY_VAR_INT(T)                                       \
-    inline PyObject* py_var(VM* vm, T _val){                \
-        i64 val = static_cast<i64>(_val);                   \
-        if(val >= Number::kMinSmallInt && val <= Number::kMaxSmallInt){     \
-            val = (val << 2) | 0b10;                        \
-            return reinterpret_cast<PyObject*>(val);        \
-        }else{                                              \
-            return vm->heap.gcnew<i64>(vm->tp_int, val);    \
-        }                                                   \
-    }
-
-PY_VAR_INT(char)
-PY_VAR_INT(short)
-PY_VAR_INT(int)
-PY_VAR_INT(long)
-PY_VAR_INT(long long)
-PY_VAR_INT(unsigned char)
-PY_VAR_INT(unsigned short)
-PY_VAR_INT(unsigned int)
-PY_VAR_INT(unsigned long)
-PY_VAR_INT(unsigned long long)
-#undef PY_VAR_INT
-
-inline PyObject* py_var(VM* vm, float _val){
-    return tag_float(static_cast<f64>(_val));
-}
-
-inline PyObject* py_var(VM* vm, double _val){
-    return tag_float(static_cast<f64>(_val));
-}
-
-inline PyObject* py_var(VM* vm, bool val){
-    return val ? vm->True : vm->False;
-}
-
 template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
     if(obj == vm->True) return true;
     if(obj == vm->False) return false;
@@ -563,10 +604,6 @@ template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
 }
 
-inline PyObject* py_var(VM* vm, const char* val){
-    return VAR(Str(val));
-}
-
 template<>
 inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
     if(obj == vm->None) return nullptr;
@@ -577,18 +614,6 @@ inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
 template<>
 inline const char* _py_cast<const char*>(VM* vm, PyObject* obj){
     return PK_OBJ_GET(Str, obj).c_str();
-}
-
-inline PyObject* py_var(VM* vm, std::string val){
-    return VAR(Str(val));
-}
-
-inline PyObject* py_var(VM* vm, std::string_view val){
-    return VAR(Str(val));
-}
-
-inline PyObject* py_var(VM* vm, NoReturn val){
-    return vm->None;
 }
 
 template<int ARGC>
