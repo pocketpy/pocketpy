@@ -465,7 +465,7 @@ constexpr std::pair<const std::type_info*, Type> _const_cxx_typeid_map[] = {
 
 template<typename T>
 constexpr Type _find_type_in_const_cxx_typeid_map(){
-    for(auto& p : _const_cxx_typeid_map) if(p.first == &typeid(T)) return p.second;
+    for(auto [id, type] : _const_cxx_typeid_map) if(id == &typeid(T)) return type;
     return -1;
 }
 
