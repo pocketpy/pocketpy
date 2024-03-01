@@ -171,6 +171,8 @@ template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)
 
 template <typename T>
 struct Py_ final: PyObject {
+    static_assert(!std::is_reference_v<T>, "T must not be a reference type. Are you using `PK_OBJ_GET(T&, ...)`?");
+
     T _value;
     void _obj_gc_mark() override {
         if constexpr (has_gc_marker<T>::value) {
