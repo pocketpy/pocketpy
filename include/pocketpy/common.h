@@ -248,7 +248,8 @@ inline constexpr bool is_integral_v = std::is_same_v<T, char>
         || std::is_same_v<T, unsigned short>
         || std::is_same_v<T, unsigned int>
         || std::is_same_v<T, unsigned long>
-        || std::is_same_v<T, unsigned long long>;
+        || std::is_same_v<T, unsigned long long>
+		|| std::is_same_v<T, signed char>;		// for imgui
 
 template<typename T>
 inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_same_v<T, double>;
