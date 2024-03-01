@@ -68,14 +68,10 @@ class complex:
     def __truediv__(self, other):
         if type(other) is complex:
             denominator = other.real ** 2 + other.imag ** 2
-            if denominator == 0:
-                raise ZeroDivisionError("Division by zero in complex number division")
             real_part = (self.real * other.real + self.imag * other.imag) / denominator
             imag_part = (self.imag * other.real - self.real * other.imag) / denominator
             return complex(real_part, imag_part)
         if type(other) in (int, float):
-            if other == 0:
-                raise ZeroDivisionError("Division by zero in complex number division")
             return complex(self.real / other, self.imag / other)
         return NotImplemented
     
