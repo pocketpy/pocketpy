@@ -22,6 +22,8 @@ struct ManagedHeap{
     /********************/
     int _gc_lock_counter = 0;
     struct ScopeLock{
+        PK_ALWAYS_PASS_BY_POINTER(ScopeLock)
+        
         ManagedHeap* heap;
         ScopeLock(ManagedHeap* heap): heap(heap){
             heap->_gc_lock_counter++;
