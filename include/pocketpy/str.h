@@ -60,11 +60,12 @@ struct Str{
 
     friend std::ostream& operator<<(std::ostream& os, const Str& str);
 
+    const char* c_str() const { return data; }
+    std::string_view sv() const { return std::string_view(data, size); }
+    std::string str() const { return std::string(data, size); }
+
     Str substr(int start, int len) const;
     Str substr(int start) const;
-    const char* c_str() const;
-    std::string_view sv() const;
-    std::string str() const;
     Str strip(bool left, bool right, const Str& chars) const;
     Str strip(bool left=true, bool right=true) const;
     Str lstrip() const { return strip(true, false); }
@@ -90,15 +91,17 @@ struct Str{
 
 struct StrName {
     uint16_t index;
-    StrName();
-    explicit StrName(uint16_t index);
-    StrName(const char* s);
-    StrName(const Str& s);
-    std::string_view sv() const;
-    const char* c_str() const;
-    bool empty() const { return index == 0; }
 
-    Str escape() const;
+    StrName(): index(0) {}
+    explicit StrName(uint16_t index): index(index) {}
+    StrName(const char* s): index(get(s).index) {}
+    StrName(const Str& s): index(get(s.sv()).index) {}
+
+    std::string_view sv() const { return _r_interned()[index];}
+    const char* c_str() const { return _r_interned()[index].c_str(); }
+
+    bool empty() const { return index == 0; }
+    Str escape() const { return Str(sv()).escape(); }
 
     bool operator==(const StrName& other) const noexcept {
         return this->index == other.index;

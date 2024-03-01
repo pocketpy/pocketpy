@@ -182,18 +182,6 @@ int utf8len(unsigned char c, bool suppress){
         return substr(start, size - start);
     }
 
-    const char* Str::c_str() const{
-        return data;
-    }
-
-    std::string_view Str::sv() const {
-        return std::string_view(data, size);
-    }
-
-    std::string Str::str() const {
-        return std::string(data, size);
-    }
-
     Str Str::strip(bool left, bool right, const Str& chars) const {
         int L = 0;
         int R = u8_length();
@@ -414,29 +402,8 @@ int utf8len(unsigned char c, bool suppress){
         return StrName(index);
     }
 
-    Str StrName::escape() const {
-        return Str(sv()).escape();
-    }
-
     bool StrName::is_valid(int index) {
         return _r_interned().find(index) != _r_interned().end();
-    }
-
-    StrName::StrName(): index(0) {}
-    StrName::StrName(uint16_t index): index(index) {}
-    StrName::StrName(const char* s): index(get(s).index) {}
-    StrName::StrName(const Str& s){
-        index = get(s.sv()).index;
-    }
-
-    std::string_view StrName::sv() const {
-        const std::string& str = _r_interned()[index];
-        return std::string_view(str);
-    }
-
-    const char* StrName::c_str() const{
-        const std::string& str = _r_interned()[index];
-        return str.c_str();
     }
 
     Str SStream::str(){
