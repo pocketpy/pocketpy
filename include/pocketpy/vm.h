@@ -27,23 +27,6 @@ namespace pkpy{
 #define POPX()            (s_data.popx())
 #define STACK_VIEW(n)     (s_data.view(n))
 
-#define DEF_NATIVE_2(ctype, ptype)                                      \
-    template<> inline ctype py_cast<ctype>(VM* vm, PyObject* obj) {     \
-        vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return PK_OBJ_GET(ctype, obj);                                  \
-    }                                                                   \
-    template<> inline ctype _py_cast<ctype>(VM* vm, PyObject* obj) {    \
-        return PK_OBJ_GET(ctype, obj);                                  \
-    }                                                                   \
-    template<> inline ctype& py_cast<ctype&>(VM* vm, PyObject* obj) {   \
-        vm->check_non_tagged_type(obj, vm->ptype);                      \
-        return PK_OBJ_GET(ctype, obj);                                  \
-    }                                                                   \
-    template<> inline ctype& _py_cast<ctype&>(VM* vm, PyObject* obj) {  \
-        return PK_OBJ_GET(ctype, obj);                                  \
-    }
-
-
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
 
 struct PyTypeInfo{
@@ -443,26 +426,22 @@ public:
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_property(PyObject*, Str, NativeFuncC fget, NativeFuncC fset=nullptr);
+
+    template<typename T>
+    Type _find_type_in_cxx_typeid_map(){
+        auto it = _cxx_typeid_map.find(&typeid(T));
+        if(it == _cxx_typeid_map.end()){
+    #if __GNUC__ || __clang__
+            throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));
+    #elif _MSC_VER
+            throw std::runtime_error(__FUNCSIG__ + std::string(" failed: T not found"));
+    #else
+            throw std::runtime_error("py_var() failed: T not found");
+    #endif
+        }
+        return it->second;
+    }
 };
-
-DEF_NATIVE_2(Str, tp_str)
-DEF_NATIVE_2(List, tp_list)
-DEF_NATIVE_2(Tuple, tp_tuple)
-DEF_NATIVE_2(Function, tp_function)
-DEF_NATIVE_2(NativeFunc, tp_native_func)
-DEF_NATIVE_2(BoundMethod, tp_bound_method)
-DEF_NATIVE_2(Range, tp_range)
-DEF_NATIVE_2(Slice, tp_slice)
-DEF_NATIVE_2(Exception, tp_exception)
-DEF_NATIVE_2(Bytes, tp_bytes)
-DEF_NATIVE_2(MappingProxy, tp_mappingproxy)
-DEF_NATIVE_2(Dict, tp_dict)
-DEF_NATIVE_2(Property, tp_property)
-DEF_NATIVE_2(StarWrapper, tp_star_wrapper)
-DEF_NATIVE_2(StaticMethod, tp_staticmethod)
-DEF_NATIVE_2(ClassMethod, tp_classmethod)
-
-#undef DEF_NATIVE_2
 
 constexpr std::pair<const std::type_info*, Type> _const_cxx_typeid_map[] = {
     {&typeid(Str), VM::tp_str},
@@ -523,98 +502,69 @@ PyObject* py_var(VM* vm, __T&& value){
             return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
         }
     }
-    // dynamic type
-    auto it = vm->_cxx_typeid_map.find(&typeid(T));
-    if(it == vm->_cxx_typeid_map.end()){
-#if __GNUC__ || __clang__
-        throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));
-#elif _MSC_VER
-        throw std::runtime_error(__FUNCSIG__ + std::string(" failed: T not found"));
-#else
-        throw std::runtime_error("py_var() failed: T not found");
-#endif
+    Type type = vm->_find_type_in_cxx_typeid_map<T>();
+    return vm->heap.gcnew<T>(type, std::forward<__T>(value));
+}
+
+template<typename __T, bool with_check>
+__T _py_cast__internal(VM* vm, PyObject* obj) {
+    using T = std::decay_t<__T>;
+
+    if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>){
+        // str (shortcuts)
+        if constexpr(with_check){
+            if(obj == vm->None) return nullptr;
+            vm->check_non_tagged_type(obj, vm->tp_str);
+            return PK_OBJ_GET(Str, obj).c_str();
+        }else{
+            return PK_OBJ_GET(Str, obj).c_str();
+        }
+    }else if constexpr(std::is_same_v<T, bool>){
+        // bool
+        if constexpr(with_check){
+            if(obj == vm->True) return true;
+            if(obj == vm->False) return false;
+            vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
+        }else{
+            return obj == vm->True;
+        }
+    }else if constexpr(is_integral_v<T>){
+        // int
+        if constexpr(with_check){
+            if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);
+            if(is_heap_int(obj)) return (T)PK_OBJ_GET(i64, obj);
+            vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
+        }else{
+            if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);
+            return (T)PK_OBJ_GET(i64, obj);
+        }
+    }else if constexpr(is_floating_point_v<T>){
+        // float
+        if(is_float(obj)) return untag_float(obj);
+        i64 bits;
+        if(try_cast_int(obj, &bits)) return (float)bits;
+        vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
+    }else if constexpr(std::is_enum_v<T>){
+        return (__T)_py_cast__internal<i64, with_check>(vm, obj);
+    }else if constexpr(std::is_pointer_v<T>){
+        return to_void_p<T>(vm, obj);
+    }else{
+        constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
+        if constexpr(const_type.index >= 0){
+            if constexpr(with_check) vm->check_non_tagged_type(obj, const_type);
+            return PK_OBJ_GET(T, obj);
+        }
     }
-    return vm->heap.gcnew<T>(it->second, std::forward<__T>(value));
+    Type type = vm->_find_type_in_cxx_typeid_map<T>();
+    if constexpr(with_check) vm->check_non_tagged_type(obj, type);
+    return PK_OBJ_GET(T, obj);
 }
 
+template<typename __T>
+__T  py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, true>(vm, obj); }
+template<typename __T>
+__T _py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, false>(vm, obj); }
 
-
-
-
-#define PY_CAST_INT(T)                                  \
-template<> inline T py_cast<T>(VM* vm, PyObject* obj){  \
-    if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
-    if(is_heap_int(obj)) return (T)PK_OBJ_GET(i64, obj);    \
-    vm->check_type(obj, vm->tp_int);                        \
-    return 0;                                               \
-}                                                           \
-template<> inline T _py_cast<T>(VM* vm, PyObject* obj){     \
-    if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);    \
-    return (T)PK_OBJ_GET(i64, obj);                         \
-}
-
-PY_CAST_INT(char)
-PY_CAST_INT(short)
-PY_CAST_INT(int)
-PY_CAST_INT(long)
-PY_CAST_INT(long long)
-PY_CAST_INT(unsigned char)
-PY_CAST_INT(unsigned short)
-PY_CAST_INT(unsigned int)
-PY_CAST_INT(unsigned long)
-PY_CAST_INT(unsigned long long)
-
-template<> inline float py_cast<float>(VM* vm, PyObject* obj){
-    if(is_float(obj)) return untag_float(obj);
-    i64 bits;
-    if(try_cast_int(obj, &bits)) return (float)bits;
-    vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
-    return 0;
-}
-template<> inline float _py_cast<float>(VM* vm, PyObject* obj){
-    return py_cast<float>(vm, obj);
-}
-template<> inline double py_cast<double>(VM* vm, PyObject* obj){
-    if(is_float(obj)) return untag_float(obj);
-    i64 bits;
-    if(try_cast_int(obj, &bits)) return (float)bits;
-    vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
-    return 0;
-}
-template<> inline double _py_cast<double>(VM* vm, PyObject* obj){
-    return py_cast<double>(vm, obj);
-}
-
-template<> inline bool py_cast<bool>(VM* vm, PyObject* obj){
-    if(obj == vm->True) return true;
-    if(obj == vm->False) return false;
-    vm->check_non_tagged_type(obj, vm->tp_bool);
-    return false;
-}
-template<> inline bool _py_cast<bool>(VM* vm, PyObject* obj){
-    return obj == vm->True;
-}
-
-template<> inline CString py_cast<CString>(VM* vm, PyObject* obj){
-    vm->check_non_tagged_type(obj, vm->tp_str);
-    return PK_OBJ_GET(Str, obj).c_str();
-}
-
-template<> inline CString _py_cast<CString>(VM* vm, PyObject* obj){
-    return PK_OBJ_GET(Str, obj).c_str();
-}
-
-template<>
-inline const char* py_cast<const char*>(VM* vm, PyObject* obj){
-    if(obj == vm->None) return nullptr;
-    vm->check_non_tagged_type(obj, vm->tp_str);
-    return PK_OBJ_GET(Str, obj).c_str();
-}
-
-template<>
-inline const char* _py_cast<const char*>(VM* vm, PyObject* obj){
-    return PK_OBJ_GET(Str, obj).c_str();
-}
 
 template<int ARGC>
 PyObject* VM::bind_method(Type type, Str name, NativeFuncC fn) {
