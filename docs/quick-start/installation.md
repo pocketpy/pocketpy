@@ -102,7 +102,7 @@ int main(){
 
     // Eval the sum of the list
     PyObject* result = vm->eval("sum(a)");
-    std::cout << py_cast<int>(vm, result);   // 6
+    std::cout << "Sum of the list: "<< py_cast<int>(vm, result) << std::endl;   // 6
 
     // Bindings
     vm->bind(vm->_main, "add(a: int, b: int)",
@@ -115,7 +115,7 @@ int main(){
     // Call the function
     PyObject* f_add = vm->_main->attr("add");
     result = vm->call(f_add, py_var(vm, 3), py_var(vm, 7));
-    std::cout << py_cast<int>(vm, result);   // 10
+    std::cout << "Sum of 2 variables: "<< py_cast<int>(vm, result) << std::endl;   // 10
 
     // Dispose the virtual machine
     delete vm;
