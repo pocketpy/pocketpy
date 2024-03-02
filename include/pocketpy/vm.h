@@ -356,7 +356,7 @@ public:
 
     void check_compatible_type(PyObject* obj, Type type){
         if(isinstance(obj, type)) return;
-        TypeError(_S(_type_name(vm, _tp(obj)).escape(), " is not compatible with ", _type_name(vm, type).escape()));
+        TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
     }
 
     PyObject* _t(Type t){
@@ -521,15 +521,13 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
     using T = std::decay_t<__T>;
 
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>){
+        static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
-        if constexpr(with_check){
-            if(obj == vm->None) return nullptr;
-            vm->check_non_tagged_type(obj, vm->tp_str);
-            return PK_OBJ_GET(Str, obj).c_str();
-        }else{
-            return PK_OBJ_GET(Str, obj).c_str();
-        }
+        if(obj == vm->None) return nullptr;
+        if constexpr(with_check) vm->check_non_tagged_type(obj, vm->tp_str);
+        return PK_OBJ_GET(Str, obj).c_str();
     }else if constexpr(std::is_same_v<T, bool>){
+        static_assert(!std::is_reference_v<__T>);
         // bool
         if constexpr(with_check){
             if(obj == vm->True) return true;
@@ -539,6 +537,7 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
             return obj == vm->True;
         }
     }else if constexpr(is_integral_v<T>){
+        static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check){
             if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);
@@ -549,14 +548,17 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
             return (T)PK_OBJ_GET(i64, obj);
         }
     }else if constexpr(is_floating_point_v<T>){
+        static_assert(!std::is_reference_v<__T>);
         // float
         if(is_float(obj)) return untag_float(obj);
         i64 bits;
         if(try_cast_int(obj, &bits)) return (float)bits;
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
     }else if constexpr(std::is_enum_v<T>){
+        static_assert(!std::is_reference_v<__T>);
         return (__T)_py_cast__internal<i64, with_check>(vm, obj);
     }else if constexpr(std::is_pointer_v<T>){
+        static_assert(!std::is_reference_v<__T>);
         return to_void_p<T>(vm, obj);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
