@@ -948,24 +948,22 @@ __FAST_CALL:
     }
 
     if(is_non_tagged_type(callable, tp_type)){
-        if(method_call) PK_FATAL_ERROR();
         // [type, NULL, args..., kwargs...]
         PyObject* new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyObject* obj;
 #if PK_DEBUG_EXTRA_CHECK
-        PK_ASSERT(new_f != nullptr);
+        PK_ASSERT(new_f != nullptr && !method_call);
 #endif
         if(new_f == cached_object__new__) {
             // fast path for object.__new__
-            Type t = PK_OBJ_GET(Type, callable);
-            obj = vm->heap.gcnew<DummyInstance>(t);
+            obj = vm->heap.gcnew<DummyInstance>(PK_OBJ_GET(Type, callable));
         }else{
             PUSH(new_f);
             PUSH(PY_NULL);
             PUSH(callable);    // cls
             for(PyObject* o: args) PUSH(o);
             for(PyObject* o: kwargs) PUSH(o);
-            // if obj is not an instance of callable, the behavior is undefined
+            // if obj is not an instance of `cls`, the behavior is undefined
             obj = vectorcall(ARGC+1, KWARGC);
         }
 
