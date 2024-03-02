@@ -1,12 +1,6 @@
 #include "pocketpy/obj.h"
 
 namespace pkpy{
-    PyObject::~PyObject() {
-        if(_attr == nullptr) return;
-        _attr->~NameDict();
-        pool128_dealloc(_attr);
-    }
-
     bool Bytes::operator==(const Bytes& rhs) const{
         if(_size != rhs._size) return false;
         for(int i=0; i<_size; i++) if(_data[i] != rhs._data[i]) return false;
