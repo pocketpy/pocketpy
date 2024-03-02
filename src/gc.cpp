@@ -5,8 +5,8 @@ namespace pkpy{
     int ManagedHeap::sweep(){
         std::vector<PyObject*> alive;
         for(PyObject* obj: gen){
-            if(obj->gc.marked){
-                obj->gc.marked = false;
+            if(obj->gc_marked){
+                obj->gc_marked = false;
                 alive.push_back(obj);
             }else{
 #if PK_DEBUG_GC_STATS
@@ -19,7 +19,7 @@ namespace pkpy{
         }
 
         // clear _no_gc marked flag
-        for(PyObject* obj: _no_gc) obj->gc.marked = false;
+        for(PyObject* obj: _no_gc) obj->gc_marked = false;
 
         int freed = gen.size() - alive.size();
 

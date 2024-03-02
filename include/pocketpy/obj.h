@@ -94,14 +94,9 @@ struct Slice {
     Slice(PyObject* start, PyObject* stop, PyObject* step) : start(start), stop(stop), step(step) {}
 };
 
-struct GCHeader {
-    bool enabled;   // whether this object is managed by GC
-    bool marked;    // whether this object is marked
-    GCHeader() : enabled(true), marked(false) {}
-};
-
 struct PyObject{
-    GCHeader gc;
+    bool gc_enabled;    // whether this object is managed by GC
+    bool gc_marked;     // whether this object is marked
     Type type;
     NameDict* _attr;
 
@@ -114,7 +109,7 @@ struct PyObject{
     virtual void _obj_gc_mark() = 0;
     virtual void* _value_ptr() = 0;
 
-    PyObject(Type type) : type(type), _attr(nullptr) {}
+    PyObject(Type type) : gc_enabled(true), gc_marked(false), type(type), _attr(nullptr) {}
 
     virtual ~PyObject();
 
@@ -129,7 +124,7 @@ struct PyObject{
 
 struct PySignalObject: PyObject {
     PySignalObject() : PyObject(0) {
-        gc.enabled = false;
+        gc_enabled = false;
     }
     void _obj_gc_mark() override {}
     void* _value_ptr() override { return nullptr; }
@@ -195,8 +190,8 @@ struct MappingProxy{
 #define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
 
 #define PK_OBJ_MARK(obj) \
-    if(!is_tagged(obj) && !(obj)->gc.marked) {                      \
-        (obj)->gc.marked = true;                                    \
+    if(!is_tagged(obj) && !(obj)->gc_marked) {                      \
+        (obj)->gc_marked = true;                                    \
         (obj)->_obj_gc_mark();                                      \
         if((obj)->is_attr_valid()) gc_mark_namedict((obj)->attr()); \
     }
