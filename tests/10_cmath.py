@@ -1,6 +1,17 @@
 from cmath import isclose, sqrt, nan, inf, nanj, infj, log
 import math
 
+c1 = complex(3, 4)
+c2 = complex(2, 4.5)
+
+assert isclose(c1 + 5, complex(8, 4))
+assert isclose(c1 + c2, complex(5, 8.5))
+assert isclose(c1 - c2, complex(1, -0.5))
+assert isclose(c1*4, complex(12, 16))
+assert isclose(c1*c2, complex(-12, 21.5))
+assert isclose(c2/c1, complex(0.96, 0.22))
+assert isclose(c2**2, complex(-16.25, 17.99999999999999))
+
 assert 1+2j == complex(1, 2) == 2j+1
 
 assert isclose(1+2j + 3+4j, 4+6j)

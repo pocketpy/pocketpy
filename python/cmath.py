@@ -65,6 +65,16 @@ class complex:
     def __rmul__(self, other):
         return self.__mul__(other)
     
+    def __truediv__(self, other):
+        if type(other) is complex:
+            denominator = other.real ** 2 + other.imag ** 2
+            real_part = (self.real * other.real + self.imag * other.imag) / denominator
+            imag_part = (self.imag * other.real - self.real * other.imag) / denominator
+            return complex(real_part, imag_part)
+        if type(other) in (int, float):
+            return complex(self.real / other, self.imag / other)
+        return NotImplemented
+    
     def __pow__(self, other: int | float):
         if type(other) in (int, float):
             return complex(self.__abs__() ** other * math.cos(other * phase(self)),
