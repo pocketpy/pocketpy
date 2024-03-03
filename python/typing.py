@@ -5,7 +5,13 @@ class _Placeholder:
         return self
     def __call__(self, *args, **kwargs):
         return self
-    
+    def __and__(self, other):
+        return self
+    def __or__(self, other):
+        return self
+    def __xor__(self, other):
+        return self
+
 
 _PLACEHOLDER = _Placeholder()
 
