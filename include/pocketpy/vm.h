@@ -453,7 +453,7 @@ public:
 
 
 template<typename T>
-inline constexpr bool is_immutable_v = std::is_integral_v<T> || std::is_floating_point_v<T>
+inline constexpr bool is_immutable_v = is_integral_v<T> || is_floating_point_v<T>
     || std::is_same_v<T, Str> || std::is_same_v<T, Tuple> || std::is_same_v<T, Bytes> || std::is_same_v<T, bool>
     || std::is_same_v<T, Range> || std::is_same_v<T, Slice>
     || std::is_pointer_v<T> || std::is_enum_v<T>;
@@ -528,7 +528,7 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
     static_assert(!std::is_rvalue_reference_v<__T>, "rvalue reference is not allowed");
 
     using T = std::decay_t<__T>;
-    
+
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>){
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
