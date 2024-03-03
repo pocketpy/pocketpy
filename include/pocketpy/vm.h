@@ -451,6 +451,13 @@ public:
     }
 };
 
+
+template<typename T>
+inline constexpr bool is_immutable_v = std::is_integral_v<T> || std::is_floating_point_v<T>
+    || std::is_same_v<T, Str> || std::is_same_v<T, Tuple> || std::is_same_v<T, Bytes> || std::is_same_v<T, bool>
+    || std::is_same_v<T, Range> || std::is_same_v<T, Slice>
+    || std::is_pointer_v<T> || std::is_enum_v<T>;
+
 constexpr std::pair<const std::type_info*, Type> _const_cxx_typeid_map[] = {
     {&typeid(Str), VM::tp_str},
     {&typeid(List), VM::tp_list},
@@ -518,8 +525,10 @@ PyObject* py_var(VM* vm, __T&& value){
 
 template<typename __T, bool with_check>
 __T _py_cast__internal(VM* vm, PyObject* obj) {
-    using T = std::decay_t<__T>;
+    static_assert(!std::is_rvalue_reference_v<__T>, "rvalue reference is not allowed");
 
+    using T = std::decay_t<__T>;
+    
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>){
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
@@ -563,7 +572,14 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
         if constexpr(const_type.index >= 0){
-            if constexpr(with_check) vm->check_non_tagged_type(obj, const_type);
+            if constexpr(with_check){
+                if constexpr(std::is_same_v<T, Exception>){
+                    // Exception is `subclass_enabled`
+                    vm->check_compatible_type(obj, const_type);
+                }else{
+                    vm->check_non_tagged_type(obj, const_type);
+                }
+            }
             return PK_OBJ_GET(T, obj);
         }
     }
