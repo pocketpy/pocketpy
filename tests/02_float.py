@@ -67,3 +67,20 @@ assert eq(.5 *2, 1.0)
 assert eq(2 * .5, 1.0)
 assert eq(2 * (.5), 1.0)
 assert eq(2 * (.5 + 1), 3.0)
+
+
+assert 1e3 == 1000.0
+assert 1e-3 == 0.001
+assert -1e3 == -1000.0
+assert -1e-3 == -0.001
+assert 1e0 == 1.0
+assert 1e-0 == 1.0
+
+assert 2e3 == 2000.0
+assert 2e3j == 2000j
+assert -2e-3 == -0.002
+assert -2e-3j == -0.002j
+
+assert 3.4e-3 == 0.0034
+assert 3.4e+3 == 3400.0
+

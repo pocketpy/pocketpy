@@ -273,10 +273,18 @@ static bool is_unicode_Lo_char(uint32_t c) {
     void Lexer::eat_number() {
         const char* i = token_start;
         while(kValidChars.count(*i)) i++;
+
+        bool is_scientific_notation = false;
+        if(*(i-1) == 'e' && (*i == '+' || *i == '-')){
+            i++;
+            while(isdigit(*i) || *i=='j') i++;
+            is_scientific_notation = true;
+        }
+
         std::string_view text(token_start, i - token_start);
         this->curr_char = i;
 
-        if(text[0] != '.'){
+        if(text[0] != '.' && !is_scientific_notation){
             // try long
             if(i[-1] == 'L'){
                 add_token(TK("@long"));
