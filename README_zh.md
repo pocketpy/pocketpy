@@ -51,7 +51,7 @@ int main(){
 
     // 计算列表元素之和
     PyObject* result = vm->eval("sum(a)");
-    std::cout << py_cast<int>(vm, result);   // 6
+    std::cout << "Sum of the list: "<< py_cast<int>(vm, result) << std::endl;   // 6
 
     // 绑定一个函数
     vm->bind(vm->_main, "add(a: int, b: int)",
@@ -64,7 +64,7 @@ int main(){
     // 调用函数
     PyObject* f_add = vm->_main->attr("add");
     result = vm->call(f_add, py_var(vm, 3), py_var(vm, 7));
-    std::cout << py_cast<int>(vm, result);   // 10
+    std::cout << "Sum of 2 variables: "<< py_cast<int>(vm, result) << std::endl;   // 10
 
     // 释放虚拟机
     delete vm;
