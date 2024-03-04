@@ -136,6 +136,13 @@ struct Lexer {
     std::vector<Token> run();
 };
 
-bool parse_int(std::string_view text, i64* out, int base);
+
+enum class IntParsingResult{
+    Success,
+    Failure,
+    Overflow,
+};
+
+IntParsingResult parse_int(std::string_view text, i64* out, int base);
 
 } // namespace pkpy

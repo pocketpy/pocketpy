@@ -415,7 +415,7 @@ void init_builtins(VM* _vm) {
                 sv.remove_prefix(1);
             }
             i64 val;
-            if(!parse_int(sv, &val, base)){
+            if(parse_int(sv, &val, base) != IntParsingResult::Success){
                 vm->ValueError(_S("invalid literal for int() with base ", base, ": ", s.escape()));
             }
             if(negative) val = -val;
