@@ -26,3 +26,7 @@ Return a random element from a sequence.
 ### `random.shuffle(seq)`
 
 Shuffle a sequence inplace.
+
+### `random.choices(population, weights=None, k=1)`
+
+Return a k sized list of elements chosen from the population with replacement.
