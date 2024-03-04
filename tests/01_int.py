@@ -127,6 +127,7 @@ assert not 1 < 2 > 3
 
 try:
     eval("231231312312312312312312312312312312314354657553423345632")
+    print("eval should fail with SyntaxError")
     exit(1)
 except SyntaxError:
     pass

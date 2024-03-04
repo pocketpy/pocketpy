@@ -458,31 +458,23 @@ inline constexpr bool is_immutable_v = is_integral_v<T> || is_floating_point_v<T
     || std::is_same_v<T, Range> || std::is_same_v<T, Slice>
     || std::is_pointer_v<T> || std::is_enum_v<T>;
 
-constexpr std::pair<const std::type_info*, Type> _const_cxx_typeid_map[] = {
-    {&typeid(Str), VM::tp_str},
-    {&typeid(List), VM::tp_list},
-    {&typeid(Tuple), VM::tp_tuple},
-    {&typeid(Function), VM::tp_function},
-    {&typeid(NativeFunc), VM::tp_native_func},
-    {&typeid(BoundMethod), VM::tp_bound_method},
-    {&typeid(Range), VM::tp_range},
-    {&typeid(Slice), VM::tp_slice},
-    {&typeid(Exception), VM::tp_exception},
-    {&typeid(Bytes), VM::tp_bytes},
-    {&typeid(MappingProxy), VM::tp_mappingproxy},
-    {&typeid(Dict), VM::tp_dict},
-    {&typeid(Property), VM::tp_property},
-    {&typeid(StarWrapper), VM::tp_star_wrapper},
-    {&typeid(StaticMethod), VM::tp_staticmethod},
-    {&typeid(ClassMethod), VM::tp_classmethod},
-    /***************************************/
-};
-
-template<typename T>
-constexpr Type _find_type_in_const_cxx_typeid_map(){
-    for(auto [id, type] : _const_cxx_typeid_map) if(id == &typeid(T)) return type;
-    return -1;
-}
+template<typename T> constexpr Type _find_type_in_const_cxx_typeid_map(){ return -1; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Str>(){ return VM::tp_str; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<List>(){ return VM::tp_list; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Tuple>(){ return VM::tp_tuple; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Function>(){ return VM::tp_function; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<NativeFunc>(){ return VM::tp_native_func; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<BoundMethod>(){ return VM::tp_bound_method; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Range>(){ return VM::tp_range; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Slice>(){ return VM::tp_slice; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Exception>(){ return VM::tp_exception; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Bytes>(){ return VM::tp_bytes; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<MappingProxy>(){ return VM::tp_mappingproxy; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Dict>(){ return VM::tp_dict; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<Property>(){ return VM::tp_property; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<StarWrapper>(){ return VM::tp_star_wrapper; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<StaticMethod>(){ return VM::tp_staticmethod; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<ClassMethod>(){ return VM::tp_classmethod; }
 
 template<typename __T>
 PyObject* py_var(VM* vm, __T&& value){
