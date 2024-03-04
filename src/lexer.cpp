@@ -289,7 +289,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
                     add_token(TK("@num"), int_out);
                     return;
                 case IntParsingResult::Overflow:
-                    SyntaxError("integer literal too large");
+                    SyntaxError("int literal is too large");
                     return;
                 case IntParsingResult::Failure:
                     break;  // do nothing
@@ -502,8 +502,9 @@ IntParsingResult parse_int(std::string_view text, i64* out, int base){
     if(text.length() == 0) return IntParsingResult::Failure;
     for(char c : text){
       if(c >= '0' && c <= '9'){
+        i64 prev_out = *out;
         *out = (*out * 10) + (c - '0');
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -515,8 +516,9 @@ IntParsingResult parse_int(std::string_view text, i64* out, int base){
     if(text.length() == 0) return IntParsingResult::Failure;
     for(char c : text){
       if(c == '0' || c == '1'){
+        i64 prev_out = *out;
         *out = (*out << 1) | (c - '0');
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -528,8 +530,9 @@ IntParsingResult parse_int(std::string_view text, i64* out, int base){
     if(text.length() == 0) return IntParsingResult::Failure;
     for(char c : text){
       if(c >= '0' && c <= '7'){
+        i64 prev_out = *out;
         *out = (*out << 3) | (c - '0');
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
@@ -540,15 +543,16 @@ IntParsingResult parse_int(std::string_view text, i64* out, int base){
     if(f_startswith_2(text, "0x")) text.remove_prefix(2);
     if(text.length() == 0) return IntParsingResult::Failure;
     for(char c : text){
+      i64 prev_out = *out;
       if(c >= '0' && c <= '9'){
         *out = (*out << 4) | (c - '0');
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else if(c >= 'a' && c <= 'f'){
         *out = (*out << 4) | (c - 'a' + 10);
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else if(c >= 'A' && c <= 'F'){
         *out = (*out << 4) | (c - 'A' + 10);
-        if(*out < 0) return IntParsingResult::Overflow;
+        if(*out < prev_out) return IntParsingResult::Overflow;
       }else{
         return IntParsingResult::Failure;
       }
