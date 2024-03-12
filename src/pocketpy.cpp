@@ -496,7 +496,10 @@ void init_builtins(VM* _vm) {
     });
 
     // tp_str
-    _vm->bind_constructor<2>(_vm->_t(VM::tp_str), PK_LAMBDA(vm->py_str(args[1])));
+    _vm->bind_constructor<-1>(_vm->_t(VM::tp_str), [](VM* vm, ArgsView args) {
+        if(args.size() == 1) return VAR(Str());
+        return vm->py_str(args[1]);
+    });
 
     _vm->bind__hash__(VM::tp_str, [](VM* vm, PyObject* _0) {
         return (i64)_CAST(Str&, _0).hash();
