@@ -18,8 +18,6 @@
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
 </p>
 
-**English |** [**简体中文**](README_zh.md)
-
 pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C++17 with STL.
 
 It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
