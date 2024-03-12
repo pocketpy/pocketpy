@@ -14,6 +14,7 @@ assert repr('\\\n\t\'\r\b\x48') == r"'\\\n\t\'\r\bH'"
 a = ''
 b = 'test'
 c ='test'
+assert a == str()
 assert len(a) == 0
 assert len(b) == 4
 assert b == c
