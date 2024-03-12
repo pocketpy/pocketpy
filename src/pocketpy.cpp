@@ -498,6 +498,7 @@ void init_builtins(VM* _vm) {
     // tp_str
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_str), [](VM* vm, ArgsView args) {
         if(args.size() == 1) return VAR(Str());
+        if(args.size() > 2) vm->TypeError("str() takes at most 1 argument");
         return vm->py_str(args[1]);
     });
 
