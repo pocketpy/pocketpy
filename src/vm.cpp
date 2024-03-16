@@ -119,16 +119,15 @@ namespace pkpy{
         PK_UNREACHABLE();
     }
 
-    FrameId VM::top_frame(){
+    Frame* VM::top_frame(){
 #if PK_DEBUG_EXTRA_CHECK
         if(callstack.empty()) PK_FATAL_ERROR();
 #endif
-        return FrameId(&callstack.container(), callstack.size()-1);
+        return &callstack.top();
     }
 
     void VM::_pop_frame(){
-        Frame* frame = &callstack.top();
-        s_data.reset(frame->_sp_base);
+        s_data.reset(callstack.top()._sp_base);
         callstack.pop();
     }
 
@@ -652,7 +651,7 @@ void VM::_log_s_data(const char* title) {
         if(f._sp_base == nullptr) PK_FATAL_ERROR();
         sp_bases[f._sp_base] += 1;
     }
-    FrameId frame = top_frame();
+    Frame* frame = top_frame();
     int line = frame->co->lines[frame->_ip];
     ss << frame->co->name << ":" << line << " [";
     for(PyObject** p=s_data.begin(); p!=s_data.end(); p++){
@@ -838,7 +837,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
     }
 
     for(int j=0; j<kwargs.size(); j+=2){
-        StrName key(CAST(int, kwargs[j]));
+        StrName key(_CAST(uint16_t, kwargs[j]));
         int index = decl->kw_to_index.try_get_likely_found(key);
         // if key is an explicit key, set as local variable
         if(index >= 0){
@@ -861,13 +860,16 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
     PyObject* callable = p1[-(ARGC + 2)];
+    Type callable_t = _tp(callable);
+
     bool method_call = p1[-(ARGC + 1)] != PY_NULL;
 
     // handle boundmethod, do a patch
-    if(is_non_tagged_type(callable, tp_bound_method)){
+    if(callable_t == tp_bound_method){
         if(method_call) PK_FATAL_ERROR();
         BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;      // get unbound method
+        callable_t = _tp(callable);
         p1[-(ARGC + 2)] = bm.func;
         p1[-(ARGC + 1)] = bm.self;
         method_call = true;
@@ -880,26 +882,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject** _base = args.begin();
     PyObject* buffer[PK_MAX_CO_VARNAMES];
 
-    if(is_non_tagged_type(callable, tp_native_func)){
-        const auto& f = PK_OBJ_GET(NativeFunc, callable);
-        PyObject* ret;
-        if(f.decl != nullptr){
-            int co_nlocals = f.decl->code->varnames.size();
-            _prepare_py_call(buffer, args, kwargs, f.decl);
-            // copy buffer back to stack
-            s_data.reset(_base + co_nlocals);
-            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
-            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
-        }else{
-            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
-            f.check_size(this, args);
-            ret = f.call(this, args);
-        }
-        s_data.reset(p0);
-        return ret;
-    }
-
-    if(is_non_tagged_type(callable, tp_function)){
+    if(callable_t == tp_function){
         /*****************_py_call*****************/
         // callable must be a `function` object
         if(s_data.is_overflow()) StackOverflowError();
@@ -931,7 +914,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(co->is_generator){
             s_data.reset(p0);
             return _py_generator(
-                Frame(nullptr, co, fn._module, callable),
+                Frame(nullptr, co, fn._module, callable, nullptr),
                 ArgsView(buffer, buffer + co_nlocals)
             );
         }
@@ -941,13 +924,32 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
 
 __FAST_CALL:
-        callstack.emplace(p0, co, fn._module, callable, FastLocals(co, args.begin()));
+        callstack.emplace(p0, co, fn._module, callable, args.begin());
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
         /*****************_py_call*****************/
     }
 
-    if(is_non_tagged_type(callable, tp_type)){
+    if(callable_t == tp_native_func){
+        const auto& f = PK_OBJ_GET(NativeFunc, callable);
+        PyObject* ret;
+        if(f.decl != nullptr){
+            int co_nlocals = f.decl->code->varnames.size();
+            _prepare_py_call(buffer, args, kwargs, f.decl);
+            // copy buffer back to stack
+            s_data.reset(_base + co_nlocals);
+            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
+        }else{
+            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
+            f.check_size(this, args);
+            ret = f.call(this, args);
+        }
+        s_data.reset(p0);
+        return ret;
+    }
+
+    if(callable_t == tp_type){
         // [type, NULL, args..., kwargs...]
         PyObject* new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyObject* obj;
@@ -970,6 +972,7 @@ __FAST_CALL:
         // __init__
         PyObject* self;
         callable = get_unbound_method(obj, __init__, &self, false);
+        callable_t = _tp(callable);
         if (self != PY_NULL) {
             // replace `NULL` with `self`
             p1[-(ARGC + 2)] = callable;
@@ -994,7 +997,7 @@ __FAST_CALL:
         // [call_f, self, args..., kwargs...]
         return vectorcall(ARGC, KWARGC, false);
     }
-    TypeError(_type_name(vm, _tp(callable)).escape() + " object is not callable");
+    TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
     PK_UNREACHABLE()
 }
 
@@ -1238,7 +1241,7 @@ void VM::_error(PyObject* e_obj){
 }
 
 void VM::_raise(bool re_raise){
-    Frame* frame = top_frame().get();
+    Frame* frame = top_frame();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
         e._ip_on_error = frame->_ip;
@@ -1259,7 +1262,7 @@ void VM::_raise(bool re_raise){
 
 void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) PK_OBJ_MARK(obj);
-    for(auto& frame : vm->callstack.container()) frame._gc_mark();
+    vm->callstack.apply([](Frame& frame){ frame._gc_mark(); });
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->_cached_codes) co->_gc_mark();
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);

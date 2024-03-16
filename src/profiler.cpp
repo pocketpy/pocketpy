@@ -18,16 +18,17 @@ void LineProfiler::begin(){
     frames.clear();
 }
 
-void LineProfiler::_step(FrameId frame){
+void LineProfiler::_step(LinkedFrame* linked_frame){
+    Frame* frame = &linked_frame->frame;
     auto line_info = frame->co->lines[frame->_ip];
     if(line_info.is_virtual) return;
     std::string_view filename = frame->co->src->filename.sv();
     int line = line_info.lineno;
 
     if(frames.empty()){
-        frames.push({frame, clock(), nullptr});
+        frames.push({linked_frame, clock(), nullptr});
     }else{
-        _step_end(frame, line);
+        _step_end(linked_frame, line);
     }
 
     auto& file_records = records[filename];
@@ -43,13 +44,19 @@ void LineProfiler::_step(FrameId frame){
     frames.top().prev_record = &file_records.at(line);
 }
 
-void LineProfiler::_step_end(FrameId frame, int line){
+void LineProfiler::_step_end(LinkedFrame* linked_frame, int line){
     clock_t now = clock();
     _FrameRecord& top_frame_record = frames.top();
     _LineRecord* prev_record = top_frame_record.prev_record;
 
-    int id_delta = frame.index - top_frame_record.frame.index;
-    PK_ASSERT(id_delta >= -1 && id_delta <= 1);
+    int id_delta;
+    if(linked_frame == top_frame_record.frame){
+        id_delta = 0;
+    }else if(linked_frame->f_back == top_frame_record.frame){
+        id_delta = 1;
+    }else{
+        id_delta = -1;  // unsafe
+    }
 
     // current line is about to change
     if(prev_record->line != line){
@@ -60,7 +67,7 @@ void LineProfiler::_step_end(FrameId frame, int line){
     }
     
     if(id_delta == 1){
-        frames.push({frame, now, nullptr});
+        frames.push({linked_frame, now, nullptr});
     }else{
         if(id_delta == -1) frames.pop();
     }

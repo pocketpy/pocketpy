@@ -105,6 +105,7 @@ struct CodeEmitContext{
     void exit_block();
     void emit_expr();   // clear the expression stack and generate bytecode
     int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual=false);
+    int emit_int(i64 value, int line);
     void patch_jump(int index);
     bool add_label(StrName name);
     int add_varname(StrName name);

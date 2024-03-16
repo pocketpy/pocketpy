@@ -94,7 +94,7 @@ class VM {
 public:
     ManagedHeap heap;
     ValueStack s_data;
-    stack_no_copy<Frame, CallstackContainer> callstack;
+    CallStack callstack;
     std::vector<PyTypeInfo> _all_types;
     
     NameDict _modules;                                 // loaded modules
@@ -151,7 +151,7 @@ public:
 
     VM(bool enable_os=true);
 
-    FrameId top_frame();
+    Frame* top_frame();
     void _pop_frame();
 
     PyObject* py_str(PyObject* obj);
@@ -364,9 +364,9 @@ public:
     }
 
     Type _tp(PyObject* obj){
+        if(!is_tagged(obj)) return obj->type;
         if(is_int(obj)) return tp_int;
-        if(is_float(obj)) return tp_float;
-        return obj->type;
+        return tp_float;
     }
 
     PyObject* _t(PyObject* obj){

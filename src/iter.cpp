@@ -48,7 +48,7 @@ namespace pkpy{
         // restore the context
         for(PyObject* obj: s_backup) vm->s_data.push(obj);
         s_backup.clear();
-        vm->callstack.push(std::move(frame));
+        vm->callstack.emplace(std::move(frame));
 
         PyObject* ret;
         try{

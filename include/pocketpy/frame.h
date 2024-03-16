@@ -84,18 +84,21 @@ struct Frame {
 
     const CodeObject* co;
     PyObject* _module;
-    PyObject* _callable;    // weak ref
+    PyObject* _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name);
 
-    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
+    // function scope
+    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, PyObject** _locals_base)
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
+    // exec/eval
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
+    // global scope
     Frame(PyObject** p0, const CodeObject_& co, PyObject* _module)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
@@ -125,14 +128,46 @@ struct Frame {
     }
 };
 
-using CallstackContainer = small_vector_no_copy_and_move<Frame, 16>;
+struct LinkedFrame{
+    LinkedFrame* f_back;
+    Frame frame;
+    template<typename... Args>
+    LinkedFrame(LinkedFrame* f_back, Args&&... args) : f_back(f_back), frame(std::forward<Args>(args)...) {}
+};
 
-struct FrameId{
-    CallstackContainer* data;
-    int index;
-    FrameId(CallstackContainer* data, int index) : data(data), index(index) {}
-    Frame* operator->() const { return &data->operator[](index); }
-    Frame* get() const { return &data->operator[](index); }
+struct CallStack{
+    static_assert(sizeof(LinkedFrame) <= 64 && std::is_trivially_destructible_v<LinkedFrame>);
+
+    LinkedFrame* _tail;
+    int _size;
+    CallStack(): _tail(nullptr), _size(0) {}
+
+    int size() const { return _size; }
+    bool empty() const { return _size == 0; }
+    void clear(){ while(!empty()) pop(); }
+
+    template<typename... Args>
+    void emplace(Args&&... args){
+        _tail = new(pool64_alloc<LinkedFrame>()) LinkedFrame(_tail, std::forward<Args>(args)...);
+        ++_size;
+    }
+
+    void pop(){
+#if PK_DEBUG_EXTRA_CHECK
+        if(empty()) PK_FATAL_ERROR();
+#endif
+        LinkedFrame* p = _tail;
+        _tail = p->f_back;
+        pool64_dealloc(p);
+        --_size;
+    }
+
+    Frame& top() const { return _tail->frame; }
+
+    template<typename Func>
+    void apply(Func&& f){
+        for(LinkedFrame* p = _tail; p != nullptr; p = p->f_back) f(p->frame);
+    }
 };
 
 }; // namespace pkpy
