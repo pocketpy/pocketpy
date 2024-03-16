@@ -2,6 +2,13 @@
 
 namespace pkpy{
 
+#define PREDICT_INT_OP(op)  \
+    if(is_small_int(_0) && is_small_int(_1)){   \
+        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
+        DISPATCH() \
+    }
+
+
 #define BINARY_F_COMPARE(func, op, rfunc)                           \
         PyObject* ret;                                              \
         const PyTypeInfo* _ti = _inst_type_info(_0);                \
@@ -352,8 +359,6 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
 #define BINARY_OP_SPECIAL(func)                         \
-        _1 = POPX();                                    \
-        _0 = TOP();                                     \
         _ti = _inst_type_info(_0);                      \
         if(_ti->m##func){                               \
             TOP() = _ti->m##func(this, _0, _1);         \
@@ -374,48 +379,67 @@ __NEXT_STEP:;
         }
 
     TARGET(BINARY_TRUEDIV){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__truediv__);
         if(TOP() == NotImplemented) BinaryOptError("/", _0, _1);
     } DISPATCH();
     TARGET(BINARY_POW){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__pow__);
         if(TOP() == NotImplemented) BinaryOptError("**", _0, _1);
     } DISPATCH();
     TARGET(BINARY_ADD){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(+)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__add__);
         BINARY_OP_RSPECIAL("+", __radd__);
     } DISPATCH()
     TARGET(BINARY_SUB){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(-)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__sub__);
         BINARY_OP_RSPECIAL("-", __rsub__);
     } DISPATCH()
     TARGET(BINARY_MUL){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(*)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mul__);
         BINARY_OP_RSPECIAL("*", __rmul__);
     } DISPATCH()
     TARGET(BINARY_FLOORDIV){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__floordiv__);
         if(TOP() == NotImplemented) BinaryOptError("//", _0, _1);
     } DISPATCH()
     TARGET(BINARY_MOD){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mod__);
         if(TOP() == NotImplemented) BinaryOptError("%", _0, _1);
     } DISPATCH()
     TARGET(COMPARE_LT){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_OP(<)
         TOP() = VAR(py_lt(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_LE){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_OP(<=)
         TOP() = VAR(py_le(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_EQ){
@@ -426,50 +450,71 @@ __NEXT_STEP:;
     TARGET(COMPARE_NE){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
-        TOP() = VAR(!py_eq(_0, _1));
+        TOP() = VAR(py_ne(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_GT){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_OP(>)
         TOP() = VAR(py_gt(_0, _1));
     } DISPATCH()
     TARGET(COMPARE_GE){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_OP(>=)
         TOP() = VAR(py_ge(_0, _1));
     } DISPATCH()
     TARGET(BITWISE_LSHIFT){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(<<)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__lshift__);
         if(TOP() == NotImplemented) BinaryOptError("<<", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_RSHIFT){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(>>)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__rshift__);
         if(TOP() == NotImplemented) BinaryOptError(">>", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_AND){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(&)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__and__);
         if(TOP() == NotImplemented) BinaryOptError("&", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_OR){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(|)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__or__);
         if(TOP() == NotImplemented) BinaryOptError("|", _0, _1);
     } DISPATCH()
     TARGET(BITWISE_XOR){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        PREDICT_INT_OP(^)
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__xor__);
         if(TOP() == NotImplemented) BinaryOptError("^", _0, _1);
     } DISPATCH()
     TARGET(BINARY_MATMUL){
-        PyObject* _0; PyObject* _1; const PyTypeInfo* _ti;
+        PyObject* _1 = POPX();
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__matmul__);
         if(TOP() == NotImplemented) BinaryOptError("@", _0, _1);
     } DISPATCH();
 
 #undef BINARY_OP_SPECIAL
+#undef BINARY_OP_RSPECIAL
+#undef PREDICT_INT_OP
 
     TARGET(IS_OP){
         PyObject* _1 = POPX();    // rhs
