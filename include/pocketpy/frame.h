@@ -84,18 +84,21 @@ struct Frame {
 
     const CodeObject* co;
     PyObject* _module;
-    PyObject* _callable;    // weak ref
+    PyObject* _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name);
 
+    // function scope
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, PyObject** _locals_base)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
+    // exec/eval
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
+    // global scope
     Frame(PyObject** p0, const CodeObject_& co, PyObject* _module)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
