@@ -10,22 +10,15 @@ namespace pkpy{
 
 // weak reference fast locals
 struct FastLocals{
-    // this is a weak reference
-    const NameDictInt* varnames_inv;
     PyObject** a;
-
-    int size() const{ return varnames_inv->size();}
 
     PyObject*& operator[](int i){ return a[i]; }
     PyObject* operator[](int i) const { return a[i]; }
 
-    FastLocals(const CodeObject* co, PyObject** a): varnames_inv(&co->varnames_inv), a(a) {}
+    FastLocals(PyObject** a): a(a) {}
 
-    PyObject** try_get_name(StrName name);
-    NameDict_ to_namedict();
-
-    PyObject** begin() const { return a; }
-    PyObject** end() const { return a + size(); }
+    PyObject** try_get_name(const CodeObject* co, StrName name);
+    NameDict_ to_namedict(const CodeObject* co);
 };
 
 template<size_t MAX_SIZE>
@@ -91,13 +84,13 @@ struct Frame {
     PyObject* f_closure_try_get(StrName name);
 
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(p0) { }
 
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
     Frame(PyObject** p0, const CodeObject_& co, PyObject* _module)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(p0) {}
 
     int next_bytecode() {
         _ip = _next_ip++;
