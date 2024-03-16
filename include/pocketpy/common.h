@@ -21,7 +21,7 @@
 #include <typeinfo>
 #include <initializer_list>
 
-#define PK_VERSION				"1.4.2"
+#define PK_VERSION				"1.4.3"
 
 #include "config.h"
 #include "export.h"

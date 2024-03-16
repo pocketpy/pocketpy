@@ -49,7 +49,7 @@ Some variables can be set to control the build process:
 + `PK_BUILD_SHARED_LIB` - Build the shared  (for C-APIs only)
 + `PK_ENABLE_OS` - Enable OS related features (default mode is sandboxed)
 
-It is safe to use `main` branch in production.
+It is safe to use `main` branch in production if CI is green.
 
 ### Compile Flags
 
@@ -196,10 +196,6 @@ Your sponsorship will help us develop pkpy continuously.
 + [byterun](https://www.aosabook.org/en/500L/a-python-interpreter-written-in-python.html)
 
   An excellent learning material. It illustrates how Python's virtual machine works.
-
-+ [box2d](https://box2d.org/)
-
-  The world's best 2D physics engine, written by Erin Catto. `box2d` now becomes a built-in module in pkpy `v1.1.3` and later.
 
 
 ## Star History
