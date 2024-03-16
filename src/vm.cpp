@@ -837,7 +837,7 @@ void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, con
     }
 
     for(int j=0; j<kwargs.size(); j+=2){
-        StrName key(CAST(int, kwargs[j]));
+        StrName key(_CAST(int, kwargs[j]));
         int index = decl->kw_to_index.try_get_likely_found(key);
         // if key is an explicit key, set as local variable
         if(index >= 0){
@@ -860,13 +860,16 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
     PyObject* callable = p1[-(ARGC + 2)];
+    Type callable_t = _tp(callable);
+
     bool method_call = p1[-(ARGC + 1)] != PY_NULL;
 
     // handle boundmethod, do a patch
-    if(is_non_tagged_type(callable, tp_bound_method)){
+    if(callable_t == tp_bound_method){
         if(method_call) PK_FATAL_ERROR();
         BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;      // get unbound method
+        callable_t = _tp(callable);
         p1[-(ARGC + 2)] = bm.func;
         p1[-(ARGC + 1)] = bm.self;
         method_call = true;
@@ -879,7 +882,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject** _base = args.begin();
     PyObject* buffer[PK_MAX_CO_VARNAMES];
 
-    if(is_non_tagged_type(callable, tp_native_func)){
+    if(callable_t == tp_native_func){
         const auto& f = PK_OBJ_GET(NativeFunc, callable);
         PyObject* ret;
         if(f.decl != nullptr){
@@ -898,7 +901,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         return ret;
     }
 
-    if(is_non_tagged_type(callable, tp_function)){
+    if(callable_t == tp_function){
         /*****************_py_call*****************/
         // callable must be a `function` object
         if(s_data.is_overflow()) StackOverflowError();
@@ -946,7 +949,7 @@ __FAST_CALL:
         /*****************_py_call*****************/
     }
 
-    if(is_non_tagged_type(callable, tp_type)){
+    if(callable_t == tp_type){
         // [type, NULL, args..., kwargs...]
         PyObject* new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyObject* obj;
@@ -969,6 +972,7 @@ __FAST_CALL:
         // __init__
         PyObject* self;
         callable = get_unbound_method(obj, __init__, &self, false);
+        callable_t = _tp(callable);
         if (self != PY_NULL) {
             // replace `NULL` with `self`
             p1[-(ARGC + 2)] = callable;
@@ -993,7 +997,7 @@ __FAST_CALL:
         // [call_f, self, args..., kwargs...]
         return vectorcall(ARGC, KWARGC, false);
     }
-    TypeError(_type_name(vm, _tp(callable)).escape() + " object is not callable");
+    TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
     PK_UNREACHABLE()
 }
 
