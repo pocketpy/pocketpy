@@ -4,7 +4,7 @@ namespace pkpy{
 
 #define PREDICT_INT_OP(op)  \
     if(is_small_int(_0) && is_small_int(_1)){   \
-        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
+        TOP() = VAR((i64)(PK_BITS(_0)>>2) op (i64)(PK_BITS(_1)>>2)); \
         DISPATCH() \
     }
 
