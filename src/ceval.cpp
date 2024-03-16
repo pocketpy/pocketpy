@@ -529,13 +529,13 @@ __NEXT_STEP:;
         frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(LOOP_BREAK)
-        frame->jump_abs_break(byte.arg);
+        frame->jump_abs_break(&s_data, byte.arg);
         DISPATCH();
     TARGET(GOTO) {
         StrName _name(byte.arg);
         int index = co->labels.try_get_likely_found(_name);
         if(index < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
-        frame->jump_abs_break(index);
+        frame->jump_abs_break(&s_data, index);
     } DISPATCH();
     /*****************************************/
     TARGET(FSTRING_EVAL){
@@ -651,7 +651,7 @@ __NEXT_STEP:;
         if(_0 != StopIteration){
             PUSH(_0);
         }else{
-            frame->jump_abs_break(byte.arg);
+            frame->jump_abs_break(&s_data, byte.arg);
         }
     } DISPATCH();
     /*****************************************/

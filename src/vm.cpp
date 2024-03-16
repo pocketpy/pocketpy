@@ -931,7 +931,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(co->is_generator){
             s_data.reset(p0);
             return _py_generator(
-                Frame(&s_data, nullptr, co, fn._module, callable),
+                Frame(nullptr, co, fn._module, callable),
                 ArgsView(buffer, buffer + co_nlocals)
             );
         }
@@ -941,7 +941,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
 
 __FAST_CALL:
-        callstack.emplace(&s_data, p0, co, fn._module, callable, FastLocals(co, args.begin()));
+        callstack.emplace(p0, co, fn._module, callable, FastLocals(co, args.begin()));
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
         /*****************_py_call*****************/
@@ -1244,7 +1244,7 @@ void VM::_raise(bool re_raise){
         e._ip_on_error = frame->_ip;
         e._code_on_error = (void*)frame->co;
     }
-    bool ok = frame->jump_to_exception_handler();
+    bool ok = frame->jump_to_exception_handler(&s_data);
 
     int actual_ip = frame->_ip;
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;

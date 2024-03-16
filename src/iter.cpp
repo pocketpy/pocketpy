@@ -43,10 +43,10 @@ namespace pkpy{
     PyObject* Generator::next(VM* vm){
         if(state == 2) return vm->StopIteration;
         // reset frame._sp_base
-        frame._sp_base = frame._s->_sp;
-        frame._locals.a = frame._s->_sp;
+        frame._sp_base = vm->s_data._sp;
+        frame._locals.a = vm->s_data._sp;
         // restore the context
-        for(PyObject* obj: s_backup) frame._s->push(obj);
+        for(PyObject* obj: s_backup) vm->s_data.push(obj);
         s_backup.clear();
         vm->callstack.push(std::move(frame));
 
@@ -61,8 +61,8 @@ namespace pkpy{
         if(ret == PY_OP_YIELD){
             // backup the context
             frame = std::move(vm->callstack.top());
-            ret = frame._s->popx();
-            for(PyObject* obj: frame.stack_view()) s_backup.push_back(obj);
+            ret = vm->s_data.popx();
+            for(PyObject* obj: frame.stack_view(&vm->s_data)) s_backup.push_back(obj);
             vm->_pop_frame();
             state = 1;
             if(ret == vm->StopIteration) state = 2;

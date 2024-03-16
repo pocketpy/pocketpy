@@ -79,7 +79,6 @@ using ValueStack = ValueStackImpl<PK_VM_STACK_SIZE>;
 struct Frame {
     int _ip;
     int _next_ip;
-    ValueStack* _s;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyObject** _sp_base;
 
@@ -91,14 +90,14 @@ struct Frame {
     NameDict& f_globals() noexcept { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name);
 
-    Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
-            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
+    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
 
-    Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
-            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
+    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
-    Frame(ValueStack* _s, PyObject** p0, const CodeObject_& co, PyObject* _module)
-            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+    Frame(PyObject** p0, const CodeObject_& co, PyObject* _module)
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     int next_bytecode() {
         _ip = _next_ip++;
@@ -109,13 +108,14 @@ struct Frame {
     }
 
     PyObject** actual_sp_base() const { return _locals.a; }
-    int stack_size() const { return _s->_sp - actual_sp_base(); }
-    ArgsView stack_view() const { return ArgsView(actual_sp_base(), _s->_sp); }
+
+    int stack_size(ValueStack* _s) const { return _s->_sp - actual_sp_base(); }
+    ArgsView stack_view(ValueStack* _s) const { return ArgsView(actual_sp_base(), _s->_sp); }
 
     void jump_abs(int i){ _next_ip = i; }
-    bool jump_to_exception_handler();
-    int _exit_block(int i);
-    void jump_abs_break(int target);
+    bool jump_to_exception_handler(ValueStack*);
+    int _exit_block(ValueStack*, int);
+    void jump_abs_break(ValueStack*, int);
 
     void _gc_mark() const {
         PK_OBJ_MARK(_module);
