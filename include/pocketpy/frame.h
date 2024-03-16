@@ -100,12 +100,12 @@ struct Frame {
     Frame(ValueStack* _s, PyObject** p0, const CodeObject_& co, PyObject* _module)
             : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
-    Bytecode next_bytecode() {
+    int next_bytecode() {
         _ip = _next_ip++;
 #if PK_DEBUG_EXTRA_CHECK
         if(_ip >= co->codes.size()) PK_FATAL_ERROR();
 #endif
-        return co->codes[_ip];
+        return _ip;
     }
 
     PyObject** actual_sp_base() const { return _locals.a; }
