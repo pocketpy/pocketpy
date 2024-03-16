@@ -90,8 +90,8 @@ struct Frame {
     NameDict& f_globals() noexcept { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name);
 
-    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
+    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, PyObject** _locals_base)
+            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
     Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
@@ -150,6 +150,9 @@ struct CallStack{
     }
 
     void pop(){
+#if PK_DEBUG_EXTRA_CHECK
+        if(empty()) PK_FATAL_ERROR();
+#endif
         LinkedFrame* p = _tail;
         _tail = p->f_back;
         pool64_dealloc(p);

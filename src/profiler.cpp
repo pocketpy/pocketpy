@@ -55,7 +55,7 @@ void LineProfiler::_step_end(LinkedFrame* linked_frame, int line){
     }else if(linked_frame->f_back == top_frame_record.frame){
         id_delta = 1;
     }else{
-        id_delta = -1;
+        id_delta = -1;  // unsafe
     }
 
     // current line is about to change

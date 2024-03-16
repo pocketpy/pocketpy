@@ -930,7 +930,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(co->is_generator){
             s_data.reset(p0);
             return _py_generator(
-                Frame(nullptr, co, fn._module, callable),
+                Frame(nullptr, co, fn._module, callable, nullptr),
                 ArgsView(buffer, buffer + co_nlocals)
             );
         }
@@ -940,7 +940,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
 
 __FAST_CALL:
-        callstack.emplace(p0, co, fn._module, callable, FastLocals(co, args.begin()));
+        callstack.emplace(p0, co, fn._module, callable, args.begin());
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
         /*****************_py_call*****************/

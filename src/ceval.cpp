@@ -67,7 +67,7 @@ PyObject* VM::_run_top_frame(){
 __NEXT_FRAME:
     // cache
     const CodeObject* co = frame->co;
-    const auto& co_consts = co->consts;
+    PyObject** co_consts = const_cast<PyObject**>(co->consts.data());
     const Bytecode* co_codes = co->codes.data();
 
     Bytecode byte = co_codes[frame->next_bytecode()];
