@@ -246,6 +246,10 @@ namespace pkpy{
         VM* vm = ctx->vm;
         if(std::holds_alternative<i64>(value)){
             i64 _val = std::get<i64>(value);
+            if(is_imm_int(_val)){
+                ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
+                return;
+            }
             ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
             return;
         }
@@ -268,7 +272,11 @@ namespace pkpy{
             LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
             if(std::holds_alternative<i64>(lit->value)){
                 i64 _val = -std::get<i64>(lit->value);
-                ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
+                if(is_imm_int(_val)){
+                    ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
+                }else{
+                    ctx->emit_(OP_LOAD_CONST, ctx->add_const(VAR(_val)), line);
+                }
                 return;
             }
             if(std::holds_alternative<f64>(lit->value)){
@@ -587,7 +595,7 @@ namespace pkpy{
             for(auto& item: args) item->emit_(ctx);
             for(auto& item: kwargs){
                 uint16_t index = StrName(item.first.sv()).index;
-                ctx->emit_(OP_LOAD_CONST, ctx->add_const(py_var(ctx->vm, index)), line);
+                ctx->emit_(OP_LOAD_INTEGER, index, line);
                 item.second->emit_(ctx);
             }
             int KWARGC = kwargs.size();
