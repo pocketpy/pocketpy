@@ -77,7 +77,7 @@ void init_builtins(VM* _vm) {
             class_arg = args[0];
             self_arg = args[1];
         }else if(args.size() == 0){
-            FrameId frame = vm->top_frame();
+            Frame* frame = vm->top_frame();
             if(frame->_callable != nullptr){
                 class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
                 if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
@@ -184,7 +184,7 @@ void init_builtins(VM* _vm) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
         PyObject* globals = args[1];
         if(globals == vm->None){
-            FrameId frame = vm->top_frame();
+            Frame* frame = vm->top_frame();
             return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
         }
         vm->check_non_tagged_type(globals, vm->tp_mappingproxy);
@@ -196,7 +196,7 @@ void init_builtins(VM* _vm) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
         PyObject* globals = args[1];
         if(globals == vm->None){
-            FrameId frame = vm->top_frame();
+            Frame* frame = vm->top_frame();
             vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
             return vm->None;
         }

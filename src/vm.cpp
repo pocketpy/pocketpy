@@ -119,16 +119,15 @@ namespace pkpy{
         PK_UNREACHABLE();
     }
 
-    FrameId VM::top_frame(){
+    Frame* VM::top_frame(){
 #if PK_DEBUG_EXTRA_CHECK
         if(callstack.empty()) PK_FATAL_ERROR();
 #endif
-        return FrameId(&callstack.container(), callstack.size()-1);
+        return &callstack.top();
     }
 
     void VM::_pop_frame(){
-        Frame* frame = &callstack.top();
-        s_data.reset(frame->_sp_base);
+        s_data.reset(callstack.top()._sp_base);
         callstack.pop();
     }
 
@@ -652,7 +651,7 @@ void VM::_log_s_data(const char* title) {
         if(f._sp_base == nullptr) PK_FATAL_ERROR();
         sp_bases[f._sp_base] += 1;
     }
-    FrameId frame = top_frame();
+    Frame* frame = top_frame();
     int line = frame->co->lines[frame->_ip];
     ss << frame->co->name << ":" << line << " [";
     for(PyObject** p=s_data.begin(); p!=s_data.end(); p++){
@@ -1238,7 +1237,7 @@ void VM::_error(PyObject* e_obj){
 }
 
 void VM::_raise(bool re_raise){
-    Frame* frame = top_frame().get();
+    Frame* frame = top_frame();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
         e._ip_on_error = frame->_ip;
@@ -1259,7 +1258,7 @@ void VM::_raise(bool re_raise){
 
 void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) PK_OBJ_MARK(obj);
-    for(auto& frame : vm->callstack.container()) frame._gc_mark();
+    vm->callstack.apply([](Frame& frame){ frame._gc_mark(); });
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->_cached_codes) co->_gc_mark();
     if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);

@@ -94,7 +94,7 @@ class VM {
 public:
     ManagedHeap heap;
     ValueStack s_data;
-    stack_no_copy<Frame, CallstackContainer> callstack;
+    CallStack callstack;
     std::vector<PyTypeInfo> _all_types;
     
     NameDict _modules;                                 // loaded modules
@@ -151,7 +151,7 @@ public:
 
     VM(bool enable_os=true);
 
-    FrameId top_frame();
+    Frame* top_frame();
     void _pop_frame();
 
     PyObject* py_str(PyObject* obj);

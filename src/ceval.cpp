@@ -44,19 +44,12 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 
 #undef BINARY_F_COMPARE
 
-// static i64 _py_sint(PyObject* obj) noexcept {
-//     return (i64)(PK_BITS(obj) >> 2);
-// }
-
 PyObject* VM::_run_top_frame(){
-    FrameId frame = top_frame();
-    const int base_id = frame.index;
+    Frame* frame = top_frame();
+    const Frame* base_frame = frame;
     bool need_raise = false;
 
     while(true){
-#if PK_DEBUG_EXTRA_CHECK
-        if(frame.index < base_id) PK_FATAL_ERROR();
-#endif
         try{
             if(need_raise){ need_raise = false; _raise(); }
 /**********************************************************************/
@@ -67,8 +60,8 @@ PyObject* VM::_run_top_frame(){
 {
 
 #define CEVAL_STEP_CALLBACK() \
-    if(_ceval_on_step) _ceval_on_step(this, frame.get(), byte); \
-    if(_profiler) _profiler->_step(frame);
+    if(_ceval_on_step) _ceval_on_step(this, frame, byte); \
+    if(_profiler) _profiler->_step(callstack._tail);
 
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
@@ -598,7 +591,7 @@ __NEXT_STEP:;
     TARGET(RETURN_VALUE){
         PyObject* _0 = byte.arg == BC_NOARG ? POPX() : None;
         _pop_frame();
-        if(frame.index == base_id){       // [ frameBase<- ]
+        if(frame == base_frame){       // [ frameBase<- ]
             return _0;
         }else{
             frame = top_frame();
@@ -826,16 +819,12 @@ __NEXT_STEP:;
         }catch(UnhandledException){
             PyObject* e_obj = POPX();
             Exception& _e = PK_OBJ_GET(Exception, e_obj);
+            bool is_base_frame_to_be_popped = frame == base_frame;
             _pop_frame();
-            if(callstack.empty()){
-#if PK_DEBUG_FULL_EXCEPTION
-                std::cerr << _e.summary() << std::endl;
-#endif
-                throw _e;
-            }
+            if(callstack.empty()) throw _e;   // propagate to the top level
             frame = top_frame();
             PUSH(e_obj);
-            if(frame.index < base_id) throw ToBeRaisedException();
+            if(is_base_frame_to_be_popped) throw ToBeRaisedException();
             need_raise = true;
         }catch(ToBeRaisedException){
             need_raise = true;
