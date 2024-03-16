@@ -172,7 +172,7 @@ public:
 
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
-        callstack.emplace(&s_data, s_data._sp, std::forward<Args>(args)...);
+        callstack.emplace(Frame(&s_data, s_data._sp, std::forward<Args>(args)...));
         return _run_top_frame();
     }
 
