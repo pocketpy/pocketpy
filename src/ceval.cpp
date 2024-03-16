@@ -512,7 +512,7 @@ __NEXT_STEP:;
         frame->jump_abs(byte.arg);
         DISPATCH();
     TARGET(JUMP_ABSOLUTE_TOP)
-        frame->jump_abs(_CAST(uint16_t, POPX()));
+        frame->jump_abs(_CAST(int, POPX()));
         DISPATCH();
     TARGET(POP_JUMP_IF_FALSE){
         if(!py_bool(TOP())) frame->jump_abs(byte.arg);

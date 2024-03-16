@@ -43,10 +43,10 @@ namespace pkpy{
         if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
-        if(ctx()->co->consts.size() > 65535){
+        if(ctx()->co->consts.size() > 65530){
             SyntaxError("maximum number of constants exceeded");
         }
-        if(codes.size() > 65535 && ctx()->co->src->mode != JSON_MODE){
+        if(codes.size() > 65530 && ctx()->co->src->mode != JSON_MODE){
             // json mode does not contain jump instructions, so it is safe to ignore this check
             SyntaxError("maximum number of opcodes exceeded");
         }
@@ -718,7 +718,8 @@ __EAT_DOTS_END:
         }
         // no match, re-raise
         if(finally_entry != -1){
-            ctx()->emit_(OP_LOAD_INTEGER, (uint16_t)ctx()->co->codes.size()+2, BC_KEEPLINE);
+            i64 target = ctx()->co->codes.size()+2;
+            ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
             ctx()->emit_(OP_JUMP_ABSOLUTE, finally_entry, BC_KEEPLINE);
         }
         ctx()->emit_(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
@@ -726,7 +727,8 @@ __EAT_DOTS_END:
         // no exception or no match, jump to the end
         for (int patch : patches) ctx()->patch_jump(patch);
         if(finally_entry != -1){
-            ctx()->emit_(OP_LOAD_INTEGER, (uint16_t)ctx()->co->codes.size()+2, BC_KEEPLINE);
+            i64 target = ctx()->co->codes.size()+2;
+            ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
             ctx()->emit_(OP_JUMP_ABSOLUTE, finally_entry, BC_KEEPLINE);
         }
     }

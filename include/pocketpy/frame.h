@@ -77,8 +77,8 @@ struct ValueStackImpl {
 using ValueStack = ValueStackImpl<PK_VM_STACK_SIZE>;
 
 struct Frame {
-    int _ip = -1;
-    int _next_ip = 0;
+    int _ip;
+    int _next_ip;
     ValueStack* _s;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyObject** _sp_base;
@@ -89,17 +89,16 @@ struct Frame {
     FastLocals _locals;
 
     NameDict& f_globals() noexcept { return _module->attr(); }
-    
     PyObject* f_closure_try_get(StrName name);
 
     Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable)
-            : _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
+            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, p0) { }
 
     Frame(ValueStack* _s, PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
-            : _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
+            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
     Frame(ValueStack* _s, PyObject** p0, const CodeObject_& co, PyObject* _module)
-            : _s(_s), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+            : _ip(-1), _next_ip(0), _s(_s), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     Bytecode next_bytecode() {
         _ip = _next_ip++;
