@@ -600,7 +600,6 @@ namespace pkpy{
                 }else{
                     ctx->emit_(OP_LOAD_CONST, ctx->add_const(py_var(ctx->vm, _val)), line);
                 }
-                ctx->emit_(OP_LOAD_INTEGER, index, line);
                 item.second->emit_(ctx);
             }
             int KWARGC = kwargs.size();
