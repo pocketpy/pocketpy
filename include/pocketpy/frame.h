@@ -11,15 +11,15 @@ namespace pkpy{
 // weak reference fast locals
 struct FastLocals{
     // this is a weak reference
-    const NameDictInt* varnames_inv;
+    const CodeObject* co;
     PyObject** a;
 
-    int size() const{ return varnames_inv->size();}
+    int size() const{ return co->varnames.size();}
 
     PyObject*& operator[](int i){ return a[i]; }
     PyObject* operator[](int i) const { return a[i]; }
 
-    FastLocals(const CodeObject* co, PyObject** a): varnames_inv(&co->varnames_inv), a(a) {}
+    FastLocals(const CodeObject* co, PyObject** a): co(co), a(a) {}
 
     PyObject** try_get_name(StrName name);
     NameDict_ to_namedict();

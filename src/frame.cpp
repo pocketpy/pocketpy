@@ -2,14 +2,14 @@
 
 namespace pkpy{
     PyObject** FastLocals::try_get_name(StrName name){
-        int index = varnames_inv->try_get(name);
+        int index = co->varnames_inv.try_get(name);
         if(index == -1) return nullptr;
         return &a[index];
     }
 
     NameDict_ FastLocals::to_namedict(){
         NameDict_ dict = std::make_shared<NameDict>();
-        varnames_inv->apply([&](StrName name, int index){
+        co->varnames_inv.apply([&](StrName name, int index){
             PyObject* value = a[index];
             if(value != PY_NULL) dict->set(name, value);
         });
