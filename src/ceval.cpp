@@ -118,7 +118,7 @@ __NEXT_STEP:;
         FuncDecl_ decl = co->func_decls[byte.arg];
         PyObject* obj;
         if(decl->nested){
-            NameDict_ captured = frame->_locals.to_namedict(co);
+            NameDict_ captured = frame->_locals.to_namedict();
             obj = VAR(Function(decl, frame->_module, nullptr, captured));
             captured->set(decl->code->name, obj);
         }else{
@@ -136,7 +136,7 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(LOAD_NAME) {
         StrName _name(byte.arg);
-        PyObject** slot = frame->_locals.try_get_name(co, _name);
+        PyObject** slot = frame->_locals.try_get_name(_name);
         if(slot != nullptr) {
             if(*slot == PY_NULL) vm->UnboundLocalError(_name);
             PUSH(*slot);
@@ -207,7 +207,7 @@ __NEXT_STEP:;
         StrName _name(byte.arg);
         PyObject* _0 = POPX();
         if(frame->_callable != nullptr){
-            PyObject** slot = frame->_locals.try_get_name(co, _name);
+            PyObject** slot = frame->_locals.try_get_name(_name);
             if(slot == nullptr) vm->UnboundLocalError(_name);
             *slot = _0;
         }else{
@@ -242,7 +242,7 @@ __NEXT_STEP:;
     TARGET(DELETE_NAME){
         StrName _name(byte.arg);
         if(frame->_callable != nullptr){
-            PyObject** slot = frame->_locals.try_get_name(co, _name);
+            PyObject** slot = frame->_locals.try_get_name(_name);
             if(slot == nullptr) vm->UnboundLocalError(_name);
             *slot = PY_NULL;
         }else{

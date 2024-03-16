@@ -1,15 +1,15 @@
 #include "pocketpy/frame.h"
 
 namespace pkpy{
-    PyObject** FastLocals::try_get_name(const CodeObject* co, StrName name){
-        int index = co->varnames_inv.try_get(name);
+    PyObject** FastLocals::try_get_name(StrName name){
+        int index = varnames_inv->try_get(name);
         if(index == -1) return nullptr;
         return &a[index];
     }
 
-    NameDict_ FastLocals::to_namedict(const CodeObject* co){
+    NameDict_ FastLocals::to_namedict(){
         NameDict_ dict = std::make_shared<NameDict>();
-        co->varnames_inv.apply([&](StrName name, int index){
+        varnames_inv->apply([&](StrName name, int index){
             PyObject* value = a[index];
             if(value != PY_NULL) dict->set(name, value);
         });
@@ -35,7 +35,7 @@ namespace pkpy{
         // get the stack size of the try block
         int _stack_size = co->blocks[block].base_stack_size;
         if(stack_size(_s) < _stack_size) throw std::runtime_error(_S("invalid state: ", stack_size(_s), '<', _stack_size).str());
-        _s->reset(actual_sp_base() + co->varnames.size() + _stack_size);          // rollback the stack   
+        _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
         _s->push(obj);                                      // push exception object
         _next_ip = co->blocks[block].end;
         return true;

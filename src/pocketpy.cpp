@@ -80,7 +80,7 @@ void init_builtins(VM* _vm) {
             FrameId frame = vm->top_frame();
             if(frame->_callable != nullptr){
                 class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
-                if(!frame->co->varnames.empty()) self_arg = frame->_locals[0];
+                if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
             }
             if(class_arg == nullptr || self_arg == nullptr){
                 vm->TypeError("super(): unable to determine the class context, use super(class, self) instead");
