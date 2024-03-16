@@ -594,7 +594,12 @@ namespace pkpy{
             // vectorcall protocol
             for(auto& item: args) item->emit_(ctx);
             for(auto& item: kwargs){
-                uint16_t index = StrName(item.first.sv()).index;
+                i64 _val = StrName(item.first.sv()).index;
+                if(is_imm_int(_val)){
+                    ctx->emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
+                }else{
+                    ctx->emit_(OP_LOAD_CONST, ctx->add_const(py_var(ctx->vm, _val)), line);
+                }
                 ctx->emit_(OP_LOAD_INTEGER, index, line);
                 item.second->emit_(ctx);
             }
