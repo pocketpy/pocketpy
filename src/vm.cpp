@@ -882,25 +882,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject** _base = args.begin();
     PyObject* buffer[PK_MAX_CO_VARNAMES];
 
-    if(callable_t == tp_native_func){
-        const auto& f = PK_OBJ_GET(NativeFunc, callable);
-        PyObject* ret;
-        if(f.decl != nullptr){
-            int co_nlocals = f.decl->code->varnames.size();
-            _prepare_py_call(buffer, args, kwargs, f.decl);
-            // copy buffer back to stack
-            s_data.reset(_base + co_nlocals);
-            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
-            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
-        }else{
-            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
-            f.check_size(this, args);
-            ret = f.call(this, args);
-        }
-        s_data.reset(p0);
-        return ret;
-    }
-
     if(callable_t == tp_function){
         /*****************_py_call*****************/
         // callable must be a `function` object
@@ -947,6 +928,25 @@ __FAST_CALL:
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
         /*****************_py_call*****************/
+    }
+
+    if(callable_t == tp_native_func){
+        const auto& f = PK_OBJ_GET(NativeFunc, callable);
+        PyObject* ret;
+        if(f.decl != nullptr){
+            int co_nlocals = f.decl->code->varnames.size();
+            _prepare_py_call(buffer, args, kwargs, f.decl);
+            // copy buffer back to stack
+            s_data.reset(_base + co_nlocals);
+            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+            ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
+        }else{
+            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
+            f.check_size(this, args);
+            ret = f.call(this, args);
+        }
+        s_data.reset(p0);
+        return ret;
     }
 
     if(callable_t == tp_type){

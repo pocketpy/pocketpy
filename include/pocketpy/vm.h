@@ -364,9 +364,9 @@ public:
     }
 
     Type _tp(PyObject* obj){
+        if(!is_tagged(obj)) return obj->type;
         if(is_int(obj)) return tp_int;
-        if(is_float(obj)) return tp_float;
-        return obj->type;
+        return tp_float;
     }
 
     PyObject* _t(PyObject* obj){
