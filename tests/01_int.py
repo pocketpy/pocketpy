@@ -132,5 +132,26 @@ try:
 except SyntaxError:
     pass
 
-for i in range(-5, 16+1):
-    assert i+1 == i*2//2+1
+assert int("-5") == -5
+assert int("-4") == -4
+assert int("-3") == -3
+assert int("-2") == -2
+assert int("-1") == -1
+assert int("0") == 0
+assert int("1") == 1
+assert int("2") == 2
+assert int("3") == 3
+assert int("4") == 4
+assert int("5") == 5
+assert int("6") == 6
+assert int("7") == 7
+assert int("8") == 8
+assert int("9") == 9
+assert int("10") == 10
+assert int("11") == 11
+assert int("12") == 12
+assert int("13") == 13
+assert int("14") == 14
+assert int("15") == 15
+assert int("16") == 16
+
