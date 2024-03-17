@@ -8,6 +8,13 @@ namespace pkpy{
         DISPATCH() \
     }
 
+#define PREDICT_INT_DIV_OP(op)  \
+    if(is_small_int(_0) && is_small_int(_1)){   \
+        if(_1 == VAR(0)) ZeroDivisionError();   \
+        TOP() = VAR((i64)(PK_BITS(_0)>>2) op (i64)(PK_BITS(_1)>>2)); \
+        DISPATCH() \
+    }
+
 
 #define BINARY_F_COMPARE(func, op, rfunc)                           \
         PyObject* ret;                                              \
@@ -419,6 +426,7 @@ __NEXT_STEP:;
     TARGET(BINARY_FLOORDIV){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_DIV_OP(/)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__floordiv__);
         if(TOP() == NotImplemented) BinaryOptError("//", _0, _1);
@@ -426,6 +434,7 @@ __NEXT_STEP:;
     TARGET(BINARY_MOD){
         PyObject* _1 = POPX();
         PyObject* _0 = TOP();
+        PREDICT_INT_DIV_OP(%)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mod__);
         if(TOP() == NotImplemented) BinaryOptError("%", _0, _1);
