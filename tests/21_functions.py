@@ -119,3 +119,24 @@ def f(a=((1,2),3), b=(4,)):
     return a, b
 
 assert f() == (((1,2),3), (4,))
+
+def f(a, b):
+    return a + b
+
+try:
+    f(a=1)
+    exit(1)
+except TypeError:
+    pass
+
+try:
+    f(1)
+    exit(1)
+except TypeError:
+    pass
+
+try:
+    f(1, 2, 3)
+    exit(1)
+except TypeError:
+    pass

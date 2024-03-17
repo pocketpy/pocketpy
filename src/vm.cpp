@@ -897,9 +897,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                     co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
                 ));
             }
-            if(!kwargs.empty()){
-                TypeError(_S(co->name, "() takes no keyword arguments"));
-            }
+            if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
             s_data.reset(_base + co_nlocals);
             int i = 0;
             // prepare args
