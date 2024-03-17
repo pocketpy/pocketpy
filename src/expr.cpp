@@ -2,10 +2,6 @@
 
 namespace pkpy{
 
-    inline bool is_imm_int(i64 v){
-        return v >= INT16_MIN && v <= INT16_MAX;
-    }
-
     inline bool is_identifier(std::string_view s){
         if(s.empty()) return false;
         if(!isalpha(s[0]) && s[0] != '_') return false;
@@ -64,11 +60,12 @@ namespace pkpy{
         return i;
     }
 
-    int CodeEmitContext::emit_int(i64 _val, int line){
-        if(is_imm_int(_val)){
-            return emit_(OP_LOAD_INTEGER, (uint16_t)_val, line);
+    int CodeEmitContext::emit_int(i64 value, int line){
+        if(value >= -5 && value <= 16){
+            uint8_t op = OP_LOAD_INT_NEG_5 + (uint8_t)value + 5;
+            return emit_((Opcode)op, (uint16_t)value, line);
         }else{
-            return emit_(OP_LOAD_CONST, add_const(VAR(_val)), line);
+            return emit_(OP_LOAD_CONST, add_const(VAR(value)), line);
         }
     }
 

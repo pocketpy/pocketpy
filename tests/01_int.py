@@ -131,3 +131,6 @@ try:
     exit(1)
 except SyntaxError:
     pass
+
+for i in range(-5, 16+1):
+    assert i+1 == i*2//2+1
