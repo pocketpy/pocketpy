@@ -887,13 +887,12 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         if(s_data.is_overflow()) StackOverflowError();
 
         const Function& fn = PK_OBJ_GET(Function, callable);
-        const FuncDecl_& decl = fn.decl;
-        const CodeObject* co = decl->code.get();
+        const CodeObject* co = fn.decl->code.get();
         int co_nlocals = co->varnames.size();
-        if(decl->is_simple){
-            if(args.size() != decl->args.size()){
+        if(fn.decl->is_simple){
+            if(args.size() != fn.decl->args.size()){
                 TypeError(_S(
-                    co->name, "() takes ", decl->args.size(), " positional arguments but ", args.size(), " were given"
+                    co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"
                 ));
             }
             if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
@@ -905,7 +904,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             goto __FAST_CALL;
         }
 
-        _prepare_py_call(buffer, args, kwargs, decl);
+        _prepare_py_call(buffer, args, kwargs, fn.decl);
         
         if(co->is_generator){
             s_data.reset(p0);
