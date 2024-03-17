@@ -862,7 +862,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject* callable = p1[-(ARGC + 2)];
     Type callable_t = _tp(callable);
 
-    bool method_call = p1[-(ARGC + 1)] != PY_NULL;
+    bool method_call = p0[1] != PY_NULL;
 
     // handle boundmethod, do a patch
     if(callable_t == tp_bound_method){
