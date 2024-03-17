@@ -63,7 +63,7 @@ namespace pkpy{
     int CodeEmitContext::emit_int(i64 value, int line){
         if(value >= -5 && value <= 16){
             uint8_t op = OP_LOAD_INT_NEG_5 + (uint8_t)value + 5;
-            return emit_((Opcode)op, (uint16_t)value, line);
+            return emit_((Opcode)op, BC_NOARG, line);
         }else{
             return emit_(OP_LOAD_CONST, add_const(VAR(value)), line);
         }
