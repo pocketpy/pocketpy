@@ -180,7 +180,7 @@ struct Type {
 #define PK_ASSERT(x) if(!(x)) PK_FATAL_ERROR();
 
 struct PyObject;
-#define PK_BITS(p) (reinterpret_cast<Number::int_t>(p))
+#define PK_BITS(p) (reinterpret_cast<i64>(p))
 #define PK_SMALL_INT(val) (reinterpret_cast<PyObject*>(val << 2 | 0b10))
 
 inline PyObject* tag_float(f64 val){

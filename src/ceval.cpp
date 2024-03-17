@@ -4,14 +4,14 @@ namespace pkpy{
 
 #define PREDICT_INT_OP(op)  \
     if(is_small_int(_0) && is_small_int(_1)){   \
-        TOP() = VAR((i64)(PK_BITS(_0)>>2) op (i64)(PK_BITS(_1)>>2)); \
+        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
         DISPATCH() \
     }
 
 #define PREDICT_INT_DIV_OP(op)  \
     if(is_small_int(_0) && is_small_int(_1)){   \
         if(_1 == PK_SMALL_INT(0)) ZeroDivisionError();   \
-        TOP() = VAR((i64)(PK_BITS(_0)>>2) op (i64)(PK_BITS(_1)>>2)); \
+        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
         DISPATCH() \
     }
 
