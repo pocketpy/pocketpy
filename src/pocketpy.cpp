@@ -352,6 +352,7 @@ void init_builtins(VM* _vm) {
             case 3: r.start = CAST(i64, args[0]); r.stop = CAST(i64, args[1]); r.step = CAST(i64, args[2]); break;
             default: vm->TypeError("expected 1-3 arguments, got " + std::to_string(args.size()));
         }
+        if(r.step == 0) vm->ValueError("range() arg 3 must not be zero");
         return VAR(r);
     });
 

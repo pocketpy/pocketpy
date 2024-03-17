@@ -7,11 +7,15 @@ namespace pkpy{
         vm->bind_notimplemented_constructor<RangeIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            RangeIter& self = _CAST(RangeIter&, obj);
-            bool has_next = self.r.step > 0 ? self.current < self.r.stop : self.current > self.r.stop;
-            if(!has_next) return vm->StopIteration;
+            RangeIter& self = PK_OBJ_GET(RangeIter, obj);
+            if(self.r.step > 0){
+                if(self.current >= self.r.stop) return vm->StopIteration;
+            }else{
+                if(self.current <= self.r.stop) return vm->StopIteration;
+            }
+            PyObject* ret = VAR(self.current);
             self.current += self.r.step;
-            return VAR(self.current - self.r.step);
+            return ret;
         });
     }
 
