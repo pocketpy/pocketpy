@@ -144,7 +144,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_ELLIPSIS)   PUSH(Ellipsis); DISPATCH();
     TARGET(LOAD_FUNCTION) {
-        FuncDecl_ decl = co->func_decls[byte.arg];
+        const FuncDecl_& decl = co->func_decls[byte.arg];
         PyObject* obj;
         if(decl->nested){
             NameDict_ captured = frame->_locals.to_namedict();
