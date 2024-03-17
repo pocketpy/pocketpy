@@ -95,6 +95,22 @@ jobs:
           python scripts/run_tests.py
           python scripts/run_tests.py benchmark
         shell: alpine.sh --root {0}
+  build_linux_armv7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Alpine Linux for aarch64
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: armv7
+          packages: gcc g++ make cmake libc-dev linux-headers python3
+      - name: Build and Test
+        run: |
+          uname -m
+          python cmake_build.py
+          python scripts/run_tests.py
+          python scripts/run_tests.py benchmark
+        shell: alpine.sh --root {0}
   build_darwin:
       runs-on: macos-latest
       steps:
