@@ -884,7 +884,6 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     if(callable_t == tp_function){
         /*****************_py_call*****************/
-        // callable must be a `function` object
         if(s_data.is_overflow()) StackOverflowError();
 
         const Function& fn = PK_OBJ_GET(Function, callable);
@@ -898,12 +897,11 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 ));
             }
             if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
+            // [callable, <self>, args..., local_vars...]
+            //      ^p0                    ^p1      ^_sp
             s_data.reset(_base + co_nlocals);
-            int i = 0;
-            // prepare args
-            for(int index: decl->args) _base[index] = args[i++];
-            // set extra varnames to PY_NULL
-            for(int j=i; j<co_nlocals; j++) _base[j] = PY_NULL;
+            // initialize local variables to PY_NULL
+            for(PyObject** p=p1; p!=s_data._sp; p++) *p = PY_NULL;
             goto __FAST_CALL;
         }
 
