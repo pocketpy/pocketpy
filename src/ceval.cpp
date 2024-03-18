@@ -80,7 +80,6 @@ PyObject* VM::_run_top_frame(){
 __NEXT_FRAME:
     // cache
     const CodeObject* co = frame->co;
-    PyObject** co_consts = const_cast<PyObject**>(co->consts.data());
     const Bytecode* co_codes = co->codes.data();
 
     Bytecode byte = co_codes[frame->next_bytecode()];
@@ -113,7 +112,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(LOAD_CONST)
         if(heap._should_auto_collect()) heap._auto_collect();
-        PUSH(co_consts[byte.arg]);
+        PUSH(co->consts[byte.arg]);
         DISPATCH();
     TARGET(LOAD_NONE)       PUSH(None); DISPATCH();
     TARGET(LOAD_TRUE)       PUSH(True); DISPATCH();
@@ -608,7 +607,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(FSTRING_EVAL){
-        PyObject* _0 = co_consts[byte.arg];
+        PyObject* _0 = co->consts[byte.arg];
         std::string_view string = CAST(Str&, _0).sv();
         auto it = _cached_codes.find(string);
         CodeObject_ code;
@@ -725,7 +724,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(IMPORT_PATH){
-        PyObject* _0 = co_consts[byte.arg];
+        PyObject* _0 = co->consts[byte.arg];
         PUSH(py_import(CAST(Str&, _0)));
     } DISPATCH();
     TARGET(POP_IMPORT_STAR) {
@@ -851,7 +850,7 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(FORMAT_STRING) {
         PyObject* _0 = POPX();
-        const Str& spec = CAST(Str&, co_consts[byte.arg]);
+        const Str& spec = CAST(Str&, co->consts[byte.arg]);
         PUSH(_format_string(spec, _0));
     } DISPATCH();
     /*****************************************/
