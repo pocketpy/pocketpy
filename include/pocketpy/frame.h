@@ -28,16 +28,15 @@ struct FastLocals{
     PyObject** end() const { return a + size(); }
 };
 
-template<size_t MAX_SIZE>
-struct ValueStackImpl {
-    // We allocate extra MAX_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
-    PyObject* _begin[MAX_SIZE + MAX_SIZE/128];
+struct ValueStack {
+    // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
+    PyObject* _begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE/128];
     PyObject** _sp;
     PyObject** _max_end;
 
-    static constexpr size_t max_size() { return MAX_SIZE; }
+    static constexpr size_t max_size() { return PK_VM_STACK_SIZE; }
 
-    ValueStackImpl(): _sp(_begin), _max_end(_begin + MAX_SIZE) {}
+    ValueStack(): _sp(_begin), _max_end(_begin + PK_VM_STACK_SIZE) {}
 
     PyObject*& top(){ return _sp[-1]; }
     PyObject* top() const { return _sp[-1]; }
@@ -68,13 +67,11 @@ struct ValueStackImpl {
     PyObject* operator[](int i) const { return _begin[i]; }
     PyObject*& operator[](int i) { return _begin[i]; }
     
-    ValueStackImpl(const ValueStackImpl&) = delete;
-    ValueStackImpl(ValueStackImpl&&) = delete;
-    ValueStackImpl& operator=(const ValueStackImpl&) = delete;
-    ValueStackImpl& operator=(ValueStackImpl&&) = delete;
+    ValueStack(const ValueStack&) = delete;
+    ValueStack(ValueStack&&) = delete;
+    ValueStack& operator=(const ValueStack&) = delete;
+    ValueStack& operator=(ValueStack&&) = delete;
 };
-
-using ValueStack = ValueStackImpl<PK_VM_STACK_SIZE>;
 
 struct Frame {
     int _ip;
