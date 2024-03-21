@@ -14,13 +14,9 @@ And `#include` it in your project. It is recommended to use the latest dev versi
 #### Use CMake
 
 Clone the whole repository as a submodule in your project,
-You need **Python 3** installed on your system because CMakeLists.txt
-requires it to generate some files.
-
 In your CMakelists.txt, add the following lines:
 
 ```cmake
-option(PK_BUILD_STATIC_LIB "Build static library" ON)
 add_subdirectory(pocketpy)
 target_link_libraries(your_target pocketpy)
 
@@ -30,13 +26,9 @@ if(EMSCRIPTEN)
 endif()
 ```
 
-These variables can be set to control the build process:
-+ `PK_BUILD_STATIC_LIB` - Build the static library
-+ `PK_BUILD_SHARED_LIB` - Build the shared library
-
 See [CMakeLists.txt](https://github.com/pocketpy/pocketpy/blob/main/CMakeLists.txt) for details.
 
-It is safe to use `main` branch in production.
+It is safe to use `main` branch in production if CI badge is green.
 
 ### Compile flags
 
