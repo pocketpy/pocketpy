@@ -13,12 +13,12 @@ And `#include` it in your project. It is recommended to use the latest dev versi
 
 #### Use CMake
 
-Clone the whole repository as a submodule in your project,
+Clone the whole repository as a submodule into your project,
 In your CMakelists.txt, add the following lines:
 
 ```cmake
 add_subdirectory(pocketpy)
-target_link_libraries(your_target pocketpy)
+target_link_libraries(<your_target> pocketpy)
 
 if(EMSCRIPTEN)
     # exceptions must be enabled for emscripten
