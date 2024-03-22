@@ -70,7 +70,7 @@ struct Exception {
 
     template<typename... Args>
     void st_push(Args&&... args){
-        if(stacktrace.size() >= 8) return;
+        if(stacktrace.size() >= 7) return;
         stacktrace.emplace(std::forward<Args>(args)...);
     }
 
