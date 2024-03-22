@@ -59,6 +59,26 @@ class set:
                 ret.add(elem) 
         return ret
 
+    def __lt__(self, other):
+        if len(self) >= len(other):
+            return False
+        for elem in self:
+            if elem not in other:
+                return False
+        return True
+
+    def __le__(self, other):
+        for elem in self:
+            if elem not in other:
+                return False
+        return True
+
+    def __gt__(self, other):
+        return other < self
+
+    def __ge__(self, other):
+        return other <= self
+
     def union(self, other):
         return self | other
 
@@ -78,10 +98,10 @@ class set:
         return self.__and__(other).__len__() == 0
     
     def issubset(self, other):
-        return self.__sub__(other).__len__() == 0
+        return self <= other
     
     def issuperset(self, other):
-        return other.__sub__(self).__len__() == 0
+        return self >= other
 
     def __contains__(self, elem):
         return elem in self._a
