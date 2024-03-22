@@ -235,6 +235,37 @@ struct MemoryPool{
         });
     }
 
+    std::string info(){
+        int n_used_arenas = _arenas.size();
+        int n_total_arenas = n_used_arenas + _empty_arenas.size();
+        int n_used_blocks = 0;
+        int n_total_blocks = n_total_arenas * __MaxBlocks;
+        size_t allocated_size = 0;
+        size_t total_size = 0;
+        _arenas.apply([&](Arena* arena){
+            allocated_size += arena->allocated_size();
+            total_size += __BlockSize * __MaxBlocks;
+            n_used_blocks += __MaxBlocks - arena->_free_list_size;
+        });
+        _empty_arenas.apply([&](Arena* arena){
+            total_size += __BlockSize * __MaxBlocks;
+        });
+        char buffer[512];
+        snprintf(
+            buffer,
+            sizeof(buffer),
+            "MemoryPool<%d>: %.2f/%.2f MB - %d/%d arenas - %d/%d blocks",
+            __BlockSize,
+            (float)allocated_size / (1024*1024),
+            (float)total_size / (1024*1024),
+            n_used_arenas,
+            n_total_arenas,
+            n_used_blocks,
+            n_total_blocks
+        );
+        return buffer;
+    }
+
     ~MemoryPool(){
         _arenas.apply([](Arena* arena){ delete arena; });
         _empty_arenas.apply([](Arena* arena){ delete arena; });
@@ -254,5 +285,8 @@ void pools_shrink_to_fit() noexcept {
     pool64.shrink_to_fit();
     pool128.shrink_to_fit();
 }
+
+std::string pool64_info() noexcept { return pool64.info(); }
+std::string pool128_info() noexcept { return pool128.info(); }
 
 }

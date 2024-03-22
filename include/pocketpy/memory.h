@@ -22,4 +22,7 @@ void* pool128_alloc() noexcept{
 
 void pools_shrink_to_fit() noexcept;
 
+std::string pool64_info() noexcept;
+std::string pool128_info() noexcept;
+
 };  // namespace pkpy
