@@ -251,7 +251,7 @@ struct MemoryPool{
         snprintf(
             buffer,
             sizeof(buffer),
-            "pool%d: %.2f/%.2f MB - %d/%d arenas",
+            "pool%d: %.2f/%.2f MB (%d/%d arenas)",
             __BlockSize,
             (float)allocated_size / (1024*1024),
             (float)total_size / (1024*1024),
