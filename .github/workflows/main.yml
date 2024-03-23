@@ -146,16 +146,12 @@ jobs:
       runs-on: macos-latest
       steps:
       - uses: actions/checkout@v4
-      - name: Compile Static Library
+      - name: Compile Frameworks
         run: |
-          git clone https://github.com/leetal/ios-cmake --depth 1
-          mkdir build
-          cd build
-          cmake -G Xcode -DCMAKE_TOOLCHAIN_FILE=../ios-cmake/ios.toolchain.cmake -DPLATFORM=OS64COMBINED .. -DPK_BUILD_STATIC_LIB=ON -DPK_USE_CJSON=ON -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --config Release
-          cd ..
+          git clone https://github.com/leetal/ios-cmake --depth 1 ~/ios-cmake
+          bash build_ios.sh
           mkdir -p output/ios
-          cp -r build/Release-iphoneos/pocketpy.framework output/ios/pocketpy.framework
+          cp -r build/pocketpy.xcframework output/ios/pocketpy.xcframework
       - uses: actions/upload-artifact@v3
         with:
           path: output
