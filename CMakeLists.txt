@@ -50,6 +50,22 @@ if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
     add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
+
+    # build xcframework for iOS
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            FRAMEWORK TRUE
+            FRAMEWORK_VERSION CXX
+            MACOSX_FRAMEWORK_IDENTIFIER dev.pocketpy
+            # MACOSX_FRAMEWORK_INFO_PLIST Info.plist
+            # "current version" in semantic format in Mach-O binary file
+            VERSION 1.4.3
+            # "compatibility version" in semantic format in Mach-O binary file
+            SOVERSION 1.4.3
+            PUBLIC_HEADER pocketpy.h
+            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
+        )
+    endif()
 else()
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
     set(PROJECT_EXE_NAME main)
@@ -67,7 +83,7 @@ if(PK_USE_CJSON)
     target_link_libraries(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:cjson>)
 endif()
 
-option(PK_INSTALL "Generate the install target" ON)
+option(PK_INSTALL "Generate the install target" OFF)
 if (PK_INSTALL)
     install(
         TARGETS ${PROJECT_NAME}
