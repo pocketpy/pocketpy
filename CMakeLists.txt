@@ -49,27 +49,7 @@ endif()
 if(PK_BUILD_SHARED_LIB)
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
 elseif(PK_BUILD_STATIC_LIB)
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-        set(
-            HEADERS
-            ${CMAKE_CURRENT_LIST_DIR}/include/pocketpy/pocketpy_c.h
-            ${CMAKE_CURRENT_LIST_DIR}/include/pocketpy/export.h
-        )
-        add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC} ${HEADERS})
-        set_target_properties(${PROJECT_NAME} PROPERTIES
-            FRAMEWORK TRUE
-            MACOSX_FRAMEWORK_IDENTIFIER dev.pocketpy
-            # MACOSX_FRAMEWORK_INFO_PLIST Info.plist
-            # "current version" in semantic format in Mach-O binary file
-            VERSION 1.4.3
-            # "compatibility version" in semantic format in Mach-O binary file
-            SOVERSION 1.4.3
-            PUBLIC_HEADER "${HEADERS}"
-            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
-        )
-    else()
-        add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
-    endif()
+    add_library(${PROJECT_NAME} STATIC ${POCKETPY_SRC})
 else()
     add_library(${PROJECT_NAME} SHARED ${POCKETPY_SRC})
     set(PROJECT_EXE_NAME main)
