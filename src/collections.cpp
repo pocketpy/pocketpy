@@ -552,7 +552,7 @@ namespace pkpy
         PyObject *mod = vm->new_module("collections");
         PyDeque::register_class(vm, mod);
         PyDequeIter::register_class(vm, mod);
-        CodeObject_ code = vm->compile(kPythonLibs["collections"], "collections.py", EXEC_MODE);
+        CodeObject_ code = vm->compile(kPythonLibs_collections, "collections.py", EXEC_MODE);
         vm->_exec(code, mod);
     }
 } // namespace pkpypkpy

@@ -1534,14 +1534,21 @@ void VM::post_init(){
     add_module_base64(this);
     add_module_operator(this);
 
-    for(const char* name: {"this", "functools", "heapq", "bisect", "pickle", "_long", "colorsys", "typing", "datetime", "cmath"}){
-        _lazy_modules[name] = kPythonLibs[name];
-    }
+    _lazy_modules["this"] = kPythonLibs_this;
+    _lazy_modules["functools"] = kPythonLibs_functools;
+    _lazy_modules["heapq"] = kPythonLibs_heapq;
+    _lazy_modules["bisect"] = kPythonLibs_bisect;
+    _lazy_modules["pickle"] = kPythonLibs_pickle;
+    _lazy_modules["_long"] = kPythonLibs__long;
+    _lazy_modules["colorsys"] = kPythonLibs_colorsys;
+    _lazy_modules["typing"] = kPythonLibs_typing;
+    _lazy_modules["datetime"] = kPythonLibs_datetime;
+    _lazy_modules["cmath"] = kPythonLibs_cmath;
 
     try{
-        CodeObject_ code = compile(kPythonLibs["builtins"], "<builtins>", EXEC_MODE);
+        CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
         this->_exec(code, this->builtins);
-        code = compile(kPythonLibs["_set"], "<set>", EXEC_MODE);
+        code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
         this->_exec(code, this->builtins);
     }catch(const Exception& e){
         std::cerr << e.summary() << std::endl;

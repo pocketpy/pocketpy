@@ -26,6 +26,8 @@
 #include "config.h"
 #include "export.h"
 
+#include "_generated.h"
+
 #ifdef min
 #undef min
 #endif
