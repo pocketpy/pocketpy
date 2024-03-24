@@ -967,8 +967,8 @@ __FAST_CALL:
         // __init__
         PyObject* self;
         callable = get_unbound_method(obj, __init__, &self, false);
-        callable_t = _tp(callable);
-        if (self != PY_NULL) {
+        if (callable != nullptr) {
+            callable_t = _tp(callable);
             // replace `NULL` with `self`
             p1[-(ARGC + 2)] = callable;
             p1[-(ARGC + 1)] = self;
