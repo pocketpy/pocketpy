@@ -72,6 +72,9 @@ template <size_t T>
 struct NumberTraits;
 
 inline constexpr bool is_negative_shift_well_defined(){
+#ifdef __EMSRIPTEN__
+	return false;
+#endif
 	// rshift does not affect the sign bit
 	return ((int)-1) >> 1 == -1 && ((int64_t)-1) >> 1 == -1;
 }
