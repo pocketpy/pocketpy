@@ -32,3 +32,8 @@
     #define PK_SYS_PLATFORM     6
 #endif
 
+#if PK_SYS_PLATFORM == 0 || PK_SYS_PLATFORM == 3 || PK_SYS_PLATFORM == 5
+    #define PK_IS_DESKTOP_PLATFORM 1
+#else
+    #define PK_IS_DESKTOP_PLATFORM 0
+#endif
