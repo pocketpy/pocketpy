@@ -71,13 +71,18 @@ namespace std = ::std;
 template <size_t T>
 struct NumberTraits;
 
+inline constexpr bool is_negative_shift_well_defined(){
+	// rshift does not affect the sign bit
+	return ((int)-1) >> 1 == -1 && ((int64_t)-1) >> 1 == -1;
+}
+
 template <>
 struct NumberTraits<4> {
 	using int_t = int32_t;
 	using float_t = float;
 
 	static constexpr int_t kMaxSmallInt = (1 << 28) - 1;
-	static constexpr int_t kMinSmallInt = - (1 << 28);
+	static constexpr int_t kMinSmallInt = is_negative_shift_well_defined() ? -(1 << 28) : 0;
 	static constexpr float_t kEpsilon = (float_t)1e-4;
 };
 
@@ -87,7 +92,7 @@ struct NumberTraits<8> {
 	using float_t = double;
 
 	static constexpr int_t kMaxSmallInt = (1ll << 60) - 1;
-	static constexpr int_t kMinSmallInt = - (1ll << 60);
+	static constexpr int_t kMinSmallInt = is_negative_shift_well_defined() ? -(1ll << 60) : 0;
 	static constexpr float_t kEpsilon = (float_t)1e-8;
 };
 
