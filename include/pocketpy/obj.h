@@ -101,10 +101,8 @@ struct PyObject{
     NameDict* _attr;
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
-    NameDict& attr() noexcept { return *_attr; }
-    PyObject* attr(StrName name) const noexcept { return (*_attr)[name]; }
-
-    // PyObject* operator[](StrName name) const noexcept { return (*_attr)[name]; }
+    NameDict& attr() { return *_attr; }
+    PyObject* attr(StrName name) const { return (*_attr)[name]; }
 
     virtual void _obj_gc_mark() = 0;
     virtual void* _value_ptr() = 0;
