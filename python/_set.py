@@ -2,15 +2,13 @@ class set:
     def __init__(self, iterable=None):
         iterable = iterable or []
         self._a = {}
-        for item in iterable:
-            self.add(item)
+        self.update(iterable)
 
     def add(self, elem):
         self._a[elem] = None
         
     def discard(self, elem):
-        if elem in self._a:
-            del self._a[elem]
+        self._a.pop(elem, None)
 
     def remove(self, elem):
         del self._a[elem]
@@ -18,10 +16,9 @@ class set:
     def clear(self):
         self._a.clear()
 
-    def update(self,other):
+    def update(self, other):
         for elem in other:
             self.add(elem)
-        return self
 
     def __len__(self):
         return len(self._a)
@@ -37,19 +34,13 @@ class set:
     
     def __or__(self, other):
         ret = self.copy()
-        for elem in other:
-            ret.add(elem)
+        ret.update(other)
         return ret
 
     def __xor__(self, other): 
-        ret = set() 
-        for elem in self: 
-            if elem not in other: 
-                ret.add(elem) 
-        for elem in other: 
-            if elem not in self: 
-                ret.add(elem) 
-        return ret
+        _0 = self - other
+        _1 = other - self
+        return _0 | _1
 
     def union(self, other):
         return self | other
