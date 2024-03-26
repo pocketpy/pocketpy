@@ -30,11 +30,10 @@ class set:
         return set(self._a.keys())
     
     def __and__(self, other):
-        ret = set()
-        for elem in self:
-            if elem in other:
-                ret.add(elem)
-        return ret
+        return {elem for elem in self if elem in other}
+
+    def __sub__(self, other):
+        return {elem for elem in self if elem not in other}
     
     def __or__(self, other):
         ret = self.copy()
@@ -42,13 +41,6 @@ class set:
             ret.add(elem)
         return ret
 
-    def __sub__(self, other):
-        ret = set() 
-        for elem in self:
-            if elem not in other: 
-                ret.add(elem) 
-        return ret
-    
     def __xor__(self, other): 
         ret = set() 
         for elem in self: 
@@ -72,16 +64,18 @@ class set:
         return self ^ other
     
     def __eq__(self, other):
-        return self.__xor__(other).__len__() == 0
+        if not isinstance(other, set):
+            return NotImplemented
+        return len(self ^ other) == 0
 
     def isdisjoint(self, other):
-        return self.__and__(other).__len__() == 0
+        return len(self & other) == 0
     
     def issubset(self, other):
-        return self.__sub__(other).__len__() == 0
+        return len(self - other) == 0
     
     def issuperset(self, other):
-        return other.__sub__(self).__len__() == 0
+        return len(other - self) == 0
 
     def __contains__(self, elem):
         return elem in self._a
