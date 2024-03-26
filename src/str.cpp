@@ -406,6 +406,10 @@ int utf8len(unsigned char c, bool suppress){
         return _r_interned().find(index) != _r_interned().end();
     }
 
+    bool StrNameComparator::operator()(const StrName& a, const StrName& b) const {
+        return a._r_interned()[a.index] < b._r_interned()[b.index];
+    }
+
     Str SStream::str(){
         // after this call, the buffer is no longer valid
         buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'

@@ -126,6 +126,10 @@ struct StrName {
     static uint32_t _pesudo_random_index;
 };
 
+struct StrNameComparator {
+    bool operator()(const StrName& a, const StrName& b) const;
+};
+
 struct SStream{
     PK_ALWAYS_PASS_BY_POINTER(SStream)
     // pod_vector<T> is allocated by pool64 so the buffer can be moved into Str without a copy
