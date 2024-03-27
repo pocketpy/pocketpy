@@ -276,7 +276,7 @@ namespace pkpy{
                 if(i != 0) ss << ".";
                 ss << cpnts[i];
             }
-            return Str(ss.str());
+            return ss.str();
         };
 
         if(path[0] == '.'){

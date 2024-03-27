@@ -36,10 +36,10 @@ struct Str{
     bool empty() const { return size == 0; }
     size_t hash() const{ return std::hash<std::string_view>()(sv()); }
 
-    Str& operator=(const Str& other);
-    Str operator+(const Str& other) const;
-    friend Str operator+(const char* p, const Str& str);
-    Str operator+(const char* p) const;
+    Str& operator=(const Str&);
+    Str operator+(const Str&) const;
+    Str operator+(const char*) const;
+    friend Str operator+(const char*, const Str&);
 
     bool operator==(const std::string_view other) const;
     bool operator!=(const std::string_view other) const;
@@ -112,11 +112,11 @@ struct StrName {
     }
 
     bool operator<(const StrName& other) const noexcept {
-        return this->index < other.index;
+        return sv() < other.sv();
     }
 
     bool operator>(const StrName& other) const noexcept {
-        return this->index > other.index;
+        return sv() > other.sv();
     }
 
     static bool is_valid(int index);
