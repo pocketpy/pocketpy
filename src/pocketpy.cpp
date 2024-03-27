@@ -294,7 +294,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<1>(_vm->builtins, "dir", [](VM* vm, ArgsView args) {
-        std::set<StrName, StrNameComparator> names;
+        std::set<StrName> names;
         if(!is_tagged(args[0]) && args[0]->is_attr_valid()){
             auto keys = args[0]->attr().keys();
             names.insert(keys.begin(), keys.end());

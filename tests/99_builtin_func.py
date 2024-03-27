@@ -630,3 +630,6 @@ def f(a, b):
     return sum([b, c])
 
 assert f(1, 2) == 3
+
+dir_int = dir(int)
+assert dir_int[:4] == ['__add__', '__and__', '__base__', '__eq__']
