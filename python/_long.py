@@ -130,6 +130,7 @@ def ulong_divmod(a: list, b: list):
     while ulong_cmp(a, ulong_mul(b, low)) >= 0:
         q = ulong_add(q, low)
         a = ulong_sub(a, ulong_mul(b, low))
+    ulong_unpad_(q)
     return q, a
 
 def ulong_floordivi(a: list, b: int):
