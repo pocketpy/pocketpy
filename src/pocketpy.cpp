@@ -444,6 +444,14 @@ void init_builtins(VM* _vm) {
         return VAR(_CAST(i64, _0) % rhs);
     });
 
+    _vm->bind_method<0>(VM::tp_int, "bit_length", [](VM* vm, ArgsView args) {
+        i64 x = _CAST(i64, args[0]);
+        if(x < 0) x = -x;
+        int bits = 0;
+        while(x){ x >>= 1; bits++; }
+        return VAR(bits);
+    });
+
     _vm->bind__repr__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
     _vm->bind__neg__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(-_CAST(i64, obj)); });
     _vm->bind__hash__(VM::tp_int, [](VM* vm, PyObject* obj) { return _CAST(i64, obj); });
