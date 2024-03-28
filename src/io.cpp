@@ -77,7 +77,7 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
             buffer_size = size;
         }
         unsigned char* buffer = new unsigned char[buffer_size];
-        size_t actual_size = io_fread(buffer, 1, buffer_size, io.fp);
+        i64 actual_size = io_fread(buffer, 1, buffer_size, io.fp);
         PK_ASSERT(actual_size <= buffer_size);
         // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
         Bytes b(buffer, actual_size);
