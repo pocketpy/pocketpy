@@ -101,6 +101,7 @@ def ulong_divmodi(a: list, b: int):
 
 
 def ulong_divmod(a: list, b: list):
+
     if ulong_cmp(a, b) < 0:
         return [0], a
 
@@ -109,20 +110,26 @@ def ulong_divmod(a: list, b: list):
         r, _ = ulong_fromint(r)
         return q, r
 
-    low = 0
-    high = (1 << 32) - 1
-    while low < high:
-        mid = (low + high + 1) // 2
-        temp = [mid]
-        if ulong_cmp(a, ulong_mul(b, temp)) >= 0:
+    max = (len(a) - len(b)) * PyLong_SHIFT + \
+        (a[-1].bit_length() - b[-1].bit_length())
+
+    low = [0]
+
+    high = (max // PyLong_SHIFT) * [0] + \
+        [(2**(max % PyLong_SHIFT)) & PyLong_MASK]
+
+    while ulong_cmp(low, high) < 0:
+        ulong_inc_(high)
+        mid, r = ulong_divmodi(ulong_add(low, high), 2)
+        if ulong_cmp(a, ulong_mul(b, mid)) >= 0:
             low = mid
         else:
-            high = mid - 1
+            high = ulong_sub(mid, [1])
 
     q = [0] * (len(a) - len(b) + 1)
-    while ulong_cmp(a, ulong_mul(b, [low])) >= 0:
-        q = ulong_add(q, [low])
-        a = ulong_sub(a, ulong_mul(b, [low]))
+    while ulong_cmp(a, ulong_mul(b, low)) >= 0:
+        q = ulong_add(q, low)
+        a = ulong_sub(a, ulong_mul(b, low))
     return q, a
 
 def ulong_floordivi(a: list, b: int):
