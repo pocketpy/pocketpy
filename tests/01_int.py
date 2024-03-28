@@ -57,6 +57,10 @@ assert (1).bit_length() == 1
 assert (2).bit_length() == 2
 assert (3).bit_length() == 2
 
+assert (-1).bit_length() == 1
+assert (-2).bit_length() == 2
+assert (-3).bit_length() == 2
+
 # test int()
 assert int() == 0
 assert int(True) == 1
