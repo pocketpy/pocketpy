@@ -160,22 +160,6 @@ class A():
 
 repr(A())
 
-
-# 未完全测试准确性-----------------------------------------------
-#     33600:  318:    _vm->bind_constructor<-1>("range", [](VM* vm, ArgsView args) {
-#     16742:  319:        args._begin += 1;   // skip cls
-#     16742:  320:        Range r;
-#     16742:  321:        switch (args.size()) {
-#      8735:  322:            case 1: r.stop = CAST(i64, args[0]); break;
-#      3867:  323:            case 2: r.start = CAST(i64, args[0]); r.stop = CAST(i64, args[1]); break;
-#      4140:  324:            case 3: r.start = CAST(i64, args[0]); r.stop = CAST(i64, args[1]); r.step = CAST(i64, args[2]); break;
-#     #####:  325:            default: vm->TypeError("expected 1-3 arguments, got " + std::to_string(args.size()));
-#     #####:  326:        }
-#     33484:  327:        return VAR(r);
-#     16742:  328:    });
-#         -:  329:
-# test range:
-
 try:
     range(1,2,3,4)
     print('未能拦截错误, 在测试 range')

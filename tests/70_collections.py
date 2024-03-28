@@ -2,15 +2,15 @@ from collections import Counter, deque, defaultdict
 import random
 import pickle
 import gc
-import builtins
 
-dd_dict_keys = sorted(defaultdict.__dict__.keys())
-d_dict_keys = sorted(dict.__dict__.keys())
-d_dict_keys.remove('__new__')
-if dd_dict_keys != d_dict_keys:
-    print("dd_dict_keys:", dd_dict_keys)
-    print("d_dict_keys:", d_dict_keys)
-    raise Exception("dd_dict_keys != d_dict_keys")
+# test defaultdict
+assert issubclass(defaultdict, dict)
+a = defaultdict(int)
+a['1'] += 1
+assert a == {'1': 1}
+a = defaultdict(list)
+a['1'].append(1)
+assert a == {'1': [1]}
 
 q = deque()
 q.append(1)

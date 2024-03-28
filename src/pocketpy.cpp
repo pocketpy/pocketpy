@@ -399,31 +399,37 @@ void init_builtins(VM* _vm) {
         if(args.size() == 1+0) return VAR(0);
         // 1 arg
         if(args.size() == 1+1){
-            if (is_type(args[1], vm->tp_float)) return VAR((i64)CAST(f64, args[1]));
-            if (is_type(args[1], vm->tp_int)) return args[1];
-            if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1 : 0);
+            switch(vm->_tp(args[1]).index){
+                case VM::tp_float.index:
+                    return VAR((i64)_CAST(f64, args[1]));
+                case VM::tp_int.index:
+                    return args[1];
+                case VM::tp_bool.index:
+                    return VAR(args[1]==vm->True ? 1 : 0);
+                case VM::tp_str.index:
+                    break;
+                default:
+                    vm->TypeError("invalid arguments for int()");
+            }
         }
+        // 2+ args -> error
         if(args.size() > 1+2) vm->TypeError("int() takes at most 2 arguments");
-        // 2 args
-        if (is_type(args[1], vm->tp_str)) {
-            int base = 10;
-            if(args.size() == 1+2) base = CAST(i64, args[2]);
-            const Str& s = CAST(Str&, args[1]);
-            std::string_view sv = s.sv();
-            bool negative = false;
-            if(!sv.empty() && (sv[0] == '+' || sv[0] == '-')){
-                negative = sv[0] == '-';
-                sv.remove_prefix(1);
-            }
-            i64 val;
-            if(parse_int(sv, &val, base) != IntParsingResult::Success){
-                vm->ValueError(_S("invalid literal for int() with base ", base, ": ", s.escape()));
-            }
-            if(negative) val = -val;
-            return VAR(val);
+        // 1 or 2 args with str
+        int base = 10;
+        if(args.size() == 1+2) base = CAST(i64, args[2]);
+        const Str& s = CAST(Str&, args[1]);
+        std::string_view sv = s.sv();
+        bool negative = false;
+        if(!sv.empty() && (sv[0] == '+' || sv[0] == '-')){
+            negative = sv[0] == '-';
+            sv.remove_prefix(1);
         }
-        vm->TypeError("invalid arguments for int()");
-        return vm->None;
+        i64 val;
+        if(parse_int(sv, &val, base) != IntParsingResult::Success){
+            vm->ValueError(_S("invalid literal for int() with base ", base, ": ", s.escape()));
+        }
+        if(negative) val = -val;
+        return VAR(val);
     });
 
     _vm->bind__floordiv__(VM::tp_int, [](VM* vm, PyObject* _0, PyObject* _1) {
@@ -436,6 +442,14 @@ void init_builtins(VM* _vm) {
         i64 rhs = CAST(i64, _1);
         if(rhs == 0) vm->ZeroDivisionError();
         return VAR(_CAST(i64, _0) % rhs);
+    });
+
+    _vm->bind_method<0>(VM::tp_int, "bit_length", [](VM* vm, ArgsView args) {
+        i64 x = _CAST(i64, args[0]);
+        if(x < 0) x = -x;
+        int bits = 0;
+        while(x){ x >>= 1; bits++; }
+        return VAR(bits);
     });
 
     _vm->bind__repr__(VM::tp_int, [](VM* vm, PyObject* obj) { return VAR(std::to_string(_CAST(i64, obj))); });
@@ -460,26 +474,32 @@ void init_builtins(VM* _vm) {
         if(args.size() == 1+0) return VAR(0.0);
         if(args.size() > 1+1) vm->TypeError("float() takes at most 1 argument");
         // 1 arg
-        if (is_type(args[1], vm->tp_int)) return VAR((f64)CAST(i64, args[1]));
-        if (is_type(args[1], vm->tp_float)) return args[1];
-        if (is_type(args[1], vm->tp_bool)) return VAR(_CAST(bool, args[1]) ? 1.0 : 0.0);
-        if (is_type(args[1], vm->tp_str)) {
-            const Str& s = CAST(Str&, args[1]);
-            if(s == "inf") return VAR(INFINITY);
-            if(s == "-inf") return VAR(-INFINITY);
-
-            double float_out;
-            char* p_end;
-            try{
-                float_out = std::strtod(s.data, &p_end);
-                PK_ASSERT(p_end == s.end());
-            }catch(...){
-                vm->ValueError("invalid literal for float(): " + s.escape());
-            }
-            return VAR(float_out);
+        switch(vm->_tp(args[1]).index){
+            case VM::tp_int.index:
+                return VAR((f64)CAST(i64, args[1]));
+            case VM::tp_float.index:
+                return args[1];
+            case VM::tp_bool.index:
+                return VAR(args[1]==vm->True ? 1.0 : 0.0);
+            case VM::tp_str.index:
+                break;
+            default:
+                vm->TypeError("invalid arguments for float()");
         }
-        vm->TypeError("invalid arguments for float()");
-        return vm->None;
+        // str to float
+        const Str& s = PK_OBJ_GET(Str, args[1]);
+        if(s == "inf") return VAR(INFINITY);
+        if(s == "-inf") return VAR(-INFINITY);
+
+        double float_out;
+        char* p_end;
+        try{
+            float_out = std::strtod(s.data, &p_end);
+            PK_ASSERT(p_end == s.end());
+        }catch(...){
+            vm->ValueError("invalid literal for float(): " + s.escape());
+        }
+        return VAR(float_out);
     });
 
     _vm->bind__hash__(VM::tp_float, [](VM* vm, PyObject* _0) {
@@ -1216,37 +1236,53 @@ void init_builtins(VM* _vm) {
 
     // tp_dict
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_dict), [](VM* vm, ArgsView args){
-        return VAR(Dict(vm));
+        Type cls_t = PK_OBJ_GET(Type, args[0]);
+        return vm->heap.gcnew<Dict>(cls_t, vm);
     });
 
     _vm->bind_method<-1>(VM::tp_dict, "__init__", [](VM* vm, ArgsView args){
         if(args.size() == 1+0) return vm->None;
         if(args.size() == 1+1){
             auto _lock = vm->heap.gc_scope_lock();
-            Dict& self = _CAST(Dict&, args[0]);
-            List& list = CAST(List&, args[1]);
-            for(PyObject* item : list){
-                Tuple& t = CAST(Tuple&, item);
-                if(t.size() != 2){
-                    vm->ValueError("dict() takes an iterable of tuples (key, value)");
-                    return vm->None;
+            Dict& self = PK_OBJ_GET(Dict, args[0]);
+            if(is_non_tagged_type(args[1], vm->tp_dict)){
+                Dict& other = CAST(Dict&, args[1]);
+                self.update(other);
+                return vm->None;
+            }
+            if(is_non_tagged_type(args[1], vm->tp_list)){
+                List& list = PK_OBJ_GET(List, args[1]);
+                for(PyObject* item : list){
+                    Tuple& t = CAST(Tuple&, item);
+                    if(t.size() != 2){
+                        vm->ValueError("dict() takes an iterable of tuples (key, value)");
+                        return vm->None;
+                    }
+                    self.set(t[0], t[1]);
                 }
-                self.set(t[0], t[1]);
             }
             return vm->None;
         }
         vm->TypeError("dict() takes at most 1 argument");
-        return vm->None;
+        PK_UNREACHABLE()
     });
 
     _vm->bind__len__(VM::tp_dict, [](VM* vm, PyObject* _0) {
-        return (i64)_CAST(Dict&, _0).size();
+        return (i64)PK_OBJ_GET(Dict, _0).size();
     });
 
     _vm->bind__getitem__(VM::tp_dict, [](VM* vm, PyObject* _0, PyObject* _1) {
-        Dict& self = _CAST(Dict&, _0);
+        Dict& self = PK_OBJ_GET(Dict, _0);
         PyObject* ret = self.try_get(_1);
-        if(ret == nullptr) vm->KeyError(_1);
+        if(ret == nullptr){
+            // try __missing__
+            PyObject* self;
+            PyObject* f_missing = vm->get_unbound_method(_0, __missing__, &self, false);
+            if(f_missing != nullptr){
+                return vm->call_method(self, f_missing, _1);
+            }
+            vm->KeyError(_1);
+        }
         return ret;
     });
 
@@ -1360,7 +1396,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_dict, [](VM* vm, PyObject* _0, PyObject* _1) {
         Dict& self = _CAST(Dict&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_dict)) return vm->NotImplemented;
+        if(!vm->isinstance(_1, vm->tp_dict)) return vm->NotImplemented;
         Dict& other = _CAST(Dict&, _1);
         if(self.size() != other.size()) return vm->False;
         for(int i=0; i<self._capacity; i++){

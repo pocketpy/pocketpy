@@ -105,6 +105,7 @@ struct CodeEmitContext{
     void exit_block();
     void emit_expr();   // clear the expression stack and generate bytecode
     int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual=false);
+    void revert_last_emit_();
     int emit_int(i64 value, int line);
     void patch_jump(int index);
     bool add_label(StrName name);
@@ -113,6 +114,7 @@ struct CodeEmitContext{
     int add_const_string(std::string_view);
     int add_func_decl(FuncDecl_ decl);
     void emit_store_name(NameScope scope, StrName name, int line);
+    void try_merge_for_iter_store(int);
 };
 
 struct NameExpr: Expr{
