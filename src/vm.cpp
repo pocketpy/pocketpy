@@ -714,7 +714,7 @@ void VM::init_builtin_types(){
     if(tp_exception != _new_type_object("Exception", 0, true)) exit(-3);
     if(tp_bytes != _new_type_object("bytes")) exit(-3);
     if(tp_mappingproxy != _new_type_object("mappingproxy")) exit(-3);
-    if(tp_dict != _new_type_object("dict")) exit(-3);
+    if(tp_dict != _new_type_object("dict", 0, true)) exit(-3);  // dict can be subclassed
     if(tp_property != _new_type_object("property")) exit(-3);
     if(tp_star_wrapper != _new_type_object("_star_wrapper")) exit(-3);
 
@@ -1301,7 +1301,7 @@ void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__hash__ = f;
     PyObject* nf = bind_method<0>(obj, "__hash__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
+        i64 ret = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
@@ -1311,7 +1311,7 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__len__ = f;
     PyObject* nf = bind_method<0>(obj, "__len__", [](VM* vm, ArgsView args){
-        i64 ret = lambda_get_userdata<i64(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);
+        i64 ret = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(ret);
     });
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);

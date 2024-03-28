@@ -224,6 +224,7 @@ const StrName __all__ = StrName::get("__all__");
 const StrName __package__ = StrName::get("__package__");
 const StrName __path__ = StrName::get("__path__");
 const StrName __class__ = StrName::get("__class__");
+const StrName __missing__ = StrName::get("__missing__");
 
 const StrName pk_id_add = StrName::get("add");
 const StrName pk_id_set = StrName::get("set");

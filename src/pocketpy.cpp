@@ -1228,37 +1228,53 @@ void init_builtins(VM* _vm) {
 
     // tp_dict
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_dict), [](VM* vm, ArgsView args){
-        return VAR(Dict(vm));
+        Type cls_t = PK_OBJ_GET(Type, args[0]);
+        return vm->heap.gcnew<Dict>(cls_t, vm);
     });
 
     _vm->bind_method<-1>(VM::tp_dict, "__init__", [](VM* vm, ArgsView args){
         if(args.size() == 1+0) return vm->None;
         if(args.size() == 1+1){
             auto _lock = vm->heap.gc_scope_lock();
-            Dict& self = _CAST(Dict&, args[0]);
-            List& list = CAST(List&, args[1]);
-            for(PyObject* item : list){
-                Tuple& t = CAST(Tuple&, item);
-                if(t.size() != 2){
-                    vm->ValueError("dict() takes an iterable of tuples (key, value)");
-                    return vm->None;
+            Dict& self = PK_OBJ_GET(Dict, args[0]);
+            if(is_non_tagged_type(args[1], vm->tp_dict)){
+                Dict& other = CAST(Dict&, args[1]);
+                self.update(other);
+                return vm->None;
+            }
+            if(is_non_tagged_type(args[1], vm->tp_list)){
+                List& list = PK_OBJ_GET(List, args[1]);
+                for(PyObject* item : list){
+                    Tuple& t = CAST(Tuple&, item);
+                    if(t.size() != 2){
+                        vm->ValueError("dict() takes an iterable of tuples (key, value)");
+                        return vm->None;
+                    }
+                    self.set(t[0], t[1]);
                 }
-                self.set(t[0], t[1]);
             }
             return vm->None;
         }
         vm->TypeError("dict() takes at most 1 argument");
-        return vm->None;
+        PK_UNREACHABLE()
     });
 
     _vm->bind__len__(VM::tp_dict, [](VM* vm, PyObject* _0) {
-        return (i64)_CAST(Dict&, _0).size();
+        return (i64)PK_OBJ_GET(Dict, _0).size();
     });
 
     _vm->bind__getitem__(VM::tp_dict, [](VM* vm, PyObject* _0, PyObject* _1) {
-        Dict& self = _CAST(Dict&, _0);
+        Dict& self = PK_OBJ_GET(Dict, _0);
         PyObject* ret = self.try_get(_1);
-        if(ret == nullptr) vm->KeyError(_1);
+        if(ret == nullptr){
+            // try __missing__
+            PyObject* self;
+            PyObject* f_missing = vm->get_unbound_method(_0, __missing__, &self, false);
+            if(f_missing != nullptr){
+                return vm->call_method(self, f_missing, _1);
+            }
+            vm->KeyError(_1);
+        }
         return ret;
     });
 
@@ -1372,7 +1388,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_dict, [](VM* vm, PyObject* _0, PyObject* _1) {
         Dict& self = _CAST(Dict&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_dict)) return vm->NotImplemented;
+        if(!vm->isinstance(_1, vm->tp_dict)) return vm->NotImplemented;
         Dict& other = _CAST(Dict&, _1);
         if(self.size() != other.size()) return vm->False;
         for(int i=0; i<self._capacity; i++){

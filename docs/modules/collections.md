@@ -14,5 +14,4 @@ A double-ended queue.
 
 ### `collections.defaultdict`
 
-A `dict` wrapper that calls a factory function to supply missing values.
-It is not a subclass of `dict`.
+A dictionary that returns a default value when a key is not found.
