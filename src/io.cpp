@@ -1,8 +1,27 @@
 #include "pocketpy/io.h"
 
+#if PK_ENABLE_OS
+#include <filesystem>
+#include <cstdio>
+#endif
+
 namespace pkpy{
 
 #if PK_ENABLE_OS
+
+struct FileIO {
+    PY_CLASS(FileIO, io, FileIO)
+
+    Str file;
+    Str mode;
+    FILE* fp;
+
+    bool is_text() const { return mode != "rb" && mode != "wb" && mode != "ab"; }
+    FileIO(VM* vm, std::string file, std::string mode);
+    void close();
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+};
+
 static FILE* io_fopen(const char* name, const char* mode){
 #if _MSC_VER
     FILE* fp;
@@ -21,11 +40,8 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
     return fread(buffer, size, count, fp);
 #endif
 }
-#endif
-
 
 unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
-#if PK_ENABLE_OS
     std::string name(name_p, name_size);
     bool exists = std::filesystem::exists(std::filesystem::path(name));
     if(!exists) return nullptr;
@@ -36,80 +52,73 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
     unsigned char* buffer = new unsigned char[buffer_size];
     fseek(fp, 0, SEEK_SET);
     size_t sz = io_fread(buffer, 1, buffer_size, fp);
+    (void)sz;   // suppress warning
     fclose(fp);
     *out_size = buffer_size;
     return buffer;
-#else
-    return nullptr;
-#endif
 };
 
+void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
+    vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
+        Type cls = PK_OBJ_GET(Type, args[0]);
+        return vm->heap.gcnew<FileIO>(cls, vm,
+                    py_cast<Str&>(vm, args[1]).str(),
+                    py_cast<Str&>(vm, args[2]).str());
+    });
 
-#if PK_ENABLE_OS
-    void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
-            Type cls = PK_OBJ_GET(Type, args[0]);
-            return vm->heap.gcnew<FileIO>(cls, vm,
-                       py_cast<Str&>(vm, args[1]).str(),
-                       py_cast<Str&>(vm, args[2]).str());
-        });
+    vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
+        FileIO& io = CAST(FileIO&, args[0]);
+        fseek(io.fp, 0, SEEK_END);
+        int buffer_size = ftell(io.fp);
+        unsigned char* buffer = new unsigned char[buffer_size];
+        fseek(io.fp, 0, SEEK_SET);
+        size_t actual_size = io_fread(buffer, 1, buffer_size, io.fp);
+        PK_ASSERT(actual_size <= buffer_size);
+        // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
+        Bytes b(buffer, actual_size);
+        if(io.is_text()) return VAR(b.str());
+        return VAR(std::move(b));
+    });
 
-        vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            fseek(io.fp, 0, SEEK_END);
-            int buffer_size = ftell(io.fp);
-            unsigned char* buffer = new unsigned char[buffer_size];
-            fseek(io.fp, 0, SEEK_SET);
-            size_t actual_size = io_fread(buffer, 1, buffer_size, io.fp);
-            PK_ASSERT(actual_size <= buffer_size);
-            // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
-            Bytes b(buffer, actual_size);
-            if(io.is_text()) return VAR(b.str());
-            return VAR(std::move(b));
-        });
+    vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
+        FileIO& io = CAST(FileIO&, args[0]);
+        if(io.is_text()){
+            Str& s = CAST(Str&, args[1]);
+            fwrite(s.data, 1, s.length(), io.fp);
+        }else{
+            Bytes& buffer = CAST(Bytes&, args[1]);
+            fwrite(buffer.data(), 1, buffer.size(), io.fp);
+        }
+        return vm->None;
+    });
 
-        vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            if(io.is_text()){
-                Str& s = CAST(Str&, args[1]);
-                fwrite(s.data, 1, s.length(), io.fp);
-            }else{
-                Bytes& buffer = CAST(Bytes&, args[1]);
-                fwrite(buffer.data(), 1, buffer.size(), io.fp);
-            }
-            return vm->None;
-        });
+    vm->bind_method<0>(type, "close", [](VM* vm, ArgsView args){
+        FileIO& io = CAST(FileIO&, args[0]);
+        io.close();
+        return vm->None;
+    });
 
-        vm->bind_method<0>(type, "close", [](VM* vm, ArgsView args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            io.close();
-            return vm->None;
-        });
+    vm->bind_method<0>(type, "__exit__", [](VM* vm, ArgsView args){
+        FileIO& io = CAST(FileIO&, args[0]);
+        io.close();
+        return vm->None;
+    });
 
-        vm->bind_method<0>(type, "__exit__", [](VM* vm, ArgsView args){
-            FileIO& io = CAST(FileIO&, args[0]);
-            io.close();
-            return vm->None;
-        });
+    vm->bind_method<0>(type, "__enter__", PK_LAMBDA(args[0]));
+}
 
-        vm->bind_method<0>(type, "__enter__", PK_LAMBDA(args[0]));
-    }
+FileIO::FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
+    fp = io_fopen(file.c_str(), mode.c_str());
+    if(!fp) vm->IOError(strerror(errno));
+}
 
-    FileIO::FileIO(VM* vm, std::string file, std::string mode): file(file), mode(mode) {
-        fp = io_fopen(file.c_str(), mode.c_str());
-        if(!fp) vm->IOError(strerror(errno));
-    }
-
-    void FileIO::close(){
-        if(fp == nullptr) return;
-        fclose(fp);
-        fp = nullptr;
-    }
-
-#endif
+void FileIO::close(){
+    if(fp == nullptr) return;
+    fclose(fp);
+    fp = nullptr;
+}
 
 void add_module_io(VM* vm){
-#if PK_ENABLE_OS
     PyObject* mod = vm->new_module("io");
     FileIO::register_class(vm, mod);
     vm->bind(vm->builtins, "open(path, mode='r')", [](VM* vm, ArgsView args){
@@ -117,11 +126,9 @@ void add_module_io(VM* vm){
         PK_LOCAL_STATIC StrName m_FileIO("FileIO");
         return vm->call(vm->_modules[m_io]->attr(m_FileIO), args[0], args[1]);
     });
-#endif
 }
 
 void add_module_os(VM* vm){
-#if PK_ENABLE_OS
     PyObject* mod = vm->new_module("os");
     PyObject* path_obj = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     mod->attr().set("path", path_obj);
@@ -192,7 +199,15 @@ void add_module_os(VM* vm){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         return VAR(path.filename().string());
     });
-#endif
 }
+#else
+
+void add_module_io(VM* vm){}
+void add_module_os(VM* vm){}
+unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
+    return nullptr;
+}
+
+#endif
 
 }   // namespace pkpy
