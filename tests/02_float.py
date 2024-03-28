@@ -36,6 +36,12 @@ assert str(1.0) == '1.0'
 assert repr(1.0) == '1.0'
 
 # test float()
+assert float() == 0.0
+assert float(True) == 1.0
+assert float(False) == 0.0
+assert float(1) == 1.0
+assert float(-2) == -2.0
+
 assert eq(float(1), 1.0)
 assert eq(float(1.0), 1.0)
 assert eq(float(1.1), 1.1)

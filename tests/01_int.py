@@ -53,6 +53,10 @@ assert str(1) == '1'
 assert repr(1) == '1'
 
 # test int()
+assert int() == 0
+assert int(True) == 1
+assert int(False) == 0
+
 assert int(1) == 1
 assert int(1.0) == 1
 assert int(1.1) == 1
