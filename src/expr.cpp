@@ -60,6 +60,31 @@ namespace pkpy{
         return i;
     }
 
+    void CodeEmitContext::revert_last_emit_(){
+        co->codes.pop_back();
+        co->iblocks.pop_back();
+        co->lines.pop_back();
+    }
+
+    void CodeEmitContext::try_merge_for_iter_store(int i){
+        // [FOR_ITER, STORE_?, ]
+        if(co->codes[i].op != OP_FOR_ITER) return;
+        if(co->codes.size() - i != 2) return;
+        uint16_t arg = co->codes[i+1].arg;
+        if(co->codes[i+1].op == OP_STORE_FAST){
+            revert_last_emit_();
+            co->codes[i].op = OP_FOR_ITER_STORE_FAST;
+            co->codes[i].arg = arg;
+            return;
+        }
+        if(co->codes[i+1].op == OP_STORE_GLOBAL){
+            revert_last_emit_();
+            co->codes[i].op = OP_FOR_ITER_STORE_GLOBAL;
+            co->codes[i].arg = arg;
+            return;
+        }
+    }
+
     int CodeEmitContext::emit_int(i64 value, int line){
         bool allow_neg_int = is_negative_shift_well_defined() || value >= 0;
         if(allow_neg_int && value >= -5 && value <= 16){
@@ -370,10 +395,11 @@ namespace pkpy{
         iter->emit_(ctx);
         ctx->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx->enter_block(CodeBlockType::FOR_LOOP);
-        ctx->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        int for_codei = ctx->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
         PK_ASSERT(ok);  // TODO: raise a SyntaxError instead
+        ctx->try_merge_for_iter_store(for_codei);
         if(cond){
             cond->emit_(ctx);
             int patch = ctx->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);

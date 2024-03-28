@@ -50,15 +50,13 @@ namespace pkpy{
             // json mode does not contain jump instructions, so it is safe to ignore this check
             SyntaxError("maximum number of opcodes exceeded");
         }
-        // pre-compute LOOP_BREAK and LOOP_CONTINUE and FOR_ITER
+        // pre-compute LOOP_BREAK and LOOP_CONTINUE
         for(int i=0; i<codes.size(); i++){
             Bytecode& bc = codes[i];
             if(bc.op == OP_LOOP_CONTINUE){
                 bc.arg = ctx()->co->blocks[bc.arg].start;
             }else if(bc.op == OP_LOOP_BREAK){
                 bc.arg = ctx()->co->blocks[bc.arg].get_break_end();
-            }else if(bc.op == OP_FOR_ITER){
-                bc.arg = ctx()->co->_get_block_codei(i).end;
             }
         }
         // pre-compute func->is_simple
@@ -658,9 +656,10 @@ __EAT_DOTS_END:
         EXPR_TUPLE(); ctx()->emit_expr();
         ctx()->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
-        ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        int for_codei = ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+        ctx()->try_merge_for_iter_store(for_codei);
         compile_block_body();
         ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE, true);
         ctx()->exit_block();
@@ -822,8 +821,7 @@ __EAT_DOTS_END:
                 ctx()->co->is_generator = true;
                 ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
                 ctx()->enter_block(CodeBlockType::FOR_LOOP);
-                ctx()->emit_(OP_FOR_ITER, BC_NOARG, kw_line);
-                ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
+                ctx()->emit_(OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
                 ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), kw_line);
                 ctx()->exit_block();
                 consume_end_stmt();
