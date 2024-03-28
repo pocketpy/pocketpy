@@ -1073,6 +1073,15 @@ void init_builtins(VM* _vm) {
         return VAR(self[i]);
     });
 
+    _vm->bind__add__(VM::tp_bytes, [](VM* vm, PyObject* _0, PyObject* _1) {
+        const Bytes& a = _CAST(Bytes&, _0);
+        const Bytes& b = CAST(Bytes&, _1);
+        unsigned char *buffer = new unsigned char[a.size() + b.size()];
+        memcpy(buffer, a.data(), a.size());
+        memcpy(buffer + a.size(), b.data(), b.size());
+        return VAR(Bytes(buffer, a.size() + b.size()));
+    });
+
     _vm->bind__hash__(VM::tp_bytes, [](VM* vm, PyObject* _0) {
         const Bytes& self = _CAST(Bytes&, _0);
         std::string_view view((char*)self.data(), self.size());
