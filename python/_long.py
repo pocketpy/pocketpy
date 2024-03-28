@@ -106,6 +106,7 @@ def ulong_divmod(a: list, b: list):
 
     if len(b) == 1:
         q, r = ulong_divmodi(a, b[0])
+        r, _ = ulong_fromint(r)
         return q, r
 
     low = 0
