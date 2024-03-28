@@ -61,6 +61,9 @@ assert (-1).bit_length() == 1
 assert (-2).bit_length() == 2
 assert (-3).bit_length() == 2
 
+assert (123123123123123).bit_length() == 47
+assert (-3123123123).bit_length() == 32
+
 # test int()
 assert int() == 0
 assert int(True) == 1
