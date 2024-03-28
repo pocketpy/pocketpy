@@ -99,78 +99,30 @@ def ulong_divmodi(a: list, b: int):
     ulong_unpad_(res)
     return res, carry
 
-def ulong_lshift_(a: list, shift: int):
-    if shift == 0:
-        return
-    bits = shift % PyLong_SHIFT
-    carry = 0
-    for i in range(len(a) - 1, -1, -1):
-        new_carry = (a[i] >> (PyLong_SHIFT - bits)) & PyLong_MASK
-        a[i] = (a[i] << bits) & PyLong_MASK | carry
-        carry = new_carry
-    if carry != 0:
-        a.insert(0, carry)
-
-def ulong_rshift_(a: list, shift: int):
-    if shift == 0:
-        return
-    bits = shift % PyLong_SHIFT
-    carry = 0
-    for i in range(len(a)):
-        new_carry = (a[i] << (PyLong_SHIFT - bits)) & PyLong_MASK
-        a[i] = (a[i] >> bits) | carry
-        carry = new_carry
-    if carry != 0:
-        a.pop(0)
 
 def ulong_divmod(a: list, b: list):
-
     if ulong_cmp(a, b) < 0:
         return [0], a
 
     if len(b) == 1:
-        quotient = [0] * len(a)
-        remainder = 0
-        for i in range(len(a)-1, -1, -1):
-            temp = (remainder << PyLong_SHIFT) + a[i]
-            quotient[i] = temp // b[0]
-            remainder = temp % b[0]
-        return quotient, [remainder]
+        q, r = ulong_divmodi(a, b[0])
+        return q, r
 
-    shift = PyLong_SHIFT - (b[-1].bit_length() - 1)
-    a = a.copy()
-    b = b.copy()
-    ulong_lshift_(a, shift)
-    ulong_lshift_(b, shift)
-
-    quotient = [0] * (len(a) - len(b) + 1)
-
-    for j in range(len(a)-len(b), -1, -1):
-        temp = ((a[j+len(b)] << PyLong_SHIFT) + a[j+len(b)-1]) // b[-1]
-        temp = min(temp, PyLong_MASK)
-        while temp*b[-1] > ((a[j+len(b)] << PyLong_SHIFT) + a[j+len(b)-1] - temp*a[j+len(b)-2] + (b[-2] if len(b) > 1 else 0)):
-            temp -= 1
-
-        carry = 0
-        for i in range(len(b)):
-            carry += a[i+j] - temp*b[i]
-            a[i+j] = carry & PyLong_MASK
-            carry >>= PyLong_SHIFT
-        a[j+len(b)] += carry
-
-        if a[j+len(b)] < 0:
-            carry = 0
-            for i in range(len(b)):
-                carry += a[i+j] + b[i]
-                a[i+j] = carry & PyLong_MASK
-                carry >>= PyLong_SHIFT
-            a[j+len(b)] += carry
+    low = 0
+    high = (1 << 32) - 1
+    while low < high:
+        mid = (low + high + 1) // 2
+        temp = [mid]
+        if ulong_cmp(a, ulong_mul(b, temp)) >= 0:
+            low = mid
         else:
-            quotient[j] = temp
+            high = mid - 1
 
-    ulong_unpad_(a)
-    ulong_rshift_(a, shift)
-    return quotient, a
+    q = [0] * (len(a) - len(b) + 1)
+    while ulong_cmp(a, ulong_mul(b, [low])) >= 0:
+        q = ulong_add(q, [low])
+        a = ulong_sub(a, ulong_mul(b, [low]))
+    return q, a
 
 def ulong_floordivi(a: list, b: int):
     # b > 0
