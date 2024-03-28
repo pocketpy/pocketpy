@@ -14,7 +14,7 @@ assert -a == -2
 assert 1 + a == 3L
 assert 1 - a == -1L
 assert 2 * a == 4L
-
+assert 2L**500 // 3333L
 
 # __lshift__ and __rshift__
 for i in range(29):
