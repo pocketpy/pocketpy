@@ -14,7 +14,8 @@ assert -a == -2
 assert 1 + a == 3L
 assert 1 - a == -1L
 assert 2 * a == 4L
-assert 2L**500 // 3333L
+assert 10000000000000000000000L // 3333L == 3000300030003000300L
+assert 10000000000000000000000L % 3333L == 100L
 
 # __lshift__ and __rshift__
 for i in range(29):
