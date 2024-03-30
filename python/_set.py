@@ -16,8 +16,16 @@ class set:
     def clear(self):
         self._a.clear()
 
-    def update(self, other):
-        for elem in other:
+   def update(self, other):
+    if isinstance(other, set):
+        self._a.update({elem: None for elem in other})
+    else:
+        try:
+            iterable = iter(other)
+        except TypeError:
+            raise TypeError("Input must be an iterable")
+        
+        for elem in iterable:
             self.add(elem)
 
     def __len__(self):
