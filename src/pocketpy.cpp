@@ -734,7 +734,7 @@ void init_builtins(VM* _vm) {
         int delta = width - self.u8_length();
         if(delta <= 0) return args[0];
         const Str& fillchar = CAST(Str&, args[2]);
-        if (fillchar.size != 1) vm->TypeError("The fill character must be exactly one character long");
+        if (fillchar.u8_length() != 1) vm->TypeError("The fill character must be exactly one character long");
         SStream ss;
         ss << self;
         for(int i=0; i<delta; i++) ss << fillchar;
@@ -748,7 +748,7 @@ void init_builtins(VM* _vm) {
         int delta = width - self.u8_length();
         if(delta <= 0) return args[0];
         const Str& fillchar = CAST(Str&, args[2]);
-        if (fillchar.size != 1) vm->TypeError("The fill character must be exactly one character long");
+        if (fillchar.u8_length() != 1) vm->TypeError("The fill character must be exactly one character long");
         SStream ss;
         for(int i=0; i<delta; i++) ss << fillchar;
         ss << self;
