@@ -242,4 +242,5 @@ except ValueError:
 
 assert a.find('1') == 0
 assert a.find('1', 1) == -1
+assert a.find('1', -1000000) == 0
 
