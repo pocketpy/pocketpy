@@ -157,8 +157,18 @@ assert b[5:2:-2] == [',', 'l']
 a = '123'
 assert a.rjust(5) == '  123'
 assert a.rjust(5, '0') == '00123'
+try:
+    a.rjust(5, '00')
+    exit(1)
+except TypeError:
+    pass
 assert a.ljust(5) == '123  '
 assert a.ljust(5, '0') == '12300'
+try:
+    a.ljust(5, '00')
+    exit(1)
+except TypeError:
+    pass
 
 assert '\x30\x31\x32' == '012'
 
