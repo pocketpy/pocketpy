@@ -250,7 +250,17 @@ try:
 except ValueError:
     pass
 
+try:
+    a.index('1', -1)
+    exit(1)
+except ValueError:
+    pass
+
 assert a.find('1') == 0
 assert a.find('1', 1) == -1
-assert a.find('1', -1000000) == 0
 
+try:
+    a.find('1', -1)
+    exit(1)
+except ValueError:
+    pass

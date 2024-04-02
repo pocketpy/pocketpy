@@ -266,7 +266,6 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     int Str::index(const Str& sub, int start) const {
-        if (start < 0) start = 0;
         auto p = std::search(data + start, data + size, sub.data, sub.data + sub.size);
         if(p == data + size) return -1;
         return p - data;
