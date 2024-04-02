@@ -627,6 +627,7 @@ void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& value = CAST(Str&, args[1]);
         int start = CAST(int, args[2]);
+        if (start < 0) vm->ValueError("argument 'start' can't be negative");
         int index = self.index(value, start);
         if(index < 0) vm->ValueError("substring not found");
         return VAR(index);
@@ -636,6 +637,7 @@ void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& value = CAST(Str&, args[1]);
         int start = CAST(int, args[2]);
+		if (start < 0) vm->ValueError("argument 'start' can't be negative");
         return VAR(self.index(value, start));
     });
 
