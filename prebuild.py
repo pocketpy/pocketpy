@@ -23,7 +23,8 @@ def generate_python_sources():
 
 namespace pkpy{
 '''
-    for key, value in sources.items():
+    for key in sorted(sources.keys()):
+        value = sources[key]
         header += f'    inline const char kPythonLibs_{key}[] = {value};\n'
     header += '}\n'
     return header

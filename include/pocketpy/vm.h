@@ -123,7 +123,7 @@ public:
     std::map<std::string_view, CodeObject_> _cached_codes;
 
     // typeid -> Type
-    std::map<const std::type_info*, Type> _cxx_typeid_map;
+    std::map<const std::type_index, Type> _cxx_typeid_map;
 
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
@@ -436,7 +436,7 @@ public:
 
     template<typename T>
     Type _find_type_in_cxx_typeid_map(){
-        auto it = _cxx_typeid_map.find(&typeid(T));
+        auto it = _cxx_typeid_map.find(typeid(T));
         if(it == _cxx_typeid_map.end()){
     #if __GNUC__ || __clang__
             throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));

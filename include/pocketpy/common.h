@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <random>
 #include <deque>
-#include <typeinfo>
+#include <typeindex>
 #include <initializer_list>
 
 #define PK_VERSION				"1.4.4"
