@@ -85,7 +85,7 @@ They are prefixed by `tp_`. For example, `tp_object`(object),
 `tp_int`(int), `tp_str`(str), `tp_list`(list), etc.
 
 Types are divided into **tagged type** and **non-tagged type**.
-+ `int` (small) and `float` are tagged type.
++ small `int` objects are tagged.
 + Other types are non-tagged type.
 
 To determine whether a `PyObject*` is of a specific type,

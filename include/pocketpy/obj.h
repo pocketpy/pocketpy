@@ -142,7 +142,7 @@ const int kTpFloatIndex = 3;
 inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
 inline bool is_small_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
 inline bool is_heap_int(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpIntIndex; }
-inline bool is_float(PyObject* p) noexcept { return (PK_BITS(p) & 1) == 1; }    // 01 or 11
+inline bool is_float(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpFloatIndex; }
 inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
 
 inline bool is_type(PyObject* obj, Type type) {

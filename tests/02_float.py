@@ -62,9 +62,9 @@ assert 1/inf == 0
 assert -1/inf == 0
 assert math.isnan(0/0)
 
-assert 2**-600 == 0.0
-assert 2.0 ** 600 == inf
-assert (-2.0) ** 601 == -inf
+assert 2**-6000 == 0.0
+assert 2.0 ** 6000 == inf
+assert (-2.0) ** 6001 == -inf
 
 # test .123 forms
 assert float(".123") == 0.123

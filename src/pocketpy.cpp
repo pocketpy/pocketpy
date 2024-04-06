@@ -30,13 +30,15 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* _0, PyObject* _1){
 void init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(VM::tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                              \
-        if(is_int(rhs)) return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));                                 \
+        i64 val;                                                                                        \
+        if(try_cast_int(rhs, &val)) return VAR(_CAST(i64, lhs) op val);                                 \
         if(is_float(rhs)) return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));                               \
         return vm->NotImplemented;                                                                      \
     });                                                                                                 \
-    _vm->bind##name(VM::tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {                           \
+    _vm->bind##name(VM::tp_float, [](VM* vm, PyObject* lhs, PyObject* rhs) {                            \
+        i64 val;                                                                                        \
+        if(try_cast_int(rhs, &val)) return VAR(_CAST(f64, lhs) op val);                                 \
         if(is_float(rhs)) return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));                               \
-        if(is_int(rhs)) return VAR(_CAST(f64, lhs) op _CAST(i64, rhs));                                 \
         return vm->NotImplemented;                                                                      \
     });
 
