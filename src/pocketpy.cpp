@@ -572,7 +572,7 @@ void init_builtins(VM* _vm) {
 #undef BIND_CMP_STR
 
     _vm->bind__getitem__(VM::tp_str, [](VM* vm, PyObject* _0, PyObject* _1) {
-        const Str& self = _CAST(Str&, _0);
+        const Str& self = PK_OBJ_GET(Str, _0);
         if(is_non_tagged_type(_1, vm->tp_slice)){
             const Slice& s = _CAST(Slice&, _1);
             int start, stop, step;
@@ -1090,9 +1090,20 @@ void init_builtins(VM* _vm) {
         return VAR(Bytes(buffer, list.size()));
     });
 
-    _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* obj, PyObject* index) {
-        const Bytes& self = _CAST(Bytes&, obj);
-        i64 i = CAST(i64, index);
+    _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* _0, PyObject* _1) {
+        const Bytes& self = PK_OBJ_GET(Bytes, _0);
+        if(is_non_tagged_type(_1, vm->tp_slice)){
+            const Slice& s = _CAST(Slice&, _1);
+            int start, stop, step;
+            vm->parse_int_slice(s, self.size(), start, stop, step);
+            int guess_max_size = abs(stop - start) / abs(step) + 1;
+            if(guess_max_size > self.size()) guess_max_size = self.size();
+            unsigned char* buffer = new unsigned char[guess_max_size];
+            int j = 0;      // actual size
+            PK_SLICE_LOOP(i, start, stop, step) buffer[j++] = self[i];
+            return VAR(Bytes(buffer, j));
+        }
+        i64 i = CAST(i64, _1);
         i = vm->normalized_index(i, self.size());
         return VAR(self[i]);
     });
