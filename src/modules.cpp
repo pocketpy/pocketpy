@@ -315,4 +315,23 @@ void add_module_line_profiler(VM *vm){
     LineProfilerW::register_class(vm, mod);
 }
 
+
+void add_module_enum(VM* vm){
+    PyObject* mod = vm->new_module("enum");
+    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
+    vm->_exec(code, mod);
+    PyObject* Enum = mod->attr("Enum");
+    vm->_all_types[PK_OBJ_GET(Type, Enum).index].on_end_subclass = \
+        [](VM* vm, PyTypeInfo* new_ti){
+            new_ti->subclass_enabled = false;    // Enum class cannot be subclassed twice
+            NameDict& attr = new_ti->obj->attr();
+            for(auto [k, v]: attr.items()){
+                // wrap every attribute
+                std::string_view k_sv = k.sv();
+                if(k_sv.empty() || k_sv[0] == '_') continue;
+                attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
+            }
+        };
+}
+
 }   // namespace pkpy

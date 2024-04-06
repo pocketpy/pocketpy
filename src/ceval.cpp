@@ -814,6 +814,12 @@ __NEXT_STEP:;
         PK_ASSERT(_curr_class != nullptr);
         StrName _name(byte.arg);
         frame->_module->attr().set(_name, _curr_class);
+        // call on_end_subclass
+        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, _curr_class)];
+        if(ti->base != tp_object){
+            PyTypeInfo* base_ti = &_all_types[ti->base];
+            if(base_ti->on_end_subclass) base_ti->on_end_subclass(this, ti);
+        }
         _curr_class = nullptr;
     } DISPATCH();
     TARGET(STORE_CLASS_ATTR){

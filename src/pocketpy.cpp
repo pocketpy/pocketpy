@@ -1618,6 +1618,7 @@ void VM::post_init(){
     add_module_collections(this);
     add_module_array2d(this);
     add_module_line_profiler(this);
+    add_module_enum(this);
 
 #ifdef PK_USE_CJSON
     add_module_cjson(this);
