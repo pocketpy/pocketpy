@@ -84,7 +84,6 @@ struct NumberTraits<4> {
 	using int_t = int32_t;
 	static constexpr int_t kMaxSmallInt = (1 << 28) - 1;
 	static constexpr int_t kMinSmallInt = is_negative_shift_well_defined() ? -(1 << 28) : 0;
-	static constexpr float_t kEpsilon = (float_t)1e-4;
 };
 
 template <>
@@ -92,7 +91,6 @@ struct NumberTraits<8> {
 	using int_t = int64_t;
 	static constexpr int_t kMaxSmallInt = (1ll << 60) - 1;
 	static constexpr int_t kMinSmallInt = is_negative_shift_well_defined() ? -(1ll << 60) : 0;
-	static constexpr float_t kEpsilon = (float_t)1e-8;
 };
 
 using Number = NumberTraits<sizeof(void*)>;

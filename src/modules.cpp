@@ -166,7 +166,7 @@ void add_module_math(VM* vm){
     vm->bind_func<2>(mod, "isclose", [](VM* vm, ArgsView args) {
         f64 a = CAST_F(args[0]);
         f64 b = CAST_F(args[1]);
-        return VAR(std::fabs(a - b) <= Number::kEpsilon);
+        return VAR(std::fabs(a - b) < 1e-9);
     });
 
     vm->bind_func<1>(mod, "exp", PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
