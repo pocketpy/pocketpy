@@ -67,6 +67,14 @@ namespace pkpy{
             if(func->kwargs.size() > 0) func->is_simple = false;
             if(func->starred_arg >= 0) func->is_simple = false;
             if(func->starred_kwarg >= 0) func->is_simple = false;
+
+            func->is_empty = false;
+            if(func->code->codes.size() == 1){
+                Bytecode bc = func->code->codes[0];
+                if(bc.op == OP_RETURN_VALUE && bc.arg == 1){
+                    func->is_empty = true;
+                }
+            }
         }
         contexts.pop();
     }

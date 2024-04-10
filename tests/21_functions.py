@@ -140,3 +140,15 @@ try:
     exit(1)
 except TypeError:
     pass
+
+# empty function
+def f(a, b, c):
+    pass
+
+assert f(1, 2, 3) == None
+
+class A:
+    def f(self, a, b, c):
+        pass
+    
+assert A().f(1, 2, 3) == None

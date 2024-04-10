@@ -107,7 +107,9 @@ struct FuncDecl {
 
     Str signature;              // signature of this function
     Str docstring;              // docstring of this function
-    bool is_simple;
+
+    bool is_simple;             // whether this function is simple (no *arg, **kwarg, nested)
+    bool is_empty;              // whether this function is empty (no code)
 
     NameDictInt kw_to_index;
 

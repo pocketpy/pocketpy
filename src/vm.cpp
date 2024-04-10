@@ -862,7 +862,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyObject* callable = p1[-(ARGC + 2)];
     Type callable_t = _tp(callable);
 
-    bool method_call = p0[1] != PY_NULL;
+    int method_call = p0[1] != PY_NULL;
 
     // handle boundmethod, do a patch
     if(callable_t == tp_bound_method){
@@ -872,11 +872,11 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         callable_t = _tp(callable);
         p1[-(ARGC + 2)] = bm.func;
         p1[-(ARGC + 1)] = bm.self;
-        method_call = true;
+        method_call = 1;
         // [unbound, self, args..., kwargs...]
     }
 
-    ArgsView args(p1 - ARGC - int(method_call), p1);
+    ArgsView args(p1 - ARGC - method_call, p1);
     ArgsView kwargs(p1, s_data._sp);
 
     PyObject** _base = args.begin();
@@ -884,11 +884,13 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     if(callable_t == tp_function){
         /*****************_py_call*****************/
+        // check stack overflow
         if(s_data.is_overflow()) StackOverflowError();
 
         const Function& fn = PK_OBJ_GET(Function, callable);
         const CodeObject* co = fn.decl->code.get();
         int co_nlocals = co->varnames.size();
+
         if(fn.decl->is_simple){
             if(args.size() != fn.decl->args.size()){
                 TypeError(_S(
@@ -896,6 +898,13 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 ));
             }
             if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
+
+            // fast path for empty function
+            if(fn.decl->is_empty){
+                s_data.reset(p0);
+                return None;
+            }
+
             // [callable, <self>, args..., local_vars...]
             //      ^p0                    ^p1      ^_sp
             s_data.reset(_base + co_nlocals);
