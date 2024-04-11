@@ -218,7 +218,6 @@ namespace pkpy{
 
     const PyTypeInfo* VM::_inst_type_info(PyObject* obj){
         if(is_int(obj)) return &_all_types[tp_int];
-        if(is_float(obj)) return &_all_types[tp_float];
         return &_all_types[obj->type];
     }
 
