@@ -151,7 +151,6 @@ inline bool is_type(PyObject* obj, Type type) {
 #endif
     switch(type.index){
         case kTpIntIndex: return is_int(obj);
-        case kTpFloatIndex: return is_float(obj);
         default: return !is_tagged(obj) && obj->type == type;
     }
 }
