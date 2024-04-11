@@ -85,9 +85,9 @@ void add_module_dataclasses(VM* vm){
         Type cls = PK_OBJ_GET(Type, args[0]);
         NameDict& cls_d = args[0]->attr();
 
-        if(!cls_d.contains("__init__")) patch__init__(vm, cls);
-        if(!cls_d.contains("__repr__")) patch__repr__(vm, cls);
-        if(!cls_d.contains("__eq__")) patch__eq__(vm, cls);
+        if(!cls_d.contains(__init__)) patch__init__(vm, cls);
+        if(!cls_d.contains(__repr__)) patch__repr__(vm, cls);
+        if(!cls_d.contains(__eq__)) patch__eq__(vm, cls);
 
         const auto& fields = vm->_all_types[cls].annotated_fields;
         bool has_default = false;
