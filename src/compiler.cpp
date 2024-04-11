@@ -62,27 +62,49 @@ namespace pkpy{
         // pre-compute func->is_simple
         FuncDecl_ func = contexts.top().func;
         if(func){
-            func->is_simple = true;
-            if(func->code->is_generator) func->is_simple = false;
-            if(func->kwargs.size() > 0) func->is_simple = false;
-            if(func->starred_arg >= 0) func->is_simple = false;
-            if(func->starred_kwarg >= 0) func->is_simple = false;
-
-            func->is_empty = false;
-            if(func->code->codes.size() == 1){
-                Bytecode bc = func->code->codes[0];
-                if(bc.op == OP_RETURN_VALUE && bc.arg == 1){
-                    func->is_empty = true;
+            // check generator
+            for(Bytecode bc: func->code->codes){
+                if(bc.op == OP_YIELD_VALUE || bc.op == OP_FOR_ITER_YIELD_VALUE){
+                    func->type = FuncType::GENERATOR;
+                    for(Bytecode bc: func->code->codes){
+                        if(bc.op == OP_RETURN_VALUE && bc.arg == BC_NOARG){
+                            SyntaxError("'return' with argument inside generator function");
+                        }
+                    }
+                    break;
                 }
             }
+            if(func->type == FuncType::UNSET){
+                bool is_simple = true;
+                if(func->kwargs.size() > 0) is_simple = false;
+                if(func->starred_arg >= 0) is_simple = false;
+                if(func->starred_kwarg >= 0) is_simple = false;
+
+                if(is_simple){
+                    func->type = FuncType::SIMPLE;
+
+                    bool is_empty = false;
+                    if(func->code->codes.size() == 1){
+                        Bytecode bc = func->code->codes[0];
+                        if(bc.op == OP_RETURN_VALUE && bc.arg == 1){
+                            is_empty = true;
+                        }
+                    }
+                    if(is_empty) func->type = FuncType::EMPTY;
+                }
+                else func->type = FuncType::NORMAL;
+            }
+
+            PK_ASSERT(func->type != FuncType::UNSET);
         }
         contexts.pop();
     }
 
     void Compiler::init_pratt_rules(){
-        PK_LOCAL_STATIC unsigned int count = 0;
-        if(count > 0) return;
-        count += 1;
+        PK_LOCAL_STATIC bool initialized = false;
+        if(initialized) return;
+        initialized = true;
+
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define PK_METHOD(name) &Compiler::name
 #define PK_NO_INFIX nullptr, PREC_LOWEST
@@ -817,16 +839,13 @@ __EAT_DOTS_END:
             case TK("yield"): 
                 if (contexts.size() <= 1) SyntaxError("'yield' outside function");
                 EXPR_TUPLE(); ctx()->emit_expr();
-                // if yield present, mark the function as generator
-                ctx()->co->is_generator = true;
                 ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
                 consume_end_stmt();
                 break;
             case TK("yield from"):
                 if (contexts.size() <= 1) SyntaxError("'yield from' outside function");
                 EXPR_TUPLE(); ctx()->emit_expr();
-                // if yield from present, mark the function as generator
-                ctx()->co->is_generator = true;
+
                 ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
                 ctx()->enter_block(CodeBlockType::FOR_LOOP);
                 ctx()->emit_(OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
@@ -840,8 +859,6 @@ __EAT_DOTS_END:
                     ctx()->emit_(OP_RETURN_VALUE, 1, kw_line);
                 }else{
                     EXPR_TUPLE(); ctx()->emit_expr();
-                    // check if it is a generator
-                    if(ctx()->co->is_generator) SyntaxError("'return' with argument inside generator function");
                     consume_end_stmt();
                     ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, kw_line);
                 }

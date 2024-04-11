@@ -65,7 +65,6 @@ struct CodeObject {
 
     std::shared_ptr<SourceData> src;
     Str name;
-    bool is_generator;
 
     std::vector<Bytecode> codes;
     std::vector<int> iblocks;       // block index for each bytecode
@@ -90,6 +89,14 @@ struct CodeObject {
     void _gc_mark() const;
 };
 
+enum class FuncType{
+    UNSET,
+    NORMAL,
+    SIMPLE,
+    EMPTY,
+    GENERATOR,
+};
+
 struct FuncDecl {
     struct KwArg {
         int index;              // index in co->varnames
@@ -108,8 +115,7 @@ struct FuncDecl {
     Str signature;              // signature of this function
     Str docstring;              // docstring of this function
 
-    bool is_simple;             // whether this function is simple (no *arg, **kwarg, nested)
-    bool is_empty;              // whether this function is empty (no code)
+    FuncType type = FuncType::UNSET;
 
     NameDictInt kw_to_index;
 

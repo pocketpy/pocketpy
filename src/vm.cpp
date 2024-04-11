@@ -891,43 +891,38 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         const CodeObject* co = fn.decl->code.get();
         int co_nlocals = co->varnames.size();
 
-        if(fn.decl->is_simple){
-            if(args.size() != fn.decl->args.size()){
-                TypeError(_S(
-                    co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"
-                ));
-            }
-            if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
-
-            // fast path for empty function
-            if(fn.decl->is_empty){
+        switch(fn.decl->type){
+            case FuncType::UNSET: PK_FATAL_ERROR(); break;
+            case FuncType::NORMAL:
+                _prepare_py_call(buffer, args, kwargs, fn.decl);
+                // copy buffer back to stack
+                s_data.reset(_base + co_nlocals);
+                for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+                break;
+            case FuncType::SIMPLE:
+                if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));
+                if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
+                // [callable, <self>, args..., local_vars...]
+                //      ^p0                    ^p1      ^_sp
+                s_data.reset(_base + co_nlocals);
+                // initialize local variables to PY_NULL
+                for(PyObject** p=p1; p!=s_data._sp; p++) *p = PY_NULL;
+                break;
+            case FuncType::EMPTY:
+                if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));
+                if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
                 s_data.reset(p0);
                 return None;
-            }
+            case FuncType::GENERATOR:
+                _prepare_py_call(buffer, args, kwargs, fn.decl);
+                s_data.reset(p0);
+                return _py_generator(
+                    Frame(nullptr, co, fn._module, callable, nullptr),
+                    ArgsView(buffer, buffer + co_nlocals)
+                );
+        };
 
-            // [callable, <self>, args..., local_vars...]
-            //      ^p0                    ^p1      ^_sp
-            s_data.reset(_base + co_nlocals);
-            // initialize local variables to PY_NULL
-            for(PyObject** p=p1; p!=s_data._sp; p++) *p = PY_NULL;
-            goto __FAST_CALL;
-        }
-
-        _prepare_py_call(buffer, args, kwargs, fn.decl);
-        
-        if(co->is_generator){
-            s_data.reset(p0);
-            return _py_generator(
-                Frame(nullptr, co, fn._module, callable, nullptr),
-                ArgsView(buffer, buffer + co_nlocals)
-            );
-        }
-
-        // copy buffer back to stack
-        s_data.reset(_base + co_nlocals);
-        for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
-
-__FAST_CALL:
+        // simple or normal
         callstack.emplace(p0, co, fn._module, callable, args.begin());
         if(op_call) return PY_OP_CALL;
         return _run_top_frame();
