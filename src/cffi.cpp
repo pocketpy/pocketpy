@@ -96,7 +96,7 @@ namespace pkpy{
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             C99Struct& self = _CAST(C99Struct&, lhs);
-            if(!is_non_tagged_type(rhs, C99Struct::_type(vm))) return vm->NotImplemented;
+            if(!is_type(rhs, C99Struct::_type(vm))) return vm->NotImplemented;
             C99Struct& other = _CAST(C99Struct&, rhs);
             bool ok = self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
             return VAR(ok);
@@ -167,7 +167,7 @@ void add_module_c(VM* vm){
 
     vm->bind(mod, "p_cast(ptr: 'void_p', cls: type[T]) -> T", [](VM* vm, ArgsView args){
         VoidP& ptr = CAST(VoidP&, args[0]);
-        vm->check_non_tagged_type(args[1], vm->tp_type);
+        vm->check_type(args[1], vm->tp_type);
         Type cls = PK_OBJ_GET(Type, args[1]);
         if(!vm->issubclass(cls, VoidP::_type(vm))){
             vm->ValueError("expected a subclass of void_p");

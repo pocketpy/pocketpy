@@ -32,7 +32,7 @@ namespace pkpy{
 #define BIND_VEC_MUL_OP(D)                                                                \
         vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){     \
             Vec##D& self = _CAST(Vec##D&, _0);                                          \
-            if(is_non_tagged_type(_1, Vec##D::_type(vm))){                                \
+            if(is_type(_1, Vec##D::_type(vm))){                                \
                 Vec##D& other = _CAST(Vec##D&, _1);                                     \
                 return VAR(self * other);                                                   \
             }                                                                               \
@@ -356,11 +356,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
-            if(is_non_tagged_type(_1, Mat3x3::_type(vm))){
+            if(is_type(_1, Mat3x3::_type(vm))){
                 const Mat3x3& other = _CAST(Mat3x3&, _1);
                 return VAR_T(Mat3x3, self.matmul(other));
             }
-            if(is_non_tagged_type(_1, Vec3::_type(vm))){
+            if(is_type(_1, Vec3::_type(vm))){
                 const Vec3& other = _CAST(Vec3&, _1);
                 return VAR_T(Vec3, self.matmul(other));
             }

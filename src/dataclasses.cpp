@@ -81,7 +81,7 @@ void add_module_dataclasses(VM* vm){
     PyObject* mod = vm->new_module("dataclasses");
 
     vm->bind_func<1>(mod, "dataclass", [](VM* vm, ArgsView args){
-        vm->check_non_tagged_type(args[0], VM::tp_type);
+        vm->check_type(args[0], VM::tp_type);
         Type cls = PK_OBJ_GET(Type, args[0]);
         NameDict& cls_d = args[0]->attr();
 

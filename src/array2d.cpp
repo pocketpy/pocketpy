@@ -103,7 +103,7 @@ struct Array2d{
                 return self._get(col, row);
             }
 
-            if(is_non_tagged_type(xy[0], VM::tp_slice) && is_non_tagged_type(xy[1], VM::tp_slice)){
+            if(is_type(xy[0], VM::tp_slice) && is_type(xy[1], VM::tp_slice)){
                 HANDLE_SLICE();
                 PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
                 Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
@@ -131,7 +131,7 @@ struct Array2d{
                 return;
             }
 
-            if(is_non_tagged_type(xy[0], VM::tp_slice) && is_non_tagged_type(xy[1], VM::tp_slice)){
+            if(is_type(xy[0], VM::tp_slice) && is_type(xy[1], VM::tp_slice)){
                 HANDLE_SLICE();
 
                 bool is_basic_type = false;
@@ -150,7 +150,7 @@ struct Array2d{
                     return;
                 }
 
-                if(!is_non_tagged_type(_2, Array2d::_type(vm))){
+                if(!is_type(_2, Array2d::_type(vm))){
                     vm->TypeError(_S("expected int/float/str/bool/None or an array2d instance"));
                 }
 
@@ -231,7 +231,7 @@ struct Array2d{
 
         vm->bind(type, "copy_(self, other)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
-            if(is_non_tagged_type(args[1], VM::tp_list)){
+            if(is_type(args[1], VM::tp_list)){
                 const List& list = PK_OBJ_GET(List, args[1]);
                 if(list.size() != self.numel){
                     vm->ValueError("list size must be equal to the number of elements in the array2d");
@@ -255,7 +255,7 @@ struct Array2d{
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
-            if(!is_non_tagged_type(_1, Array2d::_type(vm))) return vm->NotImplemented;
+            if(!is_type(_1, Array2d::_type(vm))) return vm->NotImplemented;
             Array2d& other = PK_OBJ_GET(Array2d, _1);
             if(self.n_cols != other.n_cols || self.n_rows != other.n_rows) return vm->False;
             for(int i = 0; i < self.numel; i++){

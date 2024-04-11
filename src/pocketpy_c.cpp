@@ -215,7 +215,7 @@ bool pkpy_is_bool(pkpy_vm* vm_handle, int i){
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
-        return is_non_tagged_type(item, vm->tp_bool);
+        return is_type(item, vm->tp_bool);
     )
 }
 
@@ -243,7 +243,7 @@ bool pkpy_is_string(pkpy_vm* vm_handle, int i){
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
-        return is_non_tagged_type(item, vm->tp_str);
+        return is_type(item, vm->tp_str);
     )
 }
 
@@ -272,7 +272,7 @@ bool pkpy_is_voidp(pkpy_vm* vm_handle, int i){
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
-        return is_non_tagged_type(item, VoidP::_type(vm));
+        return is_type(item, VoidP::_type(vm));
     )
 }
 

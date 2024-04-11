@@ -274,13 +274,13 @@ void lua_push_from_python(VM* vm, PyObject* val){
         }
     }
 
-    if(is_non_tagged_type(val, PyLuaTable::_type(vm))){
+    if(is_type(val, PyLuaTable::_type(vm))){
         const PyLuaTable& table = _CAST(PyLuaTable&, val);
         lua_rawgeti(_L, LUA_REGISTRYINDEX, table.r);
         return;
     }
 
-    if(is_non_tagged_type(val, PyLuaFunction::_type(vm))){
+    if(is_type(val, PyLuaFunction::_type(vm))){
         const PyLuaFunction& func = _CAST(PyLuaFunction&, val);
         lua_rawgeti(_L, LUA_REGISTRYINDEX, func.r);
         return;

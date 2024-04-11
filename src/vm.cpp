@@ -25,7 +25,7 @@ namespace pkpy{
             dict.apply([&](PyObject* k, PyObject* v){
                 if(!first) ss << ", ";
                 first = false;
-                if(!is_non_tagged_type(k, vm->tp_str)){
+                if(!is_type(k, VM::tp_str)){
                     vm->TypeError(_S("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
                 }
                 ss << _CAST(Str&, k).escape(false) << ": ";
@@ -108,10 +108,10 @@ namespace pkpy{
     }
 
     std::pair<PyObject**, int> VM::_cast_array(PyObject* obj){
-        if(is_non_tagged_type(obj, VM::tp_list)){
+        if(is_type(obj, VM::tp_list)){
             List& list = PK_OBJ_GET(List, obj);
             return {list.data(), list.size()};
-        }else if(is_non_tagged_type(obj, VM::tp_tuple)){
+        }else if(is_type(obj, VM::tp_tuple)){
             Tuple& tuple = PK_OBJ_GET(Tuple, obj);
             return {tuple.data(), tuple.size()};
         }
@@ -760,7 +760,7 @@ void VM::init_builtin_types(){
 // `heap.gc_scope_lock();` needed before calling this function
 void VM::_unpack_as_list(ArgsView args, List& list){
     for(PyObject* obj: args){
-        if(is_non_tagged_type(obj, tp_star_wrapper)){
+        if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);
             // maybe this check should be done in the compile time
             if(w.level != 1) TypeError("expected level 1 star wrapper");
@@ -779,7 +779,7 @@ void VM::_unpack_as_list(ArgsView args, List& list){
 // `heap.gc_scope_lock();` needed before calling this function
 void VM::_unpack_as_dict(ArgsView args, Dict& dict){
     for(PyObject* obj: args){
-        if(is_non_tagged_type(obj, tp_star_wrapper)){
+        if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);
             // maybe this check should be done in the compile time
             if(w.level != 2) TypeError("expected level 2 star wrapper");
@@ -1010,7 +1010,7 @@ void VM::delattr(PyObject *_0, StrName _name){
 PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     Type objtype(0);
     // handle super() proxy
-    if(is_non_tagged_type(obj, tp_super)){
+    if(is_type(obj, tp_super)){
         const Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = super.second;
@@ -1020,7 +1020,7 @@ PyObject* VM::getattr(PyObject* obj, StrName name, bool throw_err){
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        if(is_non_tagged_type(cls_var, tp_property)){
+        if(is_type(cls_var, tp_property)){
             const Property& prop = PK_OBJ_GET(Property, cls_var);
             return call(prop.getter, obj);
         }
@@ -1074,7 +1074,7 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
     *self = PY_NULL;
     Type objtype(0);
     // handle super() proxy
-    if(is_non_tagged_type(obj, tp_super)){
+    if(is_type(obj, tp_super)){
         const Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = super.second;
@@ -1086,7 +1086,7 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
     if(fallback){
         if(cls_var != nullptr){
             // handle descriptor
-            if(is_non_tagged_type(cls_var, tp_property)){
+            if(is_type(cls_var, tp_property)){
                 const Property& prop = PK_OBJ_GET(Property, cls_var);
                 return call(prop.getter, obj);
             }
@@ -1142,7 +1142,7 @@ PyObject* VM::get_unbound_method(PyObject* obj, StrName name, PyObject** self, b
 void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     Type objtype(0);
     // handle super() proxy
-    if(is_non_tagged_type(obj, tp_super)){
+    if(is_type(obj, tp_super)){
         Super& super = PK_OBJ_GET(Super, obj);
         obj = super.first;
         objtype = super.second;
@@ -1152,7 +1152,7 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     PyObject* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        if(is_non_tagged_type(cls_var, tp_property)){
+        if(is_type(cls_var, tp_property)){
             const Property& prop = _CAST(Property&, cls_var);
             if(prop.setter != vm->None){
                 call(prop.setter, obj, value);

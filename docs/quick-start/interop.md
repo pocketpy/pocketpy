@@ -95,7 +95,6 @@ you can use the following functions:
 + `bool is_int(PyObject* obj)`
 + `bool is_float(PyObject* obj)`
 + `bool is_tagged(PyObject* obj)`
-+ `bool is_non_tagged_type(PyObject* obj, Type type)`
 
 ```cpp
 PyObject* obj = py_var(vm, 1);
@@ -115,4 +114,4 @@ You can also use `check_` prefix functions assert the type of a `PyObject*`,
 which will throw `TypeError` on failure.
 
 + `void check_type(PyObject* obj, Type type)`
-+ `void check_non_tagged_type(PyObject* obj, Type type)`
+

@@ -100,7 +100,7 @@ void add_module_cjson(VM* vm){
 
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args){
         std::string_view sv;
-        if(is_non_tagged_type(args[0], vm->tp_bytes)){
+        if(is_type(args[0], vm->tp_bytes)){
             sv = PK_OBJ_GET(Bytes, args[0]).sv();
         }else{
             sv = CAST(Str&, args[0]).sv();

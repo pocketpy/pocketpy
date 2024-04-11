@@ -807,7 +807,7 @@ __NEXT_STEP:;
         StrName _name(byte.arg);
         PyObject* _0 = POPX();   // super
         if(_0 == None) _0 = _t(tp_object);
-        check_non_tagged_type(_0, tp_type);
+        check_type(_0, tp_type);
         _curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
     } DISPATCH();
     TARGET(END_CLASS) {
@@ -826,7 +826,7 @@ __NEXT_STEP:;
         PK_ASSERT(_curr_class != nullptr);
         StrName _name(byte.arg);
         PyObject* _0 = POPX();
-        if(is_non_tagged_type(_0, tp_function)){
+        if(is_type(_0, tp_function)){
             PK_OBJ_GET(Function, _0)._class = _curr_class;
         }
         _curr_class->attr().set(_name, _0);
@@ -854,13 +854,13 @@ __NEXT_STEP:;
     /*****************************************/
     TARGET(EXCEPTION_MATCH) {
         PyObject* assumed_type = POPX();
-        check_non_tagged_type(assumed_type, tp_type);
+        check_type(assumed_type, tp_type);
         PyObject* e_obj = TOP();
         bool ok = isinstance(e_obj, PK_OBJ_GET(Type, assumed_type));
         PUSH(VAR(ok));
     } DISPATCH();
     TARGET(RAISE) {
-        if(is_non_tagged_type(TOP(), tp_type)){
+        if(is_type(TOP(), tp_type)){
             TOP() = call(TOP());
         }
         if(!isinstance(TOP(), tp_exception)){

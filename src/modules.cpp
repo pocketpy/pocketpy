@@ -108,7 +108,7 @@ void add_module_json(VM* vm){
     PyObject* mod = vm->new_module("json");
     vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args) {
         std::string_view sv;
-        if(is_non_tagged_type(args[0], vm->tp_bytes)){
+        if(is_type(args[0], vm->tp_bytes)){
             sv = PK_OBJ_GET(Bytes, args[0]).sv();
         }else{
             sv = CAST(Str&, args[0]).sv();
@@ -270,7 +270,7 @@ struct LineProfilerW{
 
         vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
-            vm->check_non_tagged_type(args[1], VM::tp_function);
+            vm->check_type(args[1], VM::tp_function);
             auto decl = PK_OBJ_GET(Function, args[1]).decl.get();
             self.profiler.functions.insert(decl);
             return vm->None;

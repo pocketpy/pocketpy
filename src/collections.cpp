@@ -134,7 +134,7 @@ namespace pkpy
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             const PyDeque &self = _CAST(PyDeque&, _0);
-            if(!is_non_tagged_type(_0, PyDeque::_type(vm))) return vm->NotImplemented;
+            if(!is_type(_0, PyDeque::_type(vm))) return vm->NotImplemented;
             const PyDeque &other = _CAST(PyDeque&, _1);
             if (self.dequeItems.size() != other.dequeItems.size()) return vm->False;
             for (int i = 0; i < self.dequeItems.size(); i++){

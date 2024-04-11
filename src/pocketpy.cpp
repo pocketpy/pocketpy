@@ -15,7 +15,7 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* _0, PyObject* _1){
         index = vm->normalized_index(index, self.size());
         return self[index];
     }
-    if(is_non_tagged_type(_1, vm->tp_slice)){
+    if(is_type(_1, vm->tp_slice)){
         const Slice& s = _CAST(Slice&, _1);
         int start, stop, step;
         vm->parse_int_slice(s, self.size(), start, stop, step);
@@ -90,7 +90,7 @@ void init_builtins(VM* _vm) {
         }else{
             vm->TypeError("super() takes 0 or 2 arguments");
         }
-        vm->check_non_tagged_type(class_arg, vm->tp_type);
+        vm->check_type(class_arg, vm->tp_type);
         Type type = PK_OBJ_GET(Type, class_arg);
         if(!vm->isinstance(self_arg, type)){
             StrName _0 = _type_name(vm, vm->_tp(self_arg));
@@ -102,33 +102,33 @@ void init_builtins(VM* _vm) {
 
     _vm->bind_func<1>(_vm->builtins, "staticmethod", [](VM* vm, ArgsView args) {
         PyObject* func = args[0];
-        vm->check_non_tagged_type(func, vm->tp_function);
+        vm->check_type(func, vm->tp_function);
         return vm->heap.gcnew<StaticMethod>(vm->tp_staticmethod, args[0]);
     });
 
     _vm->bind_func<1>(_vm->builtins, "classmethod", [](VM* vm, ArgsView args) {
         PyObject* func = args[0];
-        vm->check_non_tagged_type(func, vm->tp_function);
+        vm->check_type(func, vm->tp_function);
         return vm->heap.gcnew<ClassMethod>(vm->tp_classmethod, args[0]);
     });
 
     _vm->bind_func<2>(_vm->builtins, "isinstance", [](VM* vm, ArgsView args) {
-        if(is_non_tagged_type(args[1], vm->tp_tuple)){
+        if(is_type(args[1], vm->tp_tuple)){
             Tuple& types = _CAST(Tuple&, args[1]);
             for(PyObject* type : types){
-                vm->check_non_tagged_type(type, vm->tp_type);
+                vm->check_type(type, vm->tp_type);
                 if(vm->isinstance(args[0], PK_OBJ_GET(Type, type))) return vm->True;
             }
             return vm->False;
         }
-        vm->check_non_tagged_type(args[1], vm->tp_type);
+        vm->check_type(args[1], vm->tp_type);
         Type type = PK_OBJ_GET(Type, args[1]);
         return VAR(vm->isinstance(args[0], type));
     });
 
     _vm->bind_func<2>(_vm->builtins, "issubclass", [](VM* vm, ArgsView args) {
-        vm->check_non_tagged_type(args[0], vm->tp_type);
-        vm->check_non_tagged_type(args[1], vm->tp_type);
+        vm->check_type(args[0], vm->tp_type);
+        vm->check_type(args[1], vm->tp_type);
         return VAR(vm->issubclass(PK_OBJ_GET(Type, args[0]), PK_OBJ_GET(Type, args[1])));
     });
 
@@ -189,7 +189,7 @@ void init_builtins(VM* _vm) {
             Frame* frame = vm->top_frame();
             return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
         }
-        vm->check_non_tagged_type(globals, vm->tp_mappingproxy);
+        vm->check_type(globals, vm->tp_mappingproxy);
         PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
         return vm->_exec(code, obj);
     });
@@ -202,7 +202,7 @@ void init_builtins(VM* _vm) {
             vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
             return vm->None;
         }
-        vm->check_non_tagged_type(globals, vm->tp_mappingproxy);
+        vm->check_type(globals, vm->tp_mappingproxy);
         PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
         vm->_exec(code, obj);
         return vm->None;
@@ -324,7 +324,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->cached_object__new__ = _vm->bind_constructor<1>(_vm->_t(VM::tp_object), [](VM* vm, ArgsView args) {
-        vm->check_non_tagged_type(args[0], vm->tp_type);
+        vm->check_type(args[0], vm->tp_type);
         Type t = PK_OBJ_GET(Type, args[0]);
         return vm->heap.gcnew<DummyInstance>(t);
     });
@@ -562,7 +562,7 @@ void init_builtins(VM* _vm) {
 
 #define BIND_CMP_STR(name, op) \
     _vm->bind##name(VM::tp_str, [](VM* vm, PyObject* lhs, PyObject* rhs) { \
-        if(!is_non_tagged_type(rhs, vm->tp_str)) return vm->NotImplemented; \
+        if(!is_type(rhs, vm->tp_str)) return vm->NotImplemented; \
         return VAR(_CAST(Str&, lhs) op _CAST(Str&, rhs));                   \
     });
 
@@ -575,7 +575,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__getitem__(VM::tp_str, [](VM* vm, PyObject* _0, PyObject* _1) {
         const Str& self = PK_OBJ_GET(Str, _0);
-        if(is_non_tagged_type(_1, vm->tp_slice)){
+        if(is_type(_1, vm->tp_slice)){
             const Slice& s = _CAST(Slice&, _1);
             int start, stop, step;
             vm->parse_int_slice(s, self.u8_length(), start, stop, step);
@@ -831,7 +831,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_list, [](VM* vm, PyObject* _0, PyObject* _1) {
         List& a = _CAST(List&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_list)) return vm->NotImplemented;
+        if(!is_type(_1, vm->tp_list)) return vm->NotImplemented;
         List& b = _CAST(List&, _1);
         if(a.size() != b.size()) return vm->False;
         for(int i=0; i<a.size(); i++){
@@ -943,7 +943,7 @@ void init_builtins(VM* _vm) {
 
 #define BIND_RICH_CMP(name, op, _t, _T)    \
     _vm->bind__##name##__(_vm->_t, [](VM* vm, PyObject* lhs, PyObject* rhs){        \
-        if(!is_non_tagged_type(rhs, vm->_t)) return vm->NotImplemented;             \
+        if(!is_type(rhs, vm->_t)) return vm->NotImplemented;             \
         auto& a = _CAST(_T&, lhs);                                                  \
         auto& b = _CAST(_T&, rhs);                                                  \
         for(int i=0; i<a.size() && i<b.size(); i++){                                \
@@ -1019,7 +1019,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_tuple, [](VM* vm, PyObject* _0, PyObject* _1) {
         const Tuple& self = _CAST(Tuple&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_tuple)) return vm->NotImplemented;
+        if(!is_type(_1, vm->tp_tuple)) return vm->NotImplemented;
         const Tuple& other = _CAST(Tuple&, _1);
         if(self.size() != other.size()) return vm->False;
         for(int i = 0; i < self.size(); i++) {
@@ -1067,7 +1067,7 @@ void init_builtins(VM* _vm) {
         return VAR(_CAST(bool, _0) != CAST(bool, _1));
     });
     _vm->bind__eq__(VM::tp_bool, [](VM* vm, PyObject* _0, PyObject* _1) {
-        if(is_non_tagged_type(_1, vm->tp_bool)) return VAR(_0 == _1);
+        if(is_type(_1, vm->tp_bool)) return VAR(_0 == _1);
         if(is_int(_1)) return VAR(_CAST(bool, _0) == (bool)CAST(i64, _1));
         return vm->NotImplemented;
     });
@@ -1094,7 +1094,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyObject* _0, PyObject* _1) {
         const Bytes& self = PK_OBJ_GET(Bytes, _0);
-        if(is_non_tagged_type(_1, vm->tp_slice)){
+        if(is_type(_1, vm->tp_slice)){
             const Slice& s = _CAST(Slice&, _1);
             int start, stop, step;
             vm->parse_int_slice(s, self.size(), start, stop, step);
@@ -1147,7 +1147,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(VM::tp_bytes, [](VM* vm, PyObject* _0, PyObject* _1) {
-        if(!is_non_tagged_type(_1, vm->tp_bytes)) return vm->NotImplemented;
+        if(!is_type(_1, vm->tp_bytes)) return vm->NotImplemented;
         return VAR(_CAST(Bytes&, _0) == _CAST(Bytes&, _1));
     });
     
@@ -1158,7 +1158,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_slice, [](VM* vm, PyObject* _0, PyObject* _1){
         const Slice& self = _CAST(Slice&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_slice)) return vm->NotImplemented;
+        if(!is_type(_1, vm->tp_slice)) return vm->NotImplemented;
         const Slice& other = _CAST(Slice&, _1);
         if(vm->py_ne(self.start, other.start)) return vm->False;
         if(vm->py_ne(self.stop, other.stop)) return vm->False;
@@ -1207,7 +1207,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_mappingproxy, [](VM* vm, PyObject* _0, PyObject* _1){
         const MappingProxy& a = _CAST(MappingProxy&, _0);
-        if(!is_non_tagged_type(_1, vm->tp_mappingproxy)) return vm->NotImplemented;
+        if(!is_type(_1, vm->tp_mappingproxy)) return vm->NotImplemented;
         const MappingProxy& b = _CAST(MappingProxy&, _1);
         return VAR(a.obj == b.obj);
     });
@@ -1262,12 +1262,12 @@ void init_builtins(VM* _vm) {
         if(args.size() == 1+1){
             auto _lock = vm->heap.gc_scope_lock();
             Dict& self = PK_OBJ_GET(Dict, args[0]);
-            if(is_non_tagged_type(args[1], vm->tp_dict)){
+            if(is_type(args[1], vm->tp_dict)){
                 Dict& other = CAST(Dict&, args[1]);
                 self.update(other);
                 return vm->None;
             }
-            if(is_non_tagged_type(args[1], vm->tp_list)){
+            if(is_type(args[1], vm->tp_list)){
                 List& list = PK_OBJ_GET(List, args[1]);
                 for(PyObject* item : list){
                     Tuple& t = CAST(Tuple&, item);
@@ -1563,7 +1563,7 @@ void VM::post_init(){
     });
 
     bind__eq__(tp_bound_method, [](VM* vm, PyObject* lhs, PyObject* rhs){
-        if(!is_non_tagged_type(rhs, vm->tp_bound_method)) return vm->NotImplemented;
+        if(!is_type(rhs, vm->tp_bound_method)) return vm->NotImplemented;
         const BoundMethod& _0 = PK_OBJ_GET(BoundMethod, lhs);
         const BoundMethod& _1 = PK_OBJ_GET(BoundMethod, rhs);
         return VAR(_0.self == _1.self && _0.func == _1.func);

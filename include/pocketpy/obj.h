@@ -149,17 +149,13 @@ inline bool is_type(PyObject* obj, Type type) {
 #if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
 #endif
-    switch(type.index){
-        case kTpIntIndex: return is_int(obj);
-        default: return !is_tagged(obj) && obj->type == type;
-    }
+    if(type.index == kTpIntIndex) return is_int(obj);
+    return !is_tagged(obj) && obj->type == type;
 }
 
+[[deprecated("use is_type() instead")]]
 inline bool is_non_tagged_type(PyObject* obj, Type type) {
-#if PK_DEBUG_EXTRA_CHECK
-    if(obj == nullptr) throw std::runtime_error("is_non_tagged_type() called with nullptr");
-#endif
-    return !is_tagged(obj) && obj->type == type;
+    return is_type(obj, type);
 }
 
 template <typename, typename=void> struct has_gc_marker : std::false_type {};

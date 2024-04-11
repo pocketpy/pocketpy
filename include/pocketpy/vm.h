@@ -351,9 +351,9 @@ public:
         TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
     }
 
+    [[deprecated("use check_type() instead")]]
     void check_non_tagged_type(PyObject* obj, Type type){
-        if(is_non_tagged_type(obj, type)) return;
-        TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
+        return check_type(obj, type);
     }
 
     void check_compatible_type(PyObject* obj, Type type){
@@ -527,7 +527,7 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
         if(obj == vm->None) return nullptr;
-        if constexpr(with_check) vm->check_non_tagged_type(obj, vm->tp_str);
+        if constexpr(with_check) vm->check_type(obj, vm->tp_str);
         return PK_OBJ_GET(Str, obj).c_str();
     }else if constexpr(std::is_same_v<T, bool>){
         static_assert(!std::is_reference_v<__T>);
@@ -571,7 +571,7 @@ __T _py_cast__internal(VM* vm, PyObject* obj) {
                     // Exception is `subclass_enabled`
                     vm->check_compatible_type(obj, const_type);
                 }else{
-                    vm->check_non_tagged_type(obj, const_type);
+                    vm->check_type(obj, const_type);
                 }
             }
             return PK_OBJ_GET(T, obj);
@@ -597,7 +597,7 @@ PyObject* VM::bind_method(Type type, Str name, NativeFuncC fn) {
 
 template<int ARGC>
 PyObject* VM::bind_method(PyObject* obj, Str name, NativeFuncC fn) {
-    check_non_tagged_type(obj, tp_type);
+    check_type(obj, tp_type);
     return bind_method<ARGC>(PK_OBJ_GET(Type, obj), name, fn);
 }
 
