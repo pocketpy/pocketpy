@@ -372,6 +372,7 @@ void init_builtins(VM* _vm) {
     });
     _vm->bind__truediv__(VM::tp_int, [](VM* vm, PyObject* _0, PyObject* _1) {
         f64 value = CAST_F(_1);
+        if (value == 0.) vm->ZeroDivisionError("division by zero");
         return VAR(_CAST(i64, _0) / value);
     });
 
