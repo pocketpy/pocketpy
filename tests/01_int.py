@@ -139,6 +139,12 @@ try:
 except ZeroDivisionError:
     pass
 
+try:
+    1 / 0
+    exit(1)
+except ZeroDivisionError:
+    pass
+
 assert not 1 < 2 > 3
 
 try:
