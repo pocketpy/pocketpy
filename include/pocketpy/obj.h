@@ -149,8 +149,7 @@ inline bool is_type(PyObject* obj, Type type) {
 #if PK_DEBUG_EXTRA_CHECK
     if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
 #endif
-    if(type.index == kTpIntIndex) return is_int(obj);
-    return !is_tagged(obj) && obj->type == type;
+    return is_tagged(obj) ? type.index == kTpIntIndex : obj->type == type;
 }
 
 [[deprecated("use is_type() instead")]]
