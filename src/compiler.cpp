@@ -1244,7 +1244,6 @@ __EAT_DOTS_END:
                 }else if constexpr(std::is_same_v<T, Str>){
                     ss << 'S';
                     for(char c: arg) ss.write_hex((unsigned char)c);
-                    ss.write_hex((unsigned char)0);
                 }
                 ss << '\n';
             }, token.value);
@@ -1347,6 +1346,7 @@ __EAT_DOTS_END:
             else PK_FATAL_ERROR();
             buffer[i/2] = c;
         }
+        buffer[s.size()/2] = 0;
         return std::pair<char*, int>(buffer, s.size()/2);
     }
 
