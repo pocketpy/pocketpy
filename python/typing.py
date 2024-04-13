@@ -32,6 +32,8 @@ LiteralString = _PLACEHOLDER
 Iterable = _PLACEHOLDER
 Generator = _PLACEHOLDER
 
+Hashable = _PLACEHOLDER
+
 TypeVar = _PLACEHOLDER
 Self = _PLACEHOLDER
 
