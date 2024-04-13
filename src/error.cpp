@@ -13,7 +13,7 @@ namespace pkpy{
             index++;
         }
         this->source = ss.str();
-        if(this->source.sv().substr(5) == "pkpy:"){
+        if(this->source.size > 5 && this->source.sv().substr(0, 5) == "pkpy:"){
             this->is_precompiled = true;
         }else{
             this->is_precompiled = false;
