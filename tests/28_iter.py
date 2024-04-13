@@ -36,3 +36,21 @@ assert next(i) == 4
 assert next(i) == 5
 assert next(i) == StopIteration
 assert next(i) == StopIteration
+
+import builtins
+
+def next(obj):
+    res = builtins.next(obj)
+    if res is StopIteration:
+        raise StopIteration
+    return res
+    
+a = iter([1])
+assert next(a) == 1
+
+try:
+    next(a)
+    exit(1)
+except StopIteration:
+    pass
+
