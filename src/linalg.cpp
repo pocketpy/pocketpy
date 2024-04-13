@@ -50,6 +50,15 @@ namespace pkpy{
             return VAR(self / other);                                                       \
         });
 
+#define BIND_VEC_GETITEM(D) \
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){ \
+            Vec##D& self = _CAST(Vec##D&, obj); \
+            i64 i = CAST(i64, index); \
+            if(i < 0 || i >= D) vm->IndexError("index out of range"); \
+            float* v = &self.x; \
+            return VAR(v[i]); \
+        });
+
 // https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
 static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float smoothTime, float maxSpeed, float deltaTime)
 {
@@ -172,6 +181,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FUNCTION_0(2, length_squared)
         BIND_VEC_FUNCTION_0(2, normalize)
         BIND_VEC_FUNCTION_0(2, normalize_)
+        BIND_VEC_GETITEM(2)
     }
 
     void Vec3::_register(VM* vm, PyObject* mod, PyObject* type){
@@ -206,6 +216,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FUNCTION_0(3, length_squared)
         BIND_VEC_FUNCTION_0(3, normalize)
         BIND_VEC_FUNCTION_0(3, normalize_)
+        BIND_VEC_GETITEM(3)
     }
 
     void Vec4::_register(VM* vm, PyObject* mod, PyObject* type){
@@ -241,12 +252,14 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FUNCTION_0(4, length_squared)
         BIND_VEC_FUNCTION_0(4, normalize)
         BIND_VEC_FUNCTION_0(4, normalize_)
+        BIND_VEC_GETITEM(4)
     }
 
 #undef BIND_VEC_VEC_OP
 #undef BIND_VEC_MUL_OP
 #undef BIND_VEC_FUNCTION_0
 #undef BIND_VEC_FUNCTION_1
+#undef BIND_VEC_GETITEM
 
     void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Mat3x3)
