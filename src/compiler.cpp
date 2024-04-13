@@ -1226,12 +1226,12 @@ __EAT_DOTS_END:
     }
 
     void Compiler::precompile(){
+        auto tokens = lexer.run();
         SStream ss;
         ss << PK_VERSION << '\n';                   // L1: version string
         ss << lexer.src->filename << '\n';          // L2: filename
         ss << mode() << '\n';                       // L3: compile mode
         ss << (int)unknown_global_scope << '\n';    // L4: unknown global scope
-        auto tokens = lexer.run();
         ss << '=' << (int)tokens.size() << '\n';    // L5: token count
         for(auto token: lexer.run()){
             ss << (int)token.type << '\n';
