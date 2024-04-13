@@ -1144,7 +1144,7 @@ __EAT_DOTS_END:
         }
         if(match(TK("->"))) consume_type_hints();
         const char* _end = curr().start;
-        decl->signature = Str(_start, _end-_start);
+        if(_start && _end) decl->signature = Str(_start, _end-_start);
         compile_block_body();
         pop_context();
 
@@ -1229,9 +1229,31 @@ __EAT_DOTS_END:
         auto tokens = lexer.run();
         SStream ss;
         ss << "pkpy:" PK_VERSION << '\n';           // L1: version string
-        ss << "=" << (int)tokens.size() << '\n';    // L5: token count
+        ss << (int)mode() << '\n';                  // L2: mode
+
+        SStream token_ss; // no '\n' in token_ss
+        token_ss << '|';
+        std::map<std::string_view, int> token_offsets;
+        for(auto token: tokens){
+            if(is_raw_string_used(token.type)){
+                auto it = token_offsets.find(token.sv());
+                if(it == token_offsets.end()){
+                    token_offsets[token.sv()] = token_ss.buffer.size();
+                    // assert no '\n' in token.sv()
+                    for(char c: token.sv()) if(c=='\n') PK_FATAL_ERROR();
+                    token_ss << token.sv() << '|';
+                }
+            }
+        }
+        ss << token_ss.str() << '\n';               // L3: raw string
+
+        ss << "=" << (int)tokens.size() << '\n';    // L4: token count
         for(auto token: tokens){
             ss << (int)token.type << ',';
+            if(is_raw_string_used(token.type)){
+                ss << token_offsets[token.sv()] << ',';     // offset
+                ss << token.sv().size() << ',';             // length
+            }
             ss << token.line << ',';
             ss << token.brackets_level << ',';
             // visit token value
@@ -1255,15 +1277,28 @@ __EAT_DOTS_END:
         TokenDeserializer deserializer(source);
         deserializer.curr += 5;     // skip "pkpy:"
         std::string_view version = deserializer.read_string('\n');
-        if(version != PK_VERSION) SyntaxError(_S("precompiled version mismatch: ", version, "!=" PK_VERSION));
+
+        if(version != PK_VERSION){
+            SyntaxError(_S("precompiled version mismatch: ", version, "!=" PK_VERSION));
+        }
+        if(deserializer.read_int('\n') != (i64)mode()){
+            SyntaxError("precompiled mode mismatch");
+        }
+        
+        lexer.src->_precompiled_tokens = deserializer.read_string('\n');
         deserializer.curr += 1;     // skip '='
         i64 count = deserializer.read_int('\n');
-        const char* null_start = lexer.src->source.c_str();
+        const char* tokens_c_str = lexer.src->_precompiled_tokens.c_str();
         for(int i=0; i<count; i++){
             Token t;
             t.type = (unsigned char)deserializer.read_int(',');
-            t.start = null_start;
-            t.length = 0;
+            if(is_raw_string_used(t.type)){
+                t.start = tokens_c_str + deserializer.read_int(',');
+                t.length = deserializer.read_int(',');
+            }else{
+                t.start = nullptr;
+                t.length = 0;
+            }
             t.line = (int)deserializer.read_int(',');
             t.brackets_level = (int)deserializer.read_int(',');
             char type = deserializer.read_char();

@@ -42,6 +42,10 @@ constexpr TokenIndex TK(const char token[]) {
     return 255;
 }
 
+inline constexpr bool is_raw_string_used(TokenIndex t){
+    return t == TK("@id") || t == TK("@long");
+}
+
 #define TK_STR(t) kTokens[t]
 const std::map<std::string_view, TokenIndex> kTokenKwMap = [](){
     std::map<std::string_view, TokenIndex> map;
