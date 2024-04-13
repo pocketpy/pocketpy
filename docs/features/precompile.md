@@ -60,9 +60,9 @@ pkpy:1.4.4
 ```
 
 Comparing with **In-memory precompilation**,
-**String precompilation** drops most of the original source code.
+**String precompilation** drops most of the information of the original source code.
 It has an encryption effect, which can protect your source code from being stolen.
-It also means there is no source line information when an error occurs.
+This also means there is no source line information when an error occurs.
 
 ```python
 src = """
