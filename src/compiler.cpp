@@ -1225,6 +1225,35 @@ __EAT_DOTS_END:
         init_pratt_rules();
     }
 
+    void Compiler::precompile(){
+        SStream ss;
+        ss << PK_VERSION << '\n';                   // L1: version string
+        ss << lexer.src->filename << '\n';          // L2: filename
+        ss << mode() << '\n';                       // L3: compile mode
+        ss << (int)unknown_global_scope << '\n';    // L4: unknown global scope
+        auto tokens = lexer.run();
+        ss << '=' << (int)tokens.size() << '\n';    // L5: token count
+        for(auto token: lexer.run()){
+            ss << (int)token.type << '\n';
+            int offset = token.start - lexer.src->source.c_str();
+            ss << offset << '\n';
+            ss << token.length << '\n';
+            ss << token.line << '\n';
+            ss << token.brackets_level << '\n';
+            // visit token value
+            std::visit([&ss](auto&& arg){
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr(std::is_same_v<T, i64>){
+                    ss << 'i' << arg << '\n';
+                }else if constexpr(std::is_same_v<T, f64>){
+                    ss << 'f' << arg << '\n';
+                }else if constexpr(std::is_same_v<T, Str>){
+                    ss << 's' << arg.escape() << '\n';
+                }
+            }, token.value);
+        }
+        std::cout << ss.str() << std::endl;
+    }
 
     CodeObject_ Compiler::compile(){
         PK_ASSERT(i == 0)       // make sure it is the first time to compile

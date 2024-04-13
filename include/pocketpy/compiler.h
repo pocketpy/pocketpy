@@ -121,6 +121,7 @@ class Compiler {
 
 public:
     Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    void precompile();
     CodeObject_ compile();
 };
 
