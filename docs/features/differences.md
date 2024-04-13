@@ -41,3 +41,30 @@ The easiest way to test a feature is to [try it on your browser](https://pocketp
 10. `%`, `&`, `//`, `^` and `|` for `int` behave the same as C, not python.
 11. `str.split` and `str.splitlines` will remove all empty entries.
 12. `__getattr__`, `__setattr__` and `__delattr__` can only be set in cpp.
+
+### Make `next()` compatible with cpython
+
+You can use the following code to make `next()` compatible with cpython temporarily.
+
+```python
+import builtins
+
+def next(obj):
+    res = builtins.next(obj)
+    if res is StopIteration:
+        raise StopIteration
+    return res
+    
+a = iter([1])
+assert next(a) == 1
+
+try:
+    next(a)
+    exit(1)
+except StopIteration:
+    pass
+```
+
+!!!
+Do not change `builtins.next`. It will break some internal functions which rely on `StopIteration` as return value.
+!!!
