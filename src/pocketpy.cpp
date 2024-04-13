@@ -1622,6 +1622,7 @@ void VM::post_init(){
     _lazy_modules["typing"] = kPythonLibs_typing;
     _lazy_modules["datetime"] = kPythonLibs_datetime;
     _lazy_modules["cmath"] = kPythonLibs_cmath;
+    _lazy_modules["itertools"] = kPythonLibs_itertools;
 
     try{
         CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
