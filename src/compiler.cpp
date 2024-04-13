@@ -1244,6 +1244,7 @@ __EAT_DOTS_END:
                 }else if constexpr(std::is_same_v<T, Str>){
                     ss << 'S';
                     for(char c: arg) ss.write_hex((unsigned char)c);
+                    ss.write_hex((unsigned char)0);
                 }
                 ss << '\n';
             }, token.value);

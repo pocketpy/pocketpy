@@ -168,6 +168,8 @@ public:
     bool issubclass(Type cls, Type base);
 
     CodeObject_ compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    Str precompile(std::string_view source, const Str& filename, CompileMode mode);
+
     PyObject* exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module=nullptr);
     PyObject* exec(std::string_view source);
     PyObject* eval(std::string_view source);

@@ -208,6 +208,22 @@ void init_builtins(VM* _vm) {
         return vm->None;
     });
 
+    _vm->bind(_vm->builtins, "compile(source: str, filename: str, mode: str) -> str", [](VM* vm, ArgsView args) {
+        const Str& source = CAST(Str&, args[0]);
+        const Str& filename = CAST(Str&, args[1]);
+        const Str& mode = CAST(Str&, args[2]);
+        if(mode == "exec"){
+            return VAR(vm->precompile(source, filename, EXEC_MODE));
+        }else if(mode == "eval"){
+            return VAR(vm->precompile(source, filename, EVAL_MODE));
+        }else if(mode == "single"){
+            return VAR(vm->precompile(source, filename, CELL_MODE));
+        }else{
+            vm->ValueError("compile() mode must be 'exec', 'eval' or 'single'");
+            return vm->None;
+        }
+    });
+
     _vm->bind(_vm->builtins, "exit(code=0)", [](VM* vm, ArgsView args) {
         std::exit(CAST(int, args[0]));
         return vm->None;
@@ -1643,9 +1659,16 @@ CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMod
     try{
         return compiler.compile();
     }catch(const Exception& e){
-#if PK_DEBUG_FULL_EXCEPTION
-        std::cerr << e.summary() << std::endl;
-#endif
+        _error(e.self());
+        return nullptr;
+    }
+}
+
+Str VM::precompile(std::string_view source, const Str& filename, CompileMode mode){
+    Compiler compiler(this, source, filename, mode, false);
+    try{
+        return compiler.precompile();
+    }catch(const Exception& e){
         _error(e.self());
         return nullptr;
     }
