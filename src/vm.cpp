@@ -729,7 +729,7 @@ void VM::init_builtin_types(){
     this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"));
     this->True = heap._new<Dummy>(tp_bool);
     this->False = heap._new<Dummy>(tp_bool);
-    this->StopIteration = heap._new<Dummy>(_new_type_object("StopIterationType"));
+    this->StopIteration = _all_types[_new_type_object("StopIteration", tp_exception)].obj;
 
     this->builtins = new_module("builtins");
     
