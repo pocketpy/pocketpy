@@ -159,10 +159,11 @@ namespace pkpy{
     PyObject* VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module){
         if(_module == nullptr) _module = _main;
         try {
-            CodeObject_ code = compile(source, filename, mode);
-#if PK_DEBUG_DIS_EXEC
-            if(_module == _main) std::cout << disassemble(code) << '\n';
+#if PK_DEBUG_PRECOMPILED_EXEC == 1
+            Str precompiled = vm->precompile(source, filename, mode);
+            source = precompiled.sv();
 #endif
+            CodeObject_ code = compile(source, filename, mode);
             return _exec(code, _module);
         }catch (const Exception& e){
             stderr_write(e.summary() + "\n");
