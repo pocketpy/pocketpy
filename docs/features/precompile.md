@@ -3,7 +3,7 @@ icon: dot
 title: Precompiling
 ---
 
-pkpy allows you to precompile your python code into a special form, which can be executed later.
+pkpy allows you to precompile python code into two special forms, which can be executed later.
 
 ### In-memory precompilation
 
@@ -15,8 +15,9 @@ CodeObject_ code = vm->compile("print('Hello, world!')", "<string>", EXEC_MODE);
 vm->_exec(code);        // Hello, world!
 ```
 
-This `CodeObject_` object is a very non-generic form of the compiled code.
-It is an in-memory form. You are not able to save it to a file or load it from a file.
+This `CodeObject_` object is a very non-generic form of the compiled code,
+which is an in-memory form. Very efficient, but not portable.
+You are not able to save it to a file or load it from a file.
 
 
 ### String precompilation
@@ -112,3 +113,7 @@ Traceback (most recent call last):
     return g(a, b)
 StackOverflowError
 ```
+
+!!!
+String compilation has no guarantee of compatibility between different versions of pkpy.
+!!!
