@@ -1225,40 +1225,67 @@ __EAT_DOTS_END:
         init_pratt_rules();
     }
 
-    void Compiler::precompile(){
+    Str Compiler::precompile(){
         auto tokens = lexer.run();
         SStream ss;
-        ss << PK_VERSION << '\n';                   // L1: version string
-        ss << lexer.src->filename << '\n';          // L2: filename
-        ss << mode() << '\n';                       // L3: compile mode
-        ss << (int)unknown_global_scope << '\n';    // L4: unknown global scope
-        ss << '=' << (int)tokens.size() << '\n';    // L5: token count
-        for(auto token: lexer.run()){
-            ss << (int)token.type << '\n';
-            int offset = token.start - lexer.src->source.c_str();
-            ss << offset << '\n';
-            ss << token.length << '\n';
-            ss << token.line << '\n';
-            ss << token.brackets_level << '\n';
+        ss << "pkpy:" PK_VERSION << '\n';           // L1: version string
+        ss << "=" << (int)tokens.size() << '\n';    // L5: token count
+        for(auto token: tokens){
+            ss << (int)token.type << ',';
+            ss << token.line << ',';
+            ss << token.brackets_level << ',';
             // visit token value
             std::visit([&ss](auto&& arg){
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr(std::is_same_v<T, i64>){
-                    ss << 'i' << arg << '\n';
+                    ss << 'I' << arg;
                 }else if constexpr(std::is_same_v<T, f64>){
-                    ss << 'f' << arg << '\n';
+                    ss << 'F' << arg;
                 }else if constexpr(std::is_same_v<T, Str>){
-                    ss << 's' << arg.escape() << '\n';
+                    ss << 'S';
+                    for(char c: arg) ss.write_hex((unsigned char)c);
                 }
+                ss << '\n';
             }, token.value);
         }
-        std::cout << ss.str() << std::endl;
+        return ss.str();
+    }
+
+    void Compiler::from_precompiled(const char* source){
+        TokenDeserializer deserializer(source);
+        deserializer.curr += 5;     // skip "pkpy:"
+        std::string_view version = deserializer.read_string('\n');
+        if(version != PK_VERSION) SyntaxError(_S("precompiled version mismatch: ", version, "!=" PK_VERSION));
+        deserializer.curr += 1;     // skip '='
+        i64 count = deserializer.read_int('\n');
+        const char* null_start = lexer.src->source.c_str();
+        for(int i=0; i<count; i++){
+            Token t;
+            t.type = (unsigned char)deserializer.read_int(',');
+            t.start = null_start;
+            t.length = 0;
+            t.line = (int)deserializer.read_int(',');
+            t.brackets_level = (int)deserializer.read_int(',');
+            char type = deserializer.read_char();
+            switch(type){
+                case 'I': t.value = deserializer.read_int('\n'); break;
+                case 'F': t.value = deserializer.read_float('\n'); break;
+                case 'S': t.value = deserializer.read_string_from_hex('\n'); break;
+                default: t.value = {}; break;
+            }
+            tokens.push_back(t);
+        }
     }
 
     CodeObject_ Compiler::compile(){
         PK_ASSERT(i == 0)       // make sure it is the first time to compile
 
-        tokens = lexer.run();
+        if(lexer.src->is_precompiled){
+            from_precompiled(lexer.src->source.c_str());
+        }else{
+            this->tokens = lexer.run();
+        }
+
         CodeObject_ code = push_global_context();
 
         advance();          // skip @sof, so prev() is always valid
@@ -1295,5 +1322,43 @@ __EAT_DOTS_END:
         Exception& e = PK_OBJ_GET(Exception, e_obj);
         e.st_push(src, lineno, cursor, "");
         throw e;
+    }
+
+    std::string_view TokenDeserializer::read_string(char c){
+        const char* start = curr;
+        while(*curr != c) curr++;
+        std::string_view retval(start, curr-start);
+        curr++;     // skip the delimiter
+        return retval;
+    }
+
+    Str TokenDeserializer::read_string_from_hex(char c){
+        std::string_view s = read_string(c);
+        char* buffer = (char*)pool64_alloc(s.size()/2 + 1);
+        for(int i=0; i<s.size(); i+=2){
+            char c = 0;
+            if(s[i]>='0' && s[i]<='9') c += s[i]-'0';
+            else if(s[i]>='a' && s[i]<='f') c += s[i]-'a'+10;
+            else PK_FATAL_ERROR();
+            c <<= 4;
+            if(s[i+1]>='0' && s[i+1]<='9') c += s[i+1]-'0';
+            else if(s[i+1]>='a' && s[i+1]<='f') c += s[i+1]-'a'+10;
+            else PK_FATAL_ERROR();
+            buffer[i/2] = c;
+        }
+        return std::pair<char*, int>(buffer, s.size()/2);
+    }
+
+    i64 TokenDeserializer::read_int(char c){
+        std::string_view sv = read_string(c);
+        i64 out;
+        IntParsingResult res = parse_int(sv, &out, 10);
+        PK_ASSERT(res == IntParsingResult::Success);
+        return out;
+    }
+
+    f64 TokenDeserializer::read_float(char c){
+        std::string_view sv = read_string(c);
+        return std::stod(std::string(sv));
     }
 }   // namespace pkpy

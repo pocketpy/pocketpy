@@ -121,8 +121,22 @@ class Compiler {
 
 public:
     Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
-    void precompile();
+    Str precompile();
+    void from_precompiled(const char* source);
     CodeObject_ compile();
+};
+
+struct TokenDeserializer{
+    const char* curr;
+    const char* source;
+
+    TokenDeserializer(const char* source): curr(source), source(source) {}
+    char read_char(){ return *curr++; }
+
+    std::string_view read_string(char c);
+    Str read_string_from_hex(char c);
+    i64 read_int(char c);
+    f64 read_float(char c);
 };
 
 } // namespace pkpy

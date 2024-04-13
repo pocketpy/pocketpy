@@ -31,6 +31,7 @@ struct SourceData {
 
     Str source;
     pod_vector<const char*> line_starts;
+    bool is_precompiled;
     
     SourceData(std::string_view source, const Str& filename, CompileMode mode);
     SourceData(const Str& filename, CompileMode mode);

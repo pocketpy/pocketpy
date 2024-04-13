@@ -13,6 +13,11 @@ namespace pkpy{
             index++;
         }
         this->source = ss.str();
+        if(this->source.sv().substr(5) == "pkpy:"){
+            this->is_precompiled = true;
+        }else{
+            this->is_precompiled = false;
+        }
         line_starts.push_back(this->source.c_str());
     }
 
@@ -35,7 +40,7 @@ namespace pkpy{
         SStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno;
         if(!name.empty()) ss << ", in " << name;
-        if(!source.empty()){
+        if(!source.empty() && !is_precompiled){
             ss << '\n';
             std::pair<const char*,const char*> pair = _get_line(lineno);
             Str line = "<?>";

@@ -170,4 +170,6 @@ inline constexpr bool is_integral_v = std::is_same_v<T, char>
 template<typename T>
 inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
+inline const char* PK_HEX_TABLE = "0123456789abcdef";
+
 } // namespace pkpy

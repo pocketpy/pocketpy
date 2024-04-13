@@ -255,8 +255,8 @@ int utf8len(unsigned char c, bool suppress){
                 default:
                     if ('\x00' <= c && c <= '\x1f') {
                         ss << "\\x"; // << std::hex << std::setw(2) << std::setfill('0') << (int)c;
-                        ss << "0123456789abcdef"[c >> 4];
-                        ss << "0123456789abcdef"[c & 0xf];
+                        ss << PK_HEX_TABLE[c >> 4];
+                        ss << PK_HEX_TABLE[c & 0xf];
                     } else {
                         ss << c;
                     }
@@ -495,11 +495,11 @@ int utf8len(unsigned char c, bool suppress){
         unsigned char high = c >> 4;
         unsigned char low = c & 0xf;
         if(non_zero){
-            if(high) (*this) << "0123456789abcdef"[high];
-            if(high || low) (*this) << "0123456789abcdef"[low];
+            if(high) (*this) << PK_HEX_TABLE[high];
+            if(high || low) (*this) << PK_HEX_TABLE[low];
         }else{
-            (*this) << "0123456789abcdef"[high];
-            (*this) << "0123456789abcdef"[low];
+            (*this) << PK_HEX_TABLE[high];
+            (*this) << PK_HEX_TABLE[low];
         }
     }
 
