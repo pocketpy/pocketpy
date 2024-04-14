@@ -3,6 +3,8 @@ try:
 except ImportError:
     exit(0)
 
+os.chdir('benchmarks')
+
 import json
 
 _2489KB = 'WorldMap_GridVania_layout.ldtk'

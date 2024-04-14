@@ -6,6 +6,8 @@ except ImportError:
 import sys
 is_pkpy = not hasattr(sys, 'getrefcount')
 
+os.chdir('benchmarks')
+
 if is_pkpy:
     try:
         import cjson as json

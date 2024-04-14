@@ -3,22 +3,10 @@ import sys
 import time
 import subprocess
 
-class WorkDir:
-    def __init__(self, next):
-        self.prev = os.getcwd()
-        self.next = next
-
-    def __enter__(self):
-        os.chdir(self.next)
-
-    def __exit__(self, *args, **kwargs):
-        os.chdir(self.prev)
 
 def test_file(filepath, cpython=False):
     if cpython:
-        x, y = os.path.split(filepath)
-        with WorkDir(x):
-            return os.system("python " + y) == 0
+        return os.system("python " + filepath) == 0
     if sys.platform == 'win32':
         return os.system("main.exe " + filepath) == 0
     else:
