@@ -29,6 +29,16 @@ namespace pkpy{
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
 
+struct NextBreakpoint{
+    Frame* frame;
+    int lineno;
+    bool should_step_into;
+    NextBreakpoint(): frame(nullptr), lineno(-1), should_step_into(false) {}
+    NextBreakpoint(Frame* frame, int lineno, bool should_step_info): frame(frame), lineno(lineno), should_step_into(should_step_info) {}
+    void _step(VM* vm, LinkedFrame* lf);
+    bool empty() const { return frame == nullptr; }
+};
+
 struct PyTypeInfo{
     PyObject* obj;      // never be garbage collected
     Type base;
@@ -131,6 +141,7 @@ public:
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
     LineProfiler* _profiler = nullptr;
+    NextBreakpoint _next_breakpoint;
 
     PrintFunc _stdout;
     PrintFunc _stderr;

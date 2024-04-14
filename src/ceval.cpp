@@ -73,8 +73,9 @@ PyObject* VM::_run_top_frame(){
 {
 
 #define CEVAL_STEP_CALLBACK() \
-    if(_ceval_on_step) _ceval_on_step(this, frame, byte); \
-    if(_profiler) _profiler->_step(callstack._tail);
+    if(_ceval_on_step) _ceval_on_step(this, frame, byte);   \
+    if(_profiler) _profiler->_step(callstack._tail);        \
+    if(!_next_breakpoint.empty()) { _next_breakpoint._step(this, callstack._tail); }
 
 #define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
@@ -907,12 +908,9 @@ __NEXT_STEP:;
         if(p == nullptr) vm->NameError(_name);
         *p = VAR(CAST(i64, *p) - 1);
     } DISPATCH();
-    TARGET(BREAKPOINT) {
-        vm->_breakpoint();
-    } DISPATCH();
     /*****************************************/
-        static_assert(OP_BREAKPOINT == 137);
-        case 138: case 139: case 140: case 141: case 142: case 143: case 144: case 145: case 146: case 147: case 148: case 149:
+        static_assert(OP_DEC_GLOBAL == 136);
+        case 137: case 138: case 139: case 140: case 141: case 142: case 143: case 144: case 145: case 146: case 147: case 148: case 149:
         case 150: case 151: case 152: case 153: case 154: case 155: case 156: case 157: case 158: case 159: case 160: case 161: case 162: case 163: case 164:
         case 165: case 166: case 167: case 168: case 169: case 170: case 171: case 172: case 173: case 174: case 175: case 176: case 177: case 178: case 179:
         case 180: case 181: case 182: case 183: case 184: case 185: case 186: case 187: case 188: case 189: case 190: case 191: case 192: case 193: case 194:

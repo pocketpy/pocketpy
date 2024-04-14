@@ -72,6 +72,15 @@ void init_builtins(VM* _vm) {
 #undef BIND_NUM_LOGICAL_OPT
 
     // builtin functions
+    _vm->bind_func<0>(_vm->builtins, "breakpoint", [](VM* vm, ArgsView args) {
+        vm->_next_breakpoint = NextBreakpoint(
+            vm->top_frame(),
+            vm->top_frame()->curr_lineno(),
+            false
+        );
+        return vm->None;
+    });
+
     _vm->bind_func<-1>(_vm->builtins, "super", [](VM* vm, ArgsView args) {
         PyObject* class_arg = nullptr;
         PyObject* self_arg = nullptr;

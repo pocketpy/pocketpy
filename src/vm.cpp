@@ -1353,33 +1353,132 @@ PyObject* NativeFunc::call(VM *vm, ArgsView args) const {
     return f(vm, args);
 }
 
-void VM::_breakpoint(){
-    SStream ss;
-    Frame* frame = vm->top_frame();
-    int lineno = frame->co->lines[frame->_next_ip].lineno;
-    auto [_0, _1] = frame->co->src->_get_line(lineno);
-    ss << "> " << frame->co->src->filename << '(' << lineno << ')';
-    if(frame->_callable){
-        ss << PK_OBJ_GET(Function, frame->_callable).decl->code->name << "()";
-    }
-    ss << '\n';
-
-    if(_0 && _1){
-        ss << "-> " << std::string_view(_0, _1-_0) << '\n';
+void NextBreakpoint::_step(VM* vm, LinkedFrame* lf){
+    Frame* frame = &lf->frame;
+    int lineno = frame->co->lines[frame->_ip].lineno;
+    if(should_step_into){
+        if(frame != this->frame || lineno != this->lineno){
+            vm->_breakpoint();
+        }
     }else{
-        ss << "-> <no source code available>\n";
+        if(frame == this->frame){
+            if(lineno != this->lineno) vm->_breakpoint();
+        }else{
+            if(&lf->f_back->frame != this->frame) vm->_breakpoint();
+        }
     }
+}
 
-    vm->stdout_write(ss.str());
-    std::string line;
+void VM::_breakpoint(){
+    _next_breakpoint = NextBreakpoint();
+    
+    bool show_where = false;
+    bool show_headers = true;
+    
     while(true){
+        std::vector<Frame*> frames;
+        LinkedFrame* lf = callstack._tail;
+        while(lf != nullptr){
+            frames.push_back(&lf->frame);
+            lf = lf->f_back;
+            if(frames.size() >= 4) break;
+        }
+
+        if(show_headers){
+            for(int i=frames.size()-1; i>=0; i--){
+                if(!show_where && i!=0) continue;
+
+                SStream ss;
+                Frame* frame = frames[i];
+                int lineno = frame->curr_lineno();
+                auto [_0, _1] = frame->co->src->_get_line(lineno);
+                ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
+                if(frame->_callable){
+                    ss << ", in ";
+                    ss << PK_OBJ_GET(Function, frame->_callable).decl->code->name;
+                }
+                ss << '\n';
+                if(_0 && _1){
+                    ss << "-> " << std::string_view(_0, _1-_0) << '\n';
+                }else{
+                    ss << "-> <no source code available>\n";
+                }
+                stdout_write(ss.str());
+            }
+            show_headers = false;
+        }
+
         vm->stdout_write("(Pdb) ");
-        if(!std::getline(std::cin, line)) break;
-        if(line == "h" || line == "help") continue;
+
+        std::string line;
+        if(!std::getline(std::cin, line)){
+            stdout_write("--KeyboardInterrupt--\n");
+            continue;
+        }
+
+        if(line == "h" || line == "help"){
+            stdout_write("h, help: show this help message\n");
+            stdout_write("q, quit: exit the debugger\n");
+            stdout_write("n, next: execute next line\n");
+            stdout_write("s, step: step into\n");
+            stdout_write("w, where: show current stack frame\n");
+            stdout_write("c, continue: continue execution\n");
+            stdout_write("a, args: show local variables\n");
+            stdout_write("p, print <expr>: evaluate expression\n");
+            stdout_write("!: execute statement\n");
+            continue;
+        }
         if(line == "q" || line == "quit") std::exit(0);
-        if(line == "n" || line == "next") break;
+        if(line == "n" || line == "next"){
+            vm->_next_breakpoint = NextBreakpoint(
+                frames[0],
+                frames[0]->curr_lineno(),
+                false
+            );
+            break;
+        }
+        if(line == "s" || line == "step"){
+            vm->_next_breakpoint = NextBreakpoint(
+                frames[0],
+                frames[0]->curr_lineno(),
+                true
+            );
+            break;
+        }
+        if(line == "w" || line == "where"){
+            show_where = !show_where;
+            show_headers = true;
+            continue;
+        }
         if(line == "c" || line == "continue") break;
+        if(line == "a" || line == "args"){
+            int i = 0;
+            for(PyObject* obj: frames[0]->_locals){
+                if(obj == PY_NULL) continue;
+                StrName name = frames[0]->co->varnames[i++];
+                stdout_write(_S(name.sv(), " = ", CAST(Str&, vm->py_repr(obj)), '\n'));
+            }
+            continue;
+        }
+        
+        int space = line.find_first_of(' ');
+        if(space != -1){
+            std::string cmd = line.substr(0, space);
+            std::string arg = line.substr(space+1);
+            if(arg.empty()) continue;   // ignore empty command
+            if(cmd == "p" || cmd == "print"){
+                CodeObject_ code = compile(arg, "<stdin>", EVAL_MODE, true);
+                PyObject* retval = vm->_exec(code.get(), frames[0]->_module, frames[0]->_callable, frames[0]->_locals);
+                stdout_write(CAST(Str&, vm->py_repr(retval)));
+                stdout_write("\n");
+            }else if(cmd == "!"){
+                CodeObject_ code = compile(arg, "<stdin>", EXEC_MODE, true);
+                vm->_exec(code.get(), frames[0]->_module, frames[0]->_callable, frames[0]->_locals);
+            }
+            continue;
+        }
     }
+    stdout_write("\n");
 }
 
 }   // namespace pkpy

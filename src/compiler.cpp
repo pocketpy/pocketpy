@@ -873,12 +873,6 @@ __EAT_DOTS_END:
             case TK("@"): compile_decorated(); break;
             case TK("try"): compile_try_except(); break;
             case TK("pass"): consume_end_stmt(); break;
-            case TK("breakpoint"):
-                consume(TK("("));
-                consume(TK(")"));
-                consume_end_stmt();
-                ctx()->emit_(OP_BREAKPOINT, BC_NOARG, kw_line);
-                break;
             /*************************************************/
             case TK("++"):{
                 consume(TK("@id"));

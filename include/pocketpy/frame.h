@@ -117,6 +117,8 @@ struct Frame {
     int _exit_block(ValueStack*, int);
     void jump_abs_break(ValueStack*, int);
 
+    int curr_lineno() const { return co->lines[_ip].lineno; }
+
     void _gc_mark() const {
         PK_OBJ_MARK(_module);
         co->_gc_mark();
