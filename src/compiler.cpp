@@ -1281,29 +1281,29 @@ __EAT_DOTS_END:
         if(version != PK_VERSION){
             SyntaxError(_S("precompiled version mismatch: ", version, "!=" PK_VERSION));
         }
-        if(deserializer.read_int('\n') != (i64)mode()){
+        if(deserializer.read_uint('\n') != (i64)mode()){
             SyntaxError("precompiled mode mismatch");
         }
         
         lexer.src->_precompiled_tokens = deserializer.read_string('\n');
         deserializer.curr += 1;     // skip '='
-        i64 count = deserializer.read_int('\n');
+        i64 count = deserializer.read_uint('\n');
         const char* tokens_c_str = lexer.src->_precompiled_tokens.c_str();
         for(int i=0; i<count; i++){
             Token t;
-            t.type = (unsigned char)deserializer.read_int(',');
+            t.type = (unsigned char)deserializer.read_uint(',');
             if(is_raw_string_used(t.type)){
-                t.start = tokens_c_str + deserializer.read_int(',');
-                t.length = deserializer.read_int(',');
+                t.start = tokens_c_str + deserializer.read_uint(',');
+                t.length = deserializer.read_uint(',');
             }else{
                 t.start = nullptr;
                 t.length = 0;
             }
-            t.line = (int)deserializer.read_int(',');
-            t.brackets_level = (int)deserializer.read_int(',');
+            t.line = (int)deserializer.read_uint(',');
+            t.brackets_level = (int)deserializer.read_uint(',');
             char type = deserializer.read_char();
             switch(type){
-                case 'I': t.value = deserializer.read_int('\n'); break;
+                case 'I': t.value = deserializer.read_uint('\n'); break;
                 case 'F': t.value = deserializer.read_float('\n'); break;
                 case 'S': t.value = deserializer.read_string_from_hex('\n'); break;
                 default: t.value = {}; break;
@@ -1385,11 +1385,13 @@ __EAT_DOTS_END:
         return std::pair<char*, int>(buffer, s.size()/2);
     }
 
-    i64 TokenDeserializer::read_int(char c){
-        std::string_view sv = read_string(c);
-        i64 out;
-        IntParsingResult res = parse_int(sv, &out, 10);
-        PK_ASSERT(res == IntParsingResult::Success);
+    i64 TokenDeserializer::read_uint(char c){
+        i64 out = 0;
+        while(*curr != c){
+            out = out*10 + (*curr-'0');
+            curr++;
+        }
+        curr++;     // skip the delimiter
         return out;
     }
 

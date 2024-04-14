@@ -135,7 +135,7 @@ struct TokenDeserializer{
 
     std::string_view read_string(char c);
     Str read_string_from_hex(char c);
-    i64 read_int(char c);
+    i64 read_uint(char c);
     f64 read_float(char c);
 };
 

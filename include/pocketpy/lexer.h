@@ -139,6 +139,6 @@ enum class IntParsingResult{
     Overflow,
 };
 
-IntParsingResult parse_int(std::string_view text, i64* out, int base);
+IntParsingResult parse_uint(std::string_view text, i64* out, int base);
 
 } // namespace pkpy
