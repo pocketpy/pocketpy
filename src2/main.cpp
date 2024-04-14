@@ -99,9 +99,6 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
 
-        // set parent path as cwd
-        std::filesystem::current_path(filepath.parent_path());
-
         bool ok = pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
         if(!ok) pkpy_clear_error(vm, NULL);
         pkpy_delete_vm(vm);

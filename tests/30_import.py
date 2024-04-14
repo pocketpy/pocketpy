@@ -3,6 +3,9 @@ try:
 except ImportError:
     exit(0)
 
+# test import
+os.chdir('tests')
+
 import test1
 
 assert test1.add(1, 2) == 13
