@@ -132,7 +132,7 @@ struct TokenDeserializer{
 
     TokenDeserializer(const char* source): curr(source), source(source) {}
     char read_char(){ return *curr++; }
-    char peek_char(){ return *curr; }
+    bool match_char(char c){ if(*curr == c) { curr++; return true; } return false; }
     
     std::string_view read_string(char c);
     Str read_string_from_hex(char c);

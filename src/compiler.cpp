@@ -1252,13 +1252,10 @@ __EAT_DOTS_END:
             if(is_raw_string_used(token.type)){
                 ss << token_indices[token.sv()] << ',';
             }
-
             if(i>0 && tokens[i-1].line == token.line) ss << ',';
             else ss << token.line << ',';
-
             if(i>0 && tokens[i-1].brackets_level == token.brackets_level) ss << ',';
             else ss << token.brackets_level << ',';
-
             // visit token value
             std::visit([&ss](auto&& arg){
                 using T = std::decay_t<decltype(arg)>;
@@ -1306,13 +1303,13 @@ __EAT_DOTS_END:
                 t.length = 0;
             }
 
-            if(deserializer.peek_char() == ','){
+            if(deserializer.match_char(',')){
                 t.line = tokens.back().line;
             }else{
                 t.line = (int)deserializer.read_uint(',');
             }
 
-            if(deserializer.peek_char() == ','){
+            if(deserializer.match_char(',')){
                 t.brackets_level = tokens.back().brackets_level;
             }else{
                 t.brackets_level = (int)deserializer.read_uint(',');

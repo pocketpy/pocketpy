@@ -176,7 +176,7 @@ void add_module_os(VM* vm){
         std::filesystem::directory_iterator di;
         try{
             di = std::filesystem::directory_iterator(path);
-        }catch(std::filesystem::filesystem_error& e){
+        }catch(std::filesystem::filesystem_error&){
             vm->IOError(path.string());
         }
         List ret;
