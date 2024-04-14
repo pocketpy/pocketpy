@@ -154,6 +154,7 @@ public:
     VM(bool enable_os=true);
 
     void set_main_argv(int argc, char** argv);
+    void _breakpoint();
 
     Frame* top_frame(){
         return &callstack.top();

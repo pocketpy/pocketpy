@@ -1353,4 +1353,33 @@ PyObject* NativeFunc::call(VM *vm, ArgsView args) const {
     return f(vm, args);
 }
 
+void VM::_breakpoint(){
+    SStream ss;
+    Frame* frame = vm->top_frame();
+    int lineno = frame->co->lines[frame->_next_ip].lineno;
+    auto [_0, _1] = frame->co->src->_get_line(lineno);
+    ss << "> " << frame->co->src->filename << '(' << lineno << ')';
+    if(frame->_callable){
+        ss << PK_OBJ_GET(Function, frame->_callable).decl->code->name << "()";
+    }
+    ss << '\n';
+
+    if(_0 && _1){
+        ss << "-> " << std::string_view(_0, _1-_0) << '\n';
+    }else{
+        ss << "-> <no source code available>\n";
+    }
+
+    vm->stdout_write(ss.str());
+    std::string line;
+    while(true){
+        vm->stdout_write("(Pdb) ");
+        if(!std::getline(std::cin, line)) break;
+        if(line == "h" || line == "help") continue;
+        if(line == "q" || line == "quit") std::exit(0);
+        if(line == "n" || line == "next") break;
+        if(line == "c" || line == "continue") break;
+    }
+}
+
 }   // namespace pkpy

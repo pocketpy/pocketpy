@@ -26,7 +26,7 @@ constexpr const char* kTokens[] = {
     /** KW_BEGIN **/
     "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
-    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
+    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise", "breakpoint"
 };
 
 using TokenValue = std::variant<std::monostate, i64, f64, Str>;
