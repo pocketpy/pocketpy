@@ -24,6 +24,10 @@ bool pkpy_exec_2(pkpy_vm* vm, const char* source, const char* filename, int mode
     return returnValue;
 }
 
+void pkpy_set_main_argv(pkpy_vm* vm, int argc, char** argv){
+
+}
+
 bool pkpy_dup(pkpy_vm* vm, int i) {
     bool returnValue;
     return returnValue;

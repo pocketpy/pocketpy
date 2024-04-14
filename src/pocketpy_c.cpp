@@ -91,6 +91,11 @@ bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, i
     return res != nullptr;
 }
 
+void pkpy_set_main_argv(pkpy_vm* vm_handle, int argc, char** argv){
+    VM* vm = (VM*) vm_handle;
+    vm->set_main_argv(argc, argv);
+}
+
 bool pkpy_dup(pkpy_vm* vm_handle, int n){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()

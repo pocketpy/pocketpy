@@ -36,3 +36,7 @@ C-APIs are always stable and backward compatible.
 + `bool pkpy_exec_2(pkpy_vm*, const char* source, const char* filename, int mode, const char* module)`
 
     Wraps `vm->exec_2`. Execute a string of source code with more options.
+
++ `void pkpy_set_main_argv(pkpy_vm*, int argc, char** argv)`
+
+    Wraps `vm->set_main_argv`. Set the `sys.argv` before executing scripts.

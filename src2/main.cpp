@@ -99,6 +99,8 @@ int main(int argc, char** argv){
         std::string src((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
 
+        pkpy_set_main_argv(vm, argc, argv);
+
         bool ok = pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
         if(!ok) pkpy_clear_error(vm, NULL);
         pkpy_delete_vm(vm);

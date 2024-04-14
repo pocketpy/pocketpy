@@ -119,16 +119,11 @@ namespace pkpy{
         PK_UNREACHABLE();
     }
 
-    Frame* VM::top_frame(){
-#if PK_DEBUG_EXTRA_CHECK
-        if(callstack.empty()) PK_FATAL_ERROR();
-#endif
-        return &callstack.top();
-    }
-
-    void VM::_pop_frame(){
-        s_data.reset(callstack.top()._sp_base);
-        callstack.pop();
+    void VM::set_main_argv(int argc, char** argv){
+        PyObject* mod = vm->_modules["sys"];
+        List argv_(argc);
+        for(int i=0; i<argc; i++) argv_[i] = VAR(std::string_view(argv[i]));
+        mod->attr().set("argv", VAR(std::move(argv_)));
     }
 
     PyObject* VM::find_name_in_mro(Type cls, StrName name){

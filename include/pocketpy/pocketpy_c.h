@@ -23,6 +23,7 @@ PK_EXPORT pkpy_vm* pkpy_new_vm(bool enable_os);
 PK_EXPORT void pkpy_delete_vm(pkpy_vm*);
 PK_EXPORT bool pkpy_exec(pkpy_vm*, const char* source);
 PK_EXPORT bool pkpy_exec_2(pkpy_vm*, const char* source, const char* filename, int mode, const char* module);
+PK_EXPORT void pkpy_set_main_argv(pkpy_vm*, int argc, char** argv);
 
 /* Stack Manipulation */
 PK_EXPORT bool pkpy_dup(pkpy_vm*, int i);

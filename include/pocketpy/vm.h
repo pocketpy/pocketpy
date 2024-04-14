@@ -153,8 +153,16 @@ public:
 
     VM(bool enable_os=true);
 
-    Frame* top_frame();
-    void _pop_frame();
+    void set_main_argv(int argc, char** argv);
+
+    Frame* top_frame(){
+        return &callstack.top();
+    }
+
+    void _pop_frame(){
+        s_data.reset(callstack.top()._sp_base);
+        callstack.pop();
+    }
 
     PyObject* py_str(PyObject* obj);
     PyObject* py_repr(PyObject* obj);

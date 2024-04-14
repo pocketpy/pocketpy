@@ -84,7 +84,7 @@ struct Frame {
     PyObject* _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
-    NameDict& f_globals() noexcept { return _module->attr(); }
+    NameDict& f_globals() { return _module->attr(); }
     PyObject* f_closure_try_get(StrName name);
 
     // function scope
