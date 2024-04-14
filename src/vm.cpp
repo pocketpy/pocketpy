@@ -1353,33 +1353,35 @@ PyObject* NativeFunc::call(VM *vm, ArgsView args) const {
     return f(vm, args);
 }
 
-void NextBreakpoint::_step(VM* vm, LinkedFrame* lf){
-    Frame* frame = &lf->frame;
-    int lineno = frame->co->lines[frame->_ip].lineno;
+void NextBreakpoint::_step(VM* vm, LinkedFrame* linked_frame){
+    int lineno = linked_frame->frame.curr_lineno();
     if(should_step_into){
-        if(frame != this->frame || lineno != this->lineno){
+        if(linked_frame != this->linked_frame || lineno != this->lineno){
             vm->_breakpoint();
         }
     }else{
-        if(frame == this->frame){
+        if(linked_frame == this->linked_frame){
             if(lineno != this->lineno) vm->_breakpoint();
         }else{
-            if(&lf->f_back->frame != this->frame) vm->_breakpoint();
+            if(this->linked_frame->f_back == linked_frame){
+                // returning
+                vm->_breakpoint();
+            }
         }
     }
 }
 
 void VM::_breakpoint(){
     _next_breakpoint = NextBreakpoint();
-    
+
     bool show_where = false;
     bool show_headers = true;
     
     while(true){
-        std::vector<Frame*> frames;
+        std::vector<LinkedFrame*> frames;
         LinkedFrame* lf = callstack._tail;
         while(lf != nullptr){
-            frames.push_back(&lf->frame);
+            frames.push_back(lf);
             lf = lf->f_back;
             if(frames.size() >= 4) break;
         }
@@ -1389,7 +1391,7 @@ void VM::_breakpoint(){
                 if(!show_where && i!=0) continue;
 
                 SStream ss;
-                Frame* frame = frames[i];
+                Frame* frame = &frames[i]->frame;
                 int lineno = frame->curr_lineno();
                 auto [_0, _1] = frame->co->src->_get_line(lineno);
                 ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
@@ -1409,6 +1411,7 @@ void VM::_breakpoint(){
         }
 
         vm->stdout_write("(Pdb) ");
+        Frame* frame_0 = &frames[0]->frame;
 
         std::string line;
         if(!std::getline(std::cin, line)){
@@ -1428,21 +1431,16 @@ void VM::_breakpoint(){
             stdout_write("!: execute statement\n");
             continue;
         }
-        if(line == "q" || line == "quit") std::exit(0);
+        if(line == "q" || line == "quit") {
+            vm->RuntimeError("pdb quit");
+            PK_UNREACHABLE()
+        }
         if(line == "n" || line == "next"){
-            vm->_next_breakpoint = NextBreakpoint(
-                frames[0],
-                frames[0]->curr_lineno(),
-                false
-            );
+            vm->_next_breakpoint = NextBreakpoint(frames[0], false);
             break;
         }
         if(line == "s" || line == "step"){
-            vm->_next_breakpoint = NextBreakpoint(
-                frames[0],
-                frames[0]->curr_lineno(),
-                true
-            );
+            vm->_next_breakpoint = NextBreakpoint(frames[0], true);
             break;
         }
         if(line == "w" || line == "where"){
@@ -1453,9 +1451,9 @@ void VM::_breakpoint(){
         if(line == "c" || line == "continue") break;
         if(line == "a" || line == "args"){
             int i = 0;
-            for(PyObject* obj: frames[0]->_locals){
+            for(PyObject* obj: frame_0->_locals){
                 if(obj == PY_NULL) continue;
-                StrName name = frames[0]->co->varnames[i++];
+                StrName name = frame_0->co->varnames[i++];
                 stdout_write(_S(name.sv(), " = ", CAST(Str&, vm->py_repr(obj)), '\n'));
             }
             continue;
@@ -1468,17 +1466,16 @@ void VM::_breakpoint(){
             if(arg.empty()) continue;   // ignore empty command
             if(cmd == "p" || cmd == "print"){
                 CodeObject_ code = compile(arg, "<stdin>", EVAL_MODE, true);
-                PyObject* retval = vm->_exec(code.get(), frames[0]->_module, frames[0]->_callable, frames[0]->_locals);
+                PyObject* retval = vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
                 stdout_write(CAST(Str&, vm->py_repr(retval)));
                 stdout_write("\n");
             }else if(cmd == "!"){
                 CodeObject_ code = compile(arg, "<stdin>", EXEC_MODE, true);
-                vm->_exec(code.get(), frames[0]->_module, frames[0]->_callable, frames[0]->_locals);
+                vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
             }
             continue;
         }
     }
-    stdout_write("\n");
 }
 
 }   // namespace pkpy
