@@ -43,6 +43,18 @@ Check if the given path exists.
 
 Returns the basename of the given path.
 
+### `os.path.isdir(path: str)`
+
+Check if the given path is a directory.
+
+### `os.path.isfile(path: str)`
+
+Check if the given path is a file.
+
+### `os.path.abspath(path: str)`
+
+Returns the absolute path of the given path.
+
 
 ## Other functions
 
