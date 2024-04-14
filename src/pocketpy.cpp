@@ -73,7 +73,7 @@ void init_builtins(VM* _vm) {
 
     // builtin functions
     _vm->bind_func<0>(_vm->builtins, "breakpoint", [](VM* vm, ArgsView args) {
-        vm->_next_breakpoint = NextBreakpoint(vm->callstack._tail, false);
+        vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), vm->top_frame()->curr_lineno(), false);
         return vm->None;
     });
 

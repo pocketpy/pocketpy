@@ -30,14 +30,13 @@ namespace pkpy{
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
 
 struct NextBreakpoint{
-    LinkedFrame* linked_frame;
+    int callstack_size;
     int lineno;
     bool should_step_into;
-    NextBreakpoint(): linked_frame(nullptr) {}
-    NextBreakpoint(LinkedFrame* lf, bool should_step_into): 
-        linked_frame(lf), lineno(lf->frame.curr_lineno()), should_step_into(should_step_into) {}
-    void _step(VM* vm, LinkedFrame* lf);
-    bool empty() const { return linked_frame == nullptr; }
+    NextBreakpoint(): callstack_size(0) {}
+    NextBreakpoint(int callstack_size, int lineno, bool should_step_into): callstack_size(callstack_size), lineno(lineno), should_step_into(should_step_into) {}
+    void _step(VM* vm);
+    bool empty() const { return callstack_size == 0; }
 };
 
 struct PyTypeInfo{
@@ -175,6 +174,10 @@ public:
     void _pop_frame(){
         s_data.reset(callstack.top()._sp_base);
         callstack.pop();
+        
+        if(!_next_breakpoint.empty() && callstack.size()<_next_breakpoint.callstack_size){
+            _next_breakpoint = NextBreakpoint();
+        }
     }
 
     PyObject* py_str(PyObject* obj);

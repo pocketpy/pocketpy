@@ -173,7 +173,7 @@ struct NativeFunc {
     NativeFunc(NativeFuncC f, FuncDecl_ decl);
 
     void check_size(VM* vm, ArgsView args) const;
-    PyObject* call(VM* vm, ArgsView args) const;
+    PyObject* call(VM* vm, ArgsView args) const { return f(vm, args); }
 };
 
 struct Function{

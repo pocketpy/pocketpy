@@ -1349,24 +1349,19 @@ void NativeFunc::check_size(VM* vm, ArgsView args) const{
     }
 }
 
-PyObject* NativeFunc::call(VM *vm, ArgsView args) const {
-    return f(vm, args);
-}
-
-void NextBreakpoint::_step(VM* vm, LinkedFrame* linked_frame){
-    int lineno = linked_frame->frame.curr_lineno();
+void NextBreakpoint::_step(VM* vm){
+    int curr_callstack_size = vm->callstack.size();
+    int curr_lineno = vm->top_frame()->curr_lineno();
     if(should_step_into){
-        if(linked_frame != this->linked_frame || lineno != this->lineno){
+        if(curr_callstack_size != callstack_size || curr_lineno != lineno){
             vm->_breakpoint();
         }
     }else{
-        if(linked_frame == this->linked_frame){
-            if(lineno != this->lineno) vm->_breakpoint();
-        }else{
-            if(this->linked_frame->f_back == linked_frame){
-                // returning
-                vm->_breakpoint();
-            }
+        if(curr_callstack_size == callstack_size) {
+            if(curr_lineno != lineno) vm->_breakpoint();
+        }else if(curr_callstack_size < callstack_size){
+            // returning
+            vm->_breakpoint();
         }
     }
 }
@@ -1436,11 +1431,11 @@ void VM::_breakpoint(){
             PK_UNREACHABLE()
         }
         if(line == "n" || line == "next"){
-            vm->_next_breakpoint = NextBreakpoint(frames[0], false);
+            vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), frame_0->curr_lineno(), false);
             break;
         }
         if(line == "s" || line == "step"){
-            vm->_next_breakpoint = NextBreakpoint(frames[0], true);
+            vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), frame_0->curr_lineno(), true);
             break;
         }
         if(line == "w" || line == "where"){
