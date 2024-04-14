@@ -119,7 +119,7 @@ StackOverflowError
 String compilation has no guarantee of compatibility between different versions of pkpy.
 !!!
 
-You can use this snnipet to convert every python file in a directory into precompiled strings:
+You can use this snnipet to convert every python file in a directory into precompiled strings.
 
 ```python
 # precompile.py
@@ -127,6 +127,7 @@ import sys, os
 
 def precompile(filepath: str):
     """Precompile a python file inplace"""
+    print(filepath)
     with open(filepath, 'r') as f:
         source = f.read()
     source = compile(source, filepath, 'exec')

@@ -60,11 +60,10 @@ assert next(a) == 1
 
 try:
     next(a)
-    exit(1)
 except StopIteration:
-    pass
+    print("a is exhausted")
 ```
 
 !!!
-Do not change `builtins.next`. It will break some internal functions which rely on `StopIteration` as return value.
+Do not change `builtins.next`. It will break internal functions which rely on `StopIteration` as return value.
 !!!
