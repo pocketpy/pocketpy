@@ -16,3 +16,7 @@ May be one of:
 + `android`
 + `ios`
 + `emscripten`
+
+### `sys.argv`
+
+The command line arguments. Set by `vm->set_main_argv`.
