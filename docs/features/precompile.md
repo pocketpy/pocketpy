@@ -123,14 +123,10 @@ You can use this snnipet to convert every python file in a directory into precom
 
 ```python
 # precompile.py
-import sys
-import os
-
-count = 0
+import sys, os
 
 def precompile(filepath: str):
-    global count
-    ++count
+    """Precompile a python file inplace"""
     with open(filepath, 'r') as f:
         source = f.read()
     source = compile(source, filepath, 'exec')
@@ -138,16 +134,11 @@ def precompile(filepath: str):
         f.write(source)
 
 def traverse(root: str):
+    """Traverse a directory and precompile every python file"""
     for entry in os.listdir(root):
         entrypath = os.path.join(root, entry)
         if os.path.isdir(entrypath):
             traverse(entrypath)
         elif entrypath.endswith(".py"):
             precompile(entrypath)
-
-traverse(sys.argv[2])
 ```
-```bash
-pkpy.exe precompile.py ./path/to/directory
-```
-
