@@ -1285,12 +1285,13 @@ __EAT_DOTS_END:
             SyntaxError("precompiled mode mismatch");
         }
 
+        int count = deserializer.read_count();
         std::vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
-        for(int i=0; i<deserializer.read_count(); i++){
+        for(int i=0; i<count; i++){
             precompiled_tokens.push_back(deserializer.read_string('\n'));
         }
 
-        int count = deserializer.read_count();
+        count = deserializer.read_count();
         for(int i=0; i<count; i++){
             Token t;
             t.type = (unsigned char)deserializer.read_uint(',');
