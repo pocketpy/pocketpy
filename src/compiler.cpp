@@ -1236,14 +1236,18 @@ __EAT_DOTS_END:
             if(is_raw_string_used(token.type)){
                 auto it = token_indices.find(token.sv());
                 if(it == token_indices.end()){
-                    token_indices[token.sv()] = token_indices.size();
+                    token_indices[token.sv()] = 0;
                     // assert no '\n' in token.sv()
                     for(char c: token.sv()) if(c=='\n') PK_FATAL_ERROR();
                 }
             }
         }
         ss << "=" << (int)token_indices.size() << '\n';         // L3: raw string count
-        for(auto& kv: token_indices) ss << kv.first << '\n';    // L4: raw strings
+        int index = 0;
+        for(auto& kv: token_indices){
+            ss << kv.first << '\n';    // L4: raw strings
+            kv.second = index++;
+        }
         
         ss << "=" << (int)tokens.size() << '\n';    // L5: token count
         for(int i=0; i<tokens.size(); i++){
