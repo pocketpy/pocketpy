@@ -26,7 +26,7 @@ namespace pkpy{
     }
 
     std::pair<const char*,const char*> SourceData::_get_line(int lineno) const {
-        if(lineno == -1) return {nullptr, nullptr};
+        if(is_precompiled || lineno == -1) return {nullptr, nullptr};
         lineno -= 1;
         if(lineno < 0) lineno = 0;
         const char* _start = line_starts[lineno];
@@ -40,7 +40,7 @@ namespace pkpy{
         SStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno;
         if(!name.empty()) ss << ", in " << name;
-        if(!source.empty() && !is_precompiled){
+        if(!is_precompiled){
             ss << '\n';
             std::pair<const char*,const char*> pair = _get_line(lineno);
             Str line = "<?>";
