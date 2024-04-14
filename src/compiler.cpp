@@ -1231,31 +1231,34 @@ __EAT_DOTS_END:
         ss << "pkpy:" PK_VERSION << '\n';           // L1: version string
         ss << (int)mode() << '\n';                  // L2: mode
 
-        SStream token_ss; // no '\n' in token_ss
-        token_ss << '|';
-        std::map<std::string_view, int> token_offsets;
+        std::map<std::string_view, int> token_indices;
         for(auto token: tokens){
             if(is_raw_string_used(token.type)){
-                auto it = token_offsets.find(token.sv());
-                if(it == token_offsets.end()){
-                    token_offsets[token.sv()] = token_ss.buffer.size();
+                auto it = token_indices.find(token.sv());
+                if(it == token_indices.end()){
+                    token_indices[token.sv()] = token_indices.size();
                     // assert no '\n' in token.sv()
                     for(char c: token.sv()) if(c=='\n') PK_FATAL_ERROR();
-                    token_ss << token.sv() << '|';
                 }
             }
         }
-        ss << token_ss.str() << '\n';               // L3: raw string
-
-        ss << "=" << (int)tokens.size() << '\n';    // L4: token count
-        for(auto token: tokens){
+        ss << "=" << (int)token_indices.size() << '\n';         // L3: raw string count
+        for(auto& kv: token_indices) ss << kv.first << '\n';    // L4: raw strings
+        
+        ss << "=" << (int)tokens.size() << '\n';    // L5: token count
+        for(int i=0; i<tokens.size(); i++){
+            const Token& token = tokens[i];
             ss << (int)token.type << ',';
             if(is_raw_string_used(token.type)){
-                ss << token_offsets[token.sv()] << ',';     // offset
-                ss << token.sv().size() << ',';             // length
+                ss << token_indices[token.sv()] << ',';
             }
-            ss << token.line << ',';
-            ss << token.brackets_level << ',';
+
+            if(i>0 && tokens[i-1].line == token.line) ss << ',';
+            else ss << token.line << ',';
+
+            if(i>0 && tokens[i-1].brackets_level == token.brackets_level) ss << ',';
+            else ss << token.brackets_level << ',';
+
             // visit token value
             std::visit([&ss](auto&& arg){
                 using T = std::decay_t<decltype(arg)>;
@@ -1284,23 +1287,37 @@ __EAT_DOTS_END:
         if(deserializer.read_uint('\n') != (i64)mode()){
             SyntaxError("precompiled mode mismatch");
         }
-        
-        lexer.src->_precompiled_tokens = deserializer.read_string('\n');
-        deserializer.curr += 1;     // skip '='
-        i64 count = deserializer.read_uint('\n');
-        const char* tokens_c_str = lexer.src->_precompiled_tokens.c_str();
+
+        std::vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
+        for(int i=0; i<deserializer.read_count(); i++){
+            precompiled_tokens.push_back(deserializer.read_string('\n'));
+        }
+
+        int count = deserializer.read_count();
         for(int i=0; i<count; i++){
             Token t;
             t.type = (unsigned char)deserializer.read_uint(',');
             if(is_raw_string_used(t.type)){
-                t.start = tokens_c_str + deserializer.read_uint(',');
-                t.length = deserializer.read_uint(',');
+                i64 index = deserializer.read_uint(',');
+                t.start = precompiled_tokens[index].c_str();
+                t.length = precompiled_tokens[index].size;
             }else{
                 t.start = nullptr;
                 t.length = 0;
             }
-            t.line = (int)deserializer.read_uint(',');
-            t.brackets_level = (int)deserializer.read_uint(',');
+
+            if(deserializer.peek_char() == ','){
+                t.line = tokens.back().line;
+            }else{
+                t.line = (int)deserializer.read_uint(',');
+            }
+
+            if(deserializer.peek_char() == ','){
+                t.brackets_level = tokens.back().brackets_level;
+            }else{
+                t.brackets_level = (int)deserializer.read_uint(',');
+            }
+
             char type = deserializer.read_char();
             switch(type){
                 case 'I': t.value = deserializer.read_uint('\n'); break;
@@ -1383,6 +1400,12 @@ __EAT_DOTS_END:
         }
         buffer[s.size()/2] = 0;
         return std::pair<char*, int>(buffer, s.size()/2);
+    }
+
+    int TokenDeserializer::read_count(){
+        PK_ASSERT(*curr == '=')
+        curr++;
+        return read_uint('\n');
     }
 
     i64 TokenDeserializer::read_uint(char c){
