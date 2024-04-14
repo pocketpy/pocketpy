@@ -45,7 +45,10 @@
 #define PK_DEBUG_NO_MEMORY_POOL     0
 #define PK_DEBUG_NO_AUTO_GC         0
 #define PK_DEBUG_GC_STATS           0
+
+#ifndef PK_DEBUG_PRECOMPILED_EXEC
 #define PK_DEBUG_PRECOMPILED_EXEC   0
+#endif
 
 /*************** internal settings ***************/
 
