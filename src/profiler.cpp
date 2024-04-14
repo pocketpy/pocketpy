@@ -18,17 +18,16 @@ void LineProfiler::begin(){
     frames.clear();
 }
 
-void LineProfiler::_step(LinkedFrame* linked_frame){
-    Frame* frame = &linked_frame->frame;
+void LineProfiler::_step(int callstack_size, Frame* frame){
     auto line_info = frame->co->lines[frame->_ip];
     if(line_info.is_virtual) return;
     std::string_view filename = frame->co->src->filename.sv();
     int line = line_info.lineno;
 
     if(frames.empty()){
-        frames.push({linked_frame, clock(), nullptr});
+        frames.push({callstack_size, frame, clock(), nullptr});
     }else{
-        _step_end(linked_frame, line);
+        _step_end(callstack_size, frame, line);
     }
 
     auto& file_records = records[filename];
@@ -44,19 +43,13 @@ void LineProfiler::_step(LinkedFrame* linked_frame){
     frames.top().prev_record = &file_records.at(line);
 }
 
-void LineProfiler::_step_end(LinkedFrame* linked_frame, int line){
+void LineProfiler::_step_end(int callstack_size, Frame* frame, int line){
     clock_t now = clock();
     _FrameRecord& top_frame_record = frames.top();
     _LineRecord* prev_record = top_frame_record.prev_record;
 
-    int id_delta;
-    if(linked_frame == top_frame_record.frame){
-        id_delta = 0;
-    }else if(linked_frame->f_back == top_frame_record.frame){
-        id_delta = 1;
-    }else{
-        id_delta = -1;  // unsafe
-    }
+    int id_delta = callstack_size - top_frame_record.callstack_size;
+    PK_ASSERT(abs(id_delta) <= 1)
 
     // current line is about to change
     if(prev_record->line != line){
@@ -67,7 +60,7 @@ void LineProfiler::_step_end(LinkedFrame* linked_frame, int line){
     }
     
     if(id_delta == 1){
-        frames.push({linked_frame, now, nullptr});
+        frames.push({callstack_size, frame, now, nullptr});
     }else{
         if(id_delta == -1) frames.pop();
     }

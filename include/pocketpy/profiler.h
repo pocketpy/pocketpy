@@ -14,7 +14,8 @@ struct _LineRecord{
 };
 
 struct _FrameRecord{
-    LinkedFrame* frame;
+    int callstack_size;
+    Frame* frame;
     clock_t prev_time;
     _LineRecord* prev_record;
 };
@@ -26,8 +27,8 @@ struct LineProfiler{
     std::set<FuncDecl*> functions;
 
     void begin();
-    void _step(LinkedFrame*);
-    void _step_end(LinkedFrame*, int);
+    void _step(int, Frame*);
+    void _step_end(int, Frame*, int);
     void end();
     Str stats();
 };
