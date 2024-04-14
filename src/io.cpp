@@ -177,7 +177,7 @@ void add_module_os(VM* vm){
         try{
             di = std::filesystem::directory_iterator(path);
         }catch(std::filesystem::filesystem_error& e){
-            vm->IOError(Str(e.what()).lstrip());
+            vm->IOError(path.string());
         }
         List ret;
         for(auto& p: di) ret.push_back(VAR(p.path().filename().string()));
