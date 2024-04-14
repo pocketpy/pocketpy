@@ -64,7 +64,7 @@ for seq in pipeline:
 with open("amalgamated/pocketpy.h", "wt", encoding='utf-8', newline='\n') as f:
 	final_text = \
 r'''/*
- *  Copyright (c) 2023 blueloveTH
+ *  Copyright (c) 2024 blueloveTH
  *  Distributed Under The MIT License
  *  https://github.com/pocketpy/pocketpy
  */
