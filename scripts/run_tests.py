@@ -70,7 +70,7 @@ class A:
     exit()
 ''', capture_output=True, check=True)
         res.check_returncode()
-        assert 'ans_1: 3' in res.stdout
-        assert 'ans_2: abc' in res.stdout
+        assert 'ans_1: 3' in res.stdout, res.stdout
+        assert 'ans_2: abc' in res.stdout, res.stdout
 
 print("ALL TESTS PASSED")
