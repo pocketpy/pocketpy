@@ -38,6 +38,7 @@ struct SourceData {
     SourceData(std::string_view source, const Str& filename, CompileMode mode);
     SourceData(const Str& filename, CompileMode mode);
     std::pair<const char*,const char*> _get_line(int lineno) const;
+    std::string_view get_line(int lineno) const;
     Str snapshot(int lineno, const char* cursor, std::string_view name) const;
 };
 

@@ -115,8 +115,7 @@ Str LineProfiler::stats(){
                 }
             }
             // line_content
-            auto [_0, _1] = decl->code->src->_get_line(line);
-            ss << "  " << std::string_view(_0, _1-_0) << "\n";
+            ss << "  " << decl->code->src->get_line(line) << "\n";
         }
         ss << "\n";
     }

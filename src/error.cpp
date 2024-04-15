@@ -36,6 +36,12 @@ namespace pkpy{
         return {_start, i};
     }
 
+    std::string_view SourceData::get_line(int lineno) const{
+        auto [_0, _1] = _get_line(lineno);
+        if(_0 && _1) return std::string_view(_0, _1-_0);
+        return "<?>";
+    }
+
     Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) const{
         SStream ss;
         ss << "  " << "File \"" << filename << "\", line " << lineno;

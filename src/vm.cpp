@@ -1388,18 +1388,13 @@ void VM::_breakpoint(){
                 SStream ss;
                 Frame* frame = &frames[i]->frame;
                 int lineno = frame->curr_lineno();
-                auto [_0, _1] = frame->co->src->_get_line(lineno);
                 ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
                 if(frame->_callable){
                     ss << ", in ";
                     ss << PK_OBJ_GET(Function, frame->_callable).decl->code->name;
                 }
                 ss << '\n';
-                if(_0 && _1){
-                    ss << "-> " << std::string_view(_0, _1-_0) << '\n';
-                }else{
-                    ss << "-> <no source code available>\n";
-                }
+                ss << frame->co->src->get_line(lineno) << '\n';
                 stdout_write(ss.str());
             }
             show_headers = false;
@@ -1423,6 +1418,8 @@ void VM::_breakpoint(){
             stdout_write("c, continue: continue execution\n");
             stdout_write("a, args: show local variables\n");
             stdout_write("p, print <expr>: evaluate expression\n");
+            stdout_write("l, list: show lines around current line\n");
+            stderr_write("ll, longlist: show all lines\n");
             stdout_write("!: execute statement\n");
             continue;
         }
@@ -1451,6 +1448,37 @@ void VM::_breakpoint(){
                 StrName name = frame_0->co->varnames[i++];
                 stdout_write(_S(name.sv(), " = ", CAST(Str&, vm->py_repr(obj)), '\n'));
             }
+            continue;
+        }
+
+        bool is_list = line == "l" || line == "list";
+        bool is_longlist = line == "ll" || line == "longlist";
+
+        if(is_list || is_longlist){
+            if(frame_0->co->src->is_precompiled) continue;
+            int lineno = frame_0->curr_lineno();
+            int start, end;
+
+            if(is_list){
+                int max_line = frame_0->co->src->line_starts.size() + 1;
+                start = std::max(1, lineno-5);
+                end = std::min(max_line, lineno+5);
+            }else{
+                start = frame_0->co->start_line;
+                end = frame_0->co->end_line;
+                if(start == -1 || end == -1) continue;
+            }
+            
+            SStream ss;
+            int max_width = std::to_string(end).size();
+            for(int i=start; i<=end; i++){
+                int spaces = max_width - std::to_string(i).size();
+                ss << std::string(spaces, ' ') << std::to_string(i);
+                if(i == lineno) ss << "  -> ";
+                else ss << "     ";
+                ss << frame_0->co->src->get_line(i) << '\n';
+            }
+            stdout_write(ss.str());
             continue;
         }
         
