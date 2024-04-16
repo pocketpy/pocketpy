@@ -40,8 +40,7 @@ struct ClassMethod{
 struct Property{
     PyObject* getter;
     PyObject* setter;
-    Str signature;
-    Property(PyObject* getter, PyObject* setter, Str signature) : getter(getter), setter(setter), signature(signature) {}
+    Property(PyObject* getter, PyObject* setter) : getter(getter), setter(setter) {}
 };
 
 struct Range {

@@ -1186,10 +1186,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
         throw std::runtime_error("expected 1 function declaration");
     }
     FuncDecl_ decl = co->func_decls[0];
-    decl->signature = Str(sig);
-    if(docstring != nullptr){
-        decl->docstring = Str(docstring).strip();
-    }
+    decl->docstring = docstring;
     PyObject* f_obj = VAR(NativeFunc(fn, decl));
     PK_OBJ_GET(NativeFunc, f_obj).set_userdata(userdata);
 
@@ -1211,10 +1208,9 @@ PyObject* VM::bind_property(PyObject* obj, Str name, NativeFuncC fget, NativeFun
     PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
     PyObject* _1 = vm->None;
     if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-    Str signature = name;
     int pos = name.index(":");
     if(pos > 0) name = name.substr(0, pos).strip();
-    PyObject* prop = VAR(Property(_0, _1, signature));
+    PyObject* prop = VAR(Property(_0, _1));
     obj->attr().set(name, prop);
     return prop;
 }

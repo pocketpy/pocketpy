@@ -1133,7 +1133,6 @@ __EAT_DOTS_END:
     }
 
     void Compiler::compile_function(const Expr_vector& decorators){
-        const char* _start = curr().start;
         consume(TK("@id"));
         Str decl_name = prev().str();
         FuncDecl_ decl = push_f_context(decl_name);
@@ -1143,22 +1142,17 @@ __EAT_DOTS_END:
             consume(TK(")"));
         }
         if(match(TK("->"))) consume_type_hints();
-        const char* _end = curr().start;
-        if(_start && _end) decl->signature = Str(_start, _end-_start);
         compile_block_body();
         pop_context();
 
-        PyObject* docstring = nullptr;
+        decl->docstring = nullptr;
         if(decl->code->codes.size()>=2 && decl->code->codes[0].op == OP_LOAD_CONST && decl->code->codes[1].op == OP_POP_TOP){
             PyObject* c = decl->code->consts[decl->code->codes[0].arg];
             if(is_type(c, vm->tp_str)){
                 decl->code->codes[0].op = OP_NO_OP;
                 decl->code->codes[1].op = OP_NO_OP;
-                docstring = c;
+                decl->docstring = PK_OBJ_GET(Str, c).c_str();
             }
-        }
-        if(docstring != nullptr){
-            decl->docstring = PK_OBJ_GET(Str, docstring);
         }
         ctx()->emit_(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
 

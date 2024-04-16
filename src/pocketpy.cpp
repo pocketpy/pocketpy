@@ -1455,42 +1455,25 @@ void init_builtins(VM* _vm) {
     // tp_property
     _vm->bind_constructor<-1>(_vm->_t(VM::tp_property), [](VM* vm, ArgsView args) {
         if(args.size() == 1+1){
-            return VAR(Property(args[1], vm->None, ""));
+            return VAR(Property(args[1], vm->None));
         }else if(args.size() == 1+2){
-            return VAR(Property(args[1], args[2], ""));
-        }else if(args.size() == 1+3){
-            return VAR(Property(args[1], args[2], CAST(Str, args[3])));
+            return VAR(Property(args[1], args[2]));
         }
-        vm->TypeError("property() takes at most 3 arguments");
+        vm->TypeError("property() takes at most 2 arguments");
         return vm->None;
-    });
-
-    // properties
-    _vm->bind_property(_vm->_t(VM::tp_property), "__signature__", [](VM* vm, ArgsView args){
-        Property& self = _CAST(Property&, args[0]);
-        return VAR(self.signature);
     });
     
     _vm->bind_property(_vm->_t(VM::tp_function), "__doc__", [](VM* vm, ArgsView args) {
         Function& func = _CAST(Function&, args[0]);
+        if(!func.decl->docstring) return vm->None;
         return VAR(func.decl->docstring);
     });
 
     _vm->bind_property(_vm->_t(VM::tp_native_func), "__doc__", [](VM* vm, ArgsView args) {
         NativeFunc& func = _CAST(NativeFunc&, args[0]);
-        if(func.decl != nullptr) return VAR(func.decl->docstring);
-        return VAR("");
-    });
-
-    _vm->bind_property(_vm->_t(VM::tp_function), "__signature__", [](VM* vm, ArgsView args) {
-        Function& func = _CAST(Function&, args[0]);
-        return VAR(func.decl->signature);
-    });
-
-    _vm->bind_property(_vm->_t(VM::tp_native_func), "__signature__", [](VM* vm, ArgsView args) {
-        NativeFunc& func = _CAST(NativeFunc&, args[0]);
-        if(func.decl != nullptr) return VAR(func.decl->signature);
-        return VAR("");
+        if(func.decl == nullptr) return vm->None;
+        if(!func.decl->docstring) return vm->None;
+        return VAR(func.decl->docstring);
     });
 
     // tp_exception

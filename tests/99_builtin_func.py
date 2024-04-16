@@ -335,7 +335,6 @@ assert type(s) is slice
 assert s.start == 1
 assert s.stop == 2
 assert s.step == 3
-assert slice.__dict__['start'].__signature__ == 'start'
 
 # 未完全测试准确性-----------------------------------------------
 # test slice.__repr__
@@ -489,16 +488,8 @@ class A():
         self._name = val
 
 assert A().value == 2
-assert A.__dict__['value'].__signature__ == ''
 
-A.name = property(A.get_name, A.set_name, "name: str")
-assert A.__dict__['name'].__signature__ == 'name: str'
-try:
-    property(A.get_name, A.set_name, 1)
-    print('未能拦截错误, 在测试 property')
-    exit(1)
-except:
-    pass
+A.name = property(A.get_name, A.set_name)
 
 class Vector2:
     def __init__(self) -> None:
@@ -522,12 +513,6 @@ def aaa():
     '12345'
     pass
 assert type(aaa.__doc__) is str
-
-
-# function.__signature__
-def aaa():
-    pass
-assert type(aaa.__signature__) is str
 
 
 # /************ module time ************/
