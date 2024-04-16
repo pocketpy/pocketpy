@@ -1220,6 +1220,20 @@ void VM::_builtin_error(StrName type){ _error(call(builtins->attr(type))); }
 void VM::_builtin_error(StrName type, PyObject* arg){ _error(call(builtins->attr(type), arg)); }
 void VM::_builtin_error(StrName type, const Str& msg){ _builtin_error(type, VAR(msg)); }
 
+void VM::BinaryOptError(const char* op, PyObject* _0, PyObject* _1) {
+    StrName name_0 = _type_name(vm, _tp(_0));
+    StrName name_1 = _type_name(vm, _tp(_1));
+    TypeError(_S("unsupported operand type(s) for ", op, ": ", name_0.escape(), " and ", name_1.escape()));
+}
+
+void VM::AttributeError(PyObject* obj, StrName name){
+    if(isinstance(obj, vm->tp_type)){
+        _builtin_error("AttributeError", _S("type object ", _type_name(vm, PK_OBJ_GET(Type, obj)).escape(), " has no attribute ", name.escape()));
+    }else{
+        _builtin_error("AttributeError", _S(_type_name(vm, _tp(obj)).escape(), " object has no attribute ", name.escape()));
+    }
+}
+
 void VM::_error(PyObject* e_obj){
     PK_ASSERT(isinstance(e_obj, tp_exception))
     Exception& e = PK_OBJ_GET(Exception, e_obj);
@@ -1293,6 +1307,23 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
+#define BIND_UNARY_SPECIAL(name)                                                        \
+    void VM::bind##name(Type type, PyObject* (*f)(VM*, PyObject*)){                         \
+        _all_types[type].m##name = f;                                                   \
+        PyObject* nf = bind_method<0>(_t(type), #name, [](VM* vm, ArgsView args){       \
+            return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);\
+        });                                                                             \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
+    }
+
+    BIND_UNARY_SPECIAL(__repr__)
+    BIND_UNARY_SPECIAL(__str__)
+    BIND_UNARY_SPECIAL(__iter__)
+    BIND_UNARY_SPECIAL(__next__)
+    BIND_UNARY_SPECIAL(__neg__)
+    BIND_UNARY_SPECIAL(__invert__)
+#undef BIND_UNARY_SPECIAL
+
 void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     PyObject* obj = _t(type);
     _all_types[type].m__hash__ = f;
@@ -1312,6 +1343,41 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyObject*)){
     });
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
+
+
+#define BIND_BINARY_SPECIAL(name)                                                       \
+    void VM::bind##name(Type type, BinaryFuncC f){                                          \
+        _all_types[type].m##name = f;                                                   \
+        PyObject* nf = bind_method<1>(type, #name, [](VM* vm, ArgsView args){           \
+            return lambda_get_userdata<BinaryFuncC>(args.begin())(vm, args[0], args[1]);\
+        });                                                                             \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                     \
+    }
+
+    BIND_BINARY_SPECIAL(__eq__)
+    BIND_BINARY_SPECIAL(__lt__)
+    BIND_BINARY_SPECIAL(__le__)
+    BIND_BINARY_SPECIAL(__gt__)
+    BIND_BINARY_SPECIAL(__ge__)
+    BIND_BINARY_SPECIAL(__contains__)
+
+    BIND_BINARY_SPECIAL(__add__)
+    BIND_BINARY_SPECIAL(__sub__)
+    BIND_BINARY_SPECIAL(__mul__)
+    BIND_BINARY_SPECIAL(__truediv__)
+    BIND_BINARY_SPECIAL(__floordiv__)
+    BIND_BINARY_SPECIAL(__mod__)
+    BIND_BINARY_SPECIAL(__pow__)
+    BIND_BINARY_SPECIAL(__matmul__)
+
+    BIND_BINARY_SPECIAL(__lshift__)
+    BIND_BINARY_SPECIAL(__rshift__)
+    BIND_BINARY_SPECIAL(__and__)
+    BIND_BINARY_SPECIAL(__or__)
+    BIND_BINARY_SPECIAL(__xor__)
+
+#undef BIND_BINARY_SPECIAL
+
 
 void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
     ok = false;

@@ -176,12 +176,11 @@ struct CString{
 // unary operators
 const StrName __repr__ = StrName::get("__repr__");
 const StrName __str__ = StrName::get("__str__");
-const StrName __hash__ = StrName::get("__hash__");      // unused
+const StrName __hash__ = StrName::get("__hash__");
 const StrName __len__ = StrName::get("__len__");
 const StrName __iter__ = StrName::get("__iter__");
-const StrName __next__ = StrName::get("__next__");      // unused
-const StrName __neg__ = StrName::get("__neg__");        // unused
-const StrName __bool__ = StrName::get("__bool__");      // unused
+const StrName __next__ = StrName::get("__next__");
+const StrName __neg__ = StrName::get("__neg__");
 // logical operators
 const StrName __eq__ = StrName::get("__eq__");
 const StrName __lt__ = StrName::get("__lt__");

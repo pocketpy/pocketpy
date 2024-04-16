@@ -266,7 +266,10 @@ struct LineProfilerW{
     LineProfiler profiler;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<LineProfilerW>(type);
+        vm->bind_func<1>(type, __new__, [](VM* vm, ArgsView args){
+            Type cls = PK_OBJ_GET(Type, args[0]);
+            return vm->heap.gcnew<LineProfilerW>(cls);
+        });
 
         vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);

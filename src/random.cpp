@@ -11,7 +11,10 @@ struct Random{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_default_constructor<Random>(type);
+        vm->bind_func<1>(type, __new__, [](VM* vm, ArgsView args){
+            Type cls = PK_OBJ_GET(Type, args[0]);
+            return vm->heap.gcnew<Random>(cls);
+        });
 
         vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {
             Random& self = _CAST(Random&, args[0]);

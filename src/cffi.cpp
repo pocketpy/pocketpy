@@ -3,7 +3,7 @@
 namespace pkpy{
 
     void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){
+        vm->bind_func<2>(type, __new__, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
             return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));

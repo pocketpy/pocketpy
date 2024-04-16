@@ -44,7 +44,6 @@ The features marked with `YES` are supported, and the features marked with `NO` 
 + `__iter__`
 + `__next__`
 + `__neg__`
-+ `__bool__` (unused)
 
 #### Logical operators
 

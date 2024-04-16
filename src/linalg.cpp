@@ -264,7 +264,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Mat3x3)
 
-        vm->bind_constructor<-1>(type, [](VM* vm, ArgsView args){
+        vm->bind_func<-1>(type, __new__, [](VM* vm, ArgsView args){
             if(args.size() == 1+0) return vm->heap.gcnew<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
             if(args.size() == 1+1){
                 const List& list = CAST(List&, args[1]);
