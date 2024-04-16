@@ -1204,14 +1204,15 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     return f_obj;
 }
 
-PyObject* VM::bind_property(PyObject* obj, Str name, NativeFuncC fget, NativeFuncC fset){
+PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, NativeFuncC fset){
     PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
     PyObject* _1 = vm->None;
     if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-    int pos = name.index(":");
-    if(pos > 0) name = name.substr(0, pos).strip();
+    std::string_view name_sv(name);
+    int pos = name_sv.find(':');
+    if(pos > 0) name_sv = name_sv.substr(0, pos);
     PyObject* prop = VAR(Property(_0, _1));
-    obj->attr().set(name, prop);
+    obj->attr().set(StrName(name_sv), prop);
     return prop;
 }
 
