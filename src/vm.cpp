@@ -1457,7 +1457,7 @@ void VM::_breakpoint(){
                     ss << PK_OBJ_GET(Function, frame->_callable).decl->code->name;
                 }
                 ss << '\n';
-                ss << frame->co->src->get_line(lineno) << '\n';
+                ss << "-> " << frame->co->src->get_line(lineno) << '\n';
                 stdout_write(ss.str());
             }
             show_headers = false;
