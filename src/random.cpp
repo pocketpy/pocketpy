@@ -109,9 +109,9 @@ struct mt19937{
 
     /* generates a random number on [a, b]-interval */
     int64_t randint(int64_t a, int64_t b){
-        uint32_t delta = b - a + 1;
+        uint64_t delta = b - a + 1;
         if(delta < 0x80000000UL){
-            return a + next_uint32() % delta;
+            return a + next_uint32() % (uint32_t)delta;
         }else{
             return a + next_uint64() % delta;
         }

@@ -54,5 +54,16 @@ for i in range(len(seq)):
     actual_w = res.count(seq[i]) / k
     assert abs(actual_w - weights[i]) < max_error
 
+# test seed
+from random import randint, seed
+seed(7)
+a = randint(1, 100)
+b = randint(-2**60, 1)
+c = randint(50, 100)
 
+assert (a, b, c) == (16, -418020281577586157, 76)
 
+seed(7)
+assert a == randint(1, 100)
+assert b == randint(-2**60, 1)
+assert c == randint(50, 100)
