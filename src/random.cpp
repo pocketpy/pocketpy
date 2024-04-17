@@ -1,13 +1,137 @@
 #include "pocketpy/random.h"
 
+/* https://github.com/clibs/mt19937ar
+
+Copyright (c) 2011 Mutsuo Saito, Makoto Matsumoto, Hiroshima
+University and The University of Tokyo. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+    * Neither the name of the Hiroshima University nor the names of
+      its contributors may be used to endorse or promote products
+      derived from this software without specific prior written
+      permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+struct mt19937{
+    static const int N = 624;
+    static const int M = 397;
+    const uint32_t MATRIX_A = 0x9908b0dfUL;   /* constant vector a */
+    const uint32_t UPPER_MASK = 0x80000000UL; /* most significant w-r bits */
+    const uint32_t LOWER_MASK = 0x7fffffffUL; /* least significant r bits */
+
+    uint32_t mt[N]; /* the array for the state vector  */
+    int mti=N+1; /* mti==N+1 means mt[N] is not initialized */
+
+    /* initializes mt[N] with a seed */
+    void seed(uint32_t s)
+    {
+        mt[0]= s & 0xffffffffUL;
+        for (mti=1; mti<N; mti++) {
+            mt[mti] = 
+            (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+            /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
+            /* In the previous versions, MSBs of the seed affect   */
+            /* only MSBs of the array mt[].                        */
+            /* 2002/01/09 modified by Makoto Matsumoto             */
+            mt[mti] &= 0xffffffffUL;
+            /* for >32 bit machines */
+        }
+    }
+
+    /* generates a random number on [0,0xffffffff]-interval */
+    uint32_t next_uint32(void)
+    {
+        uint32_t y;
+        static uint32_t mag01[2]={0x0UL, MATRIX_A};
+        /* mag01[x] = x * MATRIX_A  for x=0,1 */
+
+        if (mti >= N) { /* generate N words at one time */
+            int kk;
+
+            if (mti == N+1)   /* if init_genrand() has not been called, */
+                seed(5489UL); /* a default initial seed is used */
+
+            for (kk=0;kk<N-M;kk++) {
+                y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+                mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            }
+            for (;kk<N-1;kk++) {
+                y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+                mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            }
+            y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
+            mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
+
+            mti = 0;
+        }
+    
+        y = mt[mti++];
+
+        /* Tempering */
+        y ^= (y >> 11);
+        y ^= (y << 7) & 0x9d2c5680UL;
+        y ^= (y << 15) & 0xefc60000UL;
+        y ^= (y >> 18);
+
+        return y;
+    }
+
+    uint64_t next_uint64(void){
+        return (uint64_t(next_uint32()) << 32) | next_uint32();
+    }
+
+    /* generates a random number on [0,1)-real-interval */
+    float random(void)
+    {
+        return next_uint32()*(1.0/4294967296.0); /* divided by 2^32 */
+    }
+
+    /* generates a random number on [a, b]-interval */
+    int64_t randint(int64_t a, int64_t b){
+        uint32_t delta = b - a + 1;
+        if(delta < 0x80000000UL){
+            return a + next_uint32() % delta;
+        }else{
+            return a + next_uint64() % delta;
+        }
+    }
+
+    float uniform(float a, float b){
+        return a + random() * (b - a);
+    }
+};
+
+
 namespace pkpy{
 
 struct Random{
     PY_CLASS(Random, random, Random)
-    std::mt19937 gen;
+    mt19937 gen;
 
     Random(){
-        gen.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+        auto count = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        gen.seed((uint32_t)count);
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
@@ -17,51 +141,52 @@ struct Random{
         });
 
         vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             self.gen.seed(CAST(i64, args[1]));
             return vm->None;
         });
 
         vm->bind_method<2>(type, "randint", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             i64 a = CAST(i64, args[1]);
             i64 b = CAST(i64, args[2]);
             if (a > b) vm->ValueError("randint(a, b): a must be less than or equal to b");
-            std::uniform_int_distribution<i64> dis(a, b);
-            return VAR(dis(self.gen));
+            return VAR(self.gen.randint(a, b));
         });
 
         vm->bind_method<0>(type, "random", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
-            std::uniform_real_distribution<f64> dis(0.0, 1.0);
-            return VAR(dis(self.gen));
+            Random& self = PK_OBJ_GET(Random, args[0]);
+            return VAR(self.gen.random());
         });
 
         vm->bind_method<2>(type, "uniform", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             f64 a = CAST(f64, args[1]);
             f64 b = CAST(f64, args[2]);
-            std::uniform_real_distribution<f64> dis(a, b);
-            return VAR(dis(self.gen));
+            if (a > b) std::swap(a, b);
+            return VAR(self.gen.uniform(a, b));
         });
 
         vm->bind_method<1>(type, "shuffle", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             List& L = CAST(List&, args[1]);
-            std::shuffle(L.begin(), L.end(), self.gen);
+            for(int i = L.size() - 1; i > 0; i--){
+                int j = self.gen.randint(0, i);
+                std::swap(L[i], L[j]);
+            }
             return vm->None;
         });
 
         vm->bind_method<1>(type, "choice", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             auto [data, size] = vm->_cast_array(args[1]);
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
-            std::uniform_int_distribution<i64> dis(0, size - 1);
-            return data[dis(self.gen)];
+            int index = self.gen.randint(0, size-1);
+            return data[index];
         });
 
         vm->bind(type, "choices(self, population, weights=None, k=1)", [](VM* vm, ArgsView args) {
-            Random& self = _CAST(Random&, args[0]);
+            Random& self = PK_OBJ_GET(Random, args[0]);
             auto [data, size] = vm->_cast_array(args[1]);
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
             pod_vector<f64> cum_weights(size);
@@ -79,7 +204,7 @@ struct Random{
             int k = CAST(i64, args[3]);
             List result(k);
             for(int i = 0; i < k; i++){
-                f64 r = std::uniform_real_distribution<f64>(0.0, cum_weights[size - 1])(self.gen);
+                f64 r = self.gen.uniform(0.0, cum_weights[size - 1]);
                 int idx = std::lower_bound(cum_weights.begin(), cum_weights.end(), r) - cum_weights.begin();
                 result[i] = data[idx];
             }
