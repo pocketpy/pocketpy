@@ -194,7 +194,7 @@ void init_builtins(VM* _vm) {
             Frame* frame = vm->top_frame();
             return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
         }
-        vm->check_type(globals, vm->tp_mappingproxy);
+        vm->check_type(globals, VM::tp_mappingproxy);
         PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
         return vm->_exec(code, obj);
     });
@@ -207,7 +207,7 @@ void init_builtins(VM* _vm) {
             vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
             return vm->None;
         }
-        vm->check_type(globals, vm->tp_mappingproxy);
+        vm->check_type(globals, VM::tp_mappingproxy);
         PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
         vm->_exec(code, obj);
         return vm->None;
@@ -1228,7 +1228,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__eq__(VM::tp_mappingproxy, [](VM* vm, PyObject* _0, PyObject* _1){
         const MappingProxy& a = _CAST(MappingProxy&, _0);
-        if(!is_type(_1, vm->tp_mappingproxy)) return vm->NotImplemented;
+        if(!is_type(_1, VM::tp_mappingproxy)) return vm->NotImplemented;
         const MappingProxy& b = _CAST(MappingProxy&, _1);
         return VAR(a.obj == b.obj);
     });
@@ -1278,7 +1278,7 @@ void init_builtins(VM* _vm) {
         return vm->heap.gcnew<Dict>(cls_t, vm);
     });
 
-    _vm->bind_method<-1>(VM::tp_dict, "__init__", [](VM* vm, ArgsView args){
+    _vm->bind_method<-1>(VM::tp_dict, __init__, [](VM* vm, ArgsView args){
         if(args.size() == 1+0) return vm->None;
         if(args.size() == 1+1){
             auto _lock = vm->heap.gc_scope_lock();
