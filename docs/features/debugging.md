@@ -15,5 +15,7 @@ The following commands are supported:
 + `w, where`: show current stack frame
 + `c, continue`: continue execution
 + `a, args`: show local variables
++ `l, list`: show lines around current line
++ `ll, longlist`: show all lines
 + `p, print <expr>`: evaluate expression
 + `!, execute statement`: execute statement
