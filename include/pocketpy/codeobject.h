@@ -196,10 +196,6 @@ struct Py_<Function> final: PyObject {
         _value.decl->_gc_mark();
         if(_value._closure != nullptr) gc_mark_namedict(*_value._closure);
     }
-
-    void* _value_ptr() override {
-        return &_value;
-    }
 };
 
 template<>
@@ -213,9 +209,6 @@ struct Py_<NativeFunc> final: PyObject {
         if(_value.decl != nullptr){
             _value.decl->_gc_mark();
         }
-    }
-    void* _value_ptr() override {
-        return &_value;
     }
 };
 
