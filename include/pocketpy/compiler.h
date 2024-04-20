@@ -19,7 +19,7 @@ struct PrattRule{
 class Compiler {
     PK_ALWAYS_PASS_BY_POINTER(Compiler)
 
-    inline static PrattRule rules[kTokenCount];
+    static PrattRule rules[kTokenCount];
 
     Lexer lexer;
     stack_no_copy<CodeEmitContext> contexts;

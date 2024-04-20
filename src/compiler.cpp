@@ -1,6 +1,7 @@
 #include "pocketpy/compiler.h"
 
 namespace pkpy{
+    PrattRule Compiler::rules[kTokenCount];
 
     NameScope Compiler::name_scope() const {
         auto s = contexts.size()>1 ? NAME_LOCAL : NAME_GLOBAL;

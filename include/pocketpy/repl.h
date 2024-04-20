@@ -1,6 +1,5 @@
 #pragma once
 
-#include "compiler.h"
 #include "vm.h"
 
 namespace pkpy{
