@@ -1,5 +1,11 @@
 #include "pocketpy/vm.h"
 
+static const char* OP_NAMES[] = {
+    #define OPCODE(name) #name,
+    #include "pocketpy/opcodes.h"
+    #undef OPCODE
+};
+
 namespace pkpy{
 
     struct JsonSerializer{

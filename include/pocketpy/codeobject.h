@@ -13,12 +13,6 @@ enum Opcode: uint8_t {
     #undef OPCODE
 };
 
-inline const char* OP_NAMES[] = {
-    #define OPCODE(name) #name,
-    #include "opcodes.h"
-    #undef OPCODE
-};
-
 struct Bytecode{
     uint8_t op;
     uint16_t arg;
