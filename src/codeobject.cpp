@@ -24,7 +24,12 @@ namespace pkpy{
         this->decl = decl;
     }
 
-    PyObject* const PY_NULL = (PyObject*)new int(0);
-    PyObject* const PY_OP_CALL = (PyObject*)new int(1);
-    PyObject* const PY_OP_YIELD = (PyObject*)new int(2);
+    struct PySignalObject: PyObject {
+        PySignalObject() : PyObject(0) { gc_enabled = false; }
+        void _obj_gc_mark() override {}
+    };
+
+    PyObject* const PY_NULL = new PySignalObject();
+    PyObject* const PY_OP_CALL = new PySignalObject();
+    PyObject* const PY_OP_YIELD = new PySignalObject();
 }   // namespace pkpy
