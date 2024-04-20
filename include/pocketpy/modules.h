@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bindings.h"
 
 namespace pkpy{

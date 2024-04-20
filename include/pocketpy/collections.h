@@ -1,11 +1,6 @@
 #pragma once
 
-#include "obj.h"
-#include "common.h"
-#include "memory.h"
-#include "str.h"
-#include "iter.h"
-#include "cffi.h"
+#include "bindings.h"
 
 namespace pkpy
 {
