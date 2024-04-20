@@ -23,4 +23,8 @@ namespace pkpy{
         this->argc = -1;
         this->decl = decl;
     }
+
+    PyObject* const PY_NULL = (PyObject*)new int(0);
+    PyObject* const PY_OP_CALL = (PyObject*)new int(1);
+    PyObject* const PY_OP_YIELD = (PyObject*)new int(2);
 }   // namespace pkpy

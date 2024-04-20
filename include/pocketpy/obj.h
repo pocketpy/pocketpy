@@ -122,17 +122,6 @@ struct PyObject{
     }
 };
 
-struct PySignalObject: PyObject {
-    PySignalObject() : PyObject(0) {
-        gc_enabled = false;
-    }
-    void _obj_gc_mark() override {}
-};
-
-inline PyObject* const PY_NULL = new PySignalObject();
-inline PyObject* const PY_OP_CALL = new PySignalObject();
-inline PyObject* const PY_OP_YIELD = new PySignalObject();
-
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
@@ -348,5 +337,9 @@ struct Py_<DummyModule> final: PyObject {
     }
     void _obj_gc_mark() override {}
 };
+
+extern PyObject* const PY_NULL;
+extern PyObject* const PY_OP_CALL;
+extern PyObject* const PY_OP_YIELD;
 
 }   // namespace pkpy
