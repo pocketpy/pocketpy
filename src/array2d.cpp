@@ -286,7 +286,7 @@ struct Array2d{
                         new_array._set(i, j, VAR(count));
                     }
                 }
-            }else if(neighborhood == "von_neumann"){
+            }else if(neighborhood == "von Neumann"){
                 for(int j = 0; j < new_array.n_rows; j++){
                     for(int i = 0; i < new_array.n_cols; i++){
                         int count = 0;
