@@ -264,14 +264,14 @@ struct Array2d{
             return vm->True;
         });
 
-        vm->bind(type, "count_neighbors(self, value, neighborhood='moore') -> array2d[int]", [](VM* vm, ArgsView args){
+        vm->bind(type, "count_neighbors(self, value, neighborhood='Moore') -> array2d[int]", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
             Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
             new_array.init(self.n_cols, self.n_rows);
             PyObject* value = args[1];
             const Str& neighborhood = CAST(Str&, args[2]);
-            if(neighborhood == "moore"){
+            if(neighborhood == "Moore"){
                 for(int j = 0; j < new_array.n_rows; j++){
                     for(int i = 0; i < new_array.n_cols; i++){
                         int count = 0;
@@ -298,7 +298,7 @@ struct Array2d{
                     }
                 }
             }else{
-                vm->ValueError("neighborhood must be 'moore' or 'von_neumann'");
+                vm->ValueError("neighborhood must be 'Moore' or 'von Neumann'");
             }
             return new_array_obj; 
         });

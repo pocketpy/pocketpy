@@ -2,7 +2,7 @@ from typing import Callable, Any, Generic, TypeVar, Literal, overload
 
 T = TypeVar('T')
 
-Neighborhood = Literal['moore', 'von_neumann']
+Neighborhood = Literal['Moore', 'von Neumann']
 
 class array2d(Generic[T]):
     def __init__(self, n_cols: int, n_rows: int, default=None): ...
@@ -44,7 +44,7 @@ class array2d(Generic[T]):
     def count(self, value: T) -> int:
         """Counts the number of cells with the given value."""
 
-    def count_neighbors(self, value: T, neighborhood: Neighborhood = 'moore') -> 'array2d[int]':
+    def count_neighbors(self, value: T, neighborhood: Neighborhood = 'Moore') -> 'array2d[int]':
         """Counts the number of neighbors with the given value for each cell."""
 
     def find_bounding_rect(self, value: T) -> tuple[int, int, int, int] | None:
