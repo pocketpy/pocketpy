@@ -86,9 +86,8 @@ namespace pkpy{
     }
 
     int CodeEmitContext::emit_int(i64 value, int line){
-        bool allow_neg_int = is_negative_shift_well_defined() || value >= 0;
-        if(allow_neg_int && value >= -5 && value <= 16){
-            uint8_t op = OP_LOAD_INT_NEG_5 + (uint8_t)value + 5;
+        if(value >= 0 && value <= 16){
+            uint8_t op = OP_LOAD_INT_0 + (uint8_t)value;
             return emit_((Opcode)op, BC_NOARG, line);
         }else{
             return emit_(OP_LOAD_CONST, add_const(VAR(value)), line);
