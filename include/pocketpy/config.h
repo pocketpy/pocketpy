@@ -1,11 +1,5 @@
 #pragma once
 
-#ifdef PK_USER_CONFIG_H
-
-#include "user_config.h"
-
-#else
-
 /*************** feature settings ***************/
 
 // Whether to compile os-related modules or not
@@ -83,7 +77,4 @@
 #define PK_UNREACHABLE()			__assume(0);
 #else
 #define PK_UNREACHABLE()			__builtin_unreachable();
-#endif
-
-
 #endif
