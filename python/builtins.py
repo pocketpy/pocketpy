@@ -1,36 +1,36 @@
-import sys as _sys
-import operator as _operator
+from operator import lt as __operator_lt
+from operator import gt as __operator_gt
+from __builtins import next as __builtins_next
 
-def print(*args, sep=' ', end='\n'):
-    s = sep.join([str(i) for i in args])
-    _sys.stdout.write(s + end)
-
-def _minmax_reduce(op, args, key):
-    if key is None: 
+def __minmax_reduce(op, args, key):
+    if key is None:
         if len(args) == 2:
             return args[0] if op(args[0], args[1]) else args[1]
-        key = lambda x: x
     if len(args) == 0:
         raise TypeError('expected 1 arguments, got 0')
     if len(args) == 1:
         args = args[0]
     args = iter(args)
-    res = next(args)
+    res = __builtins_next(args)
     if res is StopIteration:
         raise ValueError('args is an empty sequence')
     while True:
-        i = next(args)
+        i = __builtins_next(args)
         if i is StopIteration:
             break
-        if op(key(i), key(res)):
-            res = i
+        if key is None:
+            if op(i, res):
+                res = i
+        else:
+            if op(key(i), key(res)):
+                res = i
     return res
 
 def min(*args, key=None):
-    return _minmax_reduce(_operator.lt, args, key)
+    return __minmax_reduce(__operator_lt, args, key)
 
 def max(*args, key=None):
-    return _minmax_reduce(_operator.gt, args, key)
+    return __minmax_reduce(__operator_gt, args, key)
 
 def all(iterable):
     for i in iterable:
@@ -69,8 +69,8 @@ def zip(a, b):
     a = iter(a)
     b = iter(b)
     while True:
-        ai = next(a)
-        bi = next(b)
+        ai = __builtins_next(a)
+        bi = __builtins_next(b)
         if ai is StopIteration or bi is StopIteration:
             break
         yield ai, bi

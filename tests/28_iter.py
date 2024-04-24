@@ -1,3 +1,5 @@
+from __builtins import next
+
 a = [1, 2, 3]
 a = iter(a)
 
@@ -37,14 +39,9 @@ assert next(i) == 5
 assert next(i) == StopIteration
 assert next(i) == StopIteration
 
-import builtins
+# test normal next
+from builtins import next
 
-def next(obj):
-    res = builtins.next(obj)
-    if res is StopIteration:
-        raise StopIteration
-    return res
-    
 a = iter([1])
 assert next(a) == 1
 

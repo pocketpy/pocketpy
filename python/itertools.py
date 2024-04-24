@@ -1,3 +1,5 @@
+from __builtins import next
+
 def zip_longest(a, b):
     a = iter(a)
     b = iter(b)

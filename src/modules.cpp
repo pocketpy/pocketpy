@@ -337,4 +337,20 @@ void add_module_enum(VM* vm){
         };
 }
 
+void add_module___builtins(VM* vm){
+    PyObject* mod = vm->new_module("__builtins");
+
+    vm->bind_func<1>(mod, "next", [](VM* vm, ArgsView args){
+        return vm->py_next(args[0]);
+    });
+
+    vm->bind_func<1>(mod, "_enable_instance_dict", [](VM* vm, ArgsView args){
+        PyObject* self = args[0];
+        if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
+        if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
+        self->_enable_instance_dict();
+        return vm->None;
+    });
+}
+
 }   // namespace pkpy

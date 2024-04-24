@@ -7,10 +7,12 @@ def Counter(iterable):
             a[x] = 1
     return a
 
+from __builtins import _enable_instance_dict
+
 class defaultdict(dict):
     def __init__(self, default_factory, *args):
         super().__init__(*args)
-        self._enable_instance_dict()
+        _enable_instance_dict(self)
         self.default_factory = default_factory
 
     def __missing__(self, key):

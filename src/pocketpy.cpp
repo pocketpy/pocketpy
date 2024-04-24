@@ -297,7 +297,9 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<1>(_vm->builtins, "next", [](VM* vm, ArgsView args) {
-        return vm->py_next(args[0]);
+        PyObject* retval = vm->py_next(args[0]);
+        if(retval == vm->StopIteration) vm->_error(vm->call(vm->StopIteration));
+        return retval;
     });
 
     _vm->bind_func<1>(_vm->builtins, "bin", [](VM* vm, ArgsView args) {
@@ -348,18 +350,6 @@ void init_builtins(VM* _vm) {
         vm->check_type(args[0], vm->tp_type);
         Type t = PK_OBJ_GET(Type, args[0]);
         return vm->heap.gcnew<DummyInstance>(t);
-    });
-
-    _vm->bind_method<0>(VM::tp_object, "_enable_instance_dict", [](VM* vm, ArgsView args){
-        PyObject* self = args[0];
-        if(is_tagged(self)){
-            vm->TypeError("object: tagged object cannot enable instance dict");
-        }
-        if(self->is_attr_valid()){
-            vm->TypeError("object: instance dict is already enabled");
-        }
-        self->_enable_instance_dict();
-        return vm->None;
     });
 
     // tp_type
@@ -1588,6 +1578,21 @@ void VM::post_init(){
         return VAR(MappingProxy(args[0]));
     });
 
+    bind(builtins, "print(*args, sep=' ', end='\\n')", [](VM* vm, ArgsView args) {
+        const Tuple& _0 = CAST(Tuple&, args[0]);
+        const Str& _1 = CAST(Str&, args[1]);
+        const Str& _2 = CAST(Str&, args[2]);
+        SStream ss;
+        for(int i=0; i<_0.size(); i++){
+            ss << CAST(Str&, vm->py_str(_0[i]));
+            if(i != _0.size()-1) ss << _1;
+        }
+        ss << _2;
+        vm->stdout_write(ss.str());
+        return vm->None;
+    });
+
+    add_module___builtins(vm);
     add_module_sys(this);
     add_module_traceback(this);
     add_module_time(this);
@@ -1599,7 +1604,7 @@ void VM::post_init(){
     add_module_random(this);
     add_module_base64(this);
     add_module_operator(this);
-
+    
     _lazy_modules["this"] = kPythonLibs_this;
     _lazy_modules["functools"] = kPythonLibs_functools;
     _lazy_modules["heapq"] = kPythonLibs_heapq;

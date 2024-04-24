@@ -11,7 +11,7 @@ pkpy is licensed under the [MIT License](http://opensource.org/licenses/MIT).
 ```
 MIT License
 
-Copyright (c) 2023 blueloveTH
+Copyright (c) 2024 blueloveTH
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

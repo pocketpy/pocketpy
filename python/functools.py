@@ -1,3 +1,5 @@
+from __builtins import next
+
 class cache:
     def __init__(self, f):
         self.f = f

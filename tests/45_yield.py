@@ -64,7 +64,11 @@ try:
 except ValueError:
     pass
 
-assert next(t) == StopIteration
+try:
+    next(t)
+    exit(1)
+except StopIteration:
+    pass
 
 def f():
     yield 1
