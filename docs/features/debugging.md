@@ -3,8 +3,11 @@ icon: dot
 title: Debugging
 ---
 
-After `v1.4.5`, you can invoke `breakpoint()` in your python code
-to start a PDB-like session.
+!!!
+This feature is available in `v1.4.5` or higher.
+!!!
+
+You can invoke `breakpoint()` in your python code to start a PDB-like session.
 
 The following commands are supported:
 

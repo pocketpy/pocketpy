@@ -5,10 +5,6 @@ title: Goto Statement
 
 pkpy supports goto/label just like C. You are allowed to **change the control flow unconditionally**.
 
-!!!
-This feature is stable after v1.2.2.
-!!!
-
 ## Define a label
 
 ```

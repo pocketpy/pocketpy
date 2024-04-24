@@ -8,11 +8,6 @@ Unlike cpython, pkpy's `int` is of limited precision (64-bit).
 For arbitrary sized integers, we provide a builtin `long` type, just like python2's `long`.
 `long` is implemented via pure python in [_long.py](https://github.com/pocketpy/pocketpy/blob/main/python/_long.py).
 
-!!!
-This feature is still under development.
-Some operations are missing, and some operations are not optimized.
-!!!
-
 ### Create a long object
 
 You can use `L` suffix to create a `long` literal from a decimal literal.
