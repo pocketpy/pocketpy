@@ -24,8 +24,7 @@ void some_func(VM* vm){
 }
 ```
 
-Because users can have an overload of `__str__`, the call process is unsafe.
-
+Because users can have an overload of `__str__`, this call is unsafe.
 When the vm is running python-level bytecodes, gc may start and delete your temporary object.
 
 The scope lock prevents this from happening.

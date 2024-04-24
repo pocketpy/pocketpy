@@ -27,8 +27,7 @@ print(test.pi)  # 3.14
 A native module is a module written in c++ or mixed c++/python.
 Native modules are always compiled and executed when the VM is created.
 
-To creata a native module,
-use `vm->new_module(Str name)`.
+To creata a native module, use `vm->new_module(Str name)`.
 
 ```cpp
 PyObject* mod = vm->new_module("test");
