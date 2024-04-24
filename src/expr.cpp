@@ -397,7 +397,7 @@ namespace pkpy{
         int for_codei = ctx->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
-        PK_ASSERT(ok);  // TODO: raise a SyntaxError instead
+        if(!ok) throw std::runtime_error("SyntaxError");
         ctx->try_merge_for_iter_store(for_codei);
         if(cond){
             cond->emit_(ctx);

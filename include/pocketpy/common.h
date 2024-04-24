@@ -117,6 +117,12 @@ struct Type {
 
 #define PK_ASSERT(x) if(!(x)) PK_FATAL_ERROR();
 
+#if PK_DEBUG_EXTRA_CHECK
+#define PK_DEBUG_ASSERT(x) if(!(x)) PK_FATAL_ERROR();
+#else
+#define PK_DEBUG_ASSERT(x)
+#endif
+
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<i64>(p))
 #define PK_SMALL_INT(val) (reinterpret_cast<PyObject*>(val << 2 | 0b10))

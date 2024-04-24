@@ -136,9 +136,7 @@ struct UserData{
     T get() const{
         static_assert(std::is_trivially_copyable_v<T>);
         static_assert(sizeof(T) <= sizeof(data));
-#if PK_DEBUG_EXTRA_CHECK
-        PK_ASSERT(!empty);
-#endif
+        PK_DEBUG_ASSERT(!empty);
         return reinterpret_cast<const T&>(data);
     }
 };

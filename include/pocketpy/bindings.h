@@ -16,7 +16,7 @@ struct NativeProxyFuncC final: NativeProxyFuncCBase {
     NativeProxyFuncC(_Fp func) : func(func) {}
 
     PyObject* operator()(VM* vm, ArgsView args) override {
-        PK_ASSERT(args.size() == N);
+        PK_DEBUG_ASSERT(args.size() == N);
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 
@@ -40,7 +40,7 @@ struct NativeProxyMethodC final: NativeProxyFuncCBase {
     NativeProxyMethodC(_Fp func) : func(func) {}
 
     PyObject* operator()(VM* vm, ArgsView args) override {
-        PK_ASSERT(args.size() == N+1);
+        PK_DEBUG_ASSERT(args.size() == N+1);
         return call<Ret>(vm, args, std::make_index_sequence<N>());
     }
 

@@ -100,8 +100,16 @@ struct PyObject{
     NameDict* _attr;
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
-    NameDict& attr() { return *_attr; }
-    PyObject* attr(StrName name) const { return (*_attr)[name]; }
+
+    NameDict& attr() {
+        PK_DEBUG_ASSERT(is_attr_valid())
+        return *_attr;
+    }
+
+    PyObject* attr(StrName name) const {
+        PK_DEBUG_ASSERT(is_attr_valid())
+        return (*_attr)[name];
+    }
 
     virtual void _obj_gc_mark() = 0;
 
@@ -132,9 +140,7 @@ inline bool is_float(PyObject* p) noexcept { return !is_tagged(p) && p->type.ind
 inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
 
 inline bool is_type(PyObject* obj, Type type) {
-#if PK_DEBUG_EXTRA_CHECK
-    if(obj == nullptr) throw std::runtime_error("is_type() called with nullptr");
-#endif
+    PK_DEBUG_ASSERT(obj != nullptr)
     return is_small_int(obj) ? type.index == kTpIntIndex : obj->type == type;
 }
 

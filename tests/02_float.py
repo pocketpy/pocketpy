@@ -90,3 +90,8 @@ assert -2e-3j == -0.002j
 assert 3.4e-3 == 0.0034
 assert 3.4e+3 == 3400.0
 
+try:
+    float('-x13')
+    exit(1)
+except ValueError:
+    pass

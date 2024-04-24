@@ -953,9 +953,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         // [type, NULL, args..., kwargs...]
         PyObject* new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyObject* obj;
-#if PK_DEBUG_EXTRA_CHECK
-        PK_ASSERT(new_f != nullptr && !method_call);
-#endif
+        PK_DEBUG_ASSERT(new_f != nullptr && !method_call);
         if(new_f == cached_object__new__) {
             // fast path for object.__new__
             obj = vm->heap.gcnew<DummyInstance>(PK_OBJ_GET(Type, callable));
