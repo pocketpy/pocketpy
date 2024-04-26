@@ -1283,13 +1283,14 @@ void init_builtins(VM* _vm) {
                 for(PyObject* item : list){
                     Tuple& t = CAST(Tuple&, item);
                     if(t.size() != 2){
-                        vm->ValueError("dict() takes an iterable of tuples (key, value)");
+                        vm->ValueError("dict() takes a list of tuples (key, value)");
                         return vm->None;
                     }
                     self.set(t[0], t[1]);
                 }
+                return vm->None;
             }
-            return vm->None;
+            vm->TypeError("dict() takes a dictionary or a list of tuples");
         }
         vm->TypeError("dict() takes at most 1 argument");
         PK_UNREACHABLE()
