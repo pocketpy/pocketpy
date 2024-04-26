@@ -386,7 +386,7 @@ namespace pkpy
     PyDeque::PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen)
     {
 
-        if (!vm->py_eq(maxlen, vm->None)) // fix the maxlen first
+        if (maxlen != vm->None) // fix the maxlen first
         {
             int tmp = CAST(int, maxlen);
             if (tmp < 0)
@@ -402,7 +402,7 @@ namespace pkpy
             this->bounded = false;
             this->maxlen = -1;
         }
-        if (!vm->py_eq(iterable, vm->None))
+        if (iterable != vm->None)
         {
             this->dequeItems.clear();              // clear the deque
             auto _lock = vm->heap.gc_scope_lock(); // locking the heap

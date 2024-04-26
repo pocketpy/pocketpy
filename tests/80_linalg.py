@@ -349,8 +349,8 @@ assert test_mat_copy == test_mat.transpose()
 assert test_mat_copy.transpose() == test_mat_copy.transpose().transpose().transpose()
 
 # test inverse
-assert ~static_test_mat_float == static_test_mat_float_inv == static_test_mat_float.invert()
-assert static_test_mat_float.invert_() is None
+assert ~static_test_mat_float == static_test_mat_float_inv == static_test_mat_float.inverse()
+assert static_test_mat_float.inverse_() is None
 assert static_test_mat_float == static_test_mat_float_inv
 
 try:
@@ -437,6 +437,11 @@ test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
 test_vec2_copy = test_vec2.copy()
 temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
+
+# test inverse_transform_point
+assert test_mat_copy.inverse_transform_point(test_vec2_copy) == test_mat_copy.inverse().transform_point(test_vec2_copy)
+# test inverse_transform_vector
+assert test_mat_copy.inverse_transform_vector(test_vec2_copy) == test_mat_copy.inverse().transform_vector(test_vec2_copy)
 
 import c
 a = vec2(1, 2)

@@ -405,24 +405,21 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind__invert__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             Mat3x3& self = _CAST(Mat3x3&, obj);
             Mat3x3 ret;
-            bool ok = self.inverse(ret);
-            if(!ok) vm->ValueError("matrix is not invertible");
+            if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
             return VAR_T(Mat3x3, ret);
         });
 
-        vm->bind_method<0>(type, "invert", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "inverse", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Mat3x3 ret;
-            bool ok = self.inverse(ret);
-            if(!ok) vm->ValueError("matrix is not invertible");
+            if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
             return VAR_T(Mat3x3, ret);
         });
 
-        vm->bind_method<0>(type, "invert_", [](VM* vm, ArgsView args){
+        vm->bind_method<0>(type, "inverse_", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Mat3x3 ret;
-            bool ok = self.inverse(ret);
-            if(!ok) vm->ValueError("matrix is not invertible");
+            if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
             self = ret;
             return vm->None;
         });
@@ -510,14 +507,32 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind_method<1>(type, "transform_point", [](VM* vm, ArgsView args){
             const Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Vec2 v = CAST(Vec2, args[1]);
-            Vec2 res = Vec2(self._11 * v.x + self._12 * v.y + self._13, self._21 * v.x + self._22 * v.y + self._23);
+            Vec2 res(self._11 * v.x + self._12 * v.y + self._13, self._21 * v.x + self._22 * v.y + self._23);
+            return VAR_T(Vec2, res);
+        });
+
+        vm->bind_method<1>(type, "inverse_transform_point", [](VM* vm, ArgsView args){
+            const Mat3x3& self = _CAST(Mat3x3&, args[0]);
+            Vec2 v = CAST(Vec2, args[1]);
+            Mat3x3 inv;
+            if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
+            Vec2 res(inv._11 * v.x + inv._12 * v.y + inv._13, inv._21 * v.x + inv._22 * v.y + inv._23);
             return VAR_T(Vec2, res);
         });
 
         vm->bind_method<1>(type, "transform_vector", [](VM* vm, ArgsView args){
             const Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Vec2 v = CAST(Vec2, args[1]);
-            Vec2 res = Vec2(self._11 * v.x + self._12 * v.y, self._21 * v.x + self._22 * v.y);
+            Vec2 res(self._11 * v.x + self._12 * v.y, self._21 * v.x + self._22 * v.y);
+            return VAR_T(Vec2, res);
+        });
+
+        vm->bind_method<1>(type, "inverse_transform_vector", [](VM* vm, ArgsView args){
+            const Mat3x3& self = _CAST(Mat3x3&, args[0]);
+            Vec2 v = CAST(Vec2, args[1]);
+            Mat3x3 inv;
+            if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
+            Vec2 res(inv._11 * v.x + inv._12 * v.y, inv._21 * v.x + inv._22 * v.y);
             return VAR_T(Vec2, res);
         });
     }
