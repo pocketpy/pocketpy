@@ -141,7 +141,7 @@ Access extended python types
 
 ```cpp
 // VoidP was defined by `PY_CLASS` macro
-PyObject* voidp_t = VoidP::_type(vm);
+Type voidp_t = VoidP::_type(vm);
 ```
 
 Check if an object is a python type
@@ -161,9 +161,9 @@ PyObject* t = vm->_t(obj);      // <class 'int'>
 Convert a type object into a type index
 
 ```cpp
-PyObject* int_t = vm->_t(vm->tp_int);
+PyObject* int_t = vm->_t(VM::tp_int);
 Type t = PK_OBJ_GET(Type, int_t);
-// t == vm->tp_int
+// t == VM::tp_int
 ```
 
 ## Access attributes
@@ -238,21 +238,21 @@ Convert a python object to string
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-PyObject* s = vm->py_str(obj);  // 123
+obj = vm->py_str(obj);  // 123
 ```
 
 Get the string representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, "123");
-std::cout << vm->py_repr(obj);  // '123'
+obj = vm->py_repr(obj); // "'123'"
 ```
 
 Get the JSON representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-std::cout << vm->py_json(obj);  // "123"
+obj = vm->py_json(obj); // "123"
 ```
 
 Get the hash value of a python object
@@ -275,6 +275,8 @@ Get the next item of an iterator
 PyObject* obj = vm->py_next(iter);
 if(obj == vm->StopIteration){
     // end of iteration
+}else{
+    // process obj
 }
 ```
 
@@ -291,16 +293,6 @@ Bind a native function
 
 ```cpp
 vm->bind(obj, "add(a: int, b: int) -> int", [](VM* vm, ArgsView args){
-    int a = py_cast<int>(vm, args[0]);
-    int b = py_cast<int>(vm, args[1]);
-    return py_var(vm, a + b);
-});
-
-// Bind a native function with docstring
-
-vm->bind(obj,
-    "add(a: int, b: int) -> int",
-    "add two integers", [](VM* vm, ArgsView args){
     int a = py_cast<int>(vm, args[0]);
     int b = py_cast<int>(vm, args[1]);
     return py_var(vm, a + b);
