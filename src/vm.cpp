@@ -598,7 +598,7 @@ Str VM::disassemble(CodeObject_ co){
 
     pod_vector<int> jumpTargets;
     for(auto byte : co->codes){
-        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP){
+        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP || byte.op == OP_LOOP_CONTINUE){
             jumpTargets.push_back(byte.arg);
         }
         if(byte.op == OP_GOTO){
@@ -1419,6 +1419,7 @@ void NativeFunc::check_size(VM* vm, ArgsView args) const{
     }
 }
 
+#if PK_ENABLE_PROFILER
 void NextBreakpoint::_step(VM* vm){
     int curr_callstack_size = vm->callstack.size();
     int curr_lineno = vm->top_frame()->curr_lineno();
@@ -1435,6 +1436,7 @@ void NextBreakpoint::_step(VM* vm){
         }
     }
 }
+#endif
 
 void VM::_breakpoint(){
 #if PK_ENABLE_PROFILER

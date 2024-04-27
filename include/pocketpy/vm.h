@@ -29,6 +29,7 @@ namespace pkpy{
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
 
+#if PK_ENABLE_PROFILER
 struct NextBreakpoint{
     int callstack_size;
     int lineno;
@@ -38,6 +39,7 @@ struct NextBreakpoint{
     void _step(VM* vm);
     bool empty() const { return callstack_size == 0; }
 };
+#endif
 
 struct PyTypeInfo{
     PyObject* obj;      // never be garbage collected
