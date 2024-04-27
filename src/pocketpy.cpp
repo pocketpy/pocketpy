@@ -73,7 +73,9 @@ void init_builtins(VM* _vm) {
 
     // builtin functions
     _vm->bind_func<0>(_vm->builtins, "breakpoint", [](VM* vm, ArgsView args) {
+#if PK_ENABLE_PROFILER
         vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), vm->top_frame()->curr_lineno(), false);
+#endif
         return vm->None;
     });
 

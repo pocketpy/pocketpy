@@ -72,12 +72,17 @@ PyObject* VM::_run_top_frame(){
  */
 {
 
+
+#if PK_ENABLE_PROFILER
 #define CEVAL_STEP_CALLBACK() \
     if(_ceval_on_step) _ceval_on_step(this, frame, byte);   \
     if(_profiler) _profiler->_step(callstack.size(), frame);        \
     if(!_next_breakpoint.empty()) { _next_breakpoint._step(this); }
+#else
+#define CEVAL_STEP_CALLBACK() \
+    if(_ceval_on_step) _ceval_on_step(this, frame, byte);
+#endif
 
-#define DISPATCH_OP_CALL() { frame = top_frame(); goto __NEXT_FRAME; }
 __NEXT_FRAME:
     // cache
     const CodeObject* co = frame->co;
@@ -639,7 +644,10 @@ __NEXT_STEP:;
             (byte.arg>>8) & 0xFF,     // KWARGC
             true
         );
-        if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
+        if(_0 == PY_OP_CALL){
+            frame = top_frame();
+            goto __NEXT_FRAME;
+        }
         PUSH(_0);
     } DISPATCH();
     TARGET(CALL_TP){
@@ -671,7 +679,10 @@ __NEXT_STEP:;
                 true
             );
         }
-        if(_0 == PY_OP_CALL) DISPATCH_OP_CALL();
+        if(_0 == PY_OP_CALL){
+            frame = top_frame();
+            goto __NEXT_FRAME;
+        }
         PUSH(_0);
     } DISPATCH();
     TARGET(RETURN_VALUE){
@@ -931,13 +942,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     }
-
 }
-
-#undef DISPATCH
-#undef TARGET
-#undef DISPATCH_OP_CALL
-#undef CEVAL_STEP_CALLBACK
 /**********************************************************************/
             PK_UNREACHABLE()
         }catch(HandledException){
@@ -970,6 +975,6 @@ __NEXT_STEP:;
 
 #undef DISPATCH
 #undef TARGET
-#undef DISPATCH_OP_CALL
+#undef CEVAL_STEP_CALLBACK
 
 } // namespace pkpy

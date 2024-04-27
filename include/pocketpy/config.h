@@ -13,6 +13,11 @@
 #define PK_ENABLE_THREAD            0
 #endif
 
+// Enable `line_profiler` module and `breakpoint()` function
+#ifndef PK_ENABLE_PROFILER          // can be overridden by cmake
+#define PK_ENABLE_PROFILER          0
+#endif
+
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
 #define PK_GC_MIN_THRESHOLD         32768

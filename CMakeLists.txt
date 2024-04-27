@@ -29,6 +29,11 @@ if(PK_ENABLE_OS)
     add_definitions(-DPK_ENABLE_OS=1)
 endif()
 
+option(PK_ENABLE_PROFILER "" OFF)
+if(PK_ENABLE_PROFILER)
+    add_definitions(-DPK_ENABLE_PROFILER=1)
+endif()
+
 option(PK_NO_EXPORT_C_API "" OFF)
 if(PK_NO_EXPORT_C_API)
     add_definitions(-DPK_NO_EXPORT_C_API)

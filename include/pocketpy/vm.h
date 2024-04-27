@@ -139,8 +139,10 @@ public:
 
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
+#if PK_ENABLE_PROFILER
     LineProfiler* _profiler = nullptr;
     NextBreakpoint _next_breakpoint;
+#endif
 
     PrintFunc _stdout;
     PrintFunc _stderr;
@@ -173,10 +175,12 @@ public:
     void _pop_frame(){
         s_data.reset(callstack.top()._sp_base);
         callstack.pop();
-        
+
+#if PK_ENABLE_PROFILER
         if(!_next_breakpoint.empty() && callstack.size()<_next_breakpoint.callstack_size){
             _next_breakpoint = NextBreakpoint();
         }
+#endif
     }
 
     PyObject* py_str(PyObject* obj);

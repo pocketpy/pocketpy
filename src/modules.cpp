@@ -250,6 +250,43 @@ void add_module_gc(VM* vm){
     vm->bind_func<0>(mod, "collect", PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
+void add_module_enum(VM* vm){
+    PyObject* mod = vm->new_module("enum");
+    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
+    vm->_exec(code, mod);
+    PyObject* Enum = mod->attr("Enum");
+    vm->_all_types[PK_OBJ_GET(Type, Enum).index].on_end_subclass = \
+        [](VM* vm, PyTypeInfo* new_ti){
+            new_ti->subclass_enabled = false;    // Enum class cannot be subclassed twice
+            NameDict& attr = new_ti->obj->attr();
+            for(auto [k, v]: attr.items()){
+                // wrap every attribute
+                std::string_view k_sv = k.sv();
+                if(k_sv.empty() || k_sv[0] == '_') continue;
+                attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
+            }
+        };
+}
+
+void add_module___builtins(VM* vm){
+    PyObject* mod = vm->new_module("__builtins");
+
+    vm->bind_func<1>(mod, "next", [](VM* vm, ArgsView args){
+        return vm->py_next(args[0]);
+    });
+
+    vm->bind_func<1>(mod, "_enable_instance_dict", [](VM* vm, ArgsView args){
+        PyObject* self = args[0];
+        if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
+        if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
+        self->_enable_instance_dict();
+        return vm->None;
+    });
+}
+
+
+/************************************************/
+#if PK_ENABLE_PROFILER
 struct LineProfilerW;
 struct _LpGuard{
     PK_ALWAYS_PASS_BY_POINTER(_LpGuard)
@@ -317,40 +354,10 @@ void add_module_line_profiler(VM *vm){
     PyObject* mod = vm->new_module("line_profiler");
     LineProfilerW::register_class(vm, mod);
 }
-
-
-void add_module_enum(VM* vm){
-    PyObject* mod = vm->new_module("enum");
-    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
-    vm->_exec(code, mod);
-    PyObject* Enum = mod->attr("Enum");
-    vm->_all_types[PK_OBJ_GET(Type, Enum).index].on_end_subclass = \
-        [](VM* vm, PyTypeInfo* new_ti){
-            new_ti->subclass_enabled = false;    // Enum class cannot be subclassed twice
-            NameDict& attr = new_ti->obj->attr();
-            for(auto [k, v]: attr.items()){
-                // wrap every attribute
-                std::string_view k_sv = k.sv();
-                if(k_sv.empty() || k_sv[0] == '_') continue;
-                attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
-            }
-        };
+#else
+void add_module_line_profiler(VM* vm){
+    (void)vm;
 }
-
-void add_module___builtins(VM* vm){
-    PyObject* mod = vm->new_module("__builtins");
-
-    vm->bind_func<1>(mod, "next", [](VM* vm, ArgsView args){
-        return vm->py_next(args[0]);
-    });
-
-    vm->bind_func<1>(mod, "_enable_instance_dict", [](VM* vm, ArgsView args){
-        PyObject* self = args[0];
-        if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
-        if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
-        self->_enable_instance_dict();
-        return vm->None;
-    });
-}
+#endif
 
 }   // namespace pkpy

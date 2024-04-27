@@ -3,7 +3,9 @@ icon: package
 label: line_profiler
 ---
 
-Line-by-line profiler for Python.
+!!!
+This module is optional. Set `PK_ENABLE_PROFILER` to `1` to enable it.
+!!!
 
 ## Example
 

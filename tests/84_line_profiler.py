@@ -1,4 +1,8 @@
-from line_profiler import LineProfiler
+try:
+    from line_profiler import LineProfiler
+    print('[INFO] line_profiler is used')
+except ImportError:
+    exit(0)
 
 def f2(x):
     a = 0

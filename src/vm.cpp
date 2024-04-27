@@ -1437,6 +1437,7 @@ void NextBreakpoint::_step(VM* vm){
 }
 
 void VM::_breakpoint(){
+#if PK_ENABLE_PROFILER
     _next_breakpoint = NextBreakpoint();
 
     bool show_where = false;
@@ -1569,6 +1570,7 @@ void VM::_breakpoint(){
             continue;
         }
     }
+#endif
 }
 
 }   // namespace pkpy
