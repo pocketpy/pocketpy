@@ -229,6 +229,16 @@ struct Array2d{
             return vm->None;
         });
 
+        vm->bind(type, "indexed_apply_(self, f)", [](VM* vm, ArgsView args){
+            Array2d& self = PK_OBJ_GET(Array2d, args[0]);
+            PyObject* f = args[1];
+            for(int i = 0; i < self.numel; i++){
+                std::div_t res = std::div(i, self.n_cols);
+                self.data[i] = vm->call(f, VAR(res.rem), VAR(res.quot), self.data[i]);
+            }
+            return vm->None;
+        });
+
         vm->bind(type, "copy_(self, other)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             if(is_type(args[1], VM::tp_list)){
