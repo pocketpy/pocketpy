@@ -181,7 +181,7 @@ struct Array2d{
 
         vm->bind__len__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
-            return (i64)self.n_rows;
+            return (i64)self.numel;
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
@@ -354,10 +354,38 @@ struct Array2d{
     }
 };
 
+
+struct Array2dIter{
+    PY_CLASS(Array2dIter, array2d, _array2d_iterator)
+    PyObject* ref;
+    int i;
+    Array2dIter(PyObject* ref) : ref(ref), i(0) {}
+
+    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
+        vm->bind_notimplemented_constructor<Array2dIter>(type);
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+            Array2dIter& self = _CAST(Array2dIter&, obj);
+            Array2d& a = PK_OBJ_GET(Array2d, self.ref);
+            if(self.i == a.numel) return vm->StopIteration;
+            std::div_t res = std::div(self.i, a.n_cols);
+            return VAR(Tuple(VAR(res.rem), VAR(res.quot), a.data[self.i++]));
+        });
+    }
+};
+
 void add_module_array2d(VM* vm){
     PyObject* mod = vm->new_module("array2d");
 
     Array2d::register_class(vm, mod);
+    Array2dIter::register_class(vm, mod);
+
+    vm->bind__iter__(Array2d::_type(vm), [](VM* vm, PyObject* obj){
+        return VAR_T(Array2dIter, obj);
+    });
 }
 
 

@@ -53,7 +53,7 @@ a_list = [[5, 0], [0, 0], [0, 0], [0, 6]]
 assert a_list == a.tolist()
 
 # test __len__
-assert len(a) == 4
+assert len(a) == 4*2
 
 # test __eq__
 x = array2d(2, 4, default=0)
@@ -172,3 +172,8 @@ a.indexed_apply_(lambda x, y, val: x+y)
 assert a[0, 0] == 0
 assert a[1, 2] == 3
 assert a[2, 0] == 2
+
+for i, j, x in a:
+    assert a[i, j] == x
+
+assert len(a) == a.numel
