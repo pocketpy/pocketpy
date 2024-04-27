@@ -356,7 +356,9 @@ struct Array2d{
 
 
 struct Array2dIter{
+    PK_ALWAYS_PASS_BY_POINTER(Array2dIter)
     PY_CLASS(Array2dIter, array2d, _array2d_iterator)
+    
     PyObject* ref;
     int i;
     Array2dIter(PyObject* ref) : ref(ref), i(0) {}
@@ -366,9 +368,9 @@ struct Array2dIter{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Array2dIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            Array2dIter& self = _CAST(Array2dIter&, obj);
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) { return _0; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+            Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
             Array2d& a = PK_OBJ_GET(Array2d, self.ref);
             if(self.i == a.numel) return vm->StopIteration;
             std::div_t res = std::div(self.i, a.n_cols);

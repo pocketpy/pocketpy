@@ -5,9 +5,9 @@ namespace pkpy{
     void RangeIter::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<RangeIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            RangeIter& self = PK_OBJ_GET(RangeIter, obj);
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+            RangeIter& self = PK_OBJ_GET(RangeIter, _0);
             if(self.r.step > 0){
                 if(self.current >= self.r.stop) return vm->StopIteration;
             }else{
@@ -22,9 +22,9 @@ namespace pkpy{
     void ArrayIter::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<ArrayIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            ArrayIter& self = _CAST(ArrayIter&, obj);
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+            ArrayIter& self = _CAST(ArrayIter&, _0);
             if(self.current == self.end) return vm->StopIteration;
             return *self.current++;
         });
@@ -33,9 +33,9 @@ namespace pkpy{
     void StringIter::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){ return obj; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
-            StringIter& self = _CAST(StringIter&, obj);
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+            StringIter& self = _CAST(StringIter&, _0);
             if(self.index == self.str->size) return vm->StopIteration;
             int start = self.index;
             int len = utf8len(self.str->data[self.index]);
