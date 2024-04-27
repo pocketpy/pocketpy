@@ -9,6 +9,10 @@ namespace pkpy{
         return true;
     }
 
+    inline bool is_small_int(i64 value){
+        return value >= 0 && value < 1024;
+    }
+
     int CodeEmitContext::get_loop() const {
         int index = curr_block_i;
         while(index >= 0){
@@ -86,7 +90,7 @@ namespace pkpy{
     }
 
     int CodeEmitContext::emit_int(i64 value, int line){
-        if(value >= 0 && value < 1024){
+        if(is_small_int(value)){
             value = (value << 2) | 0b10;
             return emit_(OP_LOAD_SMALL_INT, (uint16_t)value, line);
         }else{
@@ -536,10 +540,13 @@ namespace pkpy{
     void SubscrExpr::emit_(CodeEmitContext* ctx){
         a->emit_(ctx);
         b->emit_(ctx);
-        if(b->is_name() && ctx->co->codes.back().op == OP_LOAD_FAST){
-            auto arg = ctx->co->codes.back().arg;
+        Bytecode last_bc = ctx->co->codes.back();
+        if(b->is_name() && last_bc.op == OP_LOAD_FAST){
             ctx->revert_last_emit_();
-            ctx->emit_(OP_LOAD_SUBSCR_FAST, arg, line);
+            ctx->emit_(OP_LOAD_SUBSCR_FAST, last_bc.arg, line);
+        }else if(b->is_literal() && last_bc.op == OP_LOAD_SMALL_INT){
+            ctx->revert_last_emit_();
+            ctx->emit_(OP_LOAD_SUBSCR_SMALL_INT, last_bc.arg, line);
         }else{
             ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
         }
@@ -548,10 +555,10 @@ namespace pkpy{
     bool SubscrExpr::emit_store(CodeEmitContext* ctx){
         a->emit_(ctx);
         b->emit_(ctx);
-        if(b->is_name() && ctx->co->codes.back().op == OP_LOAD_FAST){
-            auto arg = ctx->co->codes.back().arg;
+        Bytecode last_bc = ctx->co->codes.back();
+        if(b->is_name() && last_bc.op == OP_LOAD_FAST){
             ctx->revert_last_emit_();
-            ctx->emit_(OP_STORE_SUBSCR_FAST, arg, line);
+            ctx->emit_(OP_STORE_SUBSCR_FAST, last_bc.arg, line);
         }else{
             ctx->emit_(OP_STORE_SUBSCR, BC_NOARG, line);
         }

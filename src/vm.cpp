@@ -584,7 +584,7 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
         case OP_LOAD_FUNCTION:
             argStr += _S(" (", co->func_decls[byte.arg]->code->name, ")").sv();
             break;
-        case OP_LOAD_SMALL_INT:
+        case OP_LOAD_SMALL_INT: case OP_LOAD_SUBSCR_SMALL_INT:
             argStr += _S(" (", (int)(byte.arg >> 2), ")").sv();
     }
     return argStr;

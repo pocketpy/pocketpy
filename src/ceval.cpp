@@ -215,6 +215,16 @@ __NEXT_STEP:;
             TOP() = call_method(_0, __getitem__, _1);
         }
     } DISPATCH();
+    TARGET(LOAD_SUBSCR_SMALL_INT){
+        PyObject* _1 = (PyObject*)(uintptr_t)byte.arg;
+        PyObject* _0 = TOP();     // a
+        auto _ti = _inst_type_info(_0);
+        if(_ti->m__getitem__){
+            TOP() = _ti->m__getitem__(this, _0, _1);
+        }else{
+            TOP() = call_method(_0, __getitem__, _1);
+        }
+    } DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
