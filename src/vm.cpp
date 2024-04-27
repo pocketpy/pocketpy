@@ -577,12 +577,15 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
         case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR: case OP_FOR_ITER_STORE_GLOBAL:
             argStr += _S(" (", StrName(byte.arg).sv(), ")").sv();
             break;
-        case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST: case OP_FOR_ITER_STORE_FAST:
+        case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST:
+        case OP_FOR_ITER_STORE_FAST: case OP_LOAD_SUBSCR_FAST: case OP_STORE_SUBSCR_FAST:
             argStr += _S(" (", co->varnames[byte.arg].sv(), ")").sv();
             break;
         case OP_LOAD_FUNCTION:
             argStr += _S(" (", co->func_decls[byte.arg]->code->name, ")").sv();
             break;
+        case OP_LOAD_SMALL_INT:
+            argStr += _S(" (", (int)(byte.arg >> 2), ")").sv();
     }
     return argStr;
 }

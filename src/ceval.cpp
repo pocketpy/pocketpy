@@ -10,7 +10,7 @@ namespace pkpy{
 
 #define PREDICT_INT_DIV_OP(op)  \
     if(is_small_int(_0) && is_small_int(_1)){   \
-        if(_1 == PK_SMALL_INT(0)) ZeroDivisionError();   \
+        if(_1 == (PyObject*)0b10) ZeroDivisionError();   \
         TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
         DISPATCH() \
     }
@@ -112,30 +112,13 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(LOAD_CONST)
-        if(heap._should_auto_collect()) heap._auto_collect();
         PUSH(co->consts[byte.arg]);
         DISPATCH();
     TARGET(LOAD_NONE)       PUSH(None); DISPATCH();
     TARGET(LOAD_TRUE)       PUSH(True); DISPATCH();
     TARGET(LOAD_FALSE)      PUSH(False); DISPATCH();
     /*****************************************/
-    TARGET(LOAD_INT_0)      PUSH(PK_SMALL_INT(0)); DISPATCH();
-    TARGET(LOAD_INT_1)      PUSH(PK_SMALL_INT(1)); DISPATCH();
-    TARGET(LOAD_INT_2)      PUSH(PK_SMALL_INT(2)); DISPATCH();
-    TARGET(LOAD_INT_3)      PUSH(PK_SMALL_INT(3)); DISPATCH();
-    TARGET(LOAD_INT_4)      PUSH(PK_SMALL_INT(4)); DISPATCH();
-    TARGET(LOAD_INT_5)      PUSH(PK_SMALL_INT(5)); DISPATCH();
-    TARGET(LOAD_INT_6)      PUSH(PK_SMALL_INT(6)); DISPATCH();
-    TARGET(LOAD_INT_7)      PUSH(PK_SMALL_INT(7)); DISPATCH();
-    TARGET(LOAD_INT_8)      PUSH(PK_SMALL_INT(8)); DISPATCH();
-    TARGET(LOAD_INT_9)      PUSH(PK_SMALL_INT(9)); DISPATCH();
-    TARGET(LOAD_INT_10)     PUSH(PK_SMALL_INT(10)); DISPATCH();
-    TARGET(LOAD_INT_11)     PUSH(PK_SMALL_INT(11)); DISPATCH();
-    TARGET(LOAD_INT_12)     PUSH(PK_SMALL_INT(12)); DISPATCH();
-    TARGET(LOAD_INT_13)     PUSH(PK_SMALL_INT(13)); DISPATCH();
-    TARGET(LOAD_INT_14)     PUSH(PK_SMALL_INT(14)); DISPATCH();
-    TARGET(LOAD_INT_15)     PUSH(PK_SMALL_INT(15)); DISPATCH();
-    TARGET(LOAD_INT_16)     PUSH(PK_SMALL_INT(16)); DISPATCH();
+    TARGET(LOAD_SMALL_INT)  PUSH((PyObject*)(uintptr_t)byte.arg); DISPATCH();
     /*****************************************/
     TARGET(LOAD_ELLIPSIS)   PUSH(Ellipsis); DISPATCH();
     TARGET(LOAD_FUNCTION) {
@@ -153,7 +136,6 @@ __NEXT_STEP:;
     TARGET(LOAD_NULL) PUSH(PY_NULL); DISPATCH();
     /*****************************************/
     TARGET(LOAD_FAST) {
-        if(heap._should_auto_collect()) heap._auto_collect();
         PyObject* _0 = frame->_locals[byte.arg];
         if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PUSH(_0);
@@ -175,7 +157,6 @@ __NEXT_STEP:;
         vm->NameError(_name);
     } DISPATCH();
     TARGET(LOAD_NONLOCAL) {
-        if(heap._should_auto_collect()) heap._auto_collect();
         StrName _name(byte.arg);
         PyObject* _0 = frame->f_closure_try_get(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -186,7 +167,6 @@ __NEXT_STEP:;
         vm->NameError(_name);
     } DISPATCH();
     TARGET(LOAD_GLOBAL){
-        if(heap._should_auto_collect()) heap._auto_collect();
         StrName _name(byte.arg);
         PyObject* _0 = frame->f_globals().try_get_likely_found(_name);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
@@ -224,6 +204,17 @@ __NEXT_STEP:;
             TOP() = call_method(_0, __getitem__, _1);
         }
     } DISPATCH();
+    TARGET(LOAD_SUBSCR_FAST){
+        PyObject* _1 = frame->_locals[byte.arg];
+        if(_1 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
+        PyObject* _0 = TOP();     // a
+        auto _ti = _inst_type_info(_0);
+        if(_ti->m__getitem__){
+            TOP() = _ti->m__getitem__(this, _0, _1);
+        }else{
+            TOP() = call_method(_0, __getitem__, _1);
+        }
+    } DISPATCH();
     TARGET(STORE_FAST)
         frame->_locals[byte.arg] = POPX();
         DISPATCH();
@@ -249,6 +240,18 @@ __NEXT_STEP:;
     } DISPATCH();
     TARGET(STORE_SUBSCR){
         PyObject* _2 = POPX();        // b
+        PyObject* _1 = POPX();        // a
+        PyObject* _0 = POPX();        // val
+        auto _ti = _inst_type_info(_1);
+        if(_ti->m__setitem__){
+            _ti->m__setitem__(this, _1, _2, _0);
+        }else{
+            call_method(_1, __setitem__, _2, _0);
+        }
+    }DISPATCH();
+    TARGET(STORE_SUBSCR_FAST){
+        PyObject* _2 = frame->_locals[byte.arg];    // b
+        if(_2 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PyObject* _1 = POPX();        // a
         PyObject* _0 = POPX();        // val
         auto _ti = _inst_type_info(_1);
@@ -620,6 +623,7 @@ __NEXT_STEP:;
         TOP() = py_repr(TOP());
         DISPATCH();
     TARGET(CALL){
+        if(heap._should_auto_collect()) heap._auto_collect();
         PyObject* _0 = vectorcall(
             byte.arg & 0xFF,          // ARGC
             (byte.arg>>8) & 0xFF,     // KWARGC
@@ -629,6 +633,7 @@ __NEXT_STEP:;
         PUSH(_0);
     } DISPATCH();
     TARGET(CALL_TP){
+        if(heap._should_auto_collect()) heap._auto_collect();
         PyObject* _0;
         PyObject* _1;
         PyObject* _2;
@@ -772,14 +777,25 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE){
-        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-        PyObject* _0 = py_iter(POPX());
-        for(int i=0; i<byte.arg; i++){
-            PyObject* _1 = py_next(_0);
-            if(_1 == StopIteration) ValueError("not enough values to unpack");
-            PUSH(_1);
+        PyObject* _0 = POPX();
+        if(is_type(_0, VM::tp_tuple)){
+            // fast path for tuple
+            Tuple& tuple = PK_OBJ_GET(Tuple, _0);
+            if(tuple.size() == byte.arg){
+                for(PyObject* obj: tuple) PUSH(obj);
+            }else{
+                ValueError(_S("expected ", (int)byte.arg, " values to unpack, got ", (int)tuple.size()));
+            }
+        }else{
+            auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+            _0 = py_iter(_0);
+            for(int i=0; i<byte.arg; i++){
+                PyObject* _1 = py_next(_0);
+                if(_1 == StopIteration) ValueError("not enough values to unpack");
+                PUSH(_1);
+            }
+            if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
         }
-        if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
     } DISPATCH();
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!

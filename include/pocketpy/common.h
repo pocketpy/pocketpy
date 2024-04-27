@@ -125,7 +125,6 @@ struct Type {
 
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<i64>(p))
-#define PK_SMALL_INT(val) (reinterpret_cast<PyObject*>(val << 2 | 0b10))
 
 // is_pod<> for c++17 and c++20
 template<typename T>

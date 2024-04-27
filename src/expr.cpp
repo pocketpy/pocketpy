@@ -86,9 +86,9 @@ namespace pkpy{
     }
 
     int CodeEmitContext::emit_int(i64 value, int line){
-        if(value >= 0 && value <= 16){
-            uint8_t op = OP_LOAD_INT_0 + (uint8_t)value;
-            return emit_((Opcode)op, BC_NOARG, line);
+        if(value >= 0 && value < 1024){
+            value = (value << 2) | 0b10;
+            return emit_(OP_LOAD_SMALL_INT, (uint16_t)value, line);
         }else{
             return emit_(OP_LOAD_CONST, add_const(VAR(value)), line);
         }
@@ -359,8 +359,7 @@ namespace pkpy{
             Bytecode& prev = ctx->co->codes.back();
             if(prev.op == OP_BUILD_TUPLE && prev.arg == items.size()){
                 // build tuple and unpack it is meaningless
-                prev.op = OP_NO_OP;
-                prev.arg = BC_NOARG;
+                ctx->revert_last_emit_();
             }else{
                 ctx->emit_(OP_UNPACK_SEQUENCE, items.size(), line);
             }
@@ -537,20 +536,32 @@ namespace pkpy{
     void SubscrExpr::emit_(CodeEmitContext* ctx){
         a->emit_(ctx);
         b->emit_(ctx);
-        ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
+        if(b->is_name() && ctx->co->codes.back().op == OP_LOAD_FAST){
+            auto arg = ctx->co->codes.back().arg;
+            ctx->revert_last_emit_();
+            ctx->emit_(OP_LOAD_SUBSCR_FAST, arg, line);
+        }else{
+            ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
+        }
+    }
+
+    bool SubscrExpr::emit_store(CodeEmitContext* ctx){
+        a->emit_(ctx);
+        b->emit_(ctx);
+        if(b->is_name() && ctx->co->codes.back().op == OP_LOAD_FAST){
+            auto arg = ctx->co->codes.back().arg;
+            ctx->revert_last_emit_();
+            ctx->emit_(OP_STORE_SUBSCR_FAST, arg, line);
+        }else{
+            ctx->emit_(OP_STORE_SUBSCR, BC_NOARG, line);
+        }
+        return true;
     }
 
     bool SubscrExpr::emit_del(CodeEmitContext* ctx){
         a->emit_(ctx);
         b->emit_(ctx);
         ctx->emit_(OP_DELETE_SUBSCR, BC_NOARG, line);
-        return true;
-    }
-
-    bool SubscrExpr::emit_store(CodeEmitContext* ctx){
-        a->emit_(ctx);
-        b->emit_(ctx);
-        ctx->emit_(OP_STORE_SUBSCR, BC_NOARG, line);
         return true;
     }
 

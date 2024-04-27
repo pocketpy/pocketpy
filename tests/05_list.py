@@ -129,3 +129,6 @@ try:
     exit(1)
 except ValueError:
     pass
+
+a, b = [1, 2]
+assert a == 1 and b == 2
