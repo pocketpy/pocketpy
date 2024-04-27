@@ -177,3 +177,23 @@ for i, j, x in a:
     assert a[i, j] == x
 
 assert len(a) == a.numel
+
+# stackoverflow bug due to recursive mark-and-sweep
+# class Cell:
+#     neighbors: list['Cell']
+
+# cells: array2d[Cell] = array2d(192, 108, default=Cell)
+# OutOfBounds = Cell()
+# for x, y, cell in cells:
+#     cell.neighbors = [
+#         cells.get(x-1, y-1, OutOfBounds),
+#         cells.get(x  , y-1, OutOfBounds),
+#         cells.get(x+1, y-1, OutOfBounds),
+#         cells.get(x-1, y  , OutOfBounds),
+#         cells.get(x+1, y  , OutOfBounds),
+#         cells.get(x  , y+1, OutOfBounds),
+#         cells.get(x+1, y+1, OutOfBounds),
+#     ]
+
+# import gc
+# gc.collect()

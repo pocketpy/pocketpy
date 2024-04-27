@@ -385,8 +385,8 @@ void add_module_array2d(VM* vm){
     Array2d::register_class(vm, mod);
     Array2dIter::register_class(vm, mod);
 
-    vm->bind__iter__(Array2d::_type(vm), [](VM* vm, PyObject* obj){
-        return VAR_T(Array2dIter, obj);
+    vm->bind__iter__(Array2d::_type(vm), [](VM* vm, PyObject* _0){
+        return VAR_T(Array2dIter, _0);
     });
 }
 
