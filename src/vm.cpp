@@ -169,7 +169,6 @@ namespace pkpy{
         }catch (const Exception& e){
             stderr_write(e.summary() + "\n");
         }
-#if !PK_DEBUG_FULL_EXCEPTION
         catch(const std::exception& e) {
             Str msg = "An std::exception occurred! It could be a bug.\n";
             msg = msg + e.what() + "\n";
@@ -182,7 +181,6 @@ namespace pkpy{
             Str msg = "An unknown exception occurred! It could be a bug. Please report it to @blueloveTH on GitHub.\n";
             stderr_write(msg);
         }
-#endif
         callstack.clear();
         s_data.clear();
         return nullptr;
