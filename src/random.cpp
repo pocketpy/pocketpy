@@ -201,7 +201,7 @@ struct Random{
                 }
             }
             if(cum_weights[size - 1] <= 0) vm->ValueError("total of weights must be greater than zero");
-            int k = CAST(i64, args[3]);
+            int k = CAST(int, args[3]);
             List result(k);
             for(int i = 0; i < k; i++){
                 f64 r = self.gen.uniform(0.0, cum_weights[size - 1]);
