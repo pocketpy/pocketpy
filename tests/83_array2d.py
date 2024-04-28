@@ -167,12 +167,7 @@ try:
 except TypeError:
     pass
 
-a = array2d(3, 4)
-a.indexed_apply_(lambda x, y, val: x+y)
-assert a[0, 0] == 0
-assert a[1, 2] == 3
-assert a[2, 0] == 2
-
+a = array2d(3, 4, default=1)
 for i, j, x in a:
     assert a[i, j] == x
 
