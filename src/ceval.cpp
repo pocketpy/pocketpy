@@ -35,6 +35,28 @@ namespace pkpy{
         }
 
 
+void VM::_op_unpack_sequence(uint16_t arg){
+    PyObject* _0 = POPX();
+    if(is_type(_0, VM::tp_tuple)){
+        // fast path for tuple
+        Tuple& tuple = PK_OBJ_GET(Tuple, _0);
+        if(tuple.size() == arg){
+            for(PyObject* obj: tuple) PUSH(obj);
+        }else{
+            ValueError(_S("expected ", (int)arg, " values to unpack, got ", (int)tuple.size()));
+        }
+    }else{
+        auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
+        _0 = py_iter(_0);
+        for(int i=0; i<arg; i++){
+            PyObject* _1 = py_next(_0);
+            if(_1 == StopIteration) ValueError("not enough values to unpack");
+            PUSH(_1);
+        }
+        if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
+    }
+}
+
 bool VM::py_lt(PyObject* _0, PyObject* _1){
     BINARY_F_COMPARE(__lt__, "<", __gt__);
     return ret == True;
@@ -769,6 +791,32 @@ __NEXT_STEP:;
             frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
         }
     } DISPATCH()
+    TARGET(FOR_ITER_UNPACK){
+        PyObject* _0 = TOP();
+        const PyTypeInfo* _ti = _inst_type_info(_0);
+        if(_ti->m__next__unpack){
+            unsigned int n = _ti->m__next__unpack(this, _0);
+            if(n == 0){
+                // StopIteration
+                frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+            }else{
+                if(n != byte.arg){
+                    ValueError(_S("expected ", (int)byte.arg, " values to unpack, got ", (int)n));
+                }
+            }
+        }else{
+            // FOR_ITER
+            if(_ti->m__next__) _0 = _ti->m__next__(this, _0);
+            else _0 = call_method(_0, __next__);
+            if(_0 != StopIteration){
+                PUSH(_0);
+            }else{
+                frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+            }
+            // UNPACK_SEQUENCE
+            _op_unpack_sequence(byte.arg);
+        }
+    } DISPATCH()
     /*****************************************/
     TARGET(IMPORT_PATH){
         PyObject* _0 = co->consts[byte.arg];
@@ -798,25 +846,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     TARGET(UNPACK_SEQUENCE){
-        PyObject* _0 = POPX();
-        if(is_type(_0, VM::tp_tuple)){
-            // fast path for tuple
-            Tuple& tuple = PK_OBJ_GET(Tuple, _0);
-            if(tuple.size() == byte.arg){
-                for(PyObject* obj: tuple) PUSH(obj);
-            }else{
-                ValueError(_S("expected ", (int)byte.arg, " values to unpack, got ", (int)tuple.size()));
-            }
-        }else{
-            auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
-            _0 = py_iter(_0);
-            for(int i=0; i<byte.arg; i++){
-                PyObject* _1 = py_next(_0);
-                if(_1 == StopIteration) ValueError("not enough values to unpack");
-                PUSH(_1);
-            }
-            if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
-        }
+        _op_unpack_sequence(byte.arg);
     } DISPATCH();
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!

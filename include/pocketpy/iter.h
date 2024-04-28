@@ -32,13 +32,9 @@ struct ArrayIter{
 struct StringIter{
     PY_CLASS(StringIter, builtins, _string_iterator)
     PyObject* ref;
-    Str* str;
-    int index;      // byte index
-
-    StringIter(PyObject* ref) : ref(ref), str(&PK_OBJ_GET(Str, ref)), index(0) {}
-
+    int i;      // byte index
+    StringIter(PyObject* ref) : ref(ref), i(0) {}
     void _gc_mark() const{ PK_OBJ_MARK(ref); }
-
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
@@ -58,6 +54,17 @@ struct Generator{
     }
 
     PyObject* next(VM* vm);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
+};
+
+struct DictItemsIter{
+    PY_CLASS(DictItemsIter, builtins, _dict_items_iterator)
+    PyObject* ref;
+    int i;
+    DictItemsIter(PyObject* ref) : ref(ref) {
+        i = PK_OBJ_GET(Dict, ref)._head_idx;
+    }
+    void _gc_mark() const{ PK_OBJ_MARK(ref); }
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 

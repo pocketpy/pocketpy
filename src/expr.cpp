@@ -365,7 +365,12 @@ namespace pkpy{
                 // build tuple and unpack it is meaningless
                 ctx->revert_last_emit_();
             }else{
-                ctx->emit_(OP_UNPACK_SEQUENCE, items.size(), line);
+                if(prev.op == OP_FOR_ITER){
+                    prev.op = OP_FOR_ITER_UNPACK;
+                    prev.arg = items.size();
+                }else{
+                    ctx->emit_(OP_UNPACK_SEQUENCE, items.size(), line);
+                }
             }
         }else{
             // starred assignment target must be in a tuple

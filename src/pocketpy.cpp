@@ -1381,13 +1381,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>(VM::tp_dict, "items", [](VM* vm, ArgsView args) {
-        const Dict& self = _CAST(Dict&, args[0]);
-        Tuple items(self.size());
-        int j = 0;
-        self.apply([&](PyObject* k, PyObject* v){
-            items[j++] = VAR(Tuple(k, v));
-        });
-        return VAR(std::move(items));
+        return vm->heap.gcnew<DictItemsIter>(DictItemsIter::_type(vm), args[0]);
     });
 
     _vm->bind_method<1>(VM::tp_dict, "update", [](VM* vm, ArgsView args) {
@@ -1503,6 +1497,7 @@ void init_builtins(VM* _vm) {
     ArrayIter::register_class(_vm, _vm->builtins);
     StringIter::register_class(_vm, _vm->builtins);
     Generator::register_class(_vm, _vm->builtins);
+    DictItemsIter::register_class(_vm, _vm->builtins);
 }
 
 void VM::post_init(){

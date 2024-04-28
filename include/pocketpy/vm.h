@@ -58,6 +58,7 @@ struct PyTypeInfo{
     i64 (*m__len__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__next__)(VM* vm, PyObject*) = nullptr;
+    unsigned int (*m__next__unpack)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__neg__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__invert__)(VM* vm, PyObject*) = nullptr;
 
@@ -415,6 +416,7 @@ public:
     PyObject* _run_top_frame();
     void post_init();
     PyObject* _py_generator(Frame&& frame, ArgsView buffer);
+    void _op_unpack_sequence(uint16_t arg);
     void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
     // new style binding api
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
