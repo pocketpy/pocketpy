@@ -13,6 +13,8 @@ dict1 = {'user':'circle','num':[1,2,3]}
 dict2 = dict1.copy()
 for k,v in dict1.items():
     assert dict2[k] == v
+for t in dict1.items():
+    assert t == ('user', 'circle') or t == ('num', [1, 2, 3])
 
 tinydict = {'Name': 'circle', 'Age': 7}
 tinydict2 = {'Sex': 'female' }
