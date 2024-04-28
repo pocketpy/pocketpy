@@ -5,7 +5,7 @@
 
 namespace pkpy{
 
-template<typename T>
+template<typename T, int Growth=2>
 struct pod_vector{
     static constexpr int SizeT = sizeof(T);
     static constexpr int N = 64 / SizeT;
@@ -60,13 +60,13 @@ struct pod_vector{
 
     template<typename __ValueT>
     void push_back(__ValueT&& t) {
-        if (_size == _capacity) reserve(_capacity*2);
+        if (_size == _capacity) reserve(_capacity*Growth);
         _data[_size++] = std::forward<__ValueT>(t);
     }
 
     template<typename... Args>
     void emplace_back(Args&&... args) {
-        if (_size == _capacity) reserve(_capacity*2);
+        if (_size == _capacity) reserve(_capacity*Growth);
         new (&_data[_size++]) T(std::forward<Args>(args)...);
     }
 
@@ -110,7 +110,7 @@ struct pod_vector{
 
     template<typename __ValueT>
     void insert(int i, __ValueT&& val){
-        if (_size == _capacity) reserve(_capacity*2);
+        if (_size == _capacity) reserve(_capacity*Growth);
         for(int j=_size; j>i; j--) _data[j] = _data[j-1];
         _data[i] = std::forward<__ValueT>(val);
         _size++;

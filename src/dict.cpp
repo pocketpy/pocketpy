@@ -66,7 +66,7 @@ namespace pkpy{
         ItemNode* old_nodes = _nodes;
         int old_head_idx = _head_idx;
 
-        _capacity *= 2;
+        _capacity *= 4;
         _mask = _capacity - 1;
         _size = 0;
         _critical_size = _capacity*__LoadFactor+0.5f;

@@ -7,7 +7,7 @@
 
 namespace pkpy {
 
-using List = pod_vector<PyObject*>;
+using List = pod_vector<PyObject*, 4>;
 
 struct Tuple {
     PyObject** _args;
