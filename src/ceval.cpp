@@ -810,11 +810,11 @@ __NEXT_STEP:;
             else _0 = call_method(_0, __next__);
             if(_0 != StopIteration){
                 PUSH(_0);
+                // UNPACK_SEQUENCE
+                _op_unpack_sequence(byte.arg);
             }else{
                 frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
             }
-            // UNPACK_SEQUENCE
-            _op_unpack_sequence(byte.arg);
         }
     } DISPATCH()
     /*****************************************/
