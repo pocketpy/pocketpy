@@ -341,11 +341,6 @@ public:
         TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
     }
 
-    [[deprecated("use check_type() instead")]]
-    void check_non_tagged_type(PyObject* obj, Type type){
-        return check_type(obj, type);
-    }
-
     void check_compatible_type(PyObject* obj, Type type){
         if(isinstance(obj, type)) return;
         TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());

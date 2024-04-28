@@ -144,11 +144,6 @@ inline bool is_type(PyObject* obj, Type type) {
     return is_small_int(obj) ? type.index == kTpIntIndex : obj->type == type;
 }
 
-[[deprecated("use is_type() instead")]]
-inline bool is_non_tagged_type(PyObject* obj, Type type) {
-    return is_type(obj, type);
-}
-
 template <typename, typename=void> struct has_gc_marker : std::false_type {};
 template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {};
 
