@@ -253,6 +253,7 @@ public:
     void bind__str__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__iter__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__next__(Type type, unsigned (*f)(VM*, PyObject*));
+    [[deprecated]] void bind__next__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__neg__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__invert__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*));

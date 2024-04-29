@@ -1333,6 +1333,14 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
         PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
 
+    void VM::bind__next__(Type type, PyObject* (*f)(VM*, PyObject*)){
+        PyObject* nf = bind_method<0>(_t(type), __next__, [](VM* vm, ArgsView args){
+            auto f = lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args.begin());
+            return f(vm, args[0]);
+        });
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
+    }
+
 #define BIND_UNARY_SPECIAL(name)                                                        \
     void VM::bind##name(Type type, PyObject* (*f)(VM*, PyObject*)){                         \
         _all_types[type].m##name = f;                                                   \
