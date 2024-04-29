@@ -30,20 +30,20 @@ namespace pkpy
 
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
                          { return obj; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj) -> unsigned
                          {
             PyDequeIter& self = _CAST(PyDequeIter&, obj);
             if(self.is_reversed){
-                if(self.rcurrent == self.rend) return vm->StopIteration;
-                PyObject* ret = *self.rcurrent;
+                if(self.rcurrent == self.rend) return 0;
+                vm->s_data.push(*self.rcurrent);
                 ++self.rcurrent;
-                return ret;
+                return 1;
             }
             else{
-                if(self.current == self.end) return vm->StopIteration;
-                PyObject* ret = *self.current;
+                if(self.current == self.end) return 0;
+                vm->s_data.push(*self.current);
                 ++self.current;
-                return ret;
+                return 1;
             } });
     }
     struct PyDeque

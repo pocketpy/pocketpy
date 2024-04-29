@@ -252,7 +252,10 @@ namespace pkpy{
 
     PyObject* VM::py_next(PyObject* obj){
         const PyTypeInfo* ti = _inst_type_info(obj);
-        if(ti->m__next__) return ti->m__next__(this, obj);
+        if(ti->m__next__){
+            unsigned n = ti->m__next__(this, obj);
+            return _pack_next_retval(n);
+        }
         return call_method(obj, __next__);
     }
 
@@ -1312,6 +1315,24 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
     PK_OBJ_GET(NativeFunc, nf).set_userdata(f);
 }
 
+
+    PyObject* VM::_pack_next_retval(unsigned n){
+        if(n == 0) return StopIteration;
+        if(n == 1) return s_data.popx();
+        PyObject* retval = VAR(s_data.view(n).to_tuple());
+        s_data._sp -= n;
+        return retval;
+    }
+
+    void VM::bind__next__(Type type, unsigned (*f)(VM*, PyObject*)){                         \
+        _all_types[type].m__next__ = f;                                                   \
+        PyObject* nf = bind_method<0>(_t(type), __next__, [](VM* vm, ArgsView args){       \
+            int n = lambda_get_userdata<unsigned(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);\
+            return vm->_pack_next_retval(n);                                               \
+        });                                                                             \
+        PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
+    }
+
 #define BIND_UNARY_SPECIAL(name)                                                        \
     void VM::bind##name(Type type, PyObject* (*f)(VM*, PyObject*)){                         \
         _all_types[type].m##name = f;                                                   \
@@ -1324,7 +1345,6 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
     BIND_UNARY_SPECIAL(__repr__)
     BIND_UNARY_SPECIAL(__str__)
     BIND_UNARY_SPECIAL(__iter__)
-    BIND_UNARY_SPECIAL(__next__)
     BIND_UNARY_SPECIAL(__neg__)
     BIND_UNARY_SPECIAL(__invert__)
 #undef BIND_UNARY_SPECIAL

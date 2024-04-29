@@ -6,16 +6,16 @@ namespace pkpy{
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<RangeIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             RangeIter& self = PK_OBJ_GET(RangeIter, _0);
             if(self.r.step > 0){
-                if(self.current >= self.r.stop) return vm->StopIteration;
+                if(self.current >= self.r.stop) return 0;
             }else{
-                if(self.current <= self.r.stop) return vm->StopIteration;
+                if(self.current <= self.r.stop) return 0;
             }
-            PyObject* ret = VAR(self.current);
+            vm->s_data.push(VAR(self.current));
             self.current += self.r.step;
-            return ret;
+            return 1;
         });
     }
 
@@ -23,10 +23,11 @@ namespace pkpy{
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<ArrayIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             ArrayIter& self = _CAST(ArrayIter&, _0);
-            if(self.current == self.end) return vm->StopIteration;
-            return *self.current++;
+            if(self.current == self.end) return 0;
+            vm->s_data.push(*self.current++);
+            return 1;
         });
     }
 
@@ -34,14 +35,15 @@ namespace pkpy{
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             StringIter& self = _CAST(StringIter&, _0);
             Str& s = PK_OBJ_GET(Str, self.ref);
-            if(self.i == s.size) return vm->StopIteration;
+            if(self.i == s.size) return 0;
             int start = self.i;
             int len = utf8len(s.data[self.i]);
             self.i += len;
-            return VAR(s.substr(start, len));
+            vm->s_data.push(VAR(s.substr(start, len)));
+            return 1;
         });
     }
 
@@ -82,9 +84,12 @@ namespace pkpy{
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Generator>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             Generator& self = _CAST(Generator&, _0);
-            return self.next(vm);
+            PyObject* retval = self.next(vm);
+            if(retval == vm->StopIteration) return 0;
+            vm->s_data.push(retval);
+            return 1;
         });
     }
 
@@ -93,16 +98,7 @@ namespace pkpy{
         info.subclass_enabled = false;
         vm->bind_notimplemented_constructor<DictItemsIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
-            DictItemsIter& self = _CAST(DictItemsIter&, _0);
-            Dict& d = PK_OBJ_GET(Dict, self.ref);
-            if(self.i == -1) return vm->StopIteration;
-            PyObject* retval = VAR(Tuple(d._items[self.i].first, d._items[self.i].second));
-            self.i = d._nodes[self.i].next;
-            return retval;
-        });
-
-        info.m__next__unpack = [](VM* vm, PyObject* _0) -> unsigned int{
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             DictItemsIter& self = _CAST(DictItemsIter&, _0);
             Dict& d = PK_OBJ_GET(Dict, self.ref);
             if(self.i == -1) return 0;
@@ -110,7 +106,7 @@ namespace pkpy{
             vm->s_data.push(d._items[self.i].second);
             self.i = d._nodes[self.i].next;
             return 2;
-        };
+        });
     }
 
 PyObject* VM::_py_generator(Frame&& frame, ArgsView buffer){

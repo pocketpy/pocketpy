@@ -356,19 +356,10 @@ struct Array2dIter{
     void _gc_mark() const{ PK_OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, type)];
-        info.subclass_enabled = false;
+        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Array2dIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) { return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
-            Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
-            Array2d& a = PK_OBJ_GET(Array2d, self.ref);
-            if(self.i == a.numel) return vm->StopIteration;
-            std::div_t res = std::div(self.i, a.n_cols);
-            return VAR(Tuple(VAR(res.rem), VAR(res.quot), a.data[self.i++]));
-        });
-
-        info.m__next__unpack = [](VM* vm, PyObject* _0) -> unsigned int{
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
             Array2d& a = PK_OBJ_GET(Array2d, self.ref);
             if(self.i == a.numel) return 0;
@@ -377,7 +368,7 @@ struct Array2dIter{
             vm->s_data.push(VAR(res.quot));
             vm->s_data.push(a.data[self.i++]);
             return 3;
-        };
+        });
     }
 };
 

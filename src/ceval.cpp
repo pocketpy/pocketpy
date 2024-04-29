@@ -760,45 +760,45 @@ __NEXT_STEP:;
         DISPATCH();
     TARGET(FOR_ITER){
         PyObject* _0 = py_next(TOP());
-        if(_0 != StopIteration){
-            PUSH(_0);
-        }else{
-            frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
-        }
+        if(_0 == StopIteration) frame->loop_break(&s_data, co);
+        else PUSH(_0);
     } DISPATCH();
     TARGET(FOR_ITER_STORE_FAST){
         PyObject* _0 = py_next(TOP());
-        if(_0 != StopIteration){
-            frame->_locals[byte.arg] = _0;
+        if(_0 == StopIteration){
+            frame->loop_break(&s_data, co);
         }else{
-            frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+            frame->_locals[byte.arg] = _0;
         }
     } DISPATCH()
     TARGET(FOR_ITER_STORE_GLOBAL){
         PyObject* _0 = py_next(TOP());
-        if(_0 != StopIteration){
-            frame->f_globals().set(StrName(byte.arg), _0);
+        if(_0 == StopIteration){
+            frame->loop_break(&s_data, co);
         }else{
-            frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+            frame->f_globals().set(StrName(byte.arg), _0);
         }
     } DISPATCH()
     TARGET(FOR_ITER_YIELD_VALUE){
         PyObject* _0 = py_next(TOP());
-        if(_0 != StopIteration){
+        if(_0 == StopIteration){
+            frame->loop_break(&s_data, co);
+        }else{
             PUSH(_0);
             return PY_OP_YIELD;
-        }else{
-            frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
         }
     } DISPATCH()
     TARGET(FOR_ITER_UNPACK){
         PyObject* _0 = TOP();
         const PyTypeInfo* _ti = _inst_type_info(_0);
-        if(_ti->m__next__unpack){
-            unsigned int n = _ti->m__next__unpack(this, _0);
+        if(_ti->m__next__){
+            unsigned n = _ti->m__next__(this, _0);
             if(n == 0){
                 // StopIteration
-                frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+                frame->loop_break(&s_data, co);
+            }else if(n == 1){
+                // UNPACK_SEQUENCE
+                _op_unpack_sequence(byte.arg);
             }else{
                 if(n != byte.arg){
                     ValueError(_S("expected ", (int)byte.arg, " values to unpack, got ", (int)n));
@@ -806,14 +806,13 @@ __NEXT_STEP:;
             }
         }else{
             // FOR_ITER
-            if(_ti->m__next__) _0 = _ti->m__next__(this, _0);
-            else _0 = call_method(_0, __next__);
+            _0 = call_method(_0, __next__);
             if(_0 != StopIteration){
                 PUSH(_0);
                 // UNPACK_SEQUENCE
                 _op_unpack_sequence(byte.arg);
             }else{
-                frame->jump_abs_break(&s_data, co->_get_block_codei(frame->_ip).end);
+                frame->loop_break(&s_data, co);
             }
         }
     } DISPATCH()

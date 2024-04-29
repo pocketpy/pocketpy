@@ -57,8 +57,7 @@ struct PyTypeInfo{
     i64 (*m__hash__)(VM* vm, PyObject*) = nullptr;
     i64 (*m__len__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
-    PyObject* (*m__next__)(VM* vm, PyObject*) = nullptr;
-    unsigned int (*m__next__unpack)(VM* vm, PyObject*) = nullptr;
+    unsigned (*m__next__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__neg__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__invert__)(VM* vm, PyObject*) = nullptr;
 
@@ -253,7 +252,7 @@ public:
     void bind__repr__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__str__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__iter__(Type type, PyObject* (*f)(VM*, PyObject*));
-    void bind__next__(Type type, PyObject* (*f)(VM*, PyObject*));
+    void bind__next__(Type type, unsigned (*f)(VM*, PyObject*));
     void bind__neg__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__invert__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*));
@@ -310,6 +309,7 @@ public:
 
     i64 normalized_index(i64 index, int size);
     PyObject* py_next(PyObject* obj);
+    PyObject* _pack_next_retval(unsigned);
     bool py_callable(PyObject* obj);
     
     /***** Error Reporter *****/

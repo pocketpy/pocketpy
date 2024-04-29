@@ -110,6 +110,10 @@ struct Frame {
     int _exit_block(ValueStack*, int);
     void jump_abs_break(ValueStack*, int);
 
+    void loop_break(ValueStack* s_data, const CodeObject*){
+        jump_abs_break(s_data, co->_get_block_codei(_ip).end);
+    }
+
     int curr_lineno() const { return co->lines[_ip].lineno; }
 
     void _gc_mark() const {
