@@ -683,11 +683,12 @@ void init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         SStream ss;
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        PyObject* obj = vm->py_next(it);
+        const PyTypeInfo* info = vm->_inst_type_info(args[1]);
+        PyObject* obj = vm->_py_next(info, it);
         while(obj != vm->StopIteration){
             if(!ss.empty()) ss << self;
             ss << CAST(Str&, obj);
-            obj = vm->py_next(it);
+            obj = vm->_py_next(info, it);
         }
         return VAR(ss.str());
     });
@@ -904,10 +905,11 @@ void init_builtins(VM* _vm) {
         auto _lock = vm->heap.gc_scope_lock();
         List& self = _CAST(List&, args[0]);
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        PyObject* obj = vm->py_next(it);
+        const PyTypeInfo* info = vm->_inst_type_info(args[1]);
+        PyObject* obj = vm->_py_next(info, it);
         while(obj != vm->StopIteration){
             self.push_back(obj);
-            obj = vm->py_next(it);
+            obj = vm->_py_next(info, it);
         }
         return vm->None;
     });

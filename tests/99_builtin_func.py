@@ -268,17 +268,6 @@ assert type(12 * [12]) is list
 
 
 # /************ tuple ************/
-# 未完全测试准确性-----------------------------------------------
-#       180:  783:    _vm->bind_constructor<-1>("tuple", [](VM* vm, ArgsView args) {
-#        32:  784:        if(args.size() == 1+0) return VAR(Tuple(0));
-#        32:  785:        if(args.size() == 1+1){
-#        32:  786:            List list = CAST(List, vm->py_list(args[1]));
-#        32:  787:            return VAR(Tuple(std::move(list)));
-#        32:  788:        }
-#     #####:  789:        vm->TypeError("tuple() takes at most 1 argument");
-#     #####:  790:        return vm->None;
-#        32:  791:    });
-#         -:  792:
 # test tuple:
 try:
     tuple(1,2)

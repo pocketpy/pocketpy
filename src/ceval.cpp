@@ -48,12 +48,13 @@ void VM::_op_unpack_sequence(uint16_t arg){
     }else{
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         _0 = py_iter(_0);
+        const PyTypeInfo* ti = _inst_type_info(_0);
         for(int i=0; i<arg; i++){
-            PyObject* _1 = py_next(_0);
+            PyObject* _1 = _py_next(ti, _0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
             PUSH(_1);
         }
-        if(py_next(_0) != StopIteration) ValueError("too many values to unpack");
+        if(_py_next(ti, _0) != StopIteration) ValueError("too many values to unpack");
     }
 }
 
@@ -850,15 +851,16 @@ __NEXT_STEP:;
     TARGET(UNPACK_EX) {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         PyObject* _0 = py_iter(POPX());
+        const PyTypeInfo* _ti = _inst_type_info(_0);
         PyObject* _1;
         for(int i=0; i<byte.arg; i++){
-            _1 = py_next(_0);
+            _1 = _py_next(_ti, _0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
             PUSH(_1);
         }
         List extras;
         while(true){
-            _1 = py_next(_0);
+            _1 = _py_next(_ti, _0);
             if(_1 == StopIteration) break;
             extras.push_back(_1);
         }

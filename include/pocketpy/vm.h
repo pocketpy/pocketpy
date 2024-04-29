@@ -309,7 +309,8 @@ public:
     }
 
     i64 normalized_index(i64 index, int size);
-    PyObject* py_next(PyObject* obj);
+    PyObject* py_next(PyObject*);
+    PyObject* _py_next(const PyTypeInfo*, PyObject*);
     PyObject* _pack_next_retval(unsigned);
     bool py_callable(PyObject* obj);
     

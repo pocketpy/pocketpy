@@ -250,13 +250,17 @@ namespace pkpy{
         return index;
     }
 
-    PyObject* VM::py_next(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
+    PyObject* VM::_py_next(const PyTypeInfo* ti, PyObject* obj){
         if(ti->m__next__){
             unsigned n = ti->m__next__(this, obj);
             return _pack_next_retval(n);
         }
         return call_method(obj, __next__);
+    }
+
+    PyObject* VM::py_next(PyObject* obj){
+        const PyTypeInfo* ti = _inst_type_info(obj);
+        return _py_next(ti, obj);
     }
 
     bool VM::py_callable(PyObject* obj){
@@ -381,10 +385,11 @@ PyObject* VM::py_list(PyObject* it){
     auto _lock = heap.gc_scope_lock();
     it = py_iter(it);
     List list;
-    PyObject* obj = py_next(it);
+    const PyTypeInfo* info = _inst_type_info(it);
+    PyObject* obj = _py_next(info, it);
     while(obj != StopIteration){
         list.push_back(obj);
-        obj = py_next(it);
+        obj = _py_next(info, it);
     }
     return VAR(std::move(list));
 }
@@ -771,10 +776,11 @@ void VM::_unpack_as_list(ArgsView args, List& list){
             // maybe this check should be done in the compile time
             if(w.level != 1) TypeError("expected level 1 star wrapper");
             PyObject* _0 = py_iter(w.obj);
-            PyObject* _1 = py_next(_0);
+            const PyTypeInfo* info = _inst_type_info(_0);
+            PyObject* _1 = _py_next(info, _0);
             while(_1 != StopIteration){
                 list.push_back(_1);
-                _1 = py_next(_0);
+                _1 = _py_next(info, _0);
             }
         }else{
             list.push_back(obj);
