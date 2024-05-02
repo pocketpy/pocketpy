@@ -46,7 +46,7 @@ struct NativeProxyMethodC final: NativeProxyFuncCBase {
 
     template<typename __Ret, size_t... Is>
     PyObject* call(VM* vm, ArgsView args, std::index_sequence<Is...>){
-        T& self = py_cast<T&>(vm, args[0]);
+        T& self = PK_OBJ_GET(T, args[0]);   // use unsafe cast for derived classes
         if constexpr(std::is_void_v<__Ret>){
             (self.*func)(py_cast<Params>(vm, args[Is+1])...);
             return vm->None;
