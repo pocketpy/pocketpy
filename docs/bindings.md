@@ -148,10 +148,6 @@ struct wrapped__Point{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        // enable default constructor and struct-like methods
-        // if you don't use this, you must bind a `__new__` method as constructor
-        PY_STRUCT_LIKE(wrapped__Point)
-
         // wrap field x
         PY_FIELD(wrapped__Point, "x", _, x)
         // wrap field y
@@ -172,7 +168,7 @@ struct wrapped__Point{
 
 int main(){
     VM* vm = new VM();
-    // register the wrapper class somewhere
+    // register the wrapper class in builtins
     wrapped__Point::register_class(vm, vm->builtins);
 
     // use the Point class
