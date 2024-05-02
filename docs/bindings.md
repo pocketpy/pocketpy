@@ -153,7 +153,7 @@ struct wrapped__Point{
 int main(){
     VM* vm = new VM();
     // register the wrapper class in builtins
-    vm->register_user_class<wrapped__Point>(vm->builtins);
+    vm->register_user_class<wrapped__Point>(vm->builtins, "Point");
 
     // use the Point class
     vm->exec("a = Point(1, 2)");
