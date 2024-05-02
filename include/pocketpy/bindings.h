@@ -154,30 +154,29 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 /*****************************************************************/
 
 #define PY_STRUCT_LIKE(wT)   \
-        using vT = std::remove_pointer_t<decltype(std::declval<wT>()._())>;         \
-        static_assert(std::is_trivially_copyable<vT>::value);                       \
+        static_assert(std::is_trivially_copyable<wT>::value);                       \
         type->attr().set("__struct__", vm->True);                                   \
         vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){            \
             C99Struct& s = CAST(C99Struct&, args[0]);                               \
-            if(s.size != sizeof(vT)) vm->ValueError("size mismatch");               \
+            if(s.size != sizeof(wT)) vm->ValueError("size mismatch");               \
             PyObject* obj = vm->new_user_object<wT>();                              \
-            memcpy(_CAST(wT&, obj)._(), s.p, sizeof(vT));                           \
+            memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                           \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \
         vm->bind_method<0>(type, "to_struct", [](VM* vm, ArgsView args){            \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<C99Struct>(self._(), sizeof(vT));                          \
+            return vm->new_user_object<C99Struct>(&self, sizeof(wT));                          \
         });                                                                         \
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<VoidP>(self._());                                          \
+            return vm->new_user_object<VoidP>(&self);                                          \
         });                                                                         \
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<wT>(*self._());                                            \
+            return vm->new_user_object<wT>(self);                                            \
         });                                                                         \
         vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){               \
-            return VAR(sizeof(vT));                                                 \
+            return VAR(sizeof(wT));                                                 \
         });                                                                         \
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
             wT& self = _CAST(wT&, _0);                                              \

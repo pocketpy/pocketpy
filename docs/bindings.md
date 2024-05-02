@@ -122,9 +122,6 @@ struct wrapped__Point{
     // wrapped value
     Point value;
 
-    // special method _ returns a pointer of the wrapped value
-    Point* _() { return &value; }
-
     // define default constructors
     wrapped__Point() = default;
     wrapped__Point(const wrapped__Point&) = default;
@@ -136,9 +133,9 @@ struct wrapped__Point{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         // wrap field x
-        PY_FIELD(wrapped__Point, "x", x)
+        PY_FIELD(wrapped__Point, "x", value.x)
         // wrap field y
-        PY_FIELD(wrapped__Point, "y", y)
+        PY_FIELD(wrapped__Point, "y", value.y)
 
         // __init__ method
         vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){

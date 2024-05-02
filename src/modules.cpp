@@ -36,8 +36,6 @@ struct PyStructTime{
         tm_isdst = tm->tm_isdst;
     }
 
-    PyStructTime* _() { return this; }
-
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyStructTime>(type);
         PY_READONLY_FIELD(PyStructTime, "tm_year", tm_year);

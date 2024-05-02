@@ -17,8 +17,6 @@ struct Array2d{
         numel = 0;
     }
 
-    Array2d* _() { return this; }
-
     void init(int n_cols, int n_rows){
         this->n_cols = n_cols;
         this->n_rows = n_rows;
