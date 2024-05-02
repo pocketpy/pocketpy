@@ -198,7 +198,8 @@ namespace pkpy{
         PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
         const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
-            TypeError(_S("type ", base_info.name.escape(), " is not `subclass_enabled`"));
+            Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
+            throw std::runtime_error(error.c_str());
         }
         PyTypeInfo info{
             obj,

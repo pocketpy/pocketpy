@@ -373,7 +373,7 @@ struct Array2dIter{
 void add_module_array2d(VM* vm){
     PyObject* mod = vm->new_module("array2d");
 
-    vm->register_user_class<Array2d>(mod, "array2d");
+    vm->register_user_class<Array2d>(mod, "array2d", 0, true);
     vm->register_user_class<Array2dIter>(mod, "_array2d_iter");
 
     vm->bind__iter__(vm->_tp_user<Array2d>(), [](VM* vm, PyObject* _0){

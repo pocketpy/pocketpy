@@ -161,8 +161,8 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 
-    vm->register_user_class<VoidP>(mod, "void_p");
-    vm->register_user_class<C99Struct>(mod, "struct");
+    vm->register_user_class<VoidP>(mod, "void_p", 0, true);
+    vm->register_user_class<C99Struct>(mod, "struct", 0, true);
     
     mod->attr().set("NULL", VAR_T(VoidP, nullptr));
 
