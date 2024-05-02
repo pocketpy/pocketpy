@@ -426,8 +426,8 @@ public:
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
 
     template<typename T>
-    PyObject* register_user_class(PyObject* mod, StrName name, Type base=0, bool subclass_enabled=false){
-        PyObject* type = new_type_object(mod, name, base, subclass_enabled);
+    PyObject* register_user_class(PyObject* mod, StrName name, bool subclass_enabled=false){
+        PyObject* type = new_type_object(mod, name, 0, subclass_enabled);
         mod->attr().set(name, type);
         _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
         T::_register(vm, mod, type);
