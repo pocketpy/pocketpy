@@ -167,8 +167,8 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->None;
         });
 
-        PY_FIELD(Vec2, "x", _, x)
-        PY_FIELD(Vec2, "y", _, y)
+        PY_FIELD(Vec2, "x", x)
+        PY_FIELD(Vec2, "y", y)
 
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
@@ -202,9 +202,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return VAR(ss.str());
         });
 
-        PY_FIELD(Vec3, "x", _, x)
-        PY_FIELD(Vec3, "y", _, y)
-        PY_FIELD(Vec3, "z", _, z)
+        PY_FIELD(Vec3, "x", x)
+        PY_FIELD(Vec3, "y", y)
+        PY_FIELD(Vec3, "z", z)
 
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
@@ -238,10 +238,10 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return VAR(ss.str());
         });
 
-        PY_FIELD(Vec4, "x", _, x)
-        PY_FIELD(Vec4, "y", _, y)
-        PY_FIELD(Vec4, "z", _, z)
-        PY_FIELD(Vec4, "w", _, w)
+        PY_FIELD(Vec4, "x", x)
+        PY_FIELD(Vec4, "y", y)
+        PY_FIELD(Vec4, "z", z)
+        PY_FIELD(Vec4, "w", w)
 
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
@@ -327,15 +327,15 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             self.m[i][j] = CAST_F(value);
         });
 
-        PY_FIELD(Mat3x3, "_11", _, _11)
-        PY_FIELD(Mat3x3, "_12", _, _12)
-        PY_FIELD(Mat3x3, "_13", _, _13)
-        PY_FIELD(Mat3x3, "_21", _, _21)
-        PY_FIELD(Mat3x3, "_22", _, _22)
-        PY_FIELD(Mat3x3, "_23", _, _23)
-        PY_FIELD(Mat3x3, "_31", _, _31)
-        PY_FIELD(Mat3x3, "_32", _, _32)
-        PY_FIELD(Mat3x3, "_33", _, _33)
+        PY_FIELD(Mat3x3, "_11", _11)
+        PY_FIELD(Mat3x3, "_12", _12)
+        PY_FIELD(Mat3x3, "_13", _13)
+        PY_FIELD(Mat3x3, "_21", _21)
+        PY_FIELD(Mat3x3, "_22", _22)
+        PY_FIELD(Mat3x3, "_23", _23)
+        PY_FIELD(Mat3x3, "_31", _31)
+        PY_FIELD(Mat3x3, "_32", _32)
+        PY_FIELD(Mat3x3, "_33", _33)
 
         vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);

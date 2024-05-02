@@ -60,11 +60,11 @@ struct Array2d{
             return vm->None;
         });
 
-        PY_READONLY_FIELD(Array2d, "n_cols", _, n_cols);
-        PY_READONLY_FIELD(Array2d, "n_rows", _, n_rows);
-        PY_READONLY_FIELD(Array2d, "width", _, n_cols);
-        PY_READONLY_FIELD(Array2d, "height", _, n_rows);
-        PY_READONLY_FIELD(Array2d, "numel", _, numel);
+        PY_READONLY_FIELD(Array2d, "n_cols", n_cols);
+        PY_READONLY_FIELD(Array2d, "n_rows", n_rows);
+        PY_READONLY_FIELD(Array2d, "width", n_cols);
+        PY_READONLY_FIELD(Array2d, "height", n_rows);
+        PY_READONLY_FIELD(Array2d, "numel", numel);
 
         vm->bind(type, "is_valid(self, col: int, row: int)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);

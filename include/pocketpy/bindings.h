@@ -74,7 +74,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
     vm->bind(obj, sig, proxy_wrapper, proxy);
 }
 /*****************************************************************/
-#define PY_FIELD(T, NAME, REF, EXPR)       \
+#define PY_FIELD_EX(T, NAME, REF, EXPR)       \
         vm->bind_property(type, NAME,               \
             [](VM* vm, ArgsView args){              \
                 T& self = PK_OBJ_GET(T, args[0]);   \
@@ -86,14 +86,14 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return vm->None;                                                    \
             });
 
-#define PY_READONLY_FIELD(T, NAME, REF, EXPR)          \
-        vm->bind_property(type, NAME,                  \
-            [](VM* vm, ArgsView args){              \
-                T& self = PK_OBJ_GET(T, args[0]);   \
-                return VAR(self.REF()->EXPR);       \
+#define PY_READONLY_FIELD_EX(T, NAME, REF, EXPR)            \
+        vm->bind_property(type, NAME,                       \
+            [](VM* vm, ArgsView args){                      \
+                T& self = PK_OBJ_GET(T, args[0]);           \
+                return VAR(self.REF()->EXPR);               \
             });
 
-#define PY_PROPERTY(T, NAME, REF, FGET, FSET)  \
+#define PY_PROPERTY_EX(T, NAME, REF, FGET, FSET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
                 T& self = PK_OBJ_GET(T, args[0]);       \
@@ -106,12 +106,52 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return vm->None;                            \
             });
 
-#define PY_READONLY_PROPERTY(T, NAME, REF, FGET)  \
+#define PY_READONLY_PROPERTY_EX(T, NAME, REF, FGET)  \
         vm->bind_property(type, NAME,                   \
             [](VM* vm, ArgsView args){                  \
                 T& self = PK_OBJ_GET(T, args[0]);       \
                 return VAR(self.REF()->FGET());         \
             });
+/*****************************************************************/
+#define PY_FIELD(T, NAME, EXPR)       \
+        vm->bind_property(type, NAME,               \
+            [](VM* vm, ArgsView args){              \
+                T& self = PK_OBJ_GET(T, args[0]);   \
+                return VAR(self.EXPR);       \
+            },                                      \
+            [](VM* vm, ArgsView args){              \
+                T& self = PK_OBJ_GET(T, args[0]);   \
+                self.EXPR = CAST(decltype(self.EXPR), args[1]);       \
+                return vm->None;                                                    \
+            });
+
+#define PY_READONLY_FIELD(T, NAME, EXPR)            \
+        vm->bind_property(type, NAME,                       \
+            [](VM* vm, ArgsView args){                      \
+                T& self = PK_OBJ_GET(T, args[0]);           \
+                return VAR(self.EXPR);               \
+            });
+
+#define PY_PROPERTY(T, NAME, FGET, FSET)  \
+        vm->bind_property(type, NAME,                   \
+            [](VM* vm, ArgsView args){                  \
+                T& self = PK_OBJ_GET(T, args[0]);       \
+                return VAR(self.FGET());         \
+            },                                          \
+            [](VM* vm, ArgsView args){                  \
+                T& self = _CAST(T&, args[0]);           \
+                using __NT = decltype(self.FGET());   \
+                self.FSET(CAST(__NT, args[1]));       \
+                return vm->None;                            \
+            });
+
+#define PY_READONLY_PROPERTY(T, NAME, FGET)  \
+        vm->bind_property(type, NAME,                   \
+            [](VM* vm, ArgsView args){                  \
+                T& self = PK_OBJ_GET(T, args[0]);       \
+                return VAR(self.FGET());                \
+            });
+/*****************************************************************/
 
 #define PY_STRUCT_LIKE(wT)   \
         using vT = std::remove_pointer_t<decltype(std::declval<wT>()._())>;         \

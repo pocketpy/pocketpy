@@ -136,9 +136,9 @@ struct wrapped__Point{
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         // wrap field x
-        PY_FIELD(wrapped__Point, "x", _, x)
+        PY_FIELD(wrapped__Point, "x", x)
         // wrap field y
-        PY_FIELD(wrapped__Point, "y", _, y)
+        PY_FIELD(wrapped__Point, "y", y)
 
         // __init__ method
         vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){
