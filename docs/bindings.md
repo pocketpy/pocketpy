@@ -112,26 +112,13 @@ struct Point{
 }
 ```
 
-You can write a wrapper class `wrapped__Point`. Add `PY_CLASS` macro into your wrapper class and implement a static function `_register`.
-
+You can write a wrapper class `wrapped__Point`. Add implement a static function `_register`.
 Inside the `_register` function, do bind methods and properties.
-
-```cpp
-PY_CLASS(T, mod, name)
-
-// T is the struct type in cpp
-// mod is the module name in python
-// name is the class name in python
-```
 
 ### Example
 
 ```cpp
 struct wrapped__Point{
-    // special macro for wrapper class
-    PY_CLASS(wrapped__Point, builtins, Point)
-    //       ^T              ^module   ^name
-
     // wrapped value
     Point value;
 
@@ -187,8 +174,6 @@ If your custom type stores `PyObject*` in its fields, you need to handle gc for 
 
 ```cpp
 struct Container{
-    PY_CLASS(Container, builtins, Container)
-
     PyObject* a;
     std::vector<PyObject*> b;
     // ...
@@ -199,8 +184,6 @@ Add a magic method `_gc_mark() const` to your custom type.
 
 ```cpp
 struct Container{
-    PY_CLASS(Container, builtins, Container)
-
     PyObject* a;
     std::vector<PyObject*> b;
     // ...

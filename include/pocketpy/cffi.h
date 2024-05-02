@@ -63,8 +63,6 @@ POINTER_VAR(const bool*, "bool_p")
 
 
 struct C99Struct{
-    PY_CLASS(C99Struct, c, struct)
-
     static constexpr int INLINE_SIZE = 24;
 
     char _inlined[INLINE_SIZE];

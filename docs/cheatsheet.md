@@ -140,7 +140,6 @@ PyObject* list_t = vm->_t(vm->tp_list);
 Access extended python types
 
 ```cpp
-// VoidP was defined by `PY_CLASS` macro
 Type voidp_t = vm->_tp_user<VoidP>();
 ```
 
