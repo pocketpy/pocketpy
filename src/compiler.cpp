@@ -1278,10 +1278,11 @@ __EAT_DOTS_END:
         std::string_view version = deserializer.read_string('\n');
 
         if(version != PK_VERSION){
-            SyntaxError(_S("precompiled version mismatch: ", version, "!=" PK_VERSION));
+            Str error = _S("precompiled version mismatch: ", version, "!=" PK_VERSION);
+            throw std::runtime_error(error.c_str());
         }
         if(deserializer.read_uint('\n') != (i64)mode()){
-            SyntaxError("precompiled mode mismatch");
+            throw std::runtime_error("precompiled mode mismatch");
         }
 
         int count = deserializer.read_count();
