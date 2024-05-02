@@ -6,22 +6,14 @@
 namespace pkpy {
 
 #define PY_CLASS(T, mod, name)                  \
-    static Type _type(VM* vm) { return vm->_cxx_typeid_map[typeid(T)]; }   \
-    static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
-        std::string_view mod_name = PK_OBJ_GET(Str, mod->attr("__name__")).sv();   \
-        if(mod_name != #mod) throw std::runtime_error(_S("register_class() failed: ", mod_name, " != ", #mod).str()); \
-        PyObject* type = vm->new_type_object(mod, #name, base);             \
-        mod->attr().set(#name, type);                                       \
-        vm->_cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);           \
-        T::_register(vm, mod, type);                                        \
-        return type;                                                        \
+    [[deprecated]] static Type _type(VM* vm) { return vm->_cxx_typeid_map[typeid(T)]; }    \
+    [[deprecated]] static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
+        return vm->register_user_class<T>(mod, #name, base);                \
     }                                                                       
 
-#define VAR_T(T, ...) vm->heap.gcnew<T>(T::_type(vm), __VA_ARGS__)
+#define VAR_T(T, ...) vm->heap.gcnew<T>(vm->_tp_user<T>(), __VA_ARGS__)
 
 struct VoidP{
-    PY_CLASS(VoidP, c, void_p)
-
     void* ptr;
     VoidP(const void* ptr): ptr(const_cast<void*>(ptr)){}
 

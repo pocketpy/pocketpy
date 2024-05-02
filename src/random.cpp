@@ -126,7 +126,6 @@ struct mt19937{
 namespace pkpy{
 
 struct Random{
-    PY_CLASS(Random, random, Random)
     mt19937 gen;
 
     Random(){
@@ -215,8 +214,8 @@ struct Random{
 
 void add_module_random(VM* vm){
     PyObject* mod = vm->new_module("random");
-    Random::register_class(vm, mod);
-    PyObject* instance = vm->heap.gcnew<Random>(Random::_type(vm));
+    vm->register_user_class<Random>(mod, "Random");
+    PyObject* instance = vm->new_user_object<Random>();
     mod->attr().set("seed", vm->getattr(instance, "seed"));
     mod->attr().set("random", vm->getattr(instance, "random"));
     mod->attr().set("uniform", vm->getattr(instance, "uniform"));

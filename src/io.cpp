@@ -10,8 +10,6 @@ namespace pkpy{
 #if PK_ENABLE_OS
 
 struct FileIO {
-    PY_CLASS(FileIO, io, FileIO)
-
     FILE* fp;
     bool is_text;
 
@@ -142,7 +140,7 @@ void FileIO::close(){
 
 void add_module_io(VM* vm){
     PyObject* mod = vm->new_module("io");
-    FileIO::register_class(vm, mod);
+    vm->register_user_class<FileIO>(mod, "FileIO");
 
     mod->attr().set("SEEK_SET", VAR(SEEK_SET));
     mod->attr().set("SEEK_CUR", VAR(SEEK_CUR));

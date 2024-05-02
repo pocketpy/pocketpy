@@ -4,7 +4,6 @@ namespace pkpy
 {
     struct PyDequeIter // Iterator for the deque type
     {
-        PY_CLASS(PyDequeIter, collections, _deque_iterator)
         PyObject *ref;
         bool is_reversed;
         std::deque<PyObject *>::iterator begin, end, current;
@@ -48,7 +47,6 @@ namespace pkpy
     }
     struct PyDeque
     {
-        PY_CLASS(PyDeque, collections, deque);
         PyDeque(VM *vm, PyObject *iterable, PyObject *maxlen); // constructor
         // PyDeque members
         std::deque<PyObject *> dequeItems;
@@ -108,9 +106,7 @@ namespace pkpy
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
         {
             PyDeque &self = _CAST(PyDeque &, _0);
-            return vm->heap.gcnew<PyDequeIter>(
-                PyDequeIter::_type(vm), _0,
-                self.dequeItems.begin(), self.dequeItems.end());
+            return vm->new_user_object<PyDequeIter>(_0, self.dequeItems.begin(), self.dequeItems.end());
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
@@ -134,7 +130,7 @@ namespace pkpy
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
         {
             const PyDeque &self = _CAST(PyDeque&, _0);
-            if(!is_type(_0, PyDeque::_type(vm))) return vm->NotImplemented;
+            if(!vm->is_user_type<PyDeque>(_0)) return vm->NotImplemented;
             const PyDeque &other = _CAST(PyDeque&, _1);
             if (self.dequeItems.size() != other.dequeItems.size()) return vm->False;
             for (int i = 0; i < self.dequeItems.size(); i++){
@@ -214,8 +210,8 @@ namespace pkpy
                  {
                      auto _lock = vm->heap.gc_scope_lock(); // locking the heap
                      PyDeque &self = _CAST(PyDeque &, args[0]);
-                     PyObject *newDequeObj = vm->heap.gcnew<PyDeque>(PyDeque::_type(vm), vm, vm->None, vm->None); // create the empty deque
-                     PyDeque &newDeque = _CAST(PyDeque &, newDequeObj);                                           // cast it to PyDeque so we can use its methods
+                     PyObject *newDequeObj = vm->new_user_object<PyDeque>(vm, vm->None, vm->None); // create the empty deque
+                     PyDeque &newDeque = _CAST(PyDeque &, newDequeObj);                            // cast it to PyDeque so we can use its methods
                      for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
                          newDeque.insertObj(false, true, -1, *it);
                      return newDequeObj;
@@ -546,12 +542,11 @@ namespace pkpy
             PK_OBJ_MARK(obj);
     }
     /// @brief registers the PyDeque class
-    /// @param vm is needed for the new_module and register_class
     void add_module_collections(VM *vm)
     {
         PyObject *mod = vm->new_module("collections");
-        PyDeque::register_class(vm, mod);
-        PyDequeIter::register_class(vm, mod);
+        vm->register_user_class<PyDeque>(mod, "deque");
+        vm->register_user_class<PyDequeIter>(mod, "_deque_iter");
         CodeObject_ code = vm->compile(kPythonLibs_collections, "collections.py", EXEC_MODE);
         vm->_exec(code, mod);
     }

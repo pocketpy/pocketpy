@@ -21,7 +21,7 @@ namespace pkpy{
 
 #define BIND_CMP(name, op)  \
         vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){        \
-            if(!vm->isinstance(rhs, VoidP::_type(vm))) return vm->NotImplemented;               \
+            if(!vm->isinstance(rhs, vm->_tp_user<VoidP>())) return vm->NotImplemented;          \
             void* _0 = PK_OBJ_GET(VoidP, lhs).ptr;                                              \
             void* _1 = PK_OBJ_GET(VoidP, rhs).ptr;                                              \
             return VAR(_0 op _1);                                                               \
@@ -96,7 +96,7 @@ namespace pkpy{
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
             C99Struct& self = _CAST(C99Struct&, lhs);
-            if(!is_type(rhs, C99Struct::_type(vm))) return vm->NotImplemented;
+            if(!vm->is_user_type<C99Struct>(rhs)) return vm->NotImplemented;
             C99Struct& other = _CAST(C99Struct&, rhs);
             bool ok = self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
             return VAR(ok);
@@ -161,15 +161,16 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 
-    VoidP::register_class(vm, mod);
-    C99Struct::register_class(vm, mod);
+    vm->register_user_class<VoidP>(mod, "void_p");
+    vm->register_user_class<C99Struct>(mod, "struct");
+    
     mod->attr().set("NULL", VAR_T(VoidP, nullptr));
 
     vm->bind(mod, "p_cast(ptr: 'void_p', cls: type[T]) -> T", [](VM* vm, ArgsView args){
         VoidP& ptr = CAST(VoidP&, args[0]);
         vm->check_type(args[1], vm->tp_type);
         Type cls = PK_OBJ_GET(Type, args[1]);
-        if(!vm->issubclass(cls, VoidP::_type(vm))){
+        if(!vm->issubclass(cls, vm->_tp_user<VoidP>())){
             vm->ValueError("expected a subclass of void_p");
         }
         return vm->heap.gcnew<VoidP>(cls, ptr.ptr);
@@ -194,7 +195,7 @@ void add_module_c(VM* vm){
         T val = CAST(T, args[0]);                                       \
         return VAR_T(C99Struct, &val, sizeof(T));                       \
     });                                                                 \
-    type = vm->new_type_object(mod, CNAME "_p", VoidP::_type(vm));      \
+    type = vm->new_type_object(mod, CNAME "_p", vm->_tp_user<VoidP>()); \
     mod->attr().set(CNAME "_p", type);                                  \
     type_t = PK_OBJ_GET(Type, type);                                    \
     vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){         \

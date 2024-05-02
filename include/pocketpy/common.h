@@ -20,7 +20,7 @@
 #include <typeindex>
 #include <initializer_list>
 
-#define PK_VERSION				"1.4.6"
+#define PK_VERSION				"1.5.0"
 
 #include "config.h"
 #include "export.h"

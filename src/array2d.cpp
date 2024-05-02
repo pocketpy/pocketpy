@@ -4,7 +4,6 @@ namespace pkpy{
 
 struct Array2d{
     PK_ALWAYS_PASS_BY_POINTER(Array2d)
-    PY_CLASS(Array2d, array2d, array2d)
 
     PyObject** data;
     int n_cols;
@@ -105,7 +104,7 @@ struct Array2d{
 
             if(is_type(xy[0], VM::tp_slice) && is_type(xy[1], VM::tp_slice)){
                 HANDLE_SLICE();
-                PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+                PyObject* new_array_obj = vm->new_user_object<Array2d>();
                 Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
                 new_array.init(stop_col - start_col, stop_row - start_row);
                 for(int j = start_row; j < stop_row; j++){
@@ -150,7 +149,7 @@ struct Array2d{
                     return;
                 }
 
-                if(!is_type(_2, Array2d::_type(vm))){
+                if(!vm->is_user_type<Array2d>(_2)){
                     vm->TypeError(_S("expected int/float/str/bool/None or an array2d instance"));
                 }
 
@@ -192,7 +191,7 @@ struct Array2d{
         vm->bind(type, "map(self, f)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             PyObject* f = args[1];
-            PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+            PyObject* new_array_obj = vm->new_user_object<Array2d>();
             Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
             new_array.init(self.n_cols, self.n_rows);
             for(int i = 0; i < new_array.numel; i++){
@@ -203,7 +202,7 @@ struct Array2d{
 
         vm->bind(type, "copy(self)", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
-            PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+            PyObject* new_array_obj = vm->new_user_object<Array2d>();
             Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
             new_array.init(self.n_cols, self.n_rows);
             for(int i = 0; i < new_array.numel; i++){
@@ -255,7 +254,7 @@ struct Array2d{
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
-            if(!is_type(_1, Array2d::_type(vm))) return vm->NotImplemented;
+            if(!vm->is_user_type<Array2d>(_1)) return vm->NotImplemented;
             Array2d& other = PK_OBJ_GET(Array2d, _1);
             if(self.n_cols != other.n_cols || self.n_rows != other.n_rows) return vm->False;
             for(int i = 0; i < self.numel; i++){
@@ -266,7 +265,7 @@ struct Array2d{
 
         vm->bind(type, "count_neighbors(self, value, neighborhood='Moore') -> array2d[int]", [](VM* vm, ArgsView args){
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
-            PyObject* new_array_obj = vm->heap.gcnew<Array2d>(Array2d::_type(vm));
+            PyObject* new_array_obj = vm->new_user_object<Array2d>();
             Array2d& new_array = PK_OBJ_GET(Array2d, new_array_obj);
             new_array.init(self.n_cols, self.n_rows);
             PyObject* value = args[1];
@@ -347,8 +346,7 @@ struct Array2d{
 
 struct Array2dIter{
     PK_ALWAYS_PASS_BY_POINTER(Array2dIter)
-    PY_CLASS(Array2dIter, array2d, _array2d_iterator)
-    
+
     PyObject* ref;
     int i;
     Array2dIter(PyObject* ref) : ref(ref), i(0) {}
@@ -375,10 +373,10 @@ struct Array2dIter{
 void add_module_array2d(VM* vm){
     PyObject* mod = vm->new_module("array2d");
 
-    Array2d::register_class(vm, mod);
-    Array2dIter::register_class(vm, mod);
+    vm->register_user_class<Array2d>(mod, "array2d");
+    vm->register_user_class<Array2dIter>(mod, "_array2d_iter");
 
-    vm->bind__iter__(Array2d::_type(vm), [](VM* vm, PyObject* _0){
+    vm->bind__iter__(vm->_tp_user<Array2d>(), [](VM* vm, PyObject* _0){
         return VAR_T(Array2dIter, _0);
     });
 }

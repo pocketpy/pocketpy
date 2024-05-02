@@ -1383,7 +1383,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_method<0>(VM::tp_dict, "items", [](VM* vm, ArgsView args) {
-        return vm->heap.gcnew<DictItemsIter>(DictItemsIter::_type(vm), args[0]);
+        return vm->new_user_object<DictItemsIter>(args[0]);
     });
 
     _vm->bind_method<1>(VM::tp_dict, "update", [](VM* vm, ArgsView args) {
@@ -1495,11 +1495,11 @@ void init_builtins(VM* _vm) {
         return VAR(self.msg);
     });
 
-    RangeIter::register_class(_vm, _vm->builtins);
-    ArrayIter::register_class(_vm, _vm->builtins);
-    StringIter::register_class(_vm, _vm->builtins);
-    Generator::register_class(_vm, _vm->builtins);
-    DictItemsIter::register_class(_vm, _vm->builtins);
+    _vm->register_user_class<RangeIter>(_vm->builtins, "_range_iter");
+    _vm->register_user_class<ArrayIter>(_vm->builtins, "_array_iter");
+    _vm->register_user_class<StringIter>(_vm->builtins, "_string_iter");
+    _vm->register_user_class<Generator>(_vm->builtins, "generator");
+    _vm->register_user_class<DictItemsIter>(_vm->builtins, "_dict_items_iter");
 }
 
 void VM::post_init(){

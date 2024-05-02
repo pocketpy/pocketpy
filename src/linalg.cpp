@@ -24,15 +24,15 @@ namespace pkpy{
 
 #define BIND_VEC_FUNCTION_1(D, name)        \
         vm->bind_method<1>(type, #name, [](VM* vm, ArgsView args){          \
-            Vec##D& self = _CAST(Vec##D&, args[0]);                     \
-            Vec##D& other = CAST(Vec##D&, args[1]);                     \
+            Vec##D& self = _CAST(Vec##D&, args[0]);                         \
+            Vec##D& other = CAST(Vec##D&, args[1]);                         \
             return VAR(self.name(other));                                   \
         });
 
-#define BIND_VEC_MUL_OP(D)                                                                \
+#define BIND_VEC_MUL_OP(D)                                                                  \
         vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){     \
             Vec##D& self = _CAST(Vec##D&, _0);                                          \
-            if(is_type(_1, Vec##D::_type(vm))){                                \
+            if(vm->is_user_type<Vec##D>(_1)){                                               \
                 Vec##D& other = _CAST(Vec##D&, _1);                                     \
                 return VAR(self * other);                                                   \
             }                                                                               \
@@ -369,11 +369,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
-            if(is_type(_1, Mat3x3::_type(vm))){
+            if(vm->is_user_type<Mat3x3>(_1)){
                 const Mat3x3& other = _CAST(Mat3x3&, _1);
                 return VAR_T(Mat3x3, self.matmul(other));
             }
-            if(is_type(_1, Vec3::_type(vm))){
+            if(vm->is_user_type<Vec3>(_1)){
                 const Vec3& other = _CAST(Vec3&, _1);
                 return VAR_T(Vec3, self.matmul(other));
             }
@@ -540,10 +540,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
 void add_module_linalg(VM* vm){
     PyObject* linalg = vm->new_module("linalg");
-    Vec2::register_class(vm, linalg);
-    Vec3::register_class(vm, linalg);
-    Vec4::register_class(vm, linalg);
-    Mat3x3::register_class(vm, linalg);
+
+    vm->register_user_class<Vec2>(linalg, "vec2");
+    vm->register_user_class<Vec3>(linalg, "vec3");
+    vm->register_user_class<Vec4>(linalg, "vec4");
+    vm->register_user_class<Mat3x3>(linalg, "mat3x3");
 
     PyObject* float_p = vm->_modules["c"]->attr("float_p");
     linalg->attr().set("vec2_p", float_p);

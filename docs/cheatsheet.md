@@ -141,7 +141,7 @@ Access extended python types
 
 ```cpp
 // VoidP was defined by `PY_CLASS` macro
-Type voidp_t = VoidP::_type(vm);
+Type voidp_t = vm->_tp_user<VoidP>();
 ```
 
 Check if an object is a python type

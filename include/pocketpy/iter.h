@@ -7,7 +7,6 @@
 namespace pkpy{
 
 struct RangeIter{
-    PY_CLASS(RangeIter, builtins, _range_iterator)
     Range r;
     i64 current;
     RangeIter(Range r) : r(r), current(r.start) {}
@@ -16,7 +15,6 @@ struct RangeIter{
 };
 
 struct ArrayIter{
-    PY_CLASS(ArrayIter, builtins, _array_iterator)
     PyObject* ref;
     PyObject** begin;
     PyObject** end;
@@ -30,7 +28,6 @@ struct ArrayIter{
 };
 
 struct StringIter{
-    PY_CLASS(StringIter, builtins, _string_iterator)
     PyObject* ref;
     int i;      // byte index
     StringIter(PyObject* ref) : ref(ref), i(0) {}
@@ -39,7 +36,6 @@ struct StringIter{
 };
 
 struct Generator{
-    PY_CLASS(Generator, builtins, generator)
     Frame frame;
     int state;      // 0,1,2
     List s_backup;
@@ -58,7 +54,6 @@ struct Generator{
 };
 
 struct DictItemsIter{
-    PY_CLASS(DictItemsIter, builtins, _dict_items_iterator)
     PyObject* ref;
     int i;
     DictItemsIter(PyObject* ref) : ref(ref) {

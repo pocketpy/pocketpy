@@ -142,7 +142,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
         vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){            \
             C99Struct& s = CAST(C99Struct&, args[0]);                               \
             if(s.size != sizeof(vT)) vm->ValueError("size mismatch");               \
-            PyObject* obj = vm->heap.gcnew<wT>(wT::_type(vm));                      \
+            PyObject* obj = vm->new_user_object<wT>();                              \
             memcpy(_CAST(wT&, obj)._(), s.p, sizeof(vT));                           \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \
@@ -163,7 +163,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
         });                                                                         \
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \
             wT& self = _CAST(wT&, _0);                                              \
-            if(!vm->isinstance(_1, wT::_type(vm))) return vm->NotImplemented;       \
+            if(!vm->isinstance(_1, vm->_tp_user<wT>())) return vm->NotImplemented;  \
             wT& other = _CAST(wT&, _1);                                             \
             return VAR(self == other);                                              \
         });                                                                         \

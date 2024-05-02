@@ -13,8 +13,6 @@ void add_module_operator(VM* vm){
 }
 
 struct PyStructTime{
-    PY_CLASS(PyStructTime, time, struct_time)
-
     int tm_year;
     int tm_mon;
     int tm_mday;
@@ -56,7 +54,7 @@ struct PyStructTime{
 
 void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
-    PyStructTime::register_class(vm, mod);
+    vm->register_user_class<PyStructTime>(mod, "struct_time");
 
     vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
@@ -298,8 +296,6 @@ struct _LpGuard{
 
 // line_profiler wrapper
 struct LineProfilerW{
-    PY_CLASS(LineProfilerW, line_profiler, LineProfiler)
-
     LineProfiler profiler;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
@@ -352,7 +348,7 @@ _LpGuard::~_LpGuard(){
 
 void add_module_line_profiler(VM *vm){
     PyObject* mod = vm->new_module("line_profiler");
-    LineProfilerW::register_class(vm, mod);
+    vm->register_user_class<LineProfilerW>(mod, "LineProfiler");
 }
 #else
 void add_module_line_profiler(VM* vm){

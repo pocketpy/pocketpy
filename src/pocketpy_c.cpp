@@ -277,7 +277,7 @@ bool pkpy_is_voidp(pkpy_vm* vm_handle, int i){
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyObject* item = stack_item(vm, i);
-        return is_type(item, VoidP::_type(vm));
+        return vm->is_user_type<VoidP>(item);
     )
 }
 

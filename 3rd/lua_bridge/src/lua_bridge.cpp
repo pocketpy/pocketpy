@@ -38,8 +38,6 @@ struct PyLuaObject{
 };
 
 struct PyLuaTable: PyLuaObject{
-    PY_CLASS(PyLuaTable, lua, Table)
-
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         Type t = PK_OBJ_GET(Type, type);
         PyTypeInfo* ti = &vm->_all_types[t];
@@ -198,8 +196,6 @@ static PyObject* lua_popx_multi_to_python(VM* vm, int count){
 }
 
 struct PyLuaFunction: PyLuaObject{
-    PY_CLASS(PyLuaFunction, lua, Function)
-
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyLuaFunction>(type);
         vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
@@ -274,13 +270,13 @@ void lua_push_from_python(VM* vm, PyObject* val){
         }
     }
 
-    if(is_type(val, PyLuaTable::_type(vm))){
+    if(vm->is_user_type<PyLuaTable>(val)){
         const PyLuaTable& table = _CAST(PyLuaTable&, val);
         lua_rawgeti(_L, LUA_REGISTRYINDEX, table.r);
         return;
     }
 
-    if(is_type(val, PyLuaFunction::_type(vm))){
+    if(vm->is_user_type<PyLuaFunction>(val)){
         const PyLuaFunction& func = _CAST(PyLuaFunction&, val);
         lua_rawgeti(_L, LUA_REGISTRYINDEX, func.r);
         return;
@@ -311,11 +307,11 @@ PyObject* lua_popx_to_python(VM* vm) {
             return VAR(val);
         }
         case LUA_TTABLE: {
-            PyObject* obj = vm->heap.gcnew<PyLuaTable>(PyLuaTable::_type(vm));
+            PyObject* obj = vm->new_user_object<PyLuaTable>();
             return obj;
         }
         case LUA_TFUNCTION: {
-            PyObject* obj = vm->heap.gcnew<PyLuaFunction>(PyLuaFunction::_type(vm));
+            PyObject* obj = vm->new_user_object<PyLuaFunction>();
             return obj;
         }
         default: {
@@ -335,8 +331,8 @@ void initialize_lua_bridge(VM* vm, lua_State* newL){
     }
     _L = newL;
 
-    PyLuaTable::register_class(vm, mod);
-    PyLuaFunction::register_class(vm, mod);
+    vm->register_user_class<PyLuaTable>(mod, "Table");
+    vm->register_user_class<PyLuaFunction>(mod, "Function");
 
     vm->bind(mod, "dostring(__source: str)", [](VM* vm, ArgsView args){
         const char* source = CAST(CString, args[0]);

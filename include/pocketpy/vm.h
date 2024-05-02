@@ -426,6 +426,30 @@ public:
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
 
     template<typename T>
+    PyObject* register_user_class(PyObject* mod, StrName name, Type base=0, bool subclass_enabled=false){
+        PyObject* type = new_type_object(mod, name, base, subclass_enabled);
+        mod->attr().set(name, type);
+        _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
+        T::_register(vm, mod, type);
+        return type;
+    }
+
+    template<typename T, typename ...Args>
+    PyObject* new_user_object(Args&&... args){
+        return heap.gcnew<T>(_tp_user<T>(), std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    Type _tp_user(){
+        return _find_type_in_cxx_typeid_map<T>();
+    }
+
+    template<typename T>
+    bool is_user_type(PyObject* obj){
+        return _tp(obj) == _tp_user<T>();
+    }
+
+    template<typename T>
     Type _find_type_in_cxx_typeid_map(){
         auto it = _cxx_typeid_map.find(typeid(T));
         if(it == _cxx_typeid_map.end()){
