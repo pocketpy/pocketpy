@@ -75,7 +75,7 @@ void add_module_time(VM* vm){
     vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
         std::time_t t = std::chrono::system_clock::to_time_t(now);
-        return VAR_T(PyStructTime, t);
+        return vm->new_user_object<PyStructTime>(t);
     });
 }
 

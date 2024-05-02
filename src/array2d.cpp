@@ -377,7 +377,7 @@ void add_module_array2d(VM* vm){
     vm->register_user_class<Array2dIter>(mod, "_array2d_iter");
 
     vm->bind__iter__(vm->_tp_user<Array2d>(), [](VM* vm, PyObject* _0){
-        return VAR_T(Array2dIter, _0);
+        return vm->new_user_object<Array2dIter>(_0);
     });
 }
 

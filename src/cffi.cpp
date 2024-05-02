@@ -69,7 +69,7 @@ namespace pkpy{
                 else vm->ValueError(_S("invalid hex char: '", s[i+1], "'"));
                 buffer.p[i/2] = c;
             }
-            return VAR_T(C99Struct, std::move(buffer));
+            return vm->new_user_object<C99Struct>(std::move(buffer));
         }, {}, BindType::STATICMETHOD);
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
@@ -81,7 +81,7 @@ namespace pkpy{
 
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){
             C99Struct& self = _CAST(C99Struct&, args[0]);
-            return VAR_T(VoidP, self.p);
+            return vm->new_user_object<VoidP>(self.p);
         });
 
         vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){
@@ -164,7 +164,7 @@ void add_module_c(VM* vm){
     vm->register_user_class<VoidP>(mod, "void_p", true);
     vm->register_user_class<C99Struct>(mod, "struct", true);
     
-    mod->attr().set("NULL", VAR_T(VoidP, nullptr));
+    mod->attr().set("NULL", vm->new_user_object<VoidP>(nullptr));
 
     vm->bind(mod, "p_cast(ptr: 'void_p', cls: type[T]) -> T", [](VM* vm, ArgsView args){
         VoidP& ptr = CAST(VoidP&, args[0]);
@@ -193,7 +193,7 @@ void add_module_c(VM* vm){
 #define BIND_PRIMITIVE(T, CNAME) \
     vm->bind_func<1>(mod, CNAME "_", [](VM* vm, ArgsView args){         \
         T val = CAST(T, args[0]);                                       \
-        return VAR_T(C99Struct, &val, sizeof(T));                       \
+        return vm->new_user_object<C99Struct>(&val, sizeof(T));                       \
     });                                                                 \
     type = vm->new_type_object(mod, CNAME "_p", vm->_tp_user<VoidP>()); \
     mod->attr().set(CNAME "_p", type);                                  \
@@ -273,7 +273,7 @@ void add_module_c(VM* vm){
 }
 
 PyObject* from_void_p(VM* vm, void* p){
-    return VAR_T(VoidP, p);
+    return vm->new_user_object<VoidP>(p);
 }
 
 }   // namespace pkpy

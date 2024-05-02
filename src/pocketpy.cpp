@@ -371,7 +371,7 @@ void init_builtins(VM* _vm) {
         return VAR(r);
     });
 
-    _vm->bind__iter__(VM::tp_range, [](VM* vm, PyObject* obj) { return VAR_T(RangeIter, PK_OBJ_GET(Range, obj)); });
+    _vm->bind__iter__(VM::tp_range, [](VM* vm, PyObject* obj) { return vm->new_user_object<RangeIter>(PK_OBJ_GET(Range, obj)); });
     
     // tp_nonetype
     _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, PyObject* _0) {
@@ -567,7 +567,7 @@ void init_builtins(VM* _vm) {
         return VAR(self.index(CAST(Str&, _1)) != -1);
     });
     _vm->bind__str__(VM::tp_str, [](VM* vm, PyObject* _0) { return _0; });
-    _vm->bind__iter__(VM::tp_str, [](VM* vm, PyObject* _0) { return VAR_T(StringIter, _0); });
+    _vm->bind__iter__(VM::tp_str, [](VM* vm, PyObject* _0) { return vm->new_user_object<StringIter>(_0); });
     _vm->bind__repr__(VM::tp_str, [](VM* vm, PyObject* _0) {
         const Str& self = _CAST(Str&, _0);
         return VAR(self.escape());
@@ -993,7 +993,7 @@ void init_builtins(VM* _vm) {
     });
     _vm->bind__iter__(VM::tp_list, [](VM* vm, PyObject* _0) {
         List& self = _CAST(List&, _0);
-        return VAR_T(ArrayIter, _0, self.begin(), self.end());
+        return vm->new_user_object<ArrayIter>(_0, self.begin(), self.end());
     });
     _vm->bind__getitem__(VM::tp_list, PyArrayGetItem<List>);
     _vm->bind__setitem__(VM::tp_list, [](VM* vm, PyObject* _0, PyObject* _1, PyObject* _2){
@@ -1055,7 +1055,7 @@ void init_builtins(VM* _vm) {
 
     _vm->bind__iter__(VM::tp_tuple, [](VM* vm, PyObject* _0) {
         Tuple& self = _CAST(Tuple&, _0);
-        return VAR_T(ArrayIter, _0, self.begin(), self.end());
+        return vm->new_user_object<ArrayIter>(_0, self.begin(), self.end());
     });
     _vm->bind__getitem__(VM::tp_tuple, PyArrayGetItem<Tuple>);
     _vm->bind__len__(VM::tp_tuple, [](VM* vm, PyObject* obj) {

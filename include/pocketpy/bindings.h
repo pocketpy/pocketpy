@@ -148,15 +148,15 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
         }, {}, BindType::STATICMETHOD);                                             \
         vm->bind_method<0>(type, "to_struct", [](VM* vm, ArgsView args){            \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return VAR_T(C99Struct, self._(), sizeof(vT));                          \
+            return vm->new_user_object<C99Struct>(self._(), sizeof(vT));                          \
         });                                                                         \
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return VAR_T(VoidP, self._());                                          \
+            return vm->new_user_object<VoidP>(self._());                                          \
         });                                                                         \
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return VAR_T(wT, *self._());                                            \
+            return vm->new_user_object<wT>(*self._());                                            \
         });                                                                         \
         vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){               \
             return VAR(sizeof(vT));                                                 \

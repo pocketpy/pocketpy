@@ -11,8 +11,6 @@ namespace pkpy {
         return vm->register_user_class<T>(mod, #name, base);                \
     }                                                                       
 
-#define VAR_T(T, ...) vm->heap.gcnew<T>(vm->_tp_user<T>(), __VA_ARGS__)
-
 struct VoidP{
     void* ptr;
     VoidP(const void* ptr): ptr(const_cast<void*>(ptr)){}

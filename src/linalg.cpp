@@ -157,7 +157,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind_method<1>(type, "rotate", [](VM* vm, ArgsView args){
             Vec2 self = _CAST(Vec2&, args[0]);
             float radian = CAST(f64, args[1]);
-            return VAR_T(Vec2, self.rotate(radian));
+            return vm->new_user_object<Vec2>(self.rotate(radian));
         });
 
         vm->bind_method<1>(type, "rotate_", [](VM* vm, ArgsView args){
@@ -340,42 +340,42 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             Mat3x3& other = CAST(Mat3x3&, _1);
-            return VAR_T(Mat3x3, self + other);
+            return vm->new_user_object<Mat3x3>(self + other);
         });
 
         vm->bind__sub__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             Mat3x3& other = CAST(Mat3x3&, _1);
-            return VAR_T(Mat3x3, self - other);
+            return vm->new_user_object<Mat3x3>(self - other);
         });
 
         vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             f64 other = CAST_F(_1);
-            return VAR_T(Mat3x3, self * other);
+            return vm->new_user_object<Mat3x3>(self * other);
         });
 
         vm->bind_method<1>(type, "__rmul__", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
             f64 other = CAST_F(args[1]);
-            return VAR_T(Mat3x3, self * other);
+            return vm->new_user_object<Mat3x3>(self * other);
         });
 
         vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             f64 other = CAST_F(_1);
-            return VAR_T(Mat3x3, self / other);
+            return vm->new_user_object<Mat3x3>(self / other);
         });
 
         vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             if(vm->is_user_type<Mat3x3>(_1)){
                 const Mat3x3& other = _CAST(Mat3x3&, _1);
-                return VAR_T(Mat3x3, self.matmul(other));
+                return vm->new_user_object<Mat3x3>(self.matmul(other));
             }
             if(vm->is_user_type<Vec3>(_1)){
                 const Vec3& other = _CAST(Vec3&, _1);
-                return VAR_T(Vec3, self.matmul(other));
+                return vm->new_user_object<Vec3>(self.matmul(other));
             }
             return vm->NotImplemented;
         });
@@ -384,7 +384,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             const Mat3x3& self = _CAST(Mat3x3&, args[0]);
             const Mat3x3& other = CAST(Mat3x3&, args[1]);
             if(args[2] == vm->None){
-                return VAR_T(Mat3x3, self.matmul(other));
+                return vm->new_user_object<Mat3x3>(self.matmul(other));
             }else{
                 Mat3x3& out = CAST(Mat3x3&, args[2]);
                 out = self.matmul(other);
@@ -399,21 +399,21 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         vm->bind_method<0>(type, "transpose", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
-            return VAR_T(Mat3x3, self.transpose());
+            return vm->new_user_object<Mat3x3>(self.transpose());
         });
 
         vm->bind__invert__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
             Mat3x3& self = _CAST(Mat3x3&, obj);
             Mat3x3 ret;
             if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
-            return VAR_T(Mat3x3, ret);
+            return vm->new_user_object<Mat3x3>(ret);
         });
 
         vm->bind_method<0>(type, "inverse", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Mat3x3 ret;
             if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
-            return VAR_T(Mat3x3, ret);
+            return vm->new_user_object<Mat3x3>(ret);
         });
 
         vm->bind_method<0>(type, "inverse_", [](VM* vm, ArgsView args){
@@ -432,17 +432,17 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         // @staticmethod
         vm->bind(type, "zeros()", [](VM* vm, ArgsView args){
-            return VAR_T(Mat3x3, Mat3x3::zeros());
+            return vm->new_user_object<Mat3x3>(Mat3x3::zeros());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
         vm->bind(type, "ones()", [](VM* vm, ArgsView args){
-            return VAR_T(Mat3x3, Mat3x3::ones());
+            return vm->new_user_object<Mat3x3>(Mat3x3::ones());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
         vm->bind(type, "identity()", [](VM* vm, ArgsView args){
-            return VAR_T(Mat3x3, Mat3x3::identity());
+            return vm->new_user_object<Mat3x3>(Mat3x3::identity());
         }, {}, BindType::STATICMETHOD);
 
         /*************** affine transformations ***************/
@@ -451,7 +451,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             Vec2 t = CAST(Vec2, args[0]);
             f64 r = CAST_F(args[1]);
             Vec2 s = CAST(Vec2, args[2]);
-            return VAR_T(Mat3x3, Mat3x3::trs(t, r, s));
+            return vm->new_user_object<Mat3x3>(Mat3x3::trs(t, r, s));
         }, {}, BindType::STATICMETHOD);
 
         vm->bind(type, "copy_trs_(self, t: vec2, r: float, s: vec2)", [](VM* vm, ArgsView args){
@@ -491,7 +491,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         vm->bind_method<0>(type, "_t", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
-            return VAR_T(Vec2, self._t());
+            return vm->new_user_object<Vec2>(self._t());
         });
 
         vm->bind_method<0>(type, "_r", [](VM* vm, ArgsView args){
@@ -501,14 +501,14 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
         vm->bind_method<0>(type, "_s", [](VM* vm, ArgsView args){
             Mat3x3& self = _CAST(Mat3x3&, args[0]);
-            return VAR_T(Vec2, self._s());
+            return vm->new_user_object<Vec2>(self._s());
         });
 
         vm->bind_method<1>(type, "transform_point", [](VM* vm, ArgsView args){
             const Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Vec2 v = CAST(Vec2, args[1]);
             Vec2 res(self._11 * v.x + self._12 * v.y + self._13, self._21 * v.x + self._22 * v.y + self._23);
-            return VAR_T(Vec2, res);
+            return vm->new_user_object<Vec2>(res);
         });
 
         vm->bind_method<1>(type, "inverse_transform_point", [](VM* vm, ArgsView args){
@@ -517,14 +517,14 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             Mat3x3 inv;
             if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
             Vec2 res(inv._11 * v.x + inv._12 * v.y + inv._13, inv._21 * v.x + inv._22 * v.y + inv._23);
-            return VAR_T(Vec2, res);
+            return vm->new_user_object<Vec2>(res);
         });
 
         vm->bind_method<1>(type, "transform_vector", [](VM* vm, ArgsView args){
             const Mat3x3& self = _CAST(Mat3x3&, args[0]);
             Vec2 v = CAST(Vec2, args[1]);
             Vec2 res(self._11 * v.x + self._12 * v.y, self._21 * v.x + self._22 * v.y);
-            return VAR_T(Vec2, res);
+            return vm->new_user_object<Vec2>(res);
         });
 
         vm->bind_method<1>(type, "inverse_transform_vector", [](VM* vm, ArgsView args){
@@ -533,7 +533,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             Mat3x3 inv;
             if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
             Vec2 res(inv._11 * v.x + inv._12 * v.y, inv._21 * v.x + inv._22 * v.y);
-            return VAR_T(Vec2, res);
+            return vm->new_user_object<Vec2>(res);
         });
     }
 

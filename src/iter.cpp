@@ -110,7 +110,7 @@ namespace pkpy{
     }
 
 PyObject* VM::_py_generator(Frame&& frame, ArgsView buffer){
-    return VAR_T(Generator, std::move(frame), buffer);
+    return vm->new_user_object<Generator>(std::move(frame), buffer);
 }
 
 }   // namespace pkpy
