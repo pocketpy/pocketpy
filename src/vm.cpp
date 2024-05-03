@@ -1268,9 +1268,9 @@ PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, N
     return prop;
 }
 
-void VM::_builtin_error(StrName type){ _error(call(builtins->attr(type))); }
-void VM::_builtin_error(StrName type, PyObject* arg){ _error(call(builtins->attr(type), arg)); }
-void VM::_builtin_error(StrName type, const Str& msg){ _builtin_error(type, VAR(msg)); }
+void VM::__builtin_error(StrName type){ _error(call(builtins->attr(type))); }
+void VM::__builtin_error(StrName type, PyObject* arg){ _error(call(builtins->attr(type), arg)); }
+void VM::__builtin_error(StrName type, const Str& msg){ __builtin_error(type, VAR(msg)); }
 
 void VM::BinaryOptError(const char* op, PyObject* _0, PyObject* _1) {
     StrName name_0 = _type_name(vm, _tp(_0));
@@ -1280,9 +1280,9 @@ void VM::BinaryOptError(const char* op, PyObject* _0, PyObject* _1) {
 
 void VM::AttributeError(PyObject* obj, StrName name){
     if(isinstance(obj, vm->tp_type)){
-        _builtin_error("AttributeError", _S("type object ", _type_name(vm, PK_OBJ_GET(Type, obj)).escape(), " has no attribute ", name.escape()));
+        __builtin_error("AttributeError", _S("type object ", _type_name(vm, PK_OBJ_GET(Type, obj)).escape(), " has no attribute ", name.escape()));
     }else{
-        _builtin_error("AttributeError", _S(_type_name(vm, _tp(obj)).escape(), " object has no attribute ", name.escape()));
+        __builtin_error("AttributeError", _S(_type_name(vm, _tp(obj)).escape(), " object has no attribute ", name.escape()));
     }
 }
 

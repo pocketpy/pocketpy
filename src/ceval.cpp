@@ -927,16 +927,16 @@ __NEXT_STEP:;
             TOP() = call(TOP());
         }
         if(!isinstance(TOP(), tp_exception)){
-            _builtin_error("TypeError", "exceptions must derive from Exception");
+            TypeError("exceptions must derive from Exception");
         }
         _error(POPX());
     } DISPATCH();
     case OP_RAISE_ASSERT:
         if(byte.arg){
             PyObject* _0 = py_str(POPX());
-            _builtin_error("AssertionError", CAST(Str, _0));
+            AssertionError(CAST(Str, _0));
         }else{
-            _builtin_error("AssertionError");
+            AssertionError();
         }
         DISPATCH();
     case OP_RE_RAISE: __raise_exc(true); DISPATCH();

@@ -167,9 +167,6 @@ public:
 
     void set_main_argv(int argc, char** argv);
 
-    void __breakpoint();
-    void __pop_frame();
-
     PyObject* py_str(PyObject* obj);
     PyObject* py_repr(PyObject* obj);
     PyObject* py_json(PyObject* obj);
@@ -300,29 +297,25 @@ public:
     PyObject* __minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key);
     
     /***** Error Reporter *****/
-    void __raise_exc(bool re_raise=false);
-
-    void _builtin_error(StrName type);
-    void _builtin_error(StrName type, PyObject* arg);
-    void _builtin_error(StrName type, const Str& msg);
-
-    void StackOverflowError() { _builtin_error("StackOverflowError"); }
-    void IOError(const Str& msg) { _builtin_error("IOError", msg); }
-    void NotImplementedError(){ _builtin_error("NotImplementedError"); }
-    void TypeError(const Str& msg){ _builtin_error("TypeError", msg); }
-    void IndexError(const Str& msg){ _builtin_error("IndexError", msg); }
-    void ValueError(const Str& msg){ _builtin_error("ValueError", msg); }
-    void RuntimeError(const Str& msg){ _builtin_error("RuntimeError", msg); }
-    void ZeroDivisionError(const Str& msg){ _builtin_error("ZeroDivisionError", msg); }
-    void ZeroDivisionError(){ _builtin_error("ZeroDivisionError", "division by zero"); }
-    void NameError(StrName name){ _builtin_error("NameError", _S("name ", name.escape() + " is not defined")); }
-    void UnboundLocalError(StrName name){ _builtin_error("UnboundLocalError", _S("local variable ", name.escape() + " referenced before assignment")); }
-    void KeyError(PyObject* obj){ _builtin_error("KeyError", obj); }
-    void ImportError(const Str& msg){ _builtin_error("ImportError", msg); }
+    void StackOverflowError() { __builtin_error("StackOverflowError"); }
+    void IOError(const Str& msg) { __builtin_error("IOError", msg); }
+    void NotImplementedError(){ __builtin_error("NotImplementedError"); }
+    void TypeError(const Str& msg){ __builtin_error("TypeError", msg); }
+    void IndexError(const Str& msg){ __builtin_error("IndexError", msg); }
+    void ValueError(const Str& msg){ __builtin_error("ValueError", msg); }
+    void RuntimeError(const Str& msg){ __builtin_error("RuntimeError", msg); }
+    void ZeroDivisionError(const Str& msg){ __builtin_error("ZeroDivisionError", msg); }
+    void ZeroDivisionError(){ __builtin_error("ZeroDivisionError", "division by zero"); }
+    void NameError(StrName name){ __builtin_error("NameError", _S("name ", name.escape() + " is not defined")); }
+    void UnboundLocalError(StrName name){ __builtin_error("UnboundLocalError", _S("local variable ", name.escape() + " referenced before assignment")); }
+    void KeyError(PyObject* obj){ __builtin_error("KeyError", obj); }
+    void ImportError(const Str& msg){ __builtin_error("ImportError", msg); }
+    void AssertionError(const Str& msg){ __builtin_error("AssertionError", msg); }
+    void AssertionError(){ __builtin_error("AssertionError"); }
 
     void BinaryOptError(const char* op, PyObject* _0, PyObject* _1);
     void AttributeError(PyObject* obj, StrName name);
-    void AttributeError(const Str& msg){ _builtin_error("AttributeError", msg); }
+    void AttributeError(const Str& msg){ __builtin_error("AttributeError", msg); }
 
     void check_type(PyObject* obj, Type type){
         if(is_type(obj, type)) return;
@@ -376,13 +369,10 @@ public:
 
     ImportContext _import_context;
     PyObject* py_import(Str path, bool throw_err=true);
-    virtual ~VM();
-
+    
 #if PK_DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
 #endif
-    void __unpack_as_list(ArgsView args, List& list);
-    void __unpack_as_dict(ArgsView args, Dict& dict);
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     PyObject* py_negate(PyObject* obj);
     bool py_bool(PyObject* obj);
@@ -390,8 +380,6 @@ public:
     PyObject* py_list(PyObject*);
     PyObject* new_module(Str name, Str package="");
     Str disassemble(CodeObject_ co);
-    void __init_builtin_types();
-    void __post_init_builtin_types();
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     void delattr(PyObject* obj, StrName name);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
@@ -404,11 +392,7 @@ public:
     template<int ARGC>
     PyObject* bind_func(PyObject*, StrName, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     void _error(PyObject*);
-    PyObject* __run_top_frame();
-    PyObject* __format_string(Str, PyObject*);
-    PyObject* __py_generator(Frame&& frame, ArgsView buffer);
-    void __op_unpack_sequence(uint16_t arg);
-    void __prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
+
     // new style binding api
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
@@ -452,6 +436,25 @@ public:
         }
         return it->second;
     }
+
+    virtual ~VM();
+
+    /***** Private *****/
+    void __breakpoint();
+    void __pop_frame();
+    PyObject* __run_top_frame();
+    PyObject* __format_string(Str, PyObject*);
+    PyObject* __py_generator(Frame&& frame, ArgsView buffer);
+    void __op_unpack_sequence(uint16_t arg);
+    void __prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
+    void __unpack_as_list(ArgsView args, List& list);
+    void __unpack_as_dict(ArgsView args, Dict& dict);
+    void __raise_exc(bool re_raise=false);
+    void __init_builtin_types();
+    void __post_init_builtin_types();
+    void __builtin_error(StrName type);
+    void __builtin_error(StrName type, PyObject* arg);
+    void __builtin_error(StrName type, const Str& msg);
 };
 
 
