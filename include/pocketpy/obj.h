@@ -168,25 +168,20 @@ struct MappingProxy{
     NameDict& attr() { return obj->attr(); }
 };
 
-#define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
-
-#define PK_OBJ_MARK(obj) \
-    if(!is_tagged(obj) && !(obj)->gc_marked) {                      \
-        (obj)->gc_marked = true;                                    \
-        (obj)->_obj_gc_mark();                                      \
-        if((obj)->is_attr_valid()) gc_mark_namedict((obj)->attr()); \
-    }
-
-inline void gc_mark_namedict(NameDict& t){
-    if(t.size() == 0) return;
-    t.apply([](StrName name, PyObject* obj){
-        PK_OBJ_MARK(obj);
-    });
-}
-
+void _gc_mark_namedict(NameDict*);
 StrName _type_name(VM* vm, Type type);
 template<typename T> T to_void_p(VM*, PyObject*);
 PyObject* from_void_p(VM*, void*);
+
+
+#define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
+
+#define PK_OBJ_MARK(obj) \
+    if(!is_tagged(obj) && !(obj)->gc_marked) {                          \
+        (obj)->gc_marked = true;                                        \
+        (obj)->_obj_gc_mark();                                          \
+        if((obj)->is_attr_valid()) _gc_mark_namedict((obj)->_attr);     \
+    }
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)

@@ -186,7 +186,7 @@ struct Py_<Function> final: PyObject {
     }
     void _obj_gc_mark() override {
         _value.decl->_gc_mark();
-        if(_value._closure != nullptr) gc_mark_namedict(*_value._closure);
+        if(_value._closure != nullptr) _gc_mark_namedict(_value._closure.get());
     }
 };
 

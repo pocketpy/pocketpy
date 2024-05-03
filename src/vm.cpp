@@ -1295,6 +1295,11 @@ StrName _type_name(VM *vm, Type type){
     return vm->_all_types[type].name;
 }
 
+void _gc_mark_namedict(NameDict* t){
+    t->apply([](StrName name, PyObject* obj){
+        PK_OBJ_MARK(obj);
+    });
+}
 
 void VM::bind__getitem__(Type type, PyObject* (*f)(VM*, PyObject*, PyObject*)){
     _all_types[type].m__getitem__ = f;
