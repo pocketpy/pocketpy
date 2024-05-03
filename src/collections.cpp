@@ -24,7 +24,6 @@ namespace pkpy
     void PyDequeIter::_register(VM *vm, PyObject *mod, PyObject *type)
     {
         // Iterator for the deque type
-        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<PyDequeIter>(type);
 
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject *obj)

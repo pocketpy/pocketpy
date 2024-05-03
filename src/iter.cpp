@@ -3,7 +3,6 @@
 namespace pkpy{
 
     void RangeIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<RangeIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
@@ -20,7 +19,6 @@ namespace pkpy{
     }
 
     void ArrayIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<ArrayIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
@@ -32,7 +30,6 @@ namespace pkpy{
     }
 
     void StringIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<StringIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
@@ -81,7 +78,6 @@ namespace pkpy{
     }
 
     void Generator::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->_all_types[PK_OBJ_GET(Type, type)].subclass_enabled = false;
         vm->bind_notimplemented_constructor<Generator>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
@@ -94,8 +90,6 @@ namespace pkpy{
     }
 
     void DictItemsIter::_register(VM *vm, PyObject *mod, PyObject *type){
-        PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, type)];
-        info.subclass_enabled = false;
         vm->bind_notimplemented_constructor<DictItemsIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
