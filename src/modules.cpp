@@ -2,16 +2,6 @@
 
 namespace pkpy{
 
-void add_module_operator(VM* vm){
-    PyObject* mod = vm->new_module("operator");
-    vm->bind_func<2>(mod, "lt", [](VM* vm, ArgsView args) { return VAR(vm->py_lt(args[0], args[1]));});
-    vm->bind_func<2>(mod, "le", [](VM* vm, ArgsView args) { return VAR(vm->py_le(args[0], args[1]));});
-    vm->bind_func<2>(mod, "eq", [](VM* vm, ArgsView args) { return VAR(vm->py_eq(args[0], args[1]));});
-    vm->bind_func<2>(mod, "ne", [](VM* vm, ArgsView args) { return VAR(vm->py_ne(args[0], args[1]));});
-    vm->bind_func<2>(mod, "ge", [](VM* vm, ArgsView args) { return VAR(vm->py_ge(args[0], args[1]));});
-    vm->bind_func<2>(mod, "gt", [](VM* vm, ArgsView args) { return VAR(vm->py_gt(args[0], args[1]));});
-}
-
 struct PyStructTime{
     int tm_year;
     int tm_mon;

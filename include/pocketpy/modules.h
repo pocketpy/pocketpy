@@ -4,7 +4,6 @@
 
 namespace pkpy{
 
-void add_module_operator(VM* vm);
 void add_module_time(VM* vm);
 void add_module_sys(VM* vm);
 void add_module_json(VM* vm);

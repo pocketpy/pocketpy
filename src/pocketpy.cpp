@@ -1611,7 +1611,6 @@ void VM::post_init(){
     add_module_gc(this);
     add_module_random(this);
     add_module_base64(this);
-    add_module_operator(this);
     
     _lazy_modules["this"] = kPythonLibs_this;
     _lazy_modules["functools"] = kPythonLibs_functools;
