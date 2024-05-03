@@ -63,7 +63,7 @@ class _Pickler:
 
         if getattr(o_t, '__struct__', False):
             ret.append(_0)
-            ret.append(o.to_struct().hex())
+            ret.append(o.tostruct().hex())
             return [index]
 
         if hasattr(o, "__getnewargs__"):
@@ -143,7 +143,7 @@ class _Unpickler:
         # generic object
         cls = _find_class(o[0])
         if getattr(cls, '__struct__', False):
-            inst = cls.from_struct(struct.fromhex(o[1]))
+            inst = cls.fromstruct(struct.fromhex(o[1]))
             self.tag(index, inst)
             return inst
         else:

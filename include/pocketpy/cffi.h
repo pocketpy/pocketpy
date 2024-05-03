@@ -60,14 +60,14 @@ POINTER_VAR(const bool*, "bool_p")
 #undef POINTER_VAR
 
 
-struct C99Struct{
+struct Struct{
     static constexpr int INLINE_SIZE = 24;
 
     char _inlined[INLINE_SIZE];
     char* p;
     int size;
 
-    C99Struct(int new_size, bool zero_init=true){
+    Struct(int new_size, bool zero_init=true){
         this->size = new_size;
         if(size <= INLINE_SIZE){
             p = _inlined;
@@ -77,17 +77,17 @@ struct C99Struct{
         if(zero_init) memset(p, 0, size);
     }
 
-    C99Struct(void* p, int size): C99Struct(size, false){
+    Struct(void* p, int size): Struct(size, false){
         if(p != nullptr) memcpy(this->p, p, size);
     }
 
-    C99Struct(const C99Struct& other): C99Struct(other.p, other.size){}
-    ~C99Struct(){ if(p!=_inlined) free(p); }
+    Struct(const Struct& other): Struct(other.p, other.size){}
+    ~Struct(){ if(p!=_inlined) free(p); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-static_assert(sizeof(Py_<C99Struct>) <= 64);
+static_assert(sizeof(Py_<Struct>) <= 64);
 static_assert(sizeof(Py_<Tuple>) <= 64);
 
 /***********************************************/

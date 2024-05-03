@@ -156,24 +156,24 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 #define PY_STRUCT_LIKE(wT)   \
         static_assert(std::is_trivially_copyable<wT>::value);                       \
         type->attr().set("__struct__", vm->True);                                   \
-        vm->bind_func<1>(type, "from_struct", [](VM* vm, ArgsView args){            \
-            C99Struct& s = CAST(C99Struct&, args[0]);                               \
+        vm->bind_func<1>(type, "fromstruct", [](VM* vm, ArgsView args){             \
+            Struct& s = CAST(Struct&, args[0]);                                     \
             if(s.size != sizeof(wT)) vm->ValueError("size mismatch");               \
             PyObject* obj = vm->new_user_object<wT>();                              \
-            memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                           \
+            memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                              \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \
-        vm->bind_method<0>(type, "to_struct", [](VM* vm, ArgsView args){            \
+        vm->bind_method<0>(type, "tostruct", [](VM* vm, ArgsView args){             \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<C99Struct>(&self, sizeof(wT));                          \
+            return vm->new_user_object<Struct>(&self, sizeof(wT));                  \
         });                                                                         \
         vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<VoidP>(&self);                                          \
+            return vm->new_user_object<VoidP>(&self);                               \
         });                                                                         \
         vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
-            return vm->new_user_object<wT>(self);                                            \
+            return vm->new_user_object<wT>(self);                                   \
         });                                                                         \
         vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){               \
             return VAR(sizeof(wT));                                                 \
