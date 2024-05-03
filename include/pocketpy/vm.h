@@ -127,17 +127,15 @@ public:
     PyObject* StopIteration;
     PyObject* _main;            // __main__ module
 
-    PyObject* _last_exception;  // last exception
-    PyObject* _curr_class;      // current class being defined
+    // typeid -> Type
+    std::map<const std::type_index, Type> _cxx_typeid_map;
 
     // this is for repr() recursion detection (no need to mark)
     std::set<PyObject*> _repr_recursion_set;
 
-    // cached code objects for FSTRING_EVAL
-    std::map<std::string_view, CodeObject_> _cached_codes;
-
-    // typeid -> Type
-    std::map<const std::type_index, Type> _cxx_typeid_map;
+    PyObject* __last_exception;  // last exception
+    PyObject* __curr_class;      // current class being defined
+    std::map<std::string_view, CodeObject_> __cached_codes;
 
     void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
 
@@ -396,8 +394,8 @@ public:
 #if PK_DEBUG_CEVAL_STEP
     void _log_s_data(const char* title = nullptr);
 #endif
-    void _unpack_as_list(ArgsView args, List& list);
-    void _unpack_as_dict(ArgsView args, Dict& dict);
+    void __unpack_as_list(ArgsView args, List& list);
+    void __unpack_as_dict(ArgsView args, Dict& dict);
     PyObject* vectorcall(int ARGC, int KWARGC=0, bool op_call=false);
     PyObject* py_negate(PyObject* obj);
     bool py_bool(PyObject* obj);
@@ -405,7 +403,8 @@ public:
     PyObject* py_list(PyObject*);
     PyObject* new_module(Str name, Str package="");
     Str disassemble(CodeObject_ co);
-    void init_builtin_types();
+    void __init_builtin_types();
+    void __post_init_builtin_types();
     PyObject* getattr(PyObject* obj, StrName name, bool throw_err=true);
     void delattr(PyObject* obj, StrName name);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
@@ -419,7 +418,6 @@ public:
     PyObject* bind_func(PyObject*, StrName, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     void _error(PyObject*);
     PyObject* __run_top_frame();
-    void post_init();
     PyObject* __format_string(Str, PyObject*);
     PyObject* __py_generator(Frame&& frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);

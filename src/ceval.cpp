@@ -205,9 +205,9 @@ __NEXT_STEP:;
         TOP() = getattr(TOP(), StrName(byte.arg));
     } DISPATCH();
     case OP_LOAD_CLASS_GLOBAL:{
-        PK_ASSERT(_curr_class != nullptr);
+        PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
-        PyObject* _0 = getattr(_curr_class, _name, false);
+        PyObject* _0 = getattr(__curr_class, _name, false);
         if(_0 != nullptr) { PUSH(_0); DISPATCH(); }
         // load global if attribute not found
         _0 = frame->f_globals().try_get_likely_found(_name);
@@ -391,7 +391,7 @@ __NEXT_STEP:;
     case OP_BUILD_TUPLE_UNPACK: {
         auto _lock = heap.gc_scope_lock();
         List list;
-        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
         PyObject* _0 = VAR(Tuple(std::move(list)));
         PUSH(_0);
@@ -399,7 +399,7 @@ __NEXT_STEP:;
     case OP_BUILD_LIST_UNPACK: {
         auto _lock = heap.gc_scope_lock();
         List list;
-        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
         PyObject* _0 = VAR(std::move(list));
         PUSH(_0);
@@ -407,7 +407,7 @@ __NEXT_STEP:;
     case OP_BUILD_DICT_UNPACK: {
         auto _lock = heap.gc_scope_lock();
         Dict dict(this);
-        _unpack_as_dict(STACK_VIEW(byte.arg), dict);
+        __unpack_as_dict(STACK_VIEW(byte.arg), dict);
         STACK_SHRINK(byte.arg);
         PyObject* _0 = VAR(std::move(dict));
         PUSH(_0);
@@ -415,7 +415,7 @@ __NEXT_STEP:;
     case OP_BUILD_SET_UNPACK: {
         auto _lock = heap.gc_scope_lock();
         List list;
-        _unpack_as_list(STACK_VIEW(byte.arg), list);
+        __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
         PyObject* _0 = VAR(std::move(list));
         _0 = call(builtins->attr(pk_id_set), _0);
@@ -645,11 +645,11 @@ __NEXT_STEP:;
     case OP_FSTRING_EVAL:{
         PyObject* _0 = co->consts[byte.arg];
         std::string_view string = CAST(Str&, _0).sv();
-        auto it = _cached_codes.find(string);
+        auto it = __cached_codes.find(string);
         CodeObject_ code;
-        if(it == _cached_codes.end()){
+        if(it == __cached_codes.end()){
             code = vm->compile(string, "<eval>", EVAL_MODE, true);
-            _cached_codes[string] = code;
+            __cached_codes[string] = code;
         }else{
             code = it->second;
         }
@@ -871,39 +871,39 @@ __NEXT_STEP:;
         PyObject* _0 = POPX();   // super
         if(_0 == None) _0 = _t(tp_object);
         check_type(_0, tp_type);
-        _curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
+        __curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
     } DISPATCH();
     case OP_END_CLASS: {
-        PK_ASSERT(_curr_class != nullptr);
+        PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
-        frame->_module->attr().set(_name, _curr_class);
+        frame->_module->attr().set(_name, __curr_class);
         // call on_end_subclass
-        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, _curr_class)];
+        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, __curr_class)];
         if(ti->base != tp_object){
             PyTypeInfo* base_ti = &_all_types[ti->base];
             if(base_ti->on_end_subclass) base_ti->on_end_subclass(this, ti);
         }
-        _curr_class = nullptr;
+        __curr_class = nullptr;
     } DISPATCH();
     case OP_STORE_CLASS_ATTR:{
-        PK_ASSERT(_curr_class != nullptr);
+        PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
         PyObject* _0 = POPX();
         if(is_type(_0, tp_function)){
-            PK_OBJ_GET(Function, _0)._class = _curr_class;
+            PK_OBJ_GET(Function, _0)._class = __curr_class;
         }
-        _curr_class->attr().set(_name, _0);
+        __curr_class->attr().set(_name, _0);
     } DISPATCH();
     case OP_BEGIN_CLASS_DECORATION:{
-        PUSH(_curr_class);
+        PUSH(__curr_class);
     } DISPATCH();
     case OP_END_CLASS_DECORATION:{
-        _curr_class = POPX();
+        __curr_class = POPX();
     } DISPATCH();
     case OP_ADD_CLASS_ANNOTATION: {
-        PK_ASSERT(_curr_class != nullptr);
+        PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
-        Type type = PK_OBJ_GET(Type, _curr_class);
+        Type type = PK_OBJ_GET(Type, __curr_class);
         _all_types[type].annotated_fields.push_back(_name);
     } DISPATCH();
     /*****************************************/
@@ -940,7 +940,7 @@ __NEXT_STEP:;
         }
         DISPATCH();
     case OP_RE_RAISE: __raise(true); DISPATCH();
-    case OP_POP_EXCEPTION: _last_exception = POPX(); DISPATCH();
+    case OP_POP_EXCEPTION: __last_exception = POPX(); DISPATCH();
     /*****************************************/
     case OP_FORMAT_STRING: {
         PyObject* _0 = POPX();

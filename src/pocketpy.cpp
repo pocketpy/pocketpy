@@ -1510,7 +1510,7 @@ void init_builtins(VM* _vm) {
     _vm->register_user_class<DictItemsIter>(_vm->builtins, "_dict_items_iter");
 }
 
-void VM::post_init(){
+void VM::__post_init_builtin_types(){
     init_builtins(this);
 
     bind_method<-1>(tp_module, "__init__", [](VM* vm, ArgsView args) {

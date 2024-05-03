@@ -200,15 +200,15 @@ void add_module_math(VM* vm){
 void add_module_traceback(VM* vm){
     PyObject* mod = vm->new_module("traceback");
     vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
-        if(vm->_last_exception==nullptr) vm->ValueError("no exception");
-        Exception& e = _CAST(Exception&, vm->_last_exception);
+        if(vm->__last_exception==nullptr) vm->ValueError("no exception");
+        Exception& e = _CAST(Exception&, vm->__last_exception);
         vm->stdout_write(e.summary());
         return vm->None;
     });
 
     vm->bind_func<0>(mod, "format_exc", [](VM* vm, ArgsView args) {
-        if(vm->_last_exception==nullptr) vm->ValueError("no exception");
-        Exception& e = _CAST(Exception&, vm->_last_exception);
+        if(vm->__last_exception==nullptr) vm->ValueError("no exception");
+        Exception& e = _CAST(Exception&, vm->__last_exception);
         return VAR(e.summary());
     });
 }

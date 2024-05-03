@@ -78,9 +78,9 @@ namespace pkpy{
         _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };
         _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;
-        _last_exception = nullptr;
+        __last_exception = nullptr;
         _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{ return nullptr; };
-        init_builtin_types();
+        __init_builtin_types();
     }
 
     PyObject* VM::py_str(PyObject* obj){
@@ -734,7 +734,7 @@ void VM::_log_s_data(const char* title) {
 }
 #endif
 
-void VM::init_builtin_types(){
+void VM::__init_builtin_types(){
     _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, nullptr, "object", true});
     _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, nullptr, "type", false});
 
@@ -802,12 +802,12 @@ void VM::init_builtin_types(){
     builtins->attr().set("SyntaxError", _t(tp_syntax_error));
     builtins->attr().set("IndentationError", _t(tp_indentation_error));
 
-    post_init();
+    __post_init_builtin_types();
     this->_main = new_module("__main__");
 }
 
 // `heap.gc_scope_lock();` needed before calling this function
-void VM::_unpack_as_list(ArgsView args, List& list){
+void VM::__unpack_as_list(ArgsView args, List& list){
     for(PyObject* obj: args){
         if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);
@@ -827,7 +827,7 @@ void VM::_unpack_as_list(ArgsView args, List& list){
 }
 
 // `heap.gc_scope_lock();` needed before calling this function
-void VM::_unpack_as_dict(ArgsView args, Dict& dict){
+void VM::__unpack_as_dict(ArgsView args, Dict& dict){
     for(PyObject* obj: args){
         if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);
@@ -1321,9 +1321,9 @@ void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) PK_OBJ_MARK(obj);
     vm->callstack.apply([](Frame& frame){ frame._gc_mark(); });
     for(PyObject* obj: vm->s_data) PK_OBJ_MARK(obj);
-    for(auto [_, co]: vm->_cached_codes) co->_gc_mark();
-    if(vm->_last_exception) PK_OBJ_MARK(vm->_last_exception);
-    if(vm->_curr_class) PK_OBJ_MARK(vm->_curr_class);
+    for(auto [_, co]: vm->__cached_codes) co->_gc_mark();
+    if(vm->__last_exception) PK_OBJ_MARK(vm->__last_exception);
+    if(vm->__curr_class) PK_OBJ_MARK(vm->__curr_class);
     if(vm->_c.error != nullptr) PK_OBJ_MARK(vm->_c.error);
     if(_gc_marker_ex) _gc_marker_ex(vm);
 }
