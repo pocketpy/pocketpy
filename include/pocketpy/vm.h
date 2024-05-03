@@ -363,8 +363,12 @@ public:
     }
 
     struct ImportContext{
+        PK_ALWAYS_PASS_BY_POINTER(ImportContext)
+
         std::vector<Str> pending;
-        pod_vector<bool> pending_is_init;   // a.k.a __init__.py
+        std::vector<bool> pending_is_init;   // a.k.a __init__.py
+
+        ImportContext() {}
 
         struct Temp{
             PK_ALWAYS_PASS_BY_POINTER(Temp)

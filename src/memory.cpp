@@ -267,8 +267,8 @@ struct MemoryPool{
     }
 };
 
-static MemoryPool<64>* pool64;
-static MemoryPool<128>* pool128;
+static MemoryPool<64>* pool64 = nullptr;
+static MemoryPool<128>* pool128 = nullptr;
 
 void init_memory_pools_if_needed(){
     if(pool64 == nullptr) pool64 = new MemoryPool<64>();
