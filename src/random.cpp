@@ -178,22 +178,24 @@ struct Random{
 
         vm->bind_method<1>(type, "choice", [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
-            auto [data, size] = vm->_cast_array(args[1]);
-            if(size == 0) vm->IndexError("cannot choose from an empty sequence");
-            int index = self.gen.randint(0, size-1);
-            return data[index];
+            ArgsView view = vm->_cast_array_view(args[1]);
+            if(view.empty()) vm->IndexError("cannot choose from an empty sequence");
+            int index = self.gen.randint(0, view.size()-1);
+            return view[index];
         });
 
         vm->bind(type, "choices(self, population, weights=None, k=1)", [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
-            auto [data, size] = vm->_cast_array(args[1]);
+            ArgsView view = vm->_cast_array_view(args[1]);
+            PyObject** data = view.begin();
+            int size = view.size();
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
             pod_vector<f64> cum_weights(size);
             if(args[2] == vm->None){
                 for(int i = 0; i < size; i++) cum_weights[i] = i + 1;
             }else{
-                auto [weights, weights_size] = vm->_cast_array(args[2]);
-                if(weights_size != size) vm->ValueError(_S("len(weights) != ", size));
+                ArgsView weights = vm->_cast_array_view(args[2]);
+                if(weights.size() != size) vm->ValueError(_S("len(weights) != ", size));
                 cum_weights[0] = CAST(f64, weights[0]);
                 for(int i = 1; i < size; i++){
                     cum_weights[i] = cum_weights[i - 1] + CAST(f64, weights[i]);

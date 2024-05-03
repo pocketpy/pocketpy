@@ -113,13 +113,13 @@ namespace pkpy{
         return nullptr;
     }
 
-    std::pair<PyObject**, int> VM::_cast_array(PyObject* obj){
+    ArgsView VM::_cast_array_view(PyObject* obj){
         if(is_type(obj, VM::tp_list)){
             List& list = PK_OBJ_GET(List, obj);
-            return {list.data(), list.size()};
+            return ArgsView(list.begin(), list.end());
         }else if(is_type(obj, VM::tp_tuple)){
             Tuple& tuple = PK_OBJ_GET(Tuple, obj);
-            return {tuple.data(), tuple.size()};
+            return ArgsView(tuple.begin(), tuple.end());
         }
         TypeError(_S("expected list or tuple, got ", _type_name(this, _tp(obj)).escape()));
         PK_UNREACHABLE();
@@ -268,6 +268,43 @@ namespace pkpy{
             case VM::tp_type.index: return vm->True;
         }
         return vm->find_name_in_mro(cls, __call__) != nullptr;
+    }
+
+    PyObject* VM::_minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key){
+        auto _lock = heap.gc_scope_lock();
+        const Tuple& args_tuple = PK_OBJ_GET(Tuple, args);  // from *args, it must be a tuple
+        if(key==vm->None && args_tuple.size()==2){
+            // fast path
+            PyObject* a = args_tuple[0];
+            PyObject* b = args_tuple[1];
+            return (this->*op)(a, b) ? a : b;
+        }
+
+        if(args_tuple.size() == 0) TypeError("expected at least 1 argument, got 0");
+        
+        ArgsView view(nullptr, nullptr);
+        if(args_tuple.size()==1){
+            view = _cast_array_view(args_tuple[0]);
+        }else{
+            view = ArgsView(args_tuple);
+        }
+
+        if(view.empty()) ValueError("arg is an empty sequence");
+        PyObject* res = view[0];
+
+        if(key == vm->None){
+            for(int i=1; i<view.size(); i++){
+                if((this->*op)(view[i], res)) res = view[i];
+            }
+        }else{
+            auto _lock = heap.gc_scope_lock();
+            for(int i=1; i<view.size(); i++){
+                PyObject* a = call(key, view[i]);
+                PyObject* b = call(key, res);
+                if((this->*op)(a, b)) res = view[i];
+            }
+        }
+        return res;
     }
 
     PyObject* VM::py_import(Str path, bool throw_err){

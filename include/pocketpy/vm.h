@@ -190,7 +190,7 @@ public:
     PyObject* py_json(PyObject* obj);
     PyObject* py_iter(PyObject* obj);
 
-    std::pair<PyObject**, int> _cast_array(PyObject* obj);
+    ArgsView _cast_array_view(PyObject* obj);
 
     PyObject* find_name_in_mro(Type cls, StrName name);
     bool isinstance(PyObject* obj, Type base);
@@ -312,6 +312,8 @@ public:
     PyObject* _py_next(const PyTypeInfo*, PyObject*);
     PyObject* _pack_next_retval(unsigned);
     bool py_callable(PyObject* obj);
+
+    PyObject* _minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key);
     
     /***** Error Reporter *****/
     void _raise(bool re_raise=false);

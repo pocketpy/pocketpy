@@ -1,36 +1,4 @@
-from operator import lt as __operator_lt
-from operator import gt as __operator_gt
 from __builtins import next as __builtins_next
-
-def __minmax_reduce(op, args, key):
-    if key is None:
-        if len(args) == 2:
-            return args[0] if op(args[0], args[1]) else args[1]
-    if len(args) == 0:
-        raise TypeError('expected 1 arguments, got 0')
-    if len(args) == 1:
-        args = args[0]
-    args = iter(args)
-    res = __builtins_next(args)
-    if res is StopIteration:
-        raise ValueError('args is an empty sequence')
-    while True:
-        i = __builtins_next(args)
-        if i is StopIteration:
-            break
-        if key is None:
-            if op(i, res):
-                res = i
-        else:
-            if op(key(i), key(res)):
-                res = i
-    return res
-
-def min(*args, key=None):
-    return __minmax_reduce(__operator_lt, args, key)
-
-def max(*args, key=None):
-    return __minmax_reduce(__operator_gt, args, key)
 
 def all(iterable):
     for i in iterable:
