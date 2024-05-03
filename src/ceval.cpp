@@ -723,12 +723,12 @@ __NEXT_STEP:;
     /*****************************************/
     case OP_LIST_APPEND:{
         PyObject* _0 = POPX();
-        CAST(List&, SECOND()).push_back(_0);
+        PK_OBJ_GET(List, SECOND()).push_back(_0);
     } DISPATCH()
     case OP_DICT_ADD: {
         PyObject* _0 = POPX();
-        Tuple& t = CAST(Tuple&, _0);
-        call_method(SECOND(), __setitem__, t[0], t[1]);
+        const Tuple& t = PK_OBJ_GET(Tuple, _0);
+        PK_OBJ_GET(Dict, SECOND()).set(t[0], t[1]);
     } DISPATCH()
     case OP_SET_ADD:{
         PyObject* _0 = POPX();
