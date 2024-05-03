@@ -87,7 +87,7 @@ PyObject* VM::__run_top_frame(){
 
     while(true){
         try{
-            if(need_raise){ need_raise = false; __raise(); }
+            if(need_raise){ need_raise = false; __raise_exc(); }
 /**********************************************************************/
 /* NOTE: 
  * Be aware of accidental gc!
@@ -939,7 +939,7 @@ __NEXT_STEP:;
             _builtin_error("AssertionError");
         }
         DISPATCH();
-    case OP_RE_RAISE: __raise(true); DISPATCH();
+    case OP_RE_RAISE: __raise_exc(true); DISPATCH();
     case OP_POP_EXCEPTION: __last_exception = POPX(); DISPATCH();
     /*****************************************/
     case OP_FORMAT_STRING: {

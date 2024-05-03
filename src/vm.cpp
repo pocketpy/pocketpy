@@ -1294,10 +1294,10 @@ void VM::_error(PyObject* e_obj){
         throw e;
     }
     PUSH(e_obj);
-    __raise();
+    __raise_exc();
 }
 
-void VM::__raise(bool re_raise){
+void VM::__raise_exc(bool re_raise){
     Frame* frame = &callstack.top();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){

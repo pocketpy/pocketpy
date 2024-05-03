@@ -166,7 +166,7 @@ public:
     VM(bool enable_os=true);
 
     void set_main_argv(int argc, char** argv);
-    
+
     void __breakpoint();
     void __pop_frame();
 
@@ -300,7 +300,7 @@ public:
     PyObject* __minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key);
     
     /***** Error Reporter *****/
-    void __raise(bool re_raise=false);
+    void __raise_exc(bool re_raise=false);
 
     void _builtin_error(StrName type);
     void _builtin_error(StrName type, PyObject* arg);
