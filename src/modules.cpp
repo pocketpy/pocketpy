@@ -100,7 +100,7 @@ void add_module_json(VM* vm){
             sv = CAST(Str&, args[0]).sv();
         }
         CodeObject_ code = vm->compile(sv, "<json>", JSON_MODE);
-        return vm->_exec(code, vm->top_frame()->_module);
+        return vm->_exec(code, vm->callstack.top()._module);
     });
 
     vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {

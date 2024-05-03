@@ -74,7 +74,7 @@ void init_builtins(VM* _vm) {
     // builtin functions
     _vm->bind_func<0>(_vm->builtins, "breakpoint", [](VM* vm, ArgsView args) {
 #if PK_ENABLE_PROFILER
-        vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), vm->top_frame()->curr_lineno(), false);
+        vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), vm->callstack.top().curr_lineno(), false);
 #endif
         return vm->None;
     });
@@ -86,7 +86,7 @@ void init_builtins(VM* _vm) {
             class_arg = args[0];
             self_arg = args[1];
         }else if(args.size() == 0){
-            Frame* frame = vm->top_frame();
+            Frame* frame = &vm->callstack.top();
             if(frame->_callable != nullptr){
                 class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
                 if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
@@ -140,7 +140,7 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind_func<0>(_vm->builtins, "globals", [](VM* vm, ArgsView args) {
-        PyObject* mod = vm->top_frame()->_module;
+        PyObject* mod = vm->callstack.top()._module;
         return VAR(MappingProxy(mod));
     });
 
@@ -201,7 +201,7 @@ void init_builtins(VM* _vm) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
         PyObject* globals = args[1];
         if(globals == vm->None){
-            Frame* frame = vm->top_frame();
+            Frame* frame = &vm->callstack.top();
             return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
         }
         vm->check_type(globals, VM::tp_mappingproxy);
@@ -213,7 +213,7 @@ void init_builtins(VM* _vm) {
         CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
         PyObject* globals = args[1];
         if(globals == vm->None){
-            Frame* frame = vm->top_frame();
+            Frame* frame = &vm->callstack.top();
             vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
             return vm->None;
         }

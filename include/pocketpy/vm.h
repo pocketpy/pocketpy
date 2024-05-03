@@ -168,10 +168,6 @@ public:
     void set_main_argv(int argc, char** argv);
     void __breakpoint();
 
-    Frame* top_frame(){
-        return &callstack.top();
-    }
-
     void __pop_frame(){
         s_data.reset(callstack.top()._sp_base);
         callstack.pop();

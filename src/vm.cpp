@@ -694,7 +694,7 @@ void VM::_log_s_data(const char* title) {
         if(f._sp_base == nullptr) PK_FATAL_ERROR();
         sp_bases[f._sp_base] += 1;
     }
-    Frame* frame = top_frame();
+    Frame* frame = &callstack.top();
     int line = frame->co->lines[frame->_ip];
     ss << frame->co->name << ":" << line << " [";
     for(PyObject** p=s_data.begin(); p!=s_data.end(); p++){
@@ -1298,7 +1298,7 @@ void VM::_error(PyObject* e_obj){
 }
 
 void VM::__raise(bool re_raise){
-    Frame* frame = top_frame();
+    Frame* frame = &callstack.top();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
         e._ip_on_error = frame->_ip;
@@ -1497,7 +1497,7 @@ void NativeFunc::check_size(VM* vm, ArgsView args) const{
 #if PK_ENABLE_PROFILER
 void NextBreakpoint::_step(VM* vm){
     int curr_callstack_size = vm->callstack.size();
-    int curr_lineno = vm->top_frame()->curr_lineno();
+    int curr_lineno = vm->callstack.top().curr_lineno();
     if(should_step_into){
         if(curr_callstack_size != callstack_size || curr_lineno != lineno){
             vm->__breakpoint();

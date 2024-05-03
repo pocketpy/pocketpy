@@ -81,7 +81,7 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 #undef BINARY_F_COMPARE
 
 PyObject* VM::__run_top_frame(){
-    Frame* frame = top_frame();
+    Frame* frame = &callstack.top();
     const Frame* base_frame = frame;
     bool need_raise = false;
 
@@ -667,7 +667,7 @@ __NEXT_STEP:;
             true
         );
         if(_0 == PY_OP_CALL){
-            frame = top_frame();
+            frame = &callstack.top();
             goto __NEXT_FRAME;
         }
         PUSH(_0);
@@ -702,7 +702,7 @@ __NEXT_STEP:;
             );
         }
         if(_0 == PY_OP_CALL){
-            frame = top_frame();
+            frame = &callstack.top();
             goto __NEXT_FRAME;
         }
         PUSH(_0);
@@ -713,7 +713,7 @@ __NEXT_STEP:;
         if(frame == base_frame){       // [ frameBase<- ]
             return _0;
         }else{
-            frame = top_frame();
+            frame = &callstack.top();
             PUSH(_0);
             goto __NEXT_FRAME;
         }
@@ -983,7 +983,7 @@ __NEXT_STEP:;
             bool is_base_frame_to_be_popped = frame == base_frame;
             __pop_frame();
             if(callstack.empty()) throw _e;   // propagate to the top level
-            frame = top_frame();
+            frame = &callstack.top();
             PUSH(e_obj);
             if(is_base_frame_to_be_popped) throw ToBeRaisedException();
             need_raise = true;
