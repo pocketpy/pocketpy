@@ -48,7 +48,7 @@ struct PyTypeInfo{
     StrName name;
     bool subclass_enabled;
 
-    pod_vector<StrName> annotated_fields = {};
+    std::vector<StrName> annotated_fields = {};
 
     // cached special methods
     // unary operators
