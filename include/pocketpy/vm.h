@@ -166,18 +166,9 @@ public:
     VM(bool enable_os=true);
 
     void set_main_argv(int argc, char** argv);
+    
     void __breakpoint();
-
-    void __pop_frame(){
-        s_data.reset(callstack.top()._sp_base);
-        callstack.pop();
-
-#if PK_ENABLE_PROFILER
-        if(!_next_breakpoint.empty() && callstack.size()<_next_breakpoint.callstack_size){
-            _next_breakpoint = NextBreakpoint();
-        }
-#endif
-    }
+    void __pop_frame();
 
     PyObject* py_str(PyObject* obj);
     PyObject* py_repr(PyObject* obj);
