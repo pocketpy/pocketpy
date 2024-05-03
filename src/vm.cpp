@@ -212,11 +212,6 @@ namespace pkpy{
         return obj;
     }
 
-    Type VM::_new_type_object(StrName name, Type base, bool subclass_enabled) {
-        PyObject* obj = new_type_object(nullptr, name, base, subclass_enabled);
-        return PK_OBJ_GET(Type, obj);
-    }
-
     const PyTypeInfo* VM::_inst_type_info(PyObject* obj){
         if(is_small_int(obj)) return &_all_types[tp_int];
         return &_all_types[obj->type];
@@ -706,42 +701,47 @@ void VM::init_builtin_types(){
     _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, nullptr, "object", true});
     _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, nullptr, "type", false});
 
-    if(tp_int != _new_type_object("int")) exit(-3);
-    if((tp_float != _new_type_object("float"))) exit(-3);
+    auto _new_type = [this](const char* name, Type base=0, bool subclass_enabled=false){
+        PyObject* obj = new_type_object(nullptr, name, base, subclass_enabled);
+        return PK_OBJ_GET(Type, obj);
+    };
 
-    if(tp_bool != _new_type_object("bool")) exit(-3);
-    if(tp_str != _new_type_object("str")) exit(-3);
-    if(tp_list != _new_type_object("list")) exit(-3);
-    if(tp_tuple != _new_type_object("tuple")) exit(-3);
+    if(tp_int != _new_type("int")) exit(-3);
+    if((tp_float != _new_type("float"))) exit(-3);
 
-    if(tp_slice != _new_type_object("slice")) exit(-3);
-    if(tp_range != _new_type_object("range")) exit(-3);
-    if(tp_module != _new_type_object("module")) exit(-3);
-    if(tp_function != _new_type_object("function")) exit(-3);
-    if(tp_native_func != _new_type_object("native_func")) exit(-3);
-    if(tp_bound_method != _new_type_object("bound_method")) exit(-3);
+    if(tp_bool != _new_type("bool")) exit(-3);
+    if(tp_str != _new_type("str")) exit(-3);
+    if(tp_list != _new_type("list")) exit(-3);
+    if(tp_tuple != _new_type("tuple")) exit(-3);
 
-    if(tp_super != _new_type_object("super")) exit(-3);
-    if(tp_exception != _new_type_object("Exception", 0, true)) exit(-3);
-    if(tp_bytes != _new_type_object("bytes")) exit(-3);
-    if(tp_mappingproxy != _new_type_object("mappingproxy")) exit(-3);
-    if(tp_dict != _new_type_object("dict", 0, true)) exit(-3);  // dict can be subclassed
-    if(tp_property != _new_type_object("property")) exit(-3);
-    if(tp_star_wrapper != _new_type_object("_star_wrapper")) exit(-3);
+    if(tp_slice != _new_type("slice")) exit(-3);
+    if(tp_range != _new_type("range")) exit(-3);
+    if(tp_module != _new_type("module")) exit(-3);
+    if(tp_function != _new_type("function")) exit(-3);
+    if(tp_native_func != _new_type("native_func")) exit(-3);
+    if(tp_bound_method != _new_type("bound_method")) exit(-3);
 
-    if(tp_staticmethod != _new_type_object("staticmethod")) exit(-3);
-    if(tp_classmethod != _new_type_object("classmethod")) exit(-3);
+    if(tp_super != _new_type("super")) exit(-3);
+    if(tp_exception != _new_type("Exception", 0, true)) exit(-3);
+    if(tp_bytes != _new_type("bytes")) exit(-3);
+    if(tp_mappingproxy != _new_type("mappingproxy")) exit(-3);
+    if(tp_dict != _new_type("dict", 0, true)) exit(-3);  // dict can be subclassed
+    if(tp_property != _new_type("property")) exit(-3);
+    if(tp_star_wrapper != _new_type("_star_wrapper")) exit(-3);
+
+    if(tp_staticmethod != _new_type("staticmethod")) exit(-3);
+    if(tp_classmethod != _new_type("classmethod")) exit(-3);
 
     // SyntaxError and IndentationError must be created here
-    Type tp_syntax_error = _new_type_object("SyntaxError", tp_exception, true);
-    Type tp_indentation_error = _new_type_object("IndentationError", tp_syntax_error, true);
+    Type tp_syntax_error = _new_type("SyntaxError", tp_exception, true);
+    Type tp_indentation_error = _new_type("IndentationError", tp_syntax_error, true);
 
-    this->None = heap._new<Dummy>(_new_type_object("NoneType"));
-    this->NotImplemented = heap._new<Dummy>(_new_type_object("NotImplementedType"));
-    this->Ellipsis = heap._new<Dummy>(_new_type_object("ellipsis"));
+    this->None = heap._new<Dummy>(_new_type("NoneType"));
+    this->NotImplemented = heap._new<Dummy>(_new_type("NotImplementedType"));
+    this->Ellipsis = heap._new<Dummy>(_new_type("ellipsis"));
     this->True = heap._new<Dummy>(tp_bool);
     this->False = heap._new<Dummy>(tp_bool);
-    this->StopIteration = _all_types[_new_type_object("StopIteration", tp_exception)].obj;
+    this->StopIteration = _all_types[_new_type("StopIteration", tp_exception)].obj;
 
     this->builtins = new_module("builtins");
     

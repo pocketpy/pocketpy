@@ -246,7 +246,6 @@ public:
     }
 
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
-    Type _new_type_object(StrName name, Type base=0, bool subclass_enabled=false);
     const PyTypeInfo* _inst_type_info(PyObject* obj);
 
     void bind__repr__(Type type, PyObject* (*f)(VM*, PyObject*));
