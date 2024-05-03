@@ -945,7 +945,7 @@ __NEXT_STEP:;
     case OP_FORMAT_STRING: {
         PyObject* _0 = POPX();
         const Str& spec = CAST(Str&, co->consts[byte.arg]);
-        PUSH(__format_string(spec, _0));
+        PUSH(__format_object(_0, spec));
     } DISPATCH();
     /*****************************************/
     case OP_INC_FAST:{

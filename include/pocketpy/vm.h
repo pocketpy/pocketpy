@@ -441,7 +441,7 @@ public:
 
     /***** Private *****/
     void __breakpoint();
-    PyObject* __format_string(Str, PyObject*);
+    PyObject* __format_object(PyObject*, Str);
     PyObject* __run_top_frame();
     void __pop_frame();
     PyObject* __py_generator(Frame&& frame, ArgsView buffer);
