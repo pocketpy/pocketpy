@@ -180,7 +180,6 @@ public:
     static constexpr Type tp_list=6, tp_tuple=7;
     static constexpr Type tp_slice=8, tp_range=9, tp_module=10;
     static constexpr Type tp_function=11, tp_native_func=12, tp_bound_method=13;
-    
     static constexpr Type tp_super=14, tp_exception=15, tp_bytes=16, tp_mappingproxy=17;
     static constexpr Type tp_dict=18, tp_property=19, tp_star_wrapper=20;
     static constexpr Type tp_staticmethod=21, tp_classmethod=22;
@@ -213,7 +212,7 @@ public:
 
     /********** utils **********/
     PyObject* new_module(Str name, Str package="");
-    ArgsView _cast_array_view(PyObject* obj);
+    ArgsView cast_array_view(PyObject* obj);
     void set_main_argv(int argc, char** argv);
     i64 normalized_index(i64 index, int size);
     Str disassemble(CodeObject_ co);
@@ -244,16 +243,14 @@ public:
 
     template<typename... Args>
     PyObject* call(PyObject* callable, Args&&... args){
-        PUSH(callable);
-        PUSH(PY_NULL);
+        PUSH(callable); PUSH(PY_NULL);
         __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
 
     template<typename... Args>
     PyObject* call_method(PyObject* self, PyObject* callable, Args&&... args){
-        PUSH(callable);
-        PUSH(self);
+        PUSH(callable); PUSH(self);
         __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
@@ -335,6 +332,7 @@ public:
     void IOError(const Str& msg) { __builtin_error("IOError", msg); }
     void NotImplementedError(){ __builtin_error("NotImplementedError"); }
     void TypeError(const Str& msg){ __builtin_error("TypeError", msg); }
+    void TypeError(Type expected, Type actual) { TypeError("expected " + _type_name(vm, expected).escape() + ", got " + _type_name(vm, actual).escape()); }
     void IndexError(const Str& msg){ __builtin_error("IndexError", msg); }
     void ValueError(const Str& msg){ __builtin_error("ValueError", msg); }
     void RuntimeError(const Str& msg){ __builtin_error("RuntimeError", msg); }
@@ -346,42 +344,27 @@ public:
     void ImportError(const Str& msg){ __builtin_error("ImportError", msg); }
     void AssertionError(const Str& msg){ __builtin_error("AssertionError", msg); }
     void AssertionError(){ __builtin_error("AssertionError"); }
-
     void BinaryOptError(const char* op, PyObject* _0, PyObject* _1);
     void AttributeError(PyObject* obj, StrName name);
     void AttributeError(const Str& msg){ __builtin_error("AttributeError", msg); }
 
     /********** type **********/
     PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
-    
     const PyTypeInfo* _inst_type_info(PyObject* obj);
     bool isinstance(PyObject* obj, Type base);
     bool issubclass(Type cls, Type base);
-
-    void check_type(PyObject* obj, Type type){
-        if(is_type(obj, type)) return;
-        TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
-    }
-
-    void check_compatible_type(PyObject* obj, Type type){
-        if(isinstance(obj, type)) return;
-        TypeError("expected " + _type_name(vm, type).escape() + ", got " + _type_name(vm, _tp(obj)).escape());
-    }
-
-    PyObject* _t(Type t){
-        return _all_types[t.index].obj;
-    }
-
-    Type _tp(PyObject* obj){
-        if(!is_tagged(obj)) return obj->type;
-        return tp_int;
-    }
-
-    PyObject* _t(PyObject* obj){
-        return _all_types[_tp(obj).index].obj;
-    }
+    void check_type(PyObject* obj, Type type){ if(!is_type(obj, type)) TypeError(type, _tp(obj)); }
+    void check_compatible_type(PyObject* obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
+    PyObject* _t(PyObject* obj){ return _all_types[_tp(obj)].obj; }
+    PyObject* _t(Type t){ return _all_types[t.index].obj; }
+    Type _tp(PyObject* obj){ return is_small_int(obj) ? tp_int : obj->type; }
 
     /********** user type **********/
+    template<typename T>
+    Type _tp_user(){ return _find_type_in_cxx_typeid_map<T>(); }
+    template<typename T>
+    bool is_user_type(PyObject* obj){ return _tp(obj) == _tp_user<T>(); }
+
     template<typename T>
     PyObject* register_user_class(PyObject* mod, StrName name, bool subclass_enabled=false){
         PyObject* type = new_type_object(mod, name, 0, subclass_enabled);
@@ -394,16 +377,6 @@ public:
     template<typename T, typename ...Args>
     PyObject* new_user_object(Args&&... args){
         return heap.gcnew<T>(_tp_user<T>(), std::forward<Args>(args)...);
-    }
-
-    template<typename T>
-    Type _tp_user(){
-        return _find_type_in_cxx_typeid_map<T>();
-    }
-
-    template<typename T>
-    bool is_user_type(PyObject* obj){
-        return _tp(obj) == _tp_user<T>();
     }
 
     template<typename T>
@@ -421,9 +394,9 @@ public:
         return it->second;
     }
 
+    /********** private **********/
     virtual ~VM();
 
-    /********** private **********/
 #if PK_DEBUG_CEVAL_STEP
     void __log_s_data(const char* title = nullptr);
 #endif

@@ -113,7 +113,7 @@ namespace pkpy{
         return nullptr;
     }
 
-    ArgsView VM::_cast_array_view(PyObject* obj){
+    ArgsView VM::cast_array_view(PyObject* obj){
         if(is_type(obj, VM::tp_list)){
             List& list = PK_OBJ_GET(List, obj);
             return ArgsView(list.begin(), list.end());
@@ -284,7 +284,7 @@ namespace pkpy{
         
         ArgsView view(nullptr, nullptr);
         if(args_tuple.size()==1){
-            view = _cast_array_view(args_tuple[0]);
+            view = cast_array_view(args_tuple[0]);
         }else{
             view = ArgsView(args_tuple);
         }
