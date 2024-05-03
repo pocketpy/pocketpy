@@ -163,11 +163,11 @@ void init_builtins(VM* _vm) {
     });
 
     _vm->bind(_vm->builtins, "max(*args, key=None)", [](VM* vm, ArgsView args){
-        return vm->_minmax_reduce(&VM::py_gt, args[0], args[1]);
+        return vm->__minmax_reduce(&VM::py_gt, args[0], args[1]);
     });
 
     _vm->bind(_vm->builtins, "min(*args, key=None)", [](VM* vm, ArgsView args){
-        return vm->_minmax_reduce(&VM::py_lt, args[0], args[1]);
+        return vm->__minmax_reduce(&VM::py_lt, args[0], args[1]);
     });
 
     _vm->bind_func<1>(_vm->builtins, "id", [](VM* vm, ArgsView args) {

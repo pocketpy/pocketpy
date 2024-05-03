@@ -249,7 +249,7 @@ namespace pkpy{
     PyObject* VM::_py_next(const PyTypeInfo* ti, PyObject* obj){
         if(ti->m__next__){
             unsigned n = ti->m__next__(this, obj);
-            return _pack_next_retval(n);
+            return __pack_next_retval(n);
         }
         return call_method(obj, __next__);
     }
@@ -270,7 +270,7 @@ namespace pkpy{
         return vm->find_name_in_mro(cls, __call__) != nullptr;
     }
 
-    PyObject* VM::_minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key){
+    PyObject* VM::__minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key){
         auto _lock = heap.gc_scope_lock();
         const Tuple& args_tuple = PK_OBJ_GET(Tuple, args);  // from *args, it must be a tuple
         if(key==vm->None && args_tuple.size()==2){
@@ -499,7 +499,7 @@ i64 VM::py_hash(PyObject* obj){
     }
 }
 
-PyObject* VM::_format_string(Str spec, PyObject* obj){
+PyObject* VM::__format_string(Str spec, PyObject* obj){
     if(spec.empty()) return py_str(obj);
     char type;
     switch(spec.end()[-1]){
@@ -844,7 +844,7 @@ void VM::_unpack_as_dict(ArgsView args, Dict& dict){
 }
 
 
-void VM::_prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl){
+void VM::__prepare_py_call(PyObject** buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl){
     const CodeObject* co = decl->code.get();
     int co_nlocals = co->varnames.size();
     int decl_argc = decl->args.size();
@@ -943,7 +943,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         switch(fn.decl->type){
             case FuncType::UNSET: PK_FATAL_ERROR(); break;
             case FuncType::NORMAL:
-                _prepare_py_call(buffer, args, kwargs, fn.decl);
+                __prepare_py_call(buffer, args, kwargs, fn.decl);
                 // copy buffer back to stack
                 s_data.reset(_base + co_nlocals);
                 for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
@@ -963,9 +963,9 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 s_data.reset(p0);
                 return None;
             case FuncType::GENERATOR:
-                _prepare_py_call(buffer, args, kwargs, fn.decl);
+                __prepare_py_call(buffer, args, kwargs, fn.decl);
                 s_data.reset(p0);
-                return _py_generator(
+                return __py_generator(
                     Frame(nullptr, co, fn._module, callable, nullptr),
                     ArgsView(buffer, buffer + co_nlocals)
                 );
@@ -974,7 +974,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         // simple or normal
         callstack.emplace(p0, co, fn._module, callable, args.begin());
         if(op_call) return PY_OP_CALL;
-        return _run_top_frame();
+        return __run_top_frame();
         /*****************_py_call*****************/
     }
 
@@ -983,7 +983,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PyObject* ret;
         if(f.decl != nullptr){
             int co_nlocals = f.decl->code->varnames.size();
-            _prepare_py_call(buffer, args, kwargs, f.decl);
+            __prepare_py_call(buffer, args, kwargs, f.decl);
             // copy buffer back to stack
             s_data.reset(_base + co_nlocals);
             for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
@@ -1294,10 +1294,10 @@ void VM::_error(PyObject* e_obj){
         throw e;
     }
     PUSH(e_obj);
-    _raise();
+    __raise();
 }
 
-void VM::_raise(bool re_raise){
+void VM::__raise(bool re_raise){
     Frame* frame = top_frame();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
@@ -1365,7 +1365,7 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
 }
 
 
-    PyObject* VM::_pack_next_retval(unsigned n){
+    PyObject* VM::__pack_next_retval(unsigned n){
         if(n == 0) return StopIteration;
         if(n == 1) return s_data.popx();
         PyObject* retval = VAR(s_data.view(n).to_tuple());
@@ -1377,7 +1377,7 @@ void VM::bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*)){
         _all_types[type].m__next__ = f;                                                   \
         PyObject* nf = bind_method<0>(_t(type), __next__, [](VM* vm, ArgsView args){       \
             int n = lambda_get_userdata<unsigned(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);\
-            return vm->_pack_next_retval(n);                                               \
+            return vm->__pack_next_retval(n);                                               \
         });                                                                             \
         PK_OBJ_GET(NativeFunc, nf).set_userdata(f);                                        \
     }
@@ -1500,20 +1500,20 @@ void NextBreakpoint::_step(VM* vm){
     int curr_lineno = vm->top_frame()->curr_lineno();
     if(should_step_into){
         if(curr_callstack_size != callstack_size || curr_lineno != lineno){
-            vm->_breakpoint();
+            vm->__breakpoint();
         }
     }else{
         if(curr_callstack_size == callstack_size) {
-            if(curr_lineno != lineno) vm->_breakpoint();
+            if(curr_lineno != lineno) vm->__breakpoint();
         }else if(curr_callstack_size < callstack_size){
             // returning
-            vm->_breakpoint();
+            vm->__breakpoint();
         }
     }
 }
 #endif
 
-void VM::_breakpoint(){
+void VM::__breakpoint(){
 #if PK_ENABLE_PROFILER
     _next_breakpoint = NextBreakpoint();
 

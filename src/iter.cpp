@@ -56,7 +56,7 @@ namespace pkpy{
 
         PyObject* ret;
         try{
-            ret = vm->_run_top_frame();
+            ret = vm->__run_top_frame();
         }catch(...){
             state = 2;      // end this generator immediately when an exception is thrown
             throw;
@@ -67,7 +67,7 @@ namespace pkpy{
             frame = std::move(vm->callstack.top());
             ret = vm->s_data.popx();
             for(PyObject* obj: frame.stack_view(&vm->s_data)) s_backup.push_back(obj);
-            vm->_pop_frame();
+            vm->__pop_frame();
             state = 1;
             if(ret == vm->StopIteration) state = 2;
             return ret;
@@ -103,7 +103,7 @@ namespace pkpy{
         });
     }
 
-PyObject* VM::_py_generator(Frame&& frame, ArgsView buffer){
+PyObject* VM::__py_generator(Frame&& frame, ArgsView buffer){
     return vm->new_user_object<Generator>(std::move(frame), buffer);
 }
 

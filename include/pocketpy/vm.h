@@ -168,13 +168,13 @@ public:
     VM(bool enable_os=true);
 
     void set_main_argv(int argc, char** argv);
-    void _breakpoint();
+    void __breakpoint();
 
     Frame* top_frame(){
         return &callstack.top();
     }
 
-    void _pop_frame(){
+    void __pop_frame(){
         s_data.reset(callstack.top()._sp_base);
         callstack.pop();
 
@@ -206,14 +206,14 @@ public:
     template<typename ...Args>
     PyObject* _exec(Args&&... args){
         callstack.emplace(s_data._sp, std::forward<Args>(args)...);
-        return _run_top_frame();
+        return __run_top_frame();
     }
 
-    void _push_varargs(){}
-    void _push_varargs(PyObject* _0){ PUSH(_0); }
-    void _push_varargs(PyObject* _0, PyObject* _1){ PUSH(_0); PUSH(_1); }
-    void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
-    void _push_varargs(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
+    void __push_varargs(){}
+    void __push_varargs(PyObject* _0){ PUSH(_0); }
+    void __push_varargs(PyObject* _0, PyObject* _1){ PUSH(_0); PUSH(_1); }
+    void __push_varargs(PyObject* _0, PyObject* _1, PyObject* _2){ PUSH(_0); PUSH(_1); PUSH(_2); }
+    void __push_varargs(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
 
     virtual void stdout_write(const Str& s){
         _stdout(s.data, s.size);
@@ -227,7 +227,7 @@ public:
     PyObject* call(PyObject* callable, Args&&... args){
         PUSH(callable);
         PUSH(PY_NULL);
-        _push_varargs(args...);
+        __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
 
@@ -235,7 +235,7 @@ public:
     PyObject* call_method(PyObject* self, PyObject* callable, Args&&... args){
         PUSH(callable);
         PUSH(self);
-        _push_varargs(args...);
+        __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
 
@@ -257,7 +257,6 @@ public:
     void bind__invert__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__hash__(Type type, i64 (*f)(VM* vm, PyObject*));
     void bind__len__(Type type, i64 (*f)(VM* vm, PyObject*));
-
 
     void bind__eq__(Type type, BinaryFuncC f);
     void bind__lt__(Type type, BinaryFuncC f);
@@ -310,13 +309,13 @@ public:
     i64 normalized_index(i64 index, int size);
     PyObject* py_next(PyObject*);
     PyObject* _py_next(const PyTypeInfo*, PyObject*);
-    PyObject* _pack_next_retval(unsigned);
+    PyObject* __pack_next_retval(unsigned);
     bool py_callable(PyObject* obj);
 
-    PyObject* _minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key);
+    PyObject* __minmax_reduce(bool (VM::*op)(PyObject*, PyObject*), PyObject* args, PyObject* key);
     
     /***** Error Reporter *****/
-    void _raise(bool re_raise=false);
+    void __raise(bool re_raise=false);
 
     void _builtin_error(StrName type);
     void _builtin_error(StrName type, PyObject* arg);
@@ -411,7 +410,6 @@ public:
     void delattr(PyObject* obj, StrName name);
     PyObject* get_unbound_method(PyObject* obj, StrName name, PyObject** self, bool throw_err=true, bool fallback=false);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
-    PyObject* _format_string(Str, PyObject*);
     void setattr(PyObject* obj, StrName name, PyObject* value);
     template<int ARGC>
     PyObject* bind_method(Type, StrName, NativeFuncC);
@@ -420,11 +418,12 @@ public:
     template<int ARGC>
     PyObject* bind_func(PyObject*, StrName, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     void _error(PyObject*);
-    PyObject* _run_top_frame();
+    PyObject* __run_top_frame();
     void post_init();
-    PyObject* _py_generator(Frame&& frame, ArgsView buffer);
-    void _op_unpack_sequence(uint16_t arg);
-    void _prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
+    PyObject* __format_string(Str, PyObject*);
+    PyObject* __py_generator(Frame&& frame, ArgsView buffer);
+    void __op_unpack_sequence(uint16_t arg);
+    void __prepare_py_call(PyObject**, ArgsView, ArgsView, const FuncDecl_&);
     // new style binding api
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);

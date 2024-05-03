@@ -35,7 +35,7 @@ namespace pkpy{
         }
 
 
-void VM::_op_unpack_sequence(uint16_t arg){
+void VM::__op_unpack_sequence(uint16_t arg){
     PyObject* _0 = POPX();
     if(is_type(_0, VM::tp_tuple)){
         // fast path for tuple
@@ -80,14 +80,14 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 
 #undef BINARY_F_COMPARE
 
-PyObject* VM::_run_top_frame(){
+PyObject* VM::__run_top_frame(){
     Frame* frame = top_frame();
     const Frame* base_frame = frame;
     bool need_raise = false;
 
     while(true){
         try{
-            if(need_raise){ need_raise = false; _raise(); }
+            if(need_raise){ need_raise = false; __raise(); }
 /**********************************************************************/
 /* NOTE: 
  * Be aware of accidental gc!
@@ -709,7 +709,7 @@ __NEXT_STEP:;
     } DISPATCH();
     case OP_RETURN_VALUE:{
         PyObject* _0 = byte.arg == BC_NOARG ? POPX() : None;
-        _pop_frame();
+        __pop_frame();
         if(frame == base_frame){       // [ frameBase<- ]
             return _0;
         }else{
@@ -798,7 +798,7 @@ __NEXT_STEP:;
                 frame->loop_break(&s_data, co);
             }else if(n == 1){
                 // UNPACK_SEQUENCE
-                _op_unpack_sequence(byte.arg);
+                __op_unpack_sequence(byte.arg);
             }else{
                 if(n != byte.arg){
                     ValueError(_S("expected ", (int)byte.arg, " values to unpack, got ", (int)n));
@@ -810,7 +810,7 @@ __NEXT_STEP:;
             if(_0 != StopIteration){
                 PUSH(_0);
                 // UNPACK_SEQUENCE
-                _op_unpack_sequence(byte.arg);
+                __op_unpack_sequence(byte.arg);
             }else{
                 frame->loop_break(&s_data, co);
             }
@@ -845,7 +845,7 @@ __NEXT_STEP:;
     } DISPATCH();
     /*****************************************/
     case OP_UNPACK_SEQUENCE:{
-        _op_unpack_sequence(byte.arg);
+        __op_unpack_sequence(byte.arg);
     } DISPATCH();
     case OP_UNPACK_EX: {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
@@ -939,13 +939,13 @@ __NEXT_STEP:;
             _builtin_error("AssertionError");
         }
         DISPATCH();
-    case OP_RE_RAISE: _raise(true); DISPATCH();
+    case OP_RE_RAISE: __raise(true); DISPATCH();
     case OP_POP_EXCEPTION: _last_exception = POPX(); DISPATCH();
     /*****************************************/
     case OP_FORMAT_STRING: {
         PyObject* _0 = POPX();
         const Str& spec = CAST(Str&, co->consts[byte.arg]);
-        PUSH(_format_string(spec, _0));
+        PUSH(__format_string(spec, _0));
     } DISPATCH();
     /*****************************************/
     case OP_INC_FAST:{
@@ -981,7 +981,7 @@ __NEXT_STEP:;
             PyObject* e_obj = POPX();
             Exception& _e = PK_OBJ_GET(Exception, e_obj);
             bool is_base_frame_to_be_popped = frame == base_frame;
-            _pop_frame();
+            __pop_frame();
             if(callstack.empty()) throw _e;   // propagate to the top level
             frame = top_frame();
             PUSH(e_obj);
