@@ -73,6 +73,7 @@ namespace pkpy{
     };
 
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
+        init_memory_pools_if_needed();
         this->vm = this;
         this->_c.error = nullptr;
         _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };

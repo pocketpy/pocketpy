@@ -4,6 +4,8 @@
 
 namespace pkpy{
 
+void init_memory_pools_if_needed();
+
 void* pool64_alloc(size_t) noexcept;
 void pool64_dealloc(void*) noexcept;
 
