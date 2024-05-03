@@ -996,7 +996,6 @@ __NEXT_STEP:;
 #undef TOP
 #undef SECOND
 #undef THIRD
-#undef PEEK
 #undef STACK_SHRINK
 #undef PUSH
 #undef POP

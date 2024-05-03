@@ -20,7 +20,6 @@ namespace pkpy{
 #define TOP()             (s_data.top())
 #define SECOND()          (s_data.second())
 #define THIRD()           (s_data.third())
-#define PEEK(n)           (s_data.peek(n))
 #define STACK_SHRINK(n)   (s_data.shrink(n))
 #define PUSH(v)           (s_data.push(v))
 #define POP()             (s_data.pop())
