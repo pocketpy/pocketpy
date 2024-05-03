@@ -319,11 +319,11 @@ namespace pkpy{
         };
 
         if(path[0] == '.'){
-            if(_import_context.pending.empty()){
+            if(__import_context.pending.empty()){
                 ImportError("relative import outside of package");
             }
-            Str curr_path = _import_context.pending.back();
-            bool curr_is_init = _import_context.pending_is_init.back();
+            Str curr_path = __import_context.pending.back();
+            bool curr_is_init = __import_context.pending_is_init.back();
             // convert relative path to absolute path
             pod_vector<std::string_view> cpnts = curr_path.split('.');
             int prefix = 0;     // how many dots in the prefix
@@ -347,7 +347,7 @@ namespace pkpy{
 
         pod_vector<std::string_view> path_cpnts = path.split('.');
         // check circular import
-        if(_import_context.pending.size() > 128){
+        if(__import_context.pending.size() > 128){
             ImportError("maximum recursion depth exceeded while importing");
         }
 
@@ -375,7 +375,7 @@ namespace pkpy{
             source = it->second;
             _lazy_modules.erase(it);
         }
-        auto _ = _import_context.scope(path, is_init);
+        auto _ = __import_context.scope(path, is_init);
         CodeObject_ code = compile(source, filename, EXEC_MODE);
 
         Str name_cpnt = path_cpnts.back();
@@ -684,7 +684,7 @@ Str VM::disassemble(CodeObject_ co){
 }
 
 #if PK_DEBUG_CEVAL_STEP
-void VM::_log_s_data(const char* title) {
+void VM::__log_s_data(const char* title) {
     if(_main == nullptr) return;
     if(callstack.empty()) return;
     SStream ss;
@@ -1002,7 +1002,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PyObject* new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyObject* obj;
         PK_DEBUG_ASSERT(new_f != nullptr && !method_call);
-        if(new_f == cached_object__new__) {
+        if(new_f == __cached_object_new) {
             // fast path for object.__new__
             obj = vm->heap.gcnew<DummyInstance>(PK_OBJ_GET(Type, callable));
         }else{

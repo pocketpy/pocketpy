@@ -118,7 +118,7 @@ __NEXT_FRAME:
 
 __NEXT_STEP:;
 #if PK_DEBUG_CEVAL_STEP
-    _log_s_data();
+    __log_s_data();
 #endif
     switch ((Opcode)byte.op)
     {
