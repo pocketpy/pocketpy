@@ -161,8 +161,8 @@ void add_module_c(VM* vm){
         return vm->None;
     });
 
-    vm->register_user_class<VoidP>(mod, "void_p", true);
-    vm->register_user_class<Struct>(mod, "struct", true);
+    vm->register_user_class<VoidP>(mod, "void_p", VM::tp_object, true);
+    vm->register_user_class<Struct>(mod, "struct", VM::tp_object, true);
     
     mod->attr().set("NULL", vm->new_user_object<VoidP>(nullptr));
 
@@ -188,7 +188,7 @@ void add_module_c(VM* vm){
     });
 
     PyObject* type;
-    Type type_t = -1;
+    Type type_t;
 
 #define BIND_PRIMITIVE(T, CNAME) \
     vm->bind_func(mod, CNAME "_", 1, [](VM* vm, ArgsView args){         \

@@ -25,7 +25,7 @@ namespace pkpy{
     }
 
     struct PySignalObject: PyObject {
-        PySignalObject() : PyObject(0) { gc_enabled = false; }
+        PySignalObject() : PyObject(Type(0)) { gc_enabled = false; }
         void _obj_gc_mark() override {}
     };
 

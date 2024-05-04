@@ -195,7 +195,7 @@ namespace pkpy{
     }
 
     PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
-        PyObject* obj = heap._new<Type>(tp_type, _all_types.size());
+        PyObject* obj = heap._new<Type>(tp_type, Type(_all_types.size()));
         const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
             Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
@@ -735,10 +735,10 @@ void VM::__log_s_data(const char* title) {
 #endif
 
 void VM::__init_builtin_types(){
-    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), -1, nullptr, "object", true});
-    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), 0, nullptr, "type", false});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), Type(-1), nullptr, "object", true});
+    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), Type(0), nullptr, "type", false});
 
-    auto _new_type = [this](const char* name, Type base=0, bool subclass_enabled=false){
+    auto _new_type = [this](const char* name, Type base=Type(0), bool subclass_enabled=false){
         PyObject* obj = new_type_object(nullptr, name, base, subclass_enabled);
         return PK_OBJ_GET(Type, obj);
     };
@@ -759,10 +759,10 @@ void VM::__init_builtin_types(){
     if(tp_bound_method != _new_type("bound_method")) exit(-3);
 
     if(tp_super != _new_type("super")) exit(-3);
-    if(tp_exception != _new_type("Exception", 0, true)) exit(-3);
+    if(tp_exception != _new_type("Exception", Type(0), true)) exit(-3);
     if(tp_bytes != _new_type("bytes")) exit(-3);
     if(tp_mappingproxy != _new_type("mappingproxy")) exit(-3);
-    if(tp_dict != _new_type("dict", 0, true)) exit(-3);  // dict can be subclassed
+    if(tp_dict != _new_type("dict", Type(0), true)) exit(-3);  // dict can be subclassed
     if(tp_property != _new_type("property")) exit(-3);
     if(tp_star_wrapper != _new_type("_star_wrapper")) exit(-3);
 

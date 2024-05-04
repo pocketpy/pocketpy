@@ -27,6 +27,7 @@ namespace pkpy{
 #define STACK_VIEW(n)     (s_data.view(n))
 
 typedef PyObject* (*BinaryFuncC)(VM*, PyObject*, PyObject*);
+typedef void (*RegisterFunc)(VM*, PyObject*, PyObject*);
 
 #if PK_ENABLE_PROFILER
 struct NextBreakpoint{
@@ -169,14 +170,14 @@ public:
     unsigned char* (*_import_handler)(const char*, int, int*);
 
     // for quick access
-    static constexpr Type tp_object=0, tp_type=1;
-    static constexpr Type tp_int=kTpIntIndex, tp_float=kTpFloatIndex, tp_bool=4, tp_str=5;
-    static constexpr Type tp_list=6, tp_tuple=7;
-    static constexpr Type tp_slice=8, tp_range=9, tp_module=10;
-    static constexpr Type tp_function=11, tp_native_func=12, tp_bound_method=13;
-    static constexpr Type tp_super=14, tp_exception=15, tp_bytes=16, tp_mappingproxy=17;
-    static constexpr Type tp_dict=18, tp_property=19, tp_star_wrapper=20;
-    static constexpr Type tp_staticmethod=21, tp_classmethod=22;
+    static constexpr Type tp_object=Type(0), tp_type=Type(1);
+    static constexpr Type tp_int=Type(kTpIntIndex), tp_float=Type(kTpFloatIndex), tp_bool=Type(4), tp_str=Type(5);
+    static constexpr Type tp_list=Type(6), tp_tuple=Type(7);
+    static constexpr Type tp_slice=Type(8), tp_range=Type(9), tp_module=Type(10);
+    static constexpr Type tp_function=Type(11), tp_native_func=Type(12), tp_bound_method=Type(13);
+    static constexpr Type tp_super=Type(14), tp_exception=Type(15), tp_bytes=Type(16), tp_mappingproxy=Type(17);
+    static constexpr Type tp_dict=Type(18), tp_property=Type(19), tp_star_wrapper=Type(20);
+    static constexpr Type tp_staticmethod=Type(21), tp_classmethod=Type(22);
 
     const bool enable_os;
     VM(bool enable_os=true);
@@ -353,8 +354,11 @@ public:
     Type _tp_user(){ return _find_type_in_cxx_typeid_map<T>(); }
     template<typename T>
     bool is_user_type(PyObject* obj){ return _tp(obj) == _tp_user<T>(); }
+
     template<typename T>
-    PyObject* register_user_class(PyObject* mod, StrName name, bool subclass_enabled=false);
+    PyObject* register_user_class(PyObject*, StrName, RegisterFunc, Type base=tp_object, bool subclass_enabled=false);
+    template<typename T>
+    PyObject* register_user_class(PyObject*, StrName, Type base=tp_object, bool subclass_enabled=false);
 
     template<typename T, typename ...Args>
     PyObject* new_user_object(Args&&... args){
@@ -413,7 +417,7 @@ inline constexpr bool is_immutable_v = is_integral_v<T> || is_floating_point_v<T
     || std::is_same_v<T, Range> || std::is_same_v<T, Slice>
     || std::is_pointer_v<T> || std::is_enum_v<T>;
 
-template<typename T> constexpr Type _find_type_in_const_cxx_typeid_map(){ return -1; }
+template<typename T> constexpr Type _find_type_in_const_cxx_typeid_map(){ return Type(-1); }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<Str>(){ return VM::tp_str; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<List>(){ return VM::tp_list; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<Tuple>(){ return VM::tp_tuple; }
@@ -542,11 +546,11 @@ template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, false>(vm, obj); }
 
 template<typename T>
-PyObject* VM::register_user_class(PyObject* mod, StrName name, bool subclass_enabled){
-    PyObject* type = new_type_object(mod, name, 0, subclass_enabled);
+PyObject* VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled){
+    PyObject* type = new_type_object(mod, name, base, subclass_enabled);
     mod->attr().set(name, type);
     _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
-    T::_register(vm, mod, type);
+    _register(this, mod, type);
     // check if T is trivially constructible
     if constexpr(!std::is_default_constructible_v<T>){
         if(!type->attr().contains(__new__)){
@@ -557,6 +561,11 @@ PyObject* VM::register_user_class(PyObject* mod, StrName name, bool subclass_ena
         }
     }
     return type;
+}
+
+template<typename T>
+PyObject* VM::register_user_class(PyObject* mod, StrName name, Type base, bool subclass_enabled){
+    return register_user_class<T>(mod, name, &T::_register, base, subclass_enabled);
 }
 
 }   // namespace pkpy

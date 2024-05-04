@@ -541,7 +541,7 @@ namespace pkpy
     void add_module_collections(VM *vm)
     {
         PyObject *mod = vm->new_module("collections");
-        vm->register_user_class<PyDeque>(mod, "deque", true);
+        vm->register_user_class<PyDeque>(mod, "deque", VM::tp_object, true);
         vm->register_user_class<PyDequeIter>(mod, "_deque_iter");
         CodeObject_ code = vm->compile(kPythonLibs_collections, "collections.py", EXEC_MODE);
         vm->_exec(code, mod);

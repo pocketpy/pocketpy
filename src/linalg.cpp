@@ -541,10 +541,10 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 void add_module_linalg(VM* vm){
     PyObject* linalg = vm->new_module("linalg");
 
-    vm->register_user_class<Vec2>(linalg, "vec2", true);
-    vm->register_user_class<Vec3>(linalg, "vec3", true);
-    vm->register_user_class<Vec4>(linalg, "vec4", true);
-    vm->register_user_class<Mat3x3>(linalg, "mat3x3", true);
+    vm->register_user_class<Vec2>(linalg, "vec2", VM::tp_object, true);
+    vm->register_user_class<Vec3>(linalg, "vec3", VM::tp_object, true);
+    vm->register_user_class<Vec4>(linalg, "vec4", VM::tp_object, true);
+    vm->register_user_class<Mat3x3>(linalg, "mat3x3", VM::tp_object, true);
 
     PyObject* float_p = vm->_modules["c"]->attr("float_p");
     linalg->attr().set("vec2_p", float_p);
