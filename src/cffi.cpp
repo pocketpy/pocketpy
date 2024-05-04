@@ -44,7 +44,7 @@ namespace pkpy{
             return vm->heap.gcnew<Struct>(cls, size);
         });
 
-        vm->bind_method<0>(type, "hex", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "hex", 1, [](VM* vm, ArgsView args){
             const Struct& self = _CAST(Struct&, args[0]);
             SStream ss;
             for(int i=0; i<self.size; i++) ss.write_hex((unsigned char)self.p[i]);
@@ -79,17 +79,17 @@ namespace pkpy{
             return VAR(ss.str());
         });
 
-        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "addr", 1, [](VM* vm, ArgsView args){
             Struct& self = _CAST(Struct&, args[0]);
             return vm->new_user_object<VoidP>(self.p);
         });
 
-        vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "sizeof", 1, [](VM* vm, ArgsView args){
             Struct& self = _CAST(Struct&, args[0]);
             return VAR(self.size);
         });
 
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "copy", 1, [](VM* vm, ArgsView args){
             const Struct& self = _CAST(Struct&, args[0]);
             return vm->heap.gcnew<Struct>(vm->_tp(args[0]), self);
         });
@@ -198,12 +198,12 @@ void add_module_c(VM* vm){
     type = vm->new_type_object(mod, CNAME "_p", vm->_tp_user<VoidP>()); \
     mod->attr().set(CNAME "_p", type);                                  \
     type_t = PK_OBJ_GET(Type, type);                                    \
-    vm->bind_method<0>(type, "read", [](VM* vm, ArgsView args){         \
+    vm->bind_func(type, "read", 1, [](VM* vm, ArgsView args){         \
         VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);                      \
         T* target = (T*)voidp.ptr;                                      \
         return VAR(*target);                                            \
     });                                                                 \
-    vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){        \
+    vm->bind_func(type, "write", 2, [](VM* vm, ArgsView args){        \
         VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);                      \
         T val = CAST(T, args[1]);                                       \
         T* target = (T*)voidp.ptr;                                      \

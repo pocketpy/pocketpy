@@ -297,12 +297,13 @@ public:
     void bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*));
 
     template<int ARGC>
-    PyObject* bind_method(Type, StrName, NativeFuncC);
-    template<int ARGC>
-    PyObject* bind_method(PyObject*, StrName, NativeFuncC);
-    template<int ARGC>
     PyObject* bind_func(PyObject*, StrName, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+
     // new style binding api
+    PyObject* bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT){
+        return bind_func(_t(type), name, argc, fn, userdata, bt);
+    }
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
@@ -554,20 +555,6 @@ template<typename __T>
 __T  py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, true>(vm, obj); }
 template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, false>(vm, obj); }
-
-
-template<int ARGC>
-PyObject* VM::bind_method(Type type, StrName name, NativeFuncC fn) {
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, true));
-    _t(type)->attr().set(name, nf);
-    return nf;
-}
-
-template<int ARGC>
-PyObject* VM::bind_method(PyObject* obj, StrName name, NativeFuncC fn) {
-    check_type(obj, tp_type);
-    return bind_method<ARGC>(PK_OBJ_GET(Type, obj), name, fn);
-}
 
 template<int ARGC>
 PyObject* VM::bind_func(PyObject* obj, StrName name, NativeFuncC fn, UserData userdata, BindType bt) {

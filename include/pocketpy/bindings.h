@@ -163,19 +163,19 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
             memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                              \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \
-        vm->bind_method<0>(type, "tostruct", [](VM* vm, ArgsView args){             \
+        vm->bind_func(type, "tostruct", 1, [](VM* vm, ArgsView args){             \
             wT& self = _CAST(wT&, args[0]);                                         \
             return vm->new_user_object<Struct>(&self, sizeof(wT));                  \
         });                                                                         \
-        vm->bind_method<0>(type, "addr", [](VM* vm, ArgsView args){                 \
+        vm->bind_func(type, "addr", 1, [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
             return vm->new_user_object<VoidP>(&self);                               \
         });                                                                         \
-        vm->bind_method<0>(type, "copy", [](VM* vm, ArgsView args){                 \
+        vm->bind_func(type, "copy", 1, [](VM* vm, ArgsView args){                 \
             wT& self = _CAST(wT&, args[0]);                                         \
             return vm->new_user_object<wT>(self);                                   \
         });                                                                         \
-        vm->bind_method<0>(type, "sizeof", [](VM* vm, ArgsView args){               \
+        vm->bind_func(type, "sizeof", 1, [](VM* vm, ArgsView args){               \
             return VAR(sizeof(wT));                                                 \
         });                                                                         \
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){  \

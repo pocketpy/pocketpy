@@ -198,7 +198,7 @@ static PyObject* lua_popx_multi_to_python(VM* vm, int count){
 struct PyLuaFunction: PyLuaObject{
     static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_notimplemented_constructor<PyLuaFunction>(type);
-        vm->bind_method<-1>(type, __call__, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __call__, -1, [](VM* vm, ArgsView args){
             if(args.size() < 1) vm->TypeError("__call__ takes at least 1 argument");
             const PyLuaFunction& self = _CAST(PyLuaFunction&, args[0]);
             int base_size = lua_gettop(_L);

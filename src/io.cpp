@@ -83,7 +83,7 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         return VAR(std::move(b));
     });
 
-    vm->bind_method<1>(type, "write", [](VM* vm, ArgsView args){
+    vm->bind_func(type, "write", 2, [](VM* vm, ArgsView args){
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         if(io.is_text){
             Str& s = CAST(Str&, args[1]);
@@ -95,14 +95,14 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         return vm->None;
     });
 
-    vm->bind_method<0>(type, "tell", [](VM* vm, ArgsView args){
+    vm->bind_func(type, "tell", 1, [](VM* vm, ArgsView args){
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         long pos = ftell(io.fp);
         if(pos == -1) vm->IOError(strerror(errno));
         return VAR(pos);
     });
 
-    vm->bind_method<2>(type, "seek", [](VM* vm, ArgsView args){
+    vm->bind_func(type, "seek", 3, [](VM* vm, ArgsView args){
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         long offset = CAST(long, args[1]);
         int whence = CAST(int, args[2]);
@@ -111,19 +111,19 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         return vm->None;
     });
 
-    vm->bind_method<0>(type, "close", [](VM* vm, ArgsView args){
+    vm->bind_func(type, "close", 1, [](VM* vm, ArgsView args){
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         io.close();
         return vm->None;
     });
 
-    vm->bind_method<0>(type, "__exit__", [](VM* vm, ArgsView args){
+    vm->bind_func(type, __exit__, 1, [](VM* vm, ArgsView args){
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         io.close();
         return vm->None;
     });
 
-    vm->bind_method<0>(type, "__enter__", PK_LAMBDA(args[0]));
+    vm->bind_func(type, __enter__, 1, PK_LAMBDA(args[0]));
 }
 
 FileIO::FileIO(VM* vm, const Str& file, const Str& mode){

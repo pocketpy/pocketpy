@@ -139,13 +139,13 @@ struct Random{
             return vm->heap.gcnew<Random>(cls);
         });
 
-        vm->bind_method<1>(type, "seed", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "seed", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             self.gen.seed(CAST(i64, args[1]));
             return vm->None;
         });
 
-        vm->bind_method<2>(type, "randint", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "randint", 3, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             i64 a = CAST(i64, args[1]);
             i64 b = CAST(i64, args[2]);
@@ -153,12 +153,12 @@ struct Random{
             return VAR(self.gen.randint(a, b));
         });
 
-        vm->bind_method<0>(type, "random", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "random", 1, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             return VAR(self.gen.random());
         });
 
-        vm->bind_method<2>(type, "uniform", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "uniform", 3, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             f64 a = CAST(f64, args[1]);
             f64 b = CAST(f64, args[2]);
@@ -166,7 +166,7 @@ struct Random{
             return VAR(self.gen.uniform(a, b));
         });
 
-        vm->bind_method<1>(type, "shuffle", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "shuffle", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             List& L = CAST(List&, args[1]);
             for(int i = L.size() - 1; i > 0; i--){
@@ -176,7 +176,7 @@ struct Random{
             return vm->None;
         });
 
-        vm->bind_method<1>(type, "choice", [](VM* vm, ArgsView args) {
+        vm->bind_func(type, "choice", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             ArgsView view = vm->cast_array_view(args[1]);
             if(view.empty()) vm->IndexError("cannot choose from an empty sequence");
