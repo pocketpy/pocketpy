@@ -6,8 +6,6 @@ order: 18
 
 In order to use a C/C++ library in python, you need to write bindings for it.
 
-## Manual bindings
-
 pkpy uses an universal signature to wrap a function pointer as a python function or method that can be called in python code, i.e `NativeFuncC`.
 
 ```cpp
@@ -17,7 +15,7 @@ typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
 + The second argument is an array-like object indicates the arguments list. You can use `[]` operator to get the element and call `size()` to get the length of the array.
 + The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
 
-### Bind a function or method
+## Bind a function or method
 
 Use `vm->bind` to bind a function or method.
 
@@ -42,7 +40,7 @@ vm->bind(obj,
 });
 ```
 
-#### How to capture something
+### How to capture something
 
 By default, the lambda being bound is a C function pointer,
 you cannot capture anything! The following example does not compile.
@@ -101,7 +99,7 @@ The 3rd way is to change the macro `PK_ENABLE_STD_FUNCTION` in `config.h`:
 
 Then you can use standard capture list in lambda.
 
-### Bind a struct
+## Bind a class or struct
 
 Assume you have a struct `Point` declared as follows.
 
@@ -112,48 +110,27 @@ struct Point{
 }
 ```
 
-You can write a wrapper class `wrapped__Point`. Add implement a static function `_register`.
-Inside the `_register` function, do bind methods and properties.
-
-### Example
+You can create a `test` module and use `vm->register_user_class<>` to bind the class to the test module.
 
 ```cpp
-struct wrapped__Point{
-    // wrapped value
-    Point value;
-
-    // define default constructors
-    wrapped__Point() = default;
-    wrapped__Point(const wrapped__Point&) = default;
-
-    // define wrapped constructor
-    wrapped__Point(Point value){
-        this->value = value;
-    }
-
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
-        // wrap field x
-        PY_FIELD(wrapped__Point, "x", value.x)
-        // wrap field y
-        PY_FIELD(wrapped__Point, "y", value.y)
-
-        // __init__ method
-        vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){
-            wrapped__Point& self = _py_cast<wrapped__Point&>(vm, args[0]);
-            self.value.x = py_cast<int>(vm, args[1]);
-            self.value.y = py_cast<int>(vm, args[2]);
-            return vm->None;
-        });
-
-        // other custom methods
-        // ...
-    }
-}
-
 int main(){
     VM* vm = new VM();
-    // register the wrapper class in builtins
-    vm->register_user_class<wrapped__Point>(vm->builtins, "Point");
+    PyObject* mod = vm->new_module("test");
+    vm->register_user_class<Point>(mod, "Point",
+        [](VM* vm, PyObject* mod, PyObject* type){
+            // wrap field x
+            vm->bind_field(type, "x", &Point::x);
+            // wrap field y
+            vm->bind_field(type, "y", &Point::y);
+
+            // __init__ method
+            vm->bind(type, "__init__(self, x, y)", [](VM* vm, ArgsView args){
+                Point& self = _py_cast<Point&>(vm, args[0]);
+                self.x = py_cast<int>(vm, args[1]);
+                self.y = py_cast<int>(vm, args[2]);
+                return vm->None;
+            });
+        });
 
     // use the Point class
     vm->exec("a = Point(1, 2)");
@@ -165,7 +142,7 @@ int main(){
 }
 ```
 
-#### Handle gc for container types
+### Handle gc for container types
 
 If your custom type stores `PyObject*` in its fields, you need to handle gc for them.
 
@@ -203,11 +180,7 @@ void (*_gc_marker_ex)(VM*) = nullptr;
 ```
 It will be invoked before a GC starts. So you can mark objects inside the callback to keep them alive.
 
-### Others
-
-You may see somewhere in the code that `vm->bind_method<>` or `vm->bind_func<>` is used.
-They are old style binding functions and are deprecated.
-It is recommended to use `vm->bind`.
+## Others
 
 For some magic methods, we provide specialized binding function.
 They do not take universal function pointer as argument.
