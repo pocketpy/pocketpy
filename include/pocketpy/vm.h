@@ -191,8 +191,8 @@ public:
     PyObject* _py_next(const PyTypeInfo*, PyObject*);
     PyObject* py_import(Str path, bool throw_err=true);
     PyObject* py_negate(PyObject* obj);
-    PyObject* py_list(PyObject*);
 
+    List py_list(PyObject*);
     bool py_callable(PyObject* obj);
     bool py_bool(PyObject* obj);
     i64 py_hash(PyObject* obj);

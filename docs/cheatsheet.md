@@ -283,7 +283,7 @@ Convert a python iterable to a list
   
 ```cpp
 PyObject* obj = vm->eval("range(3)");
-PyObject* list = vm->py_list(obj);
+List list = vm->py_list(obj);
 ```
 
 ## Bindings

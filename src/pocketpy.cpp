@@ -833,7 +833,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind_func(VM::tp_list, __new__, -1, [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(List());
-        if(args.size() == 1+1) return vm->py_list(args[1]);
+        if(args.size() == 1+1) return VAR(vm->py_list(args[1]));
         vm->TypeError("list() takes 0 or 1 arguments");
         return vm->None;
     });
@@ -1020,7 +1020,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_tuple, __new__, -1, [](VM* vm, ArgsView args) {
         if(args.size() == 1+0) return VAR(Tuple(0));
         if(args.size() == 1+1){
-            List list(CAST(List, vm->py_list(args[1])));
+            List list = vm->py_list(args[1]);
             return VAR(Tuple(std::move(list)));
         }
         vm->TypeError("tuple() takes at most 1 argument");
@@ -1512,7 +1512,7 @@ void __init_builtins(VM* _vm) {
 
 void VM::__post_init_builtin_types(){
     __init_builtins(this);
-    
+
     bind_func(tp_module, __new__, -1, PK_ACTION(vm->NotImplementedError()));
 
     _all_types[tp_module].m__getattr__ = [](VM* vm, PyObject* obj, StrName name) -> PyObject*{

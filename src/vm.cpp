@@ -414,7 +414,7 @@ bool VM::py_bool(PyObject* obj){
     return true;
 }
 
-PyObject* VM::py_list(PyObject* it){
+List VM::py_list(PyObject* it){
     auto _lock = heap.gc_scope_lock();
     it = py_iter(it);
     List list;
@@ -424,7 +424,7 @@ PyObject* VM::py_list(PyObject* it){
         list.push_back(obj);
         obj = _py_next(info, it);
     }
-    return VAR(std::move(list));
+    return list;
 }
 
 
