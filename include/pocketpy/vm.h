@@ -551,13 +551,14 @@ PyObject* VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _reg
     mod->attr().set(name, type);
     _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
     _register(this, mod, type);
-    // check if T is trivially constructible
-    if constexpr(!std::is_default_constructible_v<T>){
-        if(!type->attr().contains(__new__)){
+    if(!type->attr().contains(__new__)){
+        if constexpr(std::is_default_constructible_v<T>) {
             bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
-                vm->NotImplementedError();
-                return vm->None;
+                Type cls_t = PK_OBJ_GET(Type, args[0]);
+                return vm->heap.gcnew<T>(cls_t);
             });
+        }else{
+            bind_func(type, __new__, -1, PK_ACTION(vm->NotImplementedError()));
         }
     }
     return type;

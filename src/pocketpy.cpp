@@ -27,7 +27,7 @@ PyObject* PyArrayGetItem(VM* vm, PyObject* _0, PyObject* _1){
     PK_UNREACHABLE()
 }
 
-void init_builtins(VM* _vm) {
+void __init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
     _vm->bind##name(VM::tp_int, [](VM* vm, PyObject* lhs, PyObject* rhs) {                              \
         i64 val;                                                                                        \
@@ -1511,12 +1511,9 @@ void init_builtins(VM* _vm) {
 }
 
 void VM::__post_init_builtin_types(){
-    init_builtins(this);
-
-    bind_func(tp_module, __init__, -1, [](VM* vm, ArgsView args) {
-        vm->NotImplementedError();
-        return vm->None;
-    });
+    __init_builtins(this);
+    
+    bind_func(tp_module, __new__, -1, PK_ACTION(vm->NotImplementedError()));
 
     _all_types[tp_module].m__getattr__ = [](VM* vm, PyObject* obj, StrName name) -> PyObject*{
         const Str& path = CAST(Str&, obj->attr(__path__));
