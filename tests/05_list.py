@@ -132,3 +132,5 @@ except ValueError:
 
 a, b = [1, 2]
 assert a == 1 and b == 2
+assert [1, 2].__getitem__(0) == 1
+
