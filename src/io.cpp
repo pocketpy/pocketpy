@@ -37,11 +37,10 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp){
 #endif
 }
 
-unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
-    std::string name(name_p, name_size);
+unsigned char* _default_import_handler(const char* name, int* out_size){
     bool exists = std::filesystem::exists(std::filesystem::path(name));
     if(!exists) return nullptr;
-    FILE* fp = io_fopen(name.c_str(), "rb");
+    FILE* fp = io_fopen(name, "rb");
     if(!fp) return nullptr;
     fseek(fp, 0, SEEK_END);
     int buffer_size = ftell(fp);
@@ -243,7 +242,7 @@ void add_module_os(VM* vm){
 
 void add_module_io(VM* vm){}
 void add_module_os(VM* vm){}
-unsigned char* _default_import_handler(const char* name_p, int name_size, int* out_size){
+unsigned char* _default_import_handler(const char* name, int* out_size){
     return nullptr;
 }
 

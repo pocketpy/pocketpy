@@ -36,8 +36,6 @@
 #define PK_DEBUG_EXTRA_CHECK        0
 
 // Do not edit the following settings unless you know what you are doing
-#define PK_DEBUG_NO_BUILTINS        0
-#define PK_DEBUG_DIS_EXEC           0
 #define PK_DEBUG_CEVAL_STEP         0
 #define PK_DEBUG_MEMORY_POOL        0
 #define PK_DEBUG_NO_MEMORY_POOL     0

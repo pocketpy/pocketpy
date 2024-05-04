@@ -167,7 +167,7 @@ public:
 
     void(*_stdout)(const char*, int);
     void(*_stderr)(const char*, int);
-    unsigned char* (*_import_handler)(const char*, int, int*);
+    unsigned char* (*_import_handler)(const char*, int*);
 
     // for quick access
     static constexpr Type tp_object=Type(0), tp_type=Type(1);

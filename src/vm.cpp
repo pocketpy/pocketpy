@@ -79,7 +79,7 @@ namespace pkpy{
         _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;
         __last_exception = nullptr;
-        _import_handler = [](const char* name_p, int name_size, int* out_size) -> unsigned char*{ return nullptr; };
+        _import_handler = [](const char* name, int* out_size) -> unsigned char*{ return nullptr; };
         __init_builtin_types();
     }
 
@@ -358,11 +358,11 @@ namespace pkpy{
         auto it = _lazy_modules.find(name);
         if(it == _lazy_modules.end()){
             int out_size;
-            unsigned char* out = _import_handler(filename.data, filename.size, &out_size);
+            unsigned char* out = _import_handler(filename.c_str(), &out_size);
             if(out == nullptr){
                 filename = path.replace('.', PK_PLATFORM_SEP).str() + PK_PLATFORM_SEP + "__init__.py";
                 is_init = true;
-                out = _import_handler(filename.data, filename.size, &out_size);
+                out = _import_handler(filename.c_str(), &out_size);
             }
             if(out == nullptr){
                 if(throw_err) ImportError(_S("module ", path.escape(), " not found"));
