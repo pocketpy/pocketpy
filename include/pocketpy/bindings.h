@@ -156,7 +156,7 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
 #define PY_STRUCT_LIKE(wT)   \
         static_assert(std::is_trivially_copyable<wT>::value);                       \
         type->attr().set("__struct__", vm->True);                                   \
-        vm->bind_func<1>(type, "fromstruct", [](VM* vm, ArgsView args){             \
+        vm->bind_func(type, "fromstruct", 1, [](VM* vm, ArgsView args){             \
             Struct& s = CAST(Struct&, args[0]);                                     \
             if(s.size != sizeof(wT)) vm->ValueError("size mismatch");               \
             PyObject* obj = vm->new_user_object<wT>();                              \

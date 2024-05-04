@@ -301,11 +301,6 @@ assert type(repr(bytes([0x41, 0x42, 0x43]))) is str
 
 
 # /************ slice ************/
-# 未完全测试准确性-----------------------------------------------
-#       116:  953:    _vm->bind_constructor<4>("slice", [](VM* vm, ArgsView args) {
-#     #####:  954:        return VAR(Slice(args[1], args[2], args[3]));
-#         -:  955:    });
-# test slice:
 assert type(slice(0.1, 0.2, 0.3)) is slice
 
 

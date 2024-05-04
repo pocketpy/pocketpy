@@ -310,12 +310,6 @@ public:
     template<typename T, typename F, bool ReadOnly=false>
     PyObject* bind_field(PyObject*, const char*, F T::*);
 
-    template<int ARGC, typename __T>
-    PyObject* bind_constructor(__T&& type, NativeFuncC fn) {
-        static_assert(ARGC==-1 || ARGC>=1);
-        return bind_func<ARGC>(std::forward<__T>(type), __new__, fn);
-    }
-
     template<typename T, typename __T>
     PyObject* bind_notimplemented_constructor(__T&& type) {
         return bind_func<-1>(std::forward<__T>(type), __new__, [](VM* vm, ArgsView args){

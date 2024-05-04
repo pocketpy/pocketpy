@@ -209,7 +209,7 @@ void add_module_easing(VM* vm){
     PyObject* mod = vm->new_module("easing");
 
 #define EASE(name)  \
-    vm->bind_func<1>(mod, #name, [](VM* vm, ArgsView args){  \
+    vm->bind_func(mod, #name, 1, [](VM* vm, ArgsView args){  \
         f64 t = CAST(f64, args[0]); \
         return VAR(ease##name(t));   \
     });

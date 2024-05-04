@@ -117,10 +117,10 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Vec2::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec2)
 
-        vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
-            return vm->heap.gcnew<Vec2>(PK_OBJ_GET(Type, args[0]), Vec2(x, y));
+            return vm->heap.gcnew<Vec2>(PK_OBJ_GET(Type, args[0]), x, y);
         });
 
         // @staticmethod
@@ -187,11 +187,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Vec3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec3)
 
-        vm->bind_constructor<4>(type, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 4, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
-            return vm->heap.gcnew<Vec3>(PK_OBJ_GET(Type, args[0]), Vec3(x, y, z));
+            return vm->heap.gcnew<Vec3>(PK_OBJ_GET(Type, args[0]), x, y, z);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
@@ -222,12 +222,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Vec4::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec4)
 
-        vm->bind_constructor<1+4>(type, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 5, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
             float w = CAST_F(args[4]);
-            return vm->heap.gcnew<Vec4>(PK_OBJ_GET(Type, args[0]), Vec4(x, y, z, w));
+            return vm->heap.gcnew<Vec4>(PK_OBJ_GET(Type, args[0]), x, y, z, w);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
@@ -264,7 +264,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Mat3x3)
 
-        vm->bind_func<-1>(type, __new__, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
             if(args.size() == 1+0) return vm->heap.gcnew<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
             if(args.size() == 1+1){
                 const List& list = CAST(List&, args[1]);

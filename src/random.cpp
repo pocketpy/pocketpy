@@ -134,7 +134,7 @@ struct Random{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_func<1>(type, __new__, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<Random>(cls);
         });

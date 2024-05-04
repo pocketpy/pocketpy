@@ -3,7 +3,7 @@
 namespace pkpy{
 
     void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_func<2>(type, __new__, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
             return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));
@@ -38,7 +38,7 @@ namespace pkpy{
 
 
     void Struct::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_constructor<2>(type, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             int size = CAST(int, args[1]);
             return vm->heap.gcnew<Struct>(cls, size);
@@ -52,7 +52,7 @@ namespace pkpy{
         });
 
         // @staticmethod
-        vm->bind_func<1>(type, "fromhex", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "fromhex", 1, [](VM* vm, ArgsView args){
             const Str& s = CAST(Str&, args[0]);
             if(s.size<2 || s.size%2!=0) vm->ValueError("invalid hex string");
             Struct buffer(s.size/2, false);
@@ -136,24 +136,24 @@ namespace pkpy{
 void add_module_c(VM* vm){
     PyObject* mod = vm->new_module("c");
     
-    vm->bind_func<1>(mod, "malloc", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "malloc", 1, [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
         return VAR(malloc(size));
     });
 
-    vm->bind_func<1>(mod, "free", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "free", 1, [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
         free(p);
         return vm->None;
     });
 
-    vm->bind_func<3>(mod, "memset", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "memset", 3, [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
         memset(p, CAST(int, args[1]), CAST(size_t, args[2]));
         return vm->None;
     });
 
-    vm->bind_func<3>(mod, "memcpy", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "memcpy", 3, [](VM* vm, ArgsView args){
         void* dst = CAST(void*, args[0]);
         void* src = CAST(void*, args[1]);
         i64 size = CAST(i64, args[2]);
@@ -191,7 +191,7 @@ void add_module_c(VM* vm){
     Type type_t = -1;
 
 #define BIND_PRIMITIVE(T, CNAME) \
-    vm->bind_func<1>(mod, CNAME "_", [](VM* vm, ArgsView args){         \
+    vm->bind_func(mod, CNAME "_", 1, [](VM* vm, ArgsView args){         \
         T val = CAST(T, args[0]);                                       \
         return vm->new_user_object<Struct>(&val, sizeof(T));                       \
     });                                                                 \

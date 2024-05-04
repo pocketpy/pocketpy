@@ -169,7 +169,7 @@ void add_module_base64(VM* vm){
     PyObject* mod = vm->new_module("base64");
 
     // b64encode
-    vm->bind_func<1>(mod, "b64encode", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "b64encode", 1, [](VM* vm, ArgsView args){
         Bytes& b = CAST(Bytes&, args[0]);
 		unsigned char* p = new unsigned char[b.size() * 2];
         int size = base64_encode((const unsigned char*)b.data(), b.size(), (char*)p);
@@ -177,7 +177,7 @@ void add_module_base64(VM* vm){
     });
 
     // b64decode
-    vm->bind_func<1>(mod, "b64decode", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "b64decode", 1, [](VM* vm, ArgsView args){
         Bytes& b = CAST(Bytes&, args[0]);
         unsigned char* p = new unsigned char[b.size()];
         int size = base64_decode((const char*)b.data(), b.size(), p);

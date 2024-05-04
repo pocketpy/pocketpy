@@ -44,12 +44,12 @@ void add_module_time(VM* vm){
     PyObject* mod = vm->new_module("time");
     vm->register_user_class<PyStructTime>(mod, "struct_time");
 
-    vm->bind_func<0>(mod, "time", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "time", 0, [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
         return VAR(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() / 1000.0);
     });
 
-    vm->bind_func<1>(mod, "sleep", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "sleep", 1, [](VM* vm, ArgsView args) {
         f64 seconds = CAST_F(args[0]);
         auto begin = std::chrono::system_clock::now();
         while(true){
@@ -60,7 +60,7 @@ void add_module_time(VM* vm){
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "localtime", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "localtime", 0, [](VM* vm, ArgsView args) {
         auto now = std::chrono::system_clock::now();
         std::time_t t = std::chrono::system_clock::to_time_t(now);
         return vm->new_user_object<PyStructTime>(t);
@@ -77,13 +77,13 @@ void add_module_sys(VM* vm){
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 
-    vm->bind_func<1>(stdout_, "write", [](VM* vm, ArgsView args) {
+    vm->bind_func(stdout_, "write", 1, [](VM* vm, ArgsView args) {
         Str& s = CAST(Str&, args[0]);
         vm->stdout_write(s);
         return vm->None;
     });
 
-    vm->bind_func<1>(stderr_, "write", [](VM* vm, ArgsView args) {
+    vm->bind_func(stderr_, "write", 1, [](VM* vm, ArgsView args) {
         Str& s = CAST(Str&, args[0]);
         vm->_stderr(s.data, s.size);
         return vm->None;
@@ -92,7 +92,7 @@ void add_module_sys(VM* vm){
 
 void add_module_json(VM* vm){
     PyObject* mod = vm->new_module("json");
-    vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args) {
         std::string_view sv;
         if(is_type(args[0], vm->tp_bytes)){
             sv = PK_OBJ_GET(Bytes, args[0]).sv();
@@ -103,7 +103,7 @@ void add_module_json(VM* vm){
         return vm->_exec(code, vm->callstack.top()._module);
     });
 
-    vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) {
         return vm->py_json(args[0]);
     });
 }
@@ -116,10 +116,10 @@ void add_module_math(VM* vm){
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
     mod->attr().set("nan", VAR(std::numeric_limits<double>::quiet_NaN()));
 
-    vm->bind_func<1>(mod, "ceil", PK_LAMBDA(VAR((i64)std::ceil(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "fabs", PK_LAMBDA(VAR(std::fabs(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "floor", PK_LAMBDA(VAR((i64)std::floor(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "fsum", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "ceil", 1, PK_LAMBDA(VAR((i64)std::ceil(CAST_F(args[0])))));
+    vm->bind_func(mod, "fabs", 1, PK_LAMBDA(VAR(std::fabs(CAST_F(args[0])))));
+    vm->bind_func(mod, "floor", 1, PK_LAMBDA(VAR((i64)std::floor(CAST_F(args[0])))));
+    vm->bind_func(mod, "fsum", 1, [](VM* vm, ArgsView args) {
         List& list = CAST(List&, args[0]);
         double sum = 0;
         double c = 0;
@@ -132,7 +132,7 @@ void add_module_math(VM* vm){
         }
         return VAR(sum);
     });
-    vm->bind_func<2>(mod, "gcd", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "gcd", 2, [](VM* vm, ArgsView args) {
         i64 a = CAST(i64, args[0]);
         i64 b = CAST(i64, args[1]);
         if(a < 0) a = -a;
@@ -145,18 +145,17 @@ void add_module_math(VM* vm){
         return VAR(a);
     });
 
-    vm->bind_func<1>(mod, "isfinite", PK_LAMBDA(VAR(std::isfinite(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "isinf", PK_LAMBDA(VAR(std::isinf(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "isnan", PK_LAMBDA(VAR(std::isnan(CAST_F(args[0])))));
+    vm->bind_func(mod, "isfinite", 1, PK_LAMBDA(VAR(std::isfinite(CAST_F(args[0])))));
+    vm->bind_func(mod, "isinf", 1, PK_LAMBDA(VAR(std::isinf(CAST_F(args[0])))));
+    vm->bind_func(mod, "isnan", 1, PK_LAMBDA(VAR(std::isnan(CAST_F(args[0])))));
 
-    vm->bind_func<2>(mod, "isclose", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "isclose", 2, [](VM* vm, ArgsView args) {
         f64 a = CAST_F(args[0]);
         f64 b = CAST_F(args[1]);
         return VAR(std::fabs(a - b) < 1e-9);
     });
 
-    vm->bind_func<1>(mod, "exp", PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
-    // vm->bind_func<1>(mod, "log", PK_LAMBDA(VAR(std::log(CAST_F(args[0])))));
+    vm->bind_func(mod, "exp", 1, PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
 
     vm->bind(mod, "log(x, base=2.718281828459045)", [](VM* vm, ArgsView args){
         f64 x = CAST_F(args[0]);
@@ -164,31 +163,31 @@ void add_module_math(VM* vm){
         return VAR(std::log(x) / std::log(base));
     });
 
-    vm->bind_func<1>(mod, "log2", PK_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "log10", PK_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
+    vm->bind_func(mod, "log2", 1, PK_LAMBDA(VAR(std::log2(CAST_F(args[0])))));
+    vm->bind_func(mod, "log10", 1, PK_LAMBDA(VAR(std::log10(CAST_F(args[0])))));
 
-    vm->bind_func<2>(mod, "pow", PK_LAMBDA(VAR(std::pow(CAST_F(args[0]), CAST_F(args[1])))));
-    vm->bind_func<1>(mod, "sqrt", PK_LAMBDA(VAR(std::sqrt(CAST_F(args[0])))));
+    vm->bind_func(mod, "pow", 2, PK_LAMBDA(VAR(std::pow(CAST_F(args[0]), CAST_F(args[1])))));
+    vm->bind_func(mod, "sqrt", 1, PK_LAMBDA(VAR(std::sqrt(CAST_F(args[0])))));
 
-    vm->bind_func<1>(mod, "acos", PK_LAMBDA(VAR(std::acos(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "asin", PK_LAMBDA(VAR(std::asin(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "atan", PK_LAMBDA(VAR(std::atan(CAST_F(args[0])))));
-    vm->bind_func<2>(mod, "atan2", PK_LAMBDA(VAR(std::atan2(CAST_F(args[0]), CAST_F(args[1])))));
+    vm->bind_func(mod, "acos", 1, PK_LAMBDA(VAR(std::acos(CAST_F(args[0])))));
+    vm->bind_func(mod, "asin", 1, PK_LAMBDA(VAR(std::asin(CAST_F(args[0])))));
+    vm->bind_func(mod, "atan", 1, PK_LAMBDA(VAR(std::atan(CAST_F(args[0])))));
+    vm->bind_func(mod, "atan2", 2, PK_LAMBDA(VAR(std::atan2(CAST_F(args[0]), CAST_F(args[1])))));
 
-    vm->bind_func<1>(mod, "cos", PK_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "sin", PK_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
-    vm->bind_func<1>(mod, "tan", PK_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
+    vm->bind_func(mod, "cos", 1, PK_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
+    vm->bind_func(mod, "sin", 1, PK_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
+    vm->bind_func(mod, "tan", 1, PK_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
     
-    vm->bind_func<1>(mod, "degrees", PK_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
-    vm->bind_func<1>(mod, "radians", PK_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
+    vm->bind_func(mod, "degrees", 1, PK_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
+    vm->bind_func(mod, "radians", 1, PK_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
 
-    vm->bind_func<1>(mod, "modf", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "modf", 1, [](VM* vm, ArgsView args) {
         f64 i;
         f64 f = std::modf(CAST_F(args[0]), &i);
         return VAR(Tuple(VAR(f), VAR(i)));
     });
 
-    vm->bind_func<1>(mod, "factorial", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "factorial", 1, [](VM* vm, ArgsView args) {
         i64 n = CAST(i64, args[0]);
         if(n < 0) vm->ValueError("factorial() not defined for negative values");
         i64 r = 1;
@@ -199,14 +198,14 @@ void add_module_math(VM* vm){
 
 void add_module_traceback(VM* vm){
     PyObject* mod = vm->new_module("traceback");
-    vm->bind_func<0>(mod, "print_exc", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "print_exc", 0, [](VM* vm, ArgsView args) {
         if(vm->__last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->__last_exception);
         vm->stdout_write(e.summary());
         return vm->None;
     });
 
-    vm->bind_func<0>(mod, "format_exc", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "format_exc", 0, [](VM* vm, ArgsView args) {
         if(vm->__last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->__last_exception);
         return VAR(e.summary());
@@ -216,7 +215,7 @@ void add_module_traceback(VM* vm){
 void add_module_dis(VM* vm){
     PyObject* mod = vm->new_module("dis");
 
-    vm->bind_func<1>(mod, "dis", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "dis", 1, [](VM* vm, ArgsView args) {
         CodeObject_ code;
         PyObject* obj = args[0];
         if(is_type(obj, vm->tp_str)){
@@ -233,7 +232,7 @@ void add_module_dis(VM* vm){
 
 void add_module_gc(VM* vm){
     PyObject* mod = vm->new_module("gc");
-    vm->bind_func<0>(mod, "collect", PK_LAMBDA(VAR(vm->heap.collect())));
+    vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
 void add_module_enum(VM* vm){
@@ -257,11 +256,11 @@ void add_module_enum(VM* vm){
 void add_module___builtins(VM* vm){
     PyObject* mod = vm->new_module("__builtins");
 
-    vm->bind_func<1>(mod, "next", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args){
         return vm->py_next(args[0]);
     });
 
-    vm->bind_func<1>(mod, "_enable_instance_dict", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "_enable_instance_dict", 1, [](VM* vm, ArgsView args){
         PyObject* self = args[0];
         if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
         if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
@@ -287,7 +286,7 @@ struct LineProfilerW{
     LineProfiler profiler;
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_func<1>(type, __new__, [](VM* vm, ArgsView args){
+        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<LineProfilerW>(cls);
         });

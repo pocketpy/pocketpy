@@ -55,7 +55,7 @@ unsigned char* _default_import_handler(const char* name_p, int name_size, int* o
 };
 
 void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
-    vm->bind_constructor<3>(type, [](VM* vm, ArgsView args){
+    vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
         return vm->heap.gcnew<FileIO>(cls, vm,
                     py_cast<Str&>(vm, args[1]),
@@ -159,17 +159,17 @@ void add_module_os(VM* vm){
     mod->attr().set("path", path_obj);
     
     // Working directory is shared by all VMs!!
-    vm->bind_func<0>(mod, "getcwd", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "getcwd", 0, [](VM* vm, ArgsView args){
         return VAR(std::filesystem::current_path().string());
     });
 
-    vm->bind_func<1>(mod, "chdir", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "chdir", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         std::filesystem::current_path(path);
         return vm->None;
     });
 
-    vm->bind_func<1>(mod, "listdir", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "listdir", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         std::filesystem::directory_iterator di;
         try{
@@ -182,28 +182,28 @@ void add_module_os(VM* vm){
         return VAR(ret);
     });
 
-    vm->bind_func<1>(mod, "remove", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "remove", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::remove(path);
         if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 
-    vm->bind_func<1>(mod, "mkdir", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "mkdir", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::create_directory(path);
         if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 
-    vm->bind_func<1>(mod, "rmdir", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "rmdir", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::remove(path);
         if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 
-    vm->bind_func<-1>(path_obj, "join", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "join", -1, [](VM* vm, ArgsView args){
         std::filesystem::path path;
         for(int i=0; i<args.size(); i++){
             path /= CAST(Str&, args[i]).sv();
@@ -211,30 +211,30 @@ void add_module_os(VM* vm){
         return VAR(path.string());
     });
 
-    vm->bind_func<1>(path_obj, "exists", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "exists", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool exists = std::filesystem::exists(path);
         return VAR(exists);
     });
 
-    vm->bind_func<1>(path_obj, "basename", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "basename", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         return VAR(path.filename().string());
     });
 
-    vm->bind_func<1>(path_obj, "isdir", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "isdir", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool isdir = std::filesystem::is_directory(path);
         return VAR(isdir);
     });
 
-    vm->bind_func<1>(path_obj, "isfile", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "isfile", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool isfile = std::filesystem::is_regular_file(path);
         return VAR(isfile);
     });
 
-    vm->bind_func<1>(path_obj, "abspath", [](VM* vm, ArgsView args){
+    vm->bind_func(path_obj, "abspath", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         return VAR(std::filesystem::absolute(path).string());
     });
