@@ -327,15 +327,15 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             self.m[i][j] = CAST_F(value);
         });
 
-        PY_FIELD(Mat3x3, "_11", _11)
-        PY_FIELD(Mat3x3, "_12", _12)
-        PY_FIELD(Mat3x3, "_13", _13)
-        PY_FIELD(Mat3x3, "_21", _21)
-        PY_FIELD(Mat3x3, "_22", _22)
-        PY_FIELD(Mat3x3, "_23", _23)
-        PY_FIELD(Mat3x3, "_31", _31)
-        PY_FIELD(Mat3x3, "_32", _32)
-        PY_FIELD(Mat3x3, "_33", _33)
+        vm->bind_field(type, "_11", &Mat3x3::_11);
+        vm->bind_field(type, "_12", &Mat3x3::_12);
+        vm->bind_field(type, "_13", &Mat3x3::_13);
+        vm->bind_field(type, "_21", &Mat3x3::_21);
+        vm->bind_field(type, "_22", &Mat3x3::_22);
+        vm->bind_field(type, "_23", &Mat3x3::_23);
+        vm->bind_field(type, "_31", &Mat3x3::_31);
+        vm->bind_field(type, "_32", &Mat3x3::_32);
+        vm->bind_field(type, "_33", &Mat3x3::_33);
 
         vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0, PyObject* _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);

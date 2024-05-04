@@ -1257,12 +1257,11 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
 }
 
 PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, NativeFuncC fset){
+    std::string_view name_sv(name); int pos = name_sv.find(':');
+    if(pos > 0) name_sv = name_sv.substr(0, pos);
     PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
     PyObject* _1 = vm->None;
     if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-    std::string_view name_sv(name);
-    int pos = name_sv.find(':');
-    if(pos > 0) name_sv = name_sv.substr(0, pos);
     PyObject* prop = VAR(Property(_0, _1));
     obj->attr().set(StrName(name_sv), prop);
     return prop;

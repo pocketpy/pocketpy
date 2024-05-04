@@ -142,14 +142,9 @@ public:
         stack_no_copy<ArgsView> s_view;
     } _c;
 
-    PyObject* None;
-    PyObject* True;
-    PyObject* False;
-    PyObject* NotImplemented;   // unused
-    PyObject* Ellipsis;
-    PyObject* builtins;         // builtins module
-    PyObject* StopIteration;
-    PyObject* _main;            // __main__ module
+    PyObject *None, *True, *False, *NotImplemented;
+    PyObject *StopIteration, *Ellipsis;
+    PyObject *builtins, *_main;
 
     // typeid -> Type
     std::map<const std::type_index, Type> _cxx_typeid_map;
@@ -311,6 +306,8 @@ public:
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
+    template<typename T, typename F, bool ReadOnly=false>
+    PyObject* bind_field(PyObject*, const char*, F T::*);
 
     template<int ARGC, typename __T>
     PyObject* bind_constructor(__T&& type, NativeFuncC fn) {
@@ -583,6 +580,34 @@ PyObject* VM::bind_func(PyObject* obj, StrName name, NativeFuncC fn, UserData us
     }
     obj->attr().set(name, nf);
     return nf;
+}
+
+template<typename T, typename F, bool ReadOnly>
+PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
+    static_assert(!std::is_reference_v<F>);
+    std::string_view name_sv(name); int pos = name_sv.find(':');
+    if(pos > 0) name_sv = name_sv.substr(0, pos);
+    auto fget = [](VM* vm, ArgsView args) -> PyObject*{
+        T& self = PK_OBJ_GET(T, args[0]);
+        F T::*field = lambda_get_userdata<F T::*>(args.begin());
+        return VAR(self.*field);
+    };
+    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
+    PK_OBJ_GET(NativeFunc, _0).set_userdata(field);
+    PyObject* _1 = vm->None;
+    if constexpr (!ReadOnly){
+        auto fset = [](VM* vm, ArgsView args){
+            T& self = PK_OBJ_GET(T, args[0]);
+            F T::*field = lambda_get_userdata<F T::*>(args.begin());
+            self.*field = py_cast<F>(vm, args[1]);
+            return vm->None;
+        };
+        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
+        PK_OBJ_GET(NativeFunc, _1).set_userdata(field);
+    }
+    PyObject* prop = VAR(Property(_0, _1));
+    obj->attr().set(StrName(name_sv), prop);
+    return prop;
 }
 
 }   // namespace pkpy
