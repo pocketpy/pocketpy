@@ -117,6 +117,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Vec2::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec2)
 
+        type->attr().set("ZERO", vm->new_user_object<Vec2>(0, 0));
+        type->attr().set("ONE", vm->new_user_object<Vec2>(1, 1));
+
         vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
@@ -187,6 +190,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     void Vec3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec3)
 
+        type->attr().set("ZERO", vm->new_user_object<Vec3>(0, 0, 0));
+        type->attr().set("ONE", vm->new_user_object<Vec3>(1, 1, 1));
+
         vm->bind_func(type, __new__, 4, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
@@ -221,6 +227,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
     void Vec4::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec4)
+
+        type->attr().set("ZERO", vm->new_user_object<Vec4>(0, 0, 0, 0));
+        type->attr().set("ONE", vm->new_user_object<Vec4>(1, 1, 1, 1));
 
         vm->bind_func(type, __new__, 5, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
@@ -431,17 +440,17 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         });
 
         // @staticmethod
-        vm->bind(type, "zeros()", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "zeros", 0, [](VM* vm, ArgsView args){
             return vm->new_user_object<Mat3x3>(Mat3x3::zeros());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
-        vm->bind(type, "ones()", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "ones", 0, [](VM* vm, ArgsView args){
             return vm->new_user_object<Mat3x3>(Mat3x3::ones());
         }, {}, BindType::STATICMETHOD);
 
         // @staticmethod
-        vm->bind(type, "identity()", [](VM* vm, ArgsView args){
+        vm->bind_func(type, "identity", 0, [](VM* vm, ArgsView args){
             return vm->new_user_object<Mat3x3>(Mat3x3::identity());
         }, {}, BindType::STATICMETHOD);
 
