@@ -97,7 +97,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
         F T::*field = lambda_get_userdata<F T::*>(args.begin());
         return VAR(self.*field);
     };
-    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
+    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1);
     PK_OBJ_GET(NativeFunc, _0).set_userdata(field);
     PyObject* _1 = vm->None;
     if constexpr (!ReadOnly){
@@ -107,7 +107,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
             self.*field = py_cast<F>(vm, args[1]);
             return vm->None;
         };
-        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
+        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2);
         PK_OBJ_GET(NativeFunc, _1).set_userdata(field);
     }
     PyObject* prop = VAR(Property(_0, _1));

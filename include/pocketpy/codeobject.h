@@ -160,8 +160,8 @@ struct NativeFunc {
         _userdata = data;
     }
 
-    NativeFunc(NativeFuncC f, int argc, bool method);
-    NativeFunc(NativeFuncC f, FuncDecl_ decl);
+    NativeFunc(NativeFuncC f, int argc): f(f), argc(argc) {}
+    NativeFunc(NativeFuncC f, FuncDecl_ decl): f(f), argc(-1), decl(decl) {}
 
     void check_size(VM* vm, ArgsView args) const;
     PyObject* call(VM* vm, ArgsView args) const { return f(vm, args); }

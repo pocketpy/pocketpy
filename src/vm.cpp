@@ -1223,7 +1223,7 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 }
 
 PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, UserData userdata, BindType bt) {
-    PyObject* nf = VAR(NativeFunc(fn, argc, false));
+    PyObject* nf = VAR(NativeFunc(fn, argc));
     PK_OBJ_GET(NativeFunc, nf).set_userdata(userdata);
     switch(bt){
         case BindType::DEFAULT: break;
@@ -1272,9 +1272,9 @@ PyObject* VM::bind_property(PyObject* obj, const char* name, NativeFuncC fget, N
     PK_ASSERT(is_type(obj, tp_type));
     std::string_view name_sv(name); int pos = name_sv.find(':');
     if(pos > 0) name_sv = name_sv.substr(0, pos);
-    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
+    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1);
     PyObject* _1 = vm->None;
-    if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
+    if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2);
     PyObject* prop = VAR(Property(_0, _1));
     obj->attr().set(StrName(name_sv), prop);
     return prop;
