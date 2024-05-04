@@ -27,7 +27,6 @@ struct PyStructTime{
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<PyStructTime>(type);
         PY_READONLY_FIELD(PyStructTime, "tm_year", tm_year);
         PY_READONLY_FIELD(PyStructTime, "tm_mon", tm_mon);
         PY_READONLY_FIELD(PyStructTime, "tm_mday", tm_mday);

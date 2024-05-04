@@ -310,13 +310,6 @@ public:
     template<typename T, typename F, bool ReadOnly=false>
     PyObject* bind_field(PyObject*, const char*, F T::*);
 
-    template<typename T, typename __T>
-    PyObject* bind_notimplemented_constructor(__T&& type) {
-        return bind_func<-1>(std::forward<__T>(type), __new__, [](VM* vm, ArgsView args){
-            vm->NotImplementedError();
-            return vm->None;
-        });
-    }
     /********** error **********/
     void _error(PyObject*);
     void StackOverflowError() { __builtin_error("StackOverflowError"); }
@@ -362,6 +355,12 @@ public:
         mod->attr().set(name, type);
         _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
         T::_register(vm, mod, type);
+        if(!type->attr().contains(__new__)){
+            bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
+                vm->NotImplementedError();
+                return vm->None;
+            });
+        }
         return type;
     }
 

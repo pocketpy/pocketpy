@@ -3,7 +3,6 @@
 namespace pkpy{
 
     void RangeIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<RangeIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             RangeIter& self = PK_OBJ_GET(RangeIter, _0);
@@ -19,7 +18,6 @@ namespace pkpy{
     }
 
     void ArrayIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<ArrayIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             ArrayIter& self = _CAST(ArrayIter&, _0);
@@ -30,7 +28,6 @@ namespace pkpy{
     }
 
     void StringIter::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<StringIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             StringIter& self = _CAST(StringIter&, _0);
@@ -78,7 +75,6 @@ namespace pkpy{
     }
 
     void Generator::_register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<Generator>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             Generator& self = _CAST(Generator&, _0);
@@ -90,7 +86,6 @@ namespace pkpy{
     }
 
     void DictItemsIter::_register(VM *vm, PyObject *mod, PyObject *type){
-        vm->bind_notimplemented_constructor<DictItemsIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             DictItemsIter& self = _CAST(DictItemsIter&, _0);

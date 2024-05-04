@@ -352,7 +352,6 @@ struct Array2dIter{
     void _gc_mark() const{ PK_OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_notimplemented_constructor<Array2dIter>(type);
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) { return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> unsigned{
             Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
