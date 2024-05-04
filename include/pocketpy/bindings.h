@@ -69,7 +69,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindTy
 }
 
 template<typename Ret, typename T, typename... Params>
-PyObject* VM::bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt){
     auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
@@ -81,7 +81,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(*f
 }
 
 template<typename Ret, typename T, typename... Params>
-PyObject* VM::bind(VM* vm, PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt){
     auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     return vm->bind(obj, sig, docstring, __proxy_wrapper, proxy, bt);
 }

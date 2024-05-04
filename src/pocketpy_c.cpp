@@ -361,13 +361,7 @@ bool pkpy_push_function(pkpy_vm* vm_handle, const char* sig, pkpy_CFunction f) {
     PK_ASSERT_NO_ERROR()
     PyObject* f_obj;
     PK_PROTECTED(
-        f_obj = vm->bind(
-            nullptr,
-            sig,
-            nullptr,
-            c_function_wrapper,
-            f
-        );
+        f_obj = vm->bind(nullptr, sig, c_function_wrapper, f);
     )
     vm->s_data.push(f_obj);
     return true;

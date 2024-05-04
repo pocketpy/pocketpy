@@ -300,22 +300,21 @@ public:
     PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT){
         return bind_func(_t(type), name, argc, fn, userdata, bt);
     }
-    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
-    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
-
-    template<typename Ret, typename... Params>
-    PyObject* bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindType bt=BindType::DEFAULT);
-    template<typename Ret, typename T, typename... Params>
-    PyObject* bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt=BindType::DEFAULT);
-    template<typename Ret, typename... Params>
-    PyObject* bind(PyObject* obj, const char* sig, const char* docstring, Ret(*func)(Params...), BindType bt=BindType::DEFAULT);
-    template<typename Ret, typename T, typename... Params>
-    PyObject* bind(VM* vm, PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt=BindType::DEFAULT);
-
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
     template<typename T, typename F, bool ReadOnly=false>
     PyObject* bind_field(PyObject*, const char*, F T::*);
-
+    // without docstring
+    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename... Params>
+    PyObject* bind(PyObject*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename T, typename... Params>
+    PyObject* bind(PyObject*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
+    // with docstring
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename... Params>
+    PyObject* bind(PyObject*, const char*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename T, typename... Params>
+    PyObject* bind(PyObject*, const char*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
     /********** error **********/
     void _error(PyObject*);
     void StackOverflowError() { __builtin_error("StackOverflowError"); }
