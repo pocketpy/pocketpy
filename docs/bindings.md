@@ -133,7 +133,8 @@ int main(){
         });
 
     // use the Point class
-    vm->exec("a = Point(1, 2)");
+    vm->exec("import test");
+    vm->exec("a = test.Point(1, 2)");
     vm->exec("print(a.x)");         // 1
     vm->exec("print(a.y)");         // 2
 
