@@ -295,10 +295,6 @@ public:
     void bind__getitem__(Type type, PyObject* (*f)(VM*, PyObject*, PyObject*));
     void bind__setitem__(Type type, void (*f)(VM*, PyObject*, PyObject*, PyObject*));
     void bind__delitem__(Type type, void (*f)(VM*, PyObject*, PyObject*));
-
-    template<int ARGC>
-    PyObject* bind_func(PyObject*, StrName, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
-
     // new style binding api
     PyObject* bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT){
@@ -548,19 +544,6 @@ template<typename __T>
 __T  py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, true>(vm, obj); }
 template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, false>(vm, obj); }
-
-template<int ARGC>
-PyObject* VM::bind_func(PyObject* obj, StrName name, NativeFuncC fn, UserData userdata, BindType bt) {
-    PyObject* nf = VAR(NativeFunc(fn, ARGC, false));
-    PK_OBJ_GET(NativeFunc, nf).set_userdata(userdata);
-    switch(bt){
-        case BindType::DEFAULT: break;
-        case BindType::STATICMETHOD: nf = VAR(StaticMethod(nf)); break;
-        case BindType::CLASSMETHOD: nf = VAR(ClassMethod(nf)); break;
-    }
-    obj->attr().set(name, nf);
-    return nf;
-}
 
 template<typename T, typename F, bool ReadOnly>
 PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
