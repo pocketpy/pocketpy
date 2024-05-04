@@ -351,11 +351,14 @@ public:
         mod->attr().set(name, type);
         _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
         T::_register(vm, mod, type);
-        if(!type->attr().contains(__new__)){
-            bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
-                vm->NotImplementedError();
-                return vm->None;
-            });
+        // check if T is trivially constructible
+        if constexpr(!std::is_default_constructible_v<T>){
+            if(!type->attr().contains(__new__)){
+                bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
+                    vm->NotImplementedError();
+                    return vm->None;
+                });
+            }
         }
         return type;
     }
