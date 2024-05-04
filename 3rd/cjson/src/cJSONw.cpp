@@ -98,7 +98,7 @@ void add_module_cjson(VM* vm){
     hooks.free_fn = pool64_dealloc;
     cJSON_InitHooks(&hooks);
 
-    vm->bind_func<1>(mod, "loads", [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args){
         std::string_view sv;
         if(is_type(args[0], vm->tp_bytes)){
             sv = PK_OBJ_GET(Bytes, args[0]).sv();
@@ -117,14 +117,8 @@ void add_module_cjson(VM* vm){
         return output;
     });
 
-    vm->bind_func<1>(mod, "dumps", [](VM* vm, ArgsView args) {
+    vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) {
         return vm->py_json(args[0]);
-        // cJSON* cjson = convert_python_object_to_cjson(args[0], vm);
-        // char* str = cJSON_Print(cjson);
-        // cJSON_Delete(cjson);
-        // PyObject* ret = VAR((const char*)str);
-        // hooks.free_fn(str);
-        // return ret;
     });
 }
 
