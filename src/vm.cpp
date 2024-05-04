@@ -74,7 +74,7 @@ namespace pkpy{
 
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
-        this->_c.error = nullptr;
+        this->__c.error = nullptr;
         _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };
         _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;
@@ -1336,7 +1336,7 @@ void ManagedHeap::mark() {
     for(auto [_, co]: vm->__cached_codes) co->_gc_mark();
     if(vm->__last_exception) PK_OBJ_MARK(vm->__last_exception);
     if(vm->__curr_class) PK_OBJ_MARK(vm->__curr_class);
-    if(vm->_c.error != nullptr) PK_OBJ_MARK(vm->_c.error);
+    if(vm->__c.error != nullptr) PK_OBJ_MARK(vm->__c.error);
     if(_gc_marker_ex) _gc_marker_ex(vm);
 }
 

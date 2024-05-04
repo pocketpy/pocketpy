@@ -16,15 +16,15 @@ typedef int (*LuaStyleFuncC)(VM*);
     }
 
 #define PK_ASSERT_NO_ERROR() \
-    if(vm->_c.error != nullptr) \
+    if(vm->__c.error != nullptr) \
         return false;
 
 static int count_extra_elements(VM* vm, int n){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    PK_ASSERT(!vm->_c.s_view.empty());
-    return vm->s_data._sp - vm->_c.s_view.top().end();
+    PK_ASSERT(!vm->__c.s_view.empty());
+    return vm->s_data._sp - vm->__c.s_view.top().end();
 }
 
 static PyObject* stack_item(VM* vm, int index){
@@ -33,8 +33,8 @@ static PyObject* stack_item(VM* vm, int index){
     if(vm->callstack.empty()){
         begin = vm->s_data.begin();
     }else{
-        PK_ASSERT(!vm->_c.s_view.empty());
-        begin = vm->_c.s_view.top().begin();
+        PK_ASSERT(!vm->__c.s_view.empty());
+        begin = vm->__c.s_view.top().begin();
     }
     int size = end - begin;
     if(index < 0) index += size;
@@ -47,11 +47,11 @@ static PyObject* stack_item(VM* vm, int index){
 #define PK_PROTECTED(__B) \
     try{ __B }  \
     catch(const Exception& e ) { \
-        vm->_c.error = e.self(); \
+        vm->__c.error = e.self(); \
         return false; \
     } catch(const std::exception& re){ \
         PyObject* e_t = vm->_t(vm->tp_exception); \
-        vm->_c.error = vm->call(e_t, VAR(re.what())); \
+        vm->__c.error = vm->call(e_t, VAR(re.what())); \
         return false; \
     }
 
@@ -144,8 +144,8 @@ int pkpy_stack_size(pkpy_vm* vm_handle){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    if(vm->_c.s_view.empty()) exit(127);
-    return vm->s_data._sp - vm->_c.s_view.top().begin();
+    if(vm->__c.s_view.empty()) exit(127);
+    return vm->s_data._sp - vm->__c.s_view.top().begin();
 }
 
 // int
@@ -325,7 +325,7 @@ struct TempViewPopper{
 
     void restore() noexcept{
         if(used) return;
-        vm->_c.s_view.pop();
+        vm->__c.s_view.pop();
         used = true;
     }
 
@@ -337,15 +337,15 @@ static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
     PyObject** curr_sp = vm->s_data._sp;
 
-    vm->_c.s_view.push(args);
+    vm->__c.s_view.push(args);
     TempViewPopper _tvp(vm);
     int retc = f(vm);       // may raise, _tvp will handle this via RAII
     _tvp.restore();
 
     // propagate_if_errored
-    if (vm->_c.error != nullptr){
-        PyObject* e_obj = PK_OBJ_GET(Exception, vm->_c.error).self();
-        vm->_c.error = nullptr;
+    if (vm->__c.error != nullptr){
+        PyObject* e_obj = PK_OBJ_GET(Exception, vm->__c.error).self();
+        vm->__c.error = nullptr;
         vm->_error(e_obj);
         return nullptr;
     }
@@ -503,30 +503,30 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
             std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
         }
     }
-    vm->_c.error = vm->call(e_t, VAR(message));
+    vm->__c.error = vm->call(e_t, VAR(message));
     return false;
 }
 
 bool pkpy_check_error(pkpy_vm* vm_handle) {
     VM* vm = (VM*) vm_handle;
-    return vm->_c.error != nullptr;
+    return vm->__c.error != nullptr;
 }
 
 bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     VM* vm = (VM*) vm_handle;
     // no error
-    if (vm->_c.error == nullptr) return false;
-    Exception& e = PK_OBJ_GET(Exception, vm->_c.error);
+    if (vm->__c.error == nullptr) return false;
+    Exception& e = PK_OBJ_GET(Exception, vm->__c.error);
     if (message != nullptr)
         *message = strdup(e.summary().c_str());
     else
         std::cout << e.summary() << std::endl;
-    vm->_c.error = nullptr;
+    vm->__c.error = nullptr;
     if(vm->callstack.empty()){
         vm->s_data.clear();
     }else{
-        if(vm->_c.s_view.empty()) exit(127);
-        vm->s_data.reset(vm->_c.s_view.top().end());
+        if(vm->__c.s_view.empty()) exit(127);
+        vm->s_data.reset(vm->__c.s_view.top().end());
     }
     return true;
 }

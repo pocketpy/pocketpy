@@ -141,7 +141,7 @@ public:
     struct{
         PyObject* error;
         stack_no_copy<ArgsView> s_view;
-    } _c;
+    } __c;
 
     PyObject *None, *True, *False, *NotImplemented;
     PyObject *StopIteration, *Ellipsis;
