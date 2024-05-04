@@ -89,6 +89,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(T:
 template<typename T, typename F, bool ReadOnly>
 PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
     static_assert(!std::is_reference_v<F>);
+    PK_ASSERT(is_type(obj, tp_type));
     std::string_view name_sv(name); int pos = name_sv.find(':');
     if(pos > 0) name_sv = name_sv.substr(0, pos);
     auto fget = [](VM* vm, ArgsView args) -> PyObject*{
