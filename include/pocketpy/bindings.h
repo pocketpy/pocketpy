@@ -1,9 +1,9 @@
 #pragma once
 
 #include "cffi.h"
+#include "vm.h"
 
 namespace pkpy{
-
 struct NativeProxyFuncCBase {
     virtual PyObject* operator()(VM* vm, ArgsView args) = 0;
 };
@@ -56,62 +56,63 @@ struct NativeProxyMethodC final: NativeProxyFuncCBase {
         }
     }
 };
-
-inline PyObject* proxy_wrapper(VM* vm, ArgsView args){
+/*****************************************************************/
+inline PyObject* __proxy_wrapper(VM* vm, ArgsView args){
     NativeProxyFuncCBase* pf = lambda_get_userdata<NativeProxyFuncCBase*>(args.begin());
     return (*pf)(vm, args);
 }
 
 template<typename Ret, typename... Params>
-void _bind(VM* vm, PyObject* obj, const char* sig, Ret(*func)(Params...)){
+PyObject* VM::bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindType bt){
     auto proxy = new NativeProxyFuncC<Ret, Params...>(func);
-    vm->bind(obj, sig, proxy_wrapper, proxy);
+    return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
 
 template<typename Ret, typename T, typename... Params>
-void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
+PyObject* VM::bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt){
     auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
-    vm->bind(obj, sig, proxy_wrapper, proxy);
+    return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
-/*****************************************************************/
-#define PY_FIELD_EX(T, NAME, REF, EXPR)       \
-        vm->bind_property(type, NAME,               \
-            [](VM* vm, ArgsView args){              \
-                T& self = PK_OBJ_GET(T, args[0]);   \
-                return VAR(self.REF()->EXPR);       \
-            },                                      \
-            [](VM* vm, ArgsView args){              \
-                T& self = PK_OBJ_GET(T, args[0]);   \
-                self.REF()->EXPR = CAST(decltype(self.REF()->EXPR), args[1]);       \
-                return vm->None;                                                    \
-            });
 
-#define PY_READONLY_FIELD_EX(T, NAME, REF, EXPR)            \
-        vm->bind_property(type, NAME,                       \
-            [](VM* vm, ArgsView args){                      \
-                T& self = PK_OBJ_GET(T, args[0]);           \
-                return VAR(self.REF()->EXPR);               \
-            });
+template<typename Ret, typename... Params>
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(*func)(Params...), BindType bt){
+    auto proxy = new NativeProxyFuncC<Ret, Params...>(func);
+    return vm->bind(obj, sig, docstring, __proxy_wrapper, proxy, bt);
+}
 
-#define PY_PROPERTY_EX(T, NAME, REF, FGET, FSET)  \
-        vm->bind_property(type, NAME,                   \
-            [](VM* vm, ArgsView args){                  \
-                T& self = PK_OBJ_GET(T, args[0]);       \
-                return VAR(self.REF()->FGET());         \
-            },                                          \
-            [](VM* vm, ArgsView args){                  \
-                T& self = _CAST(T&, args[0]);           \
-                using __NT = decltype(self.REF()->FGET());   \
-                self.REF()->FSET(CAST(__NT, args[1]));       \
-                return vm->None;                            \
-            });
+template<typename Ret, typename T, typename... Params>
+PyObject* VM::bind(VM* vm, PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt){
+    auto proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
+    return vm->bind(obj, sig, docstring, __proxy_wrapper, proxy, bt);
+}
 
-#define PY_READONLY_PROPERTY_EX(T, NAME, REF, FGET)  \
-        vm->bind_property(type, NAME,                   \
-            [](VM* vm, ArgsView args){                  \
-                T& self = PK_OBJ_GET(T, args[0]);       \
-                return VAR(self.REF()->FGET());         \
-            });
+template<typename T, typename F, bool ReadOnly>
+PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
+    static_assert(!std::is_reference_v<F>);
+    std::string_view name_sv(name); int pos = name_sv.find(':');
+    if(pos > 0) name_sv = name_sv.substr(0, pos);
+    auto fget = [](VM* vm, ArgsView args) -> PyObject*{
+        T& self = PK_OBJ_GET(T, args[0]);
+        F T::*field = lambda_get_userdata<F T::*>(args.begin());
+        return VAR(self.*field);
+    };
+    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
+    PK_OBJ_GET(NativeFunc, _0).set_userdata(field);
+    PyObject* _1 = vm->None;
+    if constexpr (!ReadOnly){
+        auto fset = [](VM* vm, ArgsView args){
+            T& self = PK_OBJ_GET(T, args[0]);
+            F T::*field = lambda_get_userdata<F T::*>(args.begin());
+            self.*field = py_cast<F>(vm, args[1]);
+            return vm->None;
+        };
+        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
+        PK_OBJ_GET(NativeFunc, _1).set_userdata(field);
+    }
+    PyObject* prop = VAR(Property(_0, _1));
+    obj->attr().set(StrName(name_sv), prop);
+    return prop;
+}
 /*****************************************************************/
 #define PY_FIELD(T, NAME, EXPR)       \
         vm->bind_property(type, NAME,               \
@@ -152,7 +153,6 @@ void _bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...)){
                 return VAR(self.FGET());                \
             });
 /*****************************************************************/
-
 #define PY_STRUCT_LIKE(wT)   \
         static_assert(std::is_trivially_copyable<wT>::value);                       \
         type->attr().set("__struct__", vm->True);                                   \

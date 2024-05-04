@@ -302,6 +302,16 @@ public:
     }
     PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+
+    template<typename Ret, typename... Params>
+    PyObject* bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename T, typename... Params>
+    PyObject* bind(VM* vm, PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename... Params>
+    PyObject* bind(PyObject* obj, const char* sig, const char* docstring, Ret(*func)(Params...), BindType bt=BindType::DEFAULT);
+    template<typename Ret, typename T, typename... Params>
+    PyObject* bind(VM* vm, PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt=BindType::DEFAULT);
+
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
     template<typename T, typename F, bool ReadOnly=false>
     PyObject* bind_field(PyObject*, const char*, F T::*);
@@ -344,24 +354,8 @@ public:
     Type _tp_user(){ return _find_type_in_cxx_typeid_map<T>(); }
     template<typename T>
     bool is_user_type(PyObject* obj){ return _tp(obj) == _tp_user<T>(); }
-
     template<typename T>
-    PyObject* register_user_class(PyObject* mod, StrName name, bool subclass_enabled=false){
-        PyObject* type = new_type_object(mod, name, 0, subclass_enabled);
-        mod->attr().set(name, type);
-        _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
-        T::_register(vm, mod, type);
-        // check if T is trivially constructible
-        if constexpr(!std::is_default_constructible_v<T>){
-            if(!type->attr().contains(__new__)){
-                bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
-                    vm->NotImplementedError();
-                    return vm->None;
-                });
-            }
-        }
-        return type;
-    }
+    PyObject* register_user_class(PyObject* mod, StrName name, bool subclass_enabled=false);
 
     template<typename T, typename ...Args>
     PyObject* new_user_object(Args&&... args){
@@ -548,32 +542,22 @@ __T  py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, true>(vm, o
 template<typename __T>
 __T _py_cast(VM* vm, PyObject* obj) { return _py_cast__internal<__T, false>(vm, obj); }
 
-template<typename T, typename F, bool ReadOnly>
-PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
-    static_assert(!std::is_reference_v<F>);
-    std::string_view name_sv(name); int pos = name_sv.find(':');
-    if(pos > 0) name_sv = name_sv.substr(0, pos);
-    auto fget = [](VM* vm, ArgsView args) -> PyObject*{
-        T& self = PK_OBJ_GET(T, args[0]);
-        F T::*field = lambda_get_userdata<F T::*>(args.begin());
-        return VAR(self.*field);
-    };
-    PyObject* _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, false);
-    PK_OBJ_GET(NativeFunc, _0).set_userdata(field);
-    PyObject* _1 = vm->None;
-    if constexpr (!ReadOnly){
-        auto fset = [](VM* vm, ArgsView args){
-            T& self = PK_OBJ_GET(T, args[0]);
-            F T::*field = lambda_get_userdata<F T::*>(args.begin());
-            self.*field = py_cast<F>(vm, args[1]);
-            return vm->None;
-        };
-        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, false);
-        PK_OBJ_GET(NativeFunc, _1).set_userdata(field);
+template<typename T>
+PyObject* VM::register_user_class(PyObject* mod, StrName name, bool subclass_enabled){
+    PyObject* type = new_type_object(mod, name, 0, subclass_enabled);
+    mod->attr().set(name, type);
+    _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
+    T::_register(vm, mod, type);
+    // check if T is trivially constructible
+    if constexpr(!std::is_default_constructible_v<T>){
+        if(!type->attr().contains(__new__)){
+            bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
+                vm->NotImplementedError();
+                return vm->None;
+            });
+        }
     }
-    PyObject* prop = VAR(Property(_0, _1));
-    obj->attr().set(StrName(name_sv), prop);
-    return prop;
+    return type;
 }
 
 }   // namespace pkpy
