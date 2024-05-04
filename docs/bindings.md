@@ -199,7 +199,7 @@ vm->bind__add__(vm->tp_int, f_add);
 
 This specialized binding function has optimizations and result in better performance when calling from python code.
 
-For example, `vm->bind__add__` is preferred over `vm->bind_method<1>(type, "__add__", ...)`.
+For example, `vm->bind__add__` is preferred over `vm->bind_func(type, "__add__", 2, f_add)`.
 
 
 ## Automatic bindings
