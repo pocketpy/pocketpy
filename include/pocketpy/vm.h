@@ -50,10 +50,9 @@ struct PyTypeInfo{
 
     std::vector<StrName> annotated_fields = {};
 
-    // cached special methods
     // unary operators
-    PyObject* (*m__repr__)(VM* vm, PyObject*) = nullptr;
-    PyObject* (*m__str__)(VM* vm, PyObject*) = nullptr;
+    Str (*m__repr__)(VM* vm, PyObject*) = nullptr;
+    Str (*m__str__)(VM* vm, PyObject*) = nullptr;
     i64 (*m__hash__)(VM* vm, PyObject*) = nullptr;
     i64 (*m__len__)(VM* vm, PyObject*) = nullptr;
     PyObject* (*m__iter__)(VM* vm, PyObject*) = nullptr;
@@ -183,9 +182,10 @@ public:
     VM(bool enable_os=true);
 
 #if PK_REGION("Python Equivalents")
-    PyObject* py_str(PyObject* obj);                        // x -> str(x)
-    PyObject* py_repr(PyObject* obj);                       // x -> repr(x)
-    PyObject* py_json(PyObject* obj);                       // x -> json.dumps(x)
+    Str py_str(PyObject* obj);                              // x -> str(x)
+    Str py_repr(PyObject* obj);                             // x -> repr(x)
+    Str py_json(PyObject* obj);                             // x -> json.dumps(x)
+
     PyObject* py_iter(PyObject* obj);                       // x -> iter(x)
     PyObject* py_next(PyObject*);                           // x -> next(x)
     PyObject* _py_next(const PyTypeInfo*, PyObject*);       // x -> next(x) with type info cache
@@ -269,9 +269,10 @@ public:
 #endif
 
 #if PK_REGION("Magic Bindings")
-    void bind__repr__(Type type, PyObject* (*f)(VM*, PyObject*));
-    void bind__str__(Type type, PyObject* (*f)(VM*, PyObject*));
+    void bind__repr__(Type type, Str (*f)(VM*, PyObject*));
+    void bind__str__(Type type, Str (*f)(VM*, PyObject*));
     void bind__iter__(Type type, PyObject* (*f)(VM*, PyObject*));
+
     void bind__next__(Type type, unsigned (*f)(VM*, PyObject*));
     [[deprecated]] void bind__next__(Type type, PyObject* (*f)(VM*, PyObject*));
     void bind__neg__(Type type, PyObject* (*f)(VM*, PyObject*));
@@ -356,7 +357,7 @@ public:
     bool issubclass(Type cls, Type base);
     void check_type(PyObject* obj, Type type){ if(!is_type(obj, type)) TypeError(type, _tp(obj)); }
     void check_compatible_type(PyObject* obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
-    
+
     Type _tp(PyObject* obj){ return is_small_int(obj) ? tp_int : obj->type; }
     const PyTypeInfo* _tp_info(PyObject* obj) { return &_all_types[_tp(obj)]; }
     const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }

@@ -14,9 +14,9 @@ namespace pkpy{
             return reinterpret_cast<i64>(self.ptr);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
             VoidP& self = PK_OBJ_GET(VoidP, obj);
-            return VAR(_S("<void* at ", self.hex(), ">"));
+            return _S("<void* at ", self.hex(), ">");
         });
 
 #define BIND_CMP(name, op)  \
@@ -76,7 +76,7 @@ namespace pkpy{
             Struct& self = _CAST(Struct&, obj);
             SStream ss;
             ss << "<struct object of " << self.size << " bytes>";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         vm->bind_func(type, "addr", 1, [](VM* vm, ArgsView args){
@@ -234,9 +234,9 @@ void add_module_c(VM* vm){
         T* target = (T*)voidp.ptr;                                      \
         return vm->heap.gcnew<VoidP>(lhs->type, target - offset);       \
     });                                                                 \
-    vm->bind__repr__(type_t, [](VM* vm, PyObject* obj){                 \
+    vm->bind__repr__(type_t, [](VM* vm, PyObject* obj) -> Str{          \
         VoidP& self = _CAST(VoidP&, obj);                               \
-        return VAR(_S("<", CNAME, "* at ", self.hex(), ">"));         \
+        return _S("<", CNAME, "* at ", self.hex(), ">");                \
     });                                                                 \
 
     BIND_PRIMITIVE(char, "char")

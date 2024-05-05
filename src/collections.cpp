@@ -105,21 +105,21 @@ namespace pkpy
             return vm->new_user_object<PyDequeIter>(_0, self.dequeItems.begin(), self.dequeItems.end());
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0) -> Str
         {
-            if(vm->_repr_recursion_set.count(_0)) return VAR("[...]");
+            if(vm->_repr_recursion_set.count(_0)) return "[...]";
             const PyDeque &self = _CAST(PyDeque&, _0);
             SStream ss;
             ss << "deque([";
             vm->_repr_recursion_set.insert(_0);
             for (auto it = self.dequeItems.begin(); it != self.dequeItems.end(); ++it)
             {
-                ss << CAST(Str&, vm->py_repr(*it));
+                ss << vm->py_repr(*it);
                 if (it != self.dequeItems.end() - 1) ss << ", ";
             }
             vm->_repr_recursion_set.erase(_0);
             self.bounded ? ss << "], maxlen=" << self.maxlen << ")" : ss << "])";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         // enables comparison between two deques, == and != are supported
@@ -253,7 +253,7 @@ namespace pkpy
                      int start = CAST_DEFAULT(int, args[2], 0);
                      int stop = CAST_DEFAULT(int, args[3], self.dequeItems.size());
                      int index = self.findIndex(vm, obj, start, stop);
-                     if (index < 0) vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in deque");
+                     if (index < 0) vm->ValueError(vm->py_repr(obj) + " is not in deque");
                      return VAR(index);
                  });
         // NEW: returns the index of the given object in the deque
@@ -290,7 +290,7 @@ namespace pkpy
                      PyObject *obj = args[1];
                      PyObject *removed = self.popObj(false, false, obj, vm);
                      if (removed == nullptr)
-                         vm->ValueError(_CAST(Str &, vm->py_repr(obj)) + " is not in list");
+                         vm->ValueError(vm->py_repr(obj) + " is not in list");
                      return vm->None;
                  });
         // NEW: reverses the deque

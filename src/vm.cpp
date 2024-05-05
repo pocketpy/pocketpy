@@ -83,24 +83,34 @@ namespace pkpy{
         __init_builtin_types();
     }
 
-    PyObject* VM::py_str(PyObject* obj){
+    Str VM::py_str(PyObject* obj){
         const PyTypeInfo* ti = _tp_info(obj);
         if(ti->m__str__) return ti->m__str__(this, obj);
         PyObject* self;
         PyObject* f = get_unbound_method(obj, __str__, &self, false);
-        if(self != PY_NULL) return call_method(self, f);
+        if(self != PY_NULL){
+            PyObject* retval = call_method(self, f);
+            if(!is_type(retval, tp_str)){
+                throw std::runtime_error("object.__str__ must return str");
+            }
+            return PK_OBJ_GET(Str, retval);
+        }
         return py_repr(obj);
     }
 
-    PyObject* VM::py_repr(PyObject* obj){
+    Str VM::py_repr(PyObject* obj){
         const PyTypeInfo* ti = _tp_info(obj);
         if(ti->m__repr__) return ti->m__repr__(this, obj);
-        return call_method(obj, __repr__);
+        PyObject* retval = call_method(obj, __repr__);
+        if(!is_type(retval, tp_str)){
+            throw std::runtime_error("object.__repr__ must return str");
+        }
+        return PK_OBJ_GET(Str, retval);
     }
 
-    PyObject* VM::py_json(PyObject* obj){
+    Str VM::py_json(PyObject* obj){
         auto j = JsonSerializer(this, obj);
-        return VAR(j.serialize());
+        return j.serialize();
     }
 
     PyObject* VM::py_iter(PyObject* obj){
@@ -495,7 +505,7 @@ i64 VM::py_hash(PyObject* obj){
 }
 
 PyObject* VM::__format_object(PyObject* obj, Str spec){
-    if(spec.empty()) return py_str(obj);
+    if(spec.empty()) return VAR(py_str(obj));
     char type;
     switch(spec.end()[-1]){
         case 'f': case 'd': case 's':
@@ -560,7 +570,7 @@ PyObject* VM::__format_object(PyObject* obj, Str spec){
     }else if(type == 's'){
         ret = CAST(Str&, obj);
     }else{
-        ret = CAST(Str&, py_str(obj));
+        ret = py_str(obj);
     }
     if(width != -1 && width > ret.length()){
         int pad = width - ret.length();
@@ -602,7 +612,7 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
             if(vm != nullptr){
-                argStr += _S(" (", CAST(Str, vm->py_repr(co->consts[byte.arg])), ")").sv();
+                argStr += _S(" (", vm->py_repr(co->consts[byte.arg]), ")").sv();
             }
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
@@ -1398,13 +1408,26 @@ void VM::bind__next__(Type type, PyObject* (*f)(VM*, PyObject*)){
             return lambda_get_userdata<PyObject*(*)(VM*, PyObject*)>(args.begin())(vm, args[0]);    \
         }, f);                                                                          \
     }
-
-    BIND_UNARY_SPECIAL(__repr__)
-    BIND_UNARY_SPECIAL(__str__)
     BIND_UNARY_SPECIAL(__iter__)
     BIND_UNARY_SPECIAL(__neg__)
     BIND_UNARY_SPECIAL(__invert__)
 #undef BIND_UNARY_SPECIAL
+
+void VM::bind__str__(Type type, Str (*f)(VM*, PyObject*)){
+    _all_types[type].m__str__ = f;
+    bind_func(type, __str__, 1, [](VM* vm, ArgsView args){
+        Str s = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
+        return VAR(s);
+    }, f);
+}
+
+void VM::bind__repr__(Type type, Str (*f)(VM*, PyObject*)){
+    _all_types[type].m__repr__ = f;
+    bind_func(type, __repr__, 1, [](VM* vm, ArgsView args){
+        Str s = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
+        return VAR(s);
+    }, f);
+}
 
 void VM::bind__hash__(Type type, i64 (*f)(VM*, PyObject*)){
     _all_types[type].m__hash__ = f;
@@ -1460,7 +1483,6 @@ void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
     ok = false;
     i64 hash = vm->py_hash(key);
     i = hash & _mask;
-    // std::cout << CAST(Str, vm->py_repr(key)) << " " << hash << " " << i << std::endl;
     for(int j=0; j<_capacity; j++) {
         if(_items[i].first != nullptr){
             if(vm->py_eq(_items[i].first, key)) { ok = true; break; }
@@ -1469,7 +1491,6 @@ void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
         }
         // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
         i = ((5*i) + 1) & _mask;
-        // std::cout << CAST(Str, vm->py_repr(key)) << " next: " << i << std::endl;
     }
 }
 
@@ -1600,7 +1621,7 @@ void VM::__breakpoint(){
             for(PyObject* obj: frame_0->_locals){
                 if(obj == PY_NULL) continue;
                 StrName name = frame_0->co->varnames[i++];
-                stdout_write(_S(name.sv(), " = ", CAST(Str&, vm->py_repr(obj)), '\n'));
+                stdout_write(_S(name.sv(), " = ", vm->py_repr(obj), '\n'));
             }
             continue;
         }
@@ -1644,7 +1665,7 @@ void VM::__breakpoint(){
             if(cmd == "p" || cmd == "print"){
                 CodeObject_ code = compile(arg, "<stdin>", EVAL_MODE, true);
                 PyObject* retval = vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
-                stdout_write(CAST(Str&, vm->py_repr(retval)));
+                stdout_write(vm->py_repr(retval));
                 stdout_write("\n");
             }else if(cmd == "!"){
                 CodeObject_ code = compile(arg, "<stdin>", EXEC_MODE, true);

@@ -166,7 +166,7 @@ assert repr(a) == "{1: 2, 3: 4, 'a': {...}}"
 # test gc
 import gc
 gc.collect()
-x = gc.collect()
 for k, v in a.items():
     pass
-assert x+1 == gc.collect()
+assert gc.collect() == 1
+

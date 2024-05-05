@@ -134,7 +134,7 @@ __NEXT_STEP:;
         THIRD() = _0;
     } DISPATCH()
     case OP_PRINT_EXPR:{
-        if(TOP() != None) stdout_write(CAST(Str&, py_repr(TOP())) + "\n");
+        if(TOP() != None) stdout_write(py_repr(TOP()) + "\n");
         POP();
     } DISPATCH()
     /*****************************************/
@@ -383,7 +383,7 @@ __NEXT_STEP:;
     case OP_BUILD_STRING: {
         SStream ss;
         ArgsView view = STACK_VIEW(byte.arg);
-        for(PyObject* obj : view) ss << CAST(Str&, py_str(obj));
+        for(PyObject* obj : view) ss << py_str(obj);
         STACK_SHRINK(byte.arg);
         PUSH(VAR(ss.str()));
     } DISPATCH()
@@ -657,7 +657,7 @@ __NEXT_STEP:;
         PUSH(_0);
     } DISPATCH()
     case OP_REPR:
-        TOP() = py_repr(TOP());
+        TOP() = VAR(py_repr(TOP()));
         DISPATCH()
     case OP_CALL:{
         if(heap._should_auto_collect()) heap._auto_collect();
@@ -933,8 +933,9 @@ __NEXT_STEP:;
     } DISPATCH()
     case OP_RAISE_ASSERT:
         if(byte.arg){
-            PyObject* _0 = py_str(POPX());
-            AssertionError(CAST(Str, _0));
+            Str msg = py_str(TOP());
+            POP();
+            AssertionError(msg);
         }else{
             AssertionError();
         }

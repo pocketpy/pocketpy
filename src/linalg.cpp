@@ -149,12 +149,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return VAR(val);
         }, {}, BindType::STATICMETHOD);
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
             Vec2 self = _CAST(Vec2&, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "vec2(" << self.x << ", " << self.y << ")";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         vm->bind_func(type, "rotate", 2, [](VM* vm, ArgsView args){
@@ -200,12 +200,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->heap.gcnew<Vec3>(PK_OBJ_GET(Type, args[0]), x, y, z);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
             Vec3 self = _CAST(Vec3&, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         PY_FIELD(Vec3, "x", x)
@@ -239,12 +239,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->heap.gcnew<Vec4>(PK_OBJ_GET(Type, args[0]), x, y, z, w);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
             Vec4 self = _CAST(Vec4&, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "vec4(" << self.x << ", " << self.y << ", " << self.z << ", " << self.w << ")";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         PY_FIELD(Vec4, "x", x)
@@ -298,14 +298,14 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->None;
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
             const Mat3x3& self = _CAST(Mat3x3&, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "mat3x3([" << self._11 << ", " << self._12 << ", " << self._13 << ",\n";
             ss << "        " << self._21 << ", " << self._22 << ", " << self._23 << ",\n";
             ss << "        " << self._31 << ", " << self._32 << ", " << self._33 << "])";
-            return VAR(ss.str());
+            return ss.str();
         });
 
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj, PyObject* index){

@@ -181,9 +181,9 @@ struct Array2d{
             return (i64)self.numel;
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* _0) -> Str{
             Array2d& self = PK_OBJ_GET(Array2d, _0);
-            return VAR(_S("array2d(", self.n_cols, ", ", self.n_rows, ')'));
+            return _S("array2d(", self.n_cols, ", ", self.n_rows, ')');
         });
 
         vm->bind(type, "map(self, f)", [](VM* vm, ArgsView args){

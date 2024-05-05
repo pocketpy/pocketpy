@@ -473,7 +473,7 @@ bool pkpy_py_repr(pkpy_vm* vm_handle) {
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
     PyObject* item = vm->s_data.top();
     PK_PROTECTED(
-        item = vm->py_repr(item);
+        item = VAR(vm->py_repr(item));
     )
     vm->s_data.top() = item;
     return true;
@@ -485,7 +485,7 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
     PyObject* item = vm->s_data.top();
     PK_PROTECTED(
-        item = vm->py_str(item);
+        item = VAR(vm->py_str(item));
     )
     vm->s_data.top() = item;
     return true;

@@ -45,8 +45,7 @@ static void patch__init__(VM* vm, Type cls){
 }
 
 static void patch__repr__(VM* vm, Type cls){
-    vm->bind__repr__(cls, [](VM* vm, PyObject* _0){
-        auto _lock = vm->heap.gc_scope_lock();
+    vm->bind__repr__(cls, [](VM* vm, PyObject* _0) -> Str{
         const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0)];
         const auto& fields = cls_info->annotated_fields;
         const NameDict& obj_d = _0->attr();
@@ -56,10 +55,10 @@ static void patch__repr__(VM* vm, Type cls){
         for(StrName field: fields){
             if(first) first = false;
             else ss << ", ";
-            ss << field << "=" << CAST(Str&, vm->py_repr(obj_d[field]));
+            ss << field << "=" << vm->py_repr(obj_d[field]);
         }
         ss << ")";
-        return VAR(ss.str());
+        return ss.str();
     });
 }
 

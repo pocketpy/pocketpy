@@ -237,21 +237,21 @@ Convert a python object to string
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-obj = vm->py_str(obj);  // 123
+Str s = vm->py_str(obj);  // 123
 ```
 
 Get the string representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, "123");
-obj = vm->py_repr(obj); // "'123'"
+Str s = vm->py_repr(obj); // "'123'"
 ```
 
 Get the JSON representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-obj = vm->py_json(obj); // "123"
+Str s = vm->py_json(obj); // "123"
 ```
 
 Get the hash value of a python object
