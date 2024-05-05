@@ -109,6 +109,8 @@ struct Type {
 #define PK_VAR_LAMBDA(x) ([](VM* vm, ArgsView args) { return VAR(x); })
 #define PK_ACTION(x) ([](VM* vm, ArgsView args) { x; return vm->None; })
 
+#define PK_REGION(name)	1
+
 #ifdef POCKETPY_H
 #define PK_FATAL_ERROR() throw std::runtime_error( "L" + std::to_string(__LINE__) + " FATAL_ERROR()!");
 #else

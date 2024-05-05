@@ -84,7 +84,7 @@ namespace pkpy{
     }
 
     PyObject* VM::py_str(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
+        const PyTypeInfo* ti = _tp_info(obj);
         if(ti->m__str__) return ti->m__str__(this, obj);
         PyObject* self;
         PyObject* f = get_unbound_method(obj, __str__, &self, false);
@@ -93,7 +93,7 @@ namespace pkpy{
     }
 
     PyObject* VM::py_repr(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
+        const PyTypeInfo* ti = _tp_info(obj);
         if(ti->m__repr__) return ti->m__repr__(this, obj);
         return call_method(obj, __repr__);
     }
@@ -104,7 +104,7 @@ namespace pkpy{
     }
 
     PyObject* VM::py_iter(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
+        const PyTypeInfo* ti = _tp_info(obj);
         if(ti->m__iter__) return ti->m__iter__(this, obj);
         PyObject* self;
         PyObject* iter_f = get_unbound_method(obj, __iter__, &self, false);
@@ -212,14 +212,14 @@ namespace pkpy{
         return obj;
     }
 
-    const PyTypeInfo* VM::_inst_type_info(PyObject* obj){
+    const PyTypeInfo* VM::_tp_info(PyObject* obj){
         if(is_small_int(obj)) return &_all_types[tp_int];
         return &_all_types[obj->type];
     }
 
     bool VM::py_eq(PyObject* lhs, PyObject* rhs){
         if(lhs == rhs) return true;
-        const PyTypeInfo* ti = _inst_type_info(lhs);
+        const PyTypeInfo* ti = _tp_info(lhs);
         PyObject* res;
         if(ti->m__eq__){
             res = ti->m__eq__(this, lhs, rhs);
@@ -228,7 +228,7 @@ namespace pkpy{
         res = call_method(lhs, __eq__, rhs);
         if(res != vm->NotImplemented) return res == vm->True;
 
-        ti = _inst_type_info(rhs);
+        ti = _tp_info(rhs);
         if(ti->m__eq__){
             res = ti->m__eq__(this, rhs, lhs);
             if(res != vm->NotImplemented) return res == vm->True;
@@ -255,7 +255,7 @@ namespace pkpy{
     }
 
     PyObject* VM::py_next(PyObject* obj){
-        const PyTypeInfo* ti = _inst_type_info(obj);
+        const PyTypeInfo* ti = _tp_info(obj);
         return _py_next(ti, obj);
     }
 
@@ -394,7 +394,7 @@ namespace pkpy{
     }
 
 PyObject* VM::py_negate(PyObject* obj){
-    const PyTypeInfo* ti = _inst_type_info(obj);
+    const PyTypeInfo* ti = _tp_info(obj);
     if(ti->m__neg__) return ti->m__neg__(this, obj);
     return call_method(obj, __neg__);
 }
@@ -418,7 +418,7 @@ List VM::py_list(PyObject* it){
     auto _lock = heap.gc_scope_lock();
     it = py_iter(it);
     List list;
-    const PyTypeInfo* info = _inst_type_info(it);
+    const PyTypeInfo* info = _tp_info(it);
     PyObject* obj = _py_next(info, it);
     while(obj != StopIteration){
         list.push_back(obj);
@@ -473,7 +473,7 @@ void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int&
 
 i64 VM::py_hash(PyObject* obj){
     // https://docs.python.org/3.10/reference/datamodel.html#object.__hash__
-    const PyTypeInfo* ti = _inst_type_info(obj);
+    const PyTypeInfo* ti = _tp_info(obj);
     if(ti->m__hash__) return ti->m__hash__(this, obj);
 
     PyObject* self;
@@ -814,7 +814,7 @@ void VM::__unpack_as_list(ArgsView args, List& list){
             // maybe this check should be done in the compile time
             if(w.level != 1) TypeError("expected level 1 star wrapper");
             PyObject* _0 = py_iter(w.obj);
-            const PyTypeInfo* info = _inst_type_info(_0);
+            const PyTypeInfo* info = _tp_info(_0);
             PyObject* _1 = _py_next(info, _0);
             while(_1 != StopIteration){
                 list.push_back(_1);
@@ -1048,7 +1048,7 @@ PyObject* VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 }
 
 void VM::delattr(PyObject *_0, StrName _name){
-    const PyTypeInfo* ti = _inst_type_info(_0);
+    const PyTypeInfo* ti = _tp_info(_0);
     if(ti->m__delattr__ && ti->m__delattr__(this, _0, _name)) return;
     if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
     if(!_0->attr().del(_name)) AttributeError(_0, _name);

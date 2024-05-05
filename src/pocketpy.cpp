@@ -249,7 +249,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(_vm->builtins, "len", 1, [](VM* vm, ArgsView args){
-        const PyTypeInfo* ti = vm->_inst_type_info(args[0]);
+        const PyTypeInfo* ti = vm->_tp_info(args[0]);
         if(ti->m__len__) return VAR(ti->m__len__(vm, args[0]));
         return vm->call_method(args[0], __len__);
     });
@@ -691,7 +691,7 @@ void __init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         SStream ss;
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        const PyTypeInfo* info = vm->_inst_type_info(args[1]);
+        const PyTypeInfo* info = vm->_tp_info(args[1]);
         PyObject* obj = vm->_py_next(info, it);
         while(obj != vm->StopIteration){
             if(!ss.empty()) ss << self;
@@ -913,7 +913,7 @@ void __init_builtins(VM* _vm) {
         auto _lock = vm->heap.gc_scope_lock();
         List& self = _CAST(List&, args[0]);
         PyObject* it = vm->py_iter(args[1]);     // strong ref
-        const PyTypeInfo* info = vm->_inst_type_info(args[1]);
+        const PyTypeInfo* info = vm->_tp_info(args[1]);
         PyObject* obj = vm->_py_next(info, it);
         while(obj != vm->StopIteration){
             self.push_back(obj);

@@ -17,7 +17,7 @@ namespace pkpy{
 
 #define BINARY_F_COMPARE(func, op, rfunc)                           \
         PyObject* ret;                                              \
-        const PyTypeInfo* _ti = _inst_type_info(_0);                \
+        const PyTypeInfo* _ti = _tp_info(_0);                \
         if(_ti->m##func){                               \
             ret = _ti->m##func(this, _0, _1);           \
         }else{                                          \
@@ -48,7 +48,7 @@ void VM::__op_unpack_sequence(uint16_t arg){
     }else{
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         _0 = py_iter(_0);
-        const PyTypeInfo* ti = _inst_type_info(_0);
+        const PyTypeInfo* ti = _tp_info(_0);
         for(int i=0; i<arg; i++){
             PyObject* _1 = _py_next(ti, _0);
             if(_1 == StopIteration) ValueError("not enough values to unpack");
@@ -224,7 +224,7 @@ __NEXT_STEP:;
     case OP_LOAD_SUBSCR:{
         PyObject* _1 = POPX();    // b
         PyObject* _0 = TOP();     // a
-        auto _ti = _inst_type_info(_0);
+        auto _ti = _tp_info(_0);
         if(_ti->m__getitem__){
             TOP() = _ti->m__getitem__(this, _0, _1);
         }else{
@@ -235,7 +235,7 @@ __NEXT_STEP:;
         PyObject* _1 = frame->_locals[byte.arg];
         if(_1 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PyObject* _0 = TOP();     // a
-        auto _ti = _inst_type_info(_0);
+        auto _ti = _tp_info(_0);
         if(_ti->m__getitem__){
             TOP() = _ti->m__getitem__(this, _0, _1);
         }else{
@@ -245,7 +245,7 @@ __NEXT_STEP:;
     case OP_LOAD_SUBSCR_SMALL_INT:{
         PyObject* _1 = (PyObject*)(uintptr_t)byte.arg;
         PyObject* _0 = TOP();     // a
-        auto _ti = _inst_type_info(_0);
+        auto _ti = _tp_info(_0);
         if(_ti->m__getitem__){
             TOP() = _ti->m__getitem__(this, _0, _1);
         }else{
@@ -279,7 +279,7 @@ __NEXT_STEP:;
         PyObject* _2 = POPX();        // b
         PyObject* _1 = POPX();        // a
         PyObject* _0 = POPX();        // val
-        auto _ti = _inst_type_info(_1);
+        auto _ti = _tp_info(_1);
         if(_ti->m__setitem__){
             _ti->m__setitem__(this, _1, _2, _0);
         }else{
@@ -291,7 +291,7 @@ __NEXT_STEP:;
         if(_2 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
         PyObject* _1 = POPX();        // a
         PyObject* _0 = POPX();        // val
-        auto _ti = _inst_type_info(_1);
+        auto _ti = _tp_info(_1);
         if(_ti->m__setitem__){
             _ti->m__setitem__(this, _1, _2, _0);
         }else{
@@ -324,7 +324,7 @@ __NEXT_STEP:;
     case OP_DELETE_SUBSCR:{
         PyObject* _1 = POPX();
         PyObject* _0 = POPX();
-        auto _ti = _inst_type_info(_0);
+        auto _ti = _tp_info(_0);
         if(_ti->m__delitem__){
             _ti->m__delitem__(this, _0, _1);
         }else{
@@ -423,7 +423,7 @@ __NEXT_STEP:;
     } DISPATCH()
     /*****************************************/
 #define BINARY_OP_SPECIAL(func)                         \
-        _ti = _inst_type_info(_0);                      \
+        _ti = _tp_info(_0);                      \
         if(_ti->m##func){                               \
             TOP() = _ti->m##func(this, _0, _1);         \
         }else{                                          \
@@ -589,7 +589,7 @@ __NEXT_STEP:;
     } DISPATCH()
     case OP_CONTAINS_OP:{
         // a in b -> b __contains__ a
-        auto _ti = _inst_type_info(TOP());
+        auto _ti = _tp_info(TOP());
         PyObject* _0;
         if(_ti->m__contains__){
             _0 = _ti->m__contains__(this, TOP(), SECOND());
@@ -749,7 +749,7 @@ __NEXT_STEP:;
         DISPATCH()
     case OP_UNARY_INVERT:{
         PyObject* _0;
-        auto _ti = _inst_type_info(TOP());
+        auto _ti = _tp_info(TOP());
         if(_ti->m__invert__) _0 = _ti->m__invert__(this, TOP());
         else _0 = call_method(TOP(), __invert__);
         TOP() = _0;
@@ -790,7 +790,7 @@ __NEXT_STEP:;
     } DISPATCH()
     case OP_FOR_ITER_UNPACK:{
         PyObject* _0 = TOP();
-        const PyTypeInfo* _ti = _inst_type_info(_0);
+        const PyTypeInfo* _ti = _tp_info(_0);
         if(_ti->m__next__){
             unsigned n = _ti->m__next__(this, _0);
             if(n == 0){
@@ -850,7 +850,7 @@ __NEXT_STEP:;
     case OP_UNPACK_EX: {
         auto _lock = heap.gc_scope_lock();  // lock the gc via RAII!!
         PyObject* _0 = py_iter(POPX());
-        const PyTypeInfo* _ti = _inst_type_info(_0);
+        const PyTypeInfo* _ti = _tp_info(_0);
         PyObject* _1;
         for(int i=0; i<byte.arg; i++){
             _1 = _py_next(_ti, _0);

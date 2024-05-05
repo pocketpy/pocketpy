@@ -104,7 +104,7 @@ void add_module_dataclasses(VM* vm){
     });
 
     vm->bind_func(mod, "asdict", 1, [](VM* vm, ArgsView args){
-        const auto& fields = vm->_inst_type_info(args[0])->annotated_fields;
+        const auto& fields = vm->_tp_info(args[0])->annotated_fields;
         const NameDict& obj_d = args[0]->attr();
         Dict d(vm);
         for(StrName field: fields){
