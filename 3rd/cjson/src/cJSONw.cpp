@@ -118,7 +118,7 @@ void add_module_cjson(VM* vm){
     });
 
     vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) {
-        return vm->py_json(args[0]);
+        return VAR(vm->py_json(args[0]));
     });
 }
 
