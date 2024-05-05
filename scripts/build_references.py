@@ -33,6 +33,8 @@ label: References
 icon: code
 order: 2
 ---
+            
+This page contains all useful methods of `VM` class.
 
 ''')
     content = ''.join(output)
