@@ -37,5 +37,5 @@ order: 2
 ''')
     content = ''.join(output)
     # replace {...} to  ; (multi-line match)
-    content = re.sub(r'{(.+?)}', r';', content, flags=re.DOTALL)
+    content = re.sub(r'\{[^}]+?\}', r';', content, flags=re.DOTALL)
     f.write(content)
