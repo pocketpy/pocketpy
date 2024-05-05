@@ -356,10 +356,12 @@ public:
     bool issubclass(Type cls, Type base);
     void check_type(PyObject* obj, Type type){ if(!is_type(obj, type)) TypeError(type, _tp(obj)); }
     void check_compatible_type(PyObject* obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
-    PyObject* _t(PyObject* obj){ return _all_types[_tp(obj)].obj; }
-    PyObject* _t(Type t){ return _all_types[t.index].obj; }
+    
     Type _tp(PyObject* obj){ return is_small_int(obj) ? tp_int : obj->type; }
-    const PyTypeInfo* _tp_info(PyObject* obj);
+    const PyTypeInfo* _tp_info(PyObject* obj) { return &_all_types[_tp(obj)]; }
+    const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
+    PyObject* _t(PyObject* obj){ return _all_types[_tp(obj)].obj; }
+    PyObject* _t(Type type){ return _all_types[type].obj; }
 #endif
 
 #if PK_REGION("User Type Registration")

@@ -212,11 +212,6 @@ namespace pkpy{
         return obj;
     }
 
-    const PyTypeInfo* VM::_tp_info(PyObject* obj){
-        if(is_small_int(obj)) return &_all_types[tp_int];
-        return &_all_types[obj->type];
-    }
-
     bool VM::py_eq(PyObject* lhs, PyObject* rhs){
         if(lhs == rhs) return true;
         const PyTypeInfo* ti = _tp_info(lhs);
