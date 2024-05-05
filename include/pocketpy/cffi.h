@@ -7,7 +7,7 @@ namespace pkpy {
 
 #define PY_CLASS(T, mod, name)                  \
     [[deprecated]] static Type _type(VM* vm) { return vm->_cxx_typeid_map[typeid(T)]; }    \
-    [[deprecated]] static PyObject* register_class(VM* vm, PyObject* mod, Type base=0) {   \
+    [[deprecated]] static PyObject* register_class(VM* vm, PyObject* mod, Type base=Type(0)) {   \
         return vm->register_user_class<T>(mod, #name, base);                \
     }                                                                       
 
