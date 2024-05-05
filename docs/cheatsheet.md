@@ -115,11 +115,11 @@ Dict& g = py_cast<Dict&>(vm, obj);      // reference cast
 Get native types without type checking
 
 ```cpp
-// unsafe version 1 (for int and float you must use `_py_cast`)
+// unsafe version 1 (for int object you must use `_py_cast`)
 i64 a = _py_cast<i64>(vm, obj);
 f64 b = _py_cast<f64>(vm, obj);
 Tuple& c = _py_cast<Tuple&>(vm, obj);
-// unsafe version 2 (for others, you can use both versions)
+// unsafe version 2 (for others, you can also use `PK_OBJ_GET` macro)
 Str& a_ = PK_OBJ_GET(Str, obj);
 List& b_ = PK_OBJ_GET(List, obj);
 Tuple& c_ = PK_OBJ_GET(Tuple, obj);
@@ -130,14 +130,14 @@ Tuple& c_ = PK_OBJ_GET(Tuple, obj);
 Access built-in python types
 
 ```cpp
-PyObject* int_t = vm->_t(vm->tp_int);
-PyObject* float_t = vm->_t(vm->tp_float);
-PyObject* object_t = vm->_t(vm->tp_object);
-PyObject* tuple_t = vm->_t(vm->tp_tuple);
-PyObject* list_t = vm->_t(vm->tp_list);
+PyObject* int_t = vm->_t(VM::tp_int);
+PyObject* float_t = vm->_t(VM::tp_float);
+PyObject* object_t = vm->_t(VM::tp_object);
+PyObject* tuple_t = vm->_t(VM::tp_tuple);
+PyObject* list_t = vm->_t(VM::tp_list);
 ```
 
-Access extended python types
+Access user registered types
 
 ```cpp
 Type voidp_t = vm->_tp_user<VoidP>();
@@ -147,7 +147,7 @@ Check if an object is a python type
 
 ```cpp
 PyObject* obj;
-bool ok = is_type(obj, vm->tp_int); // check if obj is an int
+bool ok = is_type(obj, VM::tp_int); // check if obj is an int
 ```
 
 Get the type of a python object
@@ -155,6 +155,7 @@ Get the type of a python object
 ```cpp
 PyObject* obj = py_var(vm, 1);
 PyObject* t = vm->_t(obj);      // <class 'int'>
+Type type = vm->_tp(obj);       // VM::tp_int
 ```
 
 Convert a type object into a type index
@@ -237,21 +238,21 @@ Convert a python object to string
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-Str s = vm->py_str(obj);  // 123
+std::cout << vm->py_str(obj);  // 123
 ```
 
 Get the string representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, "123");
-Str s = vm->py_repr(obj); // "'123'"
+std::cout << vm->py_repr(obj); // "'123'"
 ```
 
 Get the JSON representation of a python object
 
 ```cpp
 PyObject* obj = py_var(vm, 123);
-Str s = vm->py_json(obj); // "123"
+std::cout << vm->py_json(obj); // "123"
 ```
 
 Get the hash value of a python object
@@ -330,4 +331,3 @@ Create a native module
 PyObject* mod = vm->new_module("test");
 vm->setattr(mod, "pi", py_var(vm, 3.14));
 ```
-
