@@ -380,6 +380,7 @@ public:
     PyObject* new_user_object(Args&&... args){
         return heap.gcnew<T>(_tp_user<T>(), std::forward<Args>(args)...);
     }
+#endif
 
     template<typename T>
     Type _find_type_in_cxx_typeid_map(){
@@ -395,7 +396,6 @@ public:
         }
         return it->second;
     }
-#endif
 
     /********** private **********/
     virtual ~VM();

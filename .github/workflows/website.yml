@@ -29,6 +29,7 @@ jobs:
         actions-cache-folder: 'emsdk-cache'
     - name: Compile
       run: |
+        python scripts/build_references.py
         bash build_web.sh
         mv web docs/.retype/static
     ###################################################
