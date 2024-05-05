@@ -28,7 +28,8 @@ for line in lines:
             output.append('```cpp\n')
 
 with open('docs/references.md', 'w', encoding='utf-8') as f:
-    f.write('''---label: References
+    f.write('''---
+label: References
 icon: code
 order: 2
 ---
