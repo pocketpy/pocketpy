@@ -208,8 +208,6 @@ public:
 #endif
 
 #if PK_REGION("Utility Methods")
-    PyObject* new_module(Str name, Str package="");
-    PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
     ArgsView cast_array_view(PyObject* obj);
     void set_main_argv(int argc, char** argv);
     i64 normalized_index(i64 index, int size);
@@ -366,6 +364,9 @@ public:
 #endif
 
 #if PK_REGION("User Type Registration")
+    PyObject* new_module(Str name, Str package="");
+    PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled=true);
+
     template<typename T>
     Type _tp_user(){ return _find_type_in_cxx_typeid_map<T>(); }
     template<typename T>
