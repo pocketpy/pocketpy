@@ -3,6 +3,14 @@
 #if PK_ENABLE_OS
 #include <filesystem>
 #include <cstdio>
+#include <functional>
+#include <optional>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <dirent.h>
+#include <fnmatch.h>
+#endif
 #endif
 
 namespace pkpy{
@@ -236,6 +244,221 @@ void add_module_os(VM* vm){
     vm->bind_func(path_obj, "abspath", 1, [](VM* vm, ArgsView args){
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         return VAR(std::filesystem::absolute(path).string());
+    });
+}
+
+void add_module_stat(VM* vm){
+    PyObject* mod = vm->new_module("stat");
+
+    mod->attr().set("S_IFDIR", VAR(0040000));
+    mod->attr().set("S_IFCHR", VAR(0020000));
+    mod->attr().set("S_IFBLK", VAR(0060000));
+    mod->attr().set("S_IFREG", VAR(0100000));
+    mod->attr().set("S_IFIFO", VAR(0010000));
+    mod->attr().set("S_IFLNK", VAR(0120000));
+    mod->attr().set("S_IFSOCK", VAR(0140000));
+
+    mod->attr().set("S_ISUID", VAR(04000));
+    mod->attr().set("S_ISGID", VAR(02000));
+    mod->attr().set("S_ISVTX", VAR(01000));
+
+    mod->attr().set("S_IRWXU", VAR(00700));
+    mod->attr().set("S_IRUSR", VAR(00400));
+    mod->attr().set("S_IWUSR", VAR(00200));
+    mod->attr().set("S_IXUSR", VAR(00100));
+
+    mod->attr().set("S_IRWXG", VAR(00070));
+    mod->attr().set("S_IRGRP", VAR(00040));
+    mod->attr().set("S_IWGRP", VAR(00020));
+    mod->attr().set("S_IXGRP", VAR(00010));
+
+    mod->attr().set("S_IRWXO", VAR(00007));
+    mod->attr().set("S_IROTH", VAR(00004));
+    mod->attr().set("S_IWOTH", VAR(00002));
+    mod->attr().set("S_IXOTH", VAR(00001));
+
+    struct stat_result {
+        int st_mode;
+        uint64_t st_ino;
+        uint64_t st_dev;
+        uint64_t st_nlink;
+        uint64_t st_uid;
+        uint64_t st_gid;
+        int64_t st_size;
+        double st_atime;
+        double st_mtime;
+        double st_ctime;
+
+        stat_result(const std::filesystem::file_status& status, const std::filesystem::directory_entry& entry)
+            : st_mode(static_cast<int>(status.permissions())), 
+              st_ino(entry.file_size()),
+              st_dev(0),
+              st_nlink(entry.hard_link_count()), 
+              st_uid(0), 
+              st_gid(0),
+              st_size(entry.file_size()),
+              st_atime(std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch()).count()),
+              st_mtime(std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch()).count()),
+              st_ctime(std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch()).count()) {}
+    };
+
+    vm->bind_func(mod, "stat", 1, [](VM* vm, ArgsView args){
+        std::filesystem::path path(CAST(Str&, args[0]).sv());
+        std::filesystem::directory_entry entry;
+        try{
+            entry = std::filesystem::directory_entry(path);
+        }catch(std::filesystem::filesystem_error&){
+            vm->OSError(path.string());
+        }
+        auto status = entry.status();
+        stat_result result(status, entry);
+
+        PyObject* stat_obj = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+        stat_obj->attr().set("st_mode", VAR(result.st_mode));
+        stat_obj->attr().set("st_ino", VAR(result.st_ino));
+        stat_obj->attr().set("st_dev", VAR(result.st_dev));
+        stat_obj->attr().set("st_nlink", VAR(result.st_nlink));
+        stat_obj->attr().set("st_uid", VAR(result.st_uid));
+        stat_obj->attr().set("st_gid", VAR(result.st_gid));
+        stat_obj->attr().set("st_size", VAR(result.st_size));
+        stat_obj->attr().set("st_atime", VAR(result.st_atime));
+        stat_obj->attr().set("st_mtime", VAR(result.st_mtime));
+        stat_obj->attr().set("st_ctime", VAR(result.st_ctime));
+
+        return stat_obj;
+    });
+
+    vm->bind_func(mod, "S_ISDIR", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0040000);
+    });
+
+    vm->bind_func(mod, "S_ISCHR", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0020000);
+    });
+
+    vm->bind_func(mod, "S_ISBLK", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0060000);
+    });
+
+    vm->bind_func(mod, "S_ISREG", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0100000);
+    });
+
+    vm->bind_func(mod, "S_ISFIFO", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0010000);
+    });
+
+    vm->bind_func(mod, "S_ISLNK", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0120000);
+    });
+
+    vm->bind_func(mod, "S_ISSOCK", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR((mode & 0170000) == 0140000);
+    });
+
+    vm->bind_func(mod, "S_IMODE", 1, [](VM* vm, ArgsView args){
+        int mode = CAST(int, args[0]);
+        return VAR(mode & 07777);
+    });
+
+    vm->bind_func(mod, "S_IFMT", 1, [](VM* vm, ArgsView args){
+            int mode = CAST(int, args[0]);
+            return VAR(mode & 0170000);
+        });
+}
+
+void add_module_glob(VM* vm){
+    PyObject* mod = vm->new_module("glob");
+
+    vm->bind_func(mod, "glob", 1, [](VM* vm, ArgsView args){
+        std::string_view pattern = CAST(Str&, args[0]).sv();
+        std::optional<std::string_view> root_dir_opt = std::nullopt;
+        bool recursive = false;
+        bool include_hidden = false;
+
+        if (args.size() > 1)
+            root_dir_opt = CAST(Str&, args[1]).sv();
+        if (args.size() > 2)
+            recursive = CAST(bool, args[2]);
+        if (args.size() > 3)
+            include_hidden = CAST(bool, args[3]);
+        std::vector<std::string> result;
+
+        std::string root_dir = root_dir_opt ? std::string(*root_dir_opt) : ".";
+        std::filesystem::path base_dir(root_dir);
+        std::filesystem::path search_pattern(pattern.data());
+
+        std::function<void(const std::filesystem::path&)> search_dir = [&](const std::filesystem::path& dir) {
+            #ifdef _WIN32
+            WIN32_FIND_DATAA data;
+            std::string pattern_str = (dir / search_pattern).string();
+            HANDLE hFind = FindFirstFileA(pattern_str.c_str(), &data);
+            if (hFind != INVALID_HANDLE_VALUE) {
+                do {
+                    if (include_hidden || data.cFileName[0] != '.') {
+                        result.push_back((dir / data.cFileName).string());
+                    }
+                } while (FindNextFileA(hFind, &data));
+                FindClose(hFind);
+            }
+            #else
+            DIR* dp = opendir(dir.c_str());
+            if (dp != nullptr) {
+                dirent* entry;
+                while ((entry = readdir(dp)) != nullptr) {
+                    std::filesystem::path entry_path = dir / entry->d_name;
+                    if (fnmatch(search_pattern.c_str(), entry->d_name, FNM_PATHNAME) == 0 &&
+                        (include_hidden || entry->d_name[0] != '.')) {
+                        result.push_back(entry_path.string());
+                    }
+                }
+                closedir(dp);
+            }
+            #endif
+        };
+
+        search_dir(base_dir);
+
+        if (recursive) {
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(base_dir)) {
+                if (entry.is_directory()) {
+                    search_dir(entry.path());
+                }
+            }
+        }
+
+        List ret;
+        for (const auto& path : result) {
+            ret.push_back(VAR(path));
+        }
+        return VAR(ret);
+    });
+
+    vm->bind_func(mod, "escape", 1, [](VM* vm, ArgsView args){
+        std::string_view pattern = CAST(Str&, args[0]).sv();
+        std::string escaped;
+        for (char c : pattern) {
+            if (c == '*' || c == '?' || c == '[' || c == ']') {
+                escaped += '[';
+                escaped += c;
+                escaped += ']';
+            } else {
+                escaped += c;
+            }
+        }
+        return VAR(escaped);
+    });
+
+    vm->bind_func(mod, "has_magic", 1, [](VM* vm, ArgsView args){
+        std::string_view pattern = CAST(Str&, args[0]).sv();
+        return VAR(pattern.find_first_of("*?[") != std::string::npos);
     });
 }
 #else

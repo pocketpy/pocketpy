@@ -331,6 +331,7 @@ public:
     void _error(PyObject*);
     void StackOverflowError() { __builtin_error("StackOverflowError"); }
     void IOError(const Str& msg) { __builtin_error("IOError", msg); }
+    void OSError(const Str& msg) { __builtin_error("OSError", msg); }
     void NotImplementedError(){ __builtin_error("NotImplementedError"); }
     void TypeError(const Str& msg){ __builtin_error("TypeError", msg); }
     void TypeError(Type expected, Type actual) { TypeError("expected " + _type_name(vm, expected).escape() + ", got " + _type_name(vm, actual).escape()); }

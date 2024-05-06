@@ -1638,6 +1638,8 @@ void VM::__post_init_builtin_types(){
     if(enable_os){
         add_module_io(this);
         add_module_os(this);
+        add_module_stat(this);
+        add_module_glob(this);
         _import_handler = _default_import_handler;
     }
 
