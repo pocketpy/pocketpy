@@ -14,7 +14,7 @@ struct any{
         inline static vtable* get(){
             static_assert(std::is_same_v<T, std::decay_t<T>>);
             if constexpr (is_sso_v<T>){
-                static vtable vt{ typeid(T), [](void*){} };
+                static vtable vt{ typeid(T), nullptr };
                 return &vt;
             }else{
                 static vtable vt{ typeid(T), [](void* ptr){ delete static_cast<T*>(ptr); } };
@@ -28,7 +28,7 @@ struct any{
 
     any() : data(nullptr), _vt(nullptr) {}
 
-    explicit operator bool() const { return data != nullptr; }
+    explicit operator bool() const { return _vt != nullptr; }
 
     template<typename T>
     any(T&& value){
@@ -52,7 +52,7 @@ struct any{
     any(const any& other) = delete;
     any& operator=(const any& other) = delete;
 
-    ~any() { if(data) _vt->deleter(data); }
+    ~any() { if(_vt && _vt->deleter) _vt->deleter(data); }
 
     template<typename T>
     T& _cast() const noexcept{
