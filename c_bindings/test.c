@@ -7,14 +7,9 @@
 void check_impl(pkpy_vm* vm, bool result, int lineno) {
     if (!result) {
         printf("ERROR: failed where it should have succeed at line %i\n", lineno);
-        char* message;
-        if (!pkpy_clear_error(vm, &message)) {
+        if (!pkpy_clear_error(vm, NULL)) {
             printf("clear error reported everything was fine\n");
-            exit(1);
         }
-
-        printf("%s\n", message);
-        free(message);
         exit(1);
     }
 }

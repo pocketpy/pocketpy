@@ -190,7 +190,12 @@ T& lambda_get_userdata(PyObject** p){
     if(p[-1] != PY_NULL) ud = &PK_OBJ_GET(NativeFunc, p[-1])._userdata;
     else ud = &PK_OBJ_GET(NativeFunc, p[-2])._userdata;
     T* out;
-    if(!any_cast(*ud, &out)) throw std::runtime_error("lambda_get_userdata: any_cast failed");
+    if(!any_cast(*ud, &out)){
+        const char* expected = typeid(T).name();
+        const char* actual = ud->type_id().name();
+        Str error = _S("lambda_get_userdata: any_cast failed: expected ", expected, ", got ", actual);
+        throw std::runtime_error(error.c_str());
+    }
     return *out;
 }
 

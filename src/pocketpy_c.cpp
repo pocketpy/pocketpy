@@ -5,8 +5,6 @@
 
 using namespace pkpy;
 
-typedef int (*LuaStyleFuncC)(VM*);
-
 #define PK_ASSERT_N_EXTRA_ELEMENTS(n) \
     int __ex_count = count_extra_elements(vm, n); \
     if(__ex_count < n){ \
@@ -334,12 +332,12 @@ struct TempViewPopper{
 
 // function
 static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
-    LuaStyleFuncC f = lambda_get_userdata<LuaStyleFuncC>(args.begin());
+    pkpy_CFunction f = lambda_get_userdata<pkpy_CFunction>(args.begin());
     PyObject** curr_sp = vm->s_data._sp;
 
     vm->__c.s_view.push(args);
     TempViewPopper _tvp(vm);
-    int retc = f(vm);       // may raise, _tvp will handle this via RAII
+    int retc = f((pkpy_vm*)vm);       // may raise, _tvp will handle this via RAII
     _tvp.restore();
 
     // propagate_if_errored
