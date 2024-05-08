@@ -80,7 +80,7 @@ int main(){
 }
 ```
 
-The 2nd way is to use `vm->bind`'s last parameter `userdata`, you can store a POD type smaller than 8 bytes.
+The 2nd way is to use `vm->bind`'s last parameter `userdata`, you can store an `pkpy::any` object.
 And use `lambda_get_userdata<T>(args.begin())` to get it inside the lambda body.
 
 ```cpp

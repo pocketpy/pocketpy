@@ -306,21 +306,21 @@ public:
 #endif
 
 #if PK_REGION("General Bindings")
-    PyObject* bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT);
-    PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, UserData userdata={}, BindType bt=BindType::DEFAULT){
+    PyObject* bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT){
         return bind_func(_t(type), name, argc, fn, std::move(userdata), bt);
     }
     PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
     template<typename T, typename F, bool ReadOnly=false>
     PyObject* bind_field(PyObject*, const char*, F T::*);
 
-    PyObject* bind(PyObject*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
     template<typename Ret, typename... Params>
     PyObject* bind(PyObject*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
     template<typename Ret, typename T, typename... Params>
     PyObject* bind(PyObject*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
 
-    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, UserData userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
     template<typename Ret, typename... Params>
     PyObject* bind(PyObject*, const char*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
     template<typename Ret, typename T, typename... Params>

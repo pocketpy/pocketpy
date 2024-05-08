@@ -130,9 +130,9 @@ struct NativeFunc {
     // new style decl-based call
     FuncDecl_ decl;
 
-    UserData _userdata;
+    any _userdata;
 
-    void set_userdata(UserData&& data) {
+    void set_userdata(any&& data) {
         if(_userdata){
             throw std::runtime_error("NativeFunc userdata already set");
         }
@@ -186,7 +186,7 @@ struct Py_<NativeFunc> final: PyObject {
 template<typename T>
 T& lambda_get_userdata(PyObject** p){
     static_assert(std::is_same_v<T, std::decay_t<T>>);
-    UserData* ud;
+    any* ud;
     if(p[-1] != PY_NULL) ud = &PK_OBJ_GET(NativeFunc, p[-1])._userdata;
     else ud = &PK_OBJ_GET(NativeFunc, p[-2])._userdata;
     T* out;

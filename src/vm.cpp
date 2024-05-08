@@ -1227,7 +1227,7 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
     obj->attr().set(name, value);
 }
 
-PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, UserData userdata, BindType bt) {
+PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata, BindType bt) {
     PyObject* nf = VAR(NativeFunc(fn, argc));
     PK_OBJ_GET(NativeFunc, nf).set_userdata(std::move(userdata));
     switch(bt){
@@ -1239,11 +1239,11 @@ PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, U
     return nf;
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, UserData userdata, BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, any userdata, BindType bt){
     return bind(obj, sig, nullptr, fn, std::move(userdata), bt);
 }
 
-PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, UserData userdata, BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, any userdata, BindType bt){
     CodeObject_ co;
     try{
         // fn(a, b, *c, d=1) -> None

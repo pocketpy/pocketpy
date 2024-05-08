@@ -66,6 +66,4 @@ bool any_cast(const any& a, T** out){
     return true;
 }
 
-using UserData = any;
-
 } // namespace pkpy
