@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "str.h"
 
 namespace pkpy {
 
@@ -52,18 +53,25 @@ struct any{
     any& operator=(const any& other) = delete;
 
     ~any() { if(data) _vt->deleter(data); }
-};
 
-template<typename T>
-bool any_cast(const any& a, T** out){
-    static_assert(std::is_same_v<T, std::decay_t<T>>);
-    if(a.type_id() != typeid(T)) return false;
-    if constexpr (is_sso_v<T>){
-        *out = (T*)(&a.data);
-    }else{
-        *out = static_cast<T*>(a.data);
+    template<typename T>
+    T& _cast() const noexcept{
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        if constexpr (is_sso_v<T>){
+            return *((T*)(&data));
+        }else{
+            return *(static_cast<T*>(data));
+        }
     }
-    return true;
-}
+
+    template<typename T>
+    T& cast() const{
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        if(type_id() != typeid(T)) __bad_any_cast(typeid(T), type_id());
+        return _cast<T>();
+    }
+
+    static void __bad_any_cast(const std::type_index expected, const std::type_index actual);
+};
 
 } // namespace pkpy

@@ -186,17 +186,8 @@ struct Py_<NativeFunc> final: PyObject {
 template<typename T>
 T& lambda_get_userdata(PyObject** p){
     static_assert(std::is_same_v<T, std::decay_t<T>>);
-    any* ud;
-    if(p[-1] != PY_NULL) ud = &PK_OBJ_GET(NativeFunc, p[-1])._userdata;
-    else ud = &PK_OBJ_GET(NativeFunc, p[-2])._userdata;
-    T* out;
-    if(!any_cast(*ud, &out)){
-        const char* expected = typeid(T).name();
-        const char* actual = ud->type_id().name();
-        Str error = _S("lambda_get_userdata: any_cast failed: expected ", expected, ", got ", actual);
-        throw std::runtime_error(error.c_str());
-    }
-    return *out;
+    int offset = p[-1] != PY_NULL ? -1 : -2;
+    return PK_OBJ_GET(NativeFunc, p[offset])._userdata.cast<T>();
 }
 
 } // namespace pkpy
