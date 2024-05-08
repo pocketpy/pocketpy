@@ -2,6 +2,7 @@
 
 #include "obj.h"
 #include "error.h"
+#include "any.h"
 
 namespace pkpy{
 
@@ -120,27 +121,6 @@ struct FuncDecl {
     void _gc_mark() const;
 };
 
-struct UserData{
-    char data[12];
-    bool empty;
-
-    UserData(): empty(true) {}
-    template<typename T>
-    UserData(T t): empty(false){
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(data));
-        memcpy(data, &t, sizeof(T));
-    }
-
-    template <typename T>
-    T get() const{
-        static_assert(std::is_trivially_copyable_v<T>);
-        static_assert(sizeof(T) <= sizeof(data));
-        PK_DEBUG_ASSERT(!empty);
-        return reinterpret_cast<const T&>(data);
-    }
-};
-
 struct NativeFunc {
     NativeFuncC f;
 
@@ -152,12 +132,11 @@ struct NativeFunc {
 
     UserData _userdata;
 
-    void set_userdata(UserData data) {
-        if(!_userdata.empty && !data.empty){
-            // override is not supported
-            throw std::runtime_error("userdata already set");
+    void set_userdata(UserData&& data) {
+        if(_userdata){
+            throw std::runtime_error("NativeFunc userdata already set");
         }
-        _userdata = data;
+        _userdata = std::move(data);
     }
 
     NativeFunc(NativeFuncC f, int argc): f(f), argc(argc) {}
@@ -205,9 +184,14 @@ struct Py_<NativeFunc> final: PyObject {
 };
 
 template<typename T>
-T lambda_get_userdata(PyObject** p){
-    if(p[-1] != PY_NULL) return PK_OBJ_GET(NativeFunc, p[-1])._userdata.get<T>();
-    else return PK_OBJ_GET(NativeFunc, p[-2])._userdata.get<T>();
+T& lambda_get_userdata(PyObject** p){
+    static_assert(std::is_same_v<T, std::decay_t<T>>);
+    UserData* ud;
+    if(p[-1] != PY_NULL) ud = &PK_OBJ_GET(NativeFunc, p[-1])._userdata;
+    else ud = &PK_OBJ_GET(NativeFunc, p[-2])._userdata;
+    T* out;
+    if(!any_cast(*ud, &out)) throw std::runtime_error("lambda_get_userdata: any_cast failed");
+    return *out;
 }
 
 } // namespace pkpy

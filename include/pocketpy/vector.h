@@ -11,7 +11,7 @@ struct pod_vector{
     static constexpr int N = 64 / SizeT;
 
     // static_assert(64 % SizeT == 0);
-    static_assert(is_pod<T>::value);
+    static_assert(is_pod_v<T>);
     static_assert(N >= 4);
 
     int _size;

@@ -19,7 +19,7 @@ constexpr T default_invalid_value(){
 template<typename V>
 struct SmallNameDict{
     using K = StrName;
-    static_assert(is_pod<V>::value);
+    static_assert(is_pod_v<V>);
 
     bool _is_small;
     uint16_t _size;
@@ -103,7 +103,7 @@ struct LargeNameDict {
 
     using Item = NameDictItem<T>;
     static constexpr uint16_t kInitialCapacity = 32;
-    static_assert(is_pod<T>::value);
+    static_assert(is_pod_v<T>);
 
     bool _is_small;
     float _load_factor;

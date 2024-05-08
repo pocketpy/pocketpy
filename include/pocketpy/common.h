@@ -128,11 +128,12 @@ struct Type {
 struct PyObject;
 #define PK_BITS(p) (reinterpret_cast<i64>(p))
 
-// is_pod<> for c++17 and c++20
+// is_pod_v<> for c++17 and c++20
 template<typename T>
-struct is_pod {
-	static constexpr bool value = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
-};
+inline constexpr bool is_pod_v = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
+
+template<typename T>
+inline constexpr bool is_sso_v = is_pod_v<T> && sizeof(T) <= sizeof(void*);
 
 #define PK_ALWAYS_PASS_BY_POINTER(T) \
 	T(const T&) = delete; \
