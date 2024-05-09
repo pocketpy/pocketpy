@@ -28,12 +28,13 @@ struct any{
 
     any() : data(nullptr), _vt(nullptr) {}
 
-    explicit operator bool() const { return _vt != nullptr; }
+    operator bool() const { return _vt != nullptr; }
 
     template<typename T>
     any(T&& value){
         using U = std::decay_t<T>;
         static_assert(!std::is_same_v<U, any>, "any(const any&) is deleted");
+        static_assert(sizeof(U) == sizeof(T));
         if constexpr (is_sso_v<U>){
             memcpy(&data, &value, sizeof(U));
         }else{
@@ -72,6 +73,31 @@ struct any{
     }
 
     static void __bad_any_cast(const std::type_index expected, const std::type_index actual);
+};
+
+template<typename T>
+struct function;
+
+template<typename Ret, typename... Params>
+struct function<Ret(Params...)>{
+    any _impl;
+    Ret (*_wrapper)(const any&, Params...);
+
+    function(): _impl(), _wrapper(nullptr) {}
+
+    operator bool() const { return _wrapper != nullptr; }
+
+    template<typename F>
+    function(F&& f) : _impl(std::forward<F>(f)){
+        _wrapper = [](const any& impl, Params... params) -> Ret{
+            return impl.cast<std::decay_t<F>>()(std::forward<Params>(params)...);
+        };
+    }
+
+    Ret operator()(Params... params) const{
+        if(!_wrapper) throw std::runtime_error("empty function");
+        return _wrapper(_impl, std::forward<Params>(params)...);
+    }
 };
 
 } // namespace pkpy

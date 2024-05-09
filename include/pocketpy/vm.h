@@ -157,17 +157,19 @@ public:
     PyObject* __cached_object_new;
     std::map<std::string_view, CodeObject_> __cached_codes;
 
-    void (*_ceval_on_step)(VM*, Frame*, Bytecode bc) = nullptr;
-
 #if PK_ENABLE_PROFILER
     LineProfiler* _profiler = nullptr;
     NextBreakpoint _next_breakpoint;
 #endif
 
+    void (*_ceval_on_step)(VM*, Frame*, Bytecode bc);
     void(*_stdout)(const char*, int);
     void(*_stderr)(const char*, int);
     unsigned char* (*_import_handler)(const char*, int*);
-
+    // function<void(const char*, int)> _stdout;
+    // function<void(const char*, int)> _stderr;
+    // function<unsigned char*(const char*, int*)> _import_handler;
+    
     // for quick access
     static constexpr Type tp_object=Type(0), tp_type=Type(1);
     static constexpr Type tp_int=Type(kTpIntIndex), tp_float=Type(kTpFloatIndex), tp_bool=Type(4), tp_str=Type(5);

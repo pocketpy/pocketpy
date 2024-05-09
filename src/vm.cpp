@@ -75,6 +75,7 @@ namespace pkpy{
     VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
         this->vm = this;
         this->__c.error = nullptr;
+        _ceval_on_step = nullptr;
         _stdout = [](const char* buf, int size) { std::cout.write(buf, size); };
         _stderr = [](const char* buf, int size) { std::cerr.write(buf, size); };
         _main = nullptr;

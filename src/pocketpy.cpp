@@ -1638,7 +1638,7 @@ void VM::__post_init_builtin_types(){
     if(enable_os){
         add_module_io(this);
         add_module_os(this);
-        _import_handler = _default_import_handler;
+        _import_handler = &_default_import_handler;
     }
 
     add_module_csv(this);
