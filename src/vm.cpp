@@ -715,7 +715,7 @@ Str VM::disassemble(CodeObject_ co){
         return s + std::string(n - s.length(), ' ');
     };
 
-    pod_vector<int> jumpTargets;
+    std::vector<int> jumpTargets;
     for(auto byte : co->codes){
         if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP || byte.op == OP_LOOP_CONTINUE){
             jumpTargets.push_back(byte.arg);

@@ -363,7 +363,7 @@ struct BinaryExpr: Expr{
     Expr_ lhs;
     Expr_ rhs;
     bool is_compare() const override;
-    void _emit_compare(CodeEmitContext* ctx, pod_vector<int>& jmps);
+    void _emit_compare(CodeEmitContext*, small_vector_2<int, 6>&);
     void emit_(CodeEmitContext* ctx) override;
 };
 
