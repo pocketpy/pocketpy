@@ -65,8 +65,8 @@ struct CodeObject {
     std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     
-    small_vector_no_copy_and_move<PyObject*, 8> consts;         // constants
-    small_vector_no_copy_and_move<StrName, 8> varnames;         // local variables
+    small_vector_2<PyObject*, 8> consts;         // constants
+    small_vector_2<StrName, 8> varnames;         // local variables
 
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks;
@@ -100,8 +100,8 @@ struct FuncDecl {
     };
     CodeObject_ code;           // code object of this function
 
-    small_vector_no_copy_and_move<int, 6> args;      // indices in co->varnames
-    small_vector_no_copy_and_move<KwArg, 6> kwargs;  // indices in co->varnames
+    small_vector_2<int, 6> args;      // indices in co->varnames
+    small_vector_2<KwArg, 6> kwargs;  // indices in co->varnames
 
     int starred_arg = -1;       // index in co->varnames, -1 if no *arg
     int starred_kwarg = -1;     // index in co->varnames, -1 if no **kwarg

@@ -112,14 +112,9 @@ struct PyObject{
     }
 
     virtual void _obj_gc_mark() = 0;
+    virtual ~PyObject();
 
     PyObject(Type type) : gc_enabled(true), gc_marked(false), type(type), _attr(nullptr) {}
-
-    virtual ~PyObject(){
-        if(_attr == nullptr) return;
-        _attr->~NameDict();
-        pool128_dealloc(_attr);
-    }
 
     void _enable_instance_dict() {
         _attr = new(pool128_alloc<NameDict>()) NameDict();

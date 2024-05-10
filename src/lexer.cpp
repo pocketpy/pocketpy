@@ -204,7 +204,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
 
     Str Lexer::eat_string_until(char quote, bool raw) {
         bool quote3 = match_n_chars(2, quote);
-        pod_vector<char> buff;
+        small_vector_2<char, 32> buff;
         while (true) {
             char c = eatchar_include_newline();
             if (c == quote){

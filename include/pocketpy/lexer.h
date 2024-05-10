@@ -100,7 +100,7 @@ struct Lexer {
     const char* curr_char;
     int current_line = 1;
     std::vector<Token> nexts;
-    stack_no_copy<int, small_vector_no_copy_and_move<int, 8>> indents;
+    stack_no_copy<int, small_vector_2<int, 8>> indents;
     int brackets_level = 0;
 
     char peekchar() const{ return *curr_char; }

@@ -704,9 +704,10 @@ __EAT_DOTS_END:
     void Compiler::compile_try_except() {
         ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
         compile_block_body();
-        pod_vector<int> patches = {
+        small_vector_2<int, 6> patches;
+        patches.push_back(
             ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
-        };
+        );
         ctx()->exit_block();
 
         int finally_entry = -1;
