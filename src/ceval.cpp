@@ -80,7 +80,7 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 
 #undef BINARY_F_COMPARE
 
-PyObject* VM::__run_top_frame(){
+PyObject* VM::__run_top_frame(lightfunction<void(Frame*)> on_will_pop_base_frame){
     Frame* frame = &callstack.top();
     const Frame* base_frame = frame;
     bool need_raise = false;
@@ -709,10 +709,12 @@ __NEXT_STEP:;
     } DISPATCH()
     case OP_RETURN_VALUE:{
         PyObject* _0 = byte.arg == BC_NOARG ? POPX() : None;
-        __pop_frame();
         if(frame == base_frame){       // [ frameBase<- ]
+            if(on_will_pop_base_frame) on_will_pop_base_frame(frame);
+            __pop_frame();
             return _0;
         }else{
+            __pop_frame();
             frame = &callstack.top();
             PUSH(_0);
             goto __NEXT_FRAME;
@@ -982,6 +984,9 @@ __NEXT_STEP:;
             PyObject* e_obj = POPX();
             Exception& _e = PK_OBJ_GET(Exception, e_obj);
             bool is_base_frame_to_be_popped = frame == base_frame;
+            if(is_base_frame_to_be_popped){
+                if(on_will_pop_base_frame) on_will_pop_base_frame(frame);
+            }
             __pop_frame();
             if(callstack.empty()) throw _e;   // propagate to the top level
             frame = &callstack.top();

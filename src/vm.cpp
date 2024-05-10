@@ -505,6 +505,31 @@ i64 VM::py_hash(PyObject* obj){
     }
 }
 
+void VM::py_exec(std::string_view source, PyObject* globals, PyObject* locals){
+    (void)(locals);
+    CodeObject_ code = vm->compile(source, "<exec>", EXEC_MODE, true);
+    if(globals == vm->None){
+        Frame* frame = &vm->callstack.top();
+        vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+        return;
+    }
+    vm->check_type(globals, VM::tp_mappingproxy);
+    PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
+    vm->_exec(code, obj);
+}
+
+PyObject* VM::py_eval(std::string_view source, PyObject* globals, PyObject* locals){
+    (void)(locals);
+    CodeObject_ code = vm->compile(source, "<eval>", EVAL_MODE, true);
+    if(globals == vm->None){
+        Frame* frame = &vm->callstack.top();
+        return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
+    }
+    vm->check_type(globals, VM::tp_mappingproxy);
+    PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
+    return vm->_exec(code, obj);
+}
+
 PyObject* VM::__format_object(PyObject* obj, Str spec){
     if(spec.empty()) return VAR(py_str(obj));
     char type;

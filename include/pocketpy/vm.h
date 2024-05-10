@@ -207,6 +207,9 @@ public:
     bool py_ne(PyObject* lhs, PyObject* rhs) {              // (lhs, rhs) -> lhs != rhs
         return !py_eq(lhs, rhs);
     }
+
+    void py_exec(std::string_view, PyObject*, PyObject*);       // exec(source, globals, locals)
+    PyObject* py_eval(std::string_view, PyObject*, PyObject*);  // eval(source, globals, locals)
 #endif
 
 #if PK_REGION("Utility Methods")
@@ -408,7 +411,7 @@ public:
 #endif
     void __breakpoint();
     PyObject* __format_object(PyObject*, Str);
-    PyObject* __run_top_frame();
+    PyObject* __run_top_frame(lightfunction<void(Frame*)> on_will_pop_base_frame = {});
     void __pop_frame();
     PyObject* __py_generator(Frame&& frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);

@@ -197,29 +197,13 @@ void __init_builtins(VM* _vm) {
         }
     });
 
-    _vm->bind(_vm->builtins, "eval(__source, __globals=None)", [](VM* vm, ArgsView args) {
-        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<eval>", EVAL_MODE, true);
-        PyObject* globals = args[1];
-        if(globals == vm->None){
-            Frame* frame = &vm->callstack.top();
-            return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
-        }
-        vm->check_type(globals, VM::tp_mappingproxy);
-        PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
-        return vm->_exec(code, obj);
+    // we use `_0`, `_1` and `_2` here to disable keyword arguments (but with default values)
+    _vm->bind(_vm->builtins, "eval(_0, _1=None, _2=None)", [](VM* vm, ArgsView args) {
+        return vm->py_eval(CAST(Str&, args[0]), args[1], args[2]);
     });
 
-    _vm->bind(_vm->builtins, "exec(__source, __globals=None)", [](VM* vm, ArgsView args) {
-        CodeObject_ code = vm->compile(CAST(Str&, args[0]), "<exec>", EXEC_MODE, true);
-        PyObject* globals = args[1];
-        if(globals == vm->None){
-            Frame* frame = &vm->callstack.top();
-            vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
-            return vm->None;
-        }
-        vm->check_type(globals, VM::tp_mappingproxy);
-        PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
-        vm->_exec(code, obj);
+    _vm->bind(_vm->builtins, "exec(_0, _1=None, _2=None)", [](VM* vm, ArgsView args) {
+        vm->py_exec(CAST(Str&, args[0]), args[1], args[2]);
         return vm->None;
     });
 
