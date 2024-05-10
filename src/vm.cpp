@@ -513,6 +513,8 @@ PyObject* VM::__py_exec_internal(const CodeObject_& code, PyObject* globals, PyO
         return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
 
+    auto _lock = heap.gc_scope_lock();  // for safety
+
     PyObject* globals_obj = nullptr;
     Dict* globals_dict = nullptr;
 
