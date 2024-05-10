@@ -8,15 +8,16 @@ def get_sources():
         key = file.split(".")[0]
         const_char_array = []
         with open("python/" + file) as f:
-            # convert to char array (signed)
+            specials = { 10: '\\n', 34: '\\"' }
             for c in f.read().encode('utf-8'):
-                if c < 128:
-                    const_char_array.append(str(c))
+                if c in specials:
+                    const_char_array.append(specials[c])
+                elif c >= 32 and c <= 126 and c != 92:
+                    const_char_array.append(chr(c))
                 else:
-                    const_char_array.append(str(c - 256))
-        const_char_array.append('0')
-        const_char_array = ','.join(const_char_array)
-        sources[key] = '{' + const_char_array + '}'
+                    const_char_array.append(f'\\x{c:02x}')
+        const_char_array = ''.join(const_char_array)
+        sources[key] = '"' + const_char_array + '"'
     return sources
 
 sources = get_sources()
