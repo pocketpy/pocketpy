@@ -505,29 +505,76 @@ i64 VM::py_hash(PyObject* obj){
     }
 }
 
-void VM::py_exec(std::string_view source, PyObject* globals, PyObject* locals){
-    (void)(locals);
-    CodeObject_ code = vm->compile(source, "<exec>", EXEC_MODE, true);
-    if(globals == vm->None){
-        Frame* frame = &vm->callstack.top();
-        vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
-        return;
+PyObject* VM::__py_exec_internal(const CodeObject_& code, PyObject* globals, PyObject* locals){
+    Frame* frame = &vm->callstack.top();
+
+    // fast path
+    if(globals == vm->None && locals == vm->None){
+        return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
-    vm->check_type(globals, VM::tp_mappingproxy);
-    PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
-    vm->_exec(code, obj);
+
+    PyObject* globals_obj = nullptr;
+    Dict* globals_dict = nullptr;
+
+    NameDict_ locals_closure = nullptr;
+    Dict* locals_dict = nullptr;
+
+    if(globals == vm->None){
+        globals_obj = frame->_module;
+    }else{
+        if(is_type(globals, VM::tp_mappingproxy)){
+            globals_obj = PK_OBJ_GET(MappingProxy, globals).obj;
+        }else{
+            check_compatible_type(globals, VM::tp_dict);
+            // make a temporary object and copy globals into it
+            globals_obj = heap.gcnew<DummyInstance>(VM::tp_object);
+            globals_obj->_enable_instance_dict();
+            globals_dict = &PK_OBJ_GET(Dict, globals);
+            globals_dict->apply([&](PyObject* k, PyObject* v){
+                globals_obj->attr().set(CAST(Str&, k), v);
+            });
+        }
+    }
+
+    PyObject* retval = nullptr;
+
+    if(locals == vm->None){
+        retval = vm->_exec(code, globals_obj);   // only globals
+    }else{
+        check_compatible_type(locals, VM::tp_dict);
+        locals_dict = &PK_OBJ_GET(Dict, locals);
+        locals_closure = std::make_shared<NameDict>();
+        locals_dict->apply([&](PyObject* k, PyObject* v){
+            locals_closure->set(CAST(Str&, k), v);
+        });
+        PyObject* _callable = VAR(Function(__dynamic_func_decl, globals_obj, nullptr, locals_closure));
+        retval = vm->_exec(code.get(), globals_obj, _callable, vm->s_data._sp);
+    }
+
+    if(globals_dict){
+        globals_dict->clear();
+        globals_obj->attr().apply([&](StrName k, PyObject* v){
+            globals_dict->set(VAR(k.sv()), v);
+        });
+    }
+
+    if(locals_dict){
+        locals_dict->clear();
+        locals_closure->apply([&](StrName k, PyObject* v){
+            locals_dict->set(VAR(k.sv()), v);
+        });
+    }
+    return retval;
+}
+
+void VM::py_exec(std::string_view source, PyObject* globals, PyObject* locals){
+    CodeObject_ code = vm->compile(source, "<exec>", EXEC_MODE, true);
+    __py_exec_internal(code, globals, locals);
 }
 
 PyObject* VM::py_eval(std::string_view source, PyObject* globals, PyObject* locals){
-    (void)(locals);
     CodeObject_ code = vm->compile(source, "<eval>", EVAL_MODE, true);
-    if(globals == vm->None){
-        Frame* frame = &vm->callstack.top();
-        return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
-    }
-    vm->check_type(globals, VM::tp_mappingproxy);
-    PyObject* obj = PK_OBJ_GET(MappingProxy, globals).obj;
-    return vm->_exec(code, obj);
+    return __py_exec_internal(code, globals, locals);
 }
 
 PyObject* VM::__format_object(PyObject* obj, Str spec){

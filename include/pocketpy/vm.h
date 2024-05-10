@@ -156,6 +156,7 @@ public:
     PyObject* __curr_class; 
     PyObject* __cached_object_new;
     std::map<std::string_view, CodeObject_> __cached_codes;
+    FuncDecl_ __dynamic_func_decl;
 
 #if PK_ENABLE_PROFILER
     LineProfiler* _profiler = nullptr;
@@ -409,9 +410,10 @@ public:
 #if PK_DEBUG_CEVAL_STEP
     void __log_s_data(const char* title = nullptr);
 #endif
+    PyObject* __py_exec_internal(const CodeObject_& code, PyObject* globals, PyObject* locals);
     void __breakpoint();
     PyObject* __format_object(PyObject*, Str);
-    PyObject* __run_top_frame(lightfunction<void(Frame*)> on_will_pop_base_frame = {});
+    PyObject* __run_top_frame();
     void __pop_frame();
     PyObject* __py_generator(Frame&& frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);

@@ -80,7 +80,7 @@ bool VM::py_ge(PyObject* _0, PyObject* _1){
 
 #undef BINARY_F_COMPARE
 
-PyObject* VM::__run_top_frame(lightfunction<void(Frame*)> on_will_pop_base_frame){
+PyObject* VM::__run_top_frame(){
     Frame* frame = &callstack.top();
     const Frame* base_frame = frame;
     bool need_raise = false;
@@ -260,8 +260,17 @@ __NEXT_STEP:;
         PyObject* _0 = POPX();
         if(frame->_callable != nullptr){
             PyObject** slot = frame->_locals.try_get_name(_name);
-            if(slot == nullptr) vm->UnboundLocalError(_name);
-            *slot = _0;
+            if(slot != nullptr){
+                *slot = _0;     // store in locals if possible
+            }else{
+                Function& func = PK_OBJ_GET(Function, frame->_callable);
+                if(func.decl == __dynamic_func_decl){
+                    PK_DEBUG_ASSERT(func._closure != nullptr);
+                    func._closure->set(_name, _0);
+                }else{
+                    vm->UnboundLocalError(_name);
+                }
+            }
         }else{
             frame->f_globals().set(_name, _0);
         }
@@ -307,8 +316,18 @@ __NEXT_STEP:;
         StrName _name(byte.arg);
         if(frame->_callable != nullptr){
             PyObject** slot = frame->_locals.try_get_name(_name);
-            if(slot == nullptr) vm->UnboundLocalError(_name);
-            *slot = PY_NULL;
+            if(slot != nullptr){
+                *slot = PY_NULL;
+            }else{
+                Function& func = PK_OBJ_GET(Function, frame->_callable);
+                if(func.decl == __dynamic_func_decl){
+                    PK_DEBUG_ASSERT(func._closure != nullptr);
+                    bool ok = func._closure->del(_name);
+                    if(!ok) vm->UnboundLocalError(_name);
+                }else{
+                    vm->UnboundLocalError(_name);
+                }
+            }
         }else{
             if(!frame->f_globals().del(_name)) vm->NameError(_name);
         }
@@ -709,12 +728,10 @@ __NEXT_STEP:;
     } DISPATCH()
     case OP_RETURN_VALUE:{
         PyObject* _0 = byte.arg == BC_NOARG ? POPX() : None;
+        __pop_frame();
         if(frame == base_frame){       // [ frameBase<- ]
-            if(on_will_pop_base_frame) on_will_pop_base_frame(frame);
-            __pop_frame();
             return _0;
         }else{
-            __pop_frame();
             frame = &callstack.top();
             PUSH(_0);
             goto __NEXT_FRAME;
@@ -984,9 +1001,6 @@ __NEXT_STEP:;
             PyObject* e_obj = POPX();
             Exception& _e = PK_OBJ_GET(Exception, e_obj);
             bool is_base_frame_to_be_popped = frame == base_frame;
-            if(is_base_frame_to_be_popped){
-                if(on_will_pop_base_frame) on_will_pop_base_frame(frame);
-            }
             __pop_frame();
             if(callstack.empty()) throw _e;   // propagate to the top level
             frame = &callstack.top();

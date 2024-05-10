@@ -1609,6 +1609,10 @@ void VM::__post_init_builtin_types(){
     _lazy_modules["itertools"] = kPythonLibs_itertools;
 
     try{
+        // initialize dummy func_decl for exec/eval
+        CodeObject_ dynamic_co = compile("def _(): pass", "<dynamic>", EXEC_MODE);
+        __dynamic_func_decl = dynamic_co->func_decls.at(0);
+        // initialize builtins
         CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
         this->_exec(code, this->builtins);
         code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
