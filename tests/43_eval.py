@@ -52,3 +52,13 @@ assert globals == {'a': 1}
 
 exec('a=2', globals)
 assert globals == {'a': 2}
+
+globals = {'a': 2}
+locals = {'b': 3}
+assert eval('a*b', globals, locals) == 6
+
+try:
+    exec('a*b*c', globals, locals)
+    exit(1)
+except NameError:
+    pass

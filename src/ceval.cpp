@@ -268,7 +268,7 @@ __NEXT_STEP:;
                     PK_DEBUG_ASSERT(func._closure != nullptr);
                     func._closure->set(_name, _0);
                 }else{
-                    vm->UnboundLocalError(_name);
+                    vm->NameError(_name);
                 }
             }
         }else{
@@ -323,9 +323,9 @@ __NEXT_STEP:;
                 if(func.decl == __dynamic_func_decl){
                     PK_DEBUG_ASSERT(func._closure != nullptr);
                     bool ok = func._closure->del(_name);
-                    if(!ok) vm->UnboundLocalError(_name);
+                    if(!ok) vm->NameError(_name);
                 }else{
-                    vm->UnboundLocalError(_name);
+                    vm->NameError(_name);
                 }
             }
         }else{
