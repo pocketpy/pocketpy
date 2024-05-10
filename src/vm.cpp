@@ -1309,7 +1309,7 @@ PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, a
         case BindType::STATICMETHOD: nf = VAR(StaticMethod(nf)); break;
         case BindType::CLASSMETHOD: nf = VAR(ClassMethod(nf)); break;
     }
-    obj->attr().set(name, nf);
+    if(obj != nullptr) obj->attr().set(name, nf);
     return nf;
 }
 
