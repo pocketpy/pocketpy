@@ -372,7 +372,7 @@ int main(int argc, char** argv) {
     pkpy_clear_error(vm, NULL);
 
     //this should be catchable
-    check(pkpy_exec(vm, "try : test_error_propagate(); except NameError : pass"));
+    check(pkpy_exec(vm, "try :\n  test_error_propagate()\nexcept NameError : pass"));
     error(pkpy_error(vm, "Exception", pkpy_string("test direct error mechanism")));
 
     //more complicated error handling
