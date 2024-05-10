@@ -35,3 +35,16 @@ op.setitem(a, 0, 3)
 assert a == [3, 2]
 op.delitem(a, 0)
 assert a == [2]
+
+a = 'abc'
+assert op.iadd(a, 'def') == 'abcdef'
+assert op.isub(8, 3) == 5
+assert op.imul(a, 2) == 'abcabc'
+assert op.itruediv(8, 2) == 4.0
+assert op.ifloordiv(8, 3) == 2
+assert op.imod(8, 3) == 2
+assert op.iand(0b01, 0b11) == 0b01
+assert op.ior(0b01, 0b11) == 0b11
+assert op.ixor(0b01, 0b11) == 0b10
+assert op.ilshift(0b01, 1) == 0b10
+assert op.irshift(0b10, 1) == 0b01

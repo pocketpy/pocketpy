@@ -33,3 +33,17 @@ def matmul(a, b): return a @ b
 def getitem(a, b): return a[b]
 def setitem(a, b, c): a[b] = c
 def delitem(a, b): del a[b]
+
+def iadd(a, b): a += b; return a
+def isub(a, b): a -= b; return a
+def imul(a, b): a *= b; return a
+def itruediv(a, b): a /= b; return a
+def ifloordiv(a, b): a //= b; return a
+def imod(a, b): a %= b; return a
+# def ipow(a, b): a **= b; return a
+# def imatmul(a, b): a @= b; return a
+def iand(a, b): a &= b; return a
+def ior(a, b): a |= b; return a
+def ixor(a, b): a ^= b; return a
+def ilshift(a, b): a <<= b; return a
+def irshift(a, b): a >>= b; return a

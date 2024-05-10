@@ -525,7 +525,11 @@ namespace pkpy{
         if(callback == nullptr) callback = &Compiler::compile_stmt;
         consume(TK(":"));
         if(curr().type!=TK("@eol") && curr().type!=TK("@eof")){
-            compile_stmt();     // inline block
+            while(true){
+                compile_stmt();
+                bool possible = curr().type!=TK("@eol") && curr().type!=TK("@eof");
+                if(prev().type != TK(";") || !possible) break;
+            }
             return;
         }
         if(!match_newlines(mode()==REPL_MODE)){
