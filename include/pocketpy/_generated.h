@@ -14,6 +14,7 @@ namespace pkpy{
     extern const char kPythonLibs_functools[];
     extern const char kPythonLibs_heapq[];
     extern const char kPythonLibs_itertools[];
+    extern const char kPythonLibs_operator[];
     extern const char kPythonLibs_pickle[];
     extern const char kPythonLibs_this[];
     extern const char kPythonLibs_typing[];

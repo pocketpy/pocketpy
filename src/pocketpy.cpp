@@ -1607,6 +1607,7 @@ void VM::__post_init_builtin_types(){
     _lazy_modules["datetime"] = kPythonLibs_datetime;
     _lazy_modules["cmath"] = kPythonLibs_cmath;
     _lazy_modules["itertools"] = kPythonLibs_itertools;
+    _lazy_modules["operator"] = kPythonLibs_operator;
 
     try{
         // initialize dummy func_decl for exec/eval
