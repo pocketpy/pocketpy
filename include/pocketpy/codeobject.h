@@ -123,24 +123,12 @@ struct FuncDecl {
 
 struct NativeFunc {
     NativeFuncC f;
-
-    // old style argc-based call
-    int argc;
-
-    // new style decl-based call
-    FuncDecl_ decl;
-
+    int argc;           // old style argc-based call
+    FuncDecl_ decl;     // new style decl-based call
     any _userdata;
 
-    void set_userdata(any&& data) {
-        if(_userdata){
-            throw std::runtime_error("NativeFunc userdata already set");
-        }
-        _userdata = std::move(data);
-    }
-
-    NativeFunc(NativeFuncC f, int argc): f(f), argc(argc) {}
-    NativeFunc(NativeFuncC f, FuncDecl_ decl): f(f), argc(-1), decl(decl) {}
+    NativeFunc(NativeFuncC f, int argc, any userdata={}): f(f), argc(argc), decl(nullptr), _userdata(std::move(userdata)) {}
+    NativeFunc(NativeFuncC f, FuncDecl_ decl, any userdata={}): f(f), argc(-1), decl(decl), _userdata(std::move(userdata)) {}
 
     void check_size(VM* vm, ArgsView args) const;
     PyObject* call(VM* vm, ArgsView args) const { return f(vm, args); }

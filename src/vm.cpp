@@ -1303,8 +1303,7 @@ void VM::setattr(PyObject* obj, StrName name, PyObject* value){
 }
 
 PyObject* VM::bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata, BindType bt) {
-    PyObject* nf = VAR(NativeFunc(fn, argc));
-    PK_OBJ_GET(NativeFunc, nf).set_userdata(std::move(userdata));
+    PyObject* nf = VAR(NativeFunc(fn, argc, std::move(userdata)));
     switch(bt){
         case BindType::DEFAULT: break;
         case BindType::STATICMETHOD: nf = VAR(StaticMethod(nf)); break;
@@ -1331,8 +1330,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     }
     FuncDecl_ decl = co->func_decls[0];
     decl->docstring = docstring;
-    PyObject* f_obj = VAR(NativeFunc(fn, decl));
-    PK_OBJ_GET(NativeFunc, f_obj).set_userdata(std::move(userdata));
+    PyObject* f_obj = VAR(NativeFunc(fn, decl, std::move(userdata)));
 
     switch(bt){
         case BindType::STATICMETHOD:
