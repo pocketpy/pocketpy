@@ -64,7 +64,7 @@ inline PyObject* __proxy_wrapper(VM* vm, ArgsView args){
 
 template<typename Ret, typename... Params>
 PyObject* VM::bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindType bt){
-    auto proxy = new NativeProxyFuncC<Ret, Params...>(func);
+    NativeProxyFuncCBase* proxy = new NativeProxyFuncC<Ret, Params...>(func);
     return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
 
