@@ -244,6 +244,18 @@ namespace pkpy{
         return false;
     }
 
+    PyObject* VM::py_op(std::string_view name){
+        PyObject* func;
+        auto it = __cached_op_funcs.find(name);
+        if(it == __cached_op_funcs.end()){
+            func = py_import("operator")->attr(StrName::get(name));
+            __cached_op_funcs[name] = func;
+        }else{
+            func = it->second;
+        }
+        return func;
+    }
+
     i64 VM::normalized_index(i64 index, int size){
         if(index < 0) index += size;
         if(index < 0 || index >= size){

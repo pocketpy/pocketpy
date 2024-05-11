@@ -156,6 +156,7 @@ public:
     PyObject* __curr_class; 
     PyObject* __cached_object_new;
     std::map<std::string_view, CodeObject_> __cached_codes;
+    std::map<std::string_view, PyObject*> __cached_op_funcs;
     FuncDecl_ __dynamic_func_decl;
 
 #if PK_ENABLE_PROFILER
@@ -205,9 +206,11 @@ public:
     bool py_le(PyObject* lhs, PyObject* rhs);               // (lhs, rhs) -> lhs <= rhs
     bool py_gt(PyObject* lhs, PyObject* rhs);               // (lhs, rhs) -> lhs > rhs
     bool py_ge(PyObject* lhs, PyObject* rhs);               // (lhs, rhs) -> lhs >= rhs
-    bool py_ne(PyObject* lhs, PyObject* rhs) {              // (lhs, rhs) -> lhs != rhs
+    bool py_ne(PyObject* lhs, PyObject* rhs){               // (lhs, rhs) -> lhs != rhs
         return !py_eq(lhs, rhs);
     }
+
+    PyObject* py_op(std::string_view name);                 // (name) -> operator.name
 
     void py_exec(std::string_view, PyObject*, PyObject*);       // exec(source, globals, locals)
     PyObject* py_eval(std::string_view, PyObject*, PyObject*);  // eval(source, globals, locals)
