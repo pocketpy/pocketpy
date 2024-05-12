@@ -206,7 +206,7 @@ namespace pkpy{
     }
 
     PyVar VM::new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled){
-        PyVar obj = heap._new<Type>(tp_type, Type(_all_types.size()+1));
+        PyVar obj = heap._new<Type>(tp_type, Type(_all_types.size()));
         const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
             Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
@@ -825,6 +825,7 @@ void VM::__log_s_data(const char* title) {
 #endif
 
 void VM::__init_builtin_types(){
+    _all_types.push_back({nullptr, Type(), nullptr, "", false});    // 0 is not used
     _all_types.push_back({heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true});
     _all_types.push_back({heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false});
 

@@ -178,11 +178,7 @@ struct PyVar final{
     char _bytes[12];
 
     // uninitialized
-#if PK_DEBUG_EXTRA_CHECK
-    PyVar(): type() { }
-#else
     PyVar() = default;
-#endif
     // zero initialized
     PyVar(std::nullptr_t): type(), is_sso(false), flags(0), _bytes{0} { }
     // PyObject* initialized (is_sso = false)
