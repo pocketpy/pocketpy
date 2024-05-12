@@ -126,6 +126,7 @@ struct Type {
 #endif
 
 struct PyObject;
+using PyVar = PyObject*;
 #define PK_BITS(p) (reinterpret_cast<i64>(p))
 
 // is_pod_v<> for c++17 and c++20
