@@ -104,7 +104,7 @@ void __init_builtins(VM* _vm) {
             StrName _1 = _type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
-        return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type.index].base);
+        return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
     });
 
     _vm->bind_func(_vm->builtins, "staticmethod", 1, [](VM* vm, ArgsView args) {
@@ -406,14 +406,14 @@ void __init_builtins(VM* _vm) {
         if(args.size() == 1+0) return VAR(0);
         // 1 arg
         if(args.size() == 1+1){
-            switch(vm->_tp(args[1]).index){
-                case VM::tp_float.index:
+            switch(vm->_tp(args[1])){
+                case VM::tp_float:
                     return VAR((i64)_CAST(f64, args[1]));
-                case VM::tp_int.index:
+                case VM::tp_int:
                     return args[1];
-                case VM::tp_bool.index:
+                case VM::tp_bool:
                     return VAR(args[1]==vm->True ? 1 : 0);
-                case VM::tp_str.index:
+                case VM::tp_str:
                     break;
                 default:
                     vm->TypeError("invalid arguments for int()");
@@ -483,14 +483,14 @@ void __init_builtins(VM* _vm) {
         if(args.size() == 1+0) return VAR(0.0);
         if(args.size() > 1+1) vm->TypeError("float() takes at most 1 argument");
         // 1 arg
-        switch(vm->_tp(args[1]).index){
-            case VM::tp_int.index:
+        switch(vm->_tp(args[1])){
+            case VM::tp_int:
                 return VAR((f64)CAST(i64, args[1]));
-            case VM::tp_float.index:
+            case VM::tp_float:
                 return args[1];
-            case VM::tp_bool.index:
+            case VM::tp_bool:
                 return VAR(args[1]==vm->True ? 1.0 : 0.0);
-            case VM::tp_str.index:
+            case VM::tp_str:
                 break;
             default:
                 vm->TypeError("invalid arguments for float()");
@@ -1502,7 +1502,7 @@ void VM::__post_init_builtin_types(){
 
     bind_func(tp_module, __new__, -1, PK_ACTION(vm->NotImplementedError()));
 
-    _all_types[tp_module.index].m__getattr__ = [](VM* vm, PyVar obj, StrName name) -> PyVar{
+    _all_types[tp_module].m__getattr__ = [](VM* vm, PyVar obj, StrName name) -> PyVar{
         const Str& path = CAST(Str&, obj->attr(__path__));
         return vm->py_import(_S(path, ".", name.sv()), false);
     };
@@ -1522,22 +1522,22 @@ void VM::__post_init_builtin_types(){
 
     bind__repr__(tp_type, [](VM* vm, PyVar self) -> Str{
         SStream ss;
-        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, self).index];
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, self)];
         ss << "<class '" << info.name << "'>";
         return ss.str();
     });
 
     bind_property(_t(tp_object), "__class__", PK_LAMBDA(vm->_t(args[0])));
     bind_property(_t(tp_type), "__base__", [](VM* vm, ArgsView args){
-        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0]).index];
-        return info.base.index == -1 ? vm->None : vm->_all_types[info.base.index].obj;
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
+        return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
     });
     bind_property(_t(tp_type), "__name__", [](VM* vm, ArgsView args){
-        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0]).index];
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return VAR(info.name.sv());
     });
     bind_property(_t(tp_type), "__module__", [](VM* vm, ArgsView args){
-        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0]).index];
+        const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         if(info.mod == nullptr) return vm->None;
         return info.mod;
     });

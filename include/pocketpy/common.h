@@ -98,11 +98,11 @@ struct Discarded { };
 
 struct Type {
 	int16_t index;
-	constexpr Type(): index(-1) {}
+	constexpr Type(): index(0) {}
 	explicit constexpr Type(int index): index(index) {}
 	bool operator==(Type other) const { return this->index == other.index; }
 	bool operator!=(Type other) const { return this->index != other.index; }
-    explicit operator bool() const { return index != -1; }
+    constexpr operator int() const { return index; }
 };
 
 #define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
@@ -178,7 +178,11 @@ struct PyVar final{
     char _bytes[12];
 
     // uninitialized
+#if PK_DEBUG_EXTRA_CHECK
     PyVar(): type() { }
+#else
+    PyVar() = default;
+#endif
     // zero initialized
     PyVar(std::nullptr_t): type(), is_sso(false), flags(0), _bytes{0} { }
     // PyObject* initialized (is_sso = false)

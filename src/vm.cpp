@@ -148,7 +148,7 @@ namespace pkpy{
         do{
             val = _t(cls)->attr().try_get(name);
             if(val != nullptr) return val;
-            cls = _all_types[cls.index].base;
+            cls = _all_types[cls].base;
             if(cls.index == -1) break;
         }while(true);
         return nullptr;
@@ -161,7 +161,7 @@ namespace pkpy{
     bool VM::issubclass(Type cls, Type base){
         do{
             if(cls == base) return true;
-            Type next = _all_types[cls.index].base;
+            Type next = _all_types[cls].base;
             if(next.index == -1) break;
             cls = next;
         }while(true);
@@ -206,8 +206,8 @@ namespace pkpy{
     }
 
     PyVar VM::new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled){
-        PyVar obj = heap._new<Type>(tp_type, Type(_all_types.size()));
-        const PyTypeInfo& base_info = _all_types[base.index];
+        PyVar obj = heap._new<Type>(tp_type, Type(_all_types.size()+1));
+        const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
             Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
             throw std::runtime_error(error.c_str());
@@ -501,7 +501,7 @@ i64 VM::py_hash(PyVar obj){
         return CAST(i64, ret);
     }
     // if it is trivial `object`, return PK_BITS
-    if(ti == &_all_types[tp_object.index]) return obj.hash();
+    if(ti == &_all_types[tp_object]) return obj.hash();
     // otherwise, we check if it has a custom __eq__ other than object.__eq__
     bool has_custom_eq = false;
     if(ti->m__eq__) has_custom_eq = true;
@@ -825,10 +825,10 @@ void VM::__log_s_data(const char* title) {
 #endif
 
 void VM::__init_builtin_types(){
-    _all_types.push_back({heap._new<Type>(Type(1), Type(0)), Type(-1), nullptr, "object", true});
-    _all_types.push_back({heap._new<Type>(Type(1), Type(1)), Type(0), nullptr, "type", false});
+    _all_types.push_back({heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true});
+    _all_types.push_back({heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false});
 
-    auto _new_type = [this](const char* name, Type base=Type(0), bool subclass_enabled=false){
+    auto _new_type = [this](const char* name, Type base=tp_object, bool subclass_enabled=false){
         PyVar obj = new_type_object(nullptr, name, base, subclass_enabled);
         return PK_OBJ_GET(Type, obj);
     };
@@ -849,10 +849,10 @@ void VM::__init_builtin_types(){
     if(tp_bound_method != _new_type("bound_method")) exit(-3);
 
     if(tp_super != _new_type("super")) exit(-3);
-    if(tp_exception != _new_type("Exception", Type(0), true)) exit(-3);
+    if(tp_exception != _new_type("Exception", tp_object, true)) exit(-3);
     if(tp_bytes != _new_type("bytes")) exit(-3);
     if(tp_mappingproxy != _new_type("mappingproxy")) exit(-3);
-    if(tp_dict != _new_type("dict", Type(0), true)) exit(-3);  // dict can be subclassed
+    if(tp_dict != _new_type("dict", tp_object, true)) exit(-3);  // dict can be subclassed
     if(tp_property != _new_type("property")) exit(-3);
     if(tp_star_wrapper != _new_type("_star_wrapper")) exit(-3);
 
@@ -868,7 +868,7 @@ void VM::__init_builtin_types(){
     this->Ellipsis = heap._new<Dummy>(_new_type("ellipsis"));
     this->True = heap._new<Dummy>(tp_bool);
     this->False = heap._new<Dummy>(tp_bool);
-    this->StopIteration = _all_types[_new_type("StopIteration", tp_exception).index].obj;
+    this->StopIteration = _all_types[_new_type("StopIteration", tp_exception)].obj;
 
     this->builtins = new_module("builtins");
     
@@ -1196,7 +1196,7 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err){
         return cls_var;
     }
 
-    const PyTypeInfo* ti = &_all_types[objtype.index];
+    const PyTypeInfo* ti = &_all_types[objtype];
     if(ti->m__getattr__){
         PyVar ret = ti->m__getattr__(this, obj, name);
         if(ret) return ret;
@@ -1267,7 +1267,7 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
         return cls_var;
     }
 
-    const PyTypeInfo* ti = &_all_types[objtype.index];
+    const PyTypeInfo* ti = &_all_types[objtype];
     if(fallback && ti->m__getattr__){
         PyVar ret = ti->m__getattr__(this, obj, name);
         if(ret) return ret;
@@ -1301,7 +1301,7 @@ void VM::setattr(PyVar obj, StrName name, PyVar value){
         }
     }
 
-    const PyTypeInfo* ti = &_all_types[objtype.index];
+    const PyTypeInfo* ti = &_all_types[objtype];
     if(ti->m__setattr__){
         ti->m__setattr__(this, obj, name, value);
         return;
@@ -1429,7 +1429,7 @@ void ManagedHeap::mark() {
 }
 
 StrName _type_name(VM *vm, Type type){
-    return vm->_all_types[type.index].name;
+    return vm->_all_types[type].name;
 }
 
 void _gc_mark_namedict(NameDict* t){
@@ -1439,14 +1439,14 @@ void _gc_mark_namedict(NameDict* t){
 }
 
 void VM::bind__getitem__(Type type, PyVar (*f)(VM*, PyVar, PyVar)){
-    _all_types[type.index].m__getitem__ = f;
+    _all_types[type].m__getitem__ = f;
     bind_func(type, __getitem__, 2, [](VM* vm, ArgsView args){
         return lambda_get_userdata<PyVar(*)(VM*, PyVar, PyVar)>(args.begin())(vm, args[0], args[1]);
     }, f);
 }
 
 void VM::bind__setitem__(Type type, void (*f)(VM*, PyVar, PyVar, PyVar)){
-    _all_types[type.index].m__setitem__ = f;
+    _all_types[type].m__setitem__ = f;
     bind_func(type, __setitem__, 3, [](VM* vm, ArgsView args){
         lambda_get_userdata<void(*)(VM* vm, PyVar, PyVar, PyVar)>(args.begin())(vm, args[0], args[1], args[2]);
         return vm->None;
@@ -1454,7 +1454,7 @@ void VM::bind__setitem__(Type type, void (*f)(VM*, PyVar, PyVar, PyVar)){
 }
 
 void VM::bind__delitem__(Type type, void (*f)(VM*, PyVar, PyVar)){
-    _all_types[type.index].m__delitem__ = f;
+    _all_types[type].m__delitem__ = f;
     bind_func(type, __delitem__, 2, [](VM* vm, ArgsView args){
         lambda_get_userdata<void(*)(VM*, PyVar, PyVar)>(args.begin())(vm, args[0], args[1]);
         return vm->None;
@@ -1470,7 +1470,7 @@ PyVar VM::__pack_next_retval(unsigned n){
 }
 
 void VM::bind__next__(Type type, unsigned (*f)(VM*, PyVar)){
-    _all_types[type.index].m__next__ = f;
+    _all_types[type].m__next__ = f;
     bind_func(type, __next__, 1, [](VM* vm, ArgsView args){
         int n = lambda_get_userdata<unsigned(*)(VM*, PyVar)>(args.begin())(vm, args[0]);
         return vm->__pack_next_retval(n);
@@ -1486,7 +1486,7 @@ void VM::bind__next__(Type type, PyVar (*f)(VM*, PyVar)){
 
 #define BIND_UNARY_SPECIAL(name)                                                        \
     void VM::bind##name(Type type, PyVar (*f)(VM*, PyVar)){                             \
-        _all_types[type.index].m##name = f;                                             \
+        _all_types[type].m##name = f;                                             \
         bind_func(type, name, 1, [](VM* vm, ArgsView args){                             \
             return lambda_get_userdata<PyVar(*)(VM*, PyVar)>(args.begin())(vm, args[0]);\
         }, f);                                                                          \
@@ -1497,7 +1497,7 @@ void VM::bind__next__(Type type, PyVar (*f)(VM*, PyVar)){
 #undef BIND_UNARY_SPECIAL
 
 void VM::bind__str__(Type type, Str (*f)(VM*, PyVar)){
-    _all_types[type.index].m__str__ = f;
+    _all_types[type].m__str__ = f;
     bind_func(type, __str__, 1, [](VM* vm, ArgsView args){
         Str s = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(s);
@@ -1505,7 +1505,7 @@ void VM::bind__str__(Type type, Str (*f)(VM*, PyVar)){
 }
 
 void VM::bind__repr__(Type type, Str (*f)(VM*, PyVar)){
-    _all_types[type.index].m__repr__ = f;
+    _all_types[type].m__repr__ = f;
     bind_func(type, __repr__, 1, [](VM* vm, ArgsView args){
         Str s = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(s);
@@ -1513,7 +1513,7 @@ void VM::bind__repr__(Type type, Str (*f)(VM*, PyVar)){
 }
 
 void VM::bind__hash__(Type type, i64 (*f)(VM*, PyVar)){
-    _all_types[type.index].m__hash__ = f;
+    _all_types[type].m__hash__ = f;
     bind_func(type, __hash__, 1, [](VM* vm, ArgsView args){
         i64 ret = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(ret);
@@ -1521,7 +1521,7 @@ void VM::bind__hash__(Type type, i64 (*f)(VM*, PyVar)){
 }
 
 void VM::bind__len__(Type type, i64 (*f)(VM*, PyVar)){
-    _all_types[type.index].m__len__ = f;
+    _all_types[type].m__len__ = f;
     bind_func(type, __len__, 1, [](VM* vm, ArgsView args){
         i64 ret = lambda_get_userdata<decltype(f)>(args.begin())(vm, args[0]);
         return VAR(ret);
@@ -1531,7 +1531,7 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyVar)){
 
 #define BIND_BINARY_SPECIAL(name)                                                       \
     void VM::bind##name(Type type, BinaryFuncC f){                                      \
-        _all_types[type.index].m##name = f;                                                   \
+        _all_types[type].m##name = f;                                                   \
         bind_func(type, name, 2, [](VM* vm, ArgsView args){                             \
             return lambda_get_userdata<BinaryFuncC>(args.begin())(vm, args[0], args[1]);\
         }, f);                                                                          \

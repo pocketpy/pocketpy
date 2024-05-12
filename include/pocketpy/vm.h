@@ -173,14 +173,14 @@ public:
     // function<unsigned char*(const char*, int*)> _import_handler;
     
     // for quick access
-    static constexpr Type tp_object=Type(0), tp_type=Type(1);
-    static constexpr Type tp_int=Type(kTpIntIndex), tp_float=Type(kTpFloatIndex), tp_bool=Type(4), tp_str=Type(5);
-    static constexpr Type tp_list=Type(6), tp_tuple=Type(7);
-    static constexpr Type tp_slice=Type(8), tp_range=Type(9), tp_module=Type(10);
-    static constexpr Type tp_function=Type(11), tp_native_func=Type(12), tp_bound_method=Type(13);
-    static constexpr Type tp_super=Type(14), tp_exception=Type(15), tp_bytes=Type(16), tp_mappingproxy=Type(17);
-    static constexpr Type tp_dict=Type(18), tp_property=Type(19), tp_star_wrapper=Type(20);
-    static constexpr Type tp_staticmethod=Type(21), tp_classmethod=Type(22);
+    static constexpr Type tp_object=Type(1), tp_type=Type(2);
+    static constexpr Type tp_int=Type(kTpIntIndex), tp_float=Type(kTpFloatIndex), tp_bool=Type(5), tp_str=Type(6);
+    static constexpr Type tp_list=Type(7), tp_tuple=Type(8);
+    static constexpr Type tp_slice=Type(9), tp_range=Type(10), tp_module=Type(11);
+    static constexpr Type tp_function=Type(12), tp_native_func=Type(13), tp_bound_method=Type(14);
+    static constexpr Type tp_super=Type(15), tp_exception=Type(16), tp_bytes=Type(17), tp_mappingproxy=Type(18);
+    static constexpr Type tp_dict=Type(19), tp_property=Type(20), tp_star_wrapper=Type(21);
+    static constexpr Type tp_staticmethod=Type(22), tp_classmethod=Type(23);
 
     const bool enable_os;
     VM(bool enable_os=true);
@@ -366,10 +366,10 @@ public:
     void check_compatible_type(PyVar obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
 
     Type _tp(PyVar obj){ return obj.type; }
-    const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj).index]; }
-    const PyTypeInfo* _tp_info(Type type) { return &_all_types[type.index]; }
-    PyVar _t(PyVar obj){ return _all_types[_tp(obj).index].obj; }
-    PyVar _t(Type type){ return _all_types[type.index].obj; }
+    const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj)]; }
+    const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
+    PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
+    PyVar _t(Type type){ return _all_types[type].obj; }
 #endif
 
 #if PK_REGION("User Type Registration")
@@ -445,7 +445,7 @@ inline constexpr bool is_immutable_v = is_integral_v<T> || is_floating_point_v<T
     || std::is_same_v<T, Range> || std::is_same_v<T, Slice>
     || std::is_pointer_v<T> || std::is_enum_v<T>;
 
-template<typename T> constexpr Type _find_type_in_const_cxx_typeid_map(){ return Type(-1); }
+template<typename T> constexpr Type _find_type_in_const_cxx_typeid_map(){ return Type(); }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<Str>(){ return VM::tp_str; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<List>(){ return VM::tp_list; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<Tuple>(){ return VM::tp_tuple; }
@@ -488,7 +488,7 @@ PyVar py_var(VM* vm, __T&& value){
         return from_void_p(vm, (void*)value);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
-        if constexpr(const_type.index >= 0){
+        if constexpr(const_type){
             return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
         }
     }
@@ -542,7 +542,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         return to_void_p<T>(vm, obj);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
-        if constexpr(const_type.index >= 0){
+        if constexpr(const_type){
             if constexpr(with_check){
                 if constexpr(std::is_same_v<T, Exception>){
                     // Exception is `subclass_enabled`

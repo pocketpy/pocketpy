@@ -124,8 +124,8 @@ struct PyObject{
     }
 };
 
-const int kTpIntIndex = 2;
-const int kTpFloatIndex = 3;
+const int kTpIntIndex = 3;
+const int kTpFloatIndex = 4;
 
 inline bool is_tagged(PyVar p) noexcept { return p.is_sso; }
 inline bool is_float(PyVar p) noexcept { return p.type.index == kTpFloatIndex; }
