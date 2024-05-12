@@ -6,7 +6,7 @@ Tuple::Tuple(int n){
     if(n <= 3){
         this->_args = _inlined;
     }else{
-        this->_args = (PyVar*)pool64_alloc(n * sizeof(void*));
+        this->_args = (PyVar*)pool128_alloc(n * sizeof(void*));
     }
     this->_size = n;
 }
@@ -51,7 +51,7 @@ Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2, PyVar _3): Tuple(4){
     _args[3] = _3;
 }
 
-Tuple::~Tuple(){ if(!is_inlined()) pool64_dealloc(_args); }
+Tuple::~Tuple(){ if(!is_inlined()) pool128_dealloc(_args); }
 
 List ArgsView::to_list() const{
     List ret(size());

@@ -13,11 +13,11 @@ namespace pkpy{
     }
 
     struct PySignalObject: PyObject {
-        PySignalObject() : PyObject(Type(0)) { gc_enabled = false; }
+        PySignalObject() : PyObject() { gc_enabled = false; }
         void _obj_gc_mark() override {}
     };
 
-    PyVar const PY_NULL = new PySignalObject();
-    PyVar const PY_OP_CALL = new PySignalObject();
-    PyVar const PY_OP_YIELD = new PySignalObject();
+    PyVar const PY_NULL(Type(), new PySignalObject());
+    PyVar const PY_OP_CALL(Type(), new PySignalObject());
+    PyVar const PY_OP_YIELD(Type(), new PySignalObject());
 }   // namespace pkpy

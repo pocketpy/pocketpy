@@ -173,7 +173,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(_vm->builtins, "id", 1, [](VM* vm, ArgsView args) {
         PyVar obj = args[0];
         if(is_tagged(obj)) return vm->None;
-        return VAR(PK_BITS(obj));
+        return VAR(reinterpret_cast<i64>(obj.get()));
     });
 
     _vm->bind_func(_vm->builtins, "callable", 1, [](VM* vm, ArgsView args) {
@@ -331,7 +331,7 @@ void __init_builtins(VM* _vm) {
         if(is_tagged(obj)) PK_FATAL_ERROR();
         SStream ss;
         ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at ";
-        ss.write_hex(obj);
+        ss.write_hex(obj.get());
         ss << ">";
         return ss.str();
     });
@@ -1482,7 +1482,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind__repr__(VM::tp_exception, [](VM* vm, PyVar _0) -> Str {
         Exception& self = _CAST(Exception&, _0);
-        return _S(_type_name(vm, _0->type), '(', self.msg.escape(), ')');
+        return _S(_type_name(vm, _0.type), '(', self.msg.escape(), ')');
     });
 
     _vm->bind__str__(VM::tp_exception, [](VM* vm, PyVar _0) -> Str{

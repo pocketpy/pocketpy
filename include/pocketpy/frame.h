@@ -132,7 +132,7 @@ struct LinkedFrame{
 };
 
 struct CallStack{
-    static_assert(sizeof(LinkedFrame) <= 64 && std::is_trivially_destructible_v<LinkedFrame>);
+    static_assert(sizeof(LinkedFrame) <= 128 && std::is_trivially_destructible_v<LinkedFrame>);
 
     LinkedFrame* _tail;
     int _size;
@@ -144,7 +144,7 @@ struct CallStack{
 
     template<typename... Args>
     void emplace(Args&&... args){
-        _tail = new(pool64_alloc<LinkedFrame>()) LinkedFrame(_tail, std::forward<Args>(args)...);
+        _tail = new(pool128_alloc<LinkedFrame>()) LinkedFrame(_tail, std::forward<Args>(args)...);
         ++_size;
     }
 
@@ -152,7 +152,7 @@ struct CallStack{
         PK_DEBUG_ASSERT(!empty())
         LinkedFrame* p = _tail;
         _tail = p->f_back;
-        pool64_dealloc(p);
+        pool128_dealloc(p);
         --_size;
     }
 

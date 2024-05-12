@@ -184,7 +184,7 @@ void add_module_c(VM* vm){
     vm->bind(mod, "pp_deref(ptr: Tp) -> Tp", [](VM* vm, ArgsView args){
         VoidP& ptr = CAST(VoidP&, args[0]);
         void* value = *reinterpret_cast<void**>(ptr.ptr);
-        return vm->heap.gcnew<VoidP>(args[0]->type, value);
+        return vm->heap.gcnew<VoidP>(args[0].type, value);
     });
 
     PyVar type;
@@ -226,13 +226,13 @@ void add_module_c(VM* vm){
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
-        return vm->heap.gcnew<VoidP>(lhs->type, target + offset);       \
+        return vm->heap.gcnew<VoidP>(lhs.type, target + offset);        \
     });                                                                 \
     vm->bind__sub__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
-        return vm->heap.gcnew<VoidP>(lhs->type, target - offset);       \
+        return vm->heap.gcnew<VoidP>(lhs.type, target - offset);        \
     });                                                                 \
     vm->bind__repr__(type_t, [](VM* vm, PyVar obj) -> Str{          \
         VoidP& self = _CAST(VoidP&, obj);                               \

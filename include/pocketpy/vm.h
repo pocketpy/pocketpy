@@ -365,7 +365,7 @@ public:
     void check_type(PyVar obj, Type type){ if(!is_type(obj, type)) TypeError(type, _tp(obj)); }
     void check_compatible_type(PyVar obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
 
-    Type _tp(PyVar obj){ return is_small_int(obj) ? tp_int : obj->type; }
+    Type _tp(PyVar obj){ return obj.type; }
     const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj)]; }
     const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
     PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
@@ -480,17 +480,14 @@ PyVar py_var(VM* vm, __T&& value){
         return value ? vm->True : vm->False;
     }else if constexpr(is_integral_v<T>){
         // int
-        i64 val = static_cast<i64>(std::forward<__T>(value));
-        if(val >= Number::kMinSmallInt && val <= Number::kMaxSmallInt){
-            val = (val << 2) | 0b10;
-            return reinterpret_cast<PyVar>(val);
-        }else{
-            return vm->heap.gcnew<i64>(vm->tp_int, val);
-        }
+        PyVar retval(VM::tp_int, true);
+        retval.as<i64>() = static_cast<i64>(value);
+        return retval;
     }else if constexpr(is_floating_point_v<T>){
         // float
-        f64 val = static_cast<f64>(std::forward<__T>(value));
-        return vm->heap.gcnew<f64>(vm->tp_float, val);
+        PyVar retval(VM::tp_float, true);
+        retval.as<f64>() = static_cast<f64>(value);
+        return retval;
     }else if constexpr(std::is_pointer_v<T>){
         return from_void_p(vm, (void*)value);
     }else{
@@ -529,19 +526,17 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check){
-            if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);
-            if(is_heap_int(obj)) return (T)PK_OBJ_GET(i64, obj);
+            if(is_int(obj)) return (T)obj.as<i64>();
             vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
         }else{
-            if(is_small_int(obj)) return (T)(PK_BITS(obj) >> 2);
-            return (T)PK_OBJ_GET(i64, obj);
+            return (T)obj.as<i64>();
         }
     }else if constexpr(is_floating_point_v<T>){
         static_assert(!std::is_reference_v<__T>);
         // float
-        if(is_float(obj)) return PK_OBJ_GET(f64, obj);
+        if(is_float(obj)) return (T)obj.as<f64>();
         i64 bits;
-        if(try_cast_int(obj, &bits)) return (float)bits;
+        if(try_cast_int(obj, &bits)) return (T)bits;
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
     }else if constexpr(std::is_enum_v<T>){
         static_assert(!std::is_reference_v<__T>);

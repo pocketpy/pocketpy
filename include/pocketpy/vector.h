@@ -8,9 +8,9 @@ namespace pkpy{
 template<typename T, int Growth=2>
 struct pod_vector{
     static constexpr int SizeT = sizeof(T);
-    static constexpr int N = 64 / SizeT;
+    static constexpr int N = 128 / SizeT;
 
-    // static_assert(64 % SizeT == 0);
+    // static_assert(128 % SizeT == 0);
     static_assert(is_pod_v<T>);
     static_assert(N >= 4);
 
@@ -21,21 +21,21 @@ struct pod_vector{
     using size_type = int;
 
     pod_vector(): _size(0), _capacity(N) {
-        _data = (T*)pool64_alloc(_capacity * SizeT);
+        _data = (T*)pool128_alloc(_capacity * SizeT);
     }
 
     // support initializer list
     pod_vector(std::initializer_list<T> il): _size(il.size()), _capacity(std::max(N, _size)) {
-        _data = (T*)pool64_alloc(_capacity * SizeT);
+        _data = (T*)pool128_alloc(_capacity * SizeT);
         for(int i=0; i<_size; i++) _data[i] = *(il.begin() + i);
     }
 
     pod_vector(int size): _size(size), _capacity(std::max(N, size)) {
-        _data = (T*)pool64_alloc(_capacity * SizeT);
+        _data = (T*)pool128_alloc(_capacity * SizeT);
     }
 
     pod_vector(const pod_vector& other): _size(other._size), _capacity(other._capacity) {
-        _data = (T*)pool64_alloc(_capacity * SizeT);
+        _data = (T*)pool128_alloc(_capacity * SizeT);
         memcpy(_data, other._data, SizeT * _size);
     }
 
@@ -47,7 +47,7 @@ struct pod_vector{
     }
 
     pod_vector& operator=(pod_vector&& other) noexcept {
-        if(_data!=nullptr) pool64_dealloc(_data);
+        if(_data!=nullptr) pool128_dealloc(_data);
         _size = other._size;
         _capacity = other._capacity;
         _data = other._data;
@@ -74,10 +74,10 @@ struct pod_vector{
         if(cap <= _capacity) return;
         _capacity = cap;
         T* old_data = _data;
-        _data = (T*)pool64_alloc(_capacity * SizeT);
+        _data = (T*)pool128_alloc(_capacity * SizeT);
         if(old_data != nullptr){
             memcpy(_data, old_data, SizeT * _size);
-            pool64_dealloc(old_data);
+            pool128_dealloc(old_data);
         }
     }
 
@@ -139,7 +139,7 @@ struct pod_vector{
     }
 
     ~pod_vector() {
-        if(_data != nullptr) pool64_dealloc(_data);
+        if(_data != nullptr) pool128_dealloc(_data);
     }
 };
 

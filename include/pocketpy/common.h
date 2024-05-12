@@ -125,10 +125,6 @@ struct Type {
 #define PK_DEBUG_ASSERT(x)
 #endif
 
-struct PyObject;
-using PyVar = PyObject *;
-#define PK_BITS(p) (reinterpret_cast<i64>(p))
-
 // is_pod_v<> for c++17 and c++20
 template<typename T>
 inline constexpr bool is_pod_v = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
@@ -171,5 +167,46 @@ template<typename T>
 inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
 inline const char* PK_HEX_TABLE = "0123456789abcdef";
+
+struct PyObject;
+// using PyVar = PyObject *;
+
+struct PyVar final{
+    Type type;
+    bool is_sso;
+    uint8_t flags;
+    char _bytes[12];
+
+    PyVar(): type(), is_sso(false), flags(0) { }
+    PyVar(std::nullptr_t): type(), is_sso(false), flags(0) { }
+    PyVar(Type type, bool is_sso): type(type), is_sso(is_sso), flags(0) { }
+    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0) { as<PyObject*>() = p; }
+
+    template<typename T>
+    T& as() const {
+        static_assert(!std::is_reference_v<T>);
+        PK_DEBUG_ASSERT(is_sso)
+        return *(T*)_bytes;
+    }
+
+    operator bool() const { return type; }
+
+    bool operator==(const PyVar& other) const {
+        return memcmp(this, &other, sizeof(PyVar)) == 0;
+    }
+
+    bool operator!=(const PyVar& other) const {
+        return memcmp(this, &other, sizeof(PyVar)) != 0;
+    }
+
+    bool operator==(std::nullptr_t) const { return !type; }
+    bool operator!=(std::nullptr_t) const { return type; }
+
+    PyObject* get() const { return as<PyObject*>(); }
+    i64 hash() const { return as<i64>(); }
+    PyObject* operator->() const { return as<PyObject*>(); }
+};
+
+static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);
 
 } // namespace pkpy

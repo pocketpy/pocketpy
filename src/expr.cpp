@@ -10,7 +10,7 @@ namespace pkpy{
     }
 
     inline bool is_small_int(i64 value){
-        return value >= 0 && value < 1024;
+        return value >= INT16_MIN && value <= INT16_MAX;
     }
 
     int CodeEmitContext::get_loop() const {
@@ -91,7 +91,6 @@ namespace pkpy{
 
     int CodeEmitContext::emit_int(i64 value, int line){
         if(is_small_int(value)){
-            value = (value << 2) | 0b10;
             return emit_(OP_LOAD_SMALL_INT, (uint16_t)value, line);
         }else{
             return emit_(OP_LOAD_CONST, add_const(VAR(value)), line);

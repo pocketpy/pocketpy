@@ -18,7 +18,7 @@ struct Dict{
         int next;
     };
 
-    static constexpr int __Capacity = 8;
+    static constexpr int __Capacity = 4;
     static constexpr float __LoadFactor = 0.67f;
     static_assert(sizeof(Item) * __Capacity <= 128);
     static_assert(sizeof(ItemNode) * __Capacity <= 64);

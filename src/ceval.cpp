@@ -2,33 +2,34 @@
 
 namespace pkpy{
 
-#define PREDICT_INT_OP(op)  \
-    if(is_small_int(_0) && is_small_int(_1)){   \
-        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
-        DISPATCH() \
+#define PREDICT_INT_OP(op)                          \
+    if(is_int(_0) && is_int(_1)){                   \
+        TOP() = VAR(_0.as<i64>() op _1.as<i64>());  \
+        DISPATCH()                                  \
     }
 
-#define PREDICT_INT_DIV_OP(op)  \
-    if(is_small_int(_0) && is_small_int(_1)){   \
-        if(_1 == (PyVar)0b10) ZeroDivisionError();   \
-        TOP() = VAR((PK_BITS(_0)>>2) op (PK_BITS(_1)>>2)); \
-        DISPATCH() \
+#define PREDICT_INT_DIV_OP(op)                      \
+    if(is_int(_0) && is_int(_1)){                   \
+        i64 divisor = _1.as<i64>();                 \
+        if(_1.as<i64>() == 0) ZeroDivisionError();  \
+        TOP() = VAR(_0.as<i64>() op divisor);       \
+        DISPATCH()                                  \
     }
 
 #define BINARY_F_COMPARE(func, op, rfunc)                           \
-        PyVar ret;                                              \
-        const PyTypeInfo* _ti = _tp_info(_0);                \
-        if(_ti->m##func){                               \
-            ret = _ti->m##func(this, _0, _1);           \
-        }else{                                          \
-            PyVar self;                                                     \
-            PyVar _2 = get_unbound_method(_0, func, &self, false);          \
+        PyVar ret;                                                  \
+        const PyTypeInfo* _ti = _tp_info(_0);                       \
+        if(_ti->m##func){                                           \
+            ret = _ti->m##func(this, _0, _1);                       \
+        }else{                                                      \
+            PyVar self;                                                         \
+            PyVar _2 = get_unbound_method(_0, func, &self, false);              \
             if(_2 != nullptr) ret = call_method(self, _2, _1);                  \
             else ret = NotImplemented;                                          \
         }                                                                       \
         if(ret == NotImplemented){                                              \
-            PyVar self;                                                     \
-            PyVar _2 = get_unbound_method(_1, rfunc, &self, false);         \
+            PyVar self;                                                         \
+            PyVar _2 = get_unbound_method(_1, rfunc, &self, false);             \
             if(_2 != nullptr) ret = call_method(self, _2, _0);                  \
             else BinaryOptError(op, _0, _1);                                    \
             if(ret == NotImplemented) BinaryOptError(op, _0, _1);               \
@@ -145,7 +146,7 @@ __NEXT_STEP:;
     case OP_LOAD_TRUE:       PUSH(True); DISPATCH()
     case OP_LOAD_FALSE:      PUSH(False); DISPATCH()
     /*****************************************/
-    case OP_LOAD_SMALL_INT:  PUSH((PyVar)(uintptr_t)byte.arg); DISPATCH()
+    case OP_LOAD_SMALL_INT:  PUSH(VAR((int16_t)byte.arg)); DISPATCH()
     /*****************************************/
     case OP_LOAD_ELLIPSIS:   PUSH(Ellipsis); DISPATCH()
     case OP_LOAD_FUNCTION: {
@@ -243,7 +244,7 @@ __NEXT_STEP:;
         }
     } DISPATCH()
     case OP_LOAD_SUBSCR_SMALL_INT:{
-        PyVar _1 = (PyVar)(uintptr_t)byte.arg;
+        PyVar _1 = VAR((int16_t)byte.arg);
         PyVar _0 = TOP();     // a
         auto _ti = _tp_info(_0);
         if(_ti->m__getitem__){
@@ -604,7 +605,7 @@ __NEXT_STEP:;
     case OP_IS_OP:{
         PyVar _1 = POPX();    // rhs
         PyVar _0 = TOP();     // lhs
-        TOP() = VAR(static_cast<bool>((_0==_1) ^ byte.arg));
+        TOP() = VAR(static_cast<bool>((uint16_t)(_0==_1) ^ byte.arg));
     } DISPATCH()
     case OP_CONTAINS_OP:{
         // a in b -> b __contains__ a

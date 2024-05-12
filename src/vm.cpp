@@ -501,7 +501,7 @@ i64 VM::py_hash(PyVar obj){
         return CAST(i64, ret);
     }
     // if it is trivial `object`, return PK_BITS
-    if(ti == &_all_types[tp_object]) return PK_BITS(obj);
+    if(ti == &_all_types[tp_object]) return obj.hash();
     // otherwise, we check if it has a custom __eq__ other than object.__eq__
     bool has_custom_eq = false;
     if(ti->m__eq__) has_custom_eq = true;
@@ -513,7 +513,7 @@ i64 VM::py_hash(PyVar obj){
         TypeError(_S("unhashable type: ", ti->name.escape()));
         PK_UNREACHABLE()
     }else{
-        return PK_BITS(obj);
+        return obj.hash();
     }
 }
 
@@ -715,8 +715,6 @@ static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
         case OP_LOAD_FUNCTION:
             argStr += _S(" (", co->func_decls[byte.arg]->code->name, ")").sv();
             break;
-        case OP_LOAD_SMALL_INT: case OP_LOAD_SUBSCR_SMALL_INT:
-            argStr += _S(" (", (int)(byte.arg >> 2), ")").sv();
     }
     return argStr;
 }
@@ -1168,12 +1166,12 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err){
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
         PyVar val;
-        if(obj->type == tp_type){
+        if(obj.type == tp_type){
             val = find_name_in_mro(PK_OBJ_GET(Type, obj), name);
             if(val != nullptr){
                 if(is_tagged(val)) return val;
-                if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-                if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+                if(val.type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+                if(val.type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
                 return val;
             }
         }else{
@@ -1184,7 +1182,7 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err){
     if(cls_var != nullptr){
         // bound method is non-data descriptor
         if(!is_tagged(cls_var)){
-            switch(cls_var->type){
+            switch(cls_var.type){
                 case tp_function.index:
                     return VAR(BoundMethod(obj, cls_var));
                 case tp_native_func.index:
@@ -1234,12 +1232,12 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
         // handle instance __dict__
         if(!is_tagged(obj) && obj->is_attr_valid()){
             PyVar val;
-            if(obj->type == tp_type){
+            if(obj.type == tp_type){
                 val = find_name_in_mro(PK_OBJ_GET(Type, obj), name);
                 if(val != nullptr){
                     if(is_tagged(val)) return val;
-                    if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-                    if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
+                    if(val.type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
+                    if(val.type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
                     return val;
                 }
             }else{
@@ -1251,7 +1249,7 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
 
     if(cls_var != nullptr){
         if(!is_tagged(cls_var)){
-            switch(cls_var->type){
+            switch(cls_var.type){
                 case tp_function.index:
                     *self = obj;
                     break;

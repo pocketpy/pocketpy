@@ -8,12 +8,12 @@ namespace pkpy{
 
 template<typename T>
 constexpr T default_invalid_value(){
-    if constexpr(std::is_pointer_v<T>) return nullptr;
+    if constexpr(std::is_same_v<PyVar, T>) return nullptr;
     else if constexpr(std::is_same_v<int, T>) return -1;
     else return Discarded();
 }
 
-#define PK_SMALL_NAME_DICT_CAPACITY 8
+#define PK_SMALL_NAME_DICT_CAPACITY 6
 #define PK_SMALL_NAME_DICT_LOOP(B) for(int i=0; i<PK_SMALL_NAME_DICT_CAPACITY; i++) { B }
 
 template<typename V>

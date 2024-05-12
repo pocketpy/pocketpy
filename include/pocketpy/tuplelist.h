@@ -11,7 +11,7 @@ using List = pod_vector<PyVar, 4>;
 
 struct Tuple {
     PyVar* _args;
-    PyVar _inlined[3];
+    PyVar _inlined[4];
     int _size;
 
     Tuple(int n);

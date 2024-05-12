@@ -148,7 +148,7 @@ template<>
 struct Py_<Function> final: PyObject {
     Function _value;
     template<typename... Args>
-    Py_(Type type, Args&&... args): PyObject(type), _value(std::forward<Args>(args)...) {
+    Py_(Args&&... args): PyObject(), _value(std::forward<Args>(args)...) {
         // _enable_instance_dict();
     }
     void _obj_gc_mark() override {
@@ -161,7 +161,7 @@ template<>
 struct Py_<NativeFunc> final: PyObject {
     NativeFunc _value;
     template<typename... Args>
-    Py_(Type type, Args&&... args): PyObject(type), _value(std::forward<Args>(args)...) {
+    Py_(Args&&... args): PyObject(), _value(std::forward<Args>(args)...) {
         // _enable_instance_dict();
     }
     void _obj_gc_mark() override {

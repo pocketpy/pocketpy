@@ -88,7 +88,7 @@ struct Struct{
 };
 
 static_assert(sizeof(Py_<Struct>) <= 64);
-static_assert(sizeof(Py_<Tuple>) <= 64);
+static_assert(sizeof(Py_<Tuple>) <= 128);
 
 /***********************************************/
 template<typename Tp>
