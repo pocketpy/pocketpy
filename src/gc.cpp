@@ -14,7 +14,7 @@ namespace pkpy{
 #endif
                 if(_gc_on_delete) _gc_on_delete(vm, obj);
                 obj->~PyObject();
-                pool64_dealloc(obj.get());
+                pool128_dealloc(obj.get());
             }
         }
 
@@ -55,8 +55,8 @@ namespace pkpy{
     }
 
     ManagedHeap::~ManagedHeap(){
-        for(PyVar obj: _no_gc) { obj->~PyObject(); pool64_dealloc(obj.get()); }
-        for(PyVar obj: gen) { obj->~PyObject(); pool64_dealloc(obj.get()); }
+        for(PyVar obj: _no_gc) { obj->~PyObject(); pool128_dealloc(obj.get()); }
+        for(PyVar obj: gen) { obj->~PyObject(); pool128_dealloc(obj.get()); }
     }
 
 

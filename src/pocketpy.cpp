@@ -1530,7 +1530,7 @@ void VM::__post_init_builtin_types(){
     bind_property(_t(tp_object), "__class__", PK_LAMBDA(vm->_t(args[0])));
     bind_property(_t(tp_type), "__base__", [](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
-        return info.base.index == -1 ? vm->None : vm->_all_types[info.base].obj;
+        return info.base ? vm->_all_types[info.base].obj : vm->None;
     });
     bind_property(_t(tp_type), "__name__", [](VM* vm, ArgsView args){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];

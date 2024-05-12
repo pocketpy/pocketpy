@@ -149,7 +149,7 @@ namespace pkpy{
             val = _t(cls)->attr().try_get(name);
             if(val != nullptr) return val;
             cls = _all_types[cls].base;
-            if(cls.index == -1) break;
+            if(!cls) break;
         }while(true);
         return nullptr;
     }
@@ -162,7 +162,7 @@ namespace pkpy{
         do{
             if(cls == base) return true;
             Type next = _all_types[cls].base;
-            if(next.index == -1) break;
+            if(!next) break;
             cls = next;
         }while(true);
         return false;

@@ -10,8 +10,10 @@ namespace pkpy {
 using List = pod_vector<PyVar, 4>;
 
 struct Tuple {
+    static const int INLINED_SIZE = 4;
+
     PyVar* _args;
-    PyVar _inlined[4];
+    PyVar _inlined[INLINED_SIZE];
     int _size;
 
     Tuple(int n);

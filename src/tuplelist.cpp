@@ -3,7 +3,7 @@
 namespace pkpy {
 
 Tuple::Tuple(int n){
-    if(n <= 3){
+    if(n <= INLINED_SIZE){
         this->_args = _inlined;
     }else{
         this->_args = (PyVar*)pool128_alloc(n * sizeof(void*));
