@@ -10,8 +10,8 @@ You can use `call` to invoke any python callable object,
 including functions, methods, classes, etc.
 For methods, `call_method` can be used.
 
-+ `PyObject* call(PyObject* obj, ...)`
-+ `PyObject* call_method(PyObject* obj, StrName name, ...)`
++ `PyVar call(PyVar obj, ...)`
++ `PyVar call_method(PyVar obj, StrName name, ...)`
 
 ### Example
 
@@ -27,22 +27,22 @@ print(obj["a"]) # print the value
 First, create an empty dict object,
 
 ```cpp
-PyObject* tp = vm->builtins->attr("dict");
-PyObject* obj = vm->call(tp);	// this is a `dict`
+PyVar tp = vm->builtins->attr("dict");
+PyVar obj = vm->call(tp);	// this is a `dict`
 ```
 
 And set a key-value pair,
 
 ```cpp
-PyObject* _0 = py_var(vm, "a");
-PyObject* _1 = py_var(vm, 5);
+PyVar _0 = py_var(vm, "a");
+PyVar _1 = py_var(vm, 5);
 vm->call_method(obj, "__setitem__", _0, _1);
 ```
 
 And get the value,
 
 ```cpp
-PyObject* ret = vm->call_method(obj, "__getitem__", _0);
+PyVar ret = vm->call_method(obj, "__getitem__", _0);
 std::cout << py_cast<int>(vm, i64);
 ```
 
@@ -55,17 +55,17 @@ you should use `vm->vectorcall`. This is a low-level, stack-based API.
 4. Call `vm->vectorcall` with the number of arguments.
 
 ```cpp
-PyObject* f_sum = vm->builtins->attr("sum");
+PyVar f_sum = vm->builtins->attr("sum");
 
 List args(N);   // a list of N arguments
 
 vm->s_data.push_back(f_sum);
 vm->s_data.push_back(PY_NULL);  // self
 
-for(PyObject* arg : args) {
+for(PyVar arg : args) {
     vm->s_data.push_back(arg);
 }
 
-PyObject* ret = vm->vectorcall(args.size());
+PyVar ret = vm->vectorcall(args.size());
 ```
 

@@ -62,7 +62,7 @@ You can add other functions to `os` module via normal binding if you need them.
 For example, add `os.system`:
 
 ```cpp
-PyObject* mod = vm->_modules["os"];
+PyVar mod = vm->_modules["os"];
 
 vm->bind(mod, "system(cmd: str) -> int", [](VM* vm, ArgsView args){
     const char* cmd = py_cast<CString>(vm, args[0]);

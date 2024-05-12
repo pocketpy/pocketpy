@@ -34,7 +34,7 @@ vm->exec("print('Hello!')");
 Evaluate a source string
 
 ```cpp
-PyObject* obj = vm->eval("123");
+PyVar obj = vm->eval("123");
 std::cout << py_cast<int>(vm, obj);  // 123
 ```
 
@@ -59,7 +59,7 @@ try{
 Create primitive objects
 
 ```cpp
-PyObject* obj;
+PyVar obj;
 obj = py_var(vm, 1);		// create a int
 obj = py_var(vm, 1.0);		// create a float
 obj = py_var(vm, "123");	// create a string
@@ -74,7 +74,7 @@ Tuple t(3);
 t[0] = py_var(vm, 1);
 t[1] = py_var(vm, 1.0);
 t[2] = py_var(vm, "123");
-PyObject* obj = py_var(vm, std::move(t));
+PyVar obj = py_var(vm, std::move(t));
 ```
 
 Create a list object
@@ -85,7 +85,7 @@ List t;
 t.push_back(py_var(vm, 1));
 t.push_back(py_var(vm, 1.0));
 t.push_back(py_var(vm, "123"));
-PyObject* obj = py_var(vm, std::move(t));
+PyVar obj = py_var(vm, std::move(t));
 ```
 
 Create a dict object
@@ -95,13 +95,13 @@ Create a dict object
 Dict d(vm);
 d.set(py_var(vm, "x"), py_var(vm, 1));
 d.set(py_var(vm, "y"), py_var(vm, "123"));
-PyObject* obj = py_var(vm, std::move(d));
+PyVar obj = py_var(vm, std::move(d));
 ```
 
 Get native types from python objects
 
 ```cpp
-PyObject* obj;
+PyVar obj;
 i64 a = py_cast<i64>(vm, obj);
 f64 b = py_cast<f64>(vm, obj);
 Str& c = py_cast<Str&>(vm, obj);    // reference cast
@@ -130,11 +130,11 @@ Tuple& c_ = PK_OBJ_GET(Tuple, obj);
 Access built-in python types
 
 ```cpp
-PyObject* int_t = vm->_t(VM::tp_int);
-PyObject* float_t = vm->_t(VM::tp_float);
-PyObject* object_t = vm->_t(VM::tp_object);
-PyObject* tuple_t = vm->_t(VM::tp_tuple);
-PyObject* list_t = vm->_t(VM::tp_list);
+PyVar int_t = vm->_t(VM::tp_int);
+PyVar float_t = vm->_t(VM::tp_float);
+PyVar object_t = vm->_t(VM::tp_object);
+PyVar tuple_t = vm->_t(VM::tp_tuple);
+PyVar list_t = vm->_t(VM::tp_list);
 ```
 
 Access user registered types
@@ -146,22 +146,22 @@ Type voidp_t = vm->_tp_user<VoidP>();
 Check if an object is a python type
 
 ```cpp
-PyObject* obj;
+PyVar obj;
 bool ok = is_type(obj, VM::tp_int); // check if obj is an int
 ```
 
 Get the type of a python object
 
 ```cpp
-PyObject* obj = py_var(vm, 1);
-PyObject* t = vm->_t(obj);      // <class 'int'>
+PyVar obj = py_var(vm, 1);
+PyVar t = vm->_t(obj);      // <class 'int'>
 Type type = vm->_tp(obj);       // VM::tp_int
 ```
 
 Convert a type object into a type index
 
 ```cpp
-PyObject* int_t = vm->_t(VM::tp_int);
+PyVar int_t = vm->_t(VM::tp_int);
 Type t = PK_OBJ_GET(Type, int_t);
 // t == VM::tp_int
 ```
@@ -171,7 +171,7 @@ Type t = PK_OBJ_GET(Type, int_t);
 Check an object supports attribute access
 
 ```cpp
-PyObject* obj;
+PyVar obj;
 bool ok = !is_tagged(obj) && obj->is_attr_valid();
 ```
 
@@ -188,8 +188,8 @@ class MyClass:
 Get and set attributes
 
 ```cpp
-PyObject* obj = vm->exec("MyClass(1, 2)");
-PyObject* x = vm->getattr(obj, "x");	// obj.x
+PyVar obj = vm->exec("MyClass(1, 2)");
+PyVar x = vm->getattr(obj, "x");	// obj.x
 vm->setattr(obj, "x", py_var(vm, 3));	// obj.x = 3
 ```
 
@@ -203,16 +203,16 @@ def add(a, b):
 Call a function
 
 ```cpp
-PyObject* f_add = vm->eval("add");
-PyObject* ret = vm->call(f_add, py_var(vm, 1), py_var(vm, 2));
+PyVar f_add = vm->eval("add");
+PyVar ret = vm->call(f_add, py_var(vm, 1), py_var(vm, 2));
 std::cout << py_cast<int>(vm, ret);	// 3
 ```
 
 Call a method
 
 ```cpp
-PyObject* obj = vm->exec("MyClass(1, 2)");
-PyObject* ret = vm->call_method(obj, "sum");
+PyVar obj = vm->exec("MyClass(1, 2)");
+PyVar ret = vm->call_method(obj, "sum");
 std::cout << CAST(i64, ret);    // 3
 ```
 
@@ -221,7 +221,7 @@ Cache the name of a function or method to avoid string-based lookup
 ```cpp
 // cache the name "add" to avoid string-based lookup
 const static StrName m_sum("sum");
-PyObject* ret = vm->call_method(obj, m_sum);
+PyVar ret = vm->call_method(obj, m_sum);
 ```
 
 ## Special operations
@@ -229,50 +229,50 @@ PyObject* ret = vm->call_method(obj, m_sum);
 Compare two python objects
 
 ```cpp
-PyObject* obj1 = py_var(vm, 1);
-PyObject* obj2 = py_var(vm, 2);
+PyVar obj1 = py_var(vm, 1);
+PyVar obj2 = py_var(vm, 2);
 bool ok = vm->py_eq(obj1, obj2);
 ```
 
 Convert a python object to string
 
 ```cpp
-PyObject* obj = py_var(vm, 123);
+PyVar obj = py_var(vm, 123);
 std::cout << vm->py_str(obj);  // 123
 ```
 
 Get the string representation of a python object
 
 ```cpp
-PyObject* obj = py_var(vm, "123");
+PyVar obj = py_var(vm, "123");
 std::cout << vm->py_repr(obj); // "'123'"
 ```
 
 Get the JSON representation of a python object
 
 ```cpp
-PyObject* obj = py_var(vm, 123);
+PyVar obj = py_var(vm, 123);
 std::cout << vm->py_json(obj); // "123"
 ```
 
 Get the hash value of a python object
 
 ```cpp
-PyObject* obj = py_var(vm, 1);
+PyVar obj = py_var(vm, 1);
 i64 h = vm->py_hash(obj);       // 1
 ```
 
 Get the iterator of a python object
 
 ```cpp
-PyObject* obj = vm->eval("range(3)");
-PyObject* iter = vm->py_iter(obj);
+PyVar obj = vm->eval("range(3)");
+PyVar iter = vm->py_iter(obj);
 ```
 
 Get the next item of an iterator
 
 ```cpp
-PyObject* obj = vm->py_next(iter);
+PyVar obj = vm->py_next(iter);
 if(obj == vm->StopIteration){
     // end of iteration
 }else{
@@ -283,7 +283,7 @@ if(obj == vm->StopIteration){
 Convert a python iterable to a list
   
 ```cpp
-PyObject* obj = vm->eval("range(3)");
+PyVar obj = vm->eval("range(3)");
 List list = vm->py_list(obj);
 ```
 
@@ -328,6 +328,6 @@ vm->_lazy_modules["test"] = "pi = 3.14";
 Create a native module
 
 ```cpp
-PyObject* mod = vm->new_module("test");
+PyVar mod = vm->new_module("test");
 vm->setattr(mod, "pi", py_var(vm, 3.14));
 ```

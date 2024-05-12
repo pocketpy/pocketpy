@@ -9,18 +9,18 @@ In order to use a C/C++ library in python, you need to write bindings for it.
 pkpy uses an universal signature to wrap a function pointer as a python function or method that can be called in python code, i.e `NativeFuncC`.
 
 ```cpp
-typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
+typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 ```
 + The first argument is the pointer of `VM` instance.
 + The second argument is an array-like object indicates the arguments list. You can use `[]` operator to get the element and call `size()` to get the length of the array.
-+ The return value is a `PyObject*`, which should not be `nullptr`. If there is no return value, return `vm->None`.
++ The return value is a `PyVar`, which should not be `nullptr`. If there is no return value, return `vm->None`.
 
 ## Bind a function or method
 
 Use `vm->bind` to bind a function or method.
 
-+ `PyObject* bind(PyObject*, const char* sig, NativeFuncC)`
-+ `PyObject* bind(PyObject*, const char* sig, const char* docstring, NativeFuncC)`
++ `PyVar bind(PyVar, const char* sig, NativeFuncC)`
++ `PyVar bind(PyVar, const char* sig, const char* docstring, NativeFuncC)`
 
 ```cpp
 
@@ -56,7 +56,7 @@ vm->bind(obj, "f() -> int", [x](VM* vm, ArgsView args){
 I do not encourage you to capture something in a lambda being bound
 because:
 1. Captured lambda runs slower and causes "code-bloat".
-2. Captured values are unsafe, especially for `PyObject*` as they could leak by accident.
+2. Captured values are unsafe, especially for `PyVar` as they could leak by accident.
 
 However, there are 3 ways to capture something when you really need to.
 The most safe and elegant way is to subclass `VM` and add a member variable.
@@ -115,9 +115,9 @@ You can create a `test` module and use `vm->register_user_class<>` to bind the c
 ```cpp
 int main(){
     VM* vm = new VM();
-    PyObject* mod = vm->new_module("test");
+    PyVar mod = vm->new_module("test");
     vm->register_user_class<Point>(mod, "Point",
-        [](VM* vm, PyObject* mod, PyObject* type){
+        [](VM* vm, PyVar mod, PyVar type){
             // wrap field x
             vm->bind_field(type, "x", &Point::x);
             // wrap field y
@@ -145,12 +145,12 @@ int main(){
 
 ### Handle gc for container types
 
-If your custom type stores `PyObject*` in its fields, you need to handle gc for them.
+If your custom type stores `PyVar` in its fields, you need to handle gc for them.
 
 ```cpp
 struct Container{
-    PyObject* a;
-    std::vector<PyObject*> b;
+    PyVar a;
+    std::vector<PyVar> b;
     // ...
 }
 ```
@@ -159,8 +159,8 @@ Add a magic method `_gc_mark() const` to your custom type.
 
 ```cpp
 struct Container{
-    PyObject* a;
-    std::vector<PyObject*> b;
+    PyVar a;
+    std::vector<PyVar> b;
     // ...
 
     void _gc_mark() const{
@@ -168,7 +168,7 @@ struct Container{
         if(a) PK_OBJ_MARK(a);
 
         // mark elements in b
-        for(PyObject* obj : b){
+        for(PyVar obj : b){
             if(obj) PK_OBJ_MARK(obj);
         }
     }
@@ -188,7 +188,7 @@ They do not take universal function pointer as argument.
 You need to provide the detailed `Type` object and the corresponding function pointer.
 
 ```cpp
-PyObject* f_add(VM* vm, PyObject* lhs, PyObject* rhs){
+PyVar f_add(VM* vm, PyVar lhs, PyVar rhs){
     int a = py_cast<int>(vm, lhs);
     int b = py_cast<int>(vm, rhs);
     return py_var(vm, a + b);

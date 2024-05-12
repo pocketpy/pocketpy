@@ -18,7 +18,7 @@ For example, you create a temporary object on the stack and then call `vm->py_ne
 
 ```cpp
 void some_func(VM* vm){
-    PyObject* obj = VAR(List(5));
+    PyVar obj = VAR(List(5));
     // unsafe
     PyObject iter = vm->py_iter(obj);
     PyObject next = vm->py_next(iter);
@@ -32,7 +32,7 @@ The scope lock prevents this from happening.
 
 ```cpp
 void some_func(VM* vm){
-    PyObject* obj = VAR(List(5));
+    PyVar obj = VAR(List(5));
     // safe
     auto _lock = vm->heap.gc_scope_lock();
     PyObject iter = vm->py_iter(obj);

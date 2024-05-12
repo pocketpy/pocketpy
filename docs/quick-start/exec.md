@@ -8,20 +8,20 @@ order: 93
 
 Once you have a `VM` instance, you can execute python code by calling `exec` method.
 
-#### `PyObject* exec(Str source, Str filename, CompileMode mode, PyObject* _module=nullptr)`
+#### `PyVar exec(Str source, Str filename, CompileMode mode, PyVar _module=nullptr)`
 
 + `source`, the python source code to be executed
 + `filename`, the filename of the source code. This is used for error reporting
 + `mode`, the compile mode. See below for details
 + `module`, the module where the code will be executed. If `nullptr`, the code will be executed in the `__main__` module
 
-`exec` handles possible exceptions and returns a `PyObject*`.
+`exec` handles possible exceptions and returns a `PyVar`.
 If the execution is not successful, e.g. a syntax error or a runtime exception,
 the return value will be `nullptr`.
 
 There are also overloaded versions of `exec` and `eval`, which is useful for simple execution:
-+ `PyObject* exec(Str source)`
-+ `PyObject* eval(Str source)`
++ `PyVar exec(Str source)`
++ `PyVar eval(Str source)`
 
 ### Compile mode
 
@@ -39,7 +39,7 @@ In some cases, you may want to execute python code in a more fine-grained way.
 These two methods are provided for this purpose:
 
 + `CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope)`
-+ `PyObject* _exec(CodeObject_ co, PyObject* _module)`
++ `PyVar _exec(CodeObject_ co, PyVar _module)`
 
 1. `compile` compiles the source code into a `CodeObject_` instance. Leave `unknown_global_scope` to `false` if you don't know what it means.
 2. `_exec` executes the `CodeObject_` instance.

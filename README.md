@@ -105,7 +105,7 @@ int main(){
     vm->exec("a = [1, 2, 3]");
 
     // Eval the sum of the list
-    PyObject* result = vm->eval("sum(a)");
+    PyVar result = vm->eval("sum(a)");
     std::cout << "Sum of the list: "<< py_cast<int>(vm, result) << std::endl;   // 6
 
     // Bindings
@@ -117,7 +117,7 @@ int main(){
       });
 
     // Call the function
-    PyObject* f_add = vm->_main->attr("add");
+    PyVar f_add = vm->_main->attr("add");
     result = vm->call(f_add, py_var(vm, 3), py_var(vm, 7));
     std::cout << "Sum of 2 variables: "<< py_cast<int>(vm, result) << std::endl;   // 10
 

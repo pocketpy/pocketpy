@@ -30,7 +30,7 @@ Native modules are always compiled and executed when the VM is created.
 To creata a native module, use `vm->new_module(Str name)`.
 
 ```cpp
-PyObject* mod = vm->new_module("test");
+PyVar mod = vm->new_module("test");
 mod->attr().set("pi", py_var(vm, 3.14));
 
 vm->bind(mod, "add(a: int, b: int)",
