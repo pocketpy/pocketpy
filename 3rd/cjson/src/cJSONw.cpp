@@ -3,8 +3,8 @@
 namespace pkpy{
 
 
-static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm);
-static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm);
+static cJSON* convert_python_object_to_cjson(PyVar obj, VM* vm);
+static PyVar convert_cjson_to_python_object(const cJSON * const item, VM* vm);
 
 template<typename T>
 static cJSON* convert_list_to_cjson(const T& list, VM* vm){
@@ -17,13 +17,13 @@ static cJSON* convert_list_to_cjson(const T& list, VM* vm){
 
 static cJSON* covert_dict_to_cjson(const Dict& dict, VM* vm){
     cJSON *cjson_object = cJSON_CreateObject();
-    dict.apply([&](PyObject* key, PyObject* val){
+    dict.apply([&](PyVar key, PyVar val){
         cJSON_AddItemToObject(cjson_object, CAST(Str&, key).c_str(), convert_python_object_to_cjson(val, vm));
     });
     return cjson_object;
 }
 
-static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
+static cJSON* convert_python_object_to_cjson(PyVar obj, VM* vm){
     if(obj == vm->None) return cJSON_CreateNull();
     Type obj_t = vm->_tp(obj);
     switch(obj_t){
@@ -41,7 +41,7 @@ static cJSON* convert_python_object_to_cjson(PyObject* obj, VM* vm){
 }
 
 
-static PyObject* convert_cjson_to_list(const cJSON * const item, VM* vm){
+static PyVar convert_cjson_to_list(const cJSON * const item, VM* vm){
     List output;
     cJSON *element = item->child;
     while(element != NULL){
@@ -51,7 +51,7 @@ static PyObject* convert_cjson_to_list(const cJSON * const item, VM* vm){
     return VAR(std::move(output));
 }
 
-static PyObject* convert_cjson_to_dict(const cJSON* const item, VM* vm){
+static PyVar convert_cjson_to_dict(const cJSON* const item, VM* vm){
     Dict output(vm);
     cJSON *child = item->child;
     while(child != NULL){
@@ -63,7 +63,7 @@ static PyObject* convert_cjson_to_dict(const cJSON* const item, VM* vm){
     return VAR(std::move(output));
 }
 
-static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm)
+static PyVar convert_cjson_to_python_object(const cJSON * const item, VM* vm)
 {
     if (cJSON_IsString(item))
     {
@@ -91,7 +91,7 @@ static PyObject* convert_cjson_to_python_object(const cJSON * const item, VM* vm
 }
 
 void add_module_cjson(VM* vm){
-    PyObject* mod = vm->new_module("cjson");
+    PyVar mod = vm->new_module("cjson");
 
     PK_LOCAL_STATIC cJSON_Hooks hooks;
     hooks.malloc_fn = pool64_alloc;
@@ -112,7 +112,7 @@ void add_module_cjson(VM* vm){
             while(*end != '\0' && *end != '\n') end++;
             vm->IOError(_S("cjson: ", std::string_view(start, end-start)));
         }
-        PyObject* output = convert_cjson_to_python_object(json, vm);
+        PyVar output = convert_cjson_to_python_object(json, vm);
         cJSON_Delete(json);
         return output;
     });

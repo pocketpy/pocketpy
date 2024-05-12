@@ -3,8 +3,8 @@
 namespace pkpy{
 
 static lua_State* _L;
-static void lua_push_from_python(VM*, PyObject*);
-static PyObject* lua_popx_to_python(VM*);
+static void lua_push_from_python(VM*, PyVar);
+static PyVar lua_popx_to_python(VM*);
 
 template<typename T>
 static void table_apply(VM* vm, T f){
@@ -12,8 +12,8 @@ static void table_apply(VM* vm, T f){
     lua_pushnil(_L);                 // [key]
     while(lua_next(_L, -2) != 0){    // [key, val]
         lua_pushvalue(_L, -2);       // [key, val, key]
-        PyObject* key = lua_popx_to_python(vm);
-        PyObject* val = lua_popx_to_python(vm);
+        PyVar key = lua_popx_to_python(vm);
+        PyVar val = lua_popx_to_python(vm);
         f(key, val);                // [key]
     }
     lua_pop(_L, 1);                  // []
@@ -38,24 +38,24 @@ struct PyLuaObject{
 };
 
 struct PyLuaTable: PyLuaObject{
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, PyVar mod, PyVar type){
         Type t = PK_OBJ_GET(Type, type);
         PyTypeInfo* ti = &vm->_all_types[t];
         ti->subclass_enabled = false;
-        ti->m__getattr__ = [](VM* vm, PyObject* obj, StrName name){
+        ti->m__getattr__ = [](VM* vm, PyVar obj, StrName name){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 std::string_view name_sv = name.sv();
                 lua_pushlstring(_L, name_sv.data(), name_sv.size());
                 lua_gettable(_L, -2);
-                PyObject* ret = lua_popx_to_python(vm);
+                PyVar ret = lua_popx_to_python(vm);
                 lua_pop(_L, 1);
                 return ret;
             )
         };
 
-        ti->m__setattr__ = [](VM* vm, PyObject* obj, StrName name, PyObject* val){
+        ti->m__setattr__ = [](VM* vm, PyVar obj, StrName name, PyVar val){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
@@ -67,7 +67,7 @@ struct PyLuaTable: PyLuaObject{
             )
         };
 
-        ti->m__delattr__ = [](VM* vm, PyObject* obj, StrName name){
+        ti->m__delattr__ = [](VM* vm, PyVar obj, StrName name){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
@@ -82,11 +82,11 @@ struct PyLuaTable: PyLuaObject{
 
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             lua_newtable(_L);    // push an empty table onto the stack
-            PyObject* obj = vm->heap.gcnew<PyLuaTable>(PK_OBJ_GET(Type, args[0]));
+            PyVar obj = vm->heap.gcnew<PyLuaTable>(PK_OBJ_GET(Type, args[0]));
             return obj;
         });
 
-        vm->bind__len__(t, [](VM* vm, PyObject* obj){
+        vm->bind__len__(t, [](VM* vm, PyVar obj){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
             i64 len = 0;
@@ -96,19 +96,19 @@ struct PyLuaTable: PyLuaObject{
             return len;
         });
 
-        vm->bind__getitem__(t, [](VM* vm, PyObject* obj, PyObject* key){
+        vm->bind__getitem__(t, [](VM* vm, PyVar obj, PyVar key){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 lua_push_from_python(vm, key);
                 lua_gettable(_L, -2);
-                PyObject* ret = lua_popx_to_python(vm);
+                PyVar ret = lua_popx_to_python(vm);
                 lua_pop(_L, 1);
                 return ret;
             )
         });
 
-        vm->bind__setitem__(t, [](VM* vm, PyObject* obj, PyObject* key, PyObject* val){
+        vm->bind__setitem__(t, [](VM* vm, PyVar obj, PyVar key, PyVar val){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
@@ -119,7 +119,7 @@ struct PyLuaTable: PyLuaObject{
             )
         });
 
-        vm->bind__delitem__(t, [](VM* vm, PyObject* obj, PyObject* key){
+        vm->bind__delitem__(t, [](VM* vm, PyVar obj, PyVar key){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
@@ -130,7 +130,7 @@ struct PyLuaTable: PyLuaObject{
             )
         });
 
-        vm->bind__contains__(t, [](VM* vm, PyObject* obj, PyObject* key){
+        vm->bind__contains__(t, [](VM* vm, PyVar obj, PyVar key){
             const PyLuaTable& self = _CAST(PyLuaTable&, obj);
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
@@ -147,7 +147,7 @@ struct PyLuaTable: PyLuaObject{
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 List ret;
-                table_apply(vm, [&](PyObject* key, PyObject* val){ ret.push_back(key); });
+                table_apply(vm, [&](PyVar key, PyVar val){ ret.push_back(key); });
                 lua_pop(_L, 1);
                 return VAR(std::move(ret));
             )
@@ -158,7 +158,7 @@ struct PyLuaTable: PyLuaObject{
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 List ret;
-                table_apply(vm, [&](PyObject* key, PyObject* val){ ret.push_back(val); });
+                table_apply(vm, [&](PyVar key, PyVar val){ ret.push_back(val); });
                 lua_pop(_L, 1);
                 return VAR(std::move(ret));
             )
@@ -169,8 +169,8 @@ struct PyLuaTable: PyLuaObject{
             LUA_PROTECTED(
                 lua_rawgeti(_L, LUA_REGISTRYINDEX, self.r);
                 List ret;
-                table_apply(vm, [&](PyObject* key, PyObject* val){
-                    PyObject* item = VAR(Tuple(key, val));
+                table_apply(vm, [&](PyVar key, PyVar val){
+                    PyVar item = VAR(Tuple(key, val));
                     ret.push_back(item);
                 });
                 lua_pop(_L, 1);
@@ -180,7 +180,7 @@ struct PyLuaTable: PyLuaObject{
     }
 };
 
-static PyObject* lua_popx_multi_to_python(VM* vm, int count){
+static PyVar lua_popx_multi_to_python(VM* vm, int count){
     if(count == 0){
         return vm->None;
     }else if(count == 1){
@@ -196,7 +196,7 @@ static PyObject* lua_popx_multi_to_python(VM* vm, int count){
 }
 
 struct PyLuaFunction: PyLuaObject{
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __call__, -1, [](VM* vm, ArgsView args){
             if(args.size() < 1) vm->TypeError("__call__ takes at least 1 argument");
             const PyLuaFunction& self = _CAST(PyLuaFunction&, args[0]);
@@ -217,7 +217,7 @@ struct PyLuaFunction: PyLuaObject{
     }
 };
 
-void lua_push_from_python(VM* vm, PyObject* val){
+void lua_push_from_python(VM* vm, PyVar val){
     if(val == vm->None){
         lua_pushnil(_L);
         return;
@@ -241,7 +241,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
         case VM::tp_tuple.index: {
             lua_newtable(_L);
             int i = 1;
-            for(PyObject* obj: PK_OBJ_GET(Tuple, val)){
+            for(PyVar obj: PK_OBJ_GET(Tuple, val)){
                 lua_push_from_python(vm, obj);
                 lua_rawseti(_L, -2, i++);
             }
@@ -250,7 +250,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
         case VM::tp_list.index: {
             lua_newtable(_L);
             int i = 1;
-            for(PyObject* obj: PK_OBJ_GET(List, val)){
+            for(PyVar obj: PK_OBJ_GET(List, val)){
                 lua_push_from_python(vm, obj);
                 lua_rawseti(_L, -2, i++);
             }
@@ -258,7 +258,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
         }
         case VM::tp_dict.index: {
             lua_newtable(_L);
-            PK_OBJ_GET(Dict, val).apply([&](PyObject* key, PyObject* val){
+            PK_OBJ_GET(Dict, val).apply([&](PyVar key, PyVar val){
                 lua_push_from_python(vm, key);
                 lua_push_from_python(vm, val);
                 lua_settable(_L, -3);
@@ -281,7 +281,7 @@ void lua_push_from_python(VM* vm, PyObject* val){
     vm->RuntimeError(_S("unsupported python type: ", _type_name(vm, t).escape()));
 }
 
-PyObject* lua_popx_to_python(VM* vm) {
+PyVar lua_popx_to_python(VM* vm) {
     int type = lua_type(_L, -1);
     switch (type) {
         case LUA_TNIL: {
@@ -304,11 +304,11 @@ PyObject* lua_popx_to_python(VM* vm) {
             return VAR(val);
         }
         case LUA_TTABLE: {
-            PyObject* obj = vm->new_user_object<PyLuaTable>();
+            PyVar obj = vm->new_user_object<PyLuaTable>();
             return obj;
         }
         case LUA_TFUNCTION: {
-            PyObject* obj = vm->new_user_object<PyLuaFunction>();
+            PyVar obj = vm->new_user_object<PyLuaFunction>();
             return obj;
         }
         default: {
@@ -321,7 +321,7 @@ PyObject* lua_popx_to_python(VM* vm) {
 }
 
 void initialize_lua_bridge(VM* vm, lua_State* newL){
-    PyObject* mod = vm->new_module("lua");
+    PyVar mod = vm->new_module("lua");
 
     if(_L != nullptr){
         throw std::runtime_error("lua bridge already initialized");
