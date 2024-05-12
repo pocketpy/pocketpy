@@ -97,7 +97,7 @@ struct NoReturn { };
 struct Discarded { };
 
 struct Type {
-	int index;
+	int16_t index;
 	constexpr Type(): index(-1) {}
 	explicit constexpr Type(int index): index(index) {}
 	bool operator==(Type other) const { return this->index == other.index; }
