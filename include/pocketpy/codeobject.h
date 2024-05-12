@@ -65,7 +65,7 @@ struct CodeObject {
     std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     
-    small_vector_2<PyObject*, 8> consts;         // constants
+    small_vector_2<PyVar, 8> consts;         // constants
     small_vector_2<StrName, 8> varnames;         // local variables
 
     NameDictInt varnames_inv;
@@ -96,7 +96,7 @@ struct FuncDecl {
     struct KwArg {
         int index;              // index in co->varnames
         StrName key;            // name of this argument
-        PyObject* value;        // default value
+        PyVar value;        // default value
     };
     CodeObject_ code;           // code object of this function
 
@@ -113,7 +113,7 @@ struct FuncDecl {
 
     NameDictInt kw_to_index;
 
-    void add_kwarg(int index, StrName key, PyObject* value){
+    void add_kwarg(int index, StrName key, PyVar value){
         kw_to_index.set(key, index);
         kwargs.push_back(KwArg{index, key, value});
     }
@@ -131,16 +131,16 @@ struct NativeFunc {
     NativeFunc(NativeFuncC f, FuncDecl_ decl, any userdata={}): f(f), argc(-1), decl(decl), _userdata(std::move(userdata)) {}
 
     void check_size(VM* vm, ArgsView args) const;
-    PyObject* call(VM* vm, ArgsView args) const { return f(vm, args); }
+    PyVar call(VM* vm, ArgsView args) const { return f(vm, args); }
 };
 
 struct Function{
     FuncDecl_ decl;
-    PyObject* _module;  // weak ref
-    PyObject* _class;   // weak ref
+    PyVar _module;  // weak ref
+    PyVar _class;   // weak ref
     NameDict_ _closure;
 
-    explicit Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict_ _closure):
+    explicit Function(FuncDecl_ decl, PyVar _module, PyVar _class, NameDict_ _closure):
         decl(decl), _module(_module), _class(_class), _closure(_closure) {}
 };
 
@@ -172,7 +172,7 @@ struct Py_<NativeFunc> final: PyObject {
 };
 
 template<typename T>
-T& lambda_get_userdata(PyObject** p){
+T& lambda_get_userdata(PyVar* p){
     static_assert(std::is_same_v<T, std::decay_t<T>>);
     int offset = p[-1] != PY_NULL ? -1 : -2;
     return PK_OBJ_GET(NativeFunc, p[offset])._userdata.cast<T>();

@@ -12,55 +12,55 @@ namespace pkpy{
 struct FastLocals{
     // this is a weak reference
     const CodeObject* co;
-    PyObject** a;
+    PyVar* a;
 
     int size() const{ return co->varnames.size();}
 
-    PyObject*& operator[](int i){ return a[i]; }
-    PyObject* operator[](int i) const { return a[i]; }
+    PyVar& operator[](int i){ return a[i]; }
+    PyVar operator[](int i) const { return a[i]; }
 
-    FastLocals(const CodeObject* co, PyObject** a): co(co), a(a) {}
+    FastLocals(const CodeObject* co, PyVar* a): co(co), a(a) {}
 
-    PyObject** try_get_name(StrName name);
+    PyVar* try_get_name(StrName name);
     NameDict_ to_namedict();
 
-    PyObject** begin() const { return a; }
-    PyObject** end() const { return a + size(); }
+    PyVar* begin() const { return a; }
+    PyVar* end() const { return a + size(); }
 };
 
 struct ValueStack {
     // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
-    PyObject* _begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE/128];
-    PyObject** _sp;
-    PyObject** _max_end;
+    PyVar _begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE/128];
+    PyVar* _sp;
+    PyVar* _max_end;
 
     static constexpr size_t max_size() { return PK_VM_STACK_SIZE; }
 
     ValueStack(): _sp(_begin), _max_end(_begin + PK_VM_STACK_SIZE) {}
 
-    PyObject*& top(){ return _sp[-1]; }
-    PyObject* top() const { return _sp[-1]; }
-    PyObject*& second(){ return _sp[-2]; }
-    PyObject* second() const { return _sp[-2]; }
-    PyObject*& third(){ return _sp[-3]; }
-    PyObject* third() const { return _sp[-3]; }
-    PyObject*& peek(int n){ return _sp[-n]; }
-    PyObject* peek(int n) const { return _sp[-n]; }
-    void push(PyObject* v){ *_sp++ = v; }
+    PyVar& top(){ return _sp[-1]; }
+    PyVar top() const { return _sp[-1]; }
+    PyVar& second(){ return _sp[-2]; }
+    PyVar second() const { return _sp[-2]; }
+    PyVar& third(){ return _sp[-3]; }
+    PyVar third() const { return _sp[-3]; }
+    PyVar& peek(int n){ return _sp[-n]; }
+    PyVar peek(int n) const { return _sp[-n]; }
+    void push(PyVar v){ *_sp++ = v; }
     void pop(){ --_sp; }
-    PyObject* popx(){ return *--_sp; }
+    PyVar popx(){ return *--_sp; }
     ArgsView view(int n){ return ArgsView(_sp-n, _sp); }
     void shrink(int n){ _sp -= n; }
     int size() const { return _sp - _begin; }
     bool empty() const { return _sp == _begin; }
-    PyObject** begin() { return _begin; }
-    PyObject** end() { return _sp; }
-    void reset(PyObject** sp) { _sp = sp; }
+    PyVar* begin() { return _begin; }
+    PyVar* end() { return _sp; }
+    void reset(PyVar* sp) { _sp = sp; }
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _max_end; }
 
-    PyObject* operator[](int i) const { return _begin[i]; }
-    PyObject*& operator[](int i) { return _begin[i]; }
+    PyVar operator[](int i) const { return _begin[i]; }
+    PyVar& operator[](int i) { return _begin[i]; }
     
     ValueStack(const ValueStack&) = delete;
     ValueStack(ValueStack&&) = delete;
@@ -72,26 +72,26 @@ struct Frame {
     int _ip;
     int _next_ip;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
-    PyObject** _sp_base;
+    PyVar* _sp_base;
 
     const CodeObject* co;
-    PyObject* _module;
-    PyObject* _callable;    // a function object or nullptr (global scope)
+    PyVar _module;
+    PyVar _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
     NameDict& f_globals() { return _module->attr(); }
-    PyObject* f_closure_try_get(StrName name);
+    PyVar f_closure_try_get(StrName name);
 
     // function scope
-    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, PyObject** _locals_base)
+    Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, PyVar* _locals_base)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
     // exec/eval
-    Frame(PyObject** p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
+    Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, FastLocals _locals)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
     // global scope
-    Frame(PyObject** p0, const CodeObject_& co, PyObject* _module)
+    Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     int next_bytecode() {
@@ -100,7 +100,7 @@ struct Frame {
         return _ip;
     }
 
-    PyObject** actual_sp_base() const { return _locals.a; }
+    PyVar* actual_sp_base() const { return _locals.a; }
 
     int stack_size(ValueStack* _s) const { return _s->_sp - actual_sp_base(); }
     ArgsView stack_view(ValueStack* _s) const { return ArgsView(actual_sp_base(), _s->_sp); }

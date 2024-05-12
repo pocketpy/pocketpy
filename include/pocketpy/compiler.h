@@ -112,8 +112,8 @@ class Compiler {
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints);
     void compile_function(const Expr_vector& decorators={});
 
-    PyObject* to_object(const TokenValue& value);
-    PyObject* read_literal();
+    PyVar to_object(const TokenValue& value);
+    PyVar read_literal();
 
     void SyntaxError(Str msg){ lexer.throw_err("SyntaxError", msg, err().line, err().start); }
     void SyntaxError(){ lexer.throw_err("SyntaxError", "invalid syntax", err().line, err().start); }

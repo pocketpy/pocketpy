@@ -9,8 +9,8 @@ namespace pkpy{
 
 struct Dict{
     struct Item{
-        PyObject* first;
-        PyObject* second;
+        PyVar first;
+        PyVar second;
     };
 
     struct ItemNode{
@@ -41,16 +41,16 @@ struct Dict{
 
     int size() const { return _size; }
 
-    void _probe_0(PyObject* key, bool& ok, int& i) const;
-    void _probe_1(PyObject* key, bool& ok, int& i) const;
+    void _probe_0(PyVar key, bool& ok, int& i) const;
+    void _probe_1(PyVar key, bool& ok, int& i) const;
 
-    void set(PyObject* key, PyObject* val);
+    void set(PyVar key, PyVar val);
     void _rehash();
 
-    PyObject* try_get(PyObject* key) const;
+    PyVar try_get(PyVar key) const;
 
-    bool contains(PyObject* key) const;
-    bool erase(PyObject* key);
+    bool contains(PyVar key) const;
+    bool erase(PyVar key);
     void update(const Dict& other);
 
     template<typename __Func>

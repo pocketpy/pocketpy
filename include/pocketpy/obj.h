@@ -10,9 +10,9 @@ struct Frame;
 class VM;
 
 #if PK_ENABLE_STD_FUNCTION
-using NativeFuncC = std::function<PyObject*(VM*, ArgsView)>;
+using NativeFuncC = std::function<PyVar(VM*, ArgsView)>;
 #else
-typedef PyObject* (*NativeFuncC)(VM*, ArgsView);
+typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 #endif
 
 enum class BindType{
@@ -22,25 +22,25 @@ enum class BindType{
 };
 
 struct BoundMethod {
-    PyObject* self;
-    PyObject* func;
-    BoundMethod(PyObject* self, PyObject* func) : self(self), func(func) {}
+    PyVar self;
+    PyVar func;
+    BoundMethod(PyVar self, PyVar func) : self(self), func(func) {}
 };
 
 struct StaticMethod{
-    PyObject* func;
-    StaticMethod(PyObject* func) : func(func) {}
+    PyVar func;
+    StaticMethod(PyVar func) : func(func) {}
 };
 
 struct ClassMethod{
-    PyObject* func;
-    ClassMethod(PyObject* func) : func(func) {}
+    PyVar func;
+    ClassMethod(PyVar func) : func(func) {}
 };
 
 struct Property{
-    PyObject* getter;
-    PyObject* setter;
-    Property(PyObject* getter, PyObject* setter) : getter(getter), setter(setter) {}
+    PyVar getter;
+    PyVar setter;
+    Property(PyVar getter, PyVar setter) : getter(getter), setter(setter) {}
 };
 
 struct Range {
@@ -51,8 +51,8 @@ struct Range {
 
 struct StarWrapper{
     int level;      // either 1 or 2
-    PyObject* obj;
-    StarWrapper(int level, PyObject* obj) : level(level), obj(obj) {}
+    PyVar obj;
+    StarWrapper(int level, PyVar obj) : level(level), obj(obj) {}
 };
 
 struct Bytes{
@@ -84,13 +84,13 @@ struct Bytes{
     ~Bytes(){ delete[] _data;}
 };
 
-using Super = std::pair<PyObject*, Type>;
+using Super = std::pair<PyVar, Type>;
 
 struct Slice {
-    PyObject* start;
-    PyObject* stop;
-    PyObject* step;
-    Slice(PyObject* start, PyObject* stop, PyObject* step) : start(start), stop(stop), step(step) {}
+    PyVar start;
+    PyVar stop;
+    PyVar step;
+    Slice(PyVar start, PyVar stop, PyVar step) : start(start), stop(stop), step(step) {}
 };
 
 struct PyObject{
@@ -106,7 +106,7 @@ struct PyObject{
         return *_attr;
     }
 
-    PyObject* attr(StrName name) const {
+    PyVar attr(StrName name) const {
         PK_DEBUG_ASSERT(is_attr_valid())
         return (*_attr)[name];
     }
@@ -128,13 +128,13 @@ struct PyObject{
 const int kTpIntIndex = 2;
 const int kTpFloatIndex = 3;
 
-inline bool is_tagged(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
-inline bool is_small_int(PyObject* p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
-inline bool is_heap_int(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpIntIndex; }
-inline bool is_float(PyObject* p) noexcept { return !is_tagged(p) && p->type.index == kTpFloatIndex; }
-inline bool is_int(PyObject* p) noexcept { return is_small_int(p) || is_heap_int(p); }
+inline bool is_tagged(PyVar p) noexcept { return (PK_BITS(p) & 0b11) != 0b00; }
+inline bool is_small_int(PyVar p) noexcept { return (PK_BITS(p) & 0b11) == 0b10; }
+inline bool is_heap_int(PyVar p) noexcept { return !is_tagged(p) && p->type.index == kTpIntIndex; }
+inline bool is_float(PyVar p) noexcept { return !is_tagged(p) && p->type.index == kTpFloatIndex; }
+inline bool is_int(PyVar p) noexcept { return is_small_int(p) || is_heap_int(p); }
 
-inline bool is_type(PyObject* obj, Type type) {
+inline bool is_type(PyVar obj, Type type) {
     PK_DEBUG_ASSERT(obj != nullptr)
     return is_small_int(obj) ? type.index == kTpIntIndex : obj->type == type;
 }
@@ -158,15 +158,15 @@ struct Py_ final: PyObject {
 };
 
 struct MappingProxy{
-    PyObject* obj;
-    MappingProxy(PyObject* obj) : obj(obj) {}
+    PyVar obj;
+    MappingProxy(PyVar obj) : obj(obj) {}
     NameDict& attr() { return obj->attr(); }
 };
 
 void _gc_mark_namedict(NameDict*);
 StrName _type_name(VM* vm, Type type);
-template<typename T> T to_void_p(VM*, PyObject*);
-PyObject* from_void_p(VM*, void*);
+template<typename T> T to_void_p(VM*, PyVar);
+PyVar from_void_p(VM*, void*);
 
 
 #define PK_OBJ_GET(T, obj) (((Py_<T>*)(obj))->_value)
@@ -193,7 +193,7 @@ struct Py_<i64> final: PyObject {
     void _obj_gc_mark() override {}
 };
 
-inline bool try_cast_int(PyObject* obj, i64* val) noexcept {
+inline bool try_cast_int(PyVar obj, i64* val) noexcept {
     if(is_small_int(obj)){
         *val = PK_BITS(obj) >> 2;
         return true;
@@ -212,7 +212,7 @@ struct Py_<List> final: PyObject {
     Py_(Type type, const List& val): PyObject(type), _value(val) {}
 
     void _obj_gc_mark() override {
-        for(PyObject* obj: _value) PK_OBJ_MARK(obj);
+        for(PyVar obj: _value) PK_OBJ_MARK(obj);
     }
 };
 
@@ -223,7 +223,7 @@ struct Py_<Tuple> final: PyObject {
     Py_(Type type, const Tuple& val): PyObject(type), _value(val) {}
 
     void _obj_gc_mark() override {
-        for(PyObject* obj: _value) PK_OBJ_MARK(obj);
+        for(PyVar obj: _value) PK_OBJ_MARK(obj);
     }
 };
 
@@ -329,8 +329,8 @@ struct Py_<DummyModule> final: PyObject {
     void _obj_gc_mark() override {}
 };
 
-extern PyObject* const PY_NULL;
-extern PyObject* const PY_OP_CALL;
-extern PyObject* const PY_OP_YIELD;
+extern PyVar const PY_NULL;
+extern PyVar const PY_OP_CALL;
+extern PyVar const PY_OP_YIELD;
 
 }   // namespace pkpy

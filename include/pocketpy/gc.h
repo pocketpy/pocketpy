@@ -8,10 +8,10 @@
 
 namespace pkpy {
 struct ManagedHeap{
-    std::vector<PyObject*> _no_gc;
-    std::vector<PyObject*> gen;
+    std::vector<PyVar> _no_gc;
+    std::vector<PyVar> gen;
     VM* vm;
-    void (*_gc_on_delete)(VM*, PyObject*) = nullptr;
+    void (*_gc_on_delete)(VM*, PyVar) = nullptr;
     void (*_gc_marker_ex)(VM*) = nullptr;
 
     ManagedHeap(VM* vm): vm(vm) {}
@@ -39,20 +39,20 @@ struct ManagedHeap{
     /********************/
 
     template<typename T, typename... Args>
-    PyObject* gcnew(Type type, Args&&... args){
+    PyVar gcnew(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
+        PyVar obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         gen.push_back(obj);
         gc_counter++;
         return obj;
     }
 
     template<typename T, typename... Args>
-    PyObject* _new(Type type, Args&&... args){
+    PyVar _new(Type type, Args&&... args){
         using __T = Py_<std::decay_t<T>>;
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
+        PyVar obj = new(pool64_alloc<__T>()) Py_<std::decay_t<T>>(type, std::forward<Args>(args)...);
         obj->gc_enabled = false;
         _no_gc.push_back(obj);
         return obj;

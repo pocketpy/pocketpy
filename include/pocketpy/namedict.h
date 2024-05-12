@@ -334,7 +334,7 @@ struct NameDictImpl{
     }
 };
 
-using NameDict = NameDictImpl<PyObject*>;
+using NameDict = NameDictImpl<PyVar>;
 using NameDict_ = std::shared_ptr<NameDict>;
 using NameDictInt = NameDictImpl<int>;
 

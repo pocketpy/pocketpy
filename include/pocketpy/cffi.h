@@ -7,7 +7,7 @@ namespace pkpy {
 
 #define PY_CLASS(T, mod, name)                  \
     [[deprecated]] static Type _type(VM* vm) { return vm->_cxx_typeid_map[typeid(T)]; }    \
-    [[deprecated]] static PyObject* register_class(VM* vm, PyObject* mod, Type base=Type(0)) {   \
+    [[deprecated]] static PyVar register_class(VM* vm, PyVar mod, Type base=Type(0)) {   \
         return vm->register_user_class<T>(mod, #name, base);                \
     }                                                                       
 
@@ -32,13 +32,13 @@ struct VoidP{
         return ss.str();
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
+    static void _register(VM* vm, PyVar mod, PyVar type);
 };
 
 #define POINTER_VAR(Tp, NAME)    \
-    inline PyObject* py_var(VM* vm, Tp val){    \
+    inline PyVar py_var(VM* vm, Tp val){    \
         const static std::pair<StrName, StrName> P("c", NAME);      \
-        PyObject* type = vm->_modules[P.first]->attr(P.second);     \
+        PyVar type = vm->_modules[P.first]->attr(P.second);     \
         return vm->heap.gcnew<VoidP>(PK_OBJ_GET(Type, type), val);  \
     }
 
@@ -84,7 +84,7 @@ struct Struct{
     Struct(const Struct& other): Struct(other.p, other.size){}
     ~Struct(){ if(p!=_inlined) free(p); }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type);
+    static void _register(VM* vm, PyVar mod, PyVar type);
 };
 
 static_assert(sizeof(Py_<Struct>) <= 64);
@@ -92,7 +92,7 @@ static_assert(sizeof(Py_<Tuple>) <= 64);
 
 /***********************************************/
 template<typename Tp>
-Tp to_void_p(VM* vm, PyObject* var){
+Tp to_void_p(VM* vm, PyVar var){
     static_assert(std::is_pointer_v<Tp>);
     if(var == vm->None) return nullptr;     // None can be casted to any pointer implicitly
     VoidP& p = CAST(VoidP&, var);

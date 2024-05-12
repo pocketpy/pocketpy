@@ -7,11 +7,11 @@
 
 namespace pkpy {
 
-using List = pod_vector<PyObject*, 4>;
+using List = pod_vector<PyVar, 4>;
 
 struct Tuple {
-    PyObject** _args;
-    PyObject* _inlined[3];
+    PyVar* _args;
+    PyVar _inlined[3];
     int _size;
 
     Tuple(int n);
@@ -20,34 +20,34 @@ struct Tuple {
     Tuple(List&& other) noexcept;
     ~Tuple();
 
-    Tuple(PyObject*, PyObject*);
-    Tuple(PyObject*, PyObject*, PyObject*);
-    Tuple(PyObject*, PyObject*, PyObject*, PyObject*);
+    Tuple(PyVar, PyVar);
+    Tuple(PyVar, PyVar, PyVar);
+    Tuple(PyVar, PyVar, PyVar, PyVar);
 
     bool is_inlined() const { return _args == _inlined; }
-    PyObject*& operator[](int i){ return _args[i]; }
-    PyObject* operator[](int i) const { return _args[i]; }
+    PyVar& operator[](int i){ return _args[i]; }
+    PyVar operator[](int i) const { return _args[i]; }
 
     int size() const { return _size; }
 
-    PyObject** begin() const { return _args; }
-    PyObject** end() const { return _args + _size; }
-    PyObject** data() const { return _args; }
+    PyVar* begin() const { return _args; }
+    PyVar* end() const { return _args + _size; }
+    PyVar* data() const { return _args; }
 };
 
 // a lightweight view for function args, it does not own the memory
 struct ArgsView{
-    PyObject** _begin;
-    PyObject** _end;
+    PyVar* _begin;
+    PyVar* _end;
 
-    ArgsView(PyObject** begin, PyObject** end) : _begin(begin), _end(end) {}
+    ArgsView(PyVar* begin, PyVar* end) : _begin(begin), _end(end) {}
     ArgsView(const Tuple& t) : _begin(t.begin()), _end(t.end()) {}
 
-    PyObject** begin() const { return _begin; }
-    PyObject** end() const { return _end; }
+    PyVar* begin() const { return _begin; }
+    PyVar* end() const { return _end; }
     int size() const { return _end - _begin; }
     bool empty() const { return _begin == _end; }
-    PyObject* operator[](int i) const { return _begin[i]; }
+    PyVar operator[](int i) const { return _begin[i]; }
 
     List to_list() const;
     Tuple to_tuple() const;

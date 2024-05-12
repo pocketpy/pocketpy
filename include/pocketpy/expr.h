@@ -110,7 +110,7 @@ struct CodeEmitContext{
     void patch_jump(int index);
     bool add_label(StrName name);
     int add_varname(StrName name);
-    int add_const(PyObject*);
+    int add_const(PyVar);
     int add_const_string(std::string_view);
     int add_func_decl(FuncDecl_ decl);
     void emit_store_name(NameScope scope, StrName name, int line);
