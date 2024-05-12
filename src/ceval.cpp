@@ -898,9 +898,9 @@ __NEXT_STEP:;
         StrName _name(byte.arg);
         frame->_module->attr().set(_name, __curr_class);
         // call on_end_subclass
-        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, __curr_class)];
+        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, __curr_class).index];
         if(ti->base != tp_object){
-            PyTypeInfo* base_ti = &_all_types[ti->base];
+            PyTypeInfo* base_ti = &_all_types[ti->base.index];
             if(base_ti->on_end_subclass) base_ti->on_end_subclass(this, ti);
         }
         __curr_class = nullptr;
@@ -924,7 +924,7 @@ __NEXT_STEP:;
         PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
         Type type = PK_OBJ_GET(Type, __curr_class);
-        _all_types[type].annotated_fields.push_back(_name);
+        _all_types[type.index].annotated_fields.push_back(_name);
     } DISPATCH()
     /*****************************************/
     case OP_WITH_ENTER:

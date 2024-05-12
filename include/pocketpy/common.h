@@ -102,7 +102,7 @@ struct Type {
 	explicit constexpr Type(int index): index(index) {}
 	bool operator==(Type other) const { return this->index == other.index; }
 	bool operator!=(Type other) const { return this->index != other.index; }
-	operator int() const { return this->index; }
+    explicit operator bool() const { return index != -1; }
 };
 
 #define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
@@ -177,19 +177,27 @@ struct PyVar final{
     uint8_t flags;
     char _bytes[12];
 
-    PyVar(): type(), is_sso(false), flags(0) { }
-    PyVar(std::nullptr_t): type(), is_sso(false), flags(0) { }
-    PyVar(Type type, bool is_sso): type(type), is_sso(is_sso), flags(0) { }
-    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0) { as<PyObject*>() = p; }
+    // uninitialized
+    PyVar(): type() { }
+    // zero initialized
+    PyVar(std::nullptr_t): type(), is_sso(false), flags(0), _bytes{0} { }
+    // PyObject* initialized (is_sso = false)
+    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0) {
+        as<PyObject*>() = p;
+    }
+    // SSO initialized (is_sso = true)
+    template<typename T>
+    PyVar(Type type, T value): type(type), is_sso(true), flags(0) {
+        as<T>() = value;
+    }
 
     template<typename T>
     T& as() const {
         static_assert(!std::is_reference_v<T>);
-        PK_DEBUG_ASSERT(is_sso)
         return *(T*)_bytes;
     }
 
-    operator bool() const { return type; }
+    explicit operator bool() const { return (bool)type; }
 
     bool operator==(const PyVar& other) const {
         return memcmp(this, &other, sizeof(PyVar)) == 0;
@@ -199,14 +207,33 @@ struct PyVar final{
         return memcmp(this, &other, sizeof(PyVar)) != 0;
     }
 
-    bool operator==(std::nullptr_t) const { return !type; }
-    bool operator!=(std::nullptr_t) const { return type; }
+    bool operator==(std::nullptr_t) const { return !(bool)type; }
+    bool operator!=(std::nullptr_t) const { return (bool)type; }
 
-    PyObject* get() const { return as<PyObject*>(); }
+    PyObject* get() const {
+        PK_DEBUG_ASSERT(!is_sso)
+        return as<PyObject*>();
+    }
+
+    PyObject* operator->() const {
+        PK_DEBUG_ASSERT(!is_sso)
+        return as<PyObject*>();
+    }
+
     i64 hash() const { return as<i64>(); }
-    PyObject* operator->() const { return as<PyObject*>(); }
 };
 
 static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);
 
 } // namespace pkpy
+
+
+// specialize std::less for PyVar
+namespace std {
+    template<>
+    struct less<pkpy::PyVar> {
+        bool operator()(const pkpy::PyVar& lhs, const pkpy::PyVar& rhs) const {
+            return memcmp(&lhs, &rhs, sizeof(pkpy::PyVar)) < 0;
+        }
+    };
+}

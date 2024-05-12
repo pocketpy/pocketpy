@@ -128,7 +128,7 @@ struct StrName {
 
 struct SStream{
     PK_ALWAYS_PASS_BY_POINTER(SStream)
-    // pod_vector<T> is allocated by pool64 so the buffer can be moved into Str without a copy
+    // pod_vector<T> is allocated by pool128 so the buffer can be moved into Str without a copy
     pod_vector<char> buffer;
     int _precision = -1;
 

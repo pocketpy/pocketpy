@@ -366,10 +366,10 @@ public:
     void check_compatible_type(PyVar obj, Type type){ if(!isinstance(obj, type)) TypeError(type, _tp(obj)); }
 
     Type _tp(PyVar obj){ return obj.type; }
-    const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj)]; }
-    const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
-    PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
-    PyVar _t(Type type){ return _all_types[type].obj; }
+    const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj).index]; }
+    const PyTypeInfo* _tp_info(Type type) { return &_all_types[type.index]; }
+    PyVar _t(PyVar obj){ return _all_types[_tp(obj).index].obj; }
+    PyVar _t(Type type){ return _all_types[type.index].obj; }
 #endif
 
 #if PK_REGION("User Type Registration")
@@ -480,14 +480,10 @@ PyVar py_var(VM* vm, __T&& value){
         return value ? vm->True : vm->False;
     }else if constexpr(is_integral_v<T>){
         // int
-        PyVar retval(VM::tp_int, true);
-        retval.as<i64>() = static_cast<i64>(value);
-        return retval;
+        return PyVar(VM::tp_int, static_cast<i64>(value));
     }else if constexpr(is_floating_point_v<T>){
         // float
-        PyVar retval(VM::tp_float, true);
-        retval.as<f64>() = static_cast<f64>(value);
-        return retval;
+        return PyVar(VM::tp_float, static_cast<f64>(value));
     }else if constexpr(std::is_pointer_v<T>){
         return from_void_p(vm, (void*)value);
     }else{

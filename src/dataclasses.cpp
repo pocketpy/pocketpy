@@ -13,7 +13,7 @@ static void patch__init__(VM* vm, Type cls){
         });
 
         Type cls = vm->_tp(self);
-        const PyTypeInfo* cls_info = &vm->_all_types[cls];
+        const PyTypeInfo* cls_info = &vm->_all_types[cls.index];
         NameDict& cls_d = cls_info->obj->attr();
         const auto& fields = cls_info->annotated_fields;
 
@@ -46,7 +46,7 @@ static void patch__init__(VM* vm, Type cls){
 
 static void patch__repr__(VM* vm, Type cls){
     vm->bind__repr__(cls, [](VM* vm, PyVar _0) -> Str{
-        const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0)];
+        const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0).index];
         const auto& fields = cls_info->annotated_fields;
         const NameDict& obj_d = _0->attr();
         SStream ss;
@@ -65,7 +65,7 @@ static void patch__repr__(VM* vm, Type cls){
 static void patch__eq__(VM* vm, Type cls){
     vm->bind__eq__(cls, [](VM* vm, PyVar _0, PyVar _1){
         if(vm->_tp(_0) != vm->_tp(_1)) return vm->NotImplemented;
-        const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0)];
+        const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0).index];
         const auto& fields = cls_info->annotated_fields;
         for(StrName field: fields){
             PyVar lhs = _0->attr(field);
@@ -88,7 +88,7 @@ void add_module_dataclasses(VM* vm){
         if(!cls_d.contains(__repr__)) patch__repr__(vm, cls);
         if(!cls_d.contains(__eq__)) patch__eq__(vm, cls);
 
-        const auto& fields = vm->_all_types[cls].annotated_fields;
+        const auto& fields = vm->_all_types[cls.index].annotated_fields;
         bool has_default = false;
         for(StrName field: fields){
             if(cls_d.contains(field)){

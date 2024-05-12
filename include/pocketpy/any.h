@@ -28,7 +28,7 @@ struct any{
 
     any() : data(nullptr), _vt(nullptr) {}
 
-    operator bool() const { return _vt != nullptr; }
+    explicit operator bool() const { return _vt != nullptr; }
 
     template<typename T>
     any(T&& value){
@@ -85,7 +85,7 @@ struct function<Ret(Params...)>{
 
     function(): _impl(), _wrapper(nullptr) {}
 
-    operator bool() const { return _wrapper != nullptr; }
+    explicit operator bool() const { return _wrapper != nullptr; }
 
     template<typename F>
     function(F&& f) : _impl(std::forward<F>(f)){
@@ -110,7 +110,7 @@ struct lightfunction<Ret(Params...)>{
 
     lightfunction() : _impl(nullptr), _wrapper(nullptr) {}
 
-    operator bool() const { return _wrapper != nullptr; }
+    explicit operator bool() const { return _wrapper != nullptr; }
 
     template<typename F>
     lightfunction(const F& f){
