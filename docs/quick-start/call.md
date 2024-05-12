@@ -59,7 +59,7 @@ PyObject* f_sum = vm->builtins->attr("sum");
 
 List args(N);   // a list of N arguments
 
-vm->s_data.push_back(f_print);
+vm->s_data.push_back(f_sum);
 vm->s_data.push_back(PY_NULL);  // self
 
 for(PyObject* arg : args) {
