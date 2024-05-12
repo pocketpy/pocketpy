@@ -26,7 +26,7 @@ struct PyStructTime{
         tm_isdst = tm->tm_isdst;
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, PyVar mod, PyVar type){
         PY_READONLY_FIELD(PyStructTime, "tm_year", tm_year);
         PY_READONLY_FIELD(PyStructTime, "tm_mon", tm_mon);
         PY_READONLY_FIELD(PyStructTime, "tm_mday", tm_mday);
@@ -40,7 +40,7 @@ struct PyStructTime{
 };
 
 void add_module_time(VM* vm){
-    PyObject* mod = vm->new_module("time");
+    PyVar mod = vm->new_module("time");
     vm->register_user_class<PyStructTime>(mod, "struct_time");
 
     vm->bind_func(mod, "time", 0, [](VM* vm, ArgsView args) {
@@ -67,12 +67,12 @@ void add_module_time(VM* vm){
 }
 
 void add_module_sys(VM* vm){
-    PyObject* mod = vm->new_module("sys");
+    PyVar mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
 
-    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
-    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyVar stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyVar stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 
@@ -90,7 +90,7 @@ void add_module_sys(VM* vm){
 }
 
 void add_module_json(VM* vm){
-    PyObject* mod = vm->new_module("json");
+    PyVar mod = vm->new_module("json");
     vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args) {
         std::string_view sv;
         if(is_type(args[0], vm->tp_bytes)){
@@ -109,7 +109,7 @@ void add_module_json(VM* vm){
 
 // https://docs.python.org/3.5/library/math.html
 void add_module_math(VM* vm){
-    PyObject* mod = vm->new_module("math");
+    PyVar mod = vm->new_module("math");
     mod->attr().set("pi", VAR(3.1415926535897932384));
     mod->attr().set("e" , VAR(2.7182818284590452354));
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
@@ -122,7 +122,7 @@ void add_module_math(VM* vm){
         List& list = CAST(List&, args[0]);
         double sum = 0;
         double c = 0;
-        for(PyObject* arg : list){
+        for(PyVar arg : list){
             double x = CAST_F(arg);
             double y = x - c;
             double t = sum + y;
@@ -196,7 +196,7 @@ void add_module_math(VM* vm){
 }
 
 void add_module_traceback(VM* vm){
-    PyObject* mod = vm->new_module("traceback");
+    PyVar mod = vm->new_module("traceback");
     vm->bind_func(mod, "print_exc", 0, [](VM* vm, ArgsView args) {
         if(vm->__last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->__last_exception);
@@ -212,16 +212,16 @@ void add_module_traceback(VM* vm){
 }
 
 void add_module_dis(VM* vm){
-    PyObject* mod = vm->new_module("dis");
+    PyVar mod = vm->new_module("dis");
 
     vm->bind_func(mod, "dis", 1, [](VM* vm, ArgsView args) {
         CodeObject_ code;
-        PyObject* obj = args[0];
+        PyVar obj = args[0];
         if(is_type(obj, vm->tp_str)){
             const Str& source = CAST(Str, obj);
             code = vm->compile(source, "<dis>", EXEC_MODE);
         }
-        PyObject* f = obj;
+        PyVar f = obj;
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, obj).func;
         code = CAST(Function&, f).decl->code;
         vm->stdout_write(vm->disassemble(code));
@@ -230,15 +230,15 @@ void add_module_dis(VM* vm){
 }
 
 void add_module_gc(VM* vm){
-    PyObject* mod = vm->new_module("gc");
+    PyVar mod = vm->new_module("gc");
     vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
 void add_module_enum(VM* vm){
-    PyObject* mod = vm->new_module("enum");
+    PyVar mod = vm->new_module("enum");
     CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
     vm->_exec(code, mod);
-    PyObject* Enum = mod->attr("Enum");
+    PyVar Enum = mod->attr("Enum");
     vm->_all_types[PK_OBJ_GET(Type, Enum).index].on_end_subclass = \
         [](VM* vm, PyTypeInfo* new_ti){
             new_ti->subclass_enabled = false;    // Enum class cannot be subclassed twice
@@ -253,14 +253,14 @@ void add_module_enum(VM* vm){
 }
 
 void add_module___builtins(VM* vm){
-    PyObject* mod = vm->new_module("__builtins");
+    PyVar mod = vm->new_module("__builtins");
 
     vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args){
         return vm->py_next(args[0]);
     });
 
     vm->bind_func(mod, "_enable_instance_dict", 1, [](VM* vm, ArgsView args){
-        PyObject* self = args[0];
+        PyVar self = args[0];
         if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
         if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
         self->_enable_instance_dict();
@@ -284,7 +284,7 @@ struct _LpGuard{
 struct LineProfilerW{
     LineProfiler profiler;
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->heap.gcnew<LineProfilerW>(cls);
@@ -300,13 +300,13 @@ struct LineProfilerW{
 
         vm->bind(type, "runcall(self, func, *args)", [](VM* vm, ArgsView view){
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, view[0]);
-            PyObject* func = view[1];
+            PyVar func = view[1];
             const Tuple& args = CAST(Tuple&, view[2]);
             vm->s_data.push(func);
             vm->s_data.push(PY_NULL);
-            for(PyObject* arg : args) vm->s_data.push(arg);
+            for(PyVar arg : args) vm->s_data.push(arg);
             _LpGuard guard(&self, vm);
-            PyObject* ret = vm->vectorcall(args.size());
+            PyVar ret = vm->vectorcall(args.size());
             return ret;
         });
 
@@ -333,7 +333,7 @@ _LpGuard::~_LpGuard(){
 }
 
 void add_module_line_profiler(VM *vm){
-    PyObject* mod = vm->new_module("line_profiler");
+    PyVar mod = vm->new_module("line_profiler");
     vm->register_user_class<LineProfilerW>(mod, "LineProfiler");
 }
 #else

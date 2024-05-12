@@ -1,7 +1,7 @@
 #include "pocketpy/frame.h"
 
 namespace pkpy{
-    PyObject** FastLocals::try_get_name(StrName name){
+    PyVar* FastLocals::try_get_name(StrName name){
         int index = co->varnames_inv.try_get(name);
         if(index == -1) return nullptr;
         return &a[index];
@@ -10,13 +10,13 @@ namespace pkpy{
     NameDict_ FastLocals::to_namedict(){
         NameDict_ dict = std::make_shared<NameDict>();
         co->varnames_inv.apply([&](StrName name, int index){
-            PyObject* value = a[index];
+            PyVar value = a[index];
             if(value != PY_NULL) dict->set(name, value);
         });
         return dict;
     }
 
-    PyObject* Frame::f_closure_try_get(StrName name){
+    PyVar Frame::f_closure_try_get(StrName name){
         if(_callable == nullptr) return nullptr;
         Function& fn = PK_OBJ_GET(Function, _callable);
         if(fn._closure == nullptr) return nullptr;
@@ -31,7 +31,7 @@ namespace pkpy{
             block = co->blocks[block].parent;
         }
         if(block < 0) return false;
-        PyObject* obj = _s->popx();         // pop exception object
+        PyVar obj = _s->popx();         // pop exception object
         // get the stack size of the try block
         int _stack_size = co->blocks[block].base_stack_size;
         if(stack_size(_s) < _stack_size) throw std::runtime_error(_S("invalid state: ", stack_size(_s), '<', _stack_size).str());

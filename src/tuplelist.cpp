@@ -6,7 +6,7 @@ Tuple::Tuple(int n){
     if(n <= 3){
         this->_args = _inlined;
     }else{
-        this->_args = (PyObject**)pool64_alloc(n * sizeof(void*));
+        this->_args = (PyVar*)pool64_alloc(n * sizeof(void*));
     }
     this->_size = n;
 }
@@ -33,18 +33,18 @@ Tuple::Tuple(List&& other) noexcept {
     other._data = nullptr;
 }
 
-Tuple::Tuple(PyObject* _0, PyObject* _1): Tuple(2){
+Tuple::Tuple(PyVar _0, PyVar _1): Tuple(2){
     _args[0] = _0;
     _args[1] = _1;
 }
 
-Tuple::Tuple(PyObject* _0, PyObject* _1, PyObject* _2): Tuple(3){
+Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2): Tuple(3){
     _args[0] = _0;
     _args[1] = _1;
     _args[2] = _2;
 }
 
-Tuple::Tuple(PyObject* _0, PyObject* _1, PyObject* _2, PyObject* _3): Tuple(4){
+Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2, PyVar _3): Tuple(4){
     _args[0] = _0;
     _args[1] = _1;
     _args[2] = _2;

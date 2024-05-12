@@ -2,25 +2,25 @@
 
 namespace pkpy{
 
-    void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
+    void VoidP::_register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
             return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));
         });
 
-        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
             VoidP& self = PK_OBJ_GET(VoidP, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj) -> Str{
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
             VoidP& self = PK_OBJ_GET(VoidP, obj);
             return _S("<void* at ", self.hex(), ">");
         });
 
 #define BIND_CMP(name, op)  \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){        \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar lhs, PyVar rhs){        \
             if(!vm->isinstance(rhs, vm->_tp_user<VoidP>())) return vm->NotImplemented;          \
             void* _0 = PK_OBJ_GET(VoidP, lhs).ptr;                                              \
             void* _1 = PK_OBJ_GET(VoidP, rhs).ptr;                                              \
@@ -37,7 +37,7 @@ namespace pkpy{
     }
 
 
-    void Struct::_register(VM* vm, PyObject* mod, PyObject* type){
+    void Struct::_register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             int size = CAST(int, args[1]);
@@ -72,7 +72,7 @@ namespace pkpy{
             return vm->new_user_object<Struct>(std::move(buffer));
         }, {}, BindType::STATICMETHOD);
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* obj){
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
             Struct& self = _CAST(Struct&, obj);
             SStream ss;
             ss << "<struct object of " << self.size << " bytes>";
@@ -94,7 +94,7 @@ namespace pkpy{
             return vm->heap.gcnew<Struct>(vm->_tp(args[0]), self);
         });
 
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyObject* lhs, PyObject* rhs){
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar lhs, PyVar rhs){
             Struct& self = _CAST(Struct&, lhs);
             if(!vm->is_user_type<Struct>(rhs)) return vm->NotImplemented;
             Struct& other = _CAST(Struct&, rhs);
@@ -134,7 +134,7 @@ namespace pkpy{
     }
 
 void add_module_c(VM* vm){
-    PyObject* mod = vm->new_module("c");
+    PyVar mod = vm->new_module("c");
     
     vm->bind_func(mod, "malloc", 1, [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
@@ -187,7 +187,7 @@ void add_module_c(VM* vm){
         return vm->heap.gcnew<VoidP>(args[0]->type, value);
     });
 
-    PyObject* type;
+    PyVar type;
     Type type_t;
 
 #define BIND_PRIMITIVE(T, CNAME) \
@@ -210,31 +210,31 @@ void add_module_c(VM* vm){
         *target = val;                                                  \
         return vm->None;                                                \
     });                                                                 \
-    vm->bind__getitem__(type_t, [](VM* vm, PyObject* obj, PyObject* index){  \
+    vm->bind__getitem__(type_t, [](VM* vm, PyVar obj, PyVar index){  \
         VoidP& voidp = PK_OBJ_GET(VoidP, obj);                               \
         i64 offset = CAST(i64, index);                                  \
         T* target = (T*)voidp.ptr;                                      \
         return VAR(target[offset]);                                     \
     });                                                                 \
-    vm->bind__setitem__(type_t, [](VM* vm, PyObject* obj, PyObject* index, PyObject* value){   \
+    vm->bind__setitem__(type_t, [](VM* vm, PyVar obj, PyVar index, PyVar value){   \
         VoidP& voidp = PK_OBJ_GET(VoidP, obj);                          \
         i64 offset = CAST(i64, index);                                  \
         T* target = (T*)voidp.ptr;                                      \
         target[offset] = CAST(T, value);                                \
     });                                                                 \
-    vm->bind__add__(type_t, [](VM* vm, PyObject* lhs, PyObject* rhs){   \
+    vm->bind__add__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
         return vm->heap.gcnew<VoidP>(lhs->type, target + offset);       \
     });                                                                 \
-    vm->bind__sub__(type_t, [](VM* vm, PyObject* lhs, PyObject* rhs){   \
+    vm->bind__sub__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
         return vm->heap.gcnew<VoidP>(lhs->type, target - offset);       \
     });                                                                 \
-    vm->bind__repr__(type_t, [](VM* vm, PyObject* obj) -> Str{          \
+    vm->bind__repr__(type_t, [](VM* vm, PyVar obj) -> Str{          \
         VoidP& self = _CAST(VoidP&, obj);                               \
         return _S("<", CNAME, "* at ", self.hex(), ">");                \
     });                                                                 \
@@ -255,7 +255,7 @@ void add_module_c(VM* vm){
 
 #undef BIND_PRIMITIVE
 
-    PyObject* char_p_t = mod->attr("char_p");
+    PyVar char_p_t = mod->attr("char_p");
     vm->bind(char_p_t, "read_string(self) -> str", [](VM* vm, ArgsView args){
         VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);
         const char* target = (const char*)voidp.ptr;
@@ -272,7 +272,7 @@ void add_module_c(VM* vm){
     });
 }
 
-PyObject* from_void_p(VM* vm, void* p){
+PyVar from_void_p(VM* vm, void* p){
     return vm->new_user_object<VoidP>(p);
 }
 

@@ -131,7 +131,7 @@ namespace pkpy{
         }
     }
 
-    int CodeEmitContext::add_const(PyObject* v){
+    int CodeEmitContext::add_const(PyVar v){
         if(is_type(v, vm->tp_str)){
             // warning: should use add_const_string() instead
             return add_const_string(PK_OBJ_GET(Str, v).sv());

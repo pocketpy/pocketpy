@@ -3,7 +3,7 @@
 namespace pkpy{
 
 void add_module_csv(VM *vm){
-    PyObject* mod = vm->new_module("csv");
+    PyVar mod = vm->new_module("csv");
 
     vm->bind(mod, "reader(csvfile: list[str]) -> list[list]", [](VM* vm, ArgsView args){
         const List& csvfile = CAST(List&, args[0]);
@@ -67,8 +67,8 @@ __NEXT_LINE:
     });
 
     vm->bind(mod, "DictReader(csvfile: list[str]) -> list[dict]", [](VM* vm, ArgsView args){
-        PyObject* csv_reader = vm->_modules["csv"]->attr("reader");
-        PyObject* ret_obj = vm->call(csv_reader, args[0]);
+        PyVar csv_reader = vm->_modules["csv"]->attr("reader");
+        PyVar ret_obj = vm->call(csv_reader, args[0]);
         const List& ret = CAST(List&, ret_obj);
         if(ret.size() == 0){
             vm->ValueError("empty csvfile");

@@ -39,7 +39,7 @@ namespace pkpy{
         memcpy(_nodes, other._nodes, _capacity * sizeof(ItemNode));
     }
 
-    void Dict::set(PyObject* key, PyObject* val){
+    void Dict::set(PyVar key, PyVar val){
         // do possible rehash
         if(_size+1 > _critical_size) _rehash();
         bool ok; int i;
@@ -89,20 +89,20 @@ namespace pkpy{
     }
 
 
-    PyObject* Dict::try_get(PyObject* key) const{
+    PyVar Dict::try_get(PyVar key) const{
         bool ok; int i;
         _probe_0(key, ok, i);
         if(!ok) return nullptr;
         return _items[i].second;
     }
 
-    bool Dict::contains(PyObject* key) const{
+    bool Dict::contains(PyVar key) const{
         bool ok; int i;
         _probe_0(key, ok, i);
         return ok;
     }
 
-    bool Dict::erase(PyObject* key){
+    bool Dict::erase(PyVar key){
         bool ok; int i;
         _probe_0(key, ok, i);
         if(!ok) return false;
@@ -131,7 +131,7 @@ namespace pkpy{
     }
 
     void Dict::update(const Dict& other){
-        other.apply([&](PyObject* k, PyObject* v){ set(k, v); });
+        other.apply([&](PyVar k, PyVar v){ set(k, v); });
     }
 
     Tuple Dict::keys() const{
@@ -173,7 +173,7 @@ namespace pkpy{
     }
 
     void Dict::_gc_mark() const{
-        apply([](PyObject* k, PyObject* v){
+        apply([](PyVar k, PyVar v){
             PK_OBJ_MARK(k);
             PK_OBJ_MARK(v);
         });

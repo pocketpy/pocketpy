@@ -206,7 +206,7 @@ static double easeInOutBounce( double x ) {
 }
 
 void add_module_easing(VM* vm){
-    PyObject* mod = vm->new_module("easing");
+    PyVar mod = vm->new_module("easing");
 
 #define EASE(name)  \
     vm->bind_func(mod, #name, 1, [](VM* vm, ArgsView args){  \

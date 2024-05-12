@@ -67,7 +67,7 @@ namespace pkpy
                  });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0, PyVar _1)
         {
             PyDeque &self = _CAST(PyDeque &, _0);
             i64 index = CAST(i64, _1);
@@ -76,7 +76,7 @@ namespace pkpy
         });
         // sets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1, PyObject* _2)
+        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0, PyVar _1, PyVar _2)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
             i64 index = CAST(i64, _1);
@@ -85,7 +85,7 @@ namespace pkpy
         });
         // erases the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator
-        vm->bind__delitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        vm->bind__delitem__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0, PyVar _1)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
             i64 index = CAST(i64, _1);
@@ -93,19 +93,19 @@ namespace pkpy
             self.dequeItems.erase(self.dequeItems.begin() + index);
         });
 
-        vm->bind__len__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        vm->bind__len__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0)
         {
             PyDeque &self = _CAST(PyDeque&, _0);
             return (i64)self.dequeItems.size();
         });
 
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0)
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0)
         {
             PyDeque &self = _CAST(PyDeque &, _0);
             return vm->new_user_object<PyDequeIter>(_0, self.dequeItems.begin(), self.dequeItems.end());
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0) -> Str
+        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0) -> Str
         {
             if(vm->_repr_recursion_set.count(_0)) return "[...]";
             const PyDeque &self = _CAST(PyDeque&, _0);
@@ -123,7 +123,7 @@ namespace pkpy
         });
 
         // enables comparison between two deques, == and != are supported
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM *vm, PyObject* _0, PyObject* _1)
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM *vm, PyVar _0, PyVar _1)
         {
             const PyDeque &self = _CAST(PyDeque&, _0);
             if(!vm->is_user_type<PyDeque>(_0)) return vm->NotImplemented;
@@ -444,7 +444,7 @@ namespace pkpy
     /// @param back if true, pop from the back of the deque
     /// @param item if front and back is not set, remove the first occurrence of item from the deque
     /// @param vm is needed for the py_eq
-    /// @return PyObject* if front or back is set, this is a pop operation and we return a PyObject*, if front and back are not set, this is a remove operation and we return the removed item or nullptr
+    /// @return PyVar if front or back is set, this is a pop operation and we return a PyVar, if front and back are not set, this is a remove operation and we return the removed item or nullptr
     PyObject *PyDeque::popObj(bool front, bool back, PyObject *item, VM *vm)
     {
         // error handling
@@ -452,7 +452,7 @@ namespace pkpy
             throw std::runtime_error("both front and back are set"); // this should never happen
         if (front || back)
         {
-            // front or back is set, we don't care about item, this is a pop operation and we return a PyObject*
+            // front or back is set, we don't care about item, this is a pop operation and we return a PyVar
             if (this->dequeItems.empty())
                 throw std::runtime_error("pop from an empty deque"); // shouldn't happen
             PyObject *obj;

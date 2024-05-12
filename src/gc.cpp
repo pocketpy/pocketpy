@@ -3,8 +3,8 @@
 namespace pkpy{
 
     int ManagedHeap::sweep(){
-        std::vector<PyObject*> alive;
-        for(PyObject* obj: gen){
+        std::vector<PyVar> alive;
+        for(PyVar obj: gen){
             if(obj->gc_marked){
                 obj->gc_marked = false;
                 alive.push_back(obj);
@@ -19,7 +19,7 @@ namespace pkpy{
         }
 
         // clear _no_gc marked flag
-        for(PyObject* obj: _no_gc) obj->gc_marked = false;
+        for(PyVar obj: _no_gc) obj->gc_marked = false;
 
         int freed = gen.size() - alive.size();
 
@@ -55,8 +55,8 @@ namespace pkpy{
     }
 
     ManagedHeap::~ManagedHeap(){
-        for(PyObject* obj: _no_gc) { obj->~PyObject(); pool64_dealloc(obj); }
-        for(PyObject* obj: gen) { obj->~PyObject(); pool64_dealloc(obj); }
+        for(PyVar obj: _no_gc) { obj->~PyObject(); pool64_dealloc(obj); }
+        for(PyVar obj: gen) { obj->~PyObject(); pool64_dealloc(obj); }
     }
 
 

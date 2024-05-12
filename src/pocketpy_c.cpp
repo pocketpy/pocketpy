@@ -25,9 +25,9 @@ static int count_extra_elements(VM* vm, int n){
     return vm->s_data._sp - vm->__c.s_view.top().end();
 }
 
-static PyObject* stack_item(VM* vm, int index){
-    PyObject** begin;
-    PyObject** end = vm->s_data.end();
+static PyVar stack_item(VM* vm, int index){
+    PyVar* begin;
+    PyVar* end = vm->s_data.end();
     if(vm->callstack.empty()){
         begin = vm->s_data.begin();
     }else{
@@ -48,7 +48,7 @@ static PyObject* stack_item(VM* vm, int index){
         vm->__c.error = e.self(); \
         return false; \
     } catch(const std::exception& re){ \
-        PyObject* e_t = vm->_t(vm->tp_exception); \
+        PyVar e_t = vm->_t(vm->tp_exception); \
         vm->__c.error = vm->call(e_t, VAR(re.what())); \
         return false; \
     }
@@ -64,7 +64,7 @@ void pkpy_delete_vm(pkpy_vm* vm){
 bool pkpy_exec(pkpy_vm* vm_handle, const char* source) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res;
+    PyVar res;
     PK_PROTECTED(
         CodeObject_ code = vm->compile(source, "main.py", EXEC_MODE);
         res = vm->_exec(code, vm->_main);
@@ -75,8 +75,8 @@ bool pkpy_exec(pkpy_vm* vm_handle, const char* source) {
 bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, int mode, const char* module){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res;
-    PyObject* mod;
+    PyVar res;
+    PyVar mod;
     PK_PROTECTED(
         if(module == nullptr){
             mod = vm->_main;
@@ -98,7 +98,7 @@ bool pkpy_dup(pkpy_vm* vm_handle, int n){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, n);
+        PyVar item = stack_item(vm, n);
         vm->s_data.push(item);
     )
     return true;
@@ -150,7 +150,7 @@ int pkpy_stack_size(pkpy_vm* vm_handle){
 bool pkpy_push_int(pkpy_vm* vm_handle, int value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res;
+    PyVar res;
     PK_PROTECTED(
         // int may overflow so we should protect it
         res = py_var(vm, value);
@@ -171,7 +171,7 @@ bool pkpy_to_int(pkpy_vm* vm_handle, int i, int* out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         *out = py_cast<int>(vm, item);
     )
     return true;
@@ -181,7 +181,7 @@ bool pkpy_to_int(pkpy_vm* vm_handle, int i, int* out){
 bool pkpy_push_float(pkpy_vm* vm_handle, double value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res = py_var(vm, value);
+    PyVar res = py_var(vm, value);
     vm->s_data.push(res);
     return true;
 }
@@ -190,7 +190,7 @@ bool pkpy_is_float(pkpy_vm* vm_handle, int i){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         return is_float(item);
     )
 }
@@ -199,7 +199,7 @@ bool pkpy_to_float(pkpy_vm* vm_handle, int i, double* out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         *out = py_cast<double>(vm, item);
     )
     return true;
@@ -217,7 +217,7 @@ bool pkpy_is_bool(pkpy_vm* vm_handle, int i){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         return is_type(item, vm->tp_bool);
     )
 }
@@ -226,7 +226,7 @@ bool pkpy_to_bool(pkpy_vm* vm_handle, int i, bool* out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         *out = py_cast<bool>(vm, item);
     )
     return true;
@@ -236,7 +236,7 @@ bool pkpy_to_bool(pkpy_vm* vm_handle, int i, bool* out){
 bool pkpy_push_string(pkpy_vm* vm_handle, pkpy_CString value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res = py_var(vm, value);
+    PyVar res = py_var(vm, value);
     vm->s_data.push(res);
     return true;
 }
@@ -245,7 +245,7 @@ bool pkpy_is_string(pkpy_vm* vm_handle, int i){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         return is_type(item, vm->tp_str);
     )
 }
@@ -254,7 +254,7 @@ bool pkpy_to_string(pkpy_vm* vm_handle, int i, pkpy_CString* out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         const Str& s = py_cast<Str&>(vm, item);
         *out = s.c_str();
     )
@@ -265,7 +265,7 @@ bool pkpy_to_string(pkpy_vm* vm_handle, int i, pkpy_CString* out){
 bool pkpy_push_voidp(pkpy_vm* vm_handle, void* value) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* res = py_var(vm, value);
+    PyVar res = py_var(vm, value);
     vm->s_data.push(res);
     return true;
 }
@@ -274,7 +274,7 @@ bool pkpy_is_voidp(pkpy_vm* vm_handle, int i){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         return vm->is_user_type<VoidP>(item);
     )
 }
@@ -283,7 +283,7 @@ bool pkpy_to_voidp(pkpy_vm* vm_handle, int i, void** out){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         VoidP& vp = py_cast<VoidP&>(vm, item);
         *out = vp.ptr;
     )
@@ -302,7 +302,7 @@ bool pkpy_is_none(pkpy_vm* vm_handle, int i){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* item = stack_item(vm, i);
+        PyVar item = stack_item(vm, i);
         return item == vm->None;
     )
 }
@@ -331,9 +331,9 @@ struct TempViewPopper{
 };
 
 // function
-static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
+static PyVar c_function_wrapper(VM* vm, ArgsView args) {
     pkpy_CFunction f = lambda_get_userdata<pkpy_CFunction>(args.begin());
-    PyObject** curr_sp = vm->s_data._sp;
+    PyVar* curr_sp = vm->s_data._sp;
 
     vm->__c.s_view.push(args);
     TempViewPopper _tvp(vm);
@@ -342,7 +342,7 @@ static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
 
     // propagate_if_errored
     if (vm->__c.error != nullptr){
-        PyObject* e_obj = PK_OBJ_GET(Exception, vm->__c.error).self();
+        PyVar e_obj = PK_OBJ_GET(Exception, vm->__c.error).self();
         vm->__c.error = nullptr;
         vm->_error(e_obj);
         return nullptr;
@@ -357,7 +357,7 @@ static PyObject* c_function_wrapper(VM* vm, ArgsView args) {
 bool pkpy_push_function(pkpy_vm* vm_handle, const char* sig, pkpy_CFunction f) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* f_obj;
+    PyVar f_obj;
     PK_PROTECTED(
         f_obj = vm->bind(nullptr, sig, c_function_wrapper, f);
     )
@@ -370,7 +370,7 @@ bool pkpy_push_module(pkpy_vm* vm_handle, const char* name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyObject* module = vm->new_module(name);
+        PyVar module = vm->new_module(name);
         vm->s_data.push(module);
     )
     return true;
@@ -381,7 +381,7 @@ bool pkpy_getattr(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    PyObject* o = vm->s_data.top();
+    PyVar o = vm->s_data.top();
     o = vm->getattr(o, StrName(name), false);
     if(o == nullptr) return false;
     vm->s_data.top() = o;
@@ -392,8 +392,8 @@ bool pkpy_setattr(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(2)
-    PyObject* a = vm->s_data.top();
-    PyObject* val = vm->s_data.second();
+    PyVar a = vm->s_data.top();
+    PyVar val = vm->s_data.second();
     PK_PROTECTED(
         vm->setattr(a, StrName(name), val);
     )
@@ -405,7 +405,7 @@ bool pkpy_setattr(pkpy_vm* vm_handle, pkpy_CName name) {
 bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* o = vm->_main->attr().try_get(StrName(name));
+    PyVar o = vm->_main->attr().try_get(StrName(name));
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(StrName(name));
         if (o == nullptr) return false;
@@ -427,7 +427,7 @@ bool pkpy_eval(pkpy_vm* vm_handle, const char* source) {
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         CodeObject_ co = vm->compile(source, "<eval>", EVAL_MODE);
-        PyObject* ret = vm->_exec(co, vm->_main);
+        PyVar ret = vm->_exec(co, vm->_main);
         vm->s_data.push(ret);
     )
     return true;
@@ -439,9 +439,9 @@ bool pkpy_unpack_sequence(pkpy_vm* vm_handle, int n) {
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
     auto _lock = vm->heap.gc_scope_lock();
     PK_PROTECTED(
-        PyObject* _0 = vm->py_iter(vm->s_data.popx());
+        PyVar _0 = vm->py_iter(vm->s_data.popx());
         for(int i=0; i<n; i++){
-            PyObject* _1 = vm->py_next(_0);
+            PyVar _1 = vm->py_next(_0);
             if(_1 == vm->StopIteration) vm->ValueError("not enough values to unpack");
             vm->s_data.push(_1);
         }
@@ -454,8 +454,8 @@ bool pkpy_get_unbound_method(pkpy_vm* vm_handle, pkpy_CName name){
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    PyObject* o = vm->s_data.top();
-    PyObject* self;
+    PyVar o = vm->s_data.top();
+    PyVar self;
     PK_PROTECTED(
         o = vm->get_unbound_method(o, StrName(name), &self);
     )
@@ -469,7 +469,7 @@ bool pkpy_py_repr(pkpy_vm* vm_handle) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    PyObject* item = vm->s_data.top();
+    PyVar item = vm->s_data.top();
     PK_PROTECTED(
         item = VAR(vm->py_repr(item));
     )
@@ -481,7 +481,7 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
-    PyObject* item = vm->s_data.top();
+    PyVar item = vm->s_data.top();
     PK_PROTECTED(
         item = VAR(vm->py_str(item));
     )
@@ -493,7 +493,7 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
-    PyObject* e_t = vm->_main->attr().try_get_likely_found(name);
+    PyVar e_t = vm->_main->attr().try_get_likely_found(name);
     if(e_t == nullptr){
         e_t = vm->builtins->attr().try_get_likely_found(name);
         if(e_t == nullptr){
@@ -533,7 +533,7 @@ bool pkpy_vectorcall(pkpy_vm* vm_handle, int argc) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_ASSERT_N_EXTRA_ELEMENTS(argc + 2)
-    PyObject* res;
+    PyVar res;
     PK_PROTECTED(
         res = vm->vectorcall(argc);
     )
