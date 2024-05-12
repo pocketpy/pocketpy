@@ -1,6 +1,6 @@
 ---
 icon: dot
-label: 'Interop with PyObject'
+label: 'Interop with PyVar'
 order: 90
 ---
 

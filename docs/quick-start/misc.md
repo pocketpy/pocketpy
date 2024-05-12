@@ -12,7 +12,7 @@ Sometimes you need to use the following code to prevent the gc from collecting o
 auto _lock = vm->heap.gc_scope_lock();
 ```
 
-The scope lock is required if you create a PyObject and then try to run python-level bytecodes.
+The scope lock is required if you create a PyVar and then try to run python-level bytecodes.
 
 For example, you create a temporary object on the stack and then call `vm->py_next`.
 
@@ -20,8 +20,8 @@ For example, you create a temporary object on the stack and then call `vm->py_ne
 void some_func(VM* vm){
     PyVar obj = VAR(List(5));
     // unsafe
-    PyObject iter = vm->py_iter(obj);
-    PyObject next = vm->py_next(iter);
+    PyVar iter = vm->py_iter(obj);
+    PyVar next = vm->py_next(iter);
 }
 ```
 
@@ -35,7 +35,7 @@ void some_func(VM* vm){
     PyVar obj = VAR(List(5));
     // safe
     auto _lock = vm->heap.gc_scope_lock();
-    PyObject iter = vm->py_iter(obj);
-    PyObject next = vm->py_next(iter);
+    PyVar iter = vm->py_iter(obj);
+    PyVar next = vm->py_next(iter);
 }
 ```

@@ -1139,7 +1139,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PK_UNREACHABLE()
 }
 
-void VM::delattr(PyObject *_0, StrName _name){
+void VM::delattr(PyVar _0, StrName _name){
     const PyTypeInfo* ti = _tp_info(_0);
     if(ti->m__delattr__ && ti->m__delattr__(this, _0, _name)) return;
     if(is_tagged(_0) || !_0->is_attr_valid()) TypeError("cannot delete attribute");
@@ -1564,7 +1564,7 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyVar)){
 #undef BIND_BINARY_SPECIAL
 
 
-void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
+void Dict::_probe_0(PyVar key, bool &ok, int &i) const{
     ok = false;
     i64 hash = vm->py_hash(key);
     i = hash & _mask;
@@ -1579,7 +1579,7 @@ void Dict::_probe_0(PyObject *key, bool &ok, int &i) const{
     }
 }
 
-void Dict::_probe_1(PyObject *key, bool &ok, int &i) const{
+void Dict::_probe_1(PyVar key, bool &ok, int &i) const{
     ok = false;
     i = vm->py_hash(key) & _mask;
     while(_items[i].first != nullptr) {

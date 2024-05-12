@@ -85,7 +85,7 @@ namespace pkpy{
         });
     }
 
-    void DictItemsIter::_register(VM *vm, PyObject *mod, PyObject *type){
+    void DictItemsIter::_register(VM *vm, PyVar mod, PyVar type){
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> unsigned{
             DictItemsIter& self = _CAST(DictItemsIter&, _0);
