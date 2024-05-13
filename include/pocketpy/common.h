@@ -103,7 +103,6 @@ struct Type {
 	bool operator==(Type other) const { return this->index == other.index; }
 	bool operator!=(Type other) const { return this->index != other.index; }
     constexpr operator int() const { return index; }
-    constexpr operator bool() const { return index != 0; }
 };
 
 #define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })

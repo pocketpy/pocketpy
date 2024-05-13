@@ -494,7 +494,7 @@ PyVar py_var(VM* vm, __T&& value){
         return from_void_p(vm, (void*)value);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
-        if constexpr(const_type){
+        if constexpr((bool)const_type){
             if constexpr(is_sso_v<T>) return PyVar(const_type, value);
             else return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
         }
@@ -550,7 +550,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         return to_void_p<T>(vm, obj);
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
-        if constexpr(const_type){
+        if constexpr((bool)const_type){
             if constexpr(with_check){
                 if constexpr(std::is_same_v<T, Exception>){
                     // Exception is `subclass_enabled`
