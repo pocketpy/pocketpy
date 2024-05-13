@@ -31,11 +31,11 @@ assert str(static_test_vec2_int).startswith('vec2(')
 # test copy
 element_name_list = [e for e in dir(test_vec2) if e in 'x,y,z,w']
 element_value_list = [getattr(test_vec2, attr) for attr in element_name_list]
-copy_element_value_list = [getattr(test_vec2.copy(), attr) for attr in element_name_list]
+copy_element_value_list = [getattr(test_vec2, attr) for attr in element_name_list]
 assert element_value_list == copy_element_value_list
 
 # test rotate
-test_vec2_copy = test_vec2.copy()
+test_vec2_copy = test_vec2
 radians = random.uniform(-10*math.pi, 10*math.pi)
 test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
 assert test_vec2.rotate(radians) == test_vec2_copy
@@ -61,7 +61,7 @@ assert str(static_test_vec3_int).startswith('vec3(')
 # test copy
 element_name_list = ['x', 'y', 'z']
 element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
-copy_element_value_list = [getattr(test_vec3.copy(), attr) for attr in element_name_list]
+copy_element_value_list = [getattr(test_vec3, attr) for attr in element_name_list]
 assert element_value_list == copy_element_value_list
 
 # test vec4--------------------------------------------------------------------
@@ -377,8 +377,8 @@ def trs(t, radian, s):
                 [0.0, 0.0, 1.0]]
     return elements
 
-test_vec2_copy = test_vec2.copy()
-test_vec2_2_copy = test_vec2_2.copy()
+test_vec2_copy = test_vec2
+test_vec2_2_copy = test_vec2_2
 
 test_vec2_list = [test_vec2_copy.x, test_vec2_copy.y]
 test_vec2_2_list = [test_vec2_2_copy.x, test_vec2_2_copy.y]
@@ -427,13 +427,13 @@ temp_vec2 = test_mat_copy._s()
 # test transform_point
 test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
-test_vec2_copy = test_vec2.copy()
+test_vec2_copy = test_vec2
 temp_vec2 = test_mat_copy.transform_point(test_vec2_copy)
 
 # test transform_vector
 test_mat_copy = test_mat.copy()
 test_mat_copy = test_mat.copy()
-test_vec2_copy = test_vec2.copy()
+test_vec2_copy = test_vec2
 temp_vec2 = test_mat_copy.transform_vector(test_vec2_copy)
 
 # test inverse_transform_point
@@ -442,11 +442,11 @@ assert test_mat_copy.inverse_transform_point(test_vec2_copy) == test_mat_copy.in
 assert test_mat_copy.inverse_transform_vector(test_vec2_copy) == test_mat_copy.inverse().transform_vector(test_vec2_copy)
 
 import c
-a = vec2(1, 2)
+a = vec4(1, 2, 3, 4)
 b = a.tostruct()
-assert a.sizeof() == 8
-assert b.sizeof() == 8
-assert vec2.fromstruct(b) == a
+assert a.sizeof() == 16
+assert b.sizeof() == 16
+assert vec4.fromstruct(b) == a
 
 val = vec2.angle(vec2(-1, 0), vec2(0, -1))
 assert 1.57 < val < 1.58

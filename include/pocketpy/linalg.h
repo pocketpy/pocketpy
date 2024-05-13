@@ -21,6 +21,7 @@ struct Vec2{
     Vec2 operator-() const { return Vec2(-x, -y); }
     bool operator==(const Vec2& v) const { return isclose(x, v.x) && isclose(y, v.y); }
     bool operator!=(const Vec2& v) const { return !isclose(x, v.x) || !isclose(y, v.y); }
+    float operator[](int i) const { return (&x)[i]; }
     float dot(const Vec2& v) const { return x * v.x + y * v.y; }
     float cross(const Vec2& v) const { return x * v.y - y * v.x; }
     float length() const { return sqrtf(x * x + y * y); }
@@ -44,6 +45,7 @@ struct Vec3{
     Vec3 operator-() const { return Vec3(-x, -y, -z); }
     bool operator==(const Vec3& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z); }
     bool operator!=(const Vec3& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z); }
+    float operator[](int i) const { return (&x)[i]; }
     float dot(const Vec3& v) const { return x * v.x + y * v.y + z * v.z; }
     Vec3 cross(const Vec3& v) const { return Vec3(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x); }
     float length() const { return sqrtf(x * x + y * y + z * z); }
@@ -66,6 +68,7 @@ struct Vec4{
     Vec4 operator-() const { return Vec4(-x, -y, -z, -w); }
     bool operator==(const Vec4& v) const { return isclose(x, v.x) && isclose(y, v.y) && isclose(z, v.z) && isclose(w, v.w); }
     bool operator!=(const Vec4& v) const { return !isclose(x, v.x) || !isclose(y, v.y) || !isclose(z, v.z) || !isclose(w, v.w); }
+    float operator[](int i) const { return (&x)[i]; }
     float dot(const Vec4& v) const { return x * v.x + y * v.y + z * v.z + w * v.w; }
     float length() const { return sqrtf(x * x + y * y + z * z + w * w); }
     float length_squared() const { return x * x + y * y + z * z + w * w; }

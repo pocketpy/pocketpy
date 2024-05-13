@@ -164,11 +164,12 @@ template<typename Ret, typename T, typename... Params>
 /*****************************************************************/
 #define PY_STRUCT_LIKE(wT)   \
         static_assert(std::is_trivially_copyable<wT>::value);                       \
+        static_assert(!is_sso_v<wT>);                                               \
         type->attr().set("__struct__", vm->True);                                   \
         vm->bind_func(type, "fromstruct", 1, [](VM* vm, ArgsView args){             \
             Struct& s = CAST(Struct&, args[0]);                                     \
             if(s.size != sizeof(wT)) vm->ValueError("size mismatch");               \
-            PyVar obj = vm->new_user_object<wT>();                              \
+            PyVar obj = vm->new_user_object<wT>();                                  \
             memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                              \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \

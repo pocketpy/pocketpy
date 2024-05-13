@@ -31,21 +31,21 @@ namespace pkpy{
 
 #define BIND_VEC_MUL_OP(D)                                                                  \
         vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){     \
-            Vec##D& self = _CAST(Vec##D&, _0);                                          \
+            Vec##D self = _CAST(Vec##D, _0);                                          \
             if(vm->is_user_type<Vec##D>(_1)){                                               \
-                Vec##D& other = _CAST(Vec##D&, _1);                                     \
+                Vec##D other = _CAST(Vec##D, _1);                                     \
                 return VAR(self * other);                                                   \
             }                                                                               \
             f64 other = CAST(f64, _1);                                                      \
             return VAR(self * other);                                                       \
         });                                                                                 \
         vm->bind_func(type, "__rmul__", 2, [](VM* vm, ArgsView args){                     \
-            Vec##D& self = _CAST(Vec##D&, args[0]);                                     \
+            Vec##D self = _CAST(Vec##D, args[0]);                                     \
             f64 other = CAST(f64, args[1]);                                                 \
             return VAR(self * other);                                                       \
         });                                                                                 \
         vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){ \
-            Vec##D& self = _CAST(Vec##D&, _0);                                          \
+            Vec##D self = _CAST(Vec##D, _0);                                          \
             f64 other = CAST(f64, _1);                                                      \
             return VAR(self / other);                                                       \
         });
@@ -57,6 +57,20 @@ namespace pkpy{
             if(i < 0 || i >= D) vm->IndexError("index out of range"); \
             float* v = &self.x; \
             return VAR(v[i]); \
+        });
+
+#define BIND_SSO_VEC_COMMON(D)  \
+        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){  \
+            Vec##D self = _CAST(Vec##D, _0);                                    \
+            if(!vm->is_user_type<Vec##D>(_1)) return vm->NotImplemented;        \
+            Vec##D other = _CAST(Vec##D, _1);                                   \
+            return VAR(self == other);                                          \
+        });                                                                     \
+        vm->bind_func(type, "__getnewargs__", 1, [](VM* vm, ArgsView args){     \
+            Vec##D self = _CAST(Vec##D, args[0]);                               \
+            Tuple t(D);                                                         \
+            for(int i=0; i<D; i++) t[i] = VAR(self[i]);                         \
+            return VAR(std::move(t));                                           \
         });
 
 // https://github.com/Unity-Technologies/UnityCsReference/blob/master/Runtime/Export/Math/Vector2.cs#L289
@@ -115,8 +129,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 }
 
     void Vec2::_register(VM* vm, PyVar mod, PyVar type){
-        PY_STRUCT_LIKE(Vec2)
-
         type->attr().set("ZERO", vm->new_user_object<Vec2>(0, 0));
         type->attr().set("ONE", vm->new_user_object<Vec2>(1, 1));
 
@@ -176,11 +188,10 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FUNCTION_0(2, length_squared)
         BIND_VEC_FUNCTION_0(2, normalize)
         BIND_VEC_GETITEM(2)
+        BIND_SSO_VEC_COMMON(2)
     }
 
     void Vec3::_register(VM* vm, PyVar mod, PyVar type){
-        PY_STRUCT_LIKE(Vec3)
-
         type->attr().set("ZERO", vm->new_user_object<Vec3>(0, 0, 0));
         type->attr().set("ONE", vm->new_user_object<Vec3>(1, 1, 1));
 
@@ -212,6 +223,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FUNCTION_0(3, length_squared)
         BIND_VEC_FUNCTION_0(3, normalize)
         BIND_VEC_GETITEM(3)
+        BIND_SSO_VEC_COMMON(3)
     }
 
     void Vec4::_register(VM* vm, PyVar mod, PyVar type){
@@ -539,14 +551,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 void add_module_linalg(VM* vm){
     PyVar linalg = vm->new_module("linalg");
 
-    vm->register_user_class<Vec2>(linalg, "vec2", VM::tp_object, true);
-    vm->register_user_class<Vec3>(linalg, "vec3", VM::tp_object, true);
+    vm->register_user_class<Vec2>(linalg, "vec2", VM::tp_object);
+    vm->register_user_class<Vec3>(linalg, "vec3", VM::tp_object);
     vm->register_user_class<Vec4>(linalg, "vec4", VM::tp_object, true);
     vm->register_user_class<Mat3x3>(linalg, "mat3x3", VM::tp_object, true);
 
     PyVar float_p = vm->_modules["c"]->attr("float_p");
-    linalg->attr().set("vec2_p", float_p);
-    linalg->attr().set("vec3_p", float_p);
     linalg->attr().set("vec4_p", float_p);
     linalg->attr().set("mat3x3_p", float_p);
 }
