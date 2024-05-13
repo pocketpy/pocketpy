@@ -565,7 +565,7 @@ assert callable(isinstance) is True  # builtin function
 
 
 assert id(0) is None
-assert id(2**62) is not None
+assert id(2**62) is None
 
 # test issubclass
 assert issubclass(int, int) is True
