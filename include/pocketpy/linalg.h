@@ -124,9 +124,9 @@ struct Mat3x3{
 void add_module_linalg(VM* vm);
 
 static_assert(sizeof(Py_<Mat3x3>) <= 64);
-static_assert(std::is_trivially_copyable<Vec2>::value);
-static_assert(std::is_trivially_copyable<Vec3>::value);
-static_assert(std::is_trivially_copyable<Vec4>::value);
-static_assert(std::is_trivially_copyable<Mat3x3>::value);
+static_assert(is_pod_v<Vec2>);
+static_assert(is_pod_v<Vec3>);
+static_assert(is_pod_v<Vec4>);
+static_assert(is_pod_v<Mat3x3>);
 
 }   // namespace pkpy

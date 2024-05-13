@@ -129,9 +129,6 @@ struct Type {
 template<typename T>
 inline constexpr bool is_pod_v = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>;
 
-template<typename T>
-inline constexpr bool is_sso_v = is_pod_v<T> && sizeof(T) <= sizeof(void*);
-
 #define PK_ALWAYS_PASS_BY_POINTER(T) \
 	T(const T&) = delete; \
 	T& operator=(const T&) = delete; \

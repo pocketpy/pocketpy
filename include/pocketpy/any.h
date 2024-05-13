@@ -5,6 +5,9 @@
 
 namespace pkpy {
 
+template<typename T>
+inline constexpr bool is_any_sso_v = is_pod_v<T> && sizeof(T) <= sizeof(void*);
+
 struct any{
     struct vtable{
         const std::type_index type;
@@ -13,7 +16,7 @@ struct any{
         template<typename T>
         inline static vtable* get(){
             static_assert(std::is_same_v<T, std::decay_t<T>>);
-            if constexpr (is_sso_v<T>){
+            if constexpr (is_any_sso_v<T>){
                 static vtable vt{ typeid(T), nullptr };
                 return &vt;
             }else{
@@ -35,7 +38,7 @@ struct any{
         using U = std::decay_t<T>;
         static_assert(!std::is_same_v<U, any>, "any(const any&) is deleted");
         static_assert(sizeof(U) == sizeof(T));
-        if constexpr (is_sso_v<U>){
+        if constexpr (is_any_sso_v<U>){
             memcpy(&data, &value, sizeof(U));
         }else{
             data = new U(std::forward<T>(value));
@@ -58,7 +61,7 @@ struct any{
     template<typename T>
     T& _cast() const noexcept{
         static_assert(std::is_same_v<T, std::decay_t<T>>);
-        if constexpr (is_sso_v<T>){
+        if constexpr (is_any_sso_v<T>){
             return *((T*)(&data));
         }else{
             return *(static_cast<T*>(data));
