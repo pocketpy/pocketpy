@@ -55,8 +55,7 @@ namespace pkpy{
             Vec##D self = _CAST(Vec##D, obj); \
             i64 i = CAST(i64, index); \
             if(i < 0 || i >= D) vm->IndexError("index out of range"); \
-            float* v = &self.x; \
-            return VAR(v[i]); \
+            return VAR(self[i]); \
         });
 
 #define BIND_SSO_VEC_COMMON(D)  \
@@ -175,8 +174,8 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_user_object<Vec2>(self.rotate(radian));
         });
 
-        PY_FIELD(Vec2, "x", x)
-        PY_FIELD(Vec2, "y", y)
+        PY_READONLY_FIELD(Vec2, "x", x)
+        PY_READONLY_FIELD(Vec2, "y", y)
 
         BIND_VEC_VEC_OP(2, __add__, +)
         BIND_VEC_VEC_OP(2, __sub__, -)
@@ -210,9 +209,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return ss.str();
         });
 
-        PY_FIELD(Vec3, "x", x)
-        PY_FIELD(Vec3, "y", y)
-        PY_FIELD(Vec3, "z", z)
+        PY_READONLY_FIELD(Vec3, "x", x)
+        PY_READONLY_FIELD(Vec3, "y", y)
+        PY_READONLY_FIELD(Vec3, "z", z)
 
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
