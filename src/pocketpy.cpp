@@ -104,19 +104,19 @@ void __init_builtins(VM* _vm) {
             StrName _1 = _type_name(vm, type);
             vm->TypeError("super(): " + _0.escape() + " is not an instance of " + _1.escape());
         }
-        return vm->heap.gcnew<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
+        return vm->new_object<Super>(vm->tp_super, self_arg, vm->_all_types[type].base);
     });
 
     _vm->bind_func(_vm->builtins, "staticmethod", 1, [](VM* vm, ArgsView args) {
         PyVar func = args[0];
         vm->check_type(func, vm->tp_function);
-        return vm->heap.gcnew<StaticMethod>(vm->tp_staticmethod, args[0]);
+        return vm->new_object<StaticMethod>(vm->tp_staticmethod, args[0]);
     });
 
     _vm->bind_func(_vm->builtins, "classmethod", 1, [](VM* vm, ArgsView args) {
         PyVar func = args[0];
         vm->check_type(func, vm->tp_function);
-        return vm->heap.gcnew<ClassMethod>(vm->tp_classmethod, args[0]);
+        return vm->new_object<ClassMethod>(vm->tp_classmethod, args[0]);
     });
 
     _vm->bind_func(_vm->builtins, "isinstance", 2, [](VM* vm, ArgsView args) {
@@ -343,7 +343,7 @@ void __init_builtins(VM* _vm) {
     _vm->__cached_object_new = _vm->bind_func(VM::tp_object, __new__, 1, [](VM* vm, ArgsView args) {
         vm->check_type(args[0], vm->tp_type);
         Type t = PK_OBJ_GET(Type, args[0]);
-        return vm->heap.gcnew<DummyInstance>(t);
+        return vm->new_object<DummyInstance>(t);
     });
 
     // tp_type
@@ -1264,7 +1264,7 @@ void __init_builtins(VM* _vm) {
     // tp_dict
     _vm->bind_func(VM::tp_dict, __new__, -1, [](VM* vm, ArgsView args){
         Type cls_t = PK_OBJ_GET(Type, args[0]);
-        return vm->heap.gcnew<Dict>(cls_t, vm);
+        return vm->new_object<Dict>(cls_t, vm);
     });
 
     _vm->bind_func(VM::tp_dict, __init__, -1, [](VM* vm, ArgsView args){
@@ -1464,7 +1464,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_exception, __new__, -1, [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = _type_name(vm, cls);
-        PyVar e_obj = vm->heap.gcnew<Exception>(cls, cls_name);
+        PyVar e_obj = vm->new_object<Exception>(cls, cls_name);
         e_obj->_enable_instance_dict();
         PK_OBJ_GET(Exception, e_obj)._self = e_obj;
         return e_obj;

@@ -388,7 +388,13 @@ public:
 
     template<typename T, typename ...Args>
     PyVar new_user_object(Args&&... args){
-        return heap.gcnew<T>(_tp_user<T>(), std::forward<Args>(args)...);
+        return new_object<T>(_tp_user<T>(), std::forward<Args>(args)...);
+    }
+
+    template<typename T, typename ...Args>
+    PyVar new_object(Type type, Args&&... args){
+        if constexpr(is_sso_v<T>) return PyVar(type, T(std::forward<Args>(args)...));
+        else return heap.gcnew<T>(type, std::forward<Args>(args)...);
     }
 #endif
 
@@ -489,11 +495,13 @@ PyVar py_var(VM* vm, __T&& value){
     }else{
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
         if constexpr(const_type){
-            return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
+            if constexpr(is_sso_v<T>) return PyVar(const_type, value);
+            else return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
         }
     }
     Type type = vm->_find_type_in_cxx_typeid_map<T>();
-    return vm->heap.gcnew<T>(type, std::forward<__T>(value));
+    if constexpr(is_sso_v<T>) return PyVar(type, value);
+    else return vm->heap.gcnew<T>(type, std::forward<__T>(value));
 }
 
 template<typename __T, bool with_check>

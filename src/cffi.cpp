@@ -6,7 +6,7 @@ namespace pkpy{
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
-            return vm->heap.gcnew<VoidP>(cls, reinterpret_cast<void*>(addr));
+            return vm->new_object<VoidP>(cls, reinterpret_cast<void*>(addr));
         });
 
         vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
@@ -41,7 +41,7 @@ namespace pkpy{
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             int size = CAST(int, args[1]);
-            return vm->heap.gcnew<Struct>(cls, size);
+            return vm->new_object<Struct>(cls, size);
         });
 
         vm->bind_func(type, "hex", 1, [](VM* vm, ArgsView args){
@@ -91,7 +91,7 @@ namespace pkpy{
 
         vm->bind_func(type, "copy", 1, [](VM* vm, ArgsView args){
             const Struct& self = _CAST(Struct&, args[0]);
-            return vm->heap.gcnew<Struct>(vm->_tp(args[0]), self);
+            return vm->new_object<Struct>(vm->_tp(args[0]), self);
         });
 
         vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar lhs, PyVar rhs){
@@ -173,7 +173,7 @@ void add_module_c(VM* vm){
         if(!vm->issubclass(cls, vm->_tp_user<VoidP>())){
             vm->ValueError("expected a subclass of void_p");
         }
-        return vm->heap.gcnew<VoidP>(cls, ptr.ptr);
+        return vm->new_object<VoidP>(cls, ptr.ptr);
     });
 
     vm->bind(mod, "p_value(ptr: 'void_p') -> int", [](VM* vm, ArgsView args){
@@ -184,7 +184,7 @@ void add_module_c(VM* vm){
     vm->bind(mod, "pp_deref(ptr: Tp) -> Tp", [](VM* vm, ArgsView args){
         VoidP& ptr = CAST(VoidP&, args[0]);
         void* value = *reinterpret_cast<void**>(ptr.ptr);
-        return vm->heap.gcnew<VoidP>(args[0].type, value);
+        return vm->new_object<VoidP>(args[0].type, value);
     });
 
     PyVar type;
@@ -226,13 +226,13 @@ void add_module_c(VM* vm){
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
-        return vm->heap.gcnew<VoidP>(lhs.type, target + offset);        \
+        return vm->new_object<VoidP>(lhs.type, target + offset);        \
     });                                                                 \
     vm->bind__sub__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
         VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
-        return vm->heap.gcnew<VoidP>(lhs.type, target - offset);        \
+        return vm->new_object<VoidP>(lhs.type, target - offset);        \
     });                                                                 \
     vm->bind__repr__(type_t, [](VM* vm, PyVar obj) -> Str{          \
         VoidP& self = _CAST(VoidP&, obj);                               \

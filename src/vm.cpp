@@ -541,7 +541,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
         }else{
             check_compatible_type(globals, VM::tp_dict);
             // make a temporary object and copy globals into it
-            globals_obj = heap.gcnew<DummyInstance>(VM::tp_object);
+            globals_obj = new_object<DummyInstance>(VM::tp_object);
             globals_obj->_enable_instance_dict();
             globals_dict = &PK_OBJ_GET(Dict, globals);
             globals_dict->apply([&](PyVar k, PyVar v){
@@ -1095,7 +1095,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PK_DEBUG_ASSERT(new_f != nullptr && !method_call);
         if(new_f == __cached_object_new) {
             // fast path for object.__new__
-            obj = vm->heap.gcnew<DummyInstance>(PK_OBJ_GET(Type, callable));
+            obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
         }else{
             PUSH(new_f);
             PUSH(PY_NULL);
@@ -1361,9 +1361,9 @@ PyVar VM::bind_property(PyVar obj, const char* name, NativeFuncC fget, NativeFun
     PK_ASSERT(is_type(obj, tp_type));
     std::string_view name_sv(name); int pos = name_sv.find(':');
     if(pos > 0) name_sv = name_sv.substr(0, pos);
-    PyVar _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1);
+    PyVar _0 = new_object<NativeFunc>(tp_native_func, fget, 1);
     PyVar _1 = vm->None;
-    if(fset != nullptr) _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2);
+    if(fset != nullptr) _1 = new_object<NativeFunc>(tp_native_func, fset, 2);
     PyVar prop = VAR(Property(_0, _1));
     obj->attr().set(StrName(name_sv), prop);
     return prop;

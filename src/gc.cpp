@@ -5,6 +5,7 @@ namespace pkpy{
     int ManagedHeap::sweep(){
         std::vector<PyVar> alive;
         for(PyVar obj: gen){
+            PK_DEBUG_ASSERT(!obj.is_sso)
             if(obj->gc_marked){
                 obj->gc_marked = false;
                 alive.push_back(obj);

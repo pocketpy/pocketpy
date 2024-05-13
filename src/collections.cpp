@@ -63,7 +63,7 @@ namespace pkpy
                      Type cls_t = PK_OBJ_GET(Type, args[0]);
                      PyVar iterable = args[1];
                      PyVar maxlen = args[2];
-                     return vm->heap.gcnew<PyDeque>(cls_t, vm, iterable, maxlen);
+                     return vm->new_object<PyDeque>(cls_t, vm, iterable, maxlen);
                  });
         // gets the item at the given index, if index is negative, it will be treated as index + len(deque)
         // if the index is out of range, IndexError will be thrown --> required for [] operator

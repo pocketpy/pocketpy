@@ -27,8 +27,6 @@ struct Vec2{
     float length_squared() const { return x * x + y * y; }
     Vec2 normalize() const { float l = length(); return Vec2(x / l, y / l); }
     Vec2 rotate(float radian) const { float cr = cosf(radian), sr = sinf(radian); return Vec2(x * cr - y * sr, x * sr + y * cr); }
-    NoReturn normalize_() { float l = length(); x /= l; y /= l; return {}; }
-    NoReturn copy_(const Vec2& v) { x = v.x; y = v.y; return {}; }
 };
 
 struct Vec3{
@@ -51,8 +49,6 @@ struct Vec3{
     float length() const { return sqrtf(x * x + y * y + z * z); }
     float length_squared() const { return x * x + y * y + z * z; }
     Vec3 normalize() const { float l = length(); return Vec3(x / l, y / l, z / l); }
-    NoReturn normalize_() { float l = length(); x /= l; y /= l; z /= l; return {}; }
-    NoReturn copy_(const Vec3& v) { x = v.x; y = v.y; z = v.z; return {}; }
 };
 
 struct Vec4{
@@ -128,5 +124,10 @@ static_assert(is_pod_v<Vec2>);
 static_assert(is_pod_v<Vec3>);
 static_assert(is_pod_v<Vec4>);
 static_assert(is_pod_v<Mat3x3>);
+
+template<>
+inline constexpr bool is_sso_v<Vec2> = true;
+template<>
+inline constexpr bool is_sso_v<Vec3> = true;
 
 }   // namespace pkpy

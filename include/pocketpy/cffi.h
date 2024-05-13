@@ -38,8 +38,8 @@ struct VoidP{
 #define POINTER_VAR(Tp, NAME)    \
     inline PyVar py_var(VM* vm, Tp val){    \
         const static std::pair<StrName, StrName> P("c", NAME);      \
-        PyVar type = vm->_modules[P.first]->attr(P.second);     \
-        return vm->heap.gcnew<VoidP>(PK_OBJ_GET(Type, type), val);  \
+        PyVar type = vm->_modules[P.first]->attr(P.second);         \
+        return vm->new_object<VoidP>(PK_OBJ_GET(Type, type), val);  \
     }
 
 POINTER_VAR(char*, "char_p")

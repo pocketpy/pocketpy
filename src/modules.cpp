@@ -71,8 +71,8 @@ void add_module_sys(VM* vm){
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
 
-    PyVar stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
-    PyVar stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyVar stdout_ = vm->new_object<DummyInstance>(vm->tp_object);
+    PyVar stderr_ = vm->new_object<DummyInstance>(vm->tp_object);
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 
@@ -287,7 +287,7 @@ struct LineProfilerW{
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
-            return vm->heap.gcnew<LineProfilerW>(cls);
+            return vm->new_object<LineProfilerW>(cls);
         });
 
         vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){

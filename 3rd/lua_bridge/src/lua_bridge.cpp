@@ -82,8 +82,7 @@ struct PyLuaTable: PyLuaObject{
 
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             lua_newtable(_L);    // push an empty table onto the stack
-            PyVar obj = vm->heap.gcnew<PyLuaTable>(PK_OBJ_GET(Type, args[0]));
-            return obj;
+            return vm->new_object<PyLuaTable>(PK_OBJ_GET(Type, args[0]));
         });
 
         vm->bind__len__(t, [](VM* vm, PyVar obj){

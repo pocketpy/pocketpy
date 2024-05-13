@@ -56,7 +56,7 @@ unsigned char* _default_import_handler(const char* name, int* out_size){
 void FileIO::_register(VM* vm, PyVar mod, PyVar type){
     vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
-        return vm->heap.gcnew<FileIO>(cls, vm,
+        return vm->new_object<FileIO>(cls, vm,
                     py_cast<Str&>(vm, args[1]),
                     py_cast<Str&>(vm, args[2]));
     });
@@ -154,7 +154,7 @@ void add_module_io(VM* vm){
 
 void add_module_os(VM* vm){
     PyVar mod = vm->new_module("os");
-    PyVar path_obj = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyVar path_obj = vm->new_object<DummyInstance>(vm->tp_object);
     mod->attr().set("path", path_obj);
     
     // Working directory is shared by all VMs!!

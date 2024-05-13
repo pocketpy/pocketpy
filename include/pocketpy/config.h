@@ -33,7 +33,7 @@
 /*************** debug settings ***************/
 
 // Enable this may help you find bugs
-#define PK_DEBUG_EXTRA_CHECK        0
+#define PK_DEBUG_EXTRA_CHECK        1
 
 // Do not edit the following settings unless you know what you are doing
 #define PK_DEBUG_CEVAL_STEP         0

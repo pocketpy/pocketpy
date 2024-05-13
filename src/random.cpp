@@ -136,7 +136,7 @@ struct Random{
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
-            return vm->heap.gcnew<Random>(cls);
+            return vm->new_object<Random>(cls);
         });
 
         vm->bind_func(type, "seed", 2, [](VM* vm, ArgsView args) {

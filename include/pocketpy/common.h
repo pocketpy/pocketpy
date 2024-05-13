@@ -185,6 +185,7 @@ struct PyVar final{
     // SSO initialized (is_sso = true)
     template<typename T>
     PyVar(Type type, T value): type(type), is_sso(true), flags(0) {
+        static_assert(sizeof(T) <= sizeof(_bytes), "SSO size exceeded");
         as<T>() = value;
     }
 
@@ -221,6 +222,12 @@ struct PyVar final{
 };
 
 static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);
+
+// by default, only `int` and `float` enable SSO
+// users can specialize this template to enable SSO for other types
+// SSO types cannot have instance dict
+template<typename T>
+inline constexpr bool is_sso_v = is_integral_v<T> || is_floating_point_v<T>;
 
 } // namespace pkpy
 

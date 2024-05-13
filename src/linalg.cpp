@@ -123,7 +123,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
-            return vm->heap.gcnew<Vec2>(PK_OBJ_GET(Type, args[0]), x, y);
+            return vm->new_object<Vec2>(PK_OBJ_GET(Type, args[0]), x, y);
         });
 
         // @staticmethod
@@ -163,13 +163,6 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_user_object<Vec2>(self.rotate(radian));
         });
 
-        vm->bind_func(type, "rotate_", 2, [](VM* vm, ArgsView args){
-            Vec2& self = _CAST(Vec2&, args[0]);
-            float radian = CAST(f64, args[1]);
-            self = self.rotate(radian);
-            return vm->None;
-        });
-
         PY_FIELD(Vec2, "x", x)
         PY_FIELD(Vec2, "y", y)
 
@@ -179,11 +172,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
         BIND_VEC_FUNCTION_1(2, dot)
         BIND_VEC_FUNCTION_1(2, cross)
-        BIND_VEC_FUNCTION_1(2, copy_)
         BIND_VEC_FUNCTION_0(2, length)
         BIND_VEC_FUNCTION_0(2, length_squared)
         BIND_VEC_FUNCTION_0(2, normalize)
-        BIND_VEC_FUNCTION_0(2, normalize_)
         BIND_VEC_GETITEM(2)
     }
 
@@ -197,7 +188,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             float x = CAST_F(args[1]);
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
-            return vm->heap.gcnew<Vec3>(PK_OBJ_GET(Type, args[0]), x, y, z);
+            return vm->new_object<Vec3>(PK_OBJ_GET(Type, args[0]), x, y, z);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
@@ -217,11 +208,9 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_MUL_OP(3)
         BIND_VEC_FUNCTION_1(3, dot)
         BIND_VEC_FUNCTION_1(3, cross)
-        BIND_VEC_FUNCTION_1(3, copy_)
         BIND_VEC_FUNCTION_0(3, length)
         BIND_VEC_FUNCTION_0(3, length_squared)
         BIND_VEC_FUNCTION_0(3, normalize)
-        BIND_VEC_FUNCTION_0(3, normalize_)
         BIND_VEC_GETITEM(3)
     }
 
@@ -236,7 +225,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             float y = CAST_F(args[2]);
             float z = CAST_F(args[3]);
             float w = CAST_F(args[4]);
-            return vm->heap.gcnew<Vec4>(PK_OBJ_GET(Type, args[0]), x, y, z, w);
+            return vm->new_object<Vec4>(PK_OBJ_GET(Type, args[0]), x, y, z, w);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
@@ -274,18 +263,18 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         PY_STRUCT_LIKE(Mat3x3)
 
         vm->bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
-            if(args.size() == 1+0) return vm->heap.gcnew<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
+            if(args.size() == 1+0) return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
             if(args.size() == 1+1){
                 const List& list = CAST(List&, args[1]);
                 if(list.size() != 9) vm->TypeError("Mat3x3.__new__ takes a list of 9 floats");
                 Mat3x3 mat;
                 for(int i=0; i<9; i++) mat.v[i] = CAST_F(list[i]);
-                return vm->heap.gcnew<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
+                return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
             }
             if(args.size() == 1+9){
                 Mat3x3 mat;
                 for(int i=0; i<9; i++) mat.v[i] = CAST_F(args[1+i]);
-                return vm->heap.gcnew<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
+                return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
             }
             vm->TypeError(_S("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size()-1));
             return vm->None;

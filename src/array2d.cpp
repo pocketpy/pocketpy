@@ -39,7 +39,7 @@ struct Array2d{
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind(type, "__new__(cls, *args, **kwargs)", [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
-            return vm->heap.gcnew<Array2d>(cls);
+            return vm->new_object<Array2d>(cls);
         });
 
         vm->bind(type, "__init__(self, n_cols: int, n_rows: int, default=None)", [](VM* vm, ArgsView args){

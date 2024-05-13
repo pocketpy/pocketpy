@@ -97,7 +97,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
         F T::*field = lambda_get_userdata<F T::*>(args.begin());
         return VAR(self.*field);
     };
-    PyVar _0 = heap.gcnew<NativeFunc>(tp_native_func, fget, 1, field);
+    PyVar _0 = new_object<NativeFunc>(tp_native_func, fget, 1, field);
     PyVar _1 = vm->None;
     if constexpr (!ReadOnly){
         auto fset = [](VM* vm, ArgsView args){
@@ -106,7 +106,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
             self.*field = py_cast<F>(vm, args[1]);
             return vm->None;
         };
-        _1 = heap.gcnew<NativeFunc>(tp_native_func, fset, 2, field);
+        _1 = new_object<NativeFunc>(tp_native_func, fset, 2, field);
     }
     PyVar prop = VAR(Property(_0, _1));
     obj->attr().set(StrName(name_sv), prop);
