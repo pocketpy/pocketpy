@@ -1,15 +1,5 @@
 from functools import cache
 
-@cache
-@cache
-@cache
-def fib(n):
-    if n < 2:
-        return n
-    return fib(n-1) + fib(n-2)
-
-assert fib(32) == 2178309
-
 class A:
     def __init__(self, x):
         self._x = x
@@ -37,3 +27,15 @@ b = B()
 assert b.x == 1
 b.x = 2
 assert b.x == 2
+
+
+@cache
+@cache
+@cache
+def fib(n):
+    # print(f'fib({n})')
+    if n < 2:
+        return n
+    return fib(n-1) + fib(n-2)
+
+assert fib(32) == 2178309

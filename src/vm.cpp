@@ -1132,7 +1132,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         p1[-(ARGC + 2)] = call_f;
         p1[-(ARGC + 1)] = self;
         // [call_f, self, args..., kwargs...]
-        return vectorcall(ARGC, KWARGC, false);
+        return vectorcall(ARGC, KWARGC, op_call);
     }
     TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
     PK_UNREACHABLE()
