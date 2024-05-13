@@ -49,7 +49,7 @@ struct ArgsView{
     PyVar* end() const { return _end; }
     int size() const { return _end - _begin; }
     bool empty() const { return _begin == _end; }
-    PyVar& operator[](int i) const { return _begin[i]; }
+    PyVar operator[](int i) const { return _begin[i]; }
 
     List to_list() const;
     Tuple to_tuple() const;

@@ -141,7 +141,8 @@ template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)
 
 template <typename T>
 struct Py_ final: PyObject {
-    static_assert(!std::is_reference_v<T>, "T must not be a reference type. Are you using `PK_OBJ_GET(T&, ...)`?");
+    static_assert(!std::is_reference_v<T>);
+    static_assert(!is_sso_v<T>);
 
     T _value;
     void _obj_gc_mark() override {
@@ -165,11 +166,14 @@ StrName _type_name(VM* vm, Type type);
 template<typename T> T to_void_p(VM*, PyVar);
 PyVar from_void_p(VM*, void*);
 
+
 template<typename T>
-T& PyVar::obj_get(){
-    static_assert(!std::is_reference_v<T>);
-    if(is_sso) return as<T>();
-    return ((Py_<T>*)(get()))->_value;
+obj_get_t<T> PyVar::obj_get(){
+    if constexpr(is_sso_v<T>){
+        return as<T>();
+    }else{
+        return ((Py_<T>*)(get()))->_value;
+    }
 }
 
 #define PK_OBJ_GET(T, obj) (obj).obj_get<T>()

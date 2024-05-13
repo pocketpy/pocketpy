@@ -562,8 +562,10 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
             return PK_OBJ_GET(T, obj);
         }
     }
-    Type type = vm->_find_type_in_cxx_typeid_map<T>();
-    if constexpr(with_check) vm->check_compatible_type(obj, type);
+    if constexpr(with_check){
+        Type type = vm->_find_type_in_cxx_typeid_map<T>();
+        vm->check_compatible_type(obj, type);
+    }
     return PK_OBJ_GET(T, obj);
 }
 

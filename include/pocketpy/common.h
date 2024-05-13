@@ -166,7 +166,16 @@ inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_
 inline const char* PK_HEX_TABLE = "0123456789abcdef";
 
 struct PyObject;
-// using PyVar = PyObject *;
+
+// by default, only `int` and `float` enable SSO
+// users can specialize this template to enable SSO for other types
+// SSO types cannot have instance dict
+template<typename T>
+inline constexpr bool is_sso_v = is_integral_v<T> || is_floating_point_v<T>;
+
+// make a obj_get_t<T> for a given type T, if is_sso_v<T> is true, return T, else return T&
+template<typename T>
+using obj_get_t = std::conditional_t<is_sso_v<T>, T, T&>;
 
 struct PyVar final{
     Type type;
@@ -224,16 +233,10 @@ struct PyVar final{
     i64 hash() const { return _1; }
 
     template<typename T>
-    T& obj_get();
+    obj_get_t<T> obj_get();
 };
 
 static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);
-
-// by default, only `int` and `float` enable SSO
-// users can specialize this template to enable SSO for other types
-// SSO types cannot have instance dict
-template<typename T>
-inline constexpr bool is_sso_v = is_integral_v<T> || is_floating_point_v<T>;
 
 } // namespace pkpy
 

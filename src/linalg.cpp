@@ -34,8 +34,6 @@ namespace pkpy{
             Vec##D self = _CAST(Vec##D, _0);                                                \
             if(vm->is_user_type<Vec##D>(_1)){                                               \
                 Vec##D other = _CAST(Vec##D, _1);                                           \
-                std::cout << self.x << ',' << self.y << '\n';\
-                std::cout << other.x << ',' << other.y << '\n';\
                 return VAR(self * other);                                                   \
             }                                                                               \
             f64 other = CAST(f64, _1);                                                      \
