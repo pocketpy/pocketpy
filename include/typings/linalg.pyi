@@ -44,7 +44,7 @@ class vec2:
         Returns a new value that is closer to the target and current velocity.
         """
 
-class vec3(_StructLike['vec3']):
+class vec3:
     x: float
     y: float
     z: float
