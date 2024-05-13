@@ -38,8 +38,11 @@ class vec2(_StructLike['vec2']):
         """
 
     @staticmethod
-    def smooth_damp(current: vec2, target: vec2, current_velocity_: vec2, smooth_time: float, max_speed: float, delta_time: float) -> vec2:
-        ...
+    def smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> tuple[vec2, vec2]:
+        """Smoothly changes a vector towards a desired goal over time.
+
+        Returns a new value that is closer to the target and current velocity.
+        """
 
 class vec3(_StructLike['vec3']):
     x: float

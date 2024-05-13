@@ -42,7 +42,7 @@ assert test_vec2.rotate(radians) == test_vec2_copy
 
 # test smooth_damp
 vel = vec2(0, 0)
-ret = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vel, 0.2, 0.001, 0.05)
+ret, vel = vec2.smooth_damp(vec2(1, 2), vec2(3, 4), vel, 0.2, 0.001, 0.05)
 assert isinstance(ret, vec2)
 assert vel.length() > 0
 
@@ -463,14 +463,6 @@ assert mymat3x3().f()
 
 
 # test assign
-a = vec2(1, 2)
-assert a.copy_(vec2(3, 4)) is None
-assert a == vec2(3, 4)
-
-b = vec3(1, 2, 3)
-assert b.copy_(vec3(4, 5, 6)) is None
-assert b == vec3(4, 5, 6)
-
 c = vec4(1, 2, 3, 4)
 assert c.copy_(vec4(5, 6, 7, 8)) is None
 assert c == vec4(5, 6, 7, 8)

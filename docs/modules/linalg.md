@@ -47,7 +47,7 @@ class vec2(_StructLike['vec2']):
         """
 
     @staticmethod
-    def smooth_damp(current: vec2, target: vec2, current_velocity_: vec2, smooth_time: float, max_speed: float, delta_time: float) -> vec2:
+    def smooth_damp(current: vec2, target: vec2, current_velocity: vec2, smooth_time: float, max_speed: float, delta_time: float) -> tuple[vec2, vec2]:
         ...
 
 class vec3(_StructLike['vec3']):
