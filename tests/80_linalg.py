@@ -38,7 +38,8 @@ assert element_value_list == copy_element_value_list
 test_vec2_copy = test_vec2
 radians = random.uniform(-10*math.pi, 10*math.pi)
 test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
-assert test_vec2.rotate(radians) == test_vec2_copy
+res = test_vec2.rotate(radians)
+assert (res == test_vec2_copy), res
 
 # test smooth_damp
 vel = vec2(0, 0)
