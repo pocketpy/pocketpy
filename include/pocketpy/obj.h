@@ -166,7 +166,7 @@ template<typename T> T to_void_p(VM*, PyVar);
 PyVar from_void_p(VM*, void*);
 
 
-#define PK_OBJ_GET(T, obj) (obj.is_sso ? obj.as<T>() : (((Py_<T>*)(obj.get()))->_value))
+#define PK_OBJ_GET(T, obj) (is_sso_v<T> ? obj.as<T>() : (((Py_<T>*)(obj.get()))->_value))
 
 #define PK_OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc_marked) {                          \

@@ -582,7 +582,7 @@ PyVar VM::register_user_class(PyVar mod, StrName name, RegisterFunc _register, T
         if constexpr(std::is_default_constructible_v<T>) {
             bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
                 Type cls_t = PK_OBJ_GET(Type, args[0]);
-                return vm->heap.gcnew<T>(cls_t);
+                return vm->new_object<T>(cls_t);
             });
         }else{
             bind_func(type, __new__, -1, PK_ACTION(vm->NotImplementedError()));

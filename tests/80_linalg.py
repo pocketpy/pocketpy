@@ -3,6 +3,10 @@ import random
 import sys
 import math
 
+a = vec2(1, 2)
+assert a.x == 1
+assert a.y == 2
+
 assert repr(math) == "<module 'math'>"
 
 # 出于对精度转换的考虑,在本测试中具体将采用str(floating_num)[:6]来比较两个浮点数是否相等
