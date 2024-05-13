@@ -269,7 +269,6 @@ struct MemoryPool{
 
 static MemoryPool<64> pool64;
 static MemoryPool<128> pool128;
-static MemoryPool<256> pool256;
 
 void* pool64_alloc(size_t size) noexcept { return pool64.alloc(size); }
 void pool64_dealloc(void* p) noexcept { pool64.dealloc(p); }
@@ -277,17 +276,12 @@ void pool64_dealloc(void* p) noexcept { pool64.dealloc(p); }
 void* pool128_alloc(size_t size) noexcept { return pool128.alloc(size); }
 void pool128_dealloc(void* p) noexcept { pool128.dealloc(p); }
 
-void* pool256_alloc(size_t size) noexcept { return pool256.alloc(size); }
-void pool256_dealloc(void* p) noexcept { pool256.dealloc(p); }
-
 void pools_shrink_to_fit() noexcept {
     pool64.shrink_to_fit();
     pool128.shrink_to_fit();
-    pool256.shrink_to_fit();
 }
 
 std::string pool64_info() noexcept { return pool64.info(); }
 std::string pool128_info() noexcept { return pool128.info(); }
-std::string pool256_info() noexcept { return pool256.info(); }
 
 }
