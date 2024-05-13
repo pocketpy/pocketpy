@@ -165,8 +165,14 @@ StrName _type_name(VM* vm, Type type);
 template<typename T> T to_void_p(VM*, PyVar);
 PyVar from_void_p(VM*, void*);
 
+template<typename T>
+T& PyVar::obj_get(){
+    static_assert(!std::is_reference_v<T>);
+    if(is_sso) return as<T>();
+    return ((Py_<T>*)(get()))->_value;
+}
 
-#define PK_OBJ_GET(T, obj) (is_sso_v<T> ? obj.as<T>() : (((Py_<T>*)(obj.get()))->_value))
+#define PK_OBJ_GET(T, obj) (obj).obj_get<T>()
 
 #define PK_OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc_marked) {                          \

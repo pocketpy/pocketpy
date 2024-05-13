@@ -219,6 +219,9 @@ struct PyVar final{
     }
 
     i64 hash() const { return as<i64>(); }
+
+    template<typename T>
+    T& obj_get();
 };
 
 static_assert(sizeof(PyVar) == 16 && is_pod_v<PyVar>);
