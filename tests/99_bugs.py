@@ -101,3 +101,6 @@ assert ret == {chr(i+97): i+1 for i in range(26)}
 
 assert g(**ret) == ret
 assert g(**g(**ret)) == ret
+
+# other known issues:
+# 1. d.extend(d) if d is deque

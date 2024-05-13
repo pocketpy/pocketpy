@@ -64,10 +64,9 @@ class A:
     def get(self):
         return self.x
 
-
-    print('ans_1:', add(1, 2))
-    print('ans_2:', A('abc').get())
-    exit()
+print('ans_1:', add(1, 2))
+print('ans_2:', A('abc').get())
+exit()
 ''', capture_output=True, check=True)
         res.check_returncode()
         assert 'ans_1: 3' in res.stdout, res.stdout
