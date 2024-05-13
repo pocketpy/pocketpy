@@ -3,8 +3,8 @@ import random
 import sys
 import math
 
-a = vec2(1, 2)
-assert a.x == 1
+a = vec2(1.5, 2)
+assert a.x == 1.5
 assert a.y == 2
 
 assert repr(math) == "<module 'math'>"

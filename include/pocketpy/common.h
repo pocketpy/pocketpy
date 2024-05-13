@@ -172,27 +172,30 @@ struct PyVar final{
     Type type;
     bool is_sso;
     uint8_t flags;
-    char _bytes[12];
+    // 12 bytes SSO
+    int _0; i64 _1;
 
     // uninitialized
     PyVar() = default;
     // zero initialized
-    PyVar(std::nullptr_t): type(), is_sso(false), flags(0), _bytes{0} { }
+    constexpr PyVar(std::nullptr_t): type(0), is_sso(false), flags(0), _0(0), _1(0) {}
     // PyObject* initialized (is_sso = false)
-    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0) {
-        as<PyObject*>() = p;
-    }
+    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0), _1(reinterpret_cast<i64>(p)) {}
     // SSO initialized (is_sso = true)
     template<typename T>
     PyVar(Type type, T value): type(type), is_sso(true), flags(0) {
-        static_assert(sizeof(T) <= sizeof(_bytes), "SSO size exceeded");
+        static_assert(sizeof(T) <= 12, "SSO size exceeded");
         as<T>() = value;
     }
 
     template<typename T>
-    T& as() const {
+    T& as(){
         static_assert(!std::is_reference_v<T>);
-        return *(T*)_bytes;
+        if constexpr(sizeof(T) <= 8){
+            return reinterpret_cast<T&>(_1);
+        }else{
+            return reinterpret_cast<T&>(_0);
+        }
     }
 
     explicit operator bool() const { return (bool)type; }
@@ -210,15 +213,15 @@ struct PyVar final{
 
     PyObject* get() const {
         PK_DEBUG_ASSERT(!is_sso)
-        return as<PyObject*>();
+        return reinterpret_cast<PyObject*>(_1);
     }
 
     PyObject* operator->() const {
         PK_DEBUG_ASSERT(!is_sso)
-        return as<PyObject*>();
+        return reinterpret_cast<PyObject*>(_1);
     }
 
-    i64 hash() const { return as<i64>(); }
+    i64 hash() const { return _1; }
 
     template<typename T>
     T& obj_get();
