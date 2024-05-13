@@ -6,7 +6,7 @@ Tuple::Tuple(int n){
     if(n <= INLINED_SIZE){
         this->_args = _inlined;
     }else{
-        this->_args = (PyVar*)pool128_alloc(n * sizeof(void*));
+        this->_args = (PyVar*)pool128_alloc(n * sizeof(PyVar));
     }
     this->_size = n;
 }
