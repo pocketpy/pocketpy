@@ -9,7 +9,7 @@ assert repr(math) == "<module 'math'>"
 
 # test vec2--------------------------------------------------------------------
 
-def rotated_vec2(vec_2, radians: float):
+def rotated_vec2(vec_2: vec2, radians: float):
     cos_theta = math.cos(radians)
     sin_theta = math.sin(radians)
     new_x = vec_2.x * cos_theta - vec_2.y * sin_theta
@@ -39,7 +39,7 @@ test_vec2_copy = test_vec2
 radians = random.uniform(-10*math.pi, 10*math.pi)
 test_vec2_copy = rotated_vec2(test_vec2_copy, radians)
 res = test_vec2.rotate(radians)
-assert (res == test_vec2_copy), res
+assert (res == test_vec2_copy), (res, test_vec2_copy, test_vec2)
 
 # test smooth_damp
 vel = vec2(0, 0)
