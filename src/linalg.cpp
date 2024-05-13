@@ -30,17 +30,19 @@ namespace pkpy{
         });
 
 #define BIND_VEC_MUL_OP(D)                                                                  \
-        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){     \
-            Vec##D self = _CAST(Vec##D, _0);                                          \
+        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){             \
+            Vec##D self = _CAST(Vec##D, _0);                                                \
             if(vm->is_user_type<Vec##D>(_1)){                                               \
-                Vec##D other = _CAST(Vec##D, _1);                                     \
+                Vec##D other = _CAST(Vec##D, _1);                                           \
+                std::cout << self.x << ',' << self.y << '\n';\
+                std::cout << other.x << ',' << other.y << '\n';\
                 return VAR(self * other);                                                   \
             }                                                                               \
             f64 other = CAST(f64, _1);                                                      \
             return VAR(self * other);                                                       \
         });                                                                                 \
-        vm->bind_func(type, "__rmul__", 2, [](VM* vm, ArgsView args){                     \
-            Vec##D self = _CAST(Vec##D, args[0]);                                     \
+        vm->bind_func(type, "__rmul__", 2, [](VM* vm, ArgsView args){                       \
+            Vec##D self = _CAST(Vec##D, args[0]);                                           \
             f64 other = CAST(f64, args[1]);                                                 \
             return VAR(self * other);                                                       \
         });                                                                                 \
