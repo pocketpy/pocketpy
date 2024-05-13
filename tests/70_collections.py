@@ -306,7 +306,7 @@ except TypeError:
     pass
 d.extend('bcd')
 assertEqual(list(d), list('abcd'))
-d.extend(d)
+d.extend(d.copy())
 assertEqual(list(d), list('abcdabcd'))
 
 ###### TEST extend_left() ################
@@ -320,7 +320,7 @@ except TypeError:
     pass
 d.extendleft('bcd')
 assertEqual(list(d), list(reversed('abcd')))
-d.extendleft(d)
+d.extendleft(d.copy())
 assertEqual(list(d), list('abcddcba'))
 d = deque()
 d.extendleft(range(1000))
