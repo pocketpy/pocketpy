@@ -20,7 +20,7 @@
 
 // GC min threshold
 #ifndef PK_GC_MIN_THRESHOLD         // can be overridden by cmake
-#define PK_GC_MIN_THRESHOLD         32768
+#define PK_GC_MIN_THRESHOLD         16384
 #endif
 
 // Whether to use `std::function` to do bindings or not
@@ -33,12 +33,12 @@
 /*************** debug settings ***************/
 
 // Enable this may help you find bugs
-#define PK_DEBUG_EXTRA_CHECK        1
+#define PK_DEBUG_EXTRA_CHECK        0
 
 // Do not edit the following settings unless you know what you are doing
 #define PK_DEBUG_CEVAL_STEP         0
-#define PK_DEBUG_MEMORY_POOL        1
-#define PK_DEBUG_NO_MEMORY_POOL     1
+#define PK_DEBUG_MEMORY_POOL        0
+#define PK_DEBUG_NO_MEMORY_POOL     0
 #define PK_DEBUG_NO_AUTO_GC         0
 #define PK_DEBUG_GC_STATS           0
 
