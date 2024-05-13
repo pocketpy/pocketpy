@@ -3,29 +3,29 @@
 namespace pkpy{
 
 #define BIND_VEC_VEC_OP(D, name, op)                                                    \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){  \
-            Vec##D& self = _CAST(Vec##D&, _0);                                      \
-            Vec##D& other = CAST(Vec##D&, _1);                                      \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){          \
+            Vec##D self = _CAST(Vec##D, _0);                                            \
+            Vec##D other = CAST(Vec##D, _1);                                            \
             return VAR(self op other);                                                  \
         });
 
 #define BIND_VEC_FLOAT_OP(D, name, op)  \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){  \
-            Vec##D& self = _CAST(Vec##D&, _0);                                      \
+        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){          \
+            Vec##D self = _CAST(Vec##D, _0);                                            \
             f64 other = CAST(f64, _1);                                                  \
             return VAR(self op other);                                                  \
         });
 
-#define BIND_VEC_FUNCTION_0(D, name)        \
-        vm->bind_func(type, #name, 1, [](VM* vm, ArgsView args){          \
-            Vec##D& self = _CAST(Vec##D&, args[0]);                     \
+#define BIND_VEC_FUNCTION_0(T, name)                                        \
+        vm->bind_func(type, #name, 1, [](VM* vm, ArgsView args){            \
+            T self = _CAST(T, args[0]);                                     \
             return VAR(self.name());                                        \
         });
 
-#define BIND_VEC_FUNCTION_1(D, name)        \
-        vm->bind_func(type, #name, 2, [](VM* vm, ArgsView args){          \
-            Vec##D& self = _CAST(Vec##D&, args[0]);                         \
-            Vec##D& other = CAST(Vec##D&, args[1]);                         \
+#define BIND_VEC_FUNCTION_1(T, name)                                        \
+        vm->bind_func(type, #name, 2, [](VM* vm, ArgsView args){            \
+            T self = _CAST(T, args[0]);                                     \
+            T other = CAST(T, args[1]);                                     \
             return VAR(self.name(other));                                   \
         });
 
@@ -52,7 +52,7 @@ namespace pkpy{
 
 #define BIND_VEC_GETITEM(D) \
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj, PyVar index){ \
-            Vec##D& self = _CAST(Vec##D&, obj); \
+            Vec##D self = _CAST(Vec##D, obj); \
             i64 i = CAST(i64, index); \
             if(i < 0 || i >= D) vm->IndexError("index out of range"); \
             float* v = &self.x; \
@@ -162,7 +162,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         }, {}, BindType::STATICMETHOD);
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
-            Vec2 self = _CAST(Vec2&, obj);
+            Vec2 self = _CAST(Vec2, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "vec2(" << self.x << ", " << self.y << ")";
@@ -170,7 +170,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         });
 
         vm->bind_func(type, "rotate", 2, [](VM* vm, ArgsView args){
-            Vec2 self = _CAST(Vec2&, args[0]);
+            Vec2 self = _CAST(Vec2, args[0]);
             float radian = CAST(f64, args[1]);
             return vm->new_user_object<Vec2>(self.rotate(radian));
         });
@@ -182,11 +182,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_VEC_OP(2, __sub__, -)
         BIND_VEC_MUL_OP(2)
         BIND_VEC_FLOAT_OP(2, __truediv__, /)
-        BIND_VEC_FUNCTION_1(2, dot)
-        BIND_VEC_FUNCTION_1(2, cross)
-        BIND_VEC_FUNCTION_0(2, length)
-        BIND_VEC_FUNCTION_0(2, length_squared)
-        BIND_VEC_FUNCTION_0(2, normalize)
+        BIND_VEC_FUNCTION_1(Vec2, dot)
+        BIND_VEC_FUNCTION_1(Vec2, cross)
+        BIND_VEC_FUNCTION_0(Vec2, length)
+        BIND_VEC_FUNCTION_0(Vec2, length_squared)
+        BIND_VEC_FUNCTION_0(Vec2, normalize)
         BIND_VEC_GETITEM(2)
         BIND_SSO_VEC_COMMON(2)
     }
@@ -203,7 +203,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
-            Vec3 self = _CAST(Vec3&, obj);
+            Vec3 self = _CAST(Vec3, obj);
             SStream ss;
             ss.setprecision(3);
             ss << "vec3(" << self.x << ", " << self.y << ", " << self.z << ")";
@@ -217,11 +217,11 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_VEC_OP(3, __add__, +)
         BIND_VEC_VEC_OP(3, __sub__, -)
         BIND_VEC_MUL_OP(3)
-        BIND_VEC_FUNCTION_1(3, dot)
-        BIND_VEC_FUNCTION_1(3, cross)
-        BIND_VEC_FUNCTION_0(3, length)
-        BIND_VEC_FUNCTION_0(3, length_squared)
-        BIND_VEC_FUNCTION_0(3, normalize)
+        BIND_VEC_FUNCTION_1(Vec3, dot)
+        BIND_VEC_FUNCTION_1(Vec3, cross)
+        BIND_VEC_FUNCTION_0(Vec3, length)
+        BIND_VEC_FUNCTION_0(Vec3, length_squared)
+        BIND_VEC_FUNCTION_0(Vec3, normalize)
         BIND_VEC_GETITEM(3)
         BIND_SSO_VEC_COMMON(3)
     }
@@ -256,12 +256,12 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_VEC_VEC_OP(4, __add__, +)
         BIND_VEC_VEC_OP(4, __sub__, -)
         BIND_VEC_MUL_OP(4)
-        BIND_VEC_FUNCTION_1(4, dot)
-        BIND_VEC_FUNCTION_1(4, copy_)
-        BIND_VEC_FUNCTION_0(4, length)
-        BIND_VEC_FUNCTION_0(4, length_squared)
-        BIND_VEC_FUNCTION_0(4, normalize)
-        BIND_VEC_FUNCTION_0(4, normalize_)
+        BIND_VEC_FUNCTION_1(Vec4&, dot)
+        BIND_VEC_FUNCTION_1(Vec4&, copy_)
+        BIND_VEC_FUNCTION_0(Vec4&, length)
+        BIND_VEC_FUNCTION_0(Vec4&, length_squared)
+        BIND_VEC_FUNCTION_0(Vec4&, normalize)
+        BIND_VEC_FUNCTION_0(Vec4&, normalize_)
         BIND_VEC_GETITEM(4)
     }
 
@@ -384,7 +384,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
                 return vm->new_user_object<Mat3x3>(self.matmul(other));
             }
             if(vm->is_user_type<Vec3>(_1)){
-                const Vec3& other = _CAST(Vec3&, _1);
+                const Vec3 other = _CAST(Vec3, _1);
                 return vm->new_user_object<Vec3>(self.matmul(other));
             }
             return vm->NotImplemented;

@@ -507,8 +507,8 @@ PyVar py_var(VM* vm, __T&& value){
 template<typename __T, bool with_check>
 __T _py_cast__internal(VM* vm, PyVar obj) {
     static_assert(!std::is_rvalue_reference_v<__T>, "rvalue reference is not allowed");
-
     using T = std::decay_t<__T>;
+    static_assert(!(is_sso_v<T> && std::is_reference_v<__T>), "SSO types cannot be reference");
 
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>){
         static_assert(!std::is_reference_v<__T>);
