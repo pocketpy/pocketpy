@@ -46,7 +46,7 @@ struct NativeProxyMethodC final: NativeProxyFuncCBase {
 
     template<typename __Ret, size_t... Is>
     PyVar call(VM* vm, ArgsView args, std::index_sequence<Is...>){
-        T& self = PK_OBJ_GET(T, args[0]);   // use unsafe cast for derived classes
+        obj_get_t<T> self = PK_OBJ_GET(T, args[0]);   // use unsafe cast for derived classes
         if constexpr(std::is_void_v<__Ret>){
             (self.*func)(py_cast<Params>(vm, args[Is+1])...);
             return vm->None;
@@ -93,7 +93,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
     std::string_view name_sv(name); int pos = name_sv.find(':');
     if(pos > 0) name_sv = name_sv.substr(0, pos);
     auto fget = [](VM* vm, ArgsView args) -> PyVar{
-        T& self = PK_OBJ_GET(T, args[0]);
+        obj_get_t<T> self = PK_OBJ_GET(T, args[0]);
         F T::*field = lambda_get_userdata<F T::*>(args.begin());
         return VAR(self.*field);
     };
@@ -101,7 +101,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
     PyVar _1 = vm->None;
     if constexpr (!ReadOnly){
         auto fset = [](VM* vm, ArgsView args){
-            T& self = PK_OBJ_GET(T, args[0]);
+            obj_get_t<T> self = PK_OBJ_GET(T, args[0]);
             F T::*field = lambda_get_userdata<F T::*>(args.begin());
             self.*field = py_cast<F>(vm, args[1]);
             return vm->None;
@@ -198,13 +198,13 @@ template<typename Ret, typename T, typename... Params>
 
 #define PY_POINTER_SETGETITEM(T) \
         vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){     \
-            VoidP& self = PK_OBJ_GET(VoidP, _0);                                        \
+            obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, _0);                                        \
             i64 i = CAST(i64, _1);                                                      \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
             return VAR(tgt[i]);                                                         \
         });                                                                             \
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){   \
-            VoidP& self = PK_OBJ_GET(VoidP, _0);                                                \
+            obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, _0);                                                \
             i64 i = CAST(i64, _1);                                                              \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                            \
             tgt[i] = CAST(T, _2);                                                               \

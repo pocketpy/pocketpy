@@ -10,12 +10,12 @@ namespace pkpy{
         });
 
         vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
-            VoidP& self = PK_OBJ_GET(VoidP, obj);
+            obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
 
         vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
-            VoidP& self = PK_OBJ_GET(VoidP, obj);
+            obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, obj);
             return _S("<void* at ", self.hex(), ">");
         });
 
@@ -199,37 +199,37 @@ void add_module_c(VM* vm){
     mod->attr().set(CNAME "_p", type);                                  \
     type_t = PK_OBJ_GET(Type, type);                                    \
     vm->bind_func(type, "read", 1, [](VM* vm, ArgsView args){         \
-        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);                      \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);                      \
         T* target = (T*)voidp.ptr;                                      \
         return VAR(*target);                                            \
     });                                                                 \
     vm->bind_func(type, "write", 2, [](VM* vm, ArgsView args){        \
-        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);                      \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);                      \
         T val = CAST(T, args[1]);                                       \
         T* target = (T*)voidp.ptr;                                      \
         *target = val;                                                  \
         return vm->None;                                                \
     });                                                                 \
     vm->bind__getitem__(type_t, [](VM* vm, PyVar obj, PyVar index){  \
-        VoidP& voidp = PK_OBJ_GET(VoidP, obj);                               \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, obj);                               \
         i64 offset = CAST(i64, index);                                  \
         T* target = (T*)voidp.ptr;                                      \
         return VAR(target[offset]);                                     \
     });                                                                 \
     vm->bind__setitem__(type_t, [](VM* vm, PyVar obj, PyVar index, PyVar value){   \
-        VoidP& voidp = PK_OBJ_GET(VoidP, obj);                          \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, obj);                          \
         i64 offset = CAST(i64, index);                                  \
         T* target = (T*)voidp.ptr;                                      \
         target[offset] = CAST(T, value);                                \
     });                                                                 \
     vm->bind__add__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
-        VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
         return vm->new_object<VoidP>(lhs.type, target + offset);        \
     });                                                                 \
     vm->bind__sub__(type_t, [](VM* vm, PyVar lhs, PyVar rhs){   \
-        VoidP& voidp = PK_OBJ_GET(VoidP, lhs);                          \
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, lhs);                          \
         i64 offset = CAST(i64, rhs);                                    \
         T* target = (T*)voidp.ptr;                                      \
         return vm->new_object<VoidP>(lhs.type, target - offset);        \
@@ -257,13 +257,13 @@ void add_module_c(VM* vm){
 
     PyVar char_p_t = mod->attr("char_p");
     vm->bind(char_p_t, "read_string(self) -> str", [](VM* vm, ArgsView args){
-        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);
         const char* target = (const char*)voidp.ptr;
         return VAR(target);
     });
 
     vm->bind(char_p_t, "write_string(self, value: str)", [](VM* vm, ArgsView args){
-        VoidP& voidp = PK_OBJ_GET(VoidP, args[0]);
+        obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);
         std::string_view sv = CAST(Str&, args[1]).sv();
         char* target = (char*)voidp.ptr;
         memcpy(target, sv.data(), sv.size());

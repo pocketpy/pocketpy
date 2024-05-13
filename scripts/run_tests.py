@@ -65,6 +65,7 @@ class A:
         return self.x
 
 
+
 print('ans_1:', add(1, 2))
 print('ans_2:', A('abc').get())
 exit()
