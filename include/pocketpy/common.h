@@ -177,6 +177,8 @@ inline constexpr bool is_sso_v = is_integral_v<T> || is_floating_point_v<T>;
 template<typename T>
 using obj_get_t = std::conditional_t<is_sso_v<T>, T, T&>;
 
+struct const_sso_var {};
+
 struct PyVar final{
     Type type;
     bool is_sso;
@@ -186,6 +188,8 @@ struct PyVar final{
 
     // uninitialized
     PyVar() = default;
+    // constexpr initialized
+    constexpr PyVar(const const_sso_var&, Type type, i64 value): type(type), is_sso(true), flags(0), _0(0), _1(value) {}
     // zero initialized
     constexpr PyVar(std::nullptr_t): type(0), is_sso(false), flags(0), _0(0), _1(0) {}
     // PyObject* initialized (is_sso = false)

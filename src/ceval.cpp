@@ -110,14 +110,12 @@ PyVar VM::__run_top_frame(){
 __NEXT_FRAME:
     // cache
     const CodeObject* co = frame->co;
-    const Bytecode* co_codes = co->codes.data();
-
-    Bytecode byte = co_codes[frame->next_bytecode()];
+    Bytecode byte = frame->next_bytecode();
     CEVAL_STEP_CALLBACK();
 
-#define DISPATCH() { byte = co_codes[frame->next_bytecode()]; CEVAL_STEP_CALLBACK(); goto __NEXT_STEP;}
+#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); break;}
 
-__NEXT_STEP:;
+for(;;){
 #if PK_DEBUG_CEVAL_STEP
     __log_s_data();
 #endif
@@ -993,7 +991,7 @@ __NEXT_STEP:;
     } DISPATCH()
     /*****************************************/
     }
-}
+}}
 /**********************************************************************/
             PK_UNREACHABLE()
         }catch(HandledException){

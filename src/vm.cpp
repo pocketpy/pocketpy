@@ -860,15 +860,13 @@ void VM::__init_builtin_types(){
     if(tp_staticmethod != _new_type("staticmethod")) exit(-3);
     if(tp_classmethod != _new_type("classmethod")) exit(-3);
 
+    if(tp_none != _new_type("NoneType")) exit(-3);
+    if(tp_not_implemented != _new_type("NotImplementedType")) exit(-3);
+    if(tp_ellipsis != _new_type("ellipsis")) exit(-3);
+
     // SyntaxError and IndentationError must be created here
     Type tp_syntax_error = _new_type("SyntaxError", tp_exception, true);
     Type tp_indentation_error = _new_type("IndentationError", tp_syntax_error, true);
-
-    this->None = heap._new<Dummy>(_new_type("NoneType"));
-    this->NotImplemented = heap._new<Dummy>(_new_type("NotImplementedType"));
-    this->Ellipsis = heap._new<Dummy>(_new_type("ellipsis"));
-    this->True = heap._new<Dummy>(tp_bool);
-    this->False = heap._new<Dummy>(tp_bool);
     this->StopIteration = _all_types[_new_type("StopIteration", tp_exception)].obj;
 
     this->builtins = new_module("builtins");
@@ -1002,21 +1000,18 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyVar callable = p1[-ARGC-2];
     Type callable_t = _tp(callable);
 
-    int method_call = p0[1] != PY_NULL;
-
     // handle boundmethod, do a patch
     if(callable_t == tp_bound_method){
-        PK_DEBUG_ASSERT(!method_call)
+        PK_DEBUG_ASSERT(p0[1] == PY_NULL)
         BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;      // get unbound method
         callable_t = _tp(callable);
         p1[-(ARGC + 2)] = bm.func;
         p1[-(ARGC + 1)] = bm.self;
-        method_call = 1;
         // [unbound, self, args..., kwargs...]
     }
 
-    ArgsView args(p1 - ARGC - method_call, p1);
+    ArgsView args(p0[1]==PY_NULL ? (p0+2) : (p0+1), p1);
     ArgsView kwargs(p1, s_data._sp);
 
     PyVar* _base = args.begin();
@@ -1092,7 +1087,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         // [type, NULL, args..., kwargs...]
         PyVar new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyVar obj;
-        PK_DEBUG_ASSERT(new_f != nullptr && !method_call);
+        PK_DEBUG_ASSERT(new_f != nullptr && p0[1]==PY_NULL);
         if(new_f == __cached_object_new) {
             // fast path for object.__new__
             obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));

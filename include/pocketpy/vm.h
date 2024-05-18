@@ -142,8 +142,7 @@ public:
         stack_no_copy<ArgsView> s_view;
     } __c;
 
-    PyVar None, True, False, NotImplemented;
-    PyVar StopIteration, Ellipsis;
+    PyVar StopIteration;        // a special Exception class
     PyVar builtins, _main;
 
     // typeid -> Type
@@ -182,6 +181,13 @@ public:
     static constexpr Type tp_super=Type(15), tp_exception=Type(16), tp_bytes=Type(17), tp_mappingproxy=Type(18);
     static constexpr Type tp_dict=Type(19), tp_property=Type(20), tp_star_wrapper=Type(21);
     static constexpr Type tp_staticmethod=Type(22), tp_classmethod=Type(23);
+    static constexpr Type tp_none=Type(24), tp_not_implemented=Type(25), tp_ellipsis=Type(26);
+
+    static constexpr PyVar True{const_sso_var(), tp_bool, 1};
+    static constexpr PyVar False{const_sso_var(), tp_bool, 0};
+    static constexpr PyVar None{const_sso_var(), tp_none, 0};
+    static constexpr PyVar NotImplemented{const_sso_var(), tp_not_implemented, 0};
+    static constexpr PyVar Ellipsis{const_sso_var(), tp_ellipsis, 0};
 
     const bool enable_os;
     VM(bool enable_os=true);
