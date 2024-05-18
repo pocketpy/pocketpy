@@ -999,14 +999,14 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     PyVar* p0 = p1 - ARGC - 2;
     // [callable, <self>, args..., kwargs...]
     //      ^p0                    ^p1      ^_sp
-    PyVar callable = p1[-(ARGC + 2)];
+    PyVar callable = p1[-ARGC-2];
     Type callable_t = _tp(callable);
 
     int method_call = p0[1] != PY_NULL;
 
     // handle boundmethod, do a patch
     if(callable_t == tp_bound_method){
-        if(method_call) PK_FATAL_ERROR();
+        PK_DEBUG_ASSERT(!method_call)
         BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;      // get unbound method
         callable_t = _tp(callable);

@@ -172,6 +172,7 @@ obj_get_t<T> PyVar::obj_get(){
     if constexpr(is_sso_v<T>){
         return as<T>();
     }else{
+        PK_DEBUG_ASSERT(!is_sso)
         return ((Py_<T>*)(_1))->_value;
     }
 }
