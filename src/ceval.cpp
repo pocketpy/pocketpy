@@ -116,7 +116,7 @@ __NEXT_FRAME:
 
 __NEXT_STEP:;
     byte = co_codes[frame->next_bytecode()];
-    CEVAL_STEP_CALLBACK();
+    // CEVAL_STEP_CALLBACK();
 
 #if PK_DEBUG_CEVAL_STEP
     __log_s_data();
