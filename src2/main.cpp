@@ -3,11 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-#if __has_include("pocketpy_c.h")
-    #include "pocketpy_c.h"
-#else
-    #include "pocketpy.h"
-#endif
+#include "pocketpy_c.h"
 
 #ifdef _WIN32
 

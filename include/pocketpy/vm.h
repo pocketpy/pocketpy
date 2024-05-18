@@ -158,6 +158,7 @@ public:
     std::map<std::string_view, CodeObject_> __cached_codes;
     std::map<std::string_view, PyVar> __cached_op_funcs;
     FuncDecl_ __dynamic_func_decl;
+    PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
 #if PK_ENABLE_PROFILER
     LineProfiler* _profiler = nullptr;

@@ -14,6 +14,8 @@ if len(sys.argv) == 2:
 else:
     config = 'Release'
 
+assert config in ['Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel']
+
 os.chdir("build")
 
 code = os.system(f"cmake .. -DPK_USE_CJSON=ON -DPK_ENABLE_OS=ON -DCMAKE_BUILD_TYPE={config}")

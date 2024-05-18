@@ -1020,7 +1020,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView kwargs(p1, s_data._sp);
 
     PyVar* _base = args.begin();
-    PyVar buffer[PK_MAX_CO_VARNAMES];
+    PyVar* buffer = __vectorcall_buffer;
 
     if(callable_t == tp_function){
         /*****************_py_call*****************/
