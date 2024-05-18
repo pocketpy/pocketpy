@@ -107,15 +107,16 @@ PyVar VM::__run_top_frame(){
     if(_ceval_on_step) _ceval_on_step(this, frame, byte);
 #endif
 
-__NEXT_FRAME:
-    // cache
-    const CodeObject* co = frame->co;
-    Bytecode byte = frame->next_bytecode();
-    CEVAL_STEP_CALLBACK();
+#define DISPATCH() goto __NEXT_STEP;
 
-#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); goto __NEXT_STEP; }
+__NEXT_FRAME:
+    const CodeObject* co = frame->co;
+    Bytecode byte;
 
 __NEXT_STEP:;
+    byte = frame->next_bytecode();
+    CEVAL_STEP_CALLBACK();
+
 #if PK_DEBUG_CEVAL_STEP
     __log_s_data();
 #endif
