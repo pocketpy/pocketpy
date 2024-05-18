@@ -103,8 +103,10 @@ PyVar VM::__run_top_frame(){
     if(_profiler) _profiler->_step(callstack.size(), frame);            \
     if(!_next_breakpoint.empty()) { _next_breakpoint._step(this); }
 #else
-#define CEVAL_STEP_CALLBACK() \
-    if(_ceval_on_step) _ceval_on_step(this, frame, byte);
+#define CEVAL_STEP_CALLBACK()   \
+    if(_ceval_on_step){         \
+        if(_ceval_on_step) _ceval_on_step(this, frame, byte);   \
+    }
 #endif
 
 #define DISPATCH() goto __NEXT_STEP;
