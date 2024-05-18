@@ -111,10 +111,11 @@ PyVar VM::__run_top_frame(){
 
 __NEXT_FRAME:
     const CodeObject* co = frame->co;
+    const Bytecode* co_codes = co->codes.data();
     Bytecode byte;
 
 __NEXT_STEP:;
-    byte = frame->next_bytecode();
+    byte = co_codes[frame->next_bytecode()];
     CEVAL_STEP_CALLBACK();
 
 #if PK_DEBUG_CEVAL_STEP

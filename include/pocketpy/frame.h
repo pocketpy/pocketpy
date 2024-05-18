@@ -94,10 +94,10 @@ struct Frame {
     Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
             : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
-    Bytecode next_bytecode() {
+    int next_bytecode() {
         _ip = _next_ip++;
         PK_DEBUG_ASSERT(_ip >= 0 && _ip < co->codes.size());
-        return co->codes[_ip];
+        return _ip;
     }
 
     PyVar* actual_sp_base() const { return _locals.a; }
