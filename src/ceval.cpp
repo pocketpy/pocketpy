@@ -994,7 +994,6 @@ for(;;){
     }
 }}
 /**********************************************************************/
-            PK_UNREACHABLE()
         }catch(HandledException){
             continue;
         }catch(UnhandledException){
