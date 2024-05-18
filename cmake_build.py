@@ -7,7 +7,12 @@ assert os.system("python prebuild.py") == 0
 if not os.path.exists("build"):
     os.mkdir("build")
 
-config = 'Release'
+assert len(sys.argv) <= 2
+
+if len(sys.argv) == 2:
+    config = sys.argv[1]
+else:
+    config = 'Release'
 
 os.chdir("build")
 
