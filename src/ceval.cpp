@@ -113,9 +113,9 @@ __NEXT_FRAME:
     Bytecode byte = frame->next_bytecode();
     CEVAL_STEP_CALLBACK();
 
-#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); break;}
+#define DISPATCH() { byte = frame->next_bytecode(); CEVAL_STEP_CALLBACK(); goto __NEXT_STEP; }
 
-for(;;){
+__NEXT_STEP:;
 #if PK_DEBUG_CEVAL_STEP
     __log_s_data();
 #endif
@@ -992,8 +992,9 @@ for(;;){
     /*****************************************/
     default: PK_UNREACHABLE();
     }
-}}
+}
 /**********************************************************************/
+            PK_UNREACHABLE();
         }catch(HandledException){
             continue;
         }catch(UnhandledException){
