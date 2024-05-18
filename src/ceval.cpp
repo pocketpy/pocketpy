@@ -98,9 +98,9 @@ PyVar VM::__run_top_frame(){
 
 
 #if PK_ENABLE_PROFILER
-#define CEVAL_STEP_CALLBACK() \
-    if(_ceval_on_step) _ceval_on_step(this, frame, byte);   \
-    if(_profiler) _profiler->_step(callstack.size(), frame);        \
+#define CEVAL_STEP_CALLBACK()                                           \
+    if(_ceval_on_step) _ceval_on_step(this, frame, byte);               \
+    if(_profiler) _profiler->_step(callstack.size(), frame);            \
     if(!_next_breakpoint.empty()) { _next_breakpoint._step(this); }
 #else
 #define CEVAL_STEP_CALLBACK() \
@@ -116,7 +116,7 @@ __NEXT_FRAME:
 
 __NEXT_STEP:;
     byte = co_codes[frame->next_bytecode()];
-    // CEVAL_STEP_CALLBACK();
+    CEVAL_STEP_CALLBACK()
 
 #if PK_DEBUG_CEVAL_STEP
     __log_s_data();
