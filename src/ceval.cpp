@@ -113,11 +113,14 @@ PyVar VM::__run_top_frame(){
 
 __NEXT_FRAME:
     const CodeObject* co = frame->co;
+    // TODO: when jit is enabled, co_codes may not be const
     const Bytecode* co_codes = co->codes.data();
     Bytecode byte;
 
-__NEXT_STEP:;
-    byte = co_codes[frame->next_bytecode()];
+__NEXT_STEP:
+    frame->_ip = frame->_next_ip;
+    frame->_next_ip++;
+    byte = co_codes[frame->_ip];
     CEVAL_STEP_CALLBACK()
 
 #if PK_DEBUG_CEVAL_STEP
