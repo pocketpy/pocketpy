@@ -205,7 +205,10 @@ public:
 
     List py_list(PyVar);                                // x -> list(x)
     bool py_callable(PyVar obj);                        // x -> callable(x)
-    bool py_bool(PyVar obj);                            // x -> bool(x)
+    bool py_bool(PyVar obj){                            // x -> bool(x)
+        if(obj.type == tp_bool) return obj._0;
+        return __py_bool_non_trivial(obj);
+    }
     i64 py_hash(PyVar obj);                             // x -> hash(x)
 
     bool py_eq(PyVar lhs, PyVar rhs);                   // (lhs, rhs) -> lhs == rhs
@@ -449,6 +452,7 @@ public:
     void __push_varargs(PyVar _0, PyVar _1, PyVar _2, PyVar _3){ PUSH(_0); PUSH(_1); PUSH(_2); PUSH(_3); }
     PyVar __pack_next_retval(unsigned);
     PyVar __minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key);
+    bool __py_bool_non_trivial(PyVar);
 };
 
 
@@ -504,11 +508,17 @@ PyVar py_var(VM* vm, __T&& value){
         if constexpr((bool)const_type){
             if constexpr(is_sso_v<T>) return PyVar(const_type, value);
             else return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
+        }else{
+            Type type = vm->_find_type_in_cxx_typeid_map<T>();
+            if constexpr(is_sso_v<T>) return PyVar(type, value);
+            else return vm->heap.gcnew<T>(type, std::forward<__T>(value));
         }
     }
-    Type type = vm->_find_type_in_cxx_typeid_map<T>();
-    if constexpr(is_sso_v<T>) return PyVar(type, value);
-    else return vm->heap.gcnew<T>(type, std::forward<__T>(value));
+}
+
+// fast path for bool if py_var<> cannot be inlined
+inline PyVar py_var(VM* vm, bool value){
+    return value ? vm->True : vm->False;
 }
 
 template<typename __T, bool with_check>
@@ -530,18 +540,16 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
             if(obj == vm->True) return true;
             if(obj == vm->False) return false;
             vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
-        }else{
-            return obj == vm->True;
         }
+        return obj == vm->True;
     }else if constexpr(is_integral_v<T>){
         static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check){
             if(is_int(obj)) return (T)obj.as<i64>();
             vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
-        }else{
-            return (T)obj.as<i64>();
         }
+        return (T)obj.as<i64>();
     }else if constexpr(is_floating_point_v<T>){
         static_assert(!std::is_reference_v<__T>);
         // float
@@ -549,6 +557,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         i64 bits;
         if(try_cast_int(obj, &bits)) return (T)bits;
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
+        return 0.0f;
     }else if constexpr(std::is_enum_v<T>){
         static_assert(!std::is_reference_v<__T>);
         return (__T)_py_cast__internal<i64, with_check>(vm, obj);
@@ -567,13 +576,14 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
                 }
             }
             return PK_OBJ_GET(T, obj);
+        }else{
+            if constexpr(with_check){
+                Type type = vm->_find_type_in_cxx_typeid_map<T>();
+                vm->check_compatible_type(obj, type);
+            }
+            return PK_OBJ_GET(T, obj);
         }
     }
-    if constexpr(with_check){
-        Type type = vm->_find_type_in_cxx_typeid_map<T>();
-        vm->check_compatible_type(obj, type);
-    }
-    return PK_OBJ_GET(T, obj);
 }
 
 template<typename __T>

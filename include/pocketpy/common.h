@@ -189,7 +189,7 @@ struct PyVar final{
     // uninitialized
     PyVar() = default;
     // constexpr initialized
-    constexpr PyVar(const const_sso_var&, Type type, i64 value): type(type), is_sso(true), flags(0), _0(0), _1(value) {}
+    constexpr PyVar(const const_sso_var&, Type type, int value): type(type), is_sso(true), flags(0), _0(value), _1(0) {}
     // zero initialized
     constexpr PyVar(std::nullptr_t): type(0), is_sso(false), flags(0), _0(0), _1(0) {}
     // PyObject* initialized (is_sso = false)
@@ -213,12 +213,14 @@ struct PyVar final{
 
     explicit operator bool() const { return (bool)type; }
 
+    i64 _qword(int i) const { return ((const i64*)this)[i]; }
+
     bool operator==(const PyVar& other) const {
-        return memcmp(this, &other, sizeof(PyVar)) == 0;
+        return _qword(0) == other._qword(0) && _qword(1) == other._qword(1);
     }
 
     bool operator!=(const PyVar& other) const {
-        return memcmp(this, &other, sizeof(PyVar)) != 0;
+        return _qword(0) != other._qword(0) || _qword(1) != other._qword(1);
     }
 
     bool operator==(std::nullptr_t) const { return !(bool)type; }

@@ -417,9 +417,7 @@ PyVar VM::py_negate(PyVar obj){
     return call_method(obj, __neg__);
 }
 
-bool VM::py_bool(PyVar obj){
-    if(obj == vm->True) return true;
-    if(obj == vm->False) return false;
+bool VM::__py_bool_non_trivial(PyVar obj){
     if(obj == None) return false;
     if(is_int(obj)) return _CAST(i64, obj) != 0;
     if(is_float(obj)) return _CAST(f64, obj) != 0.0;
