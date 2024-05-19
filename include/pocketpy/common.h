@@ -21,6 +21,9 @@
 #include <initializer_list>
 
 #define PK_VERSION				"1.5.0"
+#define PK_VERSION_MAJOR            1
+#define PK_VERSION_MINOR            5
+#define PK_VERSION_PATCH            0
 
 #include "config.h"
 #include "export.h"
