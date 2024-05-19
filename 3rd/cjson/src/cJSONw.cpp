@@ -93,11 +93,6 @@ static PyVar convert_cjson_to_python_object(const cJSON * const item, VM* vm)
 void add_module_cjson(VM* vm){
     PyVar mod = vm->new_module("cjson");
 
-    PK_LOCAL_STATIC cJSON_Hooks hooks;
-    hooks.malloc_fn = pool64_alloc;
-    hooks.free_fn = pool64_dealloc;
-    cJSON_InitHooks(&hooks);
-
     vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args){
         std::string_view sv;
         if(is_type(args[0], vm->tp_bytes)){
