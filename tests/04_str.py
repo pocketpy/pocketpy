@@ -106,11 +106,6 @@ def test(*seq):
     return s1.join(seq)
 assert test("r", "u", "n", "o", "o", "b") == "r-u-n-o-o-b"
 
-def f():
-    for i in range(5):
-        yield str(i)
-assert '|'.join(f()) == '0|1|2|3|4'
-
 num = 6
 assert str(num) == '6'
 

@@ -1,3 +1,11 @@
+def g():
+    yield 1
+    yield 2
+
+a = g()
+assert next(a) == 1
+assert next(a) == 2
+
 def f(n):
     for i in range(n):
         yield i
@@ -37,6 +45,13 @@ def f():
 
 a = [i for i in f()]
 assert a == [1, 2, 3]
+
+
+def f():
+    for i in range(5):
+        yield str(i)
+assert '|'.join(f()) == '0|1|2|3|4'
+
 
 def f(n):
     for i in range(n):

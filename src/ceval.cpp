@@ -95,7 +95,7 @@ bool VM::py_ge(PyVar _0, PyVar _1){
 
 #define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
 #define DISPATCH_JUMP(__target) { frame->_ip = __target; goto __NEXT_STEP; }
-#define RETURN_OP_YIELD() { frame->_ip++; return PY_OP_YIELD; }
+#define RETURN_OP_YIELD() { return PY_OP_YIELD; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
