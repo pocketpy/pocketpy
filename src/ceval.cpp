@@ -88,14 +88,14 @@ bool VM::py_ge(PyVar _0, PyVar _1){
     if(!_next_breakpoint.empty()) { _next_breakpoint._step(this); }
 #else
 #define CEVAL_STEP_CALLBACK()   \
-    if(_ceval_on_step){         \
+    if(_ceval_on_step && _ceval_on_step){         \
+        if(_ceval_on_step) \
         if(_ceval_on_step) _ceval_on_step(this, frame, byte);   \
     }
 #endif
 
 #define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
 #define DISPATCH_JUMP(__target) { frame->_ip = __target; goto __NEXT_STEP; }
-#define RETURN_OP_YIELD() { return PY_OP_YIELD; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
@@ -752,7 +752,7 @@ __NEXT_STEP:
             goto __NEXT_FRAME;
         }
     } DISPATCH()
-    case OP_YIELD_VALUE: RETURN_OP_YIELD()
+    case OP_YIELD_VALUE: return PY_OP_YIELD;
     /*****************************************/
     case OP_LIST_APPEND:{
         PyVar _0 = POPX();
@@ -828,7 +828,7 @@ __NEXT_STEP:
             DISPATCH_JUMP(target)
         }else{
             PUSH(_0);
-            RETURN_OP_YIELD()
+            return PY_OP_YIELD;
         }
     }
     case OP_FOR_ITER_UNPACK:{
@@ -1051,7 +1051,6 @@ __NEXT_STEP:
 
 #undef DISPATCH
 #undef DISPATCH_JUMP
-#undef RETURN_OP_YIELD
 #undef CEVAL_STEP_CALLBACK
 
 } // namespace pkpy
