@@ -644,11 +644,16 @@ __NEXT_STEP:
         if(py_bool(TOP())){
             DISPATCH_JUMP(byte.arg)
         }else{
+            POP();
             DISPATCH()
         }
     case OP_JUMP_IF_FALSE_OR_POP:
-        if(!py_bool(POPX())) DISPATCH_JUMP(byte.arg)
-        DISPATCH()
+        if(!py_bool(TOP())){
+            DISPATCH_JUMP(byte.arg)
+        }else{
+            POP();
+            DISPATCH()
+        }
     case OP_SHORTCUT_IF_FALSE_OR_POP:
         if(!py_bool(TOP())){                // [b, False]
             STACK_SHRINK(2);                // []
