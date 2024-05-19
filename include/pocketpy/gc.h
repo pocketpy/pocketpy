@@ -40,10 +40,11 @@ struct ManagedHeap{
 
     template<typename T, typename... Args>
     PyVar gcnew(Type type, Args&&... args){
-        using __T = Py_<std::decay_t<T>>;
-        static_assert(!is_sso_v<std::decay_t<T>>, "gcnew cannot be used with SSO types");
+        using __T = std::decay_t<T>;
+        static_assert(!is_sso_v<__T>, "gcnew cannot be used with SSO types");
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* p = new(pool128_alloc<__T>()) Py_<std::decay_t<T>>(std::forward<Args>(args)...);
+        PyObject* p = new(pool128_alloc(py_sizeof<__T>)) PyObject();
+        p->placement_new<__T>(std::forward<Args>(args)...);
         PyVar obj(type, p);
         gen.push_back(obj);
         gc_counter++;
@@ -52,9 +53,10 @@ struct ManagedHeap{
 
     template<typename T, typename... Args>
     PyVar _new(Type type, Args&&... args){
-        using __T = Py_<std::decay_t<T>>;
-        static_assert(!is_sso_v<std::decay_t<T>>);
-        PyObject* p = new(pool128_alloc<__T>()) Py_<std::decay_t<T>>(std::forward<Args>(args)...);
+        using __T = std::decay_t<T>;
+        static_assert(!is_sso_v<__T>);
+        PyObject* p = new(pool128_alloc<__T>()) PyObject();
+        p->placement_new<__T>(std::forward<Args>(args)...);
         PyVar obj(type, p);
         obj->gc_enabled = false;
         _no_gc.push_back(obj);

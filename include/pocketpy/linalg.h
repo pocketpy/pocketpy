@@ -122,7 +122,7 @@ struct Mat3x3{
 
 void add_module_linalg(VM* vm);
 
-static_assert(sizeof(Py_<Mat3x3>) <= 64);
+static_assert(py_sizeof<Mat3x3> <= 64);
 static_assert(is_pod_v<Vec2>);
 static_assert(is_pod_v<Vec3>);
 static_assert(is_pod_v<Vec4>);

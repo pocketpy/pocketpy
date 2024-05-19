@@ -106,9 +106,8 @@ struct PyObject{
     bool gc_marked;     // whether this object is marked
     NameDict* _attr;
 
-    void* _value_ptr() noexcept { return 1 + &_attr; }
-
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
+    void* _value_ptr() noexcept { return 1 + &_attr; }
 
     NameDict& attr() {
         PK_DEBUG_ASSERT(is_attr_valid())
@@ -122,10 +121,24 @@ struct PyObject{
 
     PyObject() : gc_enabled(true), gc_marked(false), _attr(nullptr) {}
 
+    template<typename T, typename ...Args>
+    void placement_new(Args&&... args){
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        new(_value_ptr()) T(std::forward<Args>(args)...);
+
+        // backdoor for important builtin types
+        if constexpr(std::is_same_v<T, DummyInstance>){
+            _enable_instance_dict();
+        }else if constexpr(std::is_same_v<T, Type>){
+            _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
+        }else if constexpr(std::is_same_v<T, DummyModule>){
+            _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
+        }
+    }
+
     void _enable_instance_dict() {
         _attr = new(pool128_alloc<NameDict>()) NameDict();
     }
-
     void _enable_instance_dict(float lf){
         _attr = new(pool128_alloc<NameDict>()) NameDict(lf);
     }
@@ -149,15 +162,6 @@ inline bool is_type(PyVar obj, Type type) {
 template <typename, typename=void> struct has_gc_marker : std::false_type {};
 template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {};
 
-template <typename T>
-struct Py_ final: PyObject {
-    static_assert(!std::is_reference_v<T>);
-    static_assert(!is_sso_v<T>);
-    T _value;
-    template <typename... Args>
-    Py_(Args&&... args) : PyObject(), _value(std::forward<Args>(args)...) { }
-};
-
 struct MappingProxy{
     PyVar obj;
     MappingProxy(PyVar obj) : obj(obj) {}
@@ -176,7 +180,8 @@ obj_get_t<T> PyVar::obj_get(){
         return as<T>();
     }else{
         PK_DEBUG_ASSERT(!is_sso)
-        return ((Py_<T>*)(_1))->_value;
+        void* v = ((PyObject*)_1)->_value_ptr();
+        return *reinterpret_cast<T*>(v);
     }
 }
 
@@ -202,29 +207,6 @@ inline bool try_cast_int(PyVar obj, i64* val) noexcept {
     }
     return false;
 }
-
-
-template<>
-struct Py_<DummyInstance> final: PyObject {
-    Py_(): PyObject() {
-        _enable_instance_dict();
-    }
-};
-
-template<>
-struct Py_<Type> final: PyObject {
-    Type _value;
-    Py_(Type val): PyObject(), _value(val) {
-        _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
-    }
-};
-
-template<>
-struct Py_<DummyModule> final: PyObject {
-    Py_(): PyObject() {
-        _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
-    }
-};
 
 extern PyVar const PY_NULL;
 extern PyVar const PY_OP_CALL;
