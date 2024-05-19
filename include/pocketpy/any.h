@@ -103,31 +103,4 @@ struct function<Ret(Params...)>{
     }
 };
 
-template<typename T>
-struct lightfunction;
-
-template<typename Ret, typename... Params>
-struct lightfunction<Ret(Params...)>{
-    void* _impl;
-    Ret (*_wrapper)(void*, Params...);
-
-    lightfunction() : _impl(nullptr), _wrapper(nullptr) {}
-
-    explicit operator bool() const { return _wrapper != nullptr; }
-
-    template<typename F>
-    lightfunction(const F& f){
-        _impl = (F*)(&f);
-        _wrapper = [](void* impl, Params... params) -> Ret{
-            F* f = (F*)(impl);
-            return (*f)(std::forward<Params>(params)...);
-        };
-    }
-
-    Ret operator()(Params... params) const{
-        if(!_wrapper) throw std::runtime_error("empty function");
-        return _wrapper(_impl, std::forward<Params>(params)...);
-    }
-};
-
 } // namespace pkpy
