@@ -101,7 +101,7 @@ struct Slice {
     void _gc_mark(VM*) const;
 };
 
-struct PyObject{
+struct PyObject final{
     bool gc_enabled;    // whether this object is managed by GC
     bool gc_marked;     // whether this object is marked
     NameDict* _attr;
@@ -119,7 +119,7 @@ struct PyObject{
         return (*_attr)[name];
     }
 
-    PyObject() : gc_enabled(true), gc_marked(false), _attr(nullptr) {}
+    PyObject(bool gc_enabled) : gc_enabled(gc_enabled), gc_marked(false), _attr(nullptr) {}
 
     template<typename T, typename ...Args>
     void placement_new(Args&&... args){

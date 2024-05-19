@@ -43,24 +43,21 @@ struct ManagedHeap{
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>, "gcnew cannot be used with SSO types");
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* p = new(pool128_alloc(py_sizeof<__T>)) PyObject();
+        PyObject* p = new(pool128_alloc(py_sizeof<__T>)) PyObject(true);
         p->placement_new<__T>(std::forward<Args>(args)...);
-        PyVar obj(type, p);
-        gen.push_back(obj);
+        gen.emplace_back(type, p);
         gc_counter++;
-        return obj;
+        return gen.back();
     }
 
     template<typename T, typename... Args>
     PyVar _new(Type type, Args&&... args){
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>);
-        PyObject* p = new(pool128_alloc<__T>()) PyObject();
+        PyObject* p = new(pool128_alloc<__T>()) PyObject(false);
         p->placement_new<__T>(std::forward<Args>(args)...);
-        PyVar obj(type, p);
-        obj->gc_enabled = false;
-        _no_gc.push_back(obj);
-        return obj;
+        _no_gc.emplace_back(type, p);
+        return _no_gc.back();
     }
 
     void _delete(PyVar);

@@ -7,11 +7,7 @@ namespace pkpy{
             blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0, 0));
         }
 
-    struct PySignalObject: PyObject {
-        PySignalObject() : PyObject() { gc_enabled = false; }
-    };
-
-    PyVar const PY_NULL(Type(), new PySignalObject());
-    PyVar const PY_OP_CALL(Type(), new PySignalObject());
-    PyVar const PY_OP_YIELD(Type(), new PySignalObject());
+    PyVar const PY_NULL(Type(), new PyObject(false));
+    PyVar const PY_OP_CALL(Type(), new PyObject(false));
+    PyVar const PY_OP_YIELD(Type(), new PyObject(false));
 }   // namespace pkpy
