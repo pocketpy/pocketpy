@@ -11,7 +11,7 @@ namespace pkpy{
 #define PREDICT_INT_DIV_OP(op)                      \
     if(is_int(_0) && is_int(_1)){                   \
         i64 divisor = _1.as<i64>();                 \
-        if(_1.as<i64>() == 0) ZeroDivisionError();  \
+        if(divisor == 0) ZeroDivisionError();       \
         TOP() = VAR(_0.as<i64>() op divisor);       \
         DISPATCH()                                  \
     }
