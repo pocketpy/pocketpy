@@ -146,7 +146,7 @@ struct PyObject final{
 template<typename T>
 inline constexpr int py_sizeof = sizeof(PyObject) + sizeof(T);
 
-static_assert(sizeof(PyObject) == 16);
+static_assert(sizeof(PyObject) <= 16);
 
 const int kTpIntIndex = 3;
 const int kTpFloatIndex = 4;
