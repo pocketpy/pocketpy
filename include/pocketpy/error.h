@@ -11,9 +11,16 @@ struct NeedMoreLines {
     bool is_compiling_class;
 };
 
-struct HandledException {};
-struct UnhandledException {};
-struct ToBeRaisedException {};
+enum class InternalExceptionType: int{
+    Null, Handled, Unhandled, ToBeRaised
+};
+
+struct InternalException final{
+    InternalExceptionType type;
+    int arg;
+    InternalException(): type(InternalExceptionType::Null), arg(-1) {}
+    InternalException(InternalExceptionType type, int arg=-1): type(type), arg(arg) {}
+};
 
 enum CompileMode {
     EXEC_MODE,

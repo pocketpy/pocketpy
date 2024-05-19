@@ -81,22 +81,6 @@ bool VM::py_ge(PyVar _0, PyVar _1){
 
 #undef BINARY_F_COMPARE
 
-PyVar VM::__run_top_frame(){
-    Frame* frame = &callstack.top();
-    const Frame* base_frame = frame;
-    bool need_raise = false;
-
-    while(true){
-        try{
-            if(need_raise){ need_raise = false; __raise_exc(); }
-/**********************************************************************/
-/* NOTE: 
- * Be aware of accidental gc!
- * DO NOT leave any strong reference of PyVar in the C stack
- */
-{
-
-
 #if PK_ENABLE_PROFILER
 #define CEVAL_STEP_CALLBACK()                                           \
     if(_ceval_on_step) _ceval_on_step(this, frame, byte);               \
@@ -109,17 +93,38 @@ PyVar VM::__run_top_frame(){
     }
 #endif
 
-#define DISPATCH() goto __NEXT_STEP;
+#define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
+#define DISPATCH_JUMP(__target) { frame->_ip = __target; goto __NEXT_STEP; }
+#define RETURN_OP_YIELD() { frame->_ip++; return PY_OP_YIELD; }
 
+PyVar VM::__run_top_frame(){
+    Frame* frame = &callstack.top();
+    const Frame* base_frame = frame;
+
+    while(true){
+        try{
+/**********************************************************************/
+{
 __NEXT_FRAME:
-    const CodeObject* co = frame->co;
+    if(__internal_exception.type == InternalExceptionType::Null){
+        // None
+        frame->_ip++;
+    }else if(__internal_exception.type == InternalExceptionType::Handled){
+        // HandledException + continue
+        frame->_ip = __internal_exception.arg;
+        __internal_exception = {};
+    }else{
+        // UnhandledException + continue (need_raise = true)
+        // ToBeRaisedException + continue (need_raise = true)
+        __internal_exception = {};
+        __raise_exc();      // no return
+    }
+
     // TODO: when jit is enabled, co_codes may not be const
-    const Bytecode* co_codes = co->codes.data();
+    const Bytecode* co_codes = frame->co->codes.data();
     Bytecode byte;
 
 __NEXT_STEP:
-    frame->_ip = frame->_next_ip;
-    frame->_next_ip++;
     byte = co_codes[frame->_ip];
     CEVAL_STEP_CALLBACK()
 
@@ -139,13 +144,13 @@ __NEXT_STEP:
         SECOND() = THIRD();
         THIRD() = _0;
     } DISPATCH()
-    case OP_PRINT_EXPR:{
+    case OP_PRINT_EXPR:
         if(TOP() != None) stdout_write(py_repr(TOP()) + "\n");
         POP();
-    } DISPATCH()
+        DISPATCH()
     /*****************************************/
     case OP_LOAD_CONST:
-        PUSH(co->consts[byte.arg]);
+        PUSH(frame->co->consts[byte.arg]);
         DISPATCH()
     case OP_LOAD_NONE:       PUSH(None); DISPATCH()
     case OP_LOAD_TRUE:       PUSH(True); DISPATCH()
@@ -155,7 +160,7 @@ __NEXT_STEP:
     /*****************************************/
     case OP_LOAD_ELLIPSIS:   PUSH(Ellipsis); DISPATCH()
     case OP_LOAD_FUNCTION: {
-        const FuncDecl_& decl = co->func_decls[byte.arg];
+        const FuncDecl_& decl = frame->co->func_decls[byte.arg];
         PyVar obj;
         if(decl->nested){
             NameDict_ captured = frame->_locals.to_namedict();
@@ -170,7 +175,7 @@ __NEXT_STEP:
     /*****************************************/
     case OP_LOAD_FAST: {
         PyVar _0 = frame->_locals[byte.arg];
-        if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
+        if(_0 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
         PUSH(_0);
     } DISPATCH()
     case OP_LOAD_NAME: {
@@ -239,7 +244,7 @@ __NEXT_STEP:
     } DISPATCH()
     case OP_LOAD_SUBSCR_FAST:{
         PyVar _1 = frame->_locals[byte.arg];
-        if(_1 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
+        if(_1 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
         PyVar _0 = TOP();     // a
         auto _ti = _tp_info(_0);
         if(_ti->m__getitem__){
@@ -303,7 +308,7 @@ __NEXT_STEP:
     }DISPATCH()
     case OP_STORE_SUBSCR_FAST:{
         PyVar _2 = frame->_locals[byte.arg];    // b
-        if(_2 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
+        if(_2 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
         PyVar _1 = POPX();        // a
         PyVar _0 = POPX();        // val
         auto _ti = _tp_info(_1);
@@ -315,7 +320,7 @@ __NEXT_STEP:
     }DISPATCH()
     case OP_DELETE_FAST:{
         PyVar _0 = frame->_locals[byte.arg];
-        if(_0 == PY_NULL) vm->UnboundLocalError(co->varnames[byte.arg]);
+        if(_0 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
         frame->_locals[byte.arg] = PY_NULL;
     }DISPATCH()
     case OP_DELETE_NAME:{
@@ -626,49 +631,45 @@ __NEXT_STEP:
     } DISPATCH()
     /*****************************************/
     case OP_JUMP_ABSOLUTE:
-        frame->jump_abs(byte.arg);
-        DISPATCH()
+        DISPATCH_JUMP(byte.arg)
     case OP_JUMP_ABSOLUTE_TOP:
-        frame->jump_abs(_CAST(int, POPX()));
+        DISPATCH_JUMP(_CAST(int, POPX()))
+    case OP_POP_JUMP_IF_FALSE:
+        if(!py_bool(POPX())) DISPATCH_JUMP(byte.arg)
         DISPATCH()
-    case OP_POP_JUMP_IF_FALSE:{
-        if(!py_bool(TOP())) frame->jump_abs(byte.arg);
-        POP();
-    } DISPATCH()
-    case OP_POP_JUMP_IF_TRUE:{
-        if(py_bool(TOP())) frame->jump_abs(byte.arg);
-        POP();
-    } DISPATCH()
-    case OP_JUMP_IF_TRUE_OR_POP:{
-        if(py_bool(TOP())) frame->jump_abs(byte.arg);
-        else POP();
-    } DISPATCH()
-    case OP_JUMP_IF_FALSE_OR_POP:{
-        if(!py_bool(TOP())) frame->jump_abs(byte.arg);
-        else POP();
-    } DISPATCH()
-    case OP_SHORTCUT_IF_FALSE_OR_POP:{
+    case OP_POP_JUMP_IF_TRUE:
+        if(py_bool(POPX())) DISPATCH_JUMP(byte.arg)
+        DISPATCH()
+    case OP_JUMP_IF_TRUE_OR_POP:
+        if(py_bool(POPX())) DISPATCH_JUMP(byte.arg)
+        DISPATCH()
+    case OP_JUMP_IF_FALSE_OR_POP:
+        if(!py_bool(POPX())) DISPATCH_JUMP(byte.arg)
+        DISPATCH()
+    case OP_SHORTCUT_IF_FALSE_OR_POP:
         if(!py_bool(TOP())){                // [b, False]
             STACK_SHRINK(2);                // []
             PUSH(vm->False);                // [False]
-            frame->jump_abs(byte.arg);
-        } else POP();                       // [b]
-    } DISPATCH()
+            DISPATCH_JUMP(byte.arg)
+        } else{
+            POP();                          // [b]
+            DISPATCH()
+        }
     case OP_LOOP_CONTINUE:
-        frame->jump_abs(byte.arg);
-        DISPATCH()
+        DISPATCH_JUMP(byte.arg)
     case OP_LOOP_BREAK:
-        frame->jump_abs_break(&s_data, byte.arg);
-        DISPATCH()
+        frame->prepare_jump_break(&s_data, byte.arg);
+        DISPATCH_JUMP(byte.arg)
     case OP_GOTO: {
         StrName _name(byte.arg);
-        int index = co->labels.try_get_likely_found(_name);
-        if(index < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
-        frame->jump_abs_break(&s_data, index);
-    } DISPATCH()
+        int target = frame->co->labels.try_get_likely_found(_name);
+        if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
+        frame->prepare_jump_break(&s_data, target);
+        DISPATCH_JUMP(target)
+    }
     /*****************************************/
     case OP_FSTRING_EVAL:{
-        PyVar _0 = co->consts[byte.arg];
+        PyVar _0 = frame->co->consts[byte.arg];
         std::string_view string = CAST(Str&, _0).sv();
         auto it = __cached_codes.find(string);
         CodeObject_ code;
@@ -743,8 +744,7 @@ __NEXT_STEP:
             goto __NEXT_FRAME;
         }
     } DISPATCH()
-    case OP_YIELD_VALUE:
-        return PY_OP_YIELD;
+    case OP_YIELD_VALUE: RETURN_OP_YIELD()
     /*****************************************/
     case OP_LIST_APPEND:{
         PyVar _0 = POPX();
@@ -785,34 +785,44 @@ __NEXT_STEP:
         DISPATCH()
     case OP_FOR_ITER:{
         PyVar _0 = py_next(TOP());
-        if(_0 == StopIteration) frame->loop_break(&s_data, co);
-        else PUSH(_0);
-    } DISPATCH()
+        if(_0 == StopIteration){
+            int target = frame->prepare_loop_break(&s_data);
+            DISPATCH_JUMP(target)
+        } else{
+            PUSH(_0);
+            DISPATCH()
+        }
+    } 
     case OP_FOR_ITER_STORE_FAST:{
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
-            frame->loop_break(&s_data, co);
+            int target = frame->prepare_loop_break(&s_data);
+            DISPATCH_JUMP(target)
         }else{
             frame->_locals[byte.arg] = _0;
+            DISPATCH()
         }
-    } DISPATCH()
+    }
     case OP_FOR_ITER_STORE_GLOBAL:{
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
-            frame->loop_break(&s_data, co);
+            int target = frame->prepare_loop_break(&s_data);
+            DISPATCH_JUMP(target)
         }else{
             frame->f_globals().set(StrName(byte.arg), _0);
+            DISPATCH()
         }
-    } DISPATCH()
+    }
     case OP_FOR_ITER_YIELD_VALUE:{
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
-            frame->loop_break(&s_data, co);
+            int target = frame->prepare_loop_break(&s_data);
+            DISPATCH_JUMP(target)
         }else{
             PUSH(_0);
-            return PY_OP_YIELD;
+            RETURN_OP_YIELD()
         }
-    } DISPATCH()
+    }
     case OP_FOR_ITER_UNPACK:{
         PyVar _0 = TOP();
         const PyTypeInfo* _ti = _tp_info(_0);
@@ -820,7 +830,8 @@ __NEXT_STEP:
             unsigned n = _ti->m__next__(this, _0);
             if(n == 0){
                 // StopIteration
-                frame->loop_break(&s_data, co);
+                int target = frame->prepare_loop_break(&s_data);
+                DISPATCH_JUMP(target)
             }else if(n == 1){
                 // UNPACK_SEQUENCE
                 __op_unpack_sequence(byte.arg);
@@ -837,13 +848,14 @@ __NEXT_STEP:
                 // UNPACK_SEQUENCE
                 __op_unpack_sequence(byte.arg);
             }else{
-                frame->loop_break(&s_data, co);
+                int target = frame->prepare_loop_break(&s_data);
+                DISPATCH_JUMP(target)
             }
         }
     } DISPATCH()
     /*****************************************/
     case OP_IMPORT_PATH:{
-        PyVar _0 = co->consts[byte.arg];
+        PyVar _0 = frame->co->consts[byte.arg];
         PUSH(py_import(CAST(Str&, _0)));
     } DISPATCH()
     case OP_POP_IMPORT_STAR: {
@@ -970,18 +982,18 @@ __NEXT_STEP:
     /*****************************************/
     case OP_FORMAT_STRING: {
         PyVar _0 = POPX();
-        const Str& spec = CAST(Str&, co->consts[byte.arg]);
+        const Str& spec = CAST(Str&, frame->co->consts[byte.arg]);
         PUSH(__format_object(_0, spec));
     } DISPATCH()
     /*****************************************/
     case OP_INC_FAST:{
         PyVar* p = &frame->_locals[byte.arg];
-        if(*p == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        if(*p == PY_NULL) vm->NameError(frame->co->varnames[byte.arg]);
         *p = VAR(CAST(i64, *p) + 1);
     } DISPATCH()
     case OP_DEC_FAST:{
         PyVar* p = &frame->_locals[byte.arg];
-        if(*p == PY_NULL) vm->NameError(co->varnames[byte.arg]);
+        if(*p == PY_NULL) vm->NameError(frame->co->varnames[byte.arg]);
         *p = VAR(CAST(i64, *p) - 1);
     } DISPATCH()
     case OP_INC_GLOBAL:{
@@ -1002,20 +1014,20 @@ __NEXT_STEP:
 }
 /**********************************************************************/
             PK_UNREACHABLE();
-        }catch(HandledException){
-            continue;
-        }catch(UnhandledException){
-            PyVar e_obj = POPX();
-            Exception& _e = PK_OBJ_GET(Exception, e_obj);
-            bool is_base_frame_to_be_popped = frame == base_frame;
-            __pop_frame();
-            if(callstack.empty()) throw _e;   // propagate to the top level
-            frame = &callstack.top();
-            PUSH(e_obj);
-            if(is_base_frame_to_be_popped) throw ToBeRaisedException();
-            need_raise = true;
-        }catch(ToBeRaisedException){
-            need_raise = true;
+        }catch(InternalException internal){
+            this->__internal_exception = internal;
+            if(internal.type == InternalExceptionType::Unhandled){
+                PyVar e_obj = POPX();
+                Exception& _e = PK_OBJ_GET(Exception, e_obj);
+                bool is_base_frame_to_be_popped = frame == base_frame;
+                __pop_frame();
+                if(callstack.empty()) throw _e;   // propagate to the top level
+                frame = &callstack.top();
+                PUSH(e_obj);
+                if(is_base_frame_to_be_popped){
+                    throw InternalException(InternalExceptionType::ToBeRaised);
+                }
+            }
         }
     }
 }
@@ -1030,6 +1042,8 @@ __NEXT_STEP:
 #undef STACK_VIEW
 
 #undef DISPATCH
+#undef DISPATCH_JUMP
+#undef RETURN_OP_YIELD
 #undef CEVAL_STEP_CALLBACK
 
 } // namespace pkpy

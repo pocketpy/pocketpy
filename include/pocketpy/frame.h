@@ -70,7 +70,6 @@ struct ValueStack {
 
 struct Frame {
     int _ip;
-    int _next_ip;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyVar* _sp_base;
 
@@ -84,28 +83,29 @@ struct Frame {
 
     // function scope
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, PyVar* _locals_base)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
+            : _ip(-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
     // exec/eval
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, FastLocals _locals)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
+            : _ip(-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
     // global scope
     Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
-            : _ip(-1), _next_ip(0), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+            : _ip(-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     PyVar* actual_sp_base() const { return _locals.a; }
 
     int stack_size(ValueStack* _s) const { return _s->_sp - actual_sp_base(); }
     ArgsView stack_view(ValueStack* _s) const { return ArgsView(actual_sp_base(), _s->_sp); }
 
-    void jump_abs(int i){ _next_ip = i; }
-    bool jump_to_exception_handler(ValueStack*);
+    [[nodiscard]] int prepare_jump_exception_handler(ValueStack*);
+    void prepare_jump_break(ValueStack*, int);
     int _exit_block(ValueStack*, int);
-    void jump_abs_break(ValueStack*, int);
 
-    void loop_break(ValueStack* s_data, const CodeObject*){
-        jump_abs_break(s_data, co->_get_block_codei(_ip).end);
+    [[nodiscard]] int prepare_loop_break(ValueStack* s_data){
+        int target = co->_get_block_codei(_ip).end;
+        prepare_jump_break(s_data, target);
+        return target;
     }
 
     int curr_lineno() const { return co->lines[_ip].lineno; }

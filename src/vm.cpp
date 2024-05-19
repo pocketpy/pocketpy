@@ -425,7 +425,7 @@ bool VM::__py_bool_non_trivial(PyVar obj){
     PyVar len_f = get_unbound_method(obj, __len__, &self, false);
     if(self != PY_NULL){
         PyVar ret = call_method(self, len_f);
-        return CAST(i64, ret) > 0;
+        return CAST(i64, ret) != 0;
     }
     return true;
 }
@@ -1398,7 +1398,7 @@ void VM::__raise_exc(bool re_raise){
         e._ip_on_error = frame->_ip;
         e._code_on_error = (void*)frame->co;
     }
-    bool ok = frame->jump_to_exception_handler(&s_data);
+    int next_ip = frame->prepare_jump_exception_handler(&s_data);
 
     int actual_ip = frame->_ip;
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
@@ -1407,8 +1407,11 @@ void VM::__raise_exc(bool re_raise){
     if(frame->_callable == nullptr) current_f_name = "";    // not in a function
     e.st_push(frame->co->src, current_line, nullptr, current_f_name);
 
-    if(ok) throw HandledException();
-    else throw UnhandledException();
+    if(next_ip >= 0){
+        throw InternalException(InternalExceptionType::Handled, next_ip);
+    }else{
+        throw InternalException(InternalExceptionType::Unhandled);
+    }
 }
 
 void ManagedHeap::mark() {

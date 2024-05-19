@@ -23,22 +23,21 @@ namespace pkpy{
         return fn._closure->try_get(name);
     }
 
-    bool Frame::jump_to_exception_handler(ValueStack* _s){
+    int Frame::prepare_jump_exception_handler(ValueStack* _s){
         // try to find a parent try block
         int block = co->iblocks[_ip];
         while(block >= 0){
             if(co->blocks[block].type == CodeBlockType::TRY_EXCEPT) break;
             block = co->blocks[block].parent;
         }
-        if(block < 0) return false;
+        if(block < 0) return -1;
         PyVar obj = _s->popx();         // pop exception object
         // get the stack size of the try block
         int _stack_size = co->blocks[block].base_stack_size;
         if(stack_size(_s) < _stack_size) throw std::runtime_error(_S("invalid state: ", stack_size(_s), '<', _stack_size).str());
         _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
         _s->push(obj);                                      // push exception object
-        _next_ip = co->blocks[block].end;
-        return true;
+        return co->blocks[block].end;
     }
 
     int Frame::_exit_block(ValueStack* _s, int i){
@@ -47,10 +46,9 @@ namespace pkpy{
         return co->blocks[i].parent;
     }
 
-    void Frame::jump_abs_break(ValueStack* _s, int target){
+    void Frame::prepare_jump_break(ValueStack* _s, int target){
         int i = co->iblocks[_ip];
-        _next_ip = target;
-        if(_next_ip >= co->codes.size()){
+        if(target >= co->codes.size()){
             while(i>=0) i = _exit_block(_s, i);
         }else{
             // BUG (solved)
