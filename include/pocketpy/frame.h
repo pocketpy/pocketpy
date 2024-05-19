@@ -59,6 +59,12 @@ struct ValueStack {
     void clear() { _sp = _begin; }
     bool is_overflow() const { return _sp >= _max_end; }
 
+    template<typename... Args>
+    void emplace(Args&&... args){
+        new(_sp) PyVar(std::forward<Args>(args)...);
+        ++_sp;
+    }
+
     PyVar operator[](int i) const { return _begin[i]; }
     PyVar& operator[](int i) { return _begin[i]; }
     

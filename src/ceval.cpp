@@ -157,7 +157,9 @@ __NEXT_STEP:
     case OP_LOAD_TRUE:       PUSH(True); DISPATCH()
     case OP_LOAD_FALSE:      PUSH(False); DISPATCH()
     /*****************************************/
-    case OP_LOAD_SMALL_INT:  PUSH(VAR((int16_t)byte.arg)); DISPATCH()
+    case OP_LOAD_SMALL_INT:
+        s_data.emplace(tp_int, (i64)(int16_t)byte.arg);
+        DISPATCH()
     /*****************************************/
     case OP_LOAD_ELLIPSIS:   PUSH(Ellipsis); DISPATCH()
     case OP_LOAD_FUNCTION: {
