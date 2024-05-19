@@ -229,18 +229,18 @@ namespace pkpy{
         PyVar res;
         if(ti->m__eq__){
             res = ti->m__eq__(this, lhs, rhs);
-            if(res != vm->NotImplemented) return res == vm->True;
+            if(!is_not_implemented(res)) return res == vm->True;
         }
         res = call_method(lhs, __eq__, rhs);
-        if(res != vm->NotImplemented) return res == vm->True;
+        if(!is_not_implemented(res)) return res == vm->True;
 
         ti = _tp_info(rhs);
         if(ti->m__eq__){
             res = ti->m__eq__(this, rhs, lhs);
-            if(res != vm->NotImplemented) return res == vm->True;
+            if(!is_not_implemented(res)) return res == vm->True;
         }
         res = call_method(rhs, __eq__, lhs);
-        if(res != vm->NotImplemented) return res == vm->True;
+        if(!is_not_implemented(res)) return res == vm->True;
         return false;
     }
 

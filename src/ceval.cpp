@@ -27,12 +27,12 @@ namespace pkpy{
             if(_2 != nullptr) ret = call_method(self, _2, _1);                  \
             else ret = NotImplemented;                                          \
         }                                                                       \
-        if(ret == NotImplemented){                                              \
+        if(is_not_implemented(ret)){                                            \
             PyVar self;                                                         \
             PyVar _2 = get_unbound_method(_1, rfunc, &self, false);             \
             if(_2 != nullptr) ret = call_method(self, _2, _0);                  \
             else BinaryOptError(op, _0, _1);                                    \
-            if(ret == NotImplemented) BinaryOptError(op, _0, _1);               \
+            if(is_not_implemented(ret)) BinaryOptError(op, _0, _1);             \
         }
 
 
@@ -454,23 +454,23 @@ __NEXT_STEP:
     } DISPATCH()
     /*****************************************/
 #define BINARY_OP_SPECIAL(func)                         \
-        _ti = _tp_info(_0);                      \
+        _ti = _tp_info(_0);                             \
         if(_ti->m##func){                               \
             TOP() = _ti->m##func(this, _0, _1);         \
         }else{                                          \
-            PyVar self;                                         \
-            PyVar _2 = get_unbound_method(_0, func, &self, false);        \
+            PyVar self;                                             \
+            PyVar _2 = get_unbound_method(_0, func, &self, false);  \
             if(_2 != nullptr) TOP() = call_method(self, _2, _1);    \
             else TOP() = NotImplemented;                            \
         }
 
-#define BINARY_OP_RSPECIAL(op, func)                                \
-        if(TOP() == NotImplemented){                                \
-            PyVar self;                                         \
-            PyVar _2 = get_unbound_method(_1, func, &self, false);        \
-            if(_2 != nullptr) TOP() = call_method(self, _2, _0);    \
-            else BinaryOptError(op, _0, _1);                        \
-            if(TOP() == NotImplemented) BinaryOptError(op, _0, _1); \
+#define BINARY_OP_RSPECIAL(op, func)                                    \
+        if(is_not_implemented(TOP())){                                  \
+            PyVar self;                                                 \
+            PyVar _2 = get_unbound_method(_1, func, &self, false);      \
+            if(_2 != nullptr) TOP() = call_method(self, _2, _0);        \
+            else BinaryOptError(op, _0, _1);                            \
+            if(is_not_implemented(TOP())) BinaryOptError(op, _0, _1);   \
         }
 
     case OP_BINARY_TRUEDIV:{
@@ -478,14 +478,14 @@ __NEXT_STEP:
         PyVar _0 = TOP();
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__truediv__);
-        if(TOP() == NotImplemented) BinaryOptError("/", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("/", _0, _1);
     } DISPATCH()
     case OP_BINARY_POW:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__pow__);
-        if(TOP() == NotImplemented) BinaryOptError("**", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("**", _0, _1);
     } DISPATCH()
     case OP_BINARY_ADD:{
         PyVar _1 = POPX();
@@ -517,7 +517,7 @@ __NEXT_STEP:
         PREDICT_INT_DIV_OP(/)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__floordiv__);
-        if(TOP() == NotImplemented) BinaryOptError("//", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("//", _0, _1);
     } DISPATCH()
     case OP_BINARY_MOD:{
         PyVar _1 = POPX();
@@ -525,7 +525,7 @@ __NEXT_STEP:
         PREDICT_INT_DIV_OP(%)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__mod__);
-        if(TOP() == NotImplemented) BinaryOptError("%", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("%", _0, _1);
     } DISPATCH()
     case OP_COMPARE_LT:{
         PyVar _1 = POPX();
@@ -567,7 +567,7 @@ __NEXT_STEP:
         PREDICT_INT_OP(<<)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__lshift__);
-        if(TOP() == NotImplemented) BinaryOptError("<<", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("<<", _0, _1);
     } DISPATCH()
     case OP_BITWISE_RSHIFT:{
         PyVar _1 = POPX();
@@ -575,7 +575,7 @@ __NEXT_STEP:
         PREDICT_INT_OP(>>)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__rshift__);
-        if(TOP() == NotImplemented) BinaryOptError(">>", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError(">>", _0, _1);
     } DISPATCH()
     case OP_BITWISE_AND:{
         PyVar _1 = POPX();
@@ -583,7 +583,7 @@ __NEXT_STEP:
         PREDICT_INT_OP(&)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__and__);
-        if(TOP() == NotImplemented) BinaryOptError("&", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("&", _0, _1);
     } DISPATCH()
     case OP_BITWISE_OR:{
         PyVar _1 = POPX();
@@ -591,7 +591,7 @@ __NEXT_STEP:
         PREDICT_INT_OP(|)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__or__);
-        if(TOP() == NotImplemented) BinaryOptError("|", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("|", _0, _1);
     } DISPATCH()
     case OP_BITWISE_XOR:{
         PyVar _1 = POPX();
@@ -599,14 +599,14 @@ __NEXT_STEP:
         PREDICT_INT_OP(^)
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__xor__);
-        if(TOP() == NotImplemented) BinaryOptError("^", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("^", _0, _1);
     } DISPATCH()
     case OP_BINARY_MATMUL:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
         const PyTypeInfo* _ti;
         BINARY_OP_SPECIAL(__matmul__);
-        if(TOP() == NotImplemented) BinaryOptError("@", _0, _1);
+        if(is_not_implemented(TOP())) BinaryOptError("@", _0, _1);
     } DISPATCH()
 
 #undef BINARY_OP_SPECIAL

@@ -380,6 +380,8 @@ public:
     const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
     PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
     PyVar _t(Type type){ return _all_types[type].obj; }
+
+    static bool is_not_implemented(PyVar obj){ return obj.type == tp_not_implemented; }
 #endif
 
 #if PK_REGION("User Type Registration")
