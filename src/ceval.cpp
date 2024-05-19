@@ -641,8 +641,11 @@ __NEXT_STEP:
         if(py_bool(POPX())) DISPATCH_JUMP(byte.arg)
         DISPATCH()
     case OP_JUMP_IF_TRUE_OR_POP:
-        if(py_bool(POPX())) DISPATCH_JUMP(byte.arg)
-        DISPATCH()
+        if(py_bool(TOP())){
+            DISPATCH_JUMP(byte.arg)
+        }else{
+            DISPATCH()
+        }
     case OP_JUMP_IF_FALSE_OR_POP:
         if(!py_bool(POPX())) DISPATCH_JUMP(byte.arg)
         DISPATCH()

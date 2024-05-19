@@ -778,12 +778,12 @@ void VM::__log_s_data(const char* title) {
     SStream ss;
     if(title) ss << title << " | ";
     std::map<PyVar*, int> sp_bases;
-    for(Frame& f: callstack.data()){
+    callstack.apply([&](Frame& f){
         if(f._sp_base == nullptr) PK_FATAL_ERROR();
         sp_bases[f._sp_base] += 1;
-    }
+    });
     Frame* frame = &callstack.top();
-    int line = frame->co->lines[frame->_ip];
+    int line = frame->curr_lineno();
     ss << frame->co->name << ":" << line << " [";
     for(PyVar* p=s_data.begin(); p!=s_data.end(); p++){
         ss << std::string(sp_bases[p], '|');
@@ -809,10 +809,10 @@ void VM::__log_s_data(const char* title) {
         } else if(is_type(obj, tp_tuple)){
             auto& t = CAST(Tuple&, obj);
             ss << "tuple(size=" << t.size() << ")";
-        } else ss << "(" << _type_name(this, obj->type) << ")";
+        } else ss << "(" << _type_name(this, obj.type) << ")";
         ss << ", ";
     }
-    std::string output = ss.str();
+    std::string output = ss.str().str();
     if(!s_data.empty()) {
         output.pop_back(); output.pop_back();
     }
