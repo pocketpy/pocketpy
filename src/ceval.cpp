@@ -542,11 +542,13 @@ __NEXT_STEP:
     case OP_COMPARE_EQ:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
+        PREDICT_INT_OP(==)
         TOP() = VAR(py_eq(_0, _1));
     } DISPATCH()
     case OP_COMPARE_NE:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
+        PREDICT_INT_OP(!=)
         TOP() = VAR(py_ne(_0, _1));
     } DISPATCH()
     case OP_COMPARE_GT:{
@@ -616,7 +618,12 @@ __NEXT_STEP:
     case OP_IS_OP:{
         PyVar _1 = POPX();    // rhs
         PyVar _0 = TOP();     // lhs
-        TOP() = VAR(static_cast<bool>((uint16_t)(_0==_1) ^ byte.arg));
+        TOP() = _0 == _1 ? True : False;
+    } DISPATCH()
+    case OP_IS_NOT_OP:{
+        PyVar _1 = POPX();    // rhs
+        PyVar _0 = TOP();     // lhs
+        TOP() = _0 != _1 ? True : False;
     } DISPATCH()
     case OP_CONTAINS_OP:{
         // a in b -> b __contains__ a

@@ -224,7 +224,6 @@ namespace pkpy{
     }
 
     bool VM::py_eq(PyVar lhs, PyVar rhs){
-        if(lhs == rhs) return true;
         const PyTypeInfo* ti = _tp_info(lhs);
         PyVar res;
         if(ti->m__eq__){

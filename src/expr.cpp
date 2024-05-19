@@ -709,10 +709,10 @@ namespace pkpy{
             case TK(">"):   ctx->emit_(OP_COMPARE_GT, BC_NOARG, line);  break;
             case TK(">="):  ctx->emit_(OP_COMPARE_GE, BC_NOARG, line);  break;
 
-            case TK("in"):      ctx->emit_(OP_CONTAINS_OP, 0, line);   break;
-            case TK("not in"):  ctx->emit_(OP_CONTAINS_OP, 1, line);   break;
-            case TK("is"):      ctx->emit_(OP_IS_OP, 0, line);         break;
-            case TK("is not"):  ctx->emit_(OP_IS_OP, 1, line);         break;
+            case TK("in"):      ctx->emit_(OP_CONTAINS_OP,  0, line);   break;
+            case TK("not in"):  ctx->emit_(OP_CONTAINS_OP,  1, line);   break;
+            case TK("is"):      ctx->emit_(OP_IS_OP,        BC_NOARG, line);   break;
+            case TK("is not"):  ctx->emit_(OP_IS_NOT_OP,    BC_NOARG, line);   break;
 
             case TK("<<"):  ctx->emit_(OP_BITWISE_LSHIFT, BC_NOARG, line);  break;
             case TK(">>"):  ctx->emit_(OP_BITWISE_RSHIFT, BC_NOARG, line);  break;
