@@ -102,7 +102,6 @@ struct Slice {
 };
 
 struct PyObject final{
-    bool gc_enabled;    // whether this object is managed by GC
     bool gc_marked;     // whether this object is marked
     NameDict* _attr;
 
@@ -119,7 +118,7 @@ struct PyObject final{
         return (*_attr)[name];
     }
 
-    PyObject(bool gc_enabled) : gc_enabled(gc_enabled), gc_marked(false), _attr(nullptr) {}
+    PyObject() : gc_marked(false), _attr(nullptr) {}
 
     template<typename T, typename ...Args>
     void placement_new(Args&&... args){
@@ -146,6 +145,8 @@ struct PyObject final{
 
 template<typename T>
 inline constexpr int py_sizeof = sizeof(PyObject) + sizeof(T);
+
+static_assert(sizeof(PyObject) == 16);
 
 const int kTpIntIndex = 3;
 const int kTpFloatIndex = 4;
