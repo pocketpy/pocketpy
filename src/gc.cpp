@@ -5,13 +5,12 @@ namespace pkpy{
     int ManagedHeap::sweep(){
         std::vector<PyObject*> alive;
         for(PyObject* obj: gen){
-            PK_DEBUG_ASSERT(!obj.is_sso)
             if(obj->gc_marked){
                 obj->gc_marked = false;
                 alive.push_back(obj);
             }else{
 #if PK_DEBUG_GC_STATS
-                deleted[obj.type] += 1;
+                deleted[obj->type] += 1;
 #endif
                 if(_gc_on_delete) _gc_on_delete(vm, obj);
                 _delete(obj);

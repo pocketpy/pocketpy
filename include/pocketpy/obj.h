@@ -188,11 +188,7 @@ obj_get_t<T> PyVar::obj_get(){
 }
 
 #define PK_OBJ_GET(T, obj) (obj).obj_get<T>()
-
-#define PK_OBJ_MARK(obj) \
-    if(!is_tagged(obj) && !(obj)->gc_marked) {                          \
-        vm->__obj_gc_mark(obj.get());                                   \
-    }
+#define PK_OBJ_MARK(obj) if(!is_tagged(obj)) vm->__obj_gc_mark(obj.get());
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)

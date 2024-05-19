@@ -428,6 +428,7 @@ bool VM::__py_bool_non_trivial(PyVar obj){
 }
 
 void VM::__obj_gc_mark(PyObject* obj){
+    if(obj->gc_marked) return;
     obj->gc_marked = true;
     const PyTypeInfo* ti = _tp_info(obj->type);
     if(ti->vt._gc_mark) ti->vt._gc_mark(obj->_value_ptr(), this);
@@ -1821,9 +1822,7 @@ void Frame::_gc_mark(VM* vm) const {
 }
 
 void ManagedHeap::mark() {
-    for(PyObject* obj: _no_gc){
-        if(!obj->gc_marked) vm->__obj_gc_mark(obj);
-    }
+    for(PyObject* obj: _no_gc) vm->__obj_gc_mark(obj);
     vm->callstack.apply([this](Frame& frame){ frame._gc_mark(vm); });
     for(PyVar obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->__cached_codes) co->_gc_mark(vm);
