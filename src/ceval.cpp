@@ -100,6 +100,7 @@ bool VM::py_ge(PyVar _0, PyVar _1){
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
     const Frame* base_frame = frame;
+    InternalException __internal_exception;
 
     while(true){
         try{
@@ -1023,7 +1024,7 @@ __NEXT_STEP:
 /**********************************************************************/
             PK_UNREACHABLE();
         }catch(InternalException internal){
-            this->__internal_exception = internal;
+            __internal_exception = internal;
             if(internal.type == InternalExceptionType::Unhandled){
                 PyVar e_obj = POPX();
                 Exception& _e = PK_OBJ_GET(Exception, e_obj);
