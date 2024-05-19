@@ -7,7 +7,10 @@
 
 namespace pkpy {
 
-using List = pod_vector<PyVar, 4>;
+struct List: pod_vector<PyVar, 4>{
+    using pod_vector<PyVar, 4>::pod_vector;
+    void _gc_mark(VM*) const;
+};
 
 struct Tuple {
     static const int INLINED_SIZE = 4;
@@ -35,6 +38,7 @@ struct Tuple {
     PyVar* begin() const { return _args; }
     PyVar* end() const { return _args + _size; }
     PyVar* data() const { return _args; }
+    void _gc_mark(VM*) const;
 };
 
 // a lightweight view for function args, it does not own the memory

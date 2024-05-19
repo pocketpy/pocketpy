@@ -61,6 +61,8 @@ struct ManagedHeap{
         return obj;
     }
 
+    void _delete(PyVar);
+
 #if PK_DEBUG_GC_STATS
     inline static std::map<Type, int> deleted;
 #endif
@@ -70,7 +72,6 @@ struct ManagedHeap{
     bool _should_auto_collect() const { return gc_counter >= gc_threshold; }
     int collect();
     void mark();
-    ~ManagedHeap();
 };
 
 }   // namespace pkpy

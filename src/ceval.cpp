@@ -924,7 +924,7 @@ __NEXT_STEP:
         PyVar _0 = POPX();   // super
         if(_0 == None) _0 = _t(tp_object);
         check_type(_0, tp_type);
-        __curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0));
+        __curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0), true);
     } DISPATCH()
     case OP_END_CLASS: {
         PK_ASSERT(__curr_class != nullptr);

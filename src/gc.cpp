@@ -14,8 +14,7 @@ namespace pkpy{
                 deleted[obj.type] += 1;
 #endif
                 if(_gc_on_delete) _gc_on_delete(vm, obj);
-                obj->~PyObject();
-                pool128_dealloc(obj.get());
+                _delete(obj);
             }
         }
 
@@ -54,16 +53,4 @@ namespace pkpy{
         int freed = sweep();
         return freed;
     }
-
-    ManagedHeap::~ManagedHeap(){
-        for(PyVar obj: _no_gc) { obj->~PyObject(); pool128_dealloc(obj.get()); }
-        for(PyVar obj: gen) { obj->~PyObject(); pool128_dealloc(obj.get()); }
-    }
-
-
-void FuncDecl::_gc_mark() const{
-    code->_gc_mark();
-    for(int i=0; i<kwargs.size(); i++) PK_OBJ_MARK(kwargs[i].value);
-}
-
 }   // namespace pkpy

@@ -155,7 +155,7 @@ struct Container{
 }
 ```
 
-Add a magic method `_gc_mark() const` to your custom type.
+Add a magic method `_gc_mark(VM*) const` to your custom type.
 
 ```cpp
 struct Container{
@@ -163,7 +163,7 @@ struct Container{
     std::vector<PyVar> b;
     // ...
 
-    void _gc_mark() const{
+    void _gc_mark(VM* vm) const{
         // mark a
         if(a) PK_OBJ_MARK(a);
 

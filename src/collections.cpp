@@ -18,7 +18,7 @@ namespace pkpy
         {
             this->is_reversed = true;
         }
-        void _gc_mark() const { PK_OBJ_MARK(ref); }
+        void _gc_mark(VM* vm) const { PK_OBJ_MARK(ref); }
         static void _register(VM *vm, PyVar mod, PyVar type);
     };
     void PyDequeIter::_register(VM *vm, PyVar mod, PyVar type)
@@ -53,7 +53,7 @@ namespace pkpy
         int findIndex(VM *vm, PyVar obj, int start, int stop);        // find the index of the given object in the deque
         // Special methods
         static void _register(VM *vm, PyVar mod, PyVar type); // register the type
-        void _gc_mark() const;                                        // needed for container types, mark all objects in the deque for gc
+        void _gc_mark(VM*) const;                                        // needed for container types, mark all objects in the deque for gc
     };
     void PyDeque::_register(VM *vm, PyVar mod, PyVar type)
     {
@@ -532,7 +532,7 @@ namespace pkpy
         }
     }
     /// @brief marks the deque items for garbage collection
-    void PyDeque::_gc_mark() const
+    void PyDeque::_gc_mark(VM* vm) const
     {
         for (PyVar obj : this->dequeItems)
             PK_OBJ_MARK(obj);

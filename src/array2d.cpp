@@ -332,7 +332,7 @@ struct Array2d{
         });
     }
 
-    void _gc_mark() const{
+    void _gc_mark(VM* vm) const{
         for(int i = 0; i < numel; i++) PK_OBJ_MARK(data[i]);
     }
 
@@ -349,7 +349,7 @@ struct Array2dIter{
     int i;
     Array2dIter(PyVar ref) : ref(ref), i(0) {}
 
-    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
 
     static void _register(VM* vm, PyVar mod, PyVar type){
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) { return _0; });

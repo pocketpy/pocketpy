@@ -169,6 +169,8 @@ inline constexpr bool is_floating_point_v = std::is_same_v<T, float> || std::is_
 inline const char* PK_HEX_TABLE = "0123456789abcdef";
 
 struct PyObject;
+struct Frame;
+class VM;
 
 // by default, only `int` and `float` enable SSO
 // users can specialize this template to enable SSO for other types

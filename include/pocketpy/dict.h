@@ -66,7 +66,7 @@ struct Dict{
     void clear();
     ~Dict();
 
-    void _gc_mark() const;
+    void _gc_mark(VM*) const;
 };
 
 } // namespace pkpy

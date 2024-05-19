@@ -23,7 +23,7 @@ struct ArrayIter{
     ArrayIter(PyVar ref, PyVar* begin, PyVar* end)
         : ref(ref), begin(begin), end(end), current(begin) {}
 
-    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
     static void _register(VM* vm, PyVar mod, PyVar type);
 };
 
@@ -31,7 +31,7 @@ struct StringIter{
     PyVar ref;
     int i;      // byte index
     StringIter(PyVar ref) : ref(ref), i(0) {}
-    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
     static void _register(VM* vm, PyVar mod, PyVar type);
 };
 
@@ -44,8 +44,8 @@ struct Generator{
         for(PyVar obj: buffer) s_backup.push_back(obj);
     }
 
-    void _gc_mark() const{
-        frame._gc_mark();
+    void _gc_mark(VM* vm) const{
+        frame._gc_mark(vm);
         for(PyVar obj: s_backup) PK_OBJ_MARK(obj);
     }
 
@@ -59,7 +59,7 @@ struct DictItemsIter{
     DictItemsIter(PyVar ref) : ref(ref) {
         i = PK_OBJ_GET(Dict, ref)._head_idx;
     }
-    void _gc_mark() const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
     static void _register(VM* vm, PyVar mod, PyVar type);
 };
 

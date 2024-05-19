@@ -205,21 +205,14 @@ namespace pkpy{
         return exec(source, "<eval>", EVAL_MODE);
     }
 
-    PyVar VM::new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled){
+    PyVar VM::new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt){
         PyVar obj = heap._new<Type>(tp_type, Type(_all_types.size()));
         const PyTypeInfo& base_info = _all_types[base];
         if(!base_info.subclass_enabled){
             Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
             throw std::runtime_error(error.c_str());
         }
-        PyTypeInfo info{
-            obj,
-            base,
-            mod,
-            name,
-            subclass_enabled,
-        };
-        _all_types.push_back(info);
+        _all_types.emplace_back(obj, base, mod, name, subclass_enabled, vt);
         return obj;
     }
 
@@ -404,6 +397,10 @@ namespace pkpy{
     }
 
     VM::~VM() {
+        // clear managed heap
+        for(PyVar obj: heap.gen) heap._delete(obj);
+        for(PyVar obj: heap._no_gc) heap._delete(obj);
+        // clear everything
         callstack.clear();
         s_data.clear();
         _all_types.clear();
@@ -428,6 +425,17 @@ bool VM::__py_bool_non_trivial(PyVar obj){
         return CAST(i64, ret) != 0;
     }
     return true;
+}
+
+void VM::__obj_gc_mark(PyVar obj){
+    obj->gc_marked = true;
+    const PyTypeInfo* ti = _tp_info(obj);
+    if(ti->vt._gc_mark) ti->vt._gc_mark(obj->_value_ptr(), this);
+    if(obj->is_attr_valid()){
+        obj->attr().apply([this](StrName _, PyVar obj){
+            PK_OBJ_MARK(obj);
+        });
+    }
 }
 
 List VM::py_list(PyVar it){
@@ -823,49 +831,49 @@ void VM::__log_s_data(const char* title) {
 #endif
 
 void VM::__init_builtin_types(){
-    _all_types.push_back({nullptr, Type(), nullptr, "", false});    // 0 is not used
-    _all_types.push_back({heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true});
-    _all_types.push_back({heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false});
+    _all_types.emplace_back(nullptr, Type(), nullptr, "", false);    // 0 is not used
+    _all_types.emplace_back(heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true);
+    _all_types.emplace_back(heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false);
 
-    auto _new_type = [this](const char* name, Type base=tp_object, bool subclass_enabled=false){
-        PyVar obj = new_type_object(nullptr, name, base, subclass_enabled);
-        return PK_OBJ_GET(Type, obj);
+    auto validate = [](Type type, PyVar ret){
+        Type ret_t = PK_OBJ_GET(Type, ret);
+        if(ret_t != type) exit(-3);
     };
 
-    if(tp_int != _new_type("int")) exit(-3);
-    if((tp_float != _new_type("float"))) exit(-3);
+    validate(tp_int, new_type_object(nullptr, "int", tp_object, false));
+    validate(tp_float, new_type_object(nullptr, "float", tp_object, false));
+    validate(tp_bool, new_type_object(nullptr, "bool", tp_object, false));
 
-    if(tp_bool != _new_type("bool")) exit(-3);
-    if(tp_str != _new_type("str")) exit(-3);
-    if(tp_list != _new_type("list")) exit(-3);
-    if(tp_tuple != _new_type("tuple")) exit(-3);
+    validate(tp_str, new_type_object<Str>(nullptr, "str", tp_object, false));
+    validate(tp_list, new_type_object<List>(nullptr, "list", tp_object, false));
+    validate(tp_tuple, new_type_object<Tuple>(nullptr, "tuple", tp_object, false));
 
-    if(tp_slice != _new_type("slice")) exit(-3);
-    if(tp_range != _new_type("range")) exit(-3);
-    if(tp_module != _new_type("module")) exit(-3);
-    if(tp_function != _new_type("function")) exit(-3);
-    if(tp_native_func != _new_type("native_func")) exit(-3);
-    if(tp_bound_method != _new_type("bound_method")) exit(-3);
+    validate(tp_slice, new_type_object<Slice>(nullptr, "slice", tp_object, false));
+    validate(tp_range, new_type_object<Range>(nullptr, "range", tp_object, false));
+    validate(tp_module, new_type_object<DummyModule>(nullptr, "module", tp_object, false));
+    validate(tp_function, new_type_object<Function>(nullptr, "function", tp_object, false));
+    validate(tp_native_func, new_type_object<NativeFunc>(nullptr, "native_func", tp_object, false));
+    validate(tp_bound_method, new_type_object<BoundMethod>(nullptr, "bound_method", tp_object, false));
 
-    if(tp_super != _new_type("super")) exit(-3);
-    if(tp_exception != _new_type("Exception", tp_object, true)) exit(-3);
-    if(tp_bytes != _new_type("bytes")) exit(-3);
-    if(tp_mappingproxy != _new_type("mappingproxy")) exit(-3);
-    if(tp_dict != _new_type("dict", tp_object, true)) exit(-3);  // dict can be subclassed
-    if(tp_property != _new_type("property")) exit(-3);
-    if(tp_star_wrapper != _new_type("_star_wrapper")) exit(-3);
+    validate(tp_super, new_type_object<Super>(nullptr, "super", tp_object, false));
+    validate(tp_exception, new_type_object<Exception>(nullptr, "Exception", tp_object, true));
+    validate(tp_bytes, new_type_object<Bytes>(nullptr, "bytes", tp_object, false));
+    validate(tp_mappingproxy, new_type_object<MappingProxy>(nullptr, "mappingproxy", tp_object, false));
+    validate(tp_dict, new_type_object<Dict>(nullptr, "dict", tp_object, true));
+    validate(tp_property, new_type_object<Property>(nullptr, "property", tp_object, false));
+    validate(tp_star_wrapper, new_type_object<StarWrapper>(nullptr, "_star_wrapper", tp_object, false));
 
-    if(tp_staticmethod != _new_type("staticmethod")) exit(-3);
-    if(tp_classmethod != _new_type("classmethod")) exit(-3);
+    validate(tp_staticmethod, new_type_object<StaticMethod>(nullptr, "staticmethod", tp_object, false));
+    validate(tp_classmethod, new_type_object<ClassMethod>(nullptr, "classmethod", tp_object, false));
 
-    if(tp_none != _new_type("NoneType")) exit(-3);
-    if(tp_not_implemented != _new_type("NotImplementedType")) exit(-3);
-    if(tp_ellipsis != _new_type("ellipsis")) exit(-3);
+    validate(tp_none, new_type_object(nullptr, "NoneType", tp_object, false));
+    validate(tp_not_implemented, new_type_object(nullptr, "NotImplementedType", tp_object, false));
+    validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
 
     // SyntaxError and IndentationError must be created here
-    Type tp_syntax_error = _new_type("SyntaxError", tp_exception, true);
-    Type tp_indentation_error = _new_type("IndentationError", tp_syntax_error, true);
-    this->StopIteration = _all_types[_new_type("StopIteration", tp_exception)].obj;
+    PyVar SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);
+    PyVar IndentationError = new_type_object(nullptr, "IndentationError", PK_OBJ_GET(Type, SyntaxError), true);
+    this->StopIteration = new_type_object(nullptr, "StopIteration", tp_exception, true);
 
     this->builtins = new_module("builtins");
     
@@ -886,8 +894,8 @@ void VM::__init_builtin_types(){
     builtins->attr().set("NotImplemented", NotImplemented);
     builtins->attr().set("slice", _t(tp_slice));
     builtins->attr().set("Exception", _t(tp_exception));
-    builtins->attr().set("SyntaxError", _t(tp_syntax_error));
-    builtins->attr().set("IndentationError", _t(tp_indentation_error));
+    builtins->attr().set("SyntaxError", SyntaxError);
+    builtins->attr().set("IndentationError", IndentationError);
 
     __post_init_builtin_types();
     this->_main = new_module("__main__");
@@ -1414,26 +1422,11 @@ void VM::__raise_exc(bool re_raise){
     }
 }
 
-void ManagedHeap::mark() {
-    for(PyVar obj: _no_gc) PK_OBJ_MARK(obj);
-    vm->callstack.apply([](Frame& frame){ frame._gc_mark(); });
-    for(PyVar obj: vm->s_data) PK_OBJ_MARK(obj);
-    for(auto [_, co]: vm->__cached_codes) co->_gc_mark();
-    if(vm->__last_exception) PK_OBJ_MARK(vm->__last_exception);
-    if(vm->__curr_class) PK_OBJ_MARK(vm->__curr_class);
-    if(vm->__c.error != nullptr) PK_OBJ_MARK(vm->__c.error);
-    if(_gc_marker_ex) _gc_marker_ex(vm);
-}
 
 StrName _type_name(VM *vm, Type type){
     return vm->_all_types[type].name;
 }
 
-void _gc_mark_namedict(NameDict* t){
-    t->apply([](StrName name, PyVar obj){
-        PK_OBJ_MARK(obj);
-    });
-}
 
 void VM::bind__getitem__(Type type, PyVar (*f)(VM*, PyVar, PyVar)){
     _all_types[type].m__getitem__ = f;
@@ -1755,6 +1748,110 @@ void VM::__breakpoint(){
         }
     }
 #endif
+}
+
+/**************************************************************************/
+void Function::_gc_mark(VM* vm) const{
+    decl->_gc_mark(vm);
+    if(_closure){
+        _closure->apply([=](StrName _, PyVar obj){
+            PK_OBJ_MARK(obj);
+        });
+    }
+}
+
+void NativeFunc::_gc_mark(VM* vm) const{
+    if(decl) decl->_gc_mark(vm);
+}
+
+void FuncDecl::_gc_mark(VM* vm) const{
+    code->_gc_mark(vm);
+    for(int i=0; i<kwargs.size(); i++) PK_OBJ_MARK(kwargs[i].value);
+}
+
+void List::_gc_mark(VM* vm) const{
+    for(PyVar obj: *this) PK_OBJ_MARK(obj);
+}
+
+void Tuple::_gc_mark(VM* vm) const{
+    for(PyVar obj: *this) PK_OBJ_MARK(obj);
+}
+
+void MappingProxy::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(obj);
+}
+
+void BoundMethod::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(func);
+    PK_OBJ_MARK(self);
+}
+
+void StarWrapper::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(obj);
+}
+
+void StaticMethod::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(func);
+}
+
+void ClassMethod::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(func);
+}
+
+void Property::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(getter);
+    PK_OBJ_MARK(setter);
+}
+
+void Slice::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(start);
+    PK_OBJ_MARK(stop);
+    PK_OBJ_MARK(step);
+}
+
+void Super::_gc_mark(VM* vm) const{
+    PK_OBJ_MARK(first);
+}
+
+void Frame::_gc_mark(VM* vm) const {
+    PK_OBJ_MARK(_module);
+    co->_gc_mark(vm);
+    // Frame could be stored in a generator, so mark _callable for safety
+    if(_callable != nullptr) PK_OBJ_MARK(_callable);
+}
+
+void ManagedHeap::mark() {
+    for(PyVar obj: _no_gc) PK_OBJ_MARK(obj);
+    vm->callstack.apply([this](Frame& frame){ frame._gc_mark(vm); });
+    for(PyVar obj: vm->s_data) PK_OBJ_MARK(obj);
+    for(auto [_, co]: vm->__cached_codes) co->_gc_mark(vm);
+    if(vm->__last_exception) PK_OBJ_MARK(vm->__last_exception);
+    if(vm->__curr_class) PK_OBJ_MARK(vm->__curr_class);
+    if(vm->__c.error != nullptr) PK_OBJ_MARK(vm->__c.error);
+    if(_gc_marker_ex) _gc_marker_ex(vm);
+}
+
+void ManagedHeap::_delete(PyVar obj){
+    PK_DEBUG_ASSERT(!obj.is_sso)
+    const PyTypeInfo* ti = vm->_tp_info(obj);
+    if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
+    if(obj->_attr){
+        obj->_attr->~NameDict();
+        pool128_dealloc(obj->_attr);
+    }
+    pool128_dealloc(obj.get());
+}
+
+void Dict::_gc_mark(VM* vm) const{
+    apply([vm](PyVar k, PyVar v){
+        PK_OBJ_MARK(k);
+        PK_OBJ_MARK(v);
+    });
+}
+
+void CodeObject::_gc_mark(VM* vm) const {
+    for(PyVar v : consts) PK_OBJ_MARK(v);
+    for(auto& decl: func_decls) decl->_gc_mark(vm);
 }
 
 }   // namespace pkpy

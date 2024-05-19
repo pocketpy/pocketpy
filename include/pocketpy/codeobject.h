@@ -81,7 +81,7 @@ struct CodeObject {
     }
 
     CodeObject(std::shared_ptr<SourceData> src, const Str& name);
-    void _gc_mark() const;
+    void _gc_mark(VM*) const;
 };
 
 enum class FuncType{
@@ -118,7 +118,7 @@ struct FuncDecl {
         kwargs.push_back(KwArg{index, key, value});
     }
     
-    void _gc_mark() const;
+    void _gc_mark(VM*) const;
 };
 
 struct NativeFunc {
@@ -130,8 +130,9 @@ struct NativeFunc {
     NativeFunc(NativeFuncC f, int argc, any userdata={}): f(f), argc(argc), decl(nullptr), _userdata(std::move(userdata)) {}
     NativeFunc(NativeFuncC f, FuncDecl_ decl, any userdata={}): f(f), argc(-1), decl(decl), _userdata(std::move(userdata)) {}
 
-    void check_size(VM* vm, ArgsView args) const;
     PyVar call(VM* vm, ArgsView args) const { return f(vm, args); }
+    void check_size(VM* vm, ArgsView args) const;
+    void _gc_mark(VM*) const;
 };
 
 struct Function{
@@ -142,33 +143,8 @@ struct Function{
 
     explicit Function(FuncDecl_ decl, PyVar _module, PyVar _class, NameDict_ _closure):
         decl(decl), _module(_module), _class(_class), _closure(_closure) {}
-};
 
-template<>
-struct Py_<Function> final: PyObject {
-    Function _value;
-    template<typename... Args>
-    Py_(Args&&... args): PyObject(), _value(std::forward<Args>(args)...) {
-        // _enable_instance_dict();
-    }
-    void _obj_gc_mark() override {
-        _value.decl->_gc_mark();
-        if(_value._closure != nullptr) _gc_mark_namedict(_value._closure.get());
-    }
-};
-
-template<>
-struct Py_<NativeFunc> final: PyObject {
-    NativeFunc _value;
-    template<typename... Args>
-    Py_(Args&&... args): PyObject(), _value(std::forward<Args>(args)...) {
-        // _enable_instance_dict();
-    }
-    void _obj_gc_mark() override {
-        if(_value.decl != nullptr){
-            _value.decl->_gc_mark();
-        }
-    }
+    void _gc_mark(VM*) const;
 };
 
 template<typename T>

@@ -117,12 +117,7 @@ struct Frame {
 
     int curr_lineno() const { return co->lines[ip()].lineno; }
 
-    void _gc_mark() const {
-        PK_OBJ_MARK(_module);
-        co->_gc_mark();
-        // Frame could be stored in a generator, so mark _callable for safety
-        if(_callable != nullptr) PK_OBJ_MARK(_callable);
-    }
+    void _gc_mark(VM* vm) const;
 };
 
 struct LinkedFrame{

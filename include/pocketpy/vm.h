@@ -42,12 +42,36 @@ struct NextBreakpoint{
 #endif
 
 struct PyTypeInfo{
+    struct Vt{
+        void (*_dtor)(void*);
+        void (*_gc_mark)(void*, VM*);
+
+        Vt(): _dtor(nullptr), _gc_mark(nullptr) {}
+
+        template<typename T>
+        inline static Vt get(){
+            static_assert(std::is_same_v<T, std::decay_t<T>>);
+            Vt vt;
+            if constexpr(!std::is_trivially_destructible_v<T>){
+                vt._dtor = [](void* p){ ((T*)p)->~T(); };
+            }
+            if constexpr(has_gc_marker<T>::value){
+                vt._gc_mark = [](void* p, VM* vm){ ((T*)p)->_gc_mark(vm); };
+            }
+            return vt;
+        }
+    };
+
     PyVar obj;      // never be garbage collected
     Type base;
     PyVar mod;      // never be garbage collected
     StrName name;
     bool subclass_enabled;
+    Vt vt;
 
+    PyTypeInfo(PyVar obj, Type base, PyVar mod, StrName name, bool subclass_enabled, Vt vt={}):
+        obj(obj), base(base), mod(mod), name(name), subclass_enabled(subclass_enabled), vt(vt) {}
+    
     std::vector<StrName> annotated_fields = {};
 
     // unary operators
@@ -386,7 +410,12 @@ public:
 
 #if PK_REGION("User Type Registration")
     PyVar new_module(Str name, Str package="");
-    PyVar new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled=true);
+    PyVar new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt={});
+
+    template<typename T>
+    PyVar new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled){
+        return new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
+    }
 
     template<typename T>
     Type _tp_user(){ return _find_type_in_cxx_typeid_map<T>(); }
@@ -455,6 +484,7 @@ public:
     PyVar __pack_next_retval(unsigned);
     PyVar __minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key);
     bool __py_bool_non_trivial(PyVar);
+    void __obj_gc_mark(PyVar);
 };
 
 
@@ -595,7 +625,7 @@ __T _py_cast(VM* vm, PyVar obj) { return _py_cast__internal<__T, false>(vm, obj)
 
 template<typename T>
 PyVar VM::register_user_class(PyVar mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled){
-    PyVar type = new_type_object(mod, name, base, subclass_enabled);
+    PyVar type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
     mod->attr().set(name, type);
     _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
     _register(this, mod, type);

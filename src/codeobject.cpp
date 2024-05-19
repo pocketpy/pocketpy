@@ -7,14 +7,8 @@ namespace pkpy{
             blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0, 0));
         }
 
-    void CodeObject::_gc_mark() const {
-        for(PyVar v : consts) PK_OBJ_MARK(v);
-        for(auto& decl: func_decls) decl->_gc_mark();
-    }
-
     struct PySignalObject: PyObject {
         PySignalObject() : PyObject() { gc_enabled = false; }
-        void _obj_gc_mark() override {}
     };
 
     PyVar const PY_NULL(Type(), new PySignalObject());

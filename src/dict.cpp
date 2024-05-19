@@ -169,12 +169,4 @@ namespace pkpy{
         pool128_dealloc(_items);
         pool64_dealloc(_nodes);
     }
-
-    void Dict::_gc_mark() const{
-        apply([](PyVar k, PyVar v){
-            PK_OBJ_MARK(k);
-            PK_OBJ_MARK(v);
-        });
-    }
-
 }   // namespace pkpy
