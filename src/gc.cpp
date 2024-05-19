@@ -3,8 +3,8 @@
 namespace pkpy{
 
     int ManagedHeap::sweep(){
-        std::vector<PyVar> alive;
-        for(PyVar obj: gen){
+        std::vector<PyObject*> alive;
+        for(PyObject* obj: gen){
             PK_DEBUG_ASSERT(!obj.is_sso)
             if(obj->gc_marked){
                 obj->gc_marked = false;
@@ -19,7 +19,7 @@ namespace pkpy{
         }
 
         // clear _no_gc marked flag
-        for(PyVar obj: _no_gc) obj->gc_marked = false;
+        for(PyObject* obj: _no_gc) obj->gc_marked = false;
 
         int freed = gen.size() - alive.size();
 

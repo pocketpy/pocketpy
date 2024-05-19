@@ -7,7 +7,7 @@ namespace pkpy{
             blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0, 0));
         }
 
-    PyVar const PY_NULL(Type(), new PyObject());
-    PyVar const PY_OP_CALL(Type(), new PyObject());
-    PyVar const PY_OP_YIELD(Type(), new PyObject());
+    PyVar const PY_NULL(Type(), new PyObject(Type()));
+    PyVar const PY_OP_CALL(Type(), new PyObject(Type()));
+    PyVar const PY_OP_YIELD(Type(), new PyObject(Type()));
 }   // namespace pkpy

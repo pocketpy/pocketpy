@@ -484,7 +484,7 @@ public:
     PyVar __pack_next_retval(unsigned);
     PyVar __minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key);
     bool __py_bool_non_trivial(PyVar);
-    void __obj_gc_mark(PyVar);
+    void __obj_gc_mark(PyObject*);
 };
 
 

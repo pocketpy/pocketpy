@@ -103,6 +103,7 @@ struct Slice {
 
 struct PyObject final{
     bool gc_marked;     // whether this object is marked
+    Type type;          // we have a duplicated type here for saving memory
     NameDict* _attr;
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
@@ -118,7 +119,7 @@ struct PyObject final{
         return (*_attr)[name];
     }
 
-    PyObject() : gc_marked(false), _attr(nullptr) {}
+    PyObject(Type type) : gc_marked(false), type(type), _attr(nullptr) {}
 
     template<typename T, typename ...Args>
     void placement_new(Args&&... args){
@@ -190,7 +191,7 @@ obj_get_t<T> PyVar::obj_get(){
 
 #define PK_OBJ_MARK(obj) \
     if(!is_tagged(obj) && !(obj)->gc_marked) {                          \
-        vm->__obj_gc_mark(obj);                                         \
+        vm->__obj_gc_mark(obj.get());                                   \
     }
 
 #define VAR(x) py_var(vm, x)

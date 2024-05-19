@@ -398,8 +398,8 @@ namespace pkpy{
 
     VM::~VM() {
         // clear managed heap
-        for(PyVar obj: heap.gen) heap._delete(obj);
-        for(PyVar obj: heap._no_gc) heap._delete(obj);
+        for(PyObject* obj: heap.gen) heap._delete(obj);
+        for(PyObject* obj: heap._no_gc) heap._delete(obj);
         // clear everything
         callstack.clear();
         s_data.clear();
@@ -427,9 +427,9 @@ bool VM::__py_bool_non_trivial(PyVar obj){
     return true;
 }
 
-void VM::__obj_gc_mark(PyVar obj){
+void VM::__obj_gc_mark(PyObject* obj){
     obj->gc_marked = true;
-    const PyTypeInfo* ti = _tp_info(obj);
+    const PyTypeInfo* ti = _tp_info(obj->type);
     if(ti->vt._gc_mark) ti->vt._gc_mark(obj->_value_ptr(), this);
     if(obj->is_attr_valid()){
         obj->attr().apply([this](StrName _, PyVar obj){
@@ -1821,7 +1821,9 @@ void Frame::_gc_mark(VM* vm) const {
 }
 
 void ManagedHeap::mark() {
-    for(PyVar obj: _no_gc) PK_OBJ_MARK(obj);
+    for(PyObject* obj: _no_gc){
+        if(!obj->gc_marked) vm->__obj_gc_mark(obj);
+    }
     vm->callstack.apply([this](Frame& frame){ frame._gc_mark(vm); });
     for(PyVar obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->__cached_codes) co->_gc_mark(vm);
@@ -1831,15 +1833,14 @@ void ManagedHeap::mark() {
     if(_gc_marker_ex) _gc_marker_ex(vm);
 }
 
-void ManagedHeap::_delete(PyVar obj){
-    PK_DEBUG_ASSERT(!obj.is_sso)
-    const PyTypeInfo* ti = vm->_tp_info(obj);
+void ManagedHeap::_delete(PyObject* obj){
+    const PyTypeInfo* ti = vm->_tp_info(obj->type);
     if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
     if(obj->_attr){
         obj->_attr->~NameDict();
         pool128_dealloc(obj->_attr);
     }
-    pool128_dealloc(obj.get());
+    pool128_dealloc(obj);
 }
 
 void Dict::_gc_mark(VM* vm) const{
