@@ -19,7 +19,7 @@ void LineProfiler::begin(){
 }
 
 void LineProfiler::_step(int callstack_size, Frame* frame){
-    auto line_info = frame->co->lines[frame->_ip];
+    auto line_info = frame->co->lines[frame->ip()];
     if(line_info.is_virtual) return;
     std::string_view filename = frame->co->src->filename.sv();
     int line = line_info.lineno;

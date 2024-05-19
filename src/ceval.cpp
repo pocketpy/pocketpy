@@ -94,8 +94,8 @@ bool VM::py_ge(PyVar _0, PyVar _1){
     }
 #endif
 
-#define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
-#define DISPATCH_JUMP(__target) { frame->_ip = __target; goto __NEXT_STEP; }
+#define DISPATCH() { frame->_ip_addr++; goto __NEXT_STEP; }
+#define DISPATCH_JUMP(__target) { frame->_ip_addr = co_codes+__target; goto __NEXT_STEP; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
@@ -107,12 +107,16 @@ PyVar VM::__run_top_frame(){
 /**********************************************************************/
 {
 __NEXT_FRAME:
+    // TODO: when jit is enabled, co_codes may not be const
+    const Bytecode* co_codes = frame->co->codes.data();
+    Bytecode byte;
+
     if(__internal_exception.type == InternalExceptionType::Null){
         // None
-        frame->_ip++;
+        frame->_ip_addr++;
     }else if(__internal_exception.type == InternalExceptionType::Handled){
         // HandledException + continue
-        frame->_ip = __internal_exception.arg;
+        frame->_ip_addr = co_codes + __internal_exception.arg;
         __internal_exception = {};
     }else{
         // UnhandledException + continue (need_raise = true)
@@ -121,12 +125,8 @@ __NEXT_FRAME:
         __raise_exc();      // no return
     }
 
-    // TODO: when jit is enabled, co_codes may not be const
-    const Bytecode* co_codes = frame->co->codes.data();
-    Bytecode byte;
-
 __NEXT_STEP:
-    byte = co_codes[frame->_ip];
+    byte = *frame->_ip_addr;
     CEVAL_STEP_CALLBACK()
 
 #if PK_DEBUG_CEVAL_STEP
@@ -542,13 +542,11 @@ __NEXT_STEP:
     case OP_COMPARE_EQ:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
-        PREDICT_INT_OP(==)
         TOP() = VAR(py_eq(_0, _1));
     } DISPATCH()
     case OP_COMPARE_NE:{
         PyVar _1 = POPX();
         PyVar _0 = TOP();
-        PREDICT_INT_OP(!=)
         TOP() = VAR(py_ne(_0, _1));
     } DISPATCH()
     case OP_COMPARE_GT:{

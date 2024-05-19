@@ -69,7 +69,7 @@ struct ValueStack {
 };
 
 struct Frame {
-    int _ip;
+    const Bytecode* _ip_addr;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyVar* _sp_base;
 
@@ -80,18 +80,19 @@ struct Frame {
 
     NameDict& f_globals() { return _module->attr(); }
     PyVar f_closure_try_get(StrName name);
+    int ip() const { return _ip_addr - co->codes.data(); }
 
     // function scope
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, PyVar* _locals_base)
-            : _ip(-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
+            : _ip_addr(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
 
     // exec/eval
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, FastLocals _locals)
-            : _ip(-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
+            : _ip_addr(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
 
     // global scope
     Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
-            : _ip(-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+            : _ip_addr(co->codes.data()-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     PyVar* actual_sp_base() const { return _locals.a; }
 
@@ -103,12 +104,12 @@ struct Frame {
     int _exit_block(ValueStack*, int);
 
     [[nodiscard]] int prepare_loop_break(ValueStack* s_data){
-        int target = co->_get_block_codei(_ip).end;
+        int target = co->_get_block_codei(ip()).end;
         prepare_jump_break(s_data, target);
         return target;
     }
 
-    int curr_lineno() const { return co->lines[_ip].lineno; }
+    int curr_lineno() const { return co->lines[ip()].lineno; }
 
     void _gc_mark() const {
         PK_OBJ_MARK(_module);

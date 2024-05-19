@@ -25,7 +25,7 @@ namespace pkpy{
 
     int Frame::prepare_jump_exception_handler(ValueStack* _s){
         // try to find a parent try block
-        int block = co->iblocks[_ip];
+        int block = co->iblocks[ip()];
         while(block >= 0){
             if(co->blocks[block].type == CodeBlockType::TRY_EXCEPT) break;
             block = co->blocks[block].parent;
@@ -47,7 +47,7 @@ namespace pkpy{
     }
 
     void Frame::prepare_jump_break(ValueStack* _s, int target){
-        int i = co->iblocks[_ip];
+        int i = co->iblocks[ip()];
         if(target >= co->codes.size()){
             while(i>=0) i = _exit_block(_s, i);
         }else{

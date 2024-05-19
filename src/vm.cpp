@@ -224,6 +224,7 @@ namespace pkpy{
     }
 
     bool VM::py_eq(PyVar lhs, PyVar rhs){
+        if(is_int(lhs) && is_int(rhs)) return lhs.as<i64>() == rhs.as<i64>();
         const PyTypeInfo* ti = _tp_info(lhs);
         PyVar res;
         if(ti->m__eq__){
@@ -1394,12 +1395,12 @@ void VM::__raise_exc(bool re_raise){
     Frame* frame = &callstack.top();
     Exception& e = PK_OBJ_GET(Exception, s_data.top());
     if(!re_raise){
-        e._ip_on_error = frame->_ip;
+        e._ip_on_error = frame->ip();
         e._code_on_error = (void*)frame->co;
     }
     int next_ip = frame->prepare_jump_exception_handler(&s_data);
 
-    int actual_ip = frame->_ip;
+    int actual_ip = frame->ip();
     if(e._ip_on_error >= 0 && e._code_on_error == (void*)frame->co) actual_ip = e._ip_on_error;
     int current_line = frame->co->lines[actual_ip].lineno;         // current line
     auto current_f_name = frame->co->name.sv();             // current function name
