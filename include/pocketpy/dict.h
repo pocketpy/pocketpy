@@ -23,7 +23,6 @@ struct Dict{
     static_assert(sizeof(Item) * __Capacity <= 128);
     static_assert(sizeof(ItemNode) * __Capacity <= 64);
 
-    VM* vm;
     int _capacity;
     int _mask;
     int _size;
@@ -33,7 +32,7 @@ struct Dict{
     Item* _items;
     ItemNode* _nodes;       // for order preserving
 
-    Dict(VM* vm);
+    Dict();
     Dict(Dict&& other);
     Dict(const Dict& other);
     Dict& operator=(const Dict&) = delete;
@@ -41,17 +40,17 @@ struct Dict{
 
     int size() const { return _size; }
 
-    void _probe_0(PyVar key, bool& ok, int& i) const;
-    void _probe_1(PyVar key, bool& ok, int& i) const;
+    void _probe_0(VM* vm, PyVar key, bool& ok, int& i) const;
+    void _probe_1(VM* vm, PyVar key, bool& ok, int& i) const;
 
-    void set(PyVar key, PyVar val);
-    void _rehash();
+    void set(VM* vm, PyVar key, PyVar val);
+    void _rehash(VM* vm);
 
-    PyVar try_get(PyVar key) const;
+    PyVar try_get(VM* vm, PyVar key) const;
 
-    bool contains(PyVar key) const;
-    bool erase(PyVar key);
-    void update(const Dict& other);
+    bool contains(VM* vm, PyVar key) const;
+    bool erase(VM* vm, PyVar key);
+    void update(VM* vm, const Dict& other);
 
     template<typename __Func>
     void apply(__Func f) const {

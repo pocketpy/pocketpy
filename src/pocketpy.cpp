@@ -1264,7 +1264,7 @@ void __init_builtins(VM* _vm) {
     // tp_dict
     _vm->bind_func(VM::tp_dict, __new__, -1, [](VM* vm, ArgsView args){
         Type cls_t = PK_OBJ_GET(Type, args[0]);
-        return vm->new_object<Dict>(cls_t, vm);
+        return vm->new_object<Dict>(cls_t);
     });
 
     _vm->bind_func(VM::tp_dict, __init__, -1, [](VM* vm, ArgsView args){
@@ -1274,7 +1274,7 @@ void __init_builtins(VM* _vm) {
             Dict& self = PK_OBJ_GET(Dict, args[0]);
             if(is_type(args[1], vm->tp_dict)){
                 Dict& other = CAST(Dict&, args[1]);
-                self.update(other);
+                self.update(vm, other);
                 return vm->None;
             }
             if(is_type(args[1], vm->tp_list)){
@@ -1285,7 +1285,7 @@ void __init_builtins(VM* _vm) {
                         vm->ValueError("dict() takes a list of tuples (key, value)");
                         return vm->None;
                     }
-                    self.set(t[0], t[1]);
+                    self.set(vm, t[0], t[1]);
                 }
                 return vm->None;
             }
@@ -1301,7 +1301,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind__getitem__(VM::tp_dict, [](VM* vm, PyVar _0, PyVar _1) {
         Dict& self = PK_OBJ_GET(Dict, _0);
-        PyVar ret = self.try_get(_1);
+        PyVar ret = self.try_get(vm, _1);
         if(ret == nullptr){
             // try __missing__
             PyVar self;
@@ -1316,12 +1316,12 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind__setitem__(VM::tp_dict, [](VM* vm, PyVar _0, PyVar _1, PyVar _2) {
         Dict& self = _CAST(Dict&, _0);
-        self.set(_1, _2);
+        self.set(vm, _1, _2);
     });
 
     _vm->bind__delitem__(VM::tp_dict, [](VM* vm, PyVar _0, PyVar _1) {
         Dict& self = _CAST(Dict&, _0);
-        bool ok = self.erase(_1);
+        bool ok = self.erase(vm, _1);
         if(!ok) vm->KeyError(_1);
     });
 
@@ -1331,20 +1331,20 @@ void __init_builtins(VM* _vm) {
             return vm->None;
         }
         Dict& self = _CAST(Dict&, args[0]);
-        PyVar value = self.try_get(args[1]);
+        PyVar value = self.try_get(vm, args[1]);
         if(value == nullptr){
             if(args.size() == 2) vm->KeyError(args[1]);
             if(args.size() == 3){
                 return args[2];
             }
         }
-        self.erase(args[1]);
+        self.erase(vm, args[1]);
         return value;
     });
 
     _vm->bind__contains__(VM::tp_dict, [](VM* vm, PyVar _0, PyVar _1) {
         Dict& self = _CAST(Dict&, _0);
-        return VAR(self.contains(_1));
+        return VAR(self.contains(vm, _1));
     });
 
     _vm->bind__iter__(VM::tp_dict, [](VM* vm, PyVar _0) {
@@ -1355,11 +1355,11 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_dict, "get", -1, [](VM* vm, ArgsView args) {
         Dict& self = _CAST(Dict&, args[0]);
         if(args.size() == 1+1){
-            PyVar ret = self.try_get(args[1]);
+            PyVar ret = self.try_get(vm, args[1]);
             if(ret != nullptr) return ret;
             return vm->None;
         }else if(args.size() == 1+2){
-            PyVar ret = self.try_get(args[1]);
+            PyVar ret = self.try_get(vm, args[1]);
             if(ret != nullptr) return ret;
             return args[2];
         }
@@ -1384,7 +1384,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_dict, "update", 2, [](VM* vm, ArgsView args) {
         Dict& self = _CAST(Dict&, args[0]);
         const Dict& other = CAST(Dict&, args[1]);
-        self.update(other);
+        self.update(vm, other);
         return vm->None;
     });
 
@@ -1424,7 +1424,7 @@ void __init_builtins(VM* _vm) {
         for(int i=0; i<self._capacity; i++){
             auto item = self._items[i];
             if(item.first == nullptr) continue;
-            PyVar value = other.try_get(item.first);
+            PyVar value = other.try_get(vm, item.first);
             if(value == nullptr) return vm->False;
             if(!vm->py_eq(item.second, value)) return vm->False;
         }

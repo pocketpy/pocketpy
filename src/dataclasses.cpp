@@ -105,9 +105,9 @@ void add_module_dataclasses(VM* vm){
     vm->bind_func(mod, "asdict", 1, [](VM* vm, ArgsView args){
         const auto& fields = vm->_tp_info(args[0])->annotated_fields;
         const NameDict& obj_d = args[0]->attr();
-        Dict d(vm);
+        Dict d;
         for(StrName field: fields){
-            d.set(VAR(field.sv()), obj_d[field]);
+            d.set(vm, VAR(field.sv()), obj_d[field]);
         }
         return VAR(std::move(d));
     });

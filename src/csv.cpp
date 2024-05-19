@@ -80,9 +80,9 @@ __NEXT_LINE:
             if(row.size() != header.size()){
                 vm->ValueError("row.size() != header.size()");
             }
-            Dict row_dict(vm);
+            Dict row_dict;
             for(int j=0; j<header.size(); j++){
-                row_dict.set(header[j], row[j]);
+                row_dict.set(vm, header[j], row[j]);
             }
             new_ret.push_back(VAR(std::move(row_dict)));
         }

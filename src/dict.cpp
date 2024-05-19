@@ -2,7 +2,7 @@
 
 namespace pkpy{
 
-    Dict::Dict(VM* vm): vm(vm), _capacity(__Capacity),
+    Dict::Dict(): _capacity(__Capacity),
             _mask(__Capacity-1),
             _size(0), _critical_size(__Capacity*__LoadFactor+0.5f), _head_idx(-1), _tail_idx(-1){
         _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
@@ -12,7 +12,6 @@ namespace pkpy{
     }
 
     Dict::Dict(Dict&& other){
-        vm = other.vm;
         _capacity = other._capacity;
         _mask = other._mask;
         _size = other._size;
@@ -26,7 +25,6 @@ namespace pkpy{
     }
 
     Dict::Dict(const Dict& other){
-        vm = other.vm;
         _capacity = other._capacity;
         _mask = other._mask;
         _size = other._size;
@@ -39,11 +37,11 @@ namespace pkpy{
         memcpy(_nodes, other._nodes, _capacity * sizeof(ItemNode));
     }
 
-    void Dict::set(PyVar key, PyVar val){
+    void Dict::set(VM* vm, PyVar key, PyVar val){
         // do possible rehash
-        if(_size+1 > _critical_size) _rehash();
+        if(_size+1 > _critical_size) _rehash(vm);
         bool ok; int i;
-        _probe_1(key, ok, i);
+        _probe_1(vm, key, ok, i);
         if(!ok) {
             _size++;
             _items[i].first = key;
@@ -61,7 +59,7 @@ namespace pkpy{
         _items[i].second = val;
     }
 
-    void Dict::_rehash(){
+    void Dict::_rehash(VM* vm){
         Item* old_items = _items;
         ItemNode* old_nodes = _nodes;
         int old_head_idx = _head_idx;
@@ -81,7 +79,7 @@ namespace pkpy{
         // copy old items to new dict
         int i = old_head_idx;
         while(i != -1){
-            set(old_items[i].first, old_items[i].second);
+            set(vm, old_items[i].first, old_items[i].second);
             i = old_nodes[i].next;
         }
         pool128_dealloc(old_items);
@@ -89,22 +87,22 @@ namespace pkpy{
     }
 
 
-    PyVar Dict::try_get(PyVar key) const{
+    PyVar Dict::try_get(VM* vm, PyVar key) const{
         bool ok; int i;
-        _probe_0(key, ok, i);
+        _probe_0(vm, key, ok, i);
         if(!ok) return nullptr;
         return _items[i].second;
     }
 
-    bool Dict::contains(PyVar key) const{
+    bool Dict::contains(VM* vm, PyVar key) const{
         bool ok; int i;
-        _probe_0(key, ok, i);
+        _probe_0(vm, key, ok, i);
         return ok;
     }
 
-    bool Dict::erase(PyVar key){
+    bool Dict::erase(VM* vm, PyVar key){
         bool ok; int i;
-        _probe_0(key, ok, i);
+        _probe_0(vm, key, ok, i);
         if(!ok) return false;
         _items[i].first = nullptr;
         // _items[i].second = PY_DELETED_SLOT;  // do not change .second if it is not NULL, it means the slot is occupied by a deleted item
@@ -130,8 +128,8 @@ namespace pkpy{
         return true;
     }
 
-    void Dict::update(const Dict& other){
-        other.apply([&](PyVar k, PyVar v){ set(k, v); });
+    void Dict::update(VM* vm, const Dict& other){
+        other.apply([&](PyVar k, PyVar v){ set(vm, k, v); });
     }
 
     Tuple Dict::keys() const{

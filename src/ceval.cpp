@@ -393,7 +393,7 @@ __NEXT_STEP:
     } DISPATCH()
     case OP_BUILD_DICT:{
         if(byte.arg == 0){
-            PUSH(VAR(Dict(this)));
+            PUSH(VAR(Dict()));
             DISPATCH()
         }
         PyVar _0 = VAR(STACK_VIEW(byte.arg).to_list());
@@ -439,7 +439,7 @@ __NEXT_STEP:
     } DISPATCH()
     case OP_BUILD_DICT_UNPACK: {
         auto _lock = heap.gc_scope_lock();
-        Dict dict(this);
+        Dict dict;
         __unpack_as_dict(STACK_VIEW(byte.arg), dict);
         STACK_SHRINK(byte.arg);
         PyVar _0 = VAR(std::move(dict));
@@ -769,7 +769,7 @@ __NEXT_STEP:
     case OP_DICT_ADD: {
         PyVar _0 = POPX();
         const Tuple& t = PK_OBJ_GET(Tuple, _0);
-        PK_OBJ_GET(Dict, SECOND()).set(t[0], t[1]);
+        PK_OBJ_GET(Dict, SECOND()).set(this, t[0], t[1]);
     } DISPATCH()
     case OP_SET_ADD:{
         PyVar _0 = POPX();

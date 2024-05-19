@@ -52,12 +52,12 @@ static PyVar convert_cjson_to_list(const cJSON * const item, VM* vm){
 }
 
 static PyVar convert_cjson_to_dict(const cJSON* const item, VM* vm){
-    Dict output(vm);
+    Dict output;
     cJSON *child = item->child;
     while(child != NULL){
         const char* key = child->string;
         const cJSON *child_value = cJSON_GetObjectItemCaseSensitive(item, key);
-        output.set(VAR(key), convert_cjson_to_python_object(child_value, vm));
+        output.set(vm, VAR(key), convert_cjson_to_python_object(child_value, vm));
         child = child->next;
     }
     return VAR(std::move(output));

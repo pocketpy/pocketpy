@@ -566,14 +566,14 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     if(globals_dict){
         globals_dict->clear();
         globals_obj->attr().apply([&](StrName k, PyVar v){
-            globals_dict->set(VAR(k.sv()), v);
+            globals_dict->set(vm, VAR(k.sv()), v);
         });
     }
 
     if(locals_dict){
         locals_dict->clear();
         locals_closure->apply([&](StrName k, PyVar v){
-            locals_dict->set(VAR(k.sv()), v);
+            locals_dict->set(vm, VAR(k.sv()), v);
         });
     }
     return retval;
@@ -921,11 +921,11 @@ void VM::__unpack_as_dict(ArgsView args, Dict& dict){
             // maybe this check should be done in the compile time
             if(w.level != 2) TypeError("expected level 2 star wrapper");
             const Dict& other = CAST(Dict&, w.obj);
-            dict.update(other);
+            dict.update(this, other);
         }else{
             const Tuple& t = CAST(Tuple&, obj);
             if(t.size() != 2) TypeError("expected tuple of length 2");
-            dict.set(t[0], t[1]);
+            dict.set(this, t[0], t[1]);
         }
     }
 }
@@ -966,7 +966,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
     
     PyVar vkwargs;
     if(decl->starred_kwarg != -1){
-        vkwargs = VAR(Dict(this));
+        vkwargs = VAR(Dict());
         buffer[decl->starred_kwarg] = vkwargs;
     }else{
         vkwargs = nullptr;
@@ -984,7 +984,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
                 TypeError(_S(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             }else{
                 Dict& dict = _CAST(Dict&, vkwargs);
-                dict.set(VAR(key.sv()), kwargs[j+1]);
+                dict.set(this, VAR(key.sv()), kwargs[j+1]);
             }
         }
     }
@@ -1559,7 +1559,7 @@ void VM::bind__len__(Type type, i64 (*f)(VM*, PyVar)){
 #undef BIND_BINARY_SPECIAL
 
 
-void Dict::_probe_0(PyVar key, bool &ok, int &i) const{
+void Dict::_probe_0(VM* vm, PyVar key, bool &ok, int &i) const{
     ok = false;
     i64 hash = vm->py_hash(key);
     i = hash & _mask;
@@ -1574,7 +1574,7 @@ void Dict::_probe_0(PyVar key, bool &ok, int &i) const{
     }
 }
 
-void Dict::_probe_1(PyVar key, bool &ok, int &i) const{
+void Dict::_probe_1(VM* vm, PyVar key, bool &ok, int &i) const{
     ok = false;
     i = vm->py_hash(key) & _mask;
     while(_items[i].first != nullptr) {
