@@ -94,8 +94,8 @@ bool VM::py_ge(PyVar _0, PyVar _1){
     }
 #endif
 
-#define DISPATCH() { frame->_ip_addr++; goto __NEXT_STEP; }
-#define DISPATCH_JUMP(__target) { frame->_ip_addr = co_codes+__target; goto __NEXT_STEP; }
+#define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
+#define DISPATCH_JUMP(__target) { frame->_ip=co_codes+__target; goto __NEXT_STEP; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
@@ -113,10 +113,10 @@ __NEXT_FRAME:
 
     if(__internal_exception.type == InternalExceptionType::Null){
         // None
-        frame->_ip_addr++;
+        frame->_ip++;
     }else if(__internal_exception.type == InternalExceptionType::Handled){
         // HandledException + continue
-        frame->_ip_addr = co_codes + __internal_exception.arg;
+        frame->_ip = co_codes + __internal_exception.arg;
         __internal_exception = {};
     }else{
         // UnhandledException + continue (need_raise = true)
@@ -126,7 +126,7 @@ __NEXT_FRAME:
     }
 
 __NEXT_STEP:
-    byte = *frame->_ip_addr;
+    byte = *frame->_ip;
     CEVAL_STEP_CALLBACK()
 
 #if PK_DEBUG_CEVAL_STEP
