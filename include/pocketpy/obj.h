@@ -102,12 +102,14 @@ struct Slice {
 };
 
 struct PyObject final{
+    static constexpr int FIXED_SIZE = 16;
+    
     bool gc_marked;     // whether this object is marked
     Type type;          // we have a duplicated type here for saving memory
     NameDict* _attr;
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
-    void* _value_ptr() noexcept { return 1 + &_attr; }
+    void* _value_ptr() noexcept { return (char*)this + FIXED_SIZE; }
 
     NameDict& attr() {
         PK_DEBUG_ASSERT(is_attr_valid())
@@ -144,10 +146,9 @@ struct PyObject final{
     }
 };
 
+static_assert(sizeof(PyObject) <= PyObject::FIXED_SIZE);
 template<typename T>
-inline constexpr int py_sizeof = sizeof(PyObject) + sizeof(T);
-
-static_assert(sizeof(PyObject) <= 16);
+inline constexpr int py_sizeof = PyObject::FIXED_SIZE + sizeof(T);
 
 const int kTpIntIndex = 3;
 const int kTpFloatIndex = 4;
