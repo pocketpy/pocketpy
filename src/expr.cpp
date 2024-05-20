@@ -54,8 +54,7 @@ namespace pkpy{
 
     int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
         co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
-        co->iblocks.push_back(curr_block_i);
-        co->lines.push_back(CodeObject::LineInfo{line, is_virtual});
+        co->lines.push_back(CodeObject::LineInfo{line, is_virtual, curr_block_i});
         int i = co->codes.size() - 1;
         if(line == BC_KEEPLINE){
             if(i >= 1) co->lines[i].lineno = co->lines[i-1].lineno;
@@ -66,7 +65,6 @@ namespace pkpy{
 
     void CodeEmitContext::revert_last_emit_(){
         co->codes.pop_back();
-        co->iblocks.pop_back();
         co->lines.pop_back();
     }
 

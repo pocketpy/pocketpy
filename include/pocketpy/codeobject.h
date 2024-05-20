@@ -56,17 +56,17 @@ struct CodeObject {
     struct LineInfo{
         int lineno;             // line number for each bytecode
         bool is_virtual;        // whether this bytecode is virtual (not in source code)
+        int iblock;             // block index
     };
 
     std::shared_ptr<SourceData> src;
     Str name;
 
     std::vector<Bytecode> codes;
-    std::vector<int> iblocks;       // block index for each bytecode
     std::vector<LineInfo> lines;
     
     small_vector_2<PyVar, 8> consts;         // constants
-    small_vector_2<StrName, 8> varnames;         // local variables
+    small_vector_2<StrName, 8> varnames;     // local variables
 
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks;
@@ -77,7 +77,7 @@ struct CodeObject {
     int end_line;
 
     const CodeBlock& _get_block_codei(int codei) const{
-        return blocks[iblocks[codei]];
+        return blocks[lines[codei].iblock];
     }
 
     CodeObject(std::shared_ptr<SourceData> src, const Str& name);

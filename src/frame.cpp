@@ -25,7 +25,7 @@ namespace pkpy{
 
     int Frame::prepare_jump_exception_handler(ValueStack* _s){
         // try to find a parent try block
-        int block = co->iblocks[ip()];
+        int block = co->lines[ip()].iblock;
         while(block >= 0){
             if(co->blocks[block].type == CodeBlockType::TRY_EXCEPT) break;
             block = co->blocks[block].parent;
@@ -47,7 +47,7 @@ namespace pkpy{
     }
 
     void Frame::prepare_jump_break(ValueStack* _s, int target){
-        int i = co->iblocks[ip()];
+        int i = co->lines[ip()].iblock;
         if(target >= co->codes.size()){
             while(i>=0) i = _exit_block(_s, i);
         }else{
@@ -56,7 +56,7 @@ namespace pkpy{
             //     _ = 0
             // # if there is no op here, the block check will fail
             // while i: --i
-            int next_block = co->iblocks[target];
+            int next_block = co->lines[target].iblock;
             while(i>=0 && i!=next_block) i = _exit_block(_s, i);
             if(i!=next_block) throw std::runtime_error("invalid jump");
         }
