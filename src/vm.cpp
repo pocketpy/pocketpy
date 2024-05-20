@@ -212,6 +212,15 @@ namespace pkpy{
             Str error = _S("type ", base_info.name.escape(), " is not `subclass_enabled`");
             throw std::runtime_error(error.c_str());
         }
+        if(base_info.vt){
+            if(vt){
+                Str error = _S("type ", base_info.name.escape(), " has a custom vtable, cannot override");
+                throw std::runtime_error(error.c_str());
+            }else{
+                // promote base vt to its subclass
+                vt = base_info.vt;
+            }
+        }
         _all_types.emplace_back(obj, base, mod, name, subclass_enabled, vt);
         return obj;
     }

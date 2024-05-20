@@ -48,6 +48,8 @@ struct PyTypeInfo{
 
         Vt(): _dtor(nullptr), _gc_mark(nullptr) {}
 
+        operator bool() const { return _dtor || _gc_mark; }
+
         template<typename T>
         inline static Vt get(){
             static_assert(std::is_same_v<T, std::decay_t<T>>);
