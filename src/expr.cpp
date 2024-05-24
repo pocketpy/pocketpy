@@ -111,6 +111,7 @@ namespace pkpy{
         int index = co->varnames_inv.try_get(name);
         if(index >= 0) return index;
         co->varnames.push_back(name);
+        co->nlocals++;
         index = co->varnames.size() - 1;
         co->varnames_inv.set(name, index);
         return index;

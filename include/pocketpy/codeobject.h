@@ -76,6 +76,7 @@ struct CodeObject {
     
     small_vector_2<PyVar, 8> consts;         // constants
     small_vector_2<StrName, 8> varnames;     // local variables
+    int nlocals;                             // varnames.size()
 
     NameDictInt varnames_inv;
     std::vector<CodeBlock> blocks;

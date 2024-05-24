@@ -949,7 +949,6 @@ void VM::__unpack_as_dict(ArgsView args, Dict& dict){
 
 void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const FuncDecl_& decl){
     const CodeObject* co = decl->code.get();
-    int co_nlocals = co->varnames.size();
     int decl_argc = decl->args.size();
 
     if(args.size() < decl_argc){
@@ -960,7 +959,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 
     int i = 0;
     // prepare args
-    memset(buffer, 0, co_nlocals * sizeof(PyVar));
+    memset(buffer, 0, co->nlocals * sizeof(PyVar));
     for(int index: decl->args) buffer[index] = args[i++];
     // prepare kwdefaults
     for(auto& kv: decl->kwargs) buffer[kv.index] = kv.value;
@@ -1036,22 +1035,20 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
         const Function& fn = PK_OBJ_GET(Function, callable);
         const CodeObject* co = fn.decl->code.get();
-        int co_nlocals = co->varnames.size();
 
         switch(fn.decl->type){
-            case FuncType::UNSET: PK_FATAL_ERROR(); break;
             case FuncType::NORMAL:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // copy buffer back to stack
-                s_data.reset(_base + co_nlocals);
-                for(int j=0; j<co_nlocals; j++) _base[j] = __vectorcall_buffer[j];
+                s_data.reset(_base + co->nlocals);
+                for(int j=0; j<co->nlocals; j++) _base[j] = __vectorcall_buffer[j];
                 break;
             case FuncType::SIMPLE:
                 if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));
                 if(!kwargs.empty()) TypeError(_S(co->name, "() takes no keyword arguments"));
                 // [callable, <self>, args..., local_vars...]
                 //      ^p0                    ^p1      ^_sp
-                s_data.reset(_base + co_nlocals);
+                s_data.reset(_base + co->nlocals);
                 // initialize local variables to PY_NULL
                 memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
@@ -1065,8 +1062,13 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 s_data.reset(p0);
                 return __py_generator(
                     Frame(nullptr, co, fn._module, callable, nullptr),
-                    ArgsView(__vectorcall_buffer, __vectorcall_buffer + co_nlocals)
+                    ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals)
                 );
+#if PK_DEBUG_EXTRA_CHECK
+            default: PK_FATAL_ERROR(); break;
+#else
+            default: PK_UNREACHABLE()
+#endif
         };
 
         // simple or normal
@@ -1080,7 +1082,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         const auto& f = PK_OBJ_GET(NativeFunc, callable);
         PyVar ret;
         if(f.decl != nullptr){
-            int co_nlocals = f.decl->code->varnames.size();
+            int co_nlocals = f.decl->code->nlocals;
             __prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
             // copy buffer back to stack
             s_data.reset(_base + co_nlocals);

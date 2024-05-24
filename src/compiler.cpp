@@ -41,7 +41,7 @@ namespace pkpy{
 
         // some check here
         auto& codes = ctx()->co->codes;
-        if(ctx()->co->varnames.size() > PK_MAX_CO_VARNAMES){
+        if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES){
             SyntaxError("maximum number of local variables exceeded");
         }
         if(ctx()->co->consts.size() > 65530){

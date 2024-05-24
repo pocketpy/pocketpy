@@ -14,7 +14,7 @@ struct FastLocals{
     const CodeObject* co;
     PyVar* a;
 
-    int size() const{ return co->varnames.size();}
+    int size() const{ return co->nlocals;}
 
     PyVar& operator[](int i){ return a[i]; }
     PyVar operator[](int i) const { return a[i]; }
