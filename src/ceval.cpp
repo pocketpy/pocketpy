@@ -173,7 +173,7 @@ __NEXT_STEP:
         }
         PUSH(obj);
     } DISPATCH()
-    case OP_LOAD_NULL: PUSH(PY_NULL); DISPATCH()
+    case OP_LOAD_NULL: s_data.emplace(PY_NULL); DISPATCH()
     /*****************************************/
     case OP_LOAD_FAST: {
         PyVar _0 = frame->_locals[byte.arg];
