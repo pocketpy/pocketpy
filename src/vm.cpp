@@ -143,10 +143,10 @@ namespace pkpy{
         mod->attr().set("argv", VAR(std::move(argv_)));
     }
 
-    PyVar VM::find_name_in_mro(Type cls, StrName name){
-        PyVar val;
+    PyVar* VM::find_name_in_mro(Type cls, StrName name){
+        PyVar* val;
         do{
-            val = _t(cls)->attr().try_get(name);
+            val = _t(cls)->attr().try_get_2(name);
             if(val != nullptr) return val;
             cls = _all_types[cls].base;
             if(!cls) break;
@@ -960,9 +960,8 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 
     int i = 0;
     // prepare args
+    memset(buffer, 0, co_nlocals * sizeof(PyVar));
     for(int index: decl->args) buffer[index] = args[i++];
-    // set extra varnames to PY_NULL
-    for(int j=i; j<co_nlocals; j++) buffer[j] = PY_NULL;
     // prepare kwdefaults
     for(auto& kv: decl->kwargs) buffer[kv.index] = kv.value;
     
@@ -1055,7 +1054,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 //      ^p0                    ^p1      ^_sp
                 s_data.reset(_base + co_nlocals);
                 // initialize local variables to PY_NULL
-                for(PyVar* p=p1; p!=s_data._sp; p++) *p = PY_NULL;
+                memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
             case FuncType::EMPTY:
                 if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));
@@ -1099,7 +1098,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
 
     if(callable_t == tp_type){
         // [type, NULL, args..., kwargs...]
-        PyVar new_f = find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
+        PyVar new_f = *find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyVar obj;
         PK_DEBUG_ASSERT(new_f != nullptr && p0[1]==PY_NULL);
         if(new_f == __cached_object_new) {
@@ -1165,45 +1164,45 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err){
     }else{
         objtype = _tp(obj);
     }
-    PyVar cls_var = find_name_in_mro(objtype, name);
+    PyVar* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        if(is_type(cls_var, tp_property)){
-            const Property& prop = PK_OBJ_GET(Property, cls_var);
+        if(is_type(*cls_var, tp_property)){
+            const Property& prop = PK_OBJ_GET(Property, *cls_var);
             return call(prop.getter, obj);
         }
     }
     // handle instance __dict__
     if(!is_tagged(obj) && obj->is_attr_valid()){
-        PyVar val;
+        PyVar* val;
         if(obj.type == tp_type){
             val = find_name_in_mro(PK_OBJ_GET(Type, obj), name);
             if(val != nullptr){
-                if(is_tagged(val)) return val;
-                if(val.type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-                if(val.type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
-                return val;
+                if(is_tagged(*val)) return *val;
+                if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, *val).func;
+                if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, *val).func));
+                return *val;
             }
         }else{
-            val = obj->attr().try_get_likely_found(name);
-            if(val != nullptr) return val;
+            val = obj->attr().try_get_2_likely_found(name);
+            if(val != nullptr) return *val;
         }
     }
     if(cls_var != nullptr){
         // bound method is non-data descriptor
-        if(!is_tagged(cls_var)){
-            switch(cls_var.type.index){
+        if(!is_tagged(*cls_var)){
+            switch(cls_var->type.index){
                 case tp_function.index:
-                    return VAR(BoundMethod(obj, cls_var));
+                    return VAR(BoundMethod(obj, *cls_var));
                 case tp_native_func.index:
-                    return VAR(BoundMethod(obj, cls_var));
+                    return VAR(BoundMethod(obj, *cls_var));
                 case tp_staticmethod.index:
-                    return PK_OBJ_GET(StaticMethod, cls_var).func;
+                    return PK_OBJ_GET(StaticMethod, *cls_var).func;
                 case tp_classmethod.index:
-                    return VAR(BoundMethod(_t(objtype), PK_OBJ_GET(ClassMethod, cls_var).func));
+                    return VAR(BoundMethod(_t(objtype), PK_OBJ_GET(ClassMethod, *cls_var).func));
             }
         }
-        return cls_var;
+        return *cls_var;
     }
 
     const PyTypeInfo* ti = &_all_types[objtype];
@@ -1219,7 +1218,7 @@ PyVar VM::getattr(PyVar obj, StrName name, bool throw_err){
 // used by OP_LOAD_METHOD
 // try to load a unbound method (fallback to `getattr` if not found)
 PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_err, bool fallback){
-    *self = PY_NULL;
+    self->set_null();
     Type objtype(0);
     // handle super() proxy
     if(is_type(obj, tp_super)){
@@ -1229,37 +1228,37 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
     }else{
         objtype = _tp(obj);
     }
-    PyVar cls_var = find_name_in_mro(objtype, name);
+    PyVar* cls_var = find_name_in_mro(objtype, name);
 
     if(fallback){
         if(cls_var != nullptr){
             // handle descriptor
-            if(is_type(cls_var, tp_property)){
-                const Property& prop = PK_OBJ_GET(Property, cls_var);
+            if(is_type(*cls_var, tp_property)){
+                const Property& prop = PK_OBJ_GET(Property, *cls_var);
                 return call(prop.getter, obj);
             }
         }
         // handle instance __dict__
         if(!is_tagged(obj) && obj->is_attr_valid()){
-            PyVar val;
+            PyVar* val;
             if(obj.type == tp_type){
                 val = find_name_in_mro(PK_OBJ_GET(Type, obj), name);
                 if(val != nullptr){
-                    if(is_tagged(val)) return val;
-                    if(val.type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, val).func;
-                    if(val.type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, val).func));
-                    return val;
+                    if(is_tagged(*val)) return *val;
+                    if(val->type == tp_staticmethod) return PK_OBJ_GET(StaticMethod, *val).func;
+                    if(val->type == tp_classmethod) return VAR(BoundMethod(obj, PK_OBJ_GET(ClassMethod, *val).func));
+                    return *val;
                 }
             }else{
-                val = obj->attr().try_get_likely_found(name);
-                if(val != nullptr) return val;
+                val = obj->attr().try_get_2_likely_found(name);
+                if(val != nullptr) return *val;
             }
         }
     }
 
     if(cls_var != nullptr){
-        if(!is_tagged(cls_var)){
-            switch(cls_var.type.index){
+        if(!is_tagged(*cls_var)){
+            switch(cls_var->type.index){
                 case tp_function.index:
                     *self = obj;
                     break;
@@ -1267,14 +1266,14 @@ PyVar VM::get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_er
                     *self = obj;
                     break;
                 case tp_staticmethod.index:
-                    *self = PY_NULL;
-                    return PK_OBJ_GET(StaticMethod, cls_var).func;
+                    self->set_null();
+                    return PK_OBJ_GET(StaticMethod, *cls_var).func;
                 case tp_classmethod.index:
                     *self = _t(objtype);
-                    return PK_OBJ_GET(ClassMethod, cls_var).func;
+                    return PK_OBJ_GET(ClassMethod, *cls_var).func;
             }
         }
-        return cls_var;
+        return *cls_var;
     }
 
     const PyTypeInfo* ti = &_all_types[objtype];
@@ -1297,11 +1296,11 @@ void VM::setattr(PyVar obj, StrName name, PyVar value){
     }else{
         objtype = _tp(obj);
     }
-    PyVar cls_var = find_name_in_mro(objtype, name);
+    PyVar* cls_var = find_name_in_mro(objtype, name);
     if(cls_var != nullptr){
         // handle descriptor
-        if(is_type(cls_var, tp_property)){
-            const Property& prop = _CAST(Property&, cls_var);
+        if(is_type(*cls_var, tp_property)){
+            const Property& prop = _CAST(Property&, *cls_var);
             if(prop.setter != vm->None){
                 call(prop.setter, obj, value);
             }else{

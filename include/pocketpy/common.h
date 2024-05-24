@@ -216,7 +216,10 @@ struct PyVar final{
 
     explicit operator bool() const { return (bool)type; }
 
+    void set_null() { _qword(0) = 0; _qword(1) = 0; }
+
     i64 _qword(int i) const { return ((const i64*)this)[i]; }
+    i64& _qword(int i) { return ((i64*)this)[i]; }
 
     bool operator==(const PyVar& other) const {
         return _qword(0) == other._qword(0) && _qword(1) == other._qword(1);

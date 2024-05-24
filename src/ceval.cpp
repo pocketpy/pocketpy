@@ -323,14 +323,14 @@ __NEXT_STEP:
     case OP_DELETE_FAST:{
         PyVar _0 = frame->_locals[byte.arg];
         if(_0 == PY_NULL) vm->UnboundLocalError(frame->co->varnames[byte.arg]);
-        frame->_locals[byte.arg] = PY_NULL;
+        frame->_locals[byte.arg].set_null();
     }DISPATCH()
     case OP_DELETE_NAME:{
         StrName _name(byte.arg);
         if(frame->_callable != nullptr){
             PyVar* slot = frame->_locals.try_get_name(_name);
             if(slot != nullptr){
-                *slot = PY_NULL;
+                slot->set_null();
             }else{
                 Function& func = PK_OBJ_GET(Function, frame->_callable);
                 if(func.decl == __dynamic_func_decl){

@@ -261,7 +261,7 @@ public:
 #endif
 
 #if PK_REGION("Name Lookup Methods")
-    PyVar find_name_in_mro(Type cls, StrName name);
+    PyVar* find_name_in_mro(Type cls, StrName name);
     PyVar get_unbound_method(PyVar obj, StrName name, PyVar* self, bool throw_err=true, bool fallback=false);
     PyVar getattr(PyVar obj, StrName name, bool throw_err=true);
     void delattr(PyVar obj, StrName name);
