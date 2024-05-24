@@ -39,10 +39,6 @@
 #endif
 
 /*******************************************************************************/
-#if PK_ENABLE_STD_FUNCTION
-#include <functional>
-#endif
-/*******************************************************************************/
 
 #if PK_ENABLE_THREAD
 #define PK_THREAD_LOCAL thread_local

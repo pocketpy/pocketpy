@@ -7,7 +7,7 @@
 namespace pkpy {
     
 #if PK_ENABLE_STD_FUNCTION
-using NativeFuncC = std::function<PyVar(VM*, ArgsView)>;
+using NativeFuncC = function<PyVar(VM*, ArgsView)>;
 #else
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
 #endif
