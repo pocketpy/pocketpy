@@ -96,7 +96,7 @@ bool VM::py_ge(PyVar _0, PyVar _1){
 
 #define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
 #define DISPATCH_JUMP(__offset) { frame->_ip+=__offset; goto __NEXT_STEP; }
-#define DISPATCH_JUMP_ABSOLUTE(__target) { frame->_ip=co_codes+__target; goto __NEXT_STEP; }
+#define DISPATCH_JUMP_ABSOLUTE(__target) { frame->_ip=&frame->co->codes[__target]; goto __NEXT_STEP; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
@@ -108,8 +108,6 @@ PyVar VM::__run_top_frame(){
 /**********************************************************************/
 {
 __NEXT_FRAME:
-    // TODO: when jit is enabled, co_codes may not be const
-    const Bytecode* co_codes = frame->co->codes.data();
     Bytecode byte;
 
     if(__internal_exception.type == InternalExceptionType::Null){
@@ -117,7 +115,7 @@ __NEXT_FRAME:
         frame->_ip++;
     }else if(__internal_exception.type == InternalExceptionType::Handled){
         // HandledException + continue
-        frame->_ip = co_codes + __internal_exception.arg;
+        frame->_ip = &frame->co->codes[__internal_exception.arg];
         __internal_exception = {};
     }else{
         // UnhandledException + continue (need_raise = true)
