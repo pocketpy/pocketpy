@@ -182,7 +182,7 @@ struct const_sso_var {};
 
 struct PyVar final{
     Type type;
-    bool is_sso;
+    bool is_ptr;
     uint8_t flags;
     // 12 bytes SSO
     int _0; i64 _1;
@@ -192,14 +192,14 @@ struct PyVar final{
 
     /* We must initialize all members to allow == operator to work correctly */
     // constexpr initialized
-    constexpr PyVar(const const_sso_var&, Type type, int value): type(type), is_sso(true), flags(0), _0(value), _1(0) {}
+    constexpr PyVar(const const_sso_var&, Type type, int value): type(type), is_ptr(false), flags(0), _0(value), _1(0) {}
     // zero initialized
-    constexpr PyVar(std::nullptr_t): type(0), is_sso(false), flags(0), _0(0), _1(0) {}
+    constexpr PyVar(std::nullptr_t): type(0), is_ptr(false), flags(0), _0(0), _1(0) {}
     // PyObject* initialized (is_sso = false)
-    PyVar(Type type, PyObject* p): type(type), is_sso(false), flags(0), _0(0), _1(reinterpret_cast<i64>(p)) {}
+    PyVar(Type type, PyObject* p): type(type), is_ptr(true), flags(0), _0(0), _1(reinterpret_cast<i64>(p)) {}
     // SSO initialized (is_sso = true)
     template<typename T>
-    PyVar(Type type, T value): type(type), is_sso(true), flags(0), _0(0), _1(0) {
+    PyVar(Type type, T value): type(type), is_ptr(false), flags(0), _0(0), _1(0) {
         static_assert(sizeof(T) <= 12, "SSO size exceeded");
         as<T>() = value;
     }

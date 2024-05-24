@@ -153,7 +153,7 @@ inline constexpr int py_sizeof = PyObject::FIXED_SIZE + sizeof(T);
 const int kTpIntIndex = 3;
 const int kTpFloatIndex = 4;
 
-inline bool is_tagged(PyVar p) noexcept { return p.is_sso; }
+inline bool is_tagged(PyVar p) noexcept { return !p.is_ptr; }
 inline bool is_float(PyVar p) noexcept { return p.type.index == kTpFloatIndex; }
 inline bool is_int(PyVar p) noexcept { return p.type.index == kTpIntIndex; }
 
@@ -189,7 +189,7 @@ obj_get_t<T> PyVar::obj_get(){
 }
 
 #define PK_OBJ_GET(T, obj) (obj).obj_get<T>()
-#define PK_OBJ_MARK(obj) if(!is_tagged(obj)) vm->__obj_gc_mark(obj.get());
+#define PK_OBJ_MARK(obj) if((obj).is_ptr) vm->__obj_gc_mark(obj.get());
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)
@@ -207,7 +207,7 @@ inline bool try_cast_int(PyVar obj, i64* val) noexcept {
     return false;
 }
 
-extern PyVar const PY_NULL;
+#define PY_NULL nullptr
 extern PyVar const PY_OP_CALL;
 extern PyVar const PY_OP_YIELD;
 
