@@ -1107,7 +1107,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
         }else{
             PUSH(new_f);
-            s_data.emplace(PY_NULL);
+            PUSH(PY_NULL);
             PUSH(callable);    // cls
             for(PyVar o: args) PUSH(o);
             for(PyVar o: kwargs) PUSH(o);

@@ -287,16 +287,14 @@ public:
 
     template<typename... Args>
     PyVar call(PyVar callable, Args&&... args){
-        s_data.push(callable);
-        s_data.emplace(PY_NULL);
+        PUSH(callable); PUSH(PY_NULL);
         __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
 
     template<typename... Args>
     PyVar call_method(PyVar self, PyVar callable, Args&&... args){
-        s_data.push(callable);
-        s_data.push(self);
+        PUSH(callable); PUSH(self);
         __push_varargs(args...);
         return vectorcall(sizeof...(args));
     }
