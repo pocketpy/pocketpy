@@ -1028,7 +1028,6 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
     ArgsView kwargs(p1, s_data._sp);
 
     PyVar* _base = args.begin();
-    PyVar* buffer = __vectorcall_buffer;
 
     if(callable_t == tp_function){
         /*****************_py_call*****************/
@@ -1042,10 +1041,10 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         switch(fn.decl->type){
             case FuncType::UNSET: PK_FATAL_ERROR(); break;
             case FuncType::NORMAL:
-                __prepare_py_call(buffer, args, kwargs, fn.decl);
+                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 // copy buffer back to stack
                 s_data.reset(_base + co_nlocals);
-                for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+                for(int j=0; j<co_nlocals; j++) _base[j] = __vectorcall_buffer[j];
                 break;
             case FuncType::SIMPLE:
                 if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));
@@ -1062,11 +1061,11 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 s_data.reset(p0);
                 return None;
             case FuncType::GENERATOR:
-                __prepare_py_call(buffer, args, kwargs, fn.decl);
+                __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 s_data.reset(p0);
                 return __py_generator(
                     Frame(nullptr, co, fn._module, callable, nullptr),
-                    ArgsView(buffer, buffer + co_nlocals)
+                    ArgsView(__vectorcall_buffer, __vectorcall_buffer + co_nlocals)
                 );
         };
 
@@ -1082,10 +1081,10 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         PyVar ret;
         if(f.decl != nullptr){
             int co_nlocals = f.decl->code->varnames.size();
-            __prepare_py_call(buffer, args, kwargs, f.decl);
+            __prepare_py_call(__vectorcall_buffer, args, kwargs, f.decl);
             // copy buffer back to stack
             s_data.reset(_base + co_nlocals);
-            for(int j=0; j<co_nlocals; j++) _base[j] = buffer[j];
+            for(int j=0; j<co_nlocals; j++) _base[j] = __vectorcall_buffer[j];
             ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
         }else{
             if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
