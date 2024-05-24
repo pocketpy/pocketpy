@@ -95,7 +95,8 @@ bool VM::py_ge(PyVar _0, PyVar _1){
 #endif
 
 #define DISPATCH() { frame->_ip++; goto __NEXT_STEP; }
-#define DISPATCH_JUMP(__target) { frame->_ip=co_codes+__target; goto __NEXT_STEP; }
+#define DISPATCH_JUMP(__offset) { frame->_ip+=__offset; goto __NEXT_STEP; }
+#define DISPATCH_JUMP_ABSOLUTE(__target) { frame->_ip=co_codes+__target; goto __NEXT_STEP; }
 
 PyVar VM::__run_top_frame(){
     Frame* frame = &callstack.top();
@@ -638,26 +639,24 @@ __NEXT_STEP:
         TOP() = VAR(static_cast<bool>((int)CAST(bool, _0) ^ byte.arg));
     } DISPATCH()
     /*****************************************/
-    case OP_JUMP_ABSOLUTE:
-        DISPATCH_JUMP(byte.arg)
-    case OP_JUMP_ABSOLUTE_TOP:
-        DISPATCH_JUMP(_CAST(int, POPX()))
+    case OP_JUMP_FORWARD:
+        DISPATCH_JUMP((int16_t)byte.arg)
     case OP_POP_JUMP_IF_FALSE:
-        if(!py_bool(POPX())) DISPATCH_JUMP(byte.arg)
+        if(!py_bool(POPX())) DISPATCH_JUMP((int16_t)byte.arg)
         DISPATCH()
     case OP_POP_JUMP_IF_TRUE:
-        if(py_bool(POPX())) DISPATCH_JUMP(byte.arg)
+        if(py_bool(POPX())) DISPATCH_JUMP((int16_t)byte.arg)
         DISPATCH()
     case OP_JUMP_IF_TRUE_OR_POP:
         if(py_bool(TOP())){
-            DISPATCH_JUMP(byte.arg)
+            DISPATCH_JUMP((int16_t)byte.arg)
         }else{
             POP();
             DISPATCH()
         }
     case OP_JUMP_IF_FALSE_OR_POP:
         if(!py_bool(TOP())){
-            DISPATCH_JUMP(byte.arg)
+            DISPATCH_JUMP((int16_t)byte.arg)
         }else{
             POP();
             DISPATCH()
@@ -666,22 +665,26 @@ __NEXT_STEP:
         if(!py_bool(TOP())){                // [b, False]
             STACK_SHRINK(2);                // []
             PUSH(vm->False);                // [False]
-            DISPATCH_JUMP(byte.arg)
+            DISPATCH_JUMP((int16_t)byte.arg)
         } else{
             POP();                          // [b]
             DISPATCH()
         }
     case OP_LOOP_CONTINUE:
-        DISPATCH_JUMP(byte.arg)
-    case OP_LOOP_BREAK:
-        frame->prepare_jump_break(&s_data, byte.arg);
-        DISPATCH_JUMP(byte.arg)
+        // just an alias of OP_JUMP_FORWARD
+        DISPATCH_JUMP((int16_t)byte.arg)
+    case OP_LOOP_BREAK: {
+        frame->prepare_jump_break(&s_data, frame->ip()+byte.arg);
+        DISPATCH_JUMP((int16_t)byte.arg)
+    }
+    case OP_JUMP_ABSOLUTE_TOP:
+        DISPATCH_JUMP_ABSOLUTE(_CAST(int, POPX()))
     case OP_GOTO: {
         StrName _name(byte.arg);
         int target = frame->co->labels.try_get_likely_found(_name);
         if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
         frame->prepare_jump_break(&s_data, target);
-        DISPATCH_JUMP(target)
+        DISPATCH_JUMP_ABSOLUTE(target)
     }
     /*****************************************/
     case OP_FSTRING_EVAL:{
@@ -803,7 +806,7 @@ __NEXT_STEP:
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
             int target = frame->prepare_loop_break(&s_data);
-            DISPATCH_JUMP(target)
+            DISPATCH_JUMP_ABSOLUTE(target)
         } else{
             PUSH(_0);
             DISPATCH()
@@ -813,7 +816,7 @@ __NEXT_STEP:
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
             int target = frame->prepare_loop_break(&s_data);
-            DISPATCH_JUMP(target)
+            DISPATCH_JUMP_ABSOLUTE(target)
         }else{
             frame->_locals[byte.arg] = _0;
             DISPATCH()
@@ -823,7 +826,7 @@ __NEXT_STEP:
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
             int target = frame->prepare_loop_break(&s_data);
-            DISPATCH_JUMP(target)
+            DISPATCH_JUMP_ABSOLUTE(target)
         }else{
             frame->f_globals().set(StrName(byte.arg), _0);
             DISPATCH()
@@ -833,7 +836,7 @@ __NEXT_STEP:
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
             int target = frame->prepare_loop_break(&s_data);
-            DISPATCH_JUMP(target)
+            DISPATCH_JUMP_ABSOLUTE(target)
         }else{
             PUSH(_0);
             return PY_OP_YIELD;
@@ -847,7 +850,7 @@ __NEXT_STEP:
             if(n == 0){
                 // StopIteration
                 int target = frame->prepare_loop_break(&s_data);
-                DISPATCH_JUMP(target)
+                DISPATCH_JUMP_ABSOLUTE(target)
             }else if(n == 1){
                 // UNPACK_SEQUENCE
                 __op_unpack_sequence(byte.arg);
@@ -865,7 +868,7 @@ __NEXT_STEP:
                 __op_unpack_sequence(byte.arg);
             }else{
                 int target = frame->prepare_loop_break(&s_data);
-                DISPATCH_JUMP(target)
+                DISPATCH_JUMP_ABSOLUTE(target)
             }
         }
     } DISPATCH()

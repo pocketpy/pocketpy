@@ -710,29 +710,34 @@ PyVar VM::new_module(Str name, Str package) {
     return obj;
 }
 
-static std::string _opcode_argstr(VM* vm, Bytecode byte, const CodeObject* co){
-    std::string argStr = std::to_string(byte.arg);
+static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject* co){
+    SStream ss;
+    if(byte.is_forward_jump()){
+        std::string argStr = std::to_string((int16_t)byte.arg);
+        ss << (i64)(int16_t)byte.arg;
+        ss << " (to " << (i64)((int16_t)byte.arg + i) << ")";
+        return ss.str().str();
+    }
+    ss << (i64)byte.arg;
     switch(byte.op){
         case OP_LOAD_CONST: case OP_FORMAT_STRING: case OP_IMPORT_PATH:
-            if(vm != nullptr){
-                argStr += _S(" (", vm->py_repr(co->consts[byte.arg]), ")").sv();
-            }
+            if(vm != nullptr) ss << " (" << vm->py_repr(co->consts[byte.arg]) << ")";
             break;
         case OP_LOAD_NAME: case OP_LOAD_GLOBAL: case OP_LOAD_NONLOCAL: case OP_STORE_GLOBAL:
         case OP_LOAD_ATTR: case OP_LOAD_METHOD: case OP_STORE_ATTR: case OP_DELETE_ATTR:
         case OP_BEGIN_CLASS: case OP_GOTO:
         case OP_DELETE_GLOBAL: case OP_INC_GLOBAL: case OP_DEC_GLOBAL: case OP_STORE_CLASS_ATTR: case OP_FOR_ITER_STORE_GLOBAL:
-            argStr += _S(" (", StrName(byte.arg).sv(), ")").sv();
+            ss << " (" << StrName(byte.arg).sv() << ")";
             break;
         case OP_LOAD_FAST: case OP_STORE_FAST: case OP_DELETE_FAST: case OP_INC_FAST: case OP_DEC_FAST:
         case OP_FOR_ITER_STORE_FAST: case OP_LOAD_SUBSCR_FAST: case OP_STORE_SUBSCR_FAST:
-            argStr += _S(" (", co->varnames[byte.arg].sv(), ")").sv();
+            ss << " (" << co->varnames[byte.arg].sv() << ")";
             break;
         case OP_LOAD_FUNCTION:
-            argStr += _S(" (", co->func_decls[byte.arg]->code->name, ")").sv();
+            ss << " (" << co->func_decls[byte.arg]->code->name << ")";
             break;
     }
-    return argStr;
+    return ss.str().str();
 }
 
 Str VM::disassemble(CodeObject_ co){
@@ -742,14 +747,10 @@ Str VM::disassemble(CodeObject_ co){
     };
 
     std::vector<int> jumpTargets;
-    for(auto byte : co->codes){
-        if(byte.op == OP_JUMP_ABSOLUTE || byte.op == OP_POP_JUMP_IF_FALSE || byte.op == OP_SHORTCUT_IF_FALSE_OR_POP || byte.op == OP_LOOP_CONTINUE){
-            jumpTargets.push_back(byte.arg);
-        }
-        if(byte.op == OP_GOTO){
-            // TODO: pre-compute jump targets for OP_GOTO
-            int* target = co->labels.try_get_2_likely_found(StrName(byte.arg));
-            if(target != nullptr) jumpTargets.push_back(*target);
+    for(int i=0; i<co->codes.size(); i++){
+        Bytecode byte = co->codes[i];
+        if(byte.is_forward_jump()){
+            jumpTargets.push_back((int16_t)byte.arg + i);
         }
     }
     SStream ss;
@@ -773,11 +774,8 @@ Str VM::disassemble(CodeObject_ co){
         std::string bc_name(OP_NAMES[byte.op]);
         if(co->lines[i].is_virtual) bc_name += '*';
         ss << " " << pad(bc_name, 25) << " ";
-        // ss << pad(byte.arg == -1 ? "" : std::to_string(byte.arg), 5);
-        std::string argStr = _opcode_argstr(this, byte, co.get());
+        std::string argStr = _opcode_argstr(this, i, byte, co.get());
         ss << argStr;
-        // ss << pad(argStr, 40);      // may overflow
-        // ss << co->blocks[byte.block].type;
         if(i != co->codes.size() - 1) ss << '\n';
     }
 
@@ -835,7 +833,7 @@ void VM::__log_s_data(const char* title) {
         output.pop_back(); output.pop_back();
     }
     output.push_back(']');
-    Bytecode byte = frame->co->codes[frame->_ip];
+    Bytecode byte = *frame->_ip;
     std::cout << output << " " << OP_NAMES[byte.op] << " " << _opcode_argstr(nullptr, byte, frame->co) << std::endl;
 }
 #endif

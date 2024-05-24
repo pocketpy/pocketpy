@@ -93,7 +93,7 @@ struct CodeEmitContext{
     std::set<Str> global_names;
     CodeEmitContext(VM* vm, CodeObject_ co, int level): vm(vm), co(co), level(level) {}
 
-    int curr_block_i = 0;
+    int curr_iblock = 0;
     bool is_compiling_class = false;
     int base_stack_size = 0;
 

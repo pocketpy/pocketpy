@@ -47,17 +47,13 @@ namespace pkpy{
         if(ctx()->co->consts.size() > 65530){
             SyntaxError("maximum number of constants exceeded");
         }
-        if(codes.size() > 65530 && ctx()->co->src->mode != JSON_MODE){
-            // json mode does not contain jump instructions, so it is safe to ignore this check
-            SyntaxError("maximum number of opcodes exceeded");
-        }
         // pre-compute LOOP_BREAK and LOOP_CONTINUE
         for(int i=0; i<codes.size(); i++){
             Bytecode& bc = codes[i];
             if(bc.op == OP_LOOP_CONTINUE){
-                bc.arg = ctx()->co->blocks[bc.arg].start;
+                bc.set_signed_arg(ctx()->co->blocks[bc.arg].start - i);
             }else if(bc.op == OP_LOOP_BREAK){
-                bc.arg = ctx()->co->blocks[bc.arg].get_break_end();
+                bc.set_signed_arg(ctx()->co->blocks[bc.arg].get_break_end() - i);
             }
         }
         // pre-compute func->is_simple
@@ -655,12 +651,12 @@ __EAT_DOTS_END:
         int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
         compile_block_body();
         if (match(TK("elif"))) {
-            int exit_patch = ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            int exit_patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, prev().line);
             ctx()->patch_jump(patch);
             compile_if_stmt();
             ctx()->patch_jump(exit_patch);
         } else if (match(TK("else"))) {
-            int exit_patch = ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, prev().line);
+            int exit_patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, prev().line);
             ctx()->patch_jump(patch);
             compile_block_body();
             ctx()->patch_jump(exit_patch);
@@ -691,7 +687,7 @@ __EAT_DOTS_END:
         EXPR_TUPLE(); ctx()->emit_expr();
         ctx()->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
-        int for_codei = ctx()->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        int for_codei = ctx()->emit_(OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
         if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
         ctx()->try_merge_for_iter_store(for_codei);
@@ -710,7 +706,7 @@ __EAT_DOTS_END:
         compile_block_body();
         small_vector_2<int, 6> patches;
         patches.push_back(
-            ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE)
+            ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE)
         );
         ctx()->exit_block();
 
@@ -739,13 +735,13 @@ __EAT_DOTS_END:
                 // pop the exception 
                 ctx()->emit_(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
                 compile_block_body();
-                patches.push_back(ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE));
+                patches.push_back(ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE));
                 ctx()->patch_jump(patch);
             }while(curr().type == TK("except"));
         }
 
         if(match(TK("finally"))){
-            int patch = ctx()->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, BC_KEEPLINE);
+            int patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
             finally_entry = ctx()->co->codes.size();
             compile_block_body();
             ctx()->emit_(OP_JUMP_ABSOLUTE_TOP, BC_NOARG, BC_KEEPLINE);
@@ -755,7 +751,8 @@ __EAT_DOTS_END:
         if(finally_entry != -1){
             i64 target = ctx()->co->codes.size()+2;
             ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
-            ctx()->emit_(OP_JUMP_ABSOLUTE, finally_entry, BC_KEEPLINE);
+            int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+            ctx()->co->codes[i].set_signed_arg(finally_entry - i);
         }
         ctx()->emit_(OP_RE_RAISE, BC_NOARG, BC_KEEPLINE);
 
@@ -764,7 +761,8 @@ __EAT_DOTS_END:
         if(finally_entry != -1){
             i64 target = ctx()->co->codes.size()+2;
             ctx()->emit_(OP_LOAD_CONST, ctx()->add_const(VAR(target)), BC_KEEPLINE);
-            ctx()->emit_(OP_JUMP_ABSOLUTE, finally_entry, BC_KEEPLINE);
+            int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
+            ctx()->co->codes[i].set_signed_arg(finally_entry - i);
         }
     }
 

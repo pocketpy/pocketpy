@@ -17,6 +17,15 @@ enum Opcode: uint8_t {
 struct Bytecode{
     uint8_t op;
     uint16_t arg;
+
+    void set_signed_arg(int arg){
+        if(arg < INT16_MIN || arg > INT16_MAX) throw std::runtime_error("byte.arg overflow");
+        this->arg = (int16_t)arg;
+    }
+
+    bool is_forward_jump() const{
+        return op >= OP_JUMP_FORWARD && op <= OP_LOOP_BREAK;
+    }
 };
 
 enum class CodeBlockType {

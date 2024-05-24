@@ -14,7 +14,7 @@ namespace pkpy{
     }
 
     int CodeEmitContext::get_loop() const {
-        int index = curr_block_i;
+        int index = curr_iblock;
         while(index >= 0){
             if(co->blocks[index].type == CodeBlockType::FOR_LOOP) break;
             if(co->blocks[index].type == CodeBlockType::WHILE_LOOP) break;
@@ -26,18 +26,18 @@ namespace pkpy{
     CodeBlock* CodeEmitContext::enter_block(CodeBlockType type){
         if(type==CodeBlockType::FOR_LOOP || type==CodeBlockType::CONTEXT_MANAGER) base_stack_size++;
         co->blocks.push_back(CodeBlock(
-            type, curr_block_i, base_stack_size, (int)co->codes.size()
+            type, curr_iblock, base_stack_size, (int)co->codes.size()
         ));
-        curr_block_i = co->blocks.size()-1;
-        return &co->blocks[curr_block_i];
+        curr_iblock = co->blocks.size()-1;
+        return &co->blocks[curr_iblock];
     }
 
     void CodeEmitContext::exit_block(){
-        auto curr_type = co->blocks[curr_block_i].type;
+        auto curr_type = co->blocks[curr_iblock].type;
         if(curr_type == CodeBlockType::FOR_LOOP || curr_type==CodeBlockType::CONTEXT_MANAGER) base_stack_size--;
-        co->blocks[curr_block_i].end = co->codes.size();
-        curr_block_i = co->blocks[curr_block_i].parent;
-        if(curr_block_i < 0) PK_FATAL_ERROR();
+        co->blocks[curr_iblock].end = co->codes.size();
+        curr_iblock = co->blocks[curr_iblock].parent;
+        if(curr_iblock < 0) PK_FATAL_ERROR();
 
         if(curr_type == CodeBlockType::FOR_LOOP){
             // add a no op here to make block check work
@@ -54,7 +54,7 @@ namespace pkpy{
 
     int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
         co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
-        co->lines.push_back(CodeObject::LineInfo{line, is_virtual, curr_block_i});
+        co->lines.push_back(CodeObject::LineInfo{line, is_virtual, curr_iblock});
         int i = co->codes.size() - 1;
         if(line == BC_KEEPLINE){
             if(i >= 1) co->lines[i].lineno = co->lines[i-1].lineno;
@@ -97,7 +97,7 @@ namespace pkpy{
 
     void CodeEmitContext::patch_jump(int index) {
         int target = co->codes.size();
-        co->codes[index].arg = target;
+        co->codes[index].set_signed_arg(target-index);
     }
 
     bool CodeEmitContext::add_label(StrName name){
@@ -399,7 +399,8 @@ namespace pkpy{
         iter->emit_(ctx);
         ctx->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
         ctx->enter_block(CodeBlockType::FOR_LOOP);
-        int for_codei = ctx->emit_(OP_FOR_ITER, BC_NOARG, BC_KEEPLINE);
+        int curr_iblock = ctx->curr_iblock;
+        int for_codei = ctx->emit_(OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
         if(!ok) throw std::runtime_error("SyntaxError");
@@ -414,7 +415,7 @@ namespace pkpy{
             expr->emit_(ctx);
             ctx->emit_(op1(), BC_NOARG, BC_KEEPLINE);
         }
-        ctx->emit_(OP_LOOP_CONTINUE, ctx->get_loop(), BC_KEEPLINE);
+        ctx->emit_(OP_LOOP_CONTINUE, curr_iblock, BC_KEEPLINE);
         ctx->exit_block();
     }
 
@@ -729,7 +730,7 @@ namespace pkpy{
         cond->emit_(ctx);
         int patch = ctx->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, cond->line);
         true_expr->emit_(ctx);
-        int patch_2 = ctx->emit_(OP_JUMP_ABSOLUTE, BC_NOARG, true_expr->line);
+        int patch_2 = ctx->emit_(OP_JUMP_FORWARD, BC_NOARG, true_expr->line);
         ctx->patch_jump(patch);
         false_expr->emit_(ctx);
         ctx->patch_jump(patch_2);

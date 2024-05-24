@@ -407,6 +407,7 @@ public:
     PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
     PyVar _t(Type type){ return _all_types[type].obj; }
 
+    // equivalent to `obj == NotImplemented` but faster
     static bool is_not_implemented(PyVar obj){ return obj.type == tp_not_implemented; }
 #endif
 
