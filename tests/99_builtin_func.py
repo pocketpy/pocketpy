@@ -276,10 +276,10 @@ try:
 except:
     pass
 
-assert (1,2,3).__contains__(5) == False
-
 assert (1,2,2,3,3,3).count(3) == 3
 assert (1,2,2,3,3,3).count(0) == 0
+assert 3 in (1, 3, 4)
+assert 5 not in (1, 3, 4)
 
 assert repr(True) == 'True'
 assert repr(False) == 'False'
