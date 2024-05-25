@@ -23,15 +23,14 @@ struct RangeIterR{      // step < 0
 };
 
 struct ArrayIter{
-    PyVar ref;
-    PyVar* begin;
+    PyObject* ref;
     PyVar* end;
     PyVar* current;
 
-    ArrayIter(PyVar ref, PyVar* begin, PyVar* end)
-        : ref(ref), begin(begin), end(end), current(begin) {}
+    ArrayIter(PyObject* ref, PyVar* begin, PyVar* end)
+        : ref(ref), end(end), current(begin) {}
 
-    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ vm->__obj_gc_mark(ref); }
     static void _register(VM* vm, PyVar mod, PyVar type);
 };
 

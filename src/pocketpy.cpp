@@ -995,7 +995,7 @@ void __init_builtins(VM* _vm) {
     });
     _vm->bind__iter__(VM::tp_list, [](VM* vm, PyVar _0) {
         List& self = _CAST(List&, _0);
-        return vm->new_user_object<ArrayIter>(_0, self.begin(), self.end());
+        return vm->new_user_object<ArrayIter>(_0.get(), self.begin(), self.end());
     });
     _vm->bind__getitem__(VM::tp_list, PyArrayGetItem<List>);
     _vm->bind__setitem__(VM::tp_list, [](VM* vm, PyVar _0, PyVar _1, PyVar _2){
@@ -1057,7 +1057,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind__iter__(VM::tp_tuple, [](VM* vm, PyVar _0) {
         Tuple& self = _CAST(Tuple&, _0);
-        return vm->new_user_object<ArrayIter>(_0, self.begin(), self.end());
+        return vm->new_user_object<ArrayIter>(_0.get(), self.begin(), self.end());
     });
     _vm->bind__getitem__(VM::tp_tuple, PyArrayGetItem<Tuple>);
     _vm->bind__len__(VM::tp_tuple, [](VM* vm, PyVar obj) {
