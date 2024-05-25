@@ -173,6 +173,12 @@ for i, j, x in a:
 
 assert len(a) == a.numel
 
+# test _get and _set
+a = array2d(3, 4, default=1)
+assert a._get(0, 0) == 1
+a._set(0, 0, 2)
+assert a._get(0, 0) == 2
+
 # stackoverflow bug due to recursive mark-and-sweep
 # class Cell:
 #     neighbors: list['Cell']
