@@ -358,8 +358,8 @@ struct Array2dIter{
             Array2d& a = PK_OBJ_GET(Array2d, self.ref);
             if(self.i == a.numel) return 0;
             std::div_t res = std::div(self.i, a.n_cols);
-            vm->s_data.push(VAR(res.rem));
-            vm->s_data.push(VAR(res.quot));
+            vm->s_data.emplace(VM::tp_int, res.rem);
+            vm->s_data.emplace(VM::tp_int, res.quot);
             vm->s_data.push(a.data[self.i++]);
             return 3;
         });
