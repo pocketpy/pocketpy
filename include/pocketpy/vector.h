@@ -290,7 +290,7 @@ namespace pkpy
             const auto size = other.size();
             const auto capacity = other.capacity();
             m_begin = reinterpret_cast<T*>(other.is_small() ? m_buffer : std::malloc(sizeof(T) * capacity));
-            uninitialized_copy_n(other.begin, size, this->m_begin);
+            uninitialized_copy_n(other.m_begin, size, this->m_begin);
             m_end = m_begin + size;
             m_max = m_begin + capacity;
         }
