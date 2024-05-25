@@ -20,4 +20,4 @@ x = vec2(0, 0)
 for i in range(10000000):
     x += vec2(1, 1)
 
-assert x == vec2(5000000, 5000000)
+assert x == vec2(10000000, 10000000)
