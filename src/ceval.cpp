@@ -137,8 +137,14 @@ __NEXT_STEP:
     /*****************************************/
     case OP_POP_TOP: POP(); DISPATCH()
     case OP_DUP_TOP: PUSH(TOP()); DISPATCH()
+    case OP_DUP_TOP_TWO:
+        // [a, b]
+        PUSH(SECOND()); // [a, b, a]
+        PUSH(SECOND()); // [a, b, a, b]
+        DISPATCH()
     case OP_ROT_TWO: std::swap(TOP(), SECOND()); DISPATCH()
     case OP_ROT_THREE:{
+        // [a, b, c] -> [c, a, b]
         PyVar _0 = TOP();
         TOP() = SECOND();
         SECOND() = THIRD();

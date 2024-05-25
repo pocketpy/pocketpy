@@ -65,6 +65,7 @@ struct Expr{
     virtual bool is_literal() const { return false; }
     virtual bool is_json_object() const { return false; }
     virtual bool is_attrib() const { return false; }
+    virtual bool is_subscr() const { return false; }
     virtual bool is_compare() const { return false; }
     virtual int star_level() const { return 0; }
     virtual bool is_tuple() const { return false; }
@@ -79,6 +80,14 @@ struct Expr{
     // for OP_STORE_XXX
     [[nodiscard]] virtual bool emit_store(CodeEmitContext* ctx) {
         return false;
+    }
+
+    virtual void emit_inplace(CodeEmitContext* ctx) {
+        emit_(ctx);
+    }
+
+    [[nodiscard]] virtual bool emit_store_inplace(CodeEmitContext* ctx) {
+        return emit_store(ctx);
     }
 };
 
@@ -316,9 +325,13 @@ struct FStringExpr: Expr{
 struct SubscrExpr: Expr{
     Expr_ a;
     Expr_ b;
+    bool is_subscr() const override { return true; }
     void emit_(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
+
+    void emit_inplace(CodeEmitContext* ctx) override;
+    bool emit_store_inplace(CodeEmitContext* ctx) override;
 };
 
 struct AttribExpr: Expr{
@@ -330,7 +343,10 @@ struct AttribExpr: Expr{
     bool emit_del(CodeEmitContext* ctx) override;
     bool emit_store(CodeEmitContext* ctx) override;
     void emit_method(CodeEmitContext* ctx);
+
     bool is_attrib() const override { return true; }
+    void emit_inplace(CodeEmitContext* ctx) override;
+    bool emit_store_inplace(CodeEmitContext* ctx) override;
 };
 
 struct CallExpr: Expr{
@@ -362,6 +378,9 @@ struct BinaryExpr: Expr{
     TokenIndex op;
     Expr_ lhs;
     Expr_ rhs;
+    bool inplace;
+
+    BinaryExpr(bool inplace=false): inplace(inplace) {}
     bool is_compare() const override;
     void _emit_compare(CodeEmitContext*, small_vector_2<int, 6>&);
     void emit_(CodeEmitContext* ctx) override;

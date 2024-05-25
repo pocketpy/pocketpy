@@ -569,6 +569,20 @@ namespace pkpy{
         return true;
     }
 
+    void SubscrExpr::emit_inplace(CodeEmitContext* ctx){
+        a->emit_(ctx);
+        b->emit_(ctx);
+        ctx->emit_(OP_DUP_TOP_TWO, BC_NOARG, line);
+        ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
+    }
+
+    bool SubscrExpr::emit_store_inplace(CodeEmitContext* ctx){
+        // [a, b, val] -> [val, a, b]
+        ctx->emit_(OP_ROT_THREE, BC_NOARG, line);
+        ctx->emit_(OP_STORE_SUBSCR, BC_NOARG, line);
+        return true;
+    }
+
     bool SubscrExpr::emit_del(CodeEmitContext* ctx){
         a->emit_(ctx);
         b->emit_(ctx);
@@ -596,6 +610,19 @@ namespace pkpy{
     void AttribExpr::emit_method(CodeEmitContext* ctx) {
         a->emit_(ctx);
         ctx->emit_(OP_LOAD_METHOD, b.index, line);
+    }
+
+    void AttribExpr::emit_inplace(CodeEmitContext* ctx) {
+        a->emit_(ctx);
+        ctx->emit_(OP_DUP_TOP, BC_NOARG, line);
+        ctx->emit_(OP_LOAD_ATTR, b.index, line);
+    }
+
+    bool AttribExpr::emit_store_inplace(CodeEmitContext* ctx) {
+        // [a, val] -> [val, a]
+        ctx->emit_(OP_ROT_TWO, BC_NOARG, line);
+        ctx->emit_(OP_STORE_ATTR, b.index, line);
+        return true;
     }
 
     void CallExpr::emit_(CodeEmitContext* ctx) {
@@ -689,7 +716,11 @@ namespace pkpy{
             // [b, RES]
         }else{
             // (1 + 2) < c
-            lhs->emit_(ctx);
+            if(inplace){
+                lhs->emit_inplace(ctx);
+            }else{
+                lhs->emit_(ctx);
+            }
         }
 
         rhs->emit_(ctx);

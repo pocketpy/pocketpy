@@ -834,7 +834,7 @@ void VM::__log_s_data(const char* title) {
     }
     output.push_back(']');
     Bytecode byte = *frame->_ip;
-    std::cout << output << " " << OP_NAMES[byte.op] << " " << _opcode_argstr(nullptr, byte, frame->co) << std::endl;
+    std::cout << output << " " << OP_NAMES[byte.op] << " " << _opcode_argstr(nullptr, frame->ip(), byte, frame->co) << std::endl;
 }
 #endif
 

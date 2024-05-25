@@ -104,3 +104,14 @@ assert g(**g(**ret)) == ret
 
 # other known issues:
 # 1. d.extend(d) if d is deque
+
+g = 0
+def test():
+    global g
+    g += 1
+    return g
+
+a = [1, 10, 3]
+a[test()] += 1
+assert (a == [1, 11, 3]), a
+assert (g == 1), g

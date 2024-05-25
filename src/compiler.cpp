@@ -790,14 +790,16 @@ __EAT_DOTS_END:
                 if(lhs_p->is_starred()) SyntaxError();
                 if(ctx()->is_compiling_class) SyntaxError("can't use inplace operator in class definition");
                 advance();
-                auto e = make_expr<BinaryExpr>();
+                // a[x] += 1;   a and x should be evaluated only once
+                // a.x += 1;    a should be evaluated only once
+                auto e = make_expr<BinaryExpr>(true);  // inplace=true
                 e->op = prev().type - 1; // -1 to remove =
                 e->lhs = ctx()->s_expr.popx();
                 EXPR_TUPLE();
                 e->rhs = ctx()->s_expr.popx();
-                if(e->is_starred()) SyntaxError();
+                if(e->rhs->is_starred()) SyntaxError();
                 e->emit_(ctx());
-                bool ok = lhs_p->emit_store(ctx());
+                bool ok = lhs_p->emit_store_inplace(ctx());
                 if(!ok) SyntaxError();
             } return true;
             case TK("="): {
