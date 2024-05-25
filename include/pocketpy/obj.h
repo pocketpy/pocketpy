@@ -111,6 +111,11 @@ struct PyObject final{
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
     void* _value_ptr() noexcept { return (char*)this + FIXED_SIZE; }
 
+    template<typename T> T& as() noexcept {
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        return *reinterpret_cast<T*>(_value_ptr());
+    }
+
     NameDict& attr() {
         PK_DEBUG_ASSERT(is_attr_valid())
         return *_attr;
