@@ -6,10 +6,18 @@
 
 namespace pkpy{
 
-struct RangeIter{
+struct RangeIter{       // step > 0
     Range r;
     i64 current;
     RangeIter(Range r) : r(r), current(r.start) {}
+
+    static void _register(VM* vm, PyVar mod, PyVar type);
+};
+
+struct RangeIterR{      // step < 0
+    Range r;
+    i64 current;
+    RangeIterR(Range r) : r(r), current(r.start) {}
 
     static void _register(VM* vm, PyVar mod, PyVar type);
 };

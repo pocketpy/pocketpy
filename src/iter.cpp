@@ -6,12 +6,19 @@ namespace pkpy{
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0){ return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> unsigned{
             RangeIter& self = PK_OBJ_GET(RangeIter, _0);
-            if(self.r.step > 0){
-                if(self.current >= self.r.stop) return 0;
-            }else{
-                if(self.current <= self.r.stop) return 0;
-            }
-            vm->s_data.push(VAR(self.current));
+            if(self.current >= self.r.stop) return 0;
+            vm->s_data.emplace(VM::tp_int, self.current);
+            self.current += self.r.step;
+            return 1;
+        });
+    }
+
+    void RangeIterR::_register(VM* vm, PyVar mod, PyVar type){
+        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0){ return _0; });
+        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> unsigned{
+            RangeIterR& self = PK_OBJ_GET(RangeIterR, _0);
+            if(self.current <= self.r.stop) return 0;
+            vm->s_data.emplace(VM::tp_int, self.current);
             self.current += self.r.step;
             return 1;
         });

@@ -363,7 +363,14 @@ void __init_builtins(VM* _vm) {
         return VAR(r);
     });
 
-    _vm->bind__iter__(VM::tp_range, [](VM* vm, PyVar obj) { return vm->new_user_object<RangeIter>(PK_OBJ_GET(Range, obj)); });
+    _vm->bind__iter__(VM::tp_range, [](VM* vm, PyVar obj) {
+        const Range& r = PK_OBJ_GET(Range, obj);
+        if(r.step > 0){
+            return vm->new_user_object<RangeIter>(r);
+        }else{
+            return vm->new_user_object<RangeIterR>(r);
+        }
+    });
     
     // tp_nonetype
     _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, PyVar _0) -> Str {
@@ -1491,6 +1498,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->register_user_class<RangeIter>(_vm->builtins, "_range_iter");
+    _vm->register_user_class<RangeIterR>(_vm->builtins, "_range_iter_r");
     _vm->register_user_class<ArrayIter>(_vm->builtins, "_array_iter");
     _vm->register_user_class<StringIter>(_vm->builtins, "_string_iter");
     _vm->register_user_class<Generator>(_vm->builtins, "generator");

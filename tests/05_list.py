@@ -134,3 +134,7 @@ a, b = [1, 2]
 assert a == 1 and b == 2
 assert [1, 2].__getitem__(0) == 1
 
+assert list(range(1, 5)) == [1, 2, 3, 4]
+assert list(range(1, 5, 2)) == [1, 3]
+assert list(range(5, 1, -1)) == [5, 4, 3, 2]
+assert list(range(5, 1, -2)) == [5, 3]
