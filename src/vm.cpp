@@ -1093,8 +1093,9 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             case FuncType::GENERATOR:
                 __prepare_py_call(__vectorcall_buffer, args, kwargs, fn.decl);
                 s_data.reset(p0);
+                callstack.emplace(nullptr, co, fn._module, callable, nullptr);
                 return __py_generator(
-                    Frame(nullptr, co, fn._module, callable, nullptr),
+                    callstack.popx(),
                     ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals)
                 );
 #if PK_DEBUG_EXTRA_CHECK
@@ -1644,9 +1645,7 @@ void NextBreakpoint::_step(VM* vm){
 #endif
 
 void VM::__pop_frame(){
-    Frame& frame = callstack.top();
-    s_data.reset(frame._sp_base);
-    frame.free_unwind_target();
+    s_data.reset(callstack.top()._sp_base);
     callstack.pop();
 
 #if PK_ENABLE_PROFILER

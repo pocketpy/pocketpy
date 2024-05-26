@@ -91,7 +91,7 @@ namespace pkpy{
         return nullptr;
     }
 
-    void Frame::free_unwind_target(){
+    Frame::~Frame(){
         while(_uw_list != nullptr){
             UnwindTarget* p = _uw_list;
             _uw_list = p->next;

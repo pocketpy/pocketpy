@@ -51,12 +51,12 @@ namespace pkpy{
     PyVar Generator::next(VM* vm){
         if(state == 2) return vm->StopIteration;
         // reset frame._sp_base
-        frame._sp_base = vm->s_data._sp;
-        frame._locals.a = vm->s_data._sp;
+        lf->frame._sp_base = vm->s_data._sp;
+        lf->frame._locals.a = vm->s_data._sp;
         // restore the context
         for(PyVar obj: s_backup) vm->s_data.push(obj);
         // relocate stack objects (their addresses become invalid)
-        for(PyVar* p=frame.actual_sp_base(); p!=vm->s_data.end(); p++){
+        for(PyVar* p=lf->frame.actual_sp_base(); p!=vm->s_data.end(); p++){
             if(p->type == VM::tp_stack_memory){
                 // TODO: refactor this
                 int count = p->as<StackMemory>().count;
@@ -67,7 +67,8 @@ namespace pkpy{
             }
         }
         s_backup.clear();
-        vm->callstack.emplace(std::move(frame));
+        vm->callstack.pushx(lf);
+        lf = nullptr;
 
         PyVar ret;
         try{
@@ -79,10 +80,16 @@ namespace pkpy{
         
         if(ret == PY_OP_YIELD){
             // backup the context
-            frame = std::move(vm->callstack.top());
+            lf = vm->callstack.popx();
             ret = vm->s_data.popx();
-            for(PyVar obj: frame.stack_view(&vm->s_data)) s_backup.push_back(obj);
-            vm->__pop_frame();
+            for(PyVar obj: lf->frame.stack_view(&vm->s_data)) s_backup.push_back(obj);
+            vm->s_data.reset(lf->frame._sp_base);
+// TODO: should we add this snippet here?
+// #if PK_ENABLE_PROFILER
+//     if(!_next_breakpoint.empty() && callstack.size()<_next_breakpoint.callstack_size){
+//         _next_breakpoint = NextBreakpoint();
+//     }
+// #endif
             state = 1;
             if(ret == vm->StopIteration) state = 2;
             return ret;
@@ -116,7 +123,7 @@ namespace pkpy{
         });
     }
 
-PyVar VM::__py_generator(Frame&& frame, ArgsView buffer){
+PyVar VM::__py_generator(LinkedFrame* frame, ArgsView buffer){
     return vm->new_user_object<Generator>(std::move(frame), buffer);
 }
 

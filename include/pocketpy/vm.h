@@ -479,7 +479,7 @@ public:
     PyVar __format_object(PyVar, Str);
     PyVar __run_top_frame();
     void __pop_frame();
-    PyVar __py_generator(Frame&& frame, ArgsView buffer);
+    PyVar __py_generator(LinkedFrame* frame, ArgsView buffer);
     void __op_unpack_sequence(uint16_t arg);
     void __prepare_py_call(PyVar*, ArgsView, ArgsView, const FuncDecl_&);
     void __unpack_as_list(ArgsView args, List& list);

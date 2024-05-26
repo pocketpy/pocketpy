@@ -84,6 +84,8 @@ struct UnwindTarget{
 };
 
 struct Frame {
+    PK_ALWAYS_PASS_BY_POINTER(Frame)
+
     const Bytecode* _ip;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
     PyVar* _sp_base;
@@ -129,9 +131,9 @@ struct Frame {
 
     void set_unwind_target(PyVar* _sp);
     UnwindTarget* find_unwind_target(int iblock);
-    void free_unwind_target();
 
     void _gc_mark(VM* vm) const;
+    ~Frame();
 };
 
 struct LinkedFrame{
@@ -141,8 +143,9 @@ struct LinkedFrame{
     LinkedFrame(LinkedFrame* f_back, Args&&... args) : f_back(f_back), frame(std::forward<Args>(args)...) {}
 };
 
+
 struct CallStack{
-    static_assert(sizeof(LinkedFrame) <= 128 && std::is_trivially_destructible_v<LinkedFrame>);
+    static_assert(sizeof(LinkedFrame) <= 128);
 
     LinkedFrame* _tail;
     int _size;
@@ -162,8 +165,24 @@ struct CallStack{
         PK_DEBUG_ASSERT(!empty())
         LinkedFrame* p = _tail;
         _tail = p->f_back;
+        p->~LinkedFrame();
         pool128_dealloc(p);
         --_size;
+    }
+
+    LinkedFrame* popx(){
+        PK_DEBUG_ASSERT(!empty())
+        LinkedFrame* p = _tail;
+        _tail = p->f_back;
+        --_size;
+        p->f_back = nullptr;        // unlink
+        return p;
+    }
+
+    void pushx(LinkedFrame* p){
+        p->f_back = _tail;
+        _tail = p;
+        ++_size;
     }
 
     Frame& top() const {
@@ -175,6 +194,8 @@ struct CallStack{
     void apply(Func&& f){
         for(LinkedFrame* p = _tail; p != nullptr; p = p->f_back) f(p->frame);
     }
+
+    ~CallStack(){ clear(); }
 };
 
 }; // namespace pkpy

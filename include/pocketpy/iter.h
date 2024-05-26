@@ -43,21 +43,29 @@ struct StringIter{
 };
 
 struct Generator{
-    Frame frame;
+    LinkedFrame* lf;
     int state;      // 0,1,2
     List s_backup;
 
-    Generator(Frame&& frame, ArgsView buffer): frame(std::move(frame)), state(0) {
+    Generator(LinkedFrame* lf, ArgsView buffer): lf(lf), state(0) {
         for(PyVar obj: buffer) s_backup.push_back(obj);
     }
 
     void _gc_mark(VM* vm) {
-        frame._gc_mark(vm);
+        if(lf == nullptr) return;
+        lf->frame._gc_mark(vm);
         vm->__stack_gc_mark(s_backup.begin(), s_backup.end());
     }
 
     PyVar next(VM* vm);
     static void _register(VM* vm, PyVar mod, PyVar type);
+
+    ~Generator(){
+        if(lf){
+            lf->~LinkedFrame();
+            pool128_dealloc(lf);
+        }
+    }
 };
 
 struct DictItemsIter{
