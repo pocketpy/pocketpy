@@ -374,9 +374,9 @@ void __init_builtins(VM* _vm) {
     _vm->_all_types[VM::tp_range].op__iter__ = [](VM* vm, PyVar _0){
         const Range& r = PK_OBJ_GET(Range, _0);
         if(r.step > 0){
-            vm->new_stack_object<RangeIter>(VM::tp_range, r);
+            vm->new_stack_object<RangeIter>(vm->_tp_user<RangeIter>(), r);
         }else{
-            vm->new_stack_object<RangeIterR>(VM::tp_range, r);
+            vm->new_stack_object<RangeIterR>(vm->_tp_user<RangeIterR>(), r);
         }
     };
     
