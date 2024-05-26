@@ -140,7 +140,6 @@ struct NativeFunc {
     NativeFunc(NativeFuncC f, FuncDecl_ decl, any userdata={}): f(f), argc(-1), decl(decl), _userdata(std::move(userdata)) {}
 
     PyVar call(VM* vm, ArgsView args) const { return f(vm, args); }
-    void check_size(VM* vm, ArgsView args) const;
     void _gc_mark(VM*) const;
 };
 

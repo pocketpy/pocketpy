@@ -1123,8 +1123,12 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
             for(int j=0; j<co_nlocals; j++) _base[j] = __vectorcall_buffer[j];
             ret = f.call(vm, ArgsView(s_data._sp - co_nlocals, s_data._sp));
         }else{
-            if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments");
-            f.check_size(this, args);
+            if(f.argc != -1) {
+                if(KWARGC != 0) TypeError("old-style native_func does not accept keyword arguments. If you want to skip this check, specify `argc` to -1");
+                if(args.size() != f.argc){
+                    vm->TypeError(_S("expected ", f.argc, " arguments, got ", args.size()));
+                }
+            }
             ret = f.call(this, args);
         }
         s_data.reset(p0);
@@ -1619,11 +1623,6 @@ void Dict::_probe_1(VM* vm, PyVar key, bool &ok, int &i) const{
     }
 }
 
-void NativeFunc::check_size(VM* vm, ArgsView args) const{
-    if(args.size() != argc && argc != -1) {
-        vm->TypeError(_S("expected ", argc, " arguments, got ", args.size()));
-    }
-}
 
 #if PK_ENABLE_PROFILER
 void NextBreakpoint::_step(VM* vm){
