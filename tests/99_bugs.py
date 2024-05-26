@@ -1,3 +1,11 @@
+# multi loop bug
+out = []
+a = [1, 2]
+for i in a:
+    for j in a:
+        out.append((i, j))
+assert (out == [(1, 1), (1, 2), (2, 1), (2, 2)]), out
+
 # https://github.com/pocketpy/pocketpy/issues/37
 
 mp = map(lambda x:  x**2, [1, 2, 3, 4, 5]  )
