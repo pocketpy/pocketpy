@@ -54,7 +54,7 @@ struct ManagedHeap{
     PyVar _new(Type type, Args&&... args){
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>);
-        PyObject* p = new(pool128_alloc<__T>()) PyObject(type);
+        PyObject* p = new(pool128_alloc(py_sizeof<__T>)) PyObject(type);
         p->placement_new<__T>(std::forward<Args>(args)...);
         _no_gc.push_back(p);
         return PyVar(type, p);
