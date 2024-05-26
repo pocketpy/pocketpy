@@ -267,8 +267,8 @@ namespace pkpy{
     }
 
     PyVar VM::_py_next(const PyTypeInfo* ti, PyVar obj){
-        if(ti->m__next__){
-            unsigned n = ti->m__next__(this, obj);
+        if(ti->op__next__){
+            unsigned n = ti->op__next__(this, obj);
             return __pack_next_retval(n);
         }
         return call_method(obj, __next__);
@@ -446,6 +446,29 @@ void VM::__obj_gc_mark(PyObject* obj){
             PK_OBJ_MARK(obj);
         });
     }
+}
+
+void VM::__stack_gc_mark(PyVar* begin, PyVar* end){
+    for(PyVar* it=begin; it!=end; it++){
+        if(it->is_ptr){
+            __obj_gc_mark(it->get());
+        }else{
+            if(it->type == tp_stack_memory){
+                // [sm:3, _0, _1, _2, sm:-3]
+                int count = it->as<StackMemory>().count;
+                if(count > 0) it += count;
+            }
+        }
+    }
+}
+
+void* VM::__stack_alloc(int size){
+    int count = size / sizeof(PyVar) + 1;
+    s_data.emplace(tp_stack_memory, StackMemory(count));
+    void* out = s_data._sp;
+    s_data._sp += count;
+    s_data.emplace(tp_stack_memory, StackMemory(-count));
+    return out;
 }
 
 List VM::py_list(PyVar it){
@@ -804,28 +827,37 @@ void VM::__log_s_data(const char* title) {
     for(PyVar* p=s_data.begin(); p!=s_data.end(); p++){
         ss << std::string(sp_bases[p], '|');
         if(sp_bases[p] > 0) ss << " ";
-        PyVar obj = *p;
-        if(obj == nullptr) ss << "(nil)";
-        else if(obj == PY_NULL) ss << "NULL";
-        else if(is_int(obj)) ss << CAST(i64, obj);
-        else if(is_float(obj)) ss << CAST(f64, obj);
-        else if(is_type(obj, tp_str)) ss << CAST(Str, obj).escape();
-        else if(obj == None) ss << "None";
-        else if(obj == True) ss << "True";
-        else if(obj == False) ss << "False";
-        else if(is_type(obj, tp_function)){
-            auto& f = CAST(Function&, obj);
-            ss << f.decl->code->name << "(...)";
-        } else if(is_type(obj, tp_type)){
-            Type t = PK_OBJ_GET(Type, obj);
-            ss << "<class " + _all_types[t].name.escape() + ">";
-        } else if(is_type(obj, tp_list)){
-            auto& t = CAST(List&, obj);
-            ss << "list(size=" << t.size() << ")";
-        } else if(is_type(obj, tp_tuple)){
-            auto& t = CAST(Tuple&, obj);
-            ss << "tuple(size=" << t.size() << ")";
-        } else ss << "(" << _type_name(this, obj.type) << ")";
+        if(*p == PY_NULL) ss << "NULL";
+        else{
+            switch(p->type){
+                case tp_none_type: ss << "None"; break;
+                case tp_int: ss << _CAST(i64, *p); break;
+                case tp_float: ss << _CAST(f64, *p); break;
+                case tp_bool: ss << ((*p == True) ? "True" : "False"); break;
+                case tp_str: ss << _CAST(Str, *p).escape(); break;
+                case tp_function:
+                    ss << p->obj_get<Function>().decl->code->name << "()";
+                    break;
+                case tp_type:
+                    ss << "<class " + _type_name(this, p->obj_get<Type>()).escape() + ">";
+                    break;
+                case tp_list: 
+                    ss << "list(size=" << p->obj_get<List>().size() << ")";
+                    break;
+                case tp_tuple:
+                    ss << "tuple(size=" << p->obj_get<Tuple>().size() << ")";
+                    break;
+                case tp_stack_memory: {
+                    int count = p->obj_get<StackMemory>().count;
+                    ss << "M[" << count << "]";
+                    if(count > 0) p += count;
+                    break;
+                }
+                default:
+                    ss << "(" << _type_name(this, p->type) << ")";
+                    break;
+            }
+        }
         ss << ", ";
     }
     std::string output = ss.str().str();
@@ -874,9 +906,10 @@ void VM::__init_builtin_types(){
     validate(tp_staticmethod, new_type_object<StaticMethod>(nullptr, "staticmethod", tp_object, false));
     validate(tp_classmethod, new_type_object<ClassMethod>(nullptr, "classmethod", tp_object, false));
 
-    validate(tp_none, new_type_object(nullptr, "NoneType", tp_object, false));
+    validate(tp_none_type, new_type_object(nullptr, "NoneType", tp_object, false));
     validate(tp_not_implemented, new_type_object(nullptr, "NotImplementedType", tp_object, false));
     validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
+    validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "stack_memory", tp_object, false));
 
     // SyntaxError and IndentationError must be created here
     PyVar SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);
@@ -1468,7 +1501,7 @@ PyVar VM::__pack_next_retval(unsigned n){
 }
 
 void VM::bind__next__(Type type, unsigned (*f)(VM*, PyVar)){
-    _all_types[type].m__next__ = f;
+    _all_types[type].op__next__ = f;
     bind_func(type, __next__, 1, [](VM* vm, ArgsView args){
         int n = lambda_get_userdata<unsigned(*)(VM*, PyVar)>(args.begin())(vm, args[0]);
         return vm->__pack_next_retval(n);
@@ -1831,11 +1864,11 @@ void Frame::_gc_mark(VM* vm) const {
 void ManagedHeap::mark() {
     for(PyObject* obj: _no_gc) vm->__obj_gc_mark(obj);
     vm->callstack.apply([this](Frame& frame){ frame._gc_mark(vm); });
-    for(PyVar obj: vm->s_data) PK_OBJ_MARK(obj);
     for(auto [_, co]: vm->__cached_codes) co->_gc_mark(vm);
     if(vm->__last_exception) PK_OBJ_MARK(vm->__last_exception);
     if(vm->__curr_class) PK_OBJ_MARK(vm->__curr_class);
     if(vm->__c.error != nullptr) PK_OBJ_MARK(vm->__c.error);
+    vm->__stack_gc_mark(vm->s_data.begin(), vm->s_data.end());
     if(_gc_marker_ex) _gc_marker_ex(vm);
 }
 

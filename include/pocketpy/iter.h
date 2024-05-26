@@ -51,9 +51,9 @@ struct Generator{
         for(PyVar obj: buffer) s_backup.push_back(obj);
     }
 
-    void _gc_mark(VM* vm) const{
+    void _gc_mark(VM* vm) {
         frame._gc_mark(vm);
-        for(PyVar obj: s_backup) PK_OBJ_MARK(obj);
+        vm->__stack_gc_mark(s_backup.begin(), s_backup.end());
     }
 
     PyVar next(VM* vm);

@@ -233,12 +233,12 @@ struct PyVar final{
     bool operator!=(std::nullptr_t) const { return (bool)type; }
 
     PyObject* get() const {
-        PK_DEBUG_ASSERT(!is_sso)
+        PK_DEBUG_ASSERT(is_ptr)
         return reinterpret_cast<PyObject*>(_1);
     }
 
     PyObject* operator->() const {
-        PK_DEBUG_ASSERT(!is_sso)
+        PK_DEBUG_ASSERT(is_ptr)
         return reinterpret_cast<PyObject*>(_1);
     }
 

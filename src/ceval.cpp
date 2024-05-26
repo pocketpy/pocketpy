@@ -806,6 +806,17 @@ __NEXT_STEP:
     case OP_GET_ITER:
         TOP() = py_iter(TOP());
         DISPATCH()
+    case OP_GET_ITER_NEW: {
+        // This opcode always creates a temporary iterator object
+        const PyTypeInfo* _ti = _tp_info(TOP());
+        if(_ti->op__iter__){
+            PyVar _0 = POPX();
+            _ti->op__iter__(this, _0);
+        }else{
+            TOP() = py_iter(TOP());
+        }
+        DISPATCH()
+    }
     case OP_FOR_ITER:{
         PyVar _0 = py_next(TOP());
         if(_0 == StopIteration){
@@ -849,8 +860,8 @@ __NEXT_STEP:
     case OP_FOR_ITER_UNPACK:{
         PyVar _0 = TOP();
         const PyTypeInfo* _ti = _tp_info(_0);
-        if(_ti->m__next__){
-            unsigned n = _ti->m__next__(this, _0);
+        if(_ti->op__next__){
+            unsigned n = _ti->op__next__(this, _0);
             if(n == 0){
                 // StopIteration
                 int target = frame->prepare_loop_break(&s_data);

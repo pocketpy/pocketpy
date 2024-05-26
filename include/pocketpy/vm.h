@@ -82,7 +82,8 @@ struct PyTypeInfo{
     i64 (*m__hash__)(VM* vm, PyVar) = nullptr;
     i64 (*m__len__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__iter__)(VM* vm, PyVar) = nullptr;
-    unsigned (*m__next__)(VM* vm, PyVar) = nullptr;
+    void (*op__iter__)(VM* vm, PyVar) = nullptr;
+    unsigned (*op__next__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__neg__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__invert__)(VM* vm, PyVar) = nullptr;
 
@@ -207,11 +208,12 @@ public:
     static constexpr Type tp_super=Type(15), tp_exception=Type(16), tp_bytes=Type(17), tp_mappingproxy=Type(18);
     static constexpr Type tp_dict=Type(19), tp_property=Type(20), tp_star_wrapper=Type(21);
     static constexpr Type tp_staticmethod=Type(22), tp_classmethod=Type(23);
-    static constexpr Type tp_none=Type(24), tp_not_implemented=Type(25), tp_ellipsis=Type(26);
+    static constexpr Type tp_none_type=Type(24), tp_not_implemented=Type(25), tp_ellipsis=Type(26);
+    static constexpr Type tp_stack_memory=Type(kTpStackMemoryIndex);
 
     static constexpr PyVar True{const_sso_var(), tp_bool, 1};
     static constexpr PyVar False{const_sso_var(), tp_bool, 0};
-    static constexpr PyVar None{const_sso_var(), tp_none, 0};
+    static constexpr PyVar None{const_sso_var(), tp_none_type, 0};
     static constexpr PyVar NotImplemented{const_sso_var(), tp_not_implemented, 0};
     static constexpr PyVar Ellipsis{const_sso_var(), tp_ellipsis, 0};
 
@@ -440,6 +442,14 @@ public:
         if constexpr(is_sso_v<T>) return PyVar(type, T(std::forward<Args>(args)...));
         else return heap.gcnew<T>(type, std::forward<Args>(args)...);
     }
+
+    template<typename T, typename ...Args>
+    void new_stack_object(Type type, Args&&... args){
+        static_assert(std::is_same_v<T, std::decay_t<T>>);
+        PyObject* p = new(__stack_alloc(py_sizeof<T>)) PyObject(type);
+        p->placement_new<T>(std::forward<Args>(args)...);
+        vm->s_data.emplace(p->type, p);
+    }
 #endif
 
     template<typename T>
@@ -488,6 +498,8 @@ public:
     PyVar __minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key);
     bool __py_bool_non_trivial(PyVar);
     void __obj_gc_mark(PyObject*);
+    void __stack_gc_mark(PyVar* begin, PyVar* end);
+    void* __stack_alloc(int size);
 };
 
 
@@ -514,6 +526,7 @@ template<> constexpr Type _find_type_in_const_cxx_typeid_map<Property>(){ return
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<StarWrapper>(){ return VM::tp_star_wrapper; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<StaticMethod>(){ return VM::tp_staticmethod; }
 template<> constexpr Type _find_type_in_const_cxx_typeid_map<ClassMethod>(){ return VM::tp_classmethod; }
+template<> constexpr Type _find_type_in_const_cxx_typeid_map<StackMemory>(){ return VM::tp_stack_memory; }
 
 template<typename __T>
 PyVar py_var(VM* vm, __T&& value){

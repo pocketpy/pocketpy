@@ -685,7 +685,7 @@ __EAT_DOTS_END:
         Expr_ vars = EXPR_VARS();
         consume(TK("in"));
         EXPR_TUPLE(); ctx()->emit_expr();
-        ctx()->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
+        ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
         CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
         int for_codei = ctx()->emit_(OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx());
@@ -852,7 +852,7 @@ __EAT_DOTS_END:
                 if (contexts.size() <= 1) SyntaxError("'yield from' outside function");
                 EXPR_TUPLE(); ctx()->emit_expr();
 
-                ctx()->emit_(OP_GET_ITER, BC_NOARG, kw_line);
+                ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, kw_line);
                 ctx()->enter_block(CodeBlockType::FOR_LOOP);
                 ctx()->emit_(OP_FOR_ITER_YIELD_VALUE, BC_NOARG, kw_line);
                 ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), kw_line);

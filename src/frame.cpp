@@ -42,7 +42,16 @@ namespace pkpy{
 
     int Frame::_exit_block(ValueStack* _s, int i){
         auto type = co->blocks[i].type;
-        if(type==CodeBlockType::FOR_LOOP || type==CodeBlockType::CONTEXT_MANAGER) _s->pop();
+        if(type==CodeBlockType::FOR_LOOP){
+            _s->pop();  // pop the iterator
+            // pop possible stack memory slots
+            if(_s->top().type == kTpStackMemoryIndex){
+                int count = _s->top().as<StackMemory>().count;
+                _s->_sp -= (count + 2);
+            }
+        }else if(type==CodeBlockType::CONTEXT_MANAGER){
+            _s->pop();
+        }
         return co->blocks[i].parent;
     }
 

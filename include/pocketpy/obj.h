@@ -50,6 +50,14 @@ struct Range {
     i64 step = 1;
 };
 
+struct StackMemory{
+    int count;
+    StackMemory(int count) : count(count) {}
+};
+
+template<>
+inline bool constexpr is_sso_v<StackMemory> = true;
+
 struct StarWrapper{
     int level;      // either 1 or 2
     PyVar obj;
@@ -155,8 +163,9 @@ static_assert(sizeof(PyObject) <= PyObject::FIXED_SIZE);
 template<typename T>
 inline constexpr int py_sizeof = PyObject::FIXED_SIZE + sizeof(T);
 
-const int kTpIntIndex = 3;
-const int kTpFloatIndex = 4;
+inline const int kTpIntIndex = 3;
+inline const int kTpFloatIndex = 4;
+inline const int kTpStackMemoryIndex = 27;
 
 inline bool is_tagged(PyVar p) noexcept { return !p.is_ptr; }
 inline bool is_float(PyVar p) noexcept { return p.type.index == kTpFloatIndex; }
@@ -187,14 +196,14 @@ obj_get_t<T> PyVar::obj_get(){
     if constexpr(is_sso_v<T>){
         return as<T>();
     }else{
-        PK_DEBUG_ASSERT(!is_sso)
+        PK_DEBUG_ASSERT(is_ptr)
         void* v = ((PyObject*)_1)->_value_ptr();
         return *reinterpret_cast<T*>(v);
     }
 }
 
 #define PK_OBJ_GET(T, obj) (obj).obj_get<T>()
-#define PK_OBJ_MARK(obj) if((obj).is_ptr) vm->__obj_gc_mark(obj.get());
+#define PK_OBJ_MARK(obj) if((obj).is_ptr) vm->__obj_gc_mark((obj).get());
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)

@@ -366,8 +366,10 @@ struct Array2dIter{
     PK_ALWAYS_PASS_BY_POINTER(Array2dIter)
 
     PyVar ref;
+    Array2d* a;
     int i;
-    Array2dIter(PyVar ref) : ref(ref), i(0) {}
+    
+    Array2dIter(PyVar ref, Array2d* a): ref(ref), a(a), i(0){}
 
     void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
 
@@ -375,12 +377,11 @@ struct Array2dIter{
         vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) { return _0; });
         vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> unsigned{
             Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
-            Array2d& a = PK_OBJ_GET(Array2d, self.ref);
-            if(self.i == a.numel) return 0;
-            std::div_t res = std::div(self.i, a.n_cols);
+            if(self.i == self.a->numel) return 0;
+            std::div_t res = std::div(self.i, self.a->n_cols);
             vm->s_data.emplace(VM::tp_int, res.rem);
             vm->s_data.emplace(VM::tp_int, res.quot);
-            vm->s_data.push(a.data[self.i++]);
+            vm->s_data.push(self.a->data[self.i++]);
             return 3;
         });
     }
@@ -392,9 +393,13 @@ void add_module_array2d(VM* vm){
     vm->register_user_class<Array2d>(mod, "array2d", VM::tp_object, true);
     vm->register_user_class<Array2dIter>(mod, "_array2d_iter");
 
-    vm->bind__iter__(vm->_tp_user<Array2d>(), [](VM* vm, PyVar _0){
-        return vm->new_user_object<Array2dIter>(_0);
+    Type array2d_iter_t = vm->_tp_user<Array2d>();
+    vm->bind__iter__(array2d_iter_t, [](VM* vm, PyVar _0){
+        return vm->new_user_object<Array2dIter>(_0, &_0.obj_get<Array2d>());
     });
+    vm->_all_types[array2d_iter_t].op__iter__ = [](VM* vm, PyVar _0){
+        vm->new_stack_object<Array2dIter>(vm->_tp_user<Array2dIter>(), _0, &_0.obj_get<Array2d>());
+    };
 }
 
 
