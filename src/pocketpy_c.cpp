@@ -489,6 +489,16 @@ bool pkpy_py_str(pkpy_vm* vm_handle) {
     return true;
 }
 
+bool pkpy_py_import(pkpy_vm* vm_handle, pkpy_CString name) {
+    VM* vm = (VM*) vm_handle;
+    PK_ASSERT_NO_ERROR()
+    PK_PROTECTED(
+        PyVar module = vm->py_import(name);
+        vm->s_data.push(module);
+    )
+    return true;
+}
+
 /* Error Handling */
 bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
     VM* vm = (VM*) vm_handle;

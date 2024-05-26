@@ -55,6 +55,17 @@ namespace pkpy{
         frame._locals.a = vm->s_data._sp;
         // restore the context
         for(PyVar obj: s_backup) vm->s_data.push(obj);
+        // relocate stack objects (their addresses become invalid)
+        for(PyVar* p=frame.actual_sp_base(); p!=vm->s_data.end(); p++){
+            if(p->type == VM::tp_stack_memory){
+                // TODO: refactor this
+                int count = p->as<StackMemory>().count;
+                if(count < 0){
+                    void* new_p = p + count;
+                    p[1]._1 = reinterpret_cast<i64>(new_p);
+                }
+            }
+        }
         s_backup.clear();
         vm->callstack.emplace(std::move(frame));
 

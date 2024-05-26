@@ -75,6 +75,14 @@ struct ValueStack {
     ValueStack& operator=(ValueStack&&) = delete;
 };
 
+struct UnwindTarget{
+    UnwindTarget* next;
+    int iblock;
+    int offset;
+
+    UnwindTarget(int iblock, int offset): next(nullptr), iblock(iblock), offset(offset) {}
+};
+
 struct Frame {
     const Bytecode* _ip;
     // This is for unwinding only, use `actual_sp_base()` for value stack access
@@ -85,21 +93,24 @@ struct Frame {
     PyVar _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
+    // This list will be freed in __pop_frame
+    UnwindTarget* _uw_list;
+
     NameDict& f_globals() { return _module->attr(); }
     PyVar f_closure_try_get(StrName name);
     int ip() const { return _ip - co->codes.data(); }
 
     // function scope
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, PyVar* _locals_base)
-            : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base) { }
+            : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base), _uw_list(nullptr) { }
 
     // exec/eval
     Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, FastLocals _locals)
-            : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals) { }
+            : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals), _uw_list(nullptr) { }
 
     // global scope
     Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
-            : _ip(co->codes.data()-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
+            : _ip(co->codes.data()-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0), _uw_list(nullptr) { }
 
     PyVar* actual_sp_base() const { return _locals.a; }
     ArgsView stack_view(ValueStack* _s) const { return ArgsView(actual_sp_base(), _s->_sp); }
@@ -115,6 +126,10 @@ struct Frame {
     }
 
     int curr_lineno() const { return co->lines[ip()].lineno; }
+
+    void set_unwind_target(PyVar* _sp);
+    UnwindTarget* find_unwind_target(int iblock);
+    void free_unwind_target();
 
     void _gc_mark(VM* vm) const;
 };

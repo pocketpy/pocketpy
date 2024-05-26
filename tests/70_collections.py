@@ -210,9 +210,12 @@ for e in [d, deque('abc'), deque('ab'), deque(), list(d)]:
     assertEqual(d == e, type(d) == type(e) and list(d) == list(e))
     assertEqual(d != e, not (type(d) == type(e) and list(d) == list(e)))
 
-args = map(deque, ('', 'a', 'b', 'ab', 'ba', 'abc', 'xba', 'xabc', 'cba'))
-for x in args:
-    for y in args:
+def get_args():
+    args = map(deque, ('', 'a', 'b', 'ab', 'ba', 'abc', 'xba', 'xabc', 'cba'))
+    return args
+
+for x in get_args():
+    for y in get_args():
         assertEqual(x == y, list(x) == list(y))
         assertEqual(x != y, list(x) != list(y))
         # assertEqual(x <  y, list(x) <  list(y))   # not currently supported

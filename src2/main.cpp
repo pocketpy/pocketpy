@@ -65,7 +65,7 @@ int main(int argc, char** argv){
     pkpy_vm* vm = pkpy_new_vm(true);
 
     pkpy_push_function(vm, "input(prompt=None) -> str", f_input);
-    pkpy_eval(vm, "__import__('builtins')");
+    pkpy_py_import(vm, "builtins");
     pkpy_setattr(vm, pkpy_name("input"));
 
     if(argc == 1){

@@ -1644,7 +1644,9 @@ void NextBreakpoint::_step(VM* vm){
 #endif
 
 void VM::__pop_frame(){
-    s_data.reset(callstack.top()._sp_base);
+    Frame& frame = callstack.top();
+    s_data.reset(frame._sp_base);
+    frame.free_unwind_target();
     callstack.pop();
 
 #if PK_ENABLE_PROFILER

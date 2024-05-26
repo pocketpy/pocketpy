@@ -703,6 +703,7 @@ __EAT_DOTS_END:
 
     void Compiler::compile_try_except() {
         ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
+        ctx()->emit_(OP_TRY_ENTER, BC_NOARG, prev().line);
         compile_block_body();
         small_vector_2<int, 6> patches;
         patches.push_back(

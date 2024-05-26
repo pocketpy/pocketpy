@@ -77,6 +77,7 @@ PK_EXPORT bool pkpy_unpack_sequence(pkpy_vm*, int size);
 PK_EXPORT bool pkpy_get_unbound_method(pkpy_vm*, pkpy_CName name);
 PK_EXPORT bool pkpy_py_repr(pkpy_vm*);
 PK_EXPORT bool pkpy_py_str(pkpy_vm*);
+PK_EXPORT bool pkpy_py_import(pkpy_vm*, pkpy_CString name);
 
 /* Error Handling */
 PK_EXPORT bool pkpy_error(pkpy_vm*, const char* name, pkpy_CString msg);

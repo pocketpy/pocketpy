@@ -986,6 +986,10 @@ __NEXT_STEP:
         POP();
         DISPATCH()
     /*****************************************/
+    case OP_TRY_ENTER: {
+        frame->set_unwind_target(s_data._sp);
+        DISPATCH()
+    }
     case OP_EXCEPTION_MATCH: {
         PyVar assumed_type = POPX();
         check_type(assumed_type, tp_type);

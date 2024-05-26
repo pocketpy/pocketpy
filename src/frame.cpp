@@ -24,15 +24,17 @@ namespace pkpy{
     }
 
     int Frame::prepare_jump_exception_handler(ValueStack* _s){
-        PyVar obj = _s->popx();
         // try to find a parent try block
         int i = co->lines[ip()].iblock;
         while(i >= 0){
             if(co->blocks[i].type == CodeBlockType::TRY_EXCEPT) break;
-            i = _exit_block(_s, i);
+            i = co->blocks[i].parent;
         }
-        _s->push(obj);
         if(i < 0) return -1;
+        PyVar obj = _s->popx();                     // pop exception object
+        UnwindTarget* uw = find_unwind_target(i);
+        _s->reset(actual_sp_base() + uw->offset);   // unwind the stack
+        _s->push(obj);                              // push it back
         return co->blocks[i].end;
     }
 
@@ -66,6 +68,34 @@ namespace pkpy{
             int next_block = co->lines[target].iblock;
             while(i>=0 && i!=next_block) i = _exit_block(_s, i);
             if(i!=next_block) throw std::runtime_error("invalid jump");
+        }
+    }
+
+    void Frame::set_unwind_target(PyVar* _sp){
+        int iblock = co->lines[ip()].iblock;
+        UnwindTarget* existing = find_unwind_target(iblock);
+        if(existing){
+            existing->offset = _sp - actual_sp_base();
+        }else{
+            UnwindTarget* prev = _uw_list;
+            _uw_list = new UnwindTarget(iblock, _sp - actual_sp_base());
+            _uw_list->next = prev;
+        }
+    }
+
+    UnwindTarget* Frame::find_unwind_target(int iblock){
+        UnwindTarget* p;
+        for(p=_uw_list; p!=nullptr; p=p->next){
+            if(p->iblock == iblock) return p;
+        }
+        return nullptr;
+    }
+
+    void Frame::free_unwind_target(){
+        while(_uw_list != nullptr){
+            UnwindTarget* p = _uw_list;
+            _uw_list = p->next;
+            delete p;
         }
     }
 

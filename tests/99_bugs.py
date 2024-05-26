@@ -1,3 +1,11 @@
+# multi-loop generator
+out = []
+args = map(lambda x: x+1, [1, 2, 3])
+for x in args:
+    for y in args:
+        out.append((x, y))
+assert out == [(2, 3), (2, 4)]
+
 # multi loop bug
 out = []
 a = [1, 2]

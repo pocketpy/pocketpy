@@ -151,3 +151,19 @@ PK_EXPORT bool pkpy_is_none(pkpy_vm*, int i);
     ```
     [value] -> [repr(value)]
     ```
+
++ `bool pkpy_py_str(pkpy_vm*)`
+
+    Get the str of the value at the top of the stack.
+
+    ```
+    [value] -> [str(value)]
+    ```
+
++ `bool pkpy_py_import(pkpy_vm*, const char* name)`
+
+    Import a module and push it onto the stack.
+
+    ```
+    [] -> [module]
+    ```
