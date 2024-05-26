@@ -104,7 +104,6 @@ struct CodeEmitContext{
 
     int curr_iblock = 0;
     bool is_compiling_class = false;
-    int base_stack_size = 0;
 
     std::map<PyVar, int> _co_consts_nonstring_dedup_map;
     std::map<std::string, int, std::less<>> _co_consts_string_dedup_map;

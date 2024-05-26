@@ -42,13 +42,12 @@ inline const int BC_KEEPLINE = -1;
 struct CodeBlock {
     CodeBlockType type;
     int parent;         // parent index in blocks
-    int base_stack_size; // this is used for exception handling
     int start;          // start index of this block in codes, inclusive
     int end;            // end index of this block in codes, exclusive
     int end2;           // ...
 
-    CodeBlock(CodeBlockType type, int parent, int base_stack_size, int start):
-        type(type), parent(parent), base_stack_size(base_stack_size), start(start), end(-1), end2(-1) {}
+    CodeBlock(CodeBlockType type, int parent, int start):
+        type(type), parent(parent), start(start), end(-1), end2(-1) {}
 
     int get_break_end() const{
         if(end2 != -1) return end2;

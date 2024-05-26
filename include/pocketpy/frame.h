@@ -102,8 +102,6 @@ struct Frame {
             : _ip(co->codes.data()-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0) {}
 
     PyVar* actual_sp_base() const { return _locals.a; }
-
-    int stack_size(ValueStack* _s) const { return _s->_sp - actual_sp_base(); }
     ArgsView stack_view(ValueStack* _s) const { return ArgsView(actual_sp_base(), _s->_sp); }
 
     [[nodiscard]] int prepare_jump_exception_handler(ValueStack*);

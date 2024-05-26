@@ -24,20 +24,16 @@ namespace pkpy{
     }
 
     int Frame::prepare_jump_exception_handler(ValueStack* _s){
+        PyVar obj = _s->popx();
         // try to find a parent try block
-        int block = co->lines[ip()].iblock;
-        while(block >= 0){
-            if(co->blocks[block].type == CodeBlockType::TRY_EXCEPT) break;
-            block = co->blocks[block].parent;
+        int i = co->lines[ip()].iblock;
+        while(i >= 0){
+            if(co->blocks[i].type == CodeBlockType::TRY_EXCEPT) break;
+            i = _exit_block(_s, i);
         }
-        if(block < 0) return -1;
-        PyVar obj = _s->popx();         // pop exception object
-        // get the stack size of the try block
-        int _stack_size = co->blocks[block].base_stack_size;
-        if(stack_size(_s) < _stack_size) throw std::runtime_error(_S("invalid state: ", stack_size(_s), '<', _stack_size).str());
-        _s->reset(actual_sp_base() + _locals.size() + _stack_size);          // rollback the stack   
-        _s->push(obj);                                      // push exception object
-        return co->blocks[block].end;
+        _s->push(obj);
+        if(i < 0) return -1;
+        return co->blocks[i].end;
     }
 
     int Frame::_exit_block(ValueStack* _s, int i){

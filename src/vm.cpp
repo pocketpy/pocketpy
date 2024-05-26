@@ -909,7 +909,7 @@ void VM::__init_builtin_types(){
     validate(tp_none_type, new_type_object(nullptr, "NoneType", tp_object, false));
     validate(tp_not_implemented, new_type_object(nullptr, "NotImplementedType", tp_object, false));
     validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
-    validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "stack_memory", tp_object, false));
+    validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "_stack_memory", tp_object, false));
 
     // SyntaxError and IndentationError must be created here
     PyVar SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);

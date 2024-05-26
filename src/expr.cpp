@@ -24,17 +24,13 @@ namespace pkpy{
     }
 
     CodeBlock* CodeEmitContext::enter_block(CodeBlockType type){
-        if(type==CodeBlockType::FOR_LOOP || type==CodeBlockType::CONTEXT_MANAGER) base_stack_size++;
-        co->blocks.push_back(CodeBlock(
-            type, curr_iblock, base_stack_size, (int)co->codes.size()
-        ));
+        co->blocks.push_back(CodeBlock(type, curr_iblock, (int)co->codes.size()));
         curr_iblock = co->blocks.size()-1;
         return &co->blocks[curr_iblock];
     }
 
     void CodeEmitContext::exit_block(){
         auto curr_type = co->blocks[curr_iblock].type;
-        if(curr_type == CodeBlockType::FOR_LOOP || curr_type==CodeBlockType::CONTEXT_MANAGER) base_stack_size--;
         co->blocks[curr_iblock].end = co->codes.size();
         curr_iblock = co->blocks[curr_iblock].parent;
         if(curr_iblock < 0) PK_FATAL_ERROR();
