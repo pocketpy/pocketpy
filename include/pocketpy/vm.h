@@ -446,6 +446,7 @@ public:
     template<typename T, typename ...Args>
     void new_stack_object(Type type, Args&&... args){
         static_assert(std::is_same_v<T, std::decay_t<T>>);
+        static_assert(std::is_trivially_destructible_v<T>);
         PyObject* p = new(__stack_alloc(py_sizeof<T>)) PyObject(type);
         p->placement_new<T>(std::forward<Args>(args)...);
         vm->s_data.emplace(p->type, p);
