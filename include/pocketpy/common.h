@@ -242,7 +242,7 @@ struct PyVar final{
         return reinterpret_cast<PyObject*>(_1);
     }
 
-    i64 hash() const { return _1; }
+    i64 hash() const { return _0 + _1; }
 
     template<typename T>
     obj_get_t<T> obj_get();
