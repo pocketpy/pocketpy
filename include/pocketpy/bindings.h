@@ -113,15 +113,6 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
     return prop;
 }
 
-template<typename Ret, typename... Params>
-[[deprecated]] void _bind(VM* vm, PyVar obj, const char* sig, Ret(*func)(Params...)){
-    return vm->bind(obj, sig, func);
-}
-
-template<typename Ret, typename T, typename... Params>
-[[deprecated]] void _bind(VM* vm, PyVar obj, const char* sig, Ret(T::*func)(Params...)){
-    return vm->bind(obj, sig, func);
-}
 /*****************************************************************/
 
 #define PY_FIELD(T, NAME, EXPR)                     \
