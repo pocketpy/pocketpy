@@ -375,26 +375,26 @@ public:
 #endif
 
 #if PK_REGION("Error Reporting Methods")
-    void _error(PyVar);
-    void StackOverflowError() { __builtin_error("StackOverflowError"); }
-    void IOError(const Str& msg) { __builtin_error("IOError", msg); }
-    void NotImplementedError(){ __builtin_error("NotImplementedError"); }
-    void TypeError(const Str& msg){ __builtin_error("TypeError", msg); }
-    void TypeError(Type expected, Type actual) { TypeError("expected " + _type_name(vm, expected).escape() + ", got " + _type_name(vm, actual).escape()); }
-    void IndexError(const Str& msg){ __builtin_error("IndexError", msg); }
-    void ValueError(const Str& msg){ __builtin_error("ValueError", msg); }
-    void RuntimeError(const Str& msg){ __builtin_error("RuntimeError", msg); }
-    void ZeroDivisionError(const Str& msg){ __builtin_error("ZeroDivisionError", msg); }
-    void ZeroDivisionError(){ __builtin_error("ZeroDivisionError", "division by zero"); }
-    void NameError(StrName name){ __builtin_error("NameError", _S("name ", name.escape() + " is not defined")); }
-    void UnboundLocalError(StrName name){ __builtin_error("UnboundLocalError", _S("local variable ", name.escape() + " referenced before assignment")); }
-    void KeyError(PyVar obj){ __builtin_error("KeyError", obj); }
-    void ImportError(const Str& msg){ __builtin_error("ImportError", msg); }
-    void AssertionError(const Str& msg){ __builtin_error("AssertionError", msg); }
-    void AssertionError(){ __builtin_error("AssertionError"); }
-    void BinaryOptError(const char* op, PyVar _0, PyVar _1);
-    void AttributeError(PyVar obj, StrName name);
-    void AttributeError(const Str& msg){ __builtin_error("AttributeError", msg); }
+    [[noreturn]] void _error(PyVar);
+    [[noreturn]] void StackOverflowError() { __builtin_error("StackOverflowError"); }
+    [[noreturn]] void IOError(const Str& msg) { __builtin_error("IOError", msg); }
+    [[noreturn]] void NotImplementedError(){ __builtin_error("NotImplementedError"); }
+    [[noreturn]] void TypeError(const Str& msg){ __builtin_error("TypeError", msg); }
+    [[noreturn]] void TypeError(Type expected, Type actual) { TypeError("expected " + _type_name(vm, expected).escape() + ", got " + _type_name(vm, actual).escape()); }
+    [[noreturn]] void IndexError(const Str& msg){ __builtin_error("IndexError", msg); }
+    [[noreturn]] void ValueError(const Str& msg){ __builtin_error("ValueError", msg); }
+    [[noreturn]] void RuntimeError(const Str& msg){ __builtin_error("RuntimeError", msg); }
+    [[noreturn]] void ZeroDivisionError(const Str& msg){ __builtin_error("ZeroDivisionError", msg); }
+    [[noreturn]] void ZeroDivisionError(){ __builtin_error("ZeroDivisionError", "division by zero"); }
+    [[noreturn]] void NameError(StrName name){ __builtin_error("NameError", _S("name ", name.escape() + " is not defined")); }
+    [[noreturn]] void UnboundLocalError(StrName name){ __builtin_error("UnboundLocalError", _S("local variable ", name.escape() + " referenced before assignment")); }
+    [[noreturn]] void KeyError(PyVar obj){ __builtin_error("KeyError", obj); }
+    [[noreturn]] void ImportError(const Str& msg){ __builtin_error("ImportError", msg); }
+    [[noreturn]] void AssertionError(const Str& msg){ __builtin_error("AssertionError", msg); }
+    [[noreturn]] void AssertionError(){ __builtin_error("AssertionError"); }
+    [[noreturn]] void BinaryOptError(const char* op, PyVar _0, PyVar _1);
+    [[noreturn]] void AttributeError(PyVar obj, StrName name);
+    [[noreturn]] void AttributeError(const Str& msg){ __builtin_error("AttributeError", msg); }
 #endif
 
 #if PK_REGION("Type Checking Methods")
