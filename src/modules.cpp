@@ -84,7 +84,7 @@ void add_module_sys(VM* vm){
 
     vm->bind_func(stderr_, "write", 1, [](VM* vm, ArgsView args) {
         Str& s = CAST(Str&, args[0]);
-        vm->_stderr(s.data, s.size);
+        vm->stderr_write(s);
         return vm->None;
     });
 }
