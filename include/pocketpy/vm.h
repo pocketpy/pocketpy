@@ -484,12 +484,12 @@ public:
     void __prepare_py_call(PyVar*, ArgsView, ArgsView, const FuncDecl_&);
     void __unpack_as_list(ArgsView args, List& list);
     void __unpack_as_dict(ArgsView args, Dict& dict);
-    void __raise_exc(bool re_raise=false);
+    [[noreturn]] void __raise_exc(bool re_raise=false);
     void __init_builtin_types();
     void __post_init_builtin_types();
-    void __builtin_error(StrName type);
-    void __builtin_error(StrName type, PyVar arg);
-    void __builtin_error(StrName type, const Str& msg);
+    [[noreturn]] void __builtin_error(StrName type);
+    [[noreturn]] void __builtin_error(StrName type, PyVar arg);
+    [[noreturn]] void __builtin_error(StrName type, const Str& msg);
     void __push_varargs(){}
     void __push_varargs(PyVar _0){ PUSH(_0); }
     void __push_varargs(PyVar _0, PyVar _1){ PUSH(_0); PUSH(_1); }

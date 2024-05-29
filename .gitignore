@@ -4,7 +4,7 @@ __pycache__/
 .DS_Store
 .coverage
 .idea
-.cache/
+.cache/clangd/
 
 gmon.out
 gprof.txt
