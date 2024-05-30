@@ -1373,6 +1373,7 @@ PyVar VM::bind_property(PyVar obj, const char* name, NativeFuncC fget, NativeFun
 void VM::__builtin_error(StrName type){ _error(call(builtins->attr(type))); }
 void VM::__builtin_error(StrName type, PyVar arg){ _error(call(builtins->attr(type), arg)); }
 void VM::__builtin_error(StrName type, const Str& msg){ __builtin_error(type, VAR(msg)); }
+void VM::__builtin_error(StrName type, const int code){ __builtin_error(type, VAR(code)); }
 
 void VM::BinaryOptError(const char* op, PyVar _0, PyVar _1) {
     StrName name_0 = _type_name(vm, _tp(_0));

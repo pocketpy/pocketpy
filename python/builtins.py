@@ -214,3 +214,7 @@ class KeyError(Exception):
         if self.key is ...:
             return 'KeyError()'
         return f'KeyError({self.key!r})'
+
+class SystemExit(Exception):
+    def __init__(self, code=None):
+        self.code = code

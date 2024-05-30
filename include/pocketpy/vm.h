@@ -242,7 +242,27 @@ public:
     template<typename ...Args>
     PyVar _exec(Args&&... args){
         callstack.emplace(s_data._sp, std::forward<Args>(args)...);
-        return __run_top_frame();
+        try {
+            return __run_top_frame();
+        } catch (Exception& e) {
+            // TODO Checking the exception type by name seems ugly and probably won't work on derived classes.
+            //      There must be a better way to do this?
+            // TODO Clean up the nesting here.
+            if (e.type == "SystemExit") {
+                i64 exit_code;
+                // Make sure the variable is preserved after the SystemExit is gc'd.
+                // TODO: is this the right way to do it?
+                if (try_cast_int(e._self->attr("code"), &exit_code)) {
+                    // TODO Copied from py_var below:
+                    i64 val = static_cast<i64>(std::forward<i64>(exit_code));
+                    if(val >= Number::kMinSmallInt && val <= Number::kMaxSmallInt){
+                        val = (val << 2) | 0b10;
+                        return reinterpret_cast<PyVar>(val);
+                    }
+                }
+            }
+            throw;
+        }
     }
 #endif
 
@@ -357,6 +377,7 @@ public:
     void BinaryOptError(const char* op, PyVar _0, PyVar _1);
     void AttributeError(PyVar obj, StrName name);
     void AttributeError(const Str& msg){ __builtin_error("AttributeError", msg); }
+    void SystemExit(const int code){ __builtin_error("SystemExit", code); }
 #endif
 
 #if PK_REGION("Type Checking Methods")
@@ -429,6 +450,7 @@ public:
     void __builtin_error(StrName type);
     void __builtin_error(StrName type, PyVar arg);
     void __builtin_error(StrName type, const Str& msg);
+    void __builtin_error(StrName type, const int code);
     void __push_varargs(){}
     void __push_varargs(PyVar _0){ PUSH(_0); }
     void __push_varargs(PyVar _0, PyVar _1){ PUSH(_0); PUSH(_1); }

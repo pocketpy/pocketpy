@@ -224,7 +224,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind(_vm->builtins, "exit(code=0)", [](VM* vm, ArgsView args) {
-        std::exit(CAST(int, args[0]));
+        vm->SystemExit(CAST(int, args[0]));
         return vm->None;
     });
 
