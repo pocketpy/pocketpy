@@ -141,7 +141,6 @@ namespace pkpy{
                 return index;
             }
         }
-        PK_UNREACHABLE()
     }
 
     int CodeEmitContext::add_func_decl(FuncDecl_ decl){

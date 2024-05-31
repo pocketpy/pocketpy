@@ -37,7 +37,6 @@ static cJSON* convert_python_object_to_cjson(PyVar obj, VM* vm){
         default: break;
     }
     vm->TypeError(_S("unrecognized type ", _type_name(vm, obj_t).escape()));
-    PK_UNREACHABLE()
 }
 
 

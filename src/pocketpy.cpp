@@ -24,7 +24,6 @@ PyVar PyArrayGetItem(VM* vm, PyVar _0, PyVar _1){
         return VAR(T(std::move(new_list)));
     }
     vm->TypeError("indices must be integers or slices");
-    PK_UNREACHABLE()
 }
 
 void __init_builtins(VM* _vm) {
@@ -1317,7 +1316,6 @@ void __init_builtins(VM* _vm) {
             vm->TypeError("dict() takes a dictionary or a list of tuples");
         }
         vm->TypeError("dict() takes at most 1 argument");
-        PK_UNREACHABLE()
     });
 
     _vm->bind__len__(VM::tp_dict, [](VM* vm, PyVar _0) {

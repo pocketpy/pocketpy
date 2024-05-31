@@ -133,7 +133,6 @@ namespace pkpy{
             return ArgsView(tuple.begin(), tuple.end());
         }
         TypeError(_S("expected list or tuple, got ", _type_name(this, _tp(obj)).escape()));
-        PK_UNREACHABLE();
     }
 
     void VM::set_main_argv(int argc, char** argv){
@@ -550,7 +549,6 @@ i64 VM::py_hash(PyVar obj){
     }
     if(has_custom_eq){
         TypeError(_S("unhashable type: ", ti->name.escape()));
-        PK_UNREACHABLE()
     }else{
         return obj.hash();
     }
@@ -1182,7 +1180,6 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
         return vectorcall(ARGC, KWARGC, op_call);
     }
     TypeError(_type_name(vm, callable_t).escape() + " object is not callable");
-    PK_UNREACHABLE()
 }
 
 void VM::delattr(PyVar _0, StrName _name){
@@ -1714,7 +1711,6 @@ void VM::__breakpoint(){
         }
         if(line == "q" || line == "quit") {
             vm->RuntimeError("pdb quit");
-            PK_UNREACHABLE()
         }
         if(line == "n" || line == "next"){
             vm->_next_breakpoint = NextBreakpoint(vm->callstack.size(), frame_0->curr_lineno(), false);

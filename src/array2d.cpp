@@ -135,7 +135,6 @@ struct Array2d{
                 return new_array_obj;
             }
             vm->TypeError("expected `tuple[int, int]` or `tuple[slice, slice]` as index");
-            PK_UNREACHABLE();
         });
 
         vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){
