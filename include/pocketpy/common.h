@@ -62,24 +62,6 @@ namespace pkpy{
 
 namespace std = ::std;
 
-template <size_t T>
-struct NumberTraits;
-
-template <>
-struct NumberTraits<4> {
-	using int_t = int32_t;
-	static constexpr int_t kMaxSmallInt = (1 << 28) - 1;
-	static constexpr int_t kMinSmallInt = 0;
-};
-
-template <>
-struct NumberTraits<8> {
-	using int_t = int64_t;
-	static constexpr int_t kMaxSmallInt = (1ll << 60) - 1;
-	static constexpr int_t kMinSmallInt = 0;
-};
-
-using Number = NumberTraits<sizeof(void*)>;
 using i64 = int64_t;		// always 64-bit
 using f64 = double;			// always 64-bit
 
