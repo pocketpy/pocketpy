@@ -428,15 +428,13 @@ __NEXT_STEP:
     } DISPATCH()
     /*****************************************/
     case OP_BUILD_TUPLE_UNPACK: {
-        auto _lock = heap.gc_scope_lock();
         List list;
         __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
-        PyVar _0 = VAR(Tuple(std::move(list)));
+        PyVar _0 = VAR(list.to_tuple());
         PUSH(_0);
     } DISPATCH()
     case OP_BUILD_LIST_UNPACK: {
-        auto _lock = heap.gc_scope_lock();
         List list;
         __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);
@@ -444,7 +442,6 @@ __NEXT_STEP:
         PUSH(_0);
     } DISPATCH()
     case OP_BUILD_DICT_UNPACK: {
-        auto _lock = heap.gc_scope_lock();
         Dict dict;
         __unpack_as_dict(STACK_VIEW(byte.arg), dict);
         STACK_SHRINK(byte.arg);
@@ -452,7 +449,6 @@ __NEXT_STEP:
         PUSH(_0);
     } DISPATCH()
     case OP_BUILD_SET_UNPACK: {
-        auto _lock = heap.gc_scope_lock();
         List list;
         __unpack_as_list(STACK_VIEW(byte.arg), list);
         STACK_SHRINK(byte.arg);

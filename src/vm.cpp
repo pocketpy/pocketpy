@@ -942,8 +942,8 @@ void VM::__init_builtin_types(){
     this->_main = new_module("__main__");
 }
 
-// `heap.gc_scope_lock();` needed before calling this function
 void VM::__unpack_as_list(ArgsView args, List& list){
+    auto _lock = heap.gc_scope_lock();
     for(PyVar obj: args){
         if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);
@@ -962,8 +962,8 @@ void VM::__unpack_as_list(ArgsView args, List& list){
     }
 }
 
-// `heap.gc_scope_lock();` needed before calling this function
 void VM::__unpack_as_dict(ArgsView args, Dict& dict){
+    auto _lock = heap.gc_scope_lock();
     for(PyVar obj: args){
         if(is_type(obj, tp_star_wrapper)){
             const StarWrapper& w = _CAST(StarWrapper&, obj);

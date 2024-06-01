@@ -1212,7 +1212,7 @@ __EAT_DOTS_END:
                     if(curr().type == TK(")")) break;
                 }
                 consume(TK(")"));
-                return VAR(Tuple(std::move(cpnts)));
+                return VAR(cpnts.to_tuple());
             }
             default: break;
         }

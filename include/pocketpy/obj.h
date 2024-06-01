@@ -113,8 +113,8 @@ struct PyObject final{
     static constexpr int FIXED_SIZE = 16;
     
     bool gc_marked;     // whether this object is marked
-    Type type;          // we have a duplicated type here for saving memory
-    NameDict* _attr;
+    Type type;          // we have a duplicated type here for convenience
+    NameDict* _attr;    // gc will delete this on destruction
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
     void* _value_ptr() noexcept { return (char*)this + FIXED_SIZE; }

@@ -21,7 +21,11 @@ PyVar PyArrayGetItem(VM* vm, PyVar _0, PyVar _1){
         vm->parse_int_slice(s, self.size(), start, stop, step);
         List new_list;
         PK_SLICE_LOOP(i, start, stop, step) new_list.push_back(self[i]);
-        return VAR(T(std::move(new_list)));
+
+        if constexpr(std::is_same_v<T, List>)
+            return VAR(std::move(new_list));
+        else
+            return VAR(new_list.to_tuple());
     }
     vm->TypeError("indices must be integers or slices");
 }
@@ -1024,7 +1028,7 @@ void __init_builtins(VM* _vm) {
         if(args.size() == 1+0) return VAR(Tuple(0));
         if(args.size() == 1+1){
             List list = vm->py_list(args[1]);
-            return VAR(Tuple(std::move(list)));
+            return VAR(list.to_tuple());
         }
         vm->TypeError("tuple() takes at most 1 argument");
         return vm->None;

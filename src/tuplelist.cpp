@@ -27,12 +27,6 @@ Tuple::Tuple(Tuple&& other) noexcept {
     }
 }
 
-Tuple::Tuple(List&& other) noexcept {
-    _size = other.size();
-    _args = other._data;
-    other._data = nullptr;
-}
-
 Tuple::Tuple(PyVar _0, PyVar _1): Tuple(2){
     _args[0] = _0;
     _args[1] = _1;
