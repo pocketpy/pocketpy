@@ -53,7 +53,7 @@
 #define PK_VM_STACK_SIZE            16384
 
 // This is the maximum number of local variables in a function
-// (not recommended to change this / it should be less than 200)
+// (not recommended to change this)
 #define PK_MAX_CO_VARNAMES          64
 
 // Hash table load factor (smaller ones mean less collision but more memory)

@@ -178,7 +178,7 @@ void add_module_os(VM* vm){
         }
         List ret;
         for(auto& p: di) ret.push_back(VAR(p.path().filename().string()));
-        return VAR(ret);
+        return VAR(std::move(ret));
     });
 
     vm->bind_func(mod, "remove", 1, [](VM* vm, ArgsView args){
