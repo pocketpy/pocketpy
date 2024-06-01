@@ -1057,7 +1057,7 @@ __NEXT_STEP:
                 __pop_frame();
                 if(callstack.empty()){
                     // propagate to the top level
-                    throw TopLevelException(&_e);
+                    throw TopLevelException(this, &_e);
                 }
                 frame = &callstack.top();
                 PUSH(__last_exception);

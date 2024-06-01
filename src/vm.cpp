@@ -1442,7 +1442,7 @@ void VM::_error(PyVar e_obj){
     if(callstack.empty()){
         e.is_re = false;
         __last_exception = e_obj.get();
-        throw TopLevelException(&e);
+        throw TopLevelException(this, &e);
     }
     PUSH(e_obj);
     __raise_exc();

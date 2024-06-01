@@ -89,9 +89,10 @@ struct Exception {
 };
 
 struct TopLevelException: std::exception{
+    VM* vm;
     Exception* ptr;
-    TopLevelException(Exception* ptr): ptr(ptr) {}
-    
+    TopLevelException(VM* vm, Exception* ptr): vm(vm), ptr(ptr) {}
+
     Str summary() const { return ptr->summary(); }
 
     const char* what() const noexcept override {

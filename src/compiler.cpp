@@ -1379,7 +1379,7 @@ __EAT_DOTS_END:
         vm->__last_exception = vm->call(vm->builtins->attr(type), VAR(msg)).get();
         Exception& e = vm->__last_exception->as<Exception>();
         e.st_push(src, lineno, cursor, "");
-        throw TopLevelException(&e);
+        throw TopLevelException(vm, &e);
     }
 
     std::string_view TokenDeserializer::read_string(char c){
