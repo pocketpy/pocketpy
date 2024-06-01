@@ -10,6 +10,9 @@ struct explicit_copy_t {
 };
 
 template<typename T>
+constexpr inline bool is_trivially_relocatable_v = std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
+
+template<typename T>
 struct array{
     T* _data;
     int _size;
@@ -124,7 +127,7 @@ struct vector{
         if(cap < 4) cap = 4;    // minimum capacity
         if(cap <= capacity()) return;
         T* new_data = (T*)malloc(sizeof(T) * cap);
-        if constexpr(std::is_trivially_copyable_v<T>){
+        if constexpr(is_trivially_relocatable_v<T>){
             memcpy(new_data, _data, sizeof(T) * _size);
         }else{
             for(int i=0; i<_size; i++){
@@ -249,29 +252,7 @@ public:
 } // namespace pkpy
 
 
-namespace pkpy
-{
-
-// explicitly mark a type as trivially relocatable for better performance
-    template<typename T>
-    struct TriviallyRelocatable
-    {
-        constexpr static bool value =
-                std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>;
-    };
-
-    template<typename T>
-    constexpr inline bool is_trivially_relocatable_v =
-            TriviallyRelocatable<T>::value;
-
-    template<typename T>
-    struct TriviallyRelocatable<std::shared_ptr<T>>
-    {
-        constexpr static bool value = true;
-    };
-
-
-// the implementation of small_vector
+namespace pkpy {
     template<typename T, std::size_t N>
     class small_vector
     {

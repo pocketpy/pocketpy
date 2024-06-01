@@ -49,18 +49,6 @@ struct SourceData {
     Str snapshot(int lineno, const char* cursor, std::string_view name) const;
 };
 
-struct ExceptionLine{
-    std::shared_ptr<SourceData> src;
-    int lineno;
-    const char* cursor;
-    std::string name;
-
-    Str snapshot() const { return src->snapshot(lineno, cursor, name); }
-
-    ExceptionLine(std::shared_ptr<SourceData> src, int lineno, const char* cursor, std::string_view name):
-        src(src), lineno(lineno), cursor(cursor), name(name) {}
-};
-
 struct Exception {
     StrName type;
     Str msg;
@@ -70,8 +58,20 @@ struct Exception {
     void* _code_on_error;
 
     PyObject* _self;    // weak reference
-    
-    stack<ExceptionLine> stacktrace;
+
+    struct Frame{
+        std::shared_ptr<SourceData> src;
+        int lineno;
+        const char* cursor;
+        std::string name;
+
+        Str snapshot() const { return src->snapshot(lineno, cursor, name); }
+
+        Frame(std::shared_ptr<SourceData> src, int lineno, const char* cursor, std::string_view name):
+            src(src), lineno(lineno), cursor(cursor), name(name) {}
+    };
+
+    stack<Frame> stacktrace;
     Exception(StrName type): type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
     PyObject* self() const{

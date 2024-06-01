@@ -54,9 +54,7 @@ typedef unique_ptr_128<Expr> Expr_;
 typedef small_vector<Expr_, 4> Expr_vector;
 
 template<>
-struct TriviallyRelocatable<Expr_>{
-    constexpr static bool value = true;
-};
+constexpr inline bool is_trivially_relocatable_v<Expr_> = true;
 
 struct Expr{
     int line = 0;

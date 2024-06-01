@@ -123,11 +123,12 @@ struct Lexer {
     bool lex_one_token();
 
     /***** Error Reporter *****/
-    void throw_err(StrName type, Str msg);
-    void throw_err(StrName type, Str msg, int lineno, const char* cursor);
-    void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
-    void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
-    void IndentationError(Str msg){ throw_err("IndentationError", msg); }
+    [[noreturn]] void throw_err(StrName type, Str msg);
+    [[noreturn]] void throw_err(StrName type, Str msg, int lineno, const char* cursor);
+    [[noreturn]] void SyntaxError(Str msg){ throw_err("SyntaxError", msg); }
+    [[noreturn]] void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
+    [[noreturn]] void IndentationError(Str msg){ throw_err("IndentationError", msg); }
+    
     Lexer(VM* vm, std::shared_ptr<SourceData> src);
     vector<Token> run();
 };

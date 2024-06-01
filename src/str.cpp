@@ -410,9 +410,7 @@ int utf8len(unsigned char c, bool suppress){
         buffer[buffer.size()] = '\0';       // set '\0'
         return Str(buffer.detach());
 #else
-#warning "SStream::str() needs to be optimized"
-        buffer.push_back('\0');
-        return Str(buffer.data(), buffer.size()-1);
+        return Str(buffer.data(), buffer.size());
 #endif
     }
 
