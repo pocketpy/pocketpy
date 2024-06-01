@@ -78,7 +78,9 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
         PK_ASSERT(actual_size <= buffer_size);
         // in text mode, CR may be dropped, which may cause `actual_size < buffer_size`
         Bytes b(buffer, actual_size);
-        if(io.is_text) return VAR(b.str());
+        if(io.is_text){
+            return VAR(std::string_view((char*)b.data(), b.size()));
+        }
         return VAR(std::move(b));
     });
 
