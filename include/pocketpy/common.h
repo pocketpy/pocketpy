@@ -66,6 +66,7 @@ using i64 = int64_t;		// always 64-bit
 using f64 = double;			// always 64-bit
 
 static_assert(sizeof(i64) == 8);
+static_assert(sizeof(f64) == 8);
 
 struct DummyInstance { };
 struct DummyModule { };
