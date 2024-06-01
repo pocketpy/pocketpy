@@ -52,7 +52,7 @@ These two methods are provided for this purpose:
 try{
     CodeObject_ code = vm->compile("a[0]", "main.py", EXEC_MODE, false);
     vm->_exec(code, vm->_main);
-}catch(Exception& e){
+}catch(TopLevelException e){
     // use e.summary() to get a summary of the exception
     std::cerr << e.summary() << std::endl;
 }

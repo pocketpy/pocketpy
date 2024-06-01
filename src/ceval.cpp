@@ -1,5 +1,4 @@
 #include "pocketpy/ceval.h"
-#include "pocketpy/codeobject.h"
 
 namespace pkpy{
 
@@ -1052,15 +1051,16 @@ __NEXT_STEP:
         }catch(InternalException internal){
             __internal_exception = internal;
             if(internal.type == InternalExceptionType::Unhandled){
-                PyVar e_obj = POPX();
-                Exception& _e = PK_OBJ_GET(Exception, e_obj);
+                __last_exception = POPX().get();
+                Exception& _e = __last_exception->as<Exception>();
                 bool is_base_frame_to_be_popped = frame == base_frame;
                 __pop_frame();
                 if(callstack.empty()){
-                    throw std::move(_e);    // propagate to the top level
+                    // propagate to the top level
+                    throw TopLevelException(&_e);
                 }
                 frame = &callstack.top();
-                PUSH(e_obj);
+                PUSH(__last_exception);
                 if(is_base_frame_to_be_popped){
                     throw InternalException(InternalExceptionType::ToBeRaised);
                 }

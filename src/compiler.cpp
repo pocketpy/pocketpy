@@ -1376,10 +1376,10 @@ __EAT_DOTS_END:
 
     // TODO: refactor this
     void Lexer::throw_err(StrName type, Str msg, int lineno, const char* cursor){
-        PyVar e_obj = vm->call(vm->builtins->attr(type), VAR(msg));
-        Exception& e = PK_OBJ_GET(Exception, e_obj);
+        vm->__last_exception = vm->call(vm->builtins->attr(type), VAR(msg)).get();
+        Exception& e = vm->__last_exception->as<Exception>();
         e.st_push(src, lineno, cursor, "");
-        throw std::move(e);
+        throw TopLevelException(&e);
     }
 
     std::string_view TokenDeserializer::read_string(char c){

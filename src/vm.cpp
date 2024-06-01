@@ -1383,7 +1383,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     try{
         // fn(a, b, *c, d=1) -> None
         co = compile(_S("def ", sig, " : pass"), "<bind>", EXEC_MODE);
-    }catch(const Exception&){
+    }catch(TopLevelException){
         throw std::runtime_error("invalid signature: " + std::string(sig));
     }
     if(co->func_decls.size() != 1){
@@ -1442,7 +1442,8 @@ void VM::_error(PyVar e_obj){
     Exception& e = PK_OBJ_GET(Exception, e_obj);
     if(callstack.empty()){
         e.is_re = false;
-        throw std::move(e);
+        __last_exception = e_obj.get();
+        throw TopLevelException(&e);
     }
     PUSH(e_obj);
     __raise_exc();

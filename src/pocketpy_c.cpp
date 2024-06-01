@@ -44,7 +44,7 @@ static PyVar stack_item(VM* vm, int index){
 
 #define PK_PROTECTED(__B) \
     try{ __B }  \
-    catch(const Exception& e ) { \
+    catch(TopLevelException e) { \
         vm->__c.error = e.self(); \
         return false; \
     } catch(const std::exception& re){ \

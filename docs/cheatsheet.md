@@ -49,7 +49,7 @@ Execute a compiled code object
 ```cpp
 try{
     vm->_exec(co);    // may throw
-}catch(Exception& e){
+}catch(TopLevelException e){
     std::cerr << e.summary() << std::endl;
 }
 ```

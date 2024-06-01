@@ -1649,7 +1649,7 @@ void VM::__post_init_builtin_types(){
         this->_exec(code, this->builtins);
         code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
         this->_exec(code, this->builtins);
-    }catch(const Exception& e){
+    }catch(TopLevelException e){
         std::cerr << e.summary() << std::endl;
         std::cerr << "failed to load builtins module!!" << std::endl;
         exit(1);
@@ -1679,7 +1679,7 @@ CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMod
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
     try{
         return compiler.compile();
-    }catch(const Exception& e){
+    }catch(TopLevelException e){
         _error(e.self());
         return nullptr;
     }
@@ -1689,7 +1689,7 @@ Str VM::precompile(std::string_view source, const Str& filename, CompileMode mod
     Compiler compiler(this, source, filename, mode, false);
     try{
         return compiler.precompile();
-    }catch(const Exception& e){
+    }catch(TopLevelException e){
         _error(e.self());
         return nullptr;
     }

@@ -88,4 +88,17 @@ struct Exception {
     Str summary() const;
 };
 
+struct TopLevelException: std::exception{
+    Exception* ptr;
+    TopLevelException(Exception* ptr): ptr(ptr) {}
+
+    PyObject* self() const { return ptr->self(); }
+    Str summary() const { return ptr->summary(); }
+
+    const char* what() const noexcept override {
+        static Str cached_summary(summary());
+        return cached_summary.c_str();
+    }
+};
+
 }   // namespace pkpy
