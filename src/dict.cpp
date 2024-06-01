@@ -5,10 +5,17 @@ namespace pkpy{
     Dict::Dict(): _capacity(__Capacity),
             _mask(__Capacity-1),
             _size(0), _critical_size(__Capacity*__LoadFactor+0.5f), _head_idx(-1), _tail_idx(-1){
-        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
-        memset(_items, 0, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
-        memset(_nodes, -1, _capacity * sizeof(ItemNode));
+        __alloc_items();
+    }
+
+    void Dict::__alloc_items(){
+        _items = (Item*)malloc(_capacity * sizeof(Item));
+        for(int i=0; i<_capacity; i++){
+            _items[i].first = nullptr;
+            _items[i].second = nullptr;
+            _items[i].prev = -1;
+            _items[i].next = -1;
+        }
     }
 
     Dict::Dict(Dict&& other){
@@ -19,9 +26,7 @@ namespace pkpy{
         _head_idx = other._head_idx;
         _tail_idx = other._tail_idx;
         _items = other._items;
-        _nodes = other._nodes;
         other._items = nullptr;
-        other._nodes = nullptr;
     }
 
     Dict::Dict(const Dict& other){
@@ -31,10 +36,9 @@ namespace pkpy{
         _critical_size = other._critical_size;
         _head_idx = other._head_idx;
         _tail_idx = other._tail_idx;
-        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
+        // copy items
+        _items = (Item*)malloc(_capacity * sizeof(Item));
         memcpy(_items, other._items, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
-        memcpy(_nodes, other._nodes, _capacity * sizeof(ItemNode));
     }
 
     void Dict::set(VM* vm, PyVar key, PyVar val){
@@ -51,8 +55,8 @@ namespace pkpy{
                 _head_idx = i;
                 _tail_idx = i;
             }else{
-                _nodes[i].prev = _tail_idx;
-                _nodes[_tail_idx].next = i;
+                _items[i].prev = _tail_idx;
+                _items[_tail_idx].next = i;
                 _tail_idx = i;
             }
         }
@@ -61,7 +65,6 @@ namespace pkpy{
 
     void Dict::_rehash(VM* vm){
         Item* old_items = _items;
-        ItemNode* old_nodes = _nodes;
         int old_head_idx = _head_idx;
 
         _capacity *= 4;
@@ -71,19 +74,16 @@ namespace pkpy{
         _head_idx = -1;
         _tail_idx = -1;
         
-        _items = (Item*)pool128_alloc(_capacity * sizeof(Item));
-        memset(_items, 0, _capacity * sizeof(Item));
-        _nodes = (ItemNode*)pool64_alloc(_capacity * sizeof(ItemNode));
-        memset(_nodes, -1, _capacity * sizeof(ItemNode));
+        __alloc_items();
 
         // copy old items to new dict
         int i = old_head_idx;
         while(i != -1){
             set(vm, old_items[i].first, old_items[i].second);
-            i = old_nodes[i].next;
+            i = old_items[i].next;
         }
-        pool128_dealloc(old_items);
-        pool64_dealloc(old_nodes);
+
+        free(old_items);
     }
 
 
@@ -100,7 +100,7 @@ namespace pkpy{
         return ok;
     }
 
-    bool Dict::erase(VM* vm, PyVar key){
+    bool Dict::del(VM* vm, PyVar key){
         bool ok; int i;
         _probe_0(vm, key, ok, i);
         if(!ok) return false;
@@ -113,18 +113,18 @@ namespace pkpy{
             _tail_idx = -1;
         }else{
             if(_head_idx == i){
-                _head_idx = _nodes[i].next;
-                _nodes[_head_idx].prev = -1;
+                _head_idx = _items[i].next;
+                _items[_head_idx].prev = -1;
             }else if(_tail_idx == i){
-                _tail_idx = _nodes[i].prev;
-                _nodes[_tail_idx].next = -1;
+                _tail_idx = _items[i].prev;
+                _items[_tail_idx].next = -1;
             }else{
-                _nodes[_nodes[i].prev].next = _nodes[i].next;
-                _nodes[_nodes[i].next].prev = _nodes[i].prev;
+                _items[_items[i].prev].next = _items[i].next;
+                _items[_items[i].next].prev = _items[i].prev;
             }
         }
-        _nodes[i].prev = -1;
-        _nodes[i].next = -1;
+        _items[i].prev = -1;
+        _items[i].next = -1;
         return true;
     }
 
@@ -138,7 +138,7 @@ namespace pkpy{
         int j = 0;
         while(i != -1){
             t[j++] = _items[i].first;
-            i = _nodes[i].next;
+            i = _items[i].next;
         }
         PK_ASSERT(j == _size);
         return t;
@@ -150,7 +150,7 @@ namespace pkpy{
         int j = 0;
         while(i != -1){
             t[j++] = _items[i].second;
-            i = _nodes[i].next;
+            i = _items[i].next;
         }
         PK_ASSERT(j == _size);
         return t;
@@ -160,13 +160,15 @@ namespace pkpy{
         _size = 0;
         _head_idx = -1;
         _tail_idx = -1;
-        memset(_items, 0, _capacity * sizeof(Item));
-        memset(_nodes, -1, _capacity * sizeof(ItemNode));
+        for(int i=0; i<_capacity; i++){
+            _items[i].first = nullptr;
+            _items[i].second = nullptr;
+            _items[i].prev = -1;
+            _items[i].next = -1;
+        }
     }
 
     Dict::~Dict(){
-        if(_items==nullptr) return;
-        pool128_dealloc(_items);
-        pool64_dealloc(_nodes);
+        if(_items) free(_items);
     }
 }   // namespace pkpy

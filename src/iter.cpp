@@ -118,7 +118,7 @@ namespace pkpy{
             if(self.i == -1) return 0;
             vm->s_data.push(d._items[self.i].first);
             vm->s_data.push(d._items[self.i].second);
-            self.i = d._nodes[self.i].next;
+            self.i = d._items[self.i].next;
             return 2;
         });
     }

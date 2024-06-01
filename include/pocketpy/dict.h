@@ -11,17 +11,12 @@ struct Dict{
     struct Item{
         PyVar first;
         PyVar second;
-    };
-
-    struct ItemNode{
         int prev;
         int next;
     };
 
-    static constexpr int __Capacity = 4;
+    static constexpr int __Capacity = 8;
     static constexpr float __LoadFactor = 0.67f;
-    static_assert(sizeof(Item) * __Capacity <= 128);
-    static_assert(sizeof(ItemNode) * __Capacity <= 64);
 
     int _capacity;
     int _mask;
@@ -30,7 +25,6 @@ struct Dict{
     int _head_idx;          // for order preserving
     int _tail_idx;          // for order preserving
     Item* _items;
-    ItemNode* _nodes;       // for order preserving
 
     Dict();
     Dict(Dict&& other);
@@ -49,7 +43,7 @@ struct Dict{
     PyVar try_get(VM* vm, PyVar key) const;
 
     bool contains(VM* vm, PyVar key) const;
-    bool erase(VM* vm, PyVar key);
+    bool del(VM* vm, PyVar key);
     void update(VM* vm, const Dict& other);
 
     template<typename __Func>
@@ -57,7 +51,7 @@ struct Dict{
         int i = _head_idx;
         while(i != -1){
             f(_items[i].first, _items[i].second);
-            i = _nodes[i].next;
+            i = _items[i].next;
         }
     }
 
@@ -65,6 +59,8 @@ struct Dict{
     Tuple values() const;
     void clear();
     ~Dict();
+
+    void __alloc_items();
 
     void _gc_mark(VM*) const;
 };

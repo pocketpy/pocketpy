@@ -1345,7 +1345,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind__delitem__(VM::tp_dict, [](VM* vm, PyVar _0, PyVar _1) {
         Dict& self = _CAST(Dict&, _0);
-        bool ok = self.erase(vm, _1);
+        bool ok = self.del(vm, _1);
         if(!ok) vm->KeyError(_1);
     });
 
@@ -1362,7 +1362,7 @@ void __init_builtins(VM* _vm) {
                 return args[2];
             }
         }
-        self.erase(vm, args[1]);
+        self.del(vm, args[1]);
         return value;
     });
 
