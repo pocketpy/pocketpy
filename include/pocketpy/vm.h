@@ -74,7 +74,7 @@ struct PyTypeInfo{
     PyTypeInfo(PyObject* obj, Type base, PyObject* mod, StrName name, bool subclass_enabled, Vt vt={}):
         obj(obj), base(base), mod(mod), name(name), subclass_enabled(subclass_enabled), vt(vt) {}
     
-    std::vector<StrName> annotated_fields = {};
+    vector<StrName> annotated_fields = {};
 
     // unary operators
     Str (*m__repr__)(VM* vm, PyVar) = nullptr;
@@ -127,8 +127,8 @@ struct PyTypeInfo{
 struct ImportContext{
     PK_ALWAYS_PASS_BY_POINTER(ImportContext)
 
-    std::vector<Str> pending;
-    std::vector<bool> pending_is_init;   // a.k.a __init__.py
+    vector<Str> pending;
+    vector<bool> pending_is_init;   // a.k.a __init__.py
 
     ImportContext() {}
 
@@ -159,7 +159,7 @@ public:
     ManagedHeap heap;
     ValueStack s_data;
     CallStack callstack;
-    std::vector<PyTypeInfo> _all_types;
+    vector<PyTypeInfo> _all_types;
     
     NameDict _modules;                                 // loaded modules
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules

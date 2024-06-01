@@ -485,7 +485,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
         this->indents.push(0);
     }
 
-    std::vector<Token> Lexer::run() {
+    vector<Token> Lexer::run() {
         PK_ASSERT(curr_char == src->source.c_str());
         while (lex_one_token());
         return std::move(nexts);

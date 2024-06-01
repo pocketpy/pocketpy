@@ -3,7 +3,8 @@
 namespace pkpy{
 
     int ManagedHeap::sweep(){
-        std::vector<PyObject*> alive;
+        vector<PyObject*> alive;
+        alive.reserve(gen.size() / 2);
         for(PyObject* obj: gen){
             if(obj->gc_marked){
                 obj->gc_marked = false;

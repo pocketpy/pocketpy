@@ -5,7 +5,6 @@
 #include <ctime>
 
 #include <stdexcept>
-#include <vector>
 #include <string>
 #include <chrono>
 #include <string_view>

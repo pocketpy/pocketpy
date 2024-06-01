@@ -77,8 +77,8 @@ struct Str{
     int index(const Str& sub, int start=0) const;
     Str replace(char old, char new_) const;
     Str replace(const Str& old, const Str& new_, int count=-1) const;
-    pod_vector<std::string_view> split(const Str& sep) const;
-    pod_vector<std::string_view> split(char sep) const;
+    vector<std::string_view> split(const Str& sep) const;
+    vector<std::string_view> split(char sep) const;
     int count(const Str& sub) const;
 
     /*************unicode*************/
@@ -127,15 +127,15 @@ struct StrName {
 
 struct SStream{
     PK_ALWAYS_PASS_BY_POINTER(SStream)
-    // pod_vector<T> is allocated by pool128 so the buffer can be moved into Str without a copy
-    pod_vector<char> buffer;
+
+    vector<char> buffer;
     int _precision = -1;
 
     bool empty() const { return buffer.empty(); }
     void setprecision(int precision) { _precision = precision; }
 
-    SStream(){}
-    SStream(int guess_size){ buffer.reserve(guess_size); }
+    SStream() {}
+    SStream(int guess_size) { buffer.reserve(guess_size);}
 
     Str str();
 

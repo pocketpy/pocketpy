@@ -37,10 +37,10 @@ struct SourceData {
     CompileMode mode;
 
     Str source;
-    pod_vector<const char*> line_starts;
+    vector<const char*> line_starts;
 
     bool is_precompiled;
-    std::vector<Str> _precompiled_tokens;
+    vector<Str> _precompiled_tokens;
     
     SourceData(std::string_view source, const Str& filename, CompileMode mode);
     SourceData(const Str& filename, CompileMode mode);

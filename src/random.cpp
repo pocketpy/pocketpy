@@ -190,7 +190,7 @@ struct Random{
             PyVar* data = view.begin();
             int size = view.size();
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
-            pod_vector<f64> cum_weights(size);
+            array<f64> cum_weights(size);
             if(args[2] == vm->None){
                 for(int i = 0; i < size; i++) cum_weights[i] = i + 1;
             }else{

@@ -622,7 +622,7 @@ void __init_builtins(VM* _vm) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& sep = CAST(Str&, args[1]);
         if(sep.empty()) vm->ValueError("empty separator");
-        pod_vector<std::string_view> parts;
+        vector<std::string_view> parts;
         if(sep.size == 1){
             parts = self.split(sep[0]);
         }else{
@@ -635,8 +635,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_str), "splitlines(self)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        pod_vector<std::string_view> parts;
-        parts = self.split('\n');
+        vector<std::string_view> parts = self.split('\n');
         List ret(parts.size());
         for(int i=0; i<parts.size(); i++) ret[i] = VAR(Str(parts[i]));
         return VAR(std::move(ret));
@@ -797,7 +796,9 @@ void __init_builtins(VM* _vm) {
             });
         }
         bool reverse = CAST(bool, args[2]);
-        if(reverse) self.reverse();
+        if(reverse){
+            std::reverse(self.begin(), self.end());
+        }
         return vm->None;
     });
 
@@ -892,7 +893,9 @@ void __init_builtins(VM* _vm) {
         List& self = _CAST(List&, args[0]);
         if(args.size() == 1+0){
             if(self.empty()) vm->IndexError("pop from empty list");
-            return self.popx_back();
+            PyVar retval = self.back();
+            self.pop_back();
+            return retval;
         }
         if(args.size() == 1+1){
             i64 index = CAST(i64, args[1]);
@@ -936,7 +939,7 @@ void __init_builtins(VM* _vm) {
         int n = _CAST(int, _1);
         List result;
         result.reserve(self.size() * n);
-        for(int i = 0; i < n; i++) result.extend(self);
+        for(int i = 0; i < n; i++) result.extend(self.begin(), self.end());
         return VAR(std::move(result));
     });
     _vm->bind_func(VM::tp_list, "__rmul__", 2, [](VM* vm, ArgsView args) {
@@ -945,7 +948,7 @@ void __init_builtins(VM* _vm) {
         int n = _CAST(int, args[1]);
         List result;
         result.reserve(self.size() * n);
-        for(int i = 0; i < n; i++) result.extend(self);
+        for(int i = 0; i < n; i++) result.extend(self.begin(), self.end());
         return VAR(std::move(result));
     });
 
@@ -964,11 +967,14 @@ void __init_builtins(VM* _vm) {
         return vm->None;
     });
 
-    _vm->bind_func(VM::tp_list, "copy", 1, PK_LAMBDA(VAR(_CAST(List, args[0]))));
+    _vm->bind_func(VM::tp_list, "copy", 1, [](VM* vm, ArgsView args){
+        const List& self = _CAST(List&, args[0]);
+        return VAR(List(explicit_copy_t(), self));
+    });
 
 #define BIND_RICH_CMP(name, op, _t, _T)    \
-    _vm->bind__##name##__(_vm->_t, [](VM* vm, PyVar lhs, PyVar rhs){        \
-        if(!is_type(rhs, vm->_t)) return vm->NotImplemented;             \
+    _vm->bind__##name##__(_vm->_t, [](VM* vm, PyVar lhs, PyVar rhs){                \
+        if(!is_type(rhs, vm->_t)) return vm->NotImplemented;                        \
         auto& a = _CAST(_T&, lhs);                                                  \
         auto& b = _CAST(_T&, rhs);                                                  \
         for(int i=0; i<a.size() && i<b.size(); i++){                                \
@@ -993,8 +999,8 @@ void __init_builtins(VM* _vm) {
     _vm->bind__add__(VM::tp_list, [](VM* vm, PyVar _0, PyVar _1) {
         const List& self = _CAST(List&, _0);
         const List& other = CAST(List&, _1);
-        List new_list(self);    // copy construct
-        new_list.extend(other);
+        List new_list(explicit_copy_t(), self);
+        new_list.extend(other.begin(), other.end());
         return VAR(std::move(new_list));
     });
 
@@ -1637,7 +1643,7 @@ void VM::__post_init_builtin_types(){
     try{
         // initialize dummy func_decl for exec/eval
         CodeObject_ dynamic_co = compile("def _(): pass", "<dynamic>", EXEC_MODE);
-        __dynamic_func_decl = dynamic_co->func_decls.at(0);
+        __dynamic_func_decl = dynamic_co->func_decls[0];
         // initialize builtins
         CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
         this->_exec(code, this->builtins);

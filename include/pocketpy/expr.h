@@ -352,7 +352,7 @@ struct CallExpr: Expr{
     Expr_ callable;
     Expr_vector args;
     // **a will be interpreted as a special keyword argument: {"**": a}
-    std::vector<std::pair<Str, Expr_>> kwargs;
+    vector<std::pair<Str, Expr_>> kwargs;
     void emit_(CodeEmitContext* ctx) override;
 };
 

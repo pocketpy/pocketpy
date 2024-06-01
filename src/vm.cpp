@@ -330,7 +330,7 @@ namespace pkpy{
 
     PyVar VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
-        static auto f_join = [](const pod_vector<std::string_view>& cpnts){
+        static auto f_join = [](const vector<std::string_view>& cpnts){
             SStream ss;
             for(int i=0; i<cpnts.size(); i++){
                 if(i != 0) ss << ".";
@@ -346,7 +346,7 @@ namespace pkpy{
             Str curr_path = __import_context.pending.back();
             bool curr_is_init = __import_context.pending_is_init.back();
             // convert relative path to absolute path
-            pod_vector<std::string_view> cpnts = curr_path.split('.');
+            vector<std::string_view> cpnts = curr_path.split('.');
             int prefix = 0;     // how many dots in the prefix
             for(int i=0; i<path.length(); i++){
                 if(path[i] == '.') prefix++;
@@ -366,7 +366,7 @@ namespace pkpy{
         PyVar ext_mod = _modules.try_get(name);
         if(ext_mod != nullptr) return ext_mod;
 
-        pod_vector<std::string_view> path_cpnts = path.split('.');
+        vector<std::string_view> path_cpnts = path.split('.');
         // check circular import
         if(__import_context.pending.size() > 128){
             ImportError("maximum recursion depth exceeded while importing");
@@ -769,7 +769,7 @@ Str VM::disassemble(CodeObject_ co){
         return s + std::string(n - s.length(), ' ');
     };
 
-    std::vector<int> jumpTargets;
+    vector<int> jumpTargets;
     for(int i=0; i<co->codes.size(); i++){
         Bytecode byte = co->codes[i];
         if(byte.is_forward_jump()){
@@ -1442,7 +1442,7 @@ void VM::_error(PyVar e_obj){
     Exception& e = PK_OBJ_GET(Exception, e_obj);
     if(callstack.empty()){
         e.is_re = false;
-        throw e;
+        throw std::move(e);
     }
     PUSH(e_obj);
     __raise_exc();
@@ -1665,7 +1665,7 @@ void VM::__breakpoint(){
     bool show_headers = true;
     
     while(true){
-        std::vector<LinkedFrame*> frames;
+        vector<LinkedFrame*> frames;
         LinkedFrame* lf = callstack._tail;
         while(lf != nullptr){
             frames.push_back(lf);

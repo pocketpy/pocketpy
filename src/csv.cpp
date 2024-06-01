@@ -73,7 +73,7 @@ __NEXT_LINE:
         if(ret.size() == 0){
             vm->ValueError("empty csvfile");
         }
-        List header = CAST(List&, ret[0]);
+        const List& header = CAST(List&, ret[0]);
         List new_ret;
         for(int i=1; i<ret.size(); i++){
             const List& row = CAST(List&, ret[i]);

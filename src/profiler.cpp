@@ -40,7 +40,7 @@ void LineProfiler::_step(int callstack_size, Frame* frame){
         }
     }
 
-    frames.top().prev_record = &file_records.at(line);
+    frames.top().prev_record = &file_records[line];
 }
 
 void LineProfiler::_step_end(int callstack_size, Frame* frame, int line){
@@ -87,11 +87,11 @@ Str LineProfiler::stats(){
         int end_line = decl->code->end_line;
         if(start_line == -1 || end_line == -1) continue;
         std::string_view filename = decl->code->src->filename.sv();
-        std::vector<_LineRecord>& file_records = records[filename];
+        vector<_LineRecord>& file_records = records[filename];
         if(file_records.empty()) continue;
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++){
-            total_time += file_records.at(line).time;
+            total_time += file_records[line].time;
         }
         ss << "Total time: " << (f64)total_time / CLOCKS_PER_SEC << "s\n";
         ss << "File: " << filename << "\n";
@@ -99,7 +99,7 @@ Str LineProfiler::stats(){
         ss << "Line #      Hits         Time  Per Hit   % Time  Line Contents\n";
         ss << "==============================================================\n";
         for(int line = start_line; line <= end_line; line++){
-            const _LineRecord& record = file_records.at(line);
+            const _LineRecord& record = file_records[line];
             if(!record.is_valid()) continue;
             ss << left_pad(std::to_string(line), 6);
             if(record.hits == 0){

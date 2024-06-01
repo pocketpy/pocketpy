@@ -1292,7 +1292,7 @@ __EAT_DOTS_END:
         }
 
         int count = deserializer.read_count();
-        std::vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
+        vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
         for(int i=0; i<count; i++){
             precompiled_tokens.push_back(deserializer.read_string('\n'));
         }
@@ -1379,7 +1379,7 @@ __EAT_DOTS_END:
         PyVar e_obj = vm->call(vm->builtins->attr(type), VAR(msg));
         Exception& e = PK_OBJ_GET(Exception, e_obj);
         e.st_push(src, lineno, cursor, "");
-        throw e;
+        throw std::move(e);
     }
 
     std::string_view TokenDeserializer::read_string(char c){

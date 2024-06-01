@@ -931,7 +931,7 @@ __NEXT_STEP:
             if(_1 == StopIteration) break;
             extras.push_back(_1);
         }
-        PUSH(VAR(extras));
+        PUSH(VAR(std::move(extras)));
     } DISPATCH()
     /*****************************************/
     case OP_BEGIN_CLASS:{
@@ -1056,7 +1056,9 @@ __NEXT_STEP:
                 Exception& _e = PK_OBJ_GET(Exception, e_obj);
                 bool is_base_frame_to_be_popped = frame == base_frame;
                 __pop_frame();
-                if(callstack.empty()) throw _e;   // propagate to the top level
+                if(callstack.empty()){
+                    throw std::move(_e);    // propagate to the top level
+                }
                 frame = &callstack.top();
                 PUSH(e_obj);
                 if(is_base_frame_to_be_popped){

@@ -70,17 +70,17 @@ struct CodeObject {
     std::shared_ptr<SourceData> src;
     Str name;
 
-    std::vector<Bytecode> codes;
-    std::vector<LineInfo> lines;
+    vector<Bytecode> codes;
+    vector<LineInfo> lines;
     
     small_vector_2<PyVar, 8> consts;         // constants
     small_vector_2<StrName, 8> varnames;     // local variables
     int nlocals;                             // varnames.size()
 
     NameDictInt varnames_inv;
-    std::vector<CodeBlock> blocks;
+    vector<CodeBlock> blocks;
     NameDictInt labels;
-    std::vector<FuncDecl_> func_decls;
+    vector<FuncDecl_> func_decls;
 
     int start_line;
     int end_line;

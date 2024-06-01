@@ -30,7 +30,7 @@ constexpr const char* kTokens[] = {
 };
 
 using TokenValue = std::variant<std::monostate, i64, f64, Str>;
-const TokenIndex kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);
+const int kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);
 
 constexpr TokenIndex TK(const char token[]) {
     for(int k=0; k<kTokenCount; k++){
@@ -99,7 +99,7 @@ struct Lexer {
     const char* token_start;
     const char* curr_char;
     int current_line = 1;
-    std::vector<Token> nexts;
+    vector<Token> nexts;
     stack_no_copy<int, small_vector_2<int, 8>> indents;
     int brackets_level = 0;
 
@@ -129,7 +129,7 @@ struct Lexer {
     void SyntaxError(){ throw_err("SyntaxError", "invalid syntax"); }
     void IndentationError(Str msg){ throw_err("IndentationError", msg); }
     Lexer(VM* vm, std::shared_ptr<SourceData> src);
-    std::vector<Token> run();
+    vector<Token> run();
 };
 
 

@@ -333,8 +333,8 @@ int utf8len(unsigned char c, bool suppress){
         return _byte_index_to_unicode(size);
     }
 
-    pod_vector<std::string_view> Str::split(const Str& sep) const{
-        pod_vector<std::string_view> result;
+    vector<std::string_view> Str::split(const Str& sep) const{
+        vector<std::string_view> result;
         std::string_view tmp;
         int start = 0;
         while(true){
@@ -349,8 +349,8 @@ int utf8len(unsigned char c, bool suppress){
         return result;
     }
 
-    pod_vector<std::string_view> Str::split(char sep) const{
-        pod_vector<std::string_view> result;
+    vector<std::string_view> Str::split(char sep) const{
+        vector<std::string_view> result;
         int i = 0;
         for(int j = 0; j < size; j++){
             if(data[j] == sep){
@@ -404,29 +404,35 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str SStream::str(){
+#if 0
         // after this call, the buffer is no longer valid
         buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'
         buffer[buffer.size()] = '\0';       // set '\0'
         return Str(buffer.detach());
+#else
+#warning "SStream::str() needs to be optimized"
+        buffer.push_back('\0');
+        return Str(buffer.data(), buffer.size()-1);
+#endif
     }
 
     SStream& SStream::operator<<(const Str& s){
-        buffer.extend(s.begin(), s.end());
+        for(char c: s) buffer.push_back(c);
         return *this;
     }
 
     SStream& SStream::operator<<(const char* s){
-        buffer.extend(s, s + strlen(s));
+        while(*s) buffer.push_back(*s++);
         return *this;
     }
 
     SStream& SStream::operator<<(const std::string& s){
-        buffer.extend(s.data(), s.data() + s.size());
+        for(char c: s) buffer.push_back(c);
         return *this;
     }
 
     SStream& SStream::operator<<(std::string_view s){
-        buffer.extend(s.data(), s.data() + s.size());
+        for(char c: s) buffer.push_back(c);
         return *this;
     }
 
@@ -459,7 +465,7 @@ int utf8len(unsigned char c, bool suppress){
             buffer.push_back('-');
             val = -val;
         }
-        char* begin = buffer.end();
+        auto begin = buffer.end();
         while(val){
             buffer.push_back('0' + val % 10);
             val /= 10;

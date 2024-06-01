@@ -14,16 +14,10 @@ constexpr T default_invalid_value(){
 }
 
 template<typename T>
-struct NameDictItem{
-    StrName first;
-    T second;
-};
-
-template<typename T>
 struct NameDictImpl {
     PK_ALWAYS_PASS_BY_POINTER(NameDictImpl)
 
-    using Item = NameDictItem<T>;
+    using Item = std::pair<StrName, T>;
     static constexpr uint16_t kInitialCapacity = 16;
     static_assert(is_pod_v<T>);
 
@@ -166,19 +160,21 @@ while(!_items[i].first.empty()) {           \
         return val;
     }
 
-    pod_vector<StrName> keys() const {
-        pod_vector<StrName> v;
+    array<StrName> keys() const {
+        array<StrName> v(_size);
+        int j = 0;
         for(uint16_t i=0; i<_capacity; i++){
             if(_items[i].first.empty()) continue;
-            v.push_back(_items[i].first);
+            new (&v[j++]) StrName(_items[i].first);
         }
         return v;
     }
 
-    pod_vector<NameDictItem<T>> items() const{
-        pod_vector<NameDictItem<T>> v;
+    array<Item> items() const{
+        array<Item> v(_size);
+        int j = 0;
         apply([&](StrName key, T val){
-            v.push_back(NameDictItem<T>{key, val});
+            new(&v[j++]) Item(key, val);
         });
         return v;
     }

@@ -27,11 +27,11 @@ class Compiler {
     bool unknown_global_scope;     // for eval/exec() call
     // for parsing token stream
     int i = 0;
-    std::vector<Token> tokens;
+    vector<Token> tokens;
 
-    const Token& prev() const{ return tokens.at(i-1); }
-    const Token& curr() const{ return tokens.at(i); }
-    const Token& next() const{ return tokens.at(i+1); }
+    const Token& prev() const{ return tokens[i-1]; }
+    const Token& curr() const{ return tokens[i]; }
+    const Token& next() const{ return tokens[i+1]; }
     const Token& err() const{
         if(i >= tokens.size()) return prev();
         return curr();

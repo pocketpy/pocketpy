@@ -8,8 +8,8 @@
 
 namespace pkpy {
 struct ManagedHeap{
-    std::vector<PyObject*> _no_gc;
-    std::vector<PyObject*> gen;
+    vector<PyObject*> _no_gc;
+    vector<PyObject*> gen;
     VM* vm;
     void (*_gc_on_delete)(VM*, PyObject*) = nullptr;
     void (*_gc_marker_ex)(VM*) = nullptr;

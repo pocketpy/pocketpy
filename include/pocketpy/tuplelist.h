@@ -35,8 +35,8 @@ struct Tuple {
     void _gc_mark(VM*) const;
 };
 
-struct List: pod_vector<PyVar>{
-    using pod_vector<PyVar>::pod_vector;
+struct List: public vector<PyVar>{
+    using vector<PyVar>::vector;
     void _gc_mark(VM*) const;
 
     Tuple to_tuple() const{
