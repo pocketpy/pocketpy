@@ -48,8 +48,8 @@ static PyVar stack_item(VM* vm, int index){
         vm->__c.error = e.self(); \
         return false; \
     } catch(const std::exception& re){ \
-        PyVar e_t = vm->_t(vm->tp_exception); \
-        vm->__c.error = vm->call(e_t, VAR(re.what())); \
+        PyObject* e_t = vm->_t(vm->tp_exception); \
+        vm->__c.error = vm->call(e_t, VAR(re.what())).get(); \
         return false; \
     }
 
@@ -76,12 +76,12 @@ bool pkpy_exec_2(pkpy_vm* vm_handle, const char* source, const char* filename, i
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PyVar res;
-    PyVar mod;
+    PyObject* mod;
     PK_PROTECTED(
         if(module == nullptr){
             mod = vm->_main;
         }else{
-            mod = vm->_modules[module];     // may raise
+            mod = vm->_modules[module].get();     // may raise
         }
         CodeObject_ code = vm->compile(source, filename, (CompileMode)mode);
         res = vm->_exec(code, mod);
@@ -342,7 +342,7 @@ static PyVar c_function_wrapper(VM* vm, ArgsView args) {
 
     // propagate_if_errored
     if (vm->__c.error != nullptr){
-        PyVar e_obj = PK_OBJ_GET(Exception, vm->__c.error).self();
+        PyObject* e_obj = vm->__c.error; 
         vm->__c.error = nullptr;
         vm->_error(e_obj);
         return nullptr;
@@ -370,8 +370,8 @@ bool pkpy_push_module(pkpy_vm* vm_handle, const char* name) {
     VM* vm = (VM*) vm_handle;
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
-        PyVar module = vm->new_module(name);
-        vm->s_data.push(module);
+        PyObject* module = vm->new_module(name);
+        vm->s_data.emplace(module);
     )
     return true;
 }
@@ -511,7 +511,7 @@ bool pkpy_error(pkpy_vm* vm_handle, const char* name, pkpy_CString message) {
             std::cerr << "[warning] pkpy_error(): " << Str(name).escape() << " not found, fallback to 'Exception'" << std::endl;
         }
     }
-    vm->__c.error = vm->call(e_t, VAR(message));
+    vm->__c.error = vm->call(e_t, VAR(message)).get();
     return false;
 }
 
@@ -524,7 +524,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     VM* vm = (VM*) vm_handle;
     // no error
     if (vm->__c.error == nullptr) return false;
-    Exception& e = PK_OBJ_GET(Exception, vm->__c.error);
+    Exception& e = vm->__c.error->as<Exception>();
     if (message != nullptr)
         *message = strdup(e.summary().c_str());
     else

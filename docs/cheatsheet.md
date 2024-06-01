@@ -328,6 +328,6 @@ vm->_lazy_modules["test"] = "pi = 3.14";
 Create a native module
 
 ```cpp
-PyVar mod = vm->new_module("test");
+PyObject* mod = vm->new_module("test");
 vm->setattr(mod, "pi", py_var(vm, 3.14));
 ```

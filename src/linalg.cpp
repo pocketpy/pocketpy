@@ -3,14 +3,14 @@
 namespace pkpy{
 
 #define BIND_VEC_VEC_OP(D, name, op)                                                    \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){          \
+        vm->bind##name(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){          \
             Vec##D self = _CAST(Vec##D, _0);                                            \
             Vec##D other = CAST(Vec##D, _1);                                            \
             return VAR(self op other);                                                  \
         });
 
 #define BIND_VEC_FLOAT_OP(D, name, op)  \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){          \
+        vm->bind##name(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){          \
             Vec##D self = _CAST(Vec##D, _0);                                            \
             f64 other = CAST(f64, _1);                                                  \
             return VAR(self op other);                                                  \
@@ -30,7 +30,7 @@ namespace pkpy{
         });
 
 #define BIND_VEC_MUL_OP(D)                                                                  \
-        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){             \
+        vm->bind__mul__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){             \
             Vec##D self = _CAST(Vec##D, _0);                                                \
             if(vm->is_user_type<Vec##D>(_1)){                                               \
                 Vec##D other = _CAST(Vec##D, _1);                                           \
@@ -44,14 +44,14 @@ namespace pkpy{
             f64 other = CAST(f64, args[1]);                                                 \
             return VAR(self * other);                                                       \
         });                                                                                 \
-        vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){ \
+        vm->bind__truediv__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){ \
             Vec##D self = _CAST(Vec##D, _0);                                          \
             f64 other = CAST(f64, _1);                                                      \
             return VAR(self / other);                                                       \
         });
 
 #define BIND_VEC_GETITEM(D) \
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj, PyVar index){ \
+        vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index){ \
             Vec##D self = _CAST(Vec##D, obj); \
             i64 i = CAST(i64, index); \
             if(i < 0 || i >= D) vm->IndexError("index out of range"); \
@@ -59,7 +59,7 @@ namespace pkpy{
         });
 
 #define BIND_SSO_VEC_COMMON(D)  \
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){  \
+        vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){  \
             Vec##D self = _CAST(Vec##D, _0);                                    \
             if(!vm->is_user_type<Vec##D>(_1)) return vm->NotImplemented;        \
             Vec##D other = _CAST(Vec##D, _1);                                   \
@@ -127,7 +127,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
     return Vec2(output_x, output_y);
 }
 
-    void Vec2::_register(VM* vm, PyVar mod, PyVar type){
+    void Vec2::_register(VM* vm, PyObject* mod, PyObject* type){
         type->attr().set("ZERO", vm->new_user_object<Vec2>(0, 0));
         type->attr().set("ONE", vm->new_user_object<Vec2>(1, 1));
 
@@ -160,7 +160,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return VAR(val);
         }, {}, BindType::STATICMETHOD);
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str{
             Vec2 self = _CAST(Vec2, obj);
             SStream ss;
             ss.setprecision(3);
@@ -190,7 +190,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_SSO_VEC_COMMON(2)
     }
 
-    void Vec3::_register(VM* vm, PyVar mod, PyVar type){
+    void Vec3::_register(VM* vm, PyObject* mod, PyObject* type){
         type->attr().set("ZERO", vm->new_user_object<Vec3>(0, 0, 0));
         type->attr().set("ONE", vm->new_user_object<Vec3>(1, 1, 1));
 
@@ -201,7 +201,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_object<Vec3>(PK_OBJ_GET(Type, args[0]), x, y, z);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str{
             Vec3 self = _CAST(Vec3, obj);
             SStream ss;
             ss.setprecision(3);
@@ -225,7 +225,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         BIND_SSO_VEC_COMMON(3)
     }
 
-    void Vec4::_register(VM* vm, PyVar mod, PyVar type){
+    void Vec4::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Vec4)
 
         type->attr().set("ZERO", vm->new_user_object<Vec4>(0, 0, 0, 0));
@@ -239,7 +239,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_object<Vec4>(PK_OBJ_GET(Type, args[0]), x, y, z, w);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str{
             Vec4 self = _CAST(Vec4&, obj);
             SStream ss;
             ss.setprecision(3);
@@ -270,7 +270,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 #undef BIND_VEC_FUNCTION_1
 #undef BIND_VEC_GETITEM
 
-    void Mat3x3::_register(VM* vm, PyVar mod, PyVar type){
+    void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type){
         PY_STRUCT_LIKE(Mat3x3)
 
         vm->bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
@@ -298,7 +298,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->None;
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str{
             const Mat3x3& self = _CAST(Mat3x3&, obj);
             SStream ss;
             ss.setprecision(3);
@@ -308,7 +308,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return ss.str();
         });
 
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj, PyVar index){
+        vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index){
             Mat3x3& self = _CAST(Mat3x3&, obj);
             Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
@@ -322,7 +322,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return VAR(self.m[i][j]);
         });
 
-        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj, PyVar index, PyVar value){
+        vm->bind__setitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index, PyVar value){
             Mat3x3& self = _CAST(Mat3x3&, obj);
             const Tuple& t = CAST(Tuple&, index);
             if(t.size() != 2){
@@ -346,19 +346,19 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
         vm->bind_field(type, "_32", &Mat3x3::_32);
         vm->bind_field(type, "_33", &Mat3x3::_33);
 
-        vm->bind__add__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__add__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             Mat3x3& other = CAST(Mat3x3&, _1);
             return vm->new_user_object<Mat3x3>(self + other);
         });
 
-        vm->bind__sub__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__sub__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             Mat3x3& other = CAST(Mat3x3&, _1);
             return vm->new_user_object<Mat3x3>(self - other);
         });
 
-        vm->bind__mul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__mul__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             f64 other = CAST_F(_1);
             return vm->new_user_object<Mat3x3>(self * other);
@@ -370,13 +370,13 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_user_object<Mat3x3>(self * other);
         });
 
-        vm->bind__truediv__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__truediv__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             f64 other = CAST_F(_1);
             return vm->new_user_object<Mat3x3>(self / other);
         });
 
-        vm->bind__matmul__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__matmul__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Mat3x3& self = _CAST(Mat3x3&, _0);
             if(vm->is_user_type<Mat3x3>(_1)){
                 const Mat3x3& other = _CAST(Mat3x3&, _1);
@@ -411,7 +411,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
             return vm->new_user_object<Mat3x3>(self.transpose());
         });
 
-        vm->bind__invert__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
+        vm->bind__invert__(type->as<Type>(), [](VM* vm, PyVar obj){
             Mat3x3& self = _CAST(Mat3x3&, obj);
             Mat3x3 ret;
             if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
@@ -548,7 +548,7 @@ static Vec2 SmoothDamp(Vec2 current, Vec2 target, Vec2& currentVelocity, float s
 
 
 void add_module_linalg(VM* vm){
-    PyVar linalg = vm->new_module("linalg");
+    PyObject* linalg = vm->new_module("linalg");
 
     vm->register_user_class<Vec2>(linalg, "vec2", VM::tp_object);
     vm->register_user_class<Vec3>(linalg, "vec3", VM::tp_object);

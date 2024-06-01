@@ -133,7 +133,7 @@ struct Random{
         gen.seed((uint32_t)count);
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->new_object<Random>(cls);
@@ -215,7 +215,7 @@ struct Random{
 };
 
 void add_module_random(VM* vm){
-    PyVar mod = vm->new_module("random");
+    PyObject* mod = vm->new_module("random");
     vm->register_user_class<Random>(mod, "Random");
     PyVar instance = vm->new_user_object<Random>();
     mod->attr().set("seed", vm->getattr(instance, "seed"));

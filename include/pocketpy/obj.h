@@ -180,8 +180,8 @@ template <typename, typename=void> struct has_gc_marker : std::false_type {};
 template <typename T> struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {};
 
 struct MappingProxy{
-    PyVar obj;
-    MappingProxy(PyVar obj) : obj(obj) {}
+    PyObject* obj;
+    MappingProxy(PyObject* obj) : obj(obj) {}
     NameDict& attr() { return obj->attr(); }
     void _gc_mark(VM*) const;
 };
@@ -202,8 +202,10 @@ obj_get_t<T> PyVar::obj_get(){
     }
 }
 
-#define PK_OBJ_GET(T, obj) (obj).obj_get<T>()
-#define PK_OBJ_MARK(obj) if((obj).is_ptr) vm->__obj_gc_mark((obj).get());
+#define PK_OBJ_GET(T, obj) ((obj).obj_get<T>())
+
+// deprecated
+#define PK_OBJ_MARK(obj) vm->obj_gc_mark(obj)
 
 #define VAR(x) py_var(vm, x)
 #define CAST(T, x) py_cast<T>(vm, x)
@@ -213,13 +215,6 @@ obj_get_t<T> PyVar::obj_get(){
 #define CAST_DEFAULT(T, x, default_value) (x != vm->None) ? py_cast<T>(vm, x) : (default_value)
 
 /*****************************************************************/
-inline bool try_cast_int(PyVar obj, i64* val) noexcept {
-    if(is_int(obj)){
-        *val = obj.as<i64>();
-        return true;
-    }
-    return false;
-}
 
 #define PY_NULL nullptr
 extern PyVar const PY_OP_CALL;

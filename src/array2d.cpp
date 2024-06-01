@@ -41,7 +41,7 @@ struct Array2d{
         data[row * n_cols + col] = value;
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind(type, "__new__(cls, *args, **kwargs)", [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->new_object<Array2d>(cls);
@@ -113,11 +113,13 @@ struct Array2d{
                 int slice_height = stop_row - start_row;    \
                 if(slice_width <= 0 || slice_height <= 0) vm->ValueError("slice width and height must be positive");
 
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             const Tuple& xy = CAST(Tuple&, _1);
-            i64 col, row;
-            if(try_cast_int(xy[0], &col) && try_cast_int(xy[1], &row)){
+
+            if(is_int(xy[0]) && is_int(xy[1])){
+                i64 col = xy[0].as<i64>();
+                i64 row = xy[1].as<i64>();
                 self.check_valid(vm, col, row);
                 return self._get(col, row);
             }
@@ -137,11 +139,12 @@ struct Array2d{
             vm->TypeError("expected `tuple[int, int]` or `tuple[slice, slice]` as index");
         });
 
-        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){
+        vm->bind__setitem__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             const Tuple& xy = CAST(Tuple&, _1);
-            i64 col, row;
-            if(try_cast_int(xy[0], &col) && try_cast_int(xy[1], &row)){
+            if(is_int(xy[0]) && is_int(xy[1])){
+                i64 col = xy[0].as<i64>();
+                i64 row = xy[1].as<i64>();
                 self.check_valid(vm, col, row);
                 self._set(col, row, _2);
                 return;
@@ -195,12 +198,12 @@ struct Array2d{
             return VAR(std::move(t));
         });
 
-        vm->bind__len__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0){
+        vm->bind__len__(type->as<Type>(), [](VM* vm, PyVar _0){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             return (i64)self.numel;
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar _0) -> Str{
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             return _S("array2d(", self.n_cols, ", ", self.n_rows, ')');
         });
@@ -269,7 +272,7 @@ struct Array2d{
             return vm->None;
         });
 
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){
+        vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             if(!vm->is_user_type<Array2d>(_1)) return vm->NotImplemented;
             Array2d& other = PK_OBJ_GET(Array2d, _1);
@@ -352,7 +355,7 @@ struct Array2d{
     }
 
     void _gc_mark(VM* vm) const{
-        for(int i = 0; i < numel; i++) PK_OBJ_MARK(data[i]);
+        for(int i = 0; i < numel; i++) vm->obj_gc_mark(data[i]);
     }
 
     ~Array2d(){
@@ -370,11 +373,11 @@ struct Array2dIter{
     
     Array2dIter(PyVar ref, Array2d* a): ref(ref), a(a), i(0){}
 
-    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
+    void _gc_mark(VM* vm) const{ vm->obj_gc_mark(ref); }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
-        vm->bind__iter__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) { return _0; });
-        vm->bind__next__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0) -> unsigned{
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
+        vm->bind__iter__(type->as<Type>(), [](VM* vm, PyVar _0) { return _0; });
+        vm->bind__next__(type->as<Type>(), [](VM* vm, PyVar _0) -> unsigned{
             Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
             if(self.i == self.a->numel) return 0;
             std::div_t res = std::div(self.i, self.a->n_cols);
@@ -387,7 +390,7 @@ struct Array2dIter{
 };
 
 void add_module_array2d(VM* vm){
-    PyVar mod = vm->new_module("array2d");
+    PyObject* mod = vm->new_module("array2d");
 
     vm->register_user_class<Array2d>(mod, "array2d", VM::tp_object, true);
     vm->register_user_class<Array2dIter>(mod, "_array2d_iter");

@@ -1,6 +1,8 @@
 #include "pocketpy/obj.h"
 
 namespace pkpy{
+    PyVar::PyVar(PyObject* p): PyVar(p->type, p) {}
+
     bool Bytes::operator==(const Bytes& rhs) const{
         if(_size != rhs._size) return false;
         for(int i=0; i<_size; i++) if(_data[i] != rhs._data[i]) return false;

@@ -26,7 +26,7 @@ struct PyStructTime{
         tm_isdst = tm->tm_isdst;
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         PY_READONLY_FIELD(PyStructTime, "tm_year", tm_year);
         PY_READONLY_FIELD(PyStructTime, "tm_mon", tm_mon);
         PY_READONLY_FIELD(PyStructTime, "tm_mday", tm_mday);
@@ -40,7 +40,7 @@ struct PyStructTime{
 };
 
 void add_module_time(VM* vm){
-    PyVar mod = vm->new_module("time");
+    PyObject* mod = vm->new_module("time");
     vm->register_user_class<PyStructTime>(mod, "struct_time");
 
     vm->bind_func(mod, "time", 0, [](VM* vm, ArgsView args) {
@@ -67,12 +67,12 @@ void add_module_time(VM* vm){
 }
 
 void add_module_sys(VM* vm){
-    PyVar mod = vm->new_module("sys");
+    PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
 
-    PyVar stdout_ = vm->new_object<DummyInstance>(vm->tp_object);
-    PyVar stderr_ = vm->new_object<DummyInstance>(vm->tp_object);
+    PyObject* stdout_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
+    PyObject* stderr_ = vm->heap.gcnew<DummyInstance>(vm->tp_object);
     vm->setattr(mod, "stdout", stdout_);
     vm->setattr(mod, "stderr", stderr_);
 
@@ -90,7 +90,7 @@ void add_module_sys(VM* vm){
 }
 
 void add_module_json(VM* vm){
-    PyVar mod = vm->new_module("json");
+    PyObject* mod = vm->new_module("json");
     vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args) {
         std::string_view sv;
         if(is_type(args[0], vm->tp_bytes)){
@@ -109,7 +109,7 @@ void add_module_json(VM* vm){
 
 // https://docs.python.org/3.5/library/math.html
 void add_module_math(VM* vm){
-    PyVar mod = vm->new_module("math");
+    PyObject* mod = vm->new_module("math");
     mod->attr().set("pi", VAR(3.1415926535897932384));
     mod->attr().set("e" , VAR(2.7182818284590452354));
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
@@ -196,7 +196,7 @@ void add_module_math(VM* vm){
 }
 
 void add_module_traceback(VM* vm){
-    PyVar mod = vm->new_module("traceback");
+    PyObject* mod = vm->new_module("traceback");
     vm->bind_func(mod, "print_exc", 0, [](VM* vm, ArgsView args) {
         if(vm->__last_exception==nullptr) vm->ValueError("no exception");
         Exception& e = _CAST(Exception&, vm->__last_exception);
@@ -212,7 +212,7 @@ void add_module_traceback(VM* vm){
 }
 
 void add_module_dis(VM* vm){
-    PyVar mod = vm->new_module("dis");
+    PyObject* mod = vm->new_module("dis");
 
     vm->bind_func(mod, "dis", 1, [](VM* vm, ArgsView args) {
         CodeObject_ code;
@@ -230,12 +230,12 @@ void add_module_dis(VM* vm){
 }
 
 void add_module_gc(VM* vm){
-    PyVar mod = vm->new_module("gc");
+    PyObject* mod = vm->new_module("gc");
     vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
 void add_module_enum(VM* vm){
-    PyVar mod = vm->new_module("enum");
+    PyObject* mod = vm->new_module("enum");
     CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
     vm->_exec(code, mod);
     PyVar Enum = mod->attr("Enum");
@@ -253,7 +253,7 @@ void add_module_enum(VM* vm){
 }
 
 void add_module___builtins(VM* vm){
-    PyVar mod = vm->new_module("__builtins");
+    PyObject* mod = vm->new_module("__builtins");
 
     vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args){
         return vm->py_next(args[0]);
@@ -284,7 +284,7 @@ struct _LpGuard{
 struct LineProfilerW{
     LineProfiler profiler;
 
-    static void _register(VM* vm, PyVar mod, PyVar type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->new_object<LineProfilerW>(cls);
@@ -333,7 +333,7 @@ _LpGuard::~_LpGuard(){
 }
 
 void add_module_line_profiler(VM *vm){
-    PyVar mod = vm->new_module("line_profiler");
+    PyObject* mod = vm->new_module("line_profiler");
     vm->register_user_class<LineProfilerW>(mod, "LineProfiler");
 }
 #else

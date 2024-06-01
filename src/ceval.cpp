@@ -1,4 +1,5 @@
 #include "pocketpy/ceval.h"
+#include "pocketpy/codeobject.h"
 
 namespace pkpy{
 
@@ -194,22 +195,22 @@ __NEXT_STEP:
             PUSH(*slot);
             DISPATCH()
         }
-        PyVar _0 = frame->f_closure_try_get(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
-        _0 = frame->f_globals().try_get_likely_found(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
-        _0 = vm->builtins->attr().try_get_likely_found(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
+        PyVar* _0 = frame->f_closure_try_get(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
+        _0 = frame->f_globals().try_get_2_likely_found(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
+        _0 = vm->builtins->attr().try_get_2_likely_found(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
         vm->NameError(_name);
     } DISPATCH()
     case OP_LOAD_NONLOCAL: {
         StrName _name(byte.arg);
-        PyVar _0 = frame->f_closure_try_get(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
-        _0 = frame->f_globals().try_get_likely_found(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
-        _0 = vm->builtins->attr().try_get_likely_found(_name);
-        if(_0 != nullptr) { PUSH(_0); DISPATCH() }
+        PyVar* _0 = frame->f_closure_try_get(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
+        _0 = frame->f_globals().try_get_2_likely_found(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
+        _0 = vm->builtins->attr().try_get_2_likely_found(_name);
+        if(_0 != nullptr) { PUSH(*_0); DISPATCH() }
         vm->NameError(_name);
     } DISPATCH()
     case OP_LOAD_GLOBAL:{
@@ -282,7 +283,7 @@ __NEXT_STEP:
             if(slot != nullptr){
                 *slot = _0;     // store in locals if possible
             }else{
-                Function& func = PK_OBJ_GET(Function, frame->_callable);
+                Function& func = frame->_callable->as<Function>();
                 if(func.decl == __dynamic_func_decl){
                     PK_DEBUG_ASSERT(func._closure != nullptr);
                     func._closure->set(_name, _0);
@@ -338,7 +339,7 @@ __NEXT_STEP:
             if(slot != nullptr){
                 slot->set_null();
             }else{
-                Function& func = PK_OBJ_GET(Function, frame->_callable);
+                Function& func = frame->_callable->as<Function>();
                 if(func.decl == __dynamic_func_decl){
                     PK_DEBUG_ASSERT(func._closure != nullptr);
                     bool ok = func._closure->del(_name);
@@ -949,7 +950,7 @@ __NEXT_STEP:
         StrName _name(byte.arg);
         frame->_module->attr().set(_name, __curr_class);
         // call on_end_subclass
-        PyTypeInfo* ti = &_all_types[PK_OBJ_GET(Type, __curr_class)];
+        PyTypeInfo* ti = &_all_types[__curr_class->as<Type>()];
         if(ti->base != tp_object){
             PyTypeInfo* base_ti = &_all_types[ti->base];
             if(base_ti->on_end_subclass) base_ti->on_end_subclass(this, ti);
@@ -969,12 +970,12 @@ __NEXT_STEP:
         PUSH(__curr_class);
     } DISPATCH()
     case OP_END_CLASS_DECORATION:{
-        __curr_class = POPX();
+        __curr_class = POPX().get();
     } DISPATCH()
     case OP_ADD_CLASS_ANNOTATION: {
         PK_ASSERT(__curr_class != nullptr);
         StrName _name(byte.arg);
-        Type type = PK_OBJ_GET(Type, __curr_class);
+        Type type = __curr_class->as<Type>();
         _all_types[type].annotated_fields.push_back(_name);
     } DISPATCH()
     /*****************************************/
@@ -1016,7 +1017,7 @@ __NEXT_STEP:
         }
         DISPATCH()
     case OP_RE_RAISE: __raise_exc(true); DISPATCH()
-    case OP_POP_EXCEPTION: __last_exception = POPX(); DISPATCH()
+    case OP_POP_EXCEPTION: __last_exception = POPX().get(); DISPATCH()
     /*****************************************/
     case OP_FORMAT_STRING: {
         PyVar _0 = POPX();

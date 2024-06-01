@@ -7,7 +7,7 @@ namespace pkpy{
 inline bool isclose(float a, float b){ return std::fabs(a - b) < 1e-4; }
 
 struct Vec2{
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     float x, y;
     Vec2() : x(0.0f), y(0.0f) {}
@@ -31,7 +31,7 @@ struct Vec2{
 };
 
 struct Vec3{
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     float x, y, z;
     Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
@@ -54,7 +54,7 @@ struct Vec3{
 };
 
 struct Vec4{
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     float x, y, z, w;
     Vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
@@ -78,7 +78,7 @@ struct Vec4{
 };
 
 struct Mat3x3{
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     union {
         struct {

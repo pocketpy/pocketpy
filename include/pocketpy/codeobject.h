@@ -145,11 +145,11 @@ struct NativeFunc {
 
 struct Function{
     FuncDecl_ decl;
-    PyVar _module;  // weak ref
-    PyVar _class;   // weak ref
+    PyObject* _module;  // weak ref
+    PyObject* _class;   // weak ref
     NameDict_ _closure;
 
-    explicit Function(FuncDecl_ decl, PyVar _module, PyVar _class, NameDict_ _closure):
+    explicit Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict_ _closure):
         decl(decl), _module(_module), _class(_class), _closure(_closure) {}
 
     void _gc_mark(VM*) const;

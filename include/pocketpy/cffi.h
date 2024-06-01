@@ -32,14 +32,14 @@ struct VoidP{
         return ss.str();
     }
 
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 #define POINTER_VAR(Tp, NAME)    \
     inline PyVar py_var(VM* vm, Tp val){    \
         const static std::pair<StrName, StrName> P("c", NAME);      \
         PyVar type = vm->_modules[P.first]->attr(P.second);         \
-        return vm->new_object<VoidP>(PK_OBJ_GET(Type, type), val);  \
+        return vm->new_object<VoidP>(type->as<Type>(), val);  \
     }
 
 POINTER_VAR(char*, "char_p")
@@ -84,7 +84,7 @@ struct Struct{
     Struct(const Struct& other): Struct(other.p, other.size){}
     ~Struct(){ if(p!=_inlined) free(p); }
 
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 static_assert(py_sizeof<Struct> <= 64);

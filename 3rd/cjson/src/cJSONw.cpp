@@ -90,7 +90,7 @@ static PyVar convert_cjson_to_python_object(const cJSON * const item, VM* vm)
 }
 
 void add_module_cjson(VM* vm){
-    PyVar mod = vm->new_module("cjson");
+    PyObject* mod = vm->new_module("cjson");
 
     vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args){
         std::string_view sv;

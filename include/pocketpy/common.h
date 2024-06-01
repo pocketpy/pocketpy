@@ -89,7 +89,6 @@ using f64 = double;			// always 64-bit
 
 static_assert(sizeof(i64) == 8);
 
-struct Dummy { }; // for special objects: True, False, None, Ellipsis, etc.
 struct DummyInstance { };
 struct DummyModule { };
 struct NoReturn { };
@@ -104,9 +103,9 @@ struct Type {
     constexpr operator int() const { return index; }
 };
 
-#define PK_LAMBDA(x) ([](VM* vm, ArgsView args) { return x; })
-#define PK_VAR_LAMBDA(x) ([](VM* vm, ArgsView args) { return VAR(x); })
-#define PK_ACTION(x) ([](VM* vm, ArgsView args) { x; return vm->None; })
+#define PK_LAMBDA(x) ([](VM* vm, ArgsView args) -> PyVar { return x; })
+#define PK_VAR_LAMBDA(x) ([](VM* vm, ArgsView args) -> PyVar { return VAR(x); })
+#define PK_ACTION(x) ([](VM* vm, ArgsView args) -> PyVar { x; return vm->None; })
 
 #define PK_REGION(name)	1
 
@@ -189,6 +188,9 @@ struct PyVar final{
 
     // uninitialized
     PyVar() = default;
+
+    // implict conversion
+    PyVar(PyObject* p);
 
     /* We must initialize all members to allow == operator to work correctly */
     // constexpr initialized

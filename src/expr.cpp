@@ -120,26 +120,23 @@ namespace pkpy{
         }else{
             co->consts.push_back(VAR(key));
             int index = co->consts.size() - 1;
-            _co_consts_string_dedup_map[std::string(key)] = index;
+            key = co->consts.back().obj_get<Str>().sv();
+            _co_consts_string_dedup_map[key] = index;
             return index;
         }
     }
 
     int CodeEmitContext::add_const(PyVar v){
-        if(is_type(v, vm->tp_str)){
-            // warning: should use add_const_string() instead
-            return add_const_string(PK_OBJ_GET(Str, v).sv());
+        PK_ASSERT(!is_type(v, VM::tp_str))
+        // non-string deduplication
+        auto it = _co_consts_nonstring_dedup_map.find(v);
+        if(it != _co_consts_nonstring_dedup_map.end()){
+            return it->second;
         }else{
-            // non-string deduplication
-            auto it = _co_consts_nonstring_dedup_map.find(v);
-            if(it != _co_consts_nonstring_dedup_map.end()){
-                return it->second;
-            }else{
-                co->consts.push_back(v);
-                int index = co->consts.size() - 1;
-                _co_consts_nonstring_dedup_map[v] = index;
-                return index;
-            }
+            co->consts.push_back(v);
+            int index = co->consts.size() - 1;
+            _co_consts_nonstring_dedup_map[v] = index;
+            return index;
         }
     }
 

@@ -10,8 +10,8 @@ template<typename T>
 PyVar PyArrayGetItem(VM* vm, PyVar _0, PyVar _1){
     static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
     const T& self = _CAST(T&, _0);
-    i64 index;
-    if(try_cast_int(_1, &index)){
+    if(is_int(_1)){
+        i64 index = _1.as<i64>();
         index = vm->normalized_index(index, self.size());
         return self[index];
     }
@@ -28,16 +28,14 @@ PyVar PyArrayGetItem(VM* vm, PyVar _0, PyVar _1){
 
 void __init_builtins(VM* _vm) {
 #define BIND_NUM_ARITH_OPT(name, op)                                                                    \
-    _vm->bind##name(VM::tp_int, [](VM* vm, PyVar lhs, PyVar rhs) {                              \
-        i64 val;                                                                                        \
-        if(try_cast_int(rhs, &val)) return VAR(_CAST(i64, lhs) op val);                                 \
-        if(is_float(rhs)) return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));                               \
+    _vm->bind##name(VM::tp_int, [](VM* vm, PyVar lhs, PyVar rhs) {                                      \
+        if(is_int(rhs))     return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));                             \
+        if(is_float(rhs))   return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));                             \
         return vm->NotImplemented;                                                                      \
     });                                                                                                 \
-    _vm->bind##name(VM::tp_float, [](VM* vm, PyVar lhs, PyVar rhs) {                            \
-        i64 val;                                                                                        \
-        if(try_cast_int(rhs, &val)) return VAR(_CAST(f64, lhs) op val);                                 \
-        if(is_float(rhs)) return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));                               \
+    _vm->bind##name(VM::tp_float, [](VM* vm, PyVar lhs, PyVar rhs) {                                    \
+        if(is_int(rhs))     return VAR(_CAST(f64, lhs) op _CAST(i64, rhs));                             \
+        if(is_float(rhs))   return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));                             \
         return vm->NotImplemented;                                                                      \
     });
 
@@ -48,15 +46,13 @@ void __init_builtins(VM* _vm) {
 #undef BIND_NUM_ARITH_OPT
 
 #define BIND_NUM_LOGICAL_OPT(name, op)   \
-    _vm->bind##name(VM::tp_int, [](VM* vm, PyVar lhs, PyVar rhs) {      \
-        i64 val;                                                                \
-        if(try_cast_int(rhs, &val)) return VAR(_CAST(i64, lhs) op val);         \
+    _vm->bind##name(VM::tp_int, [](VM* vm, PyVar lhs, PyVar rhs) {              \
+        if(is_int(rhs))     return VAR(_CAST(i64, lhs) op _CAST(i64, rhs));     \
         if(is_float(rhs))   return VAR(_CAST(i64, lhs) op _CAST(f64, rhs));     \
         return vm->NotImplemented;                                              \
     });                                                                         \
-    _vm->bind##name(VM::tp_float, [](VM* vm, PyVar lhs, PyVar rhs) {    \
-        i64 val;                                                                \
-        if(try_cast_int(rhs, &val)) return VAR(_CAST(f64, lhs) op val);         \
+    _vm->bind##name(VM::tp_float, [](VM* vm, PyVar lhs, PyVar rhs) {            \
+        if(is_int(rhs))     return VAR(_CAST(f64, lhs) op _CAST(i64, rhs));     \
         if(is_float(rhs))   return VAR(_CAST(f64, lhs) op _CAST(f64, rhs));     \
         return vm->NotImplemented;                                              \
     });
@@ -79,15 +75,15 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(_vm->builtins, "super", -1, [](VM* vm, ArgsView args) {
-        PyVar class_arg = nullptr;
+        PyObject* class_arg = nullptr;
         PyVar self_arg = nullptr;
         if(args.size() == 2){
-            class_arg = args[0];
+            class_arg = args[0].get();
             self_arg = args[1];
         }else if(args.size() == 0){
             Frame* frame = &vm->callstack.top();
             if(frame->_callable != nullptr){
-                class_arg = PK_OBJ_GET(Function, frame->_callable)._class;
+                class_arg = frame->_callable->as<Function>()._class;
                 if(frame->_locals.size() > 0) self_arg = frame->_locals[0];
             }
             if(class_arg == nullptr || self_arg == nullptr){
@@ -97,7 +93,7 @@ void __init_builtins(VM* _vm) {
             vm->TypeError("super() takes 0 or 2 arguments");
         }
         vm->check_type(class_arg, vm->tp_type);
-        Type type = PK_OBJ_GET(Type, class_arg);
+        Type type = class_arg->as<Type>();
         if(!vm->isinstance(self_arg, type)){
             StrName _0 = _type_name(vm, vm->_tp(self_arg));
             StrName _1 = _type_name(vm, type);
@@ -123,7 +119,7 @@ void __init_builtins(VM* _vm) {
             Tuple& types = _CAST(Tuple&, args[1]);
             for(PyVar type : types){
                 vm->check_type(type, vm->tp_type);
-                if(vm->isinstance(args[0], PK_OBJ_GET(Type, type))) return vm->True;
+                if(vm->isinstance(args[0], type->as<Type>())) return vm->True;
             }
             return vm->False;
         }
@@ -139,7 +135,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(_vm->builtins, "globals", 0, [](VM* vm, ArgsView args) {
-        PyVar mod = vm->callstack.top()._module;
+        PyObject* mod = vm->callstack.top()._module;
         return VAR(MappingProxy(mod));
     });
 
@@ -395,8 +391,9 @@ void __init_builtins(VM* _vm) {
     });
 
     auto py_number_pow = [](VM* vm, PyVar _0, PyVar _1) {
-        i64 lhs, rhs;
-        if(try_cast_int(_0, &lhs) && try_cast_int(_1, &rhs)){
+        if(is_int(_0) && is_int(_1)){
+            i64 lhs = _CAST(i64, _0);
+            i64 rhs = _CAST(i64, _1);
             if(rhs < 0) {
                 if(lhs == 0) vm->ZeroDivisionError("0.0 cannot be raised to a negative power");
                 return VAR((f64)std::pow(lhs, rhs));
@@ -1484,12 +1481,12 @@ void __init_builtins(VM* _vm) {
     });
 
     // tp_exception
-    _vm->bind_func(VM::tp_exception, __new__, -1, [](VM* vm, ArgsView args){
+    _vm->bind_func(VM::tp_exception, __new__, -1, [](VM* vm, ArgsView args) -> PyVar{
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = _type_name(vm, cls);
-        PyVar e_obj = vm->new_object<Exception>(cls, cls_name);
+        PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name);
         e_obj->_enable_instance_dict();
-        PK_OBJ_GET(Exception, e_obj)._self = e_obj;
+        e_obj->as<Exception>()._self = e_obj;
         return e_obj;
     });
 
@@ -1560,7 +1557,7 @@ void VM::__post_init_builtin_types(){
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         return VAR(info.name.sv());
     });
-    bind_property(_t(tp_type), "__module__", [](VM* vm, ArgsView args){
+    bind_property(_t(tp_type), "__module__", [](VM* vm, ArgsView args) -> PyVar{
         const PyTypeInfo& info = vm->_all_types[PK_OBJ_GET(Type, args[0])];
         if(info.mod == nullptr) return vm->None;
         return info.mod;
@@ -1591,7 +1588,7 @@ void VM::__post_init_builtin_types(){
 
     bind_property(_t(tp_object), "__dict__", [](VM* vm, ArgsView args){
         if(is_tagged(args[0]) || !args[0]->is_attr_valid()) return vm->None;
-        return VAR(MappingProxy(args[0]));
+        return VAR(MappingProxy(args[0].get()));
     });
 
     bind(builtins, "print(*args, sep=' ', end='\\n')", [](VM* vm, ArgsView args) {

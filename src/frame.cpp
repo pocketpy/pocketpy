@@ -16,11 +16,11 @@ namespace pkpy{
         return dict;
     }
 
-    PyVar Frame::f_closure_try_get(StrName name){
+    PyVar* Frame::f_closure_try_get(StrName name){
         if(_callable == nullptr) return nullptr;
-        Function& fn = PK_OBJ_GET(Function, _callable);
+        Function& fn = _callable->as<Function>();
         if(fn._closure == nullptr) return nullptr;
-        return fn._closure->try_get(name);
+        return fn._closure->try_get_2(name);
     }
 
     int Frame::prepare_jump_exception_handler(ValueStack* _s){

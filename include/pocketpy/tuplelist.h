@@ -7,8 +7,8 @@
 
 namespace pkpy {
 
-struct List: pod_vector<PyVar, 4>{
-    using pod_vector<PyVar, 4>::pod_vector;
+struct List: pod_vector<PyVar>{
+    using pod_vector<PyVar>::pod_vector;
     void _gc_mark(VM*) const;
 };
 

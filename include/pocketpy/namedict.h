@@ -16,6 +16,11 @@ constexpr T default_invalid_value(){
 #define PK_SMALL_NAME_DICT_CAPACITY 6
 #define PK_SMALL_NAME_DICT_LOOP(B) for(int i=0; i<PK_SMALL_NAME_DICT_CAPACITY; i++) { B }
 
+struct A{
+    uint16_t k;
+    PyVar v;
+};
+
 template<typename V>
 struct SmallNameDict{
     using K = StrName;

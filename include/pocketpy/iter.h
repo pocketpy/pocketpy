@@ -11,7 +11,7 @@ struct RangeIter{       // step > 0
     i64 current;
     RangeIter(Range r) : r(r), current(r.start) {}
 
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 struct RangeIterR{      // step < 0
@@ -19,7 +19,7 @@ struct RangeIterR{      // step < 0
     i64 current;
     RangeIterR(Range r) : r(r), current(r.start) {}
 
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 struct ArrayIter{
@@ -31,15 +31,15 @@ struct ArrayIter{
         : ref(ref), end(end), current(begin) {}
 
     void _gc_mark(VM* vm) const{ vm->__obj_gc_mark(ref); }
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 struct StringIter{
     PyVar ref;
     int i;      // byte index
     StringIter(PyVar ref) : ref(ref), i(0) {}
-    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    void _gc_mark(VM* vm) const{ vm->obj_gc_mark(ref); }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 struct Generator{
@@ -58,7 +58,7 @@ struct Generator{
     }
 
     PyVar next(VM* vm);
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 
     ~Generator(){
         if(lf){
@@ -74,8 +74,8 @@ struct DictItemsIter{
     DictItemsIter(PyVar ref) : ref(ref) {
         i = PK_OBJ_GET(Dict, ref)._head_idx;
     }
-    void _gc_mark(VM* vm) const{ PK_OBJ_MARK(ref); }
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    void _gc_mark(VM* vm) const{ vm->obj_gc_mark(ref); }
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 } // namespace pkpy

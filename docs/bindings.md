@@ -115,7 +115,7 @@ You can create a `test` module and use `vm->register_user_class<>` to bind the c
 ```cpp
 int main(){
     VM* vm = new VM();
-    PyVar mod = vm->new_module("test");
+    PyObject* mod = vm->new_module("test");
     vm->register_user_class<Point>(mod, "Point",
         [](VM* vm, PyVar mod, PyVar type){
             // wrap field x
@@ -165,11 +165,11 @@ struct Container{
 
     void _gc_mark(VM* vm) const{
         // mark a
-        if(a) PK_OBJ_MARK(a);
+        vm->obj_gc_mark(a);
 
         // mark elements in b
         for(PyVar obj : b){
-            if(obj) PK_OBJ_MARK(obj);
+            vm->obj_gc_mark(obj);
         }
     }
 }

@@ -27,7 +27,7 @@ namespace pkpy{
 #define STACK_VIEW(n)     (s_data.view(n))
 
 typedef PyVar (*BinaryFuncC)(VM*, PyVar, PyVar);
-typedef void (*RegisterFunc)(VM*, PyVar, PyVar);
+typedef void (*RegisterFunc)(VM*, PyObject*, PyObject*);
 
 #if PK_ENABLE_PROFILER
 struct NextBreakpoint{
@@ -64,14 +64,14 @@ struct PyTypeInfo{
         }
     };
 
-    PyVar obj;      // never be garbage collected
+    PyObject* obj;      // never be garbage collected
     Type base;
-    PyVar mod;      // never be garbage collected
+    PyObject* mod;      // never be garbage collected
     StrName name;
     bool subclass_enabled;
     Vt vt;
 
-    PyTypeInfo(PyVar obj, Type base, PyVar mod, StrName name, bool subclass_enabled, Vt vt={}):
+    PyTypeInfo(PyObject* obj, Type base, PyObject* mod, StrName name, bool subclass_enabled, Vt vt={}):
         obj(obj), base(base), mod(mod), name(name), subclass_enabled(subclass_enabled), vt(vt) {}
     
     std::vector<StrName> annotated_fields = {};
@@ -165,12 +165,13 @@ public:
     std::map<StrName, Str> _lazy_modules;              // lazy loaded modules
 
     struct{
-        PyVar error;
+        PyObject* error;
         stack_no_copy<ArgsView> s_view;
     } __c;
 
     PyVar StopIteration;        // a special Exception class
-    PyVar builtins, _main;
+    PyObject* builtins;
+    PyObject* _main;
 
     // typeid -> Type
     std::map<const std::type_index, Type> _cxx_typeid_map;
@@ -178,8 +179,8 @@ public:
     std::set<PyVar> _repr_recursion_set;
 
     ImportContext __import_context;
-    PyVar __last_exception;
-    PyVar __curr_class; 
+    PyObject* __last_exception;
+    PyObject* __curr_class;
     PyVar __cached_object_new;
     std::map<std::string_view, CodeObject_> __cached_codes;
     std::map<std::string_view, PyVar> __cached_op_funcs;
@@ -260,6 +261,8 @@ public:
     i64 normalized_index(i64 index, int size);
     Str disassemble(CodeObject_ co);
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
+    void obj_gc_mark(PyVar obj) { if(obj.is_ptr) __obj_gc_mark(obj.get()); }
+    void obj_gc_mark(PyObject* p) { if(p) __obj_gc_mark(p); }
 #endif
 
 #if PK_REGION("Name Lookup Methods")
@@ -273,7 +276,7 @@ public:
 #if PK_REGION("Source Execution Methods")
     CodeObject_ compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
     Str precompile(std::string_view source, const Str& filename, CompileMode mode);
-    PyVar exec(std::string_view source, Str filename, CompileMode mode, PyVar _module=nullptr);
+    PyVar exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module=nullptr);
     PyVar exec(std::string_view source);
     PyVar eval(std::string_view source);
 
@@ -353,25 +356,25 @@ public:
 #endif
 
 #if PK_REGION("General Bindings")
-    PyVar bind_func(PyVar obj, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT);
-    PyVar bind_func(Type type, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT){
+    PyObject* bind_func(PyObject*obj, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT){
         return bind_func(_t(type), name, argc, fn, std::move(userdata), bt);
     }
-    PyVar bind_property(PyVar, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
+    PyObject* bind_property(PyObject*, const char*, NativeFuncC fget, NativeFuncC fset=nullptr);
     template<typename T, typename F, bool ReadOnly=false>
-    PyVar bind_field(PyVar, const char*, F T::*);
+    PyObject* bind_field(PyObject*, const char*, F T::*);
 
-    PyVar bind(PyVar, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
     template<typename Ret, typename... Params>
-    PyVar bind(PyVar, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
     template<typename Ret, typename T, typename... Params>
-    PyVar bind(PyVar, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
 
-    PyVar bind(PyVar, const char*, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, const char*, NativeFuncC, any userdata={}, BindType bt=BindType::DEFAULT);
     template<typename Ret, typename... Params>
-    PyVar bind(PyVar, const char*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, const char*, Ret(*)(Params...), BindType bt=BindType::DEFAULT);
     template<typename Ret, typename T, typename... Params>
-    PyVar bind(PyVar, const char*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
+    PyObject* bind(PyObject*, const char*, const char*, Ret(T::*)(Params...), BindType bt=BindType::DEFAULT);
 #endif
 
 #if PK_REGION("Error Reporting Methods")
@@ -406,19 +409,19 @@ public:
     Type _tp(PyVar obj){ return obj.type; }
     const PyTypeInfo* _tp_info(PyVar obj) { return &_all_types[_tp(obj)]; }
     const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
-    PyVar _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
-    PyVar _t(Type type){ return _all_types[type].obj; }
+    PyObject* _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
+    PyObject* _t(Type type){ return _all_types[type].obj; }
 
     // equivalent to `obj == NotImplemented` but faster
     static bool is_not_implemented(PyVar obj){ return obj.type == tp_not_implemented; }
 #endif
 
 #if PK_REGION("User Type Registration")
-    PyVar new_module(Str name, Str package="");
-    PyVar new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt={});
+    PyObject* new_module(Str name, Str package="");
+    PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt={});
 
     template<typename T>
-    PyVar new_type_object(PyVar mod, StrName name, Type base, bool subclass_enabled){
+    PyObject* new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled){
         return new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
     }
 
@@ -428,9 +431,9 @@ public:
     bool is_user_type(PyVar obj){ return _tp(obj) == _tp_user<T>(); }
 
     template<typename T>
-    PyVar register_user_class(PyVar, StrName, RegisterFunc, Type base=tp_object, bool subclass_enabled=false);
+    PyObject* register_user_class(PyObject*, StrName, RegisterFunc, Type base=tp_object, bool subclass_enabled=false);
     template<typename T>
-    PyVar register_user_class(PyVar, StrName, Type base=tp_object, bool subclass_enabled=false);
+    PyObject* register_user_class(PyObject*, StrName, Type base=tp_object, bool subclass_enabled=false);
 
     template<typename T, typename ...Args>
     PyVar new_user_object(Args&&... args){
@@ -601,10 +604,8 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         return (T)obj.as<i64>();
     }else if constexpr(is_floating_point_v<T>){
         static_assert(!std::is_reference_v<__T>);
-        // float
         if(is_float(obj)) return (T)obj.as<f64>();
-        i64 bits;
-        if(try_cast_int(obj, &bits)) return (T)bits;
+        if(is_int(obj)) return (T)obj.as<i64>();
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
         return 0.0f;
     }else if constexpr(std::is_enum_v<T>){
@@ -641,15 +642,15 @@ template<typename __T>
 __T _py_cast(VM* vm, PyVar obj) { return _py_cast__internal<__T, false>(vm, obj); }
 
 template<typename T>
-PyVar VM::register_user_class(PyVar mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled){
-    PyVar type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
+PyObject* VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled){
+    PyObject* type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
     mod->attr().set(name, type);
-    _cxx_typeid_map[typeid(T)] = PK_OBJ_GET(Type, type);
+    _cxx_typeid_map[typeid(T)] = type->as<Type>();
     _register(this, mod, type);
     if(!type->attr().contains(__new__)){
         if constexpr(std::is_default_constructible_v<T>) {
             bind_func(type, __new__, -1, [](VM* vm, ArgsView args){
-                Type cls_t = PK_OBJ_GET(Type, args[0]);
+                Type cls_t = args[0]->as<Type>();
                 return vm->new_object<T>(cls_t);
             });
         }else{
@@ -660,7 +661,7 @@ PyVar VM::register_user_class(PyVar mod, StrName name, RegisterFunc _register, T
 }
 
 template<typename T>
-PyVar VM::register_user_class(PyVar mod, StrName name, Type base, bool subclass_enabled){
+PyObject* VM::register_user_class(PyObject* mod, StrName name, Type base, bool subclass_enabled){
     return register_user_class<T>(mod, name, &T::_register, base, subclass_enabled);
 }
 

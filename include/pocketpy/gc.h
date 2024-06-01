@@ -39,7 +39,7 @@ struct ManagedHeap{
     /********************/
 
     template<typename T, typename... Args>
-    PyVar gcnew(Type type, Args&&... args){
+    PyObject* gcnew(Type type, Args&&... args){
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>, "gcnew cannot be used with SSO types");
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
@@ -47,17 +47,17 @@ struct ManagedHeap{
         p->placement_new<__T>(std::forward<Args>(args)...);
         gen.push_back(p);
         gc_counter++;
-        return PyVar(type, p);
+        return p;
     }
 
     template<typename T, typename... Args>
-    PyVar _new(Type type, Args&&... args){
+    PyObject* _new(Type type, Args&&... args){
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>);
         PyObject* p = new(pool128_alloc(py_sizeof<__T>)) PyObject(type);
         p->placement_new<__T>(std::forward<Args>(args)...);
         _no_gc.push_back(p);
-        return PyVar(type, p);
+        return p;
     }
 
     void _delete(PyObject*);

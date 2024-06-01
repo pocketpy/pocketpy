@@ -2,25 +2,25 @@
 
 namespace pkpy{
 
-    void VoidP::_register(VM* vm, PyVar mod, PyVar type){
+    void VoidP::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             i64 addr = CAST(i64, args[1]);
             return vm->new_object<VoidP>(cls, reinterpret_cast<void*>(addr));
         });
 
-        vm->bind__hash__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
+        vm->bind__hash__(type->as<Type>(), [](VM* vm, PyVar obj){
             obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, obj);
             return reinterpret_cast<i64>(self.ptr);
         });
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj) -> Str{
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj) -> Str{
             obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, obj);
             return _S("<void* at ", self.hex(), ">");
         });
 
 #define BIND_CMP(name, op)  \
-        vm->bind##name(PK_OBJ_GET(Type, type), [](VM* vm, PyVar lhs, PyVar rhs){        \
+        vm->bind##name(type->as<Type>(), [](VM* vm, PyVar lhs, PyVar rhs){        \
             if(!vm->isinstance(rhs, vm->_tp_user<VoidP>())) return vm->NotImplemented;          \
             void* _0 = PK_OBJ_GET(VoidP, lhs).ptr;                                              \
             void* _1 = PK_OBJ_GET(VoidP, rhs).ptr;                                              \
@@ -37,7 +37,7 @@ namespace pkpy{
     }
 
 
-    void Struct::_register(VM* vm, PyVar mod, PyVar type){
+    void Struct::_register(VM* vm, PyObject* mod, PyObject* type){
         vm->bind_func(type, __new__, 2, [](VM* vm, ArgsView args){
             Type cls = PK_OBJ_GET(Type, args[0]);
             int size = CAST(int, args[1]);
@@ -72,7 +72,7 @@ namespace pkpy{
             return vm->new_user_object<Struct>(std::move(buffer));
         }, {}, BindType::STATICMETHOD);
 
-        vm->bind__repr__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar obj){
+        vm->bind__repr__(type->as<Type>(), [](VM* vm, PyVar obj){
             Struct& self = _CAST(Struct&, obj);
             SStream ss;
             ss << "<struct object of " << self.size << " bytes>";
@@ -94,7 +94,7 @@ namespace pkpy{
             return vm->new_object<Struct>(vm->_tp(args[0]), self);
         });
 
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar lhs, PyVar rhs){
+        vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar lhs, PyVar rhs){
             Struct& self = _CAST(Struct&, lhs);
             if(!vm->is_user_type<Struct>(rhs)) return vm->NotImplemented;
             Struct& other = _CAST(Struct&, rhs);
@@ -134,7 +134,7 @@ namespace pkpy{
     }
 
 void add_module_c(VM* vm){
-    PyVar mod = vm->new_module("c");
+    PyObject* mod = vm->new_module("c");
     
     vm->bind_func(mod, "malloc", 1, [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
@@ -187,7 +187,7 @@ void add_module_c(VM* vm){
         return vm->new_object<VoidP>(args[0].type, value);
     });
 
-    PyVar type;
+    PyObject* type;
     Type type_t;
 
 #define BIND_PRIMITIVE(T, CNAME) \
@@ -197,7 +197,7 @@ void add_module_c(VM* vm){
     });                                                                             \
     type = vm->new_type_object(mod, CNAME "_p", vm->_tp_user<VoidP>(), true);       \
     mod->attr().set(CNAME "_p", type);                                  \
-    type_t = PK_OBJ_GET(Type, type);                                    \
+    type_t = type->as<Type>();                                    \
     vm->bind_func(type, "read", 1, [](VM* vm, ArgsView args){           \
         obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);            \
         T* target = (T*)voidp.ptr;                                      \
@@ -255,7 +255,7 @@ void add_module_c(VM* vm){
 
 #undef BIND_PRIMITIVE
 
-    PyVar char_p_t = mod->attr("char_p");
+    PyObject* char_p_t = mod->attr("char_p").get();
     vm->bind(char_p_t, "read_string(self) -> str", [](VM* vm, ArgsView args){
         obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);
         const char* target = (const char*)voidp.ptr;

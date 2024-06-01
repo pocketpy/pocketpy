@@ -29,6 +29,8 @@ struct FastLocals{
 };
 
 struct ValueStack {
+    PK_ALWAYS_PASS_BY_POINTER(ValueStack)
+
     // We allocate extra PK_VM_STACK_SIZE/128 places to keep `_sp` valid when `is_overflow() == true`.
     PyVar _begin[PK_VM_STACK_SIZE + PK_VM_STACK_SIZE/128];
     PyVar* _sp;
@@ -65,14 +67,6 @@ struct ValueStack {
         new(_sp) PyVar(std::forward<Args>(args)...);
         ++_sp;
     }
-
-    PyVar operator[](int i) const { return _begin[i]; }
-    PyVar& operator[](int i) { return _begin[i]; }
-    
-    ValueStack(const ValueStack&) = delete;
-    ValueStack(ValueStack&&) = delete;
-    ValueStack& operator=(const ValueStack&) = delete;
-    ValueStack& operator=(ValueStack&&) = delete;
 };
 
 struct UnwindTarget{
@@ -91,27 +85,27 @@ struct Frame {
     PyVar* _sp_base;
 
     const CodeObject* co;
-    PyVar _module;
-    PyVar _callable;    // a function object or nullptr (global scope)
+    PyObject* _module;
+    PyObject* _callable;    // a function object or nullptr (global scope)
     FastLocals _locals;
 
     // This list will be freed in __pop_frame
     UnwindTarget* _uw_list;
 
     NameDict& f_globals() { return _module->attr(); }
-    PyVar f_closure_try_get(StrName name);
+    PyVar* f_closure_try_get(StrName name);
     int ip() const { return _ip - co->codes.data(); }
 
     // function scope
-    Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, PyVar* _locals_base)
+    Frame(PyVar* p0, const CodeObject* co, PyObject* _module, PyObject* _callable, PyVar* _locals_base)
             : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(co, _locals_base), _uw_list(nullptr) { }
 
     // exec/eval
-    Frame(PyVar* p0, const CodeObject* co, PyVar _module, PyVar _callable, FastLocals _locals)
+    Frame(PyVar* p0, const CodeObject* co, PyObject* _module, PyObject* _callable, FastLocals _locals)
             : _ip(co->codes.data()-1), _sp_base(p0), co(co), _module(_module), _callable(_callable), _locals(_locals), _uw_list(nullptr) { }
 
     // global scope
-    Frame(PyVar* p0, const CodeObject_& co, PyVar _module)
+    Frame(PyVar* p0, const CodeObject_& co, PyObject* _module)
             : _ip(co->codes.data()-1), _sp_base(p0), co(co.get()), _module(_module), _callable(nullptr), _locals(co.get(), p0), _uw_list(nullptr) { }
 
     PyVar* actual_sp_base() const { return _locals.a; }

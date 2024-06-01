@@ -3,7 +3,7 @@
 namespace pkpy{
 
 void add_module_csv(VM *vm){
-    PyVar mod = vm->new_module("csv");
+    PyObject* mod = vm->new_module("csv");
 
     vm->bind(mod, "reader(csvfile: list[str]) -> list[list]", [](VM* vm, ArgsView args){
         const List& csvfile = CAST(List&, args[0]);

@@ -166,7 +166,7 @@ base64_decode(const char *in, unsigned int inlen, unsigned char *out)
 }
 
 void add_module_base64(VM* vm){
-    PyVar mod = vm->new_module("base64");
+    PyObject* mod = vm->new_module("base64");
 
     // b64encode
     vm->bind_func(mod, "b64encode", 1, [](VM* vm, ArgsView args){

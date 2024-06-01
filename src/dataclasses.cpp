@@ -77,7 +77,7 @@ static void patch__eq__(VM* vm, Type cls){
 }
 
 void add_module_dataclasses(VM* vm){
-    PyVar mod = vm->new_module("dataclasses");
+    PyObject* mod = vm->new_module("dataclasses");
 
     vm->bind_func(mod, "dataclass", 1, [](VM* vm, ArgsView args){
         vm->check_type(args[0], VM::tp_type);

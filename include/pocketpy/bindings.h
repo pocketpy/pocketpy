@@ -63,31 +63,31 @@ inline PyVar __proxy_wrapper(VM* vm, ArgsView args){
 }
 
 template<typename Ret, typename... Params>
-PyVar VM::bind(PyVar obj, const char* sig, Ret(*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, Ret(*func)(Params...), BindType bt){
     NativeProxyFuncCBase* proxy = new NativeProxyFuncC<Ret, Params...>(func);
     return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
 
 template<typename Ret, typename T, typename... Params>
-PyVar VM::bind(PyVar obj, const char* sig, Ret(T::*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, Ret(T::*func)(Params...), BindType bt){
     NativeProxyFuncCBase* proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     return vm->bind(obj, sig, __proxy_wrapper, proxy, bt);
 }
 
 template<typename Ret, typename... Params>
-PyVar VM::bind(PyVar obj, const char* sig, const char* docstring, Ret(*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(*func)(Params...), BindType bt){
     NativeProxyFuncCBase* proxy = new NativeProxyFuncC<Ret, Params...>(func);
     return vm->bind(obj, sig, docstring, __proxy_wrapper, proxy, bt);
 }
 
 template<typename Ret, typename T, typename... Params>
-PyVar VM::bind(PyVar obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt){
+PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Ret(T::*func)(Params...), BindType bt){
     NativeProxyFuncCBase* proxy = new NativeProxyMethodC<Ret, T, Params...>(func);
     return vm->bind(obj, sig, docstring, __proxy_wrapper, proxy, bt);
 }
 
 template<typename T, typename F, bool ReadOnly>
-PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
+PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
     static_assert(!std::is_reference_v<F>);
     PK_ASSERT(is_type(obj, tp_type));
     std::string_view name_sv(name); int pos = name_sv.find(':');
@@ -108,7 +108,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
         };
         _1 = new_object<NativeFunc>(tp_native_func, fset, 2, field);
     }
-    PyVar prop = VAR(Property(_0, _1));
+    PyObject* prop = heap.gcnew<Property>(tp_property, _0, _1);
     obj->attr().set(StrName(name_sv), prop);
     return prop;
 }
@@ -180,7 +180,7 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
         vm->bind_func(type, "sizeof", 1, [](VM* vm, ArgsView args){                 \
             return VAR(sizeof(wT));                                                 \
         });                                                                         \
-        vm->bind__eq__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){      \
+        vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){      \
             wT& self = _CAST(wT&, _0);                                              \
             if(!vm->isinstance(_1, vm->_tp_user<wT>())) return vm->NotImplemented;  \
             wT& other = _CAST(wT&, _1);                                             \
@@ -188,13 +188,13 @@ PyVar VM::bind_field(PyVar obj, const char* name, F T::*field){
         });                                                                         \
 
 #define PY_POINTER_SETGETITEM(T) \
-        vm->bind__getitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1){     \
+        vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1){     \
             obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, _0);                                        \
             i64 i = CAST(i64, _1);                                                      \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                    \
             return VAR(tgt[i]);                                                         \
         });                                                                             \
-        vm->bind__setitem__(PK_OBJ_GET(Type, type), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){   \
+        vm->bind__setitem__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1, PyVar _2){   \
             obj_get_t<VoidP> self = PK_OBJ_GET(VoidP, _0);                                                \
             i64 i = CAST(i64, _1);                                                              \
             T* tgt = reinterpret_cast<T*>(self.ptr);                                            \

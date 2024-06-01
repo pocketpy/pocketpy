@@ -5,10 +5,11 @@
 
 namespace pkpy{
 
-template<typename T, int Growth=2>
+template<typename T>
 struct pod_vector{
     static constexpr int SizeT = sizeof(T);
     static constexpr int N = 128 / SizeT;
+    static constexpr int Growth = 2;
 
     // static_assert(128 % SizeT == 0);
     static_assert(is_pod_v<T>);

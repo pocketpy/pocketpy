@@ -376,8 +376,8 @@ int utf8len(unsigned char c, bool suppress){
         return cnt;
     }
 
-    std::map<std::string, uint16_t, std::less<>>& StrName::_interned(){
-        static std::map<std::string, uint16_t, std::less<>> interned;
+    std::map<std::string_view, uint16_t>& StrName::_interned(){
+        static std::map<std::string_view, uint16_t> interned;
         return interned;
     }
 
@@ -395,15 +395,12 @@ int utf8len(unsigned char c, bool suppress){
         // https://github.com/python/cpython/blob/3.12/Objects/dictobject.c#L175
         uint16_t index = ((_pesudo_random_index*5) + 1) & 65535;
         if(index == 0) throw std::runtime_error("StrName index overflow");
-        _interned()[std::string(s)] = index;
-        if(is_valid(index)) throw std::runtime_error("StrName index conflict");
-        _r_interned()[index] = std::string(s);
+        auto res = _r_interned().emplace(index, s);
+        PK_ASSERT(res.second);
+        s = std::string_view(res.first->second);
+        _interned()[s] = index;
         _pesudo_random_index = index;
         return StrName(index);
-    }
-
-    bool StrName::is_valid(int index) {
-        return _r_interned().find(index) != _r_interned().end();
     }
 
     Str SStream::str(){

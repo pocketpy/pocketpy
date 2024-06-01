@@ -69,12 +69,12 @@ struct Exception {
     int _ip_on_error;
     void* _code_on_error;
 
-    PyVar _self;    // weak reference
+    PyObject* _self;    // weak reference
     
     stack<ExceptionLine> stacktrace;
     Exception(StrName type): type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
-    PyVar self() const{
+    PyObject* self() const{
         PK_ASSERT(_self != nullptr);
         return _self;
     }

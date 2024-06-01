@@ -119,9 +119,8 @@ struct StrName {
         return sv() > other.sv();
     }
 
-    static bool is_valid(int index);
     static StrName get(std::string_view s);
-    static std::map<std::string, uint16_t, std::less<>>& _interned();
+    static std::map<std::string_view, uint16_t>& _interned();
     static std::map<uint16_t, std::string>& _r_interned();
     static uint32_t _pesudo_random_index;
 };

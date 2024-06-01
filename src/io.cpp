@@ -15,7 +15,7 @@ struct FileIO {
 
     FileIO(VM* vm, const Str& file, const Str& mode);
     void close();
-    static void _register(VM* vm, PyVar mod, PyVar type);
+    static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
 static FILE* io_fopen(const char* name, const char* mode){
@@ -53,7 +53,7 @@ unsigned char* _default_import_handler(const char* name, int* out_size){
     return buffer;
 };
 
-void FileIO::_register(VM* vm, PyVar mod, PyVar type){
+void FileIO::_register(VM* vm, PyObject* mod, PyObject* type){
     vm->bind_func(type, __new__, 3, [](VM* vm, ArgsView args){
         Type cls = PK_OBJ_GET(Type, args[0]);
         return vm->new_object<FileIO>(cls, vm,
@@ -138,7 +138,7 @@ void FileIO::close(){
 }
 
 void add_module_io(VM* vm){
-    PyVar mod = vm->new_module("io");
+    PyObject* mod = vm->new_module("io");
     vm->register_user_class<FileIO>(mod, "FileIO");
 
     mod->attr().set("SEEK_SET", VAR(SEEK_SET));
@@ -153,7 +153,7 @@ void add_module_io(VM* vm){
 }
 
 void add_module_os(VM* vm){
-    PyVar mod = vm->new_module("os");
+    PyObject* mod = vm->new_module("os");
     PyVar path_obj = vm->new_object<DummyInstance>(vm->tp_object);
     mod->attr().set("path", path_obj);
     
