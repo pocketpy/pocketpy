@@ -96,7 +96,8 @@ struct TopLevelException: std::exception{
     Str summary() const { return ptr->summary(); }
 
     const char* what() const noexcept override {
-        static Str cached_summary(summary());
+        static Str cached_summary;
+        cached_summary = summary();
         return cached_summary.c_str();
     }
 };
