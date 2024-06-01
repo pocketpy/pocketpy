@@ -15,8 +15,10 @@ struct Tuple {
     int _size;
 
     Tuple(int n);
-    Tuple(const Tuple& other);
     Tuple(Tuple&& other) noexcept;
+    Tuple(const Tuple& other) = delete;
+    Tuple& operator=(const Tuple& other) = delete;
+    Tuple& operator=(Tuple&& other) = delete;
     ~Tuple();
 
     Tuple(PyVar, PyVar);

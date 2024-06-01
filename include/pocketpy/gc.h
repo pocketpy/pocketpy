@@ -3,8 +3,6 @@
 #include "common.h"
 #include "memory.h"
 #include "obj.h"
-#include "codeobject.h"
-#include "namedict.h"
 
 namespace pkpy {
 struct ManagedHeap{

@@ -11,10 +11,6 @@ Tuple::Tuple(int n){
     this->_size = n;
 }
 
-Tuple::Tuple(const Tuple& other): Tuple(other._size){
-    for(int i=0; i<_size; i++) _args[i] = other._args[i];
-}
-
 Tuple::Tuple(Tuple&& other) noexcept {
     _size = other._size;
     if(other.is_inlined()){
