@@ -98,7 +98,7 @@ namespace pkpy{
     }
 
     void Compiler::init_pratt_rules(){
-        PK_LOCAL_STATIC bool initialized = false;
+        static bool initialized = false;
         if(initialized) return;
         initialized = true;
 

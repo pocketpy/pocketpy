@@ -148,9 +148,7 @@ void add_module_io(VM* vm){
     mod->attr().set("SEEK_END", VAR(SEEK_END));
 
     vm->bind(vm->builtins, "open(path, mode='r')", [](VM* vm, ArgsView args){
-        PK_LOCAL_STATIC StrName m_io("io");
-        PK_LOCAL_STATIC StrName m_FileIO("FileIO");
-        return vm->call(vm->_modules[m_io]->attr(m_FileIO), args[0], args[1]);
+        return vm->call(vm->_modules["io"]->attr("FileIO"), args[0], args[1]);
     });
 }
 
