@@ -1680,7 +1680,7 @@ CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMod
     try{
         return compiler.compile();
     }catch(TopLevelException e){
-        _error(e.self());
+        _error(e.ptr->self());
         return nullptr;
     }
 }
@@ -1690,7 +1690,7 @@ Str VM::precompile(std::string_view source, const Str& filename, CompileMode mod
     try{
         return compiler.precompile();
     }catch(TopLevelException e){
-        _error(e.self());
+        _error(e.ptr->self());
         return nullptr;
     }
 }
