@@ -1683,7 +1683,7 @@ void VM::__breakpoint(){
                 ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
                 if(frame->_callable){
                     ss << ", in ";
-                    ss << frame->_callable.as<Function>().decl->code->name;
+                    ss << frame->_callable->as<Function>().decl->code->name;
                 }
                 ss << '\n';
                 ss << "-> " << frame->co->src->get_line(lineno) << '\n';
