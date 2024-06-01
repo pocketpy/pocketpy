@@ -452,7 +452,7 @@ namespace pkpy{
     void Compiler::exprName(){
         Str name = prev().str();
         NameScope scope = name_scope();
-        if(ctx()->global_names.count(name)){
+        if(ctx()->global_names.contains(name)){
             scope = NAME_GLOBAL;
         }
         ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
@@ -885,7 +885,7 @@ __EAT_DOTS_END:
                 consume(TK("@id"));
                 StrName name(prev().sv());
                 NameScope scope = name_scope();
-                bool is_global = ctx()->global_names.count(name.sv());
+                bool is_global = ctx()->global_names.contains(name.sv());
                 if(is_global) scope = NAME_GLOBAL;
                 switch(scope){
                     case NAME_LOCAL:
@@ -932,7 +932,7 @@ __EAT_DOTS_END:
             case TK("global"):
                 do {
                     consume(TK("@id"));
-                    ctx()->global_names.insert(prev().str());
+                    ctx()->global_names.push_back(prev().sv());
                 } while (match(TK(",")));
                 consume_end_stmt();
                 break;

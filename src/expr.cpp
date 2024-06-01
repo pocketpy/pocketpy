@@ -450,14 +450,21 @@ namespace pkpy{
         }
     }
 
+    static bool is_fmt_valid_char(char c){
+        switch(c){
+            case '-': case '=': case '*': case '#': case '@': case '!': case '~':
+            case '<': case '>': case '^':
+            case '.': case 'f': case 'd': case 's':
+            case '0'...'9': return true;
+            default: return false;
+        }
+    }
+
     void FStringExpr::emit_(CodeEmitContext* ctx){
         int i = 0;              // left index
         int j = 0;              // right index
         int count = 0;          // how many string parts
         bool flag = false;      // true if we are in a expression
-
-        const char* fmt_valid_chars = "0-=*#@!~" "<>^" ".fds" "0123456789";
-        PK_LOCAL_STATIC const std::set<char> fmt_valid_char_set(fmt_valid_chars, fmt_valid_chars + strlen(fmt_valid_chars));
 
         while(j < src.size){
             if(flag){
@@ -470,7 +477,7 @@ namespace pkpy{
                         Str spec = expr.substr(conon+1);
                         // filter some invalid spec
                         bool ok = true;
-                        for(char c: spec) if(!fmt_valid_char_set.count(c)){ ok = false; break; }
+                        for(char c: spec) if(!is_fmt_valid_char(c)){ ok = false; break; }
                         if(ok){
                             _load_simple_expr(ctx, expr.substr(0, conon));
                             ctx->emit_(OP_FORMAT_STRING, ctx->add_const_string(spec.sv()), line);

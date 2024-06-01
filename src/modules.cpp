@@ -294,7 +294,7 @@ struct LineProfilerW{
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
             vm->check_type(args[1], VM::tp_function);
             auto decl = PK_OBJ_GET(Function, args[1]).decl.get();
-            self.profiler.functions.insert(decl);
+            self.profiler.functions.push_back(decl);
             return vm->None;
         });
 

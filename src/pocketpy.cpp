@@ -312,16 +312,21 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind_func(_vm->builtins, "dir", 1, [](VM* vm, ArgsView args) {
-        std::set<StrName> names;
+        vector<StrName> names;
         if(!is_tagged(args[0]) && args[0]->is_attr_valid()){
             auto keys = args[0]->attr().keys();
-            names.insert(keys.begin(), keys.end());
+            names.extend(keys.begin(), keys.end());
         }
         const NameDict& t_attr = vm->_t(args[0])->attr();
         auto keys = t_attr.keys();
-        names.insert(keys.begin(), keys.end());
+        names.extend(keys.begin(), keys.end());
+        std::sort(names.begin(), names.end());
         List ret;
-        for (StrName name : names) ret.push_back(VAR(name.sv()));
+        for(int i=0; i<names.size(); i++){
+            // remove duplicates
+            if(i>0 && names[i] == names[i-1]) continue;
+            ret.push_back(VAR(names[i].sv()));
+        }
         return VAR(std::move(ret));
     });
 
@@ -803,16 +808,16 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_list, [](VM* vm, PyVar _0) -> Str{
-        if(vm->_repr_recursion_set.count(_0)) return "[...]";
+        if(vm->_repr_recursion_set.contains(_0)) return "[...]";
         List& iterable = _CAST(List&, _0);
         SStream ss;
         ss << '[';
-        vm->_repr_recursion_set.insert(_0);
+        vm->_repr_recursion_set.push_back(_0);
         for(int i=0; i<iterable.size(); i++){
             ss << vm->py_repr(iterable[i]);
             if(i != iterable.size()-1) ss << ", ";
         }
-        vm->_repr_recursion_set.erase(_0);
+        vm->_repr_recursion_set.pop_back();
         ss << ']';
         return ss.str();
     });
@@ -1270,19 +1275,19 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_mappingproxy, [](VM* vm, PyVar _0) -> Str{
-        if(vm->_repr_recursion_set.count(_0)) return "{...}";
+        if(vm->_repr_recursion_set.contains(_0)) return "{...}";
         MappingProxy& self = _CAST(MappingProxy&, _0);
         SStream ss;
         ss << "mappingproxy({";
         bool first = true;
-        vm->_repr_recursion_set.insert(_0);
+        vm->_repr_recursion_set.push_back(_0);
         for(auto [k, v] : self.attr().items()){
             if(!first) ss << ", ";
             first = false;
             ss << k.escape() << ": ";
             ss << vm->py_repr(v);
         }
-        vm->_repr_recursion_set.erase(_0);
+        vm->_repr_recursion_set.pop_back();
         ss << "})";
         return ss.str();
     });
@@ -1430,18 +1435,18 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_dict, [](VM* vm, PyVar _0) -> Str{
-        if(vm->_repr_recursion_set.count(_0)) return "{...}";
+        if(vm->_repr_recursion_set.contains(_0)) return "{...}";
         Dict& self = _CAST(Dict&, _0);
         SStream ss;
         ss << "{";
         bool first = true;
-        vm->_repr_recursion_set.insert(_0);
+        vm->_repr_recursion_set.push_back(_0);
         self.apply([&](PyVar k, PyVar v){
             if(!first) ss << ", ";
             first = false;
             ss << vm->py_repr(k) << ": " << vm->py_repr(v);
         });
-        vm->_repr_recursion_set.erase(_0);
+        vm->_repr_recursion_set.pop_back();
         ss << "}";
         return ss.str();
     });

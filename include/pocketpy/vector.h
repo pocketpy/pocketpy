@@ -155,6 +155,13 @@ struct vector{
         new(&_data[_size++]) T(std::move(t));
     }
 
+    bool contains(const T& t) const {
+        for(int i=0; i<_size; i++){
+            if(_data[i] == t) return true;
+        }
+        return false;
+    }
+
     template<typename... Args>
     void emplace_back(Args&&... args){
         if(_size == _capacity) reserve(_capacity * 2);

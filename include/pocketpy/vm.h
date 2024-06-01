@@ -176,7 +176,7 @@ public:
     // typeid -> Type
     std::map<const std::type_index, Type> _cxx_typeid_map;
     // this is for repr() recursion detection (no need to mark)
-    std::set<PyVar> _repr_recursion_set;
+    vector<PyVar> _repr_recursion_set;
 
     ImportContext __import_context;
     PyObject* __last_exception;
