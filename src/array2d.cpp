@@ -350,7 +350,12 @@ struct Array2d{
             int width = right - left + 1;
             int height = bottom - top + 1;
             if(width <= 0 || height <= 0) return vm->None;
-            return VAR(Tuple(VAR(left), VAR(top), VAR(width), VAR(height)));
+            Tuple t(4);
+            t[0] = VAR(left);
+            t[1] = VAR(top);
+            t[2] = VAR(width);
+            t[3] = VAR(height);
+            return VAR(std::move(t));
         });
     }
 

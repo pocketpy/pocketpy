@@ -21,7 +21,6 @@ struct Tuple {
 
     Tuple(PyVar, PyVar);
     Tuple(PyVar, PyVar, PyVar);
-    Tuple(PyVar, PyVar, PyVar, PyVar);
 
     bool is_inlined() const { return _args == _inlined; }
     PyVar& operator[](int i){ return _args[i]; }
