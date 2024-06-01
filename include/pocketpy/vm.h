@@ -356,7 +356,7 @@ public:
 #endif
 
 #if PK_REGION("General Bindings")
-    PyObject* bind_func(PyObject*obj, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT);
+    PyObject* bind_func(PyObject* obj, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT);
     PyObject* bind_func(Type type, StrName name, int argc, NativeFuncC fn, any userdata={}, BindType bt=BindType::DEFAULT){
         return bind_func(_t(type), name, argc, fn, std::move(userdata), bt);
     }
