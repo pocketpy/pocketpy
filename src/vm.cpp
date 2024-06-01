@@ -1,5 +1,4 @@
 #include "pocketpy/vm.h"
-#include "pocketpy/obj.h"
 
 static const char* OP_NAMES[] = {
     #define OPCODE(name) #name,
@@ -178,7 +177,7 @@ namespace pkpy{
 #endif
             CodeObject_ code = compile(source, filename, mode);
             return _exec(code, _module);
-        }catch (const Exception& e){
+        }catch (TopLevelException e){
             stderr_write(e.summary() + "\n");
         }
         catch(const std::exception& e) {
