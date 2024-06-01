@@ -15,7 +15,6 @@
 #include <variant>
 #include <type_traits>
 #include <typeindex>
-#include <initializer_list>
 
 #define PK_VERSION				"2.0.0"
 #define PK_VERSION_MAJOR            2
