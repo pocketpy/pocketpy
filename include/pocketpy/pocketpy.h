@@ -12,7 +12,6 @@
 #include "vm.h"
 #include "random.h"
 #include "bindings.h"
-#include "collections.h"
 #include "csv.h"
 #include "dataclasses.h"
 #include "array2d.h"

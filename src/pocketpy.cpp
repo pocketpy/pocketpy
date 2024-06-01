@@ -1639,6 +1639,7 @@ void VM::__post_init_builtin_types(){
     _lazy_modules["cmath"] = kPythonLibs_cmath;
     _lazy_modules["itertools"] = kPythonLibs_itertools;
     _lazy_modules["operator"] = kPythonLibs_operator;
+    _lazy_modules["collections"] = kPythonLibs_collections;
 
     try{
         // initialize dummy func_decl for exec/eval
@@ -1665,7 +1666,6 @@ void VM::__post_init_builtin_types(){
     add_module_dataclasses(this);
     add_module_linalg(this);
     add_module_easing(this);
-    add_module_collections(this);
     add_module_array2d(this);
     add_module_line_profiler(this);
     add_module_enum(this);
