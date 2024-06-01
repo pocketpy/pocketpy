@@ -31,6 +31,7 @@ struct array{
         _size = other._size;
         for(int i=0; i<_size; i++) _data[i] = other._data[i];
     }
+    array(T* data, int size): _data(data), _size(size) {}
 
     array& operator=(array&& other) noexcept{
         if(_data){
@@ -60,6 +61,7 @@ struct array{
 
     T* begin() const{ return _data; }
     T* end() const{ return _data + _size; }
+    T* data() const { return _data; }
 
     std::pair<T*, int> detach() noexcept {
         std::pair<T*, int> retval(_data, _size);

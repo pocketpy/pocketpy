@@ -687,9 +687,9 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind_func(VM::tp_str, "encode", 1, [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        unsigned char* buffer = new unsigned char[self.length()];
-        memcpy(buffer, self.data, self.length());
-        return VAR(Bytes(buffer, self.length()));
+        Bytes retval(self.length());
+        memcpy(retval.data(), self.data, self.length());
+        return VAR(std::move(retval));
     });
 
     _vm->bind_func(VM::tp_str, "join", 2, [](VM* vm, ArgsView args) {
@@ -1129,13 +1129,13 @@ void __init_builtins(VM* _vm) {
     // tp_bytes
     _vm->bind_func(VM::tp_bytes, __new__, 2, [](VM* vm, ArgsView args){
         List& list = CAST(List&, args[1]);
-        unsigned char* buffer = new unsigned char[list.size()];
+        Bytes retval(list.size());
         for(int i=0; i<list.size(); i++){
             i64 b = CAST(i64, list[i]);
             if(b<0 || b>255) vm->ValueError("byte must be in range[0, 256)");
-            buffer[i] = (char)b;
+            retval[i] = (char)b;
         }
-        return VAR(Bytes(buffer, list.size()));
+        return VAR(std::move(retval));
     });
 
     _vm->bind__getitem__(VM::tp_bytes, [](VM* vm, PyVar _0, PyVar _1) {
@@ -1146,7 +1146,7 @@ void __init_builtins(VM* _vm) {
             vm->parse_int_slice(s, self.size(), start, stop, step);
             int guess_max_size = abs(stop - start) / abs(step) + 1;
             if(guess_max_size > self.size()) guess_max_size = self.size();
-            unsigned char* buffer = new unsigned char[guess_max_size];
+            unsigned char* buffer = (unsigned char*)malloc(guess_max_size);
             int j = 0;      // actual size
             PK_SLICE_LOOP(i, start, stop, step) buffer[j++] = self[i];
             return VAR(Bytes(buffer, j));
@@ -1159,10 +1159,10 @@ void __init_builtins(VM* _vm) {
     _vm->bind__add__(VM::tp_bytes, [](VM* vm, PyVar _0, PyVar _1) {
         const Bytes& a = _CAST(Bytes&, _0);
         const Bytes& b = CAST(Bytes&, _1);
-        unsigned char *buffer = new unsigned char[a.size() + b.size()];
-        memcpy(buffer, a.data(), a.size());
-        memcpy(buffer + a.size(), b.data(), b.size());
-        return VAR(Bytes(buffer, a.size() + b.size()));
+        Bytes retval(a.size() + b.size());
+        memcpy(retval.data(), a.data(), a.size());
+        memcpy(retval.data() + a.size(), b.data(), b.size());
+        return VAR(std::move(retval));
     });
 
     _vm->bind__hash__(VM::tp_bytes, [](VM* vm, PyVar _0) {
@@ -1188,13 +1188,15 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind_func(VM::tp_bytes, "decode", 1, [](VM* vm, ArgsView args) {
         const Bytes& self = _CAST(Bytes&, args[0]);
-        // TODO: check encoding is utf-8
-        return VAR(Str(self.str()));
+        return VAR(Str(std::string_view((char*)self.data(), self.size())));
     });
 
     _vm->bind__eq__(VM::tp_bytes, [](VM* vm, PyVar _0, PyVar _1) {
         if(!is_type(_1, vm->tp_bytes)) return vm->NotImplemented;
-        return VAR(_CAST(Bytes&, _0) == _CAST(Bytes&, _1));
+        const Bytes& lhs = _CAST(Bytes&, _0);
+        const Bytes& rhs = _CAST(Bytes&, _1);
+        if(lhs.size() != rhs.size()) return vm->False;
+        return VAR(memcmp(lhs.data(), rhs.data(), lhs.size()) == 0);
     });
     
     // tp_slice

@@ -65,34 +65,7 @@ struct StarWrapper{
     void _gc_mark(VM*) const;
 };
 
-struct Bytes{
-    unsigned char* _data;
-    int _size;
-
-    int size() const noexcept { return _size; }
-    int operator[](int i) const noexcept { return (int)_data[i]; }
-    const unsigned char* data() const noexcept { return _data; }
-
-    bool operator==(const Bytes& rhs) const;
-    bool operator!=(const Bytes& rhs) const;
-
-    Str str() const noexcept { return Str((char*)_data, _size); }
-    std::string_view sv() const noexcept { return std::string_view((char*)_data, _size); }
-
-    Bytes() : _data(nullptr), _size(0) {}
-    Bytes(unsigned char* p, int size): _data(p), _size(size) {}
-    Bytes(const Str& str): Bytes(str.sv()) {}
-    operator bool() const noexcept { return _data != nullptr; }
-
-    Bytes(std::string_view sv);
-    Bytes(const Bytes& rhs);
-    Bytes(Bytes&& rhs) noexcept;
-    Bytes& operator=(Bytes&& rhs) noexcept;
-    Bytes& operator=(const Bytes& rhs) = delete;
-    std::pair<unsigned char*, int> detach() noexcept;
-
-    ~Bytes(){ delete[] _data;}
-};
+using Bytes = array<unsigned char>;
 
 struct Super{
     PyVar first;
