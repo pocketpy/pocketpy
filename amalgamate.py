@@ -81,11 +81,7 @@ while True:
 	text += h.content
 	del headers[h.path]
 	for h2 in headers.values():
-		if h.path in h2.dependencies:
-			try:
-				h2.dependencies.remove(h.path)
-			except ValueError:
-				pass
+		h2.dependencies = [d for d in h2.dependencies if d != h.path]
 
 if os.path.exists("amalgamated"):
 	shutil.rmtree("amalgamated")
