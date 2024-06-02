@@ -15,7 +15,8 @@ def get_all_files(root: str):
             yield fullpath
 
 if __name__ == '__main__':
-    files = list(get_all_files('src'))
+    files = []
+    # files.extend(get_all_files('include'))
+    # files.extend(get_all_files('src'))
     files.extend(get_all_files('src2'))
-    files.extend(get_all_files('include'))
-    subprocess.run(['clang-format-15', '-i'] + files, check=True)
+    subprocess.run(['clang-format', '-i'] + files, check=True)

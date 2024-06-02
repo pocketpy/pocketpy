@@ -2,3 +2,5 @@
 BasedOnStyle: Google
 IndentWidth: 4
 UseTab: Never
+
+IndentPPDirectives: BeforeHash
