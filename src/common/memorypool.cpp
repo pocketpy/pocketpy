@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <cassert>
 #include <stdexcept>
 
 namespace pkpy{
@@ -43,61 +44,36 @@ struct DoubleLinkedList{
     }
 
     void pop_back(){
-#if PK_DEBUG_MEMORY_POOL
-        if(empty()) throw std::runtime_error("DoubleLinkedList::pop_back() called on empty list");
-#endif
+        assert(!empty());
         tail.prev->prev->next = &tail;
         tail.prev = tail.prev->prev;
         _size--;
     }
 
     void pop_front(){
-#if PK_DEBUG_MEMORY_POOL
-        if(empty()) throw std::runtime_error("DoubleLinkedList::pop_front() called on empty list");
-#endif
+        assert(!empty());
         head.next->next->prev = &head;
         head.next = head.next->next;
         _size--;
     }
 
     T* back() const {
-#if PK_DEBUG_MEMORY_POOL
-        if(empty()) throw std::runtime_error("DoubleLinkedList::back() called on empty list");
-#endif
+        assert(!empty());
         return static_cast<T*>(tail.prev);
     }
 
     T* front() const {
-#if PK_DEBUG_MEMORY_POOL
-        if(empty()) throw std::runtime_error("DoubleLinkedList::front() called on empty list");
-#endif
+        assert(!empty());
         return static_cast<T*>(head.next);
     }
 
     void erase(T* node){
-#if PK_DEBUG_MEMORY_POOL
-        if(empty()) throw std::runtime_error("DoubleLinkedList::erase() called on empty list");
-        LinkedListNode* n = head.next;
-        while(n != &tail){
-            if(n == node) break;
-            n = n->next;
-        }
-        if(n != node) throw std::runtime_error("DoubleLinkedList::erase() called on node not in the list");
-#endif
         node->prev->next = node->next;
         node->next->prev = node->prev;
         _size--;
     }
 
     bool empty() const {
-#if PK_DEBUG_MEMORY_POOL
-        if(size() == 0){
-            if(head.next != &tail || tail.prev != &head){
-                throw std::runtime_error("DoubleLinkedList::size() returned 0 but the list is not empty");
-            }
-            return true;
-        }
-#endif
         return _size == 0;
     }
 
@@ -144,17 +120,13 @@ struct MemoryPool{
         }
 
         Block* alloc(){
-#if PK_DEBUG_MEMORY_POOL
-            if(empty()) throw std::runtime_error("Arena::alloc() called on empty arena");
-#endif
+            assert(!empty());
             _free_list_size--;
             return _free_list[_free_list_size];
         }
 
         void dealloc(Block* block){
-#if PK_DEBUG_MEMORY_POOL
-            if(full()) throw std::runtime_error("Arena::dealloc() called on full arena");
-#endif
+            assert(!full());
             _free_list[_free_list_size] = block;
             _free_list_size++;
         }
@@ -171,9 +143,6 @@ struct MemoryPool{
 
     void* alloc(size_t size){
         PK_GLOBAL_SCOPE_LOCK();
-#if PK_DEBUG_NO_MEMORY_POOL
-        return std::malloc(size);
-#endif
         if(size > __BlockSize){
             void* p = std::malloc(sizeof(void*) + size);
             std::memset(p, 0, sizeof(void*));
@@ -181,7 +150,6 @@ struct MemoryPool{
         }
 
         if(_arenas.empty()){
-            // std::cout << _arenas.size() << ',' << _empty_arenas.size() << ',' << _full_arenas.size() << std::endl;
             _arenas.push_back(new Arena());
         }
         Arena* arena = _arenas.back();
@@ -195,13 +163,7 @@ struct MemoryPool{
 
     void dealloc(void* p){
         PK_GLOBAL_SCOPE_LOCK();
-#if PK_DEBUG_NO_MEMORY_POOL
-        std::free(p);
-        return;
-#endif
-#if PK_DEBUG_MEMORY_POOL
-        if(p == nullptr) throw std::runtime_error("MemoryPool::dealloc() called on nullptr");
-#endif
+        assert(p != nullptr);
         Block* block = (Block*)((char*)p - sizeof(void*));
         if(block->arena == nullptr){
             std::free(block);
@@ -228,32 +190,6 @@ struct MemoryPool{
         });
     }
 
-    std::string info(){
-        int n_used_arenas = _arenas.size();
-        int n_total_arenas = n_used_arenas + _empty_arenas.size();
-        size_t allocated_size = 0;
-        size_t total_size = 0;
-        _arenas.apply([&](Arena* arena){
-            allocated_size += arena->allocated_size();
-            total_size += __BlockSize * __MaxBlocks;
-        });
-        _empty_arenas.apply([&](Arena* arena){
-            total_size += __BlockSize * __MaxBlocks;
-        });
-        char buffer[512];
-        snprintf(
-            buffer,
-            sizeof(buffer),
-            "pool%d: %.2f/%.2f MB (%d/%d arenas)",
-            __BlockSize,
-            (float)allocated_size / (1024*1024),
-            (float)total_size / (1024*1024),
-            n_used_arenas,
-            n_total_arenas
-        );
-        return buffer;
-    }
-
     ~MemoryPool(){
         _arenas.apply([](Arena* arena){ delete arena; });
         _empty_arenas.apply([](Arena* arena){ delete arena; });
@@ -268,9 +204,6 @@ void pool128_dealloc(void* p) noexcept { pool128.dealloc(p); }
 void pools_shrink_to_fit() noexcept {
     pool128.shrink_to_fit();
 }
-
-std::string pool64_info() noexcept { return "unavailable"; }
-std::string pool128_info() noexcept { return pool128.info(); }
 
 template<int BlockSize, int BlockCount>
 struct FixedMemoryPool{
