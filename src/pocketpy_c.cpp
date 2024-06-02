@@ -1,7 +1,7 @@
 #ifndef PK_NO_EXPORT_C_API
 
-#include "pocketpy.h"
-#include "pocketpy_c.h"
+#include "pocketpy/pocketpy.hpp"
+#include "pocketpy/pocketpy_c.h"
 
 #include <iostream>
 

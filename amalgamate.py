@@ -1,78 +1,100 @@
+import re
+import shutil
 import os
+import sys
+import time
+from typing import List, Dict
 
 assert os.system("python prebuild.py") == 0
 
 with open("include/pocketpy/opcodes.h", "rt", encoding='utf-8') as f:
 	OPCODES_TEXT = '\n' + f.read() + '\n'
 
-pipeline = [
-	["config.h", "export.h", "_generated.h", "common.h", "memory.h", "vector.h", "str.h", "tuplelist.h", "namedict.h", "error.h", "any.h"],
-	["obj.h", "dict.h", "codeobject.h", "frame.h", "profiler.h"],
-	["gc.h", "vm.h", "ceval.h", "lexer.h", "expr.h", "compiler.h", "repl.h"],
-	["cffi.h", "bindings.h", "iter.h", "base64.h", "csv.h", "array2d.h", "dataclasses.h", "random.h", "linalg.h", "easing.h", "io.h", "modules.h"],
-	["pocketpy.h", "pocketpy_c.h"]
-]
+class Header:
+	path: str
+	content: str		# header+source (if exists)
+	dependencies: List[str]
 
-copied = set()
-text = ""
+	def __init__(self, path: str):
+		self.path = path
+		self.dependencies = []
 
-import re
-import shutil
-import os
-import sys
-import time
+		# get raw content
+		with open(f'include/pocketpy/{path}', 'rt', encoding='utf-8') as f:
+			self.content = f.read()
+		src_path = path.replace('.hpp', '.cpp').replace('.h', '.cpp')
+		if os.path.exists(f'src/{src_path}'):
+			with open(f'src/{src_path}', 'rt', encoding='utf-8') as f:
+				self.content += f'\n\n/* {src_path} */\n\n'
+				self.content += f.read()
+
+		# process raw content and get dependencies
+		self.content = self.content.replace('#pragma once', '')
+		def _replace(m):
+			path = m.group(1)
+			if path == 'opcodes.h':
+				return OPCODES_TEXT
+			if path != self.path:
+				self.dependencies.append(path)
+			return ''
+		
+		self.content = re.sub(
+			r'#include\s+"pocketpy/(.+)"\s*',
+			_replace,
+			self.content
+		)
+
+	def __repr__(self):
+		return f'Header({self.path!r}, dependencies={self.dependencies})'
+
+
+headers: Dict[str, Header] = {}
+
+for path in ['config.h', 'export.h', 'pocketpy.hpp', 'pocketpy_c.h']:
+	headers[path] = Header(path)
+
+directories = ['common', 'objects', 'interpreter', 'compiler', 'modules', 'tools']
+for directory in directories:
+	files = os.listdir(f'include/pocketpy/{directory}')
+	for file in sorted(files):
+		assert file.endswith('.h') or file.endswith('.hpp')
+		headers[f'{directory}/{file}'] = Header(f'{directory}/{file}')
+
+text = '''#pragma once
+
+/*
+ *  Copyright (c) 2024 blueloveTH
+ *  Distributed Under The MIT License
+ *  https://github.com/pocketpy/pocketpy
+ */'''
+
+while True:
+	for h in headers.values():
+		if not h.dependencies:
+			break
+	else:
+		if headers:
+			print(headers)
+			raise Exception("Circular dependencies detected")
+		break
+	print(h.path)
+	text += h.content
+	del headers[h.path]
+	for h2 in headers.values():
+		if h.path in h2.dependencies:
+			try:
+				h2.dependencies.remove(h.path)
+			except ValueError:
+				pass
 
 if os.path.exists("amalgamated"):
 	shutil.rmtree("amalgamated")
 	time.sleep(0.5)
 os.mkdir("amalgamated")
 
-def remove_copied_include(text):
-	text = text.replace("#pragma once", "")
-
-	def _replace(m):
-		key = m.group(1)
-		if key.startswith("pocketpy/"):
-			key = key[9:]
-		if key in ["user_config.h", "cJSONw.hpp"]:
-			return m.group(0)
-		if "opcodes.h" in key:
-			return OPCODES_TEXT
-		assert key in copied, f"include {key} not found"
-		return ""
-
-	text = re.sub(
-		r'#include\s+"(.+)"\s*',
-		_replace,
-		text
-	)
-	return text
-
-for seq in pipeline:
-	for j in seq:
-		print(j)
-		with open("include/pocketpy/"+j, "rt", encoding='utf-8') as f:
-			text += remove_copied_include(f.read()) + '\n'
-			copied.add(j)
-		j = j.replace(".h", ".cpp")
-		if os.path.exists("src/"+j):
-			with open("src/"+j, "rt", encoding='utf-8') as f:
-				text += remove_copied_include(f.read()) + '\n'
-				copied.add(j)
-
 # use LF line endings instead of CRLF
 with open("amalgamated/pocketpy.h", "wt", encoding='utf-8', newline='\n') as f:
-	final_text = \
-r'''/*
- *  Copyright (c) 2024 blueloveTH
- *  Distributed Under The MIT License
- *  https://github.com/pocketpy/pocketpy
- */
-
-#ifndef POCKETPY_H
-#define POCKETPY_H
-''' + text + '\n#endif // POCKETPY_H'
-	f.write(final_text)
+	f.write(text)
 
 shutil.copy("src2/main.cpp", "amalgamated/main.cpp")
 with open("amalgamated/main.cpp", "rt", encoding='utf-8') as f:

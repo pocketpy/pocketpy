@@ -1,5 +1,5 @@
 
-#include "pocketpy_c.h"
+#include "pocketpy/pocketpy_c.h"
 
 #ifdef _WIN32
 #pragma warning(disable: 4700)
