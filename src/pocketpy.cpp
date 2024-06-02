@@ -1557,7 +1557,9 @@ void VM::__post_init_builtin_types(){
 
     _all_types[tp_module].m__getattr__ = [](VM* vm, PyVar obj, StrName name) -> PyVar{
         const Str& path = CAST(Str&, obj->attr(__path__));
-        return vm->py_import(_S(path, ".", name.sv()), false);
+        PyObject* retval = vm->py_import(_S(path, ".", name.sv()), false);
+        if(retval) return retval;
+        return nullptr;
     };
 
     bind_func(tp_property, "setter", 2, [](VM* vm, ArgsView args) {
