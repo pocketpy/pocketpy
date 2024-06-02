@@ -8,8 +8,6 @@ namespace pkpy{
 struct CodeEmitContext;
 struct Expr;
 
-#define PK_POOL128_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); PoolExpr_dealloc(ptr); ptr = nullptr; }
-
 template<typename T>
 class unique_ptr_128{
     T* ptr;
@@ -26,7 +24,7 @@ public:
     bool operator==(std::nullptr_t) const { return ptr == nullptr; }
     bool operator!=(std::nullptr_t) const { return ptr != nullptr; }
 
-    ~unique_ptr_128(){ PK_POOL128_DELETE(ptr) }
+    ~unique_ptr_128(){ if(ptr) { ptr->~T(); PoolExpr_dealloc(ptr); } }
 
     template<typename U>
     unique_ptr_128(unique_ptr_128<U>&& other): ptr(other.detach()) {}
@@ -35,13 +33,13 @@ public:
 
     template<typename U>
     unique_ptr_128& operator=(unique_ptr_128<U>&& other) {
-        PK_POOL128_DELETE(ptr)
+        if(ptr) { ptr->~T(); PoolExpr_dealloc(ptr); };
         ptr = other.detach();
         return *this;
     }
 
     unique_ptr_128& operator=(std::nullptr_t) {
-        PK_POOL128_DELETE(ptr)
+        if(ptr) { ptr->~T(); PoolExpr_dealloc(ptr); }
         ptr = nullptr;
         return *this;
     }

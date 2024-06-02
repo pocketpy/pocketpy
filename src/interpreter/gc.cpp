@@ -32,8 +32,7 @@ namespace pkpy{
 #endif
         gen.clear();
         gen.swap(alive);
-        // clean up pools
-        pools_shrink_to_fit();
+        PoolObject_shrink_to_fit();
         return freed;
     }
 

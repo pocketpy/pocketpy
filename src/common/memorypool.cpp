@@ -196,15 +196,6 @@ struct MemoryPool{
     }
 };
 
-static MemoryPool<128> pool128;
-
-void* pool128_alloc(size_t size) noexcept { return pool128.alloc(size); }
-void pool128_dealloc(void* p) noexcept { pool128.dealloc(p); }
-
-void pools_shrink_to_fit() noexcept {
-    pool128.shrink_to_fit();
-}
-
 template<int BlockSize, int BlockCount>
 struct FixedMemoryPool{
     struct Block{
@@ -252,10 +243,15 @@ struct FixedMemoryPool{
 
 static FixedMemoryPool<kPoolExprBlockSize, 32> PoolExpr;
 static FixedMemoryPool<kPoolFrameBlockSize, 128> PoolFrame;
+static MemoryPool<80> PoolObject;
+
 void* PoolExpr_alloc() noexcept { return PoolExpr.alloc(); }
 void PoolExpr_dealloc(void* p) noexcept { PoolExpr.dealloc(p); }
 void* PoolFrame_alloc() noexcept { return PoolFrame.alloc(); }
 void PoolFrame_dealloc(void* p) noexcept { PoolFrame.dealloc(p); }
 
+void* PoolObject_alloc(size_t size) noexcept { return PoolObject.alloc(size); }
+void PoolObject_dealloc(void* p) noexcept { PoolObject.dealloc(p); }
+void PoolObject_shrink_to_fit() noexcept { PoolObject.shrink_to_fit(); }
 
 }   // namespace pkpy
