@@ -1,6 +1,8 @@
 #include "pocketpy/objects/stackmemory.hpp"
 #include "pocketpy/interpreter/frame.hpp"
 
+#include <stdexcept>
+
 namespace pkpy{
     PyVar* FastLocals::try_get_name(StrName name){
         int index = co->varnames_inv.try_get(name);

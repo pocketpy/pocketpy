@@ -38,9 +38,7 @@ static PyVar stack_item(VM* vm, int index){
     }
     int size = end - begin;
     if(index < 0) index += size;
-    if(index < 0 || index >= size){
-        throw std::runtime_error("stack_item() => index out of range");
-    }
+    assert(index >= 0 && index < size);
     return begin[index];
 }
 

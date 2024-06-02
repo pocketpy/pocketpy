@@ -2,6 +2,8 @@
 
 #include "pocketpy/interpreter/frame.hpp"
 
+#include <ctime>
+
 namespace pkpy {
 
 struct _LineRecord{

@@ -2,6 +2,8 @@
 #include "pocketpy/common/version.hpp"
 #include "pocketpy/interpreter/vm.hpp"
 
+#include <stdexcept>
+
 namespace pkpy{
     PrattRule Compiler::rules[kTokenCount];
 

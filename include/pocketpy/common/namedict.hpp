@@ -5,6 +5,8 @@
 
 #include "pocketpy/config.h"
 
+#include <stdexcept>
+
 namespace pkpy{
 
 template<typename T>

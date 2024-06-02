@@ -321,10 +321,7 @@ PyVar lua_popx_to_python(VM* vm) {
 
 void initialize_lua_bridge(VM* vm, lua_State* newL){
     PyObject* mod = vm->new_module("lua");
-
-    if(_L != nullptr){
-        throw std::runtime_error("lua bridge already initialized");
-    }
+    assert(_L == nullptr);  // lua bridge already initialized
     _L = newL;
 
     vm->register_user_class<PyLuaTable>(mod, "Table");

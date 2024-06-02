@@ -43,7 +43,7 @@ namespace pkpy{
 
     // clear the expression stack and generate bytecode
     void CodeEmitContext::emit_expr(){
-        if(s_expr.size() != 1) throw std::runtime_error("s_expr.size() != 1");
+        assert(s_expr.size() == 1);
         Expr_ expr = s_expr.popx();
         expr->emit_(this);
     }
@@ -396,7 +396,7 @@ namespace pkpy{
         int for_codei = ctx->emit_(OP_FOR_ITER, curr_iblock, BC_KEEPLINE);
         bool ok = vars->emit_store(ctx);
         // this error occurs in `vars` instead of this line, but...nevermind
-        if(!ok) throw std::runtime_error("SyntaxError");
+        assert(ok);     // this should raise a SyntaxError, but we just assert it
         ctx->try_merge_for_iter_store(for_codei);
         if(cond){
             cond->emit_(ctx);

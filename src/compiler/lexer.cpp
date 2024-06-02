@@ -79,7 +79,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
 
     char Lexer::eatchar() {
         char c = peekchar();
-        if(c == '\n') throw std::runtime_error("eatchar() cannot consume a newline");
+        assert(c != '\n');  // eatchar() cannot consume a newline
         curr_char++;
         return c;
     }

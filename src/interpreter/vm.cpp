@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <stdexcept>
 
 static const char* OP_NAMES[] = {
     #define OPCODE(name) #name,

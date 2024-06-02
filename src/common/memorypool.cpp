@@ -3,6 +3,7 @@
 #include "pocketpy/config.h"
 
 #include <cstring>
+#include <stdexcept>
 
 namespace pkpy{
 
