@@ -3,6 +3,8 @@
 #include "pocketpy.h"
 #include "pocketpy_c.h"
 
+#include <iostream>
+
 using namespace pkpy;
 
 #define PK_ASSERT_N_EXTRA_ELEMENTS(n) \
@@ -21,7 +23,7 @@ static int count_extra_elements(VM* vm, int n){
     if(vm->callstack.empty()){
         return vm->s_data.size();
     }
-    PK_ASSERT(!vm->__c.s_view.empty());
+    assert(!vm->__c.s_view.empty());
     return vm->s_data._sp - vm->__c.s_view.top().end();
 }
 
@@ -31,7 +33,7 @@ static PyVar stack_item(VM* vm, int index){
     if(vm->callstack.empty()){
         begin = vm->s_data.begin();
     }else{
-        PK_ASSERT(!vm->__c.s_view.empty());
+        assert(!vm->__c.s_view.empty());
         begin = vm->__c.s_view.top().begin();
     }
     int size = end - begin;
@@ -347,7 +349,7 @@ static PyVar c_function_wrapper(VM* vm, ArgsView args) {
         vm->_error(e_obj);
         return nullptr;
     }
-    PK_ASSERT(retc == vm->s_data._sp-curr_sp);
+    assert(retc == vm->s_data._sp-curr_sp);
     if(retc == 0) return vm->None;
     if (retc == 1) return vm->s_data.popx();
     ArgsView ret_view(curr_sp, vm->s_data._sp);

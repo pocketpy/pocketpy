@@ -1,5 +1,5 @@
 #include "cJSON.h"
-#include "pocketpy/pocketpy.h"
+#include "pocketpy/pocketpy.hpp"
 
 namespace pkpy {
 

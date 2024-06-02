@@ -8,7 +8,7 @@ static PyVar lua_popx_to_python(VM*);
 
 template<typename T>
 static void table_apply(VM* vm, T f){
-    PK_ASSERT(lua_istable(_L, -1));
+    assert(lua_istable(_L, -1));
     lua_pushnil(_L);                 // [key]
     while(lua_next(_L, -2) != 0){    // [key, val]
         lua_pushvalue(_L, -2);       // [key, val, key]
@@ -191,7 +191,7 @@ static PyVar lua_popx_multi_to_python(VM* vm, int count){
         }
         return VAR(std::move(ret));
     }
-    PK_FATAL_ERROR()
+    assert(false);
 }
 
 struct PyLuaFunction: PyLuaObject{

@@ -1,4 +1,19 @@
-#include "pocketpy/pocketpy.h"
+#include "pocketpy/pocketpy.hpp"
+
+#include "pocketpy/common/_generated.hpp"
+
+#include "pocketpy/modules/array2d.hpp"
+#include "pocketpy/modules/base64.hpp"
+#include "pocketpy/modules/csv.hpp"
+#include "pocketpy/modules/dataclasses.hpp"
+#include "pocketpy/modules/easing.hpp"
+#include "pocketpy/modules/io.hpp"
+#include "pocketpy/modules/linalg.hpp"
+#include "pocketpy/modules/random.hpp"
+#include "pocketpy/modules/modules.hpp"
+
+#include <iostream>
+#include <algorithm>
 
 namespace pkpy{
 
@@ -332,7 +347,7 @@ void __init_builtins(VM* _vm) {
 
     // tp_object
     _vm->bind__repr__(VM::tp_object, [](VM* vm, PyVar obj) -> Str{
-        if(is_tagged(obj)) PK_FATAL_ERROR();
+        assert(!is_tagged(obj));
         SStream ss;
         ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at ";
         ss.write_hex(obj.get());

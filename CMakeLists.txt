@@ -17,7 +17,7 @@ else()
 endif()
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src POCKETPY_SRC)
+file(GLOB_RECURSE POCKETPY_SRC ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
 
 option(PK_USE_CJSON "" OFF)
 if(PK_USE_CJSON)
