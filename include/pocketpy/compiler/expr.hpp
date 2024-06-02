@@ -8,7 +8,7 @@ namespace pkpy{
 struct CodeEmitContext;
 struct Expr;
 
-#define PK_POOL128_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); pool128_dealloc(ptr); ptr = nullptr; }
+#define PK_POOL128_DELETE(ptr) if(ptr != nullptr) { ptr->~T(); PoolExpr_dealloc(ptr); ptr = nullptr; }
 
 template<typename T>
 class unique_ptr_128{

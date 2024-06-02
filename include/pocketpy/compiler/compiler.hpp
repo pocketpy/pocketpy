@@ -59,7 +59,8 @@ class Compiler {
 
     template <typename T, typename... Args>
     unique_ptr_128<T> make_expr(Args&&... args) {
-        void* p = pool128_alloc(sizeof(T));
+        static_assert(sizeof(T) <= kPoolExprBlockSize);
+        void* p = PoolExpr_alloc();
         unique_ptr_128<T> expr(new (p) T(std::forward<Args>(args)...));
         expr->line = prev().line;
         return expr;

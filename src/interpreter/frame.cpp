@@ -107,7 +107,7 @@ namespace pkpy{
         LinkedFrame* p = _tail;
         _tail = p->f_back;
         p->~LinkedFrame();
-        pool128_dealloc(p);
+        PoolFrame_dealloc(p);
         --_size;
     }
 

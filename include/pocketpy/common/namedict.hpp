@@ -94,7 +94,7 @@ while(!_items[i].first.empty()) {           \
         return _items[i].second;
     }
 
-    T* try_get_2(StrName key) {
+    T* try_get_2(StrName key) const{
         bool ok; uint16_t i;
         HASH_PROBE_0(key, ok, i);
         if(!ok) return nullptr;
@@ -109,7 +109,7 @@ while(!_items[i].first.empty()) {           \
         return try_get(key);
     }
 
-    T* try_get_2_likely_found(StrName key) {
+    T* try_get_2_likely_found(StrName key) const{
         uint16_t i = key.index & _mask;
         if(_items[i].first == key) return &_items[i].second;
         i = (i + 1) & _mask;
@@ -152,13 +152,11 @@ while(!_items[i].first.empty()) {           \
     }
 
     T operator[](StrName key) const {
-        T val = try_get_likely_found(key);
-#if PK_DEBUG_EXTRA_CHECK
-        if(val == default_invalid_value<T>()){
+        T* val = try_get_2_likely_found(key);
+        if(val == nullptr){
             throw std::runtime_error(_S("NameDict key not found: ", key.escape()).str());
         }
-#endif
-        return val;
+        return *val;
     }
 
     array<StrName> keys() const {

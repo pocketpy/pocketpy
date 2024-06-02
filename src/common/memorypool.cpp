@@ -1,5 +1,4 @@
 #include "pocketpy/common/memorypool.hpp"
-#include "pocketpy/common/gil.hpp"
 #include "pocketpy/common/config.h"
 
 #include <cstdlib>
@@ -273,4 +272,57 @@ void pools_shrink_to_fit() noexcept {
 std::string pool64_info() noexcept { return "unavailable"; }
 std::string pool128_info() noexcept { return pool128.info(); }
 
-}
+template<int BlockSize, int BlockCount>
+struct FixedMemoryPool{
+    struct Block{
+        char data[BlockSize];
+    };
+
+    static_assert(BlockSize % 4 == 0);
+    static_assert(sizeof(Block) == BlockSize);
+
+    Block _blocks[BlockCount];
+    Block* _free_list[BlockCount];
+    Block** _free_list_end;
+
+    FixedMemoryPool() {
+        _free_list_end = _free_list + BlockCount;
+        for(int i = 0; i < BlockCount; ++i){
+            _free_list[i] = _blocks + i;
+        }
+    }
+
+    bool is_valid(void* p){
+        return p >= _blocks && p < _blocks + BlockCount;
+    }
+
+    void* alloc(){
+        PK_GLOBAL_SCOPE_LOCK()
+        if(_free_list_end != _free_list){
+            --_free_list_end;
+            return *_free_list_end;
+        }else{
+            return std::malloc(BlockSize);
+        }
+    }
+
+    void dealloc(void* p){
+        PK_GLOBAL_SCOPE_LOCK()
+        if(is_valid(p)){
+            *_free_list_end = static_cast<Block*>(p);
+            ++_free_list_end;
+        }else{
+            std::free(p);
+        }
+    }
+};
+
+static FixedMemoryPool<kPoolExprBlockSize, 32> PoolExpr;
+static FixedMemoryPool<kPoolFrameBlockSize, 64> PoolFrame;
+void* PoolExpr_alloc() noexcept { return PoolExpr.alloc(); }
+void PoolExpr_dealloc(void* p) noexcept { PoolExpr.dealloc(p); }
+void* PoolFrame_alloc() noexcept { return PoolFrame.alloc(); }
+void PoolFrame_dealloc(void* p) noexcept { PoolFrame.dealloc(p); }
+
+
+}   // namespace pkpy

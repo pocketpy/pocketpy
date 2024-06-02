@@ -31,10 +31,6 @@
 #define PK_ENABLE_STD_FUNCTION      0
 
 /*************** debug settings ***************/
-
-// Enable this may help you find bugs
-#define PK_DEBUG_EXTRA_CHECK        0
-
 // Do not edit the following settings unless you know what you are doing
 #define PK_DEBUG_CEVAL_STEP         0
 #define PK_DEBUG_MEMORY_POOL        0

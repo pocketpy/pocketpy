@@ -61,7 +61,7 @@ struct Generator{
     ~Generator(){
         if(lf){
             lf->~LinkedFrame();
-            pool128_dealloc(lf);
+            PoolFrame_dealloc(lf);
         }
     }
 };

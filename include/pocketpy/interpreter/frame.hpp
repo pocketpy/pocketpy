@@ -147,7 +147,8 @@ struct CallStack{
 
     template<typename... Args>
     void emplace(Args&&... args){
-        _tail = new(pool128_alloc(sizeof(LinkedFrame))) LinkedFrame(_tail, std::forward<Args>(args)...);
+        static_assert(sizeof(LinkedFrame) <= kPoolFrameBlockSize);
+        _tail = new(PoolFrame_alloc()) LinkedFrame(_tail, std::forward<Args>(args)...);
         ++_size;
     }
 
