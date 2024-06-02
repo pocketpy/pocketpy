@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pocketpy/config.h"
+#include "pocketpy/common/config.h"
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/utils.hpp"
 #include "pocketpy/objects/object.hpp"

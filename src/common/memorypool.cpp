@@ -1,6 +1,6 @@
 #include "pocketpy/common/memorypool.hpp"
 #include "pocketpy/common/gil.hpp"
-#include "pocketpy/config.h"
+#include "pocketpy/common/config.h"
 
 #include <cstdlib>
 #include <cstring>

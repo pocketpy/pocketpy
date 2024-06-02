@@ -1,5 +1,5 @@
 #include "pocketpy/compiler/compiler.hpp"
-#include "pocketpy/common/version.hpp"
+#include "pocketpy/common/version.h"
 #include "pocketpy/interpreter/vm.hpp"
 
 #include <stdexcept>

@@ -1,7 +1,7 @@
 #include "pocketpy/tools/repl.hpp"
 
-#include "pocketpy/common/version.hpp"
-#include "pocketpy/export.h"
+#include "pocketpy/common/version.h"
+#include "pocketpy/common/export.h"
 
 namespace pkpy {
     REPL::REPL(VM* vm) : vm(vm){

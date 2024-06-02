@@ -2,8 +2,7 @@
 
 #include "pocketpy/common/utils.hpp"
 #include "pocketpy/common/str.hpp"
-
-#include "pocketpy/config.h"
+#include "pocketpy/common/config.h"
 
 #include <stdexcept>
 

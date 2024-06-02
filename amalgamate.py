@@ -50,7 +50,7 @@ class Header:
 
 headers: Dict[str, Header] = {}
 
-for path in ['config.h', 'export.h', 'pocketpy.hpp', 'pocketpy_c.h']:
+for path in ['pocketpy.hpp', 'pocketpy_c.h']:
 	headers[path] = Header(path)
 
 directories = ['common', 'objects', 'interpreter', 'compiler', 'modules', 'tools']
