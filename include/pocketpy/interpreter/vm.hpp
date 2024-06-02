@@ -7,6 +7,7 @@
 #include "pocketpy/objects/builtins.hpp"
 #include "pocketpy/interpreter/gc.hpp"
 #include "pocketpy/interpreter/frame.hpp"
+#include "pocketpy/interpreter/profiler.hpp"
 
 namespace pkpy{
 

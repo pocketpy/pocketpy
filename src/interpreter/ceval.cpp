@@ -382,8 +382,8 @@ __NEXT_STEP:
     } DISPATCH()
     case OP_BUILD_BYTES: {
         const Str& s = CAST(Str&, TOP());
-        unsigned char* p = (unsigned char*)malloc(s.size);
-        memcpy(p, s.data, s.size);
+        unsigned char* p = (unsigned char*)std::malloc(s.size);
+        std::memcpy(p, s.data, s.size);
         TOP() = VAR(Bytes(p, s.size));
     } DISPATCH()
     case OP_BUILD_TUPLE:{

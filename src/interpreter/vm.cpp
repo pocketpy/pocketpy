@@ -393,7 +393,7 @@ namespace pkpy{
             }
             assert(out_size >= 0);
             source = Str(std::string_view((char*)out, out_size));
-            free(out);
+            std::free(out);
         }else{
             source = it->second;
             _lazy_modules.erase(it);
@@ -994,7 +994,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 
     int i = 0;
     // prepare args
-    memset(buffer, 0, co->nlocals * sizeof(PyVar));
+    std::memset(buffer, 0, co->nlocals * sizeof(PyVar));
     for(int index: decl->args) buffer[index] = args[i++];
     // prepare kwdefaults
     for(auto& kv: decl->kwargs) buffer[kv.index] = kv.value;
@@ -1085,7 +1085,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                 //      ^p0                    ^p1      ^_sp
                 s_data.reset(_base + co->nlocals);
                 // initialize local variables to PY_NULL
-                memset(p1, 0, (char*)s_data._sp - (char*)p1);
+                std::memset(p1, 0, (char*)s_data._sp - (char*)p1);
                 break;
             case FuncType::EMPTY:
                 if(args.size() != fn.decl->args.size()) TypeError(_S(co->name, "() takes ", fn.decl->args.size(), " positional arguments but ", args.size(), " were given"));

@@ -161,7 +161,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field){
             Struct& s = CAST(Struct&, args[0]);                                     \
             if(s.size != sizeof(wT)) vm->ValueError("size mismatch");               \
             PyVar obj = vm->new_user_object<wT>();                                  \
-            memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                              \
+            std::memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                         \
             return obj;                                                             \
         }, {}, BindType::STATICMETHOD);                                             \
         vm->bind_func(type, "tostruct", 1, [](VM* vm, ArgsView args){               \

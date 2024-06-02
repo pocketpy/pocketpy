@@ -4,8 +4,8 @@
 #include "pocketpy/common/types.hpp"
 
 #include <cstring>
-#include <memory>
 #include <cassert>
+#include <memory>
 
 namespace pkpy{
 
@@ -17,14 +17,14 @@ struct array{
     using size_type = int;
 
     array(): _data(nullptr), _size(0) {}
-    array(int size): _data((T*)malloc(sizeof(T) * size)), _size(size) {}
+    array(int size): _data((T*)std::malloc(sizeof(T) * size)), _size(size) {}
     array(array&& other) noexcept: _data(other._data), _size(other._size) {
         other._data = nullptr;
         other._size = 0;
     }
     array(const array& other) = delete;
     array(explicit_copy_t, const array& other) {
-        _data = (T*)malloc(sizeof(T) * other._size);
+        _data = (T*)std::malloc(sizeof(T) * other._size);
         _size = other._size;
         for(int i=0; i<_size; i++) _data[i] = other._data[i];
     }
@@ -33,7 +33,7 @@ struct array{
     array& operator=(array&& other) noexcept{
         if(_data){
             std::destroy(begin(), end());
-            free(_data);
+            std::free(_data);
         }
         _data = other._data;
         _size = other._size;
@@ -70,7 +70,7 @@ struct array{
     ~array() {
         if(_data){
             std::destroy(begin(), end());
-            free(_data);
+            std::free(_data);
         }
     }
 };
@@ -86,7 +86,7 @@ struct vector{
 
     vector(): _data(nullptr), _capacity(0), _size(0) {}
     vector(int size):
-        _data((T*)malloc(sizeof(T) * size)),
+        _data((T*)std::malloc(sizeof(T) * size)),
         _capacity(size), _size(size) {}
     vector(vector&& other) noexcept:
         _data(other._data), _capacity(other._capacity), _size(other._size) {
@@ -96,7 +96,7 @@ struct vector{
     }
     vector(const vector& other) = delete;
     vector(explicit_copy_t, const vector& other):
-        _data((T*)malloc(sizeof(T) * other._size)),
+        _data((T*)std::malloc(sizeof(T) * other._size)),
         _capacity(other._size), _size(other._size) {
         for(int i=0; i<_size; i++) _data[i] = other._data[i];
     }
@@ -105,7 +105,7 @@ struct vector{
     vector& operator=(vector&& other) noexcept{
         if(_data){
             std::destroy(begin(), end());
-            free(_data);
+            std::free(_data);
         }
         new (this) vector(std::move(other));
         return *this;
@@ -125,16 +125,16 @@ struct vector{
     void reserve(int cap){
         if(cap < 4) cap = 4;    // minimum capacity
         if(cap <= capacity()) return;
-        T* new_data = (T*)malloc(sizeof(T) * cap);
+        T* new_data = (T*)std::malloc(sizeof(T) * cap);
         if constexpr(is_trivially_relocatable_v<T>){
-            memcpy(new_data, _data, sizeof(T) * _size);
+            std::memcpy(new_data, _data, sizeof(T) * _size);
         }else{
             for(int i=0; i<_size; i++){
                 new(&new_data[i]) T(std::move(_data[i]));
                 _data[i].~T();
             }
         }
-        if(_data) free(_data);
+        if(_data) std::free(_data);
         _data = new_data;
         _capacity = cap;
     }
@@ -218,7 +218,7 @@ struct vector{
     ~vector(){
         if(_data){
             std::destroy(begin(), end());
-            free(_data);
+            std::free(_data);
         }
     }
 };
@@ -312,7 +312,7 @@ namespace pkpy {
         {
             if constexpr (std::is_trivially_copyable_v<T>)
             {
-                memcpy(dest, src, sizeof(T) * n);
+                std::memcpy(dest, src, sizeof(T) * n);
             }
             else
             {
@@ -327,7 +327,7 @@ namespace pkpy {
         {
             if constexpr (is_trivially_relocatable_v<T>)
             {
-                memcpy(dest, src, sizeof(T) * n);
+                std::memcpy(dest, src, sizeof(T) * n);
             }
             else
             {

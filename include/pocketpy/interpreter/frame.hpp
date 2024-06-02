@@ -45,7 +45,7 @@ struct ValueStack {
     PyVar& peek(int n){ return _sp[-n]; }
     PyVar peek(int n) const { return _sp[-n]; }
     void push(PyVar v){ *_sp++ = v; }
-    void push(std::nullptr_t) { memset(_sp++, 0, sizeof(PyVar)); }
+    void push(std::nullptr_t) { std::memset(_sp++, 0, sizeof(PyVar)); }
     void pop(){ --_sp; }
     PyVar popx(){ --_sp; return *_sp; }
     ArgsView view(int n){ return ArgsView(_sp-n, _sp); }

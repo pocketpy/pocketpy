@@ -9,7 +9,7 @@ namespace pkpy{
     }
 
     void Dict::__alloc_items(){
-        _items = (Item*)malloc(_capacity * sizeof(Item));
+        _items = (Item*)std::malloc(_capacity * sizeof(Item));
         for(int i=0; i<_capacity; i++){
             _items[i].first = nullptr;
             _items[i].second = nullptr;
@@ -37,8 +37,8 @@ namespace pkpy{
         _head_idx = other._head_idx;
         _tail_idx = other._tail_idx;
         // copy items
-        _items = (Item*)malloc(_capacity * sizeof(Item));
-        memcpy(_items, other._items, _capacity * sizeof(Item));
+        _items = (Item*)std::malloc(_capacity * sizeof(Item));
+        std::memcpy(_items, other._items, _capacity * sizeof(Item));
     }
 
     void Dict::set(VM* vm, PyVar key, PyVar val){
@@ -83,7 +83,7 @@ namespace pkpy{
             i = old_items[i].next;
         }
 
-        free(old_items);
+        std::free(old_items);
     }
 
 
@@ -169,6 +169,6 @@ namespace pkpy{
     }
 
     Dict::~Dict(){
-        if(_items) free(_items);
+        if(_items) std::free(_items);
     }
 }   // namespace pkpy

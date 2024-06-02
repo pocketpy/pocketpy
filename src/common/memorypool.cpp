@@ -171,11 +171,11 @@ struct MemoryPool{
     void* alloc(size_t size){
         PK_GLOBAL_SCOPE_LOCK();
 #if PK_DEBUG_NO_MEMORY_POOL
-        return malloc(size);
+        return std::malloc(size);
 #endif
         if(size > __BlockSize){
-            void* p = malloc(sizeof(void*) + size);
-            memset(p, 0, sizeof(void*));
+            void* p = std::malloc(sizeof(void*) + size);
+            std::memset(p, 0, sizeof(void*));
             return (char*)p + sizeof(void*);
         }
 
@@ -195,7 +195,7 @@ struct MemoryPool{
     void dealloc(void* p){
         PK_GLOBAL_SCOPE_LOCK();
 #if PK_DEBUG_NO_MEMORY_POOL
-        free(p);
+        std::free(p);
         return;
 #endif
 #if PK_DEBUG_MEMORY_POOL
@@ -203,7 +203,7 @@ struct MemoryPool{
 #endif
         Block* block = (Block*)((char*)p - sizeof(void*));
         if(block->arena == nullptr){
-            free(block);
+            std::free(block);
         }else{
             Arena* arena = (Arena*)block->arena;
             if(arena->empty()){

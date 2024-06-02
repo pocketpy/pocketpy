@@ -138,18 +138,18 @@ void add_module_c(VM* vm){
     
     vm->bind_func(mod, "malloc", 1, [](VM* vm, ArgsView args){
         i64 size = CAST(i64, args[0]);
-        return VAR(malloc(size));
+        return VAR(std::malloc(size));
     });
 
     vm->bind_func(mod, "free", 1, [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
-        free(p);
+        std::free(p);
         return vm->None;
     });
 
     vm->bind_func(mod, "memset", 3, [](VM* vm, ArgsView args){
         void* p = CAST(void*, args[0]);
-        memset(p, CAST(int, args[1]), CAST(size_t, args[2]));
+        std::memset(p, CAST(int, args[1]), CAST(size_t, args[2]));
         return vm->None;
     });
 
@@ -157,7 +157,7 @@ void add_module_c(VM* vm){
         void* dst = CAST(void*, args[0]);
         void* src = CAST(void*, args[1]);
         i64 size = CAST(i64, args[2]);
-        memcpy(dst, src, size);
+        std::memcpy(dst, src, size);
         return vm->None;
     });
 
@@ -266,7 +266,7 @@ void add_module_c(VM* vm){
         obj_get_t<VoidP> voidp = PK_OBJ_GET(VoidP, args[0]);
         std::string_view sv = CAST(Str&, args[1]).sv();
         char* target = (char*)voidp.ptr;
-        memcpy(target, sv.data(), sv.size());
+        std::memcpy(target, sv.data(), sv.size());
         target[sv.size()] = '\0';
         return vm->None;
     });

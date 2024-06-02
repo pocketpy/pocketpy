@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <cassert>
 #include <utility>
+#include <cstring>
 
 namespace pkpy {
 
@@ -42,7 +43,7 @@ struct any{
         static_assert(!std::is_same_v<U, any>, "any(const any&) is deleted");
         static_assert(sizeof(U) == sizeof(T));
         if constexpr (is_any_sso_v<U>){
-            memcpy(&data, &value, sizeof(U));
+            std::memcpy(&data, &value, sizeof(U));
         }else{
             data = new U(std::forward<T>(value));
         }

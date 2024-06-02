@@ -32,7 +32,7 @@ struct Bytecode{
     uint16_t arg;
 
     void set_signed_arg(int arg){
-        if(arg < INT16_MIN || arg > INT16_MAX) throw std::runtime_error("byte.arg overflow");
+        assert(arg >= INT16_MIN && arg <= INT16_MAX);
         this->arg = (int16_t)arg;
     }
 

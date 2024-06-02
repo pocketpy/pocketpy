@@ -6,7 +6,7 @@ Tuple::Tuple(int n){
     if(n <= INLINED_SIZE){
         this->_args = _inlined;
     }else{
-        this->_args = (PyVar*)malloc(n * sizeof(PyVar));
+        this->_args = (PyVar*)std::malloc(n * sizeof(PyVar));
     }
     this->_size = n;
 }
@@ -34,7 +34,7 @@ Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2): Tuple(3){
     _args[2] = _2;
 }
 
-Tuple::~Tuple(){ if(!is_inlined()) free(_args); }
+Tuple::~Tuple(){ if(!is_inlined()) std::free(_args); }
 
 List ArgsView::to_list() const{
     List ret(size());

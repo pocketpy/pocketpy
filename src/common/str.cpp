@@ -71,7 +71,7 @@ int utf8len(unsigned char c, bool suppress){
 
     Str::Str(const Str& other): size(other.size), is_ascii(other.is_ascii) {
         PK_STR_ALLOCATE()
-        memcpy(data, other.data, size);
+        std::memcpy(data, other.data, size);
         data[size] = '\0';
     }
 
@@ -107,15 +107,15 @@ int utf8len(unsigned char c, bool suppress){
         size = other.size;
         is_ascii = other.is_ascii;
         PK_STR_ALLOCATE()
-        memcpy(data, other.data, size);
+        std::memcpy(data, other.data, size);
         data[size] = '\0';
         return *this;
     }
 
     Str Str::operator+(const Str& other) const {
         Str ret(size + other.size, is_ascii && other.is_ascii);
-        memcpy(ret.data, data, size);
-        memcpy(ret.data + size, other.data, other.size);
+        std::memcpy(ret.data, data, size);
+        std::memcpy(ret.data + size, other.data, other.size);
         ret.data[ret.size] = '\0';
         return ret;
     }
@@ -179,7 +179,7 @@ int utf8len(unsigned char c, bool suppress){
 
     Str Str::substr(int start, int len) const {
         Str ret(len, is_ascii);
-        memcpy(ret.data, data + start, len);
+        std::memcpy(ret.data, data + start, len);
         ret.data[len] = '\0';
         return ret;
     }

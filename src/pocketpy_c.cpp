@@ -554,7 +554,7 @@ bool pkpy_vectorcall(pkpy_vm* vm_handle, int argc) {
 }
 /*****************************************************************/
 void pkpy_free(void* p){
-    free(p);
+    std::free(p);
 }
 
 pkpy_CName pkpy_name(const char* name){

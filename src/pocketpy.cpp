@@ -703,7 +703,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_str, "encode", 1, [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         Bytes retval(self.length());
-        memcpy(retval.data(), self.data, self.length());
+        std::memcpy(retval.data(), self.data, self.length());
         return VAR(std::move(retval));
     });
 
@@ -1161,7 +1161,7 @@ void __init_builtins(VM* _vm) {
             vm->parse_int_slice(s, self.size(), start, stop, step);
             int guess_max_size = abs(stop - start) / abs(step) + 1;
             if(guess_max_size > self.size()) guess_max_size = self.size();
-            unsigned char* buffer = (unsigned char*)malloc(guess_max_size);
+            unsigned char* buffer = (unsigned char*)std::malloc(guess_max_size);
             int j = 0;      // actual size
             PK_SLICE_LOOP(i, start, stop, step) buffer[j++] = self[i];
             return VAR(Bytes(buffer, j));
@@ -1175,8 +1175,8 @@ void __init_builtins(VM* _vm) {
         const Bytes& a = _CAST(Bytes&, _0);
         const Bytes& b = CAST(Bytes&, _1);
         Bytes retval(a.size() + b.size());
-        memcpy(retval.data(), a.data(), a.size());
-        memcpy(retval.data() + a.size(), b.data(), b.size());
+        std::memcpy(retval.data(), a.data(), a.size());
+        std::memcpy(retval.data() + a.size(), b.data(), b.size());
         return VAR(std::move(retval));
     });
 

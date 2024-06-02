@@ -44,7 +44,7 @@ while(!_items[i].first.empty()) {           \
         _set_capacity_and_alloc_items(kInitialCapacity);
     }
 
-    ~NameDictImpl(){ free(_items); }
+    ~NameDictImpl(){ std::free(_items); }
 
     uint16_t size() const { return _size; }
     uint16_t capacity() const { return _capacity; }
@@ -54,8 +54,8 @@ while(!_items[i].first.empty()) {           \
         _critical_size = val * _load_factor;
         _mask = val - 1;
 
-        _items = (Item*)malloc(_capacity * sizeof(Item));
-        memset(_items, 0, _capacity * sizeof(Item));
+        _items = (Item*)std::malloc(_capacity * sizeof(Item));
+        std::memset(_items, 0, _capacity * sizeof(Item));
     }
 
     void set(StrName key, T val){
@@ -83,7 +83,7 @@ while(!_items[i].first.empty()) {           \
             assert(!ok);
             _items[j] = old_items[i];
         }
-        free(old_items);
+        std::free(old_items);
     }
 
     T try_get(StrName key) const{
