@@ -86,9 +86,6 @@ struct Struct{
     static void _register(VM* vm, PyObject* mod, PyObject* type);
 };
 
-static_assert(py_sizeof<Struct> <= 64);
-static_assert(py_sizeof<Tuple> <= 128);
-
 /***********************************************/
 template<typename Tp>
 Tp to_void_p(VM* vm, PyVar var){

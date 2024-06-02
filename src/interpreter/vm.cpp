@@ -331,7 +331,7 @@ namespace pkpy{
         return res;
     }
 
-    PyVar VM::py_import(Str path, bool throw_err){
+    PyObject* VM::py_import(Str path, bool throw_err){
         if(path.empty()) vm->ValueError("empty module name");
         static auto f_join = [](const vector<std::string_view>& cpnts){
             SStream ss;
@@ -367,7 +367,7 @@ namespace pkpy{
         // check existing module
         StrName name(path);
         PyVar ext_mod = _modules.try_get(name);
-        if(ext_mod != nullptr) return ext_mod;
+        if(ext_mod != nullptr) return ext_mod.get();
 
         vector<std::string_view> path_cpnts = path.split('.');
         // check circular import
@@ -878,8 +878,8 @@ void VM::__init_builtin_types(){
     _all_types.emplace_back(heap._new<Type>(tp_type, tp_object), Type(), nullptr, "object", true);
     _all_types.emplace_back(heap._new<Type>(tp_type, tp_type), tp_object, nullptr, "type", false);
 
-    auto validate = [](Type type, PyVar ret){
-        Type ret_t = PK_OBJ_GET(Type, ret);
+    auto validate = [](Type type, PyObject* ret){
+        Type ret_t = ret->as<Type>();
         if(ret_t != type) exit(-3);
     };
 
@@ -915,8 +915,8 @@ void VM::__init_builtin_types(){
     validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "_stack_memory", tp_object, false));
 
     // SyntaxError and IndentationError must be created here
-    PyVar SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);
-    PyVar IndentationError = new_type_object(nullptr, "IndentationError", PK_OBJ_GET(Type, SyntaxError), true);
+    PyObject* SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);
+    PyObject* IndentationError = new_type_object(nullptr, "IndentationError", SyntaxError->as<Type>(), true);
     this->StopIteration = new_type_object(nullptr, "StopIteration", tp_exception, true);
 
     this->builtins = new_module("builtins");

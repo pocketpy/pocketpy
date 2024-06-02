@@ -75,6 +75,11 @@ inline bool is_type(PyVar obj, Type type) {
     return obj.type == type;
 }
 
+inline bool is_type(PyObject* p, Type type) {
+    assert(p != nullptr);
+    return p->type == type;
+}
+
 struct MappingProxy{
     PyObject* obj;
     MappingProxy(PyObject* obj) : obj(obj) {}

@@ -227,7 +227,7 @@ public:
     PyVar py_iter(PyVar obj);                           // x -> iter(x)
     PyVar py_next(PyVar);                               // x -> next(x)
     PyVar _py_next(const PyTypeInfo*, PyVar);           // x -> next(x) with type info cache
-    PyVar py_import(Str path, bool throw_err=true);     // x -> __import__(x)
+    PyObject* py_import(Str path, bool throw_err=true); // x -> __import__(x)
     PyVar py_negate(PyVar obj);                         // x -> -x
 
     List py_list(PyVar);                                // x -> list(x)

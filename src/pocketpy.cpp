@@ -194,7 +194,7 @@ void __init_builtins(VM* _vm) {
         return VAR(vm->py_callable(args[0]));
     });
 
-    _vm->bind_func(_vm->builtins, "__import__", 1, [](VM* vm, ArgsView args) {
+    _vm->bind_func(_vm->builtins, "__import__", 1, [](VM* vm, ArgsView args) -> PyVar{
         const Str& name = CAST(Str&, args[0]);
         return vm->py_import(name);
     });
