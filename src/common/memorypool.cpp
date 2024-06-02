@@ -318,7 +318,7 @@ struct FixedMemoryPool{
 };
 
 static FixedMemoryPool<kPoolExprBlockSize, 32> PoolExpr;
-static FixedMemoryPool<kPoolFrameBlockSize, 64> PoolFrame;
+static FixedMemoryPool<kPoolFrameBlockSize, 128> PoolFrame;
 void* PoolExpr_alloc() noexcept { return PoolExpr.alloc(); }
 void PoolExpr_dealloc(void* p) noexcept { PoolExpr.dealloc(p); }
 void* PoolFrame_alloc() noexcept { return PoolFrame.alloc(); }
