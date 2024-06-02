@@ -25,4 +25,10 @@ inline const char* kPlatformStrings[] = {
     "unknown"       // 6
 };
 
+#ifdef _MSC_VER
+#define PK_UNREACHABLE()			__assume(0);
+#else
+#define PK_UNREACHABLE()			__builtin_unreachable();
+#endif
+
 } // namespace pkpy

@@ -68,15 +68,3 @@
     #define PK_PLATFORM_SEP '/'
 #endif
 
-#ifdef _MSC_VER
-#pragma warning (disable:4267)
-#pragma warning (disable:4100)
-#pragma warning (disable:4244)
-#pragma warning (disable:4996)
-#endif
-
-#ifdef _MSC_VER
-#define PK_UNREACHABLE()			__assume(0);
-#else
-#define PK_UNREACHABLE()			__builtin_unreachable();
-#endif

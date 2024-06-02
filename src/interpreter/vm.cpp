@@ -1101,7 +1101,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call){
                     callstack.popx(),
                     ArgsView(__vectorcall_buffer, __vectorcall_buffer + co->nlocals)
                 );
-            default: PK_UNREACHABLE();
+            default: PK_UNREACHABLE()
         };
 
         // simple or normal

@@ -1043,11 +1043,11 @@ __NEXT_STEP:
         *p = VAR(CAST(i64, *p) - 1);
     } DISPATCH()
     /*****************************************/
-    default: PK_UNREACHABLE();
+    default: PK_UNREACHABLE()
     }
 }
 /**********************************************************************/
-            PK_UNREACHABLE();
+            PK_UNREACHABLE()
         }catch(InternalException internal){
             __internal_exception = internal;
             if(internal.type == InternalExceptionType::Unhandled){
