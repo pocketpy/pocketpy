@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cassert>
+#include <cstdlib>
 #include <cstring>
 
 namespace pkpy{

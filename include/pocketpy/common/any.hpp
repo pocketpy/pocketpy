@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <cassert>
 #include <utility>
+#include <cstdlib>
 #include <cstring>
 
 namespace pkpy {

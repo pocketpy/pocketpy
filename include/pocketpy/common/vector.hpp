@@ -3,6 +3,7 @@
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/common/types.hpp"
 
+#include <cstdlib>
 #include <cstring>
 #include <cassert>
 #include <memory>

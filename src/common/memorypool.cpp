@@ -2,6 +2,7 @@
 #include "pocketpy/common/gil.hpp"
 #include "pocketpy/config.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 
