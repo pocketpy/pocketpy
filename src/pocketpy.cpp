@@ -1517,7 +1517,7 @@ void __init_builtins(VM* _vm) {
         Type cls = PK_OBJ_GET(Type, args[0]);
         StrName cls_name = _type_name(vm, cls);
         PyObject* e_obj = vm->heap.gcnew<Exception>(cls, cls_name);
-        e_obj->_enable_instance_dict();
+        e_obj->_attr = new NameDict();
         e_obj->as<Exception>()._self = e_obj;
         return e_obj;
     });

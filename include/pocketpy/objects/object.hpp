@@ -42,19 +42,12 @@ struct PyObject final{
 
         // backdoor for important builtin types
         if constexpr(std::is_same_v<T, DummyInstance>){
-            _enable_instance_dict();
+            _attr = new NameDict();
         }else if constexpr(std::is_same_v<T, Type>){
-            _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
+            _attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
         }else if constexpr(std::is_same_v<T, DummyModule>){
-            _enable_instance_dict(PK_TYPE_ATTR_LOAD_FACTOR);
+            _attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
         }
-    }
-
-    void _enable_instance_dict() {
-        _attr = new(pool128_alloc<NameDict>()) NameDict();
-    }
-    void _enable_instance_dict(float lf){
-        _attr = new(pool128_alloc<NameDict>()) NameDict(lf);
     }
 };
 

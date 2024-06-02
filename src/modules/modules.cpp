@@ -272,7 +272,7 @@ void add_module___builtins(VM* vm){
         PyVar self = args[0];
         if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
         if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
-        self->_enable_instance_dict();
+        self->_attr = new NameDict();
         return vm->None;
     });
 }
