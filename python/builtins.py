@@ -170,8 +170,9 @@ del __format_string
 def help(obj):
     if hasattr(obj, '__func__'):
         obj = obj.__func__
-    print(obj.__signature__)
-    print(obj.__doc__)
+    # print(obj.__signature__)
+    if obj.__doc__:
+        print(obj.__doc__)
 
 def complex(*args, **kwargs):
     import cmath
