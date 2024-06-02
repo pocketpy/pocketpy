@@ -1396,7 +1396,7 @@ __EAT_DOTS_END:
 
     Str TokenDeserializer::read_string_from_hex(char c){
         std::string_view s = read_string(c);
-        char* buffer = (char*)pool128_alloc(s.size()/2 + 1);
+        char* buffer = (char*)std::malloc(s.size()/2 + 1);
         for(int i=0; i<s.size(); i+=2){
             char c = 0;
             if(s[i]>='0' && s[i]<='9') c += s[i]-'0';

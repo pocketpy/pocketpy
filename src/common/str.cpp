@@ -23,7 +23,7 @@ int utf8len(unsigned char c, bool suppress){
         if(this->size < (int)sizeof(this->_inlined)){       \
             this->data = this->_inlined;                    \
         }else{                                              \
-            this->data = (char*)pool128_alloc(this->size+1); \
+            this->data = (char*)std::malloc(this->size+1); \
         }
 
 #define PK_STR_COPY_INIT(__s)  \
@@ -103,7 +103,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str& Str::operator=(const Str& other){
-        if(!is_inlined()) pool128_dealloc(data);
+        if(!is_inlined()) std::free(data);
         size = other.size;
         is_ascii = other.is_ascii;
         PK_STR_ALLOCATE()
@@ -174,7 +174,7 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str::~Str(){
-        if(!is_inlined()) pool128_dealloc(data);
+        if(!is_inlined()) std::free(data);
     }
 
     Str Str::substr(int start, int len) const {
@@ -410,14 +410,10 @@ int utf8len(unsigned char c, bool suppress){
     }
 
     Str SStream::str(){
-#if 0
         // after this call, the buffer is no longer valid
         buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'
         buffer[buffer.size()] = '\0';       // set '\0'
         return Str(buffer.detach());
-#else
-        return Str(buffer.data(), buffer.size());
-#endif
     }
 
     SStream& SStream::operator<<(const Str& s){
