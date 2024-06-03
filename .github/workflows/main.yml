@@ -25,7 +25,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: amalgamated
-        path: pkpy.exe
+        path: amalgamated/pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
