@@ -22,9 +22,10 @@ jobs:
         python amalgamate.py
         cd amalgamated
         cl.exe /std:c++17 /EHsc /utf-8 /Ox /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        path: amalgamated/pkpy.exe
+        name: amalgamated
+        path: pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
@@ -33,12 +34,13 @@ jobs:
     - name: Compile
       shell: bash
       run: |
-        mkdir -p output/windows/x86_64
+        mkdir -p output/x86_64
         python cmake_build.py
-        cp main.exe output/windows/x86_64
-        cp pocketpy.dll output/windows/x86_64
-    - uses: actions/upload-artifact@v3
+        cp main.exe output/x86_64
+        cp pocketpy.dll output/x86_64
+    - uses: actions/upload-artifact@v4
       with:
+        name: windows
         path: output
     - name: Unit Test
       run: python scripts/run_tests.py
@@ -65,15 +67,16 @@ jobs:
       if: github.ref == 'refs/heads/main'
     - name: Compile
       run: |
-        mkdir -p output/linux/x86_64
+        mkdir -p output/x86_64
         python cmake_build.py
-        cp main output/linux/x86_64
-        cp libpocketpy.so output/linux/x86_64
+        cp main output/x86_64
+        cp libpocketpy.so output/x86_64
       env:
         CXX: clang++
         CC: clang
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
+        name: linux
         path: output
     - name: Benchmark
       run: python scripts/run_tests.py benchmark
@@ -111,8 +114,9 @@ jobs:
           mkdir -p output/macos
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           cp -r build/Release/pocketpy.bundle output/macos
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: macos
           path: plugins/macos/pocketpy/output
   build_android:
       runs-on: ubuntu-latest
@@ -134,13 +138,14 @@ jobs:
           mkdir -p output/android/armeabi-v7a
           mkdir -p output/android/x86_64
 
-          cp build/android/arm64-v8a/libpocketpy.so output/android/arm64-v8a
-          cp build/android/armeabi-v7a/libpocketpy.so output/android/armeabi-v7a
-          cp build/android/x86_64/libpocketpy.so output/android/x86_64
+          cp build/android/arm64-v8a/libpocketpy.so output/arm64-v8a
+          cp build/android/armeabi-v7a/libpocketpy.so output/armeabi-v7a
+          cp build/android/x86_64/libpocketpy.so output/x86_64
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: android
           path: output
   build_ios:
       runs-on: macos-latest
@@ -150,8 +155,9 @@ jobs:
         run: |
           git clone https://github.com/leetal/ios-cmake --depth 1 ~/ios-cmake
           bash build_ios.sh
-          mkdir -p output/ios
-          cp -r build/pocketpy.xcframework output/ios/pocketpy.xcframework
-      - uses: actions/upload-artifact@v3
+          mkdir -p output
+          cp -r build/pocketpy.xcframework output/pocketpy.xcframework
+      - uses: actions/upload-artifact@v4
         with:
+          name: ios
           path: output
