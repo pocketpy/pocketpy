@@ -50,7 +50,7 @@ namespace pybind11 {
         int reference_count() const { return ref_count == nullptr ? 0 : *ref_count; }
 
         const handle& inc_ref() const {
-            PK_DEBUG_ASSERT(m_ptr != nullptr);
+            assert(m_ptr != nullptr);
             if(ref_count == nullptr) {
                 auto iter = _ref_counts_map->find(m_ptr);
                 if(iter == _ref_counts_map->end()) {
@@ -67,8 +67,8 @@ namespace pybind11 {
         }
 
         const handle& dec_ref() const {
-            PK_DEBUG_ASSERT(m_ptr != nullptr);
-            PK_DEBUG_ASSERT(ref_count != nullptr);
+            assert(m_ptr != nullptr);
+            assert(ref_count != nullptr);
 
             *ref_count -= 1;
             try {
