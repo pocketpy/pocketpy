@@ -98,6 +98,6 @@ QualifierAlignment: Custom
 QualifierOrder: ["constexpr", "const", "inline", "static", "type"]
 SortIncludes: Never
 SortUsingDeclarations: LexicographicNumeric
-IncludeBlocksStyle: Merge
+IncludeBlocks: Merge
 
 WhitespaceSensitiveMacros: ["PK_PROTECTED"]
