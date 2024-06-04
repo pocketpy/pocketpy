@@ -161,3 +161,52 @@ jobs:
         with:
           name: ios
           path: output
+
+  merge:
+      runs-on: ubuntu-latest
+      needs: [ build_win32_amalgamated, build_win32, build_linux, build_darwin, build_android, build_ios ]
+      steps:
+      - name: "Create output directory"
+        run: "mkdir $GITHUB_WORKSPACE/output"
+        
+      - name: "Merge amalgamated"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: amalgamated
+          path: $GITHUB_WORKSPACE/output
+
+      - name: "Merge win32"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: win32
+          path: $GITHUB_WORKSPACE/output/windows
+
+      - name: "Merge linux"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: linux
+          path: $GITHUB_WORKSPACE/output/linux
+
+      - name: "Merge darwin"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: macos
+          path: $GITHUB_WORKSPACE/output/macos
+
+      - name: "Merge android"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: android
+          path: $GITHUB_WORKSPACE/output/android
+          
+      - name: "Merge ios"
+        uses: actions/download-artifact@v4.1.7
+        with:
+          name: ios
+          path: $GITHUB_WORKSPACE/output/ios
+
+      - name: "Upload merged artifact"
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: merged
+          path: $GITHUB_WORKSPACE/output
