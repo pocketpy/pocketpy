@@ -9,10 +9,10 @@
 
 namespace pkpy {
 
-int utf8len(unsigned char c, bool suppress=false);
+int utf8len(unsigned char c, bool suppress = false);
 struct SStream;
 
-struct Str{
+struct Str {
     int size;
     bool is_ascii;
     char* data;
@@ -26,60 +26,70 @@ struct Str{
     Str(std::string_view s);
     Str(const char* s);
     Str(const char* s, int len);
-    Str(std::pair<char *, int>);
+    Str(std::pair<char*, int>);
     Str(const Str& other);
     Str(Str&& other);
 
-    operator std::string_view() const { return sv(); }
+    operator std::string_view () const { return sv(); }
 
     const char* begin() const { return data; }
+
     const char* end() const { return data + size; }
-    char operator[](int idx) const { return data[idx]; }
+
+    char operator[] (int idx) const { return data[idx]; }
+
     int length() const { return size; }
+
     bool empty() const { return size == 0; }
-    size_t hash() const{ return std::hash<std::string_view>()(sv()); }
 
-    Str& operator=(const Str&);
-    Str operator+(const Str&) const;
-    Str operator+(const char*) const;
-    friend Str operator+(const char*, const Str&);
+    size_t hash() const { return std::hash<std::string_view>()(sv()); }
 
-    bool operator==(const std::string_view other) const;
-    bool operator!=(const std::string_view other) const;
-    bool operator<(const std::string_view other) const;
-    friend bool operator<(const std::string_view other, const Str& str);
+    Str& operator= (const Str&);
+    Str operator+ (const Str&) const;
+    Str operator+ (const char*) const;
+    friend Str operator+ (const char*, const Str&);
 
-    bool operator==(const char* p) const;
-    bool operator!=(const char* p) const;
+    bool operator== (const std::string_view other) const;
+    bool operator!= (const std::string_view other) const;
+    bool operator< (const std::string_view other) const;
+    friend bool operator< (const std::string_view other, const Str& str);
 
-    bool operator==(const Str& other) const;
-    bool operator!=(const Str& other) const;
-    bool operator<(const Str& other) const;
-    bool operator>(const Str& other) const;
-    bool operator<=(const Str& other) const;
-    bool operator>=(const Str& other) const;
+    bool operator== (const char* p) const;
+    bool operator!= (const char* p) const;
+
+    bool operator== (const Str& other) const;
+    bool operator!= (const Str& other) const;
+    bool operator< (const Str& other) const;
+    bool operator> (const Str& other) const;
+    bool operator<= (const Str& other) const;
+    bool operator>= (const Str& other) const;
 
     ~Str();
 
-    friend std::ostream& operator<<(std::ostream& os, const Str& str);
+    friend std::ostream& operator<< (std::ostream& os, const Str& str);
 
     const char* c_str() const { return data; }
+
     std::string_view sv() const { return std::string_view(data, size); }
+
     std::string str() const { return std::string(data, size); }
 
     Str substr(int start, int len) const;
     Str substr(int start) const;
     Str strip(bool left, bool right, const Str& chars) const;
-    Str strip(bool left=true, bool right=true) const;
+    Str strip(bool left = true, bool right = true) const;
+
     Str lstrip() const { return strip(true, false); }
+
     Str rstrip() const { return strip(false, true); }
+
     Str lower() const;
     Str upper() const;
-    Str escape(bool single_quote=true) const;
-    void escape_(SStream& ss, bool single_quote=true) const;
-    int index(const Str& sub, int start=0) const;
+    Str escape(bool single_quote = true) const;
+    void escape_(SStream& ss, bool single_quote = true) const;
+    int index(const Str& sub, int start = 0) const;
     Str replace(char old, char new_) const;
-    Str replace(const Str& old, const Str& new_, int count=-1) const;
+    Str replace(const Str& old, const Str& new_, int count = -1) const;
     vector<std::string_view> split(const Str& sep) const;
     vector<std::string_view> split(char sep) const;
     int count(const Str& sub) const;
@@ -95,32 +105,29 @@ struct Str{
 struct StrName {
     uint16_t index;
 
-    StrName(): index(0) {}
-    explicit StrName(uint16_t index): index(index) {}
-    StrName(const char* s): index(get(s).index) {}
-    StrName(const Str& s): index(get(s.sv()).index) {}
+    StrName() : index(0) {}
 
-    std::string_view sv() const { return _r_interned()[index];}
+    explicit StrName(uint16_t index) : index(index) {}
+
+    StrName(const char* s) : index(get(s).index) {}
+
+    StrName(const Str& s) : index(get(s.sv()).index) {}
+
+    std::string_view sv() const { return _r_interned()[index]; }
+
     const char* c_str() const { return _r_interned()[index].c_str(); }
 
     bool empty() const { return index == 0; }
+
     Str escape() const { return Str(sv()).escape(); }
 
-    bool operator==(const StrName& other) const noexcept {
-        return this->index == other.index;
-    }
+    bool operator== (const StrName& other) const noexcept { return this->index == other.index; }
 
-    bool operator!=(const StrName& other) const noexcept {
-        return this->index != other.index;
-    }
+    bool operator!= (const StrName& other) const noexcept { return this->index != other.index; }
 
-    bool operator<(const StrName& other) const noexcept {
-        return sv() < other.sv();
-    }
+    bool operator< (const StrName& other) const noexcept { return sv() < other.sv(); }
 
-    bool operator>(const StrName& other) const noexcept {
-        return sv() > other.sv();
-    }
+    bool operator> (const StrName& other) const noexcept { return sv() > other.sv(); }
 
     static StrName get(std::string_view s);
     static std::map<std::string_view, uint16_t>& _interned();
@@ -128,32 +135,34 @@ struct StrName {
     static uint32_t _pesudo_random_index;
 };
 
-struct SStream{
+struct SStream {
     PK_ALWAYS_PASS_BY_POINTER(SStream)
 
     vector<char> buffer;
     int _precision = -1;
 
     bool empty() const { return buffer.empty(); }
+
     void setprecision(int precision) { _precision = precision; }
 
     SStream() {}
-    SStream(int guess_size) { buffer.reserve(guess_size);}
+
+    SStream(int guess_size) { buffer.reserve(guess_size); }
 
     Str str();
 
-    SStream& operator<<(const Str&);
-    SStream& operator<<(const char*);
-    SStream& operator<<(int);
-    SStream& operator<<(size_t);
-    SStream& operator<<(i64);
-    SStream& operator<<(f64);
-    SStream& operator<<(const std::string&);
-    SStream& operator<<(std::string_view);
-    SStream& operator<<(char);
-    SStream& operator<<(StrName);
+    SStream& operator<< (const Str&);
+    SStream& operator<< (const char*);
+    SStream& operator<< (int);
+    SStream& operator<< (size_t);
+    SStream& operator<< (i64);
+    SStream& operator<< (f64);
+    SStream& operator<< (const std::string&);
+    SStream& operator<< (std::string_view);
+    SStream& operator<< (char);
+    SStream& operator<< (StrName);
 
-    void write_hex(unsigned char, bool non_zero=false);
+    void write_hex(unsigned char, bool non_zero = false);
     void write_hex(void*);
     void write_hex(i64);
 };
@@ -162,17 +171,19 @@ struct SStream{
 #undef _S
 #endif
 
-template<typename... Args>
+template <typename... Args>
 Str _S(Args&&... args) {
     SStream ss;
     (ss << ... << args);
     return ss.str();
 }
 
-struct CString{
-	const char* ptr;
-	CString(const char* ptr): ptr(ptr) {}
-    operator const char*() const { return ptr; }
+struct CString {
+    const char* ptr;
+
+    CString(const char* ptr) : ptr(ptr) {}
+
+    operator const char* () const { return ptr; }
 };
 
 // unary operators
@@ -234,4 +245,4 @@ extern const StrName pk_id_complex;
 
 #define DEF_SNAME(name) const static StrName name(#name)
 
-} // namespace pkpy
+}  // namespace pkpy

@@ -16,7 +16,7 @@ def get_all_files(root: str):
 
 if __name__ == '__main__':
     files = []
-    # files.extend(get_all_files('include'))
-    # files.extend(get_all_files('src'))
+    files.extend(get_all_files('include'))
+    files.extend(get_all_files('src'))
     files.extend(get_all_files('src2'))
     subprocess.run(['clang-format', '-i'] + files, check=True)

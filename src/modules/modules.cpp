@@ -8,9 +8,9 @@
 #include <chrono>
 #include <cmath>
 
-namespace pkpy{
+namespace pkpy {
 
-struct PyStructTime{
+struct PyStructTime {
     int tm_year;
     int tm_mon;
     int tm_mday;
@@ -21,7 +21,7 @@ struct PyStructTime{
     int tm_yday;
     int tm_isdst;
 
-    PyStructTime(std::time_t t){
+    PyStructTime(std::time_t t) {
         std::tm* tm = std::localtime(&t);
         tm_year = tm->tm_year + 1900;
         tm_mon = tm->tm_mon + 1;
@@ -34,7 +34,7 @@ struct PyStructTime{
         tm_isdst = tm->tm_isdst;
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
+    static void _register(VM* vm, PyObject* mod, PyObject* type) {
         PY_READONLY_FIELD(PyStructTime, "tm_year", tm_year);
         PY_READONLY_FIELD(PyStructTime, "tm_mon", tm_mon);
         PY_READONLY_FIELD(PyStructTime, "tm_mday", tm_mday);
@@ -47,7 +47,7 @@ struct PyStructTime{
     }
 };
 
-void add_module_time(VM* vm){
+void add_module_time(VM* vm) {
     PyObject* mod = vm->new_module("time");
     vm->register_user_class<PyStructTime>(mod, "struct_time");
 
@@ -59,7 +59,7 @@ void add_module_time(VM* vm){
     vm->bind_func(mod, "sleep", 1, [](VM* vm, ArgsView args) {
         f64 seconds = CAST_F(args[0]);
         auto begin = std::chrono::system_clock::now();
-        while(true){
+        while(true) {
             auto now = std::chrono::system_clock::now();
             f64 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - begin).count() / 1000.0;
             if(elapsed >= seconds) break;
@@ -74,7 +74,7 @@ void add_module_time(VM* vm){
     });
 }
 
-void add_module_sys(VM* vm){
+void add_module_sys(VM* vm) {
     PyObject* mod = vm->new_module("sys");
     vm->setattr(mod, "version", VAR(PK_VERSION));
     vm->setattr(mod, "platform", VAR(kPlatformStrings[PK_SYS_PLATFORM]));
@@ -97,14 +97,14 @@ void add_module_sys(VM* vm){
     });
 }
 
-void add_module_json(VM* vm){
+void add_module_json(VM* vm) {
     PyObject* mod = vm->new_module("json");
     vm->bind_func(mod, "loads", 1, [](VM* vm, ArgsView args) {
         std::string_view sv;
-        if(is_type(args[0], vm->tp_bytes)){
+        if(is_type(args[0], vm->tp_bytes)) {
             const Bytes& b = PK_OBJ_GET(Bytes, args[0]);
             sv = std::string_view((char*)b.data(), b.size());
-        }else{
+        } else {
             sv = CAST(Str&, args[0]).sv();
         }
         CodeObject_ code = vm->compile(sv, "<json>", JSON_MODE);
@@ -117,10 +117,10 @@ void add_module_json(VM* vm){
 }
 
 // https://docs.python.org/3.5/library/math.html
-void add_module_math(VM* vm){
+void add_module_math(VM* vm) {
     PyObject* mod = vm->new_module("math");
     mod->attr().set("pi", VAR(3.1415926535897932384));
-    mod->attr().set("e" , VAR(2.7182818284590452354));
+    mod->attr().set("e", VAR(2.7182818284590452354));
     mod->attr().set("inf", VAR(std::numeric_limits<double>::infinity()));
     mod->attr().set("nan", VAR(std::numeric_limits<double>::quiet_NaN()));
 
@@ -131,7 +131,7 @@ void add_module_math(VM* vm){
         List& list = CAST(List&, args[0]);
         double sum = 0;
         double c = 0;
-        for(PyVar arg : list){
+        for(PyVar arg: list) {
             double x = CAST_F(arg);
             double y = x - c;
             double t = sum + y;
@@ -145,7 +145,7 @@ void add_module_math(VM* vm){
         i64 b = CAST(i64, args[1]);
         if(a < 0) a = -a;
         if(b < 0) b = -b;
-        while(b != 0){
+        while(b != 0) {
             i64 t = b;
             b = a % b;
             a = t;
@@ -165,7 +165,7 @@ void add_module_math(VM* vm){
 
     vm->bind_func(mod, "exp", 1, PK_LAMBDA(VAR(std::exp(CAST_F(args[0])))));
 
-    vm->bind(mod, "log(x, base=2.718281828459045)", [](VM* vm, ArgsView args){
+    vm->bind(mod, "log(x, base=2.718281828459045)", [](VM* vm, ArgsView args) {
         f64 x = CAST_F(args[0]);
         f64 base = CAST_F(args[1]);
         return VAR(std::log(x) / std::log(base));
@@ -185,7 +185,7 @@ void add_module_math(VM* vm){
     vm->bind_func(mod, "cos", 1, PK_LAMBDA(VAR(std::cos(CAST_F(args[0])))));
     vm->bind_func(mod, "sin", 1, PK_LAMBDA(VAR(std::sin(CAST_F(args[0])))));
     vm->bind_func(mod, "tan", 1, PK_LAMBDA(VAR(std::tan(CAST_F(args[0])))));
-    
+
     vm->bind_func(mod, "degrees", 1, PK_LAMBDA(VAR(CAST_F(args[0]) * 180 / 3.1415926535897932384)));
     vm->bind_func(mod, "radians", 1, PK_LAMBDA(VAR(CAST_F(args[0]) * 3.1415926535897932384 / 180)));
 
@@ -199,12 +199,13 @@ void add_module_math(VM* vm){
         i64 n = CAST(i64, args[0]);
         if(n < 0) vm->ValueError("factorial() not defined for negative values");
         i64 r = 1;
-        for(i64 i=2; i<=n; i++) r *= i;
+        for(i64 i = 2; i <= n; i++)
+            r *= i;
         return VAR(r);
     });
 }
 
-void add_module_traceback(VM* vm){
+void add_module_traceback(VM* vm) {
     PyObject* mod = vm->new_module("traceback");
     vm->bind_func(mod, "print_exc", 0, [](VM* vm, ArgsView args) {
         if(vm->__last_exception == nullptr) vm->ValueError("no exception");
@@ -220,13 +221,13 @@ void add_module_traceback(VM* vm){
     });
 }
 
-void add_module_dis(VM* vm){
+void add_module_dis(VM* vm) {
     PyObject* mod = vm->new_module("dis");
 
     vm->bind_func(mod, "dis", 1, [](VM* vm, ArgsView args) {
         CodeObject_ code;
         PyVar obj = args[0];
-        if(is_type(obj, vm->tp_str)){
+        if(is_type(obj, vm->tp_str)) {
             const Str& source = CAST(Str, obj);
             code = vm->compile(source, "<dis>", EXEC_MODE);
         }
@@ -238,37 +239,36 @@ void add_module_dis(VM* vm){
     });
 }
 
-void add_module_gc(VM* vm){
+void add_module_gc(VM* vm) {
     PyObject* mod = vm->new_module("gc");
     vm->bind_func(mod, "collect", 0, PK_LAMBDA(VAR(vm->heap.collect())));
 }
 
-void add_module_enum(VM* vm){
+void add_module_enum(VM* vm) {
     PyObject* mod = vm->new_module("enum");
     CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
     vm->_exec(code, mod);
     PyVar Enum = mod->attr("Enum");
-    vm->_all_types[PK_OBJ_GET(Type, Enum)].on_end_subclass = \
-        [](VM* vm, PyTypeInfo* new_ti){
-            new_ti->subclass_enabled = false;    // Enum class cannot be subclassed twice
-            NameDict& attr = new_ti->obj->attr();
-            for(auto [k, v]: attr.items()){
-                // wrap every attribute
-                std::string_view k_sv = k.sv();
-                if(k_sv.empty() || k_sv[0] == '_') continue;
-                attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
-            }
-        };
+    vm->_all_types[PK_OBJ_GET(Type, Enum)].on_end_subclass = [](VM* vm, PyTypeInfo* new_ti) {
+        new_ti->subclass_enabled = false;  // Enum class cannot be subclassed twice
+        NameDict& attr = new_ti->obj->attr();
+        for(auto [k, v]: attr.items()) {
+            // wrap every attribute
+            std::string_view k_sv = k.sv();
+            if(k_sv.empty() || k_sv[0] == '_') continue;
+            attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
+        }
+    };
 }
 
-void add_module___builtins(VM* vm){
+void add_module___builtins(VM* vm) {
     PyObject* mod = vm->new_module("__builtins");
 
-    vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args) {
         return vm->py_next(args[0]);
     });
 
-    vm->bind_func(mod, "_enable_instance_dict", 1, [](VM* vm, ArgsView args){
+    vm->bind_func(mod, "_enable_instance_dict", 1, [](VM* vm, ArgsView args) {
         PyVar self = args[0];
         if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
         if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
@@ -277,11 +277,11 @@ void add_module___builtins(VM* vm){
     });
 }
 
-
 /************************************************/
 #if PK_ENABLE_PROFILER
 struct LineProfilerW;
-struct _LpGuard{
+
+struct _LpGuard {
     PK_ALWAYS_PASS_BY_POINTER(_LpGuard)
     LineProfilerW* lp;
     VM* vm;
@@ -290,16 +290,16 @@ struct _LpGuard{
 };
 
 // line_profiler wrapper
-struct LineProfilerW{
+struct LineProfilerW {
     LineProfiler profiler;
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
+    static void _register(VM* vm, PyObject* mod, PyObject* type) {
+        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args) {
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->new_object<LineProfilerW>(cls);
         });
 
-        vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args){
+        vm->bind(type, "add_function(self, func)", [](VM* vm, ArgsView args) {
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
             vm->check_type(args[1], VM::tp_function);
             auto decl = PK_OBJ_GET(Function, args[1]).decl.get();
@@ -307,19 +307,20 @@ struct LineProfilerW{
             return vm->None;
         });
 
-        vm->bind(type, "runcall(self, func, *args)", [](VM* vm, ArgsView view){
+        vm->bind(type, "runcall(self, func, *args)", [](VM* vm, ArgsView view) {
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, view[0]);
             PyVar func = view[1];
             const Tuple& args = CAST(Tuple&, view[2]);
             vm->s_data.push(func);
             vm->s_data.push(PY_NULL);
-            for(PyVar arg : args) vm->s_data.push(arg);
+            for(PyVar arg: args)
+                vm->s_data.push(arg);
             _LpGuard guard(&self, vm);
             PyVar ret = vm->vectorcall(args.size());
             return ret;
         });
 
-        vm->bind(type, "print_stats(self)", [](VM* vm, ArgsView args){
+        vm->bind(type, "print_stats(self)", [](VM* vm, ArgsView args) {
             LineProfilerW& self = PK_OBJ_GET(LineProfilerW, args[0]);
             vm->stdout_write(self.profiler.stats());
             return vm->None;
@@ -327,28 +328,23 @@ struct LineProfilerW{
     }
 };
 
-
-_LpGuard::_LpGuard(LineProfilerW* lp, VM* vm): lp(lp), vm(vm) {
-    if(vm->_profiler){
-        vm->ValueError("only one profiler can be enabled at a time");
-    }
+_LpGuard::_LpGuard(LineProfilerW* lp, VM* vm) : lp(lp), vm(vm) {
+    if(vm->_profiler) { vm->ValueError("only one profiler can be enabled at a time"); }
     vm->_profiler = &lp->profiler;
     lp->profiler.begin();
 }
 
-_LpGuard::~_LpGuard(){
+_LpGuard::~_LpGuard() {
     vm->_profiler = nullptr;
     lp->profiler.end();
 }
 
-void add_module_line_profiler(VM *vm){
+void add_module_line_profiler(VM* vm) {
     PyObject* mod = vm->new_module("line_profiler");
     vm->register_user_class<LineProfilerW>(mod, "LineProfiler");
 }
 #else
-void add_module_line_profiler(VM* vm){
-    (void)vm;
-}
+void add_module_line_profiler(VM* vm) { (void)vm; }
 #endif
 
-}   // namespace pkpy
+}  // namespace pkpy

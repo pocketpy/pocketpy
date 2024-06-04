@@ -6,10 +6,10 @@
 #include <cassert>
 #include <string>
 
-namespace pkpy{
+namespace pkpy {
 
-inline const int kPoolExprBlockSize = 128;
-inline const int kPoolFrameBlockSize = 80;
+const inline int kPoolExprBlockSize = 128;
+const inline int kPoolFrameBlockSize = 80;
 
 void* PoolExpr_alloc() noexcept;
 void PoolExpr_dealloc(void*) noexcept;

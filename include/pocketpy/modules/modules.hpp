@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/types.hpp"
 
-namespace pkpy{
+namespace pkpy {
 
 void add_module_time(VM* vm);
 void add_module_sys(VM* vm);
@@ -15,4 +15,4 @@ void add_module_line_profiler(VM* vm);
 void add_module_enum(VM* vm);
 void add_module___builtins(VM* vm);
 
-}   // namespace pkpy
+}  // namespace pkpy
