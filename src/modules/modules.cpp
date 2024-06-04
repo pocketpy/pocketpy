@@ -62,7 +62,7 @@ void add_module_time(VM* vm) {
         while(true) {
             auto now = std::chrono::system_clock::now();
             f64 elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - begin).count() / 1000.0;
-            if(elapsed >= seconds) { break; }
+            if(elapsed >= seconds) break;
         }
         return vm->None;
     });
@@ -111,7 +111,9 @@ void add_module_json(VM* vm) {
         return vm->_exec(code, vm->callstack.top()._module);
     });
 
-    vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) { return VAR(vm->py_json(args[0])); });
+    vm->bind_func(mod, "dumps", 1, [](VM* vm, ArgsView args) {
+        return VAR(vm->py_json(args[0]));
+    });
 }
 
 // https://docs.python.org/3.5/library/math.html
@@ -141,8 +143,8 @@ void add_module_math(VM* vm) {
     vm->bind_func(mod, "gcd", 2, [](VM* vm, ArgsView args) {
         i64 a = CAST(i64, args[0]);
         i64 b = CAST(i64, args[1]);
-        if(a < 0) { a = -a; }
-        if(b < 0) { b = -b; }
+        if(a < 0) a = -a;
+        if(b < 0) b = -b;
         while(b != 0) {
             i64 t = b;
             b = a % b;
@@ -195,11 +197,10 @@ void add_module_math(VM* vm) {
 
     vm->bind_func(mod, "factorial", 1, [](VM* vm, ArgsView args) {
         i64 n = CAST(i64, args[0]);
-        if(n < 0) { vm->ValueError("factorial() not defined for negative values"); }
+        if(n < 0) vm->ValueError("factorial() not defined for negative values");
         i64 r = 1;
-        for(i64 i = 2; i <= n; i++) {
+        for(i64 i = 2; i <= n; i++)
             r *= i;
-        }
         return VAR(r);
     });
 }
@@ -207,14 +208,14 @@ void add_module_math(VM* vm) {
 void add_module_traceback(VM* vm) {
     PyObject* mod = vm->new_module("traceback");
     vm->bind_func(mod, "print_exc", 0, [](VM* vm, ArgsView args) {
-        if(vm->__last_exception == nullptr) { vm->ValueError("no exception"); }
+        if(vm->__last_exception == nullptr) vm->ValueError("no exception");
         Exception& e = vm->__last_exception->as<Exception>();
         vm->stdout_write(e.summary());
         return vm->None;
     });
 
     vm->bind_func(mod, "format_exc", 0, [](VM* vm, ArgsView args) {
-        if(vm->__last_exception == nullptr) { vm->ValueError("no exception"); }
+        if(vm->__last_exception == nullptr) vm->ValueError("no exception");
         Exception& e = vm->__last_exception->as<Exception>();
         return VAR(e.summary());
     });
@@ -231,7 +232,7 @@ void add_module_dis(VM* vm) {
             code = vm->compile(source, "<dis>", EXEC_MODE);
         }
         PyVar f = obj;
-        if(is_type(f, vm->tp_bound_method)) { f = CAST(BoundMethod, obj).func; }
+        if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, obj).func;
         code = CAST(Function&, f).decl->code;
         vm->stdout_write(vm->disassemble(code));
         return vm->None;
@@ -254,7 +255,7 @@ void add_module_enum(VM* vm) {
         for(auto [k, v]: attr.items()) {
             // wrap every attribute
             std::string_view k_sv = k.sv();
-            if(k_sv.empty() || k_sv[0] == '_') { continue; }
+            if(k_sv.empty() || k_sv[0] == '_') continue;
             attr.set(k, vm->call(new_ti->obj, VAR(k_sv), v));
         }
     };
@@ -263,12 +264,14 @@ void add_module_enum(VM* vm) {
 void add_module___builtins(VM* vm) {
     PyObject* mod = vm->new_module("__builtins");
 
-    vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args) { return vm->py_next(args[0]); });
+    vm->bind_func(mod, "next", 1, [](VM* vm, ArgsView args) {
+        return vm->py_next(args[0]);
+    });
 
     vm->bind_func(mod, "_enable_instance_dict", 1, [](VM* vm, ArgsView args) {
         PyVar self = args[0];
-        if(is_tagged(self)) { vm->TypeError("object: tagged object cannot enable instance dict"); }
-        if(self->is_attr_valid()) { vm->RuntimeError("object: instance dict is already enabled"); }
+        if(is_tagged(self)) vm->TypeError("object: tagged object cannot enable instance dict");
+        if(self->is_attr_valid()) vm->RuntimeError("object: instance dict is already enabled");
         self->_attr = new NameDict();
         return vm->None;
     });
@@ -310,9 +313,8 @@ struct LineProfilerW {
             const Tuple& args = CAST(Tuple&, view[2]);
             vm->s_data.push(func);
             vm->s_data.push(PY_NULL);
-            for(PyVar arg: args) {
+            for(PyVar arg: args)
                 vm->s_data.push(arg);
-            }
             _LpGuard guard(&self, vm);
             PyVar ret = vm->vectorcall(args.size());
             return ret;

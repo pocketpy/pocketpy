@@ -65,10 +65,14 @@ public:
 
         if constexpr(sizeof(f) <= sizeof(buffer)) {
             new (buffer) auto(std::forward<Fn>(f));
-            destructor = [](function_record* self) { reinterpret_cast<Fn*>(self->buffer)->~Fn(); };
+            destructor = [](function_record* self) {
+                reinterpret_cast<Fn*>(self->buffer)->~Fn();
+            };
         } else {
             data = new auto(std::forward<Fn>(f));
-            destructor = [](function_record* self) { delete static_cast<Fn*>(self->data); };
+            destructor = [](function_record* self) {
+                delete static_cast<Fn*>(self->data);
+            };
         }
 
         using Generator = generator<std::decay_t<Fn>, std::tuple<Extras...>>;

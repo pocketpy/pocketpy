@@ -1,4 +1,3 @@
-
 # clang-format configuration
 # compatible with clang-format 18
 
@@ -20,7 +19,7 @@ LambdaBodyIndentation: Signature
 BitFieldColonSpacing: Both
 
 # Insert
-InsertBraces: true
+InsertBraces: false
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtEOF: true
 
@@ -55,7 +54,7 @@ AllowShortCompoundRequirementOnASingleLine: true
 AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLambdasOnASingleLine: All
+AllowShortLambdasOnASingleLine: None
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: true
@@ -100,4 +99,4 @@ SortIncludes: Never
 SortUsingDeclarations: LexicographicNumeric
 IncludeBlocks: Merge
 
-WhitespaceSensitiveMacros: ["PK_PROTECTED"]
+WhitespaceSensitiveMacros: ["PK_PROTECTED", "LUA_PROTECTED"]

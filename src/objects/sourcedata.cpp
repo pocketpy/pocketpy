@@ -5,11 +5,11 @@ SourceData::SourceData(std::string_view source, const Str& filename, CompileMode
     filename(filename), mode(mode) {
     int index = 0;
     // Skip utf8 BOM if there is any.
-    if(strncmp(source.data(), "\xEF\xBB\xBF", 3) == 0) { index += 3; }
+    if(strncmp(source.data(), "\xEF\xBB\xBF", 3) == 0) index += 3;
     // Drop all '\r'
     SStream ss(source.size() + 1);
     while(index < source.size()) {
-        if(source[index] != '\r') { ss << source[index]; }
+        if(source[index] != '\r') ss << source[index];
         index++;
     }
     this->source = ss.str();
@@ -26,28 +26,27 @@ SourceData::SourceData(const Str& filename, CompileMode mode) : filename(filenam
 }
 
 std::pair<const char*, const char*> SourceData::_get_line(int lineno) const {
-    if(is_precompiled || lineno == -1) { return {nullptr, nullptr}; }
+    if(is_precompiled || lineno == -1) return {nullptr, nullptr};
     lineno -= 1;
-    if(lineno < 0) { lineno = 0; }
+    if(lineno < 0) lineno = 0;
     const char* _start = line_starts[lineno];
     const char* i = _start;
     // max 300 chars
-    while(*i != '\n' && *i != '\0' && i - _start < 300) {
+    while(*i != '\n' && *i != '\0' && i - _start < 300)
         i++;
-    }
     return {_start, i};
 }
 
 std::string_view SourceData::get_line(int lineno) const {
     auto [_0, _1] = _get_line(lineno);
-    if(_0 && _1) { return std::string_view(_0, _1 - _0); }
+    if(_0 && _1) return std::string_view(_0, _1 - _0);
     return "<?>";
 }
 
 Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) const {
     SStream ss;
     ss << "  " << "File \"" << filename << "\", line " << lineno;
-    if(!name.empty()) { ss << ", in " << name; }
+    if(!name.empty()) ss << ", in " << name;
     if(!is_precompiled) {
         ss << '\n';
         std::pair<const char*, const char*> pair = _get_line(lineno);
@@ -56,12 +55,12 @@ Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) 
         if(pair.first && pair.second) {
             line = Str(pair.first, pair.second - pair.first).lstrip();
             removed_spaces = pair.second - pair.first - line.length();
-            if(line.empty()) { line = "<?>"; }
+            if(line.empty()) line = "<?>";
         }
         ss << "    " << line;
         if(cursor && line != "<?>" && cursor >= pair.first && cursor <= pair.second) {
             auto column = cursor - pair.first - removed_spaces;
-            if(column >= 0) { ss << "\n    " << std::string(column, ' ') << "^"; }
+            if(column >= 0) ss << "\n    " << std::string(column, ' ') << "^";
         }
     }
     return ss.str();

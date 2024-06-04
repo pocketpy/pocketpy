@@ -20,9 +20,7 @@ std::string pkpy_platform_getline(bool* eof) {
     WCHAR buf;
     DWORD read;
     while(ReadConsoleW(hStdin, &buf, 1, &read, NULL) && buf != L'\n') {
-        if(eof && buf == L'\x1A') {
-            *eof = true;  // Ctrl+Z
-        }
+        if(eof && buf == L'\x1A') *eof = true;  // Ctrl+Z
         wss << buf;
     }
     std::wstring wideInput = wss.str();
@@ -30,7 +28,7 @@ std::string pkpy_platform_getline(bool* eof) {
     std::string output;
     output.resize(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
-    if(!output.empty() && output.back() == '\r') { output.pop_back(); }
+    if(!output.empty() && output.back() == '\r') output.pop_back();
     return output;
 }
 
@@ -39,7 +37,7 @@ std::string pkpy_platform_getline(bool* eof) {
 std::string pkpy_platform_getline(bool* eof) {
     std::string output;
     if(!std::getline(std::cin, output)) {
-        if(eof) { *eof = true; }
+        if(eof) *eof = true;
     }
     return output;
 }
@@ -50,7 +48,7 @@ static int f_input(pkpy_vm* vm) {
     if(!pkpy_is_none(vm, -1)) {
         pkpy_CString prompt;
         bool ok = pkpy_to_string(vm, -1, &prompt);
-        if(!ok) { return 0; }
+        if(!ok) return 0;
         std::cout << prompt << std::flush;
     }
     bool eof;
@@ -77,7 +75,7 @@ int main(int argc, char** argv) {
             std::cout << (need_more_lines ? "... " : ">>> ");
             bool eof = false;
             std::string line = pkpy_platform_getline(&eof);
-            if(eof) { break; }
+            if(eof) break;
             need_more_lines = pkpy_repl_input(repl, line.c_str());
         }
         pkpy_delete_vm(vm);
@@ -86,7 +84,7 @@ int main(int argc, char** argv) {
 
     if(argc == 2) {
         std::string argv_1 = argv[1];
-        if(argv_1 == "-h" || argv_1 == "--help") { goto __HELP; }
+        if(argv_1 == "-h" || argv_1 == "--help") goto __HELP;
 
         std::filesystem::path filepath(argv[1]);
         filepath = std::filesystem::absolute(filepath);
@@ -105,7 +103,7 @@ int main(int argc, char** argv) {
         pkpy_set_main_argv(vm, argc, argv);
 
         bool ok = pkpy_exec_2(vm, src.c_str(), filepath.filename().string().c_str(), 0, NULL);
-        if(!ok) { pkpy_clear_error(vm, NULL); }
+        if(!ok) pkpy_clear_error(vm, NULL);
         pkpy_delete_vm(vm);
         return ok ? 0 : 1;
     }

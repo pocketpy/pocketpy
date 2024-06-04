@@ -24,8 +24,12 @@ struct type_info {
                 ((T*)ptr)->~T();
                 operator delete (ptr);
             },
-            [](void* dst, const void* src) { new (dst) T(*(const T*)src); },
-            [](void* dst, void* src) { new (dst) T(std::move(*(T*)src)); },
+            [](void* dst, const void* src) {
+                new (dst) T(*(const T*)src);
+            },
+            [](void* dst, void* src) {
+                new (dst) T(std::move(*(T*)src));
+            },
             &typeid(T),
         };
         return info;

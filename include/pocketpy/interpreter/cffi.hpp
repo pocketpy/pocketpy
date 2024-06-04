@@ -74,17 +74,17 @@ struct Struct {
         } else {
             p = (char*)std::malloc(size);
         }
-        if(zero_init) { std::memset(p, 0, size); }
+        if(zero_init) std::memset(p, 0, size);
     }
 
     Struct(void* p, int size) : Struct(size, false) {
-        if(p != nullptr) { std::memcpy(this->p, p, size); }
+        if(p != nullptr) std::memcpy(this->p, p, size);
     }
 
     Struct(const Struct& other) : Struct(other.p, other.size) {}
 
     ~Struct() {
-        if(p != _inlined) { std::free(p); }
+        if(p != _inlined) std::free(p);
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);
@@ -94,9 +94,7 @@ struct Struct {
 template <typename Tp>
 Tp to_void_p(VM* vm, PyVar var) {
     static_assert(std::is_pointer_v<Tp>);
-    if(var == vm->None) {
-        return nullptr;  // None can be casted to any pointer implicitly
-    }
+    if(var == vm->None) return nullptr;  // None can be casted to any pointer implicitly
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<Tp>(p.ptr);
 }

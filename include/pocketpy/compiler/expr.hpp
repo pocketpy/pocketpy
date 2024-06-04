@@ -276,9 +276,8 @@ struct SequenceExpr : Expr {
     virtual Opcode opcode() const = 0;
 
     void emit_(CodeEmitContext* ctx) override {
-        for(auto& item: items) {
+        for(auto& item: items)
             item->emit_(ctx);
-        }
         ctx->emit_(opcode(), items.size(), line);
     }
 };
@@ -287,9 +286,8 @@ struct ListExpr : SequenceExpr {
     using SequenceExpr::SequenceExpr;
 
     Opcode opcode() const override {
-        for(auto& e: items) {
-            if(e->is_starred()) { return OP_BUILD_LIST_UNPACK; }
-        }
+        for(auto& e: items)
+            if(e->is_starred()) return OP_BUILD_LIST_UNPACK;
         return OP_BUILD_LIST;
     }
 
@@ -300,9 +298,8 @@ struct DictExpr : SequenceExpr {
     using SequenceExpr::SequenceExpr;
 
     Opcode opcode() const override {
-        for(auto& e: items) {
-            if(e->is_starred()) { return OP_BUILD_DICT_UNPACK; }
-        }
+        for(auto& e: items)
+            if(e->is_starred()) return OP_BUILD_DICT_UNPACK;
         return OP_BUILD_DICT;
     }
 
@@ -313,9 +310,8 @@ struct SetExpr : SequenceExpr {
     using SequenceExpr::SequenceExpr;
 
     Opcode opcode() const override {
-        for(auto& e: items) {
-            if(e->is_starred()) { return OP_BUILD_SET_UNPACK; }
-        }
+        for(auto& e: items)
+            if(e->is_starred()) return OP_BUILD_SET_UNPACK;
         return OP_BUILD_SET;
     }
 };
@@ -326,9 +322,8 @@ struct TupleExpr : SequenceExpr {
     bool is_tuple() const override { return true; }
 
     Opcode opcode() const override {
-        for(auto& e: items) {
-            if(e->is_starred()) { return OP_BUILD_TUPLE_UNPACK; }
-        }
+        for(auto& e: items)
+            if(e->is_starred()) return OP_BUILD_TUPLE_UNPACK;
         return OP_BUILD_TUPLE;
     }
 

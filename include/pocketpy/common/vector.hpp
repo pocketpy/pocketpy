@@ -31,9 +31,8 @@ struct array {
     array(explicit_copy_t, const array& other) {
         _data = (T*)std::malloc(sizeof(T) * other._size);
         _size = other._size;
-        for(int i = 0; i < _size; i++) {
+        for(int i = 0; i < _size; i++)
             _data[i] = other._data[i];
-        }
     }
 
     array(T* data, int size) : _data(data), _size(size) {}
@@ -107,9 +106,8 @@ struct vector {
 
     vector(explicit_copy_t, const vector& other) :
         _data((T*)std::malloc(sizeof(T) * other._size)), _capacity(other._size), _size(other._size) {
-        for(int i = 0; i < _size; i++) {
+        for(int i = 0; i < _size; i++)
             _data[i] = other._data[i];
-        }
     }
 
     // allow move
@@ -140,10 +138,8 @@ struct vector {
     T* data() const { return _data; }
 
     void reserve(int cap) {
-        if(cap < 4) {
-            cap = 4;  // minimum capacity
-        }
-        if(cap <= capacity()) { return; }
+        if(cap < 4) cap = 4;  // minimum capacity
+        if(cap <= capacity()) return;
         T* new_data = (T*)std::malloc(sizeof(T) * cap);
         if constexpr(is_trivially_relocatable_v<T>) {
             std::memcpy(new_data, _data, sizeof(T) * _size);
@@ -153,7 +149,7 @@ struct vector {
                 _data[i].~T();
             }
         }
-        if(_data) { std::free(_data); }
+        if(_data) std::free(_data);
         _data = new_data;
         _capacity = cap;
     }
@@ -164,25 +160,25 @@ struct vector {
     }
 
     void push_back(const T& t) {
-        if(_size == _capacity) { reserve(_capacity * 2); }
+        if(_size == _capacity) reserve(_capacity * 2);
         new (&_data[_size++]) T(t);
     }
 
     void push_back(T&& t) {
-        if(_size == _capacity) { reserve(_capacity * 2); }
+        if(_size == _capacity) reserve(_capacity * 2);
         new (&_data[_size++]) T(std::move(t));
     }
 
     bool contains(const T& t) const {
         for(int i = 0; i < _size; i++) {
-            if(_data[i] == t) { return true; }
+            if(_data[i] == t) return true;
         }
         return false;
     }
 
     template <typename... Args>
     void emplace_back(Args&&... args) {
-        if(_size == _capacity) { reserve(_capacity * 2); }
+        if(_size == _capacity) reserve(_capacity * 2);
         new (&_data[_size++]) T(std::forward<Args>(args)...);
     }
 
@@ -193,24 +189,21 @@ struct vector {
     void extend(T* begin, T* end) {
         int n = end - begin;
         reserve(_size + n);
-        for(int i = 0; i < n; i++) {
+        for(int i = 0; i < n; i++)
             new (&_data[_size++]) T(begin[i]);
-        }
     }
 
     void insert(int index, const T& t) {
-        if(_size == _capacity) { reserve(_capacity * 2); }
-        for(int i = _size; i > index; i--) {
+        if(_size == _capacity) reserve(_capacity * 2);
+        for(int i = _size; i > index; i--)
             _data[i] = std::move(_data[i - 1]);
-        }
         _data[index] = t;
         _size++;
     }
 
     void erase(int index) {
-        for(int i = index; i < _size - 1; i++) {
+        for(int i = index; i < _size - 1; i++)
             _data[i] = std::move(_data[i + 1]);
-        }
         _size--;
     }
 
@@ -427,7 +420,7 @@ public:
 
     ~small_vector() {
         std::destroy(m_begin, m_end);
-        if(!is_small()) { std::free(m_begin); }
+        if(!is_small()) std::free(m_begin);
     }
 
     template <typename... Args>

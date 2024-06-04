@@ -51,13 +51,12 @@ struct Generator {
     List s_backup;
 
     Generator(LinkedFrame* lf, ArgsView buffer) : lf(lf), state(0) {
-        for(PyVar obj: buffer) {
+        for(PyVar obj: buffer)
             s_backup.push_back(obj);
-        }
     }
 
     void _gc_mark(VM* vm) {
-        if(lf == nullptr) { return; }
+        if(lf == nullptr) return;
         lf->frame._gc_mark(vm);
         vm->__stack_gc_mark(s_backup.begin(), s_backup.end());
     }

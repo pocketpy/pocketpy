@@ -20,7 +20,7 @@ bool REPL::input(std::string line) {
         if(n >= need_more_lines) {
             for(int i = buffer.size() - need_more_lines; i < buffer.size(); i++) {
                 // no enough lines
-                if(buffer[i] != '\n') { return true; }
+                if(buffer[i] != '\n') return true;
             }
             need_more_lines = 0;
             line = buffer;
@@ -37,7 +37,7 @@ bool REPL::input(std::string line) {
         buffer += line;
         buffer += '\n';
         need_more_lines = ne.is_compiling_class ? 3 : 2;
-        if(need_more_lines) { return true; }
+        if(need_more_lines) return true;
     }
     return false;
 }

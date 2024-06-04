@@ -178,9 +178,8 @@ struct CallStack {
     bool empty() const { return _size == 0; }
 
     void clear() {
-        while(!empty()) {
+        while(!empty())
             pop();
-        }
     }
 
     template <typename... Args>
@@ -201,9 +200,8 @@ struct CallStack {
 
     template <typename Func>
     void apply(Func&& f) {
-        for(LinkedFrame* p = _tail; p != nullptr; p = p->f_back) {
+        for(LinkedFrame* p = _tail; p != nullptr; p = p->f_back)
             f(p->frame);
-        }
     }
 
     ~CallStack() { clear(); }

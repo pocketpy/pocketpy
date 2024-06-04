@@ -6,7 +6,7 @@
 namespace pkpy {
 PyVar* FastLocals::try_get_name(StrName name) {
     int index = co->varnames_inv.try_get(name);
-    if(index == -1) { return nullptr; }
+    if(index == -1) return nullptr;
     return &a[index];
 }
 
@@ -14,15 +14,15 @@ NameDict_ FastLocals::to_namedict() {
     NameDict_ dict = std::make_shared<NameDict>();
     co->varnames_inv.apply([&](StrName name, int index) {
         PyVar value = a[index];
-        if(value) { dict->set(name, value); }
+        if(value) dict->set(name, value);
     });
     return dict;
 }
 
 PyVar* Frame::f_closure_try_get(StrName name) {
-    if(_callable == nullptr) { return nullptr; }
+    if(_callable == nullptr) return nullptr;
     Function& fn = _callable->as<Function>();
-    if(fn._closure == nullptr) { return nullptr; }
+    if(fn._closure == nullptr) return nullptr;
     return fn._closure->try_get_2(name);
 }
 
@@ -30,10 +30,10 @@ int Frame::prepare_jump_exception_handler(ValueStack* _s) {
     // try to find a parent try block
     int i = co->lines[ip()].iblock;
     while(i >= 0) {
-        if(co->blocks[i].type == CodeBlockType::TRY_EXCEPT) { break; }
+        if(co->blocks[i].type == CodeBlockType::TRY_EXCEPT) break;
         i = co->blocks[i].parent;
     }
-    if(i < 0) { return -1; }
+    if(i < 0) return -1;
     PyVar obj = _s->popx();  // pop exception object
     UnwindTarget* uw = find_unwind_target(i);
     _s->reset(actual_sp_base() + uw->offset);  // unwind the stack
@@ -61,9 +61,8 @@ int Frame::_exit_block(ValueStack* _s, int i) {
 void Frame::prepare_jump_break(ValueStack* _s, int target) {
     int i = co->lines[ip()].iblock;
     if(target >= co->codes.size()) {
-        while(i >= 0) {
+        while(i >= 0)
             i = _exit_block(_s, i);
-        }
     } else {
         // BUG (solved)
         // for i in range(4):
@@ -71,10 +70,9 @@ void Frame::prepare_jump_break(ValueStack* _s, int target) {
         // # if there is no op here, the block check will fail
         // while i: --i
         int next_block = co->lines[target].iblock;
-        while(i >= 0 && i != next_block) {
+        while(i >= 0 && i != next_block)
             i = _exit_block(_s, i);
-        }
-        if(i != next_block) { throw std::runtime_error("invalid jump"); }
+        if(i != next_block) throw std::runtime_error("invalid jump");
     }
 }
 
@@ -93,7 +91,7 @@ void Frame::set_unwind_target(PyVar* _sp) {
 UnwindTarget* Frame::find_unwind_target(int iblock) {
     UnwindTarget* p;
     for(p = _uw_list; p != nullptr; p = p->next) {
-        if(p->iblock == iblock) { return p; }
+        if(p->iblock == iblock) return p;
     }
     return nullptr;
 }

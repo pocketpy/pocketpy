@@ -176,7 +176,7 @@ struct MemoryPool {
 
     void shrink_to_fit() {
         PK_GLOBAL_SCOPE_LOCK();
-        if(_arenas.size() < __MinArenaCount) { return; }
+        if(_arenas.size() < __MinArenaCount) return;
         _arenas.apply([this](Arena* arena) {
             if(arena->full()) {
                 _arenas.erase(arena);
@@ -186,8 +186,12 @@ struct MemoryPool {
     }
 
     ~MemoryPool() {
-        _arenas.apply([](Arena* arena) { delete arena; });
-        _empty_arenas.apply([](Arena* arena) { delete arena; });
+        _arenas.apply([](Arena* arena) {
+            delete arena;
+        });
+        _empty_arenas.apply([](Arena* arena) {
+            delete arena;
+        });
     }
 };
 

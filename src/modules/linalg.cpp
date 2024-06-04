@@ -163,8 +163,8 @@ void Vec2::_register(VM* vm, PyObject* mod, PyObject* type) {
             Vec2 __to = CAST(Vec2, args[1]);
             float val = atan2f(__to.y, __to.x) - atan2f(__from.y, __from.x);
             const float PI = 3.1415926535897932384f;
-            if(val > PI) { val -= 2 * PI; }
-            if(val < -PI) { val += 2 * PI; }
+            if(val > PI) val -= 2 * PI;
+            if(val < -PI) val += 2 * PI;
             return VAR(val);
         },
         {},
@@ -284,21 +284,19 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     PY_STRUCT_LIKE(Mat3x3)
 
     vm->bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
-        if(args.size() == 1 + 0) { return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros()); }
+        if(args.size() == 1 + 0) return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
         if(args.size() == 1 + 1) {
             const List& list = CAST(List&, args[1]);
-            if(list.size() != 9) { vm->TypeError("Mat3x3.__new__ takes a list of 9 floats"); }
+            if(list.size() != 9) vm->TypeError("Mat3x3.__new__ takes a list of 9 floats");
             Mat3x3 mat;
-            for(int i = 0; i < 9; i++) {
+            for(int i = 0; i < 9; i++)
                 mat.v[i] = CAST_F(list[i]);
-            }
             return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
         }
         if(args.size() == 1 + 9) {
             Mat3x3 mat;
-            for(int i = 0; i < 9; i++) {
+            for(int i = 0; i < 9; i++)
                 mat.v[i] = CAST_F(args[1 + i]);
-            }
             return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), mat);
         }
         vm->TypeError(_S("Mat3x3.__new__ takes 0 or 1 or 9 arguments, got ", args.size() - 1));
@@ -420,21 +418,21 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind__invert__(type->as<Type>(), [](VM* vm, PyVar obj) {
         Mat3x3& self = _CAST(Mat3x3&, obj);
         Mat3x3 ret;
-        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
+        if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
         return vm->new_user_object<Mat3x3>(ret);
     });
 
     vm->bind_func(type, "inverse", 1, [](VM* vm, ArgsView args) {
         Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Mat3x3 ret;
-        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
+        if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
         return vm->new_user_object<Mat3x3>(ret);
     });
 
     vm->bind_func(type, "inverse_", 1, [](VM* vm, ArgsView args) {
         Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Mat3x3 ret;
-        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
+        if(!self.inverse(ret)) vm->ValueError("matrix is not invertible");
         self = ret;
         return vm->None;
     });
@@ -450,7 +448,9 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         type,
         "zeros",
         0,
-        [](VM* vm, ArgsView args) { return vm->new_user_object<Mat3x3>(Mat3x3::zeros()); },
+        [](VM* vm, ArgsView args) {
+            return vm->new_user_object<Mat3x3>(Mat3x3::zeros());
+        },
         {},
         BindType::STATICMETHOD);
 
@@ -459,7 +459,9 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         type,
         "ones",
         0,
-        [](VM* vm, ArgsView args) { return vm->new_user_object<Mat3x3>(Mat3x3::ones()); },
+        [](VM* vm, ArgsView args) {
+            return vm->new_user_object<Mat3x3>(Mat3x3::ones());
+        },
         {},
         BindType::STATICMETHOD);
 
@@ -468,7 +470,9 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         type,
         "identity",
         0,
-        [](VM* vm, ArgsView args) { return vm->new_user_object<Mat3x3>(Mat3x3::identity()); },
+        [](VM* vm, ArgsView args) {
+            return vm->new_user_object<Mat3x3>(Mat3x3::identity());
+        },
         {},
         BindType::STATICMETHOD);
 
@@ -547,7 +551,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         const Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Vec2 v = CAST(Vec2, args[1]);
         Mat3x3 inv;
-        if(!self.inverse(inv)) { vm->ValueError("matrix is not invertible"); }
+        if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
         Vec2 res(inv._11 * v.x + inv._12 * v.y + inv._13, inv._21 * v.x + inv._22 * v.y + inv._23);
         return vm->new_user_object<Vec2>(res);
     });
@@ -563,7 +567,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         const Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Vec2 v = CAST(Vec2, args[1]);
         Mat3x3 inv;
-        if(!self.inverse(inv)) { vm->ValueError("matrix is not invertible"); }
+        if(!self.inverse(inv)) vm->ValueError("matrix is not invertible");
         Vec2 res(inv._11 * v.x + inv._12 * v.y, inv._21 * v.x + inv._22 * v.y);
         return vm->new_user_object<Vec2>(res);
     });
@@ -596,46 +600,42 @@ Mat3x3 Mat3x3::identity() { return Mat3x3(1, 0, 0, 0, 1, 0, 0, 0, 1); }
 
 Mat3x3 Mat3x3::operator+ (const Mat3x3& other) const {
     Mat3x3 ret;
-    for(int i = 0; i < 9; ++i) {
+    for(int i = 0; i < 9; ++i)
         ret.v[i] = v[i] + other.v[i];
-    }
     return ret;
 }
 
 Mat3x3 Mat3x3::operator- (const Mat3x3& other) const {
     Mat3x3 ret;
-    for(int i = 0; i < 9; ++i) {
+    for(int i = 0; i < 9; ++i)
         ret.v[i] = v[i] - other.v[i];
-    }
     return ret;
 }
 
 Mat3x3 Mat3x3::operator* (float scalar) const {
     Mat3x3 ret;
-    for(int i = 0; i < 9; ++i) {
+    for(int i = 0; i < 9; ++i)
         ret.v[i] = v[i] * scalar;
-    }
     return ret;
 }
 
 Mat3x3 Mat3x3::operator/ (float scalar) const {
     Mat3x3 ret;
-    for(int i = 0; i < 9; ++i) {
+    for(int i = 0; i < 9; ++i)
         ret.v[i] = v[i] / scalar;
-    }
     return ret;
 }
 
 bool Mat3x3::operator== (const Mat3x3& other) const {
     for(int i = 0; i < 9; ++i) {
-        if(!isclose(v[i], other.v[i])) { return false; }
+        if(!isclose(v[i], other.v[i])) return false;
     }
     return true;
 }
 
 bool Mat3x3::operator!= (const Mat3x3& other) const {
     for(int i = 0; i < 9; ++i) {
-        if(!isclose(v[i], other.v[i])) { return true; }
+        if(!isclose(v[i], other.v[i])) return true;
     }
     return false;
 }
@@ -682,7 +682,7 @@ Mat3x3 Mat3x3::transpose() const {
 
 bool Mat3x3::inverse(Mat3x3& out) const {
     float det = determinant();
-    if(isclose(det, 0)) { return false; }
+    if(isclose(det, 0)) return false;
     float inv_det = 1.0f / det;
     out._11 = (_22 * _33 - _23 * _32) * inv_det;
     out._12 = (_13 * _32 - _12 * _33) * inv_det;
@@ -704,7 +704,7 @@ Mat3x3 Mat3x3::trs(Vec2 t, float radian, Vec2 s) {
 
 bool Mat3x3::is_affine() const {
     float det = _11 * _22 - _12 * _21;
-    if(isclose(det, 0)) { return false; }
+    if(isclose(det, 0)) return false;
     return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
 }
 

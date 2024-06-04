@@ -1,13 +1,13 @@
 #pragma once
 
-#include "pocketpy/interpreter/frame.hpp"
-#include "pocketpy/interpreter/gc.hpp"
-#include "pocketpy/interpreter/profiler.hpp"
-#include "pocketpy/objects/builtins.hpp"
+#include "pocketpy/objects/object.hpp"
 #include "pocketpy/objects/dict.hpp"
 #include "pocketpy/objects/error.hpp"
-#include "pocketpy/objects/object.hpp"
 #include "pocketpy/objects/stackmemory.hpp"
+#include "pocketpy/objects/builtins.hpp"
+#include "pocketpy/interpreter/gc.hpp"
+#include "pocketpy/interpreter/frame.hpp"
+#include "pocketpy/interpreter/profiler.hpp"
 
 #include <stdexcept>
 
@@ -58,10 +58,14 @@ struct PyTypeInfo {
             static_assert(std::is_same_v<T, std::decay_t<T>>);
             Vt vt;
             if constexpr(!std::is_trivially_destructible_v<T>) {
-                vt._dtor = [](void* p) { ((T*)p)->~T(); };
+                vt._dtor = [](void* p) {
+                    ((T*)p)->~T();
+                };
             }
             if constexpr(has_gc_marker<T>::value) {
-                vt._gc_mark = [](void* p, VM* vm) { ((T*)p)->_gc_mark(vm); };
+                vt._gc_mark = [](void* p, VM* vm) {
+                    ((T*)p)->_gc_mark(vm);
+                };
             }
             return vt;
         }
@@ -654,18 +658,16 @@ PyVar py_var(VM* vm, __T&& value) {
     } else {
         constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
         if constexpr((bool)const_type) {
-            if constexpr(is_sso_v<T>) {
+            if constexpr(is_sso_v<T>)
                 return PyVar(const_type, value);
-            } else {
+            else
                 return vm->heap.gcnew<T>(const_type, std::forward<__T>(value));
-            }
         } else {
             Type type = vm->_find_type_in_cxx_typeid_map<T>();
-            if constexpr(is_sso_v<T>) {
+            if constexpr(is_sso_v<T>)
                 return PyVar(type, value);
-            } else {
+            else
                 return vm->heap.gcnew<T>(type, std::forward<__T>(value));
-            }
         }
     }
 }
@@ -682,15 +684,15 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>) {
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
-        if(obj == vm->None) { return nullptr; }
-        if constexpr(with_check) { vm->check_type(obj, vm->tp_str); }
+        if(obj == vm->None) return nullptr;
+        if constexpr(with_check) vm->check_type(obj, vm->tp_str);
         return PK_OBJ_GET(Str, obj).c_str();
     } else if constexpr(std::is_same_v<T, bool>) {
         static_assert(!std::is_reference_v<__T>);
         // bool
         if constexpr(with_check) {
-            if(obj == vm->True) { return true; }
-            if(obj == vm->False) { return false; }
+            if(obj == vm->True) return true;
+            if(obj == vm->False) return false;
             vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
         }
         return obj == vm->True;
@@ -698,14 +700,14 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check) {
-            if(is_int(obj)) { return (T)obj.as<i64>(); }
+            if(is_int(obj)) return (T)obj.as<i64>();
             vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
         }
         return (T)obj.as<i64>();
     } else if constexpr(is_floating_point_v<T>) {
         static_assert(!std::is_reference_v<__T>);
-        if(is_float(obj)) { return (T)obj.as<f64>(); }
-        if(is_int(obj)) { return (T)obj.as<i64>(); }
+        if(is_float(obj)) return (T)obj.as<f64>();
+        if(is_int(obj)) return (T)obj.as<i64>();
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
         return 0.0f;
     } else if constexpr(std::is_enum_v<T>) {

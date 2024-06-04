@@ -62,7 +62,7 @@ struct CodeBlock {
         type(type), parent(parent), start(start), end(-1), end2(-1) {}
 
     int get_break_end() const {
-        if(end2 != -1) { return end2; }
+        if(end2 != -1) return end2;
         return end;
     }
 };

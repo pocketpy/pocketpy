@@ -15,9 +15,8 @@ Tuple::Tuple(Tuple&& other) noexcept {
     _size = other._size;
     if(other.is_inlined()) {
         _args = _inlined;
-        for(int i = 0; i < _size; i++) {
+        for(int i = 0; i < _size; i++)
             _args[i] = other._args[i];
-        }
     } else {
         _args = other._args;
         other._args = other._inlined;
@@ -37,22 +36,20 @@ Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2) : Tuple(3) {
 }
 
 Tuple::~Tuple() {
-    if(!is_inlined()) { std::free(_args); }
+    if(!is_inlined()) std::free(_args);
 }
 
 List ArgsView::to_list() const {
     List ret(size());
-    for(int i = 0; i < size(); i++) {
+    for(int i = 0; i < size(); i++)
         ret[i] = _begin[i];
-    }
     return ret;
 }
 
 Tuple ArgsView::to_tuple() const {
     Tuple ret(size());
-    for(int i = 0; i < size(); i++) {
+    for(int i = 0; i < size(); i++)
         ret[i] = _begin[i];
-    }
     return ret;
 }
 

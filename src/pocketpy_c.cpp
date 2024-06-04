@@ -34,7 +34,7 @@ static PyVar stack_item(VM* vm, int index) {
         begin = vm->__c.s_view.top().begin();
     }
     int size = end - begin;
-    if(index < 0) { index += size; }
+    if(index < 0) index += size;
     assert(index >= 0 && index < size);
     return begin[index];
 }
@@ -133,7 +133,7 @@ int pkpy_stack_size(pkpy_vm* vm_handle) {
     VM* vm = (VM*)vm_handle;
     PK_ASSERT_NO_ERROR()
     if(vm->callstack.empty()) { return vm->s_data.size(); }
-    if(vm->__c.s_view.empty()) { exit(127); }
+    if(vm->__c.s_view.empty()) exit(127);
     return vm->s_data._sp - vm->__c.s_view.top().begin();
 }
 
@@ -313,7 +313,7 @@ struct TempViewPopper {
     TempViewPopper(VM* vm) : vm(vm), used(false) {}
 
     void restore() noexcept {
-        if(used) { return; }
+        if(used) return;
         vm->__c.s_view.pop();
         used = true;
     }
@@ -339,8 +339,8 @@ static PyVar c_function_wrapper(VM* vm, ArgsView args) {
         return nullptr;
     }
     assert(retc == vm->s_data._sp - curr_sp);
-    if(retc == 0) { return vm->None; }
-    if(retc == 1) { return vm->s_data.popx(); }
+    if(retc == 0) return vm->None;
+    if(retc == 1) return vm->s_data.popx();
     ArgsView ret_view(curr_sp, vm->s_data._sp);
     return py_var(vm, ret_view.to_tuple());
 }
@@ -374,7 +374,7 @@ bool pkpy_getattr(pkpy_vm* vm_handle, pkpy_CName name) {
     PK_ASSERT_N_EXTRA_ELEMENTS(1)
     PyVar o = vm->s_data.top();
     o = vm->getattr(o, StrName(name), false);
-    if(o == nullptr) { return false; }
+    if(o == nullptr) return false;
     vm->s_data.top() = o;
     return true;
 }
@@ -399,7 +399,7 @@ bool pkpy_getglobal(pkpy_vm* vm_handle, pkpy_CName name) {
     PyVar o = vm->_main->attr().try_get(StrName(name));
     if(o == nullptr) {
         o = vm->builtins->attr().try_get(StrName(name));
-        if(o == nullptr) { return false; }
+        if(o == nullptr) return false;
     }
     vm->s_data.push(o);
     return true;
@@ -433,8 +433,7 @@ bool pkpy_unpack_sequence(pkpy_vm* vm_handle, int n) {
         PyVar _0 = vm->py_iter(vm->s_data.popx());
         for(int i=0; i<n; i++){
             PyVar _1 = vm->py_next(_0);
-            if(_1 == vm->StopIteration){ vm->ValueError("not enough values to unpack");
-}
+            if(_1 == vm->StopIteration) vm->ValueError("not enough values to unpack");
             vm->s_data.push(_1);
         }
         if(vm->py_next(_0) != vm->StopIteration) vm->ValueError("too many values to unpack");
@@ -516,18 +515,17 @@ bool pkpy_check_error(pkpy_vm* vm_handle) {
 bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     VM* vm = (VM*)vm_handle;
     // no error
-    if(vm->__c.error == nullptr) { return false; }
+    if(vm->__c.error == nullptr) return false;
     Exception& e = vm->__c.error->as<Exception>();
-    if(message != nullptr) {
+    if(message != nullptr)
         *message = strdup(e.summary().c_str());
-    } else {
+    else
         std::cout << e.summary() << std::endl;
-    }
     vm->__c.error = nullptr;
     if(vm->callstack.empty()) {
         vm->s_data.clear();
     } else {
-        if(vm->__c.s_view.empty()) { exit(127); }
+        if(vm->__c.s_view.empty()) exit(127);
         vm->s_data.reset(vm->__c.s_view.top().end());
     }
     return true;

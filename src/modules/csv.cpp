@@ -13,7 +13,7 @@ void add_module_csv(VM* vm) {
             std::string_view line = CAST(Str&, csvfile[i]).sv();
             if(i == 0) {
                 // Skip utf8 BOM if there is any.
-                if(strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) { line = line.substr(3); }
+                if(strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) line = line.substr(3);
             }
             List row;
             int j;

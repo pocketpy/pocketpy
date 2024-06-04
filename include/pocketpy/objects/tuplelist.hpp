@@ -45,9 +45,8 @@ struct List : public vector<PyVar> {
 
     Tuple to_tuple() const {
         Tuple ret(size());
-        for(int i = 0; i < size(); i++) {
+        for(int i = 0; i < size(); i++)
             ret[i] = (*this)[i];
-        }
         return ret;
     }
 };

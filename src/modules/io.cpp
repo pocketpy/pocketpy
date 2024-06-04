@@ -23,7 +23,7 @@ static FILE* io_fopen(const char* name, const char* mode) {
 #if _MSC_VER
     FILE* fp;
     errno_t err = fopen_s(&fp, name, mode);
-    if(err != 0) { return nullptr; }
+    if(err != 0) return nullptr;
     return fp;
 #else
     return fopen(name, mode);
@@ -40,9 +40,9 @@ static size_t io_fread(void* buffer, size_t size, size_t count, FILE* fp) {
 
 unsigned char* _default_import_handler(const char* name, int* out_size) {
     bool exists = std::filesystem::exists(std::filesystem::path(name));
-    if(!exists) { return nullptr; }
+    if(!exists) return nullptr;
     FILE* fp = io_fopen(name, "rb");
-    if(!fp) { return nullptr; }
+    if(!fp) return nullptr;
     fseek(fp, 0, SEEK_END);
     int buffer_size = ftell(fp);
     unsigned char* buffer = new unsigned char[buffer_size];
@@ -96,7 +96,7 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind_func(type, "tell", 1, [](VM* vm, ArgsView args) {
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         long pos = ftell(io.fp);
-        if(pos == -1) { vm->IOError(strerror(errno)); }
+        if(pos == -1) vm->IOError(strerror(errno));
         return VAR(pos);
     });
 
@@ -105,7 +105,7 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type) {
         long offset = CAST(long, args[1]);
         int whence = CAST(int, args[2]);
         int ret = fseek(io.fp, offset, whence);
-        if(ret != 0) { vm->IOError(strerror(errno)); }
+        if(ret != 0) vm->IOError(strerror(errno));
         return vm->None;
     });
 
@@ -127,11 +127,11 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type) {
 FileIO::FileIO(VM* vm, const Str& file, const Str& mode) {
     this->is_text = mode.sv().find("b") == std::string::npos;
     fp = io_fopen(file.c_str(), mode.c_str());
-    if(!fp) { vm->IOError(strerror(errno)); }
+    if(!fp) vm->IOError(strerror(errno));
 }
 
 void FileIO::close() {
-    if(fp == nullptr) { return; }
+    if(fp == nullptr) return;
     fclose(fp);
     fp = nullptr;
 }
@@ -172,30 +172,29 @@ void add_module_os(VM* vm) {
             di = std::filesystem::directory_iterator(path);
         } catch(std::filesystem::filesystem_error&) { vm->IOError(path.string()); }
         List ret;
-        for(auto& p: di) {
+        for(auto& p: di)
             ret.push_back(VAR(p.path().filename().string()));
-        }
         return VAR(std::move(ret));
     });
 
     vm->bind_func(mod, "remove", 1, [](VM* vm, ArgsView args) {
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::remove(path);
-        if(!ok) { vm->IOError("operation failed"); }
+        if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 
     vm->bind_func(mod, "mkdir", 1, [](VM* vm, ArgsView args) {
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::create_directory(path);
-        if(!ok) { vm->IOError("operation failed"); }
+        if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 
     vm->bind_func(mod, "rmdir", 1, [](VM* vm, ArgsView args) {
         std::filesystem::path path(CAST(Str&, args[0]).sv());
         bool ok = std::filesystem::remove(path);
-        if(!ok) { vm->IOError("operation failed"); }
+        if(!ok) vm->IOError("operation failed");
         return vm->None;
     });
 

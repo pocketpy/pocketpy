@@ -50,7 +50,9 @@ public:
             bind_function(
                 *this,
                 "__init__",
-                [](T* self, Args... args) { new (self) T(args...); },
+                [](T* self, Args... args) {
+                    new (self) T(args...);
+                },
                 pkpy::BindType::DEFAULT,
                 extra...);
             return *this;

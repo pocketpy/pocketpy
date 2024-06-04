@@ -46,9 +46,8 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind_func(type, "hex", 1, [](VM* vm, ArgsView args) {
         const Struct& self = _CAST(Struct&, args[0]);
         SStream ss;
-        for(int i = 0; i < self.size; i++) {
+        for(int i = 0; i < self.size; i++)
             ss.write_hex((unsigned char)self.p[i]);
-        }
         return VAR(ss.str());
     });
 
@@ -59,29 +58,27 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
         1,
         [](VM* vm, ArgsView args) {
             const Str& s = CAST(Str&, args[0]);
-            if(s.size < 2 || s.size % 2 != 0) { vm->ValueError("invalid hex string"); }
+            if(s.size < 2 || s.size % 2 != 0) vm->ValueError("invalid hex string");
             Struct buffer(s.size / 2, false);
             for(int i = 0; i < s.size; i += 2) {
                 char c = 0;
-                if(s[i] >= '0' && s[i] <= '9') {
+                if(s[i] >= '0' && s[i] <= '9')
                     c += s[i] - '0';
-                } else if(s[i] >= 'A' && s[i] <= 'F') {
+                else if(s[i] >= 'A' && s[i] <= 'F')
                     c += s[i] - 'A' + 10;
-                } else if(s[i] >= 'a' && s[i] <= 'f') {
+                else if(s[i] >= 'a' && s[i] <= 'f')
                     c += s[i] - 'a' + 10;
-                } else {
+                else
                     vm->ValueError(_S("invalid hex char: '", s[i], "'"));
-                }
                 c <<= 4;
-                if(s[i + 1] >= '0' && s[i + 1] <= '9') {
+                if(s[i + 1] >= '0' && s[i + 1] <= '9')
                     c += s[i + 1] - '0';
-                } else if(s[i + 1] >= 'A' && s[i + 1] <= 'F') {
+                else if(s[i + 1] >= 'A' && s[i + 1] <= 'F')
                     c += s[i + 1] - 'A' + 10;
-                } else if(s[i + 1] >= 'a' && s[i + 1] <= 'f') {
+                else if(s[i + 1] >= 'a' && s[i + 1] <= 'f')
                     c += s[i + 1] - 'a' + 10;
-                } else {
+                else
                     vm->ValueError(_S("invalid hex char: '", s[i + 1], "'"));
-                }
                 buffer.p[i / 2] = c;
             }
             return vm->new_user_object<Struct>(std::move(buffer));
@@ -113,7 +110,7 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
 
     vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar lhs, PyVar rhs) {
         Struct& self = _CAST(Struct&, lhs);
-        if(!vm->is_user_type<Struct>(rhs)) { return vm->NotImplemented; }
+        if(!vm->is_user_type<Struct>(rhs)) return vm->NotImplemented;
         Struct& other = _CAST(Struct&, rhs);
         bool ok = self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
         return VAR(ok);

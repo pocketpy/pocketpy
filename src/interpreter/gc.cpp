@@ -13,15 +13,14 @@ int ManagedHeap::sweep() {
 #if PK_DEBUG_GC_STATS
             deleted[obj->type] += 1;
 #endif
-            if(_gc_on_delete) { _gc_on_delete(vm, obj); }
+            if(_gc_on_delete) _gc_on_delete(vm, obj);
             _delete(obj);
         }
     }
 
     // clear _no_gc marked flag
-    for(PyObject* obj: _no_gc) {
+    for(PyObject* obj: _no_gc)
         obj->gc_marked = false;
-    }
 
     int freed = gen.size() - alive.size();
 
@@ -40,11 +39,11 @@ int ManagedHeap::sweep() {
 
 void ManagedHeap::_auto_collect() {
 #if !PK_DEBUG_NO_AUTO_GC
-    if(_gc_lock_counter > 0) { return; }
+    if(_gc_lock_counter > 0) return;
     gc_counter = 0;
     collect();
     gc_threshold = gen.size() * 2;
-    if(gc_threshold < PK_GC_MIN_THRESHOLD) { gc_threshold = PK_GC_MIN_THRESHOLD; }
+    if(gc_threshold < PK_GC_MIN_THRESHOLD) gc_threshold = PK_GC_MIN_THRESHOLD;
 #endif
 }
 
