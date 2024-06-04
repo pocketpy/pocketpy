@@ -100,9 +100,7 @@ public:
         // foreach function record and call the function with not convert
         while(p != nullptr) {
             handle result = p->wrapper(*this, view, false, {});
-            if(result) {
-                return result;
-            }
+            if(result) { return result; }
             p = p->next;
         }
 
@@ -110,9 +108,7 @@ public:
         // foreach function record and call the function with convert
         while(p != nullptr) {
             handle result = p->wrapper(*this, view, true, {});
-            if(result) {
-                return result;
-            }
+            if(result) { return result; }
             p = p->next;
         }
 
@@ -172,13 +168,9 @@ struct generator<Fn, std::tuple<Extras...>, std::tuple<Args...>, std::index_sequ
 
             // initialize the stack
 
-            if(!has_args && (view.size() != count)) {
-                return handle();
-            }
+            if(!has_args && (view.size() != count)) { return handle(); }
 
-            if(has_args && (view.size() < count)) {
-                return handle();
-            }
+            if(has_args && (view.size() < count)) { return handle(); }
 
             for(std::size_t i = 0; i < count; ++i) {
                 stack[i] = view[i];
@@ -211,9 +203,7 @@ struct generator<Fn, std::tuple<Extras...>, std::tuple<Args...>, std::index_sequ
 
             // check if all the arguments are not valid
             for(std::size_t i = 0; i < sizeof...(Args); ++i) {
-                if(!stack[i]) {
-                    return handle();
-                }
+                if(!stack[i]) { return handle(); }
             }
 
             // ok, all the arguments are valid, call the function

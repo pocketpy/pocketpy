@@ -13,9 +13,7 @@ void add_module_csv(VM* vm) {
             std::string_view line = CAST(Str&, csvfile[i]).sv();
             if(i == 0) {
                 // Skip utf8 BOM if there is any.
-                if(strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) {
-                    line = line.substr(3);
-                }
+                if(strncmp(line.data(), "\xEF\xBB\xBF", 3) == 0) { line = line.substr(3); }
             }
             List row;
             int j;
@@ -70,16 +68,12 @@ void add_module_csv(VM* vm) {
         PyVar csv_reader = vm->_modules["csv"]->attr("reader");
         PyVar ret_obj = vm->call(csv_reader, args[0]);
         const List& ret = CAST(List&, ret_obj);
-        if(ret.size() == 0) {
-            vm->ValueError("empty csvfile");
-        }
+        if(ret.size() == 0) { vm->ValueError("empty csvfile"); }
         const List& header = CAST(List&, ret[0]);
         List new_ret;
         for(int i = 1; i < ret.size(); i++) {
             const List& row = CAST(List&, ret[i]);
-            if(row.size() != header.size()) {
-                vm->ValueError("row.size() != header.size()");
-            }
+            if(row.size() != header.size()) { vm->ValueError("row.size() != header.size()"); }
             Dict row_dict;
             for(int j = 0; j < header.size(); j++) {
                 row_dict.set(vm, header[j], row[j]);

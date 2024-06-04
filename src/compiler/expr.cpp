@@ -4,16 +4,10 @@
 namespace pkpy {
 
 inline bool is_identifier(std::string_view s) {
-    if(s.empty()) {
-        return false;
-    }
-    if(!isalpha(s[0]) && s[0] != '_') {
-        return false;
-    }
+    if(s.empty()) { return false; }
+    if(!isalpha(s[0]) && s[0] != '_') { return false; }
     for(char c: s) {
-        if(!isalnum(c) && c != '_') {
-            return false;
-        }
+        if(!isalnum(c) && c != '_') { return false; }
     }
     return true;
 }
@@ -23,12 +17,8 @@ inline bool is_small_int(i64 value) { return value >= INT16_MIN && value <= INT1
 int CodeEmitContext::get_loop() const {
     int index = curr_iblock;
     while(index >= 0) {
-        if(co->blocks[index].type == CodeBlockType::FOR_LOOP) {
-            break;
-        }
-        if(co->blocks[index].type == CodeBlockType::WHILE_LOOP) {
-            break;
-        }
+        if(co->blocks[index].type == CodeBlockType::FOR_LOOP) { break; }
+        if(co->blocks[index].type == CodeBlockType::WHILE_LOOP) { break; }
         index = co->blocks[index].parent;
     }
     return index;
@@ -79,12 +69,8 @@ void CodeEmitContext::revert_last_emit_() {
 
 void CodeEmitContext::try_merge_for_iter_store(int i) {
     // [FOR_ITER, STORE_?, ]
-    if(co->codes[i].op != OP_FOR_ITER) {
-        return;
-    }
-    if(co->codes.size() - i != 2) {
-        return;
-    }
+    if(co->codes[i].op != OP_FOR_ITER) { return; }
+    if(co->codes.size() - i != 2) { return; }
     uint16_t arg = co->codes[i + 1].arg;
     if(co->codes[i + 1].op == OP_STORE_FAST) {
         revert_last_emit_();
@@ -114,9 +100,7 @@ void CodeEmitContext::patch_jump(int index) {
 }
 
 bool CodeEmitContext::add_label(StrName name) {
-    if(co->labels.contains(name)) {
-        return false;
-    }
+    if(co->labels.contains(name)) { return false; }
     co->labels.set(name, co->codes.size());
     return true;
 }
@@ -124,9 +108,7 @@ bool CodeEmitContext::add_label(StrName name) {
 int CodeEmitContext::add_varname(StrName name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     int index = co->varnames_inv.try_get(name);
-    if(index >= 0) {
-        return index;
-    }
+    if(index >= 0) { return index; }
     co->varnames.push_back(name);
     co->nlocals++;
     index = co->varnames.size() - 1;
@@ -188,9 +170,7 @@ void NameExpr::emit_(CodeEmitContext* ctx) {
             // exec()/eval() won't work with OP_LOAD_ATTR_GLOBAL in class body
         } else {
             // we cannot determine the scope when calling exec()/eval()
-            if(scope == NAME_GLOBAL_UNKNOWN) {
-                op = OP_LOAD_NAME;
-            }
+            if(scope == NAME_GLOBAL_UNKNOWN) { op = OP_LOAD_NAME; }
         }
         ctx->emit_(op, StrName(name).index, line);
     }
@@ -226,9 +206,7 @@ void StarredExpr::emit_(CodeEmitContext* ctx) {
 }
 
 bool StarredExpr::emit_store(CodeEmitContext* ctx) {
-    if(level != 1) {
-        return false;
-    }
+    if(level != 1) { return false; }
     // simply proxy to child
     return child->emit_store(ctx);
 }
@@ -355,9 +333,7 @@ bool TupleExpr::emit_store(CodeEmitContext* ctx) {
     // items may contain StarredExpr, we should check it
     int starred_i = -1;
     for(int i = 0; i < items.size(); i++) {
-        if(!items[i]->is_starred()) {
-            continue;
-        }
+        if(!items[i]->is_starred()) { continue; }
         if(starred_i == -1) {
             starred_i = i;
         } else {
@@ -380,13 +356,9 @@ bool TupleExpr::emit_store(CodeEmitContext* ctx) {
         }
     } else {
         // starred assignment target must be in a tuple
-        if(items.size() == 1) {
-            return false;
-        }
+        if(items.size() == 1) { return false; }
         // starred assignment target must be the last one (differ from cpython)
-        if(starred_i != items.size() - 1) {
-            return false;
-        }
+        if(starred_i != items.size() - 1) { return false; }
         // a,*b = [1,2,3]
         // stack is [1,2,3] -> [1,[2,3]]
         ctx->emit_(OP_UNPACK_EX, items.size() - 1, line);
@@ -394,9 +366,7 @@ bool TupleExpr::emit_store(CodeEmitContext* ctx) {
     // do reverse emit
     for(int i = items.size() - 1; i >= 0; i--) {
         bool ok = items[i]->emit_store(ctx);
-        if(!ok) {
-            return false;
-        }
+        if(!ok) { return false; }
     }
     return true;
 }
@@ -404,9 +374,7 @@ bool TupleExpr::emit_store(CodeEmitContext* ctx) {
 bool TupleExpr::emit_del(CodeEmitContext* ctx) {
     for(auto& e: items) {
         bool ok = e->emit_del(ctx);
-        if(!ok) {
-            return false;
-        }
+        if(!ok) { return false; }
     }
     return true;
 }
@@ -474,9 +442,7 @@ void FStringExpr::_load_simple_expr(CodeEmitContext* ctx, Str expr) {
         ctx->emit_(OP_FSTRING_EVAL, index, line);
     }
 
-    if(repr) {
-        ctx->emit_(OP_REPR, BC_NOARG, line);
-    }
+    if(repr) { ctx->emit_(OP_REPR, BC_NOARG, line); }
 }
 
 static bool is_fmt_valid_char(char c) {
@@ -666,14 +632,10 @@ void CallExpr::emit_(CodeEmitContext* ctx) {
     bool vargs = false;
     bool vkwargs = false;
     for(auto& arg: args) {
-        if(arg->is_starred()) {
-            vargs = true;
-        }
+        if(arg->is_starred()) { vargs = true; }
     }
     for(auto& item: kwargs) {
-        if(item.second->is_starred()) {
-            vkwargs = true;
-        }
+        if(item.second->is_starred()) { vkwargs = true; }
     }
 
     // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod` proxy

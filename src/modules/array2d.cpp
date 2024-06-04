@@ -28,9 +28,7 @@ struct Array2d {
     bool is_valid(int col, int row) const { return 0 <= col && col < n_cols && 0 <= row && row < n_rows; }
 
     void check_valid(VM* vm, int col, int row) const {
-        if(is_valid(col, row)) {
-            return;
-        }
+        if(is_valid(col, row)) { return; }
         vm->IndexError(_S('(', col, ", ", row, ')', " is not a valid index for array2d(", n_cols, ", ", n_rows, ')'));
     }
 
@@ -48,9 +46,7 @@ struct Array2d {
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             int n_cols = CAST(int, args[1]);
             int n_rows = CAST(int, args[2]);
-            if(n_cols <= 0 || n_rows <= 0) {
-                vm->ValueError("n_cols and n_rows must be positive integers");
-            }
+            if(n_cols <= 0 || n_rows <= 0) { vm->ValueError("n_cols and n_rows must be positive integers"); }
             self.init(n_cols, n_rows);
             if(vm->py_callable(args[3])) {
                 for(int i = 0; i < self.numel; i++) {
@@ -100,9 +96,7 @@ struct Array2d {
             Array2d& self = PK_OBJ_GET(Array2d, args[0]);
             int col = CAST(int, args[1]);
             int row = CAST(int, args[2]);
-            if(!self.is_valid(col, row)) {
-                return args[3];
-            }
+            if(!self.is_valid(col, row)) { return args[3]; }
             return self._get(col, row);
         });
 
@@ -111,12 +105,10 @@ struct Array2d {
     int start_row, stop_row, step_row;                                                                                 \
     vm->parse_int_slice(PK_OBJ_GET(Slice, xy[0]), self.n_cols, start_col, stop_col, step_col);                         \
     vm->parse_int_slice(PK_OBJ_GET(Slice, xy[1]), self.n_rows, start_row, stop_row, step_row);                         \
-    if(step_col != 1 || step_row != 1)                                                                                 \
-        vm->ValueError("slice step must be 1");                                                                        \
+    if(step_col != 1 || step_row != 1) vm->ValueError("slice step must be 1");                                         \
     int slice_width = stop_col - start_col;                                                                            \
     int slice_height = stop_row - start_row;                                                                           \
-    if(slice_width <= 0 || slice_height <= 0)                                                                          \
-        vm->ValueError("slice width and height must be positive");
+    if(slice_width <= 0 || slice_height <= 0) vm->ValueError("slice width and height must be positive");
 
         vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1) {
             Array2d& self = PK_OBJ_GET(Array2d, _0);
@@ -285,17 +277,11 @@ struct Array2d {
 
         vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1) {
             Array2d& self = PK_OBJ_GET(Array2d, _0);
-            if(!vm->is_user_type<Array2d>(_1)) {
-                return vm->NotImplemented;
-            }
+            if(!vm->is_user_type<Array2d>(_1)) { return vm->NotImplemented; }
             Array2d& other = PK_OBJ_GET(Array2d, _1);
-            if(self.n_cols != other.n_cols || self.n_rows != other.n_rows) {
-                return vm->False;
-            }
+            if(self.n_cols != other.n_cols || self.n_rows != other.n_rows) { return vm->False; }
             for(int i = 0; i < self.numel; i++) {
-                if(vm->py_ne(self.data[i], other.data[i])) {
-                    return vm->False;
-                }
+                if(vm->py_ne(self.data[i], other.data[i])) { return vm->False; }
             }
             return vm->True;
         });
@@ -368,9 +354,7 @@ struct Array2d {
             }
             int width = right - left + 1;
             int height = bottom - top + 1;
-            if(width <= 0 || height <= 0) {
-                return vm->None;
-            }
+            if(width <= 0 || height <= 0) { return vm->None; }
             Tuple t(4);
             t[0] = VAR(left);
             t[1] = VAR(top);
@@ -404,9 +388,7 @@ struct Array2dIter {
         vm->bind__iter__(type->as<Type>(), [](VM* vm, PyVar _0) { return _0; });
         vm->bind__next__(type->as<Type>(), [](VM* vm, PyVar _0) -> unsigned {
             Array2dIter& self = PK_OBJ_GET(Array2dIter, _0);
-            if(self.i == self.a->numel) {
-                return 0;
-            }
+            if(self.i == self.a->numel) { return 0; }
             std::div_t res = std::div(self.i, self.a->n_cols);
             vm->s_data.emplace(VM::tp_int, res.rem);
             vm->s_data.emplace(VM::tp_int, res.quot);

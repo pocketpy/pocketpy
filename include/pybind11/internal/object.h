@@ -191,16 +191,12 @@ public:
     }
 
     ~object() {
-        if(m_ptr != nullptr) {
-            dec_ref();
-        }
+        if(m_ptr != nullptr) { dec_ref(); }
     }
 
 protected:
     object(const handle& h, bool borrow) : handle(h) {
-        if(borrow) {
-            inc_ref();
-        }
+        if(borrow) { inc_ref(); }
     }
 
     template <typename T>

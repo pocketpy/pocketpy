@@ -9,9 +9,7 @@ PrattRule Compiler::rules[kTokenCount];
 
 NameScope Compiler::name_scope() const {
     auto s = contexts.size() > 1 ? NAME_LOCAL : NAME_GLOBAL;
-    if(unknown_global_scope && s == NAME_GLOBAL) {
-        s = NAME_GLOBAL_UNKNOWN;
-    }
+    if(unknown_global_scope && s == NAME_GLOBAL) { s = NAME_GLOBAL_UNKNOWN; }
     return s;
 }
 
@@ -33,9 +31,7 @@ FuncDecl_ Compiler::push_f_context(Str name) {
 }
 
 void Compiler::pop_context() {
-    if(!ctx()->s_expr.empty()) {
-        throw std::runtime_error("!ctx()->s_expr.empty()");
-    }
+    if(!ctx()->s_expr.empty()) { throw std::runtime_error("!ctx()->s_expr.empty()"); }
     // add a `return None` in the end as a guard
     // previously, we only do this if the last opcode is not a return
     // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
@@ -49,12 +45,8 @@ void Compiler::pop_context() {
 
     // some check here
     auto& codes = ctx()->co->codes;
-    if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES) {
-        SyntaxError("maximum number of local variables exceeded");
-    }
-    if(ctx()->co->consts.size() > 65530) {
-        SyntaxError("maximum number of constants exceeded");
-    }
+    if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES) { SyntaxError("maximum number of local variables exceeded"); }
+    if(ctx()->co->consts.size() > 65530) { SyntaxError("maximum number of constants exceeded"); }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
     for(int i = 0; i < codes.size(); i++) {
         Bytecode& bc = codes[i];
@@ -81,15 +73,9 @@ void Compiler::pop_context() {
         }
         if(func->type == FuncType::UNSET) {
             bool is_simple = true;
-            if(func->kwargs.size() > 0) {
-                is_simple = false;
-            }
-            if(func->starred_arg >= 0) {
-                is_simple = false;
-            }
-            if(func->starred_kwarg >= 0) {
-                is_simple = false;
-            }
+            if(func->kwargs.size() > 0) { is_simple = false; }
+            if(func->starred_arg >= 0) { is_simple = false; }
+            if(func->starred_kwarg >= 0) { is_simple = false; }
 
             if(is_simple) {
                 func->type = FuncType::SIMPLE;
@@ -97,13 +83,9 @@ void Compiler::pop_context() {
                 bool is_empty = false;
                 if(func->code->codes.size() == 1) {
                     Bytecode bc = func->code->codes[0];
-                    if(bc.op == OP_RETURN_VALUE && bc.arg == 1) {
-                        is_empty = true;
-                    }
+                    if(bc.op == OP_RETURN_VALUE && bc.arg == 1) { is_empty = true; }
                 }
-                if(is_empty) {
-                    func->type = FuncType::EMPTY;
-                }
+                if(is_empty) { func->type = FuncType::EMPTY; }
             } else {
                 func->type = FuncType::NORMAL;
             }
@@ -116,9 +98,7 @@ void Compiler::pop_context() {
 
 void Compiler::init_pratt_rules() {
     static bool initialized = false;
-    if(initialized) {
-        return;
-    }
+    if(initialized) { return; }
     initialized = true;
 
     // clang-format off
@@ -178,17 +158,13 @@ void Compiler::init_pratt_rules() {
 }
 
 bool Compiler::match(TokenIndex expected) {
-    if(curr().type != expected) {
-        return false;
-    }
+    if(curr().type != expected) { return false; }
     advance();
     return true;
 }
 
 void Compiler::consume(TokenIndex expected) {
-    if(!match(expected)) {
-        SyntaxError(_S("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'"));
-    }
+    if(!match(expected)) { SyntaxError(_S("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")); }
 }
 
 bool Compiler::match_newlines_repl() { return match_newlines(mode() == REPL_MODE); }
@@ -201,9 +177,7 @@ bool Compiler::match_newlines(bool repl_throw) {
         }
         consumed = true;
     }
-    if(repl_throw && curr().type == TK("@eof")) {
-        throw NeedMoreLines(ctx()->is_compiling_class);
-    }
+    if(repl_throw && curr().type == TK("@eof")) { throw NeedMoreLines(ctx()->is_compiling_class); }
     return consumed;
 }
 
@@ -212,43 +186,29 @@ bool Compiler::match_end_stmt() {
         match_newlines();
         return true;
     }
-    if(match_newlines() || curr().type == TK("@eof")) {
-        return true;
-    }
-    if(curr().type == TK("@dedent")) {
-        return true;
-    }
+    if(match_newlines() || curr().type == TK("@eof")) { return true; }
+    if(curr().type == TK("@dedent")) { return true; }
     return false;
 }
 
 void Compiler::consume_end_stmt() {
-    if(!match_end_stmt()) {
-        SyntaxError("expected statement end");
-    }
+    if(!match_end_stmt()) { SyntaxError("expected statement end"); }
 }
 
 void Compiler::EXPR() { parse_expression(PREC_LOWEST + 1); }
 
 void Compiler::EXPR_TUPLE(bool allow_slice) {
     parse_expression(PREC_LOWEST + 1, allow_slice);
-    if(!match(TK(","))) {
-        return;
-    }
+    if(!match(TK(","))) { return; }
     // tuple expression
     Expr_vector items;
     items.push_back(ctx()->s_expr.popx());
     do {
-        if(curr().brackets_level) {
-            match_newlines_repl();
-        }
-        if(!is_expression(allow_slice)) {
-            break;
-        }
+        if(curr().brackets_level) { match_newlines_repl(); }
+        if(!is_expression(allow_slice)) { break; }
         parse_expression(PREC_LOWEST + 1, allow_slice);
         items.push_back(ctx()->s_expr.popx());
-        if(curr().brackets_level) {
-            match_newlines_repl();
-        }
+        if(curr().brackets_level) { match_newlines_repl(); }
     } while(match(TK(",")));
     ctx()->s_expr.push(make_expr<TupleExpr>(std::move(items)));
 }
@@ -260,9 +220,7 @@ Expr_ Compiler::EXPR_VARS() {
         consume(TK("@id"));
         items.push_back(make_expr<NameExpr>(prev().str(), name_scope()));
     } while(match(TK(",")));
-    if(items.size() == 1) {
-        return std::move(items[0]);
-    }
+    if(items.size() == 1) { return std::move(items[0]); }
     return make_expr<TupleExpr>(std::move(items));
 }
 
@@ -351,9 +309,7 @@ void Compiler::exprGroup() {
     EXPR_TUPLE();  // () is just for change precedence
     match_newlines_repl();
     consume(TK(")"));
-    if(ctx()->s_expr.top()->is_tuple()) {
-        return;
-    }
+    if(ctx()->s_expr.top()->is_tuple()) { return; }
     Expr_ g = make_expr<GroupedExpr>(ctx()->s_expr.popx());
     ctx()->s_expr.push(std::move(g));
 }
@@ -378,9 +334,7 @@ void Compiler::exprList() {
     Expr_vector items;
     do {
         match_newlines_repl();
-        if(curr().type == TK("]")) {
-            break;
-        }
+        if(curr().type == TK("]")) { break; }
         EXPR();
         items.push_back(ctx()->s_expr.popx());
         match_newlines_repl();
@@ -402,14 +356,10 @@ void Compiler::exprMap() {
     Expr_vector items;
     do {
         match_newlines_repl();
-        if(curr().type == TK("}")) {
-            break;
-        }
+        if(curr().type == TK("}")) { break; }
         EXPR();
         int star_level = ctx()->s_expr.top()->star_level();
-        if(star_level == 2 || curr().type == TK(":")) {
-            parsing_dict = true;
-        }
+        if(star_level == 2 || curr().type == TK(":")) { parsing_dict = true; }
         if(parsing_dict) {
             auto dict_item = make_expr<DictItemExpr>();
             if(star_level == 2) {
@@ -452,9 +402,7 @@ void Compiler::exprCall() {
     e->callable = ctx()->s_expr.popx();
     do {
         match_newlines_repl();
-        if(curr().type == TK(")")) {
-            break;
-        }
+        if(curr().type == TK(")")) { break; }
         if(curr().type == TK("@id") && next().type == TK("=")) {
             consume(TK("@id"));
             Str key = prev().str();
@@ -468,30 +416,22 @@ void Compiler::exprCall() {
                 e->kwargs.push_back({"**", ctx()->s_expr.popx()});
             } else {
                 // positional argument
-                if(!e->kwargs.empty()) {
-                    SyntaxError("positional argument follows keyword argument");
-                }
+                if(!e->kwargs.empty()) { SyntaxError("positional argument follows keyword argument"); }
                 e->args.push_back(ctx()->s_expr.popx());
             }
         }
         match_newlines_repl();
     } while(match(TK(",")));
     consume(TK(")"));
-    if(e->args.size() > 32767) {
-        SyntaxError("too many positional arguments");
-    }
-    if(e->kwargs.size() > 32767) {
-        SyntaxError("too many keyword arguments");
-    }
+    if(e->args.size() > 32767) { SyntaxError("too many positional arguments"); }
+    if(e->kwargs.size() > 32767) { SyntaxError("too many keyword arguments"); }
     ctx()->s_expr.push(std::move(e));
 }
 
 void Compiler::exprName() {
     Str name = prev().str();
     NameScope scope = name_scope();
-    if(ctx()->global_names.contains(name)) {
-        scope = NAME_GLOBAL;
-    }
+    if(ctx()->global_names.contains(name)) { scope = NAME_GLOBAL; }
     ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
 }
 
@@ -551,23 +491,17 @@ void Compiler::exprSubscr() {
 void Compiler::exprLiteral0() { ctx()->s_expr.push(make_expr<Literal0Expr>(prev().type)); }
 
 void Compiler::compile_block_body(void (Compiler::*callback)()) {
-    if(callback == nullptr) {
-        callback = &Compiler::compile_stmt;
-    }
+    if(callback == nullptr) { callback = &Compiler::compile_stmt; }
     consume(TK(":"));
     if(curr().type != TK("@eol") && curr().type != TK("@eof")) {
         while(true) {
             compile_stmt();
             bool possible = curr().type != TK("@eol") && curr().type != TK("@eof");
-            if(prev().type != TK(";") || !possible) {
-                break;
-            }
+            if(prev().type != TK(";") || !possible) { break; }
         }
         return;
     }
-    if(!match_newlines(mode() == REPL_MODE)) {
-        SyntaxError("expected a new line after ':'");
-    }
+    if(!match_newlines(mode() == REPL_MODE)) { SyntaxError("expected a new line after ':'"); }
     consume(TK("@indent"));
     while(curr().type != TK("@dedent")) {
         match_newlines();
@@ -641,9 +575,7 @@ __EAT_DOTS_END:
     consume(TK("import"));
 
     if(match(TK("*"))) {
-        if(name_scope() != NAME_GLOBAL) {
-            SyntaxError("from <module> import * can only be used in global scope");
-        }
+        if(name_scope() != NAME_GLOBAL) { SyntaxError("from <module> import * can only be used in global scope"); }
         // pop the module and import __all__
         ctx()->emit_(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
         consume_end_stmt();
@@ -816,9 +748,7 @@ void Compiler::compile_decorated() {
     do {
         EXPR();
         decorators.push_back(ctx()->s_expr.popx());
-        if(!match_newlines_repl()) {
-            SyntaxError();
-        }
+        if(!match_newlines_repl()) { SyntaxError(); }
     } while(match(TK("@")));
 
     if(match(TK("class"))) {
@@ -843,12 +773,8 @@ bool Compiler::try_compile_assignment() {
         case TK("|="):
         case TK("^="): {
             Expr* lhs_p = ctx()->s_expr.top().get();
-            if(lhs_p->is_starred()) {
-                SyntaxError();
-            }
-            if(ctx()->is_compiling_class) {
-                SyntaxError("can't use inplace operator in class definition");
-            }
+            if(lhs_p->is_starred()) { SyntaxError(); }
+            if(ctx()->is_compiling_class) { SyntaxError("can't use inplace operator in class definition"); }
             advance();
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
@@ -857,14 +783,10 @@ bool Compiler::try_compile_assignment() {
             e->lhs = ctx()->s_expr.popx();
             EXPR_TUPLE();
             e->rhs = ctx()->s_expr.popx();
-            if(e->rhs->is_starred()) {
-                SyntaxError();
-            }
+            if(e->rhs->is_starred()) { SyntaxError(); }
             e->emit_(ctx());
             bool ok = lhs_p->emit_store_inplace(ctx());
-            if(!ok) {
-                SyntaxError();
-            }
+            if(!ok) { SyntaxError(); }
         }
             return true;
         case TK("="): {
@@ -881,13 +803,9 @@ bool Compiler::try_compile_assignment() {
             }
             for(int j = 0; j < n; j++) {
                 auto e = ctx()->s_expr.popx();
-                if(e->is_starred()) {
-                    SyntaxError();
-                }
+                if(e->is_starred()) { SyntaxError(); }
                 bool ok = e->emit_store(ctx());
-                if(!ok) {
-                    SyntaxError();
-                }
+                if(!ok) { SyntaxError(); }
             }
         }
             return true;
@@ -905,32 +823,24 @@ void Compiler::compile_stmt() {
     int curr_loop_block = ctx()->get_loop();
     switch(prev().type) {
         case TK("break"):
-            if(curr_loop_block < 0) {
-                SyntaxError("'break' outside loop");
-            }
+            if(curr_loop_block < 0) { SyntaxError("'break' outside loop"); }
             ctx()->emit_(OP_LOOP_BREAK, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK("continue"):
-            if(curr_loop_block < 0) {
-                SyntaxError("'continue' not properly in loop");
-            }
+            if(curr_loop_block < 0) { SyntaxError("'continue' not properly in loop"); }
             ctx()->emit_(OP_LOOP_CONTINUE, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK("yield"):
-            if(contexts.size() <= 1) {
-                SyntaxError("'yield' outside function");
-            }
+            if(contexts.size() <= 1) { SyntaxError("'yield' outside function"); }
             EXPR_TUPLE();
             ctx()->emit_expr();
             ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
             consume_end_stmt();
             break;
         case TK("yield from"):
-            if(contexts.size() <= 1) {
-                SyntaxError("'yield from' outside function");
-            }
+            if(contexts.size() <= 1) { SyntaxError("'yield from' outside function"); }
             EXPR_TUPLE();
             ctx()->emit_expr();
 
@@ -942,9 +852,7 @@ void Compiler::compile_stmt() {
             consume_end_stmt();
             break;
         case TK("return"):
-            if(contexts.size() <= 1) {
-                SyntaxError("'return' outside function");
-            }
+            if(contexts.size() <= 1) { SyntaxError("'return' outside function"); }
             if(match_end_stmt()) {
                 ctx()->emit_(OP_RETURN_VALUE, 1, kw_line);
             } else {
@@ -970,9 +878,7 @@ void Compiler::compile_stmt() {
             StrName name(prev().sv());
             NameScope scope = name_scope();
             bool is_global = ctx()->global_names.contains(name.sv());
-            if(is_global) {
-                scope = NAME_GLOBAL;
-            }
+            if(is_global) { scope = NAME_GLOBAL; }
             switch(scope) {
                 case NAME_LOCAL: ctx()->emit_(OP_INC_FAST, ctx()->add_varname(name), prev().line); break;
                 case NAME_GLOBAL: ctx()->emit_(OP_INC_GLOBAL, name.index, prev().line); break;
@@ -1024,9 +930,7 @@ void Compiler::compile_stmt() {
             EXPR_TUPLE();
             Expr_ e = ctx()->s_expr.popx();
             bool ok = e->emit_del(ctx());
-            if(!ok) {
-                SyntaxError();
-            }
+            if(!ok) { SyntaxError(); }
             consume_end_stmt();
         } break;
         case TK("with"): {
@@ -1042,9 +946,7 @@ void Compiler::compile_stmt() {
             // [ <expr> <expr>.__enter__() ]
             if(as_name != nullptr) {
                 bool ok = as_name->emit_store(ctx());
-                if(!ok) {
-                    SyntaxError();
-                }
+                if(!ok) { SyntaxError(); }
             } else {
                 ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
@@ -1055,21 +957,15 @@ void Compiler::compile_stmt() {
         /*************************************************/
         case TK("=="): {
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) {
-                SyntaxError("'label' is only available in EXEC_MODE");
-            }
+            if(mode() != EXEC_MODE) { SyntaxError("'label' is only available in EXEC_MODE"); }
             bool ok = ctx()->add_label(prev().str());
             consume(TK("=="));
-            if(!ok) {
-                SyntaxError("label " + prev().str().escape() + " already exists");
-            }
+            if(!ok) { SyntaxError("label " + prev().str().escape() + " already exists"); }
             consume_end_stmt();
         } break;
         case TK("->"):
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) {
-                SyntaxError("'goto' is only available in EXEC_MODE");
-            }
+            if(mode() != EXEC_MODE) { SyntaxError("'goto' is only available in EXEC_MODE"); }
             ctx()->emit_(OP_GOTO, StrName(prev().sv()).index, prev().line);
             consume_end_stmt();
             break;
@@ -1093,9 +989,7 @@ void Compiler::compile_stmt() {
                 }
             }
             if(!try_compile_assignment()) {
-                if(!ctx()->s_expr.empty() && ctx()->s_expr.top()->is_starred()) {
-                    SyntaxError();
-                }
+                if(!ctx()->s_expr.empty() && ctx()->s_expr.top()->is_starred()) { SyntaxError(); }
                 if(!is_typed_name) {
                     ctx()->emit_expr();
                     if((mode() == CELL_MODE || mode() == REPL_MODE) && name_scope() == NAME_GLOBAL) {
@@ -1148,9 +1042,7 @@ void Compiler::compile_class(const Expr_vector& decorators) {
     ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
     for(auto& c: this->contexts.container()) {
-        if(c.is_compiling_class) {
-            SyntaxError("nested class is not allowed");
-        }
+        if(c.is_compiling_class) { SyntaxError("nested class is not allowed"); }
     }
     ctx()->is_compiling_class = true;
     compile_block_body();
@@ -1168,12 +1060,8 @@ void Compiler::compile_class(const Expr_vector& decorators) {
 void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
     do {
-        if(state > 3) {
-            SyntaxError();
-        }
-        if(state == 3) {
-            SyntaxError("**kwargs should be the last argument");
-        }
+        if(state > 3) { SyntaxError(); }
+        if(state == 3) { SyntaxError("**kwargs should be the last argument"); }
         match_newlines();
         if(match(TK("*"))) {
             if(state < 1) {
@@ -1189,14 +1077,10 @@ void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
 
         // check duplicate argument name
         for(int j: decl->args) {
-            if(decl->code->varnames[j] == name) {
-                SyntaxError("duplicate argument name");
-            }
+            if(decl->code->varnames[j] == name) { SyntaxError("duplicate argument name"); }
         }
         for(auto& kv: decl->kwargs) {
-            if(decl->code->varnames[kv.index] == name) {
-                SyntaxError("duplicate argument name");
-            }
+            if(decl->code->varnames[kv.index] == name) { SyntaxError("duplicate argument name"); }
         }
         if(decl->starred_arg != -1 && decl->code->varnames[decl->starred_arg] == name) {
             SyntaxError("duplicate argument name");
@@ -1206,12 +1090,8 @@ void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
         }
 
         // eat type hints
-        if(enable_type_hints && match(TK(":"))) {
-            consume_type_hints();
-        }
-        if(state == 0 && curr().type == TK("=")) {
-            state = 2;
-        }
+        if(enable_type_hints && match(TK(":"))) { consume_type_hints(); }
+        if(state == 0 && curr().type == TK("=")) { state = 2; }
         int index = ctx()->add_varname(name);
         switch(state) {
             case 0: decl->args.push_back(index); break;
@@ -1222,9 +1102,7 @@ void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
             case 2: {
                 consume(TK("="));
                 PyVar value = read_literal();
-                if(value == nullptr) {
-                    SyntaxError(Str("default argument must be a literal"));
-                }
+                if(value == nullptr) { SyntaxError(Str("default argument must be a literal")); }
                 decl->add_kwarg(index, name, value);
             } break;
             case 3:
@@ -1244,9 +1122,7 @@ void Compiler::compile_function(const Expr_vector& decorators) {
         _compile_f_args(decl, true);
         consume(TK(")"));
     }
-    if(match(TK("->"))) {
-        consume_type_hints();
-    }
+    if(match(TK("->"))) { consume_type_hints(); }
     compile_block_body();
     pop_context();
 
@@ -1275,15 +1151,9 @@ void Compiler::compile_function(const Expr_vector& decorators) {
 
 PyVar Compiler::to_object(const TokenValue& value) {
     PyVar obj = nullptr;
-    if(std::holds_alternative<i64>(value)) {
-        obj = VAR(std::get<i64>(value));
-    }
-    if(std::holds_alternative<f64>(value)) {
-        obj = VAR(std::get<f64>(value));
-    }
-    if(std::holds_alternative<Str>(value)) {
-        obj = VAR(std::get<Str>(value));
-    }
+    if(std::holds_alternative<i64>(value)) { obj = VAR(std::get<i64>(value)); }
+    if(std::holds_alternative<f64>(value)) { obj = VAR(std::get<f64>(value)); }
+    if(std::holds_alternative<Str>(value)) { obj = VAR(std::get<Str>(value)); }
     assert(obj != nullptr);
     return obj;
 }
@@ -1306,13 +1176,9 @@ PyVar Compiler::read_literal() {
             List cpnts;
             while(true) {
                 cpnts.push_back(read_literal());
-                if(curr().type == TK(")")) {
-                    break;
-                }
+                if(curr().type == TK(")")) { break; }
                 consume(TK(","));
-                if(curr().type == TK(")")) {
-                    break;
-                }
+                if(curr().type == TK(")")) { break; }
             }
             consume(TK(")"));
             return VAR(cpnts.to_tuple());
@@ -1359,9 +1225,7 @@ Str Compiler::precompile() {
     for(int i = 0; i < tokens.size(); i++) {
         const Token& token = tokens[i];
         ss << (int)token.type << ',';
-        if(is_raw_string_used(token.type)) {
-            ss << token_indices[token.sv()] << ',';
-        }
+        if(is_raw_string_used(token.type)) { ss << token_indices[token.sv()] << ','; }
         if(i > 0 && tokens[i - 1].line == token.line) {
             ss << ',';
         } else {
@@ -1402,9 +1266,7 @@ void Compiler::from_precompiled(const char* source) {
         Str error = _S("precompiled version mismatch: ", version, "!=" PK_VERSION);
         throw std::runtime_error(error.c_str());
     }
-    if(deserializer.read_uint('\n') != (i64)mode()) {
-        throw std::runtime_error("precompiled mode mismatch");
-    }
+    if(deserializer.read_uint('\n') != (i64)mode()) { throw std::runtime_error("precompiled mode mismatch"); }
 
     int count = deserializer.read_count();
     vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
@@ -1472,9 +1334,7 @@ CodeObject_ Compiler::compile() {
     } else if(mode() == JSON_MODE) {
         EXPR();
         Expr_ e = ctx()->s_expr.popx();
-        if(!e->is_json_object()) {
-            SyntaxError("expect a JSON object, literal or array");
-        }
+        if(!e->is_json_object()) { SyntaxError("expect a JSON object, literal or array"); }
         consume(TK("@eof"));
         e->emit_(ctx());
         ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);

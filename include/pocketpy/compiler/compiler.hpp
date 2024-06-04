@@ -33,9 +33,7 @@ class Compiler {
     const Token& next() const { return tokens[i + 1]; }
 
     const Token& err() const {
-        if(i >= tokens.size()) {
-            return prev();
-        }
+        if(i >= tokens.size()) { return prev(); }
         return curr();
     }
 

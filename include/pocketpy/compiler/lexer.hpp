@@ -42,9 +42,7 @@ constexpr TokenIndex TK(const char token[]) {
             i++;
             j++;
         }
-        if(*i == *j) {
-            return k;
-        }
+        if(*i == *j) { return k; }
     }
     return 255;
 }

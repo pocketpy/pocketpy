@@ -241,9 +241,7 @@ public:
     bool py_callable(PyVar obj);  // x -> callable(x)
 
     bool py_bool(PyVar obj) {  // x -> bool(x)
-        if(obj.type == tp_bool) {
-            return obj._0;
-        }
+        if(obj.type == tp_bool) { return obj._0; }
         return __py_bool_non_trivial(obj);
     }
 
@@ -273,15 +271,11 @@ public:
     void parse_int_slice(const Slice& s, int length, int& start, int& stop, int& step);
 
     void obj_gc_mark(PyVar obj) {
-        if(obj.is_ptr) {
-            __obj_gc_mark(obj.get());
-        }
+        if(obj.is_ptr) { __obj_gc_mark(obj.get()); }
     }
 
     void obj_gc_mark(PyObject* p) {
-        if(p) {
-            __obj_gc_mark(p);
-        }
+        if(p) { __obj_gc_mark(p); }
     }
 #endif
 
@@ -466,15 +460,11 @@ public:
     bool issubclass(Type cls, Type base);
 
     void check_type(PyVar obj, Type type) {
-        if(!is_type(obj, type)) {
-            TypeError(type, _tp(obj));
-        }
+        if(!is_type(obj, type)) { TypeError(type, _tp(obj)); }
     }
 
     void check_compatible_type(PyVar obj, Type type) {
-        if(!isinstance(obj, type)) {
-            TypeError(type, _tp(obj));
-        }
+        if(!isinstance(obj, type)) { TypeError(type, _tp(obj)); }
     }
 
     Type _tp(PyVar obj) { return obj.type; }
@@ -759,23 +749,15 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>) {
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
-        if(obj == vm->None) {
-            return nullptr;
-        }
-        if constexpr(with_check) {
-            vm->check_type(obj, vm->tp_str);
-        }
+        if(obj == vm->None) { return nullptr; }
+        if constexpr(with_check) { vm->check_type(obj, vm->tp_str); }
         return PK_OBJ_GET(Str, obj).c_str();
     } else if constexpr(std::is_same_v<T, bool>) {
         static_assert(!std::is_reference_v<__T>);
         // bool
         if constexpr(with_check) {
-            if(obj == vm->True) {
-                return true;
-            }
-            if(obj == vm->False) {
-                return false;
-            }
+            if(obj == vm->True) { return true; }
+            if(obj == vm->False) { return false; }
             vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
         }
         return obj == vm->True;
@@ -783,20 +765,14 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check) {
-            if(is_int(obj)) {
-                return (T)obj.as<i64>();
-            }
+            if(is_int(obj)) { return (T)obj.as<i64>(); }
             vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
         }
         return (T)obj.as<i64>();
     } else if constexpr(is_floating_point_v<T>) {
         static_assert(!std::is_reference_v<__T>);
-        if(is_float(obj)) {
-            return (T)obj.as<f64>();
-        }
-        if(is_int(obj)) {
-            return (T)obj.as<i64>();
-        }
+        if(is_float(obj)) { return (T)obj.as<f64>(); }
+        if(is_int(obj)) { return (T)obj.as<i64>(); }
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
         return 0.0f;
     } else if constexpr(std::is_enum_v<T>) {

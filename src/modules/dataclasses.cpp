@@ -67,17 +67,13 @@ static void patch__repr__(VM* vm, Type cls) {
 
 static void patch__eq__(VM* vm, Type cls) {
     vm->bind__eq__(cls, [](VM* vm, PyVar _0, PyVar _1) {
-        if(vm->_tp(_0) != vm->_tp(_1)) {
-            return vm->NotImplemented;
-        }
+        if(vm->_tp(_0) != vm->_tp(_1)) { return vm->NotImplemented; }
         const PyTypeInfo* cls_info = &vm->_all_types[vm->_tp(_0)];
         const auto& fields = cls_info->annotated_fields;
         for(StrName field: fields) {
             PyVar lhs = _0->attr(field);
             PyVar rhs = _1->attr(field);
-            if(vm->py_ne(lhs, rhs)) {
-                return vm->False;
-            }
+            if(vm->py_ne(lhs, rhs)) { return vm->False; }
         }
         return vm->True;
     });
@@ -91,15 +87,9 @@ void add_module_dataclasses(VM* vm) {
         Type cls = PK_OBJ_GET(Type, args[0]);
         NameDict& cls_d = args[0]->attr();
 
-        if(!cls_d.contains(__init__)) {
-            patch__init__(vm, cls);
-        }
-        if(!cls_d.contains(__repr__)) {
-            patch__repr__(vm, cls);
-        }
-        if(!cls_d.contains(__eq__)) {
-            patch__eq__(vm, cls);
-        }
+        if(!cls_d.contains(__init__)) { patch__init__(vm, cls); }
+        if(!cls_d.contains(__repr__)) { patch__repr__(vm, cls); }
+        if(!cls_d.contains(__eq__)) { patch__eq__(vm, cls); }
 
         const auto& fields = vm->_all_types[cls].annotated_fields;
         bool has_default = false;

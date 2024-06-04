@@ -32,16 +32,12 @@ inline object getattr(const handle& obj, const char* name) {
 }
 
 inline object getattr(const handle& obj, const handle& name, const handle& default_) {
-    if(!hasattr(obj, name)) {
-        return reinterpret_borrow<object>(default_);
-    }
+    if(!hasattr(obj, name)) { return reinterpret_borrow<object>(default_); }
     return getattr(obj, name);
 }
 
 inline object getattr(const handle& obj, const char* name, const handle& default_) {
-    if(!hasattr(obj, name)) {
-        return reinterpret_borrow<object>(default_);
-    }
+    if(!hasattr(obj, name)) { return reinterpret_borrow<object>(default_); }
     return getattr(obj, name);
 }
 

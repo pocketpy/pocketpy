@@ -21,8 +21,7 @@ void VoidP::_register(VM* vm, PyObject* mod, PyObject* type) {
 
 #define BIND_CMP(name, op)                                                                                             \
     vm->bind##name(type->as<Type>(), [](VM* vm, PyVar lhs, PyVar rhs) {                                                \
-        if(!vm->isinstance(rhs, vm->_tp_user<VoidP>()))                                                                \
-            return vm->NotImplemented;                                                                                 \
+        if(!vm->isinstance(rhs, vm->_tp_user<VoidP>())) return vm->NotImplemented;                                     \
         void* _0 = PK_OBJ_GET(VoidP, lhs).ptr;                                                                         \
         void* _1 = PK_OBJ_GET(VoidP, rhs).ptr;                                                                         \
         return VAR(_0 op _1);                                                                                          \
@@ -60,9 +59,7 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
         1,
         [](VM* vm, ArgsView args) {
             const Str& s = CAST(Str&, args[0]);
-            if(s.size < 2 || s.size % 2 != 0) {
-                vm->ValueError("invalid hex string");
-            }
+            if(s.size < 2 || s.size % 2 != 0) { vm->ValueError("invalid hex string"); }
             Struct buffer(s.size / 2, false);
             for(int i = 0; i < s.size; i += 2) {
                 char c = 0;
@@ -116,9 +113,7 @@ void Struct::_register(VM* vm, PyObject* mod, PyObject* type) {
 
     vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar lhs, PyVar rhs) {
         Struct& self = _CAST(Struct&, lhs);
-        if(!vm->is_user_type<Struct>(rhs)) {
-            return vm->NotImplemented;
-        }
+        if(!vm->is_user_type<Struct>(rhs)) { return vm->NotImplemented; }
         Struct& other = _CAST(Struct&, rhs);
         bool ok = self.size == other.size && memcmp(self.p, other.p, self.size) == 0;
         return VAR(ok);
@@ -192,9 +187,7 @@ void add_module_c(VM* vm) {
         VoidP& ptr = CAST(VoidP&, args[0]);
         vm->check_type(args[1], vm->tp_type);
         Type cls = PK_OBJ_GET(Type, args[1]);
-        if(!vm->issubclass(cls, vm->_tp_user<VoidP>())) {
-            vm->ValueError("expected a subclass of void_p");
-        }
+        if(!vm->issubclass(cls, vm->_tp_user<VoidP>())) { vm->ValueError("expected a subclass of void_p"); }
         return vm->new_object<VoidP>(cls, ptr.ptr);
     });
 

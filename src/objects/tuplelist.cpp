@@ -37,9 +37,7 @@ Tuple::Tuple(PyVar _0, PyVar _1, PyVar _2) : Tuple(3) {
 }
 
 Tuple::~Tuple() {
-    if(!is_inlined()) {
-        std::free(_args);
-    }
+    if(!is_inlined()) { std::free(_args); }
 }
 
 List ArgsView::to_list() const {

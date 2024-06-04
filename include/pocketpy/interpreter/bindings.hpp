@@ -94,9 +94,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field) {
     assert(is_type(obj, tp_type));
     std::string_view name_sv(name);
     int pos = name_sv.find(':');
-    if(pos > 0) {
-        name_sv = name_sv.substr(0, pos);
-    }
+    if(pos > 0) { name_sv = name_sv.substr(0, pos); }
     auto fget = [](VM* vm, ArgsView args) -> PyVar {
         obj_get_t<T> self = PK_OBJ_GET(T, args[0]);
         F T::*field = lambda_get_userdata<F T::*>(args.begin());
@@ -171,8 +169,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field) {
         1,                                                                                                             \
         [](VM* vm, ArgsView args) {                                                                                    \
             Struct& s = CAST(Struct&, args[0]);                                                                        \
-            if(s.size != sizeof(wT))                                                                                   \
-                vm->ValueError("size mismatch");                                                                       \
+            if(s.size != sizeof(wT)) vm->ValueError("size mismatch");                                                  \
             PyVar obj = vm->new_user_object<wT>();                                                                     \
             std::memcpy(&_CAST(wT&, obj), s.p, sizeof(wT));                                                            \
             return obj;                                                                                                \
@@ -194,8 +191,7 @@ PyObject* VM::bind_field(PyObject* obj, const char* name, F T::*field) {
     vm->bind_func(type, "sizeof", 1, [](VM* vm, ArgsView args) { return VAR(sizeof(wT)); });                           \
     vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1) {                                                  \
         wT& self = _CAST(wT&, _0);                                                                                     \
-        if(!vm->isinstance(_1, vm->_tp_user<wT>()))                                                                    \
-            return vm->NotImplemented;                                                                                 \
+        if(!vm->isinstance(_1, vm->_tp_user<wT>())) return vm->NotImplemented;                                         \
         wT& other = _CAST(wT&, _1);                                                                                    \
         return VAR(self == other);                                                                                     \
     });

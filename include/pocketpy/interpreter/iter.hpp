@@ -57,9 +57,7 @@ struct Generator {
     }
 
     void _gc_mark(VM* vm) {
-        if(lf == nullptr) {
-            return;
-        }
+        if(lf == nullptr) { return; }
         lf->frame._gc_mark(vm);
         vm->__stack_gc_mark(s_backup.begin(), s_backup.end());
     }

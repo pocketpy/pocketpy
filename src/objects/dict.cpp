@@ -43,9 +43,7 @@ Dict::Dict(const Dict& other) {
 
 void Dict::set(VM* vm, PyVar key, PyVar val) {
     // do possible rehash
-    if(_size + 1 > _critical_size) {
-        _rehash(vm);
-    }
+    if(_size + 1 > _critical_size) { _rehash(vm); }
     bool ok;
     int i;
     _probe_1(vm, key, ok, i);
@@ -93,9 +91,7 @@ PyVar Dict::try_get(VM* vm, PyVar key) const {
     bool ok;
     int i;
     _probe_0(vm, key, ok, i);
-    if(!ok) {
-        return nullptr;
-    }
+    if(!ok) { return nullptr; }
     return _items[i].second;
 }
 
@@ -110,9 +106,7 @@ bool Dict::del(VM* vm, PyVar key) {
     bool ok;
     int i;
     _probe_0(vm, key, ok, i);
-    if(!ok) {
-        return false;
-    }
+    if(!ok) { return false; }
     _items[i].first = nullptr;
     // _items[i].second = PY_DELETED_SLOT;  // do not change .second if it is not NULL, it means the slot is occupied by
     // a deleted item
@@ -179,8 +173,6 @@ void Dict::clear() {
 }
 
 Dict::~Dict() {
-    if(_items) {
-        std::free(_items);
-    }
+    if(_items) { std::free(_items); }
 }
 }  // namespace pkpy

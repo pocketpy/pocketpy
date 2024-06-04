@@ -9,27 +9,13 @@
 namespace pkpy {
 
 int utf8len(unsigned char c, bool suppress) {
-    if((c & 0b10000000) == 0) {
-        return 1;
-    }
-    if((c & 0b11100000) == 0b11000000) {
-        return 2;
-    }
-    if((c & 0b11110000) == 0b11100000) {
-        return 3;
-    }
-    if((c & 0b11111000) == 0b11110000) {
-        return 4;
-    }
-    if((c & 0b11111100) == 0b11111000) {
-        return 5;
-    }
-    if((c & 0b11111110) == 0b11111100) {
-        return 6;
-    }
-    if(!suppress) {
-        throw std::runtime_error("invalid utf8 char: " + std::to_string(c));
-    }
+    if((c & 0b10000000) == 0) { return 1; }
+    if((c & 0b11100000) == 0b11000000) { return 2; }
+    if((c & 0b11110000) == 0b11100000) { return 3; }
+    if((c & 0b11111000) == 0b11110000) { return 4; }
+    if((c & 0b11111100) == 0b11111000) { return 5; }
+    if((c & 0b11111110) == 0b11111100) { return 6; }
+    if(!suppress) { throw std::runtime_error("invalid utf8 char: " + std::to_string(c)); }
     return 0;
 }
 
@@ -43,8 +29,7 @@ int utf8len(unsigned char c, bool suppress) {
 #define PK_STR_COPY_INIT(__s)                                                                                          \
     for(int i = 0; i < this->size; i++) {                                                                              \
         this->data[i] = __s[i];                                                                                        \
-        if(!isascii(__s[i]))                                                                                           \
-            is_ascii = false;                                                                                          \
+        if(!isascii(__s[i])) is_ascii = false;                                                                         \
     }                                                                                                                  \
     this->data[this->size] = '\0';
 
@@ -108,9 +93,7 @@ std::ostream& operator<< (std::ostream& os, const Str& str) { return os << str.s
 bool operator< (const std::string_view other, const Str& str) { return other < str.sv(); }
 
 Str& Str::operator= (const Str& other) {
-    if(!is_inlined()) {
-        std::free(data);
-    }
+    if(!is_inlined()) { std::free(data); }
     size = other.size;
     is_ascii = other.is_ascii;
     PK_STR_ALLOCATE()
@@ -133,30 +116,22 @@ Str Str::operator+ (const char* p) const {
 }
 
 bool Str::operator== (const Str& other) const {
-    if(size != other.size) {
-        return false;
-    }
+    if(size != other.size) { return false; }
     return memcmp(data, other.data, size) == 0;
 }
 
 bool Str::operator!= (const Str& other) const {
-    if(size != other.size) {
-        return true;
-    }
+    if(size != other.size) { return true; }
     return memcmp(data, other.data, size) != 0;
 }
 
 bool Str::operator== (const std::string_view other) const {
-    if(size != (int)other.size()) {
-        return false;
-    }
+    if(size != (int)other.size()) { return false; }
     return memcmp(data, other.data(), size) == 0;
 }
 
 bool Str::operator!= (const std::string_view other) const {
-    if(size != (int)other.size()) {
-        return true;
-    }
+    if(size != (int)other.size()) { return true; }
     return memcmp(data, other.data(), size) != 0;
 }
 
@@ -175,9 +150,7 @@ bool Str::operator<= (const Str& other) const { return this->sv() <= other.sv();
 bool Str::operator>= (const Str& other) const { return this->sv() >= other.sv(); }
 
 Str::~Str() {
-    if(!is_inlined()) {
-        std::free(data);
-    }
+    if(!is_inlined()) { std::free(data); }
 }
 
 Str Str::substr(int start, int len) const {
@@ -228,9 +201,7 @@ Str Str::strip(bool left, bool right) const {
 Str Str::lower() const {
     std::string copy(data, size);
     std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c) {
-        if('A' <= c && c <= 'Z') {
-            return c + ('a' - 'A');
-        }
+        if('A' <= c && c <= 'Z') { return c + ('a' - 'A'); }
         return (int)c;
     });
     return Str(copy);
@@ -239,9 +210,7 @@ Str Str::lower() const {
 Str Str::upper() const {
     std::string copy(data, size);
     std::transform(copy.begin(), copy.end(), copy.begin(), [](unsigned char c) {
-        if('a' <= c && c <= 'z') {
-            return c - ('a' - 'A');
-        }
+        if('a' <= c && c <= 'z') { return c - ('a' - 'A'); }
         return (int)c;
     });
     return Str(copy);
@@ -259,15 +228,11 @@ void Str::escape_(SStream& ss, bool single_quote) const {
         char c = this->operator[] (i);
         switch(c) {
             case '"':
-                if(!single_quote) {
-                    ss << '\\';
-                }
+                if(!single_quote) { ss << '\\'; }
                 ss << '"';
                 break;
             case '\'':
-                if(single_quote) {
-                    ss << '\\';
-                }
+                if(single_quote) { ss << '\\'; }
                 ss << '\'';
                 break;
             case '\\': ss << '\\' << '\\'; break;
@@ -290,18 +255,14 @@ void Str::escape_(SStream& ss, bool single_quote) const {
 
 int Str::index(const Str& sub, int start) const {
     auto p = std::search(data + start, data + size, sub.data, sub.data + sub.size);
-    if(p == data + size) {
-        return -1;
-    }
+    if(p == data + size) { return -1; }
     return p - data;
 }
 
 Str Str::replace(char old, char new_) const {
     Str copied = *this;
     for(int i = 0; i < copied.size; i++) {
-        if(copied.data[i] == old) {
-            copied.data[i] = new_;
-        }
+        if(copied.data[i] == old) { copied.data[i] = new_; }
     }
     return copied;
 }
@@ -311,24 +272,18 @@ Str Str::replace(const Str& old, const Str& new_, int count) const {
     int start = 0;
     while(true) {
         int i = index(old, start);
-        if(i == -1) {
-            break;
-        }
+        if(i == -1) { break; }
         ss << substr(start, i - start);
         ss << new_;
         start = i + old.size;
-        if(count != -1 && --count == 0) {
-            break;
-        }
+        if(count != -1 && --count == 0) { break; }
     }
     ss << substr(start, size - start);
     return ss.str();
 }
 
 int Str::_unicode_index_to_byte(int i) const {
-    if(is_ascii) {
-        return i;
-    }
+    if(is_ascii) { return i; }
     int j = 0;
     while(i > 0) {
         j += utf8len(data[j]);
@@ -338,14 +293,10 @@ int Str::_unicode_index_to_byte(int i) const {
 }
 
 int Str::_byte_index_to_unicode(int n) const {
-    if(is_ascii) {
-        return n;
-    }
+    if(is_ascii) { return n; }
     int cnt = 0;
     for(int i = 0; i < n; i++) {
-        if((data[i] & 0xC0) != 0x80) {
-            cnt++;
-        }
+        if((data[i] & 0xC0) != 0x80) { cnt++; }
     }
     return cnt;
 }
@@ -373,19 +324,13 @@ vector<std::string_view> Str::split(const Str& sep) const {
     int start = 0;
     while(true) {
         int i = index(sep, start);
-        if(i == -1) {
-            break;
-        }
+        if(i == -1) { break; }
         tmp = sv().substr(start, i - start);
-        if(!tmp.empty()) {
-            result.push_back(tmp);
-        }
+        if(!tmp.empty()) { result.push_back(tmp); }
         start = i + sep.size;
     }
     tmp = sv().substr(start, size - start);
-    if(!tmp.empty()) {
-        result.push_back(tmp);
-    }
+    if(!tmp.empty()) { result.push_back(tmp); }
     return result;
 }
 
@@ -394,30 +339,22 @@ vector<std::string_view> Str::split(char sep) const {
     int i = 0;
     for(int j = 0; j < size; j++) {
         if(data[j] == sep) {
-            if(j > i) {
-                result.emplace_back(data + i, j - i);
-            }
+            if(j > i) { result.emplace_back(data + i, j - i); }
             i = j + 1;
             continue;
         }
     }
-    if(size > i) {
-        result.emplace_back(data + i, size - i);
-    }
+    if(size > i) { result.emplace_back(data + i, size - i); }
     return result;
 }
 
 int Str::count(const Str& sub) const {
-    if(sub.empty()) {
-        return size + 1;
-    }
+    if(sub.empty()) { return size + 1; }
     int cnt = 0;
     int start = 0;
     while(true) {
         int i = index(sub, start);
-        if(i == -1) {
-            break;
-        }
+        if(i == -1) { break; }
         cnt++;
         start = i + sub.size;
     }
@@ -438,15 +375,11 @@ uint32_t StrName::_pesudo_random_index = 0;
 
 StrName StrName::get(std::string_view s) {
     auto it = _interned().find(s);
-    if(it != _interned().end()) {
-        return StrName(it->second);
-    }
+    if(it != _interned().end()) { return StrName(it->second); }
     // generate new index
     // https://github.com/python/cpython/blob/3.12/Objects/dictobject.c#L175
     uint16_t index = ((_pesudo_random_index * 5) + 1) & 65535;
-    if(index == 0) {
-        throw std::runtime_error("StrName index overflow");
-    }
+    if(index == 0) { throw std::runtime_error("StrName index overflow"); }
     auto res = _r_interned().emplace(index, s);
     assert(res.second);
     s = std::string_view(res.first->second);
@@ -525,12 +458,8 @@ SStream& SStream::operator<< (i64 val) {
 }
 
 SStream& SStream::operator<< (f64 val) {
-    if(std::isinf(val)) {
-        return (*this) << (val > 0 ? "inf" : "-inf");
-    }
-    if(std::isnan(val)) {
-        return (*this) << "nan";
-    }
+    if(std::isinf(val)) { return (*this) << (val > 0 ? "inf" : "-inf"); }
+    if(std::isnan(val)) { return (*this) << "nan"; }
     char b[32];
     if(_precision == -1) {
         int prec = std::numeric_limits<f64>::max_digits10 - 1;
@@ -540,9 +469,7 @@ SStream& SStream::operator<< (f64 val) {
         snprintf(b, sizeof(b), "%.*f", prec, val);
     }
     (*this) << b;
-    if(std::all_of(b + 1, b + strlen(b), isdigit)) {
-        (*this) << ".0";
-    }
+    if(std::all_of(b + 1, b + strlen(b), isdigit)) { (*this) << ".0"; }
     return *this;
 }
 
@@ -550,12 +477,8 @@ void SStream::write_hex(unsigned char c, bool non_zero) {
     unsigned char high = c >> 4;
     unsigned char low = c & 0xf;
     if(non_zero) {
-        if(high) {
-            (*this) << PK_HEX_TABLE[high];
-        }
-        if(high || low) {
-            (*this) << PK_HEX_TABLE[low];
-        }
+        if(high) { (*this) << PK_HEX_TABLE[high]; }
+        if(high || low) { (*this) << PK_HEX_TABLE[low]; }
     } else {
         (*this) << PK_HEX_TABLE[high];
         (*this) << PK_HEX_TABLE[low];
@@ -573,9 +496,7 @@ void SStream::write_hex(void* p) {
     for(int i = sizeof(void*) - 1; i >= 0; i--) {
         unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
         write_hex(cpnt, non_zero);
-        if(cpnt != 0) {
-            non_zero = false;
-        }
+        if(cpnt != 0) { non_zero = false; }
     }
 }
 
@@ -593,9 +514,7 @@ void SStream::write_hex(i64 val) {
     for(int i = 56; i >= 0; i -= 8) {
         unsigned char cpnt = (val >> i) & 0xff;
         write_hex(cpnt, non_zero);
-        if(cpnt != 0) {
-            non_zero = false;
-        }
+        if(cpnt != 0) { non_zero = false; }
     }
 }
 

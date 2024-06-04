@@ -183,13 +183,9 @@ class kwargs : public dict {
 
 template <typename T>
 handle type::handle_of() {
-    if constexpr(std::is_same_v<T, object>) {
-        return vm->_t(vm->tp_object);
-    }
+    if constexpr(std::is_same_v<T, object>) { return vm->_t(vm->tp_object); }
 #define PYBIND11_TYPE_MAPPER(type, tp)                                                                                 \
-    else if constexpr(std::is_same_v<T, type>) {                                                                       \
-        return vm->_t(vm->tp);                                                                                         \
-    }
+    else if constexpr(std::is_same_v<T, type>) { return vm->_t(vm->tp); }
     PYBIND11_TYPE_MAPPER(type, tp_type)
     PYBIND11_TYPE_MAPPER(str, tp_str)
     PYBIND11_TYPE_MAPPER(int_, tp_int)
@@ -203,9 +199,7 @@ handle type::handle_of() {
 #undef PYBIND11_TYPE_MAPPER
     else {
         auto result = vm->_cxx_typeid_map.find(typeid(T));
-        if(result != vm->_cxx_typeid_map.end()) {
-            return vm->_t(result->second);
-        }
+        if(result != vm->_cxx_typeid_map.end()) { return vm->_t(result->second); }
 
         vm->TypeError("Type not registered");
     }

@@ -17,9 +17,7 @@ any::any(any&& other) noexcept : data(other.data), _vt(other._vt) {
 }
 
 any& any::operator= (any&& other) noexcept {
-    if(data) {
-        _vt->deleter(data);
-    }
+    if(data) { _vt->deleter(data); }
     data = other.data;
     _vt = other._vt;
     other.data = nullptr;

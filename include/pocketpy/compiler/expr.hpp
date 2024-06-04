@@ -288,9 +288,7 @@ struct ListExpr : SequenceExpr {
 
     Opcode opcode() const override {
         for(auto& e: items) {
-            if(e->is_starred()) {
-                return OP_BUILD_LIST_UNPACK;
-            }
+            if(e->is_starred()) { return OP_BUILD_LIST_UNPACK; }
         }
         return OP_BUILD_LIST;
     }
@@ -303,9 +301,7 @@ struct DictExpr : SequenceExpr {
 
     Opcode opcode() const override {
         for(auto& e: items) {
-            if(e->is_starred()) {
-                return OP_BUILD_DICT_UNPACK;
-            }
+            if(e->is_starred()) { return OP_BUILD_DICT_UNPACK; }
         }
         return OP_BUILD_DICT;
     }
@@ -318,9 +314,7 @@ struct SetExpr : SequenceExpr {
 
     Opcode opcode() const override {
         for(auto& e: items) {
-            if(e->is_starred()) {
-                return OP_BUILD_SET_UNPACK;
-            }
+            if(e->is_starred()) { return OP_BUILD_SET_UNPACK; }
         }
         return OP_BUILD_SET;
     }
@@ -333,9 +327,7 @@ struct TupleExpr : SequenceExpr {
 
     Opcode opcode() const override {
         for(auto& e: items) {
-            if(e->is_starred()) {
-                return OP_BUILD_TUPLE_UNPACK;
-            }
+            if(e->is_starred()) { return OP_BUILD_TUPLE_UNPACK; }
         }
         return OP_BUILD_TUPLE;
     }

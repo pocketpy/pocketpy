@@ -3,9 +3,7 @@
 namespace pkpy {
 Str Exception::summary() const {
     SStream ss;
-    if(is_re) {
-        ss << "Traceback (most recent call last):\n";
-    }
+    if(is_re) { ss << "Traceback (most recent call last):\n"; }
     // while(!st.empty()) {
     //     ss << st.top().snapshot() << '\n';
     //     st.pop();

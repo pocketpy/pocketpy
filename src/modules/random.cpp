@@ -142,9 +142,7 @@ struct Random {
             Random& self = PK_OBJ_GET(Random, args[0]);
             i64 a = CAST(i64, args[1]);
             i64 b = CAST(i64, args[2]);
-            if(a > b) {
-                vm->ValueError("randint(a, b): a must be less than or equal to b");
-            }
+            if(a > b) { vm->ValueError("randint(a, b): a must be less than or equal to b"); }
             return VAR(self.gen.randint(a, b));
         });
 
@@ -157,9 +155,7 @@ struct Random {
             Random& self = PK_OBJ_GET(Random, args[0]);
             f64 a = CAST(f64, args[1]);
             f64 b = CAST(f64, args[2]);
-            if(a > b) {
-                std::swap(a, b);
-            }
+            if(a > b) { std::swap(a, b); }
             return VAR(self.gen.uniform(a, b));
         });
 
@@ -176,9 +172,7 @@ struct Random {
         vm->bind_func(type, "choice", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             ArgsView view = vm->cast_array_view(args[1]);
-            if(view.empty()) {
-                vm->IndexError("cannot choose from an empty sequence");
-            }
+            if(view.empty()) { vm->IndexError("cannot choose from an empty sequence"); }
             int index = self.gen.randint(0, view.size() - 1);
             return view[index];
         });
@@ -188,9 +182,7 @@ struct Random {
             ArgsView view = vm->cast_array_view(args[1]);
             PyVar* data = view.begin();
             int size = view.size();
-            if(size == 0) {
-                vm->IndexError("cannot choose from an empty sequence");
-            }
+            if(size == 0) { vm->IndexError("cannot choose from an empty sequence"); }
             array<f64> cum_weights(size);
             if(args[2] == vm->None) {
                 for(int i = 0; i < size; i++) {
@@ -198,17 +190,13 @@ struct Random {
                 }
             } else {
                 ArgsView weights = vm->cast_array_view(args[2]);
-                if(weights.size() != size) {
-                    vm->ValueError(_S("len(weights) != ", size));
-                }
+                if(weights.size() != size) { vm->ValueError(_S("len(weights) != ", size)); }
                 cum_weights[0] = CAST(f64, weights[0]);
                 for(int i = 1; i < size; i++) {
                     cum_weights[i] = cum_weights[i - 1] + CAST(f64, weights[i]);
                 }
             }
-            if(cum_weights[size - 1] <= 0) {
-                vm->ValueError("total of weights must be greater than zero");
-            }
+            if(cum_weights[size - 1] <= 0) { vm->ValueError("total of weights must be greater than zero"); }
             int k = CAST(int, args[3]);
             List result(k);
             for(int i = 0; i < k; i++) {

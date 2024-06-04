@@ -60,9 +60,7 @@ struct any {
     any& operator= (const any& other) = delete;
 
     ~any() {
-        if(_vt && _vt->deleter) {
-            _vt->deleter(data);
-        }
+        if(_vt && _vt->deleter) { _vt->deleter(data); }
     }
 
     template <typename T>
@@ -78,9 +76,7 @@ struct any {
     template <typename T>
     T& cast() const {
         static_assert(std::is_same_v<T, std::decay_t<T>>);
-        if(type_id() != typeid(T)) {
-            __bad_any_cast(typeid(T), type_id());
-        }
+        if(type_id() != typeid(T)) { __bad_any_cast(typeid(T), type_id()); }
         return _cast<T>();
     }
 

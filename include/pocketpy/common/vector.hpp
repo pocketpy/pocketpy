@@ -143,9 +143,7 @@ struct vector {
         if(cap < 4) {
             cap = 4;  // minimum capacity
         }
-        if(cap <= capacity()) {
-            return;
-        }
+        if(cap <= capacity()) { return; }
         T* new_data = (T*)std::malloc(sizeof(T) * cap);
         if constexpr(is_trivially_relocatable_v<T>) {
             std::memcpy(new_data, _data, sizeof(T) * _size);
@@ -155,9 +153,7 @@ struct vector {
                 _data[i].~T();
             }
         }
-        if(_data) {
-            std::free(_data);
-        }
+        if(_data) { std::free(_data); }
         _data = new_data;
         _capacity = cap;
     }
@@ -168,33 +164,25 @@ struct vector {
     }
 
     void push_back(const T& t) {
-        if(_size == _capacity) {
-            reserve(_capacity * 2);
-        }
+        if(_size == _capacity) { reserve(_capacity * 2); }
         new (&_data[_size++]) T(t);
     }
 
     void push_back(T&& t) {
-        if(_size == _capacity) {
-            reserve(_capacity * 2);
-        }
+        if(_size == _capacity) { reserve(_capacity * 2); }
         new (&_data[_size++]) T(std::move(t));
     }
 
     bool contains(const T& t) const {
         for(int i = 0; i < _size; i++) {
-            if(_data[i] == t) {
-                return true;
-            }
+            if(_data[i] == t) { return true; }
         }
         return false;
     }
 
     template <typename... Args>
     void emplace_back(Args&&... args) {
-        if(_size == _capacity) {
-            reserve(_capacity * 2);
-        }
+        if(_size == _capacity) { reserve(_capacity * 2); }
         new (&_data[_size++]) T(std::forward<Args>(args)...);
     }
 
@@ -211,9 +199,7 @@ struct vector {
     }
 
     void insert(int index, const T& t) {
-        if(_size == _capacity) {
-            reserve(_capacity * 2);
-        }
+        if(_size == _capacity) { reserve(_capacity * 2); }
         for(int i = _size; i > index; i--) {
             _data[i] = std::move(_data[i - 1]);
         }
@@ -231,9 +217,7 @@ struct vector {
     void pop_back() {
         assert(_size > 0);
         _size--;
-        if constexpr(!std::is_trivially_destructible_v<T>) {
-            _data[_size].~T();
-        }
+        if constexpr(!std::is_trivially_destructible_v<T>) { _data[_size].~T(); }
     }
 
     void clear() {
@@ -443,9 +427,7 @@ public:
 
     ~small_vector() {
         std::destroy(m_begin, m_end);
-        if(!is_small()) {
-            std::free(m_begin);
-        }
+        if(!is_small()) { std::free(m_begin); }
     }
 
     template <typename... Args>
@@ -480,9 +462,7 @@ public:
 
     void pop_back() {
         m_end--;
-        if constexpr(!std::is_trivially_destructible_v<T>) {
-            m_end->~T();
-        }
+        if constexpr(!std::is_trivially_destructible_v<T>) { m_end->~T(); }
     }
 
     void clear() {

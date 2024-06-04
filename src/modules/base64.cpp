@@ -126,22 +126,14 @@ static unsigned int base64_decode(const char* in, unsigned int inlen, unsigned c
     unsigned int j;
     unsigned char c;
 
-    if(inlen & 0x3) {
-        return 0;
-    }
+    if(inlen & 0x3) { return 0; }
 
     for(i = j = 0; i < inlen; i++) {
-        if(in[i] == BASE64_PAD) {
-            break;
-        }
-        if(in[i] < BASE64DE_FIRST || in[i] > BASE64DE_LAST) {
-            return 0;
-        }
+        if(in[i] == BASE64_PAD) { break; }
+        if(in[i] < BASE64DE_FIRST || in[i] > BASE64DE_LAST) { return 0; }
 
         c = base64de[(unsigned char)in[i]];
-        if(c == 255) {
-            return 0;
-        }
+        if(c == 255) { return 0; }
 
         switch(i & 0x3) {
             case 0: out[j] = (c << 2) & 0xFF; break;

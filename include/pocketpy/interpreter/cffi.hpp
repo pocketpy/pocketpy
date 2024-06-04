@@ -74,23 +74,17 @@ struct Struct {
         } else {
             p = (char*)std::malloc(size);
         }
-        if(zero_init) {
-            std::memset(p, 0, size);
-        }
+        if(zero_init) { std::memset(p, 0, size); }
     }
 
     Struct(void* p, int size) : Struct(size, false) {
-        if(p != nullptr) {
-            std::memcpy(this->p, p, size);
-        }
+        if(p != nullptr) { std::memcpy(this->p, p, size); }
     }
 
     Struct(const Struct& other) : Struct(other.p, other.size) {}
 
     ~Struct() {
-        if(p != _inlined) {
-            std::free(p);
-        }
+        if(p != _inlined) { std::free(p); }
     }
 
     static void _register(VM* vm, PyObject* mod, PyObject* type);

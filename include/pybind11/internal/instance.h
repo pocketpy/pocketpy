@@ -126,15 +126,11 @@ public:
     }
 
     ~instance() {
-        if(flag & Flag::Own) {
-            type->destructor(data);
-        }
+        if(flag & Flag::Own) { type->destructor(data); }
     }
 
     void _gc_mark(pkpy::VM* vm) const noexcept {
-        if(parent && (flag & Flag::Ref)) {
-            PK_OBJ_MARK(parent);
-        }
+        if(parent && (flag & Flag::Ref)) { PK_OBJ_MARK(parent); }
     }
 
     template <typename T>

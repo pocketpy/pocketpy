@@ -4,9 +4,7 @@ namespace pkpy {
 
 static std::string left_pad(std::string s, int width) {
     int n = width - s.size();
-    if(n <= 0) {
-        return s;
-    }
+    if(n <= 0) { return s; }
     return std::string(n, ' ') + s;
 }
 
@@ -20,9 +18,7 @@ void LineProfiler::begin() { frames.clear(); }
 
 void LineProfiler::_step(int callstack_size, Frame* frame) {
     auto line_info = frame->co->lines[frame->ip()];
-    if(line_info.is_virtual) {
-        return;
-    }
+    if(line_info.is_virtual) { return; }
     std::string_view filename = frame->co->src->filename.sv();
     int line = line_info.lineno;
 
@@ -57,18 +53,14 @@ void LineProfiler::_step_end(int callstack_size, Frame* frame, int line) {
     if(prev_record->line != line) {
         clock_t delta = now - top_frame_record.prev_time;
         top_frame_record.prev_time = now;
-        if(id_delta != 1) {
-            prev_record->hits++;
-        }
+        if(id_delta != 1) { prev_record->hits++; }
         prev_record->time += delta;
     }
 
     if(id_delta == 1) {
         frames.push({callstack_size, frame, now, nullptr});
     } else {
-        if(id_delta == -1) {
-            frames.pop();
-        }
+        if(id_delta == -1) { frames.pop(); }
     }
 }
 
@@ -91,14 +83,10 @@ Str LineProfiler::stats() {
     for(FuncDecl* decl: functions) {
         int start_line = decl->code->start_line;
         int end_line = decl->code->end_line;
-        if(start_line == -1 || end_line == -1) {
-            continue;
-        }
+        if(start_line == -1 || end_line == -1) { continue; }
         std::string_view filename = decl->code->src->filename.sv();
         vector<_LineRecord>& file_records = records[filename];
-        if(file_records.empty()) {
-            continue;
-        }
+        if(file_records.empty()) { continue; }
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++) {
             total_time += file_records[line].time;
@@ -110,9 +98,7 @@ Str LineProfiler::stats() {
         ss << "==============================================================\n";
         for(int line = start_line; line <= end_line; line++) {
             const _LineRecord& record = file_records[line];
-            if(!record.is_valid()) {
-                continue;
-            }
+            if(!record.is_valid()) { continue; }
             ss << left_pad(std::to_string(line), 6);
             if(record.hits == 0) {
                 ss << std::string(10 + 13 + 9 + 9, ' ');

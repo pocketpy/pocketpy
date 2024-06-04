@@ -55,16 +55,14 @@ namespace pkpy {
     vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index) {                                         \
         Vec##D self = _CAST(Vec##D, obj);                                                                              \
         i64 i = CAST(i64, index);                                                                                      \
-        if(i < 0 || i >= D)                                                                                            \
-            vm->IndexError("index out of range");                                                                      \
+        if(i < 0 || i >= D) vm->IndexError("index out of range");                                                      \
         return VAR(self[i]);                                                                                           \
     });
 
 #define BIND_SSO_VEC_COMMON(D)                                                                                         \
     vm->bind__eq__(type->as<Type>(), [](VM* vm, PyVar _0, PyVar _1) {                                                  \
         Vec##D self = _CAST(Vec##D, _0);                                                                               \
-        if(!vm->is_user_type<Vec##D>(_1))                                                                              \
-            return vm->NotImplemented;                                                                                 \
+        if(!vm->is_user_type<Vec##D>(_1)) return vm->NotImplemented;                                                   \
         Vec##D other = _CAST(Vec##D, _1);                                                                              \
         return VAR(self == other);                                                                                     \
     });                                                                                                                \
@@ -165,12 +163,8 @@ void Vec2::_register(VM* vm, PyObject* mod, PyObject* type) {
             Vec2 __to = CAST(Vec2, args[1]);
             float val = atan2f(__to.y, __to.x) - atan2f(__from.y, __from.x);
             const float PI = 3.1415926535897932384f;
-            if(val > PI) {
-                val -= 2 * PI;
-            }
-            if(val < -PI) {
-                val += 2 * PI;
-            }
+            if(val > PI) { val -= 2 * PI; }
+            if(val < -PI) { val += 2 * PI; }
             return VAR(val);
         },
         {},
@@ -290,14 +284,10 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     PY_STRUCT_LIKE(Mat3x3)
 
     vm->bind_func(type, __new__, -1, [](VM* vm, ArgsView args) {
-        if(args.size() == 1 + 0) {
-            return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros());
-        }
+        if(args.size() == 1 + 0) { return vm->new_object<Mat3x3>(PK_OBJ_GET(Type, args[0]), Mat3x3::zeros()); }
         if(args.size() == 1 + 1) {
             const List& list = CAST(List&, args[1]);
-            if(list.size() != 9) {
-                vm->TypeError("Mat3x3.__new__ takes a list of 9 floats");
-            }
+            if(list.size() != 9) { vm->TypeError("Mat3x3.__new__ takes a list of 9 floats"); }
             Mat3x3 mat;
             for(int i = 0; i < 9; i++) {
                 mat.v[i] = CAST_F(list[i]);
@@ -335,28 +325,20 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind__getitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index) {
         Mat3x3& self = _CAST(Mat3x3&, obj);
         Tuple& t = CAST(Tuple&, index);
-        if(t.size() != 2) {
-            vm->TypeError("Mat3x3.__getitem__ takes a tuple of 2 integers");
-        }
+        if(t.size() != 2) { vm->TypeError("Mat3x3.__getitem__ takes a tuple of 2 integers"); }
         i64 i = CAST(i64, t[0]);
         i64 j = CAST(i64, t[1]);
-        if(i < 0 || i >= 3 || j < 0 || j >= 3) {
-            vm->IndexError("index out of range");
-        }
+        if(i < 0 || i >= 3 || j < 0 || j >= 3) { vm->IndexError("index out of range"); }
         return VAR(self.m[i][j]);
     });
 
     vm->bind__setitem__(type->as<Type>(), [](VM* vm, PyVar obj, PyVar index, PyVar value) {
         Mat3x3& self = _CAST(Mat3x3&, obj);
         const Tuple& t = CAST(Tuple&, index);
-        if(t.size() != 2) {
-            vm->TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers");
-        }
+        if(t.size() != 2) { vm->TypeError("Mat3x3.__setitem__ takes a tuple of 2 integers"); }
         i64 i = CAST(i64, t[0]);
         i64 j = CAST(i64, t[1]);
-        if(i < 0 || i >= 3 || j < 0 || j >= 3) {
-            vm->IndexError("index out of range");
-        }
+        if(i < 0 || i >= 3 || j < 0 || j >= 3) { vm->IndexError("index out of range"); }
         self.m[i][j] = CAST_F(value);
     });
 
@@ -438,27 +420,21 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind__invert__(type->as<Type>(), [](VM* vm, PyVar obj) {
         Mat3x3& self = _CAST(Mat3x3&, obj);
         Mat3x3 ret;
-        if(!self.inverse(ret)) {
-            vm->ValueError("matrix is not invertible");
-        }
+        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
         return vm->new_user_object<Mat3x3>(ret);
     });
 
     vm->bind_func(type, "inverse", 1, [](VM* vm, ArgsView args) {
         Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Mat3x3 ret;
-        if(!self.inverse(ret)) {
-            vm->ValueError("matrix is not invertible");
-        }
+        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
         return vm->new_user_object<Mat3x3>(ret);
     });
 
     vm->bind_func(type, "inverse_", 1, [](VM* vm, ArgsView args) {
         Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Mat3x3 ret;
-        if(!self.inverse(ret)) {
-            vm->ValueError("matrix is not invertible");
-        }
+        if(!self.inverse(ret)) { vm->ValueError("matrix is not invertible"); }
         self = ret;
         return vm->None;
     });
@@ -571,9 +547,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         const Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Vec2 v = CAST(Vec2, args[1]);
         Mat3x3 inv;
-        if(!self.inverse(inv)) {
-            vm->ValueError("matrix is not invertible");
-        }
+        if(!self.inverse(inv)) { vm->ValueError("matrix is not invertible"); }
         Vec2 res(inv._11 * v.x + inv._12 * v.y + inv._13, inv._21 * v.x + inv._22 * v.y + inv._23);
         return vm->new_user_object<Vec2>(res);
     });
@@ -589,9 +563,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
         const Mat3x3& self = _CAST(Mat3x3&, args[0]);
         Vec2 v = CAST(Vec2, args[1]);
         Mat3x3 inv;
-        if(!self.inverse(inv)) {
-            vm->ValueError("matrix is not invertible");
-        }
+        if(!self.inverse(inv)) { vm->ValueError("matrix is not invertible"); }
         Vec2 res(inv._11 * v.x + inv._12 * v.y, inv._21 * v.x + inv._22 * v.y);
         return vm->new_user_object<Vec2>(res);
     });
@@ -656,18 +628,14 @@ Mat3x3 Mat3x3::operator/ (float scalar) const {
 
 bool Mat3x3::operator== (const Mat3x3& other) const {
     for(int i = 0; i < 9; ++i) {
-        if(!isclose(v[i], other.v[i])) {
-            return false;
-        }
+        if(!isclose(v[i], other.v[i])) { return false; }
     }
     return true;
 }
 
 bool Mat3x3::operator!= (const Mat3x3& other) const {
     for(int i = 0; i < 9; ++i) {
-        if(!isclose(v[i], other.v[i])) {
-            return true;
-        }
+        if(!isclose(v[i], other.v[i])) { return true; }
     }
     return false;
 }
@@ -714,9 +682,7 @@ Mat3x3 Mat3x3::transpose() const {
 
 bool Mat3x3::inverse(Mat3x3& out) const {
     float det = determinant();
-    if(isclose(det, 0)) {
-        return false;
-    }
+    if(isclose(det, 0)) { return false; }
     float inv_det = 1.0f / det;
     out._11 = (_22 * _33 - _23 * _32) * inv_det;
     out._12 = (_13 * _32 - _12 * _33) * inv_det;
@@ -738,9 +704,7 @@ Mat3x3 Mat3x3::trs(Vec2 t, float radian, Vec2 s) {
 
 bool Mat3x3::is_affine() const {
     float det = _11 * _22 - _12 * _21;
-    if(isclose(det, 0)) {
-        return false;
-    }
+    if(isclose(det, 0)) { return false; }
     return _31 == 0.0f && _32 == 0.0f && _33 == 1.0f;
 }
 

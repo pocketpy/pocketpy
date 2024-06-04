@@ -146,9 +146,7 @@ struct MemoryPool {
             return (char*)p + sizeof(void*);
         }
 
-        if(_arenas.empty()) {
-            _arenas.push_back(new Arena());
-        }
+        if(_arenas.empty()) { _arenas.push_back(new Arena()); }
         Arena* arena = _arenas.back();
         void* p = arena->alloc()->data;
         if(arena->empty()) {
@@ -178,9 +176,7 @@ struct MemoryPool {
 
     void shrink_to_fit() {
         PK_GLOBAL_SCOPE_LOCK();
-        if(_arenas.size() < __MinArenaCount) {
-            return;
-        }
+        if(_arenas.size() < __MinArenaCount) { return; }
         _arenas.apply([this](Arena* arena) {
             if(arena->full()) {
                 _arenas.erase(arena);

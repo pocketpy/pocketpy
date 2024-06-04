@@ -11,8 +11,7 @@ namespace pkpy {
 #define PREDICT_INT_DIV_OP(op)                                                                                         \
     if(is_int(_0) && is_int(_1)) {                                                                                     \
         i64 divisor = _1.as<i64>();                                                                                    \
-        if(divisor == 0)                                                                                               \
-            ZeroDivisionError();                                                                                       \
+        if(divisor == 0) ZeroDivisionError();                                                                          \
         TOP() = VAR(_0.as<i64>() op divisor);                                                                          \
         DISPATCH()                                                                                                     \
     }
@@ -37,8 +36,7 @@ namespace pkpy {
             ret = call_method(self, _2, _0);                                                                           \
         else                                                                                                           \
             BinaryOptError(op, _0, _1);                                                                                \
-        if(is_not_implemented(ret))                                                                                    \
-            BinaryOptError(op, _0, _1);                                                                                \
+        if(is_not_implemented(ret)) BinaryOptError(op, _0, _1);                                                        \
     }
 
 void VM::__op_unpack_sequence(uint16_t arg) {
@@ -59,14 +57,10 @@ void VM::__op_unpack_sequence(uint16_t arg) {
         const PyTypeInfo* ti = _tp_info(_0);
         for(int i = 0; i < arg; i++) {
             PyVar _1 = _py_next(ti, _0);
-            if(_1 == StopIteration) {
-                ValueError("not enough values to unpack");
-            }
+            if(_1 == StopIteration) { ValueError("not enough values to unpack"); }
             PUSH(_1);
         }
-        if(_py_next(ti, _0) != StopIteration) {
-            ValueError("too many values to unpack");
-        }
+        if(_py_next(ti, _0) != StopIteration) { ValueError("too many values to unpack"); }
     }
 }
 
@@ -94,19 +88,14 @@ bool VM::py_ge(PyVar _0, PyVar _1) {
 
 #if PK_ENABLE_PROFILER
 #define CEVAL_STEP_CALLBACK()                                                                                          \
-    if(_ceval_on_step)                                                                                                 \
-        _ceval_on_step(this, frame, byte);                                                                             \
-    if(_profiler)                                                                                                      \
-        _profiler->_step(callstack.size(), frame);                                                                     \
-    if(!_next_breakpoint.empty()) {                                                                                    \
-        _next_breakpoint._step(this);                                                                                  \
-    }
+    if(_ceval_on_step) _ceval_on_step(this, frame, byte);                                                              \
+    if(_profiler) _profiler->_step(callstack.size(), frame);                                                           \
+    if(!_next_breakpoint.empty()) { _next_breakpoint._step(this); }
 #else
 #define CEVAL_STEP_CALLBACK()                                                                                          \
     if(_ceval_on_step && _ceval_on_step) {                                                                             \
         if(_ceval_on_step)                                                                                             \
-            if(_ceval_on_step)                                                                                         \
-                _ceval_on_step(this, frame, byte);                                                                     \
+            if(_ceval_on_step) _ceval_on_step(this, frame, byte);                                                      \
     }
 #endif
 
@@ -179,9 +168,7 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_PRINT_EXPR:
-                        if(TOP() != None) {
-                            stdout_write(py_repr(TOP()) + "\n");
-                        }
+                        if(TOP() != None) { stdout_write(py_repr(TOP()) + "\n"); }
                         POP();
                         DISPATCH()
                     /*****************************************/
@@ -210,9 +197,7 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_LOAD_FAST: {
                         PyVar _0 = frame->_locals[byte.arg];
-                        if(_0 == PY_NULL) {
-                            vm->UnboundLocalError(frame->co->varnames[byte.arg]);
-                        }
+                        if(_0 == PY_NULL) { vm->UnboundLocalError(frame->co->varnames[byte.arg]); }
                         PUSH(_0);
                     }
                         DISPATCH()
@@ -220,9 +205,7 @@ PyVar VM::__run_top_frame() {
                         StrName _name(byte.arg);
                         PyVar* slot = frame->_locals.try_get_name(_name);
                         if(slot != nullptr) {
-                            if(*slot == PY_NULL) {
-                                vm->UnboundLocalError(_name);
-                            }
+                            if(*slot == PY_NULL) { vm->UnboundLocalError(_name); }
                             PUSH(*slot);
                             DISPATCH()
                         }
@@ -324,9 +307,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_LOAD_SUBSCR_FAST: {
                         PyVar _1 = frame->_locals[byte.arg];
-                        if(_1 == PY_NULL) {
-                            vm->UnboundLocalError(frame->co->varnames[byte.arg]);
-                        }
+                        if(_1 == PY_NULL) { vm->UnboundLocalError(frame->co->varnames[byte.arg]); }
                         PyVar _0 = TOP();  // a
                         auto _ti = _tp_info(_0);
                         if(_ti->m__getitem__) {
@@ -391,9 +372,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_STORE_SUBSCR_FAST: {
                         PyVar _2 = frame->_locals[byte.arg];  // b
-                        if(_2 == PY_NULL) {
-                            vm->UnboundLocalError(frame->co->varnames[byte.arg]);
-                        }
+                        if(_2 == PY_NULL) { vm->UnboundLocalError(frame->co->varnames[byte.arg]); }
                         PyVar _1 = POPX();  // a
                         PyVar _0 = POPX();  // val
                         auto _ti = _tp_info(_1);
@@ -406,9 +385,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_DELETE_FAST: {
                         PyVar _0 = frame->_locals[byte.arg];
-                        if(_0 == PY_NULL) {
-                            vm->UnboundLocalError(frame->co->varnames[byte.arg]);
-                        }
+                        if(_0 == PY_NULL) { vm->UnboundLocalError(frame->co->varnames[byte.arg]); }
                         frame->_locals[byte.arg].set_null();
                     }
                         DISPATCH()
@@ -423,25 +400,19 @@ PyVar VM::__run_top_frame() {
                                 if(func.decl == __dynamic_func_decl) {
                                     assert(func._closure != nullptr);
                                     bool ok = func._closure->del(_name);
-                                    if(!ok) {
-                                        vm->NameError(_name);
-                                    }
+                                    if(!ok) { vm->NameError(_name); }
                                 } else {
                                     vm->NameError(_name);
                                 }
                             }
                         } else {
-                            if(!frame->f_globals().del(_name)) {
-                                vm->NameError(_name);
-                            }
+                            if(!frame->f_globals().del(_name)) { vm->NameError(_name); }
                         }
                     }
                         DISPATCH()
                     case OP_DELETE_GLOBAL: {
                         StrName _name(byte.arg);
-                        if(!frame->f_globals().del(_name)) {
-                            vm->NameError(_name);
-                        }
+                        if(!frame->f_globals().del(_name)) { vm->NameError(_name); }
                     }
                         DISPATCH()
                     case OP_DELETE_ATTR: {
@@ -463,17 +434,13 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_BUILD_LONG: {
                         PyVar _0 = builtins->attr().try_get_likely_found(pk_id_long);
-                        if(_0 == nullptr) {
-                            AttributeError(builtins, pk_id_long);
-                        }
+                        if(_0 == nullptr) { AttributeError(builtins, pk_id_long); }
                         TOP() = call(_0, TOP());
                     }
                         DISPATCH()
                     case OP_BUILD_IMAG: {
                         PyVar _0 = builtins->attr().try_get_likely_found(pk_id_complex);
-                        if(_0 == nullptr) {
-                            AttributeError(builtins, pk_id_long);
-                        }
+                        if(_0 == nullptr) { AttributeError(builtins, pk_id_long); }
                         TOP() = call(_0, VAR(0), TOP());
                     }
                         DISPATCH()
@@ -587,8 +554,7 @@ PyVar VM::__run_top_frame() {
             TOP() = call_method(self, _2, _0);                                                                         \
         else                                                                                                           \
             BinaryOptError(op, _0, _1);                                                                                \
-        if(is_not_implemented(TOP()))                                                                                  \
-            BinaryOptError(op, _0, _1);                                                                                \
+        if(is_not_implemented(TOP())) BinaryOptError(op, _0, _1);                                                      \
     }
 
                     case OP_BINARY_TRUEDIV: {
@@ -596,9 +562,7 @@ PyVar VM::__run_top_frame() {
                         PyVar _0 = TOP();
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__truediv__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("/", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("/", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BINARY_POW: {
@@ -606,9 +570,7 @@ PyVar VM::__run_top_frame() {
                         PyVar _0 = TOP();
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__pow__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("**", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("**", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BINARY_ADD: {
@@ -644,9 +606,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_DIV_OP(/)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__floordiv__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("//", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("//", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BINARY_MOD: {
@@ -655,9 +615,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_DIV_OP(%)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__mod__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("%", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("%", _0, _1); }
                     }
                         DISPATCH()
                     case OP_COMPARE_LT: {
@@ -706,9 +664,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_OP(<<)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__lshift__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("<<", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("<<", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BITWISE_RSHIFT: {
@@ -717,9 +673,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_OP(>>)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__rshift__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError(">>", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError(">>", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BITWISE_AND: {
@@ -728,9 +682,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_OP(&)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__and__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("&", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("&", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BITWISE_OR: {
@@ -739,9 +691,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_OP(|)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__or__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("|", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("|", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BITWISE_XOR: {
@@ -750,9 +700,7 @@ PyVar VM::__run_top_frame() {
                         PREDICT_INT_OP(^)
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__xor__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("^", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("^", _0, _1); }
                     }
                         DISPATCH()
                     case OP_BINARY_MATMUL: {
@@ -760,9 +708,7 @@ PyVar VM::__run_top_frame() {
                         PyVar _0 = TOP();
                         const PyTypeInfo* _ti;
                         BINARY_OP_SPECIAL(__matmul__);
-                        if(is_not_implemented(TOP())) {
-                            BinaryOptError("@", _0, _1);
-                        }
+                        if(is_not_implemented(TOP())) { BinaryOptError("@", _0, _1); }
                     }
                         DISPATCH()
 
@@ -798,14 +744,10 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_JUMP_FORWARD: DISPATCH_JUMP((int16_t)byte.arg)
                     case OP_POP_JUMP_IF_FALSE:
-                        if(!py_bool(POPX())) {
-                            DISPATCH_JUMP((int16_t)byte.arg)
-                        }
+                        if(!py_bool(POPX())) { DISPATCH_JUMP((int16_t)byte.arg) }
                         DISPATCH()
                     case OP_POP_JUMP_IF_TRUE:
-                        if(py_bool(POPX())) {
-                            DISPATCH_JUMP((int16_t)byte.arg)
-                        }
+                        if(py_bool(POPX())) { DISPATCH_JUMP((int16_t)byte.arg) }
                         DISPATCH()
                     case OP_JUMP_IF_TRUE_OR_POP:
                         if(py_bool(TOP())) {
@@ -841,9 +783,7 @@ PyVar VM::__run_top_frame() {
                     case OP_GOTO: {
                         StrName _name(byte.arg);
                         int target = frame->co->labels.try_get_likely_found(_name);
-                        if(target < 0) {
-                            RuntimeError(_S("label ", _name.escape(), " not found"));
-                        }
+                        if(target < 0) { RuntimeError(_S("label ", _name.escape(), " not found")); }
                         frame->prepare_jump_break(&s_data, target);
                         DISPATCH_JUMP_ABSOLUTE(target)
                     }
@@ -865,9 +805,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     case OP_REPR: TOP() = VAR(py_repr(TOP())); DISPATCH()
                     case OP_CALL: {
-                        if(heap._should_auto_collect()) {
-                            heap._auto_collect();
-                        }
+                        if(heap._should_auto_collect()) { heap._auto_collect(); }
                         PyVar _0 = vectorcall(byte.arg & 0xFF,         // ARGC
                                               (byte.arg >> 8) & 0xFF,  // KWARGC
                                               true);
@@ -879,9 +817,7 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_CALL_TP: {
-                        if(heap._should_auto_collect()) {
-                            heap._auto_collect();
-                        }
+                        if(heap._should_auto_collect()) { heap._auto_collect(); }
                         PyVar _0;
                         PyVar _1;
                         PyVar _2;
@@ -1078,9 +1014,7 @@ PyVar VM::__run_top_frame() {
                         } else {
                             for(auto& [name, value]: _0->attr().items()) {
                                 std::string_view s = name.sv();
-                                if(s.empty() || s[0] == '_') {
-                                    continue;
-                                }
+                                if(s.empty() || s[0] == '_') { continue; }
                                 frame->f_globals().set(name, value);
                             }
                         }
@@ -1098,17 +1032,13 @@ PyVar VM::__run_top_frame() {
                         PyVar _1;
                         for(int i = 0; i < byte.arg; i++) {
                             _1 = _py_next(_ti, _0);
-                            if(_1 == StopIteration) {
-                                ValueError("not enough values to unpack");
-                            }
+                            if(_1 == StopIteration) { ValueError("not enough values to unpack"); }
                             PUSH(_1);
                         }
                         List extras;
                         while(true) {
                             _1 = _py_next(_ti, _0);
-                            if(_1 == StopIteration) {
-                                break;
-                            }
+                            if(_1 == StopIteration) { break; }
                             extras.push_back(_1);
                         }
                         PUSH(VAR(std::move(extras)));
@@ -1118,9 +1048,7 @@ PyVar VM::__run_top_frame() {
                     case OP_BEGIN_CLASS: {
                         StrName _name(byte.arg);
                         PyVar _0 = POPX();  // super
-                        if(_0 == None) {
-                            _0 = _t(tp_object);
-                        }
+                        if(_0 == None) { _0 = _t(tp_object); }
                         check_type(_0, tp_type);
                         __curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0), true);
                     }
@@ -1133,9 +1061,7 @@ PyVar VM::__run_top_frame() {
                         PyTypeInfo* ti = &_all_types[__curr_class->as<Type>()];
                         if(ti->base != tp_object) {
                             PyTypeInfo* base_ti = &_all_types[ti->base];
-                            if(base_ti->on_end_subclass) {
-                                base_ti->on_end_subclass(this, ti);
-                            }
+                            if(base_ti->on_end_subclass) { base_ti->on_end_subclass(this, ti); }
                         }
                         __curr_class = nullptr;
                     }
@@ -1144,9 +1070,7 @@ PyVar VM::__run_top_frame() {
                         assert(__curr_class != nullptr);
                         StrName _name(byte.arg);
                         PyVar _0 = POPX();
-                        if(is_type(_0, tp_function)) {
-                            PK_OBJ_GET(Function, _0)._class = __curr_class;
-                        }
+                        if(is_type(_0, tp_function)) { PK_OBJ_GET(Function, _0)._class = __curr_class; }
                         __curr_class->attr().set(_name, _0);
                     }
                         DISPATCH()
@@ -1185,12 +1109,8 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_RAISE: {
-                        if(is_type(TOP(), tp_type)) {
-                            TOP() = call(TOP());
-                        }
-                        if(!isinstance(TOP(), tp_exception)) {
-                            TypeError("exceptions must derive from Exception");
-                        }
+                        if(is_type(TOP(), tp_type)) { TOP() = call(TOP()); }
+                        if(!isinstance(TOP(), tp_exception)) { TypeError("exceptions must derive from Exception"); }
                         _error(POPX());
                     }
                         DISPATCH()
@@ -1215,35 +1135,27 @@ PyVar VM::__run_top_frame() {
                     /*****************************************/
                     case OP_INC_FAST: {
                         PyVar* p = &frame->_locals[byte.arg];
-                        if(*p == PY_NULL) {
-                            vm->NameError(frame->co->varnames[byte.arg]);
-                        }
+                        if(*p == PY_NULL) { vm->NameError(frame->co->varnames[byte.arg]); }
                         *p = VAR(CAST(i64, *p) + 1);
                     }
                         DISPATCH()
                     case OP_DEC_FAST: {
                         PyVar* p = &frame->_locals[byte.arg];
-                        if(*p == PY_NULL) {
-                            vm->NameError(frame->co->varnames[byte.arg]);
-                        }
+                        if(*p == PY_NULL) { vm->NameError(frame->co->varnames[byte.arg]); }
                         *p = VAR(CAST(i64, *p) - 1);
                     }
                         DISPATCH()
                     case OP_INC_GLOBAL: {
                         StrName _name(byte.arg);
                         PyVar* p = frame->f_globals().try_get_2_likely_found(_name);
-                        if(p == nullptr) {
-                            vm->NameError(_name);
-                        }
+                        if(p == nullptr) { vm->NameError(_name); }
                         *p = VAR(CAST(i64, *p) + 1);
                     }
                         DISPATCH()
                     case OP_DEC_GLOBAL: {
                         StrName _name(byte.arg);
                         PyVar* p = frame->f_globals().try_get_2_likely_found(_name);
-                        if(p == nullptr) {
-                            vm->NameError(_name);
-                        }
+                        if(p == nullptr) { vm->NameError(_name); }
                         *p = VAR(CAST(i64, *p) - 1);
                     }
                         DISPATCH()
@@ -1266,9 +1178,7 @@ PyVar VM::__run_top_frame() {
                 }
                 frame = &callstack.top();
                 PUSH(__last_exception);
-                if(is_base_frame_to_be_popped) {
-                    throw InternalException(InternalExceptionType::ToBeRaised);
-                }
+                if(is_base_frame_to_be_popped) { throw InternalException(InternalExceptionType::ToBeRaised); }
             }
         }
     }
