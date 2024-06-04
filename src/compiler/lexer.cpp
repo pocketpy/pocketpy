@@ -15,8 +15,8 @@ static bool is_possible_number_char(char c){
         case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
         case '.': case 'L': case 'x': case 'o': case 'j':
         return true;
-        // clang-format on
         default: return false;
+        // clang-format on
     }
 }
 

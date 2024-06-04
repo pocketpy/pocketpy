@@ -110,7 +110,7 @@ namespace pkpy{
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define PK_METHOD(name) &Compiler::name
 #define PK_NO_INFIX nullptr, PREC_LOWEST
-        for(TokenIndex i=0; i<kTokenCount; i++) rules[i] = { nullptr, PK_NO_INFIX };
+        for(TokenIndex i = 0; i < kTokenCount; i++) rules[i] = { nullptr, PK_NO_INFIX };
         rules[TK(".")] =        { nullptr,                  PK_METHOD(exprAttrib),         PREC_PRIMARY };
         rules[TK("(")] =        { PK_METHOD(exprGroup),     PK_METHOD(exprCall),           PREC_PRIMARY };
         rules[TK("[")] =        { PK_METHOD(exprList),      PK_METHOD(exprSubscr),         PREC_PRIMARY };
