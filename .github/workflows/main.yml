@@ -22,10 +22,10 @@ jobs:
         python amalgamate.py
         cd amalgamated
         cl.exe /std:c++17 /EHsc /utf-8 /Ox /I. /DPK_ENABLE_OS=1 main.cpp /link /out:pkpy.exe
-    - uses: actions/upload-artifact@v4
-      with:
-        name: amalgamated
-        path: amalgamated/pkpy.exe
+    # - uses: actions/upload-artifact@v4
+    #   with:
+    #     name: amalgamated
+    #     path: amalgamated/pkpy.exe
   build_win32:
     runs-on: windows-latest
     steps:
@@ -111,9 +111,9 @@ jobs:
       - run: |
           python amalgamate.py
           cd plugins/macos/pocketpy
-          mkdir -p output/macos
+          mkdir output
           xcodebuild clean build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-          cp -r build/Release/pocketpy.bundle output/macos
+          cp -r build/Release/pocketpy.bundle output
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -164,17 +164,11 @@ jobs:
 
   merge:
       runs-on: ubuntu-latest
-      needs: [ build_win32_amalgamated, build_win32, build_linux, build_darwin, build_android, build_ios ]
+      needs: [ build_win32, build_linux, build_darwin, build_android, build_ios ]
       steps:
       - name: "Create output directory"
         run: "mkdir $GITHUB_WORKSPACE/output"
         
-      - name: "Merge amalgamated"
-        uses: actions/download-artifact@v4.1.7
-        with:
-          name: amalgamated
-          path: $GITHUB_WORKSPACE/output
-
       - name: "Merge win32"
         uses: actions/download-artifact@v4.1.7
         with:
@@ -208,5 +202,5 @@ jobs:
       - name: "Upload merged artifact"
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: merged
+          name: all-in-one
           path: $GITHUB_WORKSPACE/output
