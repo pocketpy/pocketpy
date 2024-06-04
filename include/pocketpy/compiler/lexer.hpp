@@ -9,6 +9,7 @@ namespace pkpy{
 
 typedef uint8_t TokenIndex;
 
+// clang-format off
 constexpr const char* kTokens[] = {
     "is not", "not in", "yield from",
     "@eof", "@eol", "@sof",
@@ -28,6 +29,7 @@ constexpr const char* kTokens[] = {
     "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
+// clang-format on
 
 using TokenValue = std::variant<std::monostate, i64, f64, Str>;
 const int kTokenCount = sizeof(kTokens) / sizeof(kTokens[0]);

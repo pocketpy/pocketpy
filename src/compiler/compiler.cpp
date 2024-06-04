@@ -106,6 +106,7 @@ namespace pkpy{
         if(initialized) return;
         initialized = true;
 
+// clang-format off
 // http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/
 #define PK_METHOD(name) &Compiler::name
 #define PK_NO_INFIX nullptr, PREC_LOWEST
@@ -158,6 +159,7 @@ namespace pkpy{
         
 #undef PK_METHOD
 #undef PK_NO_INFIX
+// clang-format on
     }
 
     bool Compiler::match(TokenIndex expected) {

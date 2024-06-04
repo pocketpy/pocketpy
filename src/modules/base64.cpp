@@ -9,6 +9,7 @@ const char BASE64_PAD = '=';
 const char BASE64DE_FIRST = '+';
 const char BASE64DE_LAST = 'z';
 
+// clang-format off
 /* BASE 64 encode table */
 const char base64en[] = {
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -71,6 +72,7 @@ const unsigned char base64de[] = {
 	/* 'x', 'y', 'z', '{', '|', '}', '~', del, */
 	    49,  50,  51, 255, 255, 255, 255, 255
 };
+// clang-format on
 
 static unsigned int
 base64_encode(const unsigned char *in, unsigned int inlen, char *out)
