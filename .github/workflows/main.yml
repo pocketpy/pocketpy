@@ -178,7 +178,7 @@ jobs:
       - name: "Merge win32"
         uses: actions/download-artifact@v4.1.7
         with:
-          name: win32
+          name: windows
           path: $GITHUB_WORKSPACE/output/windows
 
       - name: "Merge linux"
