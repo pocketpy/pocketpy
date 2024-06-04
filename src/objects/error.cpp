@@ -8,9 +8,8 @@ Str Exception::summary() const {
     //     ss << st.top().snapshot() << '\n';
     //     st.pop();
     // }
-    const auto& container = stacktrace.container();
-    for(int i = container.size() - 1; i >= 0; i--) {
-        ss << container[i].snapshot() << '\n';
+    for(int i = stacktrace.size() - 1; i >= 0; i--) {
+        ss << stacktrace[i].snapshot() << '\n';
     }
     if(!msg.empty())
         ss << type.sv() << ": " << msg;

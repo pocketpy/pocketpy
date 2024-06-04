@@ -43,8 +43,8 @@ void CodeEmitContext::exit_block() {
 // clear the expression stack and generate bytecode
 void CodeEmitContext::emit_expr() {
     assert(s_expr.size() == 1);
-    Expr_ expr = s_expr.popx();
-    expr->emit_(this);
+    s_expr.back()->emit_(this);
+    s_expr.pop_back();
 }
 
 int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
@@ -690,7 +690,7 @@ bool BinaryExpr::is_compare() const {
     }
 }
 
-void BinaryExpr::_emit_compare(CodeEmitContext* ctx, small_vector_2<int, 6>& jmps) {
+void BinaryExpr::_emit_compare(CodeEmitContext* ctx, small_vector_2<int, 8>& jmps) {
     if(lhs->is_compare()) {
         static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
     } else {
@@ -714,7 +714,7 @@ void BinaryExpr::_emit_compare(CodeEmitContext* ctx, small_vector_2<int, 6>& jmp
 }
 
 void BinaryExpr::emit_(CodeEmitContext* ctx) {
-    small_vector_2<int, 6> jmps;
+    small_vector_2<int, 8> jmps;
     if(is_compare() && lhs->is_compare()) {
         // (a < b) < c
         static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);

@@ -174,7 +174,7 @@ public:
 
     struct {
         PyObject* error;
-        stack_no_copy<ArgsView> s_view;
+        vector<ArgsView> s_view;
     } __c;
 
     PyVar StopIteration;  // a special Exception class

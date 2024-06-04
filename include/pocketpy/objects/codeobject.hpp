@@ -120,7 +120,7 @@ struct FuncDecl {
 
     CodeObject_ code;  // code object of this function
 
-    small_vector_2<int, 6> args;      // indices in co->varnames
+    small_vector_2<int, 8> args;      // indices in co->varnames
     small_vector_2<KwArg, 6> kwargs;  // indices in co->varnames
 
     int starred_arg = -1;    // index in co->varnames, -1 if no *arg

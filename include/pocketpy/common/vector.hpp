@@ -213,6 +213,12 @@ struct vector {
         if constexpr(!std::is_trivially_destructible_v<T>) { _data[_size].~T(); }
     }
 
+    T popx_back() {
+        T retval = std::move(back());
+        pop_back();
+        return retval;
+    }
+
     void clear() {
         std::destroy(begin(), end());
         _size = 0;
@@ -238,55 +244,6 @@ struct vector {
             std::free(_data);
         }
     }
-};
-
-template <typename T, typename Container = vector<T>>
-class stack {
-    Container vec;
-
-public:
-    void push(const T& t) { vec.push_back(t); }
-
-    void push(T&& t) { vec.push_back(std::move(t)); }
-
-    template <typename... Args>
-    void emplace(Args&&... args) {
-        vec.emplace_back(std::forward<Args>(args)...);
-    }
-
-    void pop() { vec.pop_back(); }
-
-    void clear() { vec.clear(); }
-
-    bool empty() const { return vec.empty(); }
-
-    typename Container::size_type size() const { return vec.size(); }
-
-    T& top() { return vec.back(); }
-
-    const T& top() const { return vec.back(); }
-
-    T popx() {
-        T t = std::move(vec.back());
-        vec.pop_back();
-        return t;
-    }
-
-    void reserve(int n) { vec.reserve(n); }
-
-    Container& container() { return vec; }
-
-    const Container& container() const { return vec; }
-};
-
-template <typename T, typename Container = vector<T>>
-class stack_no_copy : public stack<T, Container> {
-public:
-    stack_no_copy() = default;
-    stack_no_copy(const stack_no_copy& other) = delete;
-    stack_no_copy& operator= (const stack_no_copy& other) = delete;
-    stack_no_copy(stack_no_copy&& other) noexcept = default;
-    stack_no_copy& operator= (stack_no_copy&& other) noexcept = default;
 };
 
 }  // namespace pkpy

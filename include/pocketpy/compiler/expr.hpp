@@ -110,9 +110,7 @@ struct CodeEmitContext {
     VM* vm;
     FuncDecl_ func;  // optional
     CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
-    // some bugs on MSVC (error C2280) when using Expr_vector
-    // so we use stack_no_copy instead
-    stack_no_copy<Expr_> s_expr;
+    vector<Expr_> s_expr;
     int level;
     vector<Str> global_names;
 
@@ -441,7 +439,7 @@ struct BinaryExpr : Expr {
     BinaryExpr(bool inplace = false) : inplace(inplace) {}
 
     bool is_compare() const override;
-    void _emit_compare(CodeEmitContext*, small_vector_2<int, 6>&);
+    void _emit_compare(CodeEmitContext*, small_vector_2<int, 8>&);
     void emit_(CodeEmitContext* ctx) override;
 };
 

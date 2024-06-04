@@ -23,7 +23,7 @@ void LineProfiler::_step(int callstack_size, Frame* frame) {
     int line = line_info.lineno;
 
     if(frames.empty()) {
-        frames.push({callstack_size, frame, clock(), nullptr});
+        frames.push_back({callstack_size, frame, clock(), nullptr});
     } else {
         _step_end(callstack_size, frame, line);
     }
@@ -38,12 +38,12 @@ void LineProfiler::_step(int callstack_size, Frame* frame) {
         }
     }
 
-    frames.top().prev_record = &file_records[line];
+    frames.back().prev_record = &file_records[line];
 }
 
 void LineProfiler::_step_end(int callstack_size, Frame* frame, int line) {
     clock_t now = clock();
-    _FrameRecord& top_frame_record = frames.top();
+    _FrameRecord& top_frame_record = frames.back();
     _LineRecord* prev_record = top_frame_record.prev_record;
 
     int id_delta = callstack_size - top_frame_record.callstack_size;
@@ -58,15 +58,15 @@ void LineProfiler::_step_end(int callstack_size, Frame* frame, int line) {
     }
 
     if(id_delta == 1) {
-        frames.push({callstack_size, frame, now, nullptr});
+        frames.push_back({callstack_size, frame, now, nullptr});
     } else {
-        if(id_delta == -1) frames.pop();
+        if(id_delta == -1) frames.pop_back();
     }
 }
 
 void LineProfiler::end() {
     clock_t now = clock();
-    _FrameRecord& top_frame_record = frames.top();
+    _FrameRecord& top_frame_record = frames.back();
     _LineRecord* prev_record = top_frame_record.prev_record;
 
     clock_t delta = now - top_frame_record.prev_time;
@@ -74,7 +74,7 @@ void LineProfiler::end() {
     prev_record->hits++;
     prev_record->time += delta;
 
-    frames.pop();
+    frames.pop_back();
     assert(frames.empty());
 }
 

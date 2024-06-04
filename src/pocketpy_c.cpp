@@ -21,7 +21,7 @@ using namespace pkpy;
 static int count_extra_elements(VM* vm, int n) {
     if(vm->callstack.empty()) { return vm->s_data.size(); }
     assert(!vm->__c.s_view.empty());
-    return vm->s_data._sp - vm->__c.s_view.top().end();
+    return vm->s_data._sp - vm->__c.s_view.back().end();
 }
 
 static PyVar stack_item(VM* vm, int index) {
@@ -31,7 +31,7 @@ static PyVar stack_item(VM* vm, int index) {
         begin = vm->s_data.begin();
     } else {
         assert(!vm->__c.s_view.empty());
-        begin = vm->__c.s_view.top().begin();
+        begin = vm->__c.s_view.back().begin();
     }
     int size = end - begin;
     if(index < 0) index += size;
@@ -134,7 +134,7 @@ int pkpy_stack_size(pkpy_vm* vm_handle) {
     PK_ASSERT_NO_ERROR()
     if(vm->callstack.empty()) { return vm->s_data.size(); }
     if(vm->__c.s_view.empty()) exit(127);
-    return vm->s_data._sp - vm->__c.s_view.top().begin();
+    return vm->s_data._sp - vm->__c.s_view.back().begin();
 }
 
 // int
@@ -314,7 +314,7 @@ struct TempViewPopper {
 
     void restore() noexcept {
         if(used) return;
-        vm->__c.s_view.pop();
+        vm->__c.s_view.pop_back();
         used = true;
     }
 
@@ -326,7 +326,7 @@ static PyVar c_function_wrapper(VM* vm, ArgsView args) {
     pkpy_CFunction f = lambda_get_userdata<pkpy_CFunction>(args.begin());
     PyVar* curr_sp = vm->s_data._sp;
 
-    vm->__c.s_view.push(args);
+    vm->__c.s_view.push_back(args);
     TempViewPopper _tvp(vm);
     int retc = f((pkpy_vm*)vm);  // may raise, _tvp will handle this via RAII
     _tvp.restore();
@@ -526,7 +526,7 @@ bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
         vm->s_data.clear();
     } else {
         if(vm->__c.s_view.empty()) exit(127);
-        vm->s_data.reset(vm->__c.s_view.top().end());
+        vm->s_data.reset(vm->__c.s_view.back().end());
     }
     return true;
 }

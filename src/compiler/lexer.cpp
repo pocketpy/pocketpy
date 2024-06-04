@@ -69,15 +69,15 @@ bool Lexer::eat_indentation() {
     if(peekchar() == '#') skip_line_comment();
     if(peekchar() == '\0' || peekchar() == '\n') return true;
     // https://docs.python.org/3/reference/lexical_analysis.html#indentation
-    if(spaces > indents.top()) {
-        indents.push(spaces);
+    if(spaces > indents.back()) {
+        indents.push_back(spaces);
         nexts.push_back(Token{TK("@indent"), token_start, 0, current_line, brackets_level, {}});
-    } else if(spaces < indents.top()) {
-        while(spaces < indents.top()) {
-            indents.pop();
+    } else if(spaces < indents.back()) {
+        while(spaces < indents.back()) {
+            indents.pop_back();
             nexts.push_back(Token{TK("@dedent"), token_start, 0, current_line, brackets_level, {}});
         }
-        if(spaces != indents.top()) { return false; }
+        if(spaces != indents.back()) { return false; }
     }
     return true;
 }
@@ -496,7 +496,7 @@ bool Lexer::lex_one_token() {
 
     token_start = curr_char;
     while(indents.size() > 1) {
-        indents.pop();
+        indents.pop_back();
         add_token(TK("@dedent"));
         return true;
     }
@@ -518,7 +518,7 @@ Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) : vm(vm), src(src) {
     this->token_start = src->source.c_str();
     this->curr_char = src->source.c_str();
     this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
-    this->indents.push(0);
+    this->indents.push_back(0);
 }
 
 vector<Token> Lexer::run() {

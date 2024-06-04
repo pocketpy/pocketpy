@@ -16,7 +16,7 @@ NameScope Compiler::name_scope() const {
 CodeObject_ Compiler::push_global_context() {
     CodeObject_ co = std::make_shared<CodeObject>(lexer.src, lexer.src->filename);
     co->start_line = i == 0 ? 1 : prev().line;
-    contexts.push(CodeEmitContext(vm, co, contexts.size()));
+    contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
 }
 
@@ -25,8 +25,8 @@ FuncDecl_ Compiler::push_f_context(Str name) {
     decl->code = std::make_shared<CodeObject>(lexer.src, name);
     decl->code->start_line = i == 0 ? 1 : prev().line;
     decl->nested = name_scope() == NAME_LOCAL;
-    contexts.push(CodeEmitContext(vm, decl->code, contexts.size()));
-    contexts.top().func = decl;
+    contexts.push_back(CodeEmitContext(vm, decl->code, contexts.size()));
+    contexts.back().func = decl;
     return decl;
 }
 
@@ -56,7 +56,7 @@ void Compiler::pop_context() {
         }
     }
     // pre-compute func->is_simple
-    FuncDecl_ func = contexts.top().func;
+    FuncDecl_ func = contexts.back().func;
     if(func) {
         // check generator
         for(Bytecode bc: func->code->codes) {
@@ -91,7 +91,7 @@ void Compiler::pop_context() {
 
         assert(func->type != FuncType::UNSET);
     }
-    contexts.pop();
+    contexts.pop_back();
 }
 
 void Compiler::init_pratt_rules() {
@@ -199,15 +199,15 @@ void Compiler::EXPR_TUPLE(bool allow_slice) {
     if(!match(TK(","))) return;
     // tuple expression
     Expr_vector items;
-    items.push_back(ctx()->s_expr.popx());
+    items.push_back(ctx()->s_expr.popx_back());
     do {
         if(curr().brackets_level) match_newlines_repl();
         if(!is_expression(allow_slice)) break;
         parse_expression(PREC_LOWEST + 1, allow_slice);
-        items.push_back(ctx()->s_expr.popx());
+        items.push_back(ctx()->s_expr.popx_back());
         if(curr().brackets_level) match_newlines_repl();
     } while(match(TK(",")));
-    ctx()->s_expr.push(make_expr<TupleExpr>(std::move(items)));
+    ctx()->s_expr.push_back(make_expr<TupleExpr>(std::move(items)));
 }
 
 // special case for `for loop` and `comp`
@@ -221,15 +221,15 @@ Expr_ Compiler::EXPR_VARS() {
     return make_expr<TupleExpr>(std::move(items));
 }
 
-void Compiler::exprLiteral() { ctx()->s_expr.push(make_expr<LiteralExpr>(prev().value)); }
+void Compiler::exprLiteral() { ctx()->s_expr.push_back(make_expr<LiteralExpr>(prev().value)); }
 
-void Compiler::exprLong() { ctx()->s_expr.push(make_expr<LongExpr>(prev().str())); }
+void Compiler::exprLong() { ctx()->s_expr.push_back(make_expr<LongExpr>(prev().str())); }
 
-void Compiler::exprImag() { ctx()->s_expr.push(make_expr<ImagExpr>(std::get<f64>(prev().value))); }
+void Compiler::exprImag() { ctx()->s_expr.push_back(make_expr<ImagExpr>(std::get<f64>(prev().value))); }
 
-void Compiler::exprBytes() { ctx()->s_expr.push(make_expr<BytesExpr>(std::get<Str>(prev().value))); }
+void Compiler::exprBytes() { ctx()->s_expr.push_back(make_expr<BytesExpr>(std::get<Str>(prev().value))); }
 
-void Compiler::exprFString() { ctx()->s_expr.push(make_expr<FStringExpr>(std::get<Str>(prev().value))); }
+void Compiler::exprFString() { ctx()->s_expr.push_back(make_expr<FStringExpr>(std::get<Str>(prev().value))); }
 
 void Compiler::exprLambda() {
     FuncDecl_ decl = push_f_context("<lambda>");
@@ -243,60 +243,60 @@ void Compiler::exprLambda() {
     ctx()->emit_expr();
     ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
     pop_context();
-    ctx()->s_expr.push(std::move(e));
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprOr() {
     auto e = make_expr<OrExpr>();
-    e->lhs = ctx()->s_expr.popx();
+    e->lhs = ctx()->s_expr.popx_back();
     parse_expression(PREC_LOGICAL_OR + 1);
-    e->rhs = ctx()->s_expr.popx();
-    ctx()->s_expr.push(std::move(e));
+    e->rhs = ctx()->s_expr.popx_back();
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprAnd() {
     auto e = make_expr<AndExpr>();
-    e->lhs = ctx()->s_expr.popx();
+    e->lhs = ctx()->s_expr.popx_back();
     parse_expression(PREC_LOGICAL_AND + 1);
-    e->rhs = ctx()->s_expr.popx();
-    ctx()->s_expr.push(std::move(e));
+    e->rhs = ctx()->s_expr.popx_back();
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprTernary() {
     auto e = make_expr<TernaryExpr>();
-    e->true_expr = ctx()->s_expr.popx();
+    e->true_expr = ctx()->s_expr.popx_back();
     // cond
     parse_expression(PREC_TERNARY + 1);
-    e->cond = ctx()->s_expr.popx();
+    e->cond = ctx()->s_expr.popx_back();
     consume(TK("else"));
     // if false
     parse_expression(PREC_TERNARY + 1);
-    e->false_expr = ctx()->s_expr.popx();
-    ctx()->s_expr.push(std::move(e));
+    e->false_expr = ctx()->s_expr.popx_back();
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprBinaryOp() {
     auto e = make_expr<BinaryExpr>();
     e->op = prev().type;
-    e->lhs = ctx()->s_expr.popx();
+    e->lhs = ctx()->s_expr.popx_back();
     parse_expression(rules[e->op].precedence + 1);
-    e->rhs = ctx()->s_expr.popx();
-    ctx()->s_expr.push(std::move(e));
+    e->rhs = ctx()->s_expr.popx_back();
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprNot() {
     parse_expression(PREC_LOGICAL_NOT + 1);
-    ctx()->s_expr.push(make_expr<NotExpr>(ctx()->s_expr.popx()));
+    ctx()->s_expr.push_back(make_expr<NotExpr>(ctx()->s_expr.popx_back()));
 }
 
 void Compiler::exprUnaryOp() {
     TokenIndex op = prev().type;
     parse_expression(PREC_UNARY + 1);
     switch(op) {
-        case TK("-"): ctx()->s_expr.push(make_expr<NegatedExpr>(ctx()->s_expr.popx())); break;
-        case TK("~"): ctx()->s_expr.push(make_expr<InvertExpr>(ctx()->s_expr.popx())); break;
-        case TK("*"): ctx()->s_expr.push(make_expr<StarredExpr>(1, ctx()->s_expr.popx())); break;
-        case TK("**"): ctx()->s_expr.push(make_expr<StarredExpr>(2, ctx()->s_expr.popx())); break;
+        case TK("-"): ctx()->s_expr.push_back(make_expr<NegatedExpr>(ctx()->s_expr.popx_back())); break;
+        case TK("~"): ctx()->s_expr.push_back(make_expr<InvertExpr>(ctx()->s_expr.popx_back())); break;
+        case TK("*"): ctx()->s_expr.push_back(make_expr<StarredExpr>(1, ctx()->s_expr.popx_back())); break;
+        case TK("**"): ctx()->s_expr.push_back(make_expr<StarredExpr>(2, ctx()->s_expr.popx_back())); break;
         default: assert(false);
     }
 }
@@ -306,9 +306,9 @@ void Compiler::exprGroup() {
     EXPR_TUPLE();  // () is just for change precedence
     match_newlines_repl();
     consume(TK(")"));
-    if(ctx()->s_expr.top()->is_tuple()) return;
-    Expr_ g = make_expr<GroupedExpr>(ctx()->s_expr.popx());
-    ctx()->s_expr.push(std::move(g));
+    if(ctx()->s_expr.back()->is_tuple()) return;
+    Expr_ g = make_expr<GroupedExpr>(ctx()->s_expr.popx_back());
+    ctx()->s_expr.push_back(std::move(g));
 }
 
 void Compiler::consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr) {
@@ -316,13 +316,13 @@ void Compiler::consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr) {
     ce->vars = EXPR_VARS();
     consume(TK("in"));
     parse_expression(PREC_TERNARY + 1);
-    ce->iter = ctx()->s_expr.popx();
+    ce->iter = ctx()->s_expr.popx_back();
     match_newlines_repl();
     if(match(TK("if"))) {
         parse_expression(PREC_TERNARY + 1);
-        ce->cond = ctx()->s_expr.popx();
+        ce->cond = ctx()->s_expr.popx_back();
     }
-    ctx()->s_expr.push(std::move(ce));
+    ctx()->s_expr.push_back(std::move(ce));
     match_newlines_repl();
 }
 
@@ -333,7 +333,7 @@ void Compiler::exprList() {
         match_newlines_repl();
         if(curr().type == TK("]")) break;
         EXPR();
-        items.push_back(ctx()->s_expr.popx());
+        items.push_back(ctx()->s_expr.popx_back());
         match_newlines_repl();
         if(items.size() == 1 && match(TK("for"))) {
             consume_comp(make_expr<ListCompExpr>(), std::move(items[0]));
@@ -345,7 +345,7 @@ void Compiler::exprList() {
     consume(TK("]"));
     auto e = make_expr<ListExpr>(std::move(items));
     e->line = line;  // override line
-    ctx()->s_expr.push(std::move(e));
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprMap() {
@@ -355,22 +355,22 @@ void Compiler::exprMap() {
         match_newlines_repl();
         if(curr().type == TK("}")) break;
         EXPR();
-        int star_level = ctx()->s_expr.top()->star_level();
+        int star_level = ctx()->s_expr.back()->star_level();
         if(star_level == 2 || curr().type == TK(":")) { parsing_dict = true; }
         if(parsing_dict) {
             auto dict_item = make_expr<DictItemExpr>();
             if(star_level == 2) {
                 dict_item->key = nullptr;
-                dict_item->value = ctx()->s_expr.popx();
+                dict_item->value = ctx()->s_expr.popx_back();
             } else {
                 consume(TK(":"));
                 EXPR();
-                dict_item->key = ctx()->s_expr.popx();
-                dict_item->value = ctx()->s_expr.popx();
+                dict_item->key = ctx()->s_expr.popx_back();
+                dict_item->value = ctx()->s_expr.popx_back();
             }
             items.push_back(std::move(dict_item));
         } else {
-            items.push_back(ctx()->s_expr.popx());
+            items.push_back(ctx()->s_expr.popx_back());
         }
         match_newlines_repl();
         if(items.size() == 1 && match(TK("for"))) {
@@ -386,16 +386,16 @@ void Compiler::exprMap() {
     consume(TK("}"));
     if(items.size() == 0 || parsing_dict) {
         auto e = make_expr<DictExpr>(std::move(items));
-        ctx()->s_expr.push(std::move(e));
+        ctx()->s_expr.push_back(std::move(e));
     } else {
         auto e = make_expr<SetExpr>(std::move(items));
-        ctx()->s_expr.push(std::move(e));
+        ctx()->s_expr.push_back(std::move(e));
     }
 }
 
 void Compiler::exprCall() {
     auto e = make_expr<CallExpr>();
-    e->callable = ctx()->s_expr.popx();
+    e->callable = ctx()->s_expr.popx_back();
     do {
         match_newlines_repl();
         if(curr().type == TK(")")) break;
@@ -404,16 +404,16 @@ void Compiler::exprCall() {
             Str key = prev().str();
             consume(TK("="));
             EXPR();
-            e->kwargs.push_back({key, ctx()->s_expr.popx()});
+            e->kwargs.push_back({key, ctx()->s_expr.popx_back()});
         } else {
             EXPR();
-            if(ctx()->s_expr.top()->star_level() == 2) {
+            if(ctx()->s_expr.back()->star_level() == 2) {
                 // **kwargs
-                e->kwargs.push_back({"**", ctx()->s_expr.popx()});
+                e->kwargs.push_back({"**", ctx()->s_expr.popx_back()});
             } else {
                 // positional argument
                 if(!e->kwargs.empty()) SyntaxError("positional argument follows keyword argument");
-                e->args.push_back(ctx()->s_expr.popx());
+                e->args.push_back(ctx()->s_expr.popx_back());
             }
         }
         match_newlines_repl();
@@ -421,70 +421,70 @@ void Compiler::exprCall() {
     consume(TK(")"));
     if(e->args.size() > 32767) SyntaxError("too many positional arguments");
     if(e->kwargs.size() > 32767) SyntaxError("too many keyword arguments");
-    ctx()->s_expr.push(std::move(e));
+    ctx()->s_expr.push_back(std::move(e));
 }
 
 void Compiler::exprName() {
     Str name = prev().str();
     NameScope scope = name_scope();
     if(ctx()->global_names.contains(name)) { scope = NAME_GLOBAL; }
-    ctx()->s_expr.push(make_expr<NameExpr>(name, scope));
+    ctx()->s_expr.push_back(make_expr<NameExpr>(name, scope));
 }
 
 void Compiler::exprAttrib() {
     consume(TK("@id"));
-    ctx()->s_expr.push(make_expr<AttribExpr>(ctx()->s_expr.popx(), StrName::get(prev().sv())));
+    ctx()->s_expr.push_back(make_expr<AttribExpr>(ctx()->s_expr.popx_back(), StrName::get(prev().sv())));
 }
 
 void Compiler::exprSlice0() {
     auto slice = make_expr<SliceExpr>();
     if(is_expression()) {  // :<stop>
         EXPR();
-        slice->stop = ctx()->s_expr.popx();
+        slice->stop = ctx()->s_expr.popx_back();
         // try optional step
         if(match(TK(":"))) {  // :<stop>:<step>
             EXPR();
-            slice->step = ctx()->s_expr.popx();
+            slice->step = ctx()->s_expr.popx_back();
         }
     } else if(match(TK(":"))) {
         if(is_expression()) {  // ::<step>
             EXPR();
-            slice->step = ctx()->s_expr.popx();
+            slice->step = ctx()->s_expr.popx_back();
         }  // else ::
     }  // else :
-    ctx()->s_expr.push(std::move(slice));
+    ctx()->s_expr.push_back(std::move(slice));
 }
 
 void Compiler::exprSlice1() {
     auto slice = make_expr<SliceExpr>();
-    slice->start = ctx()->s_expr.popx();
+    slice->start = ctx()->s_expr.popx_back();
     if(is_expression()) {  // <start>:<stop>
         EXPR();
-        slice->stop = ctx()->s_expr.popx();
+        slice->stop = ctx()->s_expr.popx_back();
         // try optional step
         if(match(TK(":"))) {  // <start>:<stop>:<step>
             EXPR();
-            slice->step = ctx()->s_expr.popx();
+            slice->step = ctx()->s_expr.popx_back();
         }
     } else if(match(TK(":"))) {  // <start>::<step>
         EXPR();
-        slice->step = ctx()->s_expr.popx();
+        slice->step = ctx()->s_expr.popx_back();
     }  // else <start>:
-    ctx()->s_expr.push(std::move(slice));
+    ctx()->s_expr.push_back(std::move(slice));
 }
 
 void Compiler::exprSubscr() {
     auto e = make_expr<SubscrExpr>();
     match_newlines_repl();
-    e->a = ctx()->s_expr.popx();  // a
+    e->a = ctx()->s_expr.popx_back();  // a
     EXPR_TUPLE(true);
-    e->b = ctx()->s_expr.popx();  // a[<expr>]
+    e->b = ctx()->s_expr.popx_back();  // a[<expr>]
     match_newlines_repl();
     consume(TK("]"));
-    ctx()->s_expr.push(std::move(e));
+    ctx()->s_expr.push_back(std::move(e));
 }
 
-void Compiler::exprLiteral0() { ctx()->s_expr.push(make_expr<Literal0Expr>(prev().type)); }
+void Compiler::exprLiteral0() { ctx()->s_expr.push_back(make_expr<Literal0Expr>(prev().type)); }
 
 void Compiler::compile_block_body(void (Compiler::*callback)()) {
     if(callback == nullptr) callback = &Compiler::compile_stmt;
@@ -674,7 +674,7 @@ void Compiler::compile_try_except() {
     ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
     ctx()->emit_(OP_TRY_ENTER, BC_NOARG, prev().line);
     compile_block_body();
-    small_vector_2<int, 6> patches;
+    small_vector_2<int, 8> patches;
     patches.push_back(ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE));
     ctx()->exit_block();
 
@@ -739,7 +739,7 @@ void Compiler::compile_decorated() {
     Expr_vector decorators;
     do {
         EXPR();
-        decorators.push_back(ctx()->s_expr.popx());
+        decorators.push_back(ctx()->s_expr.popx_back());
         if(!match_newlines_repl()) SyntaxError();
     } while(match(TK("@")));
 
@@ -764,7 +764,7 @@ bool Compiler::try_compile_assignment() {
         case TK("&="):
         case TK("|="):
         case TK("^="): {
-            Expr* lhs_p = ctx()->s_expr.top().get();
+            Expr* lhs_p = ctx()->s_expr.back().get();
             if(lhs_p->is_starred()) SyntaxError();
             if(ctx()->is_compiling_class) SyntaxError("can't use inplace operator in class definition");
             advance();
@@ -772,9 +772,9 @@ bool Compiler::try_compile_assignment() {
             // a.x += 1;    a should be evaluated only once
             auto e = make_expr<BinaryExpr>(true);  // inplace=true
             e->op = prev().type - 1;               // -1 to remove =
-            e->lhs = ctx()->s_expr.popx();
+            e->lhs = ctx()->s_expr.popx_back();
             EXPR_TUPLE();
-            e->rhs = ctx()->s_expr.popx();
+            e->rhs = ctx()->s_expr.popx_back();
             if(e->rhs->is_starred()) SyntaxError();
             e->emit_(ctx());
             bool ok = lhs_p->emit_store_inplace(ctx());
@@ -788,12 +788,12 @@ bool Compiler::try_compile_assignment() {
                 n += 1;
             }
             // stack size is n+1
-            Expr_ val = ctx()->s_expr.popx();
+            Expr_ val = ctx()->s_expr.popx_back();
             val->emit_(ctx());
             for(int j = 1; j < n; j++)
                 ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             for(int j = 0; j < n; j++) {
-                auto e = ctx()->s_expr.popx();
+                auto e = ctx()->s_expr.popx_back();
                 if(e->is_starred()) SyntaxError();
                 bool ok = e->emit_store(ctx());
                 if(!ok) SyntaxError();
@@ -919,7 +919,7 @@ void Compiler::compile_stmt() {
         } break;
         case TK("del"): {
             EXPR_TUPLE();
-            Expr_ e = ctx()->s_expr.popx();
+            Expr_ e = ctx()->s_expr.popx_back();
             bool ok = e->emit_del(ctx());
             if(!ok) SyntaxError();
             consume_end_stmt();
@@ -968,19 +968,19 @@ void Compiler::compile_stmt() {
 
             bool is_typed_name = false;  // e.g. x: int
             // eat variable's type hint if it is a single name
-            if(ctx()->s_expr.top()->is_name()) {
+            if(ctx()->s_expr.back()->is_name()) {
                 if(match(TK(":"))) {
                     consume_type_hints();
                     is_typed_name = true;
 
                     if(ctx()->is_compiling_class) {
-                        NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.top().get());
+                        NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.back().get());
                         ctx()->emit_(OP_ADD_CLASS_ANNOTATION, ne->name.index, BC_KEEPLINE);
                     }
                 }
             }
             if(!try_compile_assignment()) {
-                if(!ctx()->s_expr.empty() && ctx()->s_expr.top()->is_starred()) { SyntaxError(); }
+                if(!ctx()->s_expr.empty() && ctx()->s_expr.back()->is_starred()) { SyntaxError(); }
                 if(!is_typed_name) {
                     ctx()->emit_expr();
                     if((mode() == CELL_MODE || mode() == REPL_MODE) && name_scope() == NAME_GLOBAL) {
@@ -990,7 +990,7 @@ void Compiler::compile_stmt() {
                     }
                 } else {
                     assert(ctx()->s_expr.size() == 1);
-                    ctx()->s_expr.pop();
+                    ctx()->s_expr.pop_back();
                 }
             }
             consume_end_stmt();
@@ -1000,7 +1000,7 @@ void Compiler::compile_stmt() {
 
 void Compiler::consume_type_hints() {
     EXPR();
-    ctx()->s_expr.pop();
+    ctx()->s_expr.pop_back();
 }
 
 void Compiler::_add_decorators(const Expr_vector& decorators) {
@@ -1021,7 +1021,7 @@ void Compiler::compile_class(const Expr_vector& decorators) {
     if(match(TK("("))) {
         if(is_expression()) {
             EXPR();
-            base = ctx()->s_expr.popx();
+            base = ctx()->s_expr.popx_back();
         }
         consume(TK(")"));
     }
@@ -1032,7 +1032,7 @@ void Compiler::compile_class(const Expr_vector& decorators) {
     }
     ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
-    for(auto& c: this->contexts.container()) {
+    for(auto& c: this->contexts) {
         if(c.is_compiling_class) { SyntaxError("nested class is not allowed"); }
     }
     ctx()->is_compiling_class = true;
@@ -1319,7 +1319,7 @@ CodeObject_ Compiler::compile() {
         return code;
     } else if(mode() == JSON_MODE) {
         EXPR();
-        Expr_ e = ctx()->s_expr.popx();
+        Expr_ e = ctx()->s_expr.popx_back();
         if(!e->is_json_object()) SyntaxError("expect a JSON object, literal or array");
         consume(TK("@eof"));
         e->emit_(ctx());

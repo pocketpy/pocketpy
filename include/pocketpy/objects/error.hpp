@@ -44,7 +44,7 @@ struct Exception {
             src(src), lineno(lineno), cursor(cursor), name(name) {}
     };
 
-    stack<Frame> stacktrace;
+    vector<Frame> stacktrace;
 
     Exception(StrName type) : type(type), is_re(true), _ip_on_error(-1), _code_on_error(nullptr), _self(nullptr) {}
 
@@ -56,7 +56,7 @@ struct Exception {
     template <typename... Args>
     void st_push(Args&&... args) {
         if(stacktrace.size() >= 7) return;
-        stacktrace.emplace(std::forward<Args>(args)...);
+        stacktrace.emplace_back(std::forward<Args>(args)...);
     }
 
     Str summary() const;

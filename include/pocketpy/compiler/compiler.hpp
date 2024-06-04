@@ -19,7 +19,7 @@ class Compiler {
     static PrattRule rules[kTokenCount];
 
     Lexer lexer;
-    stack_no_copy<CodeEmitContext> contexts;
+    vector<CodeEmitContext> contexts;
     VM* vm;
     bool unknown_global_scope;  // for eval/exec() call
     // for parsing token stream
@@ -39,7 +39,7 @@ class Compiler {
 
     void advance(int delta = 1) { i += delta; }
 
-    CodeEmitContext* ctx() { return &contexts.top(); }
+    CodeEmitContext* ctx() { return &contexts.back(); }
 
     CompileMode mode() const { return lexer.src->mode; }
 
