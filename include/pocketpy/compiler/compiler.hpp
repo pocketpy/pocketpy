@@ -2,12 +2,12 @@
 
 #include "pocketpy/compiler/expr.hpp"
 
-namespace pkpy{
+namespace pkpy {
 
 class Compiler;
 typedef void (Compiler::*PrattCallback)();
 
-struct PrattRule{
+struct PrattRule {
     PrattCallback prefix;
     PrattCallback infix;
     Precedence precedence;
@@ -21,22 +21,30 @@ class Compiler {
     Lexer lexer;
     stack_no_copy<CodeEmitContext> contexts;
     VM* vm;
-    bool unknown_global_scope;     // for eval/exec() call
+    bool unknown_global_scope;  // for eval/exec() call
     // for parsing token stream
     int i = 0;
     vector<Token> tokens;
 
-    const Token& prev() const{ return tokens[i-1]; }
-    const Token& curr() const{ return tokens[i]; }
-    const Token& next() const{ return tokens[i+1]; }
-    const Token& err() const{
-        if(i >= tokens.size()) return prev();
+    const Token& prev() const { return tokens[i - 1]; }
+
+    const Token& curr() const { return tokens[i]; }
+
+    const Token& next() const { return tokens[i + 1]; }
+
+    const Token& err() const {
+        if(i >= tokens.size()) {
+            return prev();
+        }
         return curr();
     }
-    void advance(int delta=1) { i += delta; }
+
+    void advance(int delta = 1) { i += delta; }
 
     CodeEmitContext* ctx() { return &contexts.top(); }
-    CompileMode mode() const{ return lexer.src->mode; }
+
+    CompileMode mode() const { return lexer.src->mode; }
+
     NameScope name_scope() const;
     CodeObject_ push_global_context();
     FuncDecl_ push_f_context(Str name);
@@ -48,13 +56,13 @@ class Compiler {
     void consume(TokenIndex expected);
     bool match_newlines_repl();
 
-    bool match_newlines(bool repl_throw=false);
+    bool match_newlines(bool repl_throw = false);
     bool match_end_stmt();
     void consume_end_stmt();
 
     /*************************************************/
     void EXPR();
-    void EXPR_TUPLE(bool allow_slice=false);
+    void EXPR_TUPLE(bool allow_slice = false);
     Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
@@ -91,11 +99,11 @@ class Compiler {
     void exprSubscr();
     void exprLiteral0();
 
-    void compile_block_body(void (Compiler::*callback)()=nullptr);
+    void compile_block_body(void (Compiler::*callback)() = nullptr);
     void compile_normal_import();
     void compile_from_import();
-    bool is_expression(bool allow_slice=false);
-    void parse_expression(int precedence, bool allow_slice=false);
+    bool is_expression(bool allow_slice = false);
+    void parse_expression(int precedence, bool allow_slice = false);
     void compile_if_stmt();
     void compile_while_loop();
     void compile_for_loop();
@@ -106,32 +114,42 @@ class Compiler {
     void compile_stmt();
     void consume_type_hints();
     void _add_decorators(const Expr_vector& decorators);
-    void compile_class(const Expr_vector& decorators={});
+    void compile_class(const Expr_vector& decorators = {});
     void _compile_f_args(FuncDecl_ decl, bool enable_type_hints);
-    void compile_function(const Expr_vector& decorators={});
+    void compile_function(const Expr_vector& decorators = {});
 
     PyVar to_object(const TokenValue& value);
     PyVar read_literal();
 
-    void SyntaxError(Str msg){ lexer.throw_err("SyntaxError", msg, err().line, err().start); }
-    void SyntaxError(){ lexer.throw_err("SyntaxError", "invalid syntax", err().line, err().start); }
-    void IndentationError(Str msg){ lexer.throw_err("IndentationError", msg, err().line, err().start); }
+    void SyntaxError(Str msg) { lexer.throw_err("SyntaxError", msg, err().line, err().start); }
+
+    void SyntaxError() { lexer.throw_err("SyntaxError", "invalid syntax", err().line, err().start); }
+
+    void IndentationError(Str msg) { lexer.throw_err("IndentationError", msg, err().line, err().start); }
 
 public:
-    Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope = false);
     Str precompile();
     void from_precompiled(const char* source);
     CodeObject_ compile();
 };
 
-struct TokenDeserializer{
+struct TokenDeserializer {
     const char* curr;
     const char* source;
 
-    TokenDeserializer(const char* source): curr(source), source(source) {}
-    char read_char(){ return *curr++; }
-    bool match_char(char c){ if(*curr == c) { curr++; return true; } return false; }
-    
+    TokenDeserializer(const char* source) : curr(source), source(source) {}
+
+    char read_char() { return *curr++; }
+
+    bool match_char(char c) {
+        if(*curr == c) {
+            curr++;
+            return true;
+        }
+        return false;
+    }
+
     std::string_view read_string(char c);
     Str read_string_from_hex(char c);
     int read_count();
@@ -139,4 +157,4 @@ struct TokenDeserializer{
     f64 read_float(char c);
 };
 
-} // namespace pkpy
+}  // namespace pkpy

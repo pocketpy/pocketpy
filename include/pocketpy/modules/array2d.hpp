@@ -6,4 +6,4 @@ namespace pkpy {
 
 void add_module_array2d(VM* vm);
 
-} // namespace pkpy
+}  // namespace pkpy

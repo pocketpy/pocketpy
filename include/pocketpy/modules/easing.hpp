@@ -2,8 +2,8 @@
 
 #include "pocketpy/common/types.hpp"
 
-namespace pkpy{
+namespace pkpy {
 
 void add_module_easing(VM* vm);
 
-} // namespace pkpy
+}  // namespace pkpy

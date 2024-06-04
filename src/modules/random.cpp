@@ -36,23 +36,21 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-struct mt19937{
-    static const int N = 624;
-    static const int M = 397;
+struct mt19937 {
+    const static int N = 624;
+    const static int M = 397;
     const uint32_t MATRIX_A = 0x9908b0dfUL;   /* constant vector a */
     const uint32_t UPPER_MASK = 0x80000000UL; /* most significant w-r bits */
     const uint32_t LOWER_MASK = 0x7fffffffUL; /* least significant r bits */
 
-    uint32_t mt[N]; /* the array for the state vector  */
-    int mti=N+1; /* mti==N+1 means mt[N] is not initialized */
+    uint32_t mt[N];  /* the array for the state vector  */
+    int mti = N + 1; /* mti==N+1 means mt[N] is not initialized */
 
     /* initializes mt[N] with a seed */
-    void seed(uint32_t s)
-    {
-        mt[0]= s & 0xffffffffUL;
-        for (mti=1; mti<N; mti++) {
-            mt[mti] = 
-            (1812433253UL * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti); 
+    void seed(uint32_t s) {
+        mt[0] = s & 0xffffffffUL;
+        for(mti = 1; mti < N; mti++) {
+            mt[mti] = (1812433253UL * (mt[mti - 1] ^ (mt[mti - 1] >> 30)) + mti);
             /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
             /* In the previous versions, MSBs of the seed affect   */
             /* only MSBs of the array mt[].                        */
@@ -63,32 +61,32 @@ struct mt19937{
     }
 
     /* generates a random number on [0,0xffffffff]-interval */
-    uint32_t next_uint32(void)
-    {
+    uint32_t next_uint32(void) {
         uint32_t y;
-        static uint32_t mag01[2]={0x0UL, MATRIX_A};
+        static uint32_t mag01[2] = {0x0UL, MATRIX_A};
         /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
-        if (mti >= N) { /* generate N words at one time */
+        if(mti >= N) { /* generate N words at one time */
             int kk;
 
-            if (mti == N+1)   /* if init_genrand() has not been called, */
-                seed(5489UL); /* a default initial seed is used */
+            if(mti == N + 1) { /* if init_genrand() has not been called, */
+                seed(5489UL);  /* a default initial seed is used */
+            }
 
-            for (kk=0;kk<N-M;kk++) {
-                y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-                mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            for(kk = 0; kk < N - M; kk++) {
+                y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);
+                mt[kk] = mt[kk + M] ^ (y >> 1) ^ mag01[y & 0x1UL];
             }
-            for (;kk<N-1;kk++) {
-                y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-                mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            for(; kk < N - 1; kk++) {
+                y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);
+                mt[kk] = mt[kk + (M - N)] ^ (y >> 1) ^ mag01[y & 0x1UL];
             }
-            y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
-            mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[y & 0x1UL];
+            y = (mt[N - 1] & UPPER_MASK) | (mt[0] & LOWER_MASK);
+            mt[N - 1] = mt[M - 1] ^ (y >> 1) ^ mag01[y & 0x1UL];
 
             mti = 0;
         }
-    
+
         y = mt[mti++];
 
         /* Tempering */
@@ -100,44 +98,36 @@ struct mt19937{
         return y;
     }
 
-    uint64_t next_uint64(void){
-        return (uint64_t(next_uint32()) << 32) | next_uint32();
-    }
+    uint64_t next_uint64(void) { return (uint64_t(next_uint32()) << 32) | next_uint32(); }
 
     /* generates a random number on [0,1)-real-interval */
-    float random(void)
-    {
-        return next_uint32()*(1.0/4294967296.0); /* divided by 2^32 */
-    }
+    float random(void) { return next_uint32() * (1.0 / 4294967296.0); /* divided by 2^32 */ }
 
     /* generates a random number on [a, b]-interval */
-    int64_t randint(int64_t a, int64_t b){
+    int64_t randint(int64_t a, int64_t b) {
         uint64_t delta = b - a + 1;
-        if(delta < 0x80000000UL){
+        if(delta < 0x80000000UL) {
             return a + next_uint32() % (uint32_t)delta;
-        }else{
+        } else {
             return a + next_uint64() % delta;
         }
     }
 
-    float uniform(float a, float b){
-        return a + random() * (b - a);
-    }
+    float uniform(float a, float b) { return a + random() * (b - a); }
 };
 
+namespace pkpy {
 
-namespace pkpy{
-
-struct Random{
+struct Random {
     mt19937 gen;
 
-    Random(){
+    Random() {
         auto count = std::chrono::high_resolution_clock::now().time_since_epoch().count();
         gen.seed((uint32_t)count);
     }
 
-    static void _register(VM* vm, PyObject* mod, PyObject* type){
-        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args){
+    static void _register(VM* vm, PyObject* mod, PyObject* type) {
+        vm->bind_func(type, __new__, 1, [](VM* vm, ArgsView args) {
             Type cls = PK_OBJ_GET(Type, args[0]);
             return vm->new_object<Random>(cls);
         });
@@ -152,7 +142,9 @@ struct Random{
             Random& self = PK_OBJ_GET(Random, args[0]);
             i64 a = CAST(i64, args[1]);
             i64 b = CAST(i64, args[2]);
-            if (a > b) vm->ValueError("randint(a, b): a must be less than or equal to b");
+            if(a > b) {
+                vm->ValueError("randint(a, b): a must be less than or equal to b");
+            }
             return VAR(self.gen.randint(a, b));
         });
 
@@ -165,14 +157,16 @@ struct Random{
             Random& self = PK_OBJ_GET(Random, args[0]);
             f64 a = CAST(f64, args[1]);
             f64 b = CAST(f64, args[2]);
-            if (a > b) std::swap(a, b);
+            if(a > b) {
+                std::swap(a, b);
+            }
             return VAR(self.gen.uniform(a, b));
         });
 
         vm->bind_func(type, "shuffle", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             List& L = CAST(List&, args[1]);
-            for(int i = L.size() - 1; i > 0; i--){
+            for(int i = L.size() - 1; i > 0; i--) {
                 int j = self.gen.randint(0, i);
                 std::swap(L[i], L[j]);
             }
@@ -182,8 +176,10 @@ struct Random{
         vm->bind_func(type, "choice", 2, [](VM* vm, ArgsView args) {
             Random& self = PK_OBJ_GET(Random, args[0]);
             ArgsView view = vm->cast_array_view(args[1]);
-            if(view.empty()) vm->IndexError("cannot choose from an empty sequence");
-            int index = self.gen.randint(0, view.size()-1);
+            if(view.empty()) {
+                vm->IndexError("cannot choose from an empty sequence");
+            }
+            int index = self.gen.randint(0, view.size() - 1);
             return view[index];
         });
 
@@ -192,22 +188,30 @@ struct Random{
             ArgsView view = vm->cast_array_view(args[1]);
             PyVar* data = view.begin();
             int size = view.size();
-            if(size == 0) vm->IndexError("cannot choose from an empty sequence");
+            if(size == 0) {
+                vm->IndexError("cannot choose from an empty sequence");
+            }
             array<f64> cum_weights(size);
-            if(args[2] == vm->None){
-                for(int i = 0; i < size; i++) cum_weights[i] = i + 1;
-            }else{
+            if(args[2] == vm->None) {
+                for(int i = 0; i < size; i++) {
+                    cum_weights[i] = i + 1;
+                }
+            } else {
                 ArgsView weights = vm->cast_array_view(args[2]);
-                if(weights.size() != size) vm->ValueError(_S("len(weights) != ", size));
+                if(weights.size() != size) {
+                    vm->ValueError(_S("len(weights) != ", size));
+                }
                 cum_weights[0] = CAST(f64, weights[0]);
-                for(int i = 1; i < size; i++){
+                for(int i = 1; i < size; i++) {
                     cum_weights[i] = cum_weights[i - 1] + CAST(f64, weights[i]);
                 }
             }
-            if(cum_weights[size - 1] <= 0) vm->ValueError("total of weights must be greater than zero");
+            if(cum_weights[size - 1] <= 0) {
+                vm->ValueError("total of weights must be greater than zero");
+            }
             int k = CAST(int, args[3]);
             List result(k);
-            for(int i = 0; i < k; i++){
+            for(int i = 0; i < k; i++) {
                 f64 r = self.gen.uniform(0.0, cum_weights[size - 1]);
                 int idx = std::lower_bound(cum_weights.begin(), cum_weights.end(), r) - cum_weights.begin();
                 result[i] = data[idx];
@@ -217,7 +221,7 @@ struct Random{
     }
 };
 
-void add_module_random(VM* vm){
+void add_module_random(VM* vm) {
     PyObject* mod = vm->new_module("random");
     vm->register_user_class<Random>(mod, "Random");
     PyVar instance = vm->new_user_object<Random>();
@@ -230,4 +234,4 @@ void add_module_random(VM* vm){
     mod->attr().set("choices", vm->getattr(instance, "choices"));
 }
 
-}   // namespace pkpy
+}  // namespace pkpy

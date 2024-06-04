@@ -2,16 +2,17 @@
 
 #include "pocketpy/common/traits.hpp"
 
-namespace pkpy{
+namespace pkpy {
 
-struct StackMemory{
+struct StackMemory {
     int count;
+
     StackMemory(int count) : count(count) {}
 };
 
-template<>
-inline bool constexpr is_sso_v<StackMemory> = true;
+template <>
+constexpr inline bool is_sso_v<StackMemory> = true;
 
-inline const int kTpStackMemoryIndex = 27;
+const inline int kTpStackMemoryIndex = 27;
 
-}   // namespace pkpy
+}  // namespace pkpy
