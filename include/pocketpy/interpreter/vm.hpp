@@ -226,6 +226,7 @@ public:
     const bool enable_os;
     VM(bool enable_os = true);
 
+// clang-format off
 #if PK_REGION("Python Equivalents")
     Str py_str(PyVar obj);   // x -> str(x)
     Str py_repr(PyVar obj);  // x -> repr(x)
@@ -529,6 +530,7 @@ public:
         vm->s_data.emplace(p->type, p);
     }
 #endif
+// clang-format on
 
     template <typename T>
     Type _find_type_in_cxx_typeid_map() {
