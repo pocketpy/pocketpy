@@ -153,9 +153,13 @@ int Lexer::eat_name() {
         return 0;
     }
 
-    auto it = kTokenKwMap.try_get(name);
-    if(it != nullptr) {
-        add_token(*it);
+    const auto KW_BEGIN = kTokens + TK("False");
+    const auto KW_END = kTokens + kTokenCount;
+
+    auto it = std::lower_bound(KW_BEGIN, KW_END, name);
+    if(it != KW_END) {
+        assert(*it == name);
+        add_token(it - kTokens);
     } else {
         add_token(TK("@id"));
     }

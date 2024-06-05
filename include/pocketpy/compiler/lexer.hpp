@@ -25,9 +25,11 @@ constexpr const char* kTokens[] = {
     "**", "=", ">", "<", "..", "...", "->", "@", "==", "!=", ">=", "<=",
     "++", "--", "~",
     /** KW_BEGIN **/
-    "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
-    "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
-    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
+    // NOTE: These keywords should be sorted in ascending order!!
+    "False", "None", "True", "and", "as", "assert", "break", "class", "continue",
+    "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
+    "if", "import", "in", "is", "lambda", "not", "or", "pass", "raise", "return",
+    "try", "while", "with", "yield",
 };
 // clang-format on
 
@@ -50,12 +52,6 @@ constexpr TokenIndex TK(const char token[]) {
 constexpr inline bool is_raw_string_used(TokenIndex t) { return t == TK("@id") || t == TK("@long"); }
 
 #define TK_STR(t) kTokens[t]
-const small_map<std::string_view, TokenIndex> kTokenKwMap = []() {
-    small_map<std::string_view, TokenIndex> map;
-    for(int k = TK("class"); k < kTokenCount; k++)
-        map.insert(kTokens[k], k);
-    return map;
-}();
 
 struct Token {
     TokenIndex type;
