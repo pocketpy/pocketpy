@@ -157,8 +157,7 @@ int Lexer::eat_name() {
     const auto KW_END = kTokens + kTokenCount;
 
     auto it = std::lower_bound(KW_BEGIN, KW_END, name);
-    if(it != KW_END) {
-        assert(*it == name);
+    if(it != KW_END && *it == name) {
         add_token(it - kTokens);
     } else {
         add_token(TK("@id"));
