@@ -1191,12 +1191,11 @@ Str Compiler::precompile() {
     ss << "pkpy:" PK_VERSION << '\n';  // L1: version string
     ss << (int)mode() << '\n';         // L2: mode
 
-    std::map<std::string_view, int> token_indices;
+    small_map<std::string_view, int> token_indices;
     for(auto token: tokens) {
         if(is_raw_string_used(token.type)) {
-            auto it = token_indices.find(token.sv());
-            if(it == token_indices.end()) {
-                token_indices[token.sv()] = 0;
+            if(!token_indices.contains(token.sv())) {
+                token_indices.insert(token.sv(), 0);
                 // assert no '\n' in token.sv()
                 for(char c: token.sv())
                     assert(c != '\n');

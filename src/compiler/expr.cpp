@@ -115,14 +115,14 @@ int CodeEmitContext::add_varname(StrName name) {
 }
 
 int CodeEmitContext::add_const_string(std::string_view key) {
-    auto it = _co_consts_string_dedup_map.find(key);
-    if(it != _co_consts_string_dedup_map.end()) {
-        return it->second;
+    int* val = _co_consts_string_dedup_map.try_get(key);
+    if(val) {
+        return *val;
     } else {
         co->consts.push_back(VAR(key));
         int index = co->consts.size() - 1;
         key = co->consts.back().obj_get<Str>().sv();
-        _co_consts_string_dedup_map[key] = index;
+        _co_consts_string_dedup_map.insert(key, index);
         return index;
     }
 }
@@ -130,13 +130,13 @@ int CodeEmitContext::add_const_string(std::string_view key) {
 int CodeEmitContext::add_const(PyVar v) {
     assert(!is_type(v, VM::tp_str));
     // non-string deduplication
-    auto it = _co_consts_nonstring_dedup_map.find(v);
-    if(it != _co_consts_nonstring_dedup_map.end()) {
-        return it->second;
+    int* val = _co_consts_nonstring_dedup_map.try_get(v);
+    if(val) {
+        return *val;
     } else {
         co->consts.push_back(v);
         int index = co->consts.size() - 1;
-        _co_consts_nonstring_dedup_map[v] = index;
+        _co_consts_nonstring_dedup_map.insert(v, index);
         return index;
     }
 }

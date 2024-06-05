@@ -119,8 +119,8 @@ struct CodeEmitContext {
     int curr_iblock = 0;
     bool is_compiling_class = false;
 
-    std::map<PyVar, int> _co_consts_nonstring_dedup_map;
-    std::map<std::string_view, int> _co_consts_string_dedup_map;
+    small_map<PyVar, int> _co_consts_nonstring_dedup_map;
+    small_map<std::string_view, int> _co_consts_string_dedup_map;
 
     int get_loop() const;
     CodeBlock* enter_block(CodeBlockType type);

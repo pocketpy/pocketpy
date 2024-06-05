@@ -102,7 +102,7 @@ struct PyVar final {
     template <typename T>
     obj_get_t<T> obj_get();
 
-    // for std::map<>
+    // std::less<> for map-like containers
     bool operator< (const PyVar& other) const { return memcmp(this, &other, sizeof(PyVar)) < 0; }
 };
 

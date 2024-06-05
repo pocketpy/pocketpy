@@ -1,10 +1,12 @@
 #include "pocketpy/common/str.hpp"
+#include "pocketpy/common/gil.hpp"
 
 #include <stdexcept>
 #include <cassert>
 #include <ostream>
 #include <algorithm>
 #include <cmath>
+#include <map>
 
 namespace pkpy {
 
@@ -356,19 +358,23 @@ int Str::count(const Str& sub) const {
     return cnt;
 }
 
-std::map<std::string_view, uint16_t>& StrName::_interned() {
+std::map<std::string_view, uint16_t>& _interned() {
     static std::map<std::string_view, uint16_t> interned;
     return interned;
 }
 
-std::map<uint16_t, std::string>& StrName::_r_interned() {
+std::map<uint16_t, std::string>& _r_interned() {
     static std::map<uint16_t, std::string> r_interned;
     return r_interned;
 }
 
+std::string_view StrName::sv() const { return _r_interned()[index]; }
+const char* StrName::c_str() const { return _r_interned()[index].c_str(); }
+
 uint32_t StrName::_pesudo_random_index = 0;
 
 StrName StrName::get(std::string_view s) {
+    PK_GLOBAL_SCOPE_LOCK()
     auto it = _interned().find(s);
     if(it != _interned().end()) return StrName(it->second);
     // generate new index

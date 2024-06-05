@@ -5,7 +5,6 @@
 #include "pocketpy/common/vector.hpp"
 
 #include <string_view>
-#include <map>
 
 namespace pkpy {
 
@@ -113,9 +112,8 @@ struct StrName {
 
     StrName(const Str& s) : index(get(s.sv()).index) {}
 
-    std::string_view sv() const { return _r_interned()[index]; }
-
-    const char* c_str() const { return _r_interned()[index].c_str(); }
+    std::string_view sv() const;
+    const char* c_str() const;
 
     bool empty() const { return index == 0; }
 
@@ -130,8 +128,6 @@ struct StrName {
     bool operator> (const StrName& other) const noexcept { return sv() > other.sv(); }
 
     static StrName get(std::string_view s);
-    static std::map<std::string_view, uint16_t>& _interned();
-    static std::map<uint16_t, std::string>& _r_interned();
     static uint32_t _pesudo_random_index;
 };
 
