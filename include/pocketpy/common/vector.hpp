@@ -143,8 +143,8 @@ struct vector {
 
     vector(const vector& other) = delete;
 
-    vector(explicit_copy_t, const vector& other) :
-        _capacity(other._size), _size(other._size), _data((T*)std::malloc(sizeof(T) * _capacity)) {
+    vector(explicit_copy_t, const vector& other) : _capacity(other._size), _size(other._size) {
+        _data = (T*)std::malloc(sizeof(T) * _capacity);
         uninitialized_copy_n(other._data, _size, _data);
     }
 
@@ -185,10 +185,14 @@ struct vector {
         _capacity = 0;
     }
 
-    void reserve(int cap) {
+    T* _grow(int cap) {
         if(cap < 4) cap = 4;  // minimum capacity
-        if(cap <= capacity()) return;
-        T* new_data = (T*)std::malloc(sizeof(T) * cap);
+        if(cap <= capacity()) return _data;
+        return (T*)std::malloc(sizeof(T) * cap);
+    }
+
+    void reserve(int cap) {
+        T* new_data = _grow(cap);
         uninitialized_relocate_n(_data, _size, new_data);
         if(_data) std::free(_data);
         _data = new_data;
@@ -228,10 +232,12 @@ struct vector {
         assert(it >= begin() && it <= end());
         int pos = it - begin();
         if(_size == _capacity) {
-            T* new_data = (T*)std::malloc(sizeof(T) * _capacity * 2);
+            T* new_data = _grow(_capacity * 2);
             uninitialized_relocate_n(_data, pos, new_data);
             new (new_data + pos) T(t);
             uninitialized_relocate_n(_data + pos, _size - pos, new_data + pos + 1);
+            if(_data) std::free(_data);
+            _data = new_data;
         } else {
             uninitialized_relocate_n<true, true>(_data + pos, _size - pos, _data + pos + 1);
             new (_data + pos) T(t);

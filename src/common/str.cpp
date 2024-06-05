@@ -358,12 +358,12 @@ int Str::count(const Str& sub) const {
     return cnt;
 }
 
-std::map<std::string_view, uint16_t>& _interned() {
+static std::map<std::string_view, uint16_t>& _interned() {
     static std::map<std::string_view, uint16_t> interned;
     return interned;
 }
 
-std::map<uint16_t, std::string>& _r_interned() {
+static std::map<uint16_t, std::string>& _r_interned() {
     static std::map<uint16_t, std::string> r_interned;
     return r_interned;
 }
