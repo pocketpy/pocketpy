@@ -85,6 +85,44 @@ struct array {
     }
 };
 
+template <bool may_alias = false, typename T>
+void uninitialized_copy_n(const T* src, int n, T* dest) {
+    if constexpr(std::is_trivially_copyable_v<T>) {
+        if constexpr(may_alias) {
+            std::memmove(dest, src, sizeof(T) * n);
+        } else {
+            std::memcpy(dest, src, sizeof(T) * n);
+        }
+    } else {
+        for(int i = 0; i < n; i++) {
+            new (dest + i) T(*(src + i));
+        }
+    }
+}
+
+template <bool may_alias = false, bool backward = false, typename T>
+void uninitialized_relocate_n(T* src, int n, T* dest) {
+    if constexpr(is_trivially_relocatable_v<T>) {
+        if constexpr(may_alias) {
+            std::memmove(dest, src, sizeof(T) * n);
+        } else {
+            std::memcpy(dest, src, sizeof(T) * n);
+        }
+    } else {
+        if constexpr(backward) {
+            for(int i = n - 1; i >= 0; i--) {
+                new (dest + i) T(std::move(*(src + i)));
+                (src + i)->~T();
+            }
+        } else {
+            for(int i = 0; i < n; i++) {
+                new (dest + i) T(std::move(*(src + i)));
+                (src + i)->~T();
+            }
+        }
+    }
+}
+
 template <typename T>
 struct vector {
     T* _data;
@@ -106,9 +144,8 @@ struct vector {
     vector(const vector& other) = delete;
 
     vector(explicit_copy_t, const vector& other) :
-        _data((T*)std::malloc(sizeof(T) * other._size)), _capacity(other._size), _size(other._size) {
-        for(int i = 0; i < _size; i++)
-            _data[i] = other._data[i];
+        _capacity(other._size), _size(other._size), _data((T*)std::malloc(sizeof(T) * _capacity)) {
+        uninitialized_copy_n(other._data, _size, _data);
     }
 
     // allow move
@@ -138,18 +175,21 @@ struct vector {
 
     T* data() const { return _data; }
 
+    T& operator[] (int i) { return _data[i]; }
+
+    const T& operator[] (int i) const { return _data[i]; }
+
+    void clear() {
+        std::destroy(begin(), end());
+        _size = 0;
+        _capacity = 0;
+    }
+
     void reserve(int cap) {
         if(cap < 4) cap = 4;  // minimum capacity
         if(cap <= capacity()) return;
         T* new_data = (T*)std::malloc(sizeof(T) * cap);
-        if constexpr(is_trivially_relocatable_v<T>) {
-            std::memcpy(new_data, _data, sizeof(T) * _size);
-        } else {
-            for(int i = 0; i < _size; i++) {
-                new (&new_data[i]) T(std::move(_data[i]));
-                _data[i].~T();
-            }
-        }
+        uninitialized_relocate_n(_data, _size, new_data);
         if(_data) std::free(_data);
         _data = new_data;
         _capacity = cap;
@@ -160,15 +200,16 @@ struct vector {
         _size = size;
     }
 
-    void push_back(const T& t) {
+    template <typename... Args>
+    void emplace_back(Args&&... args) {
         if(_size == _capacity) reserve(_capacity * 2);
-        new (&_data[_size++]) T(t);
+        new (_data + _size) T(std::forward<Args>(args)...);
+        _size++;
     }
 
-    void push_back(T&& t) {
-        if(_size == _capacity) reserve(_capacity * 2);
-        new (&_data[_size++]) T(std::move(t));
-    }
+    void push_back(const T& t) { emplace_back(t); }
+
+    void push_back(T&& t) { emplace_back(std::move(t)); }
 
     bool contains(const T& t) const {
         for(int i = 0; i < _size; i++) {
@@ -177,32 +218,33 @@ struct vector {
         return false;
     }
 
-    template <typename... Args>
-    void emplace_back(Args&&... args) {
-        if(_size == _capacity) reserve(_capacity * 2);
-        new (&_data[_size++]) T(std::forward<Args>(args)...);
-    }
-
-    T& operator[] (int i) { return _data[i]; }
-
-    const T& operator[] (int i) const { return _data[i]; }
-
-    void extend(T* begin, T* end) {
+    void extend(const T* begin, const T* end) {
         int n = end - begin;
         reserve(_size + n);
-        for(int i = 0; i < n; i++)
-            new (&_data[_size++]) T(begin[i]);
+        uninitialized_copy_n(begin, n, _data + _size);
     }
 
     void insert(T* it, const T& t) {
         assert(it >= begin() && it <= end());
-        if(_size == _capacity) reserve(_capacity * 2);
-        // TODO: implement
+        int pos = it - begin();
+        if(_size == _capacity) {
+            T* new_data = (T*)std::malloc(sizeof(T) * _capacity * 2);
+            uninitialized_relocate_n(_data, pos, new_data);
+            new (new_data + pos) T(t);
+            uninitialized_relocate_n(_data + pos, _size - pos, new_data + pos + 1);
+        } else {
+            uninitialized_relocate_n<true, true>(_data + pos, _size - pos, _data + pos + 1);
+            new (_data + pos) T(t);
+        }
+        _size++;
     }
 
     void erase(T* it) {
         assert(it >= begin() && it < end());
-        // TODO: implement
+        int pos = it - begin();
+        _data[pos].~T();
+        uninitialized_relocate_n<true>(_data + pos + 1, _size - pos, _data + pos);
+        _size--;
     }
 
     void pop_back() {
@@ -215,11 +257,6 @@ struct vector {
         T retval = std::move(back());
         pop_back();
         return retval;
-    }
-
-    void clear() {
-        std::destroy(begin(), end());
-        _size = 0;
     }
 
     std::pair<T*, int> detach() noexcept {
@@ -244,92 +281,39 @@ struct vector {
     }
 };
 
-}  // namespace pkpy
-
-namespace pkpy {
 template <typename T, std::size_t N>
-class small_vector {
+struct small_vector {
     alignas(T) char m_buffer[sizeof(T) * N];
     T* m_begin;
     T* m_end;
     T* m_max;
 
-public:
-    using value_type = T;
-    using size_type = int;
-    using difference_type = int;
-    using reference = T&;
-    using const_reference = const T&;
-    using pointer = T*;
-    using const_pointer = const T*;
-    using iterator = T*;
-    using const_iterator = const T*;
-    using reverse_iterator = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-
     [[nodiscard]] bool is_small() const { return m_begin == reinterpret_cast<const T*>(m_buffer); }
 
-    [[nodiscard]] size_type size() const { return m_end - m_begin; }
+    [[nodiscard]] int size() const { return m_end - m_begin; }
 
-    [[nodiscard]] size_type capacity() const { return m_max - m_begin; }
+    [[nodiscard]] int capacity() const { return m_max - m_begin; }
 
     [[nodiscard]] bool empty() const { return m_begin == m_end; }
 
-    pointer data() { return m_begin; }
+    [[nodiscard]] T* data() const { return m_begin; }
 
-    const_pointer data() const { return m_begin; }
+    [[nodiscard]] T* begin() const { return m_begin; }
 
-    reference operator[] (size_type index) { return m_begin[index]; }
+    [[nodiscard]] T* end() const { return m_end; }
 
-    const_reference operator[] (size_type index) const { return m_begin[index]; }
+    [[nodiscard]] T* rbegin() const { return m_end - 1; }
 
-    iterator begin() { return m_begin; }
+    [[nodiscard]] T* rend() const { return m_begin - 1; }
 
-    const_iterator begin() const { return m_begin; }
+    [[nodiscard]] T& front() const { return *begin(); }
 
-    iterator end() { return m_end; }
+    [[nodiscard]] T& back() const { return *(end() - 1); }
 
-    const_iterator end() const { return m_end; }
+    [[nodiscard]] T& operator[] (int index) { return m_begin[index]; }
 
-    reference front() { return *begin(); }
+    [[nodiscard]] const T& operator[] (int index) const { return m_begin[index]; }
 
-    const_reference front() const { return *begin(); }
-
-    reference back() { return *(end() - 1); }
-
-    const_reference back() const { return *(end() - 1); }
-
-    reverse_iterator rbegin() { return reverse_iterator(end()); }
-
-    const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-
-    reverse_iterator rend() { return reverse_iterator(begin()); }
-
-    const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
-
-private:
-    static void uninitialized_copy_n(const void* src, size_type n, void* dest) {
-        if constexpr(std::is_trivially_copyable_v<T>) {
-            std::memcpy(dest, src, sizeof(T) * n);
-        } else {
-            for(size_type i = 0; i < n; i++) {
-                ::new ((T*)dest + i) T(*((const T*)src + i));
-            }
-        }
-    }
-
-    static void uninitialized_relocate_n(void* src, size_type n, void* dest) {
-        if constexpr(is_trivially_relocatable_v<T>) {
-            std::memcpy(dest, src, sizeof(T) * n);
-        } else {
-            for(size_type i = 0; i < n; i++) {
-                ::new ((T*)dest + i) T(std::move(*((T*)src + i)));
-                ((T*)src + i)->~T();
-            }
-        }
-    }
-
-public:
     small_vector() : m_begin(reinterpret_cast<T*>(m_buffer)), m_end(m_begin), m_max(m_begin + N) {}
 
     small_vector(const small_vector& other) noexcept {
@@ -384,17 +368,13 @@ public:
             const auto new_capacity = capacity() * 2;
             const auto size = this->size();
             if(!is_small()) {
-                if constexpr(is_trivially_relocatable_v<T>) {
-                    m_begin = (pointer)std::realloc(m_begin, sizeof(T) * new_capacity);
-                } else {
-                    auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
-                    uninitialized_relocate_n(m_begin, size, new_data);
-                    std::free(m_begin);
-                    m_begin = new_data;
-                }
+                auto new_data = (T*)std::malloc(sizeof(T) * new_capacity);
+                uninitialized_relocate_n(m_begin, size, new_data);
+                std::free(m_begin);
+                m_begin = new_data;
             } else {
-                auto new_data = (pointer)std::malloc(sizeof(T) * new_capacity);
-                uninitialized_relocate_n(m_buffer, size, new_data);
+                auto new_data = (T*)std::malloc(sizeof(T) * new_capacity);
+                uninitialized_relocate_n((T*)m_buffer, size, new_data);
                 m_begin = new_data;
             }
             m_end = m_begin + size;
@@ -431,14 +411,15 @@ public:
 
 template <typename K, typename V>
 struct small_map {
-    struct Item{
+    struct Item {
         K first;
         V second;
 
         bool operator< (const K& other) const { return first < other; }
+
         bool operator< (const Item& other) const { return first < other.first; }
     };
-    
+
     vector<Item> _data;
 
     small_map() = default;
@@ -446,9 +427,13 @@ struct small_map {
     using size_type = int;
 
     int size() const { return _data.size(); }
+
     bool empty() const { return _data.empty(); }
+
     Item* begin() const { return _data.begin(); }
+
     Item* end() const { return _data.end(); }
+
     Item* data() const { return _data.data(); }
 
     void insert(const K& key, const V& value) {
@@ -463,9 +448,7 @@ struct small_map {
         return &it->second;
     }
 
-    bool contains(const K& key) const {
-        return try_get(key) != nullptr;
-    }
+    bool contains(const K& key) const { return try_get(key) != nullptr; }
 
     void clear() { _data.clear(); }
 
