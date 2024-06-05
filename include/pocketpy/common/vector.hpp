@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <algorithm>
 
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/common/types.hpp"
@@ -193,24 +194,21 @@ struct vector {
             new (&_data[_size++]) T(begin[i]);
     }
 
-    void insert(int index, const T& t) {
+    void insert(T* it, const T& t) {
+        assert(it >= begin() && it <= end());
         if(_size == _capacity) reserve(_capacity * 2);
-        for(int i = _size; i > index; i--)
-            _data[i] = std::move(_data[i - 1]);
-        _data[index] = t;
-        _size++;
+        // TODO: implement
     }
 
-    void erase(int index) {
-        for(int i = index; i < _size - 1; i++)
-            _data[i] = std::move(_data[i + 1]);
-        _size--;
+    void erase(T* it) {
+        assert(it >= begin() && it < end());
+        // TODO: implement
     }
 
     void pop_back() {
         assert(_size > 0);
         _size--;
-        if constexpr(!std::is_trivially_destructible_v<T>) { _data[_size].~T(); }
+        _data[_size].~T();
     }
 
     T popx_back() {
@@ -412,7 +410,7 @@ public:
 
     void pop_back() {
         m_end--;
-        if constexpr(!std::is_trivially_destructible_v<T>) { m_end->~T(); }
+        m_end->~T();
     }
 
     void clear() {
@@ -430,4 +428,52 @@ public:
     small_vector_2(small_vector_2&& other) = delete;
     small_vector_2& operator= (small_vector_2&& other) = delete;
 };
+
+template <typename K, typename V>
+struct small_map {
+    struct Item{
+        K first;
+        V second;
+
+        bool operator< (const K& other) const { return first < other; }
+        bool operator< (const Item& other) const { return first < other.first; }
+    };
+    
+    vector<Item> _data;
+
+    small_map() = default;
+
+    using size_type = int;
+
+    int size() const { return _data.size(); }
+    bool empty() const { return _data.empty(); }
+    Item* begin() const { return _data.begin(); }
+    Item* end() const { return _data.end(); }
+    Item* data() const { return _data.data(); }
+
+    void insert(const K& key, const V& value) {
+        auto it = std::lower_bound(_data.begin(), _data.end(), key);
+        assert(it == _data.end() || it->first != key);
+        _data.insert(it, {key, value});
+    }
+
+    V* try_get(const K& key) const {
+        auto it = std::lower_bound(_data.begin(), _data.end(), key);
+        if(it == _data.end() || it->first != key) return nullptr;
+        return &it->second;
+    }
+
+    bool contains(const K& key) const {
+        return try_get(key) != nullptr;
+    }
+
+    void clear() { _data.clear(); }
+
+    const V& operator[] (const K& key) const {
+        auto it = try_get(key);
+        assert(it != nullptr);
+        return *it;
+    }
+};
+
 }  // namespace pkpy

@@ -169,8 +169,8 @@ public:
     CallStack callstack;
     vector<PyTypeInfo> _all_types;
 
-    NameDict _modules;                     // loaded modules
-    std::map<StrName, Str> _lazy_modules;  // lazy loaded modules
+    NameDict _modules;                      // loaded modules
+    small_map<StrName, Str> _lazy_modules;  // lazy loaded modules
 
     struct {
         PyObject* error;
@@ -182,7 +182,7 @@ public:
     PyObject* _main;
 
     // typeid -> Type
-    std::map<const std::type_index, Type> _cxx_typeid_map;
+    small_map<std::type_index, Type> _cxx_typeid_map;
     // this is for repr() recursion detection (no need to mark)
     vector<PyVar> _repr_recursion_set;
 
@@ -190,8 +190,8 @@ public:
     PyObject* __last_exception;
     PyObject* __curr_class;
     PyVar __cached_object_new;
-    std::map<std::string_view, CodeObject_> __cached_codes;
-    std::map<std::string_view, PyVar> __cached_op_funcs;
+    small_map<std::string_view, CodeObject_> __cached_codes;
+    small_map<std::string_view, PyVar> __cached_op_funcs;
     FuncDecl_ __dynamic_func_decl;
     PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
 
@@ -469,8 +469,8 @@ public:
 
     template <typename T>
     Type _find_type_in_cxx_typeid_map() {
-        auto it = _cxx_typeid_map.find(typeid(T));
-        if(it == _cxx_typeid_map.end()) {
+        auto it = _cxx_typeid_map.try_get(typeid(T));
+        if(it == nullptr) {
 #if __GNUC__ || __clang__
             throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));
 #elif _MSC_VER
@@ -479,7 +479,7 @@ public:
             throw std::runtime_error("_find_type_in_cxx_typeid_map() failed: T not found");
 #endif
         }
-        return it->second;
+        return *it;
     }
 
     /********** private **********/
@@ -753,7 +753,7 @@ PyObject*
     VM::register_user_class(PyObject* mod, StrName name, RegisterFunc _register, Type base, bool subclass_enabled) {
     PyObject* type = new_type_object(mod, name, base, subclass_enabled, PyTypeInfo::Vt::get<T>());
     mod->attr().set(name, type);
-    _cxx_typeid_map[typeid(T)] = type->as<Type>();
+    _cxx_typeid_map.insert(typeid(T), type->as<Type>());
     _register(this, mod, type);
     if(!type->attr().contains(__new__)) {
         if constexpr(std::is_default_constructible_v<T>) {

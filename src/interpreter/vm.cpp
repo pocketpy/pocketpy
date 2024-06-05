@@ -242,12 +242,12 @@ bool VM::py_eq(PyVar lhs, PyVar rhs) {
 
 PyVar VM::py_op(std::string_view name) {
     PyVar func;
-    auto it = __cached_op_funcs.find(name);
-    if(it == __cached_op_funcs.end()) {
+    auto it = __cached_op_funcs.try_get(name);
+    if(it == nullptr) {
         func = py_import("operator")->attr(StrName::get(name));
-        __cached_op_funcs[name] = func;
+        __cached_op_funcs.insert(name, func);
     } else {
-        func = it->second;
+        func = *it;
     }
     return func;
 }
@@ -366,8 +366,8 @@ PyObject* VM::py_import(Str path, bool throw_err) {
     Str filename = path.replace('.', PK_PLATFORM_SEP) + ".py";
     Str source;
     bool is_init = false;
-    auto it = _lazy_modules.find(name);
-    if(it == _lazy_modules.end()) {
+    auto it = _lazy_modules.try_get(name);
+    if(it == nullptr) {
         int out_size;
         unsigned char* out = _import_handler(filename.c_str(), &out_size);
         if(out == nullptr) {
@@ -385,8 +385,8 @@ PyObject* VM::py_import(Str path, bool throw_err) {
         source = Str(std::string_view((char*)out, out_size));
         std::free(out);
     } else {
-        source = it->second;
-        _lazy_modules.erase(it);
+        source = *it;
+        // _lazy_modules.erase(it);  // no need to erase
     }
     auto _ = __import_context.scope(path, is_init);
     CodeObject_ code = compile(source, filename, EXEC_MODE);

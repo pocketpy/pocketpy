@@ -153,8 +153,9 @@ int Lexer::eat_name() {
         return 0;
     }
 
-    if(kTokenKwMap.count(name)) {
-        add_token(kTokenKwMap.at(name));
+    auto it = kTokenKwMap.try_get(name);
+    if(it != nullptr) {
+        add_token(*it);
     } else {
         add_token(TK("@id"));
     }

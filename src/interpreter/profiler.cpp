@@ -28,7 +28,7 @@ void LineProfiler::_step(int callstack_size, Frame* frame) {
         _step_end(callstack_size, frame, line);
     }
 
-    auto& file_records = records[filename];
+    auto& file_records = *records.try_get(filename);
     if(file_records.empty()) {
         // initialize file_records
         int total_lines = frame->co->src->line_starts.size();
@@ -85,7 +85,7 @@ Str LineProfiler::stats() {
         int end_line = decl->code->end_line;
         if(start_line == -1 || end_line == -1) continue;
         std::string_view filename = decl->code->src->filename.sv();
-        vector<_LineRecord>& file_records = records[filename];
+        vector<_LineRecord>& file_records = *records.try_get(filename);
         if(file_records.empty()) continue;
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++) {

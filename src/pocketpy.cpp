@@ -919,9 +919,9 @@ void __init_builtins(VM* _vm) {
     _vm->bind_func(VM::tp_list, "remove", 2, [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         PyVar obj = args[1];
-        for(int i = 0; i < self.size(); i++) {
-            if(vm->py_eq(self[i], obj)) {
-                self.erase(i);
+        for(PyVar* it = self.begin(); it != self.end(); it++) {
+            if(vm->py_eq(*it, obj)) {
+                self.erase(it);
                 return vm->None;
             }
         }
@@ -941,7 +941,7 @@ void __init_builtins(VM* _vm) {
             i64 index = CAST(i64, args[1]);
             index = vm->normalized_index(index, self.size());
             PyVar ret = self[index];
-            self.erase(index);
+            self.erase(self.begin() + index);
             return ret;
         }
         vm->TypeError("pop() takes at most 1 argument");
@@ -1000,7 +1000,7 @@ void __init_builtins(VM* _vm) {
         if(index < 0) index += self.size();
         if(index < 0) index = 0;
         if(index > self.size()) index = self.size();
-        self.insert(index, args[2]);
+        self.insert(self.begin() + index, args[2]);
         return vm->None;
     });
 
@@ -1069,7 +1069,7 @@ void __init_builtins(VM* _vm) {
         List& self = _CAST(List&, _0);
         i64 i = CAST(i64, _1);
         i = vm->normalized_index(i, self.size());
-        self.erase(i);
+        self.erase(self.begin() + i);
     });
 
     _vm->bind_func(VM::tp_tuple, __new__, -1, [](VM* vm, ArgsView args) {
@@ -1673,19 +1673,19 @@ void VM::__post_init_builtin_types() {
     add_module_random(this);
     add_module_base64(this);
 
-    _lazy_modules["this"] = kPythonLibs_this;
-    _lazy_modules["functools"] = kPythonLibs_functools;
-    _lazy_modules["heapq"] = kPythonLibs_heapq;
-    _lazy_modules["bisect"] = kPythonLibs_bisect;
-    _lazy_modules["pickle"] = kPythonLibs_pickle;
-    _lazy_modules["_long"] = kPythonLibs__long;
-    _lazy_modules["colorsys"] = kPythonLibs_colorsys;
-    _lazy_modules["typing"] = kPythonLibs_typing;
-    _lazy_modules["datetime"] = kPythonLibs_datetime;
-    _lazy_modules["cmath"] = kPythonLibs_cmath;
-    _lazy_modules["itertools"] = kPythonLibs_itertools;
-    _lazy_modules["operator"] = kPythonLibs_operator;
-    _lazy_modules["collections"] = kPythonLibs_collections;
+    _lazy_modules.insert("this", kPythonLibs_this);
+    _lazy_modules.insert("functools", kPythonLibs_functools);
+    _lazy_modules.insert("heapq", kPythonLibs_heapq);
+    _lazy_modules.insert("bisect", kPythonLibs_bisect);
+    _lazy_modules.insert("pickle", kPythonLibs_pickle);
+    _lazy_modules.insert("_long", kPythonLibs__long);
+    _lazy_modules.insert("colorsys", kPythonLibs_colorsys);
+    _lazy_modules.insert("typing", kPythonLibs_typing);
+    _lazy_modules.insert("datetime", kPythonLibs_datetime);
+    _lazy_modules.insert("cmath", kPythonLibs_cmath);
+    _lazy_modules.insert("itertools", kPythonLibs_itertools);
+    _lazy_modules.insert("operator", kPythonLibs_operator);
+    _lazy_modules.insert("collections", kPythonLibs_collections);
 
     try {
         // initialize dummy func_decl for exec/eval
