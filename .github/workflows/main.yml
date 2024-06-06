@@ -1,4 +1,5 @@
 name: build
+
 on:
   push:
     paths-ignore:
