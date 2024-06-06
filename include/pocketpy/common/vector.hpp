@@ -203,6 +203,7 @@ struct vector {
 
     void resize(int size) {
         reserve(size);
+        std::uninitialized_default_construct_n(_data + _size, size - _size);
         _size = size;
     }
 
@@ -230,7 +231,7 @@ struct vector {
         uninitialized_copy_n(begin, n, _data + _size);
     }
 
-    void insert(T* it, const T& t) {
+    void insert(const T* it, const T& t) {
         assert(it >= begin() && it <= end());
         int pos = it - begin();
         if(_size == _capacity) {
