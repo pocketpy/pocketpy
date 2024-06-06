@@ -184,7 +184,6 @@ struct vector {
     void clear() {
         std::destroy(begin(), end());
         _size = 0;
-        _capacity = 0;
     }
 
     void reserve(int cap) {
