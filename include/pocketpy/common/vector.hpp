@@ -336,13 +336,7 @@ struct small_vector {
         other._capacity = other._begin + N;
     }
 
-    small_vector& operator= (const small_vector& other) noexcept {
-        if(this != &other) {
-            ~small_vector();
-            ::new (this) small_vector(other);
-        }
-        return *this;
-    }
+    small_vector& operator= (const small_vector& other) = delete;
 
     small_vector& operator= (small_vector&& other) noexcept {
         if(this != &other) {
