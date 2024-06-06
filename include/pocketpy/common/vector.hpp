@@ -87,6 +87,7 @@ struct array {
 
 template <bool may_alias = false, typename T>
 void uninitialized_copy_n(const T* src, int n, T* dest) {
+    if(n == 0) return;
     if constexpr(std::is_trivially_copyable_v<T>) {
         if constexpr(may_alias) {
             std::memmove(dest, src, sizeof(T) * n);
@@ -102,6 +103,7 @@ void uninitialized_copy_n(const T* src, int n, T* dest) {
 
 template <bool may_alias = false, bool backward = false, typename T>
 void uninitialized_relocate_n(T* src, int n, T* dest) {
+    if(n == 0) return;
     if constexpr(is_trivially_relocatable_v<T>) {
         if constexpr(may_alias) {
             std::memmove(dest, src, sizeof(T) * n);
@@ -182,17 +184,12 @@ struct vector {
     void clear() {
         std::destroy(begin(), end());
         _size = 0;
-        _capacity = 0;
-    }
-
-    T* _grow(int cap) {
-        if(cap < 4) cap = 4;  // minimum capacity
-        if(cap <= capacity()) return _data;
-        return (T*)std::malloc(sizeof(T) * cap);
     }
 
     void reserve(int cap) {
-        T* new_data = _grow(cap);
+        if(cap < 4) cap = 4;  // minimum capacity
+        if(cap <= capacity()) return;
+        T* new_data = (T*)std::malloc(sizeof(T) * cap);
         uninitialized_relocate_n(_data, _size, new_data);
         if(_data) std::free(_data);
         _data = new_data;
@@ -201,6 +198,7 @@ struct vector {
 
     void resize(int size) {
         reserve(size);
+        std::uninitialized_default_construct_n(_data + _size, size - _size);
         _size = size;
     }
 
@@ -228,16 +226,18 @@ struct vector {
         uninitialized_copy_n(begin, n, _data + _size);
     }
 
-    void insert(T* it, const T& t) {
+    void insert(const T* it, const T& t) {
         assert(it >= begin() && it <= end());
         int pos = it - begin();
         if(_size == _capacity) {
-            T* new_data = _grow(_capacity * 2);
+            int new_capacity = (_capacity == 0) ? 4 : _capacity * 2;
+            T* new_data = (T*)std::malloc(sizeof(T) * new_capacity);
             uninitialized_relocate_n(_data, pos, new_data);
             new (new_data + pos) T(t);
             uninitialized_relocate_n(_data + pos, _size - pos, new_data + pos + 1);
             if(_data) std::free(_data);
             _data = new_data;
+            _capacity = new_capacity;
         } else {
             uninitialized_relocate_n<true, true>(_data + pos, _size - pos, _data + pos + 1);
             new (_data + pos) T(t);
@@ -289,62 +289,62 @@ struct vector {
 
 template <typename T, std::size_t N>
 struct small_vector {
-    alignas(T) char m_buffer[sizeof(T) * N];
-    T* m_begin;
-    T* m_end;
-    T* m_max;
+    alignas(T) char _buffer[sizeof(T) * N];
+    T* _begin;
+    T* _end;
+    T* _capacity;
 
-    [[nodiscard]] bool is_small() const { return m_begin == reinterpret_cast<const T*>(m_buffer); }
+    [[nodiscard]] bool is_small() const { return _begin == reinterpret_cast<const T*>(_buffer); }
 
-    [[nodiscard]] int size() const { return m_end - m_begin; }
+    [[nodiscard]] int size() const { return _end - _begin; }
 
-    [[nodiscard]] int capacity() const { return m_max - m_begin; }
+    [[nodiscard]] int capacity() const { return _capacity - _begin; }
 
-    [[nodiscard]] bool empty() const { return m_begin == m_end; }
+    [[nodiscard]] bool empty() const { return _begin == _end; }
 
-    [[nodiscard]] T* data() const { return m_begin; }
+    [[nodiscard]] T* data() const { return _begin; }
 
-    [[nodiscard]] T* begin() const { return m_begin; }
+    [[nodiscard]] T* begin() const { return _begin; }
 
-    [[nodiscard]] T* end() const { return m_end; }
+    [[nodiscard]] T* end() const { return _end; }
 
-    [[nodiscard]] T* rbegin() const { return m_end - 1; }
+    [[nodiscard]] T* rbegin() const { return _end - 1; }
 
-    [[nodiscard]] T* rend() const { return m_begin - 1; }
+    [[nodiscard]] T* rend() const { return _begin - 1; }
 
     [[nodiscard]] T& front() const { return *begin(); }
 
     [[nodiscard]] T& back() const { return *(end() - 1); }
 
-    [[nodiscard]] T& operator[] (int index) { return m_begin[index]; }
+    [[nodiscard]] T& operator[] (int index) { return _begin[index]; }
 
-    [[nodiscard]] const T& operator[] (int index) const { return m_begin[index]; }
+    [[nodiscard]] const T& operator[] (int index) const { return _begin[index]; }
 
-    small_vector() : m_begin(reinterpret_cast<T*>(m_buffer)), m_end(m_begin), m_max(m_begin + N) {}
+    small_vector() : _begin(reinterpret_cast<T*>(_buffer)), _end(_begin), _capacity(_begin + N) {}
 
     small_vector(const small_vector& other) noexcept {
         const auto size = other.size();
         const auto capacity = other.capacity();
-        m_begin = reinterpret_cast<T*>(other.is_small() ? m_buffer : std::malloc(sizeof(T) * capacity));
-        uninitialized_copy_n(other.m_begin, size, this->m_begin);
-        m_end = m_begin + size;
-        m_max = m_begin + capacity;
+        _begin = reinterpret_cast<T*>(other.is_small() ? _buffer : std::malloc(sizeof(T) * capacity));
+        uninitialized_copy_n(other._begin, size, this->_begin);
+        _end = _begin + size;
+        _capacity = _begin + capacity;
     }
 
     small_vector(small_vector&& other) noexcept {
         if(other.is_small()) {
-            m_begin = reinterpret_cast<T*>(m_buffer);
-            uninitialized_relocate_n(other.m_buffer, other.size(), m_buffer);
-            m_end = m_begin + other.size();
-            m_max = m_begin + N;
+            _begin = reinterpret_cast<T*>(_buffer);
+            uninitialized_relocate_n((T*)other._buffer, other.size(), (T*)_buffer);
+            _end = _begin + other.size();
+            _capacity = _begin + N;
         } else {
-            m_begin = other.m_begin;
-            m_end = other.m_end;
-            m_max = other.m_max;
+            _begin = other._begin;
+            _end = other._end;
+            _capacity = other._capacity;
         }
-        other.m_begin = reinterpret_cast<T*>(other.m_buffer);
-        other.m_end = other.m_begin;
-        other.m_max = other.m_begin + N;
+        other._begin = reinterpret_cast<T*>(other._buffer);
+        other._end = other._begin;
+        other._capacity = other._begin + N;
     }
 
     small_vector& operator= (const small_vector& other) noexcept {
@@ -364,30 +364,24 @@ struct small_vector {
     }
 
     ~small_vector() {
-        std::destroy(m_begin, m_end);
-        if(!is_small()) std::free(m_begin);
+        std::destroy(_begin, _end);
+        if(!is_small()) std::free(_begin);
     }
 
     template <typename... Args>
     void emplace_back(Args&&... args) noexcept {
-        if(m_end == m_max) {
+        if(_end == _capacity) {
             const auto new_capacity = capacity() * 2;
             const auto size = this->size();
-            if(!is_small()) {
-                auto new_data = (T*)std::malloc(sizeof(T) * new_capacity);
-                uninitialized_relocate_n(m_begin, size, new_data);
-                std::free(m_begin);
-                m_begin = new_data;
-            } else {
-                auto new_data = (T*)std::malloc(sizeof(T) * new_capacity);
-                uninitialized_relocate_n((T*)m_buffer, size, new_data);
-                m_begin = new_data;
-            }
-            m_end = m_begin + size;
-            m_max = m_begin + new_capacity;
+            auto new_data = (T*)std::malloc(sizeof(T) * new_capacity);
+            uninitialized_relocate_n(_begin, size, new_data);
+            if(!is_small()) std::free(_begin);
+            _begin = new_data;
+            _end = _begin + size;
+            _capacity = _begin + new_capacity;
         }
-        ::new (m_end) T(std::forward<Args>(args)...);
-        m_end++;
+        ::new (_end) T(std::forward<Args>(args)...);
+        _end++;
     }
 
     void push_back(const T& value) { emplace_back(value); }
@@ -395,13 +389,13 @@ struct small_vector {
     void push_back(T&& value) { emplace_back(std::move(value)); }
 
     void pop_back() {
-        m_end--;
-        m_end->~T();
+        _end--;
+        _end->~T();
     }
 
     void clear() {
-        std::destroy(m_begin, m_end);
-        m_end = m_begin;
+        std::destroy(_begin, _end);
+        _end = _begin;
     }
 };
 
