@@ -87,6 +87,7 @@ struct array {
 
 template <bool may_alias = false, typename T>
 void uninitialized_copy_n(const T* src, int n, T* dest) {
+    if(n == 0) return;
     if constexpr(std::is_trivially_copyable_v<T>) {
         if constexpr(may_alias) {
             std::memmove(dest, src, sizeof(T) * n);
@@ -102,6 +103,7 @@ void uninitialized_copy_n(const T* src, int n, T* dest) {
 
 template <bool may_alias = false, bool backward = false, typename T>
 void uninitialized_relocate_n(T* src, int n, T* dest) {
+    if(n == 0) return;
     if constexpr(is_trivially_relocatable_v<T>) {
         if constexpr(may_alias) {
             std::memmove(dest, src, sizeof(T) * n);
@@ -188,6 +190,7 @@ struct vector {
     T* _grow(int cap) {
         if(cap < 4) cap = 4;  // minimum capacity
         if(cap <= capacity()) return _data;
+        _capacity = cap;
         return (T*)std::malloc(sizeof(T) * cap);
     }
 
@@ -196,7 +199,6 @@ struct vector {
         uninitialized_relocate_n(_data, _size, new_data);
         if(_data) std::free(_data);
         _data = new_data;
-        _capacity = cap;
     }
 
     void resize(int size) {
