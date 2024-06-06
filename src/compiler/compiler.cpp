@@ -864,31 +864,6 @@ void Compiler::compile_stmt() {
         case TK("try"): compile_try_except(); break;
         case TK("pass"): consume_end_stmt(); break;
         /*************************************************/
-        case TK("++"): {
-            consume(TK("@id"));
-            StrName name(prev().sv());
-            NameScope scope = name_scope();
-            bool is_global = ctx()->global_names.contains(name.sv());
-            if(is_global) scope = NAME_GLOBAL;
-            switch(scope) {
-                case NAME_LOCAL: ctx()->emit_(OP_INC_FAST, ctx()->add_varname(name), prev().line); break;
-                case NAME_GLOBAL: ctx()->emit_(OP_INC_GLOBAL, name.index, prev().line); break;
-                default: SyntaxError(); break;
-            }
-            consume_end_stmt();
-            break;
-        }
-        case TK("--"): {
-            consume(TK("@id"));
-            StrName name(prev().sv());
-            switch(name_scope()) {
-                case NAME_LOCAL: ctx()->emit_(OP_DEC_FAST, ctx()->add_varname(name), prev().line); break;
-                case NAME_GLOBAL: ctx()->emit_(OP_DEC_GLOBAL, name.index, prev().line); break;
-                default: SyntaxError(); break;
-            }
-            consume_end_stmt();
-            break;
-        }
         case TK("assert"): {
             EXPR();  // condition
             ctx()->emit_expr();

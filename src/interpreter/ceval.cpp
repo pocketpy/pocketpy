@@ -1127,33 +1127,6 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     /*****************************************/
-                    case OP_INC_FAST: {
-                        PyVar* p = &frame->_locals[byte.arg];
-                        if(*p == PY_NULL) vm->NameError(frame->co->varnames[byte.arg]);
-                        *p = VAR(CAST(i64, *p) + 1);
-                    }
-                        DISPATCH()
-                    case OP_DEC_FAST: {
-                        PyVar* p = &frame->_locals[byte.arg];
-                        if(*p == PY_NULL) vm->NameError(frame->co->varnames[byte.arg]);
-                        *p = VAR(CAST(i64, *p) - 1);
-                    }
-                        DISPATCH()
-                    case OP_INC_GLOBAL: {
-                        StrName _name(byte.arg);
-                        PyVar* p = frame->f_globals().try_get_2_likely_found(_name);
-                        if(p == nullptr) vm->NameError(_name);
-                        *p = VAR(CAST(i64, *p) + 1);
-                    }
-                        DISPATCH()
-                    case OP_DEC_GLOBAL: {
-                        StrName _name(byte.arg);
-                        PyVar* p = frame->f_globals().try_get_2_likely_found(_name);
-                        if(p == nullptr) vm->NameError(_name);
-                        *p = VAR(CAST(i64, *p) - 1);
-                    }
-                        DISPATCH()
-                    /*****************************************/
                     default: PK_UNREACHABLE()
                 }
             }

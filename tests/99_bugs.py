@@ -91,7 +91,7 @@ except UnboundLocalError:
 g = 1
 def f():
     global g
-    ++g
+    g += 1
 
 f(); f()
 assert g == 3

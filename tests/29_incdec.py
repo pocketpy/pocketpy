@@ -1,15 +1,15 @@
-a = 1
+# a = 1
 
-++a
-assert a == 2
-++a; ++a; --a;
-assert a == 3
+# ++a
+# assert a == 2
+# ++a; ++a; --a;
+# assert a == 3
 
-def f(a):
-    ++a
-    ++a
-    --a
-    return a
+# def f(a):
+#     ++a
+#     ++a
+#     --a
+#     return a
 
-assert f(3) == 4
-assert f(-2) == -1
+# assert f(3) == 4
+# assert f(-2) == -1

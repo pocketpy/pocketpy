@@ -149,8 +149,4 @@ OPCODE(POP_EXCEPTION)
 /**************************/
 OPCODE(FORMAT_STRING)
 /**************************/
-OPCODE(INC_FAST)
-OPCODE(DEC_FAST)
-OPCODE(INC_GLOBAL)
-OPCODE(DEC_GLOBAL)
 #endif
