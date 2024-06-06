@@ -66,7 +66,7 @@ assert f((
 def f():
     for i in range(4):
         _ = 0
-    while i: --i
+    while i: i-=1
 f()
 
 # class A: a=b=1
