@@ -1,14 +1,12 @@
 #pragma once
 
-#include "pocketpy/common/namedict.hpp"
+#include "pocketpy/common/str.hpp"
+#include "pocketpy/common/config.h"
 #include "pocketpy/objects/base.hpp"
 
 namespace pkpy {
-using NameDict = NameDictImpl<PyVar>;
-using NameDict_ = std::shared_ptr<NameDict>;
-using NameDictInt = NameDictImpl<int>;
 
-static_assert(sizeof(NameDict) <= 128);
+struct NameDict;
 
 struct PyObject final {
     bool gc_marked;   // whether this object is marked
@@ -30,12 +28,10 @@ struct PyObject final {
         return *_attr;
     }
 
-    PyVar attr(StrName name) const {
-        assert(is_attr_valid());
-        return (*_attr)[name];
-    }
-
     PyObject(Type type) : gc_marked(false), type(type), _attr(nullptr) {}
+
+    PyVar attr(StrName name) const;
+    static NameDict* __init_namedict(float lf);
 
     template <typename T, typename... Args>
     void placement_new(Args&&... args) {
@@ -44,11 +40,11 @@ struct PyObject final {
 
         // backdoor for important builtin types
         if constexpr(std::is_same_v<T, DummyInstance>) {
-            _attr = new NameDict();
+            _attr = __init_namedict(PK_INST_ATTR_LOAD_FACTOR);
         } else if constexpr(std::is_same_v<T, Type>) {
-            _attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+            _attr = __init_namedict(PK_TYPE_ATTR_LOAD_FACTOR);
         } else if constexpr(std::is_same_v<T, DummyModule>) {
-            _attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+            _attr = __init_namedict(PK_TYPE_ATTR_LOAD_FACTOR);
         }
     }
 };

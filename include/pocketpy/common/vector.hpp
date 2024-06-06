@@ -431,6 +431,12 @@ struct small_map {
         return &it->second;
     }
 
+    V get(const K& key, V default_value) const {
+        static_assert(is_pod_v<V>);
+        auto it = try_get(key);
+        return it ? *it : default_value;
+    }
+
     bool contains(const K& key) const { return try_get(key) != nullptr; }
 
     void clear() { _data.clear(); }

@@ -780,7 +780,7 @@ PyVar VM::__run_top_frame() {
                     case OP_JUMP_ABSOLUTE_TOP: DISPATCH_JUMP_ABSOLUTE(_CAST(int, POPX()))
                     case OP_GOTO: {
                         StrName _name(byte.arg);
-                        int target = frame->co->labels.try_get_likely_found(_name);
+                        int target = frame->co->labels.get(_name, -1);
                         if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
                         frame->prepare_jump_break(&s_data, target);
                         DISPATCH_JUMP_ABSOLUTE(target)

@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/any.hpp"
 #include "pocketpy/objects/tuplelist.hpp"
-#include "pocketpy/objects/object.hpp"
+#include "pocketpy/objects/namedict.hpp"
 #include "pocketpy/objects/sourcedata.hpp"
 
 namespace pkpy {
@@ -89,9 +89,9 @@ struct CodeObject {
     small_vector_2<StrName, 8> varnames;  // local variables
     int nlocals;                          // varnames.size()
 
-    NameDictInt varnames_inv;
+    small_map<StrName, int> varnames_inv;
     vector<CodeBlock> blocks;
-    NameDictInt labels;
+    small_map<StrName, int> labels;
     vector<FuncDecl_> func_decls;
 
     int start_line;
@@ -131,10 +131,10 @@ struct FuncDecl {
 
     FuncType type = FuncType::UNSET;
 
-    NameDictInt kw_to_index;
+    small_map<StrName, int> kw_to_index;
 
     void add_kwarg(int index, StrName key, PyVar value) {
-        kw_to_index.set(key, index);
+        kw_to_index.insert(key, index);
         kwargs.push_back(KwArg{index, key, value});
     }
 

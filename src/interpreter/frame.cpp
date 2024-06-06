@@ -5,17 +5,17 @@
 
 namespace pkpy {
 PyVar* FastLocals::try_get_name(StrName name) {
-    int index = co->varnames_inv.try_get(name);
+    int index = co->varnames_inv.get(name, -1);
     if(index == -1) return nullptr;
     return &a[index];
 }
 
 NameDict_ FastLocals::to_namedict() {
     NameDict_ dict = std::make_shared<NameDict>();
-    co->varnames_inv.apply([&](StrName name, int index) {
+    for(auto [name, index]: co->varnames_inv){
         PyVar value = a[index];
         if(value) dict->set(name, value);
-    });
+    }
     return dict;
 }
 

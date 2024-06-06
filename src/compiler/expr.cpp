@@ -99,18 +99,18 @@ void CodeEmitContext::patch_jump(int index) {
 
 bool CodeEmitContext::add_label(StrName name) {
     if(co->labels.contains(name)) return false;
-    co->labels.set(name, co->codes.size());
+    co->labels.insert(name, co->codes.size());
     return true;
 }
 
 int CodeEmitContext::add_varname(StrName name) {
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
-    int index = co->varnames_inv.try_get(name);
+    int index = co->varnames_inv.get(name, -1);
     if(index >= 0) return index;
     co->varnames.push_back(name);
     co->nlocals++;
     index = co->varnames.size() - 1;
-    co->varnames_inv.set(name, index);
+    co->varnames_inv.insert(name, index);
     return index;
 }
 
@@ -156,7 +156,7 @@ void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line) {
 }
 
 void NameExpr::emit_(CodeEmitContext* ctx) {
-    int index = ctx->co->varnames_inv.try_get(name);
+    int index = ctx->co->varnames_inv.get(name, -1);
     if(scope == NAME_LOCAL && index >= 0) {
         ctx->emit_(OP_LOAD_FAST, index, line);
     } else {

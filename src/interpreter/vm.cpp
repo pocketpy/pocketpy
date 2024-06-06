@@ -437,9 +437,10 @@ void VM::__obj_gc_mark(PyObject* obj) {
     const PyTypeInfo* ti = _tp_info(obj->type);
     if(ti->vt._gc_mark) ti->vt._gc_mark(obj->_value_ptr(), this);
     if(obj->is_attr_valid()) {
-        obj->attr().apply([this](StrName _, PyVar obj) {
+        obj->attr().apply([](StrName _, PyVar obj, void* userdata) {
+            VM* vm = (VM*)userdata;
             if(obj.is_ptr) vm->__obj_gc_mark((obj).get());
-        });
+        }, vm);
     }
 }
 
@@ -602,16 +603,16 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
 
     if(globals_dict) {
         globals_dict->clear();
-        globals_obj->attr().apply([&](StrName k, PyVar v) {
+        for(auto [k, v]: globals_obj->attr().items()){
             globals_dict->set(vm, VAR(k.sv()), v);
-        });
+        }
     }
 
     if(locals_dict) {
         locals_dict->clear();
-        locals_closure->apply([&](StrName k, PyVar v) {
+        for(auto [k, v]: locals_closure->items()){
             locals_dict->set(vm, VAR(k.sv()), v);
-        });
+        }
     }
     return retval;
 }
@@ -1024,7 +1025,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 
     for(int j = 0; j < kwargs.size(); j += 2) {
         StrName key(_CAST(uint16_t, kwargs[j]));
-        int index = decl->kw_to_index.try_get_likely_found(key);
+        int index = decl->kw_to_index.get(key, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
             buffer[index] = kwargs[j + 1];
@@ -1844,9 +1845,10 @@ void VM::__breakpoint() {
 void Function::_gc_mark(VM* vm) const {
     decl->_gc_mark(vm);
     if(_closure) {
-        _closure->apply([=](StrName _, PyVar obj) {
+        _closure->apply([](StrName _, PyVar obj, void* userdata) {
+            VM* vm = (VM*)userdata;
             vm->obj_gc_mark(obj);
-        });
+        }, vm);
     }
 }
 
