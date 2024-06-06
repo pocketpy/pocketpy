@@ -25,8 +25,7 @@ std::string pkpy_platform_getline(bool* eof) {
     }
     std::wstring wideInput = wss.str();
     int length = WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), NULL, 0, NULL, NULL);
-    std::string output;
-    output.resize(length);
+    std::string output(length);
     WideCharToMultiByte(CP_UTF8, 0, wideInput.c_str(), (int)wideInput.length(), &output[0], length, NULL, NULL);
     if(!output.empty() && output.back() == '\r') output.pop_back();
     return output;

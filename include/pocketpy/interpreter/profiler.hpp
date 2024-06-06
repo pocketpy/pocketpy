@@ -25,7 +25,7 @@ struct _FrameRecord {
 
 struct LineProfiler {
     // filename -> records
-    small_map<std::string_view, vector<_LineRecord>> records;
+    small_map<std::string_view, _LineRecord*> records;
     vector<_FrameRecord> frames;
     vector<FuncDecl*> functions;
 
@@ -34,6 +34,7 @@ struct LineProfiler {
     void _step_end(int, Frame*, int);
     void end();
     Str stats();
+    ~LineProfiler();
 };
 
 }  // namespace pkpy

@@ -28,14 +28,16 @@ void LineProfiler::_step(int callstack_size, Frame* frame) {
         _step_end(callstack_size, frame, line);
     }
 
-    auto& file_records = *records.try_get(filename);
-    if(file_records.empty()) {
-        // initialize file_records
+    _LineRecord* file_records;
+    
+    auto p = records.try_get(filename);
+    if(p == nullptr) {
         int total_lines = frame->co->src->line_starts.size();
-        file_records.resize(total_lines + 1);
-        for(int i = 1; i <= total_lines; i++) {
-            file_records[i].line = i;
-        }
+        file_records = new _LineRecord[total_lines + 1];
+        for(int i = 1; i <= total_lines; i++) file_records[i].line = i;
+        records.insert(filename, file_records);
+    }else{
+        file_records = *p;
     }
 
     frames.back().prev_record = &file_records[line];
@@ -85,8 +87,7 @@ Str LineProfiler::stats() {
         int end_line = decl->code->end_line;
         if(start_line == -1 || end_line == -1) continue;
         std::string_view filename = decl->code->src->filename.sv();
-        vector<_LineRecord>& file_records = *records.try_get(filename);
-        if(file_records.empty()) continue;
+        const _LineRecord* file_records = records[filename];
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++) {
             total_time += file_records[line].time;
@@ -118,6 +119,10 @@ Str LineProfiler::stats() {
         ss << "\n";
     }
     return ss.str();
+}
+
+LineProfiler::~LineProfiler() {
+    for(auto& p: records) delete p.second;
 }
 
 }  // namespace pkpy

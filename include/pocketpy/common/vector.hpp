@@ -196,12 +196,6 @@ struct vector {
         _capacity = cap;
     }
 
-    void resize(int size) {
-        reserve(size);
-        std::uninitialized_default_construct_n(_data + _size, size - _size);
-        _size = size;
-    }
-
     template <typename... Args>
     void emplace_back(Args&&... args) {
         if(_size == _capacity) reserve(_capacity * 2);
@@ -432,7 +426,7 @@ struct small_map {
     Item* data() const { return _data.data(); }
 
     void insert(const K& key, const V& value) {
-        auto it = std::lower_bound(_data.begin(), _data.end(), key);
+        Item* it = std::lower_bound(_data.begin(), _data.end(), key);
         assert(it == _data.end() || it->first != key);
         _data.insert(it, {key, value});
     }
