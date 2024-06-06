@@ -187,18 +187,14 @@ struct vector {
         _capacity = 0;
     }
 
-    T* _grow(int cap) {
-        if(cap < 4) cap = 4;  // minimum capacity
-        if(cap <= capacity()) return _data;
-        _capacity = cap;
-        return (T*)std::malloc(sizeof(T) * cap);
-    }
-
     void reserve(int cap) {
-        T* new_data = _grow(cap);
+        if(cap < 4) cap = 4;  // minimum capacity
+        if(cap <= capacity()) return;
+        T* new_data = (T*)std::malloc(sizeof(T) * cap);
         uninitialized_relocate_n(_data, _size, new_data);
         if(_data) std::free(_data);
         _data = new_data;
+        _capacity = cap;
     }
 
     void resize(int size) {
@@ -235,12 +231,14 @@ struct vector {
         assert(it >= begin() && it <= end());
         int pos = it - begin();
         if(_size == _capacity) {
-            T* new_data = _grow(_capacity * 2);
+            int new_capacity = (_capacity == 0) ? 4 : _capacity * 2;
+            T* new_data = (T*)std::malloc(sizeof(T) * new_capacity);
             uninitialized_relocate_n(_data, pos, new_data);
             new (new_data + pos) T(t);
             uninitialized_relocate_n(_data + pos, _size - pos, new_data + pos + 1);
             if(_data) std::free(_data);
             _data = new_data;
+            _capacity = new_capacity;
         } else {
             uninitialized_relocate_n<true, true>(_data + pos, _size - pos, _data + pos + 1);
             new (_data + pos) T(t);
