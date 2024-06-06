@@ -334,7 +334,7 @@ struct small_vector {
     small_vector(small_vector&& other) noexcept {
         if(other.is_small()) {
             _begin = reinterpret_cast<T*>(_buffer);
-            uninitialized_relocate_n(other._buffer, other.size(), _buffer);
+            uninitialized_relocate_n((T*)other._buffer, other.size(), (T*)_buffer);
             _end = _begin + other.size();
             _capacity = _begin + N;
         } else {
