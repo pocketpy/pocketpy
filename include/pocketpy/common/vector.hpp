@@ -224,6 +224,7 @@ struct vector {
         int n = end - begin;
         reserve(_size + n);
         uninitialized_copy_n(begin, n, _data + _size);
+        _size += n;
     }
 
     void insert(const T* it, const T& t) {
@@ -307,12 +308,6 @@ struct small_vector {
     [[nodiscard]] T* begin() const { return _begin; }
 
     [[nodiscard]] T* end() const { return _end; }
-
-    [[nodiscard]] T* rbegin() const { return _end - 1; }
-
-    [[nodiscard]] T* rend() const { return _begin - 1; }
-
-    [[nodiscard]] T& front() const { return *begin(); }
 
     [[nodiscard]] T& back() const { return *(end() - 1); }
 

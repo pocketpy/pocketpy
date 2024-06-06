@@ -1005,12 +1005,13 @@ void Compiler::consume_type_hints() {
 
 void Compiler::_add_decorators(const Expr_vector& decorators) {
     // [obj]
-    for(auto it = decorators.rbegin(); it != decorators.rend(); ++it) {
-        (*it)->emit_(ctx());                                // [obj, f]
-        ctx()->emit_(OP_ROT_TWO, BC_NOARG, (*it)->line);    // [f, obj]
+    for(int i=decorators.size()-1; i>=0; i--) {
+        int line = decorators[i]->line;
+        decorators[i]->emit_(ctx());                        // [obj, f]
+        ctx()->emit_(OP_ROT_TWO, BC_NOARG, line);           // [f, obj]
         ctx()->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);  // [f, obj, NULL]
         ctx()->emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);    // [obj, NULL, f]
-        ctx()->emit_(OP_CALL, 1, (*it)->line);              // [obj]
+        ctx()->emit_(OP_CALL, 1, line);                     // [obj]
     }
 }
 
