@@ -532,20 +532,16 @@ vector<Token> Lexer::run() {
     return std::move(nexts);
 }
 
-constexpr inline bool f_startswith_2(std::string_view t, const char* prefix) {
-    if(t.length() < 2) return false;
-    return t[0] == prefix[0] && t[1] == prefix[1];
-}
 
 IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
     *out = 0;
 
     if(base == -1) {
-        if(f_startswith_2(text, "0b"))
+        if(text.substr(0, 2) == "0b")
             base = 2;
-        else if(f_startswith_2(text, "0o"))
+        else if(text.substr(0, 2) == "0o")
             base = 8;
-        else if(f_startswith_2(text, "0x"))
+        else if(text.substr(0, 2) == "0x")
             base = 16;
         else
             base = 10;
@@ -556,61 +552,59 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
         if(text.length() == 0) return IntParsingResult::Failure;
         for(char c: text) {
             if(c >= '0' && c <= '9') {
-                i64 prev_out = *out;
                 *out = (*out * 10) + (c - '0');
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else {
                 return IntParsingResult::Failure;
             }
         }
+        const std::string_view INT64_MAX_S = "9223372036854775807";
+        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 2) {
         // 2-base   0b101010
-        if(f_startswith_2(text, "0b")) text.remove_prefix(2);
+        if(text.substr(0, 2) == "0b") text.remove_prefix(2);
         if(text.length() == 0) return IntParsingResult::Failure;
         for(char c: text) {
             if(c == '0' || c == '1') {
-                i64 prev_out = *out;
                 *out = (*out << 1) | (c - '0');
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else {
                 return IntParsingResult::Failure;
             }
         }
+        const std::string_view INT64_MAX_S = "111111111111111111111111111111111111111111111111111111111111111";
+        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 8) {
         // 8-base   0o123
-        if(f_startswith_2(text, "0o")) text.remove_prefix(2);
+        if(text.substr(0, 2) == "0o") text.remove_prefix(2);
         if(text.length() == 0) return IntParsingResult::Failure;
         for(char c: text) {
             if(c >= '0' && c <= '7') {
-                i64 prev_out = *out;
                 *out = (*out << 3) | (c - '0');
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else {
                 return IntParsingResult::Failure;
             }
         }
+        const std::string_view INT64_MAX_S = "777777777777777777777";
+        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 16) {
         // 16-base  0x123
-        if(f_startswith_2(text, "0x")) text.remove_prefix(2);
+        if(text.substr(0, 2) == "0x") text.remove_prefix(2);
         if(text.length() == 0) return IntParsingResult::Failure;
         for(char c: text) {
-            i64 prev_out = *out;
             if(c >= '0' && c <= '9') {
                 *out = (*out << 4) | (c - '0');
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else if(c >= 'a' && c <= 'f') {
                 *out = (*out << 4) | (c - 'a' + 10);
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else if(c >= 'A' && c <= 'F') {
                 *out = (*out << 4) | (c - 'A' + 10);
-                if(*out < prev_out) return IntParsingResult::Overflow;
             } else {
                 return IntParsingResult::Failure;
             }
         }
+        const std::string_view INT64_MAX_S = "7fffffffffffffff";
+        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     }
     return IntParsingResult::Failure;
