@@ -558,7 +558,7 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
             }
         }
         const std::string_view INT64_MAX_S = "9223372036854775807";
-        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
+        if(text.length() > INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 2) {
         // 2-base   0b101010
@@ -572,7 +572,7 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
             }
         }
         const std::string_view INT64_MAX_S = "111111111111111111111111111111111111111111111111111111111111111";
-        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
+        if(text.length() > INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 8) {
         // 8-base   0o123
@@ -586,7 +586,7 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
             }
         }
         const std::string_view INT64_MAX_S = "777777777777777777777";
-        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
+        if(text.length() > INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     } else if(base == 16) {
         // 16-base  0x123
@@ -604,7 +604,7 @@ IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
             }
         }
         const std::string_view INT64_MAX_S = "7fffffffffffffff";
-        if(text.length() >= INT64_MAX_S.length()) return IntParsingResult::Overflow;
+        if(text.length() > INT64_MAX_S.length()) return IntParsingResult::Overflow;
         return IntParsingResult::Success;
     }
     return IntParsingResult::Failure;
