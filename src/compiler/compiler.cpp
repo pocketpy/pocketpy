@@ -425,7 +425,7 @@ void Compiler::exprCall() {
 }
 
 void Compiler::exprName() {
-    Str name = prev().str();
+    StrName name(prev().sv());
     NameScope scope = name_scope();
     if(ctx()->global_names.contains(name)) { scope = NAME_GLOBAL; }
     ctx()->s_expr.push_back(make_expr<NameExpr>(name, scope));
@@ -882,7 +882,7 @@ void Compiler::compile_stmt() {
         case TK("global"):
             do {
                 consume(TK("@id"));
-                ctx()->global_names.push_back(prev().sv());
+                ctx()->global_names.push_back(StrName(prev().sv()));
             } while(match(TK(",")));
             consume_end_stmt();
             break;

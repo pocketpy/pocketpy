@@ -81,7 +81,7 @@ struct PyTypeInfo {
     PyTypeInfo(PyObject* obj, Type base, PyObject* mod, StrName name, bool subclass_enabled, Vt vt = {}) :
         obj(obj), base(base), mod(mod), name(name), subclass_enabled(subclass_enabled), vt(vt) {}
 
-    vector<StrName> annotated_fields = {};
+    vector<StrName> annotated_fields;
 
     // unary operators
     Str (*m__repr__)(VM* vm, PyVar) = nullptr;

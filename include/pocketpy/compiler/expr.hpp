@@ -112,7 +112,7 @@ struct CodeEmitContext {
     CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
     vector<Expr_> s_expr;
     int level;
-    vector<Str> global_names;
+    vector<StrName> global_names;
 
     CodeEmitContext(VM* vm, CodeObject_ co, int level) : vm(vm), co(co), level(level) {}
 
