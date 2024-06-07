@@ -183,7 +183,7 @@ struct Random {
             int size = view.size();
             if(size == 0) vm->IndexError("cannot choose from an empty sequence");
             array<f64> cum_weights(size);
-            if(args[2] == vm->None) {
+            if(is_none(args[2])) {
                 for(int i = 0; i < size; i++)
                     cum_weights[i] = i + 1;
             } else {

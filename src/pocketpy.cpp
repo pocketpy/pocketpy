@@ -162,7 +162,7 @@ void __init_builtins(VM* _vm) {
         if(is_int(args[0])) return args[0];
         f64 x = CAST(f64, args[0]);
         f64 offset = x >= 0 ? 0.5 : -0.5;
-        if(args[1] == vm->None) return VAR((i64)(x + offset));
+        if(is_none(args[1])) return VAR((i64)(x + offset));
         int ndigits = CAST(int, args[1]);
         if(ndigits < 0) vm->ValueError("ndigits should be non-negative");
         // ndigits > 0
@@ -751,7 +751,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_str), "strip(self, chars=None)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        if(args[1] == vm->None) {
+        if(is_none(args[1])) {
             return VAR(self.strip());
         } else {
             const Str& chars = CAST(Str&, args[1]);
@@ -761,7 +761,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_str), "lstrip(self, chars=None)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        if(args[1] == vm->None) {
+        if(is_none(args[1])) {
             return VAR(self.lstrip());
         } else {
             const Str& chars = CAST(Str&, args[1]);
@@ -771,7 +771,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_str), "rstrip(self, chars=None)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
-        if(args[1] == vm->None) {
+        if(is_none(args[1])) {
             return VAR(self.rstrip());
         } else {
             const Str& chars = CAST(Str&, args[1]);
@@ -826,7 +826,7 @@ void __init_builtins(VM* _vm) {
     _vm->bind(_vm->_t(VM::tp_list), "sort(self, key=None, reverse=False)", [](VM* vm, ArgsView args) {
         List& self = _CAST(List&, args[0]);
         PyVar key = args[1];
-        if(key == vm->None) {
+        if(is_none(key)) {
             std::stable_sort(self.begin(), self.end(), [vm](PyVar a, PyVar b) {
                 return vm->py_lt(a, b);
             });

@@ -75,14 +75,20 @@ struct Slice {
     void _gc_mark(VM*) const;
 };
 
-const inline int kTpIntIndex = 3;
-const inline int kTpFloatIndex = 4;
+const inline int16_t kTpIntIndex = 3;
+const inline int16_t kTpFloatIndex = 4;
+const inline int16_t kTpNoneTypeIndex = 24;
+const inline int16_t kTpNotImplementedTypeIndex = 25;
 
 inline bool is_tagged(PyVar p) noexcept { return !p.is_ptr; }
 
 inline bool is_float(PyVar p) noexcept { return p.type.index == kTpFloatIndex; }
 
 inline bool is_int(PyVar p) noexcept { return p.type.index == kTpIntIndex; }
+
+inline bool is_none(PyVar p) noexcept { return p.type.index == kTpNoneTypeIndex; }
+
+inline bool is_not_implemented(PyVar p) noexcept { return p.type.index == kTpNotImplementedTypeIndex; }
 
 inline bool is_type(PyVar obj, Type type) {
     assert(obj != nullptr);

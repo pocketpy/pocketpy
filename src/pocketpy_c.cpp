@@ -294,7 +294,7 @@ bool pkpy_is_none(pkpy_vm* vm_handle, int i) {
     PK_ASSERT_NO_ERROR()
     PK_PROTECTED(
         PyVar item = stack_item(vm, i);
-        return item == vm->None;
+        return is_none(item);
     )
 }
 

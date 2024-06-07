@@ -94,7 +94,7 @@ struct Struct {
 template <typename Tp>
 Tp to_void_p(VM* vm, PyVar var) {
     static_assert(std::is_pointer_v<Tp>);
-    if(var == vm->None) return nullptr;  // None can be casted to any pointer implicitly
+    if(is_none(var)) return nullptr;  // None can be casted to any pointer implicitly
     VoidP& p = CAST(VoidP&, var);
     return reinterpret_cast<Tp>(p.ptr);
 }

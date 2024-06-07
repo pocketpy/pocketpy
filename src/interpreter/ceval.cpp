@@ -1042,7 +1042,7 @@ PyVar VM::__run_top_frame() {
                     case OP_BEGIN_CLASS: {
                         StrName _name(byte.arg);
                         PyVar _0 = POPX();  // super
-                        if(_0 == None) _0 = _t(tp_object);
+                        if(is_none(_0)) _0 = _t(tp_object);
                         check_type(_0, tp_type);
                         __curr_class = new_type_object(frame->_module, _name, PK_OBJ_GET(Type, _0), true);
                     }

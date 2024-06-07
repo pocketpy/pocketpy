@@ -218,13 +218,14 @@ public:
     constexpr static Type tp_super = Type(15), tp_exception = Type(16), tp_bytes = Type(17), tp_mappingproxy = Type(18);
     constexpr static Type tp_dict = Type(19), tp_property = Type(20), tp_star_wrapper = Type(21);
     constexpr static Type tp_staticmethod = Type(22), tp_classmethod = Type(23);
-    constexpr static Type tp_none_type = Type(24), tp_not_implemented = Type(25), tp_ellipsis = Type(26);
+    constexpr static Type tp_none_type = Type(kTpNoneTypeIndex), tp_not_implemented_type = Type(kTpNotImplementedTypeIndex);
+    constexpr static Type tp_ellipsis = Type(26);
     constexpr static Type tp_stack_memory = Type(kTpStackMemoryIndex);
 
     constexpr static PyVar True{const_sso_var(), tp_bool, 1};
     constexpr static PyVar False{const_sso_var(), tp_bool, 0};
     constexpr static PyVar None{const_sso_var(), tp_none_type, 0};
-    constexpr static PyVar NotImplemented{const_sso_var(), tp_not_implemented, 0};
+    constexpr static PyVar NotImplemented{const_sso_var(), tp_not_implemented_type, 0};
     constexpr static PyVar Ellipsis{const_sso_var(), tp_ellipsis, 0};
 
     const bool enable_os;
@@ -421,9 +422,6 @@ public:
     const PyTypeInfo* _tp_info(Type type) { return &_all_types[type]; }
     PyObject* _t(PyVar obj){ return _all_types[_tp(obj)].obj; }
     PyObject* _t(Type type){ return _all_types[type].obj; }
-
-    // equivalent to `obj == NotImplemented` but faster
-    static bool is_not_implemented(PyVar obj){ return obj.type == tp_not_implemented; }
 #endif
 
 #if PK_REGION("User Type Registration")
@@ -684,7 +682,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
     if constexpr(std::is_same_v<T, const char*> || std::is_same_v<T, CString>) {
         static_assert(!std::is_reference_v<__T>);
         // str (shortcuts)
-        if(obj == vm->None) return nullptr;
+        if(is_none(obj)) return nullptr;
         if constexpr(with_check) vm->check_type(obj, vm->tp_str);
         return PK_OBJ_GET(Str, obj).c_str();
     } else if constexpr(std::is_same_v<T, bool>) {

@@ -24,7 +24,7 @@ static cJSON* covert_dict_to_cjson(const Dict& dict, VM* vm){
 }
 
 static cJSON* convert_python_object_to_cjson(PyVar obj, VM* vm){
-    if(obj == vm->None) return cJSON_CreateNull();
+    if(is_none(obj)) return cJSON_CreateNull();
     Type obj_t = vm->_tp(obj);
     switch(obj_t){
         case VM::tp_int.index: cJSON_CreateNumber(_CAST(i64, obj));

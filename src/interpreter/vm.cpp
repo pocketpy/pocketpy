@@ -46,7 +46,7 @@ struct JsonSerializer {
 
     void write_object(PyVar obj) {
         Type obj_t = vm->_tp(obj);
-        if(obj == vm->None) {
+        if(is_none(obj)) {
             ss << "null";
         } else if(obj_t == vm->tp_int) {
             ss << _CAST(i64, obj);
@@ -285,7 +285,7 @@ bool VM::py_callable(PyVar obj) {
 PyVar VM::__minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key) {
     auto _lock = heap.gc_scope_lock();
     const Tuple& args_tuple = PK_OBJ_GET(Tuple, args);  // from *args, it must be a tuple
-    if(key == vm->None && args_tuple.size() == 2) {
+    if(is_none(key) && args_tuple.size() == 2) {
         // fast path
         PyVar a = args_tuple[0];
         PyVar b = args_tuple[1];
@@ -304,7 +304,7 @@ PyVar VM::__minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key) {
     if(view.empty()) ValueError("arg is an empty sequence");
     PyVar res = view[0];
 
-    if(key == vm->None) {
+    if(is_none(key)) {
         for(int i = 1; i < view.size(); i++) {
             if((this->*op)(view[i], res)) res = view[i];
         }
@@ -419,7 +419,7 @@ PyVar VM::py_negate(PyVar obj) {
 }
 
 bool VM::__py_bool_non_trivial(PyVar obj) {
-    if(obj == None) return false;
+    if(is_none(obj)) return false;
     if(is_int(obj)) return _CAST(i64, obj) != 0;
     if(is_float(obj)) return _CAST(f64, obj) != 0.0;
     PyVar self;
@@ -486,20 +486,20 @@ void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int&
         if(value > max) return max;
         return value;
     };
-    if(s.step == None)
+    if(is_none(s.step))
         step = 1;
     else
         step = CAST(int, s.step);
     if(step == 0) ValueError("slice step cannot be zero");
     if(step > 0) {
-        if(s.start == None) {
+        if(is_none(s.start)) {
             start = 0;
         } else {
             start = CAST(int, s.start);
             if(start < 0) start += length;
             start = clip(start, 0, length);
         }
-        if(s.stop == None) {
+        if(is_none(s.stop)) {
             stop = length;
         } else {
             stop = CAST(int, s.stop);
@@ -507,14 +507,14 @@ void VM::parse_int_slice(const Slice& s, int length, int& start, int& stop, int&
             stop = clip(stop, 0, length);
         }
     } else {
-        if(s.start == None) {
+        if(is_none(s.start)) {
             start = length - 1;
         } else {
             start = CAST(int, s.start);
             if(start < 0) start += length;
             start = clip(start, -1, length - 1);
         }
-        if(s.stop == None) {
+        if(is_none(s.stop)) {
             stop = -1;
         } else {
             stop = CAST(int, s.stop);
@@ -557,7 +557,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     if(!callstack.empty()) frame = &callstack.top();
 
     // fast path
-    if(frame && globals == vm->None && locals == vm->None) {
+    if(frame && is_none(globals) && is_none(locals)) {
         return vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
     }
 
@@ -569,8 +569,8 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     NameDict_ locals_closure = nullptr;
     Dict* locals_dict = nullptr;
 
-    if(frame && globals == vm->None) {
-        globals_obj = frame->_module;
+    if(is_none(globals)){
+        globals_obj = frame ? frame->_module: _main;
     } else {
         if(is_type(globals, VM::tp_mappingproxy)) {
             globals_obj = PK_OBJ_GET(MappingProxy, globals).obj;
@@ -588,7 +588,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
 
     PyVar retval = nullptr;
 
-    if(locals == vm->None) {
+    if(is_none(locals)) {
         retval = vm->_exec(code, globals_obj);  // only globals
     } else {
         check_compatible_type(locals, VM::tp_dict);
@@ -909,7 +909,7 @@ void VM::__init_builtin_types() {
     validate(tp_classmethod, new_type_object<ClassMethod>(nullptr, "classmethod", tp_object, false));
 
     validate(tp_none_type, new_type_object(nullptr, "NoneType", tp_object, false));
-    validate(tp_not_implemented, new_type_object(nullptr, "NotImplementedType", tp_object, false));
+    validate(tp_not_implemented_type, new_type_object(nullptr, "NotImplementedType", tp_object, false));
     validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
     validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "_stack_memory", tp_object, false));
 

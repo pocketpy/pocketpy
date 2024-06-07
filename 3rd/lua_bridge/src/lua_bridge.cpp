@@ -217,7 +217,7 @@ struct PyLuaFunction: PyLuaObject{
 };
 
 void lua_push_from_python(VM* vm, PyVar val){
-    if(val == vm->None){
+    if(is_none(val)){
         lua_pushnil(_L);
         return;
     }

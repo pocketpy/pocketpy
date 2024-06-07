@@ -154,7 +154,7 @@ struct Array2d {
                     case VM::tp_float.index: is_basic_type = true; break;
                     case VM::tp_str.index: is_basic_type = true; break;
                     case VM::tp_bool.index: is_basic_type = true; break;
-                    default: is_basic_type = _2 == vm->None;
+                    default: is_basic_type = is_none(_2);
                 }
 
                 if(is_basic_type) {

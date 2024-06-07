@@ -396,7 +396,7 @@ void Mat3x3::_register(VM* vm, PyObject* mod, PyObject* type) {
     vm->bind(type, "matmul(self, other: mat3x3, out: mat3x3 = None)", [](VM* vm, ArgsView args) {
         const Mat3x3& self = _CAST(Mat3x3&, args[0]);
         const Mat3x3& other = CAST(Mat3x3&, args[1]);
-        if(args[2] == vm->None) {
+        if(is_none(args[2])) {
             return vm->new_user_object<Mat3x3>(self.matmul(other));
         } else {
             Mat3x3& out = CAST(Mat3x3&, args[2]);
