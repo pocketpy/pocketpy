@@ -975,7 +975,8 @@ void Compiler::compile_stmt() {
 
 void Compiler::consume_type_hints() {
     EXPR();
-    ctx()->emit_expr(false);
+    Expr* e = ctx()->s_expr.popx_back();
+    delete_expr(e);
 }
 
 void Compiler::_add_decorators(const Expr_vector& decorators) {
