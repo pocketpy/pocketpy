@@ -284,6 +284,8 @@ struct vector {
 
 template <typename T, std::size_t N>
 struct small_vector {
+    static_assert(is_pod_v<T>);
+    
     alignas(T) char _buffer[sizeof(T) * N];
     T* _begin;
     T* _end;
