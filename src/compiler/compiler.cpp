@@ -31,7 +31,7 @@ FuncDecl_ Compiler::push_f_context(Str name) {
 }
 
 void Compiler::pop_context() {
-    if(!ctx()->s_expr.empty()) { throw std::runtime_error("!ctx()->s_expr.empty()"); }
+    assert(ctx()->s_expr.empty());
     // add a `return None` in the end as a guard
     // previously, we only do this if the last opcode is not a return
     // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
@@ -211,7 +211,7 @@ void Compiler::EXPR_TUPLE(bool allow_slice) {
 }
 
 // special case for `for loop` and `comp`
-Expr_ Compiler::EXPR_VARS() {
+Expr* Compiler::EXPR_VARS() {
     Expr_vector items;
     do {
         consume(TK("@id"));
@@ -276,8 +276,7 @@ void Compiler::exprTernary() {
 }
 
 void Compiler::exprBinaryOp() {
-    auto e = make_expr<BinaryExpr>();
-    e->op = prev().type;
+    auto e = make_expr<BinaryExpr>(prev().type);
     e->lhs = ctx()->s_expr.popx_back();
     parse_expression(rules[e->op].precedence + 1);
     e->rhs = ctx()->s_expr.popx_back();
@@ -286,17 +285,19 @@ void Compiler::exprBinaryOp() {
 
 void Compiler::exprNot() {
     parse_expression(PREC_LOGICAL_NOT + 1);
-    ctx()->s_expr.push_back(make_expr<NotExpr>(ctx()->s_expr.popx_back()));
+    NotExpr* e = make_expr<NotExpr>(ctx()->s_expr.popx_back());
+    ctx()->s_expr.push_back(e);
 }
 
 void Compiler::exprUnaryOp() {
     TokenIndex op = prev().type;
     parse_expression(PREC_UNARY + 1);
+    vector<Expr*>& s_expr = ctx()->s_expr;
     switch(op) {
-        case TK("-"): ctx()->s_expr.push_back(make_expr<NegatedExpr>(ctx()->s_expr.popx_back())); break;
-        case TK("~"): ctx()->s_expr.push_back(make_expr<InvertExpr>(ctx()->s_expr.popx_back())); break;
-        case TK("*"): ctx()->s_expr.push_back(make_expr<StarredExpr>(1, ctx()->s_expr.popx_back())); break;
-        case TK("**"): ctx()->s_expr.push_back(make_expr<StarredExpr>(2, ctx()->s_expr.popx_back())); break;
+        case TK("-"): s_expr.push_back(make_expr<NegatedExpr>(s_expr.popx_back())); break;
+        case TK("~"): s_expr.push_back(make_expr<InvertExpr>(s_expr.popx_back())); break;
+        case TK("*"): s_expr.push_back(make_expr<StarredExpr>(s_expr.popx_back(), 1)); break;
+        case TK("**"): s_expr.push_back(make_expr<StarredExpr>(s_expr.popx_back(), 2)); break;
         default: assert(false);
     }
 }
@@ -307,11 +308,11 @@ void Compiler::exprGroup() {
     match_newlines_repl();
     consume(TK(")"));
     if(ctx()->s_expr.back()->is_tuple()) return;
-    Expr_ g = make_expr<GroupedExpr>(ctx()->s_expr.popx_back());
+    Expr* g = make_expr<GroupedExpr>(ctx()->s_expr.popx_back());
     ctx()->s_expr.push_back(std::move(g));
 }
 
-void Compiler::consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr) {
+void Compiler::consume_comp(CompExpr* ce, Expr* expr) {
     ce->expr = std::move(expr);
     ce->vars = EXPR_VARS();
     consume(TK("in"));
@@ -358,7 +359,7 @@ void Compiler::exprMap() {
         int star_level = ctx()->s_expr.back()->star_level();
         if(star_level == 2 || curr().type == TK(":")) { parsing_dict = true; }
         if(parsing_dict) {
-            auto dict_item = make_expr<DictItemExpr>();
+            DictItemExpr* dict_item = make_expr<DictItemExpr>();
             if(star_level == 2) {
                 dict_item->key = nullptr;
                 dict_item->value = ctx()->s_expr.popx_back();
@@ -401,7 +402,7 @@ void Compiler::exprCall() {
         if(curr().type == TK(")")) break;
         if(curr().type == TK("@id") && next().type == TK("=")) {
             consume(TK("@id"));
-            Str key = prev().str();
+            StrName key(prev().sv());
             consume(TK("="));
             EXPR();
             e->kwargs.push_back({key, ctx()->s_expr.popx_back()});
@@ -476,9 +477,9 @@ void Compiler::exprSlice1() {
 void Compiler::exprSubscr() {
     auto e = make_expr<SubscrExpr>();
     match_newlines_repl();
-    e->a = ctx()->s_expr.popx_back();  // a
+    e->lhs = ctx()->s_expr.popx_back();  // a
     EXPR_TUPLE(true);
-    e->b = ctx()->s_expr.popx_back();  // a[<expr>]
+    e->rhs = ctx()->s_expr.popx_back();  // a[<expr>]
     match_newlines_repl();
     consume(TK("]"));
     ctx()->s_expr.push_back(std::move(e));
@@ -650,7 +651,7 @@ void Compiler::compile_while_loop() {
 }
 
 void Compiler::compile_for_loop() {
-    Expr_ vars = EXPR_VARS();
+    Expr* vars = EXPR_VARS();
     consume(TK("in"));
     EXPR_TUPLE();
     ctx()->emit_expr();
@@ -764,14 +765,14 @@ bool Compiler::try_compile_assignment() {
         case TK("&="):
         case TK("|="):
         case TK("^="): {
-            Expr* lhs_p = ctx()->s_expr.back().get();
+            Expr* lhs_p = ctx()->s_expr.back();
             if(lhs_p->is_starred()) SyntaxError();
             if(ctx()->is_compiling_class) SyntaxError("can't use inplace operator in class definition");
             advance();
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
-            auto e = make_expr<BinaryExpr>(true);  // inplace=true
-            e->op = prev().type - 1;               // -1 to remove =
+            // -1 to remove =; inplace=true
+            auto e = make_expr<BinaryExpr>(prev().type - 1, true);
             e->lhs = ctx()->s_expr.popx_back();
             EXPR_TUPLE();
             e->rhs = ctx()->s_expr.popx_back();
@@ -788,7 +789,7 @@ bool Compiler::try_compile_assignment() {
                 n += 1;
             }
             // stack size is n+1
-            Expr_ val = ctx()->s_expr.popx_back();
+            Expr* val = ctx()->s_expr.popx_back();
             val->emit_(ctx());
             for(int j = 1; j < n; j++)
                 ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
@@ -894,7 +895,7 @@ void Compiler::compile_stmt() {
         } break;
         case TK("del"): {
             EXPR_TUPLE();
-            Expr_ e = ctx()->s_expr.popx_back();
+            Expr* e = ctx()->s_expr.popx_back();
             bool ok = e->emit_del(ctx());
             if(!ok) SyntaxError();
             consume_end_stmt();
@@ -903,7 +904,7 @@ void Compiler::compile_stmt() {
             EXPR();  // [ <expr> ]
             ctx()->emit_expr();
             ctx()->enter_block(CodeBlockType::CONTEXT_MANAGER);
-            Expr_ as_name;
+            Expr* as_name = nullptr;;
             if(match(TK("as"))) {
                 consume(TK("@id"));
                 as_name = make_expr<NameExpr>(prev().str(), name_scope());
@@ -949,7 +950,7 @@ void Compiler::compile_stmt() {
                     is_typed_name = true;
 
                     if(ctx()->is_compiling_class) {
-                        NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.back().get());
+                        NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.back());
                         ctx()->emit_(OP_ADD_CLASS_ANNOTATION, ne->name.index, BC_KEEPLINE);
                     }
                 }
@@ -964,8 +965,7 @@ void Compiler::compile_stmt() {
                         ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
                     }
                 } else {
-                    assert(ctx()->s_expr.size() == 1);
-                    ctx()->s_expr.pop_back();
+                    ctx()->emit_expr(false);
                 }
             }
             consume_end_stmt();
@@ -975,7 +975,7 @@ void Compiler::compile_stmt() {
 
 void Compiler::consume_type_hints() {
     EXPR();
-    ctx()->s_expr.pop_back();
+    ctx()->emit_expr(false);
 }
 
 void Compiler::_add_decorators(const Expr_vector& decorators) {
@@ -993,7 +993,7 @@ void Compiler::_add_decorators(const Expr_vector& decorators) {
 void Compiler::compile_class(const Expr_vector& decorators) {
     consume(TK("@id"));
     int namei = StrName(prev().sv()).index;
-    Expr_ base = nullptr;
+    Expr* base = nullptr;
     if(match(TK("("))) {
         if(is_expression()) {
             EXPR();
@@ -1294,7 +1294,7 @@ CodeObject_ Compiler::compile() {
         return code;
     } else if(mode() == JSON_MODE) {
         EXPR();
-        Expr_ e = ctx()->s_expr.popx_back();
+        Expr* e = ctx()->s_expr.popx_back();
         if(!e->is_json_object()) SyntaxError("expect a JSON object, literal or array");
         consume(TK("@eof"));
         e->emit_(ctx());

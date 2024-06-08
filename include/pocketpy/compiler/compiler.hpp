@@ -61,18 +61,19 @@ class Compiler {
     /*************************************************/
     void EXPR();
     void EXPR_TUPLE(bool allow_slice = false);
-    Expr_ EXPR_VARS();  // special case for `for loop` and `comp`
+    Expr* EXPR_VARS();  // special case for `for loop` and `comp`
 
     template <typename T, typename... Args>
-    unique_ptr_128<T> make_expr(Args&&... args) {
+    T* make_expr(Args&&... args) {
         static_assert(sizeof(T) <= kPoolExprBlockSize);
+        static_assert(std::is_base_of_v<Expr, T>);
         void* p = PoolExpr_alloc();
-        unique_ptr_128<T> expr(new (p) T(std::forward<Args>(args)...));
+        T* expr = new (p) T(std::forward<Args>(args)...);
         expr->line = prev().line;
         return expr;
     }
 
-    void consume_comp(unique_ptr_128<CompExpr> ce, Expr_ expr);
+    void consume_comp(CompExpr* ce, Expr* expr);
 
     void exprLiteral();
     void exprLong();

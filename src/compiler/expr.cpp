@@ -41,10 +41,11 @@ void CodeEmitContext::exit_block() {
 }
 
 // clear the expression stack and generate bytecode
-void CodeEmitContext::emit_expr() {
+void CodeEmitContext::emit_expr(bool emit) {
     assert(s_expr.size() == 1);
-    s_expr.back()->emit_(this);
-    s_expr.pop_back();
+    Expr* e = s_expr.popx_back();
+    if(emit) e->emit_(this);
+    delete_expr(e);
 }
 
 int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
@@ -277,7 +278,7 @@ void NegatedExpr::emit_(CodeEmitContext* ctx) {
     VM* vm = ctx->vm;
     // if child is a int of float, do constant folding
     if(child->is_literal()) {
-        LiteralExpr* lit = static_cast<LiteralExpr*>(child.get());
+        LiteralExpr* lit = static_cast<LiteralExpr*>(child);
         if(std::holds_alternative<i64>(lit->value)) {
             i64 _val = -std::get<i64>(lit->value);
             ctx->emit_int(_val, line);
@@ -540,13 +541,13 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
 }
 
 void SubscrExpr::emit_(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    b->emit_(ctx);
+    lhs->emit_(ctx);
+    rhs->emit_(ctx);
     Bytecode last_bc = ctx->co->codes.back();
-    if(b->is_name() && last_bc.op == OP_LOAD_FAST) {
+    if(rhs->is_name() && last_bc.op == OP_LOAD_FAST) {
         ctx->revert_last_emit_();
         ctx->emit_(OP_LOAD_SUBSCR_FAST, last_bc.arg, line);
-    } else if(b->is_literal() && last_bc.op == OP_LOAD_SMALL_INT) {
+    } else if(rhs->is_literal() && last_bc.op == OP_LOAD_SMALL_INT) {
         ctx->revert_last_emit_();
         ctx->emit_(OP_LOAD_SUBSCR_SMALL_INT, last_bc.arg, line);
     } else {
@@ -555,10 +556,10 @@ void SubscrExpr::emit_(CodeEmitContext* ctx) {
 }
 
 bool SubscrExpr::emit_store(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    b->emit_(ctx);
+    lhs->emit_(ctx);
+    rhs->emit_(ctx);
     Bytecode last_bc = ctx->co->codes.back();
-    if(b->is_name() && last_bc.op == OP_LOAD_FAST) {
+    if(rhs->is_name() && last_bc.op == OP_LOAD_FAST) {
         ctx->revert_last_emit_();
         ctx->emit_(OP_STORE_SUBSCR_FAST, last_bc.arg, line);
     } else {
@@ -568,8 +569,8 @@ bool SubscrExpr::emit_store(CodeEmitContext* ctx) {
 }
 
 void SubscrExpr::emit_inplace(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    b->emit_(ctx);
+    lhs->emit_(ctx);
+    rhs->emit_(ctx);
     ctx->emit_(OP_DUP_TOP_TWO, BC_NOARG, line);
     ctx->emit_(OP_LOAD_SUBSCR, BC_NOARG, line);
 }
@@ -582,44 +583,44 @@ bool SubscrExpr::emit_store_inplace(CodeEmitContext* ctx) {
 }
 
 bool SubscrExpr::emit_del(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    b->emit_(ctx);
+    lhs->emit_(ctx);
+    rhs->emit_(ctx);
     ctx->emit_(OP_DELETE_SUBSCR, BC_NOARG, line);
     return true;
 }
 
 void AttribExpr::emit_(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    ctx->emit_(OP_LOAD_ATTR, b.index, line);
+    child->emit_(ctx);
+    ctx->emit_(OP_LOAD_ATTR, name.index, line);
 }
 
 bool AttribExpr::emit_del(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    ctx->emit_(OP_DELETE_ATTR, b.index, line);
+    child->emit_(ctx);
+    ctx->emit_(OP_DELETE_ATTR, name.index, line);
     return true;
 }
 
 bool AttribExpr::emit_store(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    ctx->emit_(OP_STORE_ATTR, b.index, line);
+    child->emit_(ctx);
+    ctx->emit_(OP_STORE_ATTR, name.index, line);
     return true;
 }
 
 void AttribExpr::emit_method(CodeEmitContext* ctx) {
-    a->emit_(ctx);
-    ctx->emit_(OP_LOAD_METHOD, b.index, line);
+    child->emit_(ctx);
+    ctx->emit_(OP_LOAD_METHOD, name.index, line);
 }
 
 void AttribExpr::emit_inplace(CodeEmitContext* ctx) {
-    a->emit_(ctx);
+    child->emit_(ctx);
     ctx->emit_(OP_DUP_TOP, BC_NOARG, line);
-    ctx->emit_(OP_LOAD_ATTR, b.index, line);
+    ctx->emit_(OP_LOAD_ATTR, name.index, line);
 }
 
 bool AttribExpr::emit_store_inplace(CodeEmitContext* ctx) {
     // [a, val] -> [val, a]
     ctx->emit_(OP_ROT_TWO, BC_NOARG, line);
-    ctx->emit_(OP_STORE_ATTR, b.index, line);
+    ctx->emit_(OP_STORE_ATTR, name.index, line);
     return true;
 }
 
@@ -633,7 +634,7 @@ void CallExpr::emit_(CodeEmitContext* ctx) {
 
     // if callable is a AttrExpr, we should try to use `fast_call` instead of use `boundmethod` proxy
     if(callable->is_attrib()) {
-        auto p = static_cast<AttribExpr*>(callable.get());
+        auto p = static_cast<AttribExpr*>(callable);
         p->emit_method(ctx);  // OP_LOAD_METHOD
     } else {
         callable->emit_(ctx);
@@ -692,7 +693,7 @@ bool BinaryExpr::is_compare() const {
 
 void BinaryExpr::_emit_compare(CodeEmitContext* ctx, small_vector_2<int, 8>& jmps) {
     if(lhs->is_compare()) {
-        static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
+        static_cast<BinaryExpr*>(lhs)->_emit_compare(ctx, jmps);
     } else {
         lhs->emit_(ctx);  // [a]
     }
@@ -717,7 +718,7 @@ void BinaryExpr::emit_(CodeEmitContext* ctx) {
     small_vector_2<int, 8> jmps;
     if(is_compare() && lhs->is_compare()) {
         // (a < b) < c
-        static_cast<BinaryExpr*>(lhs.get())->_emit_compare(ctx, jmps);
+        static_cast<BinaryExpr*>(lhs)->_emit_compare(ctx, jmps);
         // [b, RES]
     } else {
         // (1 + 2) < c

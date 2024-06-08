@@ -8,74 +8,18 @@ namespace pkpy {
 struct CodeEmitContext;
 struct Expr;
 
-template <typename T>
-class unique_ptr_128 {
-    T* ptr;
-
-public:
-    unique_ptr_128() : ptr(nullptr) {}
-
-    unique_ptr_128(T* ptr) : ptr(ptr) {}
-
-    T* operator->() const { return ptr; }
-
-    T* get() const { return ptr; }
-
-    T* detach() {
-        T* p = ptr;
-        ptr = nullptr;
-        return p;
-    }
-
-    unique_ptr_128(const unique_ptr_128&) = delete;
-    unique_ptr_128& operator= (const unique_ptr_128&) = delete;
-
-    bool operator== (std::nullptr_t) const { return ptr == nullptr; }
-
-    bool operator!= (std::nullptr_t) const { return ptr != nullptr; }
-
-    ~unique_ptr_128() {
-        if(ptr) {
-            ptr->~T();
-            PoolExpr_dealloc(ptr);
-        }
-    }
-
-    template <typename U>
-    unique_ptr_128(unique_ptr_128<U>&& other) : ptr(other.detach()) {}
-
-    operator bool () const { return ptr != nullptr; }
-
-    template <typename U>
-    unique_ptr_128& operator= (unique_ptr_128<U>&& other) {
-        if(ptr) {
-            ptr->~T();
-            PoolExpr_dealloc(ptr);
-        };
-        ptr = other.detach();
-        return *this;
-    }
-
-    unique_ptr_128& operator= (std::nullptr_t) {
-        if(ptr) {
-            ptr->~T();
-            PoolExpr_dealloc(ptr);
-        }
-        ptr = nullptr;
-        return *this;
-    }
-};
-
-typedef unique_ptr_128<Expr> Expr_;
-typedef small_vector<Expr_, 4> Expr_vector;
-
-template <>
-constexpr inline bool is_trivially_relocatable_v<Expr_> = true;
+typedef small_vector<Expr*, 4> Expr_vector;
 
 struct Expr {
     int line = 0;
     virtual ~Expr() = default;
     virtual void emit_(CodeEmitContext* ctx) = 0;
+
+    Expr() = default;
+    Expr(const Expr&) = delete;
+    Expr(Expr&&) = delete;
+    Expr& operator=(const Expr&) = delete;
+    Expr& operator=(Expr&&) = delete;
 
     virtual bool is_literal() const { return false; }
 
@@ -106,11 +50,17 @@ struct Expr {
     [[nodiscard]] virtual bool emit_store_inplace(CodeEmitContext* ctx) { return emit_store(ctx); }
 };
 
+inline void delete_expr(Expr* p){
+    if(!p) return;
+    p->Expr::~Expr();
+    PoolExpr_dealloc(p);
+}
+
 struct CodeEmitContext {
     VM* vm;
     FuncDecl_ func;  // optional
     CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
-    vector<Expr_> s_expr;
+    vector<Expr*> s_expr;
     int level;
     vector<StrName> global_names;
 
@@ -125,7 +75,7 @@ struct CodeEmitContext {
     int get_loop() const;
     CodeBlock* enter_block(CodeBlockType type);
     void exit_block();
-    void emit_expr();  // clear the expression stack and generate bytecode
+    void emit_expr(bool emit = true);  // clear the expression stack and generate bytecode
     int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual = false);
     void revert_last_emit_();
     int emit_int(i64 value, int line);
@@ -152,19 +102,33 @@ struct NameExpr : Expr {
     bool is_name() const override { return true; }
 };
 
-struct InvertExpr : Expr {
-    Expr_ child;
+struct _UnaryExpr : Expr {
+    Expr* child;
+    _UnaryExpr(Expr* child) : child(child) {}
+    _UnaryExpr() : child(nullptr) {}
+    ~_UnaryExpr() { delete_expr(child); }
+};
 
-    InvertExpr(Expr_&& child) : child(std::move(child)) {}
+struct _BinaryExpr : Expr {
+    Expr* lhs;
+    Expr* rhs;
+    _BinaryExpr(Expr* lhs, Expr* rhs) : lhs(lhs), rhs(rhs) {}
+    _BinaryExpr() : lhs(nullptr), rhs(nullptr) {}
+    ~_BinaryExpr() {
+        delete_expr(lhs);
+        delete_expr(rhs);
+    }
+};
 
+struct InvertExpr : _UnaryExpr {
+    using _UnaryExpr::_UnaryExpr;
     void emit_(CodeEmitContext* ctx) override;
 };
 
-struct StarredExpr : Expr {
+struct StarredExpr : _UnaryExpr {
     int level;
-    Expr_ child;
 
-    StarredExpr(int level, Expr_&& child) : level(level), child(std::move(child)) {}
+    StarredExpr(Expr* child, int level) : _UnaryExpr(child), level(level) {}
 
     int star_level() const override { return level; }
 
@@ -172,23 +136,18 @@ struct StarredExpr : Expr {
     bool emit_store(CodeEmitContext* ctx) override;
 };
 
-struct NotExpr : Expr {
-    Expr_ child;
-
-    NotExpr(Expr_&& child) : child(std::move(child)) {}
-
+struct NotExpr : _UnaryExpr {
+    using _UnaryExpr::_UnaryExpr;
     void emit_(CodeEmitContext* ctx) override;
 };
 
-struct AndExpr : Expr {
-    Expr_ lhs;
-    Expr_ rhs;
+struct AndExpr : _BinaryExpr {
+    using _BinaryExpr::_BinaryExpr;
     void emit_(CodeEmitContext* ctx) override;
 };
 
-struct OrExpr : Expr {
-    Expr_ lhs;
-    Expr_ rhs;
+struct OrExpr : _BinaryExpr {
+    using _BinaryExpr::_BinaryExpr;
     void emit_(CodeEmitContext* ctx) override;
 };
 
@@ -240,30 +199,40 @@ struct LiteralExpr : Expr {
     bool is_json_object() const override { return true; }
 };
 
-struct NegatedExpr : Expr {
-    Expr_ child;
-
-    NegatedExpr(Expr_&& child) : child(std::move(child)) {}
-
+struct NegatedExpr : _UnaryExpr {
+    using _UnaryExpr::_UnaryExpr;
     void emit_(CodeEmitContext* ctx) override;
-
     bool is_json_object() const override { return child->is_literal(); }
 };
 
 struct SliceExpr : Expr {
-    Expr_ start;
-    Expr_ stop;
-    Expr_ step;
+    Expr* start = nullptr;
+    Expr* stop = nullptr;
+    Expr* step = nullptr;
+
     void emit_(CodeEmitContext* ctx) override;
+
+    ~SliceExpr() {
+        delete_expr(start);
+        delete_expr(stop);
+        delete_expr(step);
+    }
 };
 
 struct DictItemExpr : Expr {
-    Expr_ key;  // maybe nullptr if it is **kwargs
-    Expr_ value;
+    Expr* key;  // maybe nullptr if it is **kwargs
+    Expr* value;
+
+    DictItemExpr(): key(nullptr), value(nullptr) {}
 
     int star_level() const override { return value->star_level(); }
 
     void emit_(CodeEmitContext* ctx) override;
+
+    ~DictItemExpr() {
+        delete_expr(key);
+        delete_expr(value);
+    }
 };
 
 struct SequenceExpr : Expr {
@@ -277,6 +246,10 @@ struct SequenceExpr : Expr {
         for(auto& item: items)
             item->emit_(ctx);
         ctx->emit_(opcode(), items.size(), line);
+    }
+
+    ~SequenceExpr() {
+        for(Expr* item: items) delete_expr(item);
     }
 };
 
@@ -330,15 +303,22 @@ struct TupleExpr : SequenceExpr {
 };
 
 struct CompExpr : Expr {
-    Expr_ expr;  // loop expr
-    Expr_ vars;  // loop vars
-    Expr_ iter;  // loop iter
-    Expr_ cond;  // optional if condition
+    Expr* expr = nullptr;  // loop expr
+    Expr* vars = nullptr;  // loop vars
+    Expr* iter = nullptr;  // loop iter
+    Expr* cond = nullptr;  // optional if condition
 
     virtual Opcode op0() = 0;
     virtual Opcode op1() = 0;
 
     void emit_(CodeEmitContext* ctx) override;
+
+    ~CompExpr() {
+        delete_expr(expr);
+        delete_expr(vars);
+        delete_expr(iter);
+        delete_expr(cond);
+    }
 };
 
 struct ListCompExpr : CompExpr {
@@ -379,10 +359,8 @@ struct FStringExpr : Expr {
     void emit_(CodeEmitContext* ctx) override;
 };
 
-struct SubscrExpr : Expr {
-    Expr_ a;
-    Expr_ b;
-
+struct SubscrExpr : _BinaryExpr {
+    using _BinaryExpr::_BinaryExpr;
     bool is_subscr() const override { return true; }
 
     void emit_(CodeEmitContext* ctx) override;
@@ -393,11 +371,10 @@ struct SubscrExpr : Expr {
     bool emit_store_inplace(CodeEmitContext* ctx) override;
 };
 
-struct AttribExpr : Expr {
-    Expr_ a;
-    StrName b;
+struct AttribExpr : _UnaryExpr {
+    StrName name;
 
-    AttribExpr(Expr_ a, StrName b) : a(std::move(a)), b(b) {}
+    AttribExpr(Expr* child, StrName name) : _UnaryExpr(child), name(name) {}
 
     void emit_(CodeEmitContext* ctx) override;
     bool emit_del(CodeEmitContext* ctx) override;
@@ -411,32 +388,34 @@ struct AttribExpr : Expr {
 };
 
 struct CallExpr : Expr {
-    Expr_ callable;
+    Expr* callable;
     Expr_vector args;
     // **a will be interpreted as a special keyword argument: {"**": a}
-    vector<std::pair<Str, Expr_>> kwargs;
+    vector<std::pair<StrName, Expr*>> kwargs;
     void emit_(CodeEmitContext* ctx) override;
+
+    ~CallExpr() {
+        delete_expr(callable);
+        for(Expr* arg: args) delete_expr(arg);
+        for(auto [_, arg]: kwargs) delete_expr(arg);
+    }
 };
 
-struct GroupedExpr : Expr {
-    Expr_ a;
+struct GroupedExpr : _UnaryExpr {
+    using _UnaryExpr::_UnaryExpr;
+    void emit_(CodeEmitContext* ctx) override { child->emit_(ctx); }
 
-    GroupedExpr(Expr_&& a) : a(std::move(a)) {}
+    bool emit_del(CodeEmitContext* ctx) override { return child->emit_del(ctx); }
 
-    void emit_(CodeEmitContext* ctx) override { a->emit_(ctx); }
-
-    bool emit_del(CodeEmitContext* ctx) override { return a->emit_del(ctx); }
-
-    bool emit_store(CodeEmitContext* ctx) override { return a->emit_store(ctx); }
+    bool emit_store(CodeEmitContext* ctx) override { return child->emit_store(ctx); }
 };
 
-struct BinaryExpr : Expr {
+struct BinaryExpr : _BinaryExpr {
     TokenIndex op;
-    Expr_ lhs;
-    Expr_ rhs;
     bool inplace;
 
-    BinaryExpr(bool inplace = false) : inplace(inplace) {}
+    BinaryExpr(TokenIndex op, bool inplace = false)
+        : _BinaryExpr(), op(op), inplace(inplace) {}
 
     bool is_compare() const override;
     void _emit_compare(CodeEmitContext*, small_vector_2<int, 8>&);
@@ -444,10 +423,17 @@ struct BinaryExpr : Expr {
 };
 
 struct TernaryExpr : Expr {
-    Expr_ cond;
-    Expr_ true_expr;
-    Expr_ false_expr;
+    Expr* cond = nullptr;
+    Expr* true_expr = nullptr;
+    Expr* false_expr = nullptr;
+
     void emit_(CodeEmitContext* ctx) override;
+
+    ~TernaryExpr() {
+        delete_expr(cond);
+        delete_expr(true_expr);
+        delete_expr(false_expr);
+    }
 };
 
 }  // namespace pkpy

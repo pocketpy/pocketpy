@@ -254,7 +254,7 @@ struct vector {
         _data[_size].~T();
     }
 
-    T popx_back() {
+    [[nodiscard]] T popx_back() {
         T retval = std::move(back());
         pop_back();
         return retval;
