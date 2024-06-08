@@ -33,14 +33,14 @@ struct Exception {
     PyObject* _self;  // weak reference
 
     struct Frame {
-        std::shared_ptr<SourceData> src;
+        SourceData* src;        // weak ref
         int lineno;
         const char* cursor;
         std::string name;
 
         Str snapshot() const { return src->snapshot(lineno, cursor, name); }
 
-        Frame(std::shared_ptr<SourceData> src, int lineno, const char* cursor, std::string_view name) :
+        Frame(SourceData* src, int lineno, const char* cursor, std::string_view name) :
             src(src), lineno(lineno), cursor(cursor), name(name) {}
     };
 
@@ -75,6 +75,15 @@ struct TopLevelException : std::exception {
         cached_summary = summary();
         return cached_summary.c_str();
     }
+};
+
+struct Error{
+    const char* type;
+    SourceData* src;
+    int lineno;
+    const char* cursor;
+    char msg[100];
+    i64 userdata;
 };
 
 }  // namespace pkpy

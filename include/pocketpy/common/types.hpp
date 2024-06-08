@@ -15,6 +15,13 @@ struct explicit_copy_t {
     explicit explicit_copy_t() = default;
 };
 
+template <typename K, typename V>
+struct pair {
+    K first;
+    V second;
+    pair(K first, V second) : first(first), second(second) {}
+};
+
 // Dummy types
 struct DummyInstance {};
 

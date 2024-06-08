@@ -52,7 +52,7 @@ Str::Str(int size, bool is_ascii) :
     Str::Str(const char* s, int len) :
     size(len), is_ascii(true){PK_STR_ALLOCATE() PK_STR_COPY_INIT(s)}
 
-    Str::Str(std::pair<char*, int> detached) : size(detached.second), is_ascii(true) {
+    Str::Str(pair<char*, int> detached) : size(detached.second), is_ascii(true) {
     this->data = detached.first;
     for(int i = 0; i < size; i++) {
         if(!isascii(data[i])) {

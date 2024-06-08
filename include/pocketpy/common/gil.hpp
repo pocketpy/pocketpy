@@ -15,6 +15,6 @@ struct GIL {
 #define PK_GLOBAL_SCOPE_LOCK() GIL _lock;
 
 #else
-#define PK_THREAD_LOCAL
+#define PK_THREAD_LOCAL static
 #define PK_GLOBAL_SCOPE_LOCK()
 #endif

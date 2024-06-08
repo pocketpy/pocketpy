@@ -56,7 +56,7 @@ inline void delete_expr(Expr* p){
     PoolExpr_dealloc(p);
 }
 
-struct CodeEmitContext {
+struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;  // optional
     CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
@@ -72,21 +72,22 @@ struct CodeEmitContext {
     small_map<PyVar, int> _co_consts_nonstring_dedup_map;
     small_map<std::string_view, int> _co_consts_string_dedup_map;
 
-    int get_loop() const;
-    CodeBlock* enter_block(CodeBlockType type);
-    void exit_block();
-    void emit_expr(bool emit = true);  // clear the expression stack and generate bytecode
-    int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual = false);
-    void revert_last_emit_();
-    int emit_int(i64 value, int line);
-    void patch_jump(int index);
-    bool add_label(StrName name);
-    int add_varname(StrName name);
-    int add_const(PyVar);
-    int add_const_string(std::string_view);
-    int add_func_decl(FuncDecl_ decl);
-    void emit_store_name(NameScope scope, StrName name, int line);
-    void try_merge_for_iter_store(int);
+    int get_loop() const noexcept;
+    CodeBlock* enter_block(CodeBlockType type) noexcept;
+    void exit_block() noexcept;
+    void emit_expr(bool emit = true) noexcept;  // clear the expression stack and generate bytecode
+    void emit_decorators(int count) noexcept;
+    int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual = false) noexcept;
+    void revert_last_emit_() noexcept;
+    int emit_int(i64 value, int line) noexcept;
+    void patch_jump(int index) noexcept;
+    bool add_label(StrName name) noexcept;
+    int add_varname(StrName name) noexcept;
+    int add_const(PyVar) noexcept;
+    int add_const_string(std::string_view) noexcept;
+    int add_func_decl(FuncDecl_ decl) noexcept;
+    void emit_store_name(NameScope scope, StrName name, int line) noexcept;
+    void try_merge_for_iter_store(int) noexcept;
 };
 
 struct NameExpr : Expr {
@@ -236,15 +237,14 @@ struct DictItemExpr : Expr {
 };
 
 struct SequenceExpr : Expr {
-    Expr_vector items;
+    array<Expr*> items;
 
-    SequenceExpr(Expr_vector&& items) : items(std::move(items)) {}
+    SequenceExpr(int count) : items(count) {}
 
     virtual Opcode opcode() const = 0;
 
     void emit_(CodeEmitContext* ctx) override {
-        for(auto& item: items)
-            item->emit_(ctx);
+        for(auto& item: items) item->emit_(ctx);
         ctx->emit_(opcode(), items.size(), line);
     }
 
@@ -308,8 +308,10 @@ struct CompExpr : Expr {
     Expr* iter = nullptr;  // loop iter
     Expr* cond = nullptr;  // optional if condition
 
-    virtual Opcode op0() = 0;
-    virtual Opcode op1() = 0;
+    Opcode op0;
+    Opcode op1;
+
+    CompExpr(Opcode op0, Opcode op1) : op0(op0), op1(op1) {}
 
     void emit_(CodeEmitContext* ctx) override;
 
@@ -319,24 +321,6 @@ struct CompExpr : Expr {
         delete_expr(iter);
         delete_expr(cond);
     }
-};
-
-struct ListCompExpr : CompExpr {
-    Opcode op0() override { return OP_BUILD_LIST; }
-
-    Opcode op1() override { return OP_LIST_APPEND; }
-};
-
-struct DictCompExpr : CompExpr {
-    Opcode op0() override { return OP_BUILD_DICT; }
-
-    Opcode op1() override { return OP_DICT_ADD; }
-};
-
-struct SetCompExpr : CompExpr {
-    Opcode op0() override { return OP_BUILD_SET; }
-
-    Opcode op1() override { return OP_SET_ADD; }
 };
 
 struct LambdaExpr : Expr {
@@ -391,7 +375,7 @@ struct CallExpr : Expr {
     Expr* callable;
     Expr_vector args;
     // **a will be interpreted as a special keyword argument: {"**": a}
-    vector<std::pair<StrName, Expr*>> kwargs;
+    vector<pair<StrName, Expr*>> kwargs;
     void emit_(CodeEmitContext* ctx) override;
 
     ~CallExpr() {

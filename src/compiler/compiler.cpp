@@ -1,26 +1,29 @@
 #include "pocketpy/compiler/compiler.hpp"
-#include "pocketpy/common/version.h"
+#include "pocketpy/common/config.h"
 #include "pocketpy/interpreter/vm.hpp"
 
-#include <stdexcept>
-
 namespace pkpy {
+
+#define consume(expected) if(!match(expected)) return SyntaxError("expected '%s', got '%s'", TK_STR(expected), TK_STR(curr().type));
+#define consume_end_stmt() if(!match_end_stmt()) return SyntaxError("expected statement end")
+#define check(B) err = B; if(err) return err
+
 PrattRule Compiler::rules[kTokenCount];
 
-NameScope Compiler::name_scope() const {
+NameScope Compiler::name_scope() const noexcept{
     auto s = contexts.size() > 1 ? NAME_LOCAL : NAME_GLOBAL;
     if(unknown_global_scope && s == NAME_GLOBAL) s = NAME_GLOBAL_UNKNOWN;
     return s;
 }
 
-CodeObject_ Compiler::push_global_context() {
+CodeObject_ Compiler::push_global_context() noexcept{
     CodeObject_ co = std::make_shared<CodeObject>(lexer.src, lexer.src->filename);
     co->start_line = i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
 }
 
-FuncDecl_ Compiler::push_f_context(Str name) {
+FuncDecl_ Compiler::push_f_context(Str name) noexcept{
     FuncDecl_ decl = std::make_shared<FuncDecl>();
     decl->code = std::make_shared<CodeObject>(lexer.src, name);
     decl->code->start_line = i == 0 ? 1 : prev().line;
@@ -30,22 +33,26 @@ FuncDecl_ Compiler::push_f_context(Str name) {
     return decl;
 }
 
-void Compiler::pop_context() {
-    assert(ctx()->s_expr.empty());
+Error* Compiler::pop_context() noexcept{
+    assert(s_expr().empty());
     // add a `return None` in the end as a guard
     // previously, we only do this if the last opcode is not a return
     // however, this is buggy...since there may be a jump to the end (out of bound) even if the last opcode is a return
     ctx()->emit_(OP_RETURN_VALUE, 1, BC_KEEPLINE, true);
     // find the last valid token
     int j = i - 1;
-    while(tokens[j].type == TK("@eol") || tokens[j].type == TK("@dedent") || tokens[j].type == TK("@eof"))
+    while(tk(j).type == TK("@eol") || tk(j).type == TK("@dedent") || tk(j).type == TK("@eof"))
         j--;
-    ctx()->co->end_line = tokens[j].line;
+    ctx()->co->end_line = tk(j).line;
 
     // some check here
     auto& codes = ctx()->co->codes;
-    if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES) { SyntaxError("maximum number of local variables exceeded"); }
-    if(ctx()->co->consts.size() > 65530) { SyntaxError("maximum number of constants exceeded"); }
+    if(ctx()->co->nlocals > PK_MAX_CO_VARNAMES) {
+        return SyntaxError("maximum number of local variables exceeded");
+    }
+    if(ctx()->co->consts.size() > 65530) {
+        return SyntaxError("maximum number of constants exceeded");
+    }
     // pre-compute LOOP_BREAK and LOOP_CONTINUE
     for(int i = 0; i < codes.size(); i++) {
         Bytecode& bc = codes[i];
@@ -64,7 +71,7 @@ void Compiler::pop_context() {
                 func->type = FuncType::GENERATOR;
                 for(Bytecode bc: func->code->codes) {
                     if(bc.op == OP_RETURN_VALUE && bc.arg == BC_NOARG) {
-                        SyntaxError("'return' with argument inside generator function");
+                        return SyntaxError("'return' with argument inside generator function");
                     }
                 }
                 break;
@@ -92,9 +99,10 @@ void Compiler::pop_context() {
         assert(func->type != FuncType::UNSET);
     }
     contexts.pop_back();
+    return NULL;
 }
 
-void Compiler::init_pratt_rules() {
+void Compiler::init_pratt_rules() noexcept{
     static bool initialized = false;
     if(initialized) return;
     initialized = true;
@@ -155,30 +163,24 @@ void Compiler::init_pratt_rules() {
     // clang-format on
 }
 
-bool Compiler::match(TokenIndex expected) {
+bool Compiler::match(TokenIndex expected) noexcept{
     if(curr().type != expected) return false;
     advance();
     return true;
 }
 
-void Compiler::consume(TokenIndex expected) {
-    if(!match(expected)) { SyntaxError(_S("expected '", TK_STR(expected), "', got '", TK_STR(curr().type), "'")); }
-}
-
-bool Compiler::match_newlines_repl() { return match_newlines(mode() == REPL_MODE); }
-
-bool Compiler::match_newlines(bool repl_throw) {
+bool Compiler::match_newlines(bool repl_throw) noexcept{
     bool consumed = false;
     if(curr().type == TK("@eol")) {
         while(curr().type == TK("@eol"))
             advance();
         consumed = true;
     }
-    if(repl_throw && curr().type == TK("@eof")) { throw NeedMoreLines(ctx()->is_compiling_class); }
+    if(repl_throw && curr().type == TK("@eof")) return NeedMoreLines();
     return consumed;
 }
 
-bool Compiler::match_end_stmt() {
+bool Compiler::match_end_stmt() noexcept{
     if(match(TK(";"))) {
         match_newlines();
         return true;
@@ -188,215 +190,278 @@ bool Compiler::match_end_stmt() {
     return false;
 }
 
-void Compiler::consume_end_stmt() {
-    if(!match_end_stmt()) SyntaxError("expected statement end");
-}
-
-void Compiler::EXPR() { parse_expression(PREC_LOWEST + 1); }
-
-void Compiler::EXPR_TUPLE(bool allow_slice) {
-    parse_expression(PREC_LOWEST + 1, allow_slice);
-    if(!match(TK(","))) return;
+Error* Compiler::EXPR_TUPLE(bool allow_slice) noexcept{
+    Error* err;
+    check(parse_expression(PREC_LOWEST + 1, allow_slice));
+    if(!match(TK(","))) return NULL;
     // tuple expression
-    Expr_vector items;
-    items.push_back(ctx()->s_expr.popx_back());
+    int count = 1;
     do {
         if(curr().brackets_level) match_newlines_repl();
         if(!is_expression(allow_slice)) break;
-        parse_expression(PREC_LOWEST + 1, allow_slice);
-        items.push_back(ctx()->s_expr.popx_back());
+        check(parse_expression(PREC_LOWEST + 1, allow_slice));
+        count += 1;
         if(curr().brackets_level) match_newlines_repl();
     } while(match(TK(",")));
-    ctx()->s_expr.push_back(make_expr<TupleExpr>(std::move(items)));
+    TupleExpr* e = make_expr<TupleExpr>(count);
+    for(int i=count-1; i>=0; i--)
+        e->items[i] = s_expr().popx_back();
+    s_expr().push_back(e);
+    return NULL;
 }
 
-// special case for `for loop` and `comp`
-Expr* Compiler::EXPR_VARS() {
-    Expr_vector items;
+Error* Compiler::EXPR_VARS() noexcept{
+    int count = 0;
     do {
         consume(TK("@id"));
-        items.push_back(make_expr<NameExpr>(prev().str(), name_scope()));
+        s_expr().push_back(make_expr<NameExpr>(prev().str(), name_scope()));
+        count += 1;
     } while(match(TK(",")));
-    if(items.size() == 1) return std::move(items[0]);
-    return make_expr<TupleExpr>(std::move(items));
+    if(count > 1){
+        TupleExpr* e = make_expr<TupleExpr>(count);
+        for(int i=count-1; i>=0; i--)
+            e->items[i] = s_expr().popx_back();
+        s_expr().push_back(e);
+    }
+    return NULL;
 }
 
-void Compiler::exprLiteral() { ctx()->s_expr.push_back(make_expr<LiteralExpr>(prev().value)); }
+Error* Compiler::exprLiteral() noexcept{
+    s_expr().push_back(make_expr<LiteralExpr>(prev().value));
+    return NULL;
+}
 
-void Compiler::exprLong() { ctx()->s_expr.push_back(make_expr<LongExpr>(prev().str())); }
+Error* Compiler::exprLong() noexcept{
+    s_expr().push_back(make_expr<LongExpr>(prev().str()));
+    return NULL;
+}
 
-void Compiler::exprImag() { ctx()->s_expr.push_back(make_expr<ImagExpr>(std::get<f64>(prev().value))); }
+Error* Compiler::exprImag() noexcept{
+    s_expr().push_back(make_expr<ImagExpr>(std::get<f64>(prev().value)));
+    return NULL;
+}
 
-void Compiler::exprBytes() { ctx()->s_expr.push_back(make_expr<BytesExpr>(std::get<Str>(prev().value))); }
+Error* Compiler::exprBytes() noexcept{
+    s_expr().push_back(make_expr<BytesExpr>(std::get<Str>(prev().value)));
+    return NULL;
+}
 
-void Compiler::exprFString() { ctx()->s_expr.push_back(make_expr<FStringExpr>(std::get<Str>(prev().value))); }
+Error* Compiler::exprFString() noexcept{
+    s_expr().push_back(make_expr<FStringExpr>(std::get<Str>(prev().value)));
+    return NULL;
+}
 
-void Compiler::exprLambda() {
+Error* Compiler::exprLambda() noexcept{
+    Error* err;
     FuncDecl_ decl = push_f_context("<lambda>");
-    auto e = make_expr<LambdaExpr>(decl);
+    int line = prev().line;     // backup line
     if(!match(TK(":"))) {
-        _compile_f_args(e->decl, false);
+        check(_compile_f_args(decl, false));
         consume(TK(":"));
     }
     // https://github.com/pocketpy/pocketpy/issues/37
-    parse_expression(PREC_LAMBDA + 1);
+    check(parse_expression(PREC_LAMBDA + 1));
     ctx()->emit_expr();
     ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-    pop_context();
-    ctx()->s_expr.push_back(std::move(e));
+    check(pop_context());
+    LambdaExpr* e = make_expr<LambdaExpr>(decl);
+    e->line = line;
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprOr() {
+Error* Compiler::exprOr() noexcept{
     auto e = make_expr<OrExpr>();
-    e->lhs = ctx()->s_expr.popx_back();
-    parse_expression(PREC_LOGICAL_OR + 1);
-    e->rhs = ctx()->s_expr.popx_back();
-    ctx()->s_expr.push_back(std::move(e));
+    e->lhs = s_expr().popx_back();
+    Error* err = parse_expression(PREC_LOGICAL_OR + 1);
+    if(err){
+        delete_expr(e);
+        return err;
+    }
+    e->rhs = s_expr().popx_back();
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprAnd() {
+Error* Compiler::exprAnd() noexcept{
     auto e = make_expr<AndExpr>();
-    e->lhs = ctx()->s_expr.popx_back();
-    parse_expression(PREC_LOGICAL_AND + 1);
-    e->rhs = ctx()->s_expr.popx_back();
-    ctx()->s_expr.push_back(std::move(e));
+    e->lhs = s_expr().popx_back();
+    Error* err = parse_expression(PREC_LOGICAL_AND + 1);
+    if(err){
+        delete_expr(e);
+        return err;
+    }
+    e->rhs = s_expr().popx_back();
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprTernary() {
-    auto e = make_expr<TernaryExpr>();
-    e->true_expr = ctx()->s_expr.popx_back();
-    // cond
-    parse_expression(PREC_TERNARY + 1);
-    e->cond = ctx()->s_expr.popx_back();
+Error* Compiler::exprTernary() noexcept{
+    // [true_expr]
+    Error* err;
+    int line = prev().line;
+    check(parse_expression(PREC_TERNARY + 1));  // [true_expr, cond]
     consume(TK("else"));
-    // if false
-    parse_expression(PREC_TERNARY + 1);
-    e->false_expr = ctx()->s_expr.popx_back();
-    ctx()->s_expr.push_back(std::move(e));
+    check(parse_expression(PREC_TERNARY + 1));  // [true_expr, cond, false_expr]
+    auto e = make_expr<TernaryExpr>();
+    e->line = line;
+    e->false_expr = s_expr().popx_back();
+    e->cond = s_expr().popx_back();
+    e->true_expr = s_expr().popx_back();
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprBinaryOp() {
+Error* Compiler::exprBinaryOp() noexcept{
     auto e = make_expr<BinaryExpr>(prev().type);
-    e->lhs = ctx()->s_expr.popx_back();
-    parse_expression(rules[e->op].precedence + 1);
-    e->rhs = ctx()->s_expr.popx_back();
-    ctx()->s_expr.push_back(std::move(e));
+    e->lhs = s_expr().popx_back();
+    Error* err = parse_expression(rules[e->op].precedence + 1);
+    if(err){
+        delete_expr(e);
+        return err;
+    }
+    e->rhs = s_expr().popx_back();
+    s_expr().push_back(std::move(e));
+    return NULL;
 }
 
-void Compiler::exprNot() {
-    parse_expression(PREC_LOGICAL_NOT + 1);
-    NotExpr* e = make_expr<NotExpr>(ctx()->s_expr.popx_back());
-    ctx()->s_expr.push_back(e);
+Error* Compiler::exprNot() noexcept{
+    Error* err;
+    check(parse_expression(PREC_LOGICAL_NOT + 1));
+    NotExpr* e = make_expr<NotExpr>(s_expr().popx_back());
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprUnaryOp() {
+Error* Compiler::exprUnaryOp() noexcept{
+    Error* err;
     TokenIndex op = prev().type;
-    parse_expression(PREC_UNARY + 1);
-    vector<Expr*>& s_expr = ctx()->s_expr;
+    check(parse_expression(PREC_UNARY + 1));
     switch(op) {
-        case TK("-"): s_expr.push_back(make_expr<NegatedExpr>(s_expr.popx_back())); break;
-        case TK("~"): s_expr.push_back(make_expr<InvertExpr>(s_expr.popx_back())); break;
-        case TK("*"): s_expr.push_back(make_expr<StarredExpr>(s_expr.popx_back(), 1)); break;
-        case TK("**"): s_expr.push_back(make_expr<StarredExpr>(s_expr.popx_back(), 2)); break;
+        case TK("-"): s_expr().push_back(make_expr<NegatedExpr>(s_expr().popx_back())); break;
+        case TK("~"): s_expr().push_back(make_expr<InvertExpr>(s_expr().popx_back())); break;
+        case TK("*"): s_expr().push_back(make_expr<StarredExpr>(s_expr().popx_back(), 1)); break;
+        case TK("**"): s_expr().push_back(make_expr<StarredExpr>(s_expr().popx_back(), 2)); break;
         default: assert(false);
     }
+    return NULL;
 }
 
-void Compiler::exprGroup() {
+Error* Compiler::exprGroup() noexcept{
+    Error* err;
     match_newlines_repl();
-    EXPR_TUPLE();  // () is just for change precedence
+    check(EXPR_TUPLE());  // () is just for change precedence
     match_newlines_repl();
     consume(TK(")"));
-    if(ctx()->s_expr.back()->is_tuple()) return;
-    Expr* g = make_expr<GroupedExpr>(ctx()->s_expr.popx_back());
-    ctx()->s_expr.push_back(std::move(g));
+    if(s_expr().back()->is_tuple()) return NULL;
+    Expr* g = make_expr<GroupedExpr>(s_expr().popx_back());
+    s_expr().push_back(g);
+    return NULL;
 }
 
-void Compiler::consume_comp(CompExpr* ce, Expr* expr) {
-    ce->expr = std::move(expr);
-    ce->vars = EXPR_VARS();
+Error* Compiler::consume_comp(Opcode op0, Opcode op1) noexcept{
+    // [expr]
+    Error* err;
+    bool has_cond = false;
+    check(EXPR_VARS());                         // [expr, vars]
     consume(TK("in"));
-    parse_expression(PREC_TERNARY + 1);
-    ce->iter = ctx()->s_expr.popx_back();
+    check(parse_expression(PREC_TERNARY + 1));  // [expr, vars, iter]
     match_newlines_repl();
     if(match(TK("if"))) {
-        parse_expression(PREC_TERNARY + 1);
-        ce->cond = ctx()->s_expr.popx_back();
+        check(parse_expression(PREC_TERNARY + 1));  // [expr, vars, iter, cond]
+        has_cond = true;
     }
-    ctx()->s_expr.push_back(std::move(ce));
+    CompExpr* ce = make_expr<CompExpr>(op0, op1);
+    if(has_cond) ce->cond = s_expr().popx_back();
+    ce->iter = s_expr().popx_back();
+    ce->vars = s_expr().popx_back();
+    ce->expr = s_expr().popx_back();
+    s_expr().push_back(ce);
     match_newlines_repl();
+    return NULL;
 }
 
-void Compiler::exprList() {
+Error* Compiler::exprList() noexcept{
+    Error* err;
     int line = prev().line;
-    Expr_vector items;
+    int count = 0;
     do {
         match_newlines_repl();
         if(curr().type == TK("]")) break;
-        EXPR();
-        items.push_back(ctx()->s_expr.popx_back());
+        check(EXPR()); count += 1;
         match_newlines_repl();
-        if(items.size() == 1 && match(TK("for"))) {
-            consume_comp(make_expr<ListCompExpr>(), std::move(items[0]));
+        if(count == 1 && match(TK("for"))) {
+            check(consume_comp(OP_BUILD_LIST, OP_LIST_APPEND));
             consume(TK("]"));
-            return;
+            return NULL;
         }
         match_newlines_repl();
     } while(match(TK(",")));
     consume(TK("]"));
-    auto e = make_expr<ListExpr>(std::move(items));
+    ListExpr* e = make_expr<ListExpr>(count);
     e->line = line;  // override line
-    ctx()->s_expr.push_back(std::move(e));
+    for(int i=count-1; i>=0; i--)
+        e->items[i] = s_expr().popx_back();
+    s_expr().push_back(e);
+    return NULL;
 }
 
-void Compiler::exprMap() {
+Error* Compiler::exprMap() noexcept{
+    Error* err;
     bool parsing_dict = false;  // {...} may be dict or set
-    Expr_vector items;
+    int count = 0;
     do {
         match_newlines_repl();
         if(curr().type == TK("}")) break;
-        EXPR();
-        int star_level = ctx()->s_expr.back()->star_level();
+        check(EXPR());  // [key]
+        int star_level = s_expr().back()->star_level();
         if(star_level == 2 || curr().type == TK(":")) { parsing_dict = true; }
         if(parsing_dict) {
-            DictItemExpr* dict_item = make_expr<DictItemExpr>();
             if(star_level == 2) {
-                dict_item->key = nullptr;
-                dict_item->value = ctx()->s_expr.popx_back();
+                DictItemExpr* dict_item = make_expr<DictItemExpr>();
+                dict_item->key = NULL;
+                dict_item->value = s_expr().popx_back();
+                s_expr().push_back(dict_item);
             } else {
                 consume(TK(":"));
-                EXPR();
-                dict_item->key = ctx()->s_expr.popx_back();
-                dict_item->value = ctx()->s_expr.popx_back();
+                check(EXPR());
+                DictItemExpr* dict_item = make_expr<DictItemExpr>();
+                dict_item->value = s_expr().popx_back();
+                dict_item->key = s_expr().popx_back();
+                s_expr().push_back(dict_item);
             }
-            items.push_back(std::move(dict_item));
-        } else {
-            items.push_back(ctx()->s_expr.popx_back());
         }
+        count += 1;
         match_newlines_repl();
-        if(items.size() == 1 && match(TK("for"))) {
+        if(count == 1 && match(TK("for"))) {
             if(parsing_dict)
-                consume_comp(make_expr<DictCompExpr>(), std::move(items[0]));
+                check(consume_comp(OP_BUILD_DICT, OP_DICT_ADD));
             else
-                consume_comp(make_expr<SetCompExpr>(), std::move(items[0]));
+                check(consume_comp(OP_BUILD_SET, OP_SET_ADD));
             consume(TK("}"));
-            return;
+            return NULL;
         }
         match_newlines_repl();
     } while(match(TK(",")));
     consume(TK("}"));
-    if(items.size() == 0 || parsing_dict) {
-        auto e = make_expr<DictExpr>(std::move(items));
-        ctx()->s_expr.push_back(std::move(e));
+
+    SequenceExpr* se;
+    if(count == 0 || parsing_dict) {
+        se = make_expr<DictExpr>(count);
     } else {
-        auto e = make_expr<SetExpr>(std::move(items));
-        ctx()->s_expr.push_back(std::move(e));
+        se = make_expr<SetExpr>(count);
     }
+    for(int i=count-1; i>=0; i--)
+        se->items[i] = s_expr().popx_back();
+    s_expr().push_back(se);
+    return NULL;
 }
 
-void Compiler::exprCall() {
-    auto e = make_expr<CallExpr>();
-    e->callable = ctx()->s_expr.popx_back();
+Error* Compiler::exprCall() noexcept{
+    Error* err;
+    CallExpr* e = make_expr<CallExpr>();
+    e->callable = s_expr().popx_back();
+    s_expr().push_back(e);     // push onto the stack in advance
     do {
         match_newlines_repl();
         if(curr().type == TK(")")) break;
@@ -404,113 +469,124 @@ void Compiler::exprCall() {
             consume(TK("@id"));
             StrName key(prev().sv());
             consume(TK("="));
-            EXPR();
-            e->kwargs.push_back({key, ctx()->s_expr.popx_back()});
+            check(EXPR());
+            e->kwargs.push_back({key, s_expr().popx_back()});
         } else {
-            EXPR();
-            if(ctx()->s_expr.back()->star_level() == 2) {
+            check(EXPR());
+            if(s_expr().back()->star_level() == 2) {
                 // **kwargs
-                e->kwargs.push_back({"**", ctx()->s_expr.popx_back()});
+                e->kwargs.push_back({"**", s_expr().popx_back()});
             } else {
                 // positional argument
-                if(!e->kwargs.empty()) SyntaxError("positional argument follows keyword argument");
-                e->args.push_back(ctx()->s_expr.popx_back());
+                if(!e->kwargs.empty()) return SyntaxError("positional argument follows keyword argument");
+                e->args.push_back(s_expr().popx_back());
             }
         }
         match_newlines_repl();
     } while(match(TK(",")));
     consume(TK(")"));
-    if(e->args.size() > 32767) SyntaxError("too many positional arguments");
-    if(e->kwargs.size() > 32767) SyntaxError("too many keyword arguments");
-    ctx()->s_expr.push_back(std::move(e));
+    return NULL;
 }
 
-void Compiler::exprName() {
+Error* Compiler::exprName() noexcept{
     StrName name(prev().sv());
     NameScope scope = name_scope();
     if(ctx()->global_names.contains(name)) { scope = NAME_GLOBAL; }
-    ctx()->s_expr.push_back(make_expr<NameExpr>(name, scope));
+    s_expr().push_back(make_expr<NameExpr>(name, scope));
+    return NULL;
 }
 
-void Compiler::exprAttrib() {
+Error* Compiler::exprAttrib() noexcept{
     consume(TK("@id"));
-    ctx()->s_expr.push_back(make_expr<AttribExpr>(ctx()->s_expr.popx_back(), StrName::get(prev().sv())));
+    s_expr().push_back(make_expr<AttribExpr>(s_expr().popx_back(), StrName::get(prev().sv())));
+    return NULL;
 }
 
-void Compiler::exprSlice0() {
-    auto slice = make_expr<SliceExpr>();
+Error* Compiler::exprSlice0() noexcept{
+    Error* err;
+    SliceExpr* slice = make_expr<SliceExpr>();
+    s_expr().push_back(slice);     // push onto the stack in advance
     if(is_expression()) {  // :<stop>
-        EXPR();
-        slice->stop = ctx()->s_expr.popx_back();
+        check(EXPR());
+        slice->stop = s_expr().popx_back();
         // try optional step
         if(match(TK(":"))) {  // :<stop>:<step>
-            EXPR();
-            slice->step = ctx()->s_expr.popx_back();
+            check(EXPR());
+            slice->step = s_expr().popx_back();
         }
     } else if(match(TK(":"))) {
         if(is_expression()) {  // ::<step>
-            EXPR();
-            slice->step = ctx()->s_expr.popx_back();
+            check(EXPR());
+            slice->step = s_expr().popx_back();
         }  // else ::
     }  // else :
-    ctx()->s_expr.push_back(std::move(slice));
+    return NULL;
 }
 
-void Compiler::exprSlice1() {
-    auto slice = make_expr<SliceExpr>();
-    slice->start = ctx()->s_expr.popx_back();
+Error* Compiler::exprSlice1() noexcept{
+    Error* err;
+    SliceExpr* slice = make_expr<SliceExpr>();
+    slice->start = s_expr().popx_back();
+    s_expr().push_back(slice);     // push onto the stack in advance
     if(is_expression()) {  // <start>:<stop>
-        EXPR();
-        slice->stop = ctx()->s_expr.popx_back();
+        check(EXPR());
+        slice->stop = s_expr().popx_back();
         // try optional step
         if(match(TK(":"))) {  // <start>:<stop>:<step>
-            EXPR();
-            slice->step = ctx()->s_expr.popx_back();
+            check(EXPR());
+            slice->step = s_expr().popx_back();
         }
     } else if(match(TK(":"))) {  // <start>::<step>
-        EXPR();
-        slice->step = ctx()->s_expr.popx_back();
+        check(EXPR());
+        slice->step = s_expr().popx_back();
     }  // else <start>:
-    ctx()->s_expr.push_back(std::move(slice));
+    return NULL;
 }
 
-void Compiler::exprSubscr() {
-    auto e = make_expr<SubscrExpr>();
+Error* Compiler::exprSubscr() noexcept{
+    Error* err;
+    SubscrExpr* e = make_expr<SubscrExpr>();
+    s_expr().push_back(e);
     match_newlines_repl();
-    e->lhs = ctx()->s_expr.popx_back();  // a
-    EXPR_TUPLE(true);
-    e->rhs = ctx()->s_expr.popx_back();  // a[<expr>]
+    e->lhs = s_expr().popx_back();  // a
+    check(EXPR_TUPLE(true));
+    e->rhs = s_expr().popx_back();  // a[<expr>]
     match_newlines_repl();
     consume(TK("]"));
-    ctx()->s_expr.push_back(std::move(e));
+    return NULL;
 }
 
-void Compiler::exprLiteral0() { ctx()->s_expr.push_back(make_expr<Literal0Expr>(prev().type)); }
+Error* Compiler::exprLiteral0() noexcept{
+    s_expr().push_back(make_expr<Literal0Expr>(prev().type));
+    return NULL;
+}
 
-void Compiler::compile_block_body(void (Compiler::*callback)()) {
-    if(callback == nullptr) callback = &Compiler::compile_stmt;
+Error* Compiler::compile_block_body(PrattCallback callback) noexcept{
+    Error* err;
+    if(!callback) callback = &Compiler::compile_stmt;
     consume(TK(":"));
     if(curr().type != TK("@eol") && curr().type != TK("@eof")) {
         while(true) {
-            compile_stmt();
+            check(compile_stmt());
             bool possible = curr().type != TK("@eol") && curr().type != TK("@eof");
             if(prev().type != TK(";") || !possible) break;
         }
-        return;
+        return NULL;
     }
-    if(!match_newlines(mode() == REPL_MODE)) { SyntaxError("expected a new line after ':'"); }
+    if(!match_newlines_repl()) return SyntaxError("expected a new line after ':'");
     consume(TK("@indent"));
     while(curr().type != TK("@dedent")) {
         match_newlines();
-        (this->*callback)();
+        check((this->*callback)());
         match_newlines();
     }
     consume(TK("@dedent"));
+    return NULL;
 }
 
 // import a [as b]
 // import a [as b], c [as d]
-void Compiler::compile_normal_import() {
+Error* Compiler::compile_normal_import() noexcept{
     do {
         consume(TK("@id"));
         Str name = prev().str();
@@ -522,6 +598,7 @@ void Compiler::compile_normal_import() {
         ctx()->emit_store_name(name_scope(), StrName(name), prev().line);
     } while(match(TK(",")));
     consume_end_stmt();
+    return NULL;
 }
 
 // from a import b [as c], d [as e]
@@ -531,7 +608,7 @@ void Compiler::compile_normal_import() {
 // from ..a import b [as c]
 // from .a.b import c [as d]
 // from xxx import *
-void Compiler::compile_from_import() {
+Error* Compiler::compile_from_import() noexcept{
     int dots = 0;
 
     while(true) {
@@ -571,11 +648,11 @@ __EAT_DOTS_END:
     consume(TK("import"));
 
     if(match(TK("*"))) {
-        if(name_scope() != NAME_GLOBAL) SyntaxError("from <module> import * can only be used in global scope");
+        if(name_scope() != NAME_GLOBAL) return SyntaxError("from <module> import * can only be used in global scope");
         // pop the module and import __all__
         ctx()->emit_(OP_POP_IMPORT_STAR, BC_NOARG, prev().line);
         consume_end_stmt();
-        return;
+        return NULL;
     }
 
     do {
@@ -591,90 +668,103 @@ __EAT_DOTS_END:
     } while(match(TK(",")));
     ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
     consume_end_stmt();
+    return NULL;
 }
 
-bool Compiler::is_expression(bool allow_slice) {
+bool Compiler::is_expression(bool allow_slice) noexcept{
     PrattCallback prefix = rules[curr().type].prefix;
     return prefix != nullptr && (allow_slice || curr().type != TK(":"));
 }
 
-void Compiler::parse_expression(int precedence, bool allow_slice) {
+Error* Compiler::parse_expression(int precedence, bool allow_slice) noexcept{
     PrattCallback prefix = rules[curr().type].prefix;
     if(prefix == nullptr || (curr().type == TK(":") && !allow_slice)) {
-        SyntaxError(Str("expected an expression, got ") + TK_STR(curr().type));
+        return SyntaxError("expected an expression, got %s", TK_STR(curr().type));
     }
     advance();
-    (this->*prefix)();
+    Error* err;
+    check((this->*prefix)());
     while(rules[curr().type].precedence >= precedence && (allow_slice || curr().type != TK(":"))) {
         TokenIndex op = curr().type;
         advance();
         PrattCallback infix = rules[op].infix;
         assert(infix != nullptr);
-        (this->*infix)();
+        check((this->*infix)());
     }
+    return NULL;
 }
 
-void Compiler::compile_if_stmt() {
-    EXPR();  // condition
+Error* Compiler::compile_if_stmt() noexcept{
+    Error* err;
+    check(EXPR());  // condition
     ctx()->emit_expr();
     int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
-    compile_block_body();
+    err = compile_block_body();
+    if(err) return err;
     if(match(TK("elif"))) {
         int exit_patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, prev().line);
         ctx()->patch_jump(patch);
-        compile_if_stmt();
+        check(compile_if_stmt());
         ctx()->patch_jump(exit_patch);
     } else if(match(TK("else"))) {
         int exit_patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, prev().line);
         ctx()->patch_jump(patch);
-        compile_block_body();
+        check(compile_block_body());
         ctx()->patch_jump(exit_patch);
     } else {
         ctx()->patch_jump(patch);
     }
+    return NULL;
 }
 
-void Compiler::compile_while_loop() {
+Error* Compiler::compile_while_loop() noexcept{
+    Error* err;
     CodeBlock* block = ctx()->enter_block(CodeBlockType::WHILE_LOOP);
-    EXPR();  // condition
+    check(EXPR());  // condition
     ctx()->emit_expr();
     int patch = ctx()->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, prev().line);
-    compile_block_body();
+    check(compile_block_body());
     ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE, true);
     ctx()->patch_jump(patch);
     ctx()->exit_block();
     // optional else clause
     if(match(TK("else"))) {
-        compile_block_body();
+        check(compile_block_body());
         block->end2 = ctx()->co->codes.size();
     }
+    return NULL;
 }
 
-void Compiler::compile_for_loop() {
-    Expr* vars = EXPR_VARS();
+Error* Compiler::compile_for_loop() noexcept{
+    Error* err;
+    check(EXPR_VARS());     // [vars]
     consume(TK("in"));
-    EXPR_TUPLE();
-    ctx()->emit_expr();
+    check(EXPR_TUPLE());    // [vars, iter]
+    ctx()->emit_expr();     // [vars]
     ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, BC_KEEPLINE);
     CodeBlock* block = ctx()->enter_block(CodeBlockType::FOR_LOOP);
     int for_codei = ctx()->emit_(OP_FOR_ITER, ctx()->curr_iblock, BC_KEEPLINE);
+    Expr* vars = s_expr().popx_back();
     bool ok = vars->emit_store(ctx());
-    if(!ok) SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
+    delete_expr(vars);
+    if(!ok) return SyntaxError();  // this error occurs in `vars` instead of this line, but...nevermind
     ctx()->try_merge_for_iter_store(for_codei);
-    compile_block_body();
+    check(compile_block_body());
     ctx()->emit_(OP_LOOP_CONTINUE, ctx()->get_loop(), BC_KEEPLINE, true);
     ctx()->exit_block();
     // optional else clause
     if(match(TK("else"))) {
-        compile_block_body();
+        check(compile_block_body());
         block->end2 = ctx()->co->codes.size();
     }
+    return NULL;
 }
 
-void Compiler::compile_try_except() {
+Error* Compiler::compile_try_except() noexcept{
+    Error* err;
     ctx()->enter_block(CodeBlockType::TRY_EXCEPT);
     ctx()->emit_(OP_TRY_ENTER, BC_NOARG, prev().line);
-    compile_block_body();
+    check(compile_block_body());
     small_vector_2<int, 8> patches;
     patches.push_back(ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE));
     ctx()->exit_block();
@@ -685,7 +775,7 @@ void Compiler::compile_try_except() {
             StrName as_name;
             consume(TK("except"));
             if(is_expression()) {
-                EXPR();  // push assumed type on to the stack
+                check(EXPR());  // push assumed type on to the stack
                 ctx()->emit_expr();
                 ctx()->emit_(OP_EXCEPTION_MATCH, BC_NOARG, prev().line);
                 if(match(TK("as"))) {
@@ -703,7 +793,7 @@ void Compiler::compile_try_except() {
             }
             // pop the exception
             ctx()->emit_(OP_POP_EXCEPTION, BC_NOARG, BC_KEEPLINE);
-            compile_block_body();
+            check(compile_block_body());
             patches.push_back(ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE));
             ctx()->patch_jump(patch);
         } while(curr().type == TK("except"));
@@ -712,7 +802,7 @@ void Compiler::compile_try_except() {
     if(match(TK("finally"))) {
         int patch = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         finally_entry = ctx()->co->codes.size();
-        compile_block_body();
+        check(compile_block_body());
         ctx()->emit_(OP_JUMP_ABSOLUTE_TOP, BC_NOARG, BC_KEEPLINE);
         ctx()->patch_jump(patch);
     }
@@ -734,25 +824,33 @@ void Compiler::compile_try_except() {
         int i = ctx()->emit_(OP_JUMP_FORWARD, BC_NOARG, BC_KEEPLINE);
         ctx()->co->codes[i].set_signed_arg(finally_entry - i);
     }
+    return NULL;
 }
 
-void Compiler::compile_decorated() {
-    Expr_vector decorators;
+Error* Compiler::compile_decorated() noexcept{
+    Error* err;
+    int count = 0;
     do {
-        EXPR();
-        decorators.push_back(ctx()->s_expr.popx_back());
-        if(!match_newlines_repl()) SyntaxError();
+        check(EXPR());
+        count += 1;
+        if(!match_newlines_repl()) return SyntaxError();
     } while(match(TK("@")));
 
+    array<Expr*> decorators(count);
+    for(int i = count - 1; i >= 0; i--)
+        decorators[i] = s_expr().popx_back();
+    
     if(match(TK("class"))) {
-        compile_class(decorators);
+        check(compile_class(count));
     } else {
         consume(TK("def"));
-        compile_function(decorators);
+        check(compile_function(count));
     }
+    return NULL;
 }
 
-bool Compiler::try_compile_assignment() {
+Error* Compiler::try_compile_assignment(bool* is_assign) noexcept{
+    Error* err;
     switch(curr().type) {
         case TK("+="):
         case TK("-="):
@@ -765,75 +863,78 @@ bool Compiler::try_compile_assignment() {
         case TK("&="):
         case TK("|="):
         case TK("^="): {
-            Expr* lhs_p = ctx()->s_expr.back();
-            if(lhs_p->is_starred()) SyntaxError();
-            if(ctx()->is_compiling_class) SyntaxError("can't use inplace operator in class definition");
+            Expr* lhs_p = s_expr().back();
+            if(lhs_p->is_starred()) return SyntaxError();
+            if(ctx()->is_compiling_class){
+                return SyntaxError("can't use inplace operator in class definition");
+            }
             advance();
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
             // -1 to remove =; inplace=true
             auto e = make_expr<BinaryExpr>(prev().type - 1, true);
-            e->lhs = ctx()->s_expr.popx_back();
-            EXPR_TUPLE();
-            e->rhs = ctx()->s_expr.popx_back();
-            if(e->rhs->is_starred()) SyntaxError();
+            e->lhs = s_expr().popx_back();
+            check(EXPR_TUPLE());
+            e->rhs = s_expr().popx_back();
+            if(e->rhs->is_starred()) return SyntaxError();
             e->emit_(ctx());
             bool ok = lhs_p->emit_store_inplace(ctx());
-            if(!ok) SyntaxError();
+            if(!ok) return SyntaxError();
+            *is_assign = true;
         }
-            return true;
         case TK("="): {
             int n = 0;
             while(match(TK("="))) {
-                EXPR_TUPLE();
+                check(EXPR_TUPLE());
                 n += 1;
             }
             // stack size is n+1
-            Expr* val = ctx()->s_expr.popx_back();
-            val->emit_(ctx());
+            ctx()->emit_expr();     // emit and pop
             for(int j = 1; j < n; j++)
                 ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             for(int j = 0; j < n; j++) {
-                auto e = ctx()->s_expr.popx_back();
-                if(e->is_starred()) SyntaxError();
+                auto e = s_expr().popx_back();
+                if(e->is_starred()) return SyntaxError();
                 bool ok = e->emit_store(ctx());
-                if(!ok) SyntaxError();
+                if(!ok) return SyntaxError();
             }
+            *is_assign = true;
         }
-            return true;
-        default: return false;
+        default: *is_assign = false;
     }
+    return NULL;
 }
 
-void Compiler::compile_stmt() {
+Error* Compiler::compile_stmt() noexcept{
+    Error* err;
     if(match(TK("class"))) {
-        compile_class();
-        return;
+        check(compile_class());
+        return NULL;
     }
     advance();
     int kw_line = prev().line;  // backup line number
     int curr_loop_block = ctx()->get_loop();
     switch(prev().type) {
         case TK("break"):
-            if(curr_loop_block < 0) SyntaxError("'break' outside loop");
+            if(curr_loop_block < 0) return SyntaxError("'break' outside loop");
             ctx()->emit_(OP_LOOP_BREAK, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK("continue"):
-            if(curr_loop_block < 0) SyntaxError("'continue' not properly in loop");
+            if(curr_loop_block < 0) return SyntaxError("'continue' not properly in loop");
             ctx()->emit_(OP_LOOP_CONTINUE, curr_loop_block, kw_line);
             consume_end_stmt();
             break;
         case TK("yield"):
-            if(contexts.size() <= 1) SyntaxError("'yield' outside function");
-            EXPR_TUPLE();
+            if(contexts.size() <= 1) return SyntaxError("'yield' outside function");
+            check(EXPR_TUPLE());
             ctx()->emit_expr();
             ctx()->emit_(OP_YIELD_VALUE, BC_NOARG, kw_line);
             consume_end_stmt();
             break;
         case TK("yield from"):
-            if(contexts.size() <= 1) SyntaxError("'yield from' outside function");
-            EXPR_TUPLE();
+            if(contexts.size() <= 1) return SyntaxError("'yield from' outside function");
+            check(EXPR_TUPLE());
             ctx()->emit_expr();
 
             ctx()->emit_(OP_GET_ITER_NEW, BC_NOARG, kw_line);
@@ -844,34 +945,34 @@ void Compiler::compile_stmt() {
             consume_end_stmt();
             break;
         case TK("return"):
-            if(contexts.size() <= 1) SyntaxError("'return' outside function");
+            if(contexts.size() <= 1) return SyntaxError("'return' outside function");
             if(match_end_stmt()) {
                 ctx()->emit_(OP_RETURN_VALUE, 1, kw_line);
             } else {
-                EXPR_TUPLE();
+                check(EXPR_TUPLE());
                 ctx()->emit_expr();
                 consume_end_stmt();
                 ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, kw_line);
             }
             break;
         /*************************************************/
-        case TK("if"): compile_if_stmt(); break;
-        case TK("while"): compile_while_loop(); break;
-        case TK("for"): compile_for_loop(); break;
-        case TK("import"): compile_normal_import(); break;
-        case TK("from"): compile_from_import(); break;
-        case TK("def"): compile_function(); break;
-        case TK("@"): compile_decorated(); break;
-        case TK("try"): compile_try_except(); break;
+        case TK("if"): check(compile_if_stmt()); break;
+        case TK("while"): check(compile_while_loop()); break;
+        case TK("for"): check(compile_for_loop()); break;
+        case TK("import"): check(compile_normal_import()); break;
+        case TK("from"): check(compile_from_import()); break;
+        case TK("def"): check(compile_function()); break;
+        case TK("@"): check(compile_decorated()); break;
+        case TK("try"): check(compile_try_except()); break;
         case TK("pass"): consume_end_stmt(); break;
         /*************************************************/
         case TK("assert"): {
-            EXPR();  // condition
+            check(EXPR());  // condition
             ctx()->emit_expr();
             int index = ctx()->emit_(OP_POP_JUMP_IF_TRUE, BC_NOARG, kw_line);
             int has_msg = 0;
             if(match(TK(","))) {
-                EXPR();  // message
+                check(EXPR());  // message
                 ctx()->emit_expr();
                 has_msg = 1;
             }
@@ -888,51 +989,51 @@ void Compiler::compile_stmt() {
             consume_end_stmt();
             break;
         case TK("raise"): {
-            EXPR();
+            check(EXPR());
             ctx()->emit_expr();
             ctx()->emit_(OP_RAISE, BC_NOARG, kw_line);
             consume_end_stmt();
         } break;
         case TK("del"): {
-            EXPR_TUPLE();
-            Expr* e = ctx()->s_expr.popx_back();
-            bool ok = e->emit_del(ctx());
-            if(!ok) SyntaxError();
+            check(EXPR_TUPLE());
+            Expr* e = s_expr().popx_back();
+            if(!e->emit_del(ctx())) return SyntaxError();
             consume_end_stmt();
         } break;
         case TK("with"): {
-            EXPR();  // [ <expr> ]
+            check(EXPR());  // [ <expr> ]
             ctx()->emit_expr();
             ctx()->enter_block(CodeBlockType::CONTEXT_MANAGER);
-            Expr* as_name = nullptr;;
+            Expr* as_name = nullptr;
             if(match(TK("as"))) {
                 consume(TK("@id"));
                 as_name = make_expr<NameExpr>(prev().str(), name_scope());
             }
             ctx()->emit_(OP_WITH_ENTER, BC_NOARG, prev().line);
             // [ <expr> <expr>.__enter__() ]
-            if(as_name != nullptr) {
-                bool ok = as_name->emit_store(ctx());
-                if(!ok) SyntaxError();
+            if(as_name) {
+                if(!as_name->emit_store(ctx())) return SyntaxError();
             } else {
                 ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
-            compile_block_body();
+            check(compile_block_body());
             ctx()->emit_(OP_WITH_EXIT, BC_NOARG, prev().line);
             ctx()->exit_block();
         } break;
         /*************************************************/
         case TK("=="): {
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) SyntaxError("'label' is only available in EXEC_MODE");
-            bool ok = ctx()->add_label(prev().str());
+            if(mode() != EXEC_MODE) return SyntaxError("'label' is only available in EXEC_MODE");
+            if(!ctx()->add_label(prev().str())) {
+                Str escaped(prev().str().escape());
+                return SyntaxError("label %s already exists", escaped.c_str());
+            }
             consume(TK("=="));
-            if(!ok) SyntaxError("label " + prev().str().escape() + " already exists");
             consume_end_stmt();
         } break;
         case TK("->"):
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) SyntaxError("'goto' is only available in EXEC_MODE");
+            if(mode() != EXEC_MODE) return SyntaxError("'goto' is only available in EXEC_MODE");
             ctx()->emit_(OP_GOTO, StrName(prev().sv()).index, prev().line);
             consume_end_stmt();
             break;
@@ -940,23 +1041,27 @@ void Compiler::compile_stmt() {
         // handle dangling expression or assignment
         default: {
             advance(-1);  // do revert since we have pre-called advance() at the beginning
-            EXPR_TUPLE();
+            check(EXPR_TUPLE());
 
             bool is_typed_name = false;  // e.g. x: int
             // eat variable's type hint if it is a single name
-            if(ctx()->s_expr.back()->is_name()) {
+            if(s_expr().back()->is_name()) {
                 if(match(TK(":"))) {
-                    consume_type_hints();
+                    check(consume_type_hints());
                     is_typed_name = true;
 
                     if(ctx()->is_compiling_class) {
-                        NameExpr* ne = static_cast<NameExpr*>(ctx()->s_expr.back());
+                        NameExpr* ne = static_cast<NameExpr*>(s_expr().back());
                         ctx()->emit_(OP_ADD_CLASS_ANNOTATION, ne->name.index, BC_KEEPLINE);
                     }
                 }
             }
-            if(!try_compile_assignment()) {
-                if(!ctx()->s_expr.empty() && ctx()->s_expr.back()->is_starred()) { SyntaxError(); }
+            bool is_assign = false;
+            check(try_compile_assignment(&is_assign));
+            if(!is_assign) {
+                if(!s_expr().empty() && s_expr().back()->is_starred()) { 
+                    return SyntaxError();
+                }
                 if(!is_typed_name) {
                     ctx()->emit_expr();
                     if((mode() == CELL_MODE || mode() == REPL_MODE) && name_scope() == NAME_GLOBAL) {
@@ -969,36 +1074,29 @@ void Compiler::compile_stmt() {
                 }
             }
             consume_end_stmt();
+            break;
         }
     }
+    return NULL;
 }
 
-void Compiler::consume_type_hints() {
-    EXPR();
-    Expr* e = ctx()->s_expr.popx_back();
+Error* Compiler::consume_type_hints() noexcept{
+    Error* err;
+    check(EXPR());
+    Expr* e = s_expr().popx_back();
     delete_expr(e);
+    return NULL;
 }
 
-void Compiler::_add_decorators(const Expr_vector& decorators) {
-    // [obj]
-    for(int i=decorators.size()-1; i>=0; i--) {
-        int line = decorators[i]->line;
-        decorators[i]->emit_(ctx());                        // [obj, f]
-        ctx()->emit_(OP_ROT_TWO, BC_NOARG, line);           // [f, obj]
-        ctx()->emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);  // [f, obj, NULL]
-        ctx()->emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);    // [obj, NULL, f]
-        ctx()->emit_(OP_CALL, 1, line);                     // [obj]
-    }
-}
-
-void Compiler::compile_class(const Expr_vector& decorators) {
+Error* Compiler::compile_class(int decorators) noexcept{
+    Error* err;
     consume(TK("@id"));
     int namei = StrName(prev().sv()).index;
     Expr* base = nullptr;
     if(match(TK("("))) {
         if(is_expression()) {
-            EXPR();
-            base = ctx()->s_expr.popx_back();
+            check(EXPR());
+            base = s_expr().popx_back();
         }
         consume(TK(")"));
     }
@@ -1010,54 +1108,57 @@ void Compiler::compile_class(const Expr_vector& decorators) {
     ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
     for(auto& c: this->contexts) {
-        if(c.is_compiling_class) { SyntaxError("nested class is not allowed"); }
+        if(c.is_compiling_class) return SyntaxError("nested class is not allowed");
     }
     ctx()->is_compiling_class = true;
-    compile_block_body();
+    check(compile_block_body());
     ctx()->is_compiling_class = false;
 
-    if(!decorators.empty()) {
+    assert(s_expr().size() == decorators);
+    if(decorators > 0) {
         ctx()->emit_(OP_BEGIN_CLASS_DECORATION, BC_NOARG, BC_KEEPLINE);
-        _add_decorators(decorators);
+        ctx()->emit_decorators(decorators);
         ctx()->emit_(OP_END_CLASS_DECORATION, BC_NOARG, BC_KEEPLINE);
     }
 
     ctx()->emit_(OP_END_CLASS, namei, BC_KEEPLINE);
+    return NULL;
 }
 
-void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
+Error* Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) noexcept{
     int state = 0;  // 0 for args, 1 for *args, 2 for k=v, 3 for **kwargs
+    Error* err;
     do {
-        if(state > 3) SyntaxError();
-        if(state == 3) SyntaxError("**kwargs should be the last argument");
+        if(state > 3) return SyntaxError();
+        if(state == 3) return SyntaxError("**kwargs should be the last argument");
         match_newlines();
         if(match(TK("*"))) {
             if(state < 1)
                 state = 1;
             else
-                SyntaxError("*args should be placed before **kwargs");
+                return SyntaxError("*args should be placed before **kwargs");
         } else if(match(TK("**"))) {
             state = 3;
         }
         consume(TK("@id"));
-        StrName name = prev().str();
+        StrName name(prev().sv());
 
         // check duplicate argument name
         for(int j: decl->args) {
-            if(decl->code->varnames[j] == name) { SyntaxError("duplicate argument name"); }
+            if(decl->code->varnames[j] == name) return SyntaxError("duplicate argument name");
         }
         for(auto& kv: decl->kwargs) {
-            if(decl->code->varnames[kv.index] == name) { SyntaxError("duplicate argument name"); }
+            if(decl->code->varnames[kv.index] == name) return SyntaxError("duplicate argument name");
         }
         if(decl->starred_arg != -1 && decl->code->varnames[decl->starred_arg] == name) {
-            SyntaxError("duplicate argument name");
+            return SyntaxError("duplicate argument name");
         }
         if(decl->starred_kwarg != -1 && decl->code->varnames[decl->starred_kwarg] == name) {
-            SyntaxError("duplicate argument name");
+            return SyntaxError("duplicate argument name");
         }
 
         // eat type hints
-        if(enable_type_hints && match(TK(":"))) consume_type_hints();
+        if(enable_type_hints && match(TK(":"))) check(consume_type_hints());
         if(state == 0 && curr().type == TK("=")) state = 2;
         int index = ctx()->add_varname(name);
         switch(state) {
@@ -1068,8 +1169,9 @@ void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
                 break;
             case 2: {
                 consume(TK("="));
-                PyVar value = read_literal();
-                if(value == nullptr) { SyntaxError(Str("default argument must be a literal")); }
+                PyVar value;
+                check(read_literal(&value));
+                if(value == nullptr) return SyntaxError("default argument must be a literal");
                 decl->add_kwarg(index, name, value);
             } break;
             case 3:
@@ -1078,20 +1180,22 @@ void Compiler::_compile_f_args(FuncDecl_ decl, bool enable_type_hints) {
                 break;
         }
     } while(match(TK(",")));
+    return NULL;
 }
 
-void Compiler::compile_function(const Expr_vector& decorators) {
+Error* Compiler::compile_function(int decorators) noexcept{
+    Error* err;
     consume(TK("@id"));
     Str decl_name = prev().str();
     FuncDecl_ decl = push_f_context(decl_name);
     consume(TK("("));
     if(!match(TK(")"))) {
-        _compile_f_args(decl, true);
+        check(_compile_f_args(decl, true));
         consume(TK(")"));
     }
-    if(match(TK("->"))) consume_type_hints();
-    compile_block_body();
-    pop_context();
+    if(match(TK("->"))) check(consume_type_hints());
+    check(compile_block_body());
+    check(pop_context());
 
     decl->docstring = nullptr;
     if(decl->code->codes.size() >= 2 && decl->code->codes[0].op == OP_LOAD_CONST &&
@@ -1105,7 +1209,8 @@ void Compiler::compile_function(const Expr_vector& decorators) {
     }
     ctx()->emit_(OP_LOAD_FUNCTION, ctx()->add_func_decl(decl), prev().line);
 
-    _add_decorators(decorators);
+    assert(s_expr().size() == decorators);
+    ctx()->emit_decorators(decorators);
 
     if(!ctx()->is_compiling_class) {
         auto e = make_expr<NameExpr>(decl_name, name_scope());
@@ -1114,9 +1219,10 @@ void Compiler::compile_function(const Expr_vector& decorators) {
         int index = StrName(decl_name).index;
         ctx()->emit_(OP_STORE_CLASS_ATTR, index, prev().line);
     }
+    return NULL;
 }
 
-PyVar Compiler::to_object(const TokenValue& value) {
+PyVar Compiler::to_object(const TokenValue& value) noexcept{
     PyVar obj = nullptr;
     if(std::holds_alternative<i64>(value)) { obj = VAR(std::get<i64>(value)); }
     if(std::holds_alternative<f64>(value)) { obj = VAR(std::get<f64>(value)); }
@@ -1125,161 +1231,52 @@ PyVar Compiler::to_object(const TokenValue& value) {
     return obj;
 }
 
-PyVar Compiler::read_literal() {
+Error* Compiler::read_literal(PyVar* out) noexcept{
+    Error* err;
     advance();
     switch(prev().type) {
         case TK("-"): {
             consume(TK("@num"));
             PyVar val = to_object(prev().value);
-            return vm->py_negate(val);
+            *out = vm->py_negate(val);
+            return NULL;
         }
-        case TK("@num"): return to_object(prev().value);
-        case TK("@str"): return to_object(prev().value);
-        case TK("True"): return VAR(true);
-        case TK("False"): return VAR(false);
-        case TK("None"): return vm->None;
-        case TK("..."): return vm->Ellipsis;
+        case TK("@num"): *out = to_object(prev().value); return NULL;
+        case TK("@str"): *out = to_object(prev().value); return NULL;
+        case TK("True"): *out = VAR(true);  return NULL;
+        case TK("False"): *out = VAR(false); return NULL;
+        case TK("None"): *out = vm->None; return NULL;
+        case TK("..."): *out = vm->Ellipsis; return NULL;
         case TK("("): {
             List cpnts;
             while(true) {
-                cpnts.push_back(read_literal());
+                PyVar elem;
+                check(read_literal(&elem));
+                cpnts.push_back(elem);
                 if(curr().type == TK(")")) break;
                 consume(TK(","));
                 if(curr().type == TK(")")) break;
             }
             consume(TK(")"));
-            return VAR(cpnts.to_tuple());
+            *out = VAR(cpnts.to_tuple());
+            return NULL;
         }
-        default: break;
+        default: *out = nullptr; return NULL;
     }
-    return nullptr;
 }
 
-Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) :
-    lexer(vm, std::make_shared<SourceData>(source, filename, mode)) {
+Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) noexcept:
+    lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
     this->vm = vm;
     this->unknown_global_scope = unknown_global_scope;
     init_pratt_rules();
 }
 
-Str Compiler::precompile() {
-    auto tokens = lexer.run();
-    SStream ss;
-    ss << "pkpy:" PK_VERSION << '\n';  // L1: version string
-    ss << (int)mode() << '\n';         // L2: mode
-
-    small_map<std::string_view, int> token_indices;
-    for(auto token: tokens) {
-        if(is_raw_string_used(token.type)) {
-            if(!token_indices.contains(token.sv())) {
-                token_indices.insert(token.sv(), 0);
-                // assert no '\n' in token.sv()
-                for(char c: token.sv())
-                    assert(c != '\n');
-            }
-        }
-    }
-    ss << "=" << (int)token_indices.size() << '\n';  // L3: raw string count
-    int index = 0;
-    for(auto& kv: token_indices) {
-        ss << kv.first << '\n';  // L4: raw strings
-        kv.second = index++;
-    }
-
-    ss << "=" << (int)tokens.size() << '\n';  // L5: token count
-    for(int i = 0; i < tokens.size(); i++) {
-        const Token& token = tokens[i];
-        ss << (int)token.type << ',';
-        if(is_raw_string_used(token.type)) { ss << token_indices[token.sv()] << ','; }
-        if(i > 0 && tokens[i - 1].line == token.line)
-            ss << ',';
-        else
-            ss << token.line << ',';
-        if(i > 0 && tokens[i - 1].brackets_level == token.brackets_level)
-            ss << ',';
-        else
-            ss << token.brackets_level << ',';
-        // visit token value
-        std::visit(
-            [&ss](auto&& arg) {
-                using T = std::decay_t<decltype(arg)>;
-                if constexpr(std::is_same_v<T, i64>) {
-                    ss << 'I' << arg;
-                } else if constexpr(std::is_same_v<T, f64>) {
-                    ss << 'F' << arg;
-                } else if constexpr(std::is_same_v<T, Str>) {
-                    ss << 'S';
-                    for(char c: arg)
-                        ss.write_hex((unsigned char)c);
-                }
-                ss << '\n';
-            },
-            token.value);
-    }
-    return ss.str();
-}
-
-void Compiler::from_precompiled(const char* source) {
-    TokenDeserializer deserializer(source);
-    deserializer.curr += 5;  // skip "pkpy:"
-    std::string_view version = deserializer.read_string('\n');
-
-    if(version != PK_VERSION) {
-        Str error = _S("precompiled version mismatch: ", version, "!=" PK_VERSION);
-        throw std::runtime_error(error.c_str());
-    }
-    if(deserializer.read_uint('\n') != (i64)mode()) { throw std::runtime_error("precompiled mode mismatch"); }
-
-    int count = deserializer.read_count();
-    vector<Str>& precompiled_tokens = lexer.src->_precompiled_tokens;
-    for(int i = 0; i < count; i++) {
-        precompiled_tokens.push_back(deserializer.read_string('\n'));
-    }
-
-    count = deserializer.read_count();
-    for(int i = 0; i < count; i++) {
-        Token t;
-        t.type = (unsigned char)deserializer.read_uint(',');
-        if(is_raw_string_used(t.type)) {
-            i64 index = deserializer.read_uint(',');
-            t.start = precompiled_tokens[index].c_str();
-            t.length = precompiled_tokens[index].size;
-        } else {
-            t.start = nullptr;
-            t.length = 0;
-        }
-
-        if(deserializer.match_char(',')) {
-            t.line = tokens.back().line;
-        } else {
-            t.line = (int)deserializer.read_uint(',');
-        }
-
-        if(deserializer.match_char(',')) {
-            t.brackets_level = tokens.back().brackets_level;
-        } else {
-            t.brackets_level = (int)deserializer.read_uint(',');
-        }
-
-        char type = deserializer.read_char();
-        switch(type) {
-            case 'I': t.value = deserializer.read_uint('\n'); break;
-            case 'F': t.value = deserializer.read_float('\n'); break;
-            case 'S': t.value = deserializer.read_string_from_hex('\n'); break;
-            default: t.value = {}; break;
-        }
-        tokens.push_back(t);
-    }
-}
-
-CodeObject_ Compiler::compile() {
+Error* Compiler::compile(CodeObject_* out) noexcept{
     assert(i == 0);  // make sure it is the first time to compile
 
-    if(lexer.src->is_precompiled) {
-        from_precompiled(lexer.src->source.c_str());
-    } else {
-        this->tokens = lexer.run();
-    }
+    Error* err;
+    check(lexer.run());
 
     CodeObject_ code = push_global_context();
 
@@ -1287,90 +1284,52 @@ CodeObject_ Compiler::compile() {
     match_newlines();  // skip possible leading '\n'
 
     if(mode() == EVAL_MODE) {
-        EXPR_TUPLE();
+        check(EXPR_TUPLE());
         ctx()->emit_expr();
         consume(TK("@eof"));
         ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        pop_context();
-        return code;
+        check(pop_context());
+        *out = code;
+        return NULL;
     } else if(mode() == JSON_MODE) {
-        EXPR();
-        Expr* e = ctx()->s_expr.popx_back();
-        if(!e->is_json_object()) SyntaxError("expect a JSON object, literal or array");
+        check(EXPR());
+        Expr* e = s_expr().popx_back();
+        if(!e->is_json_object()) return SyntaxError("expect a JSON object, literal or array");
         consume(TK("@eof"));
         e->emit_(ctx());
         ctx()->emit_(OP_RETURN_VALUE, BC_NOARG, BC_KEEPLINE);
-        pop_context();
-        return code;
+        check(pop_context());
+        *out = code;
+        return NULL;
     }
 
     while(!match(TK("@eof"))) {
-        compile_stmt();
+        check(compile_stmt());
         match_newlines();
     }
-    pop_context();
-    return code;
+    check(pop_context());
+    *out = code;
+    return NULL;
 }
 
-// TODO: refactor this
-void Lexer::throw_err(StrName type, Str msg, int lineno, const char* cursor) {
-    vm->__last_exception = vm->call(vm->builtins->attr(type), VAR(msg)).get();
-    Exception& e = vm->__last_exception->as<Exception>();
-    e.st_push(src, lineno, cursor, "");
-    throw TopLevelException(vm, &e);
-}
-
-std::string_view TokenDeserializer::read_string(char c) {
-    const char* start = curr;
-    while(*curr != c)
-        curr++;
-    std::string_view retval(start, curr - start);
-    curr++;  // skip the delimiter
-    return retval;
-}
-
-Str TokenDeserializer::read_string_from_hex(char c) {
-    std::string_view s = read_string(c);
-    char* buffer = (char*)std::malloc(s.size() / 2 + 1);
-    for(int i = 0; i < s.size(); i += 2) {
-        char c = 0;
-        if(s[i] >= '0' && s[i] <= '9')
-            c += s[i] - '0';
-        else if(s[i] >= 'a' && s[i] <= 'f')
-            c += s[i] - 'a' + 10;
-        else
-            assert(false);
-        c <<= 4;
-        if(s[i + 1] >= '0' && s[i + 1] <= '9')
-            c += s[i + 1] - '0';
-        else if(s[i + 1] >= 'a' && s[i + 1] <= 'f')
-            c += s[i + 1] - 'a' + 10;
-        else
-            assert(false);
-        buffer[i / 2] = c;
+Compiler::~Compiler(){
+    for(CodeEmitContext& ctx: contexts){
+        for(Expr* e: ctx.s_expr) delete_expr(e);
     }
-    buffer[s.size() / 2] = 0;
-    return std::pair<char*, int>(buffer, s.size() / 2);
 }
 
-int TokenDeserializer::read_count() {
-    assert(*curr == '=');
-    curr++;
-    return read_uint('\n');
+Error* Compiler::SyntaxError(const char* msg, ...) noexcept{
+    va_list args;
+    va_start(args, msg);
+    Error* e = lexer._error(false, "SyntaxError", msg, args);
+    e->lineno = err().line;
+    e->cursor = err().start;
+    va_end(args);
+    return e;
 }
 
-i64 TokenDeserializer::read_uint(char c) {
-    i64 out = 0;
-    while(*curr != c) {
-        out = out * 10 + (*curr - '0');
-        curr++;
-    }
-    curr++;  // skip the delimiter
-    return out;
-}
+#undef consume
+#undef consume_end_stmt
+#undef check
 
-f64 TokenDeserializer::read_float(char c) {
-    std::string_view sv = read_string(c);
-    return std::stod(std::string(sv));
-}
 }  // namespace pkpy

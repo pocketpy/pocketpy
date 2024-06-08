@@ -92,7 +92,7 @@ enum Precedence {
     PREC_HIGHEST,
 };
 
-enum StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
+enum class StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
     VM* vm;
@@ -104,38 +104,38 @@ struct Lexer {
     small_vector_2<int, 8> indents;
     int brackets_level = 0;
 
-    char peekchar() const { return *curr_char; }
+    char peekchar() const noexcept { return *curr_char; }
 
-    bool match_n_chars(int n, char c0);
-    bool match_string(const char* s);
-    int eat_spaces();
+    bool match_n_chars(int n, char c0) noexcept;
+    bool match_string(const char* s) noexcept;
+    int eat_spaces() noexcept;
 
-    bool eat_indentation();
-    char eatchar();
-    char eatchar_include_newline();
-    int eat_name();
-    void skip_line_comment();
-    bool matchchar(char c);
-    void add_token(TokenIndex type, TokenValue value = {});
-    void add_token_2(char c, TokenIndex one, TokenIndex two);
-    Str eat_string_until(char quote, bool raw);
-    void eat_string(char quote, StringType type);
+    bool eat_indentation() noexcept;
+    char eatchar() noexcept;
+    char eatchar_include_newline() noexcept;
+    void skip_line_comment() noexcept;
+    bool matchchar(char c) noexcept;
+    void add_token(TokenIndex type, TokenValue value = {}) noexcept;
+    void add_token_2(char c, TokenIndex one, TokenIndex two) noexcept;
 
-    void eat_number();
-    bool lex_one_token();
+    [[nodiscard]] Error* eat_name() noexcept;
+    [[nodiscard]] Error* eat_string_until(char quote, bool raw, Str* out) noexcept;
+    [[nodiscard]] Error* eat_string(char quote, StringType type) noexcept;
+    [[nodiscard]] Error* eat_number() noexcept;
+    [[nodiscard]] Error* lex_one_token(bool* eof) noexcept;
 
     /***** Error Reporter *****/
-    [[noreturn]] void throw_err(StrName type, Str msg);
-    [[noreturn]] void throw_err(StrName type, Str msg, int lineno, const char* cursor);
+    [[nodiscard]] Error* _error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata=0) noexcept;
+    [[nodiscard]] Error* SyntaxError(const char* fmt, ...) noexcept;
+    [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, {}); }
+    [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", {}, 0); }
 
-    [[noreturn]] void SyntaxError(Str msg) { throw_err("SyntaxError", msg); }
+    Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept;
+    
+    [[nodiscard]] Error* run() noexcept;
 
-    [[noreturn]] void SyntaxError() { throw_err("SyntaxError", "invalid syntax"); }
-
-    [[noreturn]] void IndentationError(Str msg) { throw_err("IndentationError", msg); }
-
-    Lexer(VM* vm, std::shared_ptr<SourceData> src);
-    vector<Token> run();
+    void from_precompiled();
+    [[nodiscard]] Error* precompile(Str* out);
 };
 
 enum class IntParsingResult {
@@ -144,6 +144,29 @@ enum class IntParsingResult {
     Overflow,
 };
 
-IntParsingResult parse_uint(std::string_view text, i64* out, int base);
+IntParsingResult parse_uint(std::string_view text, i64* out, int base) noexcept;
+
+struct TokenDeserializer {
+    const char* curr;
+    const char* source;
+
+    TokenDeserializer(const char* source) : curr(source), source(source) {}
+
+    char read_char() { return *curr++; }
+
+    bool match_char(char c) {
+        if(*curr == c) {
+            curr++;
+            return true;
+        }
+        return false;
+    }
+
+    std::string_view read_string(char c);
+    Str read_string_from_hex(char c);
+    int read_count();
+    i64 read_uint(char c);
+    f64 read_float(char c);
+};
 
 }  // namespace pkpy

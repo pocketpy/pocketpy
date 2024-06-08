@@ -13,6 +13,8 @@ namespace pkpy {
 
 template <typename T>
 struct array {
+    static_assert(is_pod_v<T>);
+
     T* _data;
     int _size;
 
@@ -39,10 +41,7 @@ struct array {
     array(T* data, int size) : _data(data), _size(size) {}
 
     array& operator= (array&& other) noexcept {
-        if(_data) {
-            std::destroy(begin(), end());
-            std::free(_data);
-        }
+        if(_data) std::free(_data);
         _data = other._data;
         _size = other._size;
         other._data = nullptr;
@@ -70,18 +69,15 @@ struct array {
 
     T* data() const { return _data; }
 
-    std::pair<T*, int> detach() noexcept {
-        std::pair<T*, int> retval(_data, _size);
+    pair<T*, int> detach() noexcept {
+        pair<T*, int> retval(_data, _size);
         _data = nullptr;
         _size = 0;
         return retval;
     }
 
     ~array() {
-        if(_data) {
-            std::destroy(begin(), end());
-            std::free(_data);
-        }
+        if(_data) std::free(_data);
     }
 };
 
@@ -260,8 +256,8 @@ struct vector {
         return retval;
     }
 
-    std::pair<T*, int> detach() noexcept {
-        std::pair<T*, int> retval(_data, _size);
+    pair<T*, int> detach() noexcept {
+        pair<T*, int> retval(_data, _size);
         _data = nullptr;
         _capacity = 0;
         _size = 0;

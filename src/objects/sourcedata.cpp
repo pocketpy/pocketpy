@@ -25,7 +25,7 @@ SourceData::SourceData(const Str& filename, CompileMode mode) : filename(filenam
     line_starts.push_back(this->source.c_str());
 }
 
-std::pair<const char*, const char*> SourceData::_get_line(int lineno) const {
+pair<const char*, const char*> SourceData::_get_line(int lineno) const {
     if(is_precompiled || lineno == -1) return {nullptr, nullptr};
     lineno -= 1;
     if(lineno < 0) lineno = 0;
@@ -49,7 +49,7 @@ Str SourceData::snapshot(int lineno, const char* cursor, std::string_view name) 
     if(!name.empty()) ss << ", in " << name;
     if(!is_precompiled) {
         ss << '\n';
-        std::pair<const char*, const char*> pair = _get_line(lineno);
+        pair<const char*, const char*> pair = _get_line(lineno);
         Str line = "<?>";
         int removed_spaces = 0;
         if(pair.first && pair.second) {

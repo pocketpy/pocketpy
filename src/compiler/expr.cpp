@@ -13,7 +13,7 @@ inline bool is_identifier(std::string_view s) {
 
 inline bool is_small_int(i64 value) { return value >= INT16_MIN && value <= INT16_MAX; }
 
-int CodeEmitContext::get_loop() const {
+int CodeEmitContext::get_loop() const noexcept{
     int index = curr_iblock;
     while(index >= 0) {
         if(co->blocks[index].type == CodeBlockType::FOR_LOOP) break;
@@ -23,13 +23,13 @@ int CodeEmitContext::get_loop() const {
     return index;
 }
 
-CodeBlock* CodeEmitContext::enter_block(CodeBlockType type) {
+CodeBlock* CodeEmitContext::enter_block(CodeBlockType type) noexcept{
     co->blocks.push_back(CodeBlock(type, curr_iblock, (int)co->codes.size()));
     curr_iblock = co->blocks.size() - 1;
     return &co->blocks[curr_iblock];
 }
 
-void CodeEmitContext::exit_block() {
+void CodeEmitContext::exit_block() noexcept{
     auto curr_type = co->blocks[curr_iblock].type;
     co->blocks[curr_iblock].end = co->codes.size();
     curr_iblock = co->blocks[curr_iblock].parent;
@@ -41,14 +41,27 @@ void CodeEmitContext::exit_block() {
 }
 
 // clear the expression stack and generate bytecode
-void CodeEmitContext::emit_expr(bool emit) {
-    assert(s_expr.size() == 1);
+void CodeEmitContext::emit_expr(bool emit) noexcept{
+    // assert(s_expr.size() == 1);
     Expr* e = s_expr.popx_back();
     if(emit) e->emit_(this);
     delete_expr(e);
 }
 
-int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) {
+void CodeEmitContext::emit_decorators(int count) noexcept{
+    // [obj]
+    for(int i=0; i<count; i++) {
+        Expr* deco = s_expr.popx_back();
+        deco->emit_(this);                           // [obj, f]
+        emit_(OP_ROT_TWO, BC_NOARG, deco->line);     // [f, obj]
+        emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);  // [f, obj, NULL]
+        emit_(OP_ROT_TWO, BC_NOARG, BC_KEEPLINE);    // [obj, NULL, f]
+        emit_(OP_CALL, 1, deco->line);               // [obj]
+        delete_expr(deco);
+    }
+}
+
+int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual) noexcept{
     co->codes.push_back(Bytecode{(uint8_t)opcode, arg});
     co->lines.push_back(CodeObject::LineInfo{line, is_virtual, curr_iblock});
     int i = co->codes.size() - 1;
@@ -61,12 +74,12 @@ int CodeEmitContext::emit_(Opcode opcode, uint16_t arg, int line, bool is_virtua
     return i;
 }
 
-void CodeEmitContext::revert_last_emit_() {
+void CodeEmitContext::revert_last_emit_() noexcept{
     co->codes.pop_back();
     co->lines.pop_back();
 }
 
-void CodeEmitContext::try_merge_for_iter_store(int i) {
+void CodeEmitContext::try_merge_for_iter_store(int i) noexcept{
     // [FOR_ITER, STORE_?, ]
     if(co->codes[i].op != OP_FOR_ITER) return;
     if(co->codes.size() - i != 2) return;
@@ -85,7 +98,7 @@ void CodeEmitContext::try_merge_for_iter_store(int i) {
     }
 }
 
-int CodeEmitContext::emit_int(i64 value, int line) {
+int CodeEmitContext::emit_int(i64 value, int line) noexcept{
     if(is_small_int(value)) {
         return emit_(OP_LOAD_SMALL_INT, (uint16_t)value, line);
     } else {
@@ -93,18 +106,18 @@ int CodeEmitContext::emit_int(i64 value, int line) {
     }
 }
 
-void CodeEmitContext::patch_jump(int index) {
+void CodeEmitContext::patch_jump(int index) noexcept{
     int target = co->codes.size();
     co->codes[index].set_signed_arg(target - index);
 }
 
-bool CodeEmitContext::add_label(StrName name) {
+bool CodeEmitContext::add_label(StrName name) noexcept{
     if(co->labels.contains(name)) return false;
     co->labels.insert(name, co->codes.size());
     return true;
 }
 
-int CodeEmitContext::add_varname(StrName name) {
+int CodeEmitContext::add_varname(StrName name) noexcept{
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
     int index = co->varnames_inv.get(name, -1);
     if(index >= 0) return index;
@@ -115,7 +128,7 @@ int CodeEmitContext::add_varname(StrName name) {
     return index;
 }
 
-int CodeEmitContext::add_const_string(std::string_view key) {
+int CodeEmitContext::add_const_string(std::string_view key) noexcept{
     int* val = _co_consts_string_dedup_map.try_get(key);
     if(val) {
         return *val;
@@ -128,7 +141,7 @@ int CodeEmitContext::add_const_string(std::string_view key) {
     }
 }
 
-int CodeEmitContext::add_const(PyVar v) {
+int CodeEmitContext::add_const(PyVar v) noexcept{
     assert(!is_type(v, VM::tp_str));
     // non-string deduplication
     int* val = _co_consts_nonstring_dedup_map.try_get(v);
@@ -142,12 +155,12 @@ int CodeEmitContext::add_const(PyVar v) {
     }
 }
 
-int CodeEmitContext::add_func_decl(FuncDecl_ decl) {
+int CodeEmitContext::add_func_decl(FuncDecl_ decl) noexcept{
     co->func_decls.push_back(decl);
     return co->func_decls.size() - 1;
 }
 
-void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line) {
+void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line) noexcept{
     switch(scope) {
         case NAME_LOCAL: emit_(OP_STORE_FAST, add_varname(name), line); break;
         case NAME_GLOBAL: emit_(OP_STORE_GLOBAL, StrName(name).index, line); break;
@@ -321,8 +334,8 @@ void DictItemExpr::emit_(CodeEmitContext* ctx) {
         assert(key == nullptr);
         value->emit_(ctx);
     } else {
+        key->emit_(ctx);
         value->emit_(ctx);
-        key->emit_(ctx);  // reverse order
         ctx->emit_(OP_BUILD_TUPLE, 2, line);
     }
 }
@@ -378,7 +391,7 @@ bool TupleExpr::emit_del(CodeEmitContext* ctx) {
 }
 
 void CompExpr::emit_(CodeEmitContext* ctx) {
-    ctx->emit_(op0(), 0, line);
+    ctx->emit_(op0, 0, line);
     iter->emit_(ctx);
     ctx->emit_(OP_GET_ITER, BC_NOARG, BC_KEEPLINE);
     ctx->enter_block(CodeBlockType::FOR_LOOP);
@@ -392,11 +405,11 @@ void CompExpr::emit_(CodeEmitContext* ctx) {
         cond->emit_(ctx);
         int patch = ctx->emit_(OP_POP_JUMP_IF_FALSE, BC_NOARG, BC_KEEPLINE);
         expr->emit_(ctx);
-        ctx->emit_(op1(), BC_NOARG, BC_KEEPLINE);
+        ctx->emit_(op1, BC_NOARG, BC_KEEPLINE);
         ctx->patch_jump(patch);
     } else {
         expr->emit_(ctx);
-        ctx->emit_(op1(), BC_NOARG, BC_KEEPLINE);
+        ctx->emit_(op1, BC_NOARG, BC_KEEPLINE);
     }
     ctx->emit_(OP_LOOP_CONTINUE, curr_iblock, BC_KEEPLINE);
     ctx->exit_block();

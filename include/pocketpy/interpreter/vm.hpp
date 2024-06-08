@@ -463,7 +463,6 @@ public:
         vm->s_data.emplace(p->type, p);
     }
 #endif
-    // clang-format on
 
     template <typename T>
     Type _find_type_in_cxx_typeid_map() {
@@ -500,31 +499,26 @@ public:
     [[noreturn]] void __builtin_error(StrName type);
     [[noreturn]] void __builtin_error(StrName type, PyVar arg);
     [[noreturn]] void __builtin_error(StrName type, const Str& msg);
+    [[noreturn]] void __compile_error(Error* err);
     void __init_builtin_types();
     void __post_init_builtin_types();
-
     void __push_varargs() {}
-
     void __push_varargs(PyVar _0) { PUSH(_0); }
-
     void __push_varargs(PyVar _0, PyVar _1) {
         PUSH(_0);
         PUSH(_1);
     }
-
     void __push_varargs(PyVar _0, PyVar _1, PyVar _2) {
         PUSH(_0);
         PUSH(_1);
         PUSH(_2);
     }
-
     void __push_varargs(PyVar _0, PyVar _1, PyVar _2, PyVar _3) {
         PUSH(_0);
         PUSH(_1);
         PUSH(_2);
         PUSH(_3);
     }
-
     PyVar __pack_next_retval(unsigned);
     PyVar __minmax_reduce(bool (VM::*op)(PyVar, PyVar), PyVar args, PyVar key);
     bool __py_bool_non_trivial(PyVar);
@@ -539,95 +533,26 @@ constexpr inline bool is_immutable_v =
     std::is_same_v<T, Bytes> || std::is_same_v<T, bool> || std::is_same_v<T, Range> || std::is_same_v<T, Slice> ||
     std::is_pointer_v<T> || std::is_enum_v<T>;
 
-template <typename T>
-constexpr Type _find_type_in_const_cxx_typeid_map() {
-    return Type();
-}
+template<typename T> constexpr Type _tp_builtin() { return Type(); }
+template<> constexpr Type _tp_builtin<Str>() { return VM::tp_str; }
+template<> constexpr Type _tp_builtin<List>() { return VM::tp_list; }
+template<> constexpr Type _tp_builtin<Tuple>() { return VM::tp_tuple; }
+template<> constexpr Type _tp_builtin<Function>() { return VM::tp_function; }
+template<> constexpr Type _tp_builtin<NativeFunc>() { return VM::tp_native_func; }
+template<> constexpr Type _tp_builtin<BoundMethod>() { return VM::tp_bound_method; }
+template<> constexpr Type _tp_builtin<Range>() { return VM::tp_range; }
+template<> constexpr Type _tp_builtin<Slice>() { return VM::tp_slice; }
+template<> constexpr Type _tp_builtin<Exception>() { return VM::tp_exception; }
+template<> constexpr Type _tp_builtin<Bytes>() { return VM::tp_bytes; }
+template<> constexpr Type _tp_builtin<MappingProxy>() { return VM::tp_mappingproxy; }
+template<> constexpr Type _tp_builtin<Dict>() { return VM::tp_dict; }
+template<> constexpr Type _tp_builtin<Property>() { return VM::tp_property; }
+template<> constexpr Type _tp_builtin<StarWrapper>() { return VM::tp_star_wrapper; }
+template<> constexpr Type _tp_builtin<StaticMethod>() { return VM::tp_staticmethod; }
+template<> constexpr Type _tp_builtin<ClassMethod>() { return VM::tp_classmethod; }
+template<> constexpr Type _tp_builtin<StackMemory>() { return VM::tp_stack_memory; }
 
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Str>() {
-    return VM::tp_str;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<List>() {
-    return VM::tp_list;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Tuple>() {
-    return VM::tp_tuple;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Function>() {
-    return VM::tp_function;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<NativeFunc>() {
-    return VM::tp_native_func;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<BoundMethod>() {
-    return VM::tp_bound_method;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Range>() {
-    return VM::tp_range;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Slice>() {
-    return VM::tp_slice;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Exception>() {
-    return VM::tp_exception;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Bytes>() {
-    return VM::tp_bytes;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<MappingProxy>() {
-    return VM::tp_mappingproxy;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Dict>() {
-    return VM::tp_dict;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<Property>() {
-    return VM::tp_property;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<StarWrapper>() {
-    return VM::tp_star_wrapper;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<StaticMethod>() {
-    return VM::tp_staticmethod;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<ClassMethod>() {
-    return VM::tp_classmethod;
-}
-
-template <>
-constexpr Type _find_type_in_const_cxx_typeid_map<StackMemory>() {
-    return VM::tp_stack_memory;
-}
+// clang-format on
 
 template <typename __T>
 PyVar py_var(VM* vm, __T&& value) {
@@ -654,7 +579,7 @@ PyVar py_var(VM* vm, __T&& value) {
     } else if constexpr(std::is_pointer_v<T>) {
         return from_void_p(vm, (void*)value);
     } else {
-        constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
+        constexpr Type const_type = _tp_builtin<T>();
         if constexpr((bool)const_type) {
             if constexpr(is_sso_v<T>)
                 return PyVar(const_type, value);
@@ -715,7 +640,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         static_assert(!std::is_reference_v<__T>);
         return to_void_p<T>(vm, obj);
     } else {
-        constexpr Type const_type = _find_type_in_const_cxx_typeid_map<T>();
+        constexpr Type const_type = _tp_builtin<T>();
         if constexpr((bool)const_type) {
             if constexpr(with_check) {
                 if constexpr(std::is_same_v<T, Exception>) {

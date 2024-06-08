@@ -1,4 +1,6 @@
 #include "pocketpy/compiler/lexer.hpp"
+#include "pocketpy/common/gil.hpp"
+#include "pocketpy/common/version.h"
 
 namespace pkpy {
 
@@ -7,7 +9,7 @@ static const uint32_t kLoRangeA[] = {170,186,443,448,660,1488,1519,1568,1601,164
 static const uint32_t kLoRangeB[] = {170,186,443,451,660,1514,1522,1599,1610,1647,1747,1749,1775,1788,1791,1808,1839,1957,1969,2026,2069,2136,2154,2228,2237,2361,2365,2384,2401,2432,2444,2448,2472,2480,2482,2489,2493,2510,2525,2529,2545,2556,2570,2576,2600,2608,2611,2614,2617,2652,2654,2676,2701,2705,2728,2736,2739,2745,2749,2768,2785,2809,2828,2832,2856,2864,2867,2873,2877,2909,2913,2929,2947,2954,2960,2965,2970,2972,2975,2980,2986,3001,3024,3084,3088,3112,3129,3133,3162,3169,3200,3212,3216,3240,3251,3257,3261,3294,3297,3314,3340,3344,3386,3389,3406,3414,3425,3455,3478,3505,3515,3517,3526,3632,3635,3653,3714,3716,3722,3747,3749,3760,3763,3773,3780,3807,3840,3911,3948,3980,4138,4159,4181,4189,4193,4198,4208,4225,4238,4680,4685,4694,4696,4701,4744,4749,4784,4789,4798,4800,4805,4822,4880,4885,4954,5007,5740,5759,5786,5866,5880,5900,5905,5937,5969,5996,6000,6067,6108,6210,6264,6276,6312,6314,6389,6430,6509,6516,6571,6601,6678,6740,6963,6987,7072,7087,7141,7203,7247,7287,7404,7411,7414,7418,8504,11623,11670,11686,11694,11702,11710,11718,11726,11734,11742,12294,12348,12438,12447,12538,12543,12591,12686,12730,12799,19893,40943,40980,42124,42231,42507,42527,42539,42606,42725,42895,42999,43009,43013,43018,43042,43123,43187,43255,43259,43262,43301,43334,43388,43442,43492,43503,43518,43560,43586,43595,43631,43638,43642,43695,43697,43702,43709,43712,43714,43740,43754,43762,43782,43790,43798,43814,43822,44002,55203,55238,55291,64109,64217,64285,64296,64310,64316,64318,64321,64324,64433,64829,64911,64967,65019,65140,65276,65391,65437,65470,65479,65487,65495,65500,65547,65574,65594,65597,65613,65629,65786,66204,66256,66335,66368,66377,66421,66461,66499,66511,66717,66855,66915,67382,67413,67431,67589,67592,67637,67640,67644,67669,67702,67742,67826,67829,67861,67897,68023,68031,68096,68115,68119,68149,68220,68252,68295,68324,68405,68437,68466,68497,68680,68899,69404,69415,69445,69622,69687,69807,69864,69926,69956,70002,70006,70066,70084,70106,70108,70161,70187,70278,70280,70285,70301,70312,70366,70412,70416,70440,70448,70451,70457,70461,70480,70497,70708,70730,70751,70831,70853,70855,71086,71131,71215,71236,71338,71352,71450,71723,71935,72103,72144,72161,72163,72192,72242,72250,72272,72329,72349,72440,72712,72750,72768,72847,72966,72969,73008,73030,73061,73064,73097,73112,73458,74649,75075,78894,83526,92728,92766,92909,92975,93047,93071,94026,94032,100343,101106,110878,110930,110951,111355,113770,113788,113800,113817,123180,123214,123627,125124,126467,126495,126498,126500,126503,126514,126519,126521,126523,126530,126535,126537,126539,126543,126546,126548,126551,126553,126555,126557,126559,126562,126564,126570,126578,126583,126588,126590,126601,126619,126627,126633,126651,173782,177972,178205,183969,191456,195101};
 // clang-format on
 
-static bool is_possible_number_char(char c) {
+static bool is_possible_number_char(char c) noexcept{
     switch(c) {
             // clang-format off
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
@@ -20,7 +22,7 @@ static bool is_possible_number_char(char c) {
     }
 }
 
-static bool is_unicode_Lo_char(uint32_t c) {
+static bool is_unicode_Lo_char(uint32_t c) noexcept{
     // open a hole for carrot
     if(c == U'🥕') return true;
     auto index = std::lower_bound(kLoRangeA, kLoRangeA + 476, c) - kLoRangeA;
@@ -30,7 +32,7 @@ static bool is_unicode_Lo_char(uint32_t c) {
     return c >= kLoRangeA[index] && c <= kLoRangeB[index];
 }
 
-bool Lexer::match_n_chars(int n, char c0) {
+bool Lexer::match_n_chars(int n, char c0) noexcept{
     const char* c = curr_char;
     for(int i = 0; i < n; i++) {
         if(*c == '\0') return false;
@@ -42,7 +44,7 @@ bool Lexer::match_n_chars(int n, char c0) {
     return true;
 }
 
-bool Lexer::match_string(const char* s) {
+bool Lexer::match_string(const char* s) noexcept{
     int s_len = strlen(s);
     bool ok = strncmp(curr_char, s, s_len) == 0;
     if(ok)
@@ -51,7 +53,7 @@ bool Lexer::match_string(const char* s) {
     return ok;
 }
 
-int Lexer::eat_spaces() {
+int Lexer::eat_spaces() noexcept{
     int count = 0;
     while(true) {
         switch(peekchar()) {
@@ -63,7 +65,7 @@ int Lexer::eat_spaces() {
     }
 }
 
-bool Lexer::eat_indentation() {
+bool Lexer::eat_indentation() noexcept{
     if(brackets_level > 0) return true;
     int spaces = eat_spaces();
     if(peekchar() == '#') skip_line_comment();
@@ -82,14 +84,14 @@ bool Lexer::eat_indentation() {
     return true;
 }
 
-char Lexer::eatchar() {
+char Lexer::eatchar() noexcept{
     char c = peekchar();
     assert(c != '\n');  // eatchar() cannot consume a newline
     curr_char++;
     return c;
 }
 
-char Lexer::eatchar_include_newline() {
+char Lexer::eatchar_include_newline() noexcept{
     char c = peekchar();
     curr_char++;
     if(c == '\n') {
@@ -99,12 +101,12 @@ char Lexer::eatchar_include_newline() {
     return c;
 }
 
-int Lexer::eat_name() {
+Error* Lexer::eat_name() noexcept{
     curr_char--;
     while(true) {
         unsigned char c = peekchar();
         int u8bytes = utf8len(c, true);
-        if(u8bytes == 0) return 1;
+        if(u8bytes == 0) return SyntaxError("invalid char: %c", c);
         if(u8bytes == 1) {
             if(isalpha(c) || c == '_' || isdigit(c)) {
                 curr_char++;
@@ -115,7 +117,7 @@ int Lexer::eat_name() {
         }
         // handle multibyte char
         Str u8str(curr_char, u8bytes);
-        if(u8str.size != u8bytes) return 2;
+        if(u8str.size != u8bytes) return SyntaxError("invalid utf8 sequence: %s", u8str.c_str());
         uint32_t value = 0;
         for(int k = 0; k < u8bytes; k++) {
             uint8_t b = u8str[k];
@@ -137,7 +139,7 @@ int Lexer::eat_name() {
     }
 
     int length = (int)(curr_char - token_start);
-    if(length == 0) return 3;
+    if(length == 0) return SyntaxError("@id contains invalid char");
     std::string_view name(token_start, length);
 
     if(src->mode == JSON_MODE) {
@@ -148,9 +150,9 @@ int Lexer::eat_name() {
         } else if(name == "null") {
             add_token(TK("None"));
         } else {
-            return 4;
+            return SyntaxError("invalid JSON token");
         }
-        return 0;
+        return NULL;
     }
 
     const auto KW_BEGIN = kTokens + TK("False");
@@ -162,10 +164,10 @@ int Lexer::eat_name() {
     } else {
         add_token(TK("@id"));
     }
-    return 0;
+    return NULL;
 }
 
-void Lexer::skip_line_comment() {
+void Lexer::skip_line_comment() noexcept{
     char c;
     while((c = peekchar()) != '\0') {
         if(c == '\n') return;
@@ -173,13 +175,13 @@ void Lexer::skip_line_comment() {
     }
 }
 
-bool Lexer::matchchar(char c) {
+bool Lexer::matchchar(char c) noexcept{
     if(peekchar() != c) return false;
     eatchar_include_newline();
     return true;
 }
 
-void Lexer::add_token(TokenIndex type, TokenValue value) {
+void Lexer::add_token(TokenIndex type, TokenValue value) noexcept{
     switch(type) {
         case TK("{"):
         case TK("["):
@@ -213,14 +215,14 @@ void Lexer::add_token(TokenIndex type, TokenValue value) {
     }
 }
 
-void Lexer::add_token_2(char c, TokenIndex one, TokenIndex two) {
+void Lexer::add_token_2(char c, TokenIndex one, TokenIndex two) noexcept{
     if(matchchar(c))
         add_token(two);
     else
         add_token(one);
 }
 
-Str Lexer::eat_string_until(char quote, bool raw) {
+Error* Lexer::eat_string_until(char quote, bool raw, Str* out) noexcept{
     bool quote3 = match_n_chars(2, quote);
     small_vector_2<char, 32> buff;
     while(true) {
@@ -233,12 +235,12 @@ Str Lexer::eat_string_until(char quote, bool raw) {
             break;
         }
         if(c == '\0') {
-            if(quote3 && src->mode == REPL_MODE) { throw NeedMoreLines(false); }
-            SyntaxError("EOL while scanning string literal");
+            if(quote3 && src->mode == REPL_MODE) return NeedMoreLines();
+            return SyntaxError("EOL while scanning string literal");
         }
         if(c == '\n') {
             if(!quote3)
-                SyntaxError("EOL while scanning string literal");
+                return SyntaxError("EOL while scanning string literal");
             else {
                 buff.push_back(c);
                 continue;
@@ -259,33 +261,37 @@ Str Lexer::eat_string_until(char quote, bool raw) {
                     char code;
                     try {
                         code = (char)std::stoi(hex, &parsed, 16);
-                    } catch(...) { SyntaxError("invalid hex char"); }
-                    if(parsed != 2) SyntaxError("invalid hex char");
+                    } catch(...) {
+                        return SyntaxError("invalid hex char");
+                    }
+                    if(parsed != 2) return SyntaxError("invalid hex char");
                     buff.push_back(code);
                 } break;
-                default: SyntaxError("invalid escape char");
+                default: return SyntaxError("invalid escape char");
             }
         } else {
             buff.push_back(c);
         }
     }
-    return Str(buff.data(), buff.size());
+    *out = Str(buff.data(), buff.size());
+    return nullptr;
 }
 
-void Lexer::eat_string(char quote, StringType type) {
-    Str s = eat_string_until(quote, type == RAW_STRING);
-    if(type == F_STRING) {
+Error* Lexer::eat_string(char quote, StringType type) noexcept{
+    Str s;
+    Error* err = eat_string_until(quote, type == StringType::RAW_STRING, &s);
+    if(err) return err;
+    if(type == StringType::F_STRING) {
         add_token(TK("@fstr"), s);
-        return;
-    }
-    if(type == NORMAL_BYTES) {
+    }else if(type == StringType::NORMAL_BYTES) {
         add_token(TK("@bytes"), s);
-        return;
+    }else{
+        add_token(TK("@str"), s);
     }
-    add_token(TK("@str"), s);
+    return NULL;
 }
 
-void Lexer::eat_number() {
+Error* Lexer::eat_number() noexcept{
     const char* i = token_start;
     while(is_possible_number_char(*i))
         i++;
@@ -305,13 +311,13 @@ void Lexer::eat_number() {
         // try long
         if(i[-1] == 'L') {
             add_token(TK("@long"));
-            return;
+            return NULL;
         }
         // try integer
         i64 int_out;
         switch(parse_uint(text, &int_out, -1)) {
-            case IntParsingResult::Success: add_token(TK("@num"), int_out); return;
-            case IntParsingResult::Overflow: SyntaxError("int literal is too large"); return;
+            case IntParsingResult::Success: add_token(TK("@num"), int_out); return NULL;
+            case IntParsingResult::Overflow: return SyntaxError("int literal is too large");
             case IntParsingResult::Failure: break;  // do nothing
         }
     }
@@ -321,54 +327,61 @@ void Lexer::eat_number() {
     char* p_end;
     try {
         float_out = std::strtod(text.data(), &p_end);
-    } catch(...) { SyntaxError("invalid number literal"); }
+    } catch(...) {
+        return SyntaxError("invalid number literal");
+    }
 
     if(p_end == text.data() + text.size()) {
         add_token(TK("@num"), (f64)float_out);
-        return;
+        return NULL;
     }
 
     if(i[-1] == 'j' && p_end == text.data() + text.size() - 1) {
         add_token(TK("@imag"), (f64)float_out);
-        return;
+        return NULL;
     }
 
-    SyntaxError("invalid number literal");
+    return SyntaxError("invalid number literal");
 }
 
-bool Lexer::lex_one_token() {
+Error* Lexer::lex_one_token(bool* eof) noexcept{
+    *eof = false;
     while(peekchar() != '\0') {
         token_start = curr_char;
         char c = eatchar_include_newline();
         switch(c) {
             case '\'':
-            case '"': eat_string(c, NORMAL_STRING); return true;
+            case '"': {
+                Error* err = eat_string(c, StringType::NORMAL_STRING);
+                if(err) return err;
+                return NULL;
+            }
             case '#': skip_line_comment(); break;
-            case '~': add_token(TK("~")); return true;
-            case '{': add_token(TK("{")); return true;
-            case '}': add_token(TK("}")); return true;
-            case ',': add_token(TK(",")); return true;
-            case ':': add_token(TK(":")); return true;
-            case ';': add_token(TK(";")); return true;
-            case '(': add_token(TK("(")); return true;
-            case ')': add_token(TK(")")); return true;
-            case '[': add_token(TK("[")); return true;
-            case ']': add_token(TK("]")); return true;
-            case '@': add_token(TK("@")); return true;
+            case '~': add_token(TK("~")); return NULL;
+            case '{': add_token(TK("{")); return NULL;
+            case '}': add_token(TK("}")); return NULL;
+            case ',': add_token(TK(",")); return NULL;
+            case ':': add_token(TK(":")); return NULL;
+            case ';': add_token(TK(";")); return NULL;
+            case '(': add_token(TK("(")); return NULL;
+            case ')': add_token(TK(")")); return NULL;
+            case '[': add_token(TK("[")); return NULL;
+            case ']': add_token(TK("]")); return NULL;
+            case '@': add_token(TK("@")); return NULL;
             case '\\': {
                 // line continuation character
                 char c = eatchar_include_newline();
                 if(c != '\n') {
-                    if(src->mode == REPL_MODE && c == '\0') throw NeedMoreLines(false);
-                    SyntaxError("expected newline after line continuation character");
+                    if(src->mode == REPL_MODE && c == '\0') return NeedMoreLines();
+                    return SyntaxError("expected newline after line continuation character");
                 }
                 eat_spaces();
-                return true;
+                return NULL;
             }
-            case '%': add_token_2('=', TK("%"), TK("%=")); return true;
-            case '&': add_token_2('=', TK("&"), TK("&=")); return true;
-            case '|': add_token_2('=', TK("|"), TK("|=")); return true;
-            case '^': add_token_2('=', TK("^"), TK("^=")); return true;
+            case '%': add_token_2('=', TK("%"), TK("%=")); return NULL;
+            case '&': add_token_2('=', TK("&"), TK("&=")); return NULL;
+            case '|': add_token_2('=', TK("|"), TK("|=")); return NULL;
+            case '^': add_token_2('=', TK("^"), TK("^=")); return NULL;
             case '.': {
                 if(matchchar('.')) {
                     if(matchchar('.')) {
@@ -379,21 +392,22 @@ bool Lexer::lex_one_token() {
                 } else {
                     char next_char = peekchar();
                     if(next_char >= '0' && next_char <= '9') {
-                        eat_number();
+                        Error* err = eat_number();
+                        if(err) return err;
                     } else {
                         add_token(TK("."));
                     }
                 }
-                return true;
+                return NULL;
             }
-            case '=': add_token_2('=', TK("="), TK("==")); return true;
+            case '=': add_token_2('=', TK("="), TK("==")); return NULL;
             case '+':
                 if(matchchar('+')) {
                     add_token(TK("++"));
                 } else {
                     add_token_2('=', TK("+"), TK("+="));
                 }
-                return true;
+                return NULL;
             case '>': {
                 if(matchchar('='))
                     add_token(TK(">="));
@@ -401,7 +415,7 @@ bool Lexer::lex_one_token() {
                     add_token_2('=', TK(">>"), TK(">>="));
                 else
                     add_token(TK(">"));
-                return true;
+                return NULL;
             }
             case '<': {
                 if(matchchar('='))
@@ -410,7 +424,7 @@ bool Lexer::lex_one_token() {
                     add_token_2('=', TK("<<"), TK("<<="));
                 else
                     add_token(TK("<"));
-                return true;
+                return NULL;
             }
             case '-': {
                 if(matchchar('-')) {
@@ -423,13 +437,15 @@ bool Lexer::lex_one_token() {
                     else
                         add_token(TK("-"));
                 }
-                return true;
+                return NULL;
             }
             case '!':
-                if(matchchar('='))
+                if(matchchar('=')){
                     add_token(TK("!="));
-                else
-                    SyntaxError("expected '=' after '!'");
+                }else{
+                    Error* err = SyntaxError("expected '=' after '!'");
+                    if(err) return err;
+                }
                 break;
             case '*':
                 if(matchchar('*')) {
@@ -437,63 +453,36 @@ bool Lexer::lex_one_token() {
                 } else {
                     add_token_2('=', TK("*"), TK("*="));
                 }
-                return true;
+                return NULL;
             case '/':
                 if(matchchar('/')) {
                     add_token_2('=', TK("//"), TK("//="));
                 } else {
                     add_token_2('=', TK("/"), TK("/="));
                 }
-                return true;
+                return NULL;
             case ' ':
             case '\t': eat_spaces(); break;
             case '\n': {
                 add_token(TK("@eol"));
-                if(!eat_indentation()) IndentationError("unindent does not match any outer indentation level");
-                return true;
+                if(!eat_indentation()){
+                    return IndentationError("unindent does not match any outer indentation level");
+                }
+                return NULL;
             }
             default: {
                 if(c == 'f') {
-                    if(matchchar('\'')) {
-                        eat_string('\'', F_STRING);
-                        return true;
-                    }
-                    if(matchchar('"')) {
-                        eat_string('"', F_STRING);
-                        return true;
-                    }
+                    if(matchchar('\'')) return eat_string('\'', StringType::F_STRING);
+                    if(matchchar('"')) return eat_string('"', StringType::F_STRING);
                 } else if(c == 'r') {
-                    if(matchchar('\'')) {
-                        eat_string('\'', RAW_STRING);
-                        return true;
-                    }
-                    if(matchchar('"')) {
-                        eat_string('"', RAW_STRING);
-                        return true;
-                    }
+                    if(matchchar('\'')) return eat_string('\'', StringType::RAW_STRING);
+                    if(matchchar('"')) return eat_string('"', StringType::RAW_STRING);
                 } else if(c == 'b') {
-                    if(matchchar('\'')) {
-                        eat_string('\'', NORMAL_BYTES);
-                        return true;
-                    }
-                    if(matchchar('"')) {
-                        eat_string('"', NORMAL_BYTES);
-                        return true;
-                    }
+                    if(matchchar('\'')) return eat_string('\'', StringType::NORMAL_BYTES);
+                    if(matchchar('"')) return eat_string('"', StringType::NORMAL_BYTES);
                 }
-                if(c >= '0' && c <= '9') {
-                    eat_number();
-                    return true;
-                }
-                switch(eat_name()) {
-                    case 0: break;
-                    case 1: SyntaxError("invalid char: " + std::string(1, c)); break;
-                    case 2: SyntaxError("invalid utf8 sequence: " + std::string(1, c)); break;
-                    case 3: SyntaxError("@id contains invalid char"); break;
-                    case 4: SyntaxError("invalid JSON token"); break;
-                    default: assert(false);
-                }
-                return true;
+                if(c >= '0' && c <= '9') return eat_number();
+                return eat_name();
             }
         }
     }
@@ -502,38 +491,227 @@ bool Lexer::lex_one_token() {
     while(indents.size() > 1) {
         indents.pop_back();
         add_token(TK("@dedent"));
-        return true;
+        return NULL;
     }
     add_token(TK("@eof"));
-    return false;
+    *eof = true;
+    return NULL;
 }
 
-void Lexer::throw_err(StrName type, Str msg) {
-    int lineno = current_line;
-    const char* cursor = curr_char;
-    if(peekchar() == '\n') {
-        lineno--;
-        cursor--;
+Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata) noexcept{
+    PK_THREAD_LOCAL Error err;
+    err.type = type;
+    err.src = src.get();
+    if(lexer_err){
+        err.lineno = current_line;
+        err.cursor = curr_char;
+        if(*curr_char == '\n') {
+            err.lineno--;
+            err.cursor--;
+        }
+    }else{
+        err.lineno = -1;
+        err.cursor = NULL;
     }
-    throw_err(type, msg, lineno, cursor);
+    vsnprintf(err.msg, sizeof(err.msg), msg, args);
+    err.userdata = userdata;
+    return &err;
 }
 
-Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) : vm(vm), src(src) {
+Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
+    va_list args;
+    va_start(args, fmt);
+    Error* err = _error(true, "SyntaxError", fmt, args);
+    va_end(args);
+    return err;
+}
+
+Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
     this->token_start = src->source.c_str();
     this->curr_char = src->source.c_str();
     this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
     this->indents.push_back(0);
 }
 
-vector<Token> Lexer::run() {
+Error* Lexer::run() noexcept{
+    if(src->is_precompiled) {
+        from_precompiled();
+        return NULL;
+    }
     assert(curr_char == src->source.c_str());
-    while(lex_one_token())
-        ;
-    return std::move(nexts);
+    bool eof = false;
+    while(!eof) {
+        Error* err = lex_one_token(&eof);
+        if(err) return err;
+    }
+    return NULL;
 }
 
+void Lexer::from_precompiled() {
+    TokenDeserializer deserializer(src->source.c_str());
+    deserializer.curr += 5;  // skip "pkpy:"
+    std::string_view version = deserializer.read_string('\n');
 
-IntParsingResult parse_uint(std::string_view text, i64* out, int base) {
+    assert(version == PK_VERSION);
+    assert(deserializer.read_uint('\n') == (i64)src->mode);
+
+    int count = deserializer.read_count();
+    vector<Str>& precompiled_tokens = src->_precompiled_tokens;
+    for(int i = 0; i < count; i++) {
+        precompiled_tokens.push_back(deserializer.read_string('\n'));
+    }
+
+    count = deserializer.read_count();
+    for(int i = 0; i < count; i++) {
+        Token t;
+        t.type = (unsigned char)deserializer.read_uint(',');
+        if(is_raw_string_used(t.type)) {
+            i64 index = deserializer.read_uint(',');
+            t.start = precompiled_tokens[index].c_str();
+            t.length = precompiled_tokens[index].size;
+        } else {
+            t.start = nullptr;
+            t.length = 0;
+        }
+
+        if(deserializer.match_char(',')) {
+            t.line = nexts.back().line;
+        } else {
+            t.line = (int)deserializer.read_uint(',');
+        }
+
+        if(deserializer.match_char(',')) {
+            t.brackets_level = nexts.back().brackets_level;
+        } else {
+            t.brackets_level = (int)deserializer.read_uint(',');
+        }
+
+        char type = deserializer.read_char();
+        switch(type) {
+            case 'I': t.value = deserializer.read_uint('\n'); break;
+            case 'F': t.value = deserializer.read_float('\n'); break;
+            case 'S': t.value = deserializer.read_string_from_hex('\n'); break;
+            default: t.value = {}; break;
+        }
+        nexts.push_back(t);
+    }
+}
+
+Error* Lexer::precompile(Str* out) {
+    assert(!src->is_precompiled);
+    Error* err = run();
+    if(err) return err;
+    SStream ss;
+    ss << "pkpy:" PK_VERSION << '\n';       // L1: version string
+    ss << (int)src->mode << '\n';           // L2: mode
+
+    small_map<std::string_view, int> token_indices;
+    for(auto token: nexts) {
+        if(is_raw_string_used(token.type)) {
+            if(!token_indices.contains(token.sv())) {
+                token_indices.insert(token.sv(), 0);
+                // assert no '\n' in token.sv()
+                for(char c: token.sv())
+                    assert(c != '\n');
+            }
+        }
+    }
+    ss << "=" << (int)token_indices.size() << '\n';  // L3: raw string count
+    int index = 0;
+    for(auto& kv: token_indices) {
+        ss << kv.first << '\n';  // L4: raw strings
+        kv.second = index++;
+    }
+
+    ss << "=" << (int)nexts.size() << '\n';  // L5: token count
+    for(int i = 0; i < nexts.size(); i++) {
+        const Token& token = nexts[i];
+        ss << (int)token.type << ',';
+        if(is_raw_string_used(token.type)) { ss << token_indices[token.sv()] << ','; }
+        if(i > 0 && nexts[i - 1].line == token.line)
+            ss << ',';
+        else
+            ss << token.line << ',';
+        if(i > 0 && nexts[i - 1].brackets_level == token.brackets_level)
+            ss << ',';
+        else
+            ss << token.brackets_level << ',';
+        // visit token value
+        std::visit(
+            [&ss](auto&& arg) {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr(std::is_same_v<T, i64>) {
+                    ss << 'I' << arg;
+                } else if constexpr(std::is_same_v<T, f64>) {
+                    ss << 'F' << arg;
+                } else if constexpr(std::is_same_v<T, Str>) {
+                    ss << 'S';
+                    for(char c: arg)
+                        ss.write_hex((unsigned char)c);
+                }
+                ss << '\n';
+            },
+            token.value);
+    }
+    *out = ss.str();
+    return NULL;
+}
+
+std::string_view TokenDeserializer::read_string(char c) {
+    const char* start = curr;
+    while(*curr != c)
+        curr++;
+    std::string_view retval(start, curr - start);
+    curr++;  // skip the delimiter
+    return retval;
+}
+
+Str TokenDeserializer::read_string_from_hex(char c) {
+    std::string_view s = read_string(c);
+    char* buffer = (char*)std::malloc(s.size() / 2 + 1);
+    for(int i = 0; i < s.size(); i += 2) {
+        char c = 0;
+        if(s[i] >= '0' && s[i] <= '9')
+            c += s[i] - '0';
+        else if(s[i] >= 'a' && s[i] <= 'f')
+            c += s[i] - 'a' + 10;
+        else
+            assert(false);
+        c <<= 4;
+        if(s[i + 1] >= '0' && s[i + 1] <= '9')
+            c += s[i + 1] - '0';
+        else if(s[i + 1] >= 'a' && s[i + 1] <= 'f')
+            c += s[i + 1] - 'a' + 10;
+        else
+            assert(false);
+        buffer[i / 2] = c;
+    }
+    buffer[s.size() / 2] = 0;
+    return pair<char*, int>(buffer, s.size() / 2);
+}
+
+int TokenDeserializer::read_count() {
+    assert(*curr == '=');
+    curr++;
+    return read_uint('\n');
+}
+
+i64 TokenDeserializer::read_uint(char c) {
+    i64 out = 0;
+    while(*curr != c) {
+        out = out * 10 + (*curr - '0');
+        curr++;
+    }
+    curr++;  // skip the delimiter
+    return out;
+}
+
+f64 TokenDeserializer::read_float(char c) {
+    std::string_view sv = read_string(c);
+    return std::stod(std::string(sv));
+}
+
+IntParsingResult parse_uint(std::string_view text, i64* out, int base) noexcept{
     *out = 0;
 
     if(base == -1) {

@@ -10,9 +10,9 @@ namespace pkpy {
 struct NameDict {
     PK_ALWAYS_PASS_BY_POINTER(NameDict)
 
-    using Item = std::pair<StrName, PyVar>;
+    using Item = pair<StrName, PyVar>;
+
     constexpr static uint16_t kInitialCapacity = 16;
-    static_assert(is_pod_v<PyVar>);
 
     float _load_factor;
     uint16_t _size;

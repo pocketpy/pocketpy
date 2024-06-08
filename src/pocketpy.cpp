@@ -1723,22 +1723,29 @@ void VM::__post_init_builtin_types() {
 
 CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
-    try {
-        return compiler.compile();
-    } catch(TopLevelException e) {
-        _error(e.ptr->self());
-        return nullptr;
-    }
+    CodeObject_ code;
+    Error* err = compiler.compile(&code);
+    if(err) __compile_error(err);
+    return code;
+}
+
+void VM::__compile_error(Error* err){
+    assert(err != nullptr);
+    __last_exception = vm->call(
+        vm->builtins->attr(err->type),
+        VAR((const char*)err->msg)
+    ).get();
+    Exception& e = __last_exception->as<Exception>();
+    e.st_push(err->src, err->lineno, err->cursor, "");
+    _error(__last_exception);
 }
 
 Str VM::precompile(std::string_view source, const Str& filename, CompileMode mode) {
     Compiler compiler(this, source, filename, mode, false);
-    try {
-        return compiler.precompile();
-    } catch(TopLevelException e) {
-        _error(e.ptr->self());
-        return nullptr;
-    }
+    Str out;
+    Error* err = compiler.lexer.precompile(&out);
+    if(err) __compile_error(err);
+    return out;
 }
 
 }  // namespace pkpy

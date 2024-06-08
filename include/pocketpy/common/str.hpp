@@ -25,7 +25,7 @@ struct Str {
     Str(std::string_view s);
     Str(const char* s);
     Str(const char* s, int len);
-    Str(std::pair<char*, int>);
+    Str(pair<char*, int>);      // take ownership
     Str(const Str& other);
     Str(Str&& other);
 
