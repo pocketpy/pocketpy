@@ -4,6 +4,7 @@
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/utils.hpp"
 #include "pocketpy/objects/object.hpp"
+#include "pocketpy/objects/namedict.hpp"
 
 namespace pkpy {
 struct ManagedHeap {
@@ -34,9 +35,8 @@ struct ManagedHeap {
     ScopeLock gc_scope_lock() { return ScopeLock(this); }
 
     /********************/
-
     template <typename T, typename... Args>
-    PyObject* gcnew(Type type, Args&&... args) {
+    PyObject* _basic_new(Type type, Args&&... args) {
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>, "gcnew cannot be used with SSO types");
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
@@ -46,7 +46,22 @@ struct ManagedHeap {
         }else{
             p = new (std::malloc(py_sizeof<__T>)) PyObject(type, true);
         }
-        p->placement_new<__T>(std::forward<Args>(args)...);
+        new (p->_value_ptr()) T(std::forward<Args>(args)...);
+
+        // backdoor for important builtin types
+        if constexpr(std::is_same_v<__T, DummyInstance>) {
+            p->_attr = new NameDict(PK_INST_ATTR_LOAD_FACTOR);
+        } else if constexpr(std::is_same_v<__T, Type>) {
+            p->_attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+        } else if constexpr(std::is_same_v<__T, DummyModule>) {
+            p->_attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+        }
+        return p;
+    }
+
+    template <typename T, typename... Args>
+    PyObject* gcnew(Type type, Args&&... args) {
+        PyObject* p = _basic_new<T>(type, std::forward<Args>(args)...);
         gen.push_back(p);
         gc_counter++;
         return p;
@@ -54,15 +69,7 @@ struct ManagedHeap {
 
     template <typename T, typename... Args>
     PyObject* _new(Type type, Args&&... args) {
-        using __T = std::decay_t<T>;
-        static_assert(!is_sso_v<__T>);
-        PyObject* p;
-        if constexpr(py_sizeof<__T> <= kPoolObjectBlockSize){
-            p = new (PoolObject_alloc()) PyObject(type, false);
-        }else{
-            p = new (std::malloc(py_sizeof<__T>)) PyObject(type, true);
-        }
-        p->placement_new<__T>(std::forward<Args>(args)...);
+        PyObject* p = _basic_new<T>(type, std::forward<Args>(args)...);
         _no_gc.push_back(p);
         return p;
     }

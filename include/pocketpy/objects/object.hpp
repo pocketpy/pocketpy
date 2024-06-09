@@ -32,22 +32,6 @@ struct PyObject final {
     PyObject(Type type, bool gc_is_large) : type(type), gc_is_large(gc_is_large), gc_marked(false), _attr(nullptr) {}
 
     PyVar attr(StrName name) const;
-    static NameDict* __init_namedict(float lf);
-
-    template <typename T, typename... Args>
-    void placement_new(Args&&... args) {
-        static_assert(std::is_same_v<T, std::decay_t<T>>);
-        new (_value_ptr()) T(std::forward<Args>(args)...);
-
-        // backdoor for important builtin types
-        if constexpr(std::is_same_v<T, DummyInstance>) {
-            _attr = __init_namedict(PK_INST_ATTR_LOAD_FACTOR);
-        } else if constexpr(std::is_same_v<T, Type>) {
-            _attr = __init_namedict(PK_TYPE_ATTR_LOAD_FACTOR);
-        } else if constexpr(std::is_same_v<T, DummyModule>) {
-            _attr = __init_namedict(PK_TYPE_ATTR_LOAD_FACTOR);
-        }
-    }
 };
 
 static_assert(sizeof(PyObject) <= 16);

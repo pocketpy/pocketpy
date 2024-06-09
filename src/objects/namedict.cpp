@@ -160,8 +160,4 @@ PyVar PyObject::attr(StrName name) const {
     return (*_attr)[name];
 }
 
-NameDict* PyObject::__init_namedict(float lf) {
-    return new NameDict(lf);
-}
-
 }  // namespace pkpy
