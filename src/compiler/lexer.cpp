@@ -666,7 +666,7 @@ Error* Lexer::precompile(Str* out) noexcept{
     return NULL;
 }
 
-std::string_view TokenDeserializer::read_string(char c) {
+std::string_view TokenDeserializer::read_string(char c) noexcept{
     const char* start = curr;
     while(*curr != c)
         curr++;
@@ -675,7 +675,7 @@ std::string_view TokenDeserializer::read_string(char c) {
     return retval;
 }
 
-Str TokenDeserializer::read_string_from_hex(char c) {
+Str TokenDeserializer::read_string_from_hex(char c) noexcept{
     std::string_view s = read_string(c);
     char* buffer = (char*)std::malloc(s.size() / 2 + 1);
     for(int i = 0; i < s.size(); i += 2) {
@@ -699,13 +699,13 @@ Str TokenDeserializer::read_string_from_hex(char c) {
     return pair<char*, int>(buffer, s.size() / 2);
 }
 
-int TokenDeserializer::read_count() {
+int TokenDeserializer::read_count() noexcept{
     assert(*curr == '=');
     curr++;
     return read_uint('\n');
 }
 
-i64 TokenDeserializer::read_uint(char c) {
+i64 TokenDeserializer::read_uint(char c) noexcept{
     i64 out = 0;
     while(*curr != c) {
         out = out * 10 + (*curr - '0');
@@ -715,7 +715,7 @@ i64 TokenDeserializer::read_uint(char c) {
     return out;
 }
 
-f64 TokenDeserializer::read_float(char c) {
+f64 TokenDeserializer::read_float(char c) noexcept{
     std::string_view sv = read_string(c);
     return std::stod(std::string(sv));
 }

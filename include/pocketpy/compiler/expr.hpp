@@ -50,7 +50,7 @@ struct Expr {
     [[nodiscard]] virtual bool emit_store_inplace(CodeEmitContext* ctx) { return emit_store(ctx); }
 };
 
-inline void delete_expr(Expr* p){
+inline void delete_expr(Expr* p) noexcept{
     if(!p) return;
     p->Expr::~Expr();
     PoolExpr_dealloc(p);

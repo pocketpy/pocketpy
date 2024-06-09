@@ -49,7 +49,7 @@ constexpr TokenIndex TK(const char token[]) {
     return 255;
 }
 
-constexpr inline bool is_raw_string_used(TokenIndex t) { return t == TK("@id") || t == TK("@long"); }
+constexpr inline bool is_raw_string_used(TokenIndex t) noexcept{ return t == TK("@id") || t == TK("@long"); }
 
 #define TK_STR(t) kTokens[t]
 
@@ -61,9 +61,9 @@ struct Token {
     int brackets_level;
     TokenValue value;
 
-    Str str() const { return Str(start, length); }
+    Str str() const noexcept{ return Str(start, length); }
 
-    std::string_view sv() const { return std::string_view(start, length); }
+    std::string_view sv() const noexcept{ return std::string_view(start, length); }
 };
 
 // https://docs.python.org/3/reference/expressions.html#operator-precedence
@@ -153,11 +153,11 @@ struct TokenDeserializer {
     const char* curr;
     const char* source;
 
-    TokenDeserializer(const char* source) : curr(source), source(source) {}
+    TokenDeserializer(const char* source) noexcept: curr(source), source(source){}
 
-    char read_char() { return *curr++; }
+    char read_char() noexcept{ return *curr++; }
 
-    bool match_char(char c) {
+    bool match_char(char c) noexcept{
         if(*curr == c) {
             curr++;
             return true;
@@ -165,11 +165,11 @@ struct TokenDeserializer {
         return false;
     }
 
-    std::string_view read_string(char c);
-    Str read_string_from_hex(char c);
-    int read_count();
-    i64 read_uint(char c);
-    f64 read_float(char c);
+    std::string_view read_string(char c) noexcept;
+    Str read_string_from_hex(char c) noexcept;
+    int read_count() noexcept;
+    i64 read_uint(char c) noexcept;
+    f64 read_float(char c) noexcept;
 };
 
 }  // namespace pkpy
