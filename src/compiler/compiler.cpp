@@ -317,15 +317,15 @@ Error* Compiler::exprTernary() noexcept{
 }
 
 Error* Compiler::exprBinaryOp() noexcept{
-    auto e = make_expr<BinaryExpr>(prev().type);
-    e->lhs = ctx()->s_popx();
-    Error* err = parse_expression(rules[e->op].precedence + 1);
-    if(err){
-        delete_expr(e);
-        return err;
-    }
+    Error* err;
+    int line = prev().line;
+    TokenIndex op = prev().type;
+    check(parse_expression(rules[op].precedence + 1));
+    BinaryExpr* e = make_expr<BinaryExpr>(op);
+    e->line = line;
     e->rhs = ctx()->s_popx();
-    ctx()->s_push(std::move(e));
+    e->lhs = ctx()->s_popx();
+    ctx()->s_push(e);
     return NULL;
 }
 
@@ -883,7 +883,8 @@ Error* Compiler::try_compile_assignment(bool* is_assign) noexcept{
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
             // -1 to remove =; inplace=true
-            auto e = make_expr<BinaryExpr>(prev().type - 1, true);
+            // TODO: memory leak on error here!
+            BinaryExpr* e = make_expr<BinaryExpr>(prev().type - 1, true);
             e->lhs = ctx()->s_popx();
             check(EXPR_TUPLE());
             e->rhs = ctx()->s_popx();
@@ -905,9 +906,9 @@ Error* Compiler::try_compile_assignment(bool* is_assign) noexcept{
             for(int j = 1; j < n; j++)
                 ctx()->emit_(OP_DUP_TOP, BC_NOARG, BC_KEEPLINE);
             for(int j = 0; j < n; j++) {
-                auto e = ctx()->s_popx();
-                if(e->is_starred()) return SyntaxError();
-                bool ok = e->emit_store(ctx());
+                if(ctx()->s_top()->is_starred()) return SyntaxError();
+                bool ok = ctx()->s_top()->emit_store(ctx());
+                ctx()->s_pop();
                 if(!ok) return SyntaxError();
             }
             *is_assign = true;
