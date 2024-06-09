@@ -275,27 +275,25 @@ Error* Compiler::exprLambda() noexcept{
 }
 
 Error* Compiler::exprOr() noexcept{
+    int line = prev().line;
+    Error* err;
+    check(parse_expression(PREC_LOGICAL_OR + 1));
     auto e = make_expr<OrExpr>();
-    e->lhs = ctx()->s_popx();
-    Error* err = parse_expression(PREC_LOGICAL_OR + 1);
-    if(err){
-        delete_expr(e);
-        return err;
-    }
+    e->line = line;
     e->rhs = ctx()->s_popx();
+    e->lhs = ctx()->s_popx();
     ctx()->s_push(e);
     return NULL;
 }
 
 Error* Compiler::exprAnd() noexcept{
+    int line = prev().line;
+    Error* err;
+    check(parse_expression(PREC_LOGICAL_AND + 1));
     auto e = make_expr<AndExpr>();
-    e->lhs = ctx()->s_popx();
-    Error* err = parse_expression(PREC_LOGICAL_AND + 1);
-    if(err){
-        delete_expr(e);
-        return err;
-    }
+    e->line = line;
     e->rhs = ctx()->s_popx();
+    e->lhs = ctx()->s_popx();
     ctx()->s_push(e);
     return NULL;
 }
@@ -874,8 +872,7 @@ Error* Compiler::try_compile_assignment(bool* is_assign) noexcept{
         case TK("&="):
         case TK("|="):
         case TK("^="): {
-            Expr* lhs_p = ctx()->s_top();
-            if(lhs_p->is_starred()) return SyntaxError();
+            if(ctx()->s_top()->is_starred()) return SyntaxError();
             if(ctx()->is_compiling_class){
                 return SyntaxError("can't use inplace operator in class definition");
             }
@@ -883,14 +880,18 @@ Error* Compiler::try_compile_assignment(bool* is_assign) noexcept{
             // a[x] += 1;   a and x should be evaluated only once
             // a.x += 1;    a should be evaluated only once
             // -1 to remove =; inplace=true
-            // TODO: memory leak on error here!
-            BinaryExpr* e = make_expr<BinaryExpr>(prev().type - 1, true);
-            e->lhs = ctx()->s_popx();
-            check(EXPR_TUPLE());
-            e->rhs = ctx()->s_popx();
-            if(e->rhs->is_starred()) return SyntaxError();
+            int line = prev().line;
+            TokenIndex op = prev().type-1;
+            // [lhs]
+            check(EXPR_TUPLE());        // [lhs, rhs]
+            if(ctx()->s_top()->is_starred()) return SyntaxError();
+            BinaryExpr* e = make_expr<BinaryExpr>(op, true);
+            e->line = line;
+            e->rhs = ctx()->s_popx();   // [lhs]
+            e->lhs = ctx()->s_popx();   // []
             e->emit_(ctx());
-            bool ok = lhs_p->emit_store_inplace(ctx());
+            bool ok = e->lhs->emit_store_inplace(ctx());
+            delete_expr(e);
             if(!ok) return SyntaxError();
             *is_assign = true;
             return NULL;
@@ -1010,8 +1011,8 @@ Error* Compiler::compile_stmt() noexcept{
         } break;
         case TK("del"): {
             check(EXPR_TUPLE());
-            Expr* e = ctx()->s_popx();
-            if(!e->emit_del(ctx())) return SyntaxError();
+            if(!ctx()->s_top()->emit_del(ctx())) return SyntaxError();
+            ctx()->s_pop();
             consume_end_stmt();
         } break;
         case TK("with"): {
@@ -1026,7 +1027,9 @@ Error* Compiler::compile_stmt() noexcept{
             ctx()->emit_(OP_WITH_ENTER, BC_NOARG, prev().line);
             // [ <expr> <expr>.__enter__() ]
             if(as_name) {
-                if(!as_name->emit_store(ctx())) return SyntaxError();
+                bool ok = as_name->emit_store(ctx());
+                delete_expr(as_name);
+                if(!ok) return SyntaxError();
             } else {
                 ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
             }
@@ -1097,8 +1100,7 @@ Error* Compiler::compile_stmt() noexcept{
 Error* Compiler::consume_type_hints() noexcept{
     Error* err;
     check(EXPR());
-    Expr* e = ctx()->s_popx();
-    delete_expr(e);
+    ctx()->s_pop();
     return NULL;
 }
 
@@ -1106,18 +1108,18 @@ Error* Compiler::compile_class(int decorators) noexcept{
     Error* err;
     consume(TK("@id"));
     int namei = StrName(prev().sv()).index;
-    Expr* base = nullptr;
+    bool has_base = false;
     if(match(TK("("))) {
         if(is_expression()) {
             check(EXPR());
-            base = ctx()->s_popx();
+            has_base = true;    // [base]
         }
         consume(TK(")"));
     }
-    if(base == nullptr) {
+    if(!has_base) {
         ctx()->emit_(OP_LOAD_NONE, BC_NOARG, prev().line);
     } else {
-        base->emit_(ctx());
+        ctx()->s_emit_top();    // []
     }
     ctx()->emit_(OP_BEGIN_CLASS, namei, BC_KEEPLINE);
 
@@ -1225,8 +1227,9 @@ Error* Compiler::compile_function(int decorators) noexcept{
     ctx()->s_emit_decorators(decorators);
 
     if(!ctx()->is_compiling_class) {
-        auto e = make_expr<NameExpr>(decl_name, name_scope());
+        NameExpr* e = make_expr<NameExpr>(decl_name, name_scope());
         e->emit_store(ctx());
+        delete_expr(e);
     } else {
         int index = StrName(decl_name).index;
         ctx()->emit_(OP_STORE_CLASS_ATTR, index, prev().line);
