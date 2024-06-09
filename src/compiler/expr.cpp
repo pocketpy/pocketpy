@@ -764,7 +764,7 @@ void BinaryExpr::emit_(CodeEmitContext* ctx) {
         case TK("^"): ctx->emit_(OP_BITWISE_XOR, BC_NOARG, line); break;
 
         case TK("@"): ctx->emit_(OP_BINARY_MATMUL, BC_NOARG, line); break;
-        default: assert(false);
+        default: PK_FATAL_ERROR("unknown binary operator: %s\n", TK_STR(op));
     }
 
     for(int i: jmps)

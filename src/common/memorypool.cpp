@@ -287,8 +287,8 @@ void Pools_debug_info(char* buffer, int size) noexcept {
     int arenas = PoolObject._arenas.size();
     // print empty arenas count
     n = snprintf(
-        buffer, size, "PoolObject: %d empty arenas, %d total arenas\n",
-        empty_arenas, arenas + empty_arenas
+        buffer, size, "PoolObject: %d empty arenas, %d arenas\n",
+        empty_arenas, arenas
     );
     buffer += n; size -= n;
     // log each non-empty arena

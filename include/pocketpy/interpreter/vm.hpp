@@ -465,7 +465,7 @@ public:
     template <typename T>
     Type _find_type_in_cxx_typeid_map() {
         auto it = _cxx_typeid_map.try_get(typeid(T));
-        if(it == nullptr) PK_FATAL_ERROR("T not found in cxx_typeid_map")
+        if(it == nullptr) PK_FATAL_ERROR("T not found in cxx_typeid_map\n")
         return *it;
     }
 

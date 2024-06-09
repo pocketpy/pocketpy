@@ -116,7 +116,7 @@ bool NameDict::contains(StrName key) const {
 
 PyVar NameDict::operator[] (StrName key) const {
     PyVar* val = try_get_2_likely_found(key);
-    if(val == nullptr) PK_FATAL_ERROR("NameDict key not found: %s", key.escape().c_str())
+    if(val == nullptr) PK_FATAL_ERROR("NameDict key not found: %s\n", key.escape().c_str())
     return *val;
 }
 
