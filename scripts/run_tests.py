@@ -74,7 +74,7 @@ if len(sys.argv) == 2:
     test_dir('benchmarks/')
 else:
     test_dir('tests/')
-    # test_repl()
+    test_repl()
 
 
 print("ALL TESTS PASSED")

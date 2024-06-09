@@ -60,9 +60,8 @@ struct Compiler {
     static void init_pratt_rules() noexcept;
 
     bool match(TokenIndex expected) noexcept;
-    bool match_newlines_repl() noexcept{ return match_newlines(mode() == REPL_MODE); }
-    bool match_newlines(bool repl_throw = false) noexcept;
     bool match_end_stmt() noexcept;
+    bool match_newlines(bool* need_more_lines = NULL) noexcept;
     /*************************************************/
     [[nodiscard]] Error* EXPR() noexcept{ return parse_expression(PREC_LOWEST + 1); }
     [[nodiscard]] Error* EXPR_TUPLE(bool allow_slice = false) noexcept;
@@ -130,7 +129,6 @@ struct Compiler {
     [[nodiscard]] Error* SyntaxError(const char* msg = "invalid syntax", ...) noexcept;
     [[nodiscard]] Error* IndentationError(const char* msg) noexcept{ return lexer._error(false, "IndentationError", msg, {}); }
     [[nodiscard]] Error* NeedMoreLines() noexcept{
-        assert(false);
         return lexer._error(false, "NeedMoreLines", "", {}, (i64)ctx()->is_compiling_class);
     }
 

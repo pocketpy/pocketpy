@@ -1731,6 +1731,9 @@ CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMod
 
 void VM::__compile_error(Error* err){
     assert(err != nullptr);
+    if(err->type == std::string_view("NeedMoreLines")){
+        throw NeedMoreLines((bool)err->userdata);
+    }
     __last_exception = vm->call(
         vm->builtins->attr(err->type),
         VAR((const char*)err->msg)

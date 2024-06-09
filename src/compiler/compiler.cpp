@@ -8,6 +8,7 @@ namespace pkpy {
 
 #define consume(expected) if(!match(expected)) return SyntaxError("expected '%s', got '%s'", TK_STR(expected), TK_STR(curr().type));
 #define consume_end_stmt() if(!match_end_stmt()) return SyntaxError("expected statement end")
+#define check_newlines_repl() { bool __nml; match_newlines(&__nml); if(__nml) return NeedMoreLines(); }
 #define check(B) if((err = B)) return err
 
 PrattRule Compiler::rules[kTokenCount];
@@ -171,14 +172,15 @@ bool Compiler::match(TokenIndex expected) noexcept{
     return true;
 }
 
-bool Compiler::match_newlines(bool repl_throw) noexcept{
+bool Compiler::match_newlines(bool* need_more_lines) noexcept{
     bool consumed = false;
     if(curr().type == TK("@eol")) {
-        while(curr().type == TK("@eol"))
-            advance();
+        while(curr().type == TK("@eol")) advance();
         consumed = true;
     }
-    if(repl_throw && curr().type == TK("@eof")) return NeedMoreLines();
+    if(need_more_lines) {
+        *need_more_lines = (mode() == REPL_MODE && curr().type == TK("@eof"));
+    }
     return consumed;
 }
 
@@ -199,11 +201,11 @@ Error* Compiler::EXPR_TUPLE(bool allow_slice) noexcept{
     // tuple expression
     int count = 1;
     do {
-        if(curr().brackets_level) match_newlines_repl();
+        if(curr().brackets_level) check_newlines_repl()
         if(!is_expression(allow_slice)) break;
         check(parse_expression(PREC_LOWEST + 1, allow_slice));
         count += 1;
-        if(curr().brackets_level) match_newlines_repl();
+        if(curr().brackets_level) check_newlines_repl();
     } while(match(TK(",")));
     TupleExpr* e = make_expr<TupleExpr>(count);
     for(int i=count-1; i>=0; i--)
@@ -351,9 +353,9 @@ Error* Compiler::exprUnaryOp() noexcept{
 
 Error* Compiler::exprGroup() noexcept{
     Error* err;
-    match_newlines_repl();
+    check_newlines_repl()
     check(EXPR_TUPLE());  // () is just for change precedence
-    match_newlines_repl();
+    check_newlines_repl()
     consume(TK(")"));
     if(ctx()->s_top()->is_tuple()) return NULL;
     Expr* g = make_expr<GroupedExpr>(ctx()->s_popx());
@@ -368,7 +370,7 @@ Error* Compiler::consume_comp(Opcode op0, Opcode op1) noexcept{
     check(EXPR_VARS());                         // [expr, vars]
     consume(TK("in"));
     check(parse_expression(PREC_TERNARY + 1));  // [expr, vars, iter]
-    match_newlines_repl();
+    check_newlines_repl()
     if(match(TK("if"))) {
         check(parse_expression(PREC_TERNARY + 1));  // [expr, vars, iter, cond]
         has_cond = true;
@@ -379,7 +381,7 @@ Error* Compiler::consume_comp(Opcode op0, Opcode op1) noexcept{
     ce->vars = ctx()->s_popx();
     ce->expr = ctx()->s_popx();
     ctx()->s_push(ce);
-    match_newlines_repl();
+    check_newlines_repl()
     return NULL;
 }
 
@@ -388,16 +390,16 @@ Error* Compiler::exprList() noexcept{
     int line = prev().line;
     int count = 0;
     do {
-        match_newlines_repl();
+        check_newlines_repl()
         if(curr().type == TK("]")) break;
         check(EXPR()); count += 1;
-        match_newlines_repl();
+        check_newlines_repl()
         if(count == 1 && match(TK("for"))) {
             check(consume_comp(OP_BUILD_LIST, OP_LIST_APPEND));
             consume(TK("]"));
             return NULL;
         }
-        match_newlines_repl();
+        check_newlines_repl()
     } while(match(TK(",")));
     consume(TK("]"));
     ListExpr* e = make_expr<ListExpr>(count);
@@ -413,7 +415,7 @@ Error* Compiler::exprMap() noexcept{
     bool parsing_dict = false;  // {...} may be dict or set
     int count = 0;
     do {
-        match_newlines_repl();
+        check_newlines_repl()
         if(curr().type == TK("}")) break;
         check(EXPR());  // [key]
         int star_level = ctx()->s_top()->star_level();
@@ -434,7 +436,7 @@ Error* Compiler::exprMap() noexcept{
             }
         }
         count += 1;
-        match_newlines_repl();
+        check_newlines_repl()
         if(count == 1 && match(TK("for"))) {
             if(parsing_dict){
                 check(consume_comp(OP_BUILD_DICT, OP_DICT_ADD));
@@ -444,7 +446,7 @@ Error* Compiler::exprMap() noexcept{
             consume(TK("}"));
             return NULL;
         }
-        match_newlines_repl();
+        check_newlines_repl()
     } while(match(TK(",")));
     consume(TK("}"));
 
@@ -466,7 +468,7 @@ Error* Compiler::exprCall() noexcept{
     e->callable = ctx()->s_popx();
     ctx()->s_push(e);     // push onto the stack in advance
     do {
-        match_newlines_repl();
+        check_newlines_repl()
         if(curr().type == TK(")")) break;
         if(curr().type == TK("@id") && next().type == TK("=")) {
             consume(TK("@id"));
@@ -485,7 +487,7 @@ Error* Compiler::exprCall() noexcept{
                 e->args.push_back(ctx()->s_popx());
             }
         }
-        match_newlines_repl();
+        check_newlines_repl()
     } while(match(TK(",")));
     consume(TK(")"));
     return NULL;
@@ -549,9 +551,9 @@ Error* Compiler::exprSlice1() noexcept{
 Error* Compiler::exprSubscr() noexcept{
     Error* err;
     int line = prev().line;
-    match_newlines_repl();
+    check_newlines_repl()
     check(EXPR_TUPLE(true));
-    match_newlines_repl();
+    check_newlines_repl()
     consume(TK("]"));           // [lhs, rhs]
     SubscrExpr* e = make_expr<SubscrExpr>();
     e->line = line;
@@ -578,7 +580,12 @@ Error* Compiler::compile_block_body(PrattCallback callback) noexcept{
         }
         return NULL;
     }
-    if(!match_newlines_repl()) return SyntaxError("expected a new line after ':'");
+
+    bool need_more_lines;
+    bool consumed = match_newlines(&need_more_lines);
+    if(need_more_lines) return NeedMoreLines();
+    if(!consumed) return SyntaxError("expected a new line after ':'");
+
     consume(TK("@indent"));
     while(curr().type != TK("@dedent")) {
         match_newlines();
@@ -838,7 +845,10 @@ Error* Compiler::compile_decorated() noexcept{
     do {
         check(EXPR());
         count += 1;
-        if(!match_newlines_repl()) return SyntaxError();
+        bool need_more_lines;
+        bool consumed = match_newlines(&need_more_lines);
+        if(need_more_lines) return NeedMoreLines();
+        if(!consumed) return SyntaxError("expected a newline after '@'");
     } while(match(TK("@")));
 
     if(match(TK("class"))) {
@@ -1340,5 +1350,6 @@ Error* Compiler::SyntaxError(const char* msg, ...) noexcept{
 #undef consume
 #undef consume_end_stmt
 #undef check
+#undef check_newlines_repl
 
 }  // namespace pkpy
