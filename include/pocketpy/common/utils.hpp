@@ -31,4 +31,6 @@ const inline char* kPlatformStrings[] = {
 #define PK_UNREACHABLE() __builtin_unreachable();
 #endif
 
+#define PK_FATAL_ERROR(...) { fprintf(stderr, __VA_ARGS__); std::abort(); }
+
 }  // namespace pkpy

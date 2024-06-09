@@ -9,8 +9,6 @@
 #include "pocketpy/interpreter/frame.hpp"
 #include "pocketpy/interpreter/profiler.hpp"
 
-#include <stdexcept>
-
 namespace pkpy {
 
 /* Stack manipulation macros */
@@ -467,15 +465,7 @@ public:
     template <typename T>
     Type _find_type_in_cxx_typeid_map() {
         auto it = _cxx_typeid_map.try_get(typeid(T));
-        if(it == nullptr) {
-#if __GNUC__ || __clang__
-            throw std::runtime_error(__PRETTY_FUNCTION__ + std::string(" failed: T not found"));
-#elif _MSC_VER
-            throw std::runtime_error(__FUNCSIG__ + std::string(" failed: T not found"));
-#else
-            throw std::runtime_error("_find_type_in_cxx_typeid_map() failed: T not found");
-#endif
-        }
+        if(it == nullptr) PK_FATAL_ERROR("T not found in cxx_typeid_map")
         return *it;
     }
 

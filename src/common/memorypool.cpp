@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
-#include <stdexcept>
 
 namespace pkpy {
 

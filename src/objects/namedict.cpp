@@ -1,7 +1,5 @@
 #include "pocketpy/objects/namedict.hpp"
 
-#include <stdexcept>
-
 namespace pkpy {
 
 #define HASH_PROBE_1(key, ok, i)                                                                                       \
@@ -118,7 +116,7 @@ bool NameDict::contains(StrName key) const {
 
 PyVar NameDict::operator[] (StrName key) const {
     PyVar* val = try_get_2_likely_found(key);
-    if(val == nullptr) { throw std::runtime_error(_S("NameDict key not found: ", key.escape()).str()); }
+    if(val == nullptr) PK_FATAL_ERROR("NameDict key not found: %s", key.escape().c_str())
     return *val;
 }
 

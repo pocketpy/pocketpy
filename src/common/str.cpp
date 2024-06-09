@@ -1,7 +1,6 @@
 #include "pocketpy/common/str.hpp"
 #include "pocketpy/common/gil.hpp"
 
-#include <stdexcept>
 #include <cassert>
 #include <ostream>
 #include <algorithm>
@@ -17,7 +16,7 @@ int utf8len(unsigned char c, bool suppress) {
     if((c & 0b11111000) == 0b11110000) return 4;
     if((c & 0b11111100) == 0b11111000) return 5;
     if((c & 0b11111110) == 0b11111100) return 6;
-    if(!suppress) throw std::runtime_error("invalid utf8 char: " + std::to_string(c));
+    if(!suppress) PK_FATAL_ERROR("invalid utf8 char")
     return 0;
 }
 
@@ -380,7 +379,7 @@ StrName StrName::get(std::string_view s) {
     // generate new index
     // https://github.com/python/cpython/blob/3.12/Objects/dictobject.c#L175
     uint16_t index = ((_pesudo_random_index * 5) + 1) & 65535;
-    if(index == 0) throw std::runtime_error("StrName index overflow");
+    if(index == 0) PK_FATAL_ERROR("StrName index overflow")
     auto res = _r_interned().emplace(index, s);
     assert(res.second);
     s = std::string_view(res.first->second);

@@ -1,8 +1,6 @@
 #include "pocketpy/objects/stackmemory.hpp"
 #include "pocketpy/interpreter/frame.hpp"
 
-#include <stdexcept>
-
 namespace pkpy {
 PyVar* FastLocals::try_get_name(StrName name) {
     int index = co->varnames_inv.get(name, -1);
@@ -72,7 +70,7 @@ void Frame::prepare_jump_break(ValueStack* _s, int target) {
         int next_block = co->lines[target].iblock;
         while(i >= 0 && i != next_block)
             i = _exit_block(_s, i);
-        if(i != next_block) throw std::runtime_error("invalid jump");
+        assert(i == next_block);
     }
 }
 
