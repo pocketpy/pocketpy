@@ -537,8 +537,7 @@ Error* Lexer::run() noexcept{
     assert(!this->used);
     this->used = true;
     if(src->is_precompiled) {
-        from_precompiled();
-        return NULL;
+        return from_precompiled();
     }
     // push initial tokens
     this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
@@ -552,13 +551,17 @@ Error* Lexer::run() noexcept{
     return NULL;
 }
 
-void Lexer::from_precompiled() {
+Error* Lexer::from_precompiled() noexcept{
     TokenDeserializer deserializer(src->source.c_str());
     deserializer.curr += 5;  // skip "pkpy:"
     std::string_view version = deserializer.read_string('\n');
 
-    assert(version == PK_VERSION);
-    assert(deserializer.read_uint('\n') == (i64)src->mode);
+    if(version != PK_VERSION){
+        return SyntaxError("precompiled version mismatch");
+    }
+    if(deserializer.read_uint('\n') != (i64)src->mode){
+        return SyntaxError("precompiled mode mismatch");
+    }
 
     int count = deserializer.read_count();
     vector<Str>& precompiled_tokens = src->_precompiled_tokens;
@@ -600,9 +603,10 @@ void Lexer::from_precompiled() {
         }
         nexts.push_back(t);
     }
+    return NULL;
 }
 
-Error* Lexer::precompile(Str* out) {
+Error* Lexer::precompile(Str* out) noexcept{
     assert(!src->is_precompiled);
     Error* err = run();
     if(err) return err;

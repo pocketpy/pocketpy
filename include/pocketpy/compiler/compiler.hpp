@@ -129,7 +129,10 @@ struct Compiler {
 
     [[nodiscard]] Error* SyntaxError(const char* msg = "invalid syntax", ...) noexcept;
     [[nodiscard]] Error* IndentationError(const char* msg) noexcept{ return lexer._error(false, "IndentationError", msg, {}); }
-    [[nodiscard]] Error* NeedMoreLines() noexcept{ return lexer._error(false, "NeedMoreLines", "", {}, (i64)ctx()->is_compiling_class); }
+    [[nodiscard]] Error* NeedMoreLines() noexcept{
+        assert(false);
+        return lexer._error(false, "NeedMoreLines", "", {}, (i64)ctx()->is_compiling_class);
+    }
 
 public:
     Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope = false) noexcept;

@@ -1279,12 +1279,16 @@ Error* Compiler::compile(CodeObject_* out) noexcept{
     Error* err;
     check(lexer.run());
 
-    // for(int i=0; i<lexer.nexts.size(); i++){
-    //     printf("%s: %s\n", TK_STR(tk(i).type), tk(i).str().escape().c_str());
+    // if(lexer.src->filename[0] != '<'){
+    //     printf("%s\n", lexer.src->filename.c_str());
+    //     for(int i=0; i<lexer.nexts.size(); i++){
+    //         printf("%s: %s\n", TK_STR(tk(i).type), tk(i).str().escape().c_str());
+    //     }
     // }
 
     CodeObject_ code = push_global_context();
 
+    assert(curr().type == TK("@sof"));
     advance();         // skip @sof, so prev() is always valid
     match_newlines();  // skip possible leading '\n'
 

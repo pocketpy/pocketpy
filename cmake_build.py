@@ -14,7 +14,7 @@ if len(sys.argv) == 2:
 else:
     config = 'Release'
 
-assert config in ['Debug', 'Release', 'RelWithDebInfo', 'MinSizeRel']
+assert config in ['Debug', 'Release', 'RelWithDebInfo']
 
 os.chdir("build")
 

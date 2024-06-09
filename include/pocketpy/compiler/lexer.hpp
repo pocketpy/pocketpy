@@ -129,14 +129,16 @@ struct Lexer {
     [[nodiscard]] Error* _error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata=0) noexcept;
     [[nodiscard]] Error* SyntaxError(const char* fmt, ...) noexcept;
     [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, {}); }
-    [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", {}, 0); }
+    [[nodiscard]] Error* NeedMoreLines() noexcept {
+        assert(false);
+        return _error(true, "NeedMoreLines", "", {}, 0);
+    }
 
     Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept;
     
     [[nodiscard]] Error* run() noexcept;
-
-    void from_precompiled();
-    [[nodiscard]] Error* precompile(Str* out);
+    [[nodiscard]] Error* from_precompiled() noexcept;
+    [[nodiscard]] Error* precompile(Str* out) noexcept;
 };
 
 enum class IntParsingResult {
