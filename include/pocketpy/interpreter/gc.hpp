@@ -40,7 +40,12 @@ struct ManagedHeap {
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>, "gcnew cannot be used with SSO types");
         // https://github.com/pocketpy/pocketpy/issues/94#issuecomment-1594784476
-        PyObject* p = new (PoolObject_alloc(py_sizeof<__T>)) PyObject(type);
+        PyObject* p;
+        if constexpr(py_sizeof<__T> <= kPoolObjectBlockSize){
+            p = new (PoolObject_alloc()) PyObject(type, false);
+        }else{
+            p = new (std::malloc(py_sizeof<__T>)) PyObject(type, true);
+        }
         p->placement_new<__T>(std::forward<Args>(args)...);
         gen.push_back(p);
         gc_counter++;
@@ -51,7 +56,12 @@ struct ManagedHeap {
     PyObject* _new(Type type, Args&&... args) {
         using __T = std::decay_t<T>;
         static_assert(!is_sso_v<__T>);
-        PyObject* p = new (PoolObject_alloc(py_sizeof<__T>)) PyObject(type);
+        PyObject* p;
+        if constexpr(py_sizeof<__T> <= kPoolObjectBlockSize){
+            p = new (PoolObject_alloc()) PyObject(type, false);
+        }else{
+            p = new (std::malloc(py_sizeof<__T>)) PyObject(type, true);
+        }
         p->placement_new<__T>(std::forward<Args>(args)...);
         _no_gc.push_back(p);
         return p;

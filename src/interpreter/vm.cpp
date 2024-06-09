@@ -1902,7 +1902,11 @@ void ManagedHeap::_delete(PyObject* obj) {
     const PyTypeInfo* ti = vm->_tp_info(obj->type);
     if(ti->vt._dtor) ti->vt._dtor(obj->_value_ptr());
     delete obj->_attr;  // delete __dict__ if exists
-    PoolObject_dealloc(obj);
+    if(obj->gc_is_large){
+        std::free(obj);
+    }else{
+        PoolObject_dealloc(obj);
+    }
 }
 
 void Dict::_gc_mark(VM* vm) const {

@@ -87,8 +87,8 @@ struct DoubleLinkedList {
     }
 };
 
-template <int __BlockSize>
 struct MemoryPool {
+    const static int __BlockSize = kPoolObjectBlockSize;
     const static int __MaxBlocks = 256 * 1024 / __BlockSize;
     const static int __MinArenaCount = PK_GC_MIN_THRESHOLD * 100 / (256 * 1024);
 
@@ -138,14 +138,8 @@ struct MemoryPool {
     DoubleLinkedList<Arena> _arenas;
     DoubleLinkedList<Arena> _empty_arenas;
 
-    void* alloc(size_t size) {
+    void* alloc() {
         PK_GLOBAL_SCOPE_LOCK();
-        if(size > __BlockSize) {
-            void* p = std::malloc(sizeof(void*) + size);
-            std::memset(p, 0, sizeof(void*));
-            return (char*)p + sizeof(void*);
-        }
-
         if(_arenas.empty()) { _arenas.push_back(new Arena()); }
         Arena* arena = _arenas.back();
         void* p = arena->alloc()->data;
@@ -160,17 +154,14 @@ struct MemoryPool {
         PK_GLOBAL_SCOPE_LOCK();
         assert(p != nullptr);
         Block* block = (Block*)((char*)p - sizeof(void*));
-        if(block->arena == nullptr) {
-            std::free(block);
+        assert(block->arena != nullptr);
+        Arena* arena = (Arena*)block->arena;
+        if(arena->empty()) {
+            _empty_arenas.erase(arena);
+            _arenas.push_front(arena);
+            arena->dealloc(block);
         } else {
-            Arena* arena = (Arena*)block->arena;
-            if(arena->empty()) {
-                _empty_arenas.erase(arena);
-                _arenas.push_front(arena);
-                arena->dealloc(block);
-            } else {
-                arena->dealloc(block);
-            }
+            arena->dealloc(block);
         }
     }
 
@@ -248,7 +239,7 @@ struct FixedMemoryPool {
 
 static FixedMemoryPool<kPoolExprBlockSize, 64> PoolExpr;
 static FixedMemoryPool<kPoolFrameBlockSize, 128> PoolFrame;
-static MemoryPool<80> PoolObject;
+static MemoryPool PoolObject;
 
 void* PoolExpr_alloc() noexcept { return PoolExpr.alloc(); }
 
@@ -258,7 +249,7 @@ void* PoolFrame_alloc() noexcept { return PoolFrame.alloc(); }
 
 void PoolFrame_dealloc(void* p) noexcept { PoolFrame.dealloc(p); }
 
-void* PoolObject_alloc(size_t size) noexcept { return PoolObject.alloc(size); }
+void* PoolObject_alloc() noexcept { return PoolObject.alloc(); }
 
 void PoolObject_dealloc(void* p) noexcept { PoolObject.dealloc(p); }
 
@@ -292,7 +283,7 @@ void Pools_debug_info(char* buffer, int size) noexcept {
     );
     buffer += n; size -= n;
     // log each non-empty arena
-    PoolObject._arenas.apply([&](MemoryPool<80>::Arena* arena) {
+    PoolObject._arenas.apply([&](MemoryPool::Arena* arena) {
         n = snprintf(
             buffer, size, "  - %p: %.2f MB (used) / %.2f MB (total)\n",
             (void*)arena,

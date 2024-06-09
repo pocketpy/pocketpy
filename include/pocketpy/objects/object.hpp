@@ -9,8 +9,9 @@ namespace pkpy {
 struct NameDict;
 
 struct PyObject final {
-    bool gc_marked;   // whether this object is marked
     Type type;        // we have a duplicated type here for convenience
+    bool gc_is_large;
+    bool gc_marked;
     NameDict* _attr;  // gc will delete this on destruction
 
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
@@ -28,7 +29,7 @@ struct PyObject final {
         return *_attr;
     }
 
-    PyObject(Type type) : gc_marked(false), type(type), _attr(nullptr) {}
+    PyObject(Type type, bool gc_is_large) : type(type), gc_is_large(gc_is_large), gc_marked(false), _attr(nullptr) {}
 
     PyVar attr(StrName name) const;
     static NameDict* __init_namedict(float lf);
