@@ -126,10 +126,10 @@ struct Lexer {
     [[nodiscard]] Error* lex_one_token(bool* eof) noexcept;
 
     /***** Error Reporter *****/
-    [[nodiscard]] Error* _error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata=0) noexcept;
+    [[nodiscard]] Error* _error(bool lexer_err, const char* type, const char* msg, va_list* args, i64 userdata=0) noexcept;
     [[nodiscard]] Error* SyntaxError(const char* fmt, ...) noexcept;
-    [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, {}); }
-    [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", {}, 0); }
+    [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, NULL); }
+    [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", NULL, 0); }
 
     Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept;
     

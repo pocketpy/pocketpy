@@ -1340,7 +1340,7 @@ Compiler::~Compiler(){
 Error* Compiler::SyntaxError(const char* msg, ...) noexcept{
     va_list args;
     va_start(args, msg);
-    Error* e = lexer._error(false, "SyntaxError", msg, args);
+    Error* e = lexer._error(false, "SyntaxError", msg, &args);
     e->lineno = err().line;
     e->cursor = err().start;
     va_end(args);

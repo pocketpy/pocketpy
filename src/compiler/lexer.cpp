@@ -500,7 +500,7 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
     return NULL;
 }
 
-Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata) noexcept{
+Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list* args, i64 userdata) noexcept{
     PK_THREAD_LOCAL Error err;
     err.type = type;
     err.src = src;
@@ -515,7 +515,11 @@ Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list 
         err.lineno = -1;
         err.cursor = NULL;
     }
-    vsnprintf(err.msg, sizeof(err.msg), msg, args);
+    if(args){
+        vsnprintf(err.msg, sizeof(err.msg), msg, *args);
+    }else{
+        std::strncpy(err.msg, msg, sizeof(err.msg));
+    }
     err.userdata = userdata;
     return &err;
 }
@@ -523,7 +527,7 @@ Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list 
 Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
     va_list args;
     va_start(args, fmt);
-    Error* err = _error(true, "SyntaxError", fmt, args);
+    Error* err = _error(true, "SyntaxError", fmt, &args);
     va_end(args);
     return err;
 }
