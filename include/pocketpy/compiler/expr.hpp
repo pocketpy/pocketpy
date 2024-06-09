@@ -52,7 +52,7 @@ struct Expr {
 
 inline void delete_expr(Expr* p) noexcept{
     if(!p) return;
-    p->Expr::~Expr();
+    p->~Expr();
     PoolExpr_dealloc(p);
 }
 
