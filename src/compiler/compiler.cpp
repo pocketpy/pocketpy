@@ -2,6 +2,8 @@
 #include "pocketpy/common/config.h"
 #include "pocketpy/interpreter/vm.hpp"
 
+#include <cstdarg>
+
 namespace pkpy {
 
 #define consume(expected) if(!match(expected)) return SyntaxError("expected '%s', got '%s'", TK_STR(expected), TK_STR(curr().type));

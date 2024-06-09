@@ -2,6 +2,8 @@
 #include "pocketpy/common/gil.hpp"
 #include "pocketpy/common/version.h"
 
+#include <cstdarg>
+
 namespace pkpy {
 
 // clang-format off
