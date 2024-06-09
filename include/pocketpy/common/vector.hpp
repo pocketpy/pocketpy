@@ -165,7 +165,10 @@ struct vector {
 
     int capacity() const { return _capacity; }
 
-    T& back() { return _data[_size - 1]; }
+    T& back() {
+        assert(_size > 0);
+        return _data[_size - 1];
+    }
 
     T* begin() const { return _data; }
 
@@ -173,9 +176,15 @@ struct vector {
 
     T* data() const { return _data; }
 
-    T& operator[] (int i) { return _data[i]; }
+    T& operator[] (int i) {
+        assert(i >= 0 && i < _size);
+        return _data[i];
+    }
 
-    const T& operator[] (int i) const { return _data[i]; }
+    const T& operator[] (int i) const {
+        assert(i >= 0 && i < _size);
+        return _data[i];
+    }
 
     void clear() {
         std::destroy(begin(), end());

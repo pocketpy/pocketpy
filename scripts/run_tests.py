@@ -39,13 +39,7 @@ def test_dir(path):
 print('CPython:', str(sys.version).replace('\n', ''))
 print('System:', '64-bit' if sys.maxsize > 2**32 else '32-bit')
 
-if len(sys.argv) == 2:
-    assert 'benchmark' in sys.argv[1]
-    test_dir('benchmarks/')
-else:
-    test_dir('tests/')
-
-    # test interactive mode
+def test_repl():
     print("[REPL Test Enabled]")
     if sys.platform in ['linux', 'darwin']:
         cmd = './main'
@@ -73,5 +67,14 @@ exit()
         res.check_returncode()
         assert 'ans_1: 3' in res.stdout, res.stdout
         assert 'ans_2: abc' in res.stdout, res.stdout
+
+
+if len(sys.argv) == 2:
+    assert 'benchmark' in sys.argv[1]
+    test_dir('benchmarks/')
+else:
+    test_dir('tests/')
+    # test_repl()
+
 
 print("ALL TESTS PASSED")

@@ -39,3 +39,42 @@ def fib(n):
     return fib(n-1) + fib(n-2)
 
 assert fib(32) == 2178309
+
+def wrapped(cls):
+    return int
+
+@wrapped
+@wrapped
+@wrapped
+@wrapped
+class A:
+    def __init__(self) -> None:
+        pass
+
+assert A('123') == 123
+
+# validate the decorator order
+res = []
+
+def w(x):
+    res.append('w')
+    return x
+
+def w1(x):
+    res.append('w1')
+    return x
+
+def w2(x):
+    res.append('w2')
+    return x
+
+@w
+@w1
+@w2
+def f():
+    pass
+
+f()
+assert res == ['w2', 'w1', 'w']
+
+

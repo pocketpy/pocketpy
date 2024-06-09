@@ -60,7 +60,7 @@ struct CodeEmitContext{
     VM* vm;
     FuncDecl_ func;  // optional
     CodeObject_ co;  // 1 CodeEmitContext <=> 1 CodeObject_
-    vector<Expr*> s_expr;
+    vector<Expr*> _s_expr;
     int level;
     vector<StrName> global_names;
 
@@ -75,8 +75,6 @@ struct CodeEmitContext{
     int get_loop() const noexcept;
     CodeBlock* enter_block(CodeBlockType type) noexcept;
     void exit_block() noexcept;
-    void emit_expr(bool emit = true) noexcept;  // clear the expression stack and generate bytecode
-    void emit_decorators(int count) noexcept;
     int emit_(Opcode opcode, uint16_t arg, int line, bool is_virtual = false) noexcept;
     void revert_last_emit_() noexcept;
     int emit_int(i64 value, int line) noexcept;
@@ -88,6 +86,59 @@ struct CodeEmitContext{
     int add_func_decl(FuncDecl_ decl) noexcept;
     void emit_store_name(NameScope scope, StrName name, int line) noexcept;
     void try_merge_for_iter_store(int) noexcept;
+    // emit top -> pop -> delete
+    void s_emit_top() noexcept{
+        s_debug_info("s_emit_top");
+        Expr* e = _s_expr.popx_back();
+        e->emit_(this);
+        delete_expr(e);
+    }
+    // push
+    void s_push(Expr* expr) noexcept{
+        s_debug_info("s_push");
+        _s_expr.push_back(expr);
+    }
+    // top
+    Expr* s_top() noexcept{
+        return _s_expr.back();
+    }
+    // size
+    int s_size() const noexcept{
+        return _s_expr.size();
+    }
+    // pop -> delete
+    void s_pop() noexcept{
+        s_debug_info("s_pop");
+        Expr* e = _s_expr.popx_back();
+        delete_expr(e);
+    }
+    // pop move
+    Expr* s_popx() noexcept{
+        s_debug_info("s_popx");
+        return _s_expr.popx_back();
+    }
+    // clean
+    void s_clean() noexcept{
+        s_debug_info("s_clean");
+        for(Expr* e: _s_expr) delete_expr(e);
+        _s_expr.clear();
+    }
+    // emit decorators
+    void s_emit_decorators(int count) noexcept;
+    // debug stack
+#if PK_DEBUG_COMPILER
+    void s_debug_info(const char* op) noexcept{
+        SStream ss;
+        for(int i=0; i<s_size(); i++) {
+            Expr* e = _s_expr[i];
+            ss << typeid(*e).name();
+            if(i != s_size() - 1) ss << ", ";
+        }
+        printf("[%s] %s\n", ss.str().c_str(), op);
+    }
+#else
+    void s_debug_info(const char*) noexcept{}
+#endif
 };
 
 struct NameExpr : Expr {

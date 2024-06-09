@@ -182,7 +182,9 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
 #endif
         CodeObject_ code = compile(source, filename, mode);
         return _exec(code, _module);
-    } catch(TopLevelException e) { stderr_write(e.summary() + "\n"); } catch(const std::exception& e) {
+    } catch(TopLevelException e) {
+        stderr_write(e.summary() + "\n");
+    } catch(const std::exception& e) {
         Str msg = "An std::exception occurred! It could be a bug.\n";
         msg = msg + e.what() + "\n";
         stderr_write(msg);
@@ -1374,12 +1376,13 @@ PyObject* VM::bind(PyObject* obj, const char* sig, NativeFuncC fn, any userdata,
 }
 
 PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, NativeFuncC fn, any userdata, BindType bt) {
-    CodeObject_ co;
-    try {
-        // fn(a, b, *c, d=1) -> None
-        co = compile(_S("def ", sig, " : pass"), "<bind>", EXEC_MODE);
-    } catch(TopLevelException) { throw std::runtime_error("invalid signature: " + std::string(sig)); }
-    if(co->func_decls.size() != 1) { throw std::runtime_error("expected 1 function declaration"); }
+    char buffer[256];
+    int length = snprintf(buffer, sizeof(buffer), "def %s : pass", sig);
+    std::string_view source(buffer, length);
+    // fn(a, b, *c, d=1) -> None
+    CodeObject_ co = compile(source, "<bind>", EXEC_MODE);
+    assert(co->func_decls.size() == 1);
+    
     FuncDecl_ decl = co->func_decls[0];
     decl->docstring = docstring;
     PyObject* f_obj = heap.gcnew<NativeFunc>(tp_native_func, fn, decl, std::move(userdata));
@@ -1455,7 +1458,7 @@ void VM::__raise_exc(bool re_raise) {
     int current_line = frame->co->lines[actual_ip].lineno;  // current line
     auto current_f_name = frame->co->name.sv();             // current function name
     if(frame->_callable == nullptr) current_f_name = "";    // not in a function
-    e.st_push(frame->co->src.get(), current_line, nullptr, current_f_name);
+    e.st_push(frame->co->src, current_line, nullptr, current_f_name);
 
     if(next_ip >= 0) {
         throw InternalException(InternalExceptionType::Handled, next_ip);

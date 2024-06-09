@@ -15,15 +15,3 @@ assert asdict(A(1, '555')) == {'x': 1, 'y': '555'}
 assert A(1, 'N') == A(1, 'N')
 assert A(1, 'N') != A(1, 'M')
 
-def wrapped(cls):
-    return int
-
-@wrapped
-@wrapped
-@wrapped
-@wrapped
-class A:
-    def __init__(self) -> None:
-        pass
-
-assert A('123') == 123

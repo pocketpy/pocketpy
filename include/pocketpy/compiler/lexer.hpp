@@ -103,6 +103,7 @@ struct Lexer {
     vector<Token> nexts;
     small_vector_2<int, 8> indents;
     int brackets_level = 0;
+    bool used = false;
 
     char peekchar() const noexcept { return *curr_char; }
 

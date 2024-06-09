@@ -40,18 +40,11 @@ void CodeEmitContext::exit_block() noexcept{
     }
 }
 
-// clear the expression stack and generate bytecode
-void CodeEmitContext::emit_expr(bool emit) noexcept{
-    // assert(s_expr.size() == 1);
-    Expr* e = s_expr.popx_back();
-    if(emit) e->emit_(this);
-    delete_expr(e);
-}
-
-void CodeEmitContext::emit_decorators(int count) noexcept{
+void CodeEmitContext::s_emit_decorators(int count) noexcept{
+    assert(s_size() >= count);
     // [obj]
     for(int i=0; i<count; i++) {
-        Expr* deco = s_expr.popx_back();
+        Expr* deco = s_popx();
         deco->emit_(this);                           // [obj, f]
         emit_(OP_ROT_TWO, BC_NOARG, deco->line);     // [f, obj]
         emit_(OP_LOAD_NULL, BC_NOARG, BC_KEEPLINE);  // [f, obj, NULL]

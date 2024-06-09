@@ -501,7 +501,7 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
 Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list args, i64 userdata) noexcept{
     PK_THREAD_LOCAL Error err;
     err.type = type;
-    err.src = src.get();
+    err.src = src;
     if(lexer_err){
         err.lineno = current_line;
         err.cursor = curr_char;
@@ -529,16 +529,19 @@ Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
 Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
     this->token_start = src->source.c_str();
     this->curr_char = src->source.c_str();
-    this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
-    this->indents.push_back(0);
 }
 
 Error* Lexer::run() noexcept{
+    assert(!this->used);
+    this->used = true;
     if(src->is_precompiled) {
         from_precompiled();
         return NULL;
     }
-    assert(curr_char == src->source.c_str());
+    // push initial tokens
+    this->nexts.push_back(Token{TK("@sof"), token_start, 0, current_line, brackets_level, {}});
+    this->indents.push_back(0);
+
     bool eof = false;
     while(!eof) {
         Error* err = lex_one_token(&eof);

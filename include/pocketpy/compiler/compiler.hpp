@@ -24,23 +24,33 @@ struct Compiler {
     VM* vm;
     bool unknown_global_scope;  // for eval/exec() call
     // for parsing token stream
-    int i = 0;
+    int __i = 0;
 
     const Token& tk(int i) const noexcept{ return lexer.nexts[i]; }
-    const Token& prev() const noexcept{ return tk(i - 1); }
-    const Token& curr() const noexcept{ return tk(i); }
-    const Token& next() const noexcept{ return tk(i + 1); }
+    const Token& prev() const noexcept{ return tk(__i - 1); }
+    const Token& curr() const noexcept{ return tk(__i); }
+    const Token& next() const noexcept{ return tk(__i + 1); }
 
     const Token& err() const noexcept{
-        if(i >= lexer.nexts.size()) return prev();
+        if(__i >= lexer.nexts.size()) return prev();
         return curr();
     }
 
-    void advance(int delta = 1) noexcept{ i += delta; }
+    void advance(int delta = 1) noexcept{
+        __i += delta;
+#if PK_DEBUG_COMPILER
+        if(__i>=0 && __i<lexer.nexts.size()){
+            printf("%s:%d %s %s\n",
+                lexer.src->filename.c_str(),
+                curr().line,
+                TK_STR(curr().type),
+                curr().str().escape().c_str()
+            );
+        }
+#endif
+    }
 
     CodeEmitContext* ctx() noexcept{ return &contexts.back(); }
-    vector<Expr*>& s_expr() noexcept{ return ctx()->s_expr; }
-
     CompileMode mode() const noexcept{ return lexer.src->mode; }
 
     NameScope name_scope() const noexcept;

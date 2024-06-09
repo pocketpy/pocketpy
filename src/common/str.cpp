@@ -391,9 +391,10 @@ StrName StrName::get(std::string_view s) {
 
 Str SStream::str() {
     // after this call, the buffer is no longer valid
-    buffer.reserve(buffer.size() + 1);  // allocate one more byte for '\0'
-    buffer[buffer.size()] = '\0';       // set '\0'
-    return Str(buffer.detach());
+    buffer.push_back('\0');
+    auto detached = buffer.detach();
+    detached.second--;  // remove the last '\0'
+    return Str(detached);
 }
 
 SStream& SStream::operator<< (const Str& s) {
