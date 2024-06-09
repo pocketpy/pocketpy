@@ -1,7 +1,9 @@
 #pragma once
 
+#include "pocketpy/common/config.h"
 #include "pocketpy/interpreter/frame.hpp"
 
+#if PK_ENABLE_PROFILER
 #include <ctime>
 
 namespace pkpy {
@@ -38,3 +40,5 @@ struct LineProfiler {
 };
 
 }  // namespace pkpy
+
+#endif

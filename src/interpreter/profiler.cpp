@@ -1,5 +1,6 @@
 #include "pocketpy/interpreter/profiler.hpp"
 
+#if PK_ENABLE_PROFILER
 namespace pkpy {
 
 static std::string left_pad(std::string s, int width) {
@@ -126,3 +127,5 @@ LineProfiler::~LineProfiler() {
 }
 
 }  // namespace pkpy
+
+#endif
