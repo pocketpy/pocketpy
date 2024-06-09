@@ -20,4 +20,6 @@ void* PoolObject_alloc(size_t size) noexcept;
 void PoolObject_dealloc(void* p) noexcept;
 void PoolObject_shrink_to_fit() noexcept;
 
+void Pools_debug_info(char* buffer, int size) noexcept;
+
 };  // namespace pkpy

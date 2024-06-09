@@ -113,7 +113,8 @@ struct MemoryPool {
 
         bool full() const { return _free_list_size == __MaxBlocks; }
 
-        size_t allocated_size() const { return __BlockSize * (__MaxBlocks - _free_list_size); }
+        int total_bytes() const { return __BlockSize * __MaxBlocks; }
+        int used_bytes() const { return __BlockSize * (__MaxBlocks - _free_list_size); }
 
         Block* alloc() {
             assert(!empty());
@@ -206,8 +207,14 @@ struct FixedMemoryPool {
     Block _blocks[BlockCount];
     Block* _free_list[BlockCount];
     Block** _free_list_end;
+    int _exceeded_bytes;
+
+    int total_bytes() const { return BlockSize * BlockCount; }
+    int used_bytes() const { return (BlockCount - (_free_list_end - _free_list)) * BlockSize; }
+    int exceeded_bytes() const { return _exceeded_bytes; }
 
     FixedMemoryPool() {
+        _exceeded_bytes = 0;
         _free_list_end = _free_list + BlockCount;
         for(int i = 0; i < BlockCount; ++i) {
             _free_list[i] = _blocks + i;
@@ -222,6 +229,7 @@ struct FixedMemoryPool {
             --_free_list_end;
             return *_free_list_end;
         } else {
+            _exceeded_bytes += BlockSize;
             return std::malloc(BlockSize);
         }
     }
@@ -232,12 +240,13 @@ struct FixedMemoryPool {
             *_free_list_end = static_cast<Block*>(p);
             ++_free_list_end;
         } else {
+            _exceeded_bytes -= BlockSize;
             std::free(p);
         }
     }
 };
 
-static FixedMemoryPool<kPoolExprBlockSize, 32> PoolExpr;
+static FixedMemoryPool<kPoolExprBlockSize, 64> PoolExpr;
 static FixedMemoryPool<kPoolFrameBlockSize, 128> PoolFrame;
 static MemoryPool<80> PoolObject;
 
@@ -254,5 +263,44 @@ void* PoolObject_alloc(size_t size) noexcept { return PoolObject.alloc(size); }
 void PoolObject_dealloc(void* p) noexcept { PoolObject.dealloc(p); }
 
 void PoolObject_shrink_to_fit() noexcept { PoolObject.shrink_to_fit(); }
+
+void Pools_debug_info(char* buffer, int size) noexcept {
+    double BYTES_PER_MB = 1024.0f * 1024.0f;
+    double BYTES_PER_KB = 1024.0f;
+    int n = 0;
+    n = snprintf(
+        buffer, size,  "PoolExpr: %.2f KB (used) / %.2f KB (total) - %.2f KB (exceeded)\n",
+        PoolExpr.used_bytes() / BYTES_PER_KB,
+        PoolExpr.total_bytes() / BYTES_PER_KB,
+        PoolExpr.exceeded_bytes() / BYTES_PER_KB
+    );
+    buffer += n; size -= n;
+    n = snprintf(
+        buffer, size, "PoolFrame: %.2f KB (used) / %.2f KB (total) - %.2f KB (exceeded)\n",
+        PoolFrame.used_bytes() / BYTES_PER_KB,
+        PoolFrame.total_bytes() / BYTES_PER_KB,
+        PoolFrame.exceeded_bytes() / BYTES_PER_KB
+    );
+    buffer += n; size -= n;
+    // PoolObject
+    int empty_arenas = PoolObject._empty_arenas.size();
+    int arenas = PoolObject._arenas.size();
+    // print empty arenas count
+    n = snprintf(
+        buffer, size, "PoolObject: %d empty arenas, %d total arenas\n",
+        empty_arenas, arenas + empty_arenas
+    );
+    buffer += n; size -= n;
+    // log each non-empty arena
+    PoolObject._arenas.apply([&](MemoryPool<80>::Arena* arena) {
+        n = snprintf(
+            buffer, size, "  - %p: %.2f MB (used) / %.2f MB (total)\n",
+            (void*)arena,
+            arena->used_bytes() / BYTES_PER_MB,
+            arena->total_bytes() / BYTES_PER_MB
+        );
+        buffer += n; size -= n;
+    });
+}
 
 }  // namespace pkpy
