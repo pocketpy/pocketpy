@@ -87,7 +87,6 @@ struct PyTypeInfo {
     i64 (*m__hash__)(VM* vm, PyVar) = nullptr;
     i64 (*m__len__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__iter__)(VM* vm, PyVar) = nullptr;
-    void (*op__iter__)(VM* vm, PyVar) = nullptr;
     unsigned (*op__next__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__neg__)(VM* vm, PyVar) = nullptr;
     PyVar (*m__invert__)(VM* vm, PyVar) = nullptr;
@@ -218,7 +217,6 @@ public:
     constexpr static Type tp_staticmethod = Type(22), tp_classmethod = Type(23);
     constexpr static Type tp_none_type = Type(kTpNoneTypeIndex), tp_not_implemented_type = Type(kTpNotImplementedTypeIndex);
     constexpr static Type tp_ellipsis = Type(26);
-    constexpr static Type tp_stack_memory = Type(kTpStackMemoryIndex);
 
     constexpr static PyVar True{const_sso_var(), tp_bool, 1};
     constexpr static PyVar False{const_sso_var(), tp_bool, 0};
@@ -451,15 +449,6 @@ public:
         if constexpr(is_sso_v<T>) return PyVar(type, T(std::forward<Args>(args)...));
         else return heap.gcnew<T>(type, std::forward<Args>(args)...);
     }
-
-    template<typename T, typename ...Args>
-    void new_stack_object(Type type, Args&&... args){
-        static_assert(std::is_same_v<T, std::decay_t<T>>);
-        static_assert(std::is_trivially_destructible_v<T>);
-        PyObject* p = new(__stack_alloc(py_sizeof<T>)) PyObject(type);
-        p->placement_new<T>(std::forward<Args>(args)...);
-        vm->s_data.emplace(p->type, p);
-    }
 #endif
 
     template <typename T>
@@ -540,7 +529,6 @@ template<> constexpr Type _tp_builtin<Property>() { return VM::tp_property; }
 template<> constexpr Type _tp_builtin<StarWrapper>() { return VM::tp_star_wrapper; }
 template<> constexpr Type _tp_builtin<StaticMethod>() { return VM::tp_staticmethod; }
 template<> constexpr Type _tp_builtin<ClassMethod>() { return VM::tp_classmethod; }
-template<> constexpr Type _tp_builtin<StackMemory>() { return VM::tp_stack_memory; }
 
 // clang-format on
 

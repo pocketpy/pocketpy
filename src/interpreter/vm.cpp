@@ -450,23 +450,8 @@ void VM::__stack_gc_mark(PyVar* begin, PyVar* end) {
     for(PyVar* it = begin; it != end; it++) {
         if(it->is_ptr) {
             __obj_gc_mark(it->get());
-        } else {
-            if(it->type == tp_stack_memory) {
-                // [sm:3, _0, _1, _2, sm:-3]
-                int count = it->as<StackMemory>().count;
-                if(count > 0) it += count;
-            }
         }
     }
-}
-
-void* VM::__stack_alloc(int size) {
-    int count = size / sizeof(PyVar) + 1;
-    s_data.emplace(tp_stack_memory, StackMemory(count));
-    void* out = s_data._sp;
-    s_data._sp += count;
-    s_data.emplace(tp_stack_memory, StackMemory(-count));
-    return out;
 }
 
 List VM::py_list(PyVar it) {
@@ -851,12 +836,6 @@ void VM::__log_s_data(const char* title) {
                 case tp_type: ss << "<class " + _type_name(this, p->obj_get<Type>()).escape() + ">"; break;
                 case tp_list: ss << "list(size=" << p->obj_get<List>().size() << ")"; break;
                 case tp_tuple: ss << "tuple(size=" << p->obj_get<Tuple>().size() << ")"; break;
-                case tp_stack_memory: {
-                    int count = p->obj_get<StackMemory>().count;
-                    ss << "M[" << count << "]";
-                    if(count > 0) p += count;
-                    break;
-                }
                 default: ss << "(" << _type_name(this, p->type) << ")"; break;
             }
         }
@@ -913,7 +892,6 @@ void VM::__init_builtin_types() {
     validate(tp_none_type, new_type_object(nullptr, "NoneType", tp_object, false));
     validate(tp_not_implemented_type, new_type_object(nullptr, "NotImplementedType", tp_object, false));
     validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
-    validate(tp_stack_memory, new_type_object<StackMemory>(nullptr, "_stack_memory", tp_object, false));
 
     // SyntaxError and IndentationError must be created here
     PyObject* SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);

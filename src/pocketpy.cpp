@@ -400,14 +400,6 @@ void __init_builtins(VM* _vm) {
             return vm->new_user_object<RangeIterR>(r);
         }
     });
-    _vm->_all_types[VM::tp_range].op__iter__ = [](VM* vm, PyVar _0) {
-        const Range& r = PK_OBJ_GET(Range, _0);
-        if(r.step > 0) {
-            vm->new_stack_object<RangeIter>(vm->_tp_user<RangeIter>(), r);
-        } else {
-            vm->new_stack_object<RangeIterR>(vm->_tp_user<RangeIterR>(), r);
-        }
-    };
 
     // tp_nonetype
     _vm->bind__repr__(_vm->_tp(_vm->None), [](VM* vm, PyVar _0) -> Str {
@@ -1053,10 +1045,6 @@ void __init_builtins(VM* _vm) {
         List& self = _CAST(List&, _0);
         return vm->new_user_object<ArrayIter>(_0.get(), self.begin(), self.end());
     });
-    _vm->_all_types[VM::tp_list].op__iter__ = [](VM* vm, PyVar _0) {
-        List& self = _CAST(List&, _0);
-        vm->new_stack_object<ArrayIter>(vm->_tp_user<ArrayIter>(), _0.get(), self.begin(), self.end());
-    };
 
     _vm->bind__getitem__(VM::tp_list, PyArrayGetItem<List>);
     _vm->bind__setitem__(VM::tp_list, [](VM* vm, PyVar _0, PyVar _1, PyVar _2) {
@@ -1122,10 +1110,6 @@ void __init_builtins(VM* _vm) {
         Tuple& self = _CAST(Tuple&, _0);
         return vm->new_user_object<ArrayIter>(_0.get(), self.begin(), self.end());
     });
-    _vm->_all_types[VM::tp_tuple].op__iter__ = [](VM* vm, PyVar _0) {
-        Tuple& self = _CAST(Tuple&, _0);
-        vm->new_stack_object<ArrayIter>(vm->_tp_user<ArrayIter>(), _0.get(), self.begin(), self.end());
-    };
 
     _vm->bind__getitem__(VM::tp_tuple, PyArrayGetItem<Tuple>);
     _vm->bind__len__(VM::tp_tuple, [](VM* vm, PyVar obj) {

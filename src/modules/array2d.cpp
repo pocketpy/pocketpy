@@ -401,9 +401,6 @@ void add_module_array2d(VM* vm) {
     vm->bind__iter__(array2d_iter_t, [](VM* vm, PyVar _0) {
         return vm->new_user_object<Array2dIter>(_0, &_0.obj_get<Array2d>());
     });
-    vm->_all_types[array2d_iter_t].op__iter__ = [](VM* vm, PyVar _0) {
-        vm->new_stack_object<Array2dIter>(vm->_tp_user<Array2dIter>(), _0, &_0.obj_get<Array2d>());
-    };
 }
 
 }  // namespace pkpy

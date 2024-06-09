@@ -880,16 +880,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     /*****************************************/
                     case OP_UNARY_NEGATIVE: TOP() = py_negate(TOP()); DISPATCH()
-                    case OP_UNARY_NOT: {
-                        PyVar _0 = TOP();
-                        if(_0 == True)
-                            TOP() = False;
-                        else if(_0 == False)
-                            TOP() = True;
-                        else
-                            TOP() = VAR(!py_bool(_0));
-                    }
-                        DISPATCH()
+                    case OP_UNARY_NOT: TOP() = VAR(!py_bool(TOP())); DISPATCH()  
                     case OP_UNARY_STAR: TOP() = VAR(StarWrapper(byte.arg, TOP())); DISPATCH()
                     case OP_UNARY_INVERT: {
                         PyVar _0;
@@ -903,17 +894,7 @@ PyVar VM::__run_top_frame() {
                         DISPATCH()
                     /*****************************************/
                     case OP_GET_ITER: TOP() = py_iter(TOP()); DISPATCH()
-                    case OP_GET_ITER_NEW: {
-                        // This opcode always creates a temporary iterator object
-                        const PyTypeInfo* _ti = _tp_info(TOP());
-                        if(_ti->op__iter__) {
-                            PyVar _0 = POPX();
-                            _ti->op__iter__(this, _0);
-                        } else {
-                            TOP() = py_iter(TOP());
-                        }
-                        DISPATCH()
-                    }
+                    case OP_GET_ITER_NEW: TOP() = py_iter(TOP()); DISPATCH()
                     case OP_FOR_ITER: {
                         PyVar _0 = py_next(TOP());
                         if(_0 == StopIteration) {
