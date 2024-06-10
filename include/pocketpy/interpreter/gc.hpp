@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/vector.hpp"
-#include "pocketpy/common/utils.hpp"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.hpp"
 #include "pocketpy/objects/namedict.hpp"
 

@@ -446,7 +446,7 @@ PyVar VM::__run_top_frame() {
                     case OP_BUILD_BYTES: {
                         const Str& s = CAST(Str&, TOP());
                         unsigned char* p = (unsigned char*)std::malloc(s.size);
-                        std::memcpy(p, s.data, s.size);
+                        std::memcpy(p, s.c_str(), s.size);
                         TOP() = VAR(Bytes(p, s.size));
                     }
                         DISPATCH()

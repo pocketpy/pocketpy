@@ -18,7 +18,9 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-SRC=$(find src/ -name "*.cpp")
+SRC_C=$(find src/ -name "*.c")
+SRC_CPP=$(find src/ -name "*.cpp")
+SRC="$SRC_C $SRC_CPP"
 
 echo "> Compiling and linking source files... "
 

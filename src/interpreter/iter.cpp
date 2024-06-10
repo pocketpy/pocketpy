@@ -49,7 +49,7 @@ void StringIter::_register(VM* vm, PyObject* mod, PyObject* type) {
         Str& s = PK_OBJ_GET(Str, self.ref);
         if(self.i == s.size) return 0;
         int start = self.i;
-        int len = utf8len(s.data[self.i]);
+        int len = pkpy_utils__u8len(s[self.i], false);
         self.i += len;
         vm->s_data.push(VAR(s.substr(start, len)));
         return 1;

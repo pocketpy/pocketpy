@@ -37,4 +37,11 @@ struct has_gc_marker<T, std::void_t<decltype(&T::_gc_mark)>> : std::true_type {}
 
 template <typename T>
 constexpr inline int py_sizeof = 16 + sizeof(T);
+
+#define PK_ALWAYS_PASS_BY_POINTER(T)                                                                                   \
+    T(const T&) = delete;                                                                                              \
+    T& operator= (const T&) = delete;                                                                                  \
+    T(T&&) = delete;                                                                                                   \
+    T& operator= (T&&) = delete;
+
 }  // namespace pkpy

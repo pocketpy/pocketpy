@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pocketpy/common/utils.hpp"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/common/str.hpp"
 
 namespace pkpy {

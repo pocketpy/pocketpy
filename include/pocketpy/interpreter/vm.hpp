@@ -319,8 +319,8 @@ public:
 #endif
 
 #if PK_REGION("Logging Methods")
-    virtual void stdout_write(const Str& s){ _stdout(s.data, s.size); }
-    virtual void stderr_write(const Str& s){ _stderr(s.data, s.size); }
+    virtual void stdout_write(const Str& s){ _stdout(s.c_str(), s.size); }
+    virtual void stderr_write(const Str& s){ _stderr(s.c_str(), s.size); }
 #endif
 
 #if PK_REGION("Magic Bindings")

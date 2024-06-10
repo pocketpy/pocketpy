@@ -1,80 +1,162 @@
 #pragma once
 
-#include "pocketpy/common/utils.hpp"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/common/memorypool.hpp"
 #include "pocketpy/common/vector.hpp"
+#include "pocketpy/common/str.h"
 
 #include <string_view>
+#include <ostream>
 
 namespace pkpy {
 
-int utf8len(unsigned char c, bool suppress = false);
 struct SStream;
 
-struct Str {
-    int size;
-    bool is_ascii;
-    char* data;
-    char _inlined[16];
+struct Str: pkpy_Str {
+    bool is_inlined() const { return is_sso; }
 
-    bool is_inlined() const { return data == _inlined; }
+    Str(){
+        pkpy_Str__ctor2(this, "", 0);
+    }
 
-    Str();
-    Str(int size, bool is_ascii);
-    Str(const std::string& s);
-    Str(std::string_view s);
-    Str(const char* s);
-    Str(const char* s, int len);
+    Str(pkpy_Str&& s){
+        std::memcpy(this, &s, sizeof(pkpy_Str));
+    }
+
+    Str(const std::string& s){
+        pkpy_Str__ctor2(this, s.data(), s.size());
+    }
+
+    Str(std::string_view s){
+        pkpy_Str__ctor2(this, s.data(), s.size());
+    }
+
+    Str(const char* s){
+        pkpy_Str__ctor2(this, s, strlen(s));
+    }
+
+    Str(const char* s, int len){
+        pkpy_Str__ctor2(this, s, len);
+    }
+
     Str(pair<char*, int>);      // take ownership
-    Str(const Str& other);
-    Str(Str&& other);
+
+    Str(const Str& other){
+        pkpy_Str__ctor2(this, pkpy_Str__data(&other), other.size);
+    }
+
+    Str(Str&& other){
+        std::memcpy(this, &other, sizeof(pkpy_Str));
+        other.size = 0;
+        other.is_sso = true;
+    }
 
     operator std::string_view () const { return sv(); }
-
-    const char* begin() const { return data; }
-
-    const char* end() const { return data + size; }
-
-    char operator[] (int idx) const { return data[idx]; }
-
+    const char* begin() const { return pkpy_Str__data(this); }
+    const char* end() const { return pkpy_Str__data(this) + size; }
     int length() const { return size; }
-
+    char operator[] (int idx) const { return pkpy_Str__data(this)[idx]; }
     bool empty() const { return size == 0; }
-
     size_t hash() const { return std::hash<std::string_view>()(sv()); }
 
-    Str& operator= (const Str&);
-    Str operator+ (const Str&) const;
-    Str operator+ (const char*) const;
-    friend Str operator+ (const char*, const Str&);
+    Str& operator= (const Str& other){
+        pkpy_Str__dtor(this);
+        pkpy_Str__ctor2(this, pkpy_Str__data(&other), other.size);
+        return *this;
+    }
 
-    bool operator== (const std::string_view other) const;
-    bool operator!= (const std::string_view other) const;
-    bool operator< (const std::string_view other) const;
-    friend bool operator< (const std::string_view other, const Str& str);
+    Str operator+ (const Str& other) const{
+        return pkpy_Str__concat(this, &other);
+    }
 
-    bool operator== (const char* p) const;
-    bool operator!= (const char* p) const;
+    Str operator+ (const char* other) const{
+        return pkpy_Str__concat2(this, other, strlen(other));
+    }
 
-    bool operator== (const Str& other) const;
-    bool operator!= (const Str& other) const;
-    bool operator< (const Str& other) const;
-    bool operator> (const Str& other) const;
-    bool operator<= (const Str& other) const;
-    bool operator>= (const Str& other) const;
+    friend Str operator+ (const char* self, const Str& other){
+        pkpy_Str tmp;
+        pkpy_Str__ctor2(&tmp, self, strlen(self));
+        pkpy_Str retval = pkpy_Str__concat(&tmp, &other);
+        pkpy_Str__dtor(&tmp);
+        return retval;
+    }
 
-    ~Str();
+    bool operator== (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res == 0;
+    }
 
-    friend std::ostream& operator<< (std::ostream& os, const Str& str);
+    bool operator!= (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res != 0;
+    }
 
-    const char* c_str() const { return data; }
+    bool operator< (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res < 0;
+    }
 
-    std::string_view sv() const { return std::string_view(data, size); }
+    friend bool operator< (const std::string_view other, const Str& str){
+        int res = pkpy_Str__cmp2(&str, other.data(), other.size());
+        return res > 0;
+    }
 
-    std::string str() const { return std::string(data, size); }
+    bool operator== (const char* p) const{
+        int res = pkpy_Str__cmp2(this, p, strlen(p));
+        return res == 0;
+    }
 
-    Str substr(int start, int len) const;
-    Str substr(int start) const;
+    bool operator!= (const char* p) const{
+        int res = pkpy_Str__cmp2(this, p, strlen(p));
+        return res != 0;
+    }
+
+    bool operator== (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) == 0;
+    }
+    bool operator!= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) != 0;
+    }
+    bool operator< (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) < 0;
+    }
+    bool operator> (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) > 0;
+    }
+    bool operator<= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) <= 0;
+    }
+    bool operator>= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) >= 0;
+    }
+
+    ~Str(){
+        pkpy_Str__dtor(this);
+    }
+
+    friend std::ostream& operator<< (std::ostream& os, const Str& self){
+        os.write(pkpy_Str__data(&self), self.size);
+        return os;
+    }
+
+    const char* c_str() const { return pkpy_Str__data(this); }
+
+    std::string_view sv() const {
+        return std::string_view(pkpy_Str__data(this), size);
+    }
+
+    std::string str() const {
+        return std::string(pkpy_Str__data(this), size);
+    }
+
+    Str substr(int start, int size) const{
+        return pkpy_Str__substr2(this, start, size);
+    }
+
+    Str substr(int start) const{
+        return pkpy_Str__substr(this, start);
+    }
+
     Str strip(bool left, bool right, const Str& chars) const;
     Str strip(bool left = true, bool right = true) const;
 
@@ -82,23 +164,52 @@ struct Str {
 
     Str rstrip() const { return strip(false, true); }
 
-    Str lower() const;
-    Str upper() const;
+    Str lower() const{
+        return pkpy_Str__lower(this);
+    }
+    Str upper() const{
+        return pkpy_Str__upper(this);
+    }
+    Str replace(char old, char new_) const{
+        return pkpy_Str__replace(this, old, new_);
+    }
+    Str replace(const Str& old, const Str& new_) const{
+        return pkpy_Str__replace2(this, &old, &new_);
+    }
+
     Str escape(bool single_quote = true) const;
     void escape_(SStream& ss, bool single_quote = true) const;
-    int index(const Str& sub, int start = 0) const;
-    Str replace(char old, char new_) const;
-    Str replace(const Str& old, const Str& new_, int count = -1) const;
     vector<std::string_view> split(const Str& sep) const;
     vector<std::string_view> split(char sep) const;
-    int count(const Str& sub) const;
+
+    int index(const Str& sub, int start = 0) const{
+        return pkpy_Str__index(this, &sub, start);
+    }
+
+    int count(const Str& sub) const{
+        return pkpy_Str__count(this, &sub);
+    }
 
     /*************unicode*************/
-    int _unicode_index_to_byte(int i) const;
-    int _byte_index_to_unicode(int n) const;
-    Str u8_getitem(int i) const;
-    Str u8_slice(int start, int stop, int step) const;
-    int u8_length() const;
+    int _unicode_index_to_byte(int i) const{
+        return pkpy_Str__unicode_index_to_byte(this, i);
+    }
+
+    int _byte_index_to_unicode(int n) const{
+        return pkpy_Str__byte_index_to_unicode(this, n);
+    }
+
+    Str u8_getitem(int i) const{
+        return pkpy_Str__u8_getitem(this, i);
+    }
+
+    Str u8_slice(int start, int stop, int step) const{
+        return pkpy_Str__u8_slice(this, start, stop, step);
+    }
+
+    int u8_length() const{
+        return pkpy_Str__u8_length(this);
+    }
 };
 
 struct StrName {

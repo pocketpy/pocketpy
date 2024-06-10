@@ -539,7 +539,7 @@ void __init_builtins(VM* _vm) {
         double float_out;
         char* p_end;
         try {
-            float_out = std::strtod(s.data, &p_end);
+            float_out = std::strtod(s.c_str(), &p_end);
             if(p_end != s.end()) throw 1;
         } catch(...) { vm->ValueError("invalid literal for float(): " + s.escape()); }
         return VAR(float_out);
@@ -636,13 +636,12 @@ void __init_builtins(VM* _vm) {
         return VAR(self.u8_getitem(i));
     });
 
-    _vm->bind(_vm->_t(VM::tp_str), "replace(self, old, new, count=-1)", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->_t(VM::tp_str), "replace(self, old, new)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& old = CAST(Str&, args[1]);
         if(old.empty()) vm->ValueError("empty substring");
         const Str& new_ = CAST(Str&, args[2]);
-        int count = CAST(int, args[3]);
-        return VAR(self.replace(old, new_, count));
+        return VAR(self.replace(old, new_));
     });
 
     _vm->bind(_vm->_t(VM::tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
@@ -705,14 +704,14 @@ void __init_builtins(VM* _vm) {
         const Str& suffix = CAST(Str&, args[1]);
         int offset = self.length() - suffix.length();
         if(offset < 0) return vm->False;
-        bool ok = memcmp(self.data + offset, suffix.data, suffix.length()) == 0;
+        bool ok = memcmp(self.c_str() + offset, suffix.c_str(), suffix.length()) == 0;
         return VAR(ok);
     });
 
     _vm->bind_func(VM::tp_str, "encode", 1, [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         Bytes retval(self.length());
-        std::memcpy(retval.data(), self.data, self.length());
+        std::memcpy(retval.data(), self.c_str(), self.length());
         return VAR(std::move(retval));
     });
 
