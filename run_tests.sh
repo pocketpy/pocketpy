@@ -1,5 +1,9 @@
 python prebuild.py
-SRC=$(find src/ -name "*.cpp")
+
+SRC_C=$(find src/ -name "*.c")
+SRC_CPP=$(find src/ -name "*.cpp")
+SRC="$SRC_C $SRC_CPP"
+
 clang++ -std=c++17 --coverage -O1 -stdlib=libc++ -frtti -Wfatal-errors -o main src2/main.cpp $SRC -Iinclude -DPK_ENABLE_OS=1 -DPK_DEBUG_PRECOMPILED_EXEC=1 -DPK_ENABLE_PROFILER=1
 
 python scripts/run_tests.py
