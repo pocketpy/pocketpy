@@ -351,7 +351,7 @@ int pkpy_Str__count(const pkpy_Str *self, const pkpy_Str *sub){
     return cnt;
 }
 
-c11_array/* T=c11_string */ pkpy_Str__split(const pkpy_Str *self, char sep){
+c11_vector/* T=c11_string */ pkpy_Str__split(const pkpy_Str *self, char sep){
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_string));
     const char* data = pkpy_Str__data(self);
@@ -370,10 +370,10 @@ c11_array/* T=c11_string */ pkpy_Str__split(const pkpy_Str *self, char sep){
         c11_string tmp = {data + i, self->size - i};
         c11_vector__push(c11_string, &retval, tmp);
     }
-    return c11_vector__as_array(&retval);
+    return retval;
 }
 
-c11_array/* T=c11_string */ pkpy_Str__split2(const pkpy_Str *self, const pkpy_Str *sep){
+c11_vector/* T=c11_string */ pkpy_Str__split2(const pkpy_Str *self, const pkpy_Str *sep){
     c11_vector retval;
     c11_vector__ctor(&retval, sizeof(c11_string));
     int start = 0;
@@ -387,5 +387,5 @@ c11_array/* T=c11_string */ pkpy_Str__split2(const pkpy_Str *self, const pkpy_St
     }
     c11_string tmp = {data + start, self->size - start};
     if(tmp.size != 0) c11_vector__push(c11_string, &retval, tmp);
-    return c11_vector__as_array(&retval);
+    return retval;
 }

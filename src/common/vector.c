@@ -60,11 +60,3 @@ void c11_vector__reserve(c11_vector* self, int capacity){
     self->data = realloc(self->data, self->elem_size * self->capacity);
 }
 
-c11_array c11_vector__as_array(c11_vector* self){
-    c11_array retval = {
-        .data = self->data,
-        .count = self->count,
-        .elem_size = self->elem_size,
-    };
-    return retval;
-}

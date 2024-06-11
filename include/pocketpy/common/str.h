@@ -56,8 +56,8 @@ int pkpy_Str__unicode_index_to_byte(const pkpy_Str* self, int i);
 int pkpy_Str__byte_index_to_unicode(const pkpy_Str* self, int n);
 int pkpy_Str__index(const pkpy_Str* self, const pkpy_Str* sub, int start);
 int pkpy_Str__count(const pkpy_Str* self, const pkpy_Str* sub);
-c11_array/* T=c11_string */ pkpy_Str__split(const pkpy_Str* self, char sep);
-c11_array/* T=c11_string */ pkpy_Str__split2(const pkpy_Str* self, const pkpy_Str* sep);
+c11_vector/* T=c11_string */ pkpy_Str__split(const pkpy_Str* self, char sep);
+c11_vector/* T=c11_string */ pkpy_Str__split2(const pkpy_Str* self, const pkpy_Str* sep);
 
 #ifdef __cplusplus
 }

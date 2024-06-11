@@ -192,24 +192,24 @@ struct Str: pkpy_Str {
     }
 
     vector<std::string_view> split(const Str& sep) const{
-        c11_array/* T=c11_string */ res = pkpy_Str__split2(this, &sep);
+        c11_vector/* T=c11_string */ res = pkpy_Str__split2(this, &sep);
         vector<std::string_view> retval(res.count);
         for(int i = 0; i < res.count; i++){
             c11_string tmp = c11__getitem(c11_string, &res, i);
             retval[i] = std::string_view(tmp.data, tmp.size);
         }
-        c11_array__dtor(&res);
+        c11_vector__dtor(&res);
         return retval;
     }
 
     vector<std::string_view> split(char sep) const{
-        c11_array/* T=c11_string */ res = pkpy_Str__split(this, sep);
+        c11_vector/* T=c11_string */ res = pkpy_Str__split(this, sep);
         vector<std::string_view> retval(res.count);
         for(int i = 0; i < res.count; i++){
             c11_string tmp = c11__getitem(c11_string, &res, i);
             retval[i] = std::string_view(tmp.data, tmp.size);
         }
-        c11_array__dtor(&res);
+        c11_vector__dtor(&res);
         return retval;
     }
 

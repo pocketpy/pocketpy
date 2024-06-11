@@ -27,7 +27,6 @@ void c11_vector__dtor(c11_vector* self);
 c11_vector c11_vector__copy(const c11_vector* self);
 void* c11_vector__at(c11_vector* self, int index);
 void c11_vector__reserve(c11_vector* self, int capacity);
-c11_array c11_vector__as_array(c11_vector* self);
 
 #define c11__getitem(T, self, index) ((T*)(self)->data)[index]
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
