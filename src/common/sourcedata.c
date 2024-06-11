@@ -10,7 +10,7 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
                            const char* source,
                            int source_size,
                            const pkpy_Str* filename,
-                           enum pkpy_CompileMode mode) {
+                           enum CompileMode mode) {
     self->filename = pkpy_Str__copy(filename);  // OPTIMIZEME?
     self->mode = mode;
 
