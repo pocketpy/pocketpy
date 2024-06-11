@@ -108,7 +108,7 @@ Error* Lexer::eat_name() noexcept{
     curr_char--;
     while(true) {
         unsigned char c = peekchar();
-        int u8bytes = pkpy_utils__u8len(c, true);
+        int u8bytes = pkpy_utils__u8_header(c, true);
         if(u8bytes == 0) return SyntaxError("invalid char: %c", c);
         if(u8bytes == 1) {
             if(isalpha(c) || c == '_' || isdigit(c)) {

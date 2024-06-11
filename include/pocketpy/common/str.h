@@ -24,7 +24,7 @@ inline int pkpy_Str__size(const pkpy_Str* self){
     return self->size;
 }
 
-int pkpy_utils__u8len(unsigned char c, bool suppress);
+int pkpy_utils__u8_header(unsigned char c, bool suppress);
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
 void pkpy_Str__ctor2(pkpy_Str* self, const char* data, int size);
 void pkpy_Str__dtor(pkpy_Str* self);
