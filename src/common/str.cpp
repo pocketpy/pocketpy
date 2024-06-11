@@ -56,43 +56,6 @@ Str Str::strip(bool left, bool right) const {
     }
 }
 
-Str Str::escape(bool single_quote) const {
-    SStream ss;
-    escape_(ss, single_quote);
-    return ss.str();
-}
-
-void Str::escape_(SStream& ss, bool single_quote) const {
-    ss << (single_quote ? '\'' : '"');
-    for(int i = 0; i < size; i++) {
-        char c = this->operator[] (i);
-        switch(c) {
-            case '"':
-                if(!single_quote) ss << '\\';
-                ss << '"';
-                break;
-            case '\'':
-                if(single_quote) ss << '\\';
-                ss << '\'';
-                break;
-            case '\\': ss << '\\' << '\\'; break;
-            case '\n': ss << "\\n"; break;
-            case '\r': ss << "\\r"; break;
-            case '\t': ss << "\\t"; break;
-            case '\b': ss << "\\b"; break;
-            default:
-                if('\x00' <= c && c <= '\x1f') {
-                    ss << "\\x";  // << std::hex << std::setw(2) << std::setfill('0') << (int)c;
-                    ss << PK_HEX_TABLE[c >> 4];
-                    ss << PK_HEX_TABLE[c & 0xf];
-                } else {
-                    ss << c;
-                }
-        }
-    }
-    ss << (single_quote ? '\'' : '"');
-}
-
 vector<std::string_view> Str::split(const Str& sep) const {
     vector<std::string_view> result;
     std::string_view tmp;

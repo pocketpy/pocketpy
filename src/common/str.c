@@ -118,6 +118,62 @@ pkpy_Str pkpy_Str__upper(const pkpy_Str *self){
     return retval;
 }
 
+pkpy_Str pkpy_Str__escape(const pkpy_Str* self, char quote){
+    assert(quote == '"' || quote == '\'');
+    c11_vector buffer;
+    c11_vector__ctor(&buffer, sizeof(char));
+    c11_vector__reserve(&buffer, self->size);
+    c11_vector__push(char, &buffer, quote);
+    const char* data = pkpy_Str__data(self);
+    for(int i = 0; i < self->size; i++) {
+        char c = data[i];
+        switch(c) {
+            case '"': case '\'':
+                if(c == quote) c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, c);
+                break;
+            case '\\':
+                c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, '\\');
+                break;
+            case '\n':
+                c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, 'n');
+                break;
+            case '\r':
+                c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, 'r');
+                break;
+            case '\t':
+                c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, 't');
+                break;
+            case '\b':
+                c11_vector__push(char, &buffer, '\\');
+                c11_vector__push(char, &buffer, 'b');
+                break;
+            default:
+                if('\x00' <= c && c <= '\x1f') {
+                    c11_vector__push(char, &buffer, '\\');
+                    c11_vector__push(char, &buffer, 'x');
+                    c11_vector__push(char, &buffer, PK_HEX_TABLE[c >> 4]);
+                    c11_vector__push(char, &buffer, PK_HEX_TABLE[c & 0xf]);
+                } else {
+                    c11_vector__push(char, &buffer, c);
+                }
+        }
+    }
+    c11_vector__push(char, &buffer, quote);
+    c11_vector__push(char, &buffer, '\0');
+    pkpy_Str retval = {
+        .size = buffer.count - 1,
+        .is_ascii = self->is_ascii,
+        .is_sso = false,
+        ._ptr = (char*)buffer.data,
+    };
+    return retval;
+}
+
 pkpy_Str pkpy_Str__replace(const pkpy_Str *self, char old, char new_){
     pkpy_Str retval = pkpy_Str__copy(self);
     char* p = (char*)pkpy_Str__data(&retval);
@@ -143,8 +199,9 @@ pkpy_Str pkpy_Str__replace2(const pkpy_Str *self, const pkpy_Str *old, const pkp
     pkpy_Str tmp = pkpy_Str__substr2(self, start, self->size - start);
     c11_vector__extend(char, &buffer, pkpy_Str__data(&tmp), tmp.size);
     pkpy_Str__dtor(&tmp);
+    c11_vector__push(char, &buffer, '\0');
     pkpy_Str retval = {
-        .size = buffer.count,
+        .size = buffer.count - 1,
         .is_ascii = self->is_ascii && old->is_ascii && new_->is_ascii,
         .is_sso = false,
         ._ptr = (char*)buffer.data,
@@ -189,8 +246,9 @@ pkpy_Str pkpy_Str__u8_slice(const pkpy_Str *self, int start, int stop, int step)
             pkpy_Str__dtor(&unicode);
         }
     }
+    c11_vector__push(char, &buffer, '\0');
     pkpy_Str retval = {
-        .size = buffer.count,
+        .size = buffer.count - 1,
         .is_ascii = self->is_ascii,
         .is_sso = false,
         ._ptr = (char*)buffer.data,

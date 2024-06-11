@@ -38,7 +38,7 @@ struct JsonSerializer {
             if(!is_type(k, VM::tp_str)) {
                 vm->TypeError(_S("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
             }
-            ss << _CAST(Str&, k).escape(false) << ": ";
+            ss << _CAST(Str&, k).escape('"') << ": ";
             write_object(v);
         });
         ss << '}';
@@ -57,7 +57,7 @@ struct JsonSerializer {
         } else if(obj_t == vm->tp_bool) {
             ss << (obj == vm->True ? "true" : "false");
         } else if(obj_t == vm->tp_str) {
-            _CAST(Str&, obj).escape_(ss, false);
+            ss << _CAST(Str&, obj).escape('"');
         } else if(obj_t == vm->tp_list) {
             write_array<List>(_CAST(List&, obj));
         } else if(obj_t == vm->tp_tuple) {

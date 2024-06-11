@@ -177,8 +177,10 @@ struct Str: pkpy_Str {
         return pkpy_Str__replace2(this, &old, &new_);
     }
 
-    Str escape(bool single_quote = true) const;
-    void escape_(SStream& ss, bool single_quote = true) const;
+    Str escape(char quote='\'') const{
+        return pkpy_Str__escape(this, quote);
+    }
+
     vector<std::string_view> split(const Str& sep) const;
     vector<std::string_view> split(char sep) const;
 
