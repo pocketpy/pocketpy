@@ -26,5 +26,5 @@ target("main")
 	if is_mode("debug") then
 		set_optimize("none")
 		set_symbols("debug")
-		add_defines("DEBUG")
+		add_defines("DEBUG", "PK_DEBUG_DATASTRUCTURE")
 	end
