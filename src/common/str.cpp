@@ -50,7 +50,7 @@ Str Str::strip(bool left, bool right) const {
             while(L < R && (data[R - 1] == ' ' || data[R - 1] == '\t' || data[R - 1] == '\n' || data[R - 1] == '\r'))
                 R--;
         }
-        return substr(L, R - L);
+        return slice(L, R);
     } else {
         return strip(left, right, " \t\n\r");
     }

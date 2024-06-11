@@ -51,7 +51,7 @@ void StringIter::_register(VM* vm, PyObject* mod, PyObject* type) {
         int start = self.i;
         int len = pkpy_utils__u8_header(s[self.i], false);
         self.i += len;
-        vm->s_data.push(VAR(s.substr(start, len)));
+        vm->s_data.push(VAR(s.slice(start, self.i)));
         return 1;
     });
 }

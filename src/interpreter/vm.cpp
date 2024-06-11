@@ -623,7 +623,7 @@ PyVar VM::__format_object(PyVar obj, Str spec) {
         case 'd':
         case 's':
             type = spec.end()[-1];
-            spec = spec.substr(0, spec.length() - 1);
+            spec = spec.slice(0, spec.length() - 1);
             break;
         default: type = ' '; break;
     }
@@ -660,9 +660,9 @@ PyVar VM::__format_object(PyVar obj, Str spec) {
             if(dot == 0) {
                 width = -1;
             } else {
-                width = std::stoi(spec.substr(0, dot).str());
+                width = std::stoi(spec.slice(0, dot).str());
             }
-            precision = std::stoi(spec.substr(dot + 1).str());
+            precision = std::stoi(spec.slice(dot + 1).str());
         } else {
             width = std::stoi(spec.str());
             precision = -1;
@@ -761,7 +761,7 @@ static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject
 
 Str VM::disassemble(CodeObject_ co) {
     auto pad = [](const Str& s, const int n) {
-        if(s.length() >= n) return s.substr(0, n);
+        if(s.length() >= n) return s.slice(0, n);
         return s + std::string(n - s.length(), ' ');
     };
 

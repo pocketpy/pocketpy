@@ -149,12 +149,16 @@ struct Str: pkpy_Str {
         return std::string(pkpy_Str__data(this), size);
     }
 
-    Str substr(int start, int size) const{
-        return pkpy_Str__substr2(this, start, size);
+    Str slice(int start, int stop) const{
+        return pkpy_Str__slice2(this, start, stop);
+    }
+
+    Str slice(int start) const{
+        return pkpy_Str__slice(this, start);
     }
 
     Str substr(int start) const{
-        return pkpy_Str__substr(this, start);
+        return pkpy_Str__slice(this, start);
     }
 
     Str strip(bool left, bool right, const Str& chars) const;
