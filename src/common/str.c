@@ -76,8 +76,8 @@ pkpy_Str pkpy_Str__copy(const pkpy_Str *self){
     pkpy_Str retval = *self;
     if(!self->is_sso){
         retval._ptr = (char*)malloc(self->size + 1);
+        // '\0' is copied
         memcpy(retval._ptr, self->_ptr, self->size + 1);
-        retval._ptr[retval.size] = '\0';
     }
     return retval;
 }
