@@ -175,44 +175,52 @@ pkpy_Str pkpy_Str__escape(const pkpy_Str* self, char quote){
     return retval;
 }
 
-// pkpy_Str pkpy_Str__strip(const pkpy_Str *self, bool left, bool right){
-//     const char* data = pkpy_Str__data(self);
-//     if(self->is_ascii) {
-//         int L = 0;
-//         int R = self->size;
-//         if(left) {
-//             while(L < R && (data[L] == ' ' || data[L] == '\t' || data[L] == '\n' || data[L] == '\r'))
-//                 L++;
-//         }
-//         if(right) {
-//             while(L < R && (data[R - 1] == ' ' || data[R - 1] == '\t' || data[R - 1] == '\n' || data[R - 1] == '\r'))
-//                 R--;
-//         }
-//         return pkpy_Str__substr2(self, L, R - L);
-//     } else {
-//         pkpy_Str tmp;
-//         pkpy_Str__ctor(&tmp, " \t\n\r");
-//         pkpy_Str retval = pkpy_Str__strip2(self, left, right, &tmp);
-//         pkpy_Str__dtor(&tmp);
-//         return retval;
-//     }
-// }
+pkpy_Str pkpy_Str__strip(const pkpy_Str *self, bool left, bool right){
+    const char* data = pkpy_Str__data(self);
+    if(self->is_ascii) {
+        int L = 0;
+        int R = self->size;
+        if(left) {
+            while(L < R && (data[L] == ' ' || data[L] == '\t' || data[L] == '\n' || data[L] == '\r'))
+                L++;
+        }
+        if(right) {
+            while(L < R && (data[R - 1] == ' ' || data[R - 1] == '\t' || data[R - 1] == '\n' || data[R - 1] == '\r'))
+                R--;
+        }
+        return pkpy_Str__slice2(self, L, R);
+    } else {
+        pkpy_Str tmp;
+        pkpy_Str__ctor(&tmp, " \t\n\r");
+        pkpy_Str retval = pkpy_Str__strip2(self, left, right, &tmp);
+        pkpy_Str__dtor(&tmp);
+        return retval;
+    }
+}
 
-// pkpy_Str pkpy_Str__strip2(const pkpy_Str *self, bool left, bool right, const pkpy_Str *chars){
-//     int L = 0;
-//     int R = pkpy_Str__u8_length(self);
-//     pkpy_Str tmp;
-//     if(left) {
-//         tmp = pkpy_Str__u8_getitem(self, L);
-//         while(L < R && chars.index(u8_getitem(L)) != -1)
-//             L++;
-//     }
-//     if(right) {
-//         while(L < R && chars.index(u8_getitem(R - 1)) != -1)
-//             R--;
-//     }
-//     return pkpy_Str__u8_slice(self, L, R, 1);
-// }
+pkpy_Str pkpy_Str__strip2(const pkpy_Str *self, bool left, bool right, const pkpy_Str *chars){
+    int L = 0;
+    int R = pkpy_Str__u8_length(self);
+    if(left) {
+        while(L < R){
+            pkpy_Str tmp = pkpy_Str__u8_getitem(self, L);
+            bool found = pkpy_Str__index(chars, &tmp, 0) != -1;
+            pkpy_Str__dtor(&tmp);
+            if(!found) break;
+            L++;
+        }
+    }
+    if(right) {
+        while(L < R){
+            pkpy_Str tmp = pkpy_Str__u8_getitem(self, R - 1);
+            bool found = pkpy_Str__index(chars, &tmp, 0) != -1;
+            pkpy_Str__dtor(&tmp);
+            if(!found) break;
+            R--;
+        }
+    }
+    return pkpy_Str__u8_slice(self, L, R, 1);
+}
 
 pkpy_Str pkpy_Str__replace(const pkpy_Str *self, char old, char new_){
     pkpy_Str retval = pkpy_Str__copy(self);

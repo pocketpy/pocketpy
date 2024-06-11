@@ -23,39 +23,6 @@ Str::Str(pair<char*, int> detached) {
     assert(_ptr[size] == '\0');
 }
 
-Str Str::strip(bool left, bool right, const Str& chars) const {
-    int L = 0;
-    int R = u8_length();
-    if(left) {
-        while(L < R && chars.index(u8_getitem(L)) != -1)
-            L++;
-    }
-    if(right) {
-        while(L < R && chars.index(u8_getitem(R - 1)) != -1)
-            R--;
-    }
-    return u8_slice(L, R, 1);
-}
-
-Str Str::strip(bool left, bool right) const {
-    const char* data = pkpy_Str__data(this);
-    if(is_ascii) {
-        int L = 0;
-        int R = size;
-        if(left) {
-            while(L < R && (data[L] == ' ' || data[L] == '\t' || data[L] == '\n' || data[L] == '\r'))
-                L++;
-        }
-        if(right) {
-            while(L < R && (data[R - 1] == ' ' || data[R - 1] == '\t' || data[R - 1] == '\n' || data[R - 1] == '\r'))
-                R--;
-        }
-        return slice(L, R);
-    } else {
-        return strip(left, right, " \t\n\r");
-    }
-}
-
 vector<std::string_view> Str::split(const Str& sep) const {
     vector<std::string_view> result;
     std::string_view tmp;

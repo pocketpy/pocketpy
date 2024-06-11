@@ -161,8 +161,13 @@ struct Str: pkpy_Str {
         return pkpy_Str__slice(this, start);
     }
 
-    Str strip(bool left, bool right, const Str& chars) const;
-    Str strip(bool left = true, bool right = true) const;
+    Str strip(bool left, bool right, const Str& chars) const{
+        return pkpy_Str__strip2(this, left, right, &chars);
+    }
+
+    Str strip(bool left = true, bool right = true) const{
+        return pkpy_Str__strip(this, left, right);
+    }
 
     Str lstrip() const { return strip(true, false); }
 
