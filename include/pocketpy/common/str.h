@@ -34,6 +34,7 @@ inline int pkpy_Str__size(const pkpy_Str* self){
 int pkpy_utils__u8_header(unsigned char c, bool suppress);
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
 void pkpy_Str__ctor2(pkpy_Str* self, const char* data, int size);
+void pkpy_Str__take_buf(pkpy_Str *self, char *data, int size);
 void pkpy_Str__dtor(pkpy_Str* self);
 pkpy_Str pkpy_Str__copy(const pkpy_Str* self);
 pkpy_Str pkpy_Str__concat(const pkpy_Str* self, const pkpy_Str* other);

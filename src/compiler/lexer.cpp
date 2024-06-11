@@ -99,7 +99,7 @@ char Lexer::eatchar_include_newline() noexcept{
     curr_char++;
     if(c == '\n') {
         current_line++;
-        src->line_starts.push_back(curr_char);
+        c11_vector__push_back(const char*, &src->line_starts, curr_char);
     }
     return c;
 }
@@ -145,7 +145,7 @@ Error* Lexer::eat_name() noexcept{
     if(length == 0) return SyntaxError("@id contains invalid char");
     std::string_view name(token_start, length);
 
-    if(src->mode == JSON_MODE) {
+    if(src->mode == PK_JSON_MODE) {
         if(name == "true") {
             add_token(TK("True"));
         } else if(name == "false") {
@@ -238,7 +238,7 @@ Error* Lexer::eat_string_until(char quote, bool raw, Str* out) noexcept{
             break;
         }
         if(c == '\0') {
-            if(quote3 && src->mode == REPL_MODE) return NeedMoreLines();
+            if(quote3 && src->mode == PK_REPL_MODE) return NeedMoreLines();
             return SyntaxError("EOL while scanning string literal");
         }
         if(c == '\n') {
@@ -375,7 +375,7 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 // line continuation character
                 char c = eatchar_include_newline();
                 if(c != '\n') {
-                    if(src->mode == REPL_MODE && c == '\0') return NeedMoreLines();
+                    if(src->mode == PK_REPL_MODE && c == '\0') return NeedMoreLines();
                     return SyntaxError("expected newline after line continuation character");
                 }
                 eat_spaces();
@@ -533,9 +533,9 @@ Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
     return err;
 }
 
-Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
-    this->token_start = src->source.c_str();
-    this->curr_char = src->source.c_str();
+Lexer::Lexer(VM* vm, SourceData src) noexcept : vm(vm), src(src){
+    this->token_start = src.source().c_str();
+    this->curr_char = src.source().c_str();
 }
 
 Error* Lexer::run() noexcept{
@@ -557,7 +557,7 @@ Error* Lexer::run() noexcept{
 }
 
 Error* Lexer::from_precompiled() noexcept{
-    TokenDeserializer deserializer(src->source.c_str());
+    TokenDeserializer deserializer(src.source().c_str());
     deserializer.curr += 5;  // skip "pkpy:"
     std::string_view version = deserializer.read_string('\n');
 
@@ -569,9 +569,9 @@ Error* Lexer::from_precompiled() noexcept{
     }
 
     int count = deserializer.read_count();
-    vector<Str>& precompiled_tokens = src->_precompiled_tokens;
+    auto precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        precompiled_tokens.push_back(deserializer.read_string('\n'));
+        c11_vector__push_back(Str, precompiled_tokens, Str(deserializer.read_string('\n')));
     }
 
     count = deserializer.read_count();
@@ -580,8 +580,8 @@ Error* Lexer::from_precompiled() noexcept{
         t.type = (unsigned char)deserializer.read_uint(',');
         if(is_raw_string_used(t.type)) {
             i64 index = deserializer.read_uint(',');
-            t.start = precompiled_tokens[index].c_str();
-            t.length = precompiled_tokens[index].size;
+            t.start = c11__getitem(Str, precompiled_tokens, index).c_str();
+            t.length = c11__getitem(Str, precompiled_tokens, index).size;
         } else {
             t.start = nullptr;
             t.length = 0;

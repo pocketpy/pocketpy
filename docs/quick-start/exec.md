@@ -8,7 +8,7 @@ order: 93
 
 Once you have a `VM` instance, you can execute python code by calling `exec` method.
 
-#### `PyVar exec(Str source, Str filename, CompileMode mode, PyVar _module=nullptr)`
+#### `PyVar exec(Str source, Str filename, pkpy_CompileMode mode, PyVar _module=nullptr)`
 
 + `source`, the python source code to be executed
 + `filename`, the filename of the source code. This is used for error reporting
@@ -26,11 +26,11 @@ There are also overloaded versions of `exec` and `eval`, which is useful for sim
 ### Compile mode
 
 The `mode` parameter controls how the source code is compiled. There are 5 possible values:
-+ `EXEC_MODE`, this is the default mode. Just do normal execution.
-+ `EVAL_MODE`, this mode is used for evaluating a single expression. The `source` should be a single expression. It cannot contain any statements.
-+ `REPL_MODE`, this mode is used for REPL. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
-+ `CELL_MODE`, this mode is designed for Jupyter like execution. It is similar to `EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
-+ `JSON_MODE`, this mode is used for JSON parsing. It is similar to `EVAL_MODE`, but uses a lexing rule designed for JSON.
++ `PK_EXEC_MODE`, this is the default mode. Just do normal execution.
++ `PK_EVAL_MODE`, this mode is used for evaluating a single expression. The `source` should be a single expression. It cannot contain any statements.
++ `PK_REPL_MODE`, this mode is used for REPL. It is similar to `PK_EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
++ `PK_CELL_MODE`, this mode is designed for Jupyter like execution. It is similar to `PK_EXEC_MODE`, but generates `PRINT_EXPR` opcode when necessary.
++ `PK_JSON_MODE`, this mode is used for JSON parsing. It is similar to `PK_EVAL_MODE`, but uses a lexing rule designed for JSON.
 
 
 ### Fine-grained execution
@@ -38,7 +38,7 @@ The `mode` parameter controls how the source code is compiled. There are 5 possi
 In some cases, you may want to execute python code in a more fine-grained way.
 These two methods are provided for this purpose:
 
-+ `CodeObject_ compile(Str source, Str filename, CompileMode mode, bool unknown_global_scope)`
++ `CodeObject_ compile(Str source, Str filename, pkpy_CompileMode mode, bool unknown_global_scope)`
 + `PyVar _exec(CodeObject_ co, PyVar _module)`
 
 1. `compile` compiles the source code into a `CodeObject_` instance. Leave `unknown_global_scope` to `false` if you don't know what it means.
@@ -50,7 +50,7 @@ These two methods are provided for this purpose:
 
 ```cpp
 try{
-    CodeObject_ code = vm->compile("a[0]", "main.py", EXEC_MODE, false);
+    CodeObject_ code = vm->compile("a[0]", "main.py", PK_EXEC_MODE, false);
     vm->_exec(code, vm->_main);
 }catch(TopLevelException e){
     // use e.summary() to get a summary of the exception

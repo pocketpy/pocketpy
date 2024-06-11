@@ -226,11 +226,11 @@ void __init_builtins(VM* _vm) {
         const Str& filename = CAST(Str&, args[1]);
         const Str& mode = CAST(Str&, args[2]);
         if(mode == "exec") {
-            return VAR(vm->precompile(source, filename, EXEC_MODE));
+            return VAR(vm->precompile(source, filename, PK_EXEC_MODE));
         } else if(mode == "eval") {
-            return VAR(vm->precompile(source, filename, EVAL_MODE));
+            return VAR(vm->precompile(source, filename, PK_EVAL_MODE));
         } else if(mode == "single") {
-            return VAR(vm->precompile(source, filename, CELL_MODE));
+            return VAR(vm->precompile(source, filename, PK_CELL_MODE));
         } else {
             vm->ValueError("compile() mode must be 'exec', 'eval' or 'single'");
             return vm->None;
@@ -1672,12 +1672,12 @@ void VM::__post_init_builtin_types() {
 
     try {
         // initialize dummy func_decl for exec/eval
-        CodeObject_ dynamic_co = compile("def _(): pass", "<dynamic>", EXEC_MODE);
+        CodeObject_ dynamic_co = compile("def _(): pass", "<dynamic>", PK_EXEC_MODE);
         __dynamic_func_decl = dynamic_co->func_decls[0];
         // initialize builtins
-        CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", EXEC_MODE);
+        CodeObject_ code = compile(kPythonLibs_builtins, "<builtins>", PK_EXEC_MODE);
         this->_exec(code, this->builtins);
-        code = compile(kPythonLibs__set, "<set>", EXEC_MODE);
+        code = compile(kPythonLibs__set, "<set>", PK_EXEC_MODE);
         this->_exec(code, this->builtins);
     } catch(TopLevelException e) {
         std::cerr << e.summary() << std::endl;
@@ -1704,7 +1704,7 @@ void VM::__post_init_builtin_types() {
 #endif
 }
 
-CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) {
+CodeObject_ VM::compile(std::string_view source, const Str& filename, pkpy_CompileMode mode, bool unknown_global_scope) {
     Compiler compiler(this, source, filename, mode, unknown_global_scope);
     CodeObject_ code;
     Error* err = compiler.compile(&code);
@@ -1726,7 +1726,7 @@ void VM::__compile_error(Error* err){
     _error(__last_exception);
 }
 
-Str VM::precompile(std::string_view source, const Str& filename, CompileMode mode) {
+Str VM::precompile(std::string_view source, const Str& filename, pkpy_CompileMode mode) {
     Compiler compiler(this, source, filename, mode, false);
     Str out;
     Error* err = compiler.lexer.precompile(&out);

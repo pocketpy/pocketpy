@@ -107,7 +107,7 @@ void add_module_json(VM* vm) {
         } else {
             sv = CAST(Str&, args[0]).sv();
         }
-        CodeObject_ code = vm->compile(sv, "<json>", JSON_MODE);
+        CodeObject_ code = vm->compile(sv, "<json>", PK_JSON_MODE);
         return vm->_exec(code, vm->callstack.top()._module);
     });
 
@@ -229,7 +229,7 @@ void add_module_dis(VM* vm) {
         PyVar obj = args[0];
         if(is_type(obj, vm->tp_str)) {
             const Str& source = CAST(Str, obj);
-            code = vm->compile(source, "<dis>", EXEC_MODE);
+            code = vm->compile(source, "<dis>", PK_EXEC_MODE);
         }
         PyVar f = obj;
         if(is_type(f, vm->tp_bound_method)) f = CAST(BoundMethod, obj).func;
@@ -246,7 +246,7 @@ void add_module_gc(VM* vm) {
 
 void add_module_enum(VM* vm) {
     PyObject* mod = vm->new_module("enum");
-    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", EXEC_MODE);
+    CodeObject_ code = vm->compile(kPythonLibs__enum, "enum.py", PK_EXEC_MODE);
     vm->_exec(code, mod);
     PyVar Enum = mod->attr("Enum");
     vm->_all_types[PK_OBJ_GET(Type, Enum)].on_end_subclass = [](VM* vm, PyTypeInfo* new_ti) {

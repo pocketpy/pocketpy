@@ -173,7 +173,7 @@ bool VM::issubclass(Type cls, Type base) {
     return false;
 }
 
-PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module) {
+PyVar VM::exec(std::string_view source, Str filename, pkpy_CompileMode mode, PyObject* _module) {
     if(_module == nullptr) _module = _main;
     try {
 #if PK_DEBUG_PRECOMPILED_EXEC == 1
@@ -197,9 +197,9 @@ PyVar VM::exec(std::string_view source, Str filename, CompileMode mode, PyObject
     return nullptr;
 }
 
-PyVar VM::exec(std::string_view source) { return exec(source, "main.py", EXEC_MODE); }
+PyVar VM::exec(std::string_view source) { return exec(source, "main.py", PK_EXEC_MODE); }
 
-PyVar VM::eval(std::string_view source) { return exec(source, "<eval>", EVAL_MODE); }
+PyVar VM::eval(std::string_view source) { return exec(source, "<eval>", PK_EVAL_MODE); }
 
 PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subclass_enabled, PyTypeInfo::Vt vt) {
     PyObject* obj = heap._new<Type>(tp_type, Type(_all_types.size()));
@@ -391,7 +391,7 @@ PyObject* VM::py_import(Str path, bool throw_err) {
         // _lazy_modules.erase(it);  // no need to erase
     }
     auto _ = __import_context.scope(path, is_init);
-    CodeObject_ code = compile(source, filename, EXEC_MODE);
+    CodeObject_ code = compile(source, filename, PK_EXEC_MODE);
 
     Str name_cpnt = path_cpnts.back();
     path_cpnts.pop_back();
@@ -606,12 +606,12 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
 }
 
 void VM::py_exec(std::string_view source, PyVar globals, PyVar locals) {
-    CodeObject_ code = vm->compile(source, "<exec>", EXEC_MODE, true);
+    CodeObject_ code = vm->compile(source, "<exec>", PK_EXEC_MODE, true);
     __py_exec_internal(code, globals, locals);
 }
 
 PyVar VM::py_eval(std::string_view source, PyVar globals, PyVar locals) {
-    CodeObject_ code = vm->compile(source, "<eval>", EVAL_MODE, true);
+    CodeObject_ code = vm->compile(source, "<eval>", PK_EVAL_MODE, true);
     return __py_exec_internal(code, globals, locals);
 }
 
@@ -1358,7 +1358,7 @@ PyObject* VM::bind(PyObject* obj, const char* sig, const char* docstring, Native
     int length = snprintf(buffer, sizeof(buffer), "def %s : pass", sig);
     std::string_view source(buffer, length);
     // fn(a, b, *c, d=1) -> None
-    CodeObject_ co = compile(source, "<bind>", EXEC_MODE);
+    CodeObject_ co = compile(source, "<bind>", PK_EXEC_MODE);
     assert(co->func_decls.size() == 1);
     
     FuncDecl_ decl = co->func_decls[0];
@@ -1805,12 +1805,12 @@ void VM::__breakpoint() {
             std::string arg = line.substr(space + 1);
             if(arg.empty()) continue;  // ignore empty command
             if(cmd == "p" || cmd == "print") {
-                CodeObject_ code = compile(arg, "<stdin>", EVAL_MODE, true);
+                CodeObject_ code = compile(arg, "<stdin>", PK_EVAL_MODE, true);
                 PyVar retval = vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
                 stdout_write(vm->py_repr(retval));
                 stdout_write("\n");
             } else if(cmd == "!") {
-                CodeObject_ code = compile(arg, "<stdin>", EXEC_MODE, true);
+                CodeObject_ code = compile(arg, "<stdin>", PK_EXEC_MODE, true);
                 vm->_exec(code.get(), frame_0->_module, frame_0->_callable, frame_0->_locals);
             }
             continue;

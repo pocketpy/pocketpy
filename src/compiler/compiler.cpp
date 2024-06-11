@@ -179,7 +179,7 @@ bool Compiler::match_newlines(bool* need_more_lines) noexcept{
         consumed = true;
     }
     if(need_more_lines) {
-        *need_more_lines = (mode() == REPL_MODE && curr().type == TK("@eof"));
+        *need_more_lines = (mode() == PK_REPL_MODE && curr().type == TK("@eof"));
     }
     return consumed;
 }
@@ -1040,7 +1040,7 @@ Error* Compiler::compile_stmt() noexcept{
         /*************************************************/
         case TK("=="): {
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) return SyntaxError("'label' is only available in EXEC_MODE");
+            if(mode() != PK_EXEC_MODE) return SyntaxError("'label' is only available in PK_EXEC_MODE");
             if(!ctx()->add_label(prev().str())) {
                 Str escaped(prev().str().escape());
                 return SyntaxError("label %s already exists", escaped.c_str());
@@ -1050,7 +1050,7 @@ Error* Compiler::compile_stmt() noexcept{
         } break;
         case TK("->"):
             consume(TK("@id"));
-            if(mode() != EXEC_MODE) return SyntaxError("'goto' is only available in EXEC_MODE");
+            if(mode() != PK_EXEC_MODE) return SyntaxError("'goto' is only available in PK_EXEC_MODE");
             ctx()->emit_(OP_GOTO, StrName(prev().sv()).index, prev().line);
             consume_end_stmt();
             break;
@@ -1081,7 +1081,7 @@ Error* Compiler::compile_stmt() noexcept{
                 }
                 if(!is_typed_name) {
                     ctx()->s_emit_top();
-                    if((mode() == CELL_MODE || mode() == REPL_MODE) && name_scope() == NAME_GLOBAL) {
+                    if((mode() == PK_CELL_MODE || mode() == PK_REPL_MODE) && name_scope() == NAME_GLOBAL) {
                         ctx()->emit_(OP_PRINT_EXPR, BC_NOARG, BC_KEEPLINE);
                     } else {
                         ctx()->emit_(OP_POP_TOP, BC_NOARG, BC_KEEPLINE);
@@ -1280,8 +1280,8 @@ Error* Compiler::read_literal(PyVar* out) noexcept{
     }
 }
 
-Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) noexcept:
-    lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
+Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, pkpy_CompileMode mode, bool unknown_global_scope) noexcept:
+    lexer(vm, {source, filename, mode}){
     this->vm = vm;
     this->unknown_global_scope = unknown_global_scope;
     init_pratt_rules();
@@ -1306,7 +1306,7 @@ Error* Compiler::compile(CodeObject_* out) noexcept{
     advance();         // skip @sof, so prev() is always valid
     match_newlines();  // skip possible leading '\n'
 
-    if(mode() == EVAL_MODE) {
+    if(mode() == PK_EVAL_MODE) {
         check(EXPR_TUPLE());
         ctx()->s_emit_top();
         consume(TK("@eof"));
@@ -1314,7 +1314,7 @@ Error* Compiler::compile(CodeObject_* out) noexcept{
         check(pop_context());
         *out = code;
         return NULL;
-    } else if(mode() == JSON_MODE) {
+    } else if(mode() == PK_JSON_MODE) {
         check(EXPR());
         Expr* e = ctx()->s_popx();
         if(!e->is_json_object()) return SyntaxError("expect a JSON object, literal or array");

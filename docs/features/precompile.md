@@ -11,7 +11,7 @@ You can use `vm->compile` to compile your source code into a `CodeObject_` objec
 This object can be executed later by `vm->_exec`.
 
 ```cpp
-CodeObject_ code = vm->compile("print('Hello, world!')", "<string>", EXEC_MODE);
+CodeObject_ code = vm->compile("print('Hello, world!')", "<string>", PK_EXEC_MODE);
 vm->_exec(code);        // Hello, world!
 ```
 
@@ -27,9 +27,9 @@ It does some basic preprocessing and outputs the result as a human-readable stri
 
 ```cpp
 // precompile the source code into a string
-Str source = vm->precompile("print('Hello, world!')", "<string>", EXEC_MODE);
+Str source = vm->precompile("print('Hello, world!')", "<string>", PK_EXEC_MODE);
 
-CodeObject code = vm->compile(source, "<string>", EXEC_MODE);
+CodeObject code = vm->compile(source, "<string>", PK_EXEC_MODE);
 vm->_exec(code);        // Hello, world!
 ```
 

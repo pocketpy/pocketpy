@@ -41,7 +41,7 @@ std::cout << py_cast<int>(vm, obj);  // 123
 Compile a source string into a code object
 
 ```cpp
-CodeObject_ co = vm->compile("print('Hello!')", "main.py", EXEC_MODE);
+CodeObject_ co = vm->compile("print('Hello!')", "main.py", PK_EXEC_MODE);
 ```
 
 Execute a compiled code object
