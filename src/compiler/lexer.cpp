@@ -533,9 +533,9 @@ Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
     return err;
 }
 
-Lexer::Lexer(VM* vm, SourceData src) noexcept : vm(vm), src(src){
-    this->token_start = src.source().c_str();
-    this->curr_char = src.source().c_str();
+Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
+    this->token_start = pkpy_Str__data(&src->source);
+    this->curr_char = pkpy_Str__data(&src->source);
 }
 
 Error* Lexer::run() noexcept{
@@ -557,7 +557,7 @@ Error* Lexer::run() noexcept{
 }
 
 Error* Lexer::from_precompiled() noexcept{
-    TokenDeserializer deserializer(src.source().c_str());
+    TokenDeserializer deserializer(pkpy_Str__data(&src->source));
     deserializer.curr += 5;  // skip "pkpy:"
     std::string_view version = deserializer.read_string('\n');
 

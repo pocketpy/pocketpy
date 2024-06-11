@@ -11,8 +11,6 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
                            int source_size,
                            const pkpy_Str* filename,
                            enum pkpy_CompileMode mode) {
-    pkpy_Rcptr__ctor_withd(self, &pkpy_SourceData__dtor);
-
     self->filename = pkpy_Str__copy(filename);  // OPTIMIZEME?
     self->mode = mode;
 

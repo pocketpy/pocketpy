@@ -5,15 +5,12 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
-#include "pocketpy/common/rcptr.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/vector.h"
 
 enum pkpy_CompileMode { PK_EXEC_MODE, PK_EVAL_MODE, PK_REPL_MODE, PK_JSON_MODE, PK_CELL_MODE };
 
 struct pkpy_SourceData {
-    pkpy_Rcptr_header _rc;
-
     enum pkpy_CompileMode mode;
     bool is_precompiled;
 

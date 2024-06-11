@@ -79,7 +79,7 @@ struct CodeObject {
         int iblock;       // block index
     };
 
-    SourceData src;
+    std::shared_ptr<SourceData> src;
     Str name;
 
     vector<Bytecode> codes;
@@ -99,7 +99,7 @@ struct CodeObject {
 
     const CodeBlock& _get_block_codei(int codei) const { return blocks[lines[codei].iblock]; }
 
-    CodeObject(SourceData src, const Str& name);
+    CodeObject(std::shared_ptr<SourceData> src, const Str& name);
     void _gc_mark(VM*) const;
 };
 

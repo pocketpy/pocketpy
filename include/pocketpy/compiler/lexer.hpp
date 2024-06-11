@@ -97,7 +97,7 @@ enum class StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
     VM* vm;
-    SourceData src;
+    std::shared_ptr<SourceData> src;
     const char* token_start;
     const char* curr_char;
     int current_line = 1;
@@ -132,7 +132,7 @@ struct Lexer {
     [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, NULL); }
     [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", NULL, 0); }
 
-    Lexer(VM* vm, SourceData src) noexcept;
+    Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept;
     
     [[nodiscard]] Error* run() noexcept;
     [[nodiscard]] Error* from_precompiled() noexcept;

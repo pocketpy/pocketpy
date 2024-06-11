@@ -20,7 +20,7 @@ NameScope Compiler::name_scope() const noexcept{
 }
 
 CodeObject_ Compiler::push_global_context() noexcept{
-    CodeObject_ co = std::make_shared<CodeObject>(lexer.src, lexer.src.filename());
+    CodeObject_ co = std::make_shared<CodeObject>(lexer.src, static_cast<const Str&>(lexer.src->filename));
     co->start_line = __i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
@@ -1281,7 +1281,7 @@ Error* Compiler::read_literal(PyVar* out) noexcept{
 }
 
 Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, pkpy_CompileMode mode, bool unknown_global_scope) noexcept:
-    lexer(vm, {source, filename, mode}){
+    lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
     this->vm = vm;
     this->unknown_global_scope = unknown_global_scope;
     init_pratt_rules();
