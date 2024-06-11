@@ -512,21 +512,13 @@ bool pkpy_check_error(pkpy_vm* vm_handle) {
     return vm->__c.error != nullptr;
 }
 
-// strdup() is in C23, make a polyfill
-static char* pkpy_strdup(const char *src) {
-    int len = strlen(src);
-    char *res = (char*)std::malloc(len + 1);
-    strcpy(res, src);
-    return res;
-}
-
 bool pkpy_clear_error(pkpy_vm* vm_handle, char** message) {
     VM* vm = (VM*)vm_handle;
     // no error
     if(vm->__c.error == nullptr) return false;
     Exception& e = vm->__c.error->as<Exception>();
     if(message != nullptr)
-        *message = pkpy_strdup(e.summary().c_str());
+        *message = strdup(e.summary().c_str());
     else
         std::cout << e.summary() << std::endl;
     vm->__c.error = nullptr;
