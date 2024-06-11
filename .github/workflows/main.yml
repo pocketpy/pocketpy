@@ -179,11 +179,11 @@ jobs:
           name: linux
           path: $GITHUB_WORKSPACE/output/linux
 
-      - name: "Merge darwin"
-        uses: actions/download-artifact@v4.1.7
-        with:
-          name: macos
-          path: $GITHUB_WORKSPACE/output/macos
+      # - name: "Merge darwin"
+      #   uses: actions/download-artifact@v4.1.7
+      #   with:
+      #     name: macos
+      #     path: $GITHUB_WORKSPACE/output/macos
 
       - name: "Merge android"
         uses: actions/download-artifact@v4.1.7
