@@ -12,7 +12,7 @@ REPL::REPL(VM* vm) : vm(vm) {
 }
 
 bool REPL::input(std::string line) {
-    pkpy_CompileMode mode = PK_REPL_MODE;
+    CompileMode mode = REPL_MODE;
     if(need_more_lines) {
         buffer += line;
         buffer += '\n';
@@ -25,7 +25,7 @@ bool REPL::input(std::string line) {
             need_more_lines = 0;
             line = buffer;
             buffer.clear();
-            mode = PK_CELL_MODE;
+            mode = CELL_MODE;
         } else {
             return true;
         }

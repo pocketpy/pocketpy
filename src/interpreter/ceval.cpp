@@ -792,7 +792,7 @@ PyVar VM::__run_top_frame() {
                         auto it = __cached_codes.try_get(string);
                         CodeObject_ code;
                         if(it == nullptr) {
-                            code = vm->compile(string, "<eval>", PK_EVAL_MODE, true);
+                            code = vm->compile(string, "<eval>", EVAL_MODE, true);
                             __cached_codes.insert(string, code);
                         } else {
                             code = *it;

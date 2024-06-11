@@ -281,9 +281,9 @@ public:
 #endif
 
 #if PK_REGION("Source Execution Methods")
-    CodeObject_ compile(std::string_view source, const Str& filename, pkpy_CompileMode mode, bool unknown_global_scope=false);
-    Str precompile(std::string_view source, const Str& filename, pkpy_CompileMode mode);
-    PyVar exec(std::string_view source, Str filename, pkpy_CompileMode mode, PyObject* _module=nullptr);
+    CodeObject_ compile(std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope=false);
+    Str precompile(std::string_view source, const Str& filename, CompileMode mode);
+    PyVar exec(std::string_view source, Str filename, CompileMode mode, PyObject* _module=nullptr);
     PyVar exec(std::string_view source);
     PyVar eval(std::string_view source);
 

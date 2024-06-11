@@ -51,7 +51,7 @@ struct Compiler {
     }
 
     CodeEmitContext* ctx() noexcept{ return &contexts.back(); }
-    pkpy_CompileMode mode() const noexcept{ return lexer.src->mode; }
+    CompileMode mode() const noexcept{ return lexer.src->mode; }
 
     NameScope name_scope() const noexcept;
     CodeObject_ push_global_context() noexcept;
@@ -133,7 +133,7 @@ struct Compiler {
     }
 
 public:
-    Compiler(VM* vm, std::string_view source, const Str& filename, pkpy_CompileMode mode, bool unknown_global_scope = false) noexcept;
+    Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope = false) noexcept;
     [[nodiscard]] Error* compile(CodeObject_* out) noexcept;
     ~Compiler();
 };

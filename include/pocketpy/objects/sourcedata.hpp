@@ -17,7 +17,7 @@ enum {
 };
 
 struct SourceData : public pkpy_SourceData {
-    SourceData(std::string_view source, const Str& filename, pkpy_CompileMode mode) {
+    SourceData(std::string_view source, const Str& filename, CompileMode mode) {
         pkpy_SourceData__ctor(this, source.data(), source.size(), &filename, mode);
     }
 

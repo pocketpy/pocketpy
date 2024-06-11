@@ -9,7 +9,7 @@ set_policy("build.warning", true)
 option("pk_enable_profiler")
     set_default(false)
     add_defines("PK_ENABLE_PROFILER=1")
-    
+
 target("main")
 	set_default(true)
 	set_kind("binary")

@@ -145,7 +145,7 @@ Error* Lexer::eat_name() noexcept{
     if(length == 0) return SyntaxError("@id contains invalid char");
     std::string_view name(token_start, length);
 
-    if(src->mode == PK_JSON_MODE) {
+    if(src->mode == JSON_MODE) {
         if(name == "true") {
             add_token(TK("True"));
         } else if(name == "false") {
@@ -238,7 +238,7 @@ Error* Lexer::eat_string_until(char quote, bool raw, Str* out) noexcept{
             break;
         }
         if(c == '\0') {
-            if(quote3 && src->mode == PK_REPL_MODE) return NeedMoreLines();
+            if(quote3 && src->mode == REPL_MODE) return NeedMoreLines();
             return SyntaxError("EOL while scanning string literal");
         }
         if(c == '\n') {
@@ -375,7 +375,7 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
                 // line continuation character
                 char c = eatchar_include_newline();
                 if(c != '\n') {
-                    if(src->mode == PK_REPL_MODE && c == '\0') return NeedMoreLines();
+                    if(src->mode == REPL_MODE && c == '\0') return NeedMoreLines();
                     return SyntaxError("expected newline after line continuation character");
                 }
                 eat_spaces();
