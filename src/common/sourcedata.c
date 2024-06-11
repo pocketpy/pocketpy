@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+void pkpy_Str__take_buf(pkpy_Str *self, char *data, int size);
+
 void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
                            const char* source,
                            int source_size,
