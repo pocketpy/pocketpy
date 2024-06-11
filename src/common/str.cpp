@@ -23,37 +23,6 @@ Str::Str(pair<char*, int> detached) {
     assert(_ptr[size] == '\0');
 }
 
-vector<std::string_view> Str::split(const Str& sep) const {
-    vector<std::string_view> result;
-    std::string_view tmp;
-    int start = 0;
-    while(true) {
-        int i = index(sep, start);
-        if(i == -1) break;
-        tmp = sv().substr(start, i - start);
-        if(!tmp.empty()) result.push_back(tmp);
-        start = i + sep.size;
-    }
-    tmp = sv().substr(start, size - start);
-    if(!tmp.empty()) result.push_back(tmp);
-    return result;
-}
-
-vector<std::string_view> Str::split(char sep) const {
-    vector<std::string_view> result;
-    const char* data = pkpy_Str__data(this);
-    int i = 0;
-    for(int j = 0; j < size; j++) {
-        if(data[j] == sep) {
-            if(j > i) result.emplace_back(data + i, j - i);
-            i = j + 1;
-            continue;
-        }
-    }
-    if(size > i) result.emplace_back(data + i, size - i);
-    return result;
-}
-
 static std::map<std::string_view, uint16_t>& _interned() {
     static std::map<std::string_view, uint16_t> interned;
     return interned;

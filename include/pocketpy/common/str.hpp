@@ -2,6 +2,7 @@
 
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/memorypool.hpp"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/str.h"
 
@@ -190,8 +191,27 @@ struct Str: pkpy_Str {
         return pkpy_Str__escape(this, quote);
     }
 
-    vector<std::string_view> split(const Str& sep) const;
-    vector<std::string_view> split(char sep) const;
+    vector<std::string_view> split(const Str& sep) const{
+        c11_array/* T=c11_string */ res = pkpy_Str__split2(this, &sep);
+        vector<std::string_view> retval(res.count);
+        for(int i = 0; i < res.count; i++){
+            c11_string tmp = c11__getitem(c11_string, &res, i);
+            retval[i] = std::string_view(tmp.data, tmp.size);
+        }
+        c11_array__dtor(&res);
+        return retval;
+    }
+
+    vector<std::string_view> split(char sep) const{
+        c11_array/* T=c11_string */ res = pkpy_Str__split(this, sep);
+        vector<std::string_view> retval(res.count);
+        for(int i = 0; i < res.count; i++){
+            c11_string tmp = c11__getitem(c11_string, &res, i);
+            retval[i] = std::string_view(tmp.data, tmp.size);
+        }
+        c11_array__dtor(&res);
+        return retval;
+    }
 
     int index(const Str& sub, int start = 0) const{
         return pkpy_Str__index(this, &sub, start);
