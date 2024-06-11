@@ -6,6 +6,16 @@
 
 namespace pkpy {
 
+using CompileMode = pkpy_CompileMode;
+
+enum {
+    EXEC_MODE = PK_EXEC_MODE,
+    EVAL_MODE = PK_EVAL_MODE,
+    REPL_MODE = PK_REPL_MODE,
+    JSON_MODE = PK_JSON_MODE,
+    CELL_MODE = PK_CELL_MODE,
+};
+
 struct SourceData {
     pkpy_SourceData *self;
 
