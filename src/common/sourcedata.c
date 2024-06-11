@@ -30,7 +30,7 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
     pkpy_Str__take_buf(&self->source, buf, len);
 
     self->is_precompiled = (strncmp(pkpy_Str__data(&self->source), "pkpy:", 5) == 0);
-    c11_vector__push_back(const char*, &self->line_starts, pkpy_Str__data(&self->source));
+    c11_vector__push(const char*, &self->line_starts, pkpy_Str__data(&self->source));
 }
 
 void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {

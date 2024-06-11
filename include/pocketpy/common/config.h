@@ -38,7 +38,9 @@
 #define PK_DEBUG_NO_AUTO_GC         0
 #define PK_DEBUG_GC_STATS           0
 #define PK_DEBUG_COMPILER           0
+#ifndef PK_DEBUG_DATASTRUCTURE
 #define PK_DEBUG_DATASTRUCTURE      0
+#endif
 
 #ifndef PK_DEBUG_PRECOMPILED_EXEC
 #define PK_DEBUG_PRECOMPILED_EXEC   0

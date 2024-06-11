@@ -11,13 +11,13 @@ void pkpy_SStream__dtor(pkpy_SStream* self) {
 
 void pkpy_SStream__append_cstr(pkpy_SStream* self, const char* str) {
     for (int i = 0; str[i] != '\0'; i++) {
-        c11_vector__push_back(char, &self->data, str[i]);
+        c11_vector__push(char, &self->data, str[i]);
     }
 }
 
 void pkpy_SStream__append_cstrn(pkpy_SStream* self, const char* str, int n) {
     for (int i = 0; i < n; i++) {
-        c11_vector__push_back(char, &self->data, str[i]);
+        c11_vector__push(char, &self->data, str[i]);
     }
 }
 
@@ -26,7 +26,7 @@ void pkpy_SStream__append_Str(pkpy_SStream* self, const pkpy_Str* str) {
 }
 
 void pkpy_SStream__append_char(pkpy_SStream* self, char c) {
-    c11_vector__push_back(char, &self->data, c);
+    c11_vector__push(char, &self->data, c);
 }
 
 void pkpy_SStream__append_int(pkpy_SStream* self, int i) {

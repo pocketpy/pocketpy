@@ -99,7 +99,7 @@ char Lexer::eatchar_include_newline() noexcept{
     curr_char++;
     if(c == '\n') {
         current_line++;
-        c11_vector__push_back(const char*, &src->line_starts, curr_char);
+        c11_vector__push(const char*, &src->line_starts, curr_char);
     }
     return c;
 }
@@ -571,7 +571,7 @@ Error* Lexer::from_precompiled() noexcept{
     int count = deserializer.read_count();
     auto precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        c11_vector__push_back(Str, precompiled_tokens, Str(deserializer.read_string('\n')));
+        c11_vector__push(Str, precompiled_tokens, Str(deserializer.read_string('\n')));
     }
 
     count = deserializer.read_count();
