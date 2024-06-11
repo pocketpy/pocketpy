@@ -70,7 +70,7 @@ struct SourceData {
     }
 
     Str snapshot(int lineno, const char* cursor, std::string_view name) const {
-        return pkpy_SourceData__snapshot(self, lineno, cursor, name.data());
+        return pkpy_SourceData__snapshot(self, lineno, cursor, name.empty() ? nullptr : name.data());
     }
 
     ~SourceData() {
