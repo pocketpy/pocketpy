@@ -4,7 +4,6 @@
 #include "pocketpy/objects/error.hpp"
 
 #include <variant>
-#include <cstdarg>
 
 namespace pkpy {
 
