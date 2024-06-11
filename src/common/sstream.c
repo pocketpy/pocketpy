@@ -41,8 +41,8 @@ void pkpy_SStream__append_int64(pkpy_SStream* self, int64_t i) {
     pkpy_SStream__append_cstr(self, str);
 }
 
-pkpy_Str pkpy_SStream__to_Str(pkpy_SStream* self) {
+pkpy_Str pkpy_SStream__to_Str(const pkpy_SStream* self) {
     pkpy_Str res;
-    pkpy_Str__ctor2(&res, c11_vector__data(&self->data), c11_vector__size(&self->data));
+    pkpy_Str__ctor2(&res, self->data.data, self->data.count);
     return res;
 }
