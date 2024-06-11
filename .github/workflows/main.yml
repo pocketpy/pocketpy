@@ -54,18 +54,19 @@ jobs:
         platform: x64
     - name: Install libc++
       run: sudo apt-get install -y libc++-15-dev libc++1-15 libc++abi-15-dev libc++abi1-15 libclang-rt-15-dev
-    - name: Unit Test with Coverage
-      run: bash run_tests.sh
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        directory: .coverage
-      if: github.ref == 'refs/heads/main'
-    - name: Compile
+    # - name: Unit Test with Coverage
+    #   run: bash run_tests.sh
+    # - name: Upload coverage reports to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     directory: .coverage
+    #   if: github.ref == 'refs/heads/main'
+    - name: Compile and Test
       run: |
         mkdir -p output/x86_64
         python cmake_build.py
+        python scripts/run_tests.py
         cp main output/x86_64
         cp libpocketpy.so output/x86_64
       env:
