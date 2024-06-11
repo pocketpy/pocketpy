@@ -20,7 +20,7 @@ void pkpy_SStream__append_Str(pkpy_SStream* self, const pkpy_Str* str);
 void pkpy_SStream__append_char(pkpy_SStream* self, char c);
 void pkpy_SStream__append_int(pkpy_SStream* self, int i);
 void pkpy_SStream__append_int64(pkpy_SStream* self, int64_t i);
-pkpy_Str pkpy_SStream__to_Str(pkpy_SStream* self);
+pkpy_Str pkpy_SStream__to_Str(const pkpy_SStream* self);
 
 #ifdef __cplusplus
 }
