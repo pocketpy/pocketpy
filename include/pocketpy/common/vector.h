@@ -28,13 +28,8 @@ c11_vector c11_vector__copy(const c11_vector* self);
 void* c11_vector__at(c11_vector* self, int index);
 void c11_vector__reserve(c11_vector* self, int capacity);
 
-inline int c11_vector__size(c11_vector* self) {
-    return self->count;
-}
-
-inline void* c11_vector__data(c11_vector* self) {
-    return self->data;
-}
+#define c11_vector__size(self) ((self)->count)
+#define c11_vector__data(self) ((self)->data)
 
 #define c11__getitem(T, self, index) ((T*)(self)->data)[index]
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;

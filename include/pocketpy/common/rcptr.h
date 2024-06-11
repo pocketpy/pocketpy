@@ -15,7 +15,7 @@ typedef struct {
 } pkpy_Rcptr_header;
 
 void pkpy_Rcptr__ctor(void *self);
-void pkpy_Rcptr__ctor_withd(void *self, void (*dtor)(void *));
+void pkpy_Rcptr__ctor_withd(void *self, void *dtor);
 void pkpy_Rcptr__ref(void *self);
 void pkpy_Rcptr__unref(void *self);
 

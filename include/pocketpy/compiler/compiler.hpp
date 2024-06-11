@@ -41,7 +41,7 @@ struct Compiler {
 #if PK_DEBUG_COMPILER
         if(__i>=0 && __i<lexer.nexts.size()){
             printf("%s:%d %s %s\n",
-                lexer.src->filename.c_str(),
+                lexer.src.filename().c_str(),
                 curr().line,
                 TK_STR(curr().type),
                 curr().str().escape().c_str()

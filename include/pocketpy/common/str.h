@@ -13,6 +13,10 @@ typedef struct c11_string{
     int size;
 } c11_string;
 
+#ifndef isascii
+#define isascii(c) ((unsigned)(c) < 0x80)
+#endif
+
 typedef struct pkpy_Str{
     int size;
     bool is_ascii;

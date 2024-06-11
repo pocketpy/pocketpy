@@ -14,13 +14,13 @@ void pkpy_Rcptr__ctor(void *self) {
     pkpy_Rcptr__ctor_withd(self, NULL);
 }
 
-void pkpy_Rcptr__ctor_withd(void *self_, void (*dtor)(void *)) {
+void pkpy_Rcptr__ctor_withd(void *self_, void *dtor) {
     pkpy_Rcptr_header *self = self_;
 #if PK_DEBUG_DATASTRUCTURE
     self->magic = RCPTR_MAGIC;
 #endif
     self->ref_c = 1;
-    self->dtor = dtor;
+    self->dtor = (void (*)(void *))dtor;
 }
 
 void pkpy_Rcptr__ref(void *self_) {

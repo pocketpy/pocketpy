@@ -16,7 +16,7 @@ void pkpy_SStream__ctor(pkpy_SStream* self);
 void pkpy_SStream__dtor(pkpy_SStream* self);
 void pkpy_SStream__append_cstr(pkpy_SStream* self, const char* str);
 void pkpy_SStream__append_cstrn(pkpy_SStream* self, const char* str, int n);
-void pkpy_SStream__append_Str(pkpy_SStream* self, pkpy_Str* str);
+void pkpy_SStream__append_Str(pkpy_SStream* self, const pkpy_Str* str);
 void pkpy_SStream__append_char(pkpy_SStream* self, char c);
 void pkpy_SStream__append_int(pkpy_SStream* self, int i);
 void pkpy_SStream__append_int64(pkpy_SStream* self, int64_t i);

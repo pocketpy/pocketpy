@@ -29,8 +29,8 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
     }
     pkpy_Str__take_buf(&self->source, buf, len);
 
-    self->is_precompiled = (strncmp(pkpy_Str_data(&self->source), "pkpy:", 5) == 0);
-    c11_vector__push_back(const char*, &self->line_starts, pkpy_Str_data(&self->source));
+    self->is_precompiled = (strncmp(pkpy_Str__data(&self->source), "pkpy:", 5) == 0);
+    c11_vector__push_back(const char*, &self->line_starts, pkpy_Str__data(&self->source));
 }
 
 void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {
@@ -51,6 +51,7 @@ bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, c
         i++;
     *st = _start;
     *ed = i;
+    return true;
 }
 
 pkpy_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno, const char* cursor, const char* name) {
@@ -63,14 +64,14 @@ pkpy_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int linen
 
     if(name) {
         pkpy_SStream__append_cstr(&ss, ", in ");
-        pkpy_SStream__append_Str(&ss, &name);
+        pkpy_SStream__append_cstr(&ss, name);
     }
 
     if(!self->is_precompiled) {
         pkpy_SStream__append_char(&ss, '\n');
         const char *st = NULL, *ed;
         if(pkpy_SourceData__get_line(self, lineno, &st, &ed)) {
-            while(st < ed && isblank(st))
+            while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {
                 pkpy_SStream__append_cstr(&ss, "    ");

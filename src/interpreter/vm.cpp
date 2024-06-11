@@ -1706,7 +1706,7 @@ void VM::__breakpoint() {
                 SStream ss;
                 Frame* frame = &frames[i]->frame;
                 int lineno = frame->curr_lineno();
-                ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
+                ss << "File \"" << frame->co->src.filename() << "\", line " << lineno;
                 if(frame->_callable) {
                     ss << ", in ";
                     ss << frame->_callable->as<Function>().decl->code->name;
