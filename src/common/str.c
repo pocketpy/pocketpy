@@ -135,13 +135,13 @@ pkpy_Str pkpy_Str__replace2(const pkpy_Str *self, const pkpy_Str *old, const pkp
         int i = pkpy_Str__index(self, old, start);
         if(i == -1) break;
         pkpy_Str tmp = pkpy_Str__substr2(self, start, i - start);
-        c11_vector__push(char, &buffer, pkpy_Str__data(&tmp), tmp.size);
+        c11_vector__extend(char, &buffer, pkpy_Str__data(&tmp), tmp.size);
         pkpy_Str__dtor(&tmp);
-        c11_vector__push(char, &buffer, pkpy_Str__data(new_), new_->size);
+        c11_vector__extend(char, &buffer, pkpy_Str__data(new_), new_->size);
         start = i + old->size;
     }
     pkpy_Str tmp = pkpy_Str__substr2(self, start, self->size - start);
-    c11_vector__push(char, &buffer, pkpy_Str__data(&tmp), tmp.size);
+    c11_vector__extend(char, &buffer, pkpy_Str__data(&tmp), tmp.size);
     pkpy_Str__dtor(&tmp);
     pkpy_Str retval = {
         .size = buffer.count,
@@ -177,14 +177,14 @@ pkpy_Str pkpy_Str__u8_slice(const pkpy_Str *self, int start, int stop, int step)
     if(self->is_ascii){
         const char* p = pkpy_Str__data(self);
         for (int i=start; step>0 ? i<stop : i>stop; i+=step) {
-            c11_vector__append(char, &buffer, p[i]);
+            c11_vector__push(char, &buffer, p[i]);
         }
     }else{
         for (int i=start; step>0 ? i<stop : i>stop; i+=step) {
             pkpy_Str unicode = pkpy_Str__u8_getitem(self, i);
             const char* p = pkpy_Str__data(&unicode);
             for(int j = 0; j < unicode.size; j++){
-                c11_vector__append(char, &buffer, p[j]);
+                c11_vector__push(char, &buffer, p[j]);
             }
             pkpy_Str__dtor(&unicode);
         }

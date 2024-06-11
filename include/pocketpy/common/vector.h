@@ -31,19 +31,19 @@ void c11_vector__reserve(c11_vector* self, int capacity);
 #define c11__getitem(T, self, index) ((T*)(self)->data)[index]
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
 
-#define c11_vector__append(T, self, elem) \
+#define c11_vector__push(T, self, elem) \
     do{ \
         if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
         ((T*)(self)->data)[(self)->count] = (elem); \
         (self)->count++; \
     }while(0)
 
-#define c11_vector__pop_back(T, self) \
+#define c11_vector__pop(T, self) \
     do{ \
         (self)->count--; \
     }while(0)
 
-#define c11_vector__push(T, self, p, size) \
+#define c11_vector__extend(T, self, p, size) \
     do{ \
         c11_vector__reserve((self), (self)->count + (size)); \
         memcpy((T*)(self)->data + (self)->count, (p), (size) * sizeof(T)); \
