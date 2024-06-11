@@ -99,7 +99,7 @@ char Lexer::eatchar_include_newline() noexcept{
     curr_char++;
     if(c == '\n') {
         current_line++;
-        src->line_starts.push_back(curr_char);
+        c11_vector__push(const char*, &src->line_starts, curr_char);
     }
     return c;
 }
@@ -534,8 +534,8 @@ Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
 }
 
 Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
-    this->token_start = src->source.c_str();
-    this->curr_char = src->source.c_str();
+    this->token_start = pkpy_Str__data(&src->source);
+    this->curr_char = pkpy_Str__data(&src->source);
 }
 
 Error* Lexer::run() noexcept{
@@ -557,7 +557,7 @@ Error* Lexer::run() noexcept{
 }
 
 Error* Lexer::from_precompiled() noexcept{
-    TokenDeserializer deserializer(src->source.c_str());
+    TokenDeserializer deserializer(pkpy_Str__data(&src->source));
     deserializer.curr += 5;  // skip "pkpy:"
     std::string_view version = deserializer.read_string('\n');
 
@@ -569,9 +569,9 @@ Error* Lexer::from_precompiled() noexcept{
     }
 
     int count = deserializer.read_count();
-    vector<Str>& precompiled_tokens = src->_precompiled_tokens;
+    auto precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        precompiled_tokens.push_back(deserializer.read_string('\n'));
+        c11_vector__push(Str, precompiled_tokens, Str(deserializer.read_string('\n')));
     }
 
     count = deserializer.read_count();
@@ -580,8 +580,8 @@ Error* Lexer::from_precompiled() noexcept{
         t.type = (unsigned char)deserializer.read_uint(',');
         if(is_raw_string_used(t.type)) {
             i64 index = deserializer.read_uint(',');
-            t.start = precompiled_tokens[index].c_str();
-            t.length = precompiled_tokens[index].size;
+            t.start = c11__getitem(Str, precompiled_tokens, index).c_str();
+            t.length = c11__getitem(Str, precompiled_tokens, index).size;
         } else {
             t.start = nullptr;
             t.length = 0;

@@ -20,7 +20,7 @@ NameScope Compiler::name_scope() const noexcept{
 }
 
 CodeObject_ Compiler::push_global_context() noexcept{
-    CodeObject_ co = std::make_shared<CodeObject>(lexer.src, lexer.src->filename);
+    CodeObject_ co = std::make_shared<CodeObject>(lexer.src, static_cast<const Str&>(lexer.src->filename));
     co->start_line = __i == 0 ? 1 : prev().line;
     contexts.push_back(CodeEmitContext(vm, co, contexts.size()));
     return co;
@@ -1293,8 +1293,8 @@ Error* Compiler::compile(CodeObject_* out) noexcept{
     Error* err;
     check(lexer.run());
 
-    // if(lexer.src->filename[0] != '<'){
-    //     printf("%s\n", lexer.src->filename.c_str());
+    // if(lexer.src.filename()[0] != '<'){
+    //     printf("%s\n", lexer.src.filename().c_str());
     //     for(int i=0; i<lexer.nexts.size(); i++){
     //         printf("%s: %s\n", TK_STR(tk(i).type), tk(i).str().escape().c_str());
     //     }

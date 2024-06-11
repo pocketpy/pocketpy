@@ -22,6 +22,32 @@ void pkpy_Str__ctor(pkpy_Str *self, const char *data){
     pkpy_Str__ctor2(self, data, strlen(data));
 }
 
+static void pkpy_Str__check_ascii(pkpy_Str *self, char *p) {
+    for(int i = 0; i < self->size; i++){
+        if(!isascii(p[i])){
+            self->is_ascii = false;
+            break;
+        }
+    }
+}
+
+void pkpy_Str__take_buf(pkpy_Str *self, char *data, int size) {
+    self->size = size;
+    self->is_ascii = true;
+    self->is_sso = size < sizeof(self->_inlined);
+    char* p;
+    if(self->is_sso){
+        p = self->_inlined;
+        memcpy(p, data, size);
+        p[size] = '\0';
+        free(data);
+    }else{
+        self->_ptr = data;
+        p = self->_ptr;
+    }
+    pkpy_Str__check_ascii(self, p);
+}
+
 void pkpy_Str__ctor2(pkpy_Str *self, const char *data, int size){
     self->size = size;
     self->is_ascii = true;
@@ -35,13 +61,7 @@ void pkpy_Str__ctor2(pkpy_Str *self, const char *data, int size){
     }
     memcpy(p, data, size);
     p[size] = '\0';
-    // check is_ascii
-    for(int i = 0; i < size; i++){
-        if(!isascii(p[i])){
-            self->is_ascii = false;
-            break;
-        }
-    }
+    pkpy_Str__check_ascii(self, p);
 }
 
 void pkpy_Str__dtor(pkpy_Str *self){
