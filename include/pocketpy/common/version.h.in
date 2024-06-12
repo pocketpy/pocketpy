@@ -1,0 +1,7 @@
+#pragma once
+// clang-format off
+
+#define PK_VERSION_MAJOR @pocketpy_VERSION_MAJOR@
+#define PK_VERSION_MINOR @pocketpy_VERSION_MINOR@
+#define PK_VERSION_PATCH @pocketpy_VERSION_PATCH@
+#define PK_VERSION "@pocketpy_VERSION_MAJOR@.@pocketpy_VERSION_MINOR@.@pocketpy_VERSION_PATCH@"
