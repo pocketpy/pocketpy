@@ -1,14 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
 project(cjson)
-
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-
-include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-include_directories(${CMAKE_CURRENT_LIST_DIR}/../../include)
-
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(
     cjson
@@ -16,3 +8,10 @@ add_library(
     ${CMAKE_CURRENT_LIST_DIR}/src/cJSON.c
     ${CMAKE_CURRENT_LIST_DIR}/src/cJSONw.cpp
 )
+
+target_compile_features(cjson PUBLIC cxx_std_17 c_std_11)
+
+target_include_directories(cjson PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
+target_include_directories(cjson PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../../include)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
