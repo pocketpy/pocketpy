@@ -1,5 +1,6 @@
 #include "pocketpy/common/str.hpp"
 #include "pocketpy/common/gil.hpp"
+#include "pocketpy/common/isascii.h"
 
 #include <cassert>
 #include <ostream>
@@ -15,7 +16,7 @@ Str::Str(pair<char*, int> detached) {
     this->is_sso = false;
     this->_ptr = detached.first;
     for(int i = 0; i < size; i++) {
-        if(!isascii(_ptr[i])) {
+        if(!pkpy_isascii(_ptr[i])) {
             is_ascii = false;
             break;
         }

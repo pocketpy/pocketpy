@@ -1,5 +1,6 @@
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
+#include "pocketpy/common/isascii.h"
 
 #include <assert.h>
 #include <string.h>
@@ -24,7 +25,7 @@ void pkpy_Str__ctor(pkpy_Str *self, const char *data){
 
 static void pkpy_Str__check_ascii(pkpy_Str *self, char *p) {
     for(int i = 0; i < self->size; i++){
-        if(!isascii(p[i])){
+        if(!pkpy_isascii(p[i])){
             self->is_ascii = false;
             break;
         }
