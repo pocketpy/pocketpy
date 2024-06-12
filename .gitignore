@@ -34,3 +34,6 @@ docs/references.md
 
 .xmake
 .vs
+
+*.gcno
+_generated.*
