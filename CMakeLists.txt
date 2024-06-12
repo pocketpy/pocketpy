@@ -52,23 +52,14 @@ set_target_properties(
     DEBUG_POSTFIX d
 )
 
-# TODO: use target_compile_options instead
-#       because this will change compile options in other projects
-#       when pocketpy is added as a subdictory
-if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /Od /jumptablerdata /GS-")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /Od /jumptablerdata /GS-")
-    add_compile_options(/wd4267 /wd4244)
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti -O2")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
-
-    # disable -Wshorten-64-to-32 for apple
-    if(APPLE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-shorten-64-to-32")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-shorten-64-to-32")
-    endif()
-endif()
+target_compile_options(${PROJECT_NAME} PUBLIC
+    $<$<CXX_COMPILER_ID:MSVC>:/wd4267 /wd4244 /utf-8 /Od /jumptablerdata /GS->
+    $<$<CXX_COMPILER_ID:AppleClang>:-Wno-shorten-64-to-32>
+    $<$<COMPILE_LANGUAGE:CXX>:
+        $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-fexceptions -frtti>
+    >
+)
 
 option(PK_USE_CJSON "" OFF)
 if(PK_USE_CJSON)
