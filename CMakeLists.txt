@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.21)
 
 project(
     pocketpy
@@ -10,7 +10,7 @@ project(
 
 # PK_IS_MAIN determines whether the project is being used from root
 # or if it is added as a dependency (through add_subdirectory for example).
-if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+if (PROJECT_IS_TOP_LEVEL)
   set(PK_IS_MAIN TRUE)
   option(PK_BUILD_SHARED_LIB "Build shared library" OFF)
   option(PK_BUILD_STATIC_LIB "Build static library" OFF)
