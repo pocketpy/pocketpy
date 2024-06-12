@@ -37,12 +37,19 @@ endif()
 
 configure_file("include/pocketpy/common/version.h.in" "pocketpy/common/version.h")
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17 c_std_11)
+add_subdirectory(python)
+add_dependencies(${PROJECT_NAME} EmbedPyLibs)
 
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17 c_std_11)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include ${PROJECT_BINARY_DIR})
+
 file(GLOB_RECURSE POCKETPY_SRC_CPP ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
 file(GLOB_RECURSE POCKETPY_SRC_C ${CMAKE_CURRENT_LIST_DIR}/src/*.c)
-target_sources(${PROJECT_NAME} PRIVATE ${POCKETPY_SRC_CPP} ${POCKETPY_SRC_C})
+target_sources(${PROJECT_NAME} PRIVATE
+    ${POCKETPY_SRC_CPP}
+    ${POCKETPY_SRC_C}
+    ${CMAKE_CURRENT_LIST_DIR}/src/common/_generated.cpp
+)
 
 set_target_properties(
     ${PROJECT_NAME}
