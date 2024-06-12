@@ -11,6 +11,10 @@ struct SourceData : public pkpy_SourceData {
         pkpy_SourceData__ctor(this, source.data(), source.size(), &filename, mode);
     }
 
+    ~SourceData() {
+        pkpy_SourceData__dtor(this);
+    }
+
     std::string_view get_line(int lineno) const {
         const char *st, *ed;
         if (pkpy_SourceData__get_line(this, lineno, &st, &ed)) {
