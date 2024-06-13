@@ -5,7 +5,9 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+
 #include "pocketpy/common/vector.h"
+#include "pocketpy/common/utils.h"
 
 /* string_view */
 typedef struct c11_string{
@@ -23,7 +25,7 @@ typedef struct pkpy_Str{
     };
 } pkpy_Str;
 
-inline const char* pkpy_Str__data(const pkpy_Str* self){
+PK_INLINE const char* pkpy_Str__data(const pkpy_Str* self){
     return self->is_sso ? self->_inlined : self->_ptr;
 }
 

@@ -4,6 +4,12 @@
 extern "C" {
 #endif
 
+#ifdef __cplusplus
+#define PK_INLINE inline
+#else
+#define PK_INLINE static inline
+#endif
+
 #define PK_REGION(name) 1
 
 #define PK_SLICE_LOOP(i, start, stop, step) for(int i = start; step > 0 ? i < stop : i > stop; i += step)
