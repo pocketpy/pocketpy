@@ -22,7 +22,6 @@ typedef struct pkpy_AnyStr {
         float _float;
         double _double;
         char _char;
-        unsigned char _hex;
         const pkpy_Str* _str;
         c11_string _sv;
         const char* _cstr;
@@ -35,17 +34,19 @@ inline pkpy_AnyStr pkpy_AnyStr__int64(int64_t x) { return (pkpy_AnyStr){.type = 
 inline pkpy_AnyStr pkpy_AnyStr__float(float x) { return (pkpy_AnyStr){.type = 3, ._float = x}; }
 inline pkpy_AnyStr pkpy_AnyStr__double(double x) { return (pkpy_AnyStr){.type = 4, ._double = x}; }
 inline pkpy_AnyStr pkpy_AnyStr__char(char x) { return (pkpy_AnyStr){.type = 5, ._char = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__hex(unsigned char x) { return (pkpy_AnyStr){.type = 6, ._hex = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__str(const pkpy_Str* x) { return (pkpy_AnyStr){.type = 7, ._str = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__sv(c11_string x) { return (pkpy_AnyStr){.type = 8, ._sv = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__cstr(const char* x) { return (pkpy_AnyStr){.type = 9, ._cstr = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__ptr(void* x) { return (pkpy_AnyStr){.type = 10, ._ptr = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__str(const pkpy_Str* x) { return (pkpy_AnyStr){.type = 6, ._str = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__sv(c11_string x) { return (pkpy_AnyStr){.type = 7, ._sv = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__cstr(const char* x) { return (pkpy_AnyStr){.type = 8, ._cstr = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__ptr(void* x) { return (pkpy_AnyStr){.type = 9, ._ptr = x}; }
 
 void pkpy_SStream__ctor(pkpy_SStream* self);
 void pkpy_SStream__dtor(pkpy_SStream* self);
-void pkpy_SStream__write_char(pkpy_SStream* self, char);
+
 void pkpy_SStream__write_int(pkpy_SStream* self, int);
 void pkpy_SStream__write_int64(pkpy_SStream* self, int64_t);
+void pkpy_SStream__write_float(pkpy_SStream* self, float, int precision);
+void pkpy_SStream__write_double(pkpy_SStream* self, double, int precision);
+void pkpy_SStream__write_char(pkpy_SStream* self, char);
 void pkpy_SStream__write_Str(pkpy_SStream* self, const pkpy_Str*);
 void pkpy_SStream__write_sv(pkpy_SStream* self, c11_string);
 void pkpy_SStream__write_cstr(pkpy_SStream* self, const char*);
@@ -61,7 +62,6 @@ pkpy_Str pkpy_SStream__submit(pkpy_SStream* self);
     float: pkpy_AnyStr__float, \
     double: pkpy_AnyStr__double, \
     char: pkpy_AnyStr__char, \
-    unsigned char: pkpy_AnyStr__hex, \
     const pkpy_Str*: pkpy_AnyStr__str, \
     c11_string: pkpy_AnyStr__sv, \
     const char*: pkpy_AnyStr__cstr, \

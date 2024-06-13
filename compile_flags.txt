@@ -1,9 +1,8 @@
 -Wall
 -W*
 
--std=c++17
--std=c11
 -stdlib=libc++
+-std=c++17
 
 -Iinclude/
 -I3rd/cjson/include/

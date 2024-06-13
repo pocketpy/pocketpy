@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <ctype.h>
+#include <math.h>
 
 void pkpy_SStream__ctor(pkpy_SStream* self) {
     c11_vector__ctor(&self->data, sizeof(char));
@@ -28,8 +30,38 @@ void pkpy_SStream__write_int64(pkpy_SStream* self, int64_t i) {
     pkpy_SStream__write_cstr(self, buf);
 }
 
+void pkpy_SStream__write_float(pkpy_SStream* self, float val, int precision){
+    return pkpy_SStream__write_double(self, val, precision);
+}
+
+void pkpy_SStream__write_double(pkpy_SStream* self, double val, int precision){
+    if(val == INFINITY) {
+        pkpy_SStream__write_cstr(self, val > 0 ? "inf" : "-inf");
+        return;
+    }
+    if(val == NAN) {
+        pkpy_SStream__write_cstr(self, "nan");
+        return;
+    }
+    char b[32];
+    int size;
+    if(precision < 0) {
+        int prec = 17 - 1;  // std::numeric_limits<double>::max_digits10 == 17
+        size = snprintf(b, sizeof(b), "%.*g", prec, val);
+    } else {
+        int prec = precision;
+        size = snprintf(b, sizeof(b), "%.*f", prec, val);
+    }
+    pkpy_SStream__write_cstr(self, b);
+    bool all_is_digit = true;
+    for(int i = 1; i < size; i++){
+        if(!isdigit(b[i])){ all_is_digit = false; break; }
+    }
+    if(all_is_digit) pkpy_SStream__write_cstr(self, ".0");
+}
+
 void pkpy_SStream__write_Str(pkpy_SStream* self, const pkpy_Str* str) {
-    pkpy_SStream__write_cstr(self, pkpy_Str__data(str));
+    pkpy_SStream__write_cstrn(self, pkpy_Str__data(str), str->size);
 }
 
 void pkpy_SStream__write_sv(pkpy_SStream* self, c11_string sv) {
@@ -52,14 +84,13 @@ void pkpy_SStream__write_any(pkpy_SStream* self, const char* fmt, const pkpy_Any
             switch(args[i].type){
                 case 1: pkpy_SStream__write_int(self, args[i]._int); break;
                 case 2: pkpy_SStream__write_int64(self, args[i]._int64); break;
-                case 3: assert(0); break;
-                case 4: assert(0); break;
+                case 3: pkpy_SStream__write_float(self, args[i]._float, -1); break;
+                case 4: pkpy_SStream__write_double(self, args[i]._double, -1); break;
                 case 5: pkpy_SStream__write_char(self, args[i]._char); break;
-                case 6: assert(0); break;
-                case 7: pkpy_SStream__write_Str(self, args[i]._str); break;
-                case 8: pkpy_SStream__write_sv(self, args[i]._sv); break;
-                case 9: pkpy_SStream__write_cstr(self, args[i]._cstr); break;
-                case 10: assert(0); break;
+                case 6: pkpy_SStream__write_Str(self, args[i]._str); break;
+                case 7: pkpy_SStream__write_sv(self, args[i]._sv); break;
+                case 8: pkpy_SStream__write_cstr(self, args[i]._cstr); break;
+                case 9: assert(0); break;
                 default: assert(0); break;
             }
             fmt += 2;

@@ -27,10 +27,6 @@ inline const char* pkpy_Str__data(const pkpy_Str* self){
     return self->is_sso ? self->_inlined : self->_ptr;
 }
 
-inline int pkpy_Str__size(const pkpy_Str* self){
-    return self->size;
-}
-
 int pkpy_utils__u8_header(unsigned char c, bool suppress);
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
 void pkpy_Str__ctor2(pkpy_Str* self, const char* data, int size);

@@ -4,6 +4,10 @@
 #include <cmath>
 #include <stdexcept>
 
+#if PK_DEBUG_CEVAL_STEP
+#include <map>
+#endif
+
 const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
 #include "pocketpy/opcodes.h"
@@ -117,7 +121,7 @@ Str VM::py_repr(PyVar obj) {
 }
 
 Str VM::py_json(PyVar obj) {
-    auto j = JsonSerializer(this, obj);
+    JsonSerializer j(this, obj);
     return j.serialize();
 }
 
@@ -808,7 +812,7 @@ Str VM::disassemble(CodeObject_ co) {
 
 #if PK_DEBUG_CEVAL_STEP
 void VM::__log_s_data(const char* title) {
-    if(_main == nullptr) return;
+    // if(_main == nullptr) return;
     if(callstack.empty()) return;
     SStream ss;
     if(title) ss << title << " | ";

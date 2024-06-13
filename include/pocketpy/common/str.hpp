@@ -1,11 +1,13 @@
 #pragma once
 
+#include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/common/memorypool.hpp"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/str.h"
 
+#include <cassert>
 #include <string_view>
 #include <ostream>
 
@@ -273,32 +275,83 @@ struct StrName {
     static uint32_t _pesudo_random_index;
 };
 
-struct SStream {
+struct SStream: pkpy_SStream {
     PK_ALWAYS_PASS_BY_POINTER(SStream)
 
-    vector<char> buffer;
     int _precision = -1;
-
-    bool empty() const { return buffer.empty(); }
+    bool _submited = false;
+    bool empty() const { return data.count == 0; }
 
     void setprecision(int precision) { _precision = precision; }
 
-    SStream() {}
+    SStream() {
+        pkpy_SStream__ctor(this);
+    }
 
-    SStream(int guess_size) { buffer.reserve(guess_size); }
+    SStream(int guess_size) { c11_vector__reserve(&data, guess_size); }
 
-    Str str();
+    ~SStream() {
+        // in case of error
+        if(!_submited) pkpy_SStream__dtor(this);
+    }
 
-    SStream& operator<< (const Str&);
-    SStream& operator<< (const char*);
-    SStream& operator<< (int);
-    SStream& operator<< (size_t);
-    SStream& operator<< (i64);
-    SStream& operator<< (f64);
-    SStream& operator<< (const std::string&);
-    SStream& operator<< (std::string_view);
-    SStream& operator<< (char);
-    SStream& operator<< (StrName);
+    Str str(){
+        assert(!_submited);
+        _submited = true;
+        return pkpy_SStream__submit(this);
+    }
+
+    SStream& operator<< (const Str& val){
+        pkpy_SStream__write_Str(this, &val);
+        return *this;
+    }
+
+    SStream& operator<< (const char* val){
+        pkpy_SStream__write_cstr(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (int val){
+        pkpy_SStream__write_int(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (size_t val){
+        // size_t could overflow int64, but nevermind...
+        pkpy_SStream__write_int64(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (i64 val){
+        pkpy_SStream__write_int64(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (f64 val){
+        pkpy_SStream__write_double(this, val, _precision);
+        return *this;
+    }
+
+    SStream& operator<< (const std::string& val){
+        pkpy_SStream__write_cstrn(this, val.data(), val.size());
+        return *this;
+    }
+
+    SStream& operator<< (std::string_view val){
+        pkpy_SStream__write_cstrn(this, val.data(), val.size());
+        return *this;
+    }
+
+    SStream& operator<< (char val){
+        pkpy_SStream__write_char(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (StrName name){
+        std::string_view sv = name.sv();
+        pkpy_SStream__write_cstrn(this, sv.data(), sv.size());
+        return *this;
+    }
 
     void write_hex(unsigned char, bool non_zero = false);
     void write_hex(void*);
