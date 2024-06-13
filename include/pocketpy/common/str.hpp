@@ -13,8 +13,6 @@
 
 namespace pkpy {
 
-struct SStream;
-
 struct Str: pkpy_Str {
     bool is_inlined() const { return is_sso; }
 

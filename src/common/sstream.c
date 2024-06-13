@@ -35,11 +35,11 @@ void pkpy_SStream__write_float(pkpy_SStream* self, float val, int precision){
 }
 
 void pkpy_SStream__write_double(pkpy_SStream* self, double val, int precision){
-    if(val == INFINITY) {
+    if(isinf(val)) {
         pkpy_SStream__write_cstr(self, val > 0 ? "inf" : "-inf");
         return;
     }
-    if(val == NAN) {
+    if(isnan(val)) {
         pkpy_SStream__write_cstr(self, "nan");
         return;
     }
