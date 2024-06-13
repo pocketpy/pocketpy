@@ -142,6 +142,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
                              .val = val,
                          }));
         pkpy_Dict__htset(self, h, idx);
+        self->count += 1;
         if(self->count >= self->_htcap * 0.75) pkpy_Dict__extendht(self, vm);
         return true;
     }
@@ -173,6 +174,7 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
     pkpy_Var__set_null(&entry->key);
     pkpy_Dict__htset(self, h, null);
     pkpy_Dict__refactor(self, vm);
+    self->count -= 1;
     return true;
 }
 
@@ -203,10 +205,19 @@ void pkpy_Dict__clear(pkpy_Dict *self) {
     self->_version = v + 1;
 }
 
+static int pkpy_Dict__next_entry_idx(const pkpy_Dict* self, int idx) {
+    do {
+        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
+        if(!pkpy_Var__is_null(&entry->key)) break;
+        idx++;
+    } while (idx < self->_entries.count);
+    return idx;
+}
+
 pkpy_DictIter pkpy_Dict__iter(const pkpy_Dict *self) {
     return (pkpy_DictIter){
         ._dict = self,
-        ._index = 0,
+        ._index = pkpy_Dict__next_entry_idx(self, 0),
         ._version = self->_version,
     };
 }
@@ -220,10 +231,6 @@ bool pkpy_DictIter__next(pkpy_DictIter *self, pkpy_Var *key, pkpy_Var *val) {
     if (key) *key = entry->key;
     if (val) *val = entry->val;
 
-    while (self->_index < self->_dict->_entries.count) {
-        self->_index++;
-        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_dict->_entries, self->_index);
-        if(!pkpy_Var__is_null(&entry->key)) break;
-    }
+    self->_index = pkpy_Dict__next_entry_idx(self->_dict, self->_index + 1);
     return true;
 }
