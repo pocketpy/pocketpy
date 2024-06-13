@@ -24,6 +24,11 @@ extern const char* kPlatformStrings[];
 #define PK_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define PK_MAX(a, b) ((a) > (b) ? (a) : (b))
 
+// NARGS
+#define PK_NARGS_SEQ(_1, _2, _3, _4, N, ...) N
+#define PK_NARGS(...) PK_NARGS_SEQ(__VA_ARGS__, 4, 3, 2, 1, 0)
+#define PK_NPTRS(...) PK_NARGS_SEQ(__VA_ARGS__, int****, int***, int**, int*, int)
+
 #ifdef __cplusplus
 }
 #endif

@@ -22,7 +22,7 @@ void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
     for(int i = 0; i < source_size; ++i)
         len -= (source[i] == '\r');
 
-    char *buf = malloc(len + 1), *p = buf;
+    char *buf = (char*)malloc(len + 1), *p = buf;
     buf[len] = '\0';
     for(; index < source_size; ++index) {
         if(source[index] != '\r') *(p++) = source[index];
@@ -57,39 +57,44 @@ bool pkpy_SourceData__get_line(const struct pkpy_SourceData* self, int lineno, c
 pkpy_Str pkpy_SourceData__snapshot(const struct pkpy_SourceData* self, int lineno, const char* cursor, const char* name) {
     pkpy_SStream ss;
     pkpy_SStream__ctor(&ss);
-    pkpy_SStream__append_cstr(&ss, "  File \"");
-    pkpy_SStream__append_Str(&ss, &self->filename);
-    pkpy_SStream__append_cstr(&ss, "\", line ");
-    pkpy_SStream__append_int(&ss, lineno);
+
+    // pkpy_SStream__write_cstr(&ss, "  File \"");
+    // pkpy_SStream__write_Str(&ss, &self->filename);
+    // pkpy_SStream__write_cstr(&ss, "\", line ");
+    // pkpy_SStream__write_int(&ss, lineno);
+
+    pkpy_SStream__write(&ss,
+        "  File \"{}\", line {}",
+        &self->filename,
+        lineno
+    );
 
     if(name) {
-        pkpy_SStream__append_cstr(&ss, ", in ");
-        pkpy_SStream__append_cstr(&ss, name);
+        pkpy_SStream__write_cstr(&ss, ", in ");
+        pkpy_SStream__write_cstr(&ss, name);
     }
 
     if(!self->is_precompiled) {
-        pkpy_SStream__append_char(&ss, '\n');
+        pkpy_SStream__write_char(&ss, '\n');
         const char *st = NULL, *ed;
         if(pkpy_SourceData__get_line(self, lineno, &st, &ed)) {
             while(st < ed && isblank(*st))
                 ++st;
             if(st < ed) {
-                pkpy_SStream__append_cstr(&ss, "    ");
-                pkpy_SStream__append_cstrn(&ss, st, ed - st);
+                pkpy_SStream__write_cstr(&ss, "    ");
+                pkpy_SStream__write_cstrn(&ss, st, ed - st);
                 if(cursor && st <= cursor && cursor <= ed) {
-                    pkpy_SStream__append_cstr(&ss, "\n    ");
+                    pkpy_SStream__write_cstr(&ss, "\n    ");
                     for(int i = 0; i < (cursor - st); ++i)
-                        pkpy_SStream__append_char(&ss, ' ');
-                    pkpy_SStream__append_cstr(&ss, "^");
+                        pkpy_SStream__write_char(&ss, ' ');
+                    pkpy_SStream__write_cstr(&ss, "^");
                 }
             } else {
                 st = NULL;
             }
         }
 
-        if(!st) { pkpy_SStream__append_cstr(&ss, "    <?>"); }
+        if(!st) { pkpy_SStream__write_cstr(&ss, "    <?>"); }
     }
-    pkpy_Str res = pkpy_SStream__to_Str(&ss);
-    pkpy_SStream__dtor(&ss);
-    return res;
+    return pkpy_SStream__submit(&ss);
 }

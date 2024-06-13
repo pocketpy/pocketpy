@@ -4,6 +4,9 @@
 extern "C" {
 #endif
 
+#include <string.h>
+#include <stdlib.h>
+
 typedef struct c11_array{
     void* data;
     int count;
