@@ -11,12 +11,8 @@ extern "C" {
  * @brief A python value in pocketpy.
  */
 typedef struct {
-    // TODO: implement
-
-    union {
-        int type;
-        char buf[16];
-    };
+    int type;
+    int _0, _1, _2;
 } pkpy_Var;
 
 /**
