@@ -11,14 +11,14 @@ struct pkpy_DictEntry {
 };
 
 inline static int pkpy_Dict__idx_size(const pkpy_Dict* self) {
-    if(self->count < 255) return 1;
-    if(self->count < 65535) return 2;
+    if(self->_htcap < 255) return 1;
+    if(self->_htcap < 65535) return 2;
     return 4;
 }
 
 inline static int pkpy_Dict__idx_null(const pkpy_Dict* self) {
-    if(self->count < 255) return 255;
-    if(self->count < 65535) return 65535;
+    if(self->_htcap < 255) return 255;
+    if(self->_htcap < 65535) return 65535;
     return 4294967295;
 }
 
@@ -87,8 +87,8 @@ static void pkpy_Dict__extendht(pkpy_Dict* self, void* vm) {
     self->_version += 1;
     free(self->_hashtable);
     self->_htcap *= 2;
-    void* new_ht = malloc(pkpy_Dict__ht_byte_size(self));
-    memset(new_ht, 0xff, pkpy_Dict__ht_byte_size(self));
+    self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
+    memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
 
     for(int i = 0; i < self->_entries.count; i++) {
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
@@ -206,6 +206,7 @@ void pkpy_Dict__clear(pkpy_Dict *self) {
 }
 
 static int pkpy_Dict__next_entry_idx(const pkpy_Dict* self, int idx) {
+    if (idx >= self->_entries.count) return idx;
     do {
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
         if(!pkpy_Var__is_null(&entry->key)) break;
