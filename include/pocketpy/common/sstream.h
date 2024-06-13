@@ -29,15 +29,15 @@ typedef struct pkpy_AnyStr {
     };
 } pkpy_AnyStr;
 
-inline pkpy_AnyStr pkpy_AnyStr__int(int x) { return (pkpy_AnyStr){.type = 1, ._int = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__i64(int64_t x) { return (pkpy_AnyStr){.type = 2, ._i64 = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__float(float x) { return (pkpy_AnyStr){.type = 3, ._float = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__double(double x) { return (pkpy_AnyStr){.type = 4, ._double = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__char(char x) { return (pkpy_AnyStr){.type = 5, ._char = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__str(const pkpy_Str* x) { return (pkpy_AnyStr){.type = 6, ._str = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__sv(c11_string x) { return (pkpy_AnyStr){.type = 7, ._sv = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__cstr(const char* x) { return (pkpy_AnyStr){.type = 8, ._cstr = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__ptr(void* x) { return (pkpy_AnyStr){.type = 9, ._ptr = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__int(int x) { return (pkpy_AnyStr){1, ._int = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__i64(int64_t x) { return (pkpy_AnyStr){2, ._i64 = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__float(float x) { return (pkpy_AnyStr){3, ._float = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__double(double x) { return (pkpy_AnyStr){4, ._double = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__char(char x) { return (pkpy_AnyStr){5, ._char = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__str(const pkpy_Str* x) { return (pkpy_AnyStr){6, ._str = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__sv(c11_string x) { return (pkpy_AnyStr){7, ._sv = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__cstr(const char* x) { return (pkpy_AnyStr){8, ._cstr = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__ptr(void* x) { return (pkpy_AnyStr){9, ._ptr = x}; }
 
 void pkpy_SStream__ctor(pkpy_SStream* self);
 void pkpy_SStream__dtor(pkpy_SStream* self);
