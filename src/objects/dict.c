@@ -99,33 +99,6 @@ static void pkpy_Dict__extendht(pkpy_Dict* self, void* vm) {
     }
 }
 
-static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
-    int deleted_slots = self->_entries.count - self->count;
-    if(deleted_slots >= 8 && deleted_slots < self->_entries.count * 0.25) return false;
-
-    // shrink
-    self->_version += 1;
-    free(self->_hashtable);
-    while(self->_htcap * 0.375 > self->count && self->_htcap >= 32)
-        self->_htcap /= 2;
-    self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
-    memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
-
-    c11_vector new_entries;
-    c11_vector__ctor(&new_entries, sizeof(struct pkpy_DictEntry));
-    for(int i = 0; i < self->_entries.count; i++) {
-        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
-        if(pkpy_Var__is_null(&entry->key)) continue;
-
-        int j = new_entries.count;
-        c11_vector__push(struct pkpy_DictEntry, &new_entries, *entry);
-        pkpy_Dict__htset(self, pkpy_Dict__probe(self, vm, entry->key, entry->hash), j);
-    }
-    c11_vector__dtor(&self->_entries);
-    self->_entries = new_entries;
-    return true;
-}
-
 bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
     int hash = pkpy_Var__hash__(vm, key);
     int h = pkpy_Dict__probe(self, vm, key, hash);
@@ -162,6 +135,33 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
     return true;
 }
 
+static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
+    int deleted_slots = self->_entries.count - self->count;
+    if(deleted_slots <= 8 || deleted_slots < self->_entries.count * 0.25) return false;
+
+    // shrink
+    self->_version += 1;
+    free(self->_hashtable);
+    while(self->_htcap * 0.375 > self->count && self->_htcap >= 32)
+        self->_htcap /= 2;
+    self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
+    memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
+
+    c11_vector old_entries = self->_entries;
+    c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
+    for(int i = 0; i < old_entries.count; i++) {
+        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &old_entries, i);
+        if(pkpy_Var__is_null(&entry->key)) continue;
+
+        int j = self->_entries.count;
+        c11_vector__push(struct pkpy_DictEntry, &self->_entries, *entry);
+        int h = pkpy_Dict__probe(self, vm, entry->key, entry->hash);
+        pkpy_Dict__htset(self, h, j);
+    }
+    c11_vector__dtor(&old_entries);
+    return true;
+}
+
 bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
     int hash = pkpy_Var__hash__(vm, key);
     int h = pkpy_Dict__probe(self, vm, key, hash);
@@ -173,8 +173,8 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
     assert(entry->hash == hash && pkpy_Var__eq__(vm, entry->key, key));
     pkpy_Var__set_null(&entry->key);
     pkpy_Dict__htset(self, h, null);
-    pkpy_Dict__refactor(self, vm);
     self->count -= 1;
+    pkpy_Dict__refactor(self, vm);
     return true;
 }
 
