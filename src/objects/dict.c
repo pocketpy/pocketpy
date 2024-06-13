@@ -101,7 +101,7 @@ static void pkpy_Dict__extendht(pkpy_Dict* self, void* vm) {
 
 static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
     int deleted_slots = self->_entries.count - self->count;
-    if(deleted_slots < self->_entries.count * 0.25) return false;
+    if(deleted_slots >= 8 && deleted_slots < self->_entries.count * 0.25) return false;
 
     // shrink
     self->_version += 1;

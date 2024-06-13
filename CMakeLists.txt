@@ -12,8 +12,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /Ox /jumptablerdata /GS-")
     add_compile_options(/wd4267 /wd4244)
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti -O2")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
     # disable -Wshorten-64-to-32 for apple
     if(APPLE)
