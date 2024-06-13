@@ -34,7 +34,7 @@ struct Dict : private pkpy_Dict {
     PyVar try_get(VM* vm, PyVar key) const {
         auto res = pkpy_Dict__try_get(this, vm, *reinterpret_cast<::pkpy_Var*>(&key));
         if (!res) return nullptr;
-        return PyVar(*reinterpret_cast<PyVar*>(&res));
+        return *reinterpret_cast<const PyVar*>(res);
     }
 
     bool contains(VM* vm, PyVar key) const {

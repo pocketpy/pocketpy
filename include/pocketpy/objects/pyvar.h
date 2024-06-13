@@ -12,7 +12,8 @@ extern "C" {
  */
 typedef struct {
     int type;
-    int _0, _1, _2;
+    int _0;
+    int64_t _1;
 } pkpy_Var;
 
 /**
