@@ -24,7 +24,7 @@ void pkpy_SStream__write_int(pkpy_SStream* self, int i) {
     pkpy_SStream__write_cstr(self, buf);
 }
 
-void pkpy_SStream__write_int64(pkpy_SStream* self, int64_t i) {
+void pkpy_SStream__write_i64(pkpy_SStream* self, int64_t i) {
     char buf[23]; // sign + 21 digits + null terminator
     snprintf(buf, sizeof(buf), "%lld", i);
     pkpy_SStream__write_cstr(self, buf);
@@ -110,7 +110,7 @@ void pkpy_SStream__write_any(pkpy_SStream* self, const char* fmt, const pkpy_Any
             assert(i < n);
             switch(args[i].type){
                 case 1: pkpy_SStream__write_int(self, args[i]._int); break;
-                case 2: pkpy_SStream__write_int64(self, args[i]._int64); break;
+                case 2: pkpy_SStream__write_i64(self, args[i]._i64); break;
                 case 3: pkpy_SStream__write_float(self, args[i]._float, -1); break;
                 case 4: pkpy_SStream__write_double(self, args[i]._double, -1); break;
                 case 5: pkpy_SStream__write_char(self, args[i]._char); break;

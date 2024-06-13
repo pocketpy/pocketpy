@@ -316,12 +316,12 @@ struct SStream: pkpy_SStream {
 
     SStream& operator<< (size_t val){
         // size_t could overflow int64, but nevermind...
-        pkpy_SStream__write_int64(this, val);
+        pkpy_SStream__write_i64(this, val);
         return *this;
     }
 
     SStream& operator<< (i64 val){
-        pkpy_SStream__write_int64(this, val);
+        pkpy_SStream__write_i64(this, val);
         return *this;
     }
 

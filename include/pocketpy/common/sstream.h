@@ -18,7 +18,7 @@ typedef struct pkpy_AnyStr {
     int type;
     union {
         int _int;
-        int64_t _int64;
+        int64_t _i64;
         float _float;
         double _double;
         char _char;
@@ -30,7 +30,7 @@ typedef struct pkpy_AnyStr {
 } pkpy_AnyStr;
 
 inline pkpy_AnyStr pkpy_AnyStr__int(int x) { return (pkpy_AnyStr){.type = 1, ._int = x}; }
-inline pkpy_AnyStr pkpy_AnyStr__int64(int64_t x) { return (pkpy_AnyStr){.type = 2, ._int64 = x}; }
+inline pkpy_AnyStr pkpy_AnyStr__i64(int64_t x) { return (pkpy_AnyStr){.type = 2, ._i64 = x}; }
 inline pkpy_AnyStr pkpy_AnyStr__float(float x) { return (pkpy_AnyStr){.type = 3, ._float = x}; }
 inline pkpy_AnyStr pkpy_AnyStr__double(double x) { return (pkpy_AnyStr){.type = 4, ._double = x}; }
 inline pkpy_AnyStr pkpy_AnyStr__char(char x) { return (pkpy_AnyStr){.type = 5, ._char = x}; }
@@ -43,7 +43,7 @@ void pkpy_SStream__ctor(pkpy_SStream* self);
 void pkpy_SStream__dtor(pkpy_SStream* self);
 
 void pkpy_SStream__write_int(pkpy_SStream* self, int);
-void pkpy_SStream__write_int64(pkpy_SStream* self, int64_t);
+void pkpy_SStream__write_i64(pkpy_SStream* self, int64_t);
 void pkpy_SStream__write_float(pkpy_SStream* self, float, int precision);
 void pkpy_SStream__write_double(pkpy_SStream* self, double, int precision);
 void pkpy_SStream__write_char(pkpy_SStream* self, char);
@@ -60,7 +60,7 @@ pkpy_Str pkpy_SStream__submit(pkpy_SStream* self);
 
 #define pkpy__anystr(x) _Generic((x), \
     int: pkpy_AnyStr__int, \
-    int64_t: pkpy_AnyStr__int64, \
+    int64_t: pkpy_AnyStr__i64, \
     float: pkpy_AnyStr__float, \
     double: pkpy_AnyStr__double, \
     char: pkpy_AnyStr__char, \
