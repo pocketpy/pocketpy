@@ -9,6 +9,8 @@
 #include "pocketpy/interpreter/frame.hpp"
 #include "pocketpy/interpreter/profiler.hpp"
 
+#include <typeindex>
+
 namespace pkpy {
 
 /* Stack manipulation macros */
