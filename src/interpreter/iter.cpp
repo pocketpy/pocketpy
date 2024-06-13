@@ -117,12 +117,13 @@ void DictItemsIter::_register(VM* vm, PyObject* mod, PyObject* type) {
     });
     vm->bind__next__(type->as<Type>(), [](VM* vm, PyVar _0) -> unsigned {
         DictItemsIter& self = _CAST(DictItemsIter&, _0);
-        Dict& d = PK_OBJ_GET(Dict, self.ref);
-        if(self.i == -1) return 0;
-        vm->s_data.push(d._items[self.i].first);
-        vm->s_data.push(d._items[self.i].second);
-        self.i = d._items[self.i].next;
-        return 2;
+        PyVar key, val;
+        if (pkpy_DictIter__next(&self.it, reinterpret_cast<::pkpy_Var*>(&key), reinterpret_cast<::pkpy_Var*>(&val))) {
+            vm->s_data.push(key);
+            vm->s_data.push(val);
+            return 2;
+        }
+        return 0;
     });
 }
 

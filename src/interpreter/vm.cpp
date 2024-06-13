@@ -1628,37 +1628,6 @@ BIND_BINARY_SPECIAL(__xor__)
 
 #undef BIND_BINARY_SPECIAL
 
-void Dict::_probe_0(VM* vm, PyVar key, bool& ok, int& i) const {
-    ok = false;
-    i64 hash = vm->py_hash(key);
-    i = hash & _mask;
-    for(int j = 0; j < _capacity; j++) {
-        if(_items[i].first != nullptr) {
-            if(vm->py_eq(_items[i].first, key)) {
-                ok = true;
-                break;
-            }
-        } else {
-            if(_items[i].second == nullptr) break;
-        }
-        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
-        i = ((5 * i) + 1) & _mask;
-    }
-}
-
-void Dict::_probe_1(VM* vm, PyVar key, bool& ok, int& i) const {
-    ok = false;
-    i = vm->py_hash(key) & _mask;
-    while(_items[i].first != nullptr) {
-        if(vm->py_eq(_items[i].first, key)) {
-            ok = true;
-            break;
-        }
-        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
-        i = ((5 * i) + 1) & _mask;
-    }
-}
-
 #if PK_ENABLE_PROFILER
 void NextBreakpoint::_step(VM* vm) {
     int curr_callstack_size = vm->callstack.size();
