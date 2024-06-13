@@ -4,8 +4,10 @@
 #include <assert.h>
 #include <string.h>
 
+#define HASH_MASK ((int64_t)0xffffffff)
+
 struct pkpy_DictEntry {
-    int64_t hash;
+    int32_t hash;
     pkpy_Var key;
     pkpy_Var val;
 };
@@ -69,7 +71,7 @@ static void pkpy_Dict__htset(pkpy_Dict* self, int h, int v) {
     }
 }
 
-static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int64_t hash) {
+static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int hash) {
     const int null = pkpy_Dict__idx_null(self);
     const int mask = self->_htcap - 1;
     for(int h = hash & mask;; h = (h + 1) & mask) {
@@ -82,7 +84,7 @@ static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int6
     PK_UNREACHABLE();
 }
 
-static int pkpy_Dict__probe1(const pkpy_Dict* self, void* vm, pkpy_Var key, int64_t hash) {
+static int pkpy_Dict__probe1(const pkpy_Dict* self, void* vm, pkpy_Var key, int hash) {
     const int null = pkpy_Dict__idx_null(self);
     const int mask = self->_htcap - 1;
     for(int h = hash & mask;; h = (h + 1) & mask) {
@@ -113,7 +115,7 @@ static void pkpy_Dict__extendht(pkpy_Dict* self, void* vm) {
 }
 
 bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
-    int hash = pkpy_Var__hash__(vm, key);
+    int hash = pkpy_Var__hash__(vm, key) & HASH_MASK;
     int h = pkpy_Dict__probe1(self, vm, key, hash);
 
     int idx = pkpy_Dict__htget(self, h);
@@ -152,7 +154,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
 }
 
 bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
-    int hash = pkpy_Var__hash__(vm, key);
+    int hash = pkpy_Var__hash__(vm, key) & HASH_MASK;
     int h = pkpy_Dict__probe1(self, vm, key, hash);
 
     int idx = pkpy_Dict__htget(self, h);
@@ -191,7 +193,7 @@ static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
 }
 
 bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
-    int hash = pkpy_Var__hash__(vm, key);
+    int hash = pkpy_Var__hash__(vm, key) & HASH_MASK;
     int h = pkpy_Dict__probe1(self, vm, key, hash);
     int idx = pkpy_Dict__htget(self, h), null = pkpy_Dict__idx_null(self);
     if(idx == null) return false;
@@ -206,7 +208,7 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
 }
 
 const pkpy_Var *pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, pkpy_Var key) {
-    int hash = pkpy_Var__hash__(vm, key);
+    int hash = pkpy_Var__hash__(vm, key) & HASH_MASK;
     int h = pkpy_Dict__probe1(self, vm, key, hash);
     
     int idx = pkpy_Dict__htget(self, h);
