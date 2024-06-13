@@ -29,7 +29,7 @@ struct VoidP {
 
     Str hex() const {
         SStream ss;
-        ss.write_hex(ptr);
+        ss.write_ptr(ptr);
         return ss.str();
     }
 

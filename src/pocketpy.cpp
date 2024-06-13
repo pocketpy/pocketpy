@@ -296,7 +296,22 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind_func(_vm->builtins, "hex", 1, [](VM* vm, ArgsView args) {
         SStream ss;
-        ss.write_hex(CAST(i64, args[0]));
+        i64 val = CAST(i64, args[0]);
+        if(val == 0) {
+            ss << "0x0";
+            return VAR(ss.str());
+        }
+        if(val < 0) {
+            ss << "-";
+            val = -val;
+        }
+        ss << "0x";
+        bool non_zero = true;
+        for(int i = 56; i >= 0; i -= 8) {
+            unsigned char cpnt = (val >> i) & 0xff;
+            ss.write_hex(cpnt, non_zero);
+            if(cpnt != 0) non_zero = false;
+        }
         return VAR(ss.str());
     });
 
@@ -353,7 +368,7 @@ void __init_builtins(VM* _vm) {
         assert(!is_tagged(obj));
         SStream ss;
         ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at ";
-        ss.write_hex(obj.get());
+        ss.write_ptr(obj.get());
         ss << ">";
         return ss.str();
     });

@@ -353,9 +353,13 @@ struct SStream: pkpy_SStream {
         return *this;
     }
 
-    void write_hex(unsigned char, bool non_zero = false);
-    void write_hex(void*);
-    void write_hex(i64);
+    void write_hex(unsigned char val, bool non_zero = false){
+        pkpy_SStream__write_hex(this, val, non_zero);
+    }
+
+    void write_ptr(void* p){
+        pkpy_SStream__write_ptr(this, p);
+    }
 };
 
 #ifdef _S

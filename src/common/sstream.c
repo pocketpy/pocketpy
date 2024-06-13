@@ -76,6 +76,33 @@ void pkpy_SStream__write_cstrn(pkpy_SStream* self, const char* str, int n) {
     c11_vector__extend(char, &self->data, str, n);
 }
 
+void pkpy_SStream__write_hex(pkpy_SStream* self, unsigned char c, bool non_zero) {
+    unsigned char high = c >> 4;
+    unsigned char low = c & 0xf;
+    if(non_zero) {
+        if(high) pkpy_SStream__write_char(self, PK_HEX_TABLE[high]);
+        if(high || low) pkpy_SStream__write_char(self, PK_HEX_TABLE[low]);
+    } else {
+        pkpy_SStream__write_char(self, PK_HEX_TABLE[high]);
+        pkpy_SStream__write_char(self, PK_HEX_TABLE[low]);
+    }
+}
+
+void pkpy_SStream__write_ptr(pkpy_SStream* self, void* p) {
+    if(p == NULL) {
+        pkpy_SStream__write_cstr(self, "0x0");
+        return;
+    }
+    pkpy_SStream__write_cstr(self, "0x");
+    uintptr_t p_t = (uintptr_t)(p);
+    bool non_zero = true;
+    for(int i = sizeof(void*) - 1; i >= 0; i--) {
+        unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
+        pkpy_SStream__write_hex(self, cpnt, non_zero);
+        if(cpnt != 0) non_zero = false;
+    }
+}
+
 void pkpy_SStream__write_any(pkpy_SStream* self, const char* fmt, const pkpy_AnyStr* args, int n){
     int i = 0;
     while(*fmt){

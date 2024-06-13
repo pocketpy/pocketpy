@@ -51,6 +51,8 @@ void pkpy_SStream__write_Str(pkpy_SStream* self, const pkpy_Str*);
 void pkpy_SStream__write_sv(pkpy_SStream* self, c11_string);
 void pkpy_SStream__write_cstr(pkpy_SStream* self, const char*);
 void pkpy_SStream__write_cstrn(pkpy_SStream* self, const char*, int);
+void pkpy_SStream__write_hex(pkpy_SStream* self, unsigned char, bool non_zero);
+void pkpy_SStream__write_ptr(pkpy_SStream* self, void*);
 void pkpy_SStream__write_any(pkpy_SStream* self, const char* fmt, const pkpy_AnyStr* args, int n);
 
 // Submit the stream and return the final string. The stream becomes invalid after this call

@@ -54,54 +54,6 @@ StrName StrName::get(std::string_view s) {
     return StrName(index);
 }
 
-void SStream::write_hex(unsigned char c, bool non_zero) {
-    unsigned char high = c >> 4;
-    unsigned char low = c & 0xf;
-    if(non_zero) {
-        if(high) (*this) << PK_HEX_TABLE[high];
-        if(high || low) (*this) << PK_HEX_TABLE[low];
-    } else {
-        (*this) << PK_HEX_TABLE[high];
-        (*this) << PK_HEX_TABLE[low];
-    }
-}
-
-void SStream::write_hex(void* p) {
-    if(p == nullptr) {
-        (*this) << "0x0";
-        return;
-    }
-    (*this) << "0x";
-    uintptr_t p_t = reinterpret_cast<uintptr_t>(p);
-    bool non_zero = true;
-    for(int i = sizeof(void*) - 1; i >= 0; i--) {
-        unsigned char cpnt = (p_t >> (i * 8)) & 0xff;
-        write_hex(cpnt, non_zero);
-        if(cpnt != 0) non_zero = false;
-    }
-}
-
-void SStream::write_hex(i64 val) {
-    if(val == 0) {
-        (*this) << "0x0";
-        return;
-    }
-    if(val < 0) {
-        (*this) << "-";
-        val = -val;
-    }
-    (*this) << "0x";
-    bool non_zero = true;
-    for(int i = 56; i >= 0; i -= 8) {
-        unsigned char cpnt = (val >> i) & 0xff;
-        write_hex(cpnt, non_zero);
-        if(cpnt != 0) non_zero = false;
-    }
-}
-
-#undef PK_STR_ALLOCATE
-#undef PK_STR_COPY_INIT
-
 // unary operators
 const StrName __repr__ = StrName::get("__repr__");
 const StrName __str__ = StrName::get("__str__");
