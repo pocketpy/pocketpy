@@ -78,7 +78,6 @@ static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int6
 
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
         if(pkpy_Var__is_null(&entry->key)) return h;
-        if(entry->hash == hash && pkpy_Var__eq__(vm, entry->key, key)) return h;
     }
     PK_UNREACHABLE();
 }
