@@ -30,6 +30,7 @@ void pkpy_Dict__ctor(pkpy_Dict* self) {
     c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
     self->_htcap = 16;
     self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
+    memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
 }
 
 void pkpy_Dict__dtor(pkpy_Dict* self) {
