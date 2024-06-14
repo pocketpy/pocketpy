@@ -22,14 +22,12 @@ inline extern int pkpy_Dict__idx_size(const pkpy_Dict* self) {
     return 4;
 }
 
-inline extern unsigned int pkpy_Dict__idx_null(const pkpy_Dict* self) {
+inline extern int pkpy_Dict__idx_null(const pkpy_Dict* self) {
 #if PK_DICT_COMPACT_MODE
-    // if(self->_htcap < 255) return 255;
-    // if(self->_htcap < 65535) return 65535;
-    // return 4294967295u; // 2^32 - 1
-    return (1u << ((pkpy_Dict__idx_size(self) * 8) & 31)) - 1u;
+    if(self->_htcap < 255) return 255;
+    if(self->_htcap < 65535) return 65535;
 #endif
-    return 4294967295u;
+    return -1;
 }
 
 inline extern int pkpy_Dict__ht_byte_size(const pkpy_Dict* self) { return self->_htcap * pkpy_Dict__idx_size(self); }
@@ -57,29 +55,29 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self) {
                        ._hashtable = ht_clone};
 }
 
-static unsigned int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
+static int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
 #if PK_DICT_COMPACT_MODE
-    const unsigned int *p = (const unsigned int*)(((const char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
+    const int *p = (const int*)(((const char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
     return (*p) & pkpy_Dict__idx_null(self);
 #else
-    return ((const unsigned int*)self->_hashtable)[h];
+    return ((const int*)self->_hashtable)[h];
 #endif
 }
 
-static void pkpy_Dict__htset(pkpy_Dict* self, int h, unsigned int v) {
+static void pkpy_Dict__htset(pkpy_Dict* self, int h, int v) {
 #if PK_DICT_COMPACT_MODE
-    unsigned int *p = (unsigned int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
+    int *p = (int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
     *p = v | (*p & ~pkpy_Dict__idx_null(self));
 #else
-    ((unsigned int*)self->_hashtable)[h] = v;
+    ((int*)self->_hashtable)[h] = v;
 #endif
 }
 
 static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int hash) {
-    const unsigned int null = pkpy_Dict__idx_null(self);
-    const unsigned int mask = self->_htcap - 1;
+    const int null = pkpy_Dict__idx_null(self);
+    const int mask = self->_htcap - 1;
     for(int h = hash & mask;; h = DICT_HASH_NEXT(h) & mask) {
-        unsigned int idx = pkpy_Dict__htget(self, h);
+        int idx = pkpy_Dict__htget(self, h);
         if(idx == null) return h;
 
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
@@ -92,7 +90,7 @@ static int pkpy_Dict__probe1(const pkpy_Dict* self, void* vm, pkpy_Var key, int 
     const int null = pkpy_Dict__idx_null(self);
     const int mask = self->_htcap - 1;
     for(int h = hash & mask;; h = DICT_HASH_NEXT(h) & mask) {
-        unsigned int idx = pkpy_Dict__htget(self, h);
+        int idx = pkpy_Dict__htget(self, h);
         if(idx == null) return h;
 
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
@@ -122,7 +120,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
     int hash = DICT_HASH_TRANS(pkpy_Var__hash__(vm, key));
     int h = pkpy_Dict__probe1(self, vm, key, hash);
 
-    unsigned int idx = pkpy_Dict__htget(self, h);
+    int idx = pkpy_Dict__htget(self, h);
     if(idx == pkpy_Dict__idx_null(self)) {
         idx = self->_entries.count;
         c11_vector__push(struct pkpy_DictEntry,
@@ -145,7 +143,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
     } else {
         self->count += 1;
         h = pkpy_Dict__probe0(self, vm, key, hash);
-        unsigned idx = pkpy_Dict__htget(self, h);
+        idx = pkpy_Dict__htget(self, h);
         struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
         entry->key = key;
         entry->val = val;
@@ -157,7 +155,7 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
     int hash = DICT_HASH_TRANS(pkpy_Var__hash__(vm, key));
     int h = pkpy_Dict__probe1(self, vm, key, hash);
 
-    unsigned int idx = pkpy_Dict__htget(self, h);
+    int idx = pkpy_Dict__htget(self, h);
     if(idx == pkpy_Dict__idx_null(self)) return false;
 
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
@@ -195,7 +193,7 @@ static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
 bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
     int hash = DICT_HASH_TRANS(pkpy_Var__hash__(vm, key));
     int h = pkpy_Dict__probe1(self, vm, key, hash);
-    unsigned int idx = pkpy_Dict__htget(self, h), null = pkpy_Dict__idx_null(self);
+    int idx = pkpy_Dict__htget(self, h), null = pkpy_Dict__idx_null(self);
     if(idx == null) return false;
     
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
@@ -210,7 +208,7 @@ const pkpy_Var *pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, pkpy_Var key
     int hash = DICT_HASH_TRANS(pkpy_Var__hash__(vm, key));
     int h = pkpy_Dict__probe1(self, vm, key, hash);
     
-    unsigned int idx = pkpy_Dict__htget(self, h);
+    int idx = pkpy_Dict__htget(self, h);
     if(idx == pkpy_Dict__idx_null(self)) return NULL;
     
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
