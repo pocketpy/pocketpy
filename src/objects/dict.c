@@ -167,25 +167,29 @@ static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
     if(deleted_slots <= 8 || deleted_slots < self->_entries.count * (1 - DICT_MAX_LOAD)) return false;
 
     // shrink
-    free(self->_hashtable);
-    while(self->_htcap * DICT_MAX_LOAD / 2 > self->count && self->_htcap >= 32)
-        self->_htcap /= 2;
-    self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
+    // free(self->_hashtable);
+    // while(self->_htcap * DICT_MAX_LOAD / 2 > self->count && self->_htcap >= 32)
+    //     self->_htcap /= 2;
+    // self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
     memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
 
-    c11_vector old_entries = self->_entries;
-    c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
-    for(int i = 0; i < old_entries.count; i++) {
-        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &old_entries, i);
+    int new_cnt = 0;
+    for (int i = 0; i < self->_entries.count; ++i) {
+        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
+        if(pkpy_Var__is_null(&entry->key)) continue;
+        if (i > new_cnt) c11__setitem(struct pkpy_DictEntry, &self->_entries, new_cnt, *entry);
+        new_cnt += 1;
+    }
+
+    self->_entries.count = new_cnt;
+    for(int i = 0; i < self->_entries.count; i++) {
+        struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, i);
         if(pkpy_Var__is_null(&entry->key)) continue;
 
-        int j = self->_entries.count;
-        c11_vector__push(struct pkpy_DictEntry, &self->_entries, *entry);
         int rhash = DICT_HASH_TRANS(pkpy_Var__hash__(vm, entry->key));
         int h = pkpy_Dict__probe0(self, vm, entry->key, rhash);
-        pkpy_Dict__htset(self, h, j);
+        pkpy_Dict__htset(self, h, i);
     }
-    c11_vector__dtor(&old_entries);
     return true;
 }
 
@@ -223,13 +227,7 @@ void pkpy_Dict__update(pkpy_Dict *self, void *vm, const pkpy_Dict *other) {
 
 void pkpy_Dict__clear(pkpy_Dict *self) {
     self->count = 0;
-    c11_vector__dtor(&self->_entries);
-    c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
-    if (self->_htcap > 16) {
-        free(self->_hashtable);
-        self->_htcap = 16;
-        self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
-    }
+    self->_entries.count = 0;
     memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
 }
 
