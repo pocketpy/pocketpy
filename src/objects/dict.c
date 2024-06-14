@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <string.h>
 
+#define DICT_MAX_LOAD 0.75
+
 struct pkpy_DictEntry {
     pkpy_Var key;
     pkpy_Var val;
@@ -124,7 +126,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, pkpy_Var key, pkpy_Var val) {
         h = pkpy_Dict__probe0(self, vm, key, hash);
         pkpy_Dict__htset(self, h, idx);
         self->count += 1;
-        if(self->count >= self->_htcap * 0.75) pkpy_Dict__extendht(self, vm);
+        if(self->count >= self->_htcap * DICT_MAX_LOAD) pkpy_Dict__extendht(self, vm);
         return true;
     }
 
@@ -157,11 +159,11 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
 
 static bool pkpy_Dict__refactor(pkpy_Dict* self, void* vm) {
     int deleted_slots = self->_entries.count - self->count;
-    if(deleted_slots <= 8 || deleted_slots < self->_entries.count * 0.25) return false;
+    if(deleted_slots <= 8 || deleted_slots < self->_entries.count * (1 - DICT_MAX_LOAD)) return false;
 
     // shrink
     free(self->_hashtable);
-    while(self->_htcap * 0.375 > self->count && self->_htcap >= 32)
+    while(self->_htcap * DICT_MAX_LOAD / 2 > self->count && self->_htcap >= 32)
         self->_htcap /= 2;
     self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
     memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
