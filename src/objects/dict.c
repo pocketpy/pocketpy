@@ -159,7 +159,6 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
     if(idx == pkpy_Dict__idx_null(self)) return false;
 
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
-    assert(pkpy_Var__eq__(vm, entry->key, key));
     return true;
 }
 
@@ -197,7 +196,6 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, pkpy_Var key) {
     if(idx == null) return false;
     
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
-    assert(pkpy_Var__eq__(vm, entry->key, key));
     pkpy_Var__set_null(&entry->key);
     self->count -= 1;
     pkpy_Dict__refactor(self, vm);
