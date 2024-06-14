@@ -214,7 +214,6 @@ const pkpy_Var *pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, pkpy_Var key
     if(idx == pkpy_Dict__idx_null(self)) return NULL;
     
     struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
-    assert(pkpy_Var__eq__(vm, entry->key, key));
     return &entry->val;
 }
 
@@ -230,7 +229,7 @@ void pkpy_Dict__clear(pkpy_Dict *self) {
     self->count = 0;
     c11_vector__dtor(&self->_entries);
     c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
-    if (self->_hashtable > 16) {
+    if (self->_htcap > 16) {
         free(self->_hashtable);
         self->_htcap = 16;
         self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
