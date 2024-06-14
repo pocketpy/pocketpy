@@ -2,63 +2,95 @@
 
 #include "pocketpy/objects/base.hpp"
 #include "pocketpy/objects/tuplelist.hpp"
+#include "pocketpy/objects/dict.h"
 
 namespace pkpy {
 
-struct Dict {
-    struct Item {
-        PyVar first;
-        PyVar second;
-        int prev;
-        int next;
-    };
+struct Dict : private pkpy_Dict {
+    Dict() {
+        pkpy_Dict__ctor(this);
+    }
 
-    constexpr static int __Capacity = 8;
-    constexpr static float __LoadFactor = 0.67f;
+    Dict(Dict&& other) {
+        std::memcpy(this, &other, sizeof(Dict));
+        pkpy_Dict__ctor(&other);
+    }
 
-    int _capacity;
-    int _mask;
-    int _size;
-    int _critical_size;
-    int _head_idx;  // for order preserving
-    int _tail_idx;  // for order preserving
-    Item* _items;
-
-    Dict();
-    Dict(Dict&& other);
-    Dict(const Dict& other);
+    Dict(const Dict& other) {
+        // OPTIMIZEME: reduce copy
+        auto clone = pkpy_Dict__copy(&other);
+        std::memcpy(this, &clone, sizeof(Dict));
+    }
+    
     Dict& operator= (const Dict&) = delete;
     Dict& operator= (Dict&&) = delete;
 
-    int size() const { return _size; }
+    int size() const { return count; }
 
-    void _probe_0(VM* vm, PyVar key, bool& ok, int& i) const;
-    void _probe_1(VM* vm, PyVar key, bool& ok, int& i) const;
+    void set(VM* vm, PyVar key, PyVar val) {
+        pkpy_Dict__set(this, vm, *(pkpy_Var*)(&key), *(pkpy_Var*)(&val));
+    }
 
-    void set(VM* vm, PyVar key, PyVar val);
-    void _rehash(VM* vm);
+    PyVar try_get(VM* vm, PyVar key) const {
+        auto res = pkpy_Dict__try_get(this, vm, *(pkpy_Var*)(&key));
+        if (!res) return nullptr;
+        return *(const PyVar*)(res);
+    }
 
-    PyVar try_get(VM* vm, PyVar key) const;
+    bool contains(VM* vm, PyVar key) const {
+        return pkpy_Dict__contains(this, vm, *(pkpy_Var*)(&key));
+    }
 
-    bool contains(VM* vm, PyVar key) const;
-    bool del(VM* vm, PyVar key);
-    void update(VM* vm, const Dict& other);
+    bool del(VM* vm, PyVar key) {
+        return pkpy_Dict__del(this, vm, *(pkpy_Var*)(&key));
+    }
+
+    void update(VM* vm, const Dict& other) {
+        pkpy_Dict__update(this, vm, &other);
+    }
 
     template <typename __Func>
     void apply(__Func f) const {
-        int i = _head_idx;
-        while(i != -1) {
-            f(_items[i].first, _items[i].second);
-            i = _items[i].next;
+        pkpy_DictIter it = iter();
+        PyVar key, val;
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+            f(key, val);
         }
     }
 
-    Tuple keys() const;
-    Tuple values() const;
-    void clear();
-    ~Dict();
+    Tuple keys() const {
+        Tuple res(count);
+        pkpy_DictIter it = iter();
+        PyVar key, val;
+        int i = 0;
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+            res[i++] = key;
+        }
+        return res;
+    }
 
-    void __alloc_items();
+    Tuple values() const {
+        Tuple res(count);
+        pkpy_DictIter it = iter();
+        PyVar key, val;
+        int i = 0;
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+            res[i++] = val;
+        }
+        return res;
+    }
+
+    pkpy_DictIter iter() const {
+        return pkpy_Dict__iter(this);
+    }
+
+    void clear() {
+        pkpy_Dict__clear(this);
+    }
+
+    ~Dict() {
+        pkpy_Dict__dtor(this);
+    }
 
     void _gc_mark(VM*) const;
 };

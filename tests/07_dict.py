@@ -159,6 +159,17 @@ try:
 except TypeError:
     pass
 
+n = 2 ** 17
+a = {}
+for i in range(n):
+    a[str(i)] = i
+
+for i in range(n):
+    y = a[str(i)]
+
+for i in range(n):
+    del a[str(i)]
+
 a = {1: 2, 3: 4}
 a['a'] = a
 assert repr(a) == "{1: 2, 3: 4, 'a': {...}}"
@@ -169,4 +180,3 @@ gc.collect()
 for k, v in a.items():
     pass
 assert gc.collect() == 1
-

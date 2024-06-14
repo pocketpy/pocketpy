@@ -74,9 +74,9 @@ struct Generator {
 
 struct DictItemsIter {
     PyVar ref;
-    int i;
+    pkpy_DictIter it;
 
-    DictItemsIter(PyVar ref) : ref(ref) { i = PK_OBJ_GET(Dict, ref)._head_idx; }
+    DictItemsIter(PyVar ref) : ref(ref) { it = PK_OBJ_GET(Dict, ref).iter(); }
 
     void _gc_mark(VM* vm) const { vm->obj_gc_mark(ref); }
 

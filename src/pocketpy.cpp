@@ -1493,12 +1493,12 @@ void __init_builtins(VM* _vm) {
         if(!vm->isinstance(_1, vm->tp_dict)) return vm->NotImplemented;
         Dict& other = _CAST(Dict&, _1);
         if(self.size() != other.size()) return vm->False;
-        for(int i = 0; i < self._capacity; i++) {
-            auto item = self._items[i];
-            if(item.first == nullptr) continue;
-            PyVar value = other.try_get(vm, item.first);
-            if(value == nullptr) return vm->False;
-            if(!vm->py_eq(item.second, value)) return vm->False;
+        pkpy_DictIter it = self.iter();
+        PyVar key, val;
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+            PyVar other_val = other.try_get(vm, key);
+            if(other_val == nullptr) return vm->False;
+            if(!vm->py_eq(val, other_val)) return vm->False;
         }
         return vm->True;
     });
