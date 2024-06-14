@@ -1495,7 +1495,7 @@ void __init_builtins(VM* _vm) {
         if(self.size() != other.size()) return vm->False;
         pkpy_DictIter it = self.iter();
         PyVar key, val;
-        while(pkpy_DictIter__next(&it, reinterpret_cast<::pkpy_Var*>(&key), reinterpret_cast<::pkpy_Var*>(&val))) {
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
             PyVar other_val = other.try_get(vm, key);
             if(other_val == nullptr) return vm->False;
             if(!vm->py_eq(val, other_val)) return vm->False;

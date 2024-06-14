@@ -28,21 +28,21 @@ struct Dict : private pkpy_Dict {
     int size() const { return count; }
 
     void set(VM* vm, PyVar key, PyVar val) {
-        pkpy_Dict__set(this, vm, *reinterpret_cast<::pkpy_Var*>(&key), *reinterpret_cast<::pkpy_Var*>(&val));
+        pkpy_Dict__set(this, vm, *(pkpy_Var*)(&key), *(pkpy_Var*)(&val));
     }
 
     PyVar try_get(VM* vm, PyVar key) const {
-        auto res = pkpy_Dict__try_get(this, vm, *reinterpret_cast<::pkpy_Var*>(&key));
+        auto res = pkpy_Dict__try_get(this, vm, *(pkpy_Var*)(&key));
         if (!res) return nullptr;
         return *reinterpret_cast<const PyVar*>(res);
     }
 
     bool contains(VM* vm, PyVar key) const {
-        return pkpy_Dict__contains(this, vm, *reinterpret_cast<::pkpy_Var*>(&key));
+        return pkpy_Dict__contains(this, vm, *(pkpy_Var*)(&key));
     }
 
     bool del(VM* vm, PyVar key) {
-        return pkpy_Dict__del(this, vm, *reinterpret_cast<::pkpy_Var*>(&key));
+        return pkpy_Dict__del(this, vm, *(pkpy_Var*)(&key));
     }
 
     void update(VM* vm, const Dict& other) {
@@ -53,7 +53,7 @@ struct Dict : private pkpy_Dict {
     void apply(__Func f) const {
         pkpy_DictIter it = iter();
         PyVar key, val;
-        while(pkpy_DictIter__next(&it, reinterpret_cast<::pkpy_Var*>(&key), reinterpret_cast<::pkpy_Var*>(&val))) {
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
             f(key, val);
         }
     }
@@ -63,7 +63,7 @@ struct Dict : private pkpy_Dict {
         pkpy_DictIter it = iter();
         PyVar key, val;
         int i = 0;
-        while(pkpy_DictIter__next(&it, reinterpret_cast<::pkpy_Var*>(&key), reinterpret_cast<::pkpy_Var*>(&val))) {
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
             res[i++] = key;
         }
         return res;
@@ -74,7 +74,7 @@ struct Dict : private pkpy_Dict {
         pkpy_DictIter it = iter();
         PyVar key, val;
         int i = 0;
-        while(pkpy_DictIter__next(&it, reinterpret_cast<::pkpy_Var*>(&key), reinterpret_cast<::pkpy_Var*>(&val))) {
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
             res[i++] = val;
         }
         return res;
