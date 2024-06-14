@@ -5,26 +5,32 @@
 #include <string.h>
 
 #define DICT_MAX_LOAD 0.75
+#define PK_DICT_COMPACT_MODE 1
 
 struct pkpy_DictEntry {
     pkpy_Var key;
     pkpy_Var val;
 };
 
-inline static int pkpy_Dict__idx_size(const pkpy_Dict* self) {
+inline extern int pkpy_Dict__idx_size(const pkpy_Dict* self) {
+#if PK_DICT_COMPACT_MODE
     if(self->_htcap < 255) return 1;
     if(self->_htcap < 65535) return 2;
+#endif
     return 4;
 }
 
-inline static unsigned int pkpy_Dict__idx_null(const pkpy_Dict* self) {
+inline extern unsigned int pkpy_Dict__idx_null(const pkpy_Dict* self) {
+#if PK_DICT_COMPACT_MODE
     // if(self->_htcap < 255) return 255;
     // if(self->_htcap < 65535) return 65535;
     // return 4294967295u; // 2^32 - 1
     return (1u << ((pkpy_Dict__idx_size(self) * 8) & 31)) - 1u;
+#endif
+    return 4294967295u;
 }
 
-inline static int pkpy_Dict__ht_byte_size(const pkpy_Dict* self) { return self->_htcap * pkpy_Dict__idx_size(self); }
+inline extern int pkpy_Dict__ht_byte_size(const pkpy_Dict* self) { return self->_htcap * pkpy_Dict__idx_size(self); }
 
 void pkpy_Dict__ctor(pkpy_Dict* self) {
     self->count = 0;
@@ -50,20 +56,21 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self) {
 }
 
 static unsigned int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
-    const int *p = (int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
+#if PK_DICT_COMPACT_MODE
+    const unsigned int *p = (const unsigned int*)(((const char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
     return (*p) & pkpy_Dict__idx_null(self);
+#else
+    return ((const unsigned int*)self->_hashtable)[h];
+#endif
 }
 
 static void pkpy_Dict__htset(pkpy_Dict* self, int h, unsigned int v) {
-    int sz = pkpy_Dict__idx_size(self);
-    // switch(sz) {
-    //     case 1: ((uint8_t*)self->_hashtable)[h] = v; break;
-    //     case 2: ((uint16_t*)self->_hashtable)[h] = v; break;
-    //     case 4: ((uint32_t*)self->_hashtable)[h] = v; break;
-    //     default: PK_UNREACHABLE();
-    // }
-    int *p = ((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self);
+#if PK_DICT_COMPACT_MODE
+    unsigned int *p = (unsigned int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
     *p = v | (*p & ~pkpy_Dict__idx_null(self));
+#else
+    ((unsigned int*)self->_hashtable)[h] = v;
+#endif
 }
 
 static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int64_t hash) {
