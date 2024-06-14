@@ -8,12 +8,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /Ox /jumptablerdata /GS-")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /Ox /jumptablerdata /GS-")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8 /jumptablerdata /GS-")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8 /jumptablerdata /GS-")
     add_compile_options(/wd4267 /wd4244)
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Ox")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox")
+    endif()
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti -O2")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions -frtti")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
+    if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2")
+    endif()
 
     # disable -Wshorten-64-to-32 for apple
     if(APPLE)
