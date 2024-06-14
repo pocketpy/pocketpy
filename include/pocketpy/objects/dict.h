@@ -8,6 +8,7 @@ extern "C" {
 #include "pocketpy/objects/pyvar.h"
 #include "pocketpy/common/vector.h"
 
+/** @brief `pkpy_Dict` is the Dict type in Python */
 typedef struct {
     int count;             /** number of elements in the dictionary */
     c11_vector _entries;   /** contains `pkpy_DictEntry` (hidden type) */
@@ -15,9 +16,9 @@ typedef struct {
     void* _hashtable;      /** contains indecies, can be `u8`, `u16` or `u32` according to size*/
 } pkpy_Dict;
 
+/** @brief `pkpy_DictIter` is used to iterate over a `pkpy_Dict` */
 typedef struct {
     const pkpy_Dict* _dict;
-    unsigned int _version;
     int _index;
 } pkpy_DictIter;
 

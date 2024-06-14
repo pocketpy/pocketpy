@@ -227,8 +227,15 @@ void pkpy_Dict__update(pkpy_Dict *self, void *vm, const pkpy_Dict *other) {
 }
 
 void pkpy_Dict__clear(pkpy_Dict *self) {
-    pkpy_Dict__dtor(self);
-    pkpy_Dict__ctor(self);
+    self->count = 0;
+    c11_vector__dtor(&self->_entries);
+    c11_vector__ctor(&self->_entries, sizeof(struct pkpy_DictEntry));
+    if (self->_hashtable > 16) {
+        free(self->_hashtable);
+        self->_htcap = 16;
+        self->_hashtable = malloc(pkpy_Dict__ht_byte_size(self));
+    }
+    memset(self->_hashtable, 0xff, pkpy_Dict__ht_byte_size(self));
 }
 
 static int pkpy_Dict__next_entry_idx(const pkpy_Dict* self, int idx) {
