@@ -18,9 +18,10 @@ inline static int pkpy_Dict__idx_size(const pkpy_Dict* self) {
 }
 
 inline static unsigned int pkpy_Dict__idx_null(const pkpy_Dict* self) {
-    if(self->_htcap < 255) return 255;
-    if(self->_htcap < 65535) return 65535;
-    return 4294967295u; // 2^32 - 1
+    // if(self->_htcap < 255) return 255;
+    // if(self->_htcap < 65535) return 65535;
+    // return 4294967295u; // 2^32 - 1
+    return (1u << ((pkpy_Dict__idx_size(self) * 8) & 31)) - 1u;
 }
 
 inline static int pkpy_Dict__ht_byte_size(const pkpy_Dict* self) { return self->_htcap * pkpy_Dict__idx_size(self); }
@@ -49,23 +50,20 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self) {
 }
 
 static unsigned int pkpy_Dict__htget(const pkpy_Dict* self, int h) {
-    int sz = pkpy_Dict__idx_size(self);
-    switch(sz) {
-        case 1: return ((uint8_t*)self->_hashtable)[h];
-        case 2: return ((uint16_t*)self->_hashtable)[h];
-        case 4: return ((uint32_t*)self->_hashtable)[h];
-        default: PK_UNREACHABLE();
-    }
+    const int *p = (int*)(((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self));
+    return (*p) & pkpy_Dict__idx_null(self);
 }
 
-static void pkpy_Dict__htset(pkpy_Dict* self, int h, int v) {
+static void pkpy_Dict__htset(pkpy_Dict* self, int h, unsigned int v) {
     int sz = pkpy_Dict__idx_size(self);
-    switch(sz) {
-        case 1: ((uint8_t*)self->_hashtable)[h] = v; break;
-        case 2: ((uint16_t*)self->_hashtable)[h] = v; break;
-        case 4: ((uint32_t*)self->_hashtable)[h] = v; break;
-        default: PK_UNREACHABLE();
-    }
+    // switch(sz) {
+    //     case 1: ((uint8_t*)self->_hashtable)[h] = v; break;
+    //     case 2: ((uint16_t*)self->_hashtable)[h] = v; break;
+    //     case 4: ((uint32_t*)self->_hashtable)[h] = v; break;
+    //     default: PK_UNREACHABLE();
+    // }
+    int *p = ((char*)self->_hashtable) + h * pkpy_Dict__idx_size(self);
+    *p = v | (*p & ~pkpy_Dict__idx_null(self));
 }
 
 static int pkpy_Dict__probe0(const pkpy_Dict* self, void* vm, pkpy_Var key, int64_t hash) {
