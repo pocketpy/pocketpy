@@ -9,7 +9,6 @@ extern "C" {
 #include "pocketpy/common/vector.h"
 
 typedef struct {
-    unsigned int _version; /** used internelly to detect iterator invalidation */
     int count;             /** number of elements in the dictionary */
     c11_vector _entries;   /** contains `pkpy_DictEntry` (hidden type) */
     int _htcap;            /** capacity of the hashtable, always a power of 2 */
