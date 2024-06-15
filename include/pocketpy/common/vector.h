@@ -1,13 +1,12 @@
 #pragma once
 
+#include <string.h>
+#include <stdlib.h>
+#include "pocketpy/common/algorithm.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <string.h>
-#include <stdlib.h>
-
-#include "pocketpy/common/algorithm.h"
 
 typedef struct c11_array{
     void* data;
@@ -60,15 +59,27 @@ void c11_vector__clear(c11_vector* self);
 #define c11_vector__insert(T, self, index, elem) \
     do{ \
         if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
-        memmove((T*)(self)->data + (index) + 1, (T*)(self)->data + (index), ((self)->count - (index)) * sizeof(T)); \
-        ((T*)(self)->data)[index] = (elem); \
+        T* p = (T*)(self)->data + (index); \
+        memmove(p + 1, p, ((self)->count - (index)) * sizeof(T)); \
+        *p = (elem); \
         (self)->count++; \
     }while(0)
 
 #define c11_vector__erase(T, self, index) \
     do{ \
-        memmove((T*)(self)->data + (index), (T*)(self)->data + (index) + 1, ((self)->count - (index) - 1) * sizeof(T)); \
+        T* p = (T*)(self)->data + (index); \
+        memmove(p, p + 1, ((self)->count - (index) - 1) * sizeof(T)); \
         (self)->count--; \
+    }while(0)
+
+#define c11_vector__reverse(T, self, start, end) \
+    do{ \
+        T* p = (T*)(self)->data + (start); \
+        T* q = (T*)(self)->data + (end); \
+        while(p < q){ \
+            T tmp = *p; *p = *q; *q = tmp; \
+            p++; q--; \
+        } \
     }while(0)
 
 #ifdef __cplusplus

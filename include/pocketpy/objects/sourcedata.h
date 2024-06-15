@@ -17,11 +17,11 @@ struct pkpy_SourceData {
     pkpy_Str filename;
     pkpy_Str source;
 
-    c11_vector line_starts;     // contains "const char *"
-    c11_vector _precompiled_tokens;  // contains "pkpy_Str"
+    c11_vector/*T=const char* */ line_starts;
+    c11_vector/*T=pkpy_Str*/ _precompiled_tokens;
 };
 
-void pkpy_SourceData__ctor(struct pkpy_SourceData *self, const char *source, int source_size, const pkpy_Str *filename, enum CompileMode mode);
+void pkpy_SourceData__ctor(struct pkpy_SourceData *self, c11_string source, const pkpy_Str *filename, enum CompileMode mode);
 void pkpy_SourceData__dtor(struct pkpy_SourceData* self);
 
 bool pkpy_SourceData__get_line(const struct pkpy_SourceData *self, int lineno, const char **st, const char **ed);

@@ -10,6 +10,11 @@ void pkpy_SStream__ctor(pkpy_SStream* self) {
     c11_vector__ctor(&self->data, sizeof(char));
 }
 
+void pkpy_SStream__ctor2(pkpy_SStream* self, int capacity) {
+    c11_vector__ctor(&self->data, sizeof(char));
+    c11_vector__reserve(&self->data, capacity);
+}
+
 void pkpy_SStream__dtor(pkpy_SStream* self) {
     c11_vector__dtor(&self->data);
 }
@@ -24,10 +29,25 @@ void pkpy_SStream__write_int(pkpy_SStream* self, int i) {
     pkpy_SStream__write_cstr(self, buf);
 }
 
-void pkpy_SStream__write_i64(pkpy_SStream* self, int64_t i) {
-    char buf[23]; // sign + 21 digits + null terminator
-    snprintf(buf, sizeof(buf), "%lld", i);
-    pkpy_SStream__write_cstr(self, buf);
+void pkpy_SStream__write_i64(pkpy_SStream* self, int64_t val) {
+    // sign + 21 digits + null terminator
+    // str(-2**64).__len__() == 21
+    c11_vector__reserve(&self->data, self->data.count + 23);
+    if(val == 0){
+        pkpy_SStream__write_char(self, '0');
+        return;
+    }
+    if(val < 0){
+        pkpy_SStream__write_char(self, '-');
+        val = -val;
+    }
+    int start = self->data.count;
+    while(val){
+        c11_vector__push(char, &self->data, '0' + val % 10);
+        val /= 10;
+    }
+    int end = self->data.count - 1;
+    c11_vector__reverse(char, &self->data, start, end);
 }
 
 void pkpy_SStream__write_float(pkpy_SStream* self, float val, int precision){

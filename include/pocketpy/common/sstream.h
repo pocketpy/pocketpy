@@ -1,14 +1,14 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/utils.h"
 
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct pkpy_SStream {
     c11_vector data;
@@ -40,6 +40,7 @@ PK_INLINE pkpy_AnyStr pkpy_AnyStr__cstr(const char* x) { pkpy_AnyStr s; s.type =
 PK_INLINE pkpy_AnyStr pkpy_AnyStr__ptr(void* x) { pkpy_AnyStr s; s.type = 9; s._ptr = x; return s; }
 
 void pkpy_SStream__ctor(pkpy_SStream* self);
+void pkpy_SStream__ctor2(pkpy_SStream* self, int capacity);
 void pkpy_SStream__dtor(pkpy_SStream* self);
 
 void pkpy_SStream__write_int(pkpy_SStream* self, int);

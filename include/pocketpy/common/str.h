@@ -1,13 +1,12 @@
 #pragma once
 
+#include <stdbool.h>
+#include "pocketpy/common/vector.h"
+#include "pocketpy/common/utils.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdbool.h>
-
-#include "pocketpy/common/vector.h"
-#include "pocketpy/common/utils.h"
 
 /* string_view */
 typedef struct c11_string{
@@ -29,7 +28,6 @@ PK_INLINE const char* pkpy_Str__data(const pkpy_Str* self){
     return self->is_sso ? self->_inlined : self->_ptr;
 }
 
-int pkpy_utils__u8_header(unsigned char c, bool suppress);
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
 void pkpy_Str__ctor2(pkpy_Str* self, const char* data, int size);
 void pkpy_Str__dtor(pkpy_Str* self);
@@ -56,6 +54,10 @@ int pkpy_Str__index(const pkpy_Str* self, const pkpy_Str* sub, int start);
 int pkpy_Str__count(const pkpy_Str* self, const pkpy_Str* sub);
 c11_vector/* T=c11_string */ pkpy_Str__split(const pkpy_Str* self, char sep);
 c11_vector/* T=c11_string */ pkpy_Str__split2(const pkpy_Str* self, const pkpy_Str* sep);
+
+bool c11__isascii(const char* p, int size);
+bool c11__is_unicode_Lo_char(int c);
+int c11__u8_header(unsigned char c, bool suppress);
 
 #ifdef __cplusplus
 }

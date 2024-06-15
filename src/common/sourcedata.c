@@ -4,31 +4,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-void pkpy_Str__take_buf(pkpy_Str *self, char *data, int size);
-
 void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
-                           const char* source,
-                           int source_size,
+                           c11_string source,       // may not be null-terminated
                            const pkpy_Str* filename,
                            enum CompileMode mode) {
     self->filename = pkpy_Str__copy(filename);  // OPTIMIZEME?
     self->mode = mode;
-
     c11_vector__ctor(&self->line_starts, sizeof(const char*));
     c11_vector__ctor(&self->_precompiled_tokens, sizeof(pkpy_Str));
 
-    int index = (strncmp(source, "\xEF\xBB\xBF", 3) == 0) ? 3 : 0;
-    int len = source_size - index;
-    for(int i = 0; i < source_size; ++i)
-        len -= (source[i] == '\r');
-
-    char *buf = (char*)malloc(len + 1), *p = buf;
-    buf[len] = '\0';
-    for(; index < source_size; ++index) {
-        if(source[index] != '\r') *(p++) = source[index];
+    int index = 0;
+    // Skip utf8 BOM if there is any.
+    if (source.size >= 3 && strncmp(source.data, "\xEF\xBB\xBF", 3) == 0) index += 3;
+    // Drop all '\r'
+    pkpy_SStream ss;
+    pkpy_SStream__ctor2(&ss, source.size + 1);
+    while(index < source.size){
+        char c = source.data[index];
+        if(c != '\r') pkpy_SStream__write_char(&ss, c);
+        index++;
     }
-    pkpy_Str__take_buf(&self->source, buf, len);
-
+    self->source = pkpy_SStream__submit(&ss);
     self->is_precompiled = (strncmp(pkpy_Str__data(&self->source), "pkpy:", 5) == 0);
     c11_vector__push(const char*, &self->line_starts, pkpy_Str__data(&self->source));
 }

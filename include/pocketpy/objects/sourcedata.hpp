@@ -8,7 +8,7 @@ namespace pkpy {
 
 struct SourceData : public pkpy_SourceData {
     SourceData(std::string_view source, const Str& filename, CompileMode mode) {
-        pkpy_SourceData__ctor(this, source.data(), source.size(), &filename, mode);
+        pkpy_SourceData__ctor(this, {source.data(), (int)source.size()}, &filename, mode);
     }
 
     ~SourceData() {
