@@ -1009,7 +1009,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
 
     for(int j = 0; j < kwargs.size(); j += 2) {
         StrName key(_CAST(uint16_t, kwargs[j]));
-        int index = c11_smallmap_uint16_t_int__get(&decl->kw_to_index, key.index, -1);
+        int index = c11_smallmap_n2i__get(&decl->kw_to_index, key.index, -1);
         // if key is an explicit key, set as local variable
         if(index >= 0) {
             buffer[index] = kwargs[j + 1];

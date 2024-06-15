@@ -6,6 +6,7 @@
     /* Input */
     #define K int
     #define V float
+    #define TAG int_float
 #endif
 
 /* Optional Input */
@@ -17,8 +18,8 @@
 #define CONCAT(A, B) CONCAT_(A, B)
 #define CONCAT_(A, B) A##B
 
-#define KV CONCAT(CONCAT(c11_smallmap_entry_, K), CONCAT(_, V))
-#define SMALLMAP CONCAT(CONCAT(c11_smallmap_, K), CONCAT(_, V))
+#define KV CONCAT(c11_smallmap_entry_, TAG)
+#define SMALLMAP CONCAT(c11_smallmap_, TAG)
 #define SMALLMAP_METHOD(name) CONCAT(SMALLMAP, CONCAT(__, name))
 
 typedef struct {
@@ -105,4 +106,5 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
 
 #undef K
 #undef V
+#undef TAG
 #undef less

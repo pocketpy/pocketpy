@@ -86,9 +86,9 @@ struct CodeObject {
     small_vector_2<StrName, 8> varnames;  // local variables
     int nlocals;                          // varnames.size()
 
-    c11_smallmap_uint16_t_int varnames_inv;
+    c11_smallmap_n2i varnames_inv;
     vector<CodeBlock> blocks;
-    c11_smallmap_uint16_t_int labels;
+    c11_smallmap_n2i labels;
     vector<FuncDecl_> func_decls;
 
     int start_line;
@@ -102,13 +102,13 @@ struct CodeObject {
         src(src), name(name), nlocals(0), start_line(-1), end_line(-1) {
         blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0));
 
-        c11_smallmap_uint16_t_int__ctor(&varnames_inv);
-        c11_smallmap_uint16_t_int__ctor(&labels);
+        c11_smallmap_n2i__ctor(&varnames_inv);
+        c11_smallmap_n2i__ctor(&labels);
     }
 
     ~CodeObject() {
-        c11_smallmap_uint16_t_int__dtor(&varnames_inv);
-        c11_smallmap_uint16_t_int__dtor(&labels);
+        c11_smallmap_n2i__dtor(&varnames_inv);
+        c11_smallmap_n2i__dtor(&labels);
     }
 };
 
@@ -139,21 +139,21 @@ struct FuncDecl {
     const char* docstring;  // docstring of this function (weak ref)
 
     FuncType type = FuncType::UNSET;
-    c11_smallmap_uint16_t_int kw_to_index;
+    c11_smallmap_n2i kw_to_index;
 
     void add_kwarg(int index, StrName key, PyVar value) {
-        c11_smallmap_uint16_t_int__set(&kw_to_index, key.index, index);
+        c11_smallmap_n2i__set(&kw_to_index, key.index, index);
         kwargs.push_back(KwArg{index, key, value});
     }
 
     void _gc_mark(VM*) const;
 
     FuncDecl(){
-        c11_smallmap_uint16_t_int__ctor(&kw_to_index);
+        c11_smallmap_n2i__ctor(&kw_to_index);
     }
 
     ~FuncDecl(){
-        c11_smallmap_uint16_t_int__dtor(&kw_to_index);
+        c11_smallmap_n2i__dtor(&kw_to_index);
     }
 };
 

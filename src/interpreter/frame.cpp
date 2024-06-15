@@ -3,7 +3,7 @@
 
 namespace pkpy {
 PyVar* FastLocals::try_get_name(StrName name) {
-    int index = c11_smallmap_uint16_t_int__get(&co->varnames_inv, name.index, -1);
+    int index = c11_smallmap_n2i__get(&co->varnames_inv, name.index, -1);
     if(index == -1) return nullptr;
     return &a[index];
 }
@@ -11,7 +11,7 @@ PyVar* FastLocals::try_get_name(StrName name) {
 NameDict_ FastLocals::to_namedict() {
     NameDict_ dict = std::make_shared<NameDict>();
     for(int i=0; i<co->varnames_inv.count; i++){
-        auto entry = c11__getitem(c11_smallmap_entry_uint16_t_int, &co->varnames_inv, i);
+        auto entry = c11__getitem(c11_smallmap_entry_n2i, &co->varnames_inv, i);
         PyVar value = a[entry.value];
         if(value) dict->set(StrName(entry.key), value);
     }

@@ -780,7 +780,7 @@ PyVar VM::__run_top_frame() {
                     case OP_JUMP_ABSOLUTE_TOP: DISPATCH_JUMP_ABSOLUTE(_CAST(int, POPX()))
                     case OP_GOTO: {
                         StrName _name(byte.arg);
-                        int target = c11_smallmap_uint16_t_int__get(&frame->co->labels, byte.arg, -1);
+                        int target = c11_smallmap_n2i__get(&frame->co->labels, byte.arg, -1);
                         if(target < 0) RuntimeError(_S("label ", _name.escape(), " not found"));
                         frame->prepare_jump_break(&s_data, target);
                         DISPATCH_JUMP_ABSOLUTE(target)
