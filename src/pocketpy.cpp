@@ -1,6 +1,6 @@
 #include "pocketpy/pocketpy.hpp"
 
-#include "pocketpy/common/_generated.hpp"
+#include "pocketpy/common/_generated.h"
 
 #include "pocketpy/modules/array2d.hpp"
 #include "pocketpy/modules/base64.hpp"
