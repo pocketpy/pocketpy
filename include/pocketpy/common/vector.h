@@ -7,6 +7,8 @@ extern "C" {
 #include <string.h>
 #include <stdlib.h>
 
+#include "pocketpy/common/algorithm.h"
+
 typedef struct c11_array{
     void* data;
     int count;
@@ -30,6 +32,7 @@ void c11_vector__dtor(c11_vector* self);
 c11_vector c11_vector__copy(const c11_vector* self);
 void* c11_vector__at(c11_vector* self, int index);
 void c11_vector__reserve(c11_vector* self, int capacity);
+void c11_vector__clear(c11_vector* self);
 
 #define c11__getitem(T, self, index) ((T*)(self)->data)[index]
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
@@ -51,6 +54,21 @@ void c11_vector__reserve(c11_vector* self, int capacity);
         c11_vector__reserve((self), (self)->count + (size)); \
         memcpy((T*)(self)->data + (self)->count, (p), (size) * sizeof(T)); \
         (self)->count += (size); \
+    }while(0)
+
+
+#define c11_vector__insert(T, self, index, elem) \
+    do{ \
+        if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
+        memmove((T*)(self)->data + (index) + 1, (T*)(self)->data + (index), ((self)->count - (index)) * sizeof(T)); \
+        ((T*)(self)->data)[index] = (elem); \
+        (self)->count++; \
+    }while(0)
+
+#define c11_vector__erase(T, self, index) \
+    do{ \
+        memmove((T*)(self)->data + (index), (T*)(self)->data + (index) + 1, ((self)->count - (index) - 1) * sizeof(T)); \
+        (self)->count--; \
     }while(0)
 
 #ifdef __cplusplus

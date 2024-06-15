@@ -60,3 +60,6 @@ void c11_vector__reserve(c11_vector* self, int capacity){
     self->data = realloc(self->data, self->elem_size * self->capacity);
 }
 
+void c11_vector__clear(c11_vector* self){
+    self->count = 0;
+}

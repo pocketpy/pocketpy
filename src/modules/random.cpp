@@ -199,7 +199,7 @@ struct Random {
             List result(k);
             for(int i = 0; i < k; i++) {
                 f64 r = self.gen.uniform(0.0, cum_weights[size - 1]);
-                int idx = std::lower_bound(cum_weights.begin(), cum_weights.end(), r) - cum_weights.begin();
+                int idx = lower_bound(cum_weights.begin(), cum_weights.end(), r) - cum_weights.begin();
                 result[i] = data[idx];
             }
             return VAR(std::move(result));

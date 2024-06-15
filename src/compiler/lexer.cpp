@@ -28,7 +28,7 @@ static bool is_possible_number_char(char c) noexcept{
 static bool is_unicode_Lo_char(uint32_t c) noexcept{
     // open a hole for carrot
     if(c == U'🥕') return true;
-    auto index = std::lower_bound(kLoRangeA, kLoRangeA + 476, c) - kLoRangeA;
+    auto index = lower_bound(kLoRangeA, kLoRangeA + 476, c) - kLoRangeA;
     if(c == kLoRangeA[index]) return true;
     index -= 1;
     if(index < 0) return false;
@@ -161,7 +161,7 @@ Error* Lexer::eat_name() noexcept{
     const auto KW_BEGIN = kTokens + TK("False");
     const auto KW_END = kTokens + kTokenCount;
 
-    auto it = std::lower_bound(KW_BEGIN, KW_END, name);
+    auto it = lower_bound(KW_BEGIN, KW_END, name);
     if(it != KW_END && *it == name) {
         add_token(it - kTokens);
     } else {

@@ -8,6 +8,7 @@
 
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/common/types.hpp"
+#include "pocketpy/common/algorithm.h"
 
 namespace pkpy {
 
@@ -427,13 +428,13 @@ struct small_map {
     Item* data() const { return _data.data(); }
 
     void insert(const K& key, const V& value) {
-        Item* it = std::lower_bound(_data.begin(), _data.end(), key);
+        Item* it = lower_bound(_data.begin(), _data.end(), key);
         assert(it == _data.end() || it->first != key);
         _data.insert(it, {key, value});
     }
 
     V* try_get(const K& key) const {
-        auto it = std::lower_bound(_data.begin(), _data.end(), key);
+        auto it = lower_bound(_data.begin(), _data.end(), key);
         if(it == _data.end() || it->first != key) return nullptr;
         return &it->second;
     }
