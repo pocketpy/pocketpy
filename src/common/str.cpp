@@ -8,20 +8,6 @@
 
 namespace pkpy {
 
-Str::Str(pair<char*, int> detached) {
-    this->size = detached.second;
-    this->is_ascii = true;
-    this->is_sso = false;
-    this->_ptr = detached.first;
-    for(int i = 0; i < size; i++) {
-        if(!isascii(_ptr[i])) {
-            is_ascii = false;
-            break;
-        }
-    }
-    assert(_ptr[size] == '\0');
-}
-
 static std::map<std::string_view, uint16_t>& _interned() {
     static std::map<std::string_view, uint16_t> interned;
     return interned;

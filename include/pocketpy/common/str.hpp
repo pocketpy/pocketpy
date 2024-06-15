@@ -41,7 +41,13 @@ struct Str: pkpy_Str {
         pkpy_Str__ctor2(this, s, len);
     }
 
-    Str(pair<char*, int>);      // take ownership
+    Str(pair<char*, int> detached) {
+        this->size = detached.second;
+        this->is_ascii = c11__isascii(detached.first, detached.second);
+        this->is_sso = false;
+        this->_ptr = detached.first;
+        assert(_ptr[size] == '\0');
+    }
 
     Str(const Str& other){
         pkpy_Str__ctor2(this, pkpy_Str__data(&other), other.size);

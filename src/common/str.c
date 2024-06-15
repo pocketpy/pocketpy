@@ -386,7 +386,9 @@ static const int kLoRangeB[] = {170,186,443,451,660,1514,1522,1599,1610,1647,174
 
 bool c11__is_unicode_Lo_char(int c){
     if(c == 0x1f955) return true;
-    int index = c11__lower_bound_int(c, kLoRangeA, 476) - kLoRangeA;
+    const int* p;
+    c11__lower_bound(int, kLoRangeA, 476, c, c11__less, &p);
+    int index = p - kLoRangeA;
     if(c == kLoRangeA[index]) return true;
     index -= 1;
     if(index < 0) return false;
