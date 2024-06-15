@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include "pocketpy/objects/pyvar.h"
 #include "pocketpy/common/vector.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** @brief `pkpy_Dict` is the Dict type in Python */
 typedef struct {

@@ -1,12 +1,12 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/vector.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 enum CompileMode { EXEC_MODE, EVAL_MODE, REPL_MODE, JSON_MODE, CELL_MODE };
 
