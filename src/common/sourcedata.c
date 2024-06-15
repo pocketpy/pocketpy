@@ -33,6 +33,10 @@ void pkpy_SourceData__dtor(struct pkpy_SourceData* self) {
     pkpy_Str__dtor(&self->filename);
     pkpy_Str__dtor(&self->source);
     c11_vector__dtor(&self->line_starts);
+
+    for(int i=0; i<self->_precompiled_tokens.count; i++){
+        pkpy_Str__dtor(c11__at(pkpy_Str, &self->_precompiled_tokens, i));
+    }
     c11_vector__dtor(&self->_precompiled_tokens);
 }
 

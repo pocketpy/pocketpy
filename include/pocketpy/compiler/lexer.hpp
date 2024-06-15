@@ -146,27 +146,4 @@ enum class IntParsingResult {
 
 IntParsingResult parse_uint(std::string_view text, i64* out, int base) noexcept;
 
-struct TokenDeserializer {
-    const char* curr;
-    const char* source;
-
-    TokenDeserializer(const char* source) noexcept: curr(source), source(source){}
-
-    char read_char() noexcept{ return *curr++; }
-
-    bool match_char(char c) noexcept{
-        if(*curr == c) {
-            curr++;
-            return true;
-        }
-        return false;
-    }
-
-    std::string_view read_string(char c) noexcept;
-    Str read_string_from_hex(char c) noexcept;
-    int read_count() noexcept;
-    i64 read_uint(char c) noexcept;
-    f64 read_float(char c) noexcept;
-};
-
 }  // namespace pkpy

@@ -2,6 +2,7 @@
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/str.h"
 #include "pocketpy/common/smallmap.h"
+#include "pocketpy/compiler/lexer.h"
 
 #include <cstdarg>
 
@@ -542,54 +543,69 @@ Error* Lexer::run() noexcept{
 }
 
 Error* Lexer::from_precompiled() noexcept{
-    TokenDeserializer deserializer(pkpy_Str__data(&src->source));
-    deserializer.curr += 5;  // skip "pkpy:"
-    std::string_view version = deserializer.read_string('\n');
+    pkpy_TokenDeserializer deserializer;
+    pkpy_TokenDeserializer__ctor(&deserializer, pkpy_Str__data(&src->source));
 
-    if(version != PK_VERSION){
+    deserializer.curr += 5;  // skip "pkpy:"
+    c11_string version = pkpy_TokenDeserializer__read_string(&deserializer, '\n');
+
+    if(c11_string__cmp3(version, PK_VERSION) != 0) {
         return SyntaxError("precompiled version mismatch");
     }
-    if(deserializer.read_uint('\n') != (i64)src->mode){
+    if(pkpy_TokenDeserializer__read_uint(&deserializer, '\n') != (i64)src->mode){
         return SyntaxError("precompiled mode mismatch");
     }
 
-    int count = deserializer.read_count();
-    auto precompiled_tokens = &src->_precompiled_tokens;
+    int count = pkpy_TokenDeserializer__read_count(&deserializer);
+    c11_vector* precompiled_tokens = &src->_precompiled_tokens;
     for(int i = 0; i < count; i++) {
-        c11_vector__push(Str, precompiled_tokens, Str(deserializer.read_string('\n')));
+        c11_string item = pkpy_TokenDeserializer__read_string(&deserializer, '\n');
+        pkpy_Str copied_item;
+        pkpy_Str__ctor2(&copied_item, item.data, item.size);
+        c11_vector__push(pkpy_Str, precompiled_tokens, copied_item);
     }
 
-    count = deserializer.read_count();
+    count = pkpy_TokenDeserializer__read_count(&deserializer);
     for(int i = 0; i < count; i++) {
         Token t;
-        t.type = (unsigned char)deserializer.read_uint(',');
+        t.type = (unsigned char)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
         if(is_raw_string_used(t.type)) {
-            i64 index = deserializer.read_uint(',');
-            t.start = c11__getitem(Str, precompiled_tokens, index).c_str();
-            t.length = c11__getitem(Str, precompiled_tokens, index).size;
+            i64 index = pkpy_TokenDeserializer__read_uint(&deserializer, ',');
+            pkpy_Str* p = c11__at(pkpy_Str, precompiled_tokens, index);
+            t.start = pkpy_Str__data(p);
+            t.length = c11__getitem(pkpy_Str, precompiled_tokens, index).size;
         } else {
-            t.start = nullptr;
+            t.start = NULL;
             t.length = 0;
         }
 
-        if(deserializer.match_char(',')) {
+        if(pkpy_TokenDeserializer__match_char(&deserializer, ',')) {
             t.line = nexts.back().line;
         } else {
-            t.line = (int)deserializer.read_uint(',');
+            t.line = (int)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
         }
 
-        if(deserializer.match_char(',')) {
+        if(pkpy_TokenDeserializer__match_char(&deserializer, ',')) {
             t.brackets_level = nexts.back().brackets_level;
         } else {
-            t.brackets_level = (int)deserializer.read_uint(',');
+            t.brackets_level = (int)pkpy_TokenDeserializer__read_uint(&deserializer, ',');
         }
 
-        char type = deserializer.read_char();
+        char type = (*deserializer.curr++);      // read_char
         switch(type) {
-            case 'I': t.value = deserializer.read_uint('\n'); break;
-            case 'F': t.value = deserializer.read_float('\n'); break;
-            case 'S': t.value = deserializer.read_string_from_hex('\n'); break;
-            default: t.value = {}; break;
+            case 'I':
+                t.value = pkpy_TokenDeserializer__read_uint(&deserializer, '\n');
+                break;
+            case 'F':
+                t.value = pkpy_TokenDeserializer__read_float(&deserializer, '\n');
+                break;
+            case 'S': {
+                pkpy_Str res = pkpy_TokenDeserializer__read_string_from_hex(&deserializer, '\n');
+                t.value = Str(std::move(res));
+            } break;
+            default:
+                t.value = {};
+                break;
         }
         nexts.push_back(t);
     }
@@ -663,60 +679,6 @@ Error* Lexer::precompile(Str* out) noexcept{
     *out = ss.str();
     c11_smallmap_s2i__dtor(&token_indices);
     return NULL;
-}
-
-std::string_view TokenDeserializer::read_string(char c) noexcept{
-    const char* start = curr;
-    while(*curr != c)
-        curr++;
-    std::string_view retval(start, curr - start);
-    curr++;  // skip the delimiter
-    return retval;
-}
-
-Str TokenDeserializer::read_string_from_hex(char c) noexcept{
-    std::string_view s = read_string(c);
-    char* buffer = (char*)std::malloc(s.size() / 2 + 1);
-    for(int i = 0; i < s.size(); i += 2) {
-        char c = 0;
-        if(s[i] >= '0' && s[i] <= '9')
-            c += s[i] - '0';
-        else if(s[i] >= 'a' && s[i] <= 'f')
-            c += s[i] - 'a' + 10;
-        else
-            assert(false);
-        c <<= 4;
-        if(s[i + 1] >= '0' && s[i + 1] <= '9')
-            c += s[i + 1] - '0';
-        else if(s[i + 1] >= 'a' && s[i + 1] <= 'f')
-            c += s[i + 1] - 'a' + 10;
-        else
-            assert(false);
-        buffer[i / 2] = c;
-    }
-    buffer[s.size() / 2] = 0;
-    return pair<char*, int>(buffer, s.size() / 2);
-}
-
-int TokenDeserializer::read_count() noexcept{
-    assert(*curr == '=');
-    curr++;
-    return read_uint('\n');
-}
-
-i64 TokenDeserializer::read_uint(char c) noexcept{
-    i64 out = 0;
-    while(*curr != c) {
-        out = out * 10 + (*curr - '0');
-        curr++;
-    }
-    curr++;  // skip the delimiter
-    return out;
-}
-
-f64 TokenDeserializer::read_float(char c) noexcept{
-    std::string_view sv = read_string(c);
-    return std::stod(std::string(sv));
 }
 
 IntParsingResult parse_uint(std::string_view text, i64* out, int base) noexcept{
