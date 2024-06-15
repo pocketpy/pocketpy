@@ -26,9 +26,7 @@ typedef struct {
     V value;
 } KV;
 
-typedef struct{
-    c11_vector entries;
-} SMALLMAP;
+typedef c11_vector SMALLMAP;
 
 void SMALLMAP_METHOD(ctor)(SMALLMAP* self);
 void SMALLMAP_METHOD(dtor)(SMALLMAP* self);
@@ -43,30 +41,30 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self);
 /* Implementation */
 
 void SMALLMAP_METHOD(ctor)(SMALLMAP* self) {
-    c11_vector__ctor(&self->entries, sizeof(KV));
+    c11_vector__ctor(self, sizeof(KV));
 }
 
 void SMALLMAP_METHOD(dtor)(SMALLMAP* self) {
-    c11_vector__dtor(&self->entries);
+    c11_vector__dtor(self);
 }
 
 void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
     int index;
-    c11__lower_bound(KV, self->entries.data, self->entries.count, key, less, &index);
-    KV* it = c11__at(KV, &self->entries, index);
-    if(index != self->entries.count && it->key == key) {
+    c11__lower_bound(KV, self->data, self->count, key, less, &index);
+    KV* it = c11__at(KV, self, index);
+    if(index != self->count && it->key == key) {
         it->value = value;
     } else {
         KV kv = {key, value};
-        c11_vector__insert(KV, &self->entries, index, kv);
+        c11_vector__insert(KV, self, index, kv);
     }
 }
 
 V* SMALLMAP_METHOD(try_get)(SMALLMAP* self, K key) {
     int index;
-    c11__lower_bound(KV, self->entries.data, self->entries.count, key, less, &index);
-    KV* it = c11__at(KV, &self->entries, index);
-    if(index != self->entries.count && it->key == key) {
+    c11__lower_bound(KV, self->data, self->count, key, less, &index);
+    KV* it = c11__at(KV, self, index);
+    if(index != self->count && it->key == key) {
         return &it->value;
     } else {
         return NULL;
@@ -84,17 +82,17 @@ bool SMALLMAP_METHOD(contains)(SMALLMAP* self, K key) {
 
 bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key) {
     int index;
-    c11__lower_bound(KV, self->entries.data, self->entries.count, key, less, &index);
-    KV* it = c11__at(KV, &self->entries, index);
-    if(index != self->entries.count && it->key == key) {
-        c11_vector__erase(KV, &self->entries, index);
+    c11__lower_bound(KV, self->data, self->count, key, less, &index);
+    KV* it = c11__at(KV, self, index);
+    if(index != self->count && it->key == key) {
+        c11_vector__erase(KV, self, index);
         return true;
     }
     return false;
 }
 
 void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
-    c11_vector__clear(&self->entries);
+    c11_vector__clear(self);
 }
 
 #endif
