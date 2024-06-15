@@ -1,18 +1,19 @@
-#include "pocketpy/objects/stackmemory.hpp"
 #include "pocketpy/interpreter/frame.hpp"
+#include "pocketpy/common/smallmap.h"
 
 namespace pkpy {
 PyVar* FastLocals::try_get_name(StrName name) {
-    int index = co->varnames_inv.get(name, -1);
+    int index = c11_smallmap_uint16_t_int__get(&co->varnames_inv, name.index, -1);
     if(index == -1) return nullptr;
     return &a[index];
 }
 
 NameDict_ FastLocals::to_namedict() {
     NameDict_ dict = std::make_shared<NameDict>();
-    for(auto [name, index]: co->varnames_inv){
-        PyVar value = a[index];
-        if(value) dict->set(name, value);
+    for(int i=0; i<co->varnames_inv.count; i++){
+        auto entry = c11__getitem(c11_smallmap_entry_uint16_t_int, &co->varnames_inv, i);
+        PyVar value = a[entry.value];
+        if(value) dict->set(StrName(entry.key), value);
     }
     return dict;
 }
@@ -43,13 +44,6 @@ int Frame::_exit_block(ValueStack* _s, int i) {
     auto type = co->blocks[i].type;
     if(type == CodeBlockType::FOR_LOOP) {
         _s->pop();  // pop the iterator
-        // pop possible stack memory slots
-        if(_s->top().type == kTpStackMemoryIndex) {
-            int count = _s->top().as<StackMemory>().count;
-            assert(count < 0);
-            _s->_sp += count;
-            _s->_sp -= 2;  // pop header and tail
-        }
     } else if(type == CodeBlockType::CONTEXT_MANAGER) {
         _s->pop();
     }

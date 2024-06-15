@@ -3,7 +3,6 @@
 #include "pocketpy/objects/object.hpp"
 #include "pocketpy/objects/dict.hpp"
 #include "pocketpy/objects/error.hpp"
-#include "pocketpy/objects/stackmemory.hpp"
 #include "pocketpy/objects/builtins.hpp"
 #include "pocketpy/interpreter/gc.hpp"
 #include "pocketpy/interpreter/frame.hpp"

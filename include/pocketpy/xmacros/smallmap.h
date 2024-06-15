@@ -31,9 +31,9 @@ typedef c11_vector SMALLMAP;
 void SMALLMAP_METHOD(ctor)(SMALLMAP* self);
 void SMALLMAP_METHOD(dtor)(SMALLMAP* self);
 void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value);
-V* SMALLMAP_METHOD(try_get)(SMALLMAP* self, K key);
-V SMALLMAP_METHOD(get)(SMALLMAP* self, K key, V default_value);
-bool SMALLMAP_METHOD(contains)(SMALLMAP* self, K key);
+V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key);
+V SMALLMAP_METHOD(get)(const SMALLMAP* self, K key, V default_value);
+bool SMALLMAP_METHOD(contains)(const SMALLMAP* self, K key);
 bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key);
 void SMALLMAP_METHOD(clear)(SMALLMAP* self);
 
@@ -60,7 +60,7 @@ void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
     }
 }
 
-V* SMALLMAP_METHOD(try_get)(SMALLMAP* self, K key) {
+V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, less, &index);
     KV* it = c11__at(KV, self, index);
@@ -71,12 +71,12 @@ V* SMALLMAP_METHOD(try_get)(SMALLMAP* self, K key) {
     }
 }
 
-V SMALLMAP_METHOD(get)(SMALLMAP* self, K key, V default_value) {
+V SMALLMAP_METHOD(get)(const SMALLMAP* self, K key, V default_value) {
     V* p = SMALLMAP_METHOD(try_get)(self, key);
     return p ? *p : default_value;
 }
 
-bool SMALLMAP_METHOD(contains)(SMALLMAP* self, K key) {
+bool SMALLMAP_METHOD(contains)(const SMALLMAP* self, K key) {
     return SMALLMAP_METHOD(try_get)(self, key) != NULL;
 }
 

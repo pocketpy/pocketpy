@@ -86,9 +86,9 @@ struct CodeObject {
     small_vector_2<StrName, 8> varnames;  // local variables
     int nlocals;                          // varnames.size()
 
-    small_map<StrName, int> varnames_inv;
+    c11_smallmap_uint16_t_int varnames_inv;
     vector<CodeBlock> blocks;
-    small_map<StrName, int> labels;
+    c11_smallmap_uint16_t_int labels;
     vector<FuncDecl_> func_decls;
 
     int start_line;
@@ -96,8 +96,20 @@ struct CodeObject {
 
     const CodeBlock& _get_block_codei(int codei) const { return blocks[lines[codei].iblock]; }
 
-    CodeObject(std::shared_ptr<SourceData> src, const Str& name);
     void _gc_mark(VM*) const;
+
+    CodeObject(std::shared_ptr<SourceData> src, const Str& name) :
+        src(src), name(name), nlocals(0), start_line(-1), end_line(-1) {
+        blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0));
+
+        c11_smallmap_uint16_t_int__ctor(&varnames_inv);
+        c11_smallmap_uint16_t_int__ctor(&labels);
+    }
+
+    ~CodeObject() {
+        c11_smallmap_uint16_t_int__dtor(&varnames_inv);
+        c11_smallmap_uint16_t_int__dtor(&labels);
+    }
 };
 
 enum class FuncType {

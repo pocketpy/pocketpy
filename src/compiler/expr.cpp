@@ -105,19 +105,20 @@ void CodeEmitContext::patch_jump(int index) noexcept{
 }
 
 bool CodeEmitContext::add_label(StrName name) noexcept{
-    if(co->labels.contains(name)) return false;
-    co->labels.insert(name, co->codes.size());
+    bool ok = c11_smallmap_uint16_t_int__contains(&co->labels, name.index);
+    if(ok) return false;
+    c11_smallmap_uint16_t_int__set(&co->labels, name.index, co->codes.size());
     return true;
 }
 
 int CodeEmitContext::add_varname(StrName name) noexcept{
     // PK_MAX_CO_VARNAMES will be checked when pop_context(), not here
-    int index = co->varnames_inv.get(name, -1);
+    int index = c11_smallmap_uint16_t_int__get(&co->varnames_inv, name.index, -1);
     if(index >= 0) return index;
     co->varnames.push_back(name);
     co->nlocals++;
     index = co->varnames.size() - 1;
-    co->varnames_inv.insert(name, index);
+    c11_smallmap_uint16_t_int__set(&co->varnames_inv, name.index, index);
     return index;
 }
 
@@ -163,7 +164,7 @@ void CodeEmitContext::emit_store_name(NameScope scope, StrName name, int line) n
 }
 
 void NameExpr::emit_(CodeEmitContext* ctx) {
-    int index = ctx->co->varnames_inv.get(name, -1);
+    int index = c11_smallmap_uint16_t_int__get(&ctx->co->varnames_inv, name.index, -1);
     if(scope == NAME_LOCAL && index >= 0) {
         ctx->emit_(OP_LOAD_FAST, index, line);
     } else {
