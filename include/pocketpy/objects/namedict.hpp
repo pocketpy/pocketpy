@@ -4,58 +4,96 @@
 #include "pocketpy/common/str.hpp"
 #include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.hpp"
+#include "pocketpy/objects/namedict.h"
 
 namespace pkpy {
 
-struct NameDict {
+struct NameDict: pkpy_NameDict {
     PK_ALWAYS_PASS_BY_POINTER(NameDict)
 
     using Item = pair<StrName, PyVar>;
 
-    constexpr static uint16_t kInitialCapacity = 16;
-
-    float _load_factor;
-    uint16_t _size;
-
-    uint16_t _capacity;
-    uint16_t _critical_size;
-    uint16_t _mask;
-
-    Item* _items;
-
-    NameDict(float load_factor = PK_INST_ATTR_LOAD_FACTOR) : _load_factor(load_factor), _size(0) {
-        _set_capacity_and_alloc_items(kInitialCapacity);
+    NameDict() {
+        c11_smallmap_n2v__ctor(this);
     }
 
-    ~NameDict() { std::free(_items); }
+    ~NameDict() {
+        c11_smallmap_n2v__dtor(this);
+    }
 
-    uint16_t size() const { return _size; }
+    uint16_t size() const {
+        return count;
+    }
 
-    uint16_t capacity() const { return _capacity; }
+    void set(StrName key, PyVar val){
+        pkpy_Var* p = (pkpy_Var*)&val;
+        c11_smallmap_n2v__set(this, key.index, *p);
+    }
 
-    void _set_capacity_and_alloc_items(uint16_t val);
+    PyVar try_get(StrName key) const{
+        PyVar* p = try_get_2(key);
+        return p ? *p : nullptr;
+    }
 
-    void set(StrName key, PyVar val);
+    PyVar* try_get_2(StrName key) const{
+        pkpy_Var* p = c11_smallmap_n2v__try_get(this, key.index);
+        return p ? (PyVar*)p : nullptr;
+    }
 
-    void _rehash_2x();
+    PyVar try_get_likely_found(StrName key) const{
+        return try_get(key);
+    }
 
-    PyVar try_get(StrName key) const;
+    PyVar* try_get_2_likely_found(StrName key) const{
+        return try_get_2(key);
+    }
 
-    PyVar* try_get_2(StrName key) const;
+    bool del(StrName key){
+        return c11_smallmap_n2v__del(this, key.index);
+    }
 
-    PyVar try_get_likely_found(StrName key) const;
+    bool contains(StrName key) const{
+        return c11_smallmap_n2v__contains(this, key.index);
+    }
 
-    PyVar* try_get_2_likely_found(StrName key) const;
+    PyVar operator[] (StrName key) const{
+        PyVar* val = try_get_2_likely_found(key);
+        if(val == nullptr){
+            PK_FATAL_ERROR("NameDict key not found: %d (%s)\n", (int)key.index, key.escape().c_str())
+        }
+        return *val;
+    }
 
-    bool del(StrName key);
+    void clear(){
+        c11_smallmap_n2v__clear(this);
+    }
 
-    bool contains(StrName key) const;
-    PyVar operator[] (StrName key) const;
-    array<StrName> keys() const;
-    array<Item> items() const;
-    void clear();
+    array<StrName> keys() const{
+        array<StrName> retval((int)size());
+        for(int i=0; i<size(); i++){
+            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            retval[i] = StrName(it->key);
+        }
+        return retval;
+    }
 
-    void apply(void (*f)(StrName, PyVar, void*), void* data);
+    array<Item> items() const{
+        array<Item> retval((int)size());
+        for(int i=0; i<size(); i++){
+            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            PyVar* p = (PyVar*)&it->value;
+            retval[i] = Item(StrName(it->key), *p);
+        }
+        return retval;
+    }
+
+    void apply(void (*f)(StrName, PyVar, void*), void* data){
+        for(int i=0; i<size(); i++){
+            auto it = c11__at(c11_smallmap_entry_n2v, this, i);
+            PyVar* p = (PyVar*)&it->value;
+            f(StrName(it->key), *p, data);
+        }
+    }
 };
 
 static_assert(sizeof(NameDict) <= 128);

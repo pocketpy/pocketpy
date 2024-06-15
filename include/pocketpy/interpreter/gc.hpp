@@ -50,11 +50,11 @@ struct ManagedHeap {
 
         // backdoor for important builtin types
         if constexpr(std::is_same_v<__T, DummyInstance>) {
-            p->_attr = new NameDict(PK_INST_ATTR_LOAD_FACTOR);
+            p->_attr = new NameDict();
         } else if constexpr(std::is_same_v<__T, Type>) {
-            p->_attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+            p->_attr = new NameDict();
         } else if constexpr(std::is_same_v<__T, DummyModule>) {
-            p->_attr = new NameDict(PK_TYPE_ATTR_LOAD_FACTOR);
+            p->_attr = new NameDict();
         }
         return p;
     }

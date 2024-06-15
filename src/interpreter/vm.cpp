@@ -1797,6 +1797,13 @@ void VM::__breakpoint() {
 }
 
 /**************************************************************************/
+
+PyVar PyObject::attr(StrName name) const {
+    assert(is_attr_valid());
+    return (*_attr)[name];
+}
+
+/**************************************************************************/
 void Function::_gc_mark(VM* vm) const {
     decl->_gc_mark(vm);
     if(_closure) {
