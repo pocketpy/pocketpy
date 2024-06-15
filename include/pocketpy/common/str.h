@@ -33,7 +33,10 @@ PK_INLINE const char* pkpy_Str__data(const pkpy_Str* self){
 }
 
 PK_INLINE c11_string pkpy_Str__sv(const pkpy_Str* self){
-    return (c11_string){pkpy_Str__data(self), self->size};
+    c11_string retval;
+    retval.data = pkpy_Str__data(self);
+    retval.size = self->size;
+    return retval;
 }
 
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
