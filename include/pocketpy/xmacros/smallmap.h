@@ -45,6 +45,7 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self);
 
 void SMALLMAP_METHOD(ctor)(SMALLMAP* self) {
     c11_vector__ctor(self, sizeof(KV));
+    c11_vector__reserve(self, 8);
 }
 
 void SMALLMAP_METHOD(dtor)(SMALLMAP* self) {
