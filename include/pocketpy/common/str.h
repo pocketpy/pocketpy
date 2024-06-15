@@ -32,6 +32,10 @@ PK_INLINE const char* pkpy_Str__data(const pkpy_Str* self){
     return self->is_sso ? self->_inlined : self->_ptr;
 }
 
+PK_INLINE c11_string pkpy_Str__sv(const pkpy_Str* self){
+    return (c11_string){pkpy_Str__data(self), self->size};
+}
+
 void pkpy_Str__ctor(pkpy_Str* self, const char* data);
 void pkpy_Str__ctor2(pkpy_Str* self, const char* data, int size);
 void pkpy_Str__dtor(pkpy_Str* self);

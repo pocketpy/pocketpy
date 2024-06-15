@@ -6,6 +6,7 @@
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/str.h"
+#include "pocketpy/common/strname.h"
 
 #include <cassert>
 #include <string_view>
@@ -261,9 +262,6 @@ struct StrName {
 
     StrName(const Str& s) : index(get(s.sv()).index) {}
 
-    std::string_view sv() const;
-    const char* c_str() const;
-
     bool empty() const { return index == 0; }
 
     Str escape() const { return Str(sv()).escape(); }
@@ -276,8 +274,20 @@ struct StrName {
 
     bool operator> (const StrName& other) const noexcept { return sv() > other.sv(); }
 
-    static StrName get(std::string_view s);
-    static uint32_t _pesudo_random_index;
+    inline static StrName get(std::string_view s){
+        uint16_t index = pkpy_StrName__map({s.data(), (int)s.size()});
+        return StrName(index);
+    }
+
+    std::string_view sv() const{
+        c11_string s = pkpy_StrName__rmap(index);
+        return std::string_view(s.data, s.size);
+    }
+
+    const char* c_str() const{
+        c11_string s = pkpy_StrName__rmap(index);
+        return s.data;
+    }
 };
 
 struct SStream: pkpy_SStream {

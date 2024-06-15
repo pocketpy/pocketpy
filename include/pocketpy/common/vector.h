@@ -33,6 +33,7 @@ void c11_vector__dtor(c11_vector* self);
 c11_vector c11_vector__copy(const c11_vector* self);
 void c11_vector__reserve(c11_vector* self, int capacity);
 void c11_vector__clear(c11_vector* self);
+void* c11_vector__emplace(c11_vector* self);
 
 #define c11__getitem(T, self, index) (((T*)(self)->data)[index])
 #define c11__setitem(T, self, index, value) ((T*)(self)->data)[index] = value;
@@ -49,6 +50,9 @@ void c11_vector__clear(c11_vector* self);
     do{ \
         (self)->count--; \
     }while(0)
+
+#define c11_vector__back(T, self) \
+    (((T*)(self)->data)[(self)->count - 1])
 
 #define c11_vector__extend(T, self, p, size) \
     do{ \

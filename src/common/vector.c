@@ -55,3 +55,10 @@ void c11_vector__reserve(c11_vector* self, int capacity){
 void c11_vector__clear(c11_vector* self){
     self->count = 0;
 }
+
+void* c11_vector__emplace(c11_vector* self){
+    if(self->count == self->capacity) c11_vector__reserve(self, self->capacity*2);
+    void* p = (char*)self->data + self->elem_size * self->count;
+    self->count++;
+    return p;
+}

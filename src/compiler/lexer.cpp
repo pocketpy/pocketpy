@@ -620,14 +620,14 @@ Error* Lexer::precompile(Str* out) noexcept{
     ss << "pkpy:" PK_VERSION << '\n';       // L1: version string
     ss << (int)src->mode << '\n';           // L2: mode
 
-    c11_smallmap_s2i token_indices;
-    c11_smallmap_s2i__ctor(&token_indices);
+    c11_smallmap_s2n token_indices;
+    c11_smallmap_s2n__ctor(&token_indices);
 
     for(auto token: nexts) {
         if(is_raw_string_used(token.type)) {
             c11_string token_sv = {token.start, token.length};
-            if(!c11_smallmap_s2i__contains(&token_indices, token_sv)) {
-                c11_smallmap_s2i__set(&token_indices, token_sv, 0);
+            if(!c11_smallmap_s2n__contains(&token_indices, token_sv)) {
+                c11_smallmap_s2n__set(&token_indices, token_sv, 0);
                 // assert no '\n' in token.sv()
                 for(char c: token.sv())
                     assert(c != '\n');
@@ -635,9 +635,9 @@ Error* Lexer::precompile(Str* out) noexcept{
         }
     }
     ss << "=" << (int)token_indices.count << '\n';  // L3: raw string count
-    int index = 0;
+    uint16_t index = 0;
     for(int i=0; i<token_indices.count; i++){
-        c11_smallmap_entry_s2i* kv = c11__at(c11_smallmap_entry_s2i, &token_indices, i);
+        c11_smallmap_entry_s2n* kv = c11__at(c11_smallmap_entry_s2n, &token_indices, i);
         ss << kv->key << '\n';  // L4: raw strings
         kv->value = index++;
     }
@@ -647,9 +647,9 @@ Error* Lexer::precompile(Str* out) noexcept{
         const Token& token = nexts[i];
         ss << (int)token.type << ',';
         if(is_raw_string_used(token.type)) {
-            int index = c11_smallmap_s2i__get(&token_indices, {token.start, token.length}, -1);
-            assert(index >= 0);
-            ss << index << ',';
+            uint16_t *p = c11_smallmap_s2n__try_get(&token_indices, {token.start, token.length});
+            assert(p != NULL);
+            ss << (int)*p << ',';
         }
         if(i > 0 && nexts[i - 1].line == token.line)
             ss << ',';
@@ -677,7 +677,7 @@ Error* Lexer::precompile(Str* out) noexcept{
             token.value);
     }
     *out = ss.str();
-    c11_smallmap_s2i__dtor(&token_indices);
+    c11_smallmap_s2n__dtor(&token_indices);
     return NULL;
 }
 

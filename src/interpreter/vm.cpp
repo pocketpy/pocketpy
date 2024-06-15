@@ -83,6 +83,7 @@ struct JsonSerializer {
 
 VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
     Pools_initialize();
+    pkpy_StrName__initialize();
     
     this->vm = this;
     this->__c.error = nullptr;
