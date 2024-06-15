@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/sstream.h"
 #include "pocketpy/common/utils.h"
-#include "pocketpy/common/memorypool.hpp"
+#include "pocketpy/common/memorypool.h"
 #include "pocketpy/common/vector.h"
 #include "pocketpy/common/vector.hpp"
 #include "pocketpy/common/str.h"

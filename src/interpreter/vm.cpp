@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/vm.hpp"
+#include "pocketpy/common/memorypool.h"
 
 #include <iostream>
 #include <cmath>
@@ -81,6 +82,8 @@ struct JsonSerializer {
 };
 
 VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
+    Pools_initialize();
+    
     this->vm = this;
     this->__c.error = nullptr;
     _ceval_on_step = nullptr;

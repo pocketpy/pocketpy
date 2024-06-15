@@ -1,6 +1,5 @@
 #include "pocketpy/compiler/lexer.hpp"
-#include "pocketpy/common/gil.hpp"
-#include "pocketpy/common/version.h"
+#include "pocketpy/common/config.h"
 #include "pocketpy/common/str.h"
 
 #include <cstdarg>

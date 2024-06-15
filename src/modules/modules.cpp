@@ -1,6 +1,5 @@
 #include "pocketpy/modules/modules.hpp"
 #include "pocketpy/interpreter/bindings.hpp"
-#include "pocketpy/common/version.h"
 #include "pocketpy/common/export.h"
 
 #include "pocketpy/common/_generated.h"

@@ -1,5 +1,4 @@
 #include "pocketpy/common/str.hpp"
-#include "pocketpy/common/gil.hpp"
 
 #include <cassert>
 #include <ostream>
@@ -39,7 +38,7 @@ const char* StrName::c_str() const { return _r_interned()[index].c_str(); }
 uint32_t StrName::_pesudo_random_index = 0;
 
 StrName StrName::get(std::string_view s) {
-    PK_GLOBAL_SCOPE_LOCK()
+    // TODO: PK_GLOBAL_SCOPE_LOCK()
     auto it = _interned().find(s);
     if(it != _interned().end()) return StrName(it->second);
     // generate new index

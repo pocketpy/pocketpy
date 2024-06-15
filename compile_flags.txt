@@ -1,9 +1,6 @@
 -Wall
 -W*
 
--stdlib=libc++
--std=c++17
-
 -Iinclude/
 -I3rd/cjson/include/
 -I3rd/lua_bridge/include/

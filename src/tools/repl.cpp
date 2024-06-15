@@ -1,6 +1,4 @@
 #include "pocketpy/tools/repl.hpp"
-
-#include "pocketpy/common/version.h"
 #include "pocketpy/common/export.h"
 
 namespace pkpy {
