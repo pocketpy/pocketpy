@@ -7,7 +7,7 @@ from typing import List, Dict
 
 assert os.system("python prebuild.py") == 0
 
-with open("include/pocketpy/opcodes.h", "rt", encoding='utf-8') as f:
+with open("include/pocketpy/xmacros/opcodes.h", "rt", encoding='utf-8') as f:
 	OPCODES_TEXT = '\n' + f.read() + '\n'
 
 class Header:

@@ -21,7 +21,7 @@ enum NameScope { NAME_LOCAL, NAME_GLOBAL, NAME_GLOBAL_UNKNOWN };
 enum Opcode : uint8_t {
 
 #define OPCODE(name) OP_##name,
-#include "pocketpy/opcodes.h"
+#include "pocketpy/xmacros/opcodes.h"
 #undef OPCODE
 };
 

@@ -102,6 +102,8 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
 #undef KV
 #undef SMALLMAP
 #undef SMALLMAP_METHOD
+#undef CONCAT
+#undef CONCAT_
 
 #undef K
 #undef V

@@ -11,7 +11,7 @@
 
 const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
-#include "pocketpy/opcodes.h"
+#include "pocketpy/xmacros/opcodes.h"
 #undef OPCODE
 };
 
