@@ -4,6 +4,7 @@
 #include "pocketpy/objects/tuplelist.hpp"
 #include "pocketpy/objects/namedict.hpp"
 #include "pocketpy/objects/sourcedata.hpp"
+#include "pocketpy/common/smallmap.h"
 
 namespace pkpy {
 
@@ -126,15 +127,22 @@ struct FuncDecl {
     const char* docstring;  // docstring of this function (weak ref)
 
     FuncType type = FuncType::UNSET;
-
-    small_map<StrName, int> kw_to_index;
+    c11_smallmap_uint16_t_int kw_to_index;
 
     void add_kwarg(int index, StrName key, PyVar value) {
-        kw_to_index.insert(key, index);
+        c11_smallmap_uint16_t_int__set(&kw_to_index, key.index, index);
         kwargs.push_back(KwArg{index, key, value});
     }
 
     void _gc_mark(VM*) const;
+
+    FuncDecl(){
+        c11_smallmap_uint16_t_int__ctor(&kw_to_index);
+    }
+
+    ~FuncDecl(){
+        c11_smallmap_uint16_t_int__dtor(&kw_to_index);
+    }
 };
 
 struct NativeFunc {

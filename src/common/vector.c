@@ -22,10 +22,6 @@ c11_array c11_array__copy(const c11_array* self){
     return retval;
 }
 
-void* c11_array__at(c11_array* self, int index){
-    return (char*)self->data + self->elem_size * index;
-}
-
 void c11_vector__ctor(c11_vector* self, int elem_size){
     self->data = NULL;
     self->count = 0;
@@ -47,10 +43,6 @@ c11_vector c11_vector__copy(const c11_vector* self){
     memcpy(retval.data, self->data, self->elem_size * self->count);
     retval.count = self->count;
     return retval;
-}
-
-void* c11_vector__at(c11_vector* self, int index){
-    return (char*)self->data + self->elem_size * index;
 }
 
 void c11_vector__reserve(c11_vector* self, int capacity){

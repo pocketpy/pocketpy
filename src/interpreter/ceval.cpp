@@ -789,14 +789,8 @@ PyVar VM::__run_top_frame() {
                     case OP_FSTRING_EVAL: {
                         PyVar _0 = frame->co->consts[byte.arg];
                         std::string_view string = CAST(Str&, _0).sv();
-                        auto it = __cached_codes.try_get(string);
-                        CodeObject_ code;
-                        if(it == nullptr) {
-                            code = vm->compile(string, "<eval>", EVAL_MODE, true);
-                            __cached_codes.insert(string, code);
-                        } else {
-                            code = *it;
-                        }
+                        // TODO: optimize this
+                        CodeObject_ code = vm->compile(string, "<eval>", EVAL_MODE, true);
                         _0 = vm->_exec(code.get(), frame->_module, frame->_callable, frame->_locals);
                         PUSH(_0);
                     }

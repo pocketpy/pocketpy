@@ -8,7 +8,7 @@ extern "C" {
 
 #define c11__less(a, b) ((a) < (b))
 
-#define c11__lower_bound(T, ptr, count, key, less, out)                                            \
+#define c11__lower_bound(T, ptr, count, key, less, out_index)                                      \
     do {                                                                                           \
         T* __first = ptr;                                                                          \
         int __len = count;                                                                         \
@@ -22,7 +22,7 @@ extern "C" {
                 __len = __l2;                                                                      \
             }                                                                                      \
         }                                                                                          \
-        *(out) = __first;                                                                          \
+        *(out_index) = __first - (T*)(ptr);                                                        \
     } while(0)
 
 #ifdef __cplusplus

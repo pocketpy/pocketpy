@@ -189,7 +189,6 @@ public:
     PyObject* __last_exception;
     PyObject* __curr_class;
     PyVar __cached_object_new;
-    small_map<std::string_view, CodeObject_> __cached_codes;
     small_map<std::string_view, PyVar> __cached_op_funcs;
     FuncDecl_ __dynamic_func_decl;
     PyVar __vectorcall_buffer[PK_MAX_CO_VARNAMES];
