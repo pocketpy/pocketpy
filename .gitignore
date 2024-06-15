@@ -31,3 +31,6 @@ libpocketpy.dylib.dSYM/
 main.dSYM/
 
 docs/references.md
+
+.xmake
+.vs

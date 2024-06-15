@@ -4,11 +4,16 @@ try:
     a = {'123': 4}
     b = a[6]
 except KeyError:
-    s = traceback.format_exc()
+    actual = traceback.format_exc()
 
-ok = s == '''Traceback (most recent call last):
+expected = '''Traceback (most recent call last):
   File "80_traceback.py", line 5
     b = a[6]
 KeyError: 6'''
 
-assert ok, s
+if actual != expected:
+    print('--- ACTUAL RESULT -----')
+    print(actual)
+    print('--- EXPECTED RESULT ---')
+    print(expected)
+    exit(1)

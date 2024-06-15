@@ -3,7 +3,7 @@
 #include "pocketpy/common/version.h"
 #include "pocketpy/common/export.h"
 
-#include "pocketpy/common/_generated.hpp"
+#include "pocketpy/common/_generated.h"
 
 #include <chrono>
 #include <cmath>

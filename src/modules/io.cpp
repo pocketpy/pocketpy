@@ -85,7 +85,7 @@ void FileIO::_register(VM* vm, PyObject* mod, PyObject* type) {
         FileIO& io = PK_OBJ_GET(FileIO, args[0]);
         if(io.is_text) {
             Str& s = CAST(Str&, args[1]);
-            fwrite(s.data, 1, s.length(), io.fp);
+            fwrite(s.c_str(), 1, s.length(), io.fp);
         } else {
             Bytes& buffer = CAST(Bytes&, args[1]);
             fwrite(buffer.data(), 1, buffer.size(), io.fp);

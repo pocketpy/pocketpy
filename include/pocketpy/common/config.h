@@ -24,13 +24,6 @@
 #define PK_GC_MIN_THRESHOLD         16384
 #endif
 
-// Whether to use `pkpy::function<>` to do bindings or not
-// By default, functions to be binded must be a C function pointer without capture
-// However, someone thinks it's not convenient.
-// By setting this to 1, capturing lambdas can be binded,
-// but it's slower and may cause "code bloat", it also needs more time to compile.
-#define PK_ENABLE_STD_FUNCTION      0
-
 /*************** debug settings ***************/
 // Do not edit the following settings unless you know what you are doing
 #define PK_DEBUG_CEVAL_STEP         0

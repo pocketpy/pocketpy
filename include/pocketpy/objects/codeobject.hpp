@@ -1,17 +1,13 @@
 #pragma once
 
-#include "pocketpy/common/any.hpp"
+#include "pocketpy/common/any.h"
 #include "pocketpy/objects/tuplelist.hpp"
 #include "pocketpy/objects/namedict.hpp"
 #include "pocketpy/objects/sourcedata.hpp"
 
 namespace pkpy {
 
-#if PK_ENABLE_STD_FUNCTION
-using NativeFuncC = function<PyVar(VM*, ArgsView)>;
-#else
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
-#endif
 
 enum class BindType {
     DEFAULT,
@@ -171,10 +167,12 @@ struct Function {
 };
 
 template <typename T>
-T& lambda_get_userdata(PyVar* p) {
+T lambda_get_userdata(PyVar* p) {
     static_assert(std::is_same_v<T, std::decay_t<T>>);
+    static_assert(is_pod_v<T>);
     int offset = p[-1] != nullptr ? -1 : -2;
-    return p[offset].obj_get<NativeFunc>()._userdata.cast<T>();
+    NativeFunc& nf = p[offset].obj_get<NativeFunc>();
+    return nf._userdata.as<T>();
 }
 
 }  // namespace pkpy

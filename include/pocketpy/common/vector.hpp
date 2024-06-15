@@ -8,6 +8,7 @@
 
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/common/types.hpp"
+#include "pocketpy/common/algorithm.h"
 
 namespace pkpy {
 

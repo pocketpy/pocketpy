@@ -20,7 +20,7 @@ void LineProfiler::begin() { frames.clear(); }
 void LineProfiler::_step(int callstack_size, Frame* frame) {
     auto line_info = frame->co->lines[frame->ip()];
     if(line_info.is_virtual) return;
-    std::string_view filename = frame->co->src->filename.sv();
+    std::string_view filename = frame->co->src.filename().sv();
     int line = line_info.lineno;
 
     if(frames.empty()) {
@@ -87,7 +87,7 @@ Str LineProfiler::stats() {
         int start_line = decl->code->start_line;
         int end_line = decl->code->end_line;
         if(start_line == -1 || end_line == -1) continue;
-        std::string_view filename = decl->code->src->filename.sv();
+        std::string_view filename = decl->code->src.filename().sv();
         const _LineRecord* file_records = records[filename];
         clock_t total_time = 0;
         for(int line = start_line; line <= end_line; line++) {

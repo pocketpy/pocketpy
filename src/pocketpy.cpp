@@ -1,6 +1,6 @@
 #include "pocketpy/pocketpy.hpp"
 
-#include "pocketpy/common/_generated.hpp"
+#include "pocketpy/common/_generated.h"
 
 #include "pocketpy/modules/array2d.hpp"
 #include "pocketpy/modules/base64.hpp"
@@ -296,7 +296,22 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind_func(_vm->builtins, "hex", 1, [](VM* vm, ArgsView args) {
         SStream ss;
-        ss.write_hex(CAST(i64, args[0]));
+        i64 val = CAST(i64, args[0]);
+        if(val == 0) {
+            ss << "0x0";
+            return VAR(ss.str());
+        }
+        if(val < 0) {
+            ss << "-";
+            val = -val;
+        }
+        ss << "0x";
+        bool non_zero = true;
+        for(int i = 56; i >= 0; i -= 8) {
+            unsigned char cpnt = (val >> i) & 0xff;
+            ss.write_hex(cpnt, non_zero);
+            if(cpnt != 0) non_zero = false;
+        }
         return VAR(ss.str());
     });
 
@@ -353,7 +368,7 @@ void __init_builtins(VM* _vm) {
         assert(!is_tagged(obj));
         SStream ss;
         ss << "<" << _type_name(vm, vm->_tp(obj)) << " object at ";
-        ss.write_hex(obj.get());
+        ss.write_ptr(obj.get());
         ss << ">";
         return ss.str();
     });
@@ -539,7 +554,7 @@ void __init_builtins(VM* _vm) {
         double float_out;
         char* p_end;
         try {
-            float_out = std::strtod(s.data, &p_end);
+            float_out = std::strtod(s.c_str(), &p_end);
             if(p_end != s.end()) throw 1;
         } catch(...) { vm->ValueError("invalid literal for float(): " + s.escape()); }
         return VAR(float_out);
@@ -636,13 +651,12 @@ void __init_builtins(VM* _vm) {
         return VAR(self.u8_getitem(i));
     });
 
-    _vm->bind(_vm->_t(VM::tp_str), "replace(self, old, new, count=-1)", [](VM* vm, ArgsView args) {
+    _vm->bind(_vm->_t(VM::tp_str), "replace(self, old, new)", [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         const Str& old = CAST(Str&, args[1]);
         if(old.empty()) vm->ValueError("empty substring");
         const Str& new_ = CAST(Str&, args[2]);
-        int count = CAST(int, args[3]);
-        return VAR(self.replace(old, new_, count));
+        return VAR(self.replace(old, new_));
     });
 
     _vm->bind(_vm->_t(VM::tp_str), "split(self, sep=' ')", [](VM* vm, ArgsView args) {
@@ -705,14 +719,14 @@ void __init_builtins(VM* _vm) {
         const Str& suffix = CAST(Str&, args[1]);
         int offset = self.length() - suffix.length();
         if(offset < 0) return vm->False;
-        bool ok = memcmp(self.data + offset, suffix.data, suffix.length()) == 0;
+        bool ok = memcmp(self.c_str() + offset, suffix.c_str(), suffix.length()) == 0;
         return VAR(ok);
     });
 
     _vm->bind_func(VM::tp_str, "encode", 1, [](VM* vm, ArgsView args) {
         const Str& self = _CAST(Str&, args[0]);
         Bytes retval(self.length());
-        std::memcpy(retval.data(), self.data, self.length());
+        std::memcpy(retval.data(), self.c_str(), self.length());
         return VAR(std::move(retval));
     });
 
@@ -1479,12 +1493,12 @@ void __init_builtins(VM* _vm) {
         if(!vm->isinstance(_1, vm->tp_dict)) return vm->NotImplemented;
         Dict& other = _CAST(Dict&, _1);
         if(self.size() != other.size()) return vm->False;
-        for(int i = 0; i < self._capacity; i++) {
-            auto item = self._items[i];
-            if(item.first == nullptr) continue;
-            PyVar value = other.try_get(vm, item.first);
-            if(value == nullptr) return vm->False;
-            if(!vm->py_eq(item.second, value)) return vm->False;
+        pkpy_DictIter it = self.iter();
+        PyVar key, val;
+        while(pkpy_DictIter__next(&it, (pkpy_Var*)(&key), (pkpy_Var*)(&val))) {
+            PyVar other_val = other.try_get(vm, key);
+            if(other_val == nullptr) return vm->False;
+            if(!vm->py_eq(val, other_val)) return vm->False;
         }
         return vm->True;
     });

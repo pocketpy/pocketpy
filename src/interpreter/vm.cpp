@@ -4,6 +4,10 @@
 #include <cmath>
 #include <stdexcept>
 
+#if PK_DEBUG_CEVAL_STEP
+#include <map>
+#endif
+
 const static char* OP_NAMES[] = {
 #define OPCODE(name) #name,
 #include "pocketpy/opcodes.h"
@@ -38,7 +42,7 @@ struct JsonSerializer {
             if(!is_type(k, VM::tp_str)) {
                 vm->TypeError(_S("json keys must be string, got ", _type_name(vm, vm->_tp(k))));
             }
-            ss << _CAST(Str&, k).escape(false) << ": ";
+            ss << _CAST(Str&, k).escape('"') << ": ";
             write_object(v);
         });
         ss << '}';
@@ -57,7 +61,7 @@ struct JsonSerializer {
         } else if(obj_t == vm->tp_bool) {
             ss << (obj == vm->True ? "true" : "false");
         } else if(obj_t == vm->tp_str) {
-            _CAST(Str&, obj).escape_(ss, false);
+            ss << _CAST(Str&, obj).escape('"');
         } else if(obj_t == vm->tp_list) {
             write_array<List>(_CAST(List&, obj));
         } else if(obj_t == vm->tp_tuple) {
@@ -117,7 +121,7 @@ Str VM::py_repr(PyVar obj) {
 }
 
 Str VM::py_json(PyVar obj) {
-    auto j = JsonSerializer(this, obj);
+    JsonSerializer j(this, obj);
     return j.serialize();
 }
 
@@ -623,7 +627,7 @@ PyVar VM::__format_object(PyVar obj, Str spec) {
         case 'd':
         case 's':
             type = spec.end()[-1];
-            spec = spec.substr(0, spec.length() - 1);
+            spec = spec.slice(0, spec.length() - 1);
             break;
         default: type = ' '; break;
     }
@@ -660,9 +664,9 @@ PyVar VM::__format_object(PyVar obj, Str spec) {
             if(dot == 0) {
                 width = -1;
             } else {
-                width = std::stoi(spec.substr(0, dot).str());
+                width = std::stoi(spec.slice(0, dot).str());
             }
-            precision = std::stoi(spec.substr(dot + 1).str());
+            precision = std::stoi(spec.slice(dot + 1).str());
         } else {
             width = std::stoi(spec.str());
             precision = -1;
@@ -761,7 +765,7 @@ static std::string _opcode_argstr(VM* vm, int i, Bytecode byte, const CodeObject
 
 Str VM::disassemble(CodeObject_ co) {
     auto pad = [](const Str& s, const int n) {
-        if(s.length() >= n) return s.substr(0, n);
+        if(s.length() >= n) return s.slice(0, n);
         return s + std::string(n - s.length(), ' ');
     };
 
@@ -808,7 +812,7 @@ Str VM::disassemble(CodeObject_ co) {
 
 #if PK_DEBUG_CEVAL_STEP
 void VM::__log_s_data(const char* title) {
-    if(_main == nullptr) return;
+    // if(_main == nullptr) return;
     if(callstack.empty()) return;
     SStream ss;
     if(title) ss << title << " | ";
@@ -1624,37 +1628,6 @@ BIND_BINARY_SPECIAL(__xor__)
 
 #undef BIND_BINARY_SPECIAL
 
-void Dict::_probe_0(VM* vm, PyVar key, bool& ok, int& i) const {
-    ok = false;
-    i64 hash = vm->py_hash(key);
-    i = hash & _mask;
-    for(int j = 0; j < _capacity; j++) {
-        if(_items[i].first != nullptr) {
-            if(vm->py_eq(_items[i].first, key)) {
-                ok = true;
-                break;
-            }
-        } else {
-            if(_items[i].second == nullptr) break;
-        }
-        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
-        i = ((5 * i) + 1) & _mask;
-    }
-}
-
-void Dict::_probe_1(VM* vm, PyVar key, bool& ok, int& i) const {
-    ok = false;
-    i = vm->py_hash(key) & _mask;
-    while(_items[i].first != nullptr) {
-        if(vm->py_eq(_items[i].first, key)) {
-            ok = true;
-            break;
-        }
-        // https://github.com/python/cpython/blob/3.8/Objects/dictobject.c#L166
-        i = ((5 * i) + 1) & _mask;
-    }
-}
-
 #if PK_ENABLE_PROFILER
 void NextBreakpoint::_step(VM* vm) {
     int curr_callstack_size = vm->callstack.size();
@@ -1706,7 +1679,7 @@ void VM::__breakpoint() {
                 SStream ss;
                 Frame* frame = &frames[i]->frame;
                 int lineno = frame->curr_lineno();
-                ss << "File \"" << frame->co->src->filename << "\", line " << lineno;
+                ss << "File \"" << frame->co->src.filename() << "\", line " << lineno;
                 if(frame->_callable) {
                     ss << ", in ";
                     ss << frame->_callable->as<Function>().decl->code->name;

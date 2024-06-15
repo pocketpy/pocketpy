@@ -1,104 +1,246 @@
 #pragma once
 
-#include "pocketpy/common/utils.hpp"
+#include "pocketpy/common/sstream.h"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/common/memorypool.hpp"
+#include "pocketpy/common/vector.h"
 #include "pocketpy/common/vector.hpp"
+#include "pocketpy/common/str.h"
 
+#include <cassert>
 #include <string_view>
+#include <ostream>
 
 namespace pkpy {
 
-int utf8len(unsigned char c, bool suppress = false);
-struct SStream;
+struct Str: pkpy_Str {
+    bool is_inlined() const { return is_sso; }
 
-struct Str {
-    int size;
-    bool is_ascii;
-    char* data;
-    char _inlined[16];
+    Str(){
+        pkpy_Str__ctor2(this, "", 0);
+    }
 
-    bool is_inlined() const { return data == _inlined; }
+    Str(pkpy_Str&& s){
+        std::memcpy(this, &s, sizeof(pkpy_Str));
+    }
 
-    Str();
-    Str(int size, bool is_ascii);
-    Str(const std::string& s);
-    Str(std::string_view s);
-    Str(const char* s);
-    Str(const char* s, int len);
+    Str(const std::string& s){
+        pkpy_Str__ctor2(this, s.data(), s.size());
+    }
+
+    Str(std::string_view s){
+        pkpy_Str__ctor2(this, s.data(), s.size());
+    }
+
+    Str(const char* s){
+        pkpy_Str__ctor2(this, s, strlen(s));
+    }
+
+    Str(const char* s, int len){
+        pkpy_Str__ctor2(this, s, len);
+    }
+
     Str(pair<char*, int>);      // take ownership
-    Str(const Str& other);
-    Str(Str&& other);
+
+    Str(const Str& other){
+        pkpy_Str__ctor2(this, pkpy_Str__data(&other), other.size);
+    }
+
+    Str(Str&& other){
+        std::memcpy(this, &other, sizeof(pkpy_Str));
+        other.size = 0;
+        other.is_sso = true;
+    }
 
     operator std::string_view () const { return sv(); }
-
-    const char* begin() const { return data; }
-
-    const char* end() const { return data + size; }
-
-    char operator[] (int idx) const { return data[idx]; }
-
+    const char* begin() const { return pkpy_Str__data(this); }
+    const char* end() const { return pkpy_Str__data(this) + size; }
     int length() const { return size; }
-
+    char operator[] (int idx) const { return pkpy_Str__data(this)[idx]; }
     bool empty() const { return size == 0; }
-
     size_t hash() const { return std::hash<std::string_view>()(sv()); }
 
-    Str& operator= (const Str&);
-    Str operator+ (const Str&) const;
-    Str operator+ (const char*) const;
-    friend Str operator+ (const char*, const Str&);
+    Str& operator= (const Str& other){
+        pkpy_Str__dtor(this);
+        pkpy_Str__ctor2(this, pkpy_Str__data(&other), other.size);
+        return *this;
+    }
 
-    bool operator== (const std::string_view other) const;
-    bool operator!= (const std::string_view other) const;
-    bool operator< (const std::string_view other) const;
-    friend bool operator< (const std::string_view other, const Str& str);
+    Str operator+ (const Str& other) const{
+        return pkpy_Str__concat(this, &other);
+    }
 
-    bool operator== (const char* p) const;
-    bool operator!= (const char* p) const;
+    Str operator+ (const char* other) const{
+        return pkpy_Str__concat2(this, other, strlen(other));
+    }
 
-    bool operator== (const Str& other) const;
-    bool operator!= (const Str& other) const;
-    bool operator< (const Str& other) const;
-    bool operator> (const Str& other) const;
-    bool operator<= (const Str& other) const;
-    bool operator>= (const Str& other) const;
+    friend Str operator+ (const char* self, const Str& other){
+        pkpy_Str tmp;
+        pkpy_Str__ctor2(&tmp, self, strlen(self));
+        pkpy_Str retval = pkpy_Str__concat(&tmp, &other);
+        pkpy_Str__dtor(&tmp);
+        return retval;
+    }
 
-    ~Str();
+    bool operator== (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res == 0;
+    }
 
-    friend std::ostream& operator<< (std::ostream& os, const Str& str);
+    bool operator!= (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res != 0;
+    }
 
-    const char* c_str() const { return data; }
+    bool operator< (const std::string_view other) const{
+        int res = pkpy_Str__cmp2(this, other.data(), other.size());
+        return res < 0;
+    }
 
-    std::string_view sv() const { return std::string_view(data, size); }
+    friend bool operator< (const std::string_view other, const Str& str){
+        int res = pkpy_Str__cmp2(&str, other.data(), other.size());
+        return res > 0;
+    }
 
-    std::string str() const { return std::string(data, size); }
+    bool operator== (const char* p) const{
+        int res = pkpy_Str__cmp2(this, p, strlen(p));
+        return res == 0;
+    }
 
-    Str substr(int start, int len) const;
-    Str substr(int start) const;
-    Str strip(bool left, bool right, const Str& chars) const;
-    Str strip(bool left = true, bool right = true) const;
+    bool operator!= (const char* p) const{
+        int res = pkpy_Str__cmp2(this, p, strlen(p));
+        return res != 0;
+    }
+
+    bool operator== (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) == 0;
+    }
+    bool operator!= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) != 0;
+    }
+    bool operator< (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) < 0;
+    }
+    bool operator> (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) > 0;
+    }
+    bool operator<= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) <= 0;
+    }
+    bool operator>= (const Str& other) const{
+        return pkpy_Str__cmp(this, &other) >= 0;
+    }
+
+    ~Str(){
+        pkpy_Str__dtor(this);
+    }
+
+    friend std::ostream& operator<< (std::ostream& os, const Str& self){
+        os.write(pkpy_Str__data(&self), self.size);
+        return os;
+    }
+
+    const char* c_str() const { return pkpy_Str__data(this); }
+
+    std::string_view sv() const {
+        return std::string_view(pkpy_Str__data(this), size);
+    }
+
+    std::string str() const {
+        return std::string(pkpy_Str__data(this), size);
+    }
+
+    Str slice(int start, int stop) const{
+        return pkpy_Str__slice2(this, start, stop);
+    }
+
+    Str slice(int start) const{
+        return pkpy_Str__slice(this, start);
+    }
+
+    Str substr(int start) const{
+        return pkpy_Str__slice(this, start);
+    }
+
+    Str strip(bool left, bool right, const Str& chars) const{
+        return pkpy_Str__strip2(this, left, right, &chars);
+    }
+
+    Str strip(bool left = true, bool right = true) const{
+        return pkpy_Str__strip(this, left, right);
+    }
 
     Str lstrip() const { return strip(true, false); }
 
     Str rstrip() const { return strip(false, true); }
 
-    Str lower() const;
-    Str upper() const;
-    Str escape(bool single_quote = true) const;
-    void escape_(SStream& ss, bool single_quote = true) const;
-    int index(const Str& sub, int start = 0) const;
-    Str replace(char old, char new_) const;
-    Str replace(const Str& old, const Str& new_, int count = -1) const;
-    vector<std::string_view> split(const Str& sep) const;
-    vector<std::string_view> split(char sep) const;
-    int count(const Str& sub) const;
+    Str lower() const{
+        return pkpy_Str__lower(this);
+    }
+    Str upper() const{
+        return pkpy_Str__upper(this);
+    }
+    Str replace(char old, char new_) const{
+        return pkpy_Str__replace(this, old, new_);
+    }
+    Str replace(const Str& old, const Str& new_) const{
+        return pkpy_Str__replace2(this, &old, &new_);
+    }
+
+    Str escape(char quote='\'') const{
+        return pkpy_Str__escape(this, quote);
+    }
+
+    vector<std::string_view> split(const Str& sep) const{
+        c11_vector/* T=c11_string */ res = pkpy_Str__split2(this, &sep);
+        vector<std::string_view> retval(res.count);
+        for(int i = 0; i < res.count; i++){
+            c11_string tmp = c11__getitem(c11_string, &res, i);
+            retval[i] = std::string_view(tmp.data, tmp.size);
+        }
+        c11_vector__dtor(&res);
+        return retval;
+    }
+
+    vector<std::string_view> split(char sep) const{
+        c11_vector/* T=c11_string */ res = pkpy_Str__split(this, sep);
+        vector<std::string_view> retval(res.count);
+        for(int i = 0; i < res.count; i++){
+            c11_string tmp = c11__getitem(c11_string, &res, i);
+            retval[i] = std::string_view(tmp.data, tmp.size);
+        }
+        c11_vector__dtor(&res);
+        return retval;
+    }
+
+    int index(const Str& sub, int start = 0) const{
+        return pkpy_Str__index(this, &sub, start);
+    }
+
+    int count(const Str& sub) const{
+        return pkpy_Str__count(this, &sub);
+    }
 
     /*************unicode*************/
-    int _unicode_index_to_byte(int i) const;
-    int _byte_index_to_unicode(int n) const;
-    Str u8_getitem(int i) const;
-    Str u8_slice(int start, int stop, int step) const;
-    int u8_length() const;
+    int _unicode_index_to_byte(int i) const{
+        return pkpy_Str__unicode_index_to_byte(this, i);
+    }
+
+    int _byte_index_to_unicode(int n) const{
+        return pkpy_Str__byte_index_to_unicode(this, n);
+    }
+
+    Str u8_getitem(int i) const{
+        return pkpy_Str__u8_getitem(this, i);
+    }
+
+    Str u8_slice(int start, int stop, int step) const{
+        return pkpy_Str__u8_slice(this, start, stop, step);
+    }
+
+    int u8_length() const{
+        return pkpy_Str__u8_length(this);
+    }
 };
 
 struct StrName {
@@ -131,36 +273,91 @@ struct StrName {
     static uint32_t _pesudo_random_index;
 };
 
-struct SStream {
+struct SStream: pkpy_SStream {
     PK_ALWAYS_PASS_BY_POINTER(SStream)
 
-    vector<char> buffer;
     int _precision = -1;
-
-    bool empty() const { return buffer.empty(); }
+    bool _submited = false;
+    bool empty() const { return data.count == 0; }
 
     void setprecision(int precision) { _precision = precision; }
 
-    SStream() {}
+    SStream() {
+        pkpy_SStream__ctor(this);
+    }
 
-    SStream(int guess_size) { buffer.reserve(guess_size); }
+    SStream(int guess_size) { c11_vector__reserve(&data, guess_size); }
 
-    Str str();
+    ~SStream() {
+        // in case of error
+        if(!_submited) pkpy_SStream__dtor(this);
+    }
 
-    SStream& operator<< (const Str&);
-    SStream& operator<< (const char*);
-    SStream& operator<< (int);
-    SStream& operator<< (size_t);
-    SStream& operator<< (i64);
-    SStream& operator<< (f64);
-    SStream& operator<< (const std::string&);
-    SStream& operator<< (std::string_view);
-    SStream& operator<< (char);
-    SStream& operator<< (StrName);
+    Str str(){
+        assert(!_submited);
+        _submited = true;
+        return pkpy_SStream__submit(this);
+    }
 
-    void write_hex(unsigned char, bool non_zero = false);
-    void write_hex(void*);
-    void write_hex(i64);
+    SStream& operator<< (const Str& val){
+        pkpy_SStream__write_Str(this, &val);
+        return *this;
+    }
+
+    SStream& operator<< (const char* val){
+        pkpy_SStream__write_cstr(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (int val){
+        pkpy_SStream__write_int(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (size_t val){
+        // size_t could overflow int64, but nevermind...
+        pkpy_SStream__write_i64(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (i64 val){
+        pkpy_SStream__write_i64(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (f64 val){
+        pkpy_SStream__write_double(this, val, _precision);
+        return *this;
+    }
+
+    SStream& operator<< (const std::string& val){
+        pkpy_SStream__write_cstrn(this, val.data(), val.size());
+        return *this;
+    }
+
+    SStream& operator<< (std::string_view val){
+        pkpy_SStream__write_cstrn(this, val.data(), val.size());
+        return *this;
+    }
+
+    SStream& operator<< (char val){
+        pkpy_SStream__write_char(this, val);
+        return *this;
+    }
+
+    SStream& operator<< (StrName name){
+        std::string_view sv = name.sv();
+        pkpy_SStream__write_cstrn(this, sv.data(), sv.size());
+        return *this;
+    }
+
+    void write_hex(unsigned char val, bool non_zero = false){
+        pkpy_SStream__write_hex(this, val, non_zero);
+    }
+
+    void write_ptr(void* p){
+        pkpy_SStream__write_ptr(this, p);
+    }
 };
 
 #ifdef _S

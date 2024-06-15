@@ -2,7 +2,7 @@
 
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/str.hpp"
-#include "pocketpy/common/utils.hpp"
+#include "pocketpy/common/utils.h"
 #include "pocketpy/objects/object.hpp"
 
 namespace pkpy {

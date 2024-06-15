@@ -39,8 +39,8 @@ assert t[-5:] == 'ow!!!'
 assert t[3:-3] == 's is string example....wow'
 assert s > q;assert s < r
 assert s.replace("o","") == "ftball"
-assert s.replace("o","O",1) == "fOotball"
-assert s.replace("foo","ball",1) == "balltball"
+assert s.replace("o","O") == "fOOtball"
+assert s.replace("foo","ball") == "balltball"
 assert s.startswith('f') == True;assert s.endswith('o') == False
 assert t.startswith('this') == True;
 

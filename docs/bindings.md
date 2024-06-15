@@ -92,13 +92,6 @@ vm->bind(obj, "f() -> int", [](VM* vm, ArgsView args){
 }, x);  // capture x
 ```
 
-The 3rd way is to change the macro `PK_ENABLE_STD_FUNCTION` in `config.h`:
-```cpp
-#define PK_ENABLE_STD_FUNCTION 0   // => 1
-```
-
-Then you can use standard capture list in lambda.
-
 ## Bind a class or struct
 
 Assume you have a struct `Point` declared as follows.

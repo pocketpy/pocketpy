@@ -414,11 +414,11 @@ void FStringExpr::_load_simple_expr(CodeEmitContext* ctx, Str expr) {
         switch(expr.end()[-1]) {
             case 'r':
                 repr = true;
-                expr = expr.substr(0, expr.size - 2);
+                expr = expr.slice(0, expr.size - 2);
                 break;
             case 's':
                 repr = false;
-                expr = expr.substr(0, expr.size - 2);
+                expr = expr.slice(0, expr.size - 2);
                 break;
             default: break;  // nothing happens
         }
@@ -472,7 +472,7 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
         if(flag) {
             if(src[j] == '}') {
                 // add expression
-                Str expr = src.substr(i, j - i);
+                Str expr = src.slice(i, j);
                 // BUG: ':' is not a format specifier in f"{stack[2:]}"
                 int conon = expr.index(":");
                 if(conon >= 0) {
@@ -485,7 +485,7 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
                             break;
                         }
                     if(ok) {
-                        _load_simple_expr(ctx, expr.substr(0, conon));
+                        _load_simple_expr(ctx, expr.slice(0, conon));
                         ctx->emit_(OP_FORMAT_STRING, ctx->add_const_string(spec.sv()), line);
                     } else {
                         // ':' is not a spec indicator
@@ -527,7 +527,7 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
                 i = j;
                 while(j < src.size && src[j] != '{' && src[j] != '}')
                     j++;
-                Str literal = src.substr(i, j - i);
+                Str literal = src.slice(i, j);
                 ctx->emit_(OP_LOAD_CONST, ctx->add_const_string(literal.sv()), line);
                 count++;
                 continue;  // skip j++
@@ -538,7 +538,7 @@ void FStringExpr::emit_(CodeEmitContext* ctx) {
 
     if(flag) {
         // literal
-        Str literal = src.substr(i, src.size - i);
+        Str literal = src.slice(i, src.size);
         ctx->emit_(OP_LOAD_CONST, ctx->add_const_string(literal.sv()), line);
         count++;
     }
