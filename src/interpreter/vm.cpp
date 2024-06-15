@@ -561,7 +561,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     PyObject* globals_obj = nullptr;
     Dict* globals_dict = nullptr;
 
-    NameDict_ locals_closure = nullptr;
+    NameDict* locals_closure = nullptr;
     Dict* locals_dict = nullptr;
 
     if(is_none(globals)){
@@ -588,7 +588,7 @@ PyVar VM::__py_exec_internal(const CodeObject_& code, PyVar globals, PyVar local
     } else {
         check_compatible_type(locals, VM::tp_dict);
         locals_dict = &PK_OBJ_GET(Dict, locals);
-        locals_closure = std::make_shared<NameDict>();
+        locals_closure = new NameDict();
         locals_dict->apply([&](PyVar k, PyVar v) {
             locals_closure->set(CAST(Str&, k), v);
         });

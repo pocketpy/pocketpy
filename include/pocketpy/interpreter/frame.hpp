@@ -19,7 +19,7 @@ struct FastLocals {
     FastLocals(const CodeObject* co, PyVar* a) : co(co), a(a) {}
 
     PyVar* try_get_name(StrName name);
-    NameDict_ to_namedict();
+    NameDict* to_namedict();
 
     PyVar* begin() const { return a; }
 

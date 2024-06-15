@@ -59,6 +59,5 @@ struct NameDict {
 };
 
 static_assert(sizeof(NameDict) <= 128);
-using NameDict_ = std::shared_ptr<NameDict>;
 
 }  // namespace pkpy

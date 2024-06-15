@@ -8,8 +8,8 @@ PyVar* FastLocals::try_get_name(StrName name) {
     return &a[index];
 }
 
-NameDict_ FastLocals::to_namedict() {
-    NameDict_ dict = std::make_shared<NameDict>();
+NameDict* FastLocals::to_namedict() {
+    NameDict* dict = new NameDict();
     for(int i=0; i<co->varnames_inv.count; i++){
         auto entry = c11__getitem(c11_smallmap_entry_n2i, &co->varnames_inv, i);
         PyVar value = a[entry.value];

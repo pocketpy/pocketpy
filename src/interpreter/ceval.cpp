@@ -183,11 +183,11 @@ PyVar VM::__run_top_frame() {
                         const FuncDecl_& decl = frame->co->func_decls[byte.arg];
                         PyVar obj;
                         if(decl->nested) {
-                            NameDict_ captured = frame->_locals.to_namedict();
-                            obj = VAR(Function(decl, frame->_module, nullptr, captured));
+                            NameDict* captured = frame->_locals.to_namedict();
+                            obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, captured);
                             captured->set(decl->code->name, obj);
                         } else {
-                            obj = VAR(Function(decl, frame->_module, nullptr, nullptr));
+                            obj = new_object<Function>(tp_function, decl, frame->_module, nullptr, nullptr);
                         }
                         PUSH(obj);
                     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pocketpy/common/any.h"
+#include "pocketpy/common/traits.hpp"
 #include "pocketpy/objects/tuplelist.hpp"
 #include "pocketpy/objects/namedict.hpp"
 #include "pocketpy/objects/sourcedata.hpp"
@@ -175,15 +176,21 @@ struct NativeFunc {
 };
 
 struct Function {
+    PK_ALWAYS_PASS_BY_POINTER(Function)
+
     FuncDecl_ decl;
     PyObject* _module;  // weak ref
     PyObject* _class;   // weak ref
-    NameDict_ _closure;
+    NameDict* _closure; // strong ref
 
-    explicit Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict_ _closure) :
+    Function(FuncDecl_ decl, PyObject* _module, PyObject* _class, NameDict* _closure) :
         decl(decl), _module(_module), _class(_class), _closure(_closure) {}
 
     void _gc_mark(VM*) const;
+
+    ~Function() {
+        delete _closure;
+    }
 };
 
 template <typename T>
