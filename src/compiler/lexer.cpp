@@ -1,6 +1,7 @@
 #include "pocketpy/compiler/lexer.hpp"
 #include "pocketpy/common/config.h"
 #include "pocketpy/common/str.h"
+#include "pocketpy/common/smallmap.h"
 
 #include <cstdarg>
 
@@ -603,29 +604,37 @@ Error* Lexer::precompile(Str* out) noexcept{
     ss << "pkpy:" PK_VERSION << '\n';       // L1: version string
     ss << (int)src->mode << '\n';           // L2: mode
 
-    small_map<std::string_view, int> token_indices;
+    c11_smallmap_s2i token_indices;
+    c11_smallmap_s2i__ctor(&token_indices);
+
     for(auto token: nexts) {
         if(is_raw_string_used(token.type)) {
-            if(!token_indices.contains(token.sv())) {
-                token_indices.insert(token.sv(), 0);
+            c11_string token_sv = {token.start, token.length};
+            if(!c11_smallmap_s2i__contains(&token_indices, token_sv)) {
+                c11_smallmap_s2i__set(&token_indices, token_sv, 0);
                 // assert no '\n' in token.sv()
                 for(char c: token.sv())
                     assert(c != '\n');
             }
         }
     }
-    ss << "=" << (int)token_indices.size() << '\n';  // L3: raw string count
+    ss << "=" << (int)token_indices.count << '\n';  // L3: raw string count
     int index = 0;
-    for(auto& kv: token_indices) {
-        ss << kv.first << '\n';  // L4: raw strings
-        kv.second = index++;
+    for(int i=0; i<token_indices.count; i++){
+        c11_smallmap_entry_s2i* kv = c11__at(c11_smallmap_entry_s2i, &token_indices, i);
+        ss << kv->key << '\n';  // L4: raw strings
+        kv->value = index++;
     }
 
     ss << "=" << (int)nexts.size() << '\n';  // L5: token count
     for(int i = 0; i < nexts.size(); i++) {
         const Token& token = nexts[i];
         ss << (int)token.type << ',';
-        if(is_raw_string_used(token.type)) { ss << token_indices[token.sv()] << ','; }
+        if(is_raw_string_used(token.type)) {
+            int index = c11_smallmap_s2i__get(&token_indices, {token.start, token.length}, -1);
+            assert(index >= 0);
+            ss << index << ',';
+        }
         if(i > 0 && nexts[i - 1].line == token.line)
             ss << ',';
         else
@@ -652,6 +661,7 @@ Error* Lexer::precompile(Str* out) noexcept{
             token.value);
     }
     *out = ss.str();
+    c11_smallmap_s2i__dtor(&token_indices);
     return NULL;
 }
 

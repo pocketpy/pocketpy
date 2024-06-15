@@ -238,6 +238,20 @@ pkpy_Str pkpy_Str__replace2(const pkpy_Str *self, const pkpy_Str *old, const pkp
     return retval;
 }
 
+int c11_string__cmp(c11_string self, c11_string other){
+    return c11_string__cmp2(self, other.data, other.size);
+}
+
+int c11_string__cmp2(c11_string self, const char *other, int size){
+    int res = strncmp(self.data, other, PK_MIN(self.size, size));
+    if(res != 0) return res;
+    return self.size - size;
+}
+
+int c11_string__cmp3(c11_string self, const char *other){
+    return c11_string__cmp2(self, other, strlen(other));
+}
+
 int pkpy_Str__cmp(const pkpy_Str *self, const pkpy_Str *other){
     return pkpy_Str__cmp2(self, pkpy_Str__data(other), other->size);
 }
@@ -246,6 +260,10 @@ int pkpy_Str__cmp2(const pkpy_Str *self, const char *other, int size){
     int res = strncmp(pkpy_Str__data(self), other, PK_MIN(self->size, size));
     if(res != 0) return res;
     return self->size - size;
+}
+
+int pkpy_Str__cmp3(const pkpy_Str *self, const char *other){
+    return strcmp(pkpy_Str__data(self), other);
 }
 
 pkpy_Str pkpy_Str__u8_getitem(const pkpy_Str *self, int i){

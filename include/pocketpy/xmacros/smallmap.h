@@ -1,5 +1,3 @@
-#pragma once
-
 #if !defined(SMALLMAP_T__HEADER) && !defined(SMALLMAP_T__SOURCE)
     #include "pocketpy/common/vector.h"
 
@@ -12,6 +10,10 @@
 /* Optional Input */
 #ifndef less
     #define less(a, b) ((a.key) < (b))
+#endif
+
+#ifndef equal
+    #define equal(a, b) ((a) == (b))
 #endif
 
 /* Temprary macros */
@@ -53,7 +55,7 @@ void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, less, &index);
     KV* it = c11__at(KV, self, index);
-    if(index != self->count && it->key == key) {
+    if(index != self->count && equal(it->key, key)) {
         it->value = value;
     } else {
         KV kv = {key, value};
@@ -65,7 +67,7 @@ V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, less, &index);
     KV* it = c11__at(KV, self, index);
-    if(index != self->count && it->key == key) {
+    if(index != self->count && equal(it->key, key)) {
         return &it->value;
     } else {
         return NULL;
@@ -85,7 +87,7 @@ bool SMALLMAP_METHOD(del)(SMALLMAP* self, K key) {
     int index;
     c11__lower_bound(KV, self->data, self->count, key, less, &index);
     KV* it = c11__at(KV, self, index);
-    if(index != self->count && it->key == key) {
+    if(index != self->count && equal(it->key, key)) {
         c11_vector__erase(KV, self, index);
         return true;
     }
@@ -108,3 +110,4 @@ void SMALLMAP_METHOD(clear)(SMALLMAP* self) {
 #undef V
 #undef TAG
 #undef less
+#undef equal

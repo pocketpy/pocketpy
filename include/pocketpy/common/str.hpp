@@ -347,6 +347,11 @@ struct SStream: pkpy_SStream {
         return *this;
     }
 
+    SStream& operator<< (c11_string val){
+        pkpy_SStream__write_cstrn(this, val.data, val.size);
+        return *this;
+    }
+
     SStream& operator<< (char val){
         pkpy_SStream__write_char(this, val);
         return *this;

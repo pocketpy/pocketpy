@@ -14,6 +14,10 @@ typedef struct c11_string{
     int size;
 } c11_string;
 
+int c11_string__cmp(c11_string self, c11_string other);
+int c11_string__cmp2(c11_string self, const char* other, int size);
+int c11_string__cmp3(c11_string self, const char* other);
+
 typedef struct pkpy_Str{
     int size;
     bool is_ascii;
@@ -48,6 +52,7 @@ pkpy_Str pkpy_Str__u8_slice(const pkpy_Str* self, int start, int stop, int step)
 int pkpy_Str__u8_length(const pkpy_Str* self);
 int pkpy_Str__cmp(const pkpy_Str* self, const pkpy_Str* other);
 int pkpy_Str__cmp2(const pkpy_Str* self, const char* other, int size);
+int pkpy_Str__cmp3(const pkpy_Str* self, const char* other);
 int pkpy_Str__unicode_index_to_byte(const pkpy_Str* self, int i);
 int pkpy_Str__byte_index_to_unicode(const pkpy_Str* self, int n);
 int pkpy_Str__index(const pkpy_Str* self, const pkpy_Str* sub, int start);
