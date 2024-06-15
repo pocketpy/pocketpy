@@ -109,7 +109,7 @@ static bool MemoryPoolArena__full(MemoryPoolArena* self) {
 }
 
 static int MemoryPoolArena__total_bytes(MemoryPoolArena* self) {
-    return kPoolObjectBlockSize * kPoolObjectMaxBlocks;
+    return kPoolObjectArenaSize;
 }
 
 static int MemoryPoolArena__used_bytes(MemoryPoolArena* self) {
@@ -241,56 +241,56 @@ static int FixedMemoryPool__total_bytes(FixedMemoryPool* self) {
 PK_THREAD_LOCAL FixedMemoryPool PoolExpr;
 PK_THREAD_LOCAL FixedMemoryPool PoolFrame;
 PK_THREAD_LOCAL MemoryPool PoolObject;
-PK_THREAD_LOCAL bool initialized = false;
+PK_THREAD_LOCAL bool _Pools_initialized = false;
 
 void Pools_initialize(){
-    if(initialized) return;
+    if(_Pools_initialized) return;
     FixedMemoryPool__ctor(&PoolExpr, kPoolExprBlockSize, 64);
     FixedMemoryPool__ctor(&PoolFrame, kPoolFrameBlockSize, 128);
     MemoryPool__ctor(&PoolObject);
-    initialized = true;
+    _Pools_initialized = true;
 }
 
 void Pools_finalize(){
-    if(!initialized) return;
+    if(!_Pools_initialized) return;
     FixedMemoryPool__dtor(&PoolExpr);
     FixedMemoryPool__dtor(&PoolFrame);
     MemoryPool__dtor(&PoolObject);
-    initialized = false;
+    _Pools_initialized = false;
 }
 
 void* PoolExpr_alloc() {
-    assert(initialized);
+    assert(_Pools_initialized);
     return FixedMemoryPool__alloc(&PoolExpr);
 }
 
 void PoolExpr_dealloc(void* p) {
-    assert(initialized);
+    assert(_Pools_initialized);
     FixedMemoryPool__dealloc(&PoolExpr, p);
 }
 
 void* PoolFrame_alloc() {
-    assert(initialized);
+    assert(_Pools_initialized);
     return FixedMemoryPool__alloc(&PoolFrame);
 }
 
 void PoolFrame_dealloc(void* p) {
-    assert(initialized);
+    assert(_Pools_initialized);
     FixedMemoryPool__dealloc(&PoolFrame, p);
 }
 
 void* PoolObject_alloc() {
-    assert(initialized);
+    assert(_Pools_initialized);
     return MemoryPool__alloc(&PoolObject);
 }
 
 void PoolObject_dealloc(void* p) {
-    assert(initialized);
+    assert(_Pools_initialized);
     MemoryPool__dealloc(&PoolObject, p);
 }
 
 void PoolObject_shrink_to_fit() {
-    assert(initialized);
+    assert(_Pools_initialized);
     MemoryPool__shrink_to_fit(&PoolObject);
 }
 
