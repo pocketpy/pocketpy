@@ -157,8 +157,6 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, pkpy_Var key) {
 
     int idx = pkpy_Dict__htget(self, h);
     if(idx == pkpy_Dict__idx_null(self)) return false;
-
-    struct pkpy_DictEntry* entry = &c11__getitem(struct pkpy_DictEntry, &self->_entries, idx);
     return true;
 }
 

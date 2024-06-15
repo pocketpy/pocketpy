@@ -1,24 +1,33 @@
 # pocketpy: python interpreter in 1 file
 
 <p>
-<a title="Build" href="https://github.com/pocketpy/pocketpy/actions/workflows" ><img src="https://github.com/pocketpy/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<!-- Build -->
+<a title="Build" href="https://github.com/pocketpy/pocketpy/actions/workflows" >
+<img src="https://github.com/pocketpy/pocketpy/actions/workflows/main.yml/badge.svg" /></a>
+<!-- Codecov -->
 <a href="https://codecov.io/gh/pocketpy/pocketpy" > 
- <img src="https://codecov.io/gh/pocketpy/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/> 
- </a>
+<img src="https://codecov.io/gh/pocketpy/pocketpy/branch/main/graph/badge.svg?token=TI9KAFL0RG"/></a>
+<!-- C++17 -->
 <a href="https://en.wikipedia.org/wiki/C%2B%2B#Standardization">
 <img alt="C++17" src="https://img.shields.io/badge/C%2B%2B-17-blue.svg"></a>
+<!-- C11 -->
+<a href="https://en.wikipedia.org/wiki/C11_(C_standard_revision)">
+<img alt="Python" src="https://img.shields.io/badge/C-11-blue.svg"></a>
+<!-- License -->
 <a href="https://github.com/blueloveth/pocketpy/blob/main/LICENSE">
 <img alt="GitHub" src="https://img.shields.io/github/license/blueloveth/pocketpy.svg?color=blue"></a>
+<!-- Github Release -->
 <a href="https://github.com/blueloveth/pocketpy/releases">
 <img alt="GitHub release" src="https://img.shields.io/github/release/blueloveth/pocketpy.svg"></a>
 <!-- docs -->
 <a href="https://pocketpy.dev">
 <img alt="Website" src="https://img.shields.io/website/https/pocketpy.dev.svg?down_color=red&down_message=offline&up_color=blue&up_message=online"></a>
+<!-- Discord -->
 <a title="Discord" href="https://discord.gg/WWaq72GzXv" >
 <img src="https://img.shields.io/discord/1048978026131640390.svg" /></a>
 </p>
 
-pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C++17 with STL.
+pkpy is a lightweight(~15K LOC) Python interpreter for game scripting, built on C11 with C++17 wrappers.
 
 It aims to be an alternative to lua for game scripting, with elegant syntax, powerful features and competitive performance.
 pkpy is extremely easy to embed via a single header file `pocketpy.h`, without external dependencies.
