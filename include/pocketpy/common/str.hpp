@@ -256,7 +256,7 @@ struct StrName {
 
     StrName() : index(0) {}
 
-    explicit StrName(uint16_t index) : index(index) {}
+    StrName(uint16_t index) : index(index) {}
 
     StrName(const char* s) : index(get(s).index) {}
 
@@ -275,18 +275,16 @@ struct StrName {
     bool operator> (const StrName& other) const noexcept { return sv() > other.sv(); }
 
     inline static StrName get(std::string_view s){
-        uint16_t index = pkpy_StrName__map({s.data(), (int)s.size()});
+        uint16_t index = pkpy_StrName__map2({s.data(), (int)s.size()});
         return StrName(index);
     }
 
     std::string_view sv() const{
-        c11_string s = pkpy_StrName__rmap(index);
-        return std::string_view(s.data, s.size);
+        return pkpy_StrName__rmap(index);
     }
 
     const char* c_str() const{
-        c11_string s = pkpy_StrName__rmap(index);
-        return s.data;
+        return pkpy_StrName__rmap(index);
     }
 };
 
@@ -400,63 +398,6 @@ struct CString {
 
     operator const char* () const { return ptr; }
 };
-
-// unary operators
-extern const StrName __repr__;
-extern const StrName __str__;
-extern const StrName __hash__;
-extern const StrName __len__;
-extern const StrName __iter__;
-extern const StrName __next__;
-extern const StrName __neg__;
-// logical operators
-extern const StrName __eq__;
-extern const StrName __lt__;
-extern const StrName __le__;
-extern const StrName __gt__;
-extern const StrName __ge__;
-extern const StrName __contains__;
-// binary operators
-extern const StrName __add__;
-extern const StrName __radd__;
-extern const StrName __sub__;
-extern const StrName __rsub__;
-extern const StrName __mul__;
-extern const StrName __rmul__;
-extern const StrName __truediv__;
-extern const StrName __floordiv__;
-extern const StrName __mod__;
-extern const StrName __pow__;
-extern const StrName __matmul__;
-extern const StrName __lshift__;
-extern const StrName __rshift__;
-extern const StrName __and__;
-extern const StrName __or__;
-extern const StrName __xor__;
-extern const StrName __invert__;
-// indexer
-extern const StrName __getitem__;
-extern const StrName __setitem__;
-extern const StrName __delitem__;
-
-// specials
-extern const StrName __new__;
-extern const StrName __init__;
-extern const StrName __call__;
-extern const StrName __divmod__;
-extern const StrName __enter__;
-extern const StrName __exit__;
-extern const StrName __name__;
-extern const StrName __all__;
-extern const StrName __package__;
-extern const StrName __path__;
-extern const StrName __class__;
-extern const StrName __missing__;
-
-extern const StrName pk_id_add;
-extern const StrName pk_id_set;
-extern const StrName pk_id_long;
-extern const StrName pk_id_complex;
 
 #define DEF_SNAME(name) const static StrName name(#name)
 
