@@ -13,7 +13,7 @@ extern "C" {
         T* __first = ptr;                                                                          \
         int __len = count;                                                                         \
         while(__len != 0) {                                                                        \
-            int __l2 = (int)((unsigned int)__len / 2);                                             \
+            int __l2 = __len >> 1;                                                                 \
             T* __m = __first + __l2;                                                               \
             if(less((*__m), (key))) {                                                              \
                 __first = ++__m;                                                                   \

@@ -64,14 +64,21 @@ void SMALLMAP_METHOD(set)(SMALLMAP* self, K key, V value) {
 }
 
 V* SMALLMAP_METHOD(try_get)(const SMALLMAP* self, K key) {
-    int index;
-    c11__lower_bound(KV, self->data, self->count, key, less, &index);
-    KV* it = c11__at(KV, self, index);
-    if(index != self->count && equal(it->key, key)) {
-        return &it->value;
-    } else {
-        return NULL;
+    // use `bsearch` which is faster than `lower_bound`
+    int low = 0;
+    int high = self->count - 1;
+    KV* a = self->data;
+    while(low <= high){
+        int mid = (low + high) / 2;
+        if(equal(a[mid].key, key)){
+            return &a[mid].value;
+        } else if(less(a[mid], key)){
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
     }
+    return NULL;
 }
 
 V SMALLMAP_METHOD(get)(const SMALLMAP* self, K key, V default_value) {
