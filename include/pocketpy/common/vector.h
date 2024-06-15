@@ -56,19 +56,19 @@ void c11_vector__clear(c11_vector* self);
     }while(0)
 
 
-#define c11_vector__insert(T, self, index, elem) \
+#define c11_vector__insert(T, self, p, elem) \
     do{ \
         if((self)->count == (self)->capacity) c11_vector__reserve((self), (self)->capacity*2); \
-        T* p = (T*)(self)->data + (index); \
-        memmove(p + 1, p, ((self)->count - (index)) * sizeof(T)); \
+        int __n = (self)->count - (p - (T*)(self)->data); \
+        memmove(p + 1, p, __n * sizeof(T)); \
         *p = (elem); \
         (self)->count++; \
     }while(0)
 
-#define c11_vector__erase(T, self, index) \
+#define c11_vector__erase(T, self, p) \
     do{ \
-        T* p = (T*)(self)->data + (index); \
-        memmove(p, p + 1, ((self)->count - (index) - 1) * sizeof(T)); \
+        int __n = (self)->count - (p - (T*)(self)->data) - 1; \
+        memmove(p, p + 1, __n * sizeof(T)); \
         (self)->count--; \
     }while(0)
 

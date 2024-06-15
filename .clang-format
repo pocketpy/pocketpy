@@ -1,16 +1,14 @@
 # clang-format configuration
-# compatible with clang-format 18
+# compatible with clang-format 15
 
 UseTab: Never
-ColumnLimit: 120
+ColumnLimit: 100
 
 # Indent
 IndentWidth: 4
-BracedInitializerIndentWidth: 4
 AccessModifierOffset: -4
 IndentAccessModifiers: false
 IndentCaseLabels: true
-IndentExternBlock: Indent
 IndentGotoLabels: true
 IndentRequiresClause: true
 IndentWrappedFunctionNames: true
@@ -20,25 +18,18 @@ BitFieldColonSpacing: Both
 
 # Insert
 InsertBraces: false
-InsertNewlineAtEOF: true
-KeepEmptyLinesAtEOF: true
 
 # Align
 AlignAfterOpenBracket: true
-AlignTrailingComments:
-  Kind: Always
 
 AlignArrayOfStructures: Left
 PointerAlignment: Left
 
-BreakAfterAttributes: Leave
 BreakBeforeBinaryOperators: None
 BreakBeforeConceptDeclarations: Always
-BreakBeforeInlineASMColon: OnlyMultiline
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: AfterColon
 BreakInheritanceList: AfterColon
-BreakAdjacentStringLiterals: false
 BreakStringLiterals: false
 CompactNamespaces: false
 Cpp11BracedListStyle: true
@@ -47,10 +38,8 @@ EmptyLineBeforeAccessModifier: Always
 
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
-AllowBreakBeforeNoexceptSpecifier: Never
 AllowShortBlocksOnASingleLine: Always
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortCompoundRequirementOnASingleLine: true
 AllowShortEnumsOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: WithoutElse
@@ -83,20 +72,12 @@ SpaceInEmptyBlock: false
 SpacesBeforeTrailingComments: 2
 SpacesInAngles: Never
 
-SpacesInParens: Custom
-SpacesInParensOptions:
-  InConditionalStatements: false
-  InCStyleCasts: false
-  InEmptyParentheses: false
-  Other: false
-
 SpacesInSquareBrackets: false
 
 # Order
 QualifierAlignment: Custom
 QualifierOrder: ["constexpr", "const", "inline", "static", "type"]
 SortIncludes: Never
-SortUsingDeclarations: LexicographicNumeric
 IncludeBlocks: Merge
 
 WhitespaceSensitiveMacros: ["PK_PROTECTED", "LUA_PROTECTED"]

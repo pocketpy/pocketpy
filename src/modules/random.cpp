@@ -199,7 +199,7 @@ struct Random {
             List result(k);
             for(int i = 0; i < k; i++) {
                 f64 key = self.gen.uniform(0.0, cum_weights[size - 1]);
-                const f64* p;
+                f64* p;
                 c11__lower_bound(f64, cum_weights.begin(), cum_weights.size(), key, c11__less, &p);
                 result[i] = data[p - cum_weights.begin()];
             }
