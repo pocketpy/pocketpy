@@ -7,11 +7,7 @@
 
 namespace pkpy {
 
-#if PK_ENABLE_STD_FUNCTION
-using NativeFuncC = function<PyVar(VM*, ArgsView)>;
-#else
 typedef PyVar (*NativeFuncC)(VM*, ArgsView);
-#endif
 
 enum class BindType {
     DEFAULT,
