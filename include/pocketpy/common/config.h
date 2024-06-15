@@ -51,12 +51,6 @@
 // (not recommended to change this)
 #define PK_MAX_CO_VARNAMES          64
 
-// Hash table load factor (smaller ones mean less collision but more memory)
-// For class instance
-#define PK_INST_ATTR_LOAD_FACTOR    0.67f
-// For class itself
-#define PK_TYPE_ATTR_LOAD_FACTOR    0.5f
-
 #ifdef _WIN32
     #define PK_PLATFORM_SEP '\\'
 #else
