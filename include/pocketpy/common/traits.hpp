@@ -21,9 +21,8 @@ constexpr inline bool is_floating_point_v = std::is_same_v<T, float> || std::is_
 template <typename T>
 constexpr inline bool is_sso_v = is_integral_v<T> || is_floating_point_v<T>;
 
-// if is_sso_v<T> is true, return T, else return T&
 template <typename T>
-using obj_get_t = std::conditional_t<is_sso_v<T>, T, T&>;
+using obj_get_t = T&;
 
 template <typename T>
 constexpr inline bool is_trivially_relocatable_v =

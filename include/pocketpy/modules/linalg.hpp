@@ -207,9 +207,9 @@ static_assert(is_pod_v<Vec3>);
 static_assert(is_pod_v<Vec4>);
 static_assert(is_pod_v<Mat3x3>);
 
-template <>
-constexpr inline bool is_sso_v<Vec2> = true;
-template <>
-constexpr inline bool is_sso_v<Vec3> = true;
+// template <>
+// constexpr inline bool is_sso_v<Vec2> = true;
+// template <>
+// constexpr inline bool is_sso_v<Vec3> = true;
 
 }  // namespace pkpy

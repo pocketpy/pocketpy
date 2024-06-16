@@ -12,9 +12,10 @@ struct NameDict;
 struct PyObject final: ::PyObject {
     bool is_attr_valid() const noexcept { return _attr != nullptr; }
 
-    void* _value_ptr() noexcept { return (char*)this + 16; }
+    void* _value_ptr() noexcept { return PyObject__value_ptr(this); }
 
     NameDict& attr() const{
+        assert(is_attr_valid());
         return *(NameDict*)_attr;
     }
 

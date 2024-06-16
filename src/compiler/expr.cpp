@@ -137,16 +137,9 @@ int CodeEmitContext::add_const_string(std::string_view key) noexcept{
 
 int CodeEmitContext::add_const(PyVar v) noexcept{
     assert(!is_type(v, VM::tp_str));
-    // non-string deduplication
-    int* val = _co_consts_nonstring_dedup_map.try_get(v);
-    if(val) {
-        return *val;
-    } else {
-        co->consts.push_back(v);
-        int index = co->consts.size() - 1;
-        _co_consts_nonstring_dedup_map.insert(v, index);
-        return index;
-    }
+    co->consts.push_back(v);
+    int index = co->consts.size() - 1;
+    return index;
 }
 
 int CodeEmitContext::add_func_decl(FuncDecl_ decl) noexcept{

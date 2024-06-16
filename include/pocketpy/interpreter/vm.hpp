@@ -175,14 +175,14 @@ public:
         vector<ArgsView> s_view;
     } __c;
 
-    PyVar StopIteration;  // a special Exception class
+    PyObject* StopIteration;  // a special Exception class
     PyObject* builtins;
     PyObject* _main;
 
     // typeid -> Type
     small_map<std::type_index, Type> _cxx_typeid_map;
     // this is for repr() recursion detection (no need to mark)
-    vector<PyVar> _repr_recursion_set;
+    vector<PyObject*> _repr_recursion_set;
 
     ImportContext __import_context;
     PyObject* __last_exception;
@@ -550,10 +550,18 @@ PyVar py_var(VM* vm, __T&& value) {
         return value ? vm->True : vm->False;
     } else if constexpr(is_integral_v<T>) {
         // int
-        return PyVar(VM::tp_int, static_cast<i64>(value));
+        ::PyVar retval;
+        retval.type = tp_int;
+        retval.is_ptr = false;
+        retval._i64 = (i64)value;
+        return retval;
     } else if constexpr(is_floating_point_v<T>) {
         // float
-        return PyVar(VM::tp_float, static_cast<f64>(value));
+        ::PyVar retval;
+        retval.type = tp_float;
+        retval.is_ptr = false;
+        retval._f64 = (f64)value;
+        return retval;
     } else if constexpr(std::is_pointer_v<T>) {
         return from_void_p(vm, (void*)value);
     } else {
@@ -592,23 +600,22 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
         static_assert(!std::is_reference_v<__T>);
         // bool
         if constexpr(with_check) {
-            if(obj == vm->True) return true;
-            if(obj == vm->False) return false;
-            vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
+            if(obj.type != tp_bool){
+                vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
+            }
         }
-        return obj == vm->True;
+        return obj._bool;
     } else if constexpr(is_integral_v<T>) {
         static_assert(!std::is_reference_v<__T>);
         // int
         if constexpr(with_check) {
-            if(is_int(obj)) return (T)obj.as<i64>();
-            vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
+            if(!is_int(obj)) vm->TypeError("expected 'int', got " + _type_name(vm, vm->_tp(obj)).escape());
         }
-        return (T)obj.as<i64>();
+        return (T)obj._i64;
     } else if constexpr(is_floating_point_v<T>) {
         static_assert(!std::is_reference_v<__T>);
-        if(is_float(obj)) return (T)obj.as<f64>();
-        if(is_int(obj)) return (T)obj.as<i64>();
+        if(is_float(obj)) return (T)obj._f64;
+        if(is_int(obj)) return (T)obj._i64;
         vm->TypeError("expected 'int' or 'float', got " + _type_name(vm, vm->_tp(obj)).escape());
         return 0.0f;
     } else if constexpr(std::is_enum_v<T>) {

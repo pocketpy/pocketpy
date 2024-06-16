@@ -116,14 +116,11 @@ T to_void_p(VM*, PyVar);
 PyVar from_void_p(VM*, void*);
 
 template <typename T>
-obj_get_t<T> PyVar::obj_get() {
-    if constexpr(is_sso_v<T>) {
-        return as<T>();
-    } else {
-        assert(is_ptr);
-        void* v = PyObject__value_ptr(_obj);
-        return *reinterpret_cast<T*>(v);
-    }
+T& PyVar::obj_get() {
+    static_assert(!is_sso_v<T>, "unsupported");
+    assert(is_ptr);
+    void* v = PyObject__value_ptr(_obj);
+    return *reinterpret_cast<T*>(v);
 }
 
 #define PK_OBJ_GET(T, obj) ((obj).obj_get<T>())
@@ -140,7 +137,5 @@ obj_get_t<T> PyVar::obj_get() {
 
 /*****************************************************************/
 #define PY_NULL nullptr
-extern PyVar PY_OP_CALL;
-extern PyVar PY_OP_YIELD;
 
 }  // namespace pkpy

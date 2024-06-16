@@ -113,8 +113,8 @@ struct Array2d {
             const Tuple& xy = CAST(Tuple&, _1);
 
             if(is_int(xy[0]) && is_int(xy[1])) {
-                i64 col = xy[0].as<i64>();
-                i64 row = xy[1].as<i64>();
+                i64 col = xy[0]._i64;
+                i64 row = xy[1]._i64;
                 self.check_valid(vm, col, row);
                 return self._get(col, row);
             }
@@ -138,8 +138,8 @@ struct Array2d {
             Array2d& self = PK_OBJ_GET(Array2d, _0);
             const Tuple& xy = CAST(Tuple&, _1);
             if(is_int(xy[0]) && is_int(xy[1])) {
-                i64 col = xy[0].as<i64>();
-                i64 row = xy[1].as<i64>();
+                i64 col = xy[0]._i64;
+                i64 row = xy[1]._i64;
                 self.check_valid(vm, col, row);
                 self._set(col, row, _2);
                 return;

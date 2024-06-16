@@ -1,18 +1,19 @@
 #include "pocketpy/interpreter/ceval.hpp"
+#include "pocketpy/objects/base.h"
 
 namespace pkpy {
 
 #define PREDICT_INT_OP(op)                                                                                             \
     if(is_int(_0) && is_int(_1)) {                                                                                     \
-        TOP() = VAR(_0.as<i64>() op _1.as<i64>());                                                                     \
+        TOP() = VAR(_0._i64 op _1._i64);                                                                     \
         DISPATCH()                                                                                                     \
     }
 
 #define PREDICT_INT_DIV_OP(op)                                                                                         \
     if(is_int(_0) && is_int(_1)) {                                                                                     \
-        i64 divisor = _1.as<i64>();                                                                                    \
+        i64 divisor = _1._i64;                                                                                    \
         if(divisor == 0) ZeroDivisionError();                                                                          \
-        TOP() = VAR(_0.as<i64>() op divisor);                                                                          \
+        TOP() = VAR(_0._i64 op divisor);                                                                          \
         DISPATCH()                                                                                                     \
     }
 
@@ -24,7 +25,7 @@ namespace pkpy {
     } else {                                                                                                           \
         PyVar self;                                                                                                    \
         PyVar _2 = get_unbound_method(_0, func, &self, false);                                                         \
-        if(_2 != nullptr)                                                                                              \
+        if(_2)                                                                                              \
             ret = call_method(self, _2, _1);                                                                           \
         else                                                                                                           \
             ret = NotImplemented;                                                                                      \
@@ -32,7 +33,7 @@ namespace pkpy {
     if(is_not_implemented(ret)) {                                                                                      \
         PyVar self;                                                                                                    \
         PyVar _2 = get_unbound_method(_1, rfunc, &self, false);                                                        \
-        if(_2 != nullptr)                                                                                              \
+        if(_2)                                                                                              \
             ret = call_method(self, _2, _0);                                                                           \
         else                                                                                                           \
             BinaryOptError(op, _0, _1);                                                                                \
@@ -65,22 +66,26 @@ void VM::__op_unpack_sequence(uint16_t arg) {
 
 bool VM::py_lt(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__lt__, "<", __gt__);
-    return ret == True;
+    assert(ret.type == tp_bool);
+    return ret._bool;
 }
 
 bool VM::py_le(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__le__, "<=", __ge__);
-    return ret == True;
+    assert(ret.type == tp_bool);
+    return ret._bool;
 }
 
 bool VM::py_gt(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__gt__, ">", __lt__);
-    return ret == True;
+    assert(ret.type == tp_bool);
+    return ret._bool;
 }
 
 bool VM::py_ge(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__ge__, ">=", __le__);
-    return ret == True;
+    assert(ret.type == tp_bool);
+    return ret._bool;
 }
 
 #undef BINARY_F_COMPARE
@@ -167,7 +172,7 @@ PyVar VM::__run_top_frame() {
                     }
                         DISPATCH()
                     case OP_PRINT_EXPR:
-                        if(TOP() != None) stdout_write(py_repr(TOP()) + "\n");
+                        if(!is_none(TOP())) stdout_write(py_repr(TOP()) + "\n");
                         POP();
                         DISPATCH()
                     /*****************************************/
@@ -717,13 +722,13 @@ PyVar VM::__run_top_frame() {
                     case OP_IS_OP: {
                         PyVar _1 = POPX();  // rhs
                         PyVar _0 = TOP();   // lhs
-                        TOP() = _0 == _1 ? True : False;
+                        TOP() = PyVar__IS_OP(&_0, &_1) ? True : False;
                     }
                         DISPATCH()
                     case OP_IS_NOT_OP: {
                         PyVar _1 = POPX();  // rhs
                         PyVar _0 = TOP();   // lhs
-                        TOP() = _0 != _1 ? True : False;
+                        TOP() = PyVar__IS_OP(&_0, &_1) ? False : True;
                     }
                         DISPATCH()
                     case OP_CONTAINS_OP: {
@@ -801,7 +806,7 @@ PyVar VM::__run_top_frame() {
                         PyVar _0 = vectorcall(byte.arg & 0xFF,         // ARGC
                                               (byte.arg >> 8) & 0xFF,  // KWARGC
                                               true);
-                        if(_0 == PY_OP_CALL) {
+                        if(_0.type == tp_op_call) {
                             frame = &callstack.top();
                             goto __NEXT_FRAME;
                         }
@@ -835,7 +840,7 @@ PyVar VM::__run_top_frame() {
                                             0,                         // KWARGC
                                             true);
                         }
-                        if(_0 == PY_OP_CALL) {
+                        if(_0.type == tp_op_call) {
                             frame = &callstack.top();
                             goto __NEXT_FRAME;
                         }
@@ -854,7 +859,7 @@ PyVar VM::__run_top_frame() {
                         }
                     }
                         DISPATCH()
-                    case OP_YIELD_VALUE: return PY_OP_YIELD;
+                    case OP_YIELD_VALUE: return pkpy_OP_YIELD;
                     /*****************************************/
                     case OP_LIST_APPEND: {
                         PyVar _0 = POPX();
@@ -926,7 +931,7 @@ PyVar VM::__run_top_frame() {
                             DISPATCH_JUMP_ABSOLUTE(target)
                         } else {
                             PUSH(_0);
-                            return PY_OP_YIELD;
+                            return pkpy_OP_YIELD;
                         }
                     }
                     case OP_FOR_ITER_UNPACK: {

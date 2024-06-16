@@ -26,7 +26,7 @@ struct PyVar final: ::PyVar {
 
     // implict conversion
     PyVar(PyObject* existing){
-        PyVar__ctor2(this, (::PyObject*)existing);
+        PyVar__ctor3(this, (::PyObject*)existing);
     }
 
     /* We must initialize all members to allow == operator to work correctly */
@@ -40,26 +40,10 @@ struct PyVar final: ::PyVar {
         PyVar__ctor(this, type, (::PyObject*)p);
     }
 
-    // SSO initialized (is_sso = true)
-    template <typename T>
-    PyVar(Type type, T value){
-        static_assert(sizeof(T) <= 12, "SSO size exceeded");
+    PyVar(Type type, i64 value){
         this->type = type;
         this->is_ptr = false;
-        this->flags = 0;
-        this->flags_ex = 0;
-        this->_i64 = 0;
-        as<T>() = value;
-    }
-
-    template <typename T>
-    T& as() {
-        static_assert(!std::is_reference_v<T>);
-        if constexpr(sizeof(T) <= 8) {
-            return reinterpret_cast<T&>(_i64);
-        } else {
-            return reinterpret_cast<T&>(flags_ex);
-        }
+        this->_i64 = value;
     }
 
     explicit operator bool () const { return (bool)type; }
@@ -68,10 +52,12 @@ struct PyVar final: ::PyVar {
         memset(this, 0, sizeof(PyVar));
     }
 
-    bool operator== (const PyVar& other) const { return PyVar__equal(this, &other); }
-    bool operator!= (const PyVar& other) const { return !PyVar__equal(this, &other); }
-    bool operator== (std::nullptr_t) const { return !(bool)type; }
-    bool operator!= (std::nullptr_t) const { return (bool)type; }
+    bool operator==(PyObject* other){
+        return is_ptr && (PyObject*)_obj == other;
+    }
+    bool operator!=(PyObject* other){
+        return !is_ptr || (PyObject*)_obj != other;
+    }
 
     PyObject* get() const {
         assert(is_ptr);
@@ -87,11 +73,6 @@ struct PyVar final: ::PyVar {
 
     template <typename T>
     obj_get_t<T> obj_get();
-
-    // std::less<> for map-like containers
-    bool operator< (const PyVar& other) const {
-        return PyVar__less(this, &other);
-    }
 
     // implicit convert from ::PyVar
     PyVar(const ::PyVar& var) {

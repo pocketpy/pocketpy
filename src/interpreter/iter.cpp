@@ -1,4 +1,5 @@
 #include "pocketpy/interpreter/iter.hpp"
+#include "pocketpy/objects/base.h"
 
 namespace pkpy {
 
@@ -76,7 +77,7 @@ PyVar Generator::next(VM* vm) {
         throw;
     }
 
-    if(ret == PY_OP_YIELD) {
+    if(ret->type == tp_op_yield) {
         // backup the context
         lf = vm->callstack.popx();
         ret = vm->s_data.popx();

@@ -60,7 +60,7 @@ struct JsonSerializer {
             if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
             ss << val;
         } else if(obj_t == vm->tp_bool) {
-            ss << (obj == vm->True ? "true" : "false");
+            ss << (obj._bool ? "true" : "false");
         } else if(obj_t == vm->tp_str) {
             ss << _CAST(Str&, obj).escape('"');
         } else if(obj_t == vm->tp_list) {
@@ -230,23 +230,23 @@ PyObject* VM::new_type_object(PyObject* mod, StrName name, Type base, bool subcl
 }
 
 bool VM::py_eq(PyVar lhs, PyVar rhs) {
-    if(is_int(lhs) && is_int(rhs)) return lhs.as<i64>() == rhs.as<i64>();
+    if(is_int(lhs) && is_int(rhs)) return lhs._i64 == rhs._i64;
     const PyTypeInfo* ti = _tp_info(lhs);
     PyVar res;
     if(ti->m__eq__) {
         res = ti->m__eq__(this, lhs, rhs);
-        if(!is_not_implemented(res)) return res == vm->True;
+        if(!is_not_implemented(res)) return res._bool;
     }
     res = call_method(lhs, __eq__, rhs);
-    if(!is_not_implemented(res)) return res == vm->True;
+    if(!is_not_implemented(res)) return res._bool;
 
     ti = _tp_info(rhs);
     if(ti->m__eq__) {
         res = ti->m__eq__(this, rhs, lhs);
-        if(!is_not_implemented(res)) return res == vm->True;
+        if(!is_not_implemented(res)) return res._bool;
     }
     res = call_method(rhs, __eq__, lhs);
-    if(!is_not_implemented(res)) return res == vm->True;
+    if(!is_not_implemented(res)) return res._bool;
     return false;
 }
 
@@ -538,7 +538,8 @@ i64 VM::py_hash(PyVar obj) {
         has_custom_eq = true;
     else {
         f = get_unbound_method(obj, __eq__, &self, false);
-        has_custom_eq = f != _t(tp_object)->attr()[__eq__];
+        PyVar base_eq = _t(tp_object)->attr()[__eq__];
+        has_custom_eq = !PyVar__IS_OP(&f, &base_eq);
     }
     if(has_custom_eq) {
         TypeError(_S("unhashable type: ", ti->name.escape()));
@@ -901,6 +902,9 @@ void VM::__init_builtin_types() {
     validate(tp_not_implemented_type, new_type_object(nullptr, "NotImplementedType", tp_object, false));
     validate(tp_ellipsis, new_type_object(nullptr, "ellipsis", tp_object, false));
 
+    validate(::tp_op_call, new_type_object(nullptr, "__op_call", tp_object, false));
+    validate(::tp_op_yield, new_type_object(nullptr, "__op_yield", tp_object, false));
+
     // SyntaxError and IndentationError must be created here
     PyObject* SyntaxError = new_type_object(nullptr, "SyntaxError", tp_exception, true);
     PyObject* IndentationError = new_type_object(nullptr, "IndentationError", SyntaxError->as<Type>(), true);
@@ -1103,7 +1107,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
 
         // simple or normal
         callstack.emplace(p0, co, fn._module, callable.get(), args.begin());
-        if(op_call) return PY_OP_CALL;
+        if(op_call) return pkpy_OP_CALL;
         return __run_top_frame();
         /*****************_py_call*****************/
     }
@@ -1137,7 +1141,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         PyVar new_f = *find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyVar obj;
         assert(new_f != nullptr && p0[1] == PY_NULL);
-        if(new_f == __cached_object_new) {
+        if(PyVar__IS_OP(&new_f, &__cached_object_new)) {
             // fast path for object.__new__
             obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
         } else {
@@ -1326,7 +1330,7 @@ void VM::setattr(PyVar obj, StrName name, PyVar value) {
         // handle descriptor
         if(is_type(*cls_var, tp_property)) {
             const Property& prop = _CAST(Property&, *cls_var);
-            if(prop.setter != vm->None) {
+            if(!is_none(prop.setter)) {
                 call(prop.setter, obj, value);
             } else {
                 TypeError(_S("readonly attribute: ", name.escape()));

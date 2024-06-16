@@ -11,6 +11,7 @@
 #include "pocketpy/modules/linalg.hpp"
 #include "pocketpy/modules/random.hpp"
 #include "pocketpy/modules/modules.hpp"
+#include "pocketpy/objects/base.h"
 
 #include <iostream>
 #include <algorithm>
@@ -26,7 +27,7 @@ PyVar PyArrayGetItem(VM* vm, PyVar _0, PyVar _1) {
     static_assert(std::is_same_v<T, List> || std::is_same_v<T, Tuple>);
     const T& self = _CAST(T&, _0);
     if(is_int(_1)) {
-        i64 index = _1.as<i64>();
+        i64 index = _1._i64;
         index = vm->normalized_index(index, self.size());
         return self[index];
     }
@@ -374,7 +375,7 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(VM::tp_object, [](VM* vm, PyVar _0, PyVar _1) {
-        return VAR(_0 == _1);
+        return PyVar__IS_OP(&_0, &_1) ? vm->True : vm->False;
     });
 
     _vm->__cached_object_new = _vm->bind_func(VM::tp_object, __new__, 1, [](VM* vm, ArgsView args) {
@@ -461,7 +462,7 @@ void __init_builtins(VM* _vm) {
             switch(vm->_tp(args[1])) {
                 case VM::tp_float: return VAR((i64)_CAST(f64, args[1]));
                 case VM::tp_int: return args[1];
-                case VM::tp_bool: return VAR(args[1] == vm->True ? 1 : 0);
+                case VM::tp_bool: return VAR(args[1]._bool ? 1 : 0);
                 case VM::tp_str: break;
                 default: vm->TypeError("invalid arguments for int()");
             }
@@ -542,7 +543,7 @@ void __init_builtins(VM* _vm) {
         switch(vm->_tp(args[1])) {
             case VM::tp_int: return VAR((f64)CAST(i64, args[1]));
             case VM::tp_float: return args[1];
-            case VM::tp_bool: return VAR(args[1] == vm->True ? 1.0 : 0.0);
+            case VM::tp_bool: return VAR(args[1]._bool ? 1.0 : 0.0);
             case VM::tp_str: break;
             default: vm->TypeError("invalid arguments for float()");
         }
@@ -847,11 +848,11 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_list, [](VM* vm, PyVar _0) -> Str {
-        if(vm->_repr_recursion_set.contains(_0)) return "[...]";
+        if(vm->_repr_recursion_set.contains(_0.get())) return "[...]";
         List& iterable = _CAST(List&, _0);
         SStream ss;
         ss << '[';
-        vm->_repr_recursion_set.push_back(_0);
+        vm->_repr_recursion_set.push_back(_0.get());
         for(int i = 0; i < iterable.size(); i++) {
             ss << vm->py_repr(iterable[i]);
             if(i != iterable.size() - 1) ss << ", ";
@@ -1150,7 +1151,7 @@ void __init_builtins(VM* _vm) {
         return VAR(_CAST(bool, _0) != CAST(bool, _1));
     });
     _vm->bind__eq__(VM::tp_bool, [](VM* vm, PyVar _0, PyVar _1) {
-        if(is_type(_1, vm->tp_bool)) return VAR(_0 == _1);
+        if(is_type(_1, vm->tp_bool)) return VAR(_0._bool == _1._bool);
         if(is_int(_1)) return VAR(_CAST(bool, _0) == (bool)CAST(i64, _1));
         return vm->NotImplemented;
     });
@@ -1316,12 +1317,12 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_mappingproxy, [](VM* vm, PyVar _0) -> Str {
-        if(vm->_repr_recursion_set.contains(_0)) return "{...}";
+        if(vm->_repr_recursion_set.contains(_0.get())) return "{...}";
         MappingProxy& self = _CAST(MappingProxy&, _0);
         SStream ss;
         ss << "mappingproxy({";
         bool first = true;
-        vm->_repr_recursion_set.push_back(_0);
+        vm->_repr_recursion_set.push_back(_0.get());
         for(auto [k, v]: self.attr().items()) {
             if(!first) ss << ", ";
             first = false;
@@ -1472,12 +1473,12 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__repr__(VM::tp_dict, [](VM* vm, PyVar _0) -> Str {
-        if(vm->_repr_recursion_set.contains(_0)) return "{...}";
+        if(vm->_repr_recursion_set.contains(_0.get())) return "{...}";
         Dict& self = _CAST(Dict&, _0);
         SStream ss;
         ss << "{";
         bool first = true;
-        vm->_repr_recursion_set.push_back(_0);
+        vm->_repr_recursion_set.push_back(_0.get());
         self.apply([&](PyVar k, PyVar v) {
             if(!first) ss << ", ";
             first = false;
@@ -1544,7 +1545,7 @@ void __init_builtins(VM* _vm) {
 
     _vm->bind(_vm->_t(VM::tp_exception), "__init__(self, msg=...)", [](VM* vm, ArgsView args) {
         Exception& self = _CAST(Exception&, args[0]);
-        if(args[1] == vm->Ellipsis) {
+        if(args[1].type == tp_ellipsis) {
             self.msg = "";
         } else {
             self.msg = CAST(Str, args[1]);
@@ -1627,7 +1628,7 @@ void VM::__post_init_builtin_types() {
         if(!is_type(rhs, vm->tp_bound_method)) return vm->NotImplemented;
         const BoundMethod& _0 = PK_OBJ_GET(BoundMethod, lhs);
         const BoundMethod& _1 = PK_OBJ_GET(BoundMethod, rhs);
-        return VAR(_0.self == _1.self && _0.func == _1.func);
+        return VAR(PyVar__IS_OP(&_0.self, &_1.self) && PyVar__IS_OP(&_0.func, &_1.func));
     });
 
     bind_property(_t(tp_slice), "start", [](VM* vm, ArgsView args) {

@@ -51,7 +51,7 @@ void pkpy_SStream__write_i64(pkpy_SStream* self, int64_t val) {
 }
 
 void pkpy_SStream__write_float(pkpy_SStream* self, float val, int precision){
-    return pkpy_SStream__write_double(self, val, precision);
+    pkpy_SStream__write_double(self, val, precision);
 }
 
 void pkpy_SStream__write_double(pkpy_SStream* self, double val, int precision){
