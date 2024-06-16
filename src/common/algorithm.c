@@ -40,7 +40,7 @@ void c11__stable_sort(void* ptr,
 			if (b_end > ptr + count * elem_size)
 				b_end = ptr + count * elem_size;
 			merge(a, a_end, b, b_end, tmp, elem_size, cmp);
-			memcpy(a, tmp, (b_end - a) * elem_size);
+			memcpy(a, tmp, b_end - a);
         }
     }
 	free(tmp);
