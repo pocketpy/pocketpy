@@ -60,7 +60,7 @@ struct JsonSerializer {
             if(std::isinf(val) || std::isnan(val)) vm->ValueError("cannot jsonify 'nan' or 'inf'");
             ss << val;
         } else if(obj_t == vm->tp_bool) {
-            ss << (obj._bool ? "true" : "false");
+            ss << (obj.extra ? "true" : "false");
         } else if(obj_t == vm->tp_str) {
             ss << _CAST(Str&, obj).escape('"');
         } else if(obj_t == vm->tp_list) {
@@ -235,18 +235,18 @@ bool VM::py_eq(PyVar lhs, PyVar rhs) {
     PyVar res;
     if(ti->m__eq__) {
         res = ti->m__eq__(this, lhs, rhs);
-        if(!is_not_implemented(res)) return res._bool;
+        if(!is_not_implemented(res)) return res.extra;
     }
     res = call_method(lhs, __eq__, rhs);
-    if(!is_not_implemented(res)) return res._bool;
+    if(!is_not_implemented(res)) return res.extra;
 
     ti = _tp_info(rhs);
     if(ti->m__eq__) {
         res = ti->m__eq__(this, rhs, lhs);
-        if(!is_not_implemented(res)) return res._bool;
+        if(!is_not_implemented(res)) return res.extra;
     }
     res = call_method(rhs, __eq__, lhs);
-    if(!is_not_implemented(res)) return res._bool;
+    if(!is_not_implemented(res)) return res.extra;
     return false;
 }
 

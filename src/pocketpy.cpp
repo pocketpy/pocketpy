@@ -375,7 +375,9 @@ void __init_builtins(VM* _vm) {
     });
 
     _vm->bind__eq__(VM::tp_object, [](VM* vm, PyVar _0, PyVar _1) {
-        return PyVar__IS_OP(&_0, &_1) ? vm->True : vm->False;
+        if(!_0.is_ptr) vm->TypeError("cannot compare tagged object: _0");
+        if(!_1.is_ptr) vm->TypeError("cannot compare tagged object: _1");
+        return _0._obj == _1._obj ? vm->True : vm->False;
     });
 
     _vm->__cached_object_new = _vm->bind_func(VM::tp_object, __new__, 1, [](VM* vm, ArgsView args) {
@@ -462,7 +464,7 @@ void __init_builtins(VM* _vm) {
             switch(vm->_tp(args[1])) {
                 case VM::tp_float: return VAR((i64)_CAST(f64, args[1]));
                 case VM::tp_int: return args[1];
-                case VM::tp_bool: return VAR(args[1]._bool ? 1 : 0);
+                case VM::tp_bool: return VAR(args[1].extra ? 1 : 0);
                 case VM::tp_str: break;
                 default: vm->TypeError("invalid arguments for int()");
             }
@@ -543,7 +545,7 @@ void __init_builtins(VM* _vm) {
         switch(vm->_tp(args[1])) {
             case VM::tp_int: return VAR((f64)CAST(i64, args[1]));
             case VM::tp_float: return args[1];
-            case VM::tp_bool: return VAR(args[1]._bool ? 1.0 : 0.0);
+            case VM::tp_bool: return VAR(args[1].extra ? 1.0 : 0.0);
             case VM::tp_str: break;
             default: vm->TypeError("invalid arguments for float()");
         }
@@ -1151,7 +1153,7 @@ void __init_builtins(VM* _vm) {
         return VAR(_CAST(bool, _0) != CAST(bool, _1));
     });
     _vm->bind__eq__(VM::tp_bool, [](VM* vm, PyVar _0, PyVar _1) {
-        if(is_type(_1, vm->tp_bool)) return VAR(_0._bool == _1._bool);
+        if(is_type(_1, vm->tp_bool)) return VAR(_0.extra == _1.extra);
         if(is_int(_1)) return VAR(_CAST(bool, _0) == (bool)CAST(i64, _1));
         return vm->NotImplemented;
     });

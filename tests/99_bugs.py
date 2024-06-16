@@ -42,9 +42,11 @@ if not inq:
 else:
     assert False
 
-if inq is   not 1:
+a = object()
+b = object()
+if a is   not b:
     assert True
-if inq  is  not  0:
+if a  is  0:
     assert False
 
 def g(x):

@@ -18,3 +18,8 @@ assert bool([]) == False
 assert bool("abc") == True
 assert bool([1,2]) == True
 assert bool('') == False
+
+# extra compare for None
+assert None == None
+assert ... == ...
+assert NotImplemented == NotImplemented

@@ -242,7 +242,7 @@ public:
     List py_list(PyVar);                                // x -> list(x)
     bool py_callable(PyVar obj);                        // x -> callable(x)
     bool py_bool(PyVar obj){                            // x -> bool(x)
-        if(obj.type == tp_bool) return obj._bool;
+        if(obj.type == tp_bool) return (bool)obj.extra;
         return __py_bool_non_trivial(obj);
     }
     i64 py_hash(PyVar obj);                             // x -> hash(x)
@@ -604,7 +604,7 @@ __T _py_cast__internal(VM* vm, PyVar obj) {
                 vm->TypeError("expected 'bool', got " + _type_name(vm, vm->_tp(obj)).escape());
             }
         }
-        return obj._bool;
+        return (bool)obj.extra;
     } else if constexpr(is_integral_v<T>) {
         static_assert(!std::is_reference_v<__T>);
         // int

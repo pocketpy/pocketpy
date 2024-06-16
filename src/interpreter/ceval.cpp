@@ -67,25 +67,25 @@ void VM::__op_unpack_sequence(uint16_t arg) {
 bool VM::py_lt(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__lt__, "<", __gt__);
     assert(ret.type == tp_bool);
-    return ret._bool;
+    return ret.extra;
 }
 
 bool VM::py_le(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__le__, "<=", __ge__);
     assert(ret.type == tp_bool);
-    return ret._bool;
+    return ret.extra;
 }
 
 bool VM::py_gt(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__gt__, ">", __lt__);
     assert(ret.type == tp_bool);
-    return ret._bool;
+    return ret.extra;
 }
 
 bool VM::py_ge(PyVar _0, PyVar _1) {
     BINARY_F_COMPARE(__ge__, ">=", __le__);
     assert(ret.type == tp_bool);
-    return ret._bool;
+    return ret.extra;
 }
 
 #undef BINARY_F_COMPARE

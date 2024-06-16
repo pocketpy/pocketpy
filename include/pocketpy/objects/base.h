@@ -41,17 +41,18 @@ typedef struct PyVar{
 
 static_assert(sizeof(PyVar) == 16, "sizeof(PyVar) != 16");
 
-extern const pkpy_Type tp_object, tp_type;
-extern const pkpy_Type tp_int, tp_float, tp_bool, tp_str;
-extern const pkpy_Type tp_list, tp_tuple;
-extern const pkpy_Type tp_slice, tp_range, tp_module;
-extern const pkpy_Type tp_function, tp_native_func, tp_bound_method;
-extern const pkpy_Type tp_super, tp_exception, tp_bytes, tp_mappingproxy;
-extern const pkpy_Type tp_dict, tp_property, tp_star_wrapper;
-extern const pkpy_Type tp_staticmethod, tp_classmethod;
-extern const pkpy_Type tp_none_type, tp_not_implemented_type;
-extern const pkpy_Type tp_ellipsis;
-extern const pkpy_Type tp_op_call, tp_op_yield;
+/* predefined vars */
+static const pkpy_Type tp_object = 1, tp_type = 2;
+static const pkpy_Type tp_int = 3, tp_float = 4, tp_bool = 5, tp_str = 6;
+static const pkpy_Type tp_list = 7, tp_tuple = 8;
+static const pkpy_Type tp_slice = 9, tp_range = 10, tp_module = 11;
+static const pkpy_Type tp_function = 12, tp_native_func = 13, tp_bound_method = 14;
+static const pkpy_Type tp_super = 15, tp_exception = 16, tp_bytes = 17, tp_mappingproxy = 18;
+static const pkpy_Type tp_dict = 19, tp_property = 20, tp_star_wrapper = 21;
+static const pkpy_Type tp_staticmethod = 22, tp_classmethod = 23;
+static const pkpy_Type tp_none_type = 24, tp_not_implemented_type = 25;
+static const pkpy_Type tp_ellipsis = 26;
+static const pkpy_Type tp_op_call = 27, tp_op_yield = 28;
 
 PK_INLINE bool PyVar__is_null(const PyVar* self) { return self->type == 0; }
 PK_INLINE int64_t PyVar__hash(const PyVar* self) { return self->extra + self->_i64; }
