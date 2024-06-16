@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include "pocketpy/objects/public.h"
 
 #define DICT_MAX_LOAD 0.75
 #define DICT_HASH_NEXT(h) ((h) * 5 + 1)

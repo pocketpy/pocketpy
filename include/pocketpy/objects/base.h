@@ -7,19 +7,11 @@
 #include "string.h"
 
 #include "pocketpy/common/utils.h"
+#include "pocketpy/objects/public.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef int16_t pkpy_Type;
-
-typedef struct PyObject PyObject;
-typedef struct pkpy_VM pkpy_VM;
-
-struct pkpy_G {
-    pkpy_VM* vm;
-} extern pkpy_g;
 
 typedef struct PyVar{
     pkpy_Type type;
@@ -76,10 +68,6 @@ PK_INLINE bool PyVar__IS_OP(const PyVar* a, const PyVar* b){
 #define pkpy_Var__set_null(self) do { (self)->type = 0; } while(0)
 
 extern PyVar pkpy_NULL, pkpy_OP_CALL, pkpy_OP_YIELD;
-
-bool py_eq(const PyVar*, const PyVar*);
-bool py_le(const PyVar*, const PyVar*);
-int64_t py_hash(const PyVar*);
 
 #ifdef __cplusplus
 }
