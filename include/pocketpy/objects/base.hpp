@@ -4,6 +4,7 @@
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/objects/base.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cassert>
 #include <cstdlib>
@@ -57,6 +58,12 @@ struct PyVar final: ::PyVar {
     }
     bool operator!=(PyObject* other){
         return !is_ptr || (PyObject*)_obj != other;
+    }
+    bool operator==(std::nullptr_t){
+        return type == 0;
+    }
+    bool operator!=(std::nullptr_t){
+        return type != 0;
     }
 
     PyObject* get() const {

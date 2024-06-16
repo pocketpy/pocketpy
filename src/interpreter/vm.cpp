@@ -108,7 +108,7 @@ Str VM::py_str(PyVar obj) {
     if(ti->m__str__) return ti->m__str__(this, obj);
     PyVar self;
     PyVar f = get_unbound_method(obj, __str__, &self, false);
-    if(self != PY_NULL) {
+    if(self) {
         PyVar retval = call_method(self, f);
         if(!is_type(retval, tp_str)) { throw std::runtime_error("object.__str__ must return str"); }
         return PK_OBJ_GET(Str, retval);
@@ -134,7 +134,7 @@ PyVar VM::py_iter(PyVar obj) {
     if(ti->m__iter__) return ti->m__iter__(this, obj);
     PyVar self;
     PyVar iter_f = get_unbound_method(obj, __iter__, &self, false);
-    if(self != PY_NULL) return call_method(self, iter_f);
+    if(self) return call_method(self, iter_f);
     TypeError(_type_name(vm, _tp(obj)).escape() + " object is not iterable");
     return nullptr;
 }
@@ -366,7 +366,7 @@ PyObject* VM::py_import(Str path, bool throw_err) {
     // check existing module
     StrName name(path);
     PyVar ext_mod = _modules.try_get(name);
-    if(ext_mod != nullptr) return ext_mod.get();
+    if(ext_mod) return ext_mod.get();
 
     vector<std::string_view> path_cpnts = path.split('.');
     // check circular import
@@ -434,7 +434,7 @@ bool VM::__py_bool_non_trivial(PyVar obj) {
     if(is_float(obj)) return _CAST(f64, obj) != 0.0;
     PyVar self;
     PyVar len_f = get_unbound_method(obj, __len__, &self, false);
-    if(self != PY_NULL) {
+    if(self) {
         PyVar ret = call_method(self, len_f);
         return CAST(i64, ret) != 0;
     }
@@ -526,7 +526,7 @@ i64 VM::py_hash(PyVar obj) {
 
     PyVar self;
     PyVar f = get_unbound_method(obj, __hash__, &self, false);
-    if(f != nullptr) {
+    if(f) {
         PyVar ret = call_method(self, f);
         return CAST(i64, ret);
     }
@@ -817,7 +817,7 @@ Str VM::disassemble(CodeObject_ co) {
 
 #if PK_DEBUG_CEVAL_STEP
 void VM::__log_s_data(const char* title) {
-    // if(_main == nullptr) return;
+    if(_main == nullptr) return;
     if(callstack.empty()) return;
     SStream ss;
     if(title) ss << title << " | ";
@@ -832,14 +832,14 @@ void VM::__log_s_data(const char* title) {
     for(PyVar* p = s_data.begin(); p != s_data.end(); p++) {
         ss << std::string(sp_bases[p], '|');
         if(sp_bases[p] > 0) ss << " ";
-        if(*p == PY_NULL)
+        if(!(*p))
             ss << "NULL";
         else {
             switch(p->type) {
                 case tp_none_type: ss << "None"; break;
                 case tp_int: ss << _CAST(i64, *p); break;
                 case tp_float: ss << _CAST(f64, *p); break;
-                case tp_bool: ss << ((*p == True) ? "True" : "False"); break;
+                case tp_bool: ss << (p->_bool ? "True" : "False"); break;
                 case tp_str: ss << _CAST(Str, *p).escape(); break;
                 case tp_function: ss << p->obj_get<Function>().decl->code->name << "()"; break;
                 case tp_type: ss << "<class " + _type_name(this, p->obj_get<Type>()).escape() + ">"; break;
@@ -1020,7 +1020,7 @@ void VM::__prepare_py_call(PyVar* buffer, ArgsView args, ArgsView kwargs, const 
             buffer[index] = kwargs[j + 1];
         } else {
             // otherwise, set as **kwargs if possible
-            if(vkwargs == nullptr) {
+            if(!vkwargs) {
                 TypeError(_S(key.escape(), " is an invalid keyword argument for ", co->name, "()"));
             } else {
                 Dict& dict = _CAST(Dict&, vkwargs);
@@ -1040,7 +1040,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
 
     // handle boundmethod, do a patch
     if(callable_t == tp_bound_method) {
-        assert(p0[1] == PY_NULL);
+        assert(!p0[1]);
         BoundMethod& bm = PK_OBJ_GET(BoundMethod, callable);
         callable = bm.func;  // get unbound method
         callable_t = _tp(callable);
@@ -1049,7 +1049,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         // [unbound, self, args..., kwargs...]
     }
 
-    ArgsView args(p0[1] == PY_NULL ? (p0 + 2) : (p0 + 1), p1);
+    ArgsView args((!p0[1]) ? (p0 + 2) : (p0 + 1), p1);
     ArgsView kwargs(p1, s_data._sp);
 
     PyVar* _base = args.begin();
@@ -1140,7 +1140,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         // [type, NULL, args..., kwargs...]
         PyVar new_f = *find_name_in_mro(PK_OBJ_GET(Type, callable), __new__);
         PyVar obj;
-        assert(new_f != nullptr && p0[1] == PY_NULL);
+        assert(new_f && (!p0[1]));
         if(PyVar__IS_OP(&new_f, &__cached_object_new)) {
             // fast path for object.__new__
             obj = vm->new_object<DummyInstance>(PK_OBJ_GET(Type, callable));
@@ -1159,7 +1159,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
         // __init__
         PyVar self;
         callable = get_unbound_method(obj, __init__, &self, false);
-        if(callable != nullptr) {
+        if(callable) {
             callable_t = _tp(callable);
             // replace `NULL` with `self`
             p1[-(ARGC + 2)] = callable;
@@ -1178,7 +1178,7 @@ PyVar VM::vectorcall(int ARGC, int KWARGC, bool op_call) {
     // handle `__call__` overload
     PyVar self;
     PyVar call_f = get_unbound_method(callable, __call__, &self, false);
-    if(self != PY_NULL) {
+    if(self) {
         p1[-(ARGC + 2)] = call_f;
         p1[-(ARGC + 1)] = self;
         // [call_f, self, args..., kwargs...]
