@@ -49,7 +49,7 @@ pkpy_Dict pkpy_Dict__copy(const pkpy_Dict* self);
  * @param val value to set
  * @return `true` if the key is newly added, `false` if the key already exists
  */
-bool pkpy_Dict__set(pkpy_Dict* self, void* vm, PyVar key, PyVar val);
+bool pkpy_Dict__set(pkpy_Dict* self, PyVar key, PyVar val);
 
 /**
  * @brief Check if a key exists in the `pkpy_Dict`
@@ -58,7 +58,7 @@ bool pkpy_Dict__set(pkpy_Dict* self, void* vm, PyVar key, PyVar val);
  * @param key key to check
  * @return `true` if the key exists, `false` otherwise
  */
-bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, PyVar key);
+bool pkpy_Dict__contains(const pkpy_Dict* self, PyVar key);
 
 /**
  * @brief Remove a key from the `pkpy_Dict`
@@ -67,7 +67,7 @@ bool pkpy_Dict__contains(const pkpy_Dict* self, void* vm, PyVar key);
  * @param key key to remove
  * @return `true` if the key was found and removed, `false` if the key doesn't exist
  */
-bool pkpy_Dict__del(pkpy_Dict* self, void* vm, PyVar key);
+bool pkpy_Dict__del(pkpy_Dict* self, PyVar key);
 
 /**
  * @brief Try to get a value from the `pkpy_Dict`
@@ -76,7 +76,7 @@ bool pkpy_Dict__del(pkpy_Dict* self, void* vm, PyVar key);
  * @param key key to get
  * @return the value associated with the key, `NULL` if the key doesn't exist
  */
-const PyVar* pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, PyVar key);
+const PyVar* pkpy_Dict__try_get(const pkpy_Dict* self, PyVar key);
 
 /**
  * @brief Update the `pkpy_Dict` with another one
@@ -84,7 +84,7 @@ const PyVar* pkpy_Dict__try_get(const pkpy_Dict* self, void* vm, PyVar key);
  * @param vm __eq__ and __hash__ context
  * @param other `pkpy_Dict` instance to update with
  */
-void pkpy_Dict__update(pkpy_Dict* self, void *vm, const pkpy_Dict* other);
+void pkpy_Dict__update(pkpy_Dict* self, const pkpy_Dict* other);
 
 /**
  * @brief Clear the `pkpy_Dict`

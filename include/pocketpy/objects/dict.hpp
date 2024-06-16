@@ -28,25 +28,25 @@ struct Dict : private pkpy_Dict {
     int size() const { return count; }
 
     void set(VM* vm, PyVar key, PyVar val) {
-        pkpy_Dict__set(this, vm, *(::PyVar*)(&key), *(::PyVar*)(&val));
+        pkpy_Dict__set(this, *(::PyVar*)(&key), *(::PyVar*)(&val));
     }
 
     PyVar try_get(VM* vm, PyVar key) const {
-        auto res = pkpy_Dict__try_get(this, vm, *(::PyVar*)(&key));
+        auto res = pkpy_Dict__try_get(this, *(::PyVar*)(&key));
         if (!res) return nullptr;
         return *(const PyVar*)(res);
     }
 
     bool contains(VM* vm, PyVar key) const {
-        return pkpy_Dict__contains(this, vm, *(::PyVar*)(&key));
+        return pkpy_Dict__contains(this, *(::PyVar*)(&key));
     }
 
     bool del(VM* vm, PyVar key) {
-        return pkpy_Dict__del(this, vm, *(::PyVar*)(&key));
+        return pkpy_Dict__del(this, *(::PyVar*)(&key));
     }
 
     void update(VM* vm, const Dict& other) {
-        pkpy_Dict__update(this, vm, &other);
+        pkpy_Dict__update(this, &other);
     }
 
     template <typename __Func>

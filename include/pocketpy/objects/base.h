@@ -74,10 +74,12 @@ PK_INLINE bool PyVar__IS_OP(const PyVar* a, const PyVar* b){
 
 #define pkpy_Var__is_null(self) ((self)->type == 0)
 #define pkpy_Var__set_null(self) do { (self)->type = 0; } while(0)
-bool pkpy_Var__eq__(void *vm, PyVar a, PyVar b);
-int64_t pkpy_Var__hash__(void *vm, PyVar a);
 
 extern PyVar pkpy_NULL, pkpy_OP_CALL, pkpy_OP_YIELD;
+
+bool py_eq(const PyVar*, const PyVar*);
+bool py_le(const PyVar*, const PyVar*);
+int64_t py_hash(const PyVar*);
 
 #ifdef __cplusplus
 }
