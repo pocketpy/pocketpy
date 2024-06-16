@@ -25,6 +25,18 @@ extern "C" {
         *(out_index) = __first - (T*)(ptr);                                                        \
     } while(0)
 
+/**
+ * @brief Sorts an array of elements of the same type, using the given comparison function.
+ * @param ptr Pointer to the first element of the array.
+ * @param count Number of elements in the array.
+ * @param elem_size Size of each element in the array.
+ * @param cmp Comparison function that takes two elements and returns an integer similar to `strcmp`.
+ */
+void c11__stable_sort(void* ptr,
+                      int count,
+                      int elem_size,
+                      int (*cmp)(const void* a, const void* b));
+
 #ifdef __cplusplus
 }
 
