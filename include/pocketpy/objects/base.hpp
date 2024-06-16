@@ -25,7 +25,9 @@ struct PyVar final: ::PyVar {
     PyVar() = default;
 
     // implict conversion
-    PyVar(PyObject* p);
+    PyVar(PyObject* existing){
+        PyVar__ctor2(this, (::PyObject*)existing);
+    }
 
     /* We must initialize all members to allow == operator to work correctly */
     // zero initialized
@@ -35,11 +37,7 @@ struct PyVar final: ::PyVar {
 
     // PyObject* initialized (is_sso = false)
     PyVar(Type type, PyObject* p){
-        this->type = type;
-        this->is_ptr = true;
-        this->flags = 0;
-        this->flags_ex = 0;
-        this->_obj = (::PyObject*)p;
+        PyVar__ctor(this, type, (::PyObject*)p);
     }
 
     // SSO initialized (is_sso = true)
@@ -67,20 +65,12 @@ struct PyVar final: ::PyVar {
     explicit operator bool () const { return (bool)type; }
 
     void set_null() {
-        _qword(0) = 0;
-        _qword(1) = 0;
+        memset(this, 0, sizeof(PyVar));
     }
 
-    i64 _qword(int i) const { return ((const i64*)this)[i]; }
-
-    i64& _qword(int i) { return ((i64*)this)[i]; }
-
-    bool operator== (const PyVar& other) const { return _qword(0) == other._qword(0) && _qword(1) == other._qword(1); }
-
-    bool operator!= (const PyVar& other) const { return _qword(0) != other._qword(0) || _qword(1) != other._qword(1); }
-
+    bool operator== (const PyVar& other) const { return PyVar__equal(this, &other); }
+    bool operator!= (const PyVar& other) const { return !PyVar__equal(this, &other); }
     bool operator== (std::nullptr_t) const { return !(bool)type; }
-
     bool operator!= (std::nullptr_t) const { return (bool)type; }
 
     PyObject* get() const {
@@ -99,7 +89,9 @@ struct PyVar final: ::PyVar {
     obj_get_t<T> obj_get();
 
     // std::less<> for map-like containers
-    bool operator< (const PyVar& other) const { return memcmp(this, &other, sizeof(PyVar)) < 0; }
+    bool operator< (const PyVar& other) const {
+        return PyVar__less(this, &other);
+    }
 
     // implicit convert from ::PyVar
     PyVar(const ::PyVar& var) {

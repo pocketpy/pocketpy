@@ -26,16 +26,6 @@ PK_INLINE void PyObject__ctor(PyObject* self, pkpy_Type type, bool gc_is_large){
     self->_attr = NULL;
 }
 
-PK_INLINE PyVar PyVar__fromobj(PyObject* self){
-    PyVar var;
-    var.type = self->type;
-    var.is_ptr = true;
-    var.flags = 0;
-    var.flags_ex = 0;
-    var._obj = self;
-    return var;
-}
-
 #ifdef __cplusplus
 }
 #endif

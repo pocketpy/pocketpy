@@ -34,7 +34,6 @@ typedef struct PyVar{
 static_assert(sizeof(PyVar) == 16, "sizeof(PyVar) != 16");
 
 PK_INLINE bool PyVar__is_null(const PyVar* self) { return self->type == 0; }
-PK_INLINE PyObject* PyVar__get(const PyVar* self) { return self->_obj; }
 PK_INLINE int64_t PyVar__hash(const PyVar* self) { return self->flags_ex + self->_i64; }
 
 PK_INLINE bool PyVar__less(const PyVar* self, const PyVar* other){
@@ -51,6 +50,8 @@ PK_INLINE void PyVar__ctor(PyVar* self, pkpy_Type type, PyObject* obj){
     self->flags_ex = 0;
     self->_obj = obj;
 }
+
+void PyVar__ctor2(PyVar* self, PyObject* existing);
 
 #define pkpy_Var__is_null(self) ((self)->type == 0)
 #define pkpy_Var__set_null(self) do { (self)->type = 0; } while(0)

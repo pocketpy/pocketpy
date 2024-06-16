@@ -27,10 +27,7 @@ struct PyObject final: ::PyObject {
     }
 
     PyObject(Type type, bool gc_is_large){
-        this->type = type;
-        this->gc_is_large = gc_is_large;
-        this->gc_marked = false;
-        this->_attr = nullptr;
+        PyObject__ctor(this, type, gc_is_large);
     }
 };
 
