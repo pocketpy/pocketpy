@@ -1733,7 +1733,10 @@ CodeObject_ VM::compile(std::string_view source, const Str& filename, CompileMod
 void VM::__compile_error(Error* err){
     assert(err != nullptr);
     if(err->type == std::string_view("NeedMoreLines")){
-        throw NeedMoreLines((bool)err->userdata);
+        bool arg = (bool)err->userdata;
+        PK_DECREF(err->src);
+        std::free(err);
+        throw NeedMoreLines(arg);
     }
     __last_exception = vm->call(
         vm->builtins->attr(err->type),
@@ -1741,6 +1744,8 @@ void VM::__compile_error(Error* err){
     ).get();
     Exception& e = __last_exception->as<Exception>();
     e.st_push(err->src, err->lineno, err->cursor, "");
+    PK_DECREF(err->src);
+    std::free(err);
     _error(__last_exception);
 }
 

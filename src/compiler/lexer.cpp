@@ -488,27 +488,28 @@ Error* Lexer::lex_one_token(bool* eof) noexcept{
 }
 
 Error* Lexer::_error(bool lexer_err, const char* type, const char* msg, va_list* args, i64 userdata) noexcept{
-    PK_THREAD_LOCAL Error err;
-    err.type = type;
-    err.src = src;
+    Error* err = (Error*)malloc(sizeof(Error));
+    err->type = type;
+    err->src = src;
+    PK_INCREF(src);
     if(lexer_err){
-        err.lineno = current_line;
-        err.cursor = curr_char;
+        err->lineno = current_line;
+        err->cursor = curr_char;
         if(*curr_char == '\n') {
-            err.lineno--;
-            err.cursor--;
+            err->lineno--;
+            err->cursor--;
         }
     }else{
-        err.lineno = -1;
-        err.cursor = NULL;
+        err->lineno = -1;
+        err->cursor = NULL;
     }
     if(args){
-        vsnprintf(err.msg, sizeof(err.msg), msg, *args);
+        vsnprintf(err->msg, sizeof(err->msg), msg, *args);
     }else{
-        std::strncpy(err.msg, msg, sizeof(err.msg));
+        std::strncpy(err->msg, msg, sizeof(err->msg));
     }
-    err.userdata = userdata;
-    return &err;
+    err->userdata = userdata;
+    return err;
 }
 
 Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
@@ -517,11 +518,6 @@ Error* Lexer::SyntaxError(const char* fmt, ...) noexcept{
     Error* err = _error(true, "SyntaxError", fmt, &args);
     va_end(args);
     return err;
-}
-
-Lexer::Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept : vm(vm), src(src){
-    this->token_start = pkpy_Str__data(&src->source);
-    this->curr_char = pkpy_Str__data(&src->source);
 }
 
 Error* Lexer::run() noexcept{

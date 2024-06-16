@@ -4,6 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+pkpy_SourceData_ pkpy_SourceData__rcnew(c11_string source, const pkpy_Str* filename, enum CompileMode mode) {
+    pkpy_SourceData_ self = malloc(sizeof(struct pkpy_SourceData));
+    pkpy_SourceData__ctor(self, source, filename, mode);
+    self->rc.count = 1;
+    self->rc.dtor = (void(*)(void*))pkpy_SourceData__dtor;
+    return self;
+}
+
 void pkpy_SourceData__ctor(struct pkpy_SourceData* self,
                            c11_string source,       // may not be null-terminated
                            const pkpy_Str* filename,

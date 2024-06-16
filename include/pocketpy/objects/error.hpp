@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pocketpy/common/str.hpp"
-#include "pocketpy/objects/sourcedata.hpp"
+#include "pocketpy/objects/sourcedata.h"
 
 namespace pkpy {
 
@@ -33,15 +33,33 @@ struct Exception {
     PyObject* _self;  // weak reference
 
     struct Frame {
-        std::shared_ptr<SourceData> src;        // weak ref
+        pkpy_SourceData_ src;
         int lineno;
         const char* cursor;
         std::string name;
 
-        Str snapshot() const { return src->snapshot(lineno, cursor, name); }
+        Str snapshot() const {
+            return pkpy_SourceData__snapshot(src, lineno, cursor, name.empty() ? nullptr : name.c_str());
+        }
 
-        Frame(std::shared_ptr<SourceData> src, int lineno, const char* cursor, std::string_view name) :
-            src(src), lineno(lineno), cursor(cursor), name(name) {}
+        Frame(pkpy_SourceData_ src, int lineno, const char* cursor, std::string_view name) :
+            src(src), lineno(lineno), cursor(cursor), name(name) {
+                PK_INCREF(src);
+            }
+        // disable copy
+        Frame(const Frame&) = delete;
+        // allow move
+        Frame(Frame&& other) noexcept{
+            src = other.src;
+            lineno = other.lineno;
+            cursor = other.cursor;
+            name = std::move(other.name);
+            other.src = nullptr;
+        }
+
+        ~Frame() {
+            if(src) PK_DECREF(src);
+        }
     };
 
     vector<Frame> stacktrace;
@@ -79,7 +97,7 @@ struct TopLevelException : std::exception {
 
 struct Error{
     const char* type;
-    std::shared_ptr<SourceData> src;
+    pkpy_SourceData_ src;
     int lineno;
     const char* cursor;
     char msg[100];

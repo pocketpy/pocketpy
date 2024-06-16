@@ -65,8 +65,14 @@ print('ans_2:', A('abc').get())
 exit()
 ''', capture_output=True, check=True)
         res.check_returncode()
-        assert 'ans_1: 3' in res.stdout, res.stdout
-        assert 'ans_2: abc' in res.stdout, res.stdout
+        # assert 'ans_1: 3' in res.stdout, res.stdout
+        if 'ans_1: 3' not in res.stdout:
+            print(res.stdout)
+            exit(1)
+        # assert 'ans_2: abc' in res.stdout, res.stdout
+        if 'ans_2: abc' not in res.stdout:
+            print(res.stdout)
+            exit(1)
 
 
 if len(sys.argv) == 2:

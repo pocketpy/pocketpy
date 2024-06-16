@@ -1,7 +1,7 @@
 #pragma once
 
-#include "pocketpy/objects/sourcedata.hpp"
 #include "pocketpy/objects/error.hpp"
+#include "pocketpy/objects/sourcedata.h"
 
 #include <variant>
 
@@ -95,8 +95,10 @@ enum Precedence {
 enum class StringType { NORMAL_STRING, RAW_STRING, F_STRING, NORMAL_BYTES };
 
 struct Lexer {
+    PK_ALWAYS_PASS_BY_POINTER(Lexer)
+
     VM* vm;
-    std::shared_ptr<SourceData> src;
+    pkpy_SourceData_ src;
     const char* token_start;
     const char* curr_char;
     int current_line = 1;
@@ -131,11 +133,19 @@ struct Lexer {
     [[nodiscard]] Error* IndentationError(const char* msg) noexcept { return _error(true, "IndentationError", msg, NULL); }
     [[nodiscard]] Error* NeedMoreLines() noexcept { return _error(true, "NeedMoreLines", "", NULL, 0); }
 
-    Lexer(VM* vm, std::shared_ptr<SourceData> src) noexcept;
-    
     [[nodiscard]] Error* run() noexcept;
     [[nodiscard]] Error* from_precompiled() noexcept;
     [[nodiscard]] Error* precompile(Str* out) noexcept;
+
+    Lexer(VM* vm, std::string_view source, const Str& filename, CompileMode mode) noexcept{
+        src = pkpy_SourceData__rcnew({source.data(), (int)source.size()}, &filename, mode);
+        this->token_start = pkpy_Str__data(&src->source);
+        this->curr_char = pkpy_Str__data(&src->source);
+    }
+
+    ~Lexer(){
+        PK_DECREF(src);
+    }
 };
 
 enum class IntParsingResult {

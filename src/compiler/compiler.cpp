@@ -1281,7 +1281,7 @@ Error* Compiler::read_literal(PyVar* out) noexcept{
 }
 
 Compiler::Compiler(VM* vm, std::string_view source, const Str& filename, CompileMode mode, bool unknown_global_scope) noexcept:
-    lexer(vm, std::make_shared<SourceData>(source, filename, mode)){
+    lexer(vm, source, filename, mode){
     this->vm = vm;
     this->unknown_global_scope = unknown_global_scope;
     init_pratt_rules();

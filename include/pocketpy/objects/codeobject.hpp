@@ -4,7 +4,7 @@
 #include "pocketpy/common/traits.hpp"
 #include "pocketpy/objects/tuplelist.hpp"
 #include "pocketpy/objects/namedict.hpp"
-#include "pocketpy/objects/sourcedata.hpp"
+#include "pocketpy/objects/sourcedata.h"
 #include "pocketpy/common/smallmap.h"
 
 namespace pkpy {
@@ -71,13 +71,15 @@ using CodeObject_ = std::shared_ptr<CodeObject>;
 using FuncDecl_ = std::shared_ptr<FuncDecl>;
 
 struct CodeObject {
+    PK_ALWAYS_PASS_BY_POINTER(CodeObject)
+    
     struct LineInfo {
         int lineno;       // line number for each bytecode
         bool is_virtual;  // whether this bytecode is virtual (not in source code)
         int iblock;       // block index
     };
 
-    std::shared_ptr<SourceData> src;
+    pkpy_SourceData_ src;
     Str name;
 
     vector<Bytecode> codes;
@@ -99,17 +101,18 @@ struct CodeObject {
 
     void _gc_mark(VM*) const;
 
-    CodeObject(std::shared_ptr<SourceData> src, const Str& name) :
+    CodeObject(pkpy_SourceData_ src, const Str& name) :
         src(src), name(name), nlocals(0), start_line(-1), end_line(-1) {
         blocks.push_back(CodeBlock(CodeBlockType::NO_BLOCK, -1, 0));
-
         c11_smallmap_n2i__ctor(&varnames_inv);
         c11_smallmap_n2i__ctor(&labels);
+        PK_INCREF(src);
     }
 
     ~CodeObject() {
         c11_smallmap_n2i__dtor(&varnames_inv);
         c11_smallmap_n2i__dtor(&labels);
+        PK_DECREF(src);
     }
 };
 
