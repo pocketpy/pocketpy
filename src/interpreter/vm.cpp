@@ -2,6 +2,7 @@
 #include "pocketpy/common/memorypool.h"
 #include "pocketpy/objects/base.h"
 
+#include <cstddef>
 #include <iostream>
 #include <cmath>
 #include <stdexcept>
@@ -85,11 +86,11 @@ struct JsonSerializer {
 VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
     Pools_initialize();
     pkpy_StrName__initialize();
-    static ::PyObject __true_obj = {.type=tp_bool, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
-    static ::PyObject __false_obj = {.type=tp_bool, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
-    static ::PyObject __none_obj = {.type=tp_none_type, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
-    static ::PyObject __not_implemented_obj = {.type=tp_not_implemented_type, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
-    static ::PyObject __ellipsis_obj = {.type=tp_ellipsis, .gc_is_large=false, .gc_marked=false, ._attr=NULL};
+    static ::PyObject __true_obj = {tp_bool, false, false, NULL};
+    static ::PyObject __false_obj = {tp_bool, false, false, NULL};
+    static ::PyObject __none_obj = {tp_none_type, false, false, NULL};
+    static ::PyObject __not_implemented_obj = {tp_not_implemented_type, false, false, NULL};
+    static ::PyObject __ellipsis_obj = {tp_ellipsis, false, false, NULL};
 
     /* Must be heap objects to support `==` and `is` and `is not` */
     True.type = tp_bool; True.is_ptr = true; True.extra = 1; True._obj = &__true_obj;
