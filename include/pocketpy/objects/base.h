@@ -15,6 +15,11 @@ extern "C" {
 typedef int16_t pkpy_Type;
 
 typedef struct PyObject PyObject;
+typedef struct pkpy_VM pkpy_VM;
+
+struct pkpy_G {
+    pkpy_VM* vm;
+} extern pkpy_g;
 
 typedef struct PyVar{
     pkpy_Type type;

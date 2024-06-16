@@ -86,6 +86,8 @@ struct JsonSerializer {
 VM::VM(bool enable_os) : heap(this), enable_os(enable_os) {
     Pools_initialize();
     pkpy_StrName__initialize();
+    pkpy_g.vm = (pkpy_VM*)this;    // setup the current VM
+
     static ::PyObject __true_obj = {tp_bool, false, false, NULL};
     static ::PyObject __false_obj = {tp_bool, false, false, NULL};
     static ::PyObject __none_obj = {tp_none_type, false, false, NULL};
