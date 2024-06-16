@@ -27,13 +27,13 @@ static cJSON* convert_python_object_to_cjson(PyVar obj, VM* vm){
     if(is_none(obj)) return cJSON_CreateNull();
     Type obj_t = vm->_tp(obj);
     switch(obj_t){
-        case VM::tp_int.index: cJSON_CreateNumber(_CAST(i64, obj));
-        case VM::tp_float.index: cJSON_CreateNumber(_CAST(f64, obj));
-        case VM::tp_bool.index: cJSON_CreateBool(obj == vm->True);
-        case VM::tp_str.index: cJSON_CreateString(_CAST(Str&, obj).c_str());
-        case VM::tp_dict.index: return covert_dict_to_cjson(_CAST(Dict&, obj), vm);
-        case VM::tp_list.index: return convert_list_to_cjson<List>(_CAST(List&, obj), vm);
-        case VM::tp_tuple.index: return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
+        case VM::tp_int: cJSON_CreateNumber(_CAST(i64, obj));
+        case VM::tp_float: cJSON_CreateNumber(_CAST(f64, obj));
+        case VM::tp_bool: cJSON_CreateBool(obj.extra);
+        case VM::tp_str: cJSON_CreateString(_CAST(Str&, obj).c_str());
+        case VM::tp_dict: return covert_dict_to_cjson(_CAST(Dict&, obj), vm);
+        case VM::tp_list: return convert_list_to_cjson<List>(_CAST(List&, obj), vm);
+        case VM::tp_tuple: return convert_list_to_cjson<Tuple>(_CAST(Tuple&, obj), vm);
         default: break;
     }
     vm->TypeError(_S("unrecognized type ", _type_name(vm, obj_t).escape()));
