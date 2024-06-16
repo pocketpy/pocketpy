@@ -23,7 +23,6 @@ typedef struct PyVar{
     union {
         int64_t _i64;
         double _f64;
-        bool _bool;
         PyObject* _obj;
         void* _ptr;
         // Vec2
