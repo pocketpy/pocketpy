@@ -445,8 +445,8 @@ public:
 
     template<typename T, typename ...Args>
     PyVar new_object(Type type, Args&&... args){
-        if constexpr(is_sso_v<T>) return PyVar(type, T(std::forward<Args>(args)...));
-        else return heap.gcnew<T>(type, std::forward<Args>(args)...);
+        static_assert(!is_sso_v<T>);
+        return heap.gcnew<T>(type, std::forward<Args>(args)...);
     }
 #endif
 
