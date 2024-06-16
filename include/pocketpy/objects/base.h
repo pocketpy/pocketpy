@@ -74,8 +74,6 @@ PK_INLINE bool PyVar__IS_OP(const PyVar* a, const PyVar* b){
 bool pkpy_Var__eq__(void *vm, PyVar a, PyVar b);
 int64_t pkpy_Var__hash__(void *vm, PyVar a);
 
-extern PyVar pkpy_True, pkpy_False, pkpy_None;
-extern PyVar pkpy_NotImplemented, pkpy_Ellipsis;
 extern PyVar pkpy_NULL, pkpy_OP_CALL, pkpy_OP_YIELD;
 
 #ifdef __cplusplus

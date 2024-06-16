@@ -218,11 +218,11 @@ public:
     constexpr static Type tp_none_type = Type(kTpNoneTypeIndex), tp_not_implemented_type = Type(kTpNotImplementedTypeIndex);
     constexpr static Type tp_ellipsis = Type(26);
 
-    inline static PyVar True = pkpy_True;
-    inline static PyVar False = pkpy_False;
-    inline static PyVar None = pkpy_None;
-    inline static PyVar NotImplemented = pkpy_NotImplemented;
-    inline static PyVar Ellipsis = pkpy_Ellipsis;
+    PyVar True;
+    PyVar False;
+    PyVar None;
+    PyVar NotImplemented;
+    PyVar Ellipsis;
 
     const bool enable_os;
     VM(bool enable_os = true);
