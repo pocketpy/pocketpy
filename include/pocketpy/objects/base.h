@@ -33,7 +33,6 @@ typedef struct PyVar{
 #define PyVar__as(T, self)  _Generic((T), \
     int64_t: self->_i64, \
     double: self->_f64, \
-    bool: self->_bool, \
     PyObject*: self->_obj, \
     void*: self->_ptr, \
 )
