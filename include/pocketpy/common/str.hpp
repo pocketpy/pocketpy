@@ -399,63 +399,6 @@ struct CString {
     operator const char* () const { return ptr; }
 };
 
-// unary operators
-using ::__repr__;
-using ::__str__;
-using ::__hash__;
-using ::__len__;
-using ::__iter__;
-using ::__next__;
-using ::__neg__;
-// logical operators
-using ::__eq__;
-using ::__lt__;
-using ::__le__;
-using ::__gt__;
-using ::__ge__;
-using ::__contains__;
-// binary operators
-using ::__add__;
-using ::__radd__;
-using ::__sub__;
-using ::__rsub__;
-using ::__mul__;
-using ::__rmul__;
-using ::__truediv__;
-using ::__floordiv__;
-using ::__mod__;
-using ::__pow__;
-using ::__matmul__;
-using ::__lshift__;
-using ::__rshift__;
-using ::__and__;
-using ::__or__;
-using ::__xor__;
-using ::__invert__;
-// indexer
-using ::__getitem__;
-using ::__setitem__;
-using ::__delitem__;
-
-// specials
-using ::__new__;
-using ::__init__;
-using ::__call__;
-using ::__divmod__;
-using ::__enter__;
-using ::__exit__;
-using ::__name__;
-using ::__all__;
-using ::__package__;
-using ::__path__;
-using ::__class__;
-using ::__missing__;
-
-using ::pk_id_add;
-using ::pk_id_set;
-using ::pk_id_long;
-using ::pk_id_complex;
-
 #define DEF_SNAME(name) const static StrName name(#name)
 
 }  // namespace pkpy
