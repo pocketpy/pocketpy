@@ -1,8 +1,4 @@
-#include "pocketpy/common/vector.h"
-#include "pocketpy/common/str.h"
-#include <stdint.h>
-
-#include "pocketpy/objects/pyvar.h"
+#include "pocketpy/objects/namedict.h"
 
 #define SMALLMAP_T__SOURCE
 #define K uint16_t

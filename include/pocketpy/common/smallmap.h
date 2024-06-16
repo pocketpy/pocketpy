@@ -20,8 +20,8 @@ extern "C" {
 #define K c11_string
 #define V uint16_t
 #define TAG s2n
-#define less(a, b)  (c11_string__cmp((a.key), (b)) < 0)
-#define equal(a, b)  (c11_string__cmp((a), (b)) == 0)
+#define less(a, b)      (c11_string__cmp((a), (b)) <  0)
+#define equal(a, b)     (c11_string__cmp((a), (b)) == 0)
 #include "pocketpy/xmacros/smallmap.h"
 #undef SMALLMAP_T__HEADER
 
